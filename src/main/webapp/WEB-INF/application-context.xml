@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:amq="http://activemq.apache.org/schema/core"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://activemq.apache.org/schema/core 
+                           http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd
+                           http://www.springframework.org/schema/util
+                           http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- Common lib components -->
+    <import resource="classpath:shared-lib-context.xml"/>
+    <import resource="classpath:security-config.xml"/>
+    <!-- Mybatis components  -->
+    <import resource="mybatis-beans.xml"/>
+
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_FALLBACK"/>
+        <property name="searchSystemEnvironment" value="true"/>
+    </bean>
+
+    <!--amq:topic id="inbound" physicalName="fake"/-->
+    <amq:queue id="sensor-mgmt" physicalName="sensor-mgmt"/>
+
+    <!-- Broker connector URI-->
+    <bean id="brokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="false"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="1000"/>
+                <entry key="useExponentialBackOff" value="false"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <!-- Broker connector URI-->
+    <bean id="sensorMgmtURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="${AMQ_DNS_RESOLVE:true}"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="1000"/>
+                <entry key="maxReconnectDelay"     value="5000"/>
+                <entry key="useExponentialBackOff" value="false"/>
+                <entry key="jms.redeliveryPolicy.maximumRedeliveries" value="600"/>
+                <entry key="jms.redeliveryPolicy.initialRedeliveryDelay" value="1000"/>
+                <entry key="jms.redeliveryPolicy.redeliveryDelay" value="1000"/>
+            </util:map>
+        </property>
+    </bean>
+
+
+    <!-- JMS ConnectionFactory to use, configuring the embedded broker using XML -->
+    <!--amq:connectionFactory id="jmsFactory" brokerURL="#{brokerURI.build('opsmq','61616')}" userName="superuser" password=""/-->
+
+    <!--bean id="jmsFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="#{brokerURI.build('opsmq','61616')}"/>
+        <property name="userName" value="superuser"/>
+        <property name="password">
+            <value>${KLOOPZ_AMQ_PASS}</value>
+        </property>
+    </bean-->
+
+    <bean id="mgmtJmsFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="#{sensorMgmtURI.build('${KLOOPZ_AMQ_HOST:kloopzmq}','61616')}"/>
+        <property name="userName" value="superuser"/>
+        <property name="password">
+            <value>${KLOOPZ_AMQ_PASS}</value>
+        </property>
+    </bean>
+
+    <bean id="opsEventPub" class="com.oneops.sensor.jms.OpsEventPublisher" init-method="init">
+        <property name="connectionFactory" ref="mgmtJmsFactory"/>
+    </bean>
+    
+    <bean id="daqCluster" class="com.oneops.cassandra.ClusterBootstrap">
+        <property name="hostPort" value="daq:9160"/>
+    </bean>    
+
+    <bean id="opsdbCluster" class="com.oneops.cassandra.ClusterBootstrap">
+        <property name="hostPort" value="opsdb:9160"/>
+    </bean>
+
+    <bean id="opsEventDao" class="com.oneops.ops.dao.OpsEventDao" init-method="init">
+    	<property name="clusterBootstrap" ref="opsdbCluster" />
+        <property name="clusterName" value="sensor_cluster"/>
+        <property name="keyspaceName" value="sensor_ksp"/>
+    </bean>
+
+    <bean id="opsCiStateDao" class="com.oneops.ops.dao.OpsCiStateDao" init-method="init">
+    	<property name="clusterBootstrap" ref="opsdbCluster" />
+        <property name="clusterName" value="sensor_cluster"/>
+        <property name="keyspaceName" value="sensor_ksp"/>
+    </bean>
+
+    <bean id="perfHeaderDao" class="com.oneops.ops.dao.PerfHeaderDao" init-method="init">
+    	<property name="clusterBootstrap" ref="daqCluster" />
+        <property name="clusterName" value="PerfAndLogCluster"/>
+        <property name="keyspaceName" value="mdb"/>
+    </bean>
+    
+    <bean id="tsDao" class="com.oneops.sensor.thresholds.ThresholdsDao" init-method="init">
+    	<property name="clusterBootstrap" ref="opsdbCluster" />
+        <property name="clusterName" value="sensor_cluster"/>
+        <property name="keyspaceName" value="sensor_ksp"/>
+        <property name="timeout" value="600000"/>
+        <property name="opsCiStateDao" ref="opsCiStateDao"/>
+    </bean>
+    
+
+    <bean id="perfDataAccessor" class="com.oneops.ops.dao.PerfDataAccessor" init-method="init">
+    	<property name="clusterBootstrap" ref="daqCluster" />    
+        <property name="clusterName" value="PerfAndLogCluster"/>
+        <property name="keyspaceName" value="mdb"/>
+    </bean>
+
+    <bean id="coProcessor" class="com.oneops.ops.CiOpsProcessor">
+        <property name="oeDao" ref="opsEventDao"/>
+        <property name="opsCiStateDao" ref="opsCiStateDao"/>
+        <property name="trDao" ref="tsDao"/>
+    </bean>
+
+    <bean id="sensorHeartBeat" class="com.oneops.sensor.util.SensorHeartBeat"/>
+    <bean id="basicListener" class="com.oneops.sensor.listeners.BasicListener"/>
+
+    <bean id="opsEventListener" class="com.oneops.sensor.listeners.OpsEventListener" init-method="init">
+        <property name="opsEventDao" ref="opsEventDao"/>
+        <property name="coProcessor" ref="coProcessor"/>
+        <property name="opsEventPub" ref="opsEventPub"/>
+        <!--property name="opsCiStateDao" ref="opsCiStateDao"/-->
+        <property name="perfDataAccessor" ref="perfDataAccessor"/>
+        <property name="sensorHeartBeat" ref="sensorHeartBeat"/>
+        <property name="phDao" ref="perfHeaderDao"/>
+        <property name="cmProcessor" ref="cmsCmProcessor"/>
+    </bean>
+
+    <bean id="closeEventListener" class="com.oneops.sensor.listeners.CloseEventListener">
+        <property name="opsEventDao" ref="opsEventDao"/>
+        <property name="coProcessor" ref="coProcessor"/>
+        <property name="opsEventPub" ref="opsEventPub"/>
+        <!--property name="opsCiStateDao" ref="opsCiStateDao"/-->
+    </bean>
+
+    <bean id="channelDownListener" class="com.oneops.sensor.listeners.ChannelDownListener">
+    	<property name="sensorHeartBeat" ref="sensorHeartBeat"/>
+    </bean>
+
+
+    <bean id="stmtBuilder" class="com.oneops.sensor.StmtBuilder"/>
+
+    <bean id="sensor" class="com.oneops.sensor.Sensor" destroy-method="cleanup">
+        <property name="tsDao" ref="tsDao"/>
+        <property name="opsEventDao" ref="opsEventDao"/>
+        <property name="coProcessor" ref="coProcessor"/>
+        <property name="listeners">
+            <map>
+                <entry key="BasicListener" value-ref="basicListener"/>
+                <entry key="OpsEventListener" value-ref="opsEventListener"/>
+                <entry key="CloseEventListener" value-ref="closeEventListener"/>
+                <entry key="ChannelDownListener" value-ref="channelDownListener"/>
+            </map>
+        </property>
+        <property name="stmtBuilder" ref="stmtBuilder"/>
+    </bean>
+
+    <bean id="sensorTools" class="com.oneops.sensor.util.SensorTools">
+        <property name="tsDao" ref="tsDao"/>
+        <property name="opsEventDao" ref="opsEventDao"/>
+        <property name="coProcessor" ref="coProcessor"/>
+        <property name="cmProcessor" ref="cmsCmProcessor"/>
+	</bean>
+
+    <bean id="sensorListener" class="com.oneops.sensor.jms.SensorListener">
+        <property name="sensor" ref="sensor"/>
+        <property name="sensorHeartBeat" ref="sensorHeartBeat"/>
+    </bean>
+
+    <bean id="monitorListener" class="com.oneops.sensor.jms.MonitorListener">
+        <property name="sensor" ref="sensor"/>
+        <property name="phDao" ref="perfHeaderDao"/>
+        <property name="tsDao" ref="tsDao"/>
+    </bean>
+
+    <bean id="monListenerContainer" class="com.oneops.sensor.jms.SensorMonListenerContainer">
+        <property name="connectionFactory" ref="mgmtJmsFactory"/>
+        <property name="maxConcurrentConsumers" value="1"/>
+        <property name="concurrentConsumers" value="1"/>
+        <property name="destination" ref="sensor-mgmt"/>
+        <property name="messageListener" ref="monitorListener"/>
+        <property name="sessionTransacted" value="true"/>
+    </bean>
+
+
+    <!-- Instance Manager determines this instance id in the pool it will be used in amq selectors sensor class-->
+    <bean id="instanceManager" class="com.oneops.sensor.util.InstanceManager" init-method="init"
+          destroy-method="cleanup">
+        <property name="utilManager" ref="utilManager"/>
+        <property name="sensor" ref="sensor"/>
+        <property name="opsMQURI" ref="brokerURI"/>
+        <property name="sensorListener" ref="sensorListener"/>
+        <property name="monListenerContainer" ref="monListenerContainer"/>
+    </bean>
+
+</beans>
