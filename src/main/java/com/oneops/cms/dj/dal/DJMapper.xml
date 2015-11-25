@@ -1,0 +1,1263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.dj.dal.DJMapper">
+
+ 	 <!--cache/-->
+
+	 <select id="getNextDjId" useCache="false" resultType="long">
+		select nextval('dj_pk_seq')
+	 </select>
+
+	 <select id="getNextCiId" useCache="false" resultType="long">
+		select nextval('cm_pk_seq')
+	 </select>
+
+	 <select id="getReleaseStateId" parameterType="string" resultType="Integer">
+		select release_state_id from dj_release_states 
+		where state_name = #{value}
+	 </select>
+
+	 <select id="getRfcCiActionId" parameterType="string" resultType="Integer">
+		select action_id from dj_rfc_ci_actions 
+		where action_name = #{value}
+	 </select>
+
+     <!-- DJ Releases -->
+
+	 <!--insert id="createRelease" parameterType="com.oneops.cms.dj.domain.CmsRelease">
+	 	INSERT INTO dj_releases(
+            release_id, ns_id, parent_release_id, release_name, created_by, release_state_id, release_type,
+            description, revision)
+    	VALUES (#{releaseId}, #{nsId}, #{parentReleaseId}, #{releaseName}, #{createdBy}, #{releaseStateId}, #{releaseType},
+    		#{description}, #{revision});
+	 </insert-->
+
+	 <insert id="createRelease" parameterType="com.oneops.cms.dj.domain.CmsRelease" statementType="CALLABLE">
+	    {call dj_create_release(#{releaseId}, #{nsId}, #{parentReleaseId}, #{releaseName}, #{createdBy}, #{releaseStateId}, #{releaseType}, #{description}, #{revision})}
+	 </insert>
+
+
+	 <update id="commitRelease" parameterType="map" statementType="CALLABLE">
+	    {call dj_commit_release(#{releaseId}, #{setDfValue}, #{newCiState}, #{delete4real}, #{userId}, #{desc})}
+	 </update> 
+
+	 <update id="brushReleaseExecOrder" parameterType="long" statementType="CALLABLE">
+	    {call dj_brush_exec_order(#{value})}
+	 </update> 
+
+
+	 <update id="updateRelease" parameterType="com.oneops.cms.dj.domain.CmsRelease" statementType="CALLABLE">
+	 	{call dj_update_release(#{releaseId}, #{parentReleaseId}, #{releaseName}, #{releaseStateId}, #{commitedBy}, #{revision}, #{description})}
+	 </update>
+
+	 <delete id="deleteRelease" parameterType="long" statementType="CALLABLE">
+	 	{call dj_delete_release (#{releaseId})}
+	 </delete>
+
+
+	 <select id="getReleaseById" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRelease">
+		SELECT r.release_id as releaseId, 
+			   r.ns_id as nsId, 
+			   r.parent_release_id as parentReleaseId,
+			   ns.ns_path as nsPath,
+			   r.release_name as releaseName, 
+			   r.created_by as createdBy,
+			   r.commited_by as commitedBy, 
+			   r.release_state_id as releaseStateId,
+			   rs.state_name as releaseState, 
+			   r.release_type as releaseType,
+       		   r.description, 
+       		   r.revision, 
+       		   r.created, 
+       		   r.updated
+  		FROM dj_releases r, ns_namespaces ns, dj_release_states rs
+		where r.release_id = #{value}
+			and r.ns_id = ns.ns_id
+			and r.release_state_id = rs.release_state_id
+	 </select>
+
+
+	 <select id="getReleaseBy3" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRelease">
+		SELECT r.release_id as releaseId, 
+			   r.ns_id as nsId, 
+			   r.parent_release_id as parentReleaseId,
+			   ns.ns_path as nsPath,
+			   r.release_name as releaseName, 
+			   r.created_by as createdBy, 
+			   r.commited_by as commitedBy, 
+			   r.release_state_id as releaseStateId,
+			   rs.state_name as releaseState, 
+			   r.release_type as releaseType,
+       		   r.description, 
+       		   r.revision, 
+       		   r.created, 
+       		   r.updated
+  		FROM dj_releases r, ns_namespaces ns, dj_release_states rs
+		where ns.ns_path = #{nsPath}
+			and r.ns_id = ns.ns_id
+			and (#{releaseName}::varchar is null or r.release_name = #{releaseName})
+			and r.release_state_id = rs.release_state_id
+			and (#{releaseState}::varchar is null or rs.state_name = #{releaseState})
+		order by r.release_id desc	
+	 </select>
+
+	 <select id="getLatestRelease" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRelease">
+		SELECT r.release_id as releaseId, 
+			   r.ns_id as nsId, 
+			   r.parent_release_id as parentReleaseId,
+			   ns.ns_path as nsPath,
+			   r.release_name as releaseName, 
+			   r.created_by as createdBy, 
+			   r.commited_by as commitedBy,
+			   r.release_state_id as releaseStateId,
+			   rs.state_name as releaseState, 
+			   r.release_type as releaseType,
+       		   r.description, 
+       		   r.revision, 
+       		   r.created, 
+       		   r.updated
+  		FROM dj_releases r, ns_namespaces ns, dj_release_states rs
+		where r.release_id = (select max(r1.release_id) from dj_releases r1, ns_namespaces ns1, dj_release_states rs1
+		                      where ns1.ns_path = #{nsPath}
+		                        and r1.ns_id = ns1.ns_id
+		                        and r1.release_state_id = rs1.release_state_id
+		                        and (#{releaseState}::varchar is null or rs1.state_name = #{releaseState})) 
+			and r.ns_id = ns.ns_id
+			and r.release_state_id = rs.release_state_id
+	 </select>
+
+     <!-- DJ RFC CIs -->
+
+	 <insert id="createRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="CALLABLE">
+	    {call dj_create_rfc_ci(#{rfcId} ,#{releaseId}, #{ciId}, #{nsId}, #{ciClassId}, #{ciName}, #{ciGoid}, #{rfcActionId}, #{execOrder}, #{lastAppliedRfcId}, #{comments}, #{createdBy})}
+	 </insert> 
+
+	 <update id="updateRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="CALLABLE">	     
+	     {call dj_update_rfc_ci(#{rfcId}, #{ciName}, #{execOrder}, #{comments}, #{updatedBy})}
+	 </update> 
+
+	 <update id="rmRfcCIfromRelease" parameterType="long" statementType="CALLABLE">
+	    {call dj_rm_rfc_ci(#{value})}
+	 </update> 
+
+	 <update id="rmRfcRelationfromRelease" parameterType="long" statementType="CALLABLE">
+	    {call dj_rm_rfc_rel(#{value})}
+	 </update> 
+
+
+	 <delete id="deleteRfcCI" parameterType="long">
+	     delete from dj_rfc_ci
+	     where rfc_id = #{value}
+	 </delete> 
+
+	 <select id="getRfcCIById" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder,
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id as lastAppliedRfcId,
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r
+        where rci.rfc_id = #{value}
+		  and rci.release_id = r.release_id
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+	 <select id="getOpenRfcCIByCiId" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        where rci.ci_id = #{value}
+          and rci.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rci.is_active_in_release = true
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+	 <select id="getOpenRfcCIByCiIdList" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        where rci.ci_id in 
+			<foreach item="item" index="index" collection="ciIds" open="(" close=")" separator=", "> 
+		         #{item} 
+        	</foreach> 
+          and rci.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rci.is_active_in_release = true
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+
+	 <select id="getRfcCIBy3" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r
+        where rci.release_id = #{releaseId}
+          and rci.release_id = r.release_id
+          and (#{isActive}::boolean is null or rci.is_active_in_release = #{isActive})
+          and (#{ciId}::bigint is null or rci.ci_id = #{ciId})
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+	 <select id="getOpenRfcCIByClazzAndName" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        where (#{ciName}::varchar is null or rci.ci_name = #{ciName})
+          and (#{clazzName}::varchar is null or cl.class_name = #{clazzName})
+          and rci.release_id = r.release_id
+		  and r.release_state_id = rs.release_state_id
+		  and rs.state_name = 'open'
+          and rci.is_active_in_release = true
+          and rci.ns_id = ns.ns_id
+          and ns.ns_path = #{nsPath}
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+	 <select id="getOpenRfcCIByClazzAndNameLower" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        where lower(rci.ci_name) = lower(#{ciName}) 
+          and (#{clazzName}::varchar is null or cl.class_name = #{clazzName})
+          and rci.release_id = r.release_id
+		  and r.release_state_id = rs.release_state_id
+		  and rs.state_name = 'open'
+          and rci.is_active_in_release = true
+          and rci.ns_id = ns.ns_id
+          and ns.ns_path = #{nsPath}
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+
+	 <select id="getOpenRfcCIByNsLike" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName,
+			cl.impl as impl, 
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId,
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+          and (#{ciName}::varchar is null or rci.ci_name = #{ciName})
+          and (#{clazzName}::varchar is null or cl.class_name = #{clazzName})
+          and rci.release_id = r.release_id
+		  and r.release_state_id = rs.release_state_id
+		  and rs.state_name = 'open'
+          and rci.is_active_in_release = true
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+
+	 <select id="getOpenRfcCIByClazzAnd2Names" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName,
+			cl.impl as impl, 
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId,
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        where rci.ci_name in (#{ciName}, #{altCiName})
+          and cl.class_name = #{clazzName}
+          and rci.release_id = r.release_id
+		  and r.release_state_id = rs.release_state_id
+		  and rs.state_name = 'open'
+          and rci.is_active_in_release = true
+          and rci.ns_id = ns.ns_id
+          and ns.ns_path = #{nsPath}
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+	 </select>
+
+    <select id="getClosedRfcCIByCiId" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+			rci.rfc_id as rfcId,
+			rci.release_id as releaseId,
+			rci.ci_id as ciId,
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath,
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName,
+			cl.impl as impl,
+			rci.ci_name as ciName,
+			rci.ci_goid as ciGoid,
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction,
+		    rci.execution_order as execOrder,
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId,
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy,
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy,
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r
+        WHERE rci.ci_id = #{value}
+          and rci.release_id = r.release_id
+          and r.release_state_id = 200
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+		ORDER BY rci.rfc_id asc
+	 </select>
+
+    <select id="getRollUpRfc" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+			rci.rfc_id as rfcId,
+			rci.release_id as releaseId,
+			rci.ci_id as ciId,
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath,
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName,
+			cl.impl as impl,
+			rci.ci_name as ciName,
+			rci.ci_goid as ciGoid,
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction,
+		    rci.execution_order as execOrder,
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId,
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy,
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy,
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs
+        WHERE rci.ci_id = #{ciId}
+          and rci.rfc_id &lt;= #{rfcId}
+          and rci.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'close'
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+		ORDER BY rci.rfc_id asc
+    </select>
+
+
+	 <insert id="upsertRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
+	    {call dj_upsert_rfc_ci_attr(#{rfcId} ,#{attributeId}, #{newValue}, #{owner}, #{comments}, #{rfcAttributeId,jdbcType=BIGINT, mode=OUT})}
+	 </insert> 
+	
+	
+	 <select id="getRfcCIAttributes" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcAttribute">
+		SELECT cia.rfc_attr_id as rfcAttributeId, 
+			   cia.rfc_id as rfcId, 
+			   cia.attribute_id as attributeId, 
+			   ca.attribute_name as attributeName,
+			   cia.old_attribute_value as oldValue, 
+			   cia.new_attribute_value as newValue, 
+			   cia.owner,
+		       cia.comments, 
+		       cia.created
+		FROM dj_rfc_ci_attributes cia, md_class_attributes ca
+		where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = #{value} group by a.attribute_id) 
+		  and cia.attribute_id = ca.attribute_id
+	 </select>
+
+
+	 <select id="getRfcCIAttributesByRfcIdList" parameterType="map" resultType="com.oneops.cms.dj.domain.CmsRfcAttribute">
+		SELECT cia.rfc_attr_id as rfcAttributeId, 
+			   cia.rfc_id as rfcId, 
+			   cia.attribute_id as attributeId, 
+			   ca.attribute_name as attributeName,
+			   cia.old_attribute_value as oldValue, 
+			   cia.new_attribute_value as newValue, 
+			   cia.owner,
+		       cia.comments, 
+		       cia.created
+		FROM dj_rfc_ci_attributes cia, md_class_attributes ca
+		where cia.rfc_id in 
+			<foreach item="item" index="index" collection="rfcIds" open="(" close=")" separator=", "> 
+		         #{item} 
+        	</foreach> 
+		  and cia.attribute_id = ca.attribute_id
+	 </select>
+
+     <!-- DJ RFC Relations -->
+
+	 <insert id="createRfcRelation" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="CALLABLE">
+	    {call dj_create_rfc_relation(#{rfcId} ,#{releaseId}, #{nsId}, #{ciRelationId}, #{fromRfcId}, #{fromCiId}, #{relationId}, #{relationGoid}, #{toRfcId}, #{toCiId}, #{rfcActionId}, #{execOrder}, #{lastAppliedRfcId}, #{comments}, #{createdBy})}
+	 </insert> 
+
+	 <update id="updateRfcRelation" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="CALLABLE">
+	    {call dj_update_rfc_relation(#{rfcId}, #{execOrder}, #{comments}, #{updatedBy})}
+	 </update> 
+	 
+
+	 <insert id="upsertRfcRelationAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
+	    {call dj_upsert_rfc_rel_attr(#{rfcId} ,#{attributeId}, #{newValue}, #{owner}, #{comments}, #{rfcAttributeId,jdbcType=BIGINT, mode=OUT})}
+	 </insert> 
+
+	 <select id="getRfcRelationById" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId,
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId, 
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created,
+       		   rfr.updated
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r
+        where rfr.rfc_id = #{value}
+          and rfr.release_id = r.release_id
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+	 </select>
+
+	 <select id="getOpenRfcRelationByCiRelId" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId,
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId, 
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.ci_relation_id = #{value}
+          and rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+	 </select>
+
+
+	 <select id="getRfcRelationByReleaseId" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId,
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId, 
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r
+        where rfr.release_id = #{value}
+          and rfr.release_id = r.release_id
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+	 </select>
+
+	 <select id="getRfcRelationBy4" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId, 
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created,
+       		   rfr.updated
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r
+        where rfr.release_id = #{releaseId}
+          and rfr.release_id = r.release_id
+          and (#{isActive}::boolean is null or rfr.is_active_in_release = #{isActive})
+		  and (#{fromCiId}::bigint is null or rfr.from_ci_id = #{fromCiId})
+		  and (#{toCiId}::bigint is null or rfr.to_ci_id = #{toCiId})
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          
+	 </select>
+
+	 <select id="getOpenRfcRelationBy2" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+		  and (#{fromCiId}::bigint is null or rfr.from_ci_id = #{fromCiId})
+		  and (#{toCiId}::bigint is null or rfr.to_ci_id = #{toCiId})
+          and rfr.relation_id = rel.relation_id
+          and (#{relName}::varchar is null or rel.relation_name = #{relName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+ 	 </select>
+
+	 <select id="getOpenFromRfcRelationByTargetClass" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.from_ci_id = #{fromCiId}
+          and rfr.relation_id = rel.relation_id
+          and (#{relName}::varchar is null or rel.relation_name = #{relName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.to_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and cl1.class_name = #{targetClassName})
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.to_ci_id
+          	                and ci.class_id = cl2.class_id
+          	                and cl2.class_name = #{targetClassName})
+          	   )               		   
+ 	 </select>
+
+	 <select id="getOpenToRfcRelationByTargetClass" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.to_ci_id = #{toCiId}
+          and rfr.relation_id = rel.relation_id
+          and (#{relName}::varchar is null or rel.relation_name = #{relName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.from_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and cl1.class_name = #{targetClassName})
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.from_ci_id
+          	                and ci.class_id = cl2.class_id
+          	                and cl2.class_name = #{targetClassName})
+          	   )               		   
+ 	 </select>
+
+	 <select id="getRfcRelationBy3" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created,
+       		   rfr.updated
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r
+        where rfr.release_id = #{releaseId}
+          and rfr.release_id = r.release_id
+          and (#{isActive}::boolean is null or rfr.is_active_in_release = #{isActive})
+		  and (#{ciRelationId}::bigint is null or rfr.ci_relation_id = #{ciRelationId})
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+	 </select>
+
+	 <select id="getRfcRelationByReleaseAndClass" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r
+        where rfr.release_id = #{releaseId}
+          and rfr.release_id = r.release_id
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and (#{relationName}::varchar is null or rel.relation_name = #{relationName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+	 </select>
+
+	 <select id="getOpenRfcRelationsByNs" parameterType="string" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and ns.ns_path = #{value}   
+	 </select>
+
+
+	 <select id="getOpenRfcRelations" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and (#{relationName}::varchar is null or rel.relation_name = #{relationName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and (#{nsPath}::varchar is null or ns.ns_path = #{nsPath})
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.from_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and (#{fromClazzName}::varchar is null or cl1.class_name = #{fromClazzName}))
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.from_ci_id
+          	                and ci.class_id = cl2.class_id
+          	                and (#{fromClazzName}::varchar is null or cl2.class_name = #{fromClazzName}))
+          	   )               		   
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.to_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and (#{toClazzName}::varchar is null or cl1.class_name = #{toClazzName}))
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.to_ci_id
+          	                and ci.class_id = cl2.class_id
+          			   		and (#{toClazzName}::varchar is null or cl2.class_name = #{toClazzName}))
+          	                
+          	   )               		   
+	 </select>
+
+
+	 <select id="getOpenRfcRelationsNsLike" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})   
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and (#{relationName}::varchar is null or rel.relation_name = #{relationName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.from_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and (#{fromClazzName}::varchar is null or cl1.class_name = #{fromClazzName}))
+          			   
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.from_ci_id
+          	                and ci.class_id = cl2.class_id
+          			   		and (#{fromClazzName}::varchar is null or cl2.class_name = #{fromClazzName}))
+          	   )               		   
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.to_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and (#{toClazzName}::varchar is null or cl1.class_name = #{toClazzName}))
+          			   
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.to_ci_id
+          	                and ci.class_id = cl2.class_id
+          			   		and (#{toClazzName}::varchar is null or cl2.class_name = #{toClazzName}))
+          	   )               		   
+	 </select>
+
+
+	 <select id="getRfcRelationAttributes" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcAttribute">
+		SELECT cia.rfc_attr_id as rfcAttributeId, 
+			   cia.rfc_id as rfcId, 
+			   cia.attribute_id as attributeId, 
+			   ca.attribute_name as attributeName,
+			   cia.old_attribute_value as oldValue, 
+			   cia.new_attribute_value as newValue, 
+			   cia.owner,
+		       cia.comments, 
+		       cia.created
+		FROM dj_rfc_relation_attributes cia, md_relation_attributes ca
+		where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = #{value} group by a.attribute_id) 
+		  and cia.attribute_id = ca.attribute_id
+	 </select>
+
+
+	 <select id="getRfcRelationAttributesByRfcIdList" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcAttribute">
+		SELECT cia.rfc_attr_id as rfcAttributeId, 
+			   cia.rfc_id as rfcId, 
+			   cia.attribute_id as attributeId, 
+			   ca.attribute_name as attributeName,
+			   cia.old_attribute_value as oldValue, 
+			   cia.new_attribute_value as newValue, 
+			   cia.owner,
+		       cia.comments, 
+		       cia.created
+		FROM dj_rfc_relation_attributes cia, md_relation_attributes ca
+		where cia.rfc_id in 
+			<foreach item="item" index="index" collection="rfcIds" open="(" close=")" separator=", "> 
+		         #{item} 
+        	</foreach> 
+		  and cia.attribute_id = ca.attribute_id
+		 </select>
+
+	 <select id="getLinkedRfcRelationId" parameterType="map" useCache="false" resultType="Long">
+		SELECT rfr.rfc_id 
+        FROM dj_rfc_relation rfr
+        where rfr.release_id = #{releaseId}
+          and (#{isActive}::boolean is null or rfr.is_active_in_release = #{isActive})
+          and (rfr.from_rfc_id = #{rfcId} or rfr.to_rfc_id = #{rfcId})
+	 </select>
+
+
+	 <select id="getOpenFromRfcRelationByAttrs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId, 
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.from_ci_id = #{fromCiId}
+          and rfr.relation_id = rel.relation_id
+          and (#{relName}::varchar is null or rel.relation_name = #{relName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.to_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and cl1.class_name = #{targetClassName})
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.to_ci_id
+          	                and ci.class_id = cl2.class_id
+          	                and cl2.class_name = #{targetClassName})
+          	   )               		   
+          <foreach item="item" index="index" collection="attrList" open="and" separator="and"> 
+		 		exists (select 1 from dj_rfc_relation_attributes rfra, md_relation_attributes mra 
+				         where rfra.rfc_id = rfr.rfc_id 
+					       and rfra.attribute_id = mra.attribute_id 
+					       and mra.attribute_name = #{item.attributeName} 
+					       and rfra.new_attribute_value = #{item.newValue})  
+          </foreach> 
+ 	 </select>
+
+	 <select id="getOpenToRfcRelationByAttrs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId, 
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId,
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId, 
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'open'
+          and rfr.is_active_in_release = true
+          and rfr.to_ci_id = #{toCiId}
+          and rfr.relation_id = rel.relation_id
+          and (#{relName}::varchar is null or rel.relation_name = #{relName})
+          and (#{shortRelName}::varchar is null or rel.short_relation_name = #{shortRelName})
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+          and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
+          			  where rci1.release_id = rfr.release_id 
+          			   and rci1.ci_id = rfr.from_ci_id 
+          			   and rci1.class_id = cl1.class_id
+          			   and cl1.class_name = #{targetClassName})
+          	   or exists (select 1 from cm_ci ci, md_classes cl2
+          	              where ci.ci_id = rfr.from_ci_id
+          	                and ci.class_id = cl2.class_id
+          	                and cl2.class_name = #{targetClassName})
+          	   )               		   
+          <foreach item="item" index="index" collection="attrList" open="and" separator="and"> 
+		 		exists (select 1 from dj_rfc_relation_attributes rfra, md_relation_attributes mra 
+				         where rfra.rfc_id = rfr.rfc_id 
+					       and rfra.attribute_id = mra.attribute_id 
+					       and mra.attribute_name = #{item.attributeName} 
+					       and rfra.new_attribute_value = #{item.newValue})  
+          </foreach> 
+ 	 </select>
+
+	 <select id="getOpenRfcLinks" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcLink">
+			select distinct rr.rfc_id as rfcId, r.relation_name as relationName, rfca.action_name as action,
+			coalesce(from_rc.ci_id, from_ci.ci_id) as fromCiId, 
+			(select fromcl.class_name from md_classes fromcl where fromcl.class_id = coalesce(from_rc.class_id, from_ci.class_id)) as fromClazzName,
+			coalesce(to_rc.ci_id, to_ci.ci_id) as toCiId, 
+			(select tocl.class_name from md_classes tocl where tocl.class_id = coalesce(to_rc.class_id, to_ci.class_id)) as toClazzName
+			from dj_rfc_relation rr
+			  left join dj_rfc_ci to_rc on rr.to_ci_id = to_rc.ci_id
+			  left join cm_ci to_ci on rr.to_ci_id = to_ci.ci_id
+			  left join dj_rfc_ci from_rc on rr.from_ci_id = from_rc.ci_id
+			  left join cm_ci from_ci on rr.from_ci_id = from_ci.ci_id
+			  join md_relations r on rr.relation_id = r.relation_id
+			  join ns_namespaces ns on rr.ns_id = ns.ns_id
+			  join dj_releases rls on rr.release_id = rls.release_id
+			  join dj_release_states rs on rls.release_state_id = rs.release_state_id
+			  join dj_rfc_ci_actions rfca on rr.action_id = rfca.action_id
+			where ns.ns_path = #{nsPath}
+			and rs.state_name = 'open'
+			and (#{relName}::varchar is null or r.relation_name = #{relName})
+				 
+	</select>
+
+	 <select id="countCiRfcByReleaseId" parameterType="long" useCache="false" resultType="long">
+		SELECT count(1)
+		from dj_rfc_ci
+		where release_id = #{value}
+	 </select>
+
+
+
+</mapper>
