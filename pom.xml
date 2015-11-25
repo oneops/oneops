@@ -222,6 +222,14 @@
          <url>http://mvnrepository.com/artifact</url>
      </repository>
    </repositories-->
+  <repositories>
+    <repository>
+        <id>org.activiti</id>
+        <name>activiti workflow engine repo</name>
+        <url>https://maven.alfresco.com/nexus/content/repositories/activiti</url>
+    </repository>
+  </repositories> 
+   
 
   <build>
     <finalName>controller</finalName>
