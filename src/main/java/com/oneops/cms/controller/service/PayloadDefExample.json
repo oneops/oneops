@@ -1,0 +1,28 @@
+   { "returnObject": false,
+     "returnRelation": false,
+     "relationName": "base.RealizedAs",
+     "direction": "to",
+     "relations": [
+                    { "returnObject": false,
+                      "returnRelation": false,
+                      "relationName": "manifest.Requires",
+                      "direction": "to",
+                      "relations": [
+                                    { "returnObject": false,
+                                      "returnRelation": false,
+                                      "relationName": "manifest.Requires",
+                                      "direction": "from",
+                                      "targetClassName": "manifest.Compute",
+                                      "relations": [
+                                                    { "returnObject": true,
+                                                      "returnRelation": false,
+                                                      "relationName": "base.RealizedAs",
+                                                      "direction": "from",
+                                                      "targetClassName": "bom.Compute"
+                                                    }
+                                                   ]
+                                    }
+                                   ]
+                   }
+                 ]
+   }
