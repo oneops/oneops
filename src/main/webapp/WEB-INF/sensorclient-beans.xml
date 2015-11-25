@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+						   
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+  	<bean id="sensorClient" class="com.oneops.controller.sensor.SensorClient">
+  		<property name="monPublisher" ref="monPublisher" />
+       	<!--property name="restTemplate" ref="sensorRestTemplate" />
+       	<property name="serviceUrl" value="http://sensor:8080/sensor/rest/monitors" />
+       	<property name="cmsServiceUrl" value="http://cmsapi:8080/adapter/rest/" /-->
+   	</bean>
+
+</beans>
