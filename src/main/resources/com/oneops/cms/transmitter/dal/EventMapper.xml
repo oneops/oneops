@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.transmitter.dal.EventMapper">
+
+ 	 <!--cache/-->
+	
+	 <delete id="removeEvent" parameterType="long">
+	    delete from cms_event_queue
+	    where event_id = #{value}
+	 </delete>
+	 
+	  <delete id="removeCiEvent" parameterType="long">
+	    delete from cms_ci_event_queue
+	    where event_id = #{value}
+	 </delete>
+	 
+	 <select id="getEvents" useCache="false" resultType="com.oneops.cms.transmitter.domain.CMSEventRecord">
+		SELECT q.event_id as eventId, 
+			   q.source_pk as sourcePk, 
+			   q.source_name as sourceName, 
+			   et.event_type as eventType, 
+			   q.created
+		  FROM cms_event_queue q, cms_event_type et
+		  where q.event_type_id = et.event_type_id
+		  ORDER BY event_id
+		  LIMIT 100
+	 </select>
+	 
+	 <select id="getCiEvents" useCache="false" resultType="com.oneops.cms.transmitter.domain.CMSEventRecord">
+		SELECT q.event_id as eventId, 
+			   q.source_pk as sourcePk, 
+			   q.source_name as sourceName, 
+			   et.event_type as eventType, 
+			   q.created
+		  FROM cms_ci_event_queue q, cms_event_type et
+		  where q.event_type_id = et.event_type_id
+		  ORDER BY event_id
+		  LIMIT 100
+	 </select>
+
+	 <select id="getQueueBacklog" useCache="false" resultType="int">
+		SELECT count(1)
+		  FROM cms_event_queue
+	 </select>
+	 
+	 <select id="getCiEventsQueueBacklog" useCache="false" resultType="int">
+		SELECT count(1)
+		  FROM cms_ci_event_queue
+	 </select>
+
+
+    <select id="getAgeLastCheck" useCache="false" resultType="double">
+		select extract(epoch from (current_timestamp - max(check_time))) from publishing_state;
+	 </select>
+
+    <select id="good2run" parameterType="map" statementType="CALLABLE" resultType="boolean">
+	    {call cms_acquire_lock(#{lockName}, #{processId}, #{staleTimeout})}
+	 </select>
+
+
+	 <delete id="removeLock" parameterType="map">
+	    delete from cms_lock
+	    where lock_name = #{lockName} and locked_by = #{processId}
+	 </delete> 
+
+</mapper>

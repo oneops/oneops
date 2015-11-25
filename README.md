@@ -1,2 +1,4 @@
-# transmitter
-A java process (runs within tomcat) to publish CMS events to the JMS brokers
+transmitter
+===========
+
+This is a tomcat app that is responsible for publishing cms changes on the JMS CMS_ALL topic
