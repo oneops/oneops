@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	<settings>
+		<!-- changes from the defaults -->
+		<setting name="lazyLoadingEnabled" value="false" />
+	</settings>
+	<typeAliases>
+		<typeAlias alias="mdclass" type="com.oneops.cms.md.domain.CmsClazz" />
+		<typeAlias alias="mdclassattr" type="com.oneops.cms.md.domain.CmsClazzAttribute" />
+		<typeAlias alias="mdrelation" type="com.oneops.cms.md.domain.CmsRelation" />
+		<typeAlias alias="mdrelattr" type="com.oneops.cms.md.domain.CmsRelationAttribute" />
+	</typeAliases>
+
+	<mappers>
+		<mapper resource="com/oneops/cms/md/dal/ClazzMapper.xml" />
+		<mapper resource="com/oneops/cms/md/dal/RelationMapper.xml" />
+		<mapper resource="com/oneops/cms/ns/dal/NSMapper.xml" />
+		<mapper resource="com/oneops/cms/cm/dal/CIMapper.xml" />
+		<mapper resource="com/oneops/cms/dj/dal/DJMapper.xml" />
+		<mapper resource="com/oneops/cms/cm/ops/dal/OpsMapper.xml" />
+	</mappers>
+
+</configuration>
