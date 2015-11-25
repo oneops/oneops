@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+	<beans xmlns="http://www.springframework.org/schema/beans"
+	    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	    xmlns:util="http://www.springframework.org/schema/util" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+	        http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+	        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+
+		<!-- import mybatis staff  -->
+	<import resource="/application-context.xml"/>
+	<import resource="classpath:ecv-beans.xml"/>
+	<bean id="defaultHealthCheck" class="com.oneops.ecv.health.DefaultHealthCheck"/>
+	<bean id="defaultHealthChecker" class="com.oneops.ecv.health.HealthCheckerImpl">
+		<property name="healthChecksToRun">
+			<util:list id="beanList">
+				<ref bean="defaultHealthCheck"/>
+			</util:list>
+		</property>
+	</bean>
+	<bean id="statusController" class="com.oneops.ecv.ws.StatusController">
+		<property name="healthChecker" ref="defaultHealthChecker"/>
+		<property name="config" ref="ecvConfig"/>
+		<property name="authUtil" ref="authUtil"/>
+	</bean>
+	<import resource="classpath:security-config.xml"/>
+
+		<bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
+			    <property name="useDefaultSuffixPattern" value="false" />
+		</bean>
+			 
+	    <!-- Enable annotation scanning. -->
+	    <!-- context:component-scan base-package="com.oneops.transistor.ws.rest" /-->
+	 
+	    <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
+	    <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller" />
+
+	    <bean id="marshallingXMLHttpMessageConverter"
+	        class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
+	        <property name="marshaller" ref="oxmMarshaller" />
+	        <property name="unmarshaller" ref="oxmMarshaller" />
+	        <property name="supportedMediaTypes" value="application/xml" />
+	        
+	    </bean>
+
+
+	    <!-- Define the JSON converter which is used to convert the Objects <-> JSON. -->
+	    <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" >
+	    	<property name="supportedMediaTypes" value="application/json" />
+        </bean>
+	    	 
+	    <!-- Required for REST services in order to bind the return value to the ResponseBody. -->
+	    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+	    	<!-- property name="useDefaultSuffixPattern" value="false" / -->
+	        <property name="messageConverters">
+	            <util:list id="beanList">
+	                <ref bean="jsonMessageConverter" />
+	                <ref bean="marshallingXMLHttpMessageConverter" />
+	            </util:list>
+	        </property>
+	    </bean>
+	 
+	  	<bean id="tranRestController" class="com.oneops.transistor.ws.rest.TransistorRestController">
+	  		<property name="manifestManager" ref="manifestManager" />
+	  		<property name="envManager" ref="envManager" />
+	  		<property name="iaasManager" ref="iaasManager" />
+	  		<property name="dManager" ref="dManager" />
+	  		<property name="baProcessor" ref="baProcessor" />
+	  		<property name="maProcessor" ref="maProcessor" />
+    	</bean>
+
+	  	<bean id="catalogRestController" class="com.oneops.transistor.ws.rest.CatalogRestController">
+	  		<property name="dManager" ref="dManager" />
+    	</bean>
+
+	  	<bean id="tranUtilController" class="com.oneops.transistor.ws.rest.TransistorUtilController">
+	  		<property name="dManager" ref="dManager" />
+	  		<property name="mdManager" ref="cmsMdManager" />
+    	</bean>
+    	
+    	<bean id="mdCacheFilter" class="com.oneops.transistor.ws.rest.filter.TransistorMdCacheFilter" >
+    		<property name="cmManager" ref="cmsCmManager" />
+    		<property name="mdManager" ref="cmsMdManager" />
+    	</bean>
+	   	 
+	</beans>

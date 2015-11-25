@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xmlns:aop="http://www.springframework.org/schema/aop"
+     xmlns:tx="http://www.springframework.org/schema/tx"
+     xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+     xmlns:context="http://www.springframework.org/schema/context"
+     xsi:schemaLocation="
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
+	
+	<bean id="testDataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="org.postgresql.Driver"/>
+		<property name="url" value="jdbc:postgresql://kloopzcmsdb/kloopzdb"/>
+		<property name="username" value="${CMS_DB_USER}"/>
+		<property name="password" value="${CMS_DB_PASS}"/>
+	</bean>
+
+
+	<!-- transaction manager, use JtaTransactionManager for global tx -->
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="testDataSource" />
+    </bean>
+
+    <tx:annotation-driven />
+	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="testDataSource" />
+		<property name="configLocation" value="/src/main/webapp/WEB-INF/mybatis-config.xml" /> 
+	</bean>
+	
+	<bean id="clazzMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="com.oneops.cms.md.dal.ClazzMapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+    </bean>	
+
+	<bean id="nsMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="com.oneops.cms.ns.dal.NSMapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+    </bean>	
+
+	<bean id="relationMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="com.oneops.cms.md.dal.RelationMapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+    </bean>	
+
+	<bean id="ciMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="com.oneops.cms.cm.dal.CIMapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+    </bean>	
+
+	<bean id="opsMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="com.oneops.cms.cm.ops.dal.OpsMapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+    </bean>	
+
+	<bean id="djMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
+        <property name="mapperInterface" value="com.oneops.cms.dj.dal.DJMapper" />
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+    </bean>	
+    
+   	<bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
+    
+
+	<bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
+        <property name="clazzMapper" ref="clazzMapper" />
+        <property name="relationMapper" ref="relationMapper" />
+    </bean>
+	
+	<bean id="cmsMdManager" class="com.oneops.cms.md.service.CmsMdManagerImpl">
+        <property name="mdProcessor" ref="cmsMdProcessor" />
+    </bean>
+
+	<bean id="cmsNsManager" class="com.oneops.cms.ns.service.CmsNsManagerImpl">
+        <property name="nsMapper" ref="nsMapper" />
+    </bean>
+
+    <bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoOpenSSLImpl" init-method="init" />
+
+	<bean id="cmsCmValidator" class="com.oneops.cms.util.CmsCmValidator">
+        <property name="mdManager" ref="cmsMdManager" />
+        <property name="nsManager" ref="cmsNsManager" />
+        <property name="cmsCrypto" ref="cmsCrypto" />
+    </bean>
+
+	<bean id="cmsDjValidator" class="com.oneops.cms.util.CmsDJValidator">
+        <property name="mdManager" ref="cmsMdManager" />
+        <property name="nsManager" ref="cmsNsManager" />
+        <property name="cmsCrypto" ref="cmsCrypto" />
+    </bean>
+
+	<bean id="cmsCmProcessor" class="com.oneops.cms.cm.service.CmsCmProcessor">
+		<property name="ciMapper" ref="ciMapper" />
+        <property name="cmValidator" ref="cmsCmValidator" />
+        <property name="nsManager" ref="cmsNsManager" />
+        <property name="opsMapper" ref="opsMapper" />
+    </bean>
+
+	<bean id="cmsCmManager" class="com.oneops.cms.cm.service.CmsCmManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+    </bean>
+
+
+	<bean id="cmsRfcProcessor" class="com.oneops.cms.dj.service.CmsRfcProcessor">
+		<property name="djMapper" ref="djMapper" />
+        <property name="djValidator" ref="cmsDjValidator" />
+        <property name="nsManager" ref="cmsNsManager" />
+        <property name="ciMapper" ref="ciMapper" />
+        <property name="rfcUtil" ref="rfcUtil" />
+    </bean>
+
+	<bean id="cmsDjManager" class="com.oneops.cms.dj.service.CmsDjManagerImpl">
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+    </bean>
+
+	<bean id="cmsCmRfcMrgProcessor" class="com.oneops.cms.dj.service.CmsCmRfcMrgProcessor">
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="djValidator" ref="cmsDjValidator" />
+        <property name="mdProcessor" ref="cmsMdProcessor" />
+        <property name="rfcUtil" ref="rfcUtil" />
+    </bean>
+
+	<bean id="expEval" class="com.oneops.transistor.util.ExpEvaluator"/>
+
+	<bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcProcessor">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="expEval" ref="expEval" />
+    </bean>
+
+	<bean id="opsProcProcessor" class="com.oneops.cms.cm.ops.service.OpsProcedureProcessor">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+    </bean>
+
+
+	<bean id="manifestManager" class="com.oneops.transistor.service.ManifestManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="manifestRfcProcessor" ref="manifestRfcProcessor" />
+    </bean>
+
+	<bean id="iaasManager" class="com.oneops.transistor.service.IaasManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+        <property name="manifestRfcProcessor" ref="manifestRfcProcessor" />
+    </bean>
+
+
+	<bean id="bomRfcProcessor" class="com.oneops.transistor.service.BomRfcProcessor">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+    </bean>
+
+	<bean id="bomManager" class="com.oneops.transistor.service.BomManagerImpl">
+		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="nsManager" ref="cmsNsManager" />
+    </bean>
+
+	<bean id="envManager" class="com.oneops.transistor.service.BomEnvManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="nsManager" ref="cmsNsManager" />
+    </bean>
+
+</beans>
