@@ -84,7 +84,8 @@ public class CMSClient {
     protected static final String CLOUDSERVICEPREFIX = "cloud.service";
 
     private RestTemplate restTemplate;
-    private String serviceUrl; // = "http://localhost:8080/adapter/rest/";
+    @SuppressWarnings("unused")
+	private String serviceUrl; // = "http://localhost:8080/adapter/rest/";
     private String transUrl = "http://cmsapi:8080/transistor/rest/";
     private CmsCrypto cmsCrypto;
     private Gson gson = new Gson();

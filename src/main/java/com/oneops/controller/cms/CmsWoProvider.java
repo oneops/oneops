@@ -653,9 +653,9 @@ public class CmsWoProvider {
 		List<CmsRfcCI> keys = new ArrayList<CmsRfcCI>();
 		List<CmsRfcRelation> secRels = null;
 		if (managedVia != null && managedVia.size() >0) {
-			secRels = cmrfcProcessor.getFromCIRelations(managedVia.get(0).getCiId(), "bom.SecuredBy", "bom.Keypair", "df");
+			secRels = cmrfcProcessor.getFromCIRelations(managedVia.get(0).getCiId(), "bom.SecuredBy", null, "df");
 		} else {
-			secRels = cmrfcProcessor.getFromCIRelations(rfc.getCiId(), "bom.SecuredBy", "bom.Keypair", "df");
+			secRels = cmrfcProcessor.getFromCIRelations(rfc.getCiId(), "bom.SecuredBy", null, "df");
 		}	
 		for (CmsRfcRelation rel : secRels) {
 			keys.add(rel.getToRfcCi());
@@ -668,9 +668,9 @@ public class CmsWoProvider {
 		List<CmsCIRelation> secRels = null;
 
 		if (managedVia != null && managedVia.size() >0) {
-			secRels = cmProcessor.getFromCIRelations(managedVia.get(0).getCiId(), "bom.SecuredBy", null, "bom.Keypair");
+			secRels = cmProcessor.getFromCIRelations(managedVia.get(0).getCiId(), "bom.SecuredBy", null, null);
 		} else {
-			secRels = cmProcessor.getFromCIRelations(ci.getCiId(), "bom.SecuredBy", null, "bom.Keypair");
+			secRels = cmProcessor.getFromCIRelations(ci.getCiId(), "bom.SecuredBy", null, null);
 		}	
 		for (CmsCIRelation rel : secRels) {
 			keys.add(rel.getToCi());

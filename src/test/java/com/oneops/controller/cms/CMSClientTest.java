@@ -43,13 +43,17 @@ import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
+import com.oneops.cms.cm.ops.service.OpsManager;
+import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.service.CmsDjManager;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsUtil;
 import com.oneops.controller.util.ControllerUtil;
 import com.oneops.util.ReliableExecutor;
 
@@ -69,6 +73,11 @@ public class CMSClientTest {
     private RestTemplate mockHttpAnchor = mock(RestTemplate.class);
     private CmsWoProvider mockWoProvider = mock(CmsWoProvider.class);
     private ControllerUtil ctrlUtil = mock(ControllerUtil.class);
+	private CmsDjManager djManager = mock(CmsDjManager.class);
+	private CmsCmManager cmManager = mock(CmsCmManager.class);
+	private CmsUtil cmsUtil = mock(CmsUtil.class) ;
+    private OpsManager opsManager = mock(OpsManager.class) ;
+
 
 	private static Logger logger = Logger.getLogger(CMSClientTest.class);
 
@@ -81,6 +90,7 @@ public class CMSClientTest {
 		String serviceUrl = "mock://service_url";
 		CmsCrypto cmsCrypto = mock(CmsCrypto.class);
 		ReliableExecutor<NotificationMessage> antennaClient = mock(ReliableExecutor.class );
+		
 		DeploymentNotifier notifier = new DeploymentNotifier();
 		notifier.setAntennaClient(antennaClient);
 		cc.setDeploymentNotifier(notifier);
@@ -90,6 +100,10 @@ public class CMSClientTest {
 		cc.setRetryTemplate(new RetryTemplate());
 		cc.setCmsWoProvider(mockWoProvider);
 		cc.setControllerUtil(ctrlUtil);
+		cc.setDjManager(djManager);
+		cc.setCmManager(cmManager);
+		cc.setCmsUtil(cmsUtil);
+		cc.setOpsManager(opsManager);
 		CmsWorkOrderSimple[] simpleWorkOrders = new CmsWorkOrderSimple[1];
 		CmsWorkOrderSimple workOrderSymple = new CmsWorkOrderSimple();
 		workOrderSymple.setComments("mocked-and-does-not-need-anything");
