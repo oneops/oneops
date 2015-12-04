@@ -12,8 +12,8 @@
   <properties>
      <spring.version>4.1.5.RELEASE</spring.version>
      <junit.version>4.7</junit.version>
-      <activiti-engine.version>5.18.0</activiti-engine.version>
-      <activiti-spring.version>5.18.0</activiti-spring.version>
+      <activiti-engine.version>5.13</activiti-engine.version>
+      <activiti-spring.version>5.13</activiti-spring.version>
       <log4j.version>1.2.16</log4j.version>
       <commons-dbcp.version>1.4</commons-dbcp.version>
       <postgresql.version>9.0-801.jdbc4</postgresql.version>
@@ -108,11 +108,11 @@
          <name>SpringSource Enterprise Bundle Repository - SpringSource Bundle Releases</name>
          <url>http://repository.springsource.com/maven/bundles/release</url>
      </repository>
-     <!--repository>
+     <repository>
          <id>org.activiti</id>
          <name>activiti workflo engine repo</name>
          <url>https://maven.alfresco.com/nexus/content/repositories/activiti</url>
-     </repository-->
+     </repository>
 
      <!-- repository>
          <id>com.springsource.repository.bundles.external</id>
