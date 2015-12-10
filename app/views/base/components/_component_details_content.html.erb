@@ -1,0 +1,24 @@
+<%= hidden_field_tag :template_name, @template_name if @component.new_record? %>
+
+<%= render 'cms/cis/ci', :ci => @component, :f => f %>
+<% if @linkable_sibling_map.present? %>
+  <div class="category">
+    <div class="name">Depends On</div>
+    <div class="control-group">
+    	 <div class="control-label"><%= link_to('Components in group','#', :rel => 'tooltip', :title => 'Dependencies on other components within the same component group') %></div>
+	    <div class="controls">
+		      <% @linkable_sibling_map.each_pair do |d, linked| %>
+		          <% cb_id = "sibling_depends_on_#{d.toCiId}" %>
+		          <%= label(cb_id, :class => 'checkbox') do %>
+		          	<%= check_box_tag 'sibling_depends_on[]', d.toCiId, linked, :id => cb_id %>
+		          	<%= d.toCi.ciName %>
+		          <% end %>
+		      <% end %>
+	    </div>
+    </div>
+  </div>
+<% end %>
+<% scale_relations = @depends_on_relations && @depends_on_relations.reject { |r| r.relationAttributes.flex != 'true' } %>
+<% if scale_relations.present? %>
+	<%= render 'scale', :scale_relations => scale_relations, :ci => @component, :f => f %>
+<% end %>

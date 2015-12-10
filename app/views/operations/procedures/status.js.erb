@@ -1,0 +1,2 @@
+refresh_status_results("<%= @procedure.procedureState %>", <%= raw(@procedure_actions_states.to_json) %>);
+<% render :template => 'operations/procedures/log_data' %>

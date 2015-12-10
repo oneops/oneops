@@ -1,0 +1,55 @@
+<% has_transition  = has_transition?(@assembly.ciId)
+   ci_relation_map = @platforms.to_map(&:toCiId) %>
+<%= ci_list(@platforms.map(&:toCi),
+            :menu => has_transition &&
+                     [{:id => 'enable',  :label => 'Enable',  :url => enable_assembly_transition_environment_path(@assembly, @environment),  :method => :put, :param_name => 'platformCiIds'},
+                      {:id => 'disable', :label => 'Disable', :url => disable_assembly_transition_environment_path(@assembly, @environment), :method => :put, :param_name => 'platformCiIds'}],
+            :toolbar => {:sort_by   => [%w(Name ciName), %w(Created created), %w(Status status)],
+                         :filter_by => %w(ciName status)}) do |builder, target| %>
+  <% relation   = ci_relation_map[target.ciId]
+     rfc_action = target.respond_to?(:rfcAction) && target.rfcAction
+     enabled    = relation.relationAttributes.enabled == 'true'
+     active     = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true %>
+  <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}") %>
+  <% builder.target link_to('', assembly_transition_environment_platform_path(@assembly, @environment, target)) %>
+  <% builder.status do %>
+	  <%= status_marker('version',"#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
+    <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if rfc_action %>
+    <%= marker('disabled','label-important') unless enabled %>
+    <%= instance_marker(@platform_clouds, target) %>
+    <%= icon('star') %>
+    <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
+  <% end %>
+  <% if has_transition %>
+    <% builder.menu do |ci| %>
+      <% unless active %>
+        <%= link_to icon('eject', 'Terminate'),
+                    assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                    :title        => 'Terminate',
+                    :method       => :delete,
+                    :disable_with => 'wait...',
+                    :remote       => true %>
+        <% if enabled %>
+        		<%= link_to icon('play', 'Activate'),
+                      activate_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                      :title        => 'Activate',
+                      :disable_with => 'wait...',
+                      :remote       => true %>
+        <% end %>
+      <% end %>
+      <% unless rfc_action == 'delete' %>
+        <%= caption = enabled ? 'Disable' : 'Enable'
+            link_to enabled ? icon('off',' Disable') : icon('off',' Enable'),
+                    toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                    :title        => caption,
+                    :disable_with => 'wait...',
+                    :remote       => true %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% builder.icon platform_image_url(target) %>
+  <% builder.top do %>
+    <span class="topname"><%= target.ciName %></span>
+  <% end %>
+  <% builder.middle target.ciAttributes.description %>
+<% end %>

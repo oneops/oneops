@@ -1,0 +1,83 @@
+<% if @profiles.blank? %>
+  <% new_link = link_to('New Environment...', new_assembly_transition_environment_path(@assembly)) %>
+<% else %>
+  <% new_link = capture do %>
+    <div class="dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#">New Environment <%= icon('caret-down') %></a>
+      <ul class="dropdown-menu">
+        <% @profiles.each do |p| %>
+          <li>
+            <%= description = p.ciAttributes.description
+                label = "#{highlight(p.ciName)}#{" (#{description})" if description.present? }"
+                link_to(raw(label), new_assembly_transition_environment_path(@assembly, :profile_id => p.ciId)) %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>
+<% watched_map = current_user.watches.where(:ci_class_name => 'manifest.Environment').inject({}) {|m, a| m[a.ci_id] = true; m} %>
+<%= ci_list(@environments,
+            :new_link => new_link,
+            :menu     => [{:id => 'watch',   :label => 'Watch',  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
+                          {:id => 'unwatch', :label => 'Ignore', :url => watch_path, :method => :delete, :param_name => 'ciIds'}],
+            :toolbar  => {:list_name => 'transition_environments',
+                          :sort_by   => [%w(Name ciName), %w(Profile profile), %w(Created created), %w(Watching watch)],
+                          :filter_by => %w(ciName profile)}) do |builder, target| %>
+  <% profile = target.ciAttributes.profile
+     watching = watched_map[target.ciId] %>
+  <% builder.attributes %(ciName="#{target.ciName}" profile="#{target.ciAttributes.profile}" created="#{target.created}" watch="#{watching ? 0 : 1}") %>
+  <% builder.target link_to('', assembly_transition_environment_path(@assembly, target)) %>
+  <% builder.icon :none %>
+  <% builder.top do %>
+		<span class="topname"><%= target.ciName %></span>
+		<span class="topdesc"><%= target.ciAttributes.subdomain %>
+			<% desc = target.ciAttributes.description
+         if desc.present? %>
+			  | <%= desc %>
+			<% end %>
+		</span>
+  <% end %>
+  <% builder.middle do %>
+    <%= icon('cloud', nil, 'icon-large muted') %>
+    &nbsp;&nbsp;&nbsp;primary: <strong><%= target.clouds.select {|r| r.relationAttributes.priority.to_i == 1}.map {|r| r.toCi.ciName}.sort.join(', ') %></strong>
+    <% secondary_clouds = target.clouds.select {|r| r.relationAttributes.priority.to_i == 2}.map {|r| r.toCi.ciName}.sort %>
+    <% if secondary_clouds.present? %>
+      &nbsp;&nbsp;&nbsp;secondary: <strong><%= secondary_clouds.join(', ') %></strong>
+    <% end %>
+  <% end %>
+  <% builder.status do %>
+    <%= marker(profile, 'label-info') if profile.present? %>
+    <% if target.manifest && target.manifest.parentReleaseId != @catalog.releaseId %>
+      <%= status_marker('design', 'pull', 'label-info') %>
+    <% else %>
+      <%= status_marker('design', 'latest', 'label') %>
+    <% end %>
+    <% disabled_platforms_count = target.platforms.reject { |e| e.relationAttributes.enabled == 'true' }.count %>
+    <% if disabled_platforms_count == 0 %>
+      <%= status_marker('platforms', 'enabled', 'label-success') %>
+    <% elsif disabled_platforms_count == target.platforms.count %>
+      <%= status_marker('platforms', 'disabled') %>
+    <% else %>
+      <%= status_marker('platforms', 'partial', 'label-success') %>
+    <% end %>
+    <% if target.release %>
+      <%= status_marker('release', target.release.releaseState, state_to_label(target.release.releaseState)) %>
+    <% end %>
+    <% if target.deployment %>
+      <% if %w(active failed).include?(target.deployment.deploymentState) %>
+        <% deployment = target.deployment.deploymentState %>
+      <% else %>
+        <% deployment = target.bom_release ? 'pending' : target.deployment.deploymentState %>
+      <% end %>
+      <%= status_marker('deployment', deployment, state_to_label(deployment)) %>
+    <% else %>
+      <%= status_marker('deployment', 'pending', 'label-info') if target.bom_release %>
+    <% end %>
+	 <%= icon('star') %>
+	 <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
+    <% if watching %>
+      <i class="icon-large icon-eye-open"></i>
+    <% end %>
+  <% end %>
+<% end %>

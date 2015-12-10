@@ -1,0 +1,60 @@
+<%= render 'cms/cis/ci', :ci => @assembly, :f => f %>
+
+<div class="category">
+  <div class="name">Catalog</div>
+  <div class="control-group">
+    <label for="catalog_template" class="control-label">Select Design</label>
+    <div class="controls">
+      <%= catalog_id = params[:catalog_template].to_i
+          select_tag(:catalog_template, options_for_select(@catalog_templates.map {|t| ["#{t.ciName} (#{t.ciAttributes.description})", t.ciId]}, catalog_id), :prompt => 'None', :class => 'select-xlarge') %>
+    </div>
+    <br/>
+    <div id="diagram_carousel" class="carousel">
+      <div class="carousel-inner">
+        <div class="item <%= 'active' unless @catalog_templates.map(&:ciId).include?(catalog_id) %>" catalog_id="">
+          <object class="diagram"></object>
+          <div class="carousel-caption">
+            <h4>None</h4>
+            <p>No catalog is selected.</p>
+          </div>
+        </div>
+        <% @catalog_templates.each do |c| %>
+          <div class="item <%= 'active' if catalog_id == c.ciId %>" catalog_id="<%= c.ciId %>">
+            <%= content_tag(:object, '', :data => diagram_catalog_path(c), :class => "diagram") %>
+            <div class="carousel-caption">
+              <h4><%= c.ciName %></h4>
+              <p><%= c.ciAttributes.description %></p>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      <a class="carousel-control left"  href="#diagram_carousel" data-slide="prev">&lsaquo;</a>
+      <a class="carousel-control right" href="#diagram_carousel" data-slide="next">&rsaquo;</a>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  var catalog_id_to_index_map = {'': 0};
+  <% @catalog_templates.each_with_index do |c, i| %>
+    catalog_id_to_index_map['<%= c.ciId %>'] = <%= i + 1 %>;
+  <% end %>
+
+  window.update_carousel = function(catalog_id) {
+    $j(".carousel").carousel(catalog_id_to_index_map[catalog_id]);
+  };
+
+  $j(function() {
+    $j(".carousel").carousel({interval: 1000000000});
+
+    $j("#catalog_template").change(function() {
+      update_carousel(this.value);
+    });
+
+    $j(".carousel").bind('slid', function() {
+      $j("#catalog_template").val($j(".carousel").find('.active')[0].getAttribute("catalog_id"));
+    });
+  });
+</script>
+
+<%= render 'base/shared/teams_to_manage_access', :ci => @assembly %>

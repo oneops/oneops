@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
+  <style type="text/css" media="screen">
+    .report table {
+      border: 1px solid #bbb;
+      border-spacing: 0;
+    }
+    .report tr.total {
+      font-weight: bold;
+      font-size: larger;
+    }
+    .report tr.subtotal, .report tr.subsubtotal {
+      font-weight: bold;
+    }
+    .report tr.total, .report tr.subtotal {
+      background: #eee;
+    }
+    .report tr.special {
+      font-style: italic;
+    }
+    .report th, .report td {
+      padding-left: 5px;
+      padding-right: 5px;
+      border-right: 1px solid #bbb;
+      border-bottom: 1px solid #bbb;
+    }
+    .report th {
+      background: #ccc;
+    }
+    .report td {
+      text-align: left;
+    }
+    .report td.metric {
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <%= yield %>
+</body>
+</html>

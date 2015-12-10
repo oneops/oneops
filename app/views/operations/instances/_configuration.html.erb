@@ -1,0 +1,39 @@
+<%= section_panel 'Configuration', :width => 'double' do %>
+  <%= locals = {:read_only => true,
+                :resource  => @instance,
+                :content   => 'configuration_content',
+                :form_url  => assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance)}
+      render 'base/shared/edit_form', locals %>
+<% end %>
+
+<% if @instance.respond_to?(:ciState) && has_operations?(@assembly.ciId) %>
+  <%= section_panel 'Advanced', :id => 'advanced_section', :width => 'single', :position => 'right' do %>
+    <%= render 'advanced' %>
+  <% end %>
+<% end %>
+
+<% instance_depends_on = @from_relations.select { |r| r.relationName == 'bom.DependsOn' } %>
+<% if instance_depends_on.present? %>
+  <%= section_panel "#{@component.ciClassName.split('.').last} Depends On", :id => 'relations_to', :width => 'single', :position => 'right' do %>
+    <%= ci_list instance_depends_on.map(&:toCi) do |builder, target| %>
+      <% builder.target link_to('', assembly_operations_environment_platform_instance_path(@assembly, @environment, @platform, target)) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @dependents.present? %>
+  <%= section_panel "Depends On #{@component.ciClassName.split('.').last}", :id => 'relations_from', :width => 'single', :position => 'right' do %>
+    <%= ci_list @dependents do |builder, target| %>
+      <% builder.target link_to('', assembly_operations_environment_platform_instance_path(@assembly, @environment, @platform, target)) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>
+

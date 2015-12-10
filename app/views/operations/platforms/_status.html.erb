@@ -1,0 +1,7 @@
+<ul class="status">
+  <%= render 'base/shared/status_health',
+             :class_name     => 'Platform',
+             :instance_count => @instances.size,
+             :ops_states     => @ops_states,
+             :bom_release    => @bom_release %>
+</ul>

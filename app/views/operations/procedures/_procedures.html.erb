@@ -1,0 +1,16 @@
+<%= section_panel(defined?(title) == 'local-variable' ? title : 'Procedures', :width => 'single', :position => 'left') do %>
+  <%= list(@procedures, :toolbar => {:sort_by => [%w(Name procedureName), %w(Created created)], :filter_by => %w(procedureName)}) do |builder, procedure| %>
+    <% builder.itemid procedure.procedureId %>
+    <% builder.attributes raw(%(procedureName="#{procedure.procedureName}" created="#{procedure.created}")) %>
+    <% builder.target link_to('', operations_procedure_path(procedure), :remote => true) %>
+    <% builder.top do %>
+      <span class="topname"><%= procedure.procedureName %></span>
+      <span class="topdesc"><%= time_ago_in_words(procedure.created_timestamp) %></span>
+    <% end %>
+    <% builder.status do %>
+      <%= marker(procedure.procedureState, state_to_label(procedure.procedureState)) %>
+    <% end %>
+    <% builder.bottom "submitted by #{procedure.createdBy}" %>
+  <% end %>
+<% end %>
+<div id="procedure_details"></div>

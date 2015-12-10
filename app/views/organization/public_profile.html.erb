@@ -1,0 +1,32 @@
+<%= organization_page_header %>
+
+<%= page_title :page_kind  => 'Organization',
+               :page_label => @organization.name %>
+
+<%= page_info @organization.full_name || '&nbsp;' %>
+
+<%= section_panel 'Organization Public Profile', :width => 'double', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             {:resource  => @organization,
+              :content   => 'public_profile_content',
+              :read_only => true}) %>
+<% end %>
+
+<% if current_user.organizations.where('organizations.name' => @organization.name).first %>
+  <% favs = current_user.favorites.where(:organization_id => @organization.id).order(:ci_name) %>
+  <%= render 'favorite_list', :favorites => favs %>
+<% else %>
+  <%= section_panel 'Request Access', :width => 'single', :position => 'right' do %>
+    <%= form_tag(organization_request_access_path(:org_name => @organization.name), :remote => true) do %>
+      <span class="help-block">
+        <%= icon('info-sign') %>
+        You can request access to this organization by sending email to organization administrator. You will be notififed by email
+        once organization admin adds you to one of the teams in this organization.
+      </span>
+      <br/>
+      <%= hidden_field_tag :org_name, @organization.name %>
+      <%= text_area_tag :message, "Please add me to organization '#{@organization.name}' in OneOps.", :rows => 7, :style => 'width:100%' %>
+      <%= submit_tag 'Request Access', :class => 'btn btn-primary' %>
+    <% end %>
+  <% end %>
+<% end %>

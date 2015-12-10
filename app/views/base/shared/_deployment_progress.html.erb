@@ -1,0 +1,25 @@
+<% rfcs             = deployment.rfc_cis
+   total_count      = rfcs.count
+   complete_count   = rfcs.select{ |r| r.dpmtRecordState == 'complete' }.count
+   failed_count     = rfcs.select{ |r| r.dpmtRecordState == 'failed' }.count
+   inprogress_count = rfcs.select{ |r| r.dpmtRecordState == 'inprogress' }.count %>
+<div>
+  <div class="progress <%= 'progress-striped active' if deployment.deploymentState == 'active' %>" style="width: <%= defined?(width) ? width : '440px' %>; margin-bottom: 5px;"
+       onclick="$j(this).siblings('div').toggle(300);">
+    <div class="bar bar-success" style="width: <%= (complete_count.to_f / total_count * 100).to_s %>%;"></div>
+    <div class="bar bar-danger" style="width: <%= (failed_count.to_f / total_count * 100).to_s %>%;"></div>
+    <div class="bar" style="width: <%= (inprogress_count.to_f / total_count * 100).to_s %>%;"></div>
+  </div>
+  <div class="hide">
+    <dl class="dl-horizontal">
+      <dt>Total:</dt>
+      <dd><%= total_count %></dd>
+      <dt>Completed:</dt>
+      <dd><%= complete_count %> (<%= (complete_count.to_f * 100 / total_count).round(1) %>%)</dd>
+      <dt>Failed:</dt>
+      <dd><%= failed_count %> (<%= (failed_count.to_f * 100  / total_count).round(1) %>%)</dd>
+      <dt>In Progress:</dt>
+      <dd><%= inprogress_count %> (<%= (inprogress_count.to_f * 100  / total_count).round(1) %>%)</dd>
+    </dl>
+  </div>
+</div>

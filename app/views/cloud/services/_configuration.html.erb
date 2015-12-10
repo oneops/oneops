@@ -1,0 +1,29 @@
+<%= section_panel 'Attributes', :width => 'double', :position => 'left' do %>
+  <%= render 'service_details' %>
+<% end %>
+
+<% if has_cloud_services?(@cloud.ciId) %>
+  <%= section_panel 'Actions', :id => 'overview_action_section', :width => 'single', :position => 'right' do %>
+    <%= list_simple(@service.meta.actions, :toolbar => false) do |item, action| %>
+      <% item.target do %>
+        <%= procedure_params = {:ciId              => @cloud.ciId,
+                                :direction         => 'from',
+                                :relationName      => 'base.Provides',
+                                :actionCiIds       => [@service.ciId],
+                                :procedureCiId     => 0,
+                                :procedureState    => 'active',
+                                :actionCiClassName => @service.ciClassName,
+                                :actionName        => action.actionName}
+            link_to('', new_operations_procedure_path(procedure_params), :remote => true) %>
+      <% end %>
+
+      <% item.simple do %>
+        <%= highlight(action.actionName) %>
+        <br/>
+        <%= action.description %>
+      <% end %>
+      <br/>
+      <% item.itemid action.actionId %>
+    <% end %>
+  <% end %>
+<% end %>

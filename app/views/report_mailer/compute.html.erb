@@ -1,0 +1,4 @@
+<% if @note.present? %>
+  <p><%= @note %><br>
+<% end %>
+<%= render('reports/compute_table', :data => @data) %>

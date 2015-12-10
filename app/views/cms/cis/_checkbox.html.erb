@@ -1,0 +1,51 @@
+<% checked     = defined?(checked_value) ? checked_value : 'true'
+   unchecked   = defined?(unchecked_value) ? unchecked_value : 'false'
+   dom_id      = defined?(id) == 'local-variable' ? id : random_dom_id
+   read_only_x = defined?(read_only) && read_only %>
+<span id="<%= dom_id %>" class="check-box <%= 'disabled' if read_only_x %>">
+  <i class="cb icon-fixed-width icon-large <%= attribute_value == checked ? 'icon-check' : 'icon-check-empty' %>"></i>
+  <%= icon(label_icon, '', 'icon-fixed-width') if defined?(label_icon) == 'local-variable' %>
+  <%= label if defined?(label) == 'local-variable' %>
+  <% if defined?(builder) %>
+    <%= builder.hidden_field attribute_name, :'checked-value' => checked, :'unchecked-value' => unchecked %>
+  <% else %>
+    <%= hidden_field_tag attribute_name, attribute_value, :'checked-value' => checked, :'unchecked-value' => unchecked %>
+  <% end %>
+</span>
+<script type="text/javascript">
+  <% unless read_only_x %>
+    $j("#<%= dom_id %>").click(function() {
+      var checkboxContainer = $j(this);
+      if (!checkboxContainer.hasClass('disabled')) {
+        var icon = checkboxContainer.find("i.cb");
+        icon.toggleClass('icon-check icon-check-empty');
+        var input = icon.siblings("input[type=hidden]");
+        input.val(icon.hasClass("icon-check") ? input.attr("checked-value") : input.attr("unchecked-value")).trigger("change");
+      }
+    });
+  <% else %>
+    $j("#<%= dom_id %>").parents(".controls").attr('editable', 'false');
+  <% end %>
+
+  if (!window.reset_check_box) {
+    window.reset_check_box = function(el) {
+      var icon = typeof(el) == "string" ? $j("#" + el + " i.cb") : $j(el).find("i.cb");
+      icon.removeClass("icon-check");
+      icon.addClass("icon-check-empty");
+      icon.each(function(index, i) {
+        var input = $j(i).siblings("input[type=hidden]");
+        input.val(input.attr("unchecked-value")).trigger("change");
+      });
+    };
+
+    window.set_check_box = function(el) {
+      var icon = typeof(el) == "string" ? $j("#" + el + " i.cb") : $j(el).find("i.cb");
+      icon.removeClass("icon-check-empty");
+      icon.addClass("icon-check");
+      icon.each(function(index, i) {
+        var input = $j(i).siblings("input[type=hidden]");
+        input.val(input.attr("checked-value")).trigger("change");
+      });
+    };
+  }
+</script>

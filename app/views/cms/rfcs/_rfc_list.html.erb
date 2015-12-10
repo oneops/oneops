@@ -1,0 +1,111 @@
+<% if rfc_cis.present? || rfc_relations.present? %>
+  <% rfc_relations_map = rfc_relations.inject({}) do |m, r|
+      key = "#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"
+       m[key] ||= []
+       m[key] << r
+      key = "#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"
+       m[key] ||= []
+       m[key] << r
+       m
+     end %>
+  <div class="rfc-list accordion" id="<%= random_dom_id %>">
+    <% rfc_cis.group_by(&:execOrder).sort.each do |exec_order, step_rfcs| %>
+      <div class="step">
+        <% step_duration = @time_stats && @time_stats[:steps] && @time_stats[:steps][exec_order] %>
+        <div class="name">
+          <strong>Step <%= exec_order %></strong>
+          <% if step_duration %>
+            <small>( <%= time_duration_in_words(step_duration) %> )</small>
+          <% end %>
+        </div>
+        <% step_rfcs.sort_by(&:execOrder).each do |rfc_ci| %>
+          <% rfc_id = rfc_ci.rfcId %>
+          <div class="accordion-group">
+            <div class="accordion-heading">
+              <div class="accordion-toggle" onclick="showRfc('rfc_<%= rfc_id %>')">
+                <% total_time = @time_stats && @time_stats[:rfcs][rfc_id] && @time_stats[:rfcs][rfc_id]['totalTime'] %>
+                <%= rfc_header(rfc_ci,
+                               :state            => rfc_ci.deployment.dpmtRecordState,
+                               :duration         => total_time && (total_time.to_f * 1000),
+                               :deployment_state => @deployment && @deployment.deploymentState) %>
+              </div>
+            </div>
+            <div id="rfc_<%= rfc_id %>" class="hide">
+              <div class="accordion-inner">
+                <ul class="nav nav-pills">
+                  <li class="active"><a href="#rfc_<%= rfc_id %>_tab_attr" data-toggle="tab">Attributes</a></li>
+                  <% rfc_ci_relations = rfc_relations_map["#{rfc_ci.ciName}***#{rfc_ci.ciClassName}"] %>
+                  <% if rfc_ci_relations %>
+                    <li><a href="#rfc_<%= rfc_id %>_relations" data-toggle="tab">Relations</a></li>
+                  <% end %>
+                  <li><a href="#rfc_<%= rfc_id %>_tab_log" data-toggle="tab" rfcId="<%= rfc_id %>">Log</a></li>
+                  <% rfc_time_stats = @time_stats.present? && @time_stats[:rfcs][rfc_id] %>
+                  <% if rfc_time_stats %>
+                    <li><a href="#rfc_<%= rfc_id %>_tab_time_stats" data-toggle="tab" rfcId="<%= rfc_id %>">Stats</a></li>
+                  <% end %>
+                </ul>
+                <div class="tab-content">
+                  <div class="tab-pane active" id="rfc_<%= rfc_id %>_tab_attr">
+                    <%= rfc_properties(rfc_ci) %>
+                    <%= rfc_attributes(rfc_ci) %>
+                  </div>
+                  <% if rfc_ci_relations %>
+                    <div class="tab-pane" id="rfc_<%= rfc_id %>_relations">
+                      <% rfc_ci_relations.each do |r| %>
+                        <div class="category">
+                          <div class="name"><%= r.relationName.split('.').last %></div>
+                          <%= rfc_properties(r) %>
+                          <%= rfc_attributes(r) %>
+                        </div>
+                      <% end %>
+                    </div>
+                  <% end %>
+                  <div class="tab-pane" id="rfc_<%= rfc_id %>_tab_log">
+                    <p>Loading log data....</p>
+                  </div>
+                  <% if rfc_time_stats %>
+                    <div class="tab-pane" id="rfc_<%= rfc_id %>_tab_time_stats">
+                      <%= hash_list(rfc_time_stats) %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+  <script type="text/javascript">
+    window.showRfc = function(id) {
+      var div = $j("#" + id);
+      div.toggle(300);
+      var container = div.find(".diff-container:not(.calculated)");
+      if (container.length) {
+        setTimeout(function() {
+          container.prettyTextDiff({cleanup: true});
+          container.find(".changed, .original").hide();
+          container.find(".diff").show();
+          container.addClass('calculated');
+        }, 100);
+      }
+    };
+
+    window.rfc_list_fetch_log = function(rfcId) {
+      $j("#rfc_" + rfcId + "_tab_log").html('<i class="icon-spinner icon-spin"></i> Loading...');
+      <%= remote_function :url    => log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                          :method => :get,
+                          :with   => "'rfcId='+rfcId" %>
+    };
+
+    $j('#<%= random_dom_id %> a[rfcId]').on('shown', function (e) {
+      var rfcId = e.target.getAttribute("rfcId");
+      rfc_list_fetch_log(rfcId);
+    });
+
+    $j('a[rfcId]').on('shown', function (e) {
+      var rfcId = e.target.getAttribute("rfcId");
+      rfc_list_fetch_log(rfcId);
+    });
+  </script>
+<% end %>

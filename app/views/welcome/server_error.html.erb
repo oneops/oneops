@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>We're sorry, but something went wrong (500)</title>
+  <style type="text/css">
+    body { background-color: #fff; color: #666; text-align: center; font-family: arial, sans-serif; }
+    div.dialog {
+      width: 25em;
+      padding: 0 4em;
+      margin: 4em auto 0 auto;
+      border: 1px solid #ccc;
+      border-right-color: #999;
+      border-bottom-color: #999;
+    }
+    h1 { font-size: 100%; color: #f00; line-height: 1.5em; }
+
+    #debug_info {
+      background: #eee;
+      border: 1px solid lightgray;
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="dialog">
+    <h1>We're sorry, but something went wrong.</h1>
+    <% problem_url = Settings.report_problem_url
+       chat_url    = Settings.support_chat_url %>
+    <% if problem_url.present? %>
+      <p>
+        Use <strong><%= link_to('this link', problem_url, :target => '_blank') %></strong>
+        to report this incident.  Please provide all important details concerning this problem when filing a corresponding issue.
+      </p>
+    <% end %>
+    <% if chat_url %>
+      <p>You can also <strong><%= link_to('get help', chat_url, :target => '_blank') %></strong></p>
+    <% end %>
+  </div>
+  <p>
+    <%= link_to_function('Debug Info', "document.getElementById('debug_info').style.display=''") %>
+    <div id="debug_info" style="display:none">
+      <%= @exception %>
+    </div>
+  </p>
+</body>
+</html>

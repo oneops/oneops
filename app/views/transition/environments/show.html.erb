@@ -1,0 +1,39 @@
+<%= assembly_page_header(@assembly, 'transition') %>
+
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'transition', :link => assembly_transition_path(@assembly)}] %>
+
+<% page_options = []
+   if has_transition?(@assembly.ciId)
+     if @deloyed_to_rels.size > 0 || (@deployment && @deployment.deploymentState != 'complete' && @deployment.deploymentState != 'canceled')
+       page_options << icon_button('trash', 'Delete', nil, 'danger disabled')
+     else
+       page_options << link_confirm_busy(icon_button('trash', ' Delete', 'danger'),
+                                         :url     => assembly_transition_environment_path(@assembly, @environment),
+                                         :body    => raw("<p>Click OK to permanently delete environment <b>'#{@environment.ciName}'</b>.</p>
+                                  								        <p><strong class='label label-important'>WARNING: All configuration for this enviroment will be permanently lost.</strong></p>"),
+                                         :method  => :delete,
+                                         :busy    => "Deleting environment '#{@environment.ciName}'",
+                                         :confirm => 'Delete environment?')
+     end
+   end
+%>
+
+<%= page_title({:page_icon     => ci_image_url(@environment),
+                :page_kind     => 'Environment',
+                :page_label    => breadcrumb_environment_label,
+                :page_options  => page_options,
+                :page_sublabel => "created by #{@environment.createdBy}"}) %>
+
+<%= info = ''
+    info += "#{'cloud'.pluralize(@clouds.size)} <strong>#{@clouds.map(&:toCi).map { |c| link_to(c.ciName, edit_cloud_path(c)) }.join(', ')}</strong> - " if @clouds.present?
+    info += "availability <strong>#{@environment.ciAttributes.attributes['availability']}</strong> - subdomain <strong>#{@environment.ciAttributes.subdomain}</strong>"
+    page_info info %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                      {:label => 'configuration', :template => 'configuration', :selected => true},
+                      {:label => 'variables', :url => assembly_transition_environment_variables_path(@assembly, @environment)},
+                      {:label => 'relays', :url => assembly_transition_environment_relays_path(@assembly, @environment)},
+                      {:label => 'releases', :template => 'releases'},
+                      {:label => 'deployments', :template => 'deployments'},
+                      {:label => icon('search'), :id => 'search', :template => 'search'}] %>

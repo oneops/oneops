@@ -1,0 +1,7 @@
+<% if @platforms # Full refresh %>
+  $("page_nav_summary").update('<%= escape_javascript(render('summary')) %>');
+<% else # Partial refresh %>
+  $("status_section").down(".section-content").update('<%= escape_javascript(render('status')) %>');
+//  $("diagram_section").down(".section-content").update('<%= escape_javascript(render('diagram')) %>');
+<% end %>
+hide_modal();

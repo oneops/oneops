@@ -1,0 +1,48 @@
+<% new_allowed = custom_monitors_allowed?
+   new_path = new_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component) %>
+<%= section_panel 'Monitors',
+                  :width => 'single',
+                  :menu  => new_allowed && [link_to(icon('star-empty','New Monitor'), new_path, :remote => true, :class => 'btn btn-mini')] do %>
+  <%= ci_list(@monitors, :new_link => new_allowed && link_to('New Monitor...', new_path, :remote => true)) do |builder, target| %>
+    <% edit_path = edit_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, target) %>
+    <% builder.target link_to('', edit_path, :remote => true) %>
+    <% builder.icon :none %>
+
+    <% enabled = target.ciAttributes.enable == 'true'
+       status = enabled ? 'enabled' : 'disabled' %>
+    <% builder.status do %>
+      <%= marker(status, state_to_label(status)) %>
+      <%= marker('custom', 'label-info') if is_custom_monitor?(target) %>
+      <%= status_marker('thresholds', ActiveSupport::JSON.decode(target.ciAttributes.thresholds).size, 'label-info') %>
+      <%= icon('heart') if target.ciAttributes.heartbeat == 'true' %>
+    <% end %>
+
+    <% if has_transition?(@assembly.ciId) %>
+      <% builder.menu do |ci| %>
+        <% if enabled %>
+          <%= link_to icon('power-off', 'Disable'),
+                      toggle_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, target),
+                      :title        => 'Disable',
+                      :method       => :put,
+                      :disable_with => '&nbsp;&nbsp;wait...',
+                      :remote       => true %>
+        <% else %>
+          <%= link_to icon('play', 'Enable'),
+                      toggle_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, target),
+                      :title        => 'Enable',
+                      :method       => :put,
+                      :disable_with => '&nbsp;&nbsp;wait...',
+                      :remote       => true %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+
+    <% builder.top do %>
+      <span class="topname"><%= target.ciAttributes.description.presence || target.ciName %> </span>
+    <% end %>
+
+    <% builder.bottom :none %>
+  <% end %>
+<% end %>
+<div id="monitor_details"></div>

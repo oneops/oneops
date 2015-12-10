@@ -1,0 +1,7 @@
+<% if ci.new_record? %>
+  <%= options = [['Public', @available_clouds.map {|c| [c.ciName, "#{c.nsPath}/#{c.ciName}"]}],
+                 ['Private', [['Custom...', @cloud.nsPath]]]]
+      builder.select attribute_name, grouped_options_for_select(options, attribute_value), :include_blank => 'Choose...', :required => true %>
+<% else %>
+  <%= builder.text_field attribute_name, :readonly => true, :class => 'readonly input-xlarge' %>
+<% end %>

@@ -1,0 +1,5 @@
+<% diagram_url      = diagram_assembly_transition_environment_platform_path(@assembly, @environment, @platform, :size => '8,5') %>
+
+<div class="diagram diagram-triple">
+	<%= content_tag(:object, '', :data => diagram_url, :class => 'diagram diagram-triple') %>
+</div>

@@ -1,0 +1,14 @@
+<%= section_panel 'Availability (%)', :width => 'triple', :position => 'left' do %>
+  <%= render 'availability_graph', :availability => @availability, :legend => true %>
+<% end %>
+
+<%= section_panel 'Notifications', :width => 'triple', :position => 'left' do %>
+  <% if @notifications %>
+    <%= render 'base/shared/graph_bar', :data => @histogram, :height => 100 %>
+    <%= notification_list(@notifications) do |builder, notification| %>
+      <% builder.attributes raw(%(time="#{notification['timestamp']}" source="#{notification['source']}" severity="#{notification['severity']}" subject="#{notification['subject']}" text="#{notification['text']}" date="#{Time.at(notification['timestamp']).strftime('%m/%d')}")) %>
+    <% end %>
+  <% else %>
+    Notifications data not available
+  <% end %>
+<% end %>

@@ -1,0 +1,25 @@
+<% teams = current_user.organization.teams.where('manages_access AND teams.name <> ?', Team::ADMINS) %>
+<% if teams.present? %>
+  <div class="category">
+    <div class="name">Teams To Manage Access</div>
+    <div class="control-group">
+      <% resource_name = ci.ciClassName.split('.').last.downcase %>
+      <%= label_tag :teams, "Allow teams to manage access to this #{resource_name}", :class => 'control-label' %>
+      <div class="controls">
+        <% selected_teams = (params[:teams] || (is_admin? ? [] : current_user.all_team_ids)).to_map(&:to_i) %>
+        <% teams.each do |team| %>
+          <%= team_id = team.id
+              render 'cms/cis/checkbox',
+                   :attribute_name  => 'teams[]',
+                   :attribute_value => selected_teams[team_id] ? team_id : nil,
+                   :unchecked_value => nil,
+                   :checked_value   => team_id,
+                   :label           => team.name %>
+          <br/>
+        <% end %>
+        <span class="help-block"><%= icon(site_icon(:manages_access), '', 'icon-large text-error') %> Select teams (in addition to admins) to manage access to this <%= resource_name %> from the list of teams with manage access rights</span>
+      </div>
+    </div>
+  </div>
+<% end %>
+

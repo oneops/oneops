@@ -1,0 +1,80 @@
+<% design_pull_in_progress = @environment.ciState == 'manifest_locked'
+   open_manifest_release = @manifest && @manifest.releaseState == 'open' %>
+<% if @manifest && @manifest.parentReleaseId == @catalog.releaseId %>
+  <div class="marker"><%= status_marker('design', 'latest', 'label') %></div>
+  <div class="description">
+    <ul class="status-items">
+      <li>
+        <%= icon('magnet',' ') %>Latest design release <%= @catalog.releaseId %>
+        <% if @design_pull_releasse %>
+          pulled <strong><%= time_ago_in_words(@design_pull_releasse.created_timestamp) %></strong>
+        <% end %>
+      </li>
+      <li><%= icon('user',' ') %>Design commit by <strong><%= @catalog.createdBy %></strong></li>
+      <% if @catalog.description.present? %>
+        <li><%= icon('comment') %><%= @catalog.description %></li>
+      <% end %>
+      <% if open_manifest_release %>
+        <li><%= icon('info-sign') %>Design pull is <b>disabled</b> until current release is committed</li>
+      <% end %>
+      <% if design_pull_in_progress %>
+        <li class="text-info">
+          <%= icon('info-sign') %>Design pull is already in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>.
+          Design pull is <b>disabled</b>
+        </li>
+      <% end %>
+    </ul>
+    <% if has_transition?(@assembly.ciId) %>
+      <ul class="status-actions">
+        <li>
+          <% if open_manifest_release || design_pull_in_progress %>
+            <%= button('Force Pull', nil, 'inverse disabled') %>
+          <% else %>
+            <%= link_confirm_busy(button('Force Pull', nil, 'inverse'),
+                                  :url     => pull_assembly_transition_environment_path(@assembly, @environment),
+                                  :method  => :post,
+                                  :confirm => 'Pull latest design?',
+                                  :busy    => 'Pulling latest design...') %>
+          <% end %>
+        </li>
+      </ul>
+    <% end %>
+  </div>
+<% else %>
+  <div class="marker"><%= status_marker('design', 'pull', 'label-info') %></div>
+  <div class="description">
+    <ul class="status-items">
+      <li><%= icon('star-empty',' ') %>New design release <%= @catalog.releaseId %> available since <strong><%= time_ago_in_words(@catalog.updated_timestamp) %></strong></li>
+      <li><%= icon('user',' ') %>Design commit by <strong><%= @catalog.createdBy %></strong></li>
+      <% if @catalog.description.present? %>
+        <li><%= icon('comment') %><%= @catalog.description %></li>
+      <% end %>
+      <% if open_manifest_release %>
+        <li><%= icon('info-sign') %>Design pull is <b>disabled</b> until current release is committed</li>
+      <% end %>
+      <% if design_pull_in_progress %>
+        <li class="text-info">
+          <%= icon('info-sign') %>Design pull is already in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>
+          Design pull is <b>disabled</b>
+        </li>
+      <% elsif @manifest %>
+        <li><%= icon('ok',' ') %>Last design pulled in this environment was <strong><%= @manifest.parentReleaseId || 'n/a' %></strong></li>
+      <% end %>
+    </ul>
+    <% if has_transition?(@assembly.ciId) %>
+      <ul class="status-actions">
+        <li>
+          <% if open_manifest_release || design_pull_in_progress %>
+            <%= button('Pull Design', nil, 'info disabled') %>
+          <% else %>
+            <%= link_confirm_busy(button('Pull Design', nil, 'info'),
+                                  :url     => pull_assembly_transition_environment_path(@assembly, @environment),
+                                  :method  => :post,
+                                  :confirm => 'Pull latest design?',
+                                  :busy    => 'Pulling latest design...') %>
+          <% end %>
+        </li>
+      </ul>
+    <% end %>
+  </div>
+<% end %>

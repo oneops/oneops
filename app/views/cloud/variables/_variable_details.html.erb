@@ -1,0 +1,8 @@
+<%= section_panel 'Variable Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource   => @variable,
+              :content    => 'cms/cis/ci',
+              :read_only  => !has_cloud_services?(@cloud.ciId),
+              :cancel_url => cloud_variables_path(@cloud),
+              :form_url   => @variable.new_record? ? cloud_variables_path(@cloud) : cloud_variable_path(@cloud, @variable)}) %>
+<% end %>

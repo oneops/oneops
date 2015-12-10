@@ -1,0 +1,23 @@
+<%= section_panel 'New Relay', :width => 'double' do %>
+  <div class="form-horizontal">
+    <div class="ciAttributes">
+      <div class="control-group">
+        <%= label_tag :relay_type, 'Type', :class => 'control-label' %>
+        <div class="controls"><%= select_tag :relay_type, options_for_select(@available_types.map {|t| [t.className.split('.')[2], t.className]}, @relay_type), :id => 'relay_type_select', :required => true, :prompt => 'Choose...' %></div>
+      </div>
+      <script type="text/javascript">
+        $j("#relay_type_select").on("change", function () {
+          $j.ajax({url: "<%= new_assembly_transition_environment_relay_path(@assembly, @environment) %>", data: {relay_type: this.value}});
+        });
+      </script>
+    </div>
+  </div>
+  <% if @relay %>
+    <hr>
+    <%= render('base/shared/edit_form',
+               :resource   => @relay,
+               :content    => 'cms/cis/ci',
+               :cancel_url => assembly_transition_environment_relays_path(@assembly, @environment),
+               :form_url   => assembly_transition_environment_relays_path(@assembly, @environment)) %>
+  <% end %>
+<% end %>

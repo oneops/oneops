@@ -1,0 +1,41 @@
+<% template_services  = (@template.requires.relationAttributes.services || '').split(',').map(&:strip)
+   rel_attrs = @requires.relationAttributes
+   component_services = rel_attrs.respond_to?(:services) && rel_attrs.services ? rel_attrs.services.split(',').map(&:strip) : template_services %>
+<div class="ciAttributes">
+  <div class="pull-right input-prepend">
+    <%= render 'cms/cis/sticky', :name => 'owner', :value => @requires.relationAttrProps.owner.attributes['services'] if @environment %>
+  </div>
+  <ul class="unstyled">
+    <% services = template_services.inject({}) do |m, s|
+        m[s.gsub(/^\W/, '')] = {:name => s, :checked => !s.start_with?('*'), :template => true} if s.present?
+        m
+       end
+       services = component_services.inject(services) do |m, s|
+         if s.present?
+           template_service = m[s.gsub(/^\W/, '')]
+           if template_service
+             template_service[:checked] = true
+           else
+             m[s.gsub(/^\W/, '')] = {:name => s, :checked => true, :template => false}
+           end
+         end
+         m
+       end %>
+    <% services.values.each do |service| %>
+      <li>
+        <% service_name = service[:name]
+           checked      = service[:checked] %>
+        <div class="controls" editable="<%= !service[:template] || service_name.start_with?('*') || !checked %>">
+          <%= render 'cms/cis/checkbox',
+                   :attribute_name  => 'services[]',
+                   :attribute_value => checked ? service_name : nil,
+                   :unchecked_value => nil,
+                   :checked_value   => service_name,
+                   :label           => service_name %>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+</div>
+<hr>
+<strong><%= icon('info-sign', nil, 'icon-large') %></strong> Services marked with <strong>*</strong> are optional

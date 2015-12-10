@@ -1,0 +1,36 @@
+<%= root_page_header('') %>
+
+<%= page_title :page_kind => 'Home' %>
+
+<%= section_panel 'Organizations', :width => 'single', :position => 'left' do %>
+  <%= list(current_user.organizations.all,
+           :new_link      => link_to('Manage Your Organizations...', account_profile_path(:anchor => 'organizations')),
+           :toolbar       => {:sort_by => [%w(Name org-name), %w(Created created)], :filter_by => %w(org-name)},
+           :selected_item => current_user.organizations.present? && current_user.organization ? current_user.organization.id : nil) do |builder, org| %>
+    <% builder.itemid org.id %>
+    <% builder.attributes raw(%(org-name="#{org.name}" created="#{org.created_at}")) %>
+    <% builder.target link_to('', assemblies_path(:org_name => org.name), :method => :get, :remote => true) %>
+    <% builder.top  do %>
+      <span class="topname"><%= org.name %></span>
+      <span class="topdesc"><%= link_to('summary', organization_path(:org_name => org.name)) %></span>
+    <% end %>
+    <% builder.middle do %>
+      <% if org.assemblies %>
+        <%= icon(site_icon(:cloud)) %> <%= link_to('clouds', clouds_path(:org_name => org.name)) %> |
+        <%= icon(site_icon(:assembly)) %> <%= link_to('assemblies', assemblies_path(:org_name => org.name)) %> |
+      <% end %>
+      <%= icon(site_icon(:settings)) %> <%= link_to('settings', edit_organization_path(:org_name => org.name)) %>
+    <% end %>
+    <% builder.bottom "created #{org.created_at}" %>
+  <% end %>
+<% end %>
+
+<div id="organization_details">
+<%= section_panel 'Assemblies', :width => 'double', :position => 'right' do %>
+  <div id="assembly_list">
+    <% if current_user.organizations.present? %>
+      <i class="icon-spin icon-large icon-spinner"></i> Loading
+    <% end %>
+  </div>
+<% end %>
+</div>

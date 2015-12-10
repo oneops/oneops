@@ -1,0 +1,16 @@
+<%= organization_page_header('catalogs') %>
+
+<%= breadcrumb [{:label => 'catalogs', :link => catalogs_path},
+                {:icon => '/images/cms/Catalog.png',  :label => @catalog.ciName,  :kind => 'Catalog',  :link => catalog_path(@catalog)},
+                {:icon => ci_image_url(@platform), :label => @platform.ciName, :kind => 'Platform', :link => catalog_platform_path(@catalog, @platform)}] %>
+
+<%= page_title :page_icon  => ci_image_url(@component),
+               :page_kind  => "#{@component.ciClassName.split('.').last.capitalize} Component",
+               :page_label => @component.ciName,
+               :doc_link   => ci_doc_link(@component, icon('book'), :anchor => 'design', :class => 'doc-link') %>
+
+<%= page_info 'View component configuration' %>
+
+<%= tabs = [{:label => 'configuration', :template => 'configuration', :selected => true}]
+    tabs << {:label => 'attachments',   :template => 'attachments'} if @attachments.present?
+    render 'base/shared/page_nav_pages', :items => tabs %>

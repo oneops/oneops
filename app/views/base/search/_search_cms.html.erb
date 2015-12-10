@@ -1,0 +1,195 @@
+<%= section_panel 'Filter', :id => 'search_filter_section', :width => 'single', :position => 'left' do %>
+  <form onsubmit="updateSearchResultList(); return false">
+    <% if quick_filters.present? %>
+      <div class="filter-group quick">
+        <div class="name">Quick Search</div>
+        <% quick_filters.keys.sort.each do |q| %>
+          <a class="btn btn-small btn-success"><%= q %></a>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="filter-group">
+      <div class="name">Advanced Search</div>
+      <% if defined?(ns_path) %>
+        <input type="hidden" class="nspath" value="<%= ns_path %>">
+      <% else %>
+        <div class="filter">
+          <div class="name">Namespace</div>
+          <div class="input-append">
+            <input type="text" class="nspath" value="<%= params[:nspath] || search_ns_path %>" pattern="<%= search_ns_path.gsub('/', '\/') %>(\/|\w|-)*">
+            <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
+          </div>
+        </div>
+      <% end %>
+
+      <% pkg = defined?(package) && package %>
+      <div class="filter package <%= 'hide' if pkg %>">
+        <div class="name">Scope</div>
+        <% pkg = pkg || params[:package] || 'bom' %>
+        <% [['account (account.*)', 'account'], ['cloud services (cloud.service.*)', 'cloud.service'], ['design (catalog.*)', 'catalog'], ['transition (manifest.*)', 'manifest'], ['operations (bom.*)', 'bom']].each do |p| %>
+          <a class="btn btn-small <%= 'active btn-primary' if pkg == p[1] %>" filter="<%= p[1] %>">
+            <i class="icon-fixed-width <%= 'icon-ok' if pkg == p[1] %>"></i>
+            <%= p[0] %>
+          </a><br>
+        <% end %>
+      </div>
+
+      <% if defined?(class_name) %>
+        <input type="hidden" class="class-name" value="<%= class_name %>">
+      <% else %>
+        <div class="filter class-name">
+          <div class="name">Class</div>
+          <div class="input-prepend">
+            <% class_name = params[:class_name] %>
+            <input type="text" class="class-name" value="<%= class_name ? class_name.sub(/^#{pkg}\./, '') : '' %>">
+            <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+          </div>
+        </div>
+      <% end %>
+
+
+      <div class="filter">
+        <div class="name">Attribute</div>
+        <div class="sub-filter input-append attr-name">
+          <input type="text" class="attr-name" value="<%= params[:attr_name] %>" placeholder="attribute name">
+          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+        </div>
+        <div class="sub-filter attr-operator">
+          <% operator = params[:attr_operator] || 'eq' %>
+          <% [%w(equal eq), ['not equal',  'neq'], %w(contains like)].each do |p| %>
+            <a class="btn btn-small <%= 'active btn-primary' if operator == p[1] %>" filter="<%= p[1] %>">
+              <i class="icon-fixed-width <%= 'icon-ok' if operator == p[1] %>"></i>
+              <%= p[0] %>
+            </a><br>
+          <% end %>
+        </div>
+        <div class="sub-filter input-append attr-name">
+          <input type="text" class="attr-value" value="<%= params[:attr_value] %>" placeholder="attribute value">
+          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+        </div>
+      </div>
+
+      <div class="filter">
+        <div class="name">Results</div>
+        <button class="btn btn-success" style="width:60%">Run</button>
+      </div>
+    </div>
+  </form>
+<% end %>
+
+<div id="search_result_list">
+  <%= render :partial => 'base/search/search_result_list' if @search_results %>
+</div>
+
+<script>
+  var searchFilterSection = $j("#search_filter_section");
+
+  searchFilterSection.find('input.class-name')
+      .typeahead({
+                   items: 15,
+                   source:  function (query, process) {
+                     var sourceCache, pkg;
+                     this.sourceCache = sourceCache = this.sourceCache || {};
+                     this.sourcePkg = pkg = searchFilterSection.find('.package .active').attr('filter');
+                     return sourceCache[pkg] ||
+                         $j.get('<%= lookup_class_name_metadata_path %>',
+                                {package: pkg},
+                                function (data) {
+                                  var regExp = new RegExp("^" + pkg + "\.", "i");
+                                  sourceCache[pkg] = data.map(function(c) {
+                                    return c.replace(regExp, '');
+                                  });
+                                  return process(sourceCache[pkg]);
+                                });
+                   },
+                   matcher: function (item) {
+                       return item.toLowerCase().indexOf(this.query.toLowerCase()) >= 0;
+                     }
+                 });
+
+  searchFilterSection.find('input.attr-name')
+      .typeahead({
+                   source:  function (query, process) {
+                     this.sourceCache = this.sourceCache || {};
+                     var sourceCache = this.sourceCache;
+                     var className = searchFilterSection.find(".package .active").attr('filter') + "." + searchFilterSection.find("input.class-name").val();
+                     if (!className) {
+                       return [];
+                     }
+                     return sourceCache[className] ||
+                         $j.get('<%= lookup_attr_name_metadata_path %>',
+                                {class_name: className},
+                                function (data) {
+                                  sourceCache[className] = data;
+                                  return process(data);
+                                });
+                   },
+                   matcher: function (item) {
+                     return item.toLowerCase().indexOf(this.query.toLowerCase()) >= 0;
+                   }
+                 });
+
+  var updateSearchResultList = function () {
+    var nsPath        = searchFilterSection.find("input.nspath").val(),
+        pkg           = searchFilterSection.find(".package .active").attr('filter'),
+        className     = searchFilterSection.find("input.class-name").val(),
+        attrName      = searchFilterSection.find("input.attr-name").val(),
+        attrOperatior = searchFilterSection.find(".attr-operator .active").attr('filter'),
+        attrValue     = searchFilterSection.find("input.attr-value").val();
+    $j.ajax({
+              url:      "<%= url_for(:controller => params[:controller], :action => 'search') %>",
+              method:   'GET',
+              data:     {
+                ns_path:       nsPath,
+                package:       pkg,
+                class_name:    className && (pkg + "." + className),
+                attr_name:     attrName,
+                attr_operator: attrOperatior,
+                attr_value:    attrValue,
+                source:        'cms'
+              },
+              complete: hide_busy
+            });
+    show_busy();
+  };
+
+  <% if quick_filters.present? %>
+    var searchQuickFilters = <%= raw(quick_filters.to_json) %>;
+    searchFilterSection.find(".quick .btn").click(function () {
+      var quickFilter = searchQuickFilters[$j(this).html()];
+      var filters = quickFilter.filters;
+      for (var f in  filters) {
+        var el = searchFilterSection.find("." + f + " .btn[filter=\"" + filters[f] + "\"]");
+        if (el.length) {
+          el.click();
+        }
+        else {
+          searchFilterSection.find("input." + f + "[type=text]").val(filters[f]);
+        }
+      }
+      if (quickFilter.run) {
+        updateSearchResultList();
+      }
+    });
+  <% end %>
+
+
+  searchFilterSection.find(".package .btn, .attr-operator .btn").click(function () {
+    var button = $j(this);
+    var parent = button.parent();
+    button.siblings().removeClass("active btn-primary");
+    parent.find("i.icon-ok").removeClass("icon-ok");
+    button.addClass("active btn-primary");
+    button.find("i").addClass('icon-ok');
+    if (parent.hasClass("package")) {
+      searchFilterSection.find("input.class-name").val("");
+      searchFilterSection.find("input.attr-name").val("");
+      searchFilterSection.find("input.attr-value").val("");
+    }
+  });
+
+  <% if params[:class_name].present? %>
+  updateSearchResultList();
+  <% end %>
+</script>

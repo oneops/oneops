@@ -1,0 +1,19 @@
+<%= assembly_page_header(@assembly, 'transition') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'transition', :link => assembly_transition_path(@assembly)},
+                {:icon  => ci_image_url(@environment),
+                 :label => breadcrumb_environment_label,
+                 :kind  => 'Environment',
+                 :link  => assembly_transition_environment_path(@assembly, @environment)}] %>
+
+<%= page_title :page_icon     => platform_image_url(@platform),
+               :page_kind     => "#{@platform.ciAttributes.pack.capitalize} Platform",
+               :page_label    => breadcrumb_platform_label,
+               :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => 'transition', :class => 'doc-link'),
+               :page_sublabel => "created by #{@platform.createdBy}" %>
+
+<%= page_info "#{@platform.ciName}.#{@environment.ciAttributes.subdomain}" %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                      {:label => 'variables', :url => assembly_transition_environment_platform_variables_path(@assembly, @environment, @platform)},
+                      {:label => 'diagram', :template => 'diagram'}] %>

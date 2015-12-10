@@ -1,0 +1,411 @@
+class ReportsController < ApplicationController
+  AVAILABLE_LABEL = '~Free~'
+  CONSUMED_LABEL  = '~Used~'
+
+  def compute
+    report_data = params[:data]
+    report_data = JSON.parse(report_data) if report_data.present?
+    report_data = compute_report_data if report_data.blank?
+
+    respond_to do |format|
+      format.html { render 'organization/_reports' }
+      format.json { render :json => report_data }
+
+      format.js do
+        recipients = params[:recipients]
+        if recipients.present?
+          ReportMailer.compute(recipients.split(','),
+                               :data  => report_data,
+                               :user  => user_signed_in? && current_user,
+                               :title => "Compute report for '#{report_data['data']['name']}'.",
+                               :note  => params[:note]).deliver
+
+          flash[:notice] = 'Report has been emailed to specified recipients.'
+          render :js => ''
+        else
+          @div  = params[:update]
+          @data = report_data
+          render :action => :compute
+        end
+      end
+    end
+  end
+
+  def health
+    respond_to do |format|
+      format.html
+      format.json do
+        component_rels = Cms::Relation.all(:params => {:nsPath       => organization_ns_path,
+                                                       :recursive    => true,
+                                                       :relationName => 'manifest.Requires'})
+        state_info     = Operations::Sensor.component_states(component_rels.map(&:toCiId))
+
+        data = component_rels.inject({}) do |m, rel|
+          health_info = state_info[rel.toCiId.to_s]
+          #unless health_info
+          #  tot = rand(8).to_i + 2
+          #  prob = rand(50)
+          #  health_info = {'total' => tot, 'good' => tot - (prob < 35 ? 0 : (prob < 45 ? 1 : 2))}
+          #end
+          if health_info
+            info                                    = JSON.parse(rel.comments)
+            foo, org, assembly, env, area, platform = rel.nsPath.split('/')
+            info['toCiClass']
+
+            m[assembly]                                 ||= {:url => assembly_url(assembly)}
+            m[assembly][env]                            ||= {:url => assembly_operations_environment_url(assembly, env)}
+            m[assembly][env][platform]                  ||= LeafNode.new(:metrics => {:size => 0},
+                                                                         :heat    => {:all => 1, :unhealthy => 1, :overutilized => 1, :underutilized => 1, :notify => 1},
+                                                                         :url     => assembly_operations_environment_platform_url(assembly, env, platform))
+            total                                       = health_info['total']
+            m[assembly][env][platform][:metrics][:size] += total
+            total                                       = total.to_f
+            heat                                        = m[assembly][env][platform][:heat]
+            heat[:all]                                  = min(heat[:all], -(total - (health_info['good'] || 0)) / total)
+            heat[:unhealthy]                            = min(heat[:unhealthy], -(health_info['unhealthy'] || 0) / total)
+            heat[:notify]                               = min(heat[:notify], -(health_info['notify'] || 0) / total)
+            heat[:overutilized]                         = min(heat[:overutilized], -(health_info['overutilized'] || 0) / total)
+            heat[:underutilized]                        = min(heat[:underutilized], -(health_info['underutilized'] || 0) / total)
+          end
+          m
+        end
+
+        report_data = {:scope   => %w(Assembly Environment Platform),
+                       :metrics => [{:name => :size, :label => 'Size'}],
+                       :heat    => [{:name => :unhealthy, :label => 'Unhealthy', :reverse => true},
+                                    {:name => :notify, :label => 'Notify', :reverse => true},
+                                    {:name => :overutilized, :label => 'Overutilized', :reverse => true},
+                                    {:name => :underutilized, :label => 'Underutilized', :reverse => true},
+                                    {:name => :all, :label => 'All', :reverse => true}],
+                       :data    => graph_node(current_user.organization.name, data)}
+
+        render :json => report_data
+      end
+    end
+  end
+
+  def notification
+    @size = (params[:size].presence || 200).to_i
+    respond_to do |format|
+      format.html do
+        @notifications = []
+      end
+
+      format.js do
+        fetch_notifications(params[:offset].blank?)
+
+        unless @notifications
+          flash[:error] = 'Failed to load notifications.'
+          render :js => ''
+        end
+      end
+
+      format.json do
+        fetch_notifications
+        if @notifications
+          set_pagination_response_headers(@notifications)
+          render :json => @notifications
+        else
+          render :json => {:code => 500, :exception => 'Failed to fetch notifications.'}, :status => :internal_server_error
+        end
+      end
+    end
+  end
+
+
+  protected
+
+  def fetch_notifications(histogram = false)
+    path          = params[:path]
+    suffix        = path.present? ? path.gsub(/^#{organization_ns_path}/, '') : ''
+    ns_path       = "#{organization_ns_path}/#{suffix.gsub(/^\//, '')}"
+    search_params = {}
+    period        = params[:period] || 'today'
+    now           = Time.now
+    case period
+      when 'yesterday'
+        start_time = now.yesterday.beginning_of_day.to_i
+        end_time   = now.yesterday.end_of_day.to_i
+      when 'this week'
+        start_time = now.beginning_of_week.to_i
+        end_time   = now.end_of_week.to_i
+      when 'last week'
+        start_time = now.beginning_of_week.yesterday.beginning_of_week.to_i
+        end_time   = now.beginning_of_week.yesterday.end_of_week.to_i
+      else
+        start_time = now.beginning_of_day.to_i
+        end_time   = now.end_of_day.to_i
+    end
+    search_params[:start] = start_time.to_i
+    search_params[:end]   = end_time.to_i
+
+    type                     = params[:source]
+    search_params[:type]     = type if type.present? && type != 'all'
+    severity                 = params[:severity]
+    search_params[:severity] = severity if severity.present? && severity != 'all'
+
+    queries =[]
+    query   = params[:query]
+    queries << "*#{query}*" if query.present?
+    filter = params[:filter]
+    queries << filter[:query] if filter.present?
+    search_params[:query] = queries.join(' AND ') if queries.present?
+
+    if histogram
+      # Start and end times are in seconds but notification timestamp is in ms.
+      @histogram = {:x         => [],
+                    :y         => [],
+                    :groupings => [{:name => :by_source, :label => 'By Source'},
+                                   {:name => :by_severity, :label => 'By Severity'}],
+                    :labels    => {:y => 'Count'}}
+      if period == 'today' || period == 'yesterday'
+        @histogram[:title]      = 'Hourly Counts'
+        @histogram[:x]          = (0..23).to_a
+        @histogram[:labels][:x] = 'Time (hours)'
+      else
+        @histogram[:title]      = 'Daily Counts'
+        @histogram[:x]          = %w(Mon Tue Wed Thu Fri Sat Sun)
+        @histogram[:labels][:x] = 'Day of the week'
+      end
+      unit = 1000 * (end_time - start_time) / @histogram[:x].length
+      ranges = []
+      @histogram[:x].size.times {|i| ranges << [start_time * 1000 + i * unit, start_time * 1000 + (i + 1) * unit]}
+      hist_data = Search::Notification.histogram(ns_path, ranges, search_params)
+      y_values  = [0] * @histogram[:x].length
+      hist_data.each do |r|
+        # y_values[(r['from'] - start_time * 1000) / unit] = r['doc_count']
+        y_values[(r['from'] - start_time * 1000) / unit] = {:by_source => r['by_source']['buckets'].map{|b| {:label => b['key'], :value => b['doc_count']}},
+                                                            :by_severity => r['by_severity']['buckets'].map{|b| {:label => b['key'], :value => b['doc_count']}}}
+      end
+      @histogram[:y] = y_values
+    end
+    search_params[:size] = @size
+    search_params[:from] = (params[:offset].presence || 0).to_i
+    search_params[:sort] = params[:sort]
+    @notifications = Search::Notification.find_by_ns(ns_path, search_params)
+  end
+
+  def compute_report_data
+    graph_data, scope = compute_report_graph_data
+    return {:scope   => scope,
+            :metrics => [{:name => :cores, :label => 'Cores'},
+                         {:name => :ram, :label => 'Memory'},
+                         {:name => :count, :label => 'Instances'}],
+            :data    => graph_data}
+  end
+
+  def compute_report_graph_data
+    scope      = []
+    assemblies = Cms::Ci.all(:params => {:nsPath      => organization_ns_path,
+                                         :ciClassName => 'account.Assembly'}).inject({}) do |h, a|
+      h[a.ciName] = a
+      h
+    end
+
+    cloud_id = params[:cloud].to_i
+    if params[:grouping] == 'cloud'
+      if cloud_id > 0
+        cloud = locate_cloud(cloud_id)
+        data  = Cms::Relation.all(:params => {:ciId              => cloud_id,
+                                              :direction         => 'to',
+                                              :relationShortName => 'DeployedTo',
+                                              :targetClassName   => 'Compute',
+                                              :includeFromCi     => true}).inject({}) do |m, r|
+          foo, org, assembly, env, area, platform = r.fromCi.nsPath.split('/')
+          m[assembly]                             ||= {:url => assembly.present? ? assembly_url(assembly) : nil, :info => {:owner => assemblies[assembly].ciAttributes.owner}}
+          m[assembly][env]                        ||= {:url => assembly.present? && env.present? ? assembly_operations_environment_url(assembly, env) : nil}
+          m[assembly][env][platform]              ||= LeafNode.new(:metrics => empty_compute_metrics,
+                                                                   :url     => assembly.present? && env.present? && platform.present? ? assembly_operations_environment_platform_url(assembly, env, platform) : nil)
+          aggregate_compute_metrics(m[assembly][env][platform][:metrics], r.fromCi)
+          m
+        end
+
+        graph_data = graph_node(cloud.ciName, data)
+        scope      = [{'Assembly' => ['name', 'owner']}, 'Environment', 'Platform']
+      else
+        clouds                              = get_cloud_map(clouds_ns_path)
+        quota_map, cloud_compute_tenant_map = get_quota_map
+
+        data = Cms::Relation.all(:params => {:nsPath            => organization_ns_path,
+                                             :relationShortName => 'DeployedTo',
+                                             :fromClassName     => 'Compute',
+                                             :recursive         => true,
+                                             :includeFromCi     => true}).inject({}) do |m, r|
+          bom_compute                                  = r.fromCi
+          foo, org, assembly, env, area, platform      = bom_compute.nsPath.split('/')
+          cloud                                        = clouds[r.toCiId]
+          cloud_name                                   = cloud ? cloud.ciName : '???'
+          compute_service_info                         = cloud_compute_tenant_map[r.toCiId]
+          key                                          = compute_service_info ? compute_service_info[:quota_key] : cloud_name
+          m[key]                                       ||= {}
+          m[key][CONSUMED_LABEL]                       ||= {}
+          m[key][CONSUMED_LABEL][cloud_name]           ||= {:url => edit_cloud_url(cloud)}
+          m[key][CONSUMED_LABEL][cloud_name][assembly] ||= LeafNode.new(:metrics => empty_compute_metrics,
+                                                                        :url     => assembly.present? && env.present? ? assembly_operations_environment_url(assembly, env) : nil,
+                                                                        :info    => {:owner => assemblies[assembly].ciAttributes.owner})
+          aggregate_compute_metrics(m[key][CONSUMED_LABEL][cloud_name][assembly][:metrics], bom_compute)
+          m
+        end
+
+        graph_data = graph_node(current_user.organization.name, data)
+
+        compute_org_tenant_nodes = graph_data[:children]
+        quota_map.each_pair do |compute_org_tenant, quota|
+          loc_tenant_node = compute_org_tenant_nodes.find { |node| node[:name] == compute_org_tenant }
+          unless loc_tenant_node
+            loc_tenant_node = {:name => compute_org_tenant, :children => [], :level => 3, :metrics => empty_compute_metrics, :id => random_node_id}
+            compute_org_tenant_nodes << loc_tenant_node
+          end
+          insert_quota_data(loc_tenant_node, quota)
+        end
+        aggregate_graph_node(graph_data)
+
+        scope = ['Service/Org/Tenant', 'Allocation', 'Cloud', {'Assembly' => ['name', 'owner']}]
+      end
+    else
+      assembly_id = params[:assembly]
+      if assembly_id.present?
+        assembly_ci = locate_assembly(assembly_id)
+        ns_path     = assembly_ns_path(assembly_ci)
+        scope       = %w(Environment Platform)
+      else
+        ns_path = organization_ns_path
+        scope   = [{'Assembly' => ['name', 'owner']}, 'Environment', 'Platform']
+      end
+      data = Cms::Relation.all(:params => {:nsPath            => ns_path,
+                                           :relationShortName => 'DeployedTo',
+                                           :fromClassName     => 'Compute',
+                                           :recursive         => true,
+                                           :includeFromCi     => true}).inject({}) do |m, r|
+        ci                                      = r.fromCi
+        foo, org, assembly, env, area, platform = ci.nsPath.split('/')
+        m[assembly]                             ||= {:url => assembly.present? ? assembly_url(assembly) : nil, :info => {:owner => assemblies[assembly].ciAttributes.owner}}
+        m[assembly][env]                        ||= {:url => assembly.present? && env.present? ? assembly_operations_environment_url(assembly, env) : nil}
+        m[assembly][env][platform]              ||= LeafNode.new(:metrics => empty_compute_metrics,
+                                                                 :url     => assembly.present? && env.present? && platform.present? ? assembly_operations_environment_platform_url(assembly, env, platform) : nil)
+        aggregate_compute_metrics(m[assembly][env][platform][:metrics], ci)
+        m
+      end
+
+      if assembly_id
+        graph_data = graph_node(assembly_ci.ciName, data[assembly_ci.ciName])
+      else
+        graph_data = graph_node(current_user.organization.name, data)
+        quota      = get_quota_map[0].values.inject(empty_compute_metrics) do |m, q|
+          m[:count] += q[:count]
+          m[:cores] += q[:cores]
+          m[:ram]   += q[:ram]
+          m
+        end
+        insert_quota_data(graph_data, quota)
+      end
+    end
+
+    return graph_data, scope
+  end
+
+  def get_quota_map(ns_path = organization_ns_path)
+    cloud_compute_tenant_map = {}
+    quota                    = Cms::DjRelation.all(:params => {:nsPath            => ns_path,
+                                                               :relationShortName => 'Provides',
+                                                               :fromClassName     => 'account.Cloud',
+                                                               :recursive         => true,
+                                                               :attr              => 'service:eq:compute',
+                                                               :includeToCi       => true}).inject({}) do |m, r|
+      compute      = r.toCi
+      attributes   = compute.ciAttributes
+      compute_name = compute.ciName
+      org          = r.toCi.nsPath.split('/')[1]
+      tenant       = compute.ciAttributes.attributes.has_key?(:tenant) ? attributes.tenant : ''
+      key          = "#{compute_name}/#{org}/#{tenant}"
+
+      cloud_compute_tenant_map[r.fromCiId] = {:compute => compute_name, :tenant => tenant, :quota_key => key}
+
+      count = attributes.respond_to?(:max_instances) ? attributes.max_instances.to_i : 0
+      cores = attributes.respond_to?(:max_cores) ? attributes.max_cores.to_i : 0
+      ram   = attributes.respond_to?(:max_ram) ? attributes.max_ram.to_i : 0
+      if (!m[key] && (count > 0 || cores > 0 || ram > 0)) || (m[key] && count > 0 && cores > 0 && ram > 0)
+        m[key] = {:count => count, :cores => cores, :ram => ram}
+      end
+      m
+    end
+
+    return quota, cloud_compute_tenant_map
+  end
+
+  def get_cloud_map(ns_path = clouds_ns_path)
+    Cms::Ci.all(:params => {:nsPath      => ns_path,
+                            :ciClassName => 'account.Cloud',
+                            :recursive   => true}).inject({}) do |m, c|
+      m[c.ciId] = c
+      m
+    end
+  end
+
+  def aggregate_compute_metrics(metrics, ci)
+    metrics[:count] += 1
+    metrics[:cores] += (ci.ciAttributes.cores || 1).to_i if ci.ciAttributes.attributes.include?('cores')
+    metrics[:ram]   += (ci.ciAttributes.ram || 2000).to_i if ci.ciAttributes.attributes.include?('ram')
+  end
+
+  def random_node_id
+    SecureRandom.random_number(36**6).to_s(36)
+  end
+
+  def graph_node(name, data)
+    result = {:name => name, :id => random_node_id}
+    return result.merge(:metrics => empty_compute_metrics) unless data
+
+    result[:url] = data.delete(:url)
+    info         = data.delete(:info) || {}
+    info.each_pair do |k, v|
+      result[k] = v
+    end
+    if data.is_a?(LeafNode)
+      result[:metrics] = data[:metrics]
+      result[:level]   = 0
+      heat             = data[:heat]
+      result[:heat]    = heat if heat
+    else
+      result[:children] = data.keys.sort.map { |e| graph_node(e, data[e]) }
+      aggregate_graph_node(result)
+      result[:level] = (result[:children].map { |c| c[:level] }.max || -1) + 1
+    end
+    return result
+  end
+
+  def aggregate_graph_node(node)
+    node[:metrics] = node[:children].inject({}) do |m, c|
+      c[:metrics].each_pair { |k, v| m[k] = (m[k] || 0) + v }
+      m
+    end
+    node[:heat]    = node[:children].inject({}) do |m, c|
+      c[:heat].each_pair { |k, v| m[k] = min((m[k] || 1), v) } if c[:heat]
+      m
+    end
+    node.delete(:heat) if node[:heat].blank?
+  end
+
+  def insert_quota_data(node, quota)
+    total = node[:metrics]
+    if total && quota
+      quota.keys.each { |metric| quota[metric] = [total[metric] || 0, quota[metric] || 0].max }
+      node[:children] << {:name => AVAILABLE_LABEL, :level => node[:level], :metrics => {:count => quota[:count] - total[:count], :cores => quota[:cores] - total[:cores], :ram => quota[:ram] - total[:ram]}, :id => random_node_id}
+      node[:metrics] = quota
+    end
+  end
+
+  def empty_compute_metrics
+    {:count => 0, :cores => 0, :ram => 0}
+  end
+
+  def min(a, b)
+    a > b ? b : a
+  end
+
+  class LeafNode < Hash
+    def initialize(data)
+      data.each_pair { |k, v| self[k] = v }
+    end
+  end
+end

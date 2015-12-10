@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" type="image/png" href="<%= asset_path('logo-notext-32x32.png') %>"/>
+  <link rel="shortcut icon" href="<%= asset_path('logo-notext-64x64.png') %>"/>
+  <link rel="apple-touch-icon" href="<%= asset_path('logo-touch-144x144.png') %>"/>
+  <% if content_for?(:title_clean_env) %>
+    <title><%= h yield(:title_clean_env) %></title>
+  <% elsif content_for?(:title_clean) %>
+    <title><%= h yield(:title_clean) %></title>
+  <% else %>
+    <title>OneOps</title>
+  <% end %>
+
+  <%= stylesheet_link_tag 'application', :media => 'all' %>
+  <%= javascript_include_tag 'application' %>
+  <%= csrf_meta_tag %>
+  <% if Settings.identity == 'cd3' %>
+   <script type="text/javascript">(function() {var walkme = document.createElement('script'); walkme.type = 'text/javascript'; walkme.async = true; walkme.src = 'https://d3b3ehuo35wzeh.cloudfront.net/users/c22f29079dc14b85be39cde25f55b61c/walkme_c22f29079dc14b85be39cde25f55b61c_https.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(walkme, s);})();</script>
+ <% end %>
+</head>
+<body>
+  <% show_sidebar    = session[:sidebar].blank? || session[:sidebar] == 'true'
+     sidebar_theme   = session[:sidebar_theme].presence || 'dark' %>
+    <div id="container" class="<%= 'sidebar-visible' if show_sidebar %>">
+      <div id="overlay" style="display:none" class="rounded-bottom shadow"></div>
+      <div id="flash">
+        <% [:notice, :error].each do |name| %>
+          <div id="flash_<%= name %>" style='display:none' class="rounded-bottom shadow" onclick="this.hide();"></div>
+        <% end %>
+        <%= javascript_tag "document.observe('dom:loaded', function() {flash('#{escape_javascript(flash[:notice])}', '#{escape_javascript(flash[:error])}#{escape_javascript(flash[:alert])}')})" if flash[:error] || flash[:notice] || flash[:alert] %>
+      </div>
+      <div id="busy_modal" class="modal hide">
+        <div class="modal-header">
+          <h3>Please wait</h3>
+        </div>
+        <div class="modal-body" style="text-align: center">
+          <div class="message" style="margin-bottom: 20px"></div>
+          <i class="icon-refresh icon-2x icon-spin"></i>
+        </div>
+      </div>
+
+      <div id="organization_lookup_modal" class="modal hide">
+        <div class="modal-header">
+          <button class="close" data-dismiss="modal">&times;</button>
+          <h3>Find Organization</h3>
+        </div>
+        <div class="modal-body" style="overflow:visible">
+          <%= text_field_tag(:org_lookup, '', :id => 'org_lookup', :style => 'width: 97%', :autocomplete => 'off', :placeholder => 'Organization name') %>
+        </div>
+      </div>
+
+      <script>
+        $j('input#org_lookup').typeahead({
+          source:  function (query, process) {
+            return $j.get('<%= lookup_organization_path %>',
+                          {name: query},
+                          function (data) {
+                            return process(data);
+                          });
+          },
+          updater: function (item) {
+            window.location = '/' + item.split(' ')[0];
+            show_busy();
+          }
+        });
+      </script>
+
+      <%= render('layouts/flash_error') %>
+      <% if user_signed_in? %>
+        <div class="top-nav" data-spy="affix" data-offset="0">
+          <div id="header" class="<%= 'hide' if show_sidebar %>">
+            <div id="sidebar_menu">
+              <%= link_to_function(icon('reorder'), 'toggleSidebar()') %>
+            </div>
+            <div id="brand">
+              <%= link_to raw("<span class=\"brandname\">#{Settings.brand['name']}</span>#{image_tag(Settings.brand['image'])}<span class=\"identity\">#{Settings.identity}</span>"), root_path %>
+            </div>
+            <div id="ajax"><%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %></div>
+            <div id="user_nav" class="rounded-bottom">
+              <%= render :partial => 'layouts/user_nav' %>
+            </div>
+          </div>
+
+          <div id="title_bar" class="rounded black-static">
+            <div id="title">
+              <%= yield(:title) %>
+            </div>
+            <div id="app_nav">
+              <%= yield(:app_nav) %>
+            </div>
+          </div>
+          <div id="title_underbar" class="shadow">
+            <div id="app_subnav">
+              <%= yield(:app_subnav) %>
+            </div>
+          </div>
+        </div>
+        <div class="scaffold">
+          <% if user_signed_in? %>
+            <% current_org = current_user.organization
+               must_accept_eula = Settings.eula && current_user.eula_accepted_at.blank?%>
+            <div class="sidebar affix <%= sidebar_theme %> <%= 'hide' unless show_sidebar %>">
+              <div class="header">
+                <div class="logo">
+                  <%= link_to(root_path) do %>
+                    OneOps <%= image_tag('logo-notext-64x64.png') %>
+                    <%= link_to_function(raw('&nbsp;&nbsp;&nbsp;'), 'event.altKey && toggleSidebarTheme()') %>
+                  <% end %>
+                </div>
+                <div class="controls">
+                  <%= link_to_function(icon('tint'), 'toggleSidebarTheme()') %>
+                  <%= link_to_function(icon('pushpin', '', show_sidebar ? '' : 'icon-rotate-270'), 'toggleSidebarPin()') %>
+                  <%= link_to_function(icon('remove'), 'toggleSidebar()') %>
+                </div>
+              </div>
+              <div class="profile">
+                <ul class="menu">
+                  <% unless must_accept_eula %>
+                    <li><%= link_to(icon('user', current_user.username), account_profile_path) %></li>
+                    <% if current_org && current_org.persisted? %>
+                      <li class="favorites-dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown">
+                          <%= icon('bookmark', 'Favorites') %> <%= icon('caret-right', '', 'pull-right') %>
+                        </a>
+                        <%= render('layouts/favorites_dropdown') %>
+                      </li>
+                      <li>
+                        <%= link_to(organizations_account_profile_path,
+                                    :remote       => true,
+                                    :class        => 'dropdown-toggle',
+                                    'data-toggle' => 'dropdown') do %>
+                          <%= raw("#{icon('sitemap', current_org.name)} #{icon('caret-right', '', 'pull-right')}") %>
+                        <% end %>
+                        <ul class="org_dropdown dropdown-menu">
+                          <li style="text-align:center"><a><i class="icon-spinner icon-spin"></i></a></li>
+                        </ul>
+                      </li>
+                    <% end %>
+                  <% end %>
+                  <li><%= link_to(icon('signout', 'Signout'), destroy_user_session_path) %></li>
+                </ul>
+              </div>
+              <div class="main">
+                <%= render 'layouts/sidebar_menu' %>
+              </div>
+            </div>
+          <% end %>
+          <div id="page_container">
+            <div id="page_header_container">
+              <% if current_user.eula_accepted_at? %>
+                <div id="page_header">
+                  <%= render :partial => 'layouts/announcements' %>
+                  <div id="org_announcement">
+                    <%= render :partial => 'organization/announcement' if current_org && current_org.announcement.present? %>
+                  </div>
+                  <% wiz = wizard %>
+                  <% if wiz.present? %>
+                    <div id="wizard" class="rounded"><%= wizard %></div>
+                  <% end %>
+
+                  <div id="page_box" class="rounded">
+                    <% if content_for?(:breadcrumb) %>
+                      <div id="breadcrumb">
+                        <%= yield(:breadcrumb) %>
+                      </div>
+                    <% end %>
+
+                    <% if content_for?(:page_title) %>
+                      <div id="page_title">
+                        <%= yield(:page_title) %>
+                      </div>
+                    <% end %>
+
+                    <% if content_for?(:page_info) %>
+                      <div id="page_info">
+                        <%= yield(:page_info) %>
+                      </div>
+                    <% end %>
+                    <div id="page_alert"><%= page_alert %></div>
+                  </div>
+
+                  <% if content_for?(:page_nav) %>
+                    <div id="page_bar">
+                      <div id="page_nav">
+                        <%= yield(:page_nav) %>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <div id="main" class="rounded-bottom">
+              <%= yield %>
+            </div>
+            <%= render 'layouts/footer', :general_actions => general_site_links %>
+          </div>
+        </div>
+      <% else %>
+        <div id="main" class="rounded-bottom">
+          <%= yield %>
+        </div>
+        <%= render 'layouts/footer', :general_actions => general_site_links %>
+      <% end %>
+    </div>
+  <script>
+    var local_storage_key_sidebar_pin   = LOCAL_STORAGE_KEY_PREFIX + "sidebar_pin",
+        local_storage_key_sidebar_theme = LOCAL_STORAGE_KEY_PREFIX + "sidebar_theme";
+
+    window.toggleSidebar = function() {
+      var sideBar   = $j(".sidebar"),
+          headerBar = $j("#header");
+
+      if (sideBar.is(":visible")) {
+        sideBar.hide(500);
+        headerBar.show(500);
+        $j("#container").switchClass('sidebar-visible', '', 500);
+      }
+      else {
+        sideBar.show(500);
+        headerBar.hide(500);
+        $j("#container").switchClass('', 'sidebar-visible', 500);
+      }
+    };
+
+    window.toggleSidebarPin = function() {
+      var pinIcon = $j('.sidebar').find(".controls .icon-pushpin");
+      var pin = pinIcon.hasClass("icon-rotate-270");
+      if (pin) {
+        localStorage.setItem(local_storage_key_sidebar_pin, 'true');
+        pinIcon.removeClass("icon-rotate-270");
+      }
+      else {
+        localStorage.setItem(local_storage_key_sidebar_pin, '');
+        pinIcon.addClass("icon-rotate-270");
+      }
+      $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar: pin}}});
+    };
+
+    var SIDEBAR_THEMES = ['dark', 'light', 'blue'];
+    window.toggleSidebarTheme = function(theme) {
+      var current = localStorage.getItem(local_storage_key_sidebar_theme) || SIDEBAR_THEMES[0],
+          newOne = (theme && SIDEBAR_THEMES[SIDEBAR_THEMES.indexOf(theme)]) ||
+              SIDEBAR_THEMES[(SIDEBAR_THEMES.indexOf(current) + 1) % SIDEBAR_THEMES.length];
+      $j(".sidebar").removeClass(current).addClass(newOne);
+      localStorage.setItem(local_storage_key_sidebar_theme, newOne);
+      $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar_theme: newOne}}});
+    };
+
+    <% if user_signed_in? && session[:sidebar].nil? %>
+      if (localStorage.getItem(local_storage_key_sidebar_pin) == 'false') {
+        setTimeout(function() {
+          toggleSidebar();
+          toggleSidebarPin();
+          toggleSidebarTheme(localStorage.getItem(local_storage_key_sidebar_theme));
+        }, 100);
+      }
+    <% end %>
+  </script>
+</body>
+</html>

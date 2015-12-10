@@ -1,0 +1,22 @@
+<% total = @cost_rate.present? ? @cost_rate[:total] : 0 %>
+<% if total > 0 %>
+  <%= section_panel raw("Cost #{content_tag(:span, raw("#{content_tag(:b, number_with_precision(total, :precision => 2, :delimiter => ','))} #{content_tag(:sub, "#{@cost_rate[:unit].upcase}/hour")}"), :class => 'cost-rate')}"),
+                    :width    => 'single',
+                    :position => 'right',
+                    :menu     => Rails.env.shared? && [link_to(icon('refresh'), cost_rate_assembly_operations_environment_path(@assembly, @environment), :remote => true, :class => 'btn btn-mini')] do %>
+    <table style="width:100%">
+      <tr>
+        <td style="width:50%">
+          <%= cost_rate_graph(@cost_rate, :by_ns, 'By Platform') do |key|
+            ns_split = key.split('/')
+            "#{ns_split[-2]} ver.#{ns_split[-1]}"
+          end
+          %>
+        </td>
+        <td style="width:50%">
+          <%= cost_rate_graph(@cost_rate, :by_service, 'By Service') %>
+        </td>
+      </tr>
+    </table>
+  <% end %>
+<% end %>

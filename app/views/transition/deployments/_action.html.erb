@@ -1,0 +1,79 @@
+<% if has_transition?(@assembly.ciId) %>
+  <% case action.downcase %>
+  <% when 'deploy' %>
+    <%= form_for @deployment,
+                 :url  => assembly_transition_environment_deployments_path(@assembly, @environment),
+                 :html => {:method => :post, :remote => true} do |f| %>
+      <%= error_messages_for(@deployment) %>
+      <%= f.hidden_field :releaseId %>
+      <%= f.hidden_field :nsPath, :value => @release.nsPath %>
+      <%= f.hidden_field :comments, :value => @manifest.description %><br>
+      <%= f.hidden_field :ops, :value => warning if defined?(warning) && warning %>
+      <%= f.button((icon('ok', 'Deploy')), :disable_with => 'Deploying...', :class => 'btn btn-success', :name => 'deploy') %>
+    <% end %>
+  <% when 'discard' %>
+    <%= form_for @release,
+                 :url  => discard_assembly_transition_environment_release_path(@assembly, @environment, @release),
+                 :html => {:method => :post, :remote => true} do |f| %>
+      <%= error_messages_for(@release) %>
+      <%= f.button(icon('trash', 'Discard'), :disable_with => 'Discarding...', :class => 'btn btn-danger', :name => 'discard') %>
+    <% end %>
+  <% when 'cancel' %>
+    <div class="btn-group">
+      <a id="cancel_deployment_button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" href="#">
+        <span><%= icon('remove') %> Cancel</span> <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu drop-up">
+        <li class="disabled" style="border-bottom: 1px solid #bbb">
+          <a>
+            Please provide reason for canceling to help us<br>
+            improve future user experience
+          </a>
+        </li>
+        <% ['I no longer want to continue with this update.',
+            'My deployment seems to be stuck.',
+            'My deployment keeps failing after retrying.'].each do |message| %>
+          <li><%= link_to_function(message, "submit_cancel_deployment('#{message}')") %></li>
+        <% end %>
+      </ul>
+    </div>
+    <script>
+      window.submit_cancel_deployment = function (comments) {
+        $j("#cancel_deployment_button").html('Canceling...').addClass('disabled');
+        $j.ajax({url:  "<%= assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
+                 type: "PUT",
+                 data: {cms_deployment: {releaseId:       "<%= @deployment.releaseId %>",
+                                         deploymentState: "canceled",
+                                         comments:        comments}}});
+      }
+    </script>
+  <% when 'pause' %>
+    <%= form_for @deployment,
+                 :url  => assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                 :html => {:method => :put, :remote => true} do |f| %>
+      <%= error_messages_for(@deployment) %>
+      <%= f.hidden_field :releaseId %>
+      <%= f.hidden_field :deploymentState, :value => 'paused' %>
+      <%= f.button(icon('pause', 'Pause'), :disable_with => 'Pausing...', :class => 'btn btn-warning') %>
+    <% end %>
+  <% when 'resume' %>
+    <%= form_for @deployment,
+                 :url  => assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                 :html => {:method => :put, :remote => true} do |f| %>
+      <%= error_messages_for(@deployment) %>
+      <%= f.hidden_field :releaseId %>
+      <%= f.hidden_field :deploymentState, :value => 'active' %>
+      <%= f.button(icon('play', 'Resume'), :disable_with => 'Resuming...', :class => 'btn btn-success') %>
+    <% end %>
+  <% when 'retry' %>
+    <%= form_for @deployment,
+                 :url  => assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                 :html => {:method => :put, :remote => true} do |f| %>
+      <%= error_messages_for(@deployment) %>
+      <%= f.hidden_field :releaseId %>
+      <%= f.hidden_field :deploymentState, :value => 'active' %>
+      <%= f.button(icon('repeat', 'Retry'), :disable_with => 'Retrying...', :class => 'btn btn-success') %>
+    <% end %>
+  <% end %>
+<% end %>
+

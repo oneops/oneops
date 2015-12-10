@@ -1,0 +1,34 @@
+<%= section_panel 'Change Password', :width => 'double', :position => 'left' do %>
+	<% if Settings.authentication == 'ldap' %>
+		System is configured to authenticate users via LDAP. Changing passwords is not supported.
+	<% else %>
+	  <%= render 'base/shared/edit_form',
+	             :resource => current_user,
+	             :content  => 'change_password',
+	             :form_url => change_password_account_profile_path(current_user) %>
+	<% end %>
+<% end %>
+
+<%= section_panel 'API Token',
+                  :width => 'single',
+                  :position => 'right',
+                  :menu => [link_to('Reset', reset_authentication_token_account_profile_path, :method => :put, :remote => true, :class => 'btn btn-mini btn-success')] do %>
+  <p><pre id="auth_token" class="pull-left"><%=  current_user.authentication_token || 'N/A' %></pre></p>
+<% end %>
+
+<% if false #Settings.has_key?('omniauth') %>
+	<% footer = '<br/>Add service to sign in with:<br/>' + omniauth_services %>
+
+	<%= section_panel 'Authentication Services', :width => 'single', :position => 'right' do %>
+		<%= list current_user.authentications, :toolbar => nil, :footer => raw(footer) do |builder, target| %>
+			<% builder.menu do %>
+		      <%= link_to(icon('trash','Delete'), target, :confirm => 'Are you sure?', :method => :delete) %>
+		   <% end %>
+			<% builder.icon "/images/auth/#{target.provider}_128.png" %>
+			<% builder.top target.provider %>
+			<% builder.middle do %>
+				UID: <%= target.uid %>
+			<% end %>
+		<% end %>
+	<% end %>
+<% end %>

@@ -1,0 +1,460 @@
+<% graph_id = "graph_#{random_dom_id}"
+   show_labels = !(defined?(hide_labels) && hide_labels) %>
+<div id="<%= graph_id %>" class="graph-sunburst">
+  <% if defined?(email) && email %>
+    <%= render 'base/shared/email', :title => 'Email Report', :function => "emailSunburst_#{graph_id}" %>
+    <%= link_to_function raw(icon('envelope', 'Email')), "render_modal('email_modal')", :class => 'pull-right' %>
+  <% end %>
+  <% if defined?(table_view) && table_view %>
+    <div class="btn-group pull-left view-selection" data-toggle="buttons-radio">
+      <%= link_to_function(icon('bar-chart', ''), "sunburstToggleView_#{graph_id}('graph')", :class => 'btn btn-mini active') %>
+      <%= link_to_function(icon('table', ''), "sunburstToggleView_#{graph_id}('text')", :class => 'btn btn-mini') %>
+    </div>
+  <% end %>
+  <br>
+  <div id="<%= graph_id %>_graph">
+    <div class="sunburst-tooltip"></div>
+    <div class="btn-group metrics-selection" data-toggle="buttons-radio"></div>
+    <div class="btn-group heat-selection" data-toggle="buttons-radio"></div>
+    <div class="graph-breadcrumbs"><svg><text class="end-label"></text></svg></div>
+  </div>
+  <div id="<%= graph_id %>_text" style="display: none; margin-top: 15px"></div>
+</div>
+<script>
+  var sunburstUrl_<%= graph_id %>, sunburstData_<%= graph_id %>;
+
+  function sunburstToggleView_<%= graph_id %>(view) {
+    var graph = $j("#<%= graph_id %>_graph");
+    var text = $j("#<%= graph_id %>_text");
+    if (view == 'text') {
+      graph.hide(400);
+      text.show(400);
+      if (!text.html()) {
+        $j.ajax({url: sunburstUrl_<%= graph_id %>, type: 'POST', data: {update: '<%= graph_id %>_text', data: sunburstData_<%= graph_id %>}});
+      }
+    }
+    else {
+      graph.show(400);
+      text.hide(400);
+    }
+  }
+
+  function emailSunburst_<%= graph_id %>(recipients, note) {
+    $j.ajax({url: sunburstUrl_<%= graph_id %>, type: 'POST', data: {recipients: recipients, note: note, data: sunburstData_<%= graph_id %>}});
+  }
+
+  function renderSunburst_<%= graph_id %>(dataUrl) {
+    show_busy();
+
+    sunburstUrl_<%= graph_id %> = dataUrl;
+
+    var width = $j("#<%= graph_id %>").width() * 0.95,
+        height = width,
+        radius = width / 2.05;
+
+    var graphDiv = d3.select("#<%= graph_id %>");
+
+    var breadcrumbs = graphDiv.select(".graph-breadcrumbs").select('svg').attr("width", width);
+
+    var tooltip          = graphDiv.select(".sunburst-tooltip"),
+        metricsSelection = graphDiv.select(".metrics-selection"),
+        heatSelection    = graphDiv.select(".heat-selection");
+
+    $j("#<%= graph_id %>_text").html('');
+    $j($j("#<%= graph_id %> .view-selection").children()[0]).click();
+
+    var angleScale  = d3.scale.linear().range([0, 2 * Math.PI]),
+        radiusScale = d3.scale.linear().range([0, radius]);
+
+    var arc = d3.svg.arc()
+        .startAngle(function (d) {
+          return Math.max(0, Math.min(2 * Math.PI, angleScale(d.x)));
+        })
+        .endAngle(function (d) {
+          return Math.max(0, Math.min(2 * Math.PI, angleScale(d.x + d.dx)));
+        })
+        .innerRadius(function (d) {
+          return Math.max(0, radiusScale(d.y));
+        })
+        .outerRadius(function (d) {
+          return Math.max(0, radiusScale(d.y + d.dy));
+        });
+
+    d3.select(self.frameElement).style("height", height + "px");
+
+    function arcTween(d) {
+      // Interpolate the scales!
+      var xd = d3.interpolate(angleScale.domain(), [d.x, d.x + d.dx]),
+          yd = d3.interpolate(radiusScale.domain(), [d.y, 1]),
+          yr = d3.interpolate(radiusScale.range(), [d.y ? 20 : 0, radius]);
+
+      return function (d, i) {
+        return i
+            ? function (t) {
+          return arc(d);
+        }
+            : function (t) {
+          angleScale.domain(xd(t));
+          radiusScale.domain(yd(t)).range(yr(t));
+          return arc(d);
+        };
+      };
+    }
+
+    var pallette = d3.scale.category10();
+    var heatPallette = d3.interpolateRgb("#f00", "#0f0");
+
+    function clipPathId(d) {
+      return "clip_" + d.id;
+    }
+
+    function labelTransform(d) {
+      var angle = d.depth ? angleScale(d.x + d.dx / 2) * 180 / Math.PI - 90 : 0;
+      return "rotate(" + angle + ")translate(" + (radiusScale(d.y) + 5) + ")rotate(" + (angle > 90 ? -180 : 0) + ")";
+    }
+
+    function labelAnchor(d) {
+      return d.depth ? (angleScale(d.x + d.dx / 2) > Math.PI ? "end" : "start") : "middle";
+    }
+
+    function toggleSelectionControls(enable) {
+      var disable = enable ? null : 'disabled';
+      metricsSelection.selectAll("button").attr("disabled", disable);
+      heatSelection.selectAll("button").attr("disabled", disable);
+    }
+
+    $j.getJSON(dataUrl, {format: 'json'}, function(root) {
+      sunburstData_<%= graph_id %> = JSON.stringify(root);
+      var maxNodeDepth;
+      function nodeColor(d) {
+        if (d.depth == 0) {
+          return "transparent";
+        }
+
+        var heatValue = heat(d);
+        if (heatValue != null) {
+          return heatPallette(currentHeat.reverse ? (1 - heatValue) : heatValue);
+        }
+
+        var color;
+        if (d.depth == 1) {
+          color = d3.rgb(pallette(d.name)).brighter(2);
+        }
+        else {
+          color = d3.rgb(nodeColor(d.parent)).darker(2 / maxNodeDepth);
+        }
+
+        if(d.level == 0 || (d.children && d.children.length)) {
+          return color;
+        }
+
+        var id = "fillPattern" + color.toString().replace(/\W/, '_');
+        var pattern = svg.append("pattern")
+          .attr("id", id)
+          .attr("patternUnits", "userSpaceOnUse")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width", 6)
+          .attr("height", 6)
+          .append("g");
+
+        pattern.append("rect")
+          .attr("width", 6)
+          .attr("height", 6)
+          .style({stroke: color, fill: color});
+        pattern.append("path")
+          .attr("d", "M0,0 L3,3 M3,3 L6,0")
+          .style({stroke: "#ddd", "stroke-width": 1});
+
+        return "url(#" + id + ")";
+      }
+
+      var currentMetric = root.metrics[0].name;
+      function metric(d) {
+        return d.metrics[currentMetric];
+      }
+
+      var currentHeat = root.heat && root.heat.length && root.heat[0];
+      function heat(d) {
+        return currentHeat && Math.abs(d.heat[currentHeat.name]);
+      }
+
+      function labelText(d) {
+        var heatValue = heat(d);
+        return d.name + " (" + metric(d) + (heatValue == null ? "" : ", " + Math.round(heatValue * 100) + "%") + ")";
+      }
+
+      metricsSelection.selectAll("button").remove();
+      if (root.metrics && root.metrics.length > 1) {
+        metricsSelection.selectAll("button")
+            .data(root.metrics)
+            .enter()
+            .append("button")
+            .classed("btn", true)
+            .attr("value", function (d) {
+                    return d.name
+                  })
+            .html(function (d) {
+                    return d.label
+                  });
+      }
+
+      heatSelection.selectAll("button").remove();
+      if (root.heat && root.heat.length > 1) {
+        heatSelection.selectAll("button")
+            .data(root.heat)
+            .enter()
+            .append("button")
+            .classed("btn", true)
+            .attr("value", function (d) {
+                    return d.name
+                  })
+            .html(function (d) {
+                    return d.label
+                  });
+      }
+
+      metricsSelection.select("button[value=" + currentMetric + "]").classed("active", true);
+      if (currentHeat) {
+        heatSelection.select("button[value=" + currentHeat.name + "]").classed("active", true);
+      }
+
+      function transitionGraph() {
+        nodes = partition.nodes(root.data);
+        maxNodeDepth = d3.max(nodes, function (d) {
+          return d.depth
+        });
+
+        g.data(nodes);
+
+        g.selectAll("path")
+            .transition()
+            .duration(1500)
+            .attr("d", arc)
+            .style("fill", nodeColor);
+
+        <% if show_labels %>
+          labels.text(labelText)
+              .style("opacity", 0)
+              .transition().duration(1500)
+              .style("opacity", 1)
+              .attr("text-anchor", labelAnchor)
+              .attr("transform", labelTransform);
+        <% end %>
+      }
+
+      metricsSelection.selectAll("button").on("click", function() {
+        if (currentMetric == this.value || this.disabled) return;
+
+        currentMetric = this.value;
+        transitionGraph();
+      });
+
+      heatSelection.selectAll("button").on("click", function() {
+        if (currentHeat.name == this.value || this.disabled) return;
+        var heatName = this.value;
+        currentHeat = root.heat.filter(function(h) {return h.name == heatName})[0];
+        transitionGraph();
+      });
+
+      var partition = d3.layout.partition()
+          .value(metric)
+          .sort(function(a, b) {
+            return d3.ascending(a.name, b.name);
+          });
+
+      var nodes = partition.nodes(root.data);
+      maxNodeDepth = d3.max(nodes, function(d) { return d.depth });
+
+      function showBreadcrumbs(d) {
+        if (!d.depth) return;
+
+        var path = [];
+        var current = d;
+        while (current.parent) {
+          path.push(current);
+          current = current.parent;
+        }
+
+        var g = breadcrumbs.selectAll("g")
+            .data(path.reverse(), function (d) {
+                    return d.name + d.depth;
+                  });
+
+        var entering = g.enter().append("svg:g");
+
+        entering.append("svg:polygon")
+            .style("fill", nodeColor)
+            .style("stroke", "#aaa");
+
+        var text = entering.append("svg:text")
+            .style({fill: "#000", 'font-weight': 600})
+            .text(function (d) {
+                    return d.name;
+                  });
+
+        var offset = 0;
+        g.each(function (d, i) {
+          var parent = d3.select(this);
+          var width = parent.select("text")[0][0].getBBox().width + 20;
+
+          var points = [];
+          points.push("0,0");
+          points.push(width + ",0");
+          points.push((width + 10) + ",15");
+          points.push(width + ",30");
+          points.push("0,30");
+          if (i > 0) {
+            points.push("10,15");
+          }
+
+          parent.select("polygon").attr("points", points.join(" "));
+
+          parent.select("text")
+              .attr("x", (width + 10) / 2)
+              .attr("y", 15)
+              .attr("dy", "0.35em")
+              .attr("text-anchor", "middle");
+
+          parent.attr("transform", function () {
+            return "translate(" + (offset + 3) + ", 0)";
+          });
+          offset += width + 3;
+        });
+
+        // Remove exiting nodes.
+        g.exit().remove();
+
+        // Now move and update the percentage at the end.
+        var label = root.metrics.filter(function(m) {return m.name == currentMetric})[0].label;
+        var info = label + "= " + metric(d);
+        var heatValue = heat(d);
+        if (heatValue) {
+          label = currentHeat.label;
+          info += "; " + label + "=" + Math.round(heatValue * 100) + "%";
+        }
+        breadcrumbs.select(".end-label")
+            .attr("x", offset + 20)
+            .attr("y", 30 / 2)
+            .attr("dy", "0.35em")
+            .attr("text-anchor", "start")
+            .text(info);
+
+        // Make the breadcrumb trail visible, if it's hidden.
+        breadcrumbs.style("visibility", "");
+      }
+
+      var zoomDatum = null;
+
+      graphDiv.select("svg.sunburst").remove();
+      var svg = graphDiv.select("#<%= graph_id %>_graph")
+          .append("svg")
+          .classed("sunburst", true)
+          .attr("width", width)
+          .attr("height", height);
+
+      var svgG = svg.append("g")
+          .attr("transform", "translate(" + width / 2 + "," + (height / 2) + ")");
+
+      var g = svgG.selectAll("g")
+          .data(nodes)
+          .enter()
+          .append("g")
+          .on("click", nodeClick)
+          .on("mouseover", function () {
+                var datum = d3.select(this).datum();
+                tooltip.html(labelText(datum))
+                    .transition()
+                    .style({left: d3.event.layerX + "px", top: d3.event.layerY + "px", opacity: 0.8});
+
+                if (datum.depth && datum.dx < 1 && (!zoomDatum || datum.depth > zoomDatum.depth)) {
+                  g.style("opacity", 0.3);
+
+                  g.filter(function (d) {
+                    return d.x >= datum.x && d.x < (datum.x + datum.dx) && d.y >= datum.y
+                  })
+                  .style("opacity", 1);
+                }
+
+                showBreadcrumbs(datum);
+              })
+          .on("mouseout", function () {
+                tooltip.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+                g.style("opacity", 1);
+                breadcrumbs.style("visibility", "hidden");
+              });
+
+      var path = g.append("path")
+          .attr("d", arc)
+          .style("stroke", "#000")
+          .style("fill", nodeColor)
+          .style("fill-rule", "evenodd");
+
+      g.append("clipPath")
+          .attr("id", clipPathId)
+          .append("path")
+          .attr("d", arc);
+      g.attr("clip-path", function(d) { return "url(#" + clipPathId(d) + ")"});
+
+      <% if show_labels %>
+        var labels = g.append("text")
+            .attr("transform", labelTransform)
+            .attr("dy", "5")
+            .style({fill: "#000", cursor: "pointer", "opacity": 0})
+            .text(labelText)
+            .attr("text-anchor", labelAnchor);
+
+        labels.transition()
+            .duration(1500)
+            .style("opacity", 1);
+      <% end %>
+
+      function nodeClick(d) {
+        if (d.url && d.level == 0) {
+          window.location.href = d.url;
+          return;
+        }
+
+        zoomDatum = d;
+        toggleSelectionControls(!d.depth);
+
+        // fade out all text elements
+        <% if show_labels %>
+          labels.transition().style("opacity", 0);
+        <% end %>
+
+        g.selectAll("path")
+            .transition()
+            .duration(750)
+            .attrTween("d", arcTween(d))
+            .each("end", function (e, i) {
+              // check if the animated element's data e lies within the visible angle span given in d
+              if (this.parentNode.tagName == "g" && e.x >= d.x && e.x < (d.x + d.dx)) {
+                // get a selection of the associated text element
+                var arcText = d3.select(this.parentNode).select("text");
+                // fade in the text element and recalculate positions
+                arcText.transition().duration(750)
+                    .attr("text-anchor", function (d) {
+                      return angleScale(d.x + d.dx / 2) > Math.PI ? "end" : "start";
+                    })
+                    .style("opacity", 1)
+                    .attr("text-anchor", labelAnchor)
+                    .attr("transform", labelTransform);
+              }
+            });
+      }
+
+      hide_busy();
+    });
+  }
+
+  function renderSunburst(dataUrl, graphId) {
+    eval("renderSunburst_" + graphId)(dataUrl);
+  }
+
+  <% if defined?(data_url) && data_url.present? %>
+    renderSunburst("<%= data_url %>", "<%= graph_id %>");
+  <% end %>
+</script>

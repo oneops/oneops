@@ -1,0 +1,22 @@
+<% write_access = has_cloud_support?(@cloud.ciId)
+   new_url = write_access && new_cloud_support_path(@cloud) %>
+<%= section_panel('Support',
+                  :width => 'single',
+                  :menu  => new_url && [{:display => icon('plus', 'Add Support'), :link => new_url, :remote => true}]) do %>
+  <%= ci_list(@supports, :new_link => new_url && link_to(icon('plus', 'Add Support...'), new_url, :remote => true)) do |builder, target| %>
+    <% builder.target link_to('', edit_cloud_support_path(@cloud, target), :remote => true) %>
+    <% builder.icon :none %>
+    <% builder.middle target.ciAttributes.description  %>
+    <% if write_access %>
+      <% builder.menu do |ci| %>
+        <%= link_to(icon('trash', ' Delete'), cloud_support_path(@cloud, ci), :remote => true, :method => :delete, :confirm => "Delete support '#{ci.ciName}'?") %>
+      <% end %>
+    <% end %>
+    <% builder.status do %>
+      <% status = target.ciAttributes.enabled == 'true' ? 'enabled' : 'disabled' %>
+      <%= marker(status, state_to_label(status)) %>
+      <%= icon('star', '', 'icon-large') if target.ciAttributes.approval == 'true' %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id='support_details'></div>

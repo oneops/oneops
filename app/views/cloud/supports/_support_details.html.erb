@@ -1,0 +1,8 @@
+<%= section_panel 'Support Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource   => @support,
+              :content    => 'cms/cis/ci',
+              :read_only  => !has_cloud_support?(@cloud.ciId),
+              :cancel_url => cloud_supports_path(@cloud),
+              :form_url   => @support.new_record? ? cloud_supports_path(@cloud) : cloud_support_path(@cloud, @support)}) %>
+<% end %>

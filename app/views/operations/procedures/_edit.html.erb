@@ -1,0 +1,97 @@
+<div class="wf">
+  <div class="header">
+    <div class="instance">
+      <%= @procedure.procedureName %>
+      <div class="status"><span id="procedure_state" class="highlight <%= @procedure.procedureState %>"><%= @procedure.procedureState.upcase %></span></div>
+    </div>
+    <div class="close"><i class="icon-large icon-remove"  onclick="close_procedure_overlay()"></i></div>
+    <div class="close"><i class="icon-large icon-refresh" onclick="refresh_procedure_status()"></i></div>
+  </div>
+  <div class="main">
+    <%= render 'action_list' %>
+  </div>
+  <% if allow_access?(@procedure.ciId, false) %>
+    <div class="controls">
+      <table>
+        <tr id="controls_active" <%= "style=display:none" unless @procedure.procedureState == 'active' %>>
+          <td><%= render 'update_status', :label => 'cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></td>
+        </tr>
+        <tr id="controls_pending" <%= "style=display:none" unless @procedure.procedureState == 'pending' %>>
+          <td><%= render 'update_status', :label => 'discard', :status => 'discarded', :message => 'discarding...', :style => 'danger' %></td>
+          <td><%= render 'update_status', :label => 'execute', :status => 'active', :message => 'executing...', :style => 'success' %></td>
+        </tr>
+        <tr id="controls_failed" <%= "style=display:none" unless @procedure.procedureState == 'failed' %>>
+          <td><%= render 'update_status', :label => 'cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></td>
+          <td><%= render 'update_status', :label => 'retry', :status => 'active', :message => 'retrying...', :style => 'success' %></td>
+        </tr>
+      </table>
+    </div>
+  <% end %>
+</div>
+<script>
+  window.refresh_procedure_status = function (force) {
+    var actionIds = $j.map($j("div[id^='action_log_']" + (force ? "" : ":visible")), function(el) {
+      return el.id.replace("action_log_", "action_ids[]=");
+    }).join("&");
+    <%= remote_function(:url    => status_operations_procedure_path(@procedure),
+                        :method => :post,
+                        :with   => 'actionIds') %>
+  };
+
+  refresh_procedure_status();
+
+  var timer;
+
+  <% if @procedure.procedureState == 'active' %>
+    timer = setInterval(refresh_procedure_status, 5000);
+  <% end %>
+
+  var rfcStateIconMap = {};
+  <% %w(pending inprogress complete failed canceled).each do |state| %>
+    rfcStateIconMap['<%= state %>'] = "<%= escape_javascript(rfc_state_icon(state, 'icon-large')) %>";
+  <% end %>
+
+  window.refresh_status_results = function (procedure_state, action_states) {
+    var procedureStateEl = $j("#procedure_state");
+    procedureStateEl.html(procedure_state.toUpperCase());
+    procedureStateEl[0].className = "highlight " + procedure_state.toLowerCase();
+
+    $j.each(action_states, function (action_id, new_state) {
+      $j("#action_state_indicator_" + action_id).html(rfcStateIconMap[new_state]);
+    });
+
+    if (procedure_state != 'active' && timer) {
+      clearInterval(timer);
+      $j("#controls_active").hide();
+      if (procedure_state == 'failed') {
+        $j("#controls_failed").show();
+      }
+    }
+  };
+
+  window.close_procedure_overlay = function () {
+    if (typeof(timer) != "undefined") {
+      clearInterval(timer);
+    }
+    Effect.SlideUp('overlay', { duration:0.3 });
+    setHashParam('list_item', null);
+    window.location.reload(true);
+  };
+
+  window.onkeydown =  function(e) {
+    if (e.shiftKey || e.controlKey || e.metaKey || e.altKey) {
+      return true;
+    }
+
+    if (e.keyCode == 27) {        // escape
+      if (Element.visible('overlay')) {
+        close_procedure_overlay();
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  setTimeout(function() {$j("#overlay")[0].scrollIntoView();}, 100);
+</script>

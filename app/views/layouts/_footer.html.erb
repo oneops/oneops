@@ -1,0 +1,21 @@
+<div id="footer">
+  <div id="legal">
+    <% terms_of_service_url = Settings.terms_of_service_url
+       privacy_policy_url = Settings.privacy_policy_url %>
+    <%= link_to('Terms of Service', terms_of_service_url) if terms_of_service_url.present? %>
+    <%= link_to('Privacy Policy', privacy_policy_url) if privacy_policy_url.present? %>
+    <div class="pull-right">
+      <% general_actions.each do |a| %>
+        <%= url = a[:url]
+            link_to(a[:label], url, :target => '_blank') if url.present? %>
+      <% end %>
+    </div>
+    <br>
+  </div>
+  <div id="logo">
+    <%= link_to image_tag('walmartlabs.png'), 'http://www.walmartlabs.com' %>
+    <br/>
+    &copy; Copyright 2014, Walmart Stores, Inc. All rights reserved.&nbsp; &nbsp;
+  </div>
+  <br/>
+</div>

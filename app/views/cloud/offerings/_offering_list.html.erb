@@ -1,0 +1,26 @@
+<% write_access = has_cloud_services?(@cloud.ciId)
+   new_link = write_access && @available_offerings.present? &&  new_cloud_service_offering_path(@cloud, @service)
+   mgmt_offering_map = @mgmt_offerings.to_map(&:ciName) %>
+<%= section_panel 'Offerings',
+                  :width => 'single',
+                  :menu  => new_link && [:display => icon('plus', 'Add Offering'), :link => new_cloud_service_offering_path(@cloud, @service), :remote => true] do %>
+  <%= ci_list(@offerings, :new_link => new_link && link_to(icon('plus', 'Add Offering...'), new_link, :remote => true)) do |builder, target| %>
+    <% builder.target link_to('', edit_cloud_service_offering_path(@cloud, @service, target), :remote => true) %>
+    <% builder.icon :none %>
+    <% builder.middle target.ciAttributes.description %>
+    <% if write_access %>
+      <% builder.menu do |ci| %>
+        <%= link_to(icon('trash', ' Delete'), cloud_service_offering_path(@cloud, @service, ci), :remote => true, :method => :delete, :confirm => "Delete offering '#{ci.ciName}'?") %>
+      <% end %>
+    <% end %>
+    <% builder.status do %>
+      <% mgmt_offering = mgmt_offering_map[target.ciName] %>
+      <% if mgmt_offering %>
+        <%= status_marker('base', 'updated', 'label-warning') if mgmt_offering.updated > target.created %>
+      <% else %>
+        <%= status_marker('base', 'removed', 'label-important') %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id='offering_details'></div>

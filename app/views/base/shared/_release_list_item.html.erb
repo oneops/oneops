@@ -1,0 +1,45 @@
+<% description = item.attributes['description'] %>
+<li id="item_<%= item.releaseId %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, <%= item.releaseId %>)"
+    <%= builder[:attributes] || raw(%(releaseId="#{item.releaseId.to_s.rjust(16, '0')}" created="#{item.created}" description="#{description}" createdBy="#{item.createdBy}")) %> <%= raw(%(style="display:none")) if collapse %>>
+  <div class="target"><%= builder[:target] %></div>
+	<div class="status">
+		<% if builder[:status] %>
+			<%= builder[:status] %>
+		<% else %>
+	      <% if item.respond_to?(:releaseState) %>
+      		<%= marker(item.releaseState, state_to_label(item.releaseState)) %>
+      	<% end %>
+      <% end %>
+    </div>
+
+  <% menu = builder[:menu] %>
+  <% if menu.present? %>
+    <div class="menu">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+      <ul class="dropdown-menu">
+        <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+      </ul>
+    </div>
+  <% end %>
+
+	<div class="content">
+		<%= image_tag(builder[:icon]) if (builder.has_key?(:icon) && builder[:icon] != :none) %>
+		<div class="top">
+			<% if builder[:top] %>
+				<%= builder[:top] %>
+			<% else %>
+				<span class="topname"><%= item.releaseId %></span>
+				<span class="topdesc"><%= time_ago_in_words(item.updated_timestamp) %></span>
+			<% end %>
+		</div>
+		<div class="middle"><%= builder[:middle] || description %></div>
+		<% case item.releaseState %>
+		<% when 'closed' %>
+			<div class="bottom"><%= builder[:bottom] || "commited by #{item.attributes['commitedBy']}" %></div>
+		<% when 'canceled' %>
+			<div class="bottom"><%= builder[:bottom] || "discarded by #{item.attributes['commitedBy']}" %></div>
+		<% else %>
+			<div class="bottom"><%= builder[:bottom] || "created by #{item.attributes['createdBy']}" %></div>
+		<% end %>
+	</div>
+</li>

@@ -1,0 +1,24 @@
+<% component_type = @component.ciClassName.split('.').last.capitalize %>
+
+<%= assembly_page_header(@assembly, 'design') %>
+
+<% platform_label = @platform.ciName + ' ' + count_marker("version #{@platform.ciAttributes.major_version}",'label-success') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)},
+                {:icon  => platform_image_url(@platform),
+                 :label => platform_label,
+                 :kind  => 'Platform',
+                 :link  => assembly_design_platform_path(@assembly, @platform)}] %>
+
+<% new = @component.new_record? %>
+<%= page_title :page_icon     => ci_image_url(@component),
+               :page_kind     => "#{component_type} Component",
+               :page_label    => new ? params[:template_name] : @component.ciName,
+               :page_sublabel => new ? '' : "created by #{@component.createdBy}",
+               :doc_link      => ci_doc_link(@component, icon('book'), :anchor => 'design', :class => 'doc-link') %>
+
+<%= page_info new ? 'Create component' : 'View and update component configuration attributes' %>
+
+<%= tabs = [{:label => 'configuration', :template => 'configuration', :selected => true}]
+    tabs << {:label => 'history',       :url => history_assembly_design_platform_component_path(@assembly, @platform, @component)} unless new || @component.rfcAction == 'add'
+    tabs << {:label => 'attachments',   :template => 'design/attachments/attachment_list'} unless new
+    render 'base/shared/page_nav_pages', :items => tabs %>

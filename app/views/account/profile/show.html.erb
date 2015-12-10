@@ -1,0 +1,17 @@
+<%= root_page_header('profile') %>
+
+<%= page_title :page_icon => '/images/cms/User.png', :page_kind => 'User', :page_label => current_user.username, :page_sublabel => '' %>
+
+<%= page_info 'Manage your profile, authentication settings and organization membership' %>
+
+<%= render 'base/shared/page_nav_pages', :items => [{:label => 'profile',        :template => 'attributes', :selected => true},
+                                                    {:label => 'authentication', :template => 'authentication'},
+                                                    {:label => 'organizations',  :template => 'account/organizations/organization_list'},
+                                                    {:label => 'groups',         :url => account_groups_path},
+                                                    {:label => 'notifications',  :template => 'watching'},
+                                                    {:label => 'favorites',      :url => account_favorites_path}] %>
+
+
+
+
+

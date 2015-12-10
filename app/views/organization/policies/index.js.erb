@@ -1,0 +1,4 @@
+<% unless request.method == 'GET' %>
+  setHashParam('policy_item', null);
+<% end %>
+$j("#page_nav_policies").html('<%= escape_javascript(render('policies')) %>');

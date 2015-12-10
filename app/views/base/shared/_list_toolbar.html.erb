@@ -1,0 +1,237 @@
+<% sort_by   = toolbar[:sort_by]
+   filter_by = toolbar[:filter_by] %>
+<div class="list-toolbar <%= 'hide' if pagination %>" list-name="<%= toolbar[:list_name] || controller.class.to_s.gsub(/\W/, '_') %>" filters="<%= filter_by.join(',') if filter_by %>">
+  <% if sort_by %>
+    <div class="btn-group sort pull-left">
+      <a class="btn btn-mini sort-indicator" onclick="toggle_order(this)"><i class="icon-sort"> Sort</i></a>
+      <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" href="#"><%= icon('caret-down') %></a>
+      <ul class="dropdown-menu">
+        <% sort_by.each do |attr| %>
+          <li><%= link_to_function attr.first, "sort_selected(this, '#{attr.last}', '#{attr.first}')" %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <% compact = toolbar[:compact] %>
+  <% unless compact.nil? %>
+    <button class="btn btn-mini" style="margin-left: 10px" onclick="toggle_compact(this)">
+      <% if compact %>
+        <i class="icon-large icon-expand-alt"><span> Expand</span></i>
+      <% else %>
+        <i class="icon-large icon-collapse-alt"><span> Collapse</span></i>
+      <% end %>
+    </button>
+  <% end %>
+  <% if menu.present? %>
+    <div class="btn-group menu pull-right">
+      <button class="btn btn-mini" onclick="select_all_items(this)" title="Select All"><i class="icon-large icon-check"></i></button>
+      <button class="btn btn-mini" onclick="unselect_all_items(this)" title="Unselect All"><i class="icon-large icon-check-empty"></i></button>
+      <a class="btn btn-mini" data-toggle="dropdown" href="#"><i class="icon-cog icon-large"></i> Action</a>
+      <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" href="#"><%= icon('caret-down') %></a>
+      <ul class="dropdown-menu">
+        <% menu.each do |i| %>
+          <% if i.blank? %>
+            <li class="divider"></li>
+          <% else %>
+            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}"))) %>'><%= i[:label] %></a></li>
+          <% end %>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <% if filter_by %>
+    <div class="filter">
+      <%= count_marker '', 'list-count-marker' unless pagination %>
+      <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-medium search-query', :placeholder => 'type to filter...', (pagination ? :onchnage : :onkeyup) => "filter_changed(this, false)") %>
+      <i class="icon-remove-sign" onclick="filter_changed(this, true)"></i>
+    </div>
+  <% end %>
+</div>
+<script type="text/javascript">
+  if (!window.sort_selected) {
+    window.sort_selected = function(source, attr, label) {
+      var indicator = $j(source).closest(".list-toolbar").find(".sort-indicator");
+      var current_attr = indicator.attr("sort-by");
+      if (current_attr == attr) {
+        toggle_order(indicator);
+      }
+      else {
+        indicator.attr("sort-by", attr);
+        indicator.find("i").html(" " + label).removeClass("icon-sort").addClass("icon-sort-by-attributes").removeClass("icon-flip-vertical");
+        var listDiv = indicator.closest(".list-toolbar").parent();
+        if (!listDiv.hasClass('list-paginated')) {
+          sort_list(listDiv.find(".list-body > ul")[0], attr, false);
+        }
+      }
+
+      if (localStorage) {
+        var prefix = LOCAL_STORAGE_KEY_PREFIX + indicator.closest(".list-toolbar").attr("list-name") + "_list_";
+        localStorage.setItem(prefix + "sort_attribute", attr);
+        localStorage.setItem(prefix + "sort_label", label);
+        localStorage.setItem(prefix + "sort_desc", indicator.find("i").hasClass("icon-flip-vertical"));
+      }
+      listDiv.trigger('sortChanged');
+    };
+
+
+    window.toggle_order = function(button) {
+      button = $j(button);
+      if (button.prop('disabled')) {
+        return;
+      }
+
+      var icon = button.find("i");
+      if (icon.hasClass("icon-sort-by-attributes")) {
+        icon.toggleClass("icon-flip-vertical");
+        var desc = icon.hasClass("icon-flip-vertical");
+        var toolbar = button.closest(".list-toolbar");
+        var listDiv = toolbar.parent();
+        if (!listDiv.hasClass('list-paginated')) {
+          sort_list(listDiv.find(".list-body ul")[0], icon.closest(".sort-indicator").attr("sort-by"), desc);
+        }
+        if (localStorage) {
+          localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + toolbar.attr("list-name") + "_list_sort_desc", desc);
+        }
+        listDiv.trigger('sortChanged');
+      }
+    };
+
+    window.get_list_sort = function(list) {
+      list = $j(list);
+      return {
+        field: list.find(".sort-indicator").attr("sort-by"),
+        order: list.find(".sort-indicator .icon-flip-vertical").length > 0 ? 'desc' : 'asc'
+      }
+    }
+  }
+
+  if (!window.invoke_list_menu_item) {
+    window.invoke_list_menu_item = function(source, menu_item_id, function_name, url, method, param_name) {
+      if ($j(source).hasClass('disabled')) return;
+
+      var ids = selected_item_ids(source);
+      if (ids.length == 0) return;
+
+      if (function_name) {
+        window[function_name](menu_item_id, ids);
+      }
+      else if (url) {
+        var data = {};
+        data[param_name || "ciIds"] = ids;
+        $j.ajax({url: url, type: (method || "GET"), data: data});
+        clear_current_list_item($j(source).parents('.list').find('.list-body ul')[0]);
+      }
+    };
+
+    window.enable_list_menu = function(list) {
+      list.find(".list-toolbar .menu li").removeClass("disabled");
+    };
+
+    window.disable_list_menu = function(list) {
+      list.find(".list-toolbar .menu li").addClass("disabled");
+    };
+  }
+
+  if (!window.filter_changed) {
+    window.filter_changed = function(el, clear) {
+      var listDiv = $j(el).closest(".list");
+      var filter_field = listDiv.find(".list-toolbar-filter");
+
+      if (clear) {
+        filter_field.val("");
+      }
+
+      if (localStorage) {
+        var prefix = LOCAL_STORAGE_KEY_PREFIX + el.up(".list-toolbar").getAttribute("list-name") + "_list_";
+        localStorage.setItem(prefix + "filter", filter_field.val());
+      }
+
+      if (!listDiv.hasClass('list-paginated')) {
+        filter_list(listDiv.find(".list-body ul"), listDiv.find(".list-toolbar").attr("filters").split(","), filter_field.val());
+      }
+      update_filter_marker(listDiv);
+      listDiv.trigger('filterChanged');
+    };
+
+    window.set_list_filter = function(list, value) {
+      if (list) {
+        list = $j(list);
+        list.find(".list-toolbar-filter").val(value);
+        if (!list.hasClass('list-paginated')) {
+          filter_list(list.find(".list-body ul")[0], list.find(".list-toolbar").attr("filters").split(","), value);
+        }
+        update_filter_marker(list);
+        list.trigger('filterChanged');
+      }
+    };
+
+    window.get_list_filter = function(list) {
+      list = $j(list);
+      return {
+        fields: list.find(".list-toolbar").attr("filters").split(","),
+        value:  list.find(".list-toolbar-filter").val()
+      }
+    }
+  }
+
+  if (!window.list_toolbar_init) {
+    window.list_toolbar_init = function(list, name) {
+      list = $j(list);
+      var prefix = LOCAL_STORAGE_KEY_PREFIX + list.find(".list-toolbar").attr("list-name") + "_list_";
+      if (localStorage) {
+        var attr = localStorage.getItem(prefix + "sort_attribute");
+        if (attr) {
+          var label = localStorage.getItem(prefix + "sort_label");
+          var desc = localStorage.getItem(prefix + "sort_desc") == 'true';
+          var link = $j(list).find(".sort-indicator")[0];
+          if (link) {
+            sort_selected(link, attr, label);
+            if (desc) {
+              toggle_order(link);
+            }
+          }
+        }
+
+        var filter_field = list.find(".list-toolbar-filter");
+        var filtersFields = list.find(".list-toolbar").attr("filters");
+        var taItems = filtersFields.split(",");
+        taItems.unshift(filtersFields);
+        taItems = taItems.map(function(i) {return i + "=";});
+        filter_field.typeahead({source:   taItems,
+                                 matcher: function (item) {
+                                   var split = this.query.split(/:|=/),
+                                       field = split.length > 1 ? split[0] : null;
+                                   return field ? item.indexOf(field) == 0 : true;
+                                 },
+                                 sorter:  function (items) {
+                                   return items;
+                                 },
+                                 updater: function (item) {
+                                   var split = this.query.split(/:|=/),
+                                       val = split[split.length - 1],
+                                       result = item == taItems[0] ? val : item + val;
+                                   setTimeout(function () {
+                                     filter_changed(filter_field[0]);
+                                   }, 10);
+                                   return result;
+                                 }});
+        var filter = localStorage.getItem(prefix + "filter");
+        if (filter) {
+          filter_field.val(filter);
+          filter_changed(filter_field[0]);
+        }
+      }
+      setTimeout(function() {
+        update_filter_marker(list);
+      }, 100);
+      if (list.find(".btn i.icon-expand-alt").length) {
+        list.find(".list-body > ul > li:visible .middle").hide();
+      }
+    };
+
+    window.update_filter_marker = function(list) {
+      list = $j(list);
+      list.find(".list-count-marker").html(list.find(".list-body ul li:not(.new):not(.group-header):not(.paginate-insert-locator):visible").length);
+    }
+  }
+</script>

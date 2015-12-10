@@ -1,0 +1,142 @@
+<div class="monitor_threshold">
+  <div class="header btn" onclick="toggle_thresholds_struct($(this).up('div.monitor_threshold'), event.altKey)">
+    <span class="name"><%= threshold_name %></span> <%= icon('caret-down') %>
+    <%= link_to_function icon_button('trash','Delete','mini'), %(delete_thresholds_struct_entry($(this).up("div.monitor_threshold"))), :class => 'pull-right' %>
+  </div>
+  <div style="display:none" class="body">
+    <div class="main">
+      <span class="title">Definition</span>
+      <table class="threshold-section">
+      	<tr>
+          <th colspan="2">Name</th>
+          <th>State</th>
+        </tr>
+        <tr>
+          <td colspan="2"><%= text_field_tag("thresholds_#{threshold_name}", threshold_name, :class => 'name', :onchange => 'thresholds_struct_changed(this);') %></td>
+          <td>
+            <%= select_tag("thresholds_#{threshold_name}_state",
+                           options_for_select([['Notify Only', 'notify'],
+                                               ['Unhealthy', 'unhealthy'],
+                                               ['Over-Utilized', 'overutilized'],
+                                               ['Under-Utilized', 'underutilized']],
+                                              threshold['state']),
+                           :class    => 'state',
+                           :onchange => 'thresholds_struct_changed(this);') %>
+          </td>
+        </tr>
+        <tr>
+          <th>Bucket</th>
+          <th>Stat</th>
+          <th>Metric</th>
+        </tr>
+        <tr>
+          <td>
+            <%= bucket = (threshold['bucket'] || '1').to_i
+                select_tag("thresholds_#{threshold_name}_bucket",
+                             options_for_select([['1 minute',   '1'],
+                                                 ['5 minutes',  '5'],
+                                                 ['15 minutes', '15'],
+                                                 ['1 hour',     '60'],
+                                                 ['6 hours',    '360'],
+                                                 ['1 day',      '1440']],
+                                                bucket),
+                             :class => 'bucket',
+                             :onchange => 'bucket_chaged(this)') %>
+          </td>
+          <td>
+            <%= select_tag("thresholds_#{threshold_name}_stat",
+                             options_for_select([['Average', 'avg'],
+                                                 ['Minimum', 'min'],
+                                                 ['Maximum', 'max'],
+                                                 ['Sum',     'sum'],
+                                                 ['Counts',  'count']],
+                                                threshold['stat']),
+                             :class   => 'stat',
+                             :onchange => 'thresholds_struct_changed(this);') %>
+          </td>
+          <td>
+            <%= select_tag("thresholds_#{threshold_name}_metric",
+                           options_for_select(metrics, threshold['metric']),
+                           :class    => 'metric',
+                           :onchange => 'metric_chaged(this)') %>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <% trigger = threshold['trigger'] || {}
+       reset   = threshold['reset'] || {} %>
+    <div class="trigger-reset">
+      <span class='title'>Trigger & Reset</span>
+      <table class="threshold-section">
+        <tr>
+          <th></th>
+          <th>Operator</th>
+          <th>Value</th>
+          <th>Duration</th>
+          <th>Occurrences</th>
+        </tr>
+        <tr class="trigger">
+          <td>Trigger</td>
+          <td><%= select_tag "thresholds_#{threshold_name}_trigger_operator", options_for_select(%w(>= <= > <), trigger['operator']), :class => 'operator', :onchange => 'thresholds_struct_changed(this);' %></td>
+          <td>
+            <span class="input-append">
+              <%= text_field_tag "thresholds_#{threshold_name}_trigger_value", trigger['value'], :class => 'value', :required => true, :onchange => 'thresholds_struct_changed(this);' %>
+              <span class="add-on unit"></span>
+            </span>
+          </td>
+          <td>
+            <span class="input-append">
+              <%= duration = trigger['duration'].presence || 1
+                  number_field_tag "thresholds_#{threshold_name}_trigger_duration", duration, :class => 'duration', :required => true, :min => bucket, :step => bucket, :onchange => 'duration_changed(this);' %>
+              <span class="add-on">min</span>
+            </span>
+          </td>
+          <td>
+            <span class="input-prepend">
+              <span class="add-on">#</span>
+              <%= number_field_tag "thresholds_#{threshold_name}_trigger_numocc", trigger['numocc'].presence || 1 , :class => 'numocc', :required => true, :min => 1, :max => (duration / bucket).floor, :step => 1, :onchange => 'thresholds_struct_changed(this);' %>
+            </span>
+          </td>
+        </tr>
+        <tr class="reset">
+          <td>Reset</td>
+          <td><%= select_tag "thresholds_#{threshold_name}_reset_operator", options_for_select(%w(>= <= > <), reset['operator']), :class => 'operator', :onchange => 'thresholds_struct_changed(this);' %></td>
+          <td>
+            <span class="input-append">
+              <%= text_field_tag "thresholds_#{threshold_name}_reset_value", reset['value'], :class => 'value', :required => true, :onchange => 'thresholds_struct_changed(this);' %>
+              <span class="add-on unit"></span>
+            </span>
+          </td>
+          <td>
+            <span class="input-append">
+              <%= duration = reset['duration'].presence || 1
+                  number_field_tag "thresholds_#{threshold_name}_reset_duration", duration, :class => 'duration', :required => true, :min => bucket, :step => bucket, :onchange => 'duration_changed(this);' %>
+              <span class="add-on">min</span>
+            </span>
+          </td>
+          <td>
+            <span class="input-prepend">
+              <span class="add-on">#</span>
+              <%= number_field_tag "thresholds_#{threshold_name}_reset_numocc", reset['numocc'].presence || 1, :required => true, :class => 'numocc', :min => 1, :max => (duration / bucket).floor, :step => 1, :onchange => 'thresholds_struct_changed(this);' %>
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="cooloff">
+      <span class='title'>Cool-Off</span>
+      <table class="threshold-section">
+        <tr>
+          <td>
+            <span class="input-append">
+              <%= number_field_tag "thresholds_#{threshold_name}_cooloff", threshold['cooloff'].presence || 15, :class => 'cooloff', :min => 0, :step => 1, :onchange => 'thresholds_struct_changed(this);' %>
+              <span class="add-on">min</span>
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>

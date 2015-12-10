@@ -1,0 +1,5 @@
+if ($("platform_clone_modal")) {
+  $("platform_clone_modal").remove();
+}
+
+render_modal("platform_clone_modal", "<%= escape_javascript(render('new_clone')) %>");

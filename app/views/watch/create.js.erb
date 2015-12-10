@@ -1,0 +1,11 @@
+<% ci = @ci.first %>
+<% if ci %>
+  var el = $j("#ci_watch_<%= ci && ci.ciId %>");
+  if (el.length > 0) {
+    el.html("<%= escape_javascript(render('watch', :ci => ci)) %>");
+  } else {
+    window.location.reload();
+  }
+<% else %>
+  window.location.reload();
+<% end %>

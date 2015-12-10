@@ -1,0 +1,22 @@
+<%= assembly_page_header(@assembly, 'operations') %>
+
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'operations', :link => assembly_operations_path(@assembly)},
+                {:icon  => ci_image_url(@environment),
+                 :label => breadcrumb_environment_label,
+                 :kind  => 'Environment',
+                 :link  => assembly_operations_environment_path(@assembly, @environment)},
+                {:icon  => platform_image_url(@platform),
+                 :label => breadcrumb_platform_label,
+                 :kind  => 'Platform',
+                 :link  => assembly_operations_environment_platform_path(@assembly, @environment, @platform)}] %>
+
+<%= page_title :page_icon     => ci_image_url(@component),
+               :page_kind     => "#{@component.ciClassName.split('.').last} Component",
+               :page_label    => @component.ciName,
+               :page_sublabel => "created by #{@component.createdBy}",
+               :doc_link      => ci_doc_link(@component, icon('book'), :anchor => 'transition', :class => 'doc-link') %>
+
+<%= page_info 'Operations' %>
+
+<%= render 'base/shared/page_nav_pages', :items => [{:label => 'summary', :url => assembly_operations_environment_platform_component_instances_path(@assembly, @environment, @platform, @component, :instances_state => params[:instances_state] || 'all'), :selected => true},
+                                                    {:label => 'procedures', :template => 'operations/procedures/procedures'}] %>

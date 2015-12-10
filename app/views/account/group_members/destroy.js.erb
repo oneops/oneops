@@ -1,0 +1,4 @@
+$j("#group_members").html("<%= escape_javascript(render('members')) %>");
+<% if @member.user.id == current_user.id %>
+  window.location.reload();
+<% end %>

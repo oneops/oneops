@@ -1,0 +1,88 @@
+<% ci_id = item.ciId %>
+<li id="item_<%= ci_id %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, <%= ci_id %>)"
+    <%= builder[:attributes] || %(ciId="#{ci_id.to_s.rjust(20, '0')}" ciName="#{item.ciName}" created="#{item.created}") %> <%= raw(%(style="display:none")) if collapse %>>
+  <div class="target" id="id_<%= item.ciName %>"><%= builder[:target] %></div>
+
+  <% status = builder[:status] %>
+   <% if status %>
+    <% unless status == :none %>
+      <div class="status">
+        <%= status %>
+      </div>
+    <% end %>
+
+  <% elsif item.respond_to?(:rfcAction) && item.rfcAction %>
+    <div class="status">
+      <%= status_marker('release', item.rfcAction, action_to_label(item.rfcAction)) %>
+    </div>
+  <% end %>
+
+  <% menu = builder[:menu] %>
+  <% unless menu == :none %>
+    <div class="menu dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+      <ul class="dropdown-menu" role="menu">
+        <% if builder[:menu].present? %>
+          <%= raw "<li>#{builder[:menu].gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+          <li class="divider"></li>
+        <% end %>
+        <li>
+          <a href="#" class="favorite" onclick="toggleFavorite(this, <%= ci_id %>); return false;">
+            <% if current_user.favorite(ci_id) %>
+              <i class="icon-bookmark"></i>
+              <span class="text">Remove favorite</span>
+            <% else %>
+              <i class="icon-bookmark-empty"></i>
+              <span class="text">Mark favorite</span>
+            <% end %>
+          </a>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if multi_select %>
+    <% if builder.include?(:selectable) && !builder[:selectable] %>
+      <i class="placeholder"></i>
+    <% else %>
+      <i class="icon-large icon-check-empty select" onclick="event.stopPropagation();toggle_select_item(this)"></i>
+    <% end %>
+  <% end %>
+
+  <div class="content">
+    <div class="top">
+      <%= image_tag(builder[:icon] || ci_image_url(item), :class => 'icon') unless builder[:icon] == :none %>
+      <% if builder[:top] %>
+        <%= builder[:top] %>
+      <% else %>
+        <span class="topname"><%= item.ciName %></span>
+      <% end %>
+    </div>
+    <% if builder[:middle] %>
+      <div class="middle"><%= builder[:middle] %></div>
+    <% end %>
+    <% unless builder[:bottom] == :none %>
+      <div class="bottom">
+        <% if builder[:bottom] %>
+          <%= builder[:bottom] %>
+        <% else %>
+          <% if item.is_a?(Cms::RfcCi) %>
+            <% if item.rfcAction %>
+              last modified
+              <% if item.rfcUpdated %>
+                <% updated_by = item.rfcUpdatedBy || item.rfcCreatedBy %>
+                <%= time_ago_in_words(item.rfc_updated_timestamp) %> <%= "by #{updated_by}" if updated_by %>
+              <% else %>
+                <%= time_ago_in_words(item.rfc_created_timestamp) %> <%= "by #{item.rfcCreatedBy}" if item.rfcCreateddBy %>
+              <% end %>
+            <% else %>
+              last commit <%= time_ago_in_words(item.updated_timestamp) %> <%= "by #{item.createdBy}" if item.createdBy %>
+            <% end %>
+          <% else %>
+            created <%= time_ago_in_words(item.created_timestamp) %> <%= "by #{item.createdBy}" if item.createdBy %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</li>

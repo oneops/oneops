@@ -1,0 +1,24 @@
+<%= section_panel 'Organization Profile', :id => 'organization_panel', :width => 'double', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             {:resource  => @organization,
+              :content   => 'organization_details_content',
+              :read_only => !is_admin?,
+              :form_url  => organization_path}) %>
+<% end %>
+
+<%= section_panel 'Help', :id => 'organization_help', :width => 'single', :position => 'right' do %>
+	<p>
+		<%= icon(site_icon(:organization)) %> &nbsp; You are viewing the profile for the <%= highlight(@organization.ci.ciName) %> organization
+    under the organization settings page. Update the profile information or manage teams, users, notifications, policies
+    and environment profiles for this organization by selecting the corresponding tabs on this page.
+	</p>
+	<p>
+		To manage the profile information for another organization you are member of select the organization from the dropdown in
+		the navigation bar.
+	</p>
+	<p>
+		<%= icon('user') %> &nbsp; If you are looking for your account profile page for user <%= link_to(highlight(current_user.username), account_profile_path) %>
+    to manage your personal settings including creating new organizations or leaving organizations you currently belong
+    click on your account name in the navigation bar.
+	</p>
+<% end %>

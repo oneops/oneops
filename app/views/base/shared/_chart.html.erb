@@ -1,0 +1,94 @@
+<% charts = chart.is_a?(Array) ? chart : [chart]
+   stacked = charts.size > 1 %>
+<% charts.each do |c| %>
+  <% chart_name = c[:name] %>
+  <div id="<%= chart_name %>_chart_container" class="chart_container">
+    <% if stacked %>
+      <strong><%= chart_name %></strong>
+    <% end %>
+    <div id="<%= chart_name %>_yaxis" class="y_axis"></div>
+    <div id="<%= chart_name %>_chart" class="chart"></div>
+    <div id="<%= chart_name %>_zoom" class="zoom"></div>
+    <div id="<%= chart_name %>_legend" class="legend"></div>
+  </div>
+<% end %>
+
+<script>
+  var fn = function() {
+    var palette = new Rickshaw.Color.Palette();
+    var graphs = [];
+    var graph, chart_div, data, startTime, endTime, timeStep, timeRange, metrics, currentTime;
+    <% charts.each do |c| %>
+      <% chart_name = c[:name] %>
+      chart_div = document.getElementById("<%= chart_name %>_chart");
+      data = JSON.parse('<%= sanitize(c[:data].to_json) -%>');
+      if (data) {
+        startTime = <%= c[:start_time] %>;
+        endTime = <%= c[:end_time] %>;
+        timeStep = <%= c[:step] %>;
+
+        timeRange = [];
+        currentTime = startTime;
+        while (currentTime <= endTime) {
+          timeRange.push(currentTime);
+          currentTime = currentTime + timeStep;
+        }
+
+        metrics = data.map(function (metric) {
+          return {
+            name: metric['header']['metric'],
+            data: metric['data'].length ? metric['data'].map(function (d, i) {
+              return { x: timeRange[i], y: d };
+            }) : [{x: timeRange[0], y: 0}],
+            color: palette.color()
+          };
+        });
+
+        graph = new Rickshaw.Graph({
+          element:     chart_div,
+          renderer:    'line',
+          interpolate: 'basis',
+          series:      metrics
+        });
+
+        new Rickshaw.Graph.Axis.Time({graph: graph});
+
+        new Rickshaw.Graph.Axis.Y({
+          graph:       graph,
+          orientation: 'left',
+          tickFormat:  Rickshaw.Fixtures.Number.formatKMBT,
+          element:     document.getElementById('<%= chart_name %>_yaxis')
+        });
+
+        new Rickshaw.Graph.Behavior.Series.Toggle({
+          graph:  graph,
+          legend: new Rickshaw.Graph.Legend({
+            graph:   graph,
+            element: document.getElementById('<%= chart_name %>_legend')
+          })
+        });
+
+        new Rickshaw.Graph.HoverDetail({
+          graph:     graph,
+          formatter: function (series, x, y) {
+            var date = '<span class="date">' + new Date(x * 1000).toUTCString() + '</span>';
+            var swatch = '<span class="detail_swatch" style="background-color: ' + series.color + '"></span>';
+            return swatch + series.name + ": " + parseInt(y) + '<br>' + date;
+          }
+        });
+
+        new Rickshaw.Graph.RangeSlider({
+          graph:   graph,
+          element: document.getElementById('<%= chart_name %>_zoom')
+        });
+
+        graphs.push(graph);
+        graph.render();
+      }
+      else {
+        $j(chart_div).html("<i></i>Failed to load chart data.");
+      }
+    <% end %>
+  };
+  fn();
+</script>

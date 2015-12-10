@@ -1,0 +1,26 @@
+<%= title 'Registration Confirmation' %>
+<% if resource.errors.present? %>
+  <div class="alert alert-error"><%= resource.errors.full_messages %></div>
+<% end %>
+<div id="signin">
+	<%= section_panel 'Registration Confirmation' do %>
+		 <div class="logo"><%= link_to image_tag('logo.png') %></div>
+		  <%= form_for(resource, :as => resource_name, :url => confirmation_path(resource_name), :html => { :method => :post, :class => 'form-horizontal' }) do |f| %>
+		  	 <div class="control-group">
+		  	 	<%= f.label :email, :class => 'control-label' %>
+		  	 	<div class="controls">
+		    		<%= f.email_field :email, :class => 'input-medium' %>
+		    	</div>
+		    </div>
+		    <div class="control-group">
+		    	<div class="controls">
+            <% if resource.confirmed? %>
+              <%= link_to "Sign in", new_user_session_path, :class => "btn btn-large btn-success" %>
+            <% else %>
+              <%= f.submit "Resend confirmation", :class => "btn btn-large btn-success" %>
+            <% end %>
+		    	</div>
+			 </div>
+		  <% end %>
+	<% end %>
+</div>

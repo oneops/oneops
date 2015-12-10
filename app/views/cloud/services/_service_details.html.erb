@@ -1,0 +1,12 @@
+<%= locals = {:resource  => @service,
+              :content   => 'service_details_content',
+              :remote    => false,
+              :read_only => !has_cloud_services?(@cloud.ciId)}
+    if @service.new_record?
+      locals[:form_url] = cloud_services_path(@cloud)
+    else
+      locals[:form_url]    = cloud_service_path(@cloud, @service)
+      locals[:destroy_url] = cloud_service_path(@cloud, @service)
+    end
+    locals[:cancel_url] = edit_cloud_path(@cloud)
+    render 'base/shared/edit_form', locals %>

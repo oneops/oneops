@@ -1,0 +1,11 @@
+<%= section_panel 'Favorites', :width => 'single', :position => 'right' do %>
+  <%= list favorites, :toolbar => {:sort_by   => [%w(Name ciName), %w(Namespace nsPath), %w(Class ciClass)],
+                              :filter_by => %w(ciName nsPath ciClass)} do |builder, target| %>
+    <% short_class = target.ci_class_name.split('.').last %>
+    <% builder.attributes raw(%(ciName="#{target.ci_name}" nsPath="#{target.ns_path}" ciClass="#{short_class}")) %>
+    <% builder.target link_to('', favorite_path(target.ci_id)) %>
+    <% builder.icon ci_class_image_url(target.ci_class_name) %>
+    <% builder.top target.ci_name %>
+    <% builder.middle link_to(target.ns_path, path_to_ns(target.ns_path)) %>
+  <% end %>
+<% end %>

@@ -1,0 +1,17 @@
+<%= assembly_page_header(@assembly, 'design') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)}] %>
+
+<%= page_title :page_icon     => platform_image_url(@platform),
+               :page_kind     => "#{@platform.ciAttributes.pack.capitalize} Platform",
+               :page_label    => @platform.ciName,
+               :doc_link   => platform_doc_link(@platform, icon('book'), :anchor => 'design', :class => 'doc-link'),
+               :page_options  => current_user.has_design?(@assembly.ciId) &&
+                                 [link_to(icon_button('copy', ' Copy'), new_clone_assembly_design_platform_path(@assembly, @platform), :remote => true),
+                                  link_to(icon_button('trash', ' Delete', 'danger'), assembly_design_platform_path(@assembly, @platform), :method => :delete, :data => {:confirm => 'Confirm delete?'})],
+               :page_sublabel => "created by #{@platform.createdBy}" %>
+
+<%= page_info "Managed by platform pack #{highlight(@platform.ciAttributes.pack)} #{highlight(@platform.ciAttributes.version)} provided by source #{highlight(@platform.ciAttributes.source)}" %>
+
+<%= render 'base/shared/page_nav_pages', :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                                                    {:label => 'variables', :url => assembly_design_platform_variables_path(@assembly, @platform)},
+                                                    {:label => 'diff', :url => diff_assembly_design_platform_path(@assembly, @platform, :committed => params[:committed], :changes_only => params[:changes_only])}] %>

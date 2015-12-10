@@ -1,0 +1,36 @@
+<div class="ciAttributes">
+  <%= f.fields_for :ciAttributes, @monitor.ciAttributes do |f_ci_attributes| %>
+    <% thresholds = @monitor.ciAttributes.thresholds %>
+    <% if thresholds.present? && thresholds.strip.size > 3 %>
+      <div class="category">
+        <div class="name">Thresholds</div>
+        <div class="controls">
+          <%= render 'cms/cis/monitor/thresholds',
+                     :attribute_name  => 'thresholds',
+                     :attribute_value => thresholds,
+                     :ci              => @monitor,
+                     :builder         => f_ci_attributes %>
+        </div>
+      </div>
+    <% end %>
+
+    <div class="category">
+      <div class="name">Heartbeat</div>
+      <div class="control-group">
+        <%= f_ci_attributes.label 'heartbeat', 'Use Heartbeat', :class => 'control-label' %>
+        <div class="controls">
+          <%= f_ci_attributes.check_box :heartbeat, {}, 'true', 'false' %>
+        </div>
+      </div>
+      <div class="control-group">
+        <%= f_ci_attributes.label 'duration', 'Heartbeat Duration', :class => 'control-label' %>
+        <div class="controls">
+          <div class="input-append">
+            <%= f_ci_attributes.number_field :duration, :class => 'span1' %>
+            <span class="add-on">min</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

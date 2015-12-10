@@ -1,0 +1,31 @@
+<% group_admin = @group.is_admin?(current_user) %>
+<%= list(@group.members.includes(:user).order('users.username'),
+         :new_link => (group_admin ? link_to_function('Add Member...', 'new_group_member_dialog()', :remote => true) : nil),
+         :toolbar  => {:list_name => 'group_member_list',
+                       :sort_by   => [%w(Username username), %w(Email email), %w(Added added), %w(Admin admin)],
+                       :filter_by => %w(username email)}) do |builder, member| %>
+  <% builder.itemid "group_member_#{member.id}" %>
+  <% builder.attributes raw(%(email="#{member.user.email}" username="#{member.user.username}" added="#{member.created_at}" admin="#{'admin' if member.admin?}")) %>
+  <% builder.target link_to_function('', '') %>
+  <% builder.top do %>
+    <span class="topname"><%= member.user.username %></span>
+    <span class="topdesc"><%= member.user.email %></span>
+  <% end %>
+  <% full_name = member.user.name
+     builder.middle full_name if full_name.present? %>
+  <% builder.bottom raw("added #{time_ago_in_words(member.created_at)} by #{member.created_by}") %>
+  <% builder.status do %>
+    <%= marker('admin', 'label-info') if member.admin? %>
+  <% end %>
+  <% if group_admin && member.user_id != current_user.id %>
+    <% builder.menu do %>
+      <%= link_to(member.admin? ? icon('level-down', 'Revoke admin') : icon('level-up', 'Grant admin'), account_group_member_path(@group, member.user.id),
+                  :method => :put,
+                  :remote => true) %>
+      <%= link_to(icon('remove', 'Remove'), account_group_member_path(@group, member.user.id),
+                  :method  => :delete,
+                  :remote  => true,
+                  :confirm => "Remove user '#{member.user.username}' from group '#{@group.name}'?") %>
+    <% end %>
+  <% end %>
+<% end %>

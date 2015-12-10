@@ -1,0 +1,12 @@
+<%= section_panel 'Other', :width => 'single', :position => 'right' do %>
+  Unhappy? <%= link_to highlight('Cancel my account...', 'danger'), delete_user_path(current_user), :confirm => "Are you sure?", :method => :delete %>
+  <br/>
+<% end %>
+
+<%= section_panel 'Settings', :width => 'double', :position => 'left' do %>
+  <%= render 'base/shared/edit_form',
+             :resource   => current_user,
+             :content    => 'settings',
+             :form_url   => account_profile_path,
+             :cancel_url => account_profile_path %>
+<% end %>

@@ -1,2 +1,2 @@
-# display
-OneOps UI and public API
+OneOps Web Application
+======================

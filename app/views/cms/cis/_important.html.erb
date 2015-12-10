@@ -1,0 +1,31 @@
+<% important_attrs = ci.meta.attributes[:mdAttributes].select {|a| a.options[:important]}
+   ci_attrs        = ci.attributes[:ciAttributes] %>
+<% if important_attrs.present? && ci_attrs.present? %>
+  <dl class="<%= defined?(list_class) ? list_class : 'dl-horizontal' %>">
+  <% important_attrs.each do |a| %>
+      <% value = ci_attrs.attributes[a.attributeName] %>
+  		<dt title="<%= a.description %>"><%= a.description %></dt>
+  		<dd>
+        <% if a.dataType == 'hash' %>
+          <% parsed = value.present? && JSON.parse(value) %>
+          <% if parsed.present? %>
+            <table>
+              <% parsed.each_pair do |k, v| %>
+                <tr>
+                  <td title="<%= k %>"><%= k %>:</td>
+                  <td>&nbsp;</td>
+                  <td title="<%= v %>"><%= v %></td>
+                </tr>
+              <% end %>
+            </table>
+          <% else %>
+            &nbsp;
+          <% end %>
+        <% else %>
+          <%= truncate(value, 512).presence || raw('&nbsp;') %>
+        <% end %>
+      </dd>
+  <% end %>
+  </dl>
+<% end %>
+

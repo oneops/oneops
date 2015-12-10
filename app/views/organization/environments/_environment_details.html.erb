@@ -1,0 +1,11 @@
+<% new_record = @environment.new_record? %>
+<%= section_panel new_record ? 'New Environment Profile' : 'Environment Profile Details', :width => 'double', :position => 'right' do %>
+  <%= locals = {:resource => @environment, :content => 'base/environments/environment_details_content', :read_only => !is_admin?}
+      if new_record
+        locals[:form_url] = organization_environments_path
+      else
+        locals[:form_url]    = organization_environment_path(@environment)
+        locals[:destroy_url] = organization_environment_path(@environment)
+      end
+      render 'base/shared/edit_form', locals %>
+<% end %>

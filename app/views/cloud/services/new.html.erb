@@ -1,0 +1,41 @@
+<%= organization_page_header('clouds') %>
+
+<%= breadcrumb [{:label => 'clouds', :link => clouds_path},
+                {:icon  => ci_image_url(@cloud),
+                 :label => @cloud.ciName,
+                 :kind  => 'Cloud',
+                 :link  => edit_cloud_path(@cloud)}] %>
+
+<%= page_title :page_icon => '/images/cms/Service.png', :page_kind => 'Service', :page_label => 'Add' %>
+<%= page_info 'Add new service to cloud.' %>
+
+<%= section_panel 'Configuration', :width => 'double', :position => 'left' do %>
+  <div class="form-horizontal">
+    <div class="ciAttributes">
+      <div class="category">
+        <div class="name">Select Type</div>
+          <div class="control-group">
+            <%= label_tag :mgmt_ci_id, 'Service', :class => 'control-label' %>
+            <div class="controls"><%= select_tag :mgmt_ci_id, grouped_options_for_select([['', [['Choose service...', '']]]] + @service_classes, @mgmt_ci_id), :id => 'service_select', :required => true %></div>
+          </div>
+          <script type="text/javascript">
+            $j("#service_select").on("change", function () {
+              $j("#service_details").html('<i class="icon-spinner icon-spin"></i> Loading...');
+              $j.ajax({url:  "<%= new_cloud_service_path(@cloud) %>", data: {mgmtCiId: this.value}});
+            });
+          </script>
+        </div>
+    </div>
+  </div>
+  <div id="service_details">
+    <% if @service %>
+      <%= render 'base/shared/edit_form',
+                 {:resource   => @service,
+                  :content    => 'service_details_content',
+                  :remote     => false,
+                  :form_url   => cloud_services_path(@cloud),
+                  :cancel_url => edit_cloud_path(@cloud)} %>
+    <% end %>
+
+  </div>
+<% end %>

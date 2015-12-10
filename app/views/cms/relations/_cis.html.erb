@@ -1,0 +1,31 @@
+<div class="relationCis">
+  <% if defined?(withFromCi) && withFromCi.present? %>
+    <%= f.fields_for :fromCi, relation.fromCi do |fc| %>
+      <%= error_messages_for(relation.fromCi) %>
+      <%= render 'cms/cis/properties',
+                 :ci         => relation.fromCi,
+                 :f          => fc %>
+      <%= render 'cms/cis/attributes',
+                 :ci         => relation.fromCi,
+                 :f          => fc %>
+      <%= render 'cms/rfcs/properties',
+                 :rfc        => relation.fromCi,
+                 :f          => fc if relation.is_a?(Cms::DjRelation) %>
+    <% end %>
+  <% end %>
+
+  <% if defined?(withToCi) && withToCi.present? %>
+    <%= f.fields_for :toCi, relation.toCi do |fc| %>
+      <%= error_messages_for(relation.toCi) %>
+      <%= render 'cms/cis/properties',
+                 :ci       => relation.toCi,
+                 :f        => fc %>
+      <%= render 'cms/cis/attributes',
+                 :ci       => relation.toCi,
+                 :f        => fc %>
+      <%= render 'cms/rfcs/properties',
+                 :rfc      => relation.toCi,
+                 :f        => fc if relation.is_a?(Cms::DjRelation) %>
+    <% end %>
+  <% end %>
+</div>

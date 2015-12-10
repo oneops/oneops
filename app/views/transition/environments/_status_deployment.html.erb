@@ -1,0 +1,98 @@
+<% has_transition = has_transition?(@assembly.ciId) %>
+<% content_for :deploy_action do %>
+  <ul class="status-actions">
+    <li>
+      <% button = has_transition ? button(icon('ok', 'Deploy'), nil, 'success') : button('View Deployment Plan', nil, 'primary')%>
+      <%= link_busy(button,
+                    :url    => new_assembly_transition_environment_deployment_path(@assembly, @environment),
+                    :method => :get,
+                    :busy   => 'Retrieving deployment plan...') %>
+    </li>
+  </ul>
+<% end %>
+<% if @environment.ciState == 'locked' %>
+  <div class="marker"><%= status_marker('deployment', 'generating', 'label-info') %></div>
+  <div class="description">
+    <ul>
+      <li><%= icon('info-sign', ' ', 'icon-fixed-width') %>You must wait till deployment plan is generated before deploying</li>
+    </ul>
+    <%= yield :deploy_action %>
+  </div>
+<% elsif @deployment && %w(active failed paused pausing pending).include?(@deployment.deploymentState) %>
+  <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
+  <div class="description">
+    <ul>
+      <li><%= render 'base/shared/deployment_progress', :deployment => @deployment, :width => '440px' %></li>
+      <li>
+        <%= icon('star', ' ', 'icon-fixed-width') %>Deployment <%= @deployment.deploymentId %> created
+        <strong><%= time_ago_in_words(@deployment.created_timestamp) %></strong>
+      </li>
+      <li><%= icon('user', ' ', 'icon-fixed-width') %>Created by <strong><%= @deployment.createdBy %></strong></li>
+      <% if @deployment.deploymentState == 'failed' %>
+        <li>
+          <%= icon('warning-sign', ' ', 'icon-fixed-width') %>
+          Deployment <strong>failed</strong>
+          <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
+        </li>
+        <% problems = @deployment.rfc_cis.inject(@deployment.description.present? ? [@deployment.description] : []) do |p, ci|
+             p << ci.comments if ci.comments.present? && ci.dpmtRecordState == 'failed'
+             p
+           end %>
+        <% if problems.present? %>
+          <li><%= render 'deployment_problems', :problems => problems %></li>
+        <% end %>
+      <% elsif @deployment.deploymentState == 'pending' && @pending_approvals.present? %>
+         <%= render 'pending_approvals_info' %>
+      <% end %>
+    </ul>
+    <ul class="status-actions">
+      <li>
+        <%= link_busy(button('View Deployment', nil, 'primary'),
+                      :url    => edit_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                      :method => :get,
+                      :busy   => 'Retrieving deployment plan...') %>
+      </li>
+      <% if has_transition %>
+        <% if @deployment.deploymentState == 'active' %>
+          <li><%= render 'transition/deployments/action', :action => 'pause' %></li>
+        <% elsif @deployment.deploymentState == 'failed' %>
+          <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
+          <li><%= render 'transition/deployments/action', :action => 'retry' %></li>
+        <% elsif @deployment.deploymentState == 'paused' %>
+          <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
+          <li><%= render 'transition/deployments/action', :action => 'resume' %></li>
+        <% end %>
+      <% end %>
+    </ul>
+  </div>
+<% elsif @bom_release %>
+  <div class="marker"><%= status_marker('deployment', 'pending', 'label-info') %></div>
+  <div class="description">
+    <ul>
+      <li><%= icon('warning-sign', ' ', 'icon-fixed-width') %>Environment needs a deployment</li>
+    </ul>
+    <% if @release && @release.releaseState != 'open' %>
+      <%= yield :deploy_action %>
+    <% end %>
+  </div>
+<% elsif @deployment %>
+  <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
+  <div class="description">
+    <ul class="status-items">
+      <li>
+        <%= icon('ok', ' ', 'icon-fixed-width') %>Last deployment <%= @deployment.deploymentId %> <%= @deployment.deploymentState %>
+        <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
+      </li>
+      <li><%= icon('user', ' ', 'icon-fixed-width') %>Deployed by <%= highlight(@deployment.createdBy) %></li>
+      <li><%= icon('time', ' ', 'icon-fixed-width') %>Duration of last deployment was
+        <strong><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</strong>
+      </li>
+      <li><%= icon('th-list', ' ', 'icon-fixed-width') %><%= link_to(highlight('View', 'info'), '#deployments') %> history of deployments</li>
+      <% unless @manifest && @manifest.releaseState == 'open' %>
+        <li><%= icon('info-sign', ' ', 'icon-fixed-width') %>You can 'Force deploy' last release from <strong><%= link_to('environment operations', assembly_operations_environment_path(@assembly, @environment)) %></strong></li>
+      <% end %>
+    </ul>
+  </div>
+<% else %>
+  <div class="marker"><%= status_marker('deployment', 'none', 'label') %></div>
+<% end %>

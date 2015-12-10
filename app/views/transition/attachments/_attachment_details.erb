@@ -1,0 +1,9 @@
+<%= section_panel 'Attachment Details', :width => 'double', :position => 'right' do %>
+  <% locals = {:resource   => @attachment,
+               :content    => 'cms/cis/ci',
+               :cancel_url => assembly_transition_environment_platform_component_attachments_path(@assembly, @environment, @platform, @component),
+               :form_url   => @attachment.new_record? ?
+                   assembly_transition_environment_platform_component_attachments_path(@assembly, @environment, @platform, @component) :
+                   assembly_transition_environment_platform_component_attachment_path(@assembly, @environment, @platform, @component, @attachment)}
+     render('base/shared/edit_form', locals) %>
+<% end %>

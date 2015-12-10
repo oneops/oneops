@@ -1,0 +1,8 @@
+<%= section_panel 'Announcements', :id => 'announcements_section', :width => 'triple', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             {:resource   => @announcements,
+              :content    => 'announcements_content',
+              :read_only  => false,
+              :form_url   => update_announcements_support_path,
+              :cancel_url => announcements_support_path}) %>
+<% end %>

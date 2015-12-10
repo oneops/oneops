@@ -1,0 +1,38 @@
+<% current_org = current_user.organization %>
+<ul class="menu">
+  <% if (!Settings.eula || current_user.eula_accepted_at.present?) && current_org %>
+    <li class="title">
+      <%= link_to(organization_path) do %>
+        <span title="<%= current_org.name %>"><%= icon(site_icon(:organization), content_tag(:span, raw("&nbsp;#{current_org.name}"), :class => 'name')) %></span>
+        <% if current_org.full_name.present? %>
+          <br/><span class="description" title="<%= current_org.full_name %>"><%= current_org.full_name %></span>
+        <% end %>
+      <% end %>
+    </li>
+    <li class="divider small"></li>
+    <% if current_org.services %>
+      <li><%= link_to(icon(site_icon(:service), 'Services'), services_path) %></li>
+    <% end %>
+    <% if current_org.catalogs %>
+      <li><%= link_to(icon(site_icon(:catalog), 'Catalogs'), catalogs_path) %></li>
+    <% end %>
+    <% if current_org.assemblies %>
+      <li><%= link_to(icon(site_icon(:cloud), 'Clouds'), clouds_path) %></li>
+      <li><%= link_to(icon(site_icon(:assembly), 'Assemblies'), assemblies_path) %></li>
+    <% end %>
+    <li><%= link_to(icon(site_icon(:search), 'Search'), search_organization_path) %></li>
+    <li><%= link_to(icon(site_icon(:settings), 'Settings'), edit_organization_path) %></li>
+
+    <% if content_for?(:assembly_nav) %>
+      <li class="divider"></li>
+      <%= yield :assembly_nav %>
+    <% end %>
+
+    <li class="divider"></li>
+  <% end %>
+
+  <% general_site_links.each do |a| %>
+    <%= url = a[:url]
+        content_tag(:li, link_to(icon(a[:icon], a[:label]), url, :target => '_blank'), :class => 'minor muted') if url.present? %>
+  <% end %>
+</ul>

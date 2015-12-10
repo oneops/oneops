@@ -1,0 +1,19 @@
+<%= section_panel 'Components', :id => 'components_list', :width => 'single', :position => 'right' do %>
+  <div id="component_list">
+    <i class="icon-spinner icon-spin"></i> Loading...
+  </div>
+  <script type="text/javascript">
+    <%= remote_function(:url => assembly_transition_environment_platform_components_path(@assembly, @environment, @platform), :method => :get) %>
+  </script>
+<% end %>
+
+<%= section_panel 'Platform Status & Configuration', :id => 'platform_configuration', :width => 'double', :position => 'left' do %>
+  <i class="icon-spinner icon-spin"></i> Loading...
+  <script type="text/javascript">
+    <%= remote_function(:url => edit_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :get) %>
+  </script>
+<% end %>
+
+<%= section_panel 'Cloud Status', :width => 'double', :position => 'left' do %>
+  <div id="cloud_status"><%= render :partial => 'cloud_status' %></div>
+<% end %>

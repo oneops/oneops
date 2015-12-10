@@ -1,0 +1,42 @@
+<% tabs.each {|tab| tab[:tab_id] = tab[:label].gsub(/\W/, '_')}
+   tabs_selector_html = render('base/shared/tabs_selector', :tabs => tabs) %>
+<%= tabs_selector_html unless defined?(selector_parent) %>
+<div class="tabs">
+  <% tabs.each do |tab| %>
+    <div id="tab_<%= tab[:tab_id] %>" style="display:none" class="tab"></div>
+  <% end %>
+</div>
+<script type="text/javascript">
+  <% if defined?(selector_parent) %>
+    $("<%= selector_parent %>").update("<%= escape_javascript(tabs_selector_html) %>");
+  <% end %>
+  window.show_tab = function(tab_id, url) {
+    var tab_handle = $("tab_selector_" + tab_id);
+    if (tab_handle.hasClassName("selected")) {
+      return;
+    }
+
+    tab_handle.addClassName("selected");
+    tab_handle.siblings().each(function(other_link) {
+      other_link.removeClassName("selected");
+    });
+
+    <% tabs.each do |tab| %>
+      $("tab_<%= tab[:tab_id] %>").hide();
+    <% end %>
+    var selected_tab_id = "tab_" + tab_id;
+    var selected_tab = $(selected_tab_id);
+    selected_tab.show();
+    <% cash_tabs = !defined?(cash_tabs) || cash_tabs %>
+    <% if cash_tabs %>
+      if (selected_tab.empty()) {
+    <% end %>
+      new Ajax.Updater(selected_tab_id, url, {asynchronous: true, evalScripts: true, method: "get"});
+    <% if cash_tabs %>
+      }
+    <% end %>
+  };
+
+  <% selected = tabs.detect {|tab| tab[:selected] } || tabs.first %>
+  show_tab("<%= selected[:tab_id] %>", "<%= selected[:link] %>");
+</script>

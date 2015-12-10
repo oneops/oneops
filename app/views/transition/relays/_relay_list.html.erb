@@ -1,0 +1,32 @@
+<%= section_panel 'Notification Relays', :width => 'single', :menu => [{:display => icon('star-empty', 'New Relay'), :link => new_assembly_transition_environment_relay_path(@assembly, @environment), :remote => true}] do %>
+  <%= ci_list(@relays, :new_link => link_to('New Relay...', new_assembly_transition_environment_relay_path(@assembly, @environment), :remote => true)) do |builder, target| %>
+    <% enabled = target.ciAttributes.enabled == 'true'
+       status = enabled ? 'enabled' : 'disabled' %>
+    <% builder.target link_to('', edit_assembly_transition_environment_relay_path(@assembly, @environment, target), :remote => true) %>
+    <% builder.icon "/images/relay/#{target.ciClassName.split('.')[-2]}.png" %>
+    <% builder.status do %>
+      <%= marker(status, state_to_label(status)) %>
+    <% end %>
+    <% if has_transition?(@assembly.ciId) %>
+      <% builder.menu do %>
+        <% if enabled %>
+          <%= link_to icon('power-off', 'Disable'),
+                      toggle_assembly_transition_environment_relay_path(@assembly, @environment, target),
+                      :title        => 'Disable',
+                      :method       => :put,
+                      :disable_with => '&nbsp;&nbsp;wait...',
+                      :remote       => true %>
+        <% else %>
+          <%= link_to icon('play', 'Enable'),
+                      toggle_assembly_transition_environment_relay_path(@assembly, @environment, target),
+                      :title        => 'Enable',
+                      :method       => :put,
+                      :disable_with => '&nbsp;&nbsp;wait...',
+                      :remote       => true %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div id="relay_details"></div>

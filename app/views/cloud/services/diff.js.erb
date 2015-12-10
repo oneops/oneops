@@ -1,0 +1,3 @@
+$j("#page_nav_diff").html("<%= escape_javascript(render('diff')) %>");
+replace_state("<%= edit_cloud_path(@cloud, :changes_only => params[:changes_only], :anchor => 'diff') %>");
+hide_modal();

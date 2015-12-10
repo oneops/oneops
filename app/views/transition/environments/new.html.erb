@@ -1,0 +1,27 @@
+<%= assembly_page_header(@assembly, 'transition') %>
+
+<%= breadcrumb [{:label => 'transition', :link => assembly_transition_path(@assembly)}] %>
+
+<%= page_title :page_icon    => ci_image_url(@environment),
+               :page_kind    => 'Environment',
+               :page_label   => 'New Environment' %>
+
+<%= page_info 'Create new environment by configuring it below, then commit and deploy the configuration from the environment page to realize it.' %>
+
+
+<%= section_panel 'Environment Details' do %>
+  <%= render 'base/shared/edit_form',
+             :resource   => @environment,
+             :content    => 'base/environments/environment_details_content',
+             :remote     => false,
+             :form_url   => assembly_transition_environments_path(@assembly),
+             :busy_block => 'Creating Environment',
+             :cancel_url => assembly_transition_path(@assembly) %>
+<% end %>
+
+<%= section_panel 'Help', :width => 'single', :position => 'right' do %>
+  <p>Specify your business operational requirements that will be applied to your environment,
+    such as security, reliability, scalability, and avaibility mode.
+  <p><b>Hint!</b> Look for attribute specific help information by hovering over the attribute names.</p>
+  <p>You will be able to customize platforms after the environment is saved.</p>
+<% end %>

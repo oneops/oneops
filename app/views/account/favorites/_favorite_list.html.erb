@@ -1,0 +1,24 @@
+<%= section_panel 'Favorites', :width => 'triple', :position => 'left' do %>
+  <%= grouped_list(@favorites, :toolbar => {:sort_by => nil,
+                                            :filter_by => %w(ciName nsPath ciClass)}) do |group_builder, group| %>
+    <% items = group[:items] %>
+    <% group_builder.icon ci_class_image_url('account.Organization') %>
+    <% org_name = group[:organization]
+       group_builder.title org_name %>
+    <% group_builder.menu do %>
+      <span class="label label-count"><%= items.size %></span>
+    <% end %>
+    <%= group_builder.items(items.sort_by(&:ci_name)) do |item_builder, item| %>
+      <% %>
+      <% item_builder.attributes raw(%(ciName="#{item.ci_name}" nsPath="#{item.ns_path}" ciClass="#{item.ci_class_name.split('.').last}")) %>
+      <% item_builder.target link_to('', favorite_path(:org_name => org_name, :id => item.ci_id)) %>
+      <% item_builder.icon ci_class_image_url(item.ci_class_name) %>
+      <% item_builder.top do %>
+        <%= item.ci_name %>
+        <%= link_to('remove', favorite_path(:org_name => org_name, :id => item.ci_id, :index => true), :method => :delete, :remote => true, :class => 'btn btn-mini btn-danger pull-right') %>
+      <% end %>
+      <% item_builder.middle link_to(item.ns_path, path_to_ns(item.ns_path))  %>
+    <% end %>
+  <% end %>
+<% end %>
+

@@ -1,0 +1,2 @@
+$j("#page_nav_summary").html('<i class="icon-spinner icon-spin"></i> Loading...');
+<%= remote_function :url => assembly_transition_environment_path(@assembly, @environment), :method => :get %>

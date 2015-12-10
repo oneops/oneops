@@ -1,0 +1,19 @@
+# Sample localization file for English. Add more files in this directory for other locales.
+# See http://github.com/svenfuchs/rails-i18n/tree/master/rails%2Flocale for starting points.
+
+en:
+  flash:
+    actions:
+      create:
+        notice: "%{resource_name} was successfully created."
+      update:
+        notice: "%{resource_name} was successfully updated."
+      destroy:
+        notice: "%{resource_name} was successfully destroyed."
+        alert: "%{resource_name} could not be destroyed."
+
+  devise:
+    confirmations:
+      confirmed: 'Your account was successfully confirmed. Please sign in.'
+
+  active_resource:

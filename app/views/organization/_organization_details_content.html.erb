@@ -1,0 +1,28 @@
+<%= f.fields_for :ci, @organization.ci do |ci_f| %>
+  <%= render 'cms/cis/attributes', :ci => @organization.ci, :f => ci_f %>
+<% end %>
+<div class="category">
+  <div class="name">Functions</div>
+  <% [[:services, 'Offers services?'], [:assemblies, 'Manages assemblies?'], [:catalogs, 'Provides catalogs']].each do |name, label| %>
+    <div class="control-group">
+      <%= f.label name, label, :class => 'control-label' %>
+      <div class="controls">
+        <%= render 'cms/cis/checkbox',
+                   :builder         => f,
+                   :attribute_name  => name,
+                   :attribute_value => @organization.send(name),
+                   :checked_value   => true,
+                   :unchecked_value => false %>
+      </div>
+    </div>
+  <% end %>
+</div>
+<div class="category">
+  <div class="name">Announcement</div>
+  <div class="control-group">
+    <%= f.label 'announcement', 'Announcement', :class => 'control-label' %>
+    <div class="controls">
+      <%= f.text_area 'announcement', :class => 'input-xlarge text' %>
+    </div>
+  </div>
+</div>

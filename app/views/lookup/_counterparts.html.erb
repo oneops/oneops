@@ -1,0 +1,110 @@
+<% groups           = [{:items => []}]
+   current_dto      = params[:dto_area]
+   ci_name          = @ci.ciName
+   ci_class_name    = @ci.ciClassName
+   ci_ns_path_split = @ci.nsPath.split('/')
+   assembly         = ci_ns_path_split[2]
+   env              = ci_ns_path_split[3]
+   if target_dto == 'design'
+     groups[0][:items] << link_to(icon('circle-arrow-up', 'top of design'), assembly_design_path(assembly))
+     if ci_class_name == 'catalog.Platform'
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(c.ciName, path_to_ci(c)) if c.ciId != @ci.ciId && c.ciClassName.start_with?('catalog.')
+         a
+       end
+       groups << {:title => 'Other platforms', :items => items} if items.present?
+     elsif ci_class_name.start_with?('catalog.')
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(c.nsPath.split('/').last, path_to_ci(c)) if c.ciId != @ci.ciId && c.ciClassName.start_with?('catalog.')
+         a
+       end
+       groups << {:title => "#{content_tag(:strong, ci_name)} component in", :items => items} if items.present?
+     elsif ci_class_name.end_with?('.Environment')
+     elsif ci_class_name.end_with?('.Platform')
+       groups[0][:items] << link_to(raw("#{icon('circle-arrow-left')} #{content_tag(:strong, ci_name)} platform"), assembly_design_platform_path(assembly, ci_name))
+     else
+       groups[0][:items] << link_to(raw("#{icon('circle-arrow-left')} #{content_tag(:strong, ci_name)} component"), edit_assembly_design_platform_component_path(assembly, ci_ns_path_split[5], ci_name, :class_name => ci_class_name.split('.').last))
+     end
+   else
+     if target_dto == 'transition'
+       groups[0][:items] << link_to(icon('circle-arrow-up', 'top of transition'), assembly_transition_path(assembly))
+     elsif target_dto == 'operations'
+       groups[0][:items] << link_to(icon('circle-arrow-up', 'top of operations'), assembly_operations_path(assembly))
+     end
+
+     if ci_class_name == 'manifest.Environment'
+       groups[0][:items] << link_to(raw("#{icon("circle-arrow-#{current_dto == 'operations' ? 'left' : 'right'}")} #{content_tag(:strong, ci_name)} environment"), path_to_ci(@ci, target_dto)) unless target_dto == current_dto
+
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(c.ciName, path_to_ci(c, target_dto)) unless c.ciId == @ci.ciId
+         a
+       end
+       groups << {:title => 'Other environments', :items => items} if items.present?
+     elsif ci_class_name == 'catalog.Platform'
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(ns_path_split[3], path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name && ns_path_split[4] == 'manifest'
+         a
+       end
+       groups << {:title => "#{content_tag(:strong, ci_name)} platform in environment", :items => items} if items.present?
+     elsif ci_class_name == 'manifest.Platform'
+       groups[0][:items] << link_to(raw("#{icon("circle-arrow-#{current_dto == 'operations' ? 'left' : 'right'}")} #{content_tag(:strong, ci_name)} platform"), path_to_ci(@ci, target_dto)) unless target_dto == current_dto
+
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[3]}/#{ci_name} <small class='muted'>ver.#{c.ciAttributes.major_version}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name
+         a
+       end
+       groups << {:title => "#{content_tag(:strong, ci_name)} platform in other environments", :items => items} if items.present?
+
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(raw("#{c.ciName} <small class='muted'>ver.#{c.ciAttributes.major_version}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.nsPath.split('/')[3] == env
+         a
+       end
+       groups << {:title => 'Other platforms in this environment', :items => items} if items.present?
+     elsif ci_class_name.start_with?('catalog.')
+       platform = ci_ns_path_split[4]
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[3]}/#{platform} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if ns_path_split[4] == 'manifest' && ns_path_split[5] == platform
+         a
+       end
+       groups << {:title => "#{content_tag(:strong, ci_name)} in", :items => items} if items.present?
+     elsif ci_class_name.start_with?('manifest.')
+       groups[0][:items] << link_to(raw("#{icon("circle-arrow-#{current_dto == 'operations' ? 'left' : 'right'}")} #{content_tag(:strong, ci_name)} component"), path_to_ci(@ci, target_dto)) unless target_dto == current_dto
+
+       platform = ci_ns_path_split[5]
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[3]}/#{ns_path_split[5]} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && ns_path_split[5] == platform
+         a
+       end
+       groups << {:title => "#{content_tag(:strong, ci_name)} component in other environments", :items => items} if items.present?
+
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[5]} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && ns_path_split[3] == env
+         a
+       end
+       groups << {:title => "#{content_tag(:strong, ci_name)} component in other platforms", :items => items} if items.present?
+     end
+   end
+%>
+<% if groups.present? %>
+  <% groups.each do |g| %>
+    <% items = g[:items] %>
+    <% if items.present? %>
+      <% title = g[:title] %>
+      <% if title.present? %>
+        <li class="disabled title">
+          <%= link_to_function(raw("#{title} #{count_marker(items.size, 'label-info')}"), '') %>
+        </li>
+      <% end %>
+      <% items.sort.each do |item| %>
+        <li><%= raw(item) %></li>
+      <% end %>
+    <% end %>
+  <% end %>
+<% else %>
+  <li class="disabled"><%= link_to_function('no results', '') %></li>
+<% end %>

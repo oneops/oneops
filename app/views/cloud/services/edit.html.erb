@@ -1,0 +1,17 @@
+<%= organization_page_header('clouds') %>
+
+<%= breadcrumb [{:label => 'clouds', :link => clouds_path},
+                {:icon  => ci_image_url(@cloud),
+                 :label => @cloud.ciName,
+                 :kind  => 'Cloud',
+                 :link  => edit_cloud_path(@cloud)}] %>
+
+<%= page_title :page_icon => ci_image_url(@service),
+               :page_kind => 'Service',
+               :page_label => @service.ciClassName.split('.').last %>
+
+<%= page_info 'Change service configuration.' %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'configuration', :template => 'configuration', :selected => true},
+                      {:label => 'offerings', :url => cloud_service_offerings_path(@cloud, @service)}] %>

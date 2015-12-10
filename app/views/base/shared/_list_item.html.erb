@@ -1,0 +1,35 @@
+<% item_id = builder[:itemid] %>
+<li id="item_<%= item_id %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, '<%= item_id %>')" <%= builder[:attributes] %> <%= raw(%(style="display:none")) if collapse %>>
+  <div class="target"><%= builder[:target] if builder[:target] %></div>
+
+  <% if builder[:status] %>
+    <div class="status">
+      <%= builder[:status] %>
+    </div>
+  <% end %>
+
+  <% menu = builder[:menu] %>
+  <% if menu.present? && menu != :none %>
+    <div class="menu">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+      <ul class="dropdown-menu">
+        <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="content">
+    <div class="top">
+      <%= image_tag(builder[:icon], :class => 'icon') if builder[:icon] %>
+      <% if builder[:top] %>
+        <span class="topname"><%= builder[:top] %></span>
+      <% end %>
+    </div>
+    <% if builder[:middle] %>
+      <div class="middle"><%= builder[:middle] %></div>
+    <% end %>
+    <% if builder[:bottom] %>
+      <div class="bottom"><%= builder[:bottom] %></div>
+    <% end %>
+  </div>
+</li>

@@ -1,0 +1,5 @@
+//$("container").setOpacity(0.3);
+block("container");
+$("overlay").update('<%= escape_javascript(render('operations/procedures/edit')) %>');
+Effect.SlideDown('overlay', { duration: 0.3 });
+hide_modal();

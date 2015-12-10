@@ -1,0 +1,11 @@
+<% new_url = new_assembly_transition_environment_platform_component_log_path(@assembly, @environment, @platform, @component) %>
+<%= section_panel 'Logs',
+                  :width => 'single',
+                  :menu  => [link_to(icon('star-empty', 'New Log'), new_url, :remote => true, :class => 'btn btn-mini')] do %>
+
+  <%= ci_list(@logs, :new_link => link_to('New Log', new_url, :remote => true)) do |builder, target| %>
+    <% builder.target link_to('', edit_assembly_transition_environment_platform_component_log_path(@assembly, @environment, @platform, @component, target), :remote => true) %>
+  <% end %>
+<% end %>
+
+<div id="log_details"></div>

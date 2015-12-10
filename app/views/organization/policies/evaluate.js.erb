@@ -1,0 +1,3 @@
+$j("#evaluate_result_list").html("<%= escape_javascript(render('organization/policies/evaluate_result_list')) %>");
+$j("#evaluate_result_list").parent().find("form input[name=ns_path]").val("<%= @ns_path %>");
+replace_state("<%= @policy ? evaluate_organization_policy_path(@policy, :query => @query) : evaluate_organization_policies_path(:query => @query) %>");

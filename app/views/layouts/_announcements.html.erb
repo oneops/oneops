@@ -1,0 +1,9 @@
+<% announcements = MiscDoc.announcements.document %>
+<% announcement = announcements['critical']
+   if announcement.present? %>
+  <div class="announcement alert alert-danger"><%= raw(announcement) %></div>
+<% end %>
+<% announcement = announcements['notice']
+   if announcement.present? %>
+  <div class="announcement alert alert-info"><%= raw(announcement) %></div>
+<% end %>

@@ -1,0 +1,60 @@
+<% groupings = @cost[:groupings] %>
+<%= section_panel 'Cost Explorer', :width => 'single', :position => 'left' do %>
+  <%= form_tag(cost_assembly_path, :method => 'get', :remote => true) do %>
+    <div class="filter-group">
+      <div class="name">Date Range</div>
+      <div class="sub-filter">
+        <div class="name">Start</div>
+        <%= date_field_tag(:start_date, @start_date || Date.today.prev_month(3).beginning_of_month) %>
+      </div>
+      <div class="sub-filter">
+        <div class="name">End</div>
+        <%= date_field_tag(:end_date, @end_date || Date.today.end_of_month) %>
+      </div>
+      <hr/>
+      <%= submit_tag('Run', :class => 'btn btn-success') %>
+    </div>
+  <% end %>
+<% end %>
+<%= section_panel 'Results', :width => 'double', :position => 'right' do %>
+  <%= render 'base/shared/graph_bar', :data => @cost %>
+  <br/>
+  <% groupings.each do |grouping| %>
+    <% grouping_name = grouping[:name] %>
+    <div class="report hide report-<%= grouping_name %>">
+      <table class="full-width">
+        <tr>
+          <th><%= @cost[:labels][:x] %></th>
+          <th><%= grouping[:label] %></th>
+          <th><%= @cost[:labels][:y] %></th>
+        </tr>
+        <% @cost[:x].each_with_index do |x, i| %>
+          <% y = @cost[:y][i][grouping_name]
+             total = 0 %>
+          <% y.each_with_index do |segment, j| %>
+            <% value = segment[:value]
+               total += value %>
+            <tr>
+              <% if j == 0 %>
+                <td rowspan="<%= y.size + 1 %>"><%= x %></td>
+              <% end %>
+              <td><%= segment[:label] %></td>
+              <td class="metric"><%= number_with_precision(value, :precision => 2, :delimiter => ',') %></td>
+            </tr>
+          <% end %>
+          <tr class="subtotal">
+            <td>All</td>
+            <td class="metric"><%= number_with_precision(total, :precision => 2, :delimiter => ',') %></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+    <% end %>
+<% end %>
+<script>
+  $j(".report.report-<%= groupings.first[:name] %>").slideDown(1000);
+  $j(".graph-bar").on("groupingChanged", function(e, grouping) {
+    $j(".report:visible").slideUp(1000);
+    $j(".report.report-" + grouping).delay(1000).slideDown(1000);
+  })
+</script>

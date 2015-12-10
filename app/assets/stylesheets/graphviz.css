@@ -1,0 +1,22 @@
+g[id~=binding] {
+	filter:url('#dropshadow');
+}
+g[id~=platform] {
+	
+}
+g.node polygon {
+
+}
+g.node ellipse {
+
+}
+g.node a {
+	display: block;
+}
+
+g.node image {
+	opacity: 1;
+}
+g text {
+
+}

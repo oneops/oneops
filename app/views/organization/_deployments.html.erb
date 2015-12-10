@@ -1,0 +1,38 @@
+<% menu = %w(active pending failed).map { |state| link_busy(state, :url => deployments_organization_path(:deployment_state => state), :remote => true, :class => "btn btn-mini #{'active' if @deployment_state == state}") } %>
+<%= section_panel "#{@deployment_state.capitalize} Deployments", :width => 'double', :position => 'left', :menu => menu do %>
+  <%= deployment_list(@deployments.sort_by(&:updated_timestamp).reverse,
+                      :toolbar => {:list_name => 'org_deployment_list',
+                                   :sort_by   => [%w(Created created), %w(User createdBy), %w(Assembly assembly)],
+                                   :filter_by => %w(deploymentId createdBy assembly environment namespace)}) do |item, deployment| %>
+    <% root, org, assembly, env = deployment.nsPath.split('/')
+       rfcs = deployment.rfc_cis %>
+    <% item.attributes %(deploymentId="#{item.deploymentId}" created="#{item.created}" createdBy="#{item.createdBy}" assembly="#{assembly}" environment="#{env}" namespace="#{deployment.nsPath}") %>
+    <% item.status do %>
+      <%= state = deployment.deploymentState
+          marker(state, state_to_label(state)) %>
+    <% end %>
+    <% item.top do %>
+      <span class="topname"><%= link_to("#{assembly} / #{env}", assembly_transition_environment_path(assembly, env)) %></span>
+      <span class="topdesc"><%= time_ago_in_words(deployment.created_timestamp) %>
+        (<%= pluralize(deployment.rfc_cis.count, 'work-order') %>)</span>
+    <% end %>
+    <% item.middle do %>
+      <div style="width: 540px">
+        <%= link_busy(button('View', 'mini', 'primary pull-right'),
+                      :url    => edit_assembly_transition_environment_deployment_path(assembly, env, deployment),
+                      :method => :get,
+                      :busy   => 'Retrieving deployment plan...') %>
+        <%= render 'base/shared/deployment_progress', :deployment => deployment, :width => '490px' %>
+
+        <% problems = rfcs.inject([]) do |p, ci|
+          p << ci.comments if ci.comments.present? && ci.dpmtRecordState == 'failed'
+          p
+        end %>
+        <% if problems.present? %>
+          <div class="alert alert-danger"><%= raw(problems.join('<br>')) %></div>
+        <% end %>
+    <% end %>
+    </div>
+  <% end %>
+<% end %>
+

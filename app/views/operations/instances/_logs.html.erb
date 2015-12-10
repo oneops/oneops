@@ -1,0 +1,104 @@
+<% if @log_data %>
+  <div id="tablewrapper">
+    <div id="tableheader">
+      <div class="search">
+        <select id="columns" onchange="sorter.search('query')"></select>
+        <input type="text" id="query" onkeyup="sorter.search('query')">
+      </div>
+      <div class="details">
+        <div>Records <span id="startrecord"></span>-<span id="endrecord"></span> of <span id="totalrecords"></span></div>
+        <div><a href="javascript:sorter.reset()">reset</a></div>
+      </div>
+    </div>
+
+    <table cellpadding="0" cellspacing="0" border="0" id="table" class="tinytable">
+      <thead>
+      <tr>
+        <th width="90"><h3>Time</h3></th>
+        <th><h3>Class</h3></th>
+        <th><h3>Level</h3></th>
+        <th><h3>Message</h3></th>
+      </tr>
+      </thead>
+      <tbody>
+      <% if @log_data != nil %>
+        <% @log_data.each do |logEntry| %>
+          <tr>
+            <% if Settings.log_data_source == 'es' %>
+              <td><%= Time.parse(logEntry['@timestamp']).to_s(:short) %></td>
+              <td><%= logEntry['type'] %></td>
+            <% else %>
+              <td><%= Time.at(logEntry['timestamp'].to_i / 1000).to_s(:short) %></td>
+              <td><%= logEntry['logClass'] %></td>
+            <% end %>
+            <td><b><%= logEntry['level'] %></b></td>
+            <td><%= logEntry['message'] %></td>
+          </tr>
+        <% end %>
+      <% end %>
+      </tbody>
+    </table>
+
+    <div id="tablefooter">
+      <div id="tablenav">
+        <div>
+          <img src="/images/tinytable/first.gif" width="16" height="16" alt="First Page" onclick="sorter.move(-1,true)"/>
+          <img src="/images/tinytable/previous.gif" width="16" height="16" alt="Previous Page" onclick="sorter.move(-1)"/>
+          <img src="/images/tinytable/next.gif" width="16" height="16" alt="Next Page" onclick="sorter.move(1)"/>
+          <img src="/images/tinytable/last.gif" width="16" height="16" alt="Last Page" onclick="sorter.move(1,true)"/>
+        </div>
+        <div>
+          <select id="pagedropdown"></select>
+        </div>
+        <div>
+          <a href="javascript:sorter.showall()">view all</a>
+        </div>
+      </div>
+      <div id="tablelocation">
+        <div>
+          <select onchange="sorter.size(this.value)">
+            <option value="5">5</option>
+            <option value="10" selected="selected">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+          <span>Entries Per Page</span>
+        </div>
+        <div class="page">Page <span id="currentpage"></span> of <span id="totalpages"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript">
+    var sorter = new TINY.table.sorter('sorter', 'table', {
+      headclass:     'head',
+      ascclass:      'asc',
+      descclass:     'desc',
+      evenclass:     'evenrow',
+      oddclass:      'oddrow',
+      evenselclass:  'evenselected',
+      oddselclass:   'oddselected',
+      paginate:      true,
+      size:          25,
+      colddid:       'columns',
+      currentid:     'currentpage',
+      totalid:       'totalpages',
+      startingrecid: 'startrecord',
+      endingrecid:   'endrecord',
+      totalrecid:    'totalrecords',
+      hoverid:       'selectedrow',
+      pageddid:      'pagedropdown',
+      navid:         'tablenav',
+      sortcolumn:    0,
+      sortdir:       1,
+      columns:       [
+        {index: 0, format: '%', decimals: 1},
+        {index: 8, format: '$', decimals: 0}
+      ],
+      init:          true
+    });
+  </script>
+<% else %>
+  <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to check policy compliance</strong></p>
+<% end %>
