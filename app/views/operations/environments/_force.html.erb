@@ -1,0 +1,120 @@
+
+    <div id="force"></div>
+    <script type="text/javascript">
+
+var w = 960,
+    h = 500,
+    node,
+    edge,
+    root;
+
+var force = d3.layout.force()
+    .on("tick", tick)
+    .charge(function(d) { return d._children ? -d.size * 10 : -30; })
+    .linkDistance(function(d) { return d.target._children ? 100 : 30; })
+    .size([w, h]);
+
+var vis = d3.select("#force").append("svg")
+    .attr("width", w)
+    .attr("height", h);
+
+var json = JSON.parse('<%= sanitize(@tree.to_json) -%>');
+
+  root = json;
+  root.fixed = true;
+  root.x = w / 2;
+  root.y = h / 2;
+  update();
+
+function update() {
+  var nodes = flatten(root),
+      links = d3.layout.tree().links(nodes);
+
+  // Restart the force layout.
+  force
+      .nodes(nodes)
+      .links(links)
+      .start();
+
+  // Update the links…
+  edge = vis.selectAll("line.link")
+      .data(links, function(d) { return d.target.id; });
+
+  // Enter any new links.
+  edge.enter().insert("line", ".node")
+      .attr("class", "link")
+      .attr("x1", function(d) { return d.source.x; })
+      .attr("y1", function(d) { return d.source.y; })
+      .attr("x2", function(d) { return d.target.x; })
+      .attr("y2", function(d) { return d.target.y; });
+
+  // Exit any old links.
+  edge.exit().remove();
+
+  // Update the nodes…
+	 node = vis.selectAll("g.node")
+        .data(nodes)
+      .enter().append("svg:g")
+        .attr("class", "node")
+        .call(force.drag);
+
+    node.append("svg:image")
+        .attr("class", "circle")
+        .attr("xlink:href", function(d) { return "/images/cms/"+d.klass+".png" })
+        .attr("x", "-8px")
+        .attr("y", "-8px")
+        .attr("width", "20px")
+        .attr("height", "20px");
+
+    node.append("svg:text")
+        .attr("class", "nodetext")
+        .attr("dx", 12)
+        .attr("dy", ".35em")
+        .text(function(d) { return d.name });
+        
+  // Exit any old nodes.
+  node.exit().remove();
+}
+
+function tick() {
+  edge.attr("x1", function(d) { return d.source.x; })
+      .attr("y1", function(d) { return d.source.y; })
+      .attr("x2", function(d) { return d.target.x; })
+      .attr("y2", function(d) { return d.target.y; });
+
+	node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });	
+}
+
+// Color leaf nodes orange, and packages white or blue.
+function color(d) {
+  return d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
+}
+
+// Toggle children on click.
+function click(d) {
+  if (d.children) {
+    d._children = d.children;
+    d.children = null;
+  } else {
+    d.children = d._children;
+    d._children = null;
+  }
+  update();
+}
+
+// Returns a list of all nodes under the root.
+function flatten(root) {
+  var nodes = [], i = 0;
+
+  function recurse(node) {
+    if (node.children) node.size = node.children.reduce(function(p, v) { return p + recurse(v); }, 0);
+    if (!node.id) node.id = ++i;
+    nodes.push(node);
+    return node.size;
+  }
+
+  root.size = recurse(root);
+  return nodes;
+}
+
+    </script>

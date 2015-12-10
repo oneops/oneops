@@ -1,0 +1,11 @@
+<%= section_panel 'Release Details', :width => 'double', :position => 'right' do %>
+  <div class="release">
+    <%= render 'cms/releases/edit', :release => release %>
+    <%= render 'base/release/release_diff_list', :rfc_cis => release.rfc_cis, :rfc_relations => release.rfc_relations %>
+    <% if release.releaseState == 'open' && current_user.has_design?(@assembly.ciId) %>
+      <ul class="status-actions">
+        <%= render 'design/releases/controls' %>
+      </ul>
+    <% end %>
+  </div>
+<% end %>

@@ -1,0 +1,5 @@
+Organization administrator <%= @admin_user.email %> <%= "(#{@admin_user.name})" if @admin_user.name.present? %> has removed
+you from team '<%= @group.name %>' in organization '<%= @group.organization.name %>' in OneOps.
+<br/>
+<br/>
+<%= link_to('Click here', account_profile_url) %> to manage your user profile in OneOps.

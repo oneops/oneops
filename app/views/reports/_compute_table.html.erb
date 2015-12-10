@@ -1,0 +1,95 @@
+<div class="report">
+  <% @scope = data['scope']
+     @scope_column_count = @scope.inject(0) {|c, node| c += (node.is_a?(Hash) ? node.values.first.length : 1)}
+     @max_level = data['data']['level']
+     multi_scope = @scope_column_count > @max_level %>
+  <table>
+    <tr>
+      <th colspan="<%= @scope_column_count %>">Scope</th>
+      <th colspan="<%= data['metrics'].size %>">Metrics</th>
+    </tr>
+    <tr>
+      <% @max_level.times do |i| %>
+        <% scope_node = @scope[i] %>
+        <% if scope_node.is_a?(Hash) %>
+          <th colspan="<%= scope_node.values.first.size %>"><%= scope_node.keys.first %></th>
+        <% else %>
+          <th rowspan="<%= multi_scope ? 2 : 1 %>"><%= scope_node %></th>
+        <% end %>
+      <% end %>
+      <% @metric_names = [] %>
+      <% data['metrics'].each do |metric| %>
+        <th rowspan="<%= multi_scope ? 2 : 1 %>"><%= metric['label'] %></th>
+        <% @metric_names << metric['name'] %>
+      <% end %>
+    </tr>
+    <% if multi_scope %>
+      <tr>
+        <% @scope.each do |scope_node| %>
+          <% if scope_node.is_a?(Hash) %>
+            <% scope_node.values.first.each do |s| %>
+              <th><%= s %></th>
+            <% end %>
+          <% end %>
+        <% end %>
+      </tr>
+    <% end %>
+
+    <% def output_name(node, scope_node) %>
+      <% (scope_node.is_a?(Hash) ? scope_node.values.first : ['name']).each do |key| %>
+        <% if key == 'name' && node['url'].present? %>
+          <td><%= link_to node[key], node['url'] %></td>
+        <% else %>
+          <td><%= node[key] %></td>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <% def output_metrics(node) %>
+      <% @metric_names.each do |metric| %>
+        <td class="metric"><%= node['metrics'][metric] %></td>
+      <% end %>
+    <% end %>
+
+    <% def output_node(node, node_parents, is_root) %>
+      <%
+        children = node['children']
+        is_leaf = children.blank?
+        unless is_leaf
+          node_parents += [node] unless is_root
+          children.each {|child_node| output_node(child_node, node_parents, false)}
+        end
+        row_class = if is_root
+                      'total'
+                    elsif node_parents.length <= 1
+                      'subtotal'
+                    elsif !is_leaf
+                      'subsubtotal'
+                    else
+                      ''
+                    end
+      %>
+      <tr class="<%= row_class %> <%= 'special' if node['name'][0] == '~' %>">
+        <% column_count = 0 %>
+        <% node_parents.each_with_index do |parent_node, i| %>
+          <% scope_node = @scope[i]
+             output_name(parent_node, scope_node) %>
+          <% column_count += (scope_node.is_a?(Hash) ? scope_node.values.first.size : 1) %>
+        <% end %>
+        <% if is_leaf %>
+          <% scope_node = @scope[node_parents.length]
+             output_name(node, scope_node) %>
+          <% column_count += (scope_node.is_a?(Hash) ? scope_node.values.first.size : 1) %>
+        <% else %>
+          <td>TOTAL</td>
+          <% column_count += 1 %>
+        <% end %>
+        <% (@scope_column_count - column_count).times do %>
+          <td></td>
+        <% end %>
+        <% output_metrics(node) %>
+      </tr>
+    <% end %>
+    <% output_node(data['data'], [], true) %>
+  </table>
+</div>

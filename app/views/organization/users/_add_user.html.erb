@@ -1,0 +1,38 @@
+<div class="modal-header">
+  <button class="close" data-dismiss="modal">&times;</button>
+  <h3>Add User to Organization</h3>
+</div>
+<%= form_tag(organization_users_url, :remote => true, :class => 'form-inline') do %>
+  <div class="modal-body" style="height:250px; overflow-x: auto">
+    <%= label_tag :username, 'Username', :class => 'control-label' %>
+    <%= text_field_tag :username, '', :class => 'input-xlarge', :required => true, :autocomplete => 'off', :placeholder => 'Enter username...' %>
+    <br>
+    <br>
+    <legend>Teams</legend>
+    <div class="teams">
+      <% current_user.organization.teams.each do |team| %>
+        <label><a class="btn"><%= check_box_tag('teams[]', team.id) %> <%= team.name %></a></label>
+      <% end %>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
+    <%= submit_tag 'Add User', :class => 'btn btn-success btn-large' %>
+  </div>
+<% end %>
+
+<script>
+  var userLookupFn = function(query, process) {
+    return $j.get('<%= user_lookup_path %>',
+                  {login: query},
+                  function (data) {
+                    return process(data);
+                  });
+  };
+
+  var updaterFn = function(item) {
+    return item.split(' ')[0];
+  };
+
+  $j('input#username').typeahead({source: userLookupFn, updater: updaterFn});
+</script>

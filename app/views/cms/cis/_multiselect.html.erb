@@ -1,0 +1,38 @@
+<% selections  = attribute_value.present? ? attribute_value.split(',') : [] %>
+<div class="multiselect">
+  <%= builder.hidden_field attribute_name %>
+  <% options_for_select.each do |option| %>
+    <label>
+      <a style="width:100%;text-align: left" class="btn btn-small btn-check-box <%= 'active' if selections.include?(option[1]) %>" selection_value="<%= option[1] %>">
+        <input type="checkbox" <%= 'checked' if selections.include?(option[1]) %> onchange="multiselect_changed(this)"> <%= option[0] %>
+      </a>
+    </label>
+  <% end %>
+</div>
+<script type="text/javascript">
+  var options_map_<%= attribute_name %> = {};
+  <% options_for_select.each do |o| %>
+    options_map_<%= attribute_name %>["<%= o[1] %>"] = "<%= escape_javascript(o[0]) %>";
+  <% end %>
+  if (!window.multiselect_changed) {
+    window.multiselect_changed = function (source) {
+      $j(source).toggleClass('active');
+      setTimeout(function () {
+        $j(source).parent().toggleClass('active');
+        if (source.up("form").edit) {
+          var selections = [];
+          var button_div = $j(source).parents("div.multiselect");
+          var selected = button_div.find("a.btn.active");
+          for (var i = 0; i < selected.length; i++){
+            selections.push(selected[i].getAttribute("selection_value"));
+          }
+          button_div.find("span").html(selections.map(function(s) {return options_map_<%= attribute_name %>[s];}).join(","));
+          button_div.find("input[type=hidden]").val(selections.join(","));
+        }
+        else {
+          $j(source).button('toggle');
+        }
+      }, 100);
+    };
+  }
+</script>

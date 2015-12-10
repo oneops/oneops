@@ -1,0 +1,16 @@
+<% if (@deployment && @deployment.deploymentState != 'complete' && @platforms.present?) || @environment.ciState == 'locked' %>
+  var overlay = $j("#overlay");
+  var visible = overlay.is(":visible");
+  if (visible) {
+    stop_deployment_polling();
+  }
+  overlay.html('<%= escape_javascript(render('deployment')) %>');
+  if (!visible) {
+    hide_modal();
+    block("container");
+    Effect.SlideDown('overlay', { duration: 0.3 });
+  }
+<% else %>
+  window.location.reload();
+<% end %>
+

@@ -1,0 +1,42 @@
+<%= section_panel 'Chart', :width => 'double' do %>
+  <div class="btn-toolbar">
+    <div class="range btn-group">
+      <% Operations::MonitorsController::CHART_TIME_RANGES.each do |range| %>
+        <% if @range == range %>
+          <%= link_to(icon('ok', range),
+                      '#',
+                      :remote => true,
+                      :class  => 'btn btn-mini active') %>
+        <% else %>
+          <%= link_to(range,
+                      assembly_operations_environment_platform_component_instance_monitor_path(@assembly, @environment, @platform, @component, @instance, @monitor, :range => range),
+                      :remote => true,
+                      :class  => 'btn btn-mini') %>
+        <% end %>
+      <% end %>
+    </div>
+    <div class="refresh btn-group pull-right">
+      <%= link_to(icon('refresh'),
+                  assembly_operations_environment_platform_component_instance_monitor_path(@assembly, @environment, @platform, @component, @instance, @monitor, :range => @range),
+                  :remote => true,
+                  :class  => 'btn btn-mini') %>
+    </div>
+  </div>
+  <% if @monitor.charts.size == 1 %>
+    <%= render 'base/shared/chart', :chart => @monitor.charts.first %>
+  <% else %>
+    <% @monitor.charts.sort_by {|c| c[:name]}.each do |c| %>
+      <div class="category">
+        <div class="name"><%= c[:name] %></div>
+        <%= render 'base/shared/chart', :chart => c %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>
+
+<%= section_panel 'Configuration', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @monitor,
+              :content  => 'monitor_details_content',
+              :read_only => true}) %>
+<% end %>

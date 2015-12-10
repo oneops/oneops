@@ -1,0 +1,6 @@
+<%= form_for @procedure,
+		:url => operations_procedure_path(@procedure),
+		:html => {:method => :put, :remote => true} do |f| %>
+	<%= f.hidden_field :procedureState, :value => status %>
+	<%= f.submit(label, :disable_with => message, :class => "btn btn-#{style}") %>
+<% end %>

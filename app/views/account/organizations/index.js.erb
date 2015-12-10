@@ -1,0 +1,7 @@
+$j(".modal").modal('hide');
+$j("#page_nav_organizations").html("<%= escape_javascript(render('organization_list')) %>");
+$j("#user_nav").html("<%= escape_javascript(render('layouts/user_nav')) %>");
+$j("#title").html("<%= escape_javascript(organization_home) %>");
+<% unless current_user.organization_id? %>
+  $j("#app_nav").html("");
+<% end %>

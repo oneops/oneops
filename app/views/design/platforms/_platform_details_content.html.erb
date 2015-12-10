@@ -1,0 +1,85 @@
+<%= render 'cms/cis/properties', :ci => @platform, :f => f, :read_only => @platform.persisted? %>
+<div class="ciAttributes">
+  <%= f.fields_for :ciAttributes, @platform.ciAttributes do |c| %>
+    <% attributes_meta = @platform.meta.attributes[:mdAttributes] %>
+
+    <div class="control-group">
+      <% a = attributes_meta.detect { |m| m.attributeName == 'description' } %>
+      <%= c.label :description, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+      <div class="controls"><%= c.text_field :description, :class => 'input-xlarge' %></div>
+    </div>
+
+    <% if @platform.new_record? %>
+      <%= c.hidden_field :major_version %>
+
+      <% pack_sources, pack_versions, packs = packs_info
+        first_source = pack_sources.sort.first %>
+      <div class="control-group">
+        <% a = attributes_meta.detect { |m| m.attributeName == 'source' } %>
+        <%= c.label :source, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+        <div class="controls"><%= c.select :source, options_for_select(pack_sources, first_source), {}, :id => 'source_select' %></div>
+      </div>
+
+      <% first_pack = packs[first_source].sort.first.last.last.last %>
+      <div class="control-group">
+        <% a = attributes_meta.detect { |m| m.attributeName == 'pack' } %>
+        <%= c.label :pack, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+        <div class="controls"><%= c.select :pack, grouped_options_for_select(packs[first_source], nil, :prompt => 'Please select'), {}, :id => 'pack_select', :required => true %></div>
+      </div>
+
+      <div class="control-group">
+        <% a = attributes_meta.detect { |m| m.attributeName == 'version' } %>
+        <%= c.label :version, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+        <div class="controls"><%= c.select :version, options_for_select(pack_versions[first_source][first_pack]), {}, :id => 'version_select' %></div>
+      </div>
+
+      <script type="text/javascript">
+        var pack_select_options = {};
+        var version_select_options = {};
+        <% pack_sources.each do |source| %>
+          pack_select_options['<%= source %>'] = '<%= escape_javascript(grouped_options_for_select(packs[source])) %>';
+          version_select_options['<%= source %>'] = {};
+          <% pack_versions[source].each_pair do |pack, versions| %>
+            version_select_options['<%= source %>']['<%= pack %>'] = '<%= escape_javascript(options_for_select(versions)) %>';
+          <% end %>
+        <% end %>
+
+        $("source_select").observe("change", function () {
+          $("pack_select").update(pack_select_options[this.value]);
+          $("version_select").update(version_select_options[this.value][$("pack_select").value]);
+        });
+
+        $("pack_select").observe("change", function () {
+          $("version_select").update(version_select_options[$("source_select").value][this.value]);
+        });
+      </script>
+    <% else %>
+      <% a = attributes_meta.detect { |m| m.attributeName == 'major_version' } %>
+      <% if a %>
+        <div class="control-group">
+          <%= c.label :major_version, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+          <div class="controls"><%= c.number_field :major_version, :class => 'span1', :required => a.isMandatory, :pattern => a.options[:pattern] %></div>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>
+<%= render 'cms/rfcs/properties', :rfc => @platform, :f => f %>
+
+<% if @linkable_platform_map.present? %>
+  <div class="category">
+    <div class="name">Links</div>
+  </div>
+  <div class="control-group">
+    <label class="control-label">To Platforms</label>
+
+    <div class="controls">
+      <% @linkable_platform_map.each_pair do |p, linked| %>
+        <label class="checkbox inline">
+          <%= cb_id = "links_to_#{p.ciId}"
+              check_box_tag 'links_to[]', p.ciId, linked, :id => cb_id, :class => 'form-inline' %> <%= p.ciName %>
+        </label>
+      <% end %>
+    </div>
+  </div>
+<% end %>

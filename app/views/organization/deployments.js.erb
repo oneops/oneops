@@ -1,0 +1,3 @@
+$j("#page_nav_deployments").html('<%= escape_javascript(render('deployments')) %>');
+replace_state("<%= organization_path(:deployment_state => @deployment_state, :anchor => 'deployments') %>");
+hide_busy();

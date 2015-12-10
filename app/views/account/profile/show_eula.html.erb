@@ -1,0 +1,26 @@
+<div class="container main">
+  <h1>Terms of Service</h1>
+  <br/>
+  <p>
+    BY SIGNING UP FOR AN ACCOUNT OR BY USING THE SERVICE, YOU HEREBY ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTAND, AND AGREE TO BE BOUND BY THESE TERMS OF SERVICE.
+    THE TERMS "YOU" OR "YOUR" REFERS TO THE INDIVIDUAL OR CORPORATE END USER THAT IS SPECIFIED IN THE REGISTRATION INFORMATION ASSOCIATED WITH SUCH END USER'S ACCOUNT FOR THE SERVICE.
+  </p>
+  <br/>
+  <hr/>
+
+  <% privacy_policy_url = Settings.privacy_policy_url %>
+  <% if privacy_policy_url.present? %>
+    <p>
+      <h4><strong>Privacy</strong></h4>
+      Please review our <%= link_to('Privacy Policy', privacy_policy_url) %>, which also governs your use of the Service, to understand our practices and policies.
+      The terms Privacy Policy are expressly incorporated herein and made part of these Terms.
+    </p>
+  <% end %>
+</div>
+<hr>
+<%= form_tag accept_eula_account_profile_path, :method => :put, :class => 'form-inline' do %>
+  <label class="checkbox" for="eula_accepted">
+    <%= check_box_tag :eula_accepted, 'true', false, :onclick => '$j(this).parents("form").find("input[type=submit]")[0].disabled = !this.checked' %> I accept this Terms of Service
+  </label>
+  <%= submit_tag 'Continue', :class => 'pull-right btn btn-primary', :disabled => true %>
+<% end %>

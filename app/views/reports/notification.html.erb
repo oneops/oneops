@@ -1,0 +1,105 @@
+<%= organization_page_header if user_signed_in? %>
+
+<%= page_title :page_kind => 'Organization', :page_label => current_user.organization.name %>
+
+<%= page_info 'Notification Report' %>
+
+<% quick_filter = {'Failed Deployments Today'     => {:period => 'today',     :source => 'deployment', :severity => 'critical', :query => '', :path => '', :size => 200},
+                   'Failed Procedures  Today'     => {:period => 'today',     :source => 'procedure',  :severity => 'critical', :query => '', :path => '', :size => 200},
+                   'Failed Deployments Yesterday' => {:period => 'yesterday', :source => 'deployment', :severity => 'critical', :query => '', :path => '', :size => 200},
+                   'Failed Procedures  Yesterday' => {:period => 'yesterday', :source => 'procedure',  :severity => 'critical', :query => '', :path => '', :size => 200}} %>
+<%= section_panel 'Filter', :id => 'notification_filter_section', :width => 'single', :position => 'left' do %>
+  <form onsubmit="updateNotificationList(); return false">
+    <div class="filter-group quick">
+      <div class="name">Quick Queries</div>
+      <% quick_filter.keys.each do |q| %>
+        <a class="btn btn-small btn-success"><%= q %></a>
+      <% end %>
+    </div>
+    <div class="filter-group">
+      <div class="name">Custom Filters</div>
+      <div class="filter period">
+        <div class="name">Period</div>
+        <% period = params[:period] %>
+        <% ['today', 'yesterday', 'this week', 'last week'].each do |p| %>
+          <a class="btn btn-small <%= 'active btn-primary' if period == p %>" filter="<%= p %>"><%= p %></a><br>
+        <% end %>
+      </div>
+      <div class="filter source">
+        <div class="name">Source</div>
+        <% source = params[:source] %>
+        <% [%w(deployment deployment), %w(procedure procedure), %w(ci other)].each do |s| %>
+          <a class="btn btn-small <%= 'active btn-primary' if source == s[0] %>" filter="<%= s[0] %>"><%= s[1] %></a><br>
+        <% end %>
+      </div>
+      <div class="filter severity">
+        <div class="name">Severity</div>
+        <% severity = params[:severity] %>
+        <% %w(all critical warning).each do |s| %>
+          <a class="btn btn-small <%= 'active btn-primary' if severity == s %>" filter="<%= s %>"><%= s %></a><br>
+        <% end %>
+      </div>
+      <div class="filter">
+        <div class="name">Contains Text</div>
+        <div class="input-append">
+          <input type="text" class="query" value="<%= params[:query] %>">
+          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+        </div>
+      </div>
+      <div class="filter">
+        <div class="name">Namespace</div>
+        <div class="input-append">
+          <input type="text" class="path" value="<%= params[:path] %>">
+          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+        </div>
+      </div>
+      <div class="filter">
+        <div class="name">Results</div>
+        <%= select_tag :size, options_for_select([200, 500, 1000], params[:size]), :style => 'width:25%' %>
+        <button class="btn btn-success" style="width:60%">Run</button>
+      </div>
+    </div>
+  </form>
+<% end %>
+
+<div id="notification_list"></div>
+
+<script>
+  var filterSection = $j("#notification_filter_section");
+
+  var updateNotificationList = function() {
+    var period   = filterSection.find(".period .active").attr('filter'),
+        source   = filterSection.find(".source .active").attr('filter'),
+        severity = filterSection.find(".severity .active").attr('filter'),
+        query    = filterSection.find(".query").val(),
+        size     = filterSection.find("#size").val(),
+        path     = filterSection.find(".path").val();
+    var data = {period: period, source: source, severity: severity, query: query, size: size, path: path};
+    $j.ajax({url: "<%= notification_reports_path %>",
+             method: 'GET',
+             data: data,
+             complete: hide_busy});
+    show_busy();
+  };
+
+  var quickFilters = <%= raw(quick_filter.to_json) %>;
+  filterSection.find(".quick .btn").click(function() {
+    var filter = $j(this).html();
+    var quickFilter = quickFilters[filter];
+    for(var f in  quickFilter) {
+      filterSection.find("." + f + " .btn[filter=\"" + quickFilter[f] + "\"]").click();
+      filterSection.find("input." + f + "[type=text]").val(quickFilter[f]);
+    }
+    updateNotificationList();
+  });
+
+  filterSection.find(".period .btn, .source .btn, .severity .btn").click(function() {
+    var button = $j(this);
+    button.siblings().removeClass("active btn-primary");
+    button.addClass("active btn-primary");
+  });
+
+  <% if params[:period].present? %>
+    updateNotificationList();
+  <% end %>
+</script>

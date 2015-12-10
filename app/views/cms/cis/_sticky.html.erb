@@ -1,0 +1,30 @@
+<% icon_class = value == 'manifest' ? 'icon-lock' : 'icon-unlock'
+   if defined?(read_only) && read_only %>
+  <div class="lock add-on"><i class="<%= icon_class %>"></i></div>
+<% else %>
+  <a class="lock add-on">
+    <i class="<%= icon_class %>" onclick="change_sticky(this)"></i>
+  </a>
+<% end %>
+<%= hidden_field_tag name, value %>
+<script>
+  if (!window.change_sticky) {
+    window.change_sticky = function(icon) {
+      icon = $j(icon);
+      var form = icon.parents("form")[0];
+      if (form.edit) {
+        var input = icon.parents('a.lock').siblings("input")[0];
+        if (input.value == "manifest") {
+          input.value = "";
+          icon.addClass('icon-unlock');
+          icon.removeClass('icon-lock');
+        }
+        else {
+          input.value = "manifest";
+          icon.addClass('icon-lock');
+          icon.removeClass('icon-unlock');
+        }
+      }
+    };
+  }
+</script>

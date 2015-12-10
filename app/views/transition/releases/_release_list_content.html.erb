@@ -1,0 +1,3 @@
+<%= render_release_list_content(@releases) do |builder, release| %>
+  <% builder.target link_to('', edit_assembly_transition_environment_release_path(@assembly, @environment, release), :remote => true) %>
+<% end %>

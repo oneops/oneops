@@ -1,0 +1,12 @@
+<%= assembly_page_header(@assembly, 'operations') %>
+
+<%= page_title :page_kind     => 'Operations',
+               :page_label    => @assembly.ciName,
+               :page_sublabel => "created by #{@assembly.createdBy}",
+               :page_options  => [link_to(icon_button('edit', ' Edit'), assembly_path(@assembly))] %>
+
+<%= page_info @assembly.ciAttributes.description %>
+
+<%= section_panel 'Environments', :id => 'environment_list', :width => 'triple', :position => 'left' do %>
+  <%= render 'environment_list' %>
+<% end %>

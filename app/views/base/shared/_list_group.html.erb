@@ -1,0 +1,11 @@
+<% group_id = group[:id] %>
+<li id="item_<%= group_id %>" class="group-header" onclick="$j(this).parents('ul').find('li[group_id=<%= group_id %>]').toggle()">
+  <div>
+    <%= image_tag(builder[:icon], :class => 'group-icon') if builder[:icon] %>
+    <div class="group-title"><%= builder[:title] %></div>
+  </div>
+  <% if builder[:menu].present? %>
+    <div class="menu"><%= builder[:menu] %></div>
+  <% end %>
+</li>
+<%= raw(builder[:group_content]) %>

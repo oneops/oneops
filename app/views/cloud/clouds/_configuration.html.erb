@@ -1,0 +1,19 @@
+<%= section_panel 'Attributes', :id => 'cloud_attributes', :width => 'double', :position => 'left' do %>
+  <%= render 'attributes' %>
+<% end %>
+
+<%= section_panel 'Services',
+                  :width    => 'single',
+                  :position => 'right',
+                  :menu     => has_cloud_services?(@cloud.ciId) ? [:display => icon('plus', 'Add'), :link => new_cloud_service_path(@cloud)] : nil do %>
+  <div id="cloud_services_list">
+    <i class="icon-spinner icon-spin"></i> Loading...
+  </div>
+  <script type="text/javascript">
+    <%= remote_function(:url => cloud_services_path(@cloud), :method => :get) %>
+  </script>
+<% end %>
+
+<%= section_panel 'Status', :id => 'cloud_status', :width => 'double', :position => 'left' do %>
+  <%= render 'status' %>
+<% end %>

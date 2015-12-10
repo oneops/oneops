@@ -1,0 +1,56 @@
+<%= title 'Sign in' %>
+<div id="signin">
+  <%= section_panel 'Welcome to OneOps - Sign in' do %>
+    <%= form_for(resource,
+                 :as => resource_name,
+                 :url => session_path(resource_name),
+                 :html => {:class => 'form-horizontal', :autocomplete => 'off'}) do |f| %>
+      <div class="control-group">
+        <%= f.label :username, :class => 'control-label' %>
+        <div class="controls">
+          <%= f.text_field :username, :class => 'input-large' %>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <%= f.label :password, :class => 'control-label' %>
+        <div class="controls">
+          <%= f.password_field :password, :class => 'input-large', :autocomplete => 'off' %>
+        </div>
+      </div>
+
+      <% if devise_mapping.rememberable? -%>
+        <div class="control-group">
+          <div class="controls">
+            <%= f.check_box :remember_me, :class => 'input-large' %>
+            <span class="help-inline">Remember me</span>
+          </div>
+        </div>
+      <% end -%>
+
+      <div class="control-group">
+        <div class="controls">
+          <%= f.submit 'Sign in', :class => 'btn btn-large btn-success' %>
+          <% if Settings.authentication == 'database' %>
+            ... or <strong><%= link_to 'Sign up', new_registration_path(resource_name) %></strong>
+          <% end %>
+        </div>
+      </div>
+
+      <% if Settings.authentication == 'database' %>
+        <div id="shared-links" class="control-group">
+          <%= render :partial => 'devise/shared/links' %>
+        </div>
+      <% end %>
+    <% end %>
+
+    <% if false # Settings.has_key?('omniauth') %>
+      <div class="services">
+        <p>... or, sign in with one of these services:</p>
+        <p>
+          <%= omniauth_services %>
+        </p>
+      </div>
+    <% end %>
+  <% end %>
+</div>

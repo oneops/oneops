@@ -1,0 +1,23 @@
+<% persisted = @monitor.persisted? %>
+<%= section_panel 'Monitor Details', :width => 'double', :position => 'right' do %>
+  <% if persisted %>
+    <%= render('base/shared/edit_form',
+               {:resource    => @monitor,
+                :content     => 'cms/cis/ci',
+                :form_url    => assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, @monitor),
+                :destroy_url => is_custom_monitor? && assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, @monitor)}) %>
+  <% else %>
+    <%= render('base/shared/edit_form',
+               {:resource => @monitor,
+                :content  => 'cms/cis/ci',
+                :form_url => assembly_transition_environment_platform_component_monitors_path(@assembly, @environment, @platform, @component)}) %>
+  <% end %>
+<% end %>
+<% if persisted %>
+  <%= section_panel 'Advanced Configuration', :width => 'double', :position => 'right' do %>
+    <%= render('base/shared/edit_form',
+               {:resource => @watched_by_rel,
+                :content  => 'cms/relations/attributes',
+                :form_url => update_watched_by_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, @monitor)}) %>
+  <% end %>
+<% end %>

@@ -1,0 +1,102 @@
+<% if @release %>
+  <% case @release.releaseState %>
+  <% when 'open' %>
+    <% compiling = @environment.ciState == 'locked'
+       deploying = @deployment && %w(active paused failed pending).index(@deployment.deploymentState)
+       comments = @environment.comments %>
+    <div class="marker"><%= status_marker('release', 'open', state_to_label(@release.releaseState)) %></div>
+    <div class="description">
+      <ul class="status-items">
+        <li><%= icon('star', ' ', 'icon-fixed-width') %>Environment release <%= @release.releaseId %> created
+          <strong><%= time_ago_in_words(@release.created_timestamp) %></strong></li>
+        <li><%= icon('user', ' ', 'icon-fixed-width') %>Created by <strong><%= @release.createdBy %></strong></li>
+        <li><%= icon('th-list', ' ', 'icon-fixed-width') %>Release
+          contains <%= count_marker(@release.rfc_cis.size.to_s) %> change(s)
+        </li>
+        <% if @deployment && %w(active failed).index(@deployment.deploymentState) %>
+          <li><%= icon('ban-circle', ' ', 'icon-fixed-width') %><%= highlight('Commit') %> is disabled due
+            to <%= highlight(@deployment.deploymentState) %> deployment
+          </li>
+        <% end %>
+        <% if @deployment && ['failed'].index(@deployment.deploymentState) %>
+          <li><%= icon('ban-circle', ' ', 'icon-fixed-width') %>Please <strong>cancel</strong> the failed deployment in
+            order to proceed
+            with the commit
+          </li>
+        <% end %>
+        <% if compiling %>
+          <li>
+            <div class="alert alert-warning">You can not commit or discard while deployment plan generation is in
+              progress.
+            </div>
+          </li>
+        <% elsif deploying %>
+          <li>
+            <div class="alert alert-warning">You can not commit while deployment is in progress.</div>
+          </li>
+        <% end %>
+        <% if comments.present? && comments.start_with?('ERROR:') %>
+          <li><%= content_tag(:div, comments, :class => 'alert alert-danger') %></li>
+        <% end %>
+      </ul>
+      <ul class="status-actions">
+        <li>
+          <% # Include dummy 'time' parameter to force reload to ensure release loading regardless of current sort on PAGINATED release list. %>
+          <%= link_to('Review',
+                      assembly_transition_environment_path(@assembly, @environment, :anchor => path_to_release(@release).split('#').last),
+                      :class => 'btn btn-primary') %>
+        </li>
+        <% if has_transition?(@assembly.ciId) %>
+          <li>
+            <% if compiling %>
+              <%= button('Discard', nil, 'danger disabled') %>
+            <% else %>
+              <%= link_confirm_busy(button('Discard', nil, 'danger'),
+                                    :url     => discard_assembly_transition_environment_path(@assembly, @environment),
+                                    :method  => :post,
+                                    :confirm => 'Discard environment changes?',
+                                    :busy    => 'Discarding environment changes...') %>
+            <% end %>
+          </li>
+          <li>
+            <% if compiling || deploying %>
+              <%= button('Commit', nil, 'success disabled') %>
+            <% else %>
+              <%= render 'transition/commit_and_deploy_prompt', :platforms => @platforms.map(&:toCi) %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% else %>
+    <% state = (@release.releaseState == 'closed') ? 'commit' : 'discard' %>
+    <div class="marker"><%= status_marker('release', @release.releaseState, @release.releaseState == 'canceled' ? 'label-important' : '') %></div>
+    <div class="description">
+      <ul>
+        <li><%= icon('download-alt', ' ', 'icon-fixed-width') %>Last environment
+          release <%= @release.releaseId %> <%= "#{state}" %>
+          <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong></li>
+        <li><%= icon('user', ' ', 'icon-fixed-width') %>Commit by <strong><%= @release.commitedBy %></strong></li>
+        <li><%= icon('comment') %> <%= @release.description %></li>
+        <li><%= icon('th-list', ' ', 'icon-fixed-width') %><%= link_to(highlight('View', 'info'), '#releases') %>
+          history of environment releases
+        </li>
+      </ul>
+      <% if @deloyed_to_rels.size > 0 && has_transition?(@assembly.ciId) %>
+        <ul class="status-actions">
+          <li>
+            <%= link_confirm_busy(button('Disable Environment', 'danger'),
+                                  :url     => disable_assembly_transition_environment_path(@assembly, @environment, :platformCiIds => @platforms.map(&:toCiId)),
+                                  :method  => :put,
+                                  :remote  => true,
+                                  :confirm => 'Disable environment...',
+                                  :body    => raw('<p>This action will disable all platforms and generate a release that needs to be deployed in order to remove all cloud components related to this environment.</p>
+                                                   <p>If you want to proceed select OK below and proceed with a "Commit & Deploy" action. If you change your mind you can "Discard" the release.</p>
+                                                   <p>Note that disable action will not remove any configuration for this environment and you can enable the platforms at a later time.</p>
+                                                   <p><strong class="label label-important">WARNING: No application data will be saved.</strong></p>')) %>
+          </li>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

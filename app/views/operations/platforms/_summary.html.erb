@@ -1,0 +1,46 @@
+<%= section_panel 'Components', :id => 'components_list', :width => 'single', :position => 'right' do %>
+  <% toolbar = {:list_name => 'component_instances',
+                :sort_by   => [%w(Name ciName), %w(Health health)],
+                :filter_by => %w(ciName health)} %>
+  <%= ci_list(@requires.map(&:toCi).sort_by(&:ciClassName), :new_path => nil, :toolbar => toolbar) do |builder, target| %>
+    <% health = target.health
+       state = nil
+       if health
+         state = 'unknown'
+         %w(unhealthy overutilized notify underutilized good).each do |s|
+           if health[s] && health[s] > 0
+             state = s
+             break
+           end
+         end
+       end %>
+    <% builder.attributes %(ciName="#{target.ciName}" health="#{state}") %>
+    <% builder.target link_to('', assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, target)) %>
+    <% builder.icon ci_image_url(target) %>
+    <% builder.status do %>
+      <% if health %>
+        <%= content = ''
+            health.each_pair { |s, count| content += "<strong>#{count}</strong> #{s}<br>" }
+            status_marker('health', state, health_to_label(state), 'data-toggle' => 'tooltip', 'data-html' => true, 'data-title' => content, 'data-trigger' => 'hover') %>
+      <% end %>
+      <% if @policy_compliance %>
+        <% violate_count = @policy_compliance[target.ciId] %>
+        <% if violate_count == 0 %>
+          <%= status_marker('policy', 'passed', 'label-success') %>
+        <% else %>
+          <%= status_marker('policy', "#{violate_count} failed", 'label-important') %>
+        <% end %>
+      <% end %>
+      <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.rfcAction.present? %>
+    <% end %>
+    <% builder.bottom :none %>
+  <% end %>
+<% end %>
+
+<%= section_panel 'Platform Status', :id => 'status_section', :width => 'double', :position => 'left' do %>
+  <%= render :partial => 'status' %>
+<% end %>
+
+<%= section_panel 'Cloud Status', :width => 'double', :position => 'left' do %>
+  <%= render 'transition/platforms/cloud_status' %>
+<% end %>

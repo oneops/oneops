@@ -1,0 +1,23 @@
+<div <%= "id=#{id}" if defined?(id) == 'local-variable' && id.present? %> class="section rounded <%= width %> <%= position %>">
+  <% if title.present? || menu.present? %>
+    <div class="section-heading rounded-top">
+      <div class="section-title"><%= raw(title) if title.present? %></div>
+      <div class="menu">
+        <% if menu.present? %>
+          <div class="btn-group">
+            <% menu.each do |menu_item| %>
+              <% if menu_item.is_a?(Hash) && menu_item.has_key?(:display) && menu_item.has_key?(:link) %>
+                <%= link_to(menu_item.delete(:display), menu_item.delete(:link), menu_item.merge(:class => 'btn btn-mini')) %>
+              <% else %>
+                <%= menu_item %>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+  <div class="section-content <%= width %> <%= 'hide' if defined?(hide_content) %>">
+    <%= body %>
+  </div>
+</div>

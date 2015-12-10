@@ -1,0 +1,17 @@
+<div class="section section-group single left">
+  <% open_release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly), :releaseState => 'open') %>
+  <% if open_release %>
+    <%= section_panel 'Open Release', :width => 'single', :position => 'left' do %>
+      <%= release_list([open_release], :toolbar => {:list_name => 'release_list',
+                                                    :filter_by => nil,
+                                                    :sort_by   => nil}) do |builder, release| %>
+        <% builder.target link_to('', edit_assembly_design_release_path(@assembly, release), :remote => true) %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <%= section_panel 'Release History', :width => 'single', :position => 'left' do %>
+    <%= release_list([], :paginate => {:url  => assembly_design_releases_path(@assembly),
+                                       :size => 10}) %>
+  <% end %>
+</div>
+<div id="release_details"></div>

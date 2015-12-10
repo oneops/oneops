@@ -1,0 +1,6 @@
+<%= section_panel 'Diagram',
+                  :width    => 'double',
+                  :position => 'left',
+                  :menu     => [link_to(raw("#{content_tag(:i, '', :class => "icon-resize-full")} Full"), full_diagram_url, :target => "_blank", :class => 'btn btn-mini')] do %>
+	<div class="diagram"><%= content_tag(:object, '', :data => diagram_url, :class => 'diagram') %></div>
+<% end %>

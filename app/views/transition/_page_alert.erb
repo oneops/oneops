@@ -1,0 +1,28 @@
+<% deploying      = deployment && %w(active paused failed pending).index(deployment.deploymentState)
+   generating     = environment.ciState == 'locked'
+   has_transition = has_transition?(@assembly.ciId) %>
+<div class="alert alert-block alert-info attention">
+  <strong>Next Step</strong> &raquo;
+  <% if deploying %>
+    Review open environment release. You can not commit while deployment is in progress.
+  <% elsif generating %>
+    Review open environment release. You can not commit while deployment plan generation is in progress.
+  <% elsif has_transition %>
+    Review, commit and deploy open environment release.
+  <% else %>
+    Review open environment release.
+  <% end %>
+  <div class="action">
+    <% # Include dummy 'time' parameter to force reload to ensure release loading regardless of current sort on PAGINATED release list. %>
+    <%= link_to('Review',
+                assembly_transition_environment_path(assembly, environment, :anchor => path_to_release(release).split('#').last),
+                :class => 'btn btn-small btn-primary') %>
+    <% if has_transition %>
+      <% if deploying || generating %>
+        <%= button('Commit & Deploy', 'small', 'success disabled') %>
+      <% else %>
+        <%= render 'transition/commit_and_deploy_prompt', :button_size => 'small' %>
+      <% end %>
+    <% end %>
+  </div>
+</div>

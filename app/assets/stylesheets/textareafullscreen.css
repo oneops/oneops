@@ -1,0 +1,46 @@
+.tx-editor-wrapper {
+  position: relative;
+}
+
+.tx-editor-wrapper .tx-editor.expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 80%;
+  height: 80%;
+  z-index: 5001;
+}
+
+.tx-editor-wrapper .tx-editor.expanded textarea {
+  font-size: 16px;
+}
+
+.tx-editor-wrapper .tx-editor .tx-icon {
+  position: absolute;
+  right: -11px;
+  top: 4px;
+  cursor: pointer;
+  z-index: 3;
+  font-size: 12px;
+}
+
+.tx-editor-wrapper .tx-editor i {
+  border-color: gray;
+  color: gray;
+}
+
+.tx-editor-wrapper .tx-editor .tx-icon i:hover {
+  color: black;
+  border-color: black;
+}
+
+.tx-editor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.7);
+  z-index: 5000;
+  opacity: 0;
+}

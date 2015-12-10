@@ -1,0 +1,160 @@
+<% menu = %w(good notify unhealthy overutilized underutilized).map do |state|
+    selected_states = params[:instances_state]
+    selected = selected_states == 'all' || selected_states.include?(state)
+    link_to_function(icon(selected ? 'check' : 'check-empty', state),
+                     'filter_instances_by_health(this)',
+                     :class => "btn btn-mini #{'active' if selected}",
+                     :instance_state => state)
+  end
+   actions = @actions + @custom_actions
+   sort_by = [%w(Name ciName), %w(Cloud cloud), %w(Health health), %w(Procedure procedureState), %w(State ciState)]
+   filter_by = %w(ciName cloud health procedureState ciState)
+   if @managed_via_health.present?
+     sort_by << ['Managed Via Health', 'managedVia']
+     filter_by << 'managedVia'
+   end
+   if @deployment_info.present?
+     sort_by << ['Deployment Status', 'deployment']
+     filter_by << 'deployment'
+   end
+   toolbar = {:list_name => @component ? 'component_instances' : (@environment ? 'environment_instances' : 'assembly_instances'),
+              :sort_by   => sort_by,
+              :filter_by => filter_by}
+
+   has_operations = has_operations?(@assembly.try(:ciId))
+   list_menu = nil
+   if actions.present? && has_operations
+     list_menu = actions.map { |action| {:id       => action.actionId,
+                                         :label    => action.is_a?(Operations::InstancesController::CustomAction) ? action.description : action.actionName,
+                                         :function => 'prepare_action'} }
+     list_menu << nil
+     list_menu << {:id => 'bulk_replace',      :label => 'replace',      :function => 'bulk_replace'}
+     list_menu << {:id => 'bulk_undo_replace', :label => 'undo replace', :function => 'bulk_replace'}
+   end %>
+<%= section_panel 'Instances', :width => 'triple', :position => 'right', :menu => menu do %>
+  <%= ci_list(@instances, :toolbar => toolbar, :menu => list_menu) do |builder, target| %>
+    <% ops_state           = target.opsState ? (target.opsState || 'unknown') : 'pending'
+       procedure           = @instance_procedures[target.ciId]
+       managed_via_health  = ops_state == 'good' && @managed_via_health.present? && @managed_via_health[target.ciId]
+       deployment_info     = @deployment_info && @deployment_info[target.ciId]
+       deployment_state    = deployment_info && deployment_info[:state]
+       deployment_comments = deployment_info && deployment_info[:comments] %>
+    <% builder.attributes %(ciName="#{target.ciName}" cloud="#{target.deployedTo && target.deployedTo.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}") %>
+    <% builder.target nil %>
+    <% builder.selectable target.lastAppliedRfcId.to_i > 0 %>
+    <% builder.icon :none if @component %>
+    <% builder.top do %>
+      <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
+      <% if target.deployedTo %>
+        <span class="topdesc"><%= link_to(icon('cloud', target.deployedTo.ciName), edit_cloud_path(target.deployedTo.ciId)) %></span>
+      <% end %>
+    <% end %>
+    <% builder.middle do %>
+      <%= render 'cms/cis/important', :ci => target %>
+    <% end %>
+    <% builder.bottom @component ? :none : link_to(target.nsPath, path_to_ns(target.nsPath)) %>
+    <% builder.status do %>
+      <%= status_marker('id',target.ciId)%>
+      <%= status_marker('configuration', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
+      <%= status_marker('state', target.ciState, state_to_label(target.ciState)) unless target.ciState == 'default' %>
+      <%= status_marker('health', ops_state, health_to_label(ops_state)) %>
+      <%= status_marker('managed via', managed_via_health, health_to_label(managed_via_health)) if managed_via_health.present? %>
+      <%= status_marker('deployment', deployment_state, state_to_label(deployment_state), 'data-toggle' => deployment_comments.present? && 'popover', 'data-title' => 'Deployment Comments', 'data-trigger' => 'click', 'data-content' => deployment_comments, 'data-placement' => 'top') if deployment_state.present? %>
+      <% if procedure %>
+        <%= action = procedure.actions.find {|a| a.ciId == target.ciId}
+            content =  "#{icon('wrench', '', 'icon-fixed-width')} #{action.actionName}<br>"
+            content << "#{icon('user', '', 'icon-fixed-width')} #{procedure.createdBy}<br>"
+            content << "#{icon('time', '', 'icon-fixed-width')} #{time_ago_in_words(Time.at(action.updated/1000))}<hr>"
+            content << link_to('View', edit_operations_procedure_path(procedure), :remote => true, :class => 'btn btn-mini btn-info')
+            status_marker('procedure', 'active', state_to_label('active'), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Active Procedure', 'data-trigger' => 'click', 'data-content' => content, 'data-placement' => 'top') %>
+      <% end %>
+    <% end %>
+    <% if actions.blank? && has_operations %>
+      <% builder.menu do |ci| %>
+        <% ci.meta.actions.each do |action| %>
+          <%= link_to(icon('', action.actionName),
+                      new_operations_procedure_path({:ciId              => ci.ciId,
+                                                     :procedureCiId     => 0,
+                                                     :actionCiClassName => ci.ciClassName,
+                                                     :actionName        => action.actionName,
+                                                     :procedureState    => 'active'}),
+                      :remote => true) %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<script>
+  var procedureNames = {};
+  var actionNames = {};
+  var customActionsNames = {};
+  <% @actions.each do |action| %>
+    actionNames["<%= action.actionId %>"] = "<%= action.actionName %>";
+    procedureNames["<%= action.actionId %>"] = "<%= action.actionName %>";
+  <% end %>
+  <% @custom_actions.each do |action| %>
+    customActionsNames["<%= action.actionId %>"] = "<%= action.actionName %>";
+    procedureNames["<%= action.actionId %>"]     = "<%= action.description %>";
+  <% end %>
+
+  <% if actions.present? && has_operations %>
+    window.prepare_action = function(actionId, instance_ids) {
+      var data = {actionCiIds:    instance_ids,
+                  procedureName:  procedureNames[actionId],
+                  procedureCiId:  0,
+                  procedureState: "active",
+                  ciId:           "<%= @component.try(:ciId) ||  @environment.try(:ciId) || @assembly.try(:ciId) %>"};
+      <% if @component %>
+        data["ciId"] = "<%= @component.ciId %>";
+        data["actionCiClassName"] = "<%= @component.ciClassName %>";
+        data["relationName"] = "base.RealizedAs";
+      <% elsif @environment %>
+        data["ciId"] = "<%= @environment.ciId %>";
+        data["relationName"] = "manifest.ComposedOf,manifest.Requires,base.RealizedAs";
+      <% elsif @assembly %>
+        data["ciId"] = "<%= @assembly.ciId %>";
+        data["relationName"] = "base.RealizedIn,manifest.ComposedOf,manifest.Requires,base.RealizedAs";
+      <% end %>
+      var actionName = actionNames[actionId];
+      if (actionName) {
+        data["actionName"] = actionName;
+      }
+      else {
+        data["attachmentCiId"] = actionId;
+        data["actionName"]     = customActionsNames[actionId];
+      }
+      $j.ajax({url: "<%= prepare_operations_procedures_path %>", type: 'POST', data: data});
+    };
+
+    window.bulk_replace = function(type, instance_ids) {
+      <% dialog_options = {:url => state_assembly_operations_instances_path(@assembly), :method => :put} %>
+      window.bulk_replace_ids = $j.map(instance_ids, function(i) {return "ids[]=" + i;}).join("&");
+      if (type == "bulk_replace") {
+        <% dialog_options[:modal_id] = random_dom_id %>
+        render_modal("<%= dialog_options[:modal_id] %>",
+                     "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                     dialog_options.merge({:confirm => 'Replace?',
+                                           :body    => 'This will mark selected instances for replacement in OneOps. Your cloud resources will not be affected immediately. To completely execute the replacement you will need to force a deployment.',
+                                           :with    => "'state=replace&'+window.bulk_replace_ids"}))) %>");
+      }
+      else {
+        <% dialog_options[:modal_id] = random_dom_id %>
+        render_modal("<%= dialog_options[:modal_id] %>",
+                     "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                       dialog_options.merge({:confirm => 'Undo Replace?',
+                                             :body    => 'This will mark selected instances back to the default state in OneOps and will undo the pending replacement.',
+                                             :with    => "'state=default&'+window.bulk_replace_ids"}))) %>");
+      }
+    };
+  <% end %>
+
+  window.filter_instances_by_health = function(target) {
+    var btn = $j(target);
+    btn.toggleClass('active');
+    btn.find("i").toggleClass("icon-check icon-check-empty");
+
+    var states = btn.parents('.btn-group').find(".btn.active").toArray().map(function(b) {return b.getAttribute("instance_state")});
+    $j.get("<%= url_for %>", {instances_state: states.join(",")});
+  };
+</script>

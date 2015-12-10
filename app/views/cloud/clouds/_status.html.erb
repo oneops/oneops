@@ -1,0 +1,42 @@
+<% status = @cloud.ciAttributes.adminstatus %>
+<ul class="status">
+  <li class="status-marker">
+    <div class="marker">
+      <%= status_marker('status', status, cloud_admin_status_label(status)) %>
+    </div>
+    <div class="description">
+      <dl class="dl-horizontal">
+        <dt><%= icon(cloud_admin_status_icon(status), '', 'icon-fixed-width') %></dt>
+        <dd>Administrative status is <%= highlight(status) %>.</dd>
+        <% if status == 'offline' %>
+          <% actions = %w(active inert) %>
+          <dt><%= icon('stop', '', 'text-warning icon-fixed-width') %></dt>
+          <dd>All transition and operations activity is <%= highlight('not allowed') %>.</dd>
+        <% elsif status == 'inert' %>
+          <% actions = %w(active offline) %>
+          <dt><%= icon('pause', '', 'text-info icon-fixed-width') %></dt>
+          <dd>
+            All transition and operations activity is still <%= highlight('enabled') %> but
+            this cloud <%= highlight('may not be added') %> to any new or existing environments.
+          </dd>
+        <% else %>
+          <% actions = %w(inert offline) %>
+          <dt><%= icon('play', '', 'text-success icon-fixed-width') %></dt>
+          <dd>All transition and operations activity is <%= highlight('enabled') %>.</dd>
+        <% end %>
+      </dl>
+      <% if has_cloud_services?(@cloud.ciId) %>
+        <ul class="status-actions">
+          <% actions.each do |action| %>
+            <li><%= link_to_function(icon(cloud_admin_status_icon(action), "Set #{action.capitalize}"), "change_cloud_status('#{action}')", :class => "btn #{cloud_admin_status_button(action)}") %></li>
+          <% end %>
+        </ul>
+        <script>
+          window.change_cloud_status = function (status) {
+            $j.ajax({url: "<%= cloud_path(@cloud) %>", type: 'PUT', data: {cms_ci: {ciAttributes: {adminstatus: status}}}});
+          };
+        </script>
+      <% end %>
+    </div>
+  </li>
+</ul>

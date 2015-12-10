@@ -1,0 +1,45 @@
+<% enabled_platforms_count = @platforms.reject{ |e| e.relationAttributes.enabled != 'true' }.count %>
+<% disabled_platforms_count = @platforms.reject{ |e| e.relationAttributes.enabled == 'true' }.count %>
+<% enabled_count = @deloyed_to_rels.size %>
+<% if disabled_platforms_count == 0 %>
+	<li class="status-marker">
+		<div class="marker">
+			<%= status_marker('platforms', 'enabled', 'label-success') %>
+		</div>
+		<div class="description">
+			<ul>
+				<li><%= icon('info-sign',' ') %>All <%= @platforms.count %> platforms are <%= highlight('enabled') %></li>
+				<li><%= icon('arrow-left',' ') %>Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %>
+					to disable platforms</li>
+				<li><%= icon('ok-sign',' ') %>Environment has total of <%= highlight(enabled_count,'info') %> deployed component instances</li>
+			</ul>
+		</div>
+	</li>
+<% elsif disabled_platforms_count == @platforms.count %>
+	<li class="status-marker">
+		<div class="marker">
+			<%= status_marker('platforms', 'disabled') %>
+		</div>
+		<div class="description">
+			<ul>
+				<li><%= icon('info-sign',' ') %>All <%= @platforms.count %> platforms are <%= highlight('disabled') %></li>
+				<li><%= icon('arrow-left',' ') %>Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %> to enable platforms</li>
+			</ul>
+		</div>
+	</li>
+<% else %>
+	<li class="status-marker">
+		<div class="marker">
+			<%= status_marker('platforms', 'partial', 'label-success') %>
+		</div>
+		<div class="description">
+			<ul>
+				<li><%= icon('info-sign',' ') %><%= highlight(enabled_platforms_count) %> of <%= highlight(@platforms.count) %> platforms are <%= highlight('enabled') %></li>
+				<li><%= icon('arrow-left',' ') %>Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %> to enable or disable platforms</li>
+				<li><%= icon('ok-sign',' ') %>Environment has total of <%= highlight(enabled_count,'info') %> deployed component instances</li>
+			</ul>
+		</div>
+	</li>
+<% end %>
+
+

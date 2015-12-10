@@ -1,0 +1,125 @@
+<% if rfc_cis.present? || rfc_relations.present? %>
+  <% rfc_relations_map = rfc_relations.inject({}) do |m, r|
+       key    = "#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"
+       m[key] ||= []
+       m[key] << r
+       key    = "#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"
+       m[key] ||= []
+       m[key] << r
+       m
+     end
+     rfc_cis_map = rfc_cis.to_map { |c| "#{c.ciName}***#{c.ciClassName}" }
+     rfc_relations_with_no_rfc_cis = (rfc_relations || []).reject do |r|
+       rfc_cis_map["#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"] || rfc_cis_map["#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"]
+     end %>
+  <%= list(rfc_cis + rfc_relations_with_no_rfc_cis,
+              :class => 'release-diff',
+              :toolbar => {:list_name => 'release_rfc_list',
+                           :sort_by   => [%w(Class rfcClass), %w(Name rfcName), %w(Namespace namespace), %w(Created created)],
+                           :filter_by => %w(rfcClass rfcName namespace diffAttributes),
+                           :compact   => true}) do |builder, target| %>
+    <% ci = target.is_a?(Cms::RfcCi)
+       rfc_id = target.rfcId
+       diff_attrs = ci ? target.ciAttributes.attributes : target.relationAttributes.attributes
+       base_attrs = ci ? target.ciBaseAttributes.attributes : target.relationBaseAttributes.attributes
+       meta = target.meta
+       diff_attribute_desc = diff_attrs.keys.map do |attr|
+         mda = meta.md_attribute(attr)
+         mda ? mda.description : attr
+       end
+       rfc_ci_relations = ci && rfc_relations_map["#{target.ciName}***#{target.ciClassName}"] %>
+    <% builder.itemid rfc_id %>
+    <% builder.attributes raw(%(rfcName="#{ci ? target.ciName : target.relationName}" created="#{target.created}" rfcClass="#{(ci ? target.ciClassName : target.relationName).split('.').last}" naamespace="#{target.nsPath}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
+    <% builder.target nil %>
+    <% builder.status do %>
+      <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) %>
+      <% short_ns_path = target.nsPath.gsub(/(\/_design\/)|(\/manifest\/)|\/bom\//, '/').split('/')[3..-1].join('/') %>
+      <% if short_ns_path.present? %>
+        <span class="pull-right"><%= marker(short_ns_path, 'label-info') %></span>
+      <% end %>
+    <% end %>
+    <% builder.icon ci ? ci_image_url(target) : '/images/cms/Relation.png' %>
+    <% builder.menu :none %>
+    <% builder.top do %>
+      <div>
+        <% if ci %>
+          <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
+          <span class="topdesc"><%= target.ciClassName.split('.').last %></span>
+        <% else %>
+          <%= target.ci_hash['fromCiName'] %>
+          <span class="topdesc"><%= target.relationName.split('.').last %></span>
+          <%= target.ci_hash['toCiName'] %>
+        <% end %>
+        <% if diff_attrs.present? %>
+          <span class="topdesc pull-right"><%= pluralize(diff_attrs.size, 'change') %>&nbsp;</span>
+        <% end %>
+      </div>
+    <% end %>
+    <% builder.middle do %>
+      <ul class="nav nav-pills">
+        <% if diff_attrs.present?  %>
+          <li class="active"><a href="#rfc_<%= rfc_id %>_tab_attr" data-toggle="tab">Attributes</a></li>
+        <% end %>
+        <li class="<%= 'active' if diff_attrs.blank? %>"><a href="#rfc_<%= rfc_id %>_tab_info" data-toggle="tab">RFC Info</a></li>
+        <% if rfc_ci_relations %>
+          <li><a href="#rfc_<%= rfc_id %>_relations" data-toggle="tab">Relations</a></li>
+        <% end %>
+      </ul>
+      <div class="tab-content">
+        <% if diff_attrs.present?  %>
+          <div class="tab-pane active" id="rfc_<%= rfc_id %>_tab_attr">
+            <table class="table table-condensed">
+              <% diff_attrs.each_pair do |attr, value| %>
+                <% md_attribute = meta.md_attribute(attr)
+                   data_type = md_attribute.dataType
+                   json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+                   base_value = base_attrs[attr] %>
+                <tr class="attribute"><td colspan="2"><%= md_attribute ? md_attribute.description : attr %></td></tr>
+                <tr class="diff-container">
+                  <td><pre class="changed"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
+                  <td><pre class="original muted"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre></td>
+                </tr>
+              <% end %>
+            </table>
+          </div>
+        <% end %>
+        <div class="tab-pane <%= 'active' if diff_attrs.blank? %>" id="rfc_<%= rfc_id %>_tab_info">
+          <%= rfc_properties(target) %>
+        </div>
+        <% if rfc_ci_relations %>
+          <div class="tab-pane" id="rfc_<%= rfc_id %>_relations">
+            <% rfc_ci_relations.each do |r| %>
+              <div class="category">
+                <div class="name"><%= r.relationName.split('.').last %></div>
+                <%= rfc_properties(r) %>
+                <%= rfc_attributes(r) %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+    <% builder.bottom do %>
+      <% if target.rfcUpdated && target.rfc_updated_timestamp.present? %>
+        last modified <% updated_by = target.rfcUpdatedBy || target.rfcCreatedBy  %>
+        <%= time_ago_in_words(target.rfc_updated_timestamp) %> <%= "by #{updated_by}" if updated_by %>
+      <% elsif target.rfc_created_timestamp %>
+        created <%= time_ago_in_words(target.rfc_created_timestamp) %> <%= "by #{target.rfcCreatedBy}" if target.rfcCreatedBy %>
+      <% else %>
+        &nbsp;
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <script>
+    $j(".release-diff .list-body").find('.content, .status')
+        .click(function(e) {
+                    var target = $j(e.target);
+                    if (!target.parents(".middle")[0])
+                     $j(e.target).parents("li").find(".middle").toggle();
+                   });
+    $j(".release-diff .diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+  </script>
+<% end %>
+<!-- Need this for some reason to control spacing...-->
+<div>&nbsp;</div>

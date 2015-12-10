@@ -1,0 +1,52 @@
+<% if @approvals.present? %>
+  <% max_updated = @approvals.map(&:updated).max %>
+  if ($j("#controls_pending").attr("data-version") != "<%= max_updated %>") {
+    $j("#controls_pending").html("<%= escape_javascript(render('pending_approvals')) %>");
+    $j("#controls_pending").attr("data-version", "<%= max_updated %>");
+
+    $j("#overlay_deployment_history").html("<%= escape_javascript(render('state_history')) %>");
+  }
+<% else %>
+  <% if @state_history.present? %>
+    $j("#overlay_deployment_history").html("<%= escape_javascript(render('state_history')) %>");
+  <% end %>
+<% end %>
+
+refresh_status_results("<%= @deployment.deploymentState %>", <%= raw(@deployment_rfc_cis_info.to_json) %>);
+
+<% @deployment.log_data.each_pair do |rfc_id, log| %>
+  var rfcLogDiv = $j("#log_<%= rfc_id %>");
+  var logUl = rfcLogDiv.find(".log-body ul.log");
+  <% if log.present? %>
+    logUl.html("<%= escape_javascript(render('cms/log_content', :log => log)) %>");
+    if (window.log_auto_scroll) {
+      log_auto_scroll(rfcLogDiv);
+      log_filter(rfcLogDiv);
+    }
+  <% else %>
+    var html = logUl.find('li').html();
+    if (html && html.indexOf("Loading...") >= 0) {
+      logUl.html('');
+    }
+  <% end %>
+<% end %>
+
+<% if @time_stats.present? %>
+  <% @time_stats[:steps].each_pair do |step, duration| %>
+    $j("#step_<%= step %> .duration").html("<%= time_duration_in_words(duration) %>");
+  <% end %>
+  <% @time_stats[:rfcs].each_pair do |rfc_id, stats| %>
+    <% if stats.present? %>
+      <% rfc_time = stats['totalTime'].to_f * 1000 %>
+      <% if rfc_time > 0 %>
+        $j("#rfc_<%= rfc_id %>_duration").html("<%= time_duration_in_words(rfc_time) %>");
+      <% end %>
+        $j("#time_stats_tab_<%= rfc_id %>").show();
+        $j("#time_stats_<%= rfc_id %>").html("<%= escape_javascript(hash_list(stats)) %>");
+    <% end %>
+  <% end %>
+<% end %>
+
+<% unless params[:current_state] == @deployment.deploymentState %>
+  overlay_scroll_into_view();
+<% end %>

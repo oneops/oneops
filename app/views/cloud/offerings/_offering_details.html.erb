@@ -1,0 +1,8 @@
+<%= section_panel 'Offering Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource   => @offering,
+              :content    => 'cms/cis/ci',
+              :read_only  => !has_cloud_services?(@cloud.ciId),
+              :cancel_url => cloud_service_offerings_path(@cloud, @service),
+              :form_url   => cloud_service_offering_path(@cloud, @service, @offering)}) %>
+<% end %>

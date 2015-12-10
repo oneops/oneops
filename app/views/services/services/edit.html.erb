@@ -1,0 +1,14 @@
+<%= organization_page_header('services') %>
+<%= breadcrumb [{:label => 'services', :link => services_path}] %>
+<%= page_title :page_kind => 'Service', :page_label => @service.ciName %>
+<%= page_info 'Change service configuration.' %>
+
+<%= section_panel 'Configuration', :width => 'double', :position => 'left' do %>
+	<%= render 'base/shared/edit_form',
+	           {:resource    => @service,
+	            :content     => 'service_details_content',
+	            :remote      => false,
+	            :form_url    => service_path,
+	            :destroy_url => service_path,
+	            :cancel_url  => service_path} %>
+<% end %>

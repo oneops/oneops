@@ -1,0 +1,19 @@
+<li>
+  <%= link_confirm_busy('Discard',
+                        :class   => 'btn btn-danger',
+                        :url     => discard_assembly_design_release_path(@assembly, @release),
+                        :method  => :post,
+                        :confirm => 'Discard changes?',
+                        :body    => 'Discarding design will drop all pending changes and reset the configuration to the previous design commit',
+                        :busy    => 'Discarding...') %>
+</li>
+<li>
+  <%= link_confirm_busy('Commit',
+                        :name    => 'commit_release',
+                        :url     => commit_assembly_design_release_path(@assembly, @release),
+                        :method  => :post,
+                        :confirm => 'Commit design?',
+                        :busy    => 'Committing...',
+                        :comment => :desc,
+                        :class   => "btn btn-success") %>
+</li>

@@ -1,0 +1,62 @@
+<% if ci.ciClassName == 'manifest.Environment' %>
+  <% attribute_value ||= ''
+     new_record = !ci.respond_to?(:ciId) || ci.ciId.blank?
+     visible = (new_record || !options.has_key?(:editable) || options[:editable]) %>
+  <% if visible %>
+    <%= builder.hidden_field attribute_name %>
+  <% else %>
+    <%= builder.text_field attribute_name, :readonly => true, :class => 'readonly input-xlarge' %>
+  <% end %>
+  <p><div id="subdomain" class="well lead <%= 'hide' unless visible  %>"><%= attribute_value %></div></p>
+  <div class="btn-group <%= 'hide' unless visible  %>" data-toggle="buttons-checkbox">
+    <%= link_to_function 'environment',  "subdomain_changed()", :id => 'subdomain_environment',  :class => "btn #{'active' if new_record || attribute_value.include?(ci.ciName) && ci.ciName.present?}" %>
+    <%= link_to_function 'assembly',     "subdomain_changed()", :id  => 'subdomain_assembly',     :class => "btn #{'active' if new_record || (@assembly && attribute_value.include?(@assembly.ciName))}" %>
+    <%= link_to_function 'organization', "subdomain_changed()", :id => 'subdomain_organization', :class => "btn #{'active' if new_record || attribute_value.include?(current_user.organization.name)}" %>
+  </div>
+  <span class="help-block <%= 'hide' unless visible  %>">
+     Toggle the buttons above to include environment, assembly and/or organization names in the subdomain.
+     The resulting DNS domain for this environment will be the subdomain with the cloud specified zone/domain added.
+  </span>
+
+  <script type="text/javascript">
+    window.subdomain_changed = function() {
+      setTimeout(update_subdomain, 100);
+    };
+
+    window.update_subdomain = function() {
+      var parts = [];
+      if ($("subdomain_environment").hasClassName('active')) {
+        parts.push($("cms_ci_ciName").value);
+      }
+      if ($("subdomain_assembly").hasClassName('active')) {
+        parts.push("<%= escape_javascript(@assembly ? @assembly.ciName : '') %>");
+      }
+      if ($("subdomain_organization").hasClassName('active')) {
+        parts.push("<%= escape_javascript(current_user.organization.name) %>");
+      }
+      $("cms_ci_ciAttributes_subdomain").value = parts.join(".");
+      $("subdomain").update( parts.join("."));
+
+    };
+
+    $j(function() {
+      $j("#cms_ci_ciName").bind("change paste keyup", update_subdomain);
+
+      update_subdomain();
+    });
+
+  </script>
+
+  <% if visible %>
+    <div class="alert">
+      <strong>Warning!</strong>
+      Disabling environment, assembly or organization name from the subdomain can result in DNS conflicts in certain situations.
+      Please ensure that the names will result in unique DNS entries.
+    </div>
+  <% end %>
+<% else %>
+  <%= builder.hidden_field attribute_name %>
+  <div class="alert alert-info">
+    Subdomain will be generated dynamically when an enviroment is created.
+  </div>
+<% end %>

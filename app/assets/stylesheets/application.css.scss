@@ -1,0 +1,240 @@
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS and SCSS file within this directory, lib/assets/stylesheets, vendor/assets/stylesheets,
+ * or vendor/assets/stylesheets of plugins, if any, can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the top of the
+ * compiled file, but it's generally better to create a new file per style scope.
+ *= require bootstrap
+ *= require font-awesome
+ *= require rickshaw
+ *= require d3
+ *= require tinytable
+ *= require colors
+ *= require graphviz
+ *= require layout
+ *= require jquery-ui
+ *= require textareafullscreen
+ *= require_self
+*/
+
+@baseFontSize '12px';
+
+h1, h2 {
+	text-align:center;
+}
+a img {
+	border: none;
+}
+a {
+	color: #4183C4;
+}
+
+#flash_notice {
+  background-color: #62bc62;
+  background-repeat: repeat-x;
+  background-image: -khtml-gradient(linear, left top, left bottom, from(#97d397), to(#62bc62));
+  background-image: -moz-linear-gradient(#97d397, #62bc62);
+  background-image: -ms-linear-gradient(#97d397, #62bc62);
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #97d397), color-stop(100%, #62bc62));
+  background-image: -webkit-linear-gradient(#97d397, #62bc62);
+  background-image: -o-linear-gradient(#97d397, #62bc62);
+  background-image: linear-gradient(#97d397, #62bc62);
+  border-bottom-color: #46a546;
+}
+#flash_error, #flash_alert {
+  background-color: #d83a2e;
+  background-repeat: repeat-x;
+  background-image: -khtml-gradient(linear, left top, left bottom, from(#e4776f), to(#d83a2e));
+  background-image: -moz-linear-gradient(#e4776f, #d83a2e);
+  background-image: -ms-linear-gradient(#e4776f, #d83a2e);
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #e4776f), color-stop(100%, #d83a2e));
+  background-image: -webkit-linear-gradient(#e4776f, #d83a2e);
+  background-image: -o-linear-gradient(#e4776f, #d83a2e);
+  background-image: linear-gradient(#e4776f, #d83a2e);
+  border-bottom-color: #b32b21;
+}
+.fieldWithErrors {
+	display: inline;
+}
+#errorExplanation {
+	width: 320px;
+	border: 2px solid #CF0000;
+	padding: 0px;
+	padding-bottom: 12px;
+	margin-bottom: 20px;
+	background-color: #f0f0f0;
+}
+#errorExplanation h2 {
+	text-align: left;
+	font-weight: bold;
+	padding: 5px 5px 5px 15px;
+	font-size: 12px;
+	margin: 0;
+	background-color: #c00;
+	color: #fff;
+}
+#errorExplanation p {
+	color: #333;
+	margin-bottom: 0;
+	padding: 8px;
+}
+#errorExplanation ul {
+	margin: 2px 24px;
+}
+#errorExplanation ul li {
+	font-size: 12px;
+	list-style: disc;
+}
+table tr th {
+	text-align: left;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    word-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -o-text-overflow: ellipsis;
+    -ms-text-overflow: ellipsis;
+}
+
+.rounded {
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+.rounded-top {
+    -webkit-border-radius: 5px 5px 0px 0px;
+    -moz-border-radius: 5px 5px 0px 0px;
+    border-radius: 5px 5px 0px 0px;
+}
+.rounded-bottom {
+    -webkit-border-radius: 0px 0px 5px 5px;
+    -moz-border-radius: 0px 0px 5px 5px;
+    border-radius: 0px 0px 5px 5px;
+}
+.rounded-large {
+    -webkit-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+}
+.rounded-xlarge {
+    -webkit-border-radius: 15px;
+    -moz-border-radius: 15px;
+    border-radius: 15px;
+}
+.shadow {
+  -moz-box-shadow: 0 0 5px #888;
+  -webkit-box-shadow: 0 0 5px #888;
+  box-shadow: 0 0 5px #888;
+}
+.transparent {
+	opacity: 0.3;
+}
+.rotate {
+     -moz-transform: rotate(90deg);  /* FF3.5+ */
+       -o-transform: rotate(90deg);  /* Opera 10.5 */
+  -webkit-transform: rotate(90deg);  /* Saf3.1+, Chrome */
+             filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=0.25);  /* IE6,IE7 */
+         -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=0.25)"; /* IE8 */
+}
+
+/* float clearing for IE6 */
+* html .clearfix{
+  height: 1%;
+  overflow: visible;
+}
+
+/* float clearing for IE7 */
+*+html .clearfix{
+  min-height: 1%;
+}
+
+/* float clearing for everyone else */
+.clearfix:after{
+  clear: both;
+  content: ".";
+  display: block;
+  height: 0;
+  visibility: hidden;
+  font-size: 0;
+}
+
+.control-label a {
+  color: #333;
+  border-bottom: 1px dotted #ddd;
+  cursor: help;
+}
+
+.chevron {
+	display: inline-block;
+	width: 0;
+	height: 0;
+	vertical-align: middle;
+	border-top: 5px solid transparent;
+	border-bottom: 5px solid transparent;
+	content: "";
+	margin: 3px 5px 3px 5px;
+}
+
+.chevron-right {
+	border-left: 5px solid #eee;
+}
+
+.chevron-left {
+	border-right: 5px solid #eee;
+}
+
+.accordion-heading a.accordion-toggle {
+	text-decoration: none;
+	color: #000;
+}
+
+/* Glyphicons */
+[class^="glyphicon-"], [class*=" glyphicon-"] {
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	vertical-align: text-top;
+	background-size: 14px 14px;
+	background-repeat: no-repeat;
+}
+
+
+/* Glyphicons */
+.glyphicon-deployment, .glyphicon-controller {
+	background-image: url('/images/glyphicons/png/glyphicons_082_roundabout.png');
+}
+
+.glyphicon-procedure {
+	background-image: url('/images/glyphicons/png/glyphicons_023_cogwheels.png');
+}
+
+.glyphicon-info {
+	background-image: url('/images/glyphicons/png/glyphicons_195_circle_info.png');
+}
+
+.glyphicon-graph {
+	background-image: url('/images/glyphicons/png/glyphicons_326_share.png');
+}
+
+.glyphicon-status {
+	background-image: url('/images/glyphicons/png/glyphicons_331_dashboard.png');
+}
+
+.glyphicon-ops {
+	background-image: url('/images/glyphicons/png/glyphicons_078_warning_sign.png');
+}
+
+.glyphicon-opamp {
+	background-image: url('/images/glyphicons/png/glyphicons_282_cardio.png');
+}
+
+.glyphicon-system {
+	background-image: url('/images/glyphicons/png/glyphicons_078_warning_sign.png');
+}
+
+

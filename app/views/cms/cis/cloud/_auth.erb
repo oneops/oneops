@@ -1,0 +1,13 @@
+<%= builder.text_field(attribute_name, :value => attribute_value, :class => 'input-xlarge', :placeholder => 'this field is required') %>
+<script>
+  $j("#cms_ci_ciAttributes_location").change(function() {
+    var el =$j("#cms_ci_ciAttributes_auth");
+    if ($j("#cms_ci_ciAttributes_location").val().startsWith("<%= ci.nsPath %>")) {
+      el.parents("div.control-group").show();
+    }
+    else {
+      el.val('');
+      el.parents("div.control-group").hide();
+    }
+  }).trigger('change');
+</script>

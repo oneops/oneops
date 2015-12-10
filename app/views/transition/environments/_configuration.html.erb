@@ -1,0 +1,10 @@
+<%= section_panel 'Environment Details' do %>
+  <%= render 'base/shared/edit_form',
+             :resource   => @environment,
+             :content    => 'base/environments/environment_details_content',
+             :remote     => true,
+             :form_url   => assembly_transition_environment_path(@assembly, @environment),
+             :cancel_url => assembly_transition_environment_path(@assembly, @environment) %>
+<% end %>
+
+<%= render 'watch/watch', :ci => @environment %>

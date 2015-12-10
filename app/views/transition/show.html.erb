@@ -1,0 +1,28 @@
+<%= assembly_page_header(@assembly, 'transition') %>
+
+<%= page_title :page_kind     => 'Transition', :page_label => @assembly.ciName,
+               :page_sublabel => "created by #{@assembly.createdBy}",
+               :page_options  => [link_to(icon_button('eye-open', ' View'), assembly_path(@assembly))] %>
+
+<%= page_info @assembly.ciAttributes.description %>
+
+<% if @profiles.blank? %>
+  <% new_button = {:display => icon('star-empty', 'New Environment'),
+                   :link    => new_assembly_transition_environment_path(@assembly)} %>
+<% else %>
+  <% new_button = capture do %>
+    <div class="btn-group">
+      <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" data-placement='left'>
+        <%= icon('star-empty', 'New Environment') %> <%= icon('caret-down') %>
+      </a>
+      <ul class="dropdown-menu pull-right">
+        <% @profiles.each do |p| %>
+          <li><%= link_to(p.ciName, new_assembly_transition_environment_path(@assembly, :profile_id => p.ciId)) %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>
+<%= section_panel 'Environments', :id => 'environment_list', :width => 'triple', :position => 'left', :menu => [new_button] do %>
+  <%= render 'environment_list' %>
+<% end %>

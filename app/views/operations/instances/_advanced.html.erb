@@ -1,0 +1,52 @@
+<% if @instance.ciState == 'default' %>
+  <p>You can force a replacement of this instance by clicking on the button below. Performing this action will only
+    mark the instance
+    for replacement and you need to force a deployment in this environment to execute the replacement.</p>
+  <%= link_confirm_busy(icon_button('arrow-left', 'Replace', 'success'),
+                        :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'replace'}),
+                        :body    => "This will mark the component instance '#{@instance.ciName}' for replacement in OneOps. Your cloud resources will not be affected immediately. To completely execute the replacement you will need to force a deployment.".html_safe,
+                        :confirm => 'Replace?',
+                        :method  => :put) %>
+  <hr/>
+<% elsif @instance.ciState == 'replace' %>
+  <p>
+    This instance is marked for replacement on the next deployment. To cancel the pending deployment click the
+    button below and the instance will be returned in it's normal configuration state.
+  </p>
+  <%= link_confirm_busy(icon_button('undo', 'Undo Replace', 'info'),
+                        :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'default'}),
+                        :body    => "This will mark the component instance '#{@instance.ciName}' back to the default state in OneOps and undo the pending replacement.".html_safe,
+                        :confirm => 'Undo Replace?',
+                        :method  => :put) %>
+  <hr/>
+<% end %>
+<% if @inprogress_records.present? %>
+  <p>
+    Deployment of this instance is still in progress. If you believe that it is stuck you can force cancel
+    the deployment of this instance.<br><br>
+    <code><strong>Use with caution.</strong></code>
+  </p>
+  <%= link_to icon('remove', 'Cancel Deploy'),
+              cancel_deployment_assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance),
+              :method => :put,
+              :remote => true,
+              :class  => 'btn btn-danger' %>
+  <hr/>
+<% end %>
+<!--
+<p>
+  OneOps keeps track of all deployed component instances in the cloud. If you run into a situation where the
+  instance was removed from the cloud outside of OneOps or if you want to remove the reference for this instance
+  from OneOps for any other reason you can use the button below.
+  Note that removing the component instance from the OneOps operations view will make your environment manifest in
+  transition out of sync and OneOps will try to recreate this instance on the next deployment. Conversly if you are
+  trying to delete this instance and it doesn't exist in the cloud anymore, removing the instance reference will
+  result in the transition deployment not attempting to delete the instance anymore.<br><br>
+  <code><strong>Use with caution.</strong></code>
+</p>
+<%= link_confirm_busy(icon_button('trash', 'Remove', 'danger'),
+                      :url     => assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance),
+                      :body    => "This will remove component instance '#{@instance.ciName}' data from OneOps only. Your cloud resources will not be terminated.".html_safe,
+                      :confirm => 'Remove?',
+                      :method  => :delete) %>
+-->

@@ -1,0 +1,24 @@
+<% severity = item['severity'].downcase
+   source   = item['source'] %>
+<li id="item_<%= item['timestamp'] %>" class="severity-<%= severity %>"
+    <%= builder[:attributes] || raw(%(time="#{item['timestamp']}" source="#{item['source']}" severity="#{item['severity']}" subject="#{item['subject']}" text="#{item['text']}" date="#{Time.at(item['timestamp']).strftime('%m/%d')}")) %>>
+	<div class="head">
+		<%= builder[:head] || notification_icon(source) %>
+	</div>
+	<div class="subject">
+		<% if builder[:subject] %>
+			<%= builder[:subject] %>
+		<% else %>
+			<%= highlight(item['subject'], severity) %>
+		<% end %>
+	</div>
+	<div class="text">
+		<%= builder[:text] || item['text'] %>
+	</div>
+	<div class="time">
+		<%= time_ago_in_words(Time.at(item['timestamp'] / 1000)) %>
+		<%= source %>
+		in
+		<%= notification_callback(item) %>
+	</div>
+</li>

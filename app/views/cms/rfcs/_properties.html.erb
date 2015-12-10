@@ -1,0 +1,33 @@
+<div class="rfcProperties">
+  <% if rfc.respond_to?(:rfcId) && rfc.rfcId.to_i > 0 %>
+    <p>
+      <%= f.label :rfcId, "Rfc Id: " + rfc.rfcId.to_s %>
+      <%= f.hidden_field :rfcId %>
+    </p>
+
+    <p>
+      <%= f.label :rfcAction, "Action: " + rfc.rfcAction %>
+      <%= f.hidden_field :rfcAction %>
+    </p>
+
+    <p>
+      <%= f.label :isActiveInRelease, "Active: " + rfc.isActiveInRelease.to_s %>
+      <%= f.hidden_field :isActiveInRelease %>
+    </p>
+  <% else %>
+    <p>
+      <%= f.label :rfcAction, "Action" %><br/>
+      <%= f.select :rfcAction, %w(add update delete) %>
+    </p>
+  <% end %>
+
+  <p>
+    <%= f.label :execOrder, "Order" %><br/>
+    <%= f.text_field :execOrder %>
+  </p>
+
+  <p>
+    <%= f.label :releaseId, "Release Id: " + rfc.releaseId.to_s %><br/>
+    <%= f.hidden_field :releaseId %>
+  </p>
+</div>

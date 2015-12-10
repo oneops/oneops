@@ -1,0 +1,2 @@
+$j("#page_nav_favorites").html("<%= escape_javascript(render('favorite_list')) %>");
+$j(".favorites-dropdown .dropdown-menu").replaceWith("<%= escape_javascript(render('layouts/favorites_dropdown')) %>");

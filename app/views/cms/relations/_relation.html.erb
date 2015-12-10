@@ -1,0 +1,5 @@
+<div>
+  <%= render 'cms/relations/properties',  :ci => relation, :f => f %>
+  <%= render 'cms/relations/attributes',  :ci => relation, :f => f %>
+  <%= render 'cms/rfcs/properties', :rfc => relation, :f => f if relation.is_a?(Cms::DjRelation) %>
+</div>

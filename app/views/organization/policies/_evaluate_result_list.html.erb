@@ -1,0 +1,27 @@
+<% total = @cis && @cis.info[:total] %>
+<%= section_panel raw("Matching Results #{"<small class='text-error'>(restricting to #{@cis.size} results out of #{total})</small>" if total && total > @cis.size}"),
+                  :width => 'double',
+                  :position => 'left' do %>
+  <% if @error.present? %>
+    <p>
+      Failed to evaluate query.  Make sure query definition is valid.
+      <br/>
+      <div><code><%= @error %></code></div>
+    </p>
+  <% elsif @cis.blank? %>
+    No matches found
+  <% else %>
+    <%= ci_list(@cis,
+                :toolbar => {:sort_by   => [%w(Name ciName), %w(Class ciClassName), %w(Namespace nsPath)],
+                             :filter_by => %w(ciName ciClassName nsPath),
+                             :compact   => false}) do |builder, ci| %>
+      <% builder.attributes %(ciName="#{ci.ciName}" ciClassName="#{ci.ciClassName}" nsPath="#{ci.nsPath}") %>
+      <% builder.target link_to('', path_to_ci(ci)) %>
+      <% builder.middle do %>
+        <%= render 'cms/cis/important', :ci => ci %>
+      <% end %>
+      <% builder.bottom link_to(ci.nsPath, path_to_ns(ci.nsPath)) %>
+      <% builder.status :none %>
+    <% end %>
+  <% end %>
+<% end %>

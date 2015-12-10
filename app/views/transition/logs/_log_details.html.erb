@@ -1,0 +1,14 @@
+<%= section_panel 'Log Details', :width => 'double', :position => 'right' do %>
+  <% if @log.new_record? %>
+    <% locals = {:resource    => @log,
+                 :content     => 'cms/cis/ci',
+                 :form_url    => assembly_transition_environment_platform_component_logs_path(@assembly, @environment, @platform, @component)} %>
+  <% else %>
+    <% locals = {:resource    => @log,
+                 :content     => 'cms/cis/ci',
+                 :cancel_url  => assembly_transition_environment_platform_component_logs_path(@assembly, @environment, @platform, @component),
+                 :destroy_url => assembly_transition_environment_platform_component_log_path(@assembly, @environment, @platform, @component, @log),
+                 :form_url    => assembly_transition_environment_platform_component_log_path(@assembly, @environment, @platform, @component, @log)} %>
+  <% end %>
+  <%= render('base/shared/edit_form', locals) %>
+<% end %>

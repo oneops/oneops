@@ -1,0 +1,7 @@
+$j("#page_nav_diff").html("<%= escape_javascript(render('diff')) %>");
+replace_state("<%= assembly_design_platform_path(@assembly,
+                                                 @platform,
+                                                 :committed    => params[:committed],
+                                                 :changes_only => params[:changes_only],
+                                                 :anchor       => 'diff') %>");
+hide_modal();

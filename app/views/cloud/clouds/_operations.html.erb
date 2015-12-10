@@ -1,0 +1,29 @@
+<%= section_panel 'Environments', :width => 'single', :position => 'left' do %>
+  <%= ci_list(@environments,
+              :toolbar => {:list_name => 'cloud_environments',
+                           :sort_by   => [%w(Name ciName), %w(Created created), %w(Assembly assembly)],
+                           :filter_by => %w(ciName)}) do |builder, target| %>
+    <% assembly = target.nsPath.split('/')[2] %>
+    <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" assembly="#{assembly}") %>
+    <% builder.target link_to_function('', %(set_list_filter($j("#instances_section .list")[0], "#{environment_ns_path(target)}"))) %>
+    <% builder.top do %>
+      <span class="topname"><%= link_to(target.ciName, assembly_operations_environment_path(target.nsPath.split('/')[2], target)) %></span>
+      <% desc = target.ciAttributes.description %>
+      <% if desc.present? %>
+        <span class="topdesc"><%= desc %></span>
+      <% end %>
+    <% end %>
+    <% builder.middle link_to(icon(site_icon('assembly'), assembly), assembly_path(assembly)) %>
+    <% builder.status do %>
+      <%= target.ciAttributes.autorepair == 'true' ? status_marker('autorepair', 'enabled', 'label-success') : status_marker('autorepair', 'disabled') %>
+      <%= target.ciAttributes.autoscale == 'true' ? status_marker('autoscale', 'enabled', 'label-success') : status_marker('autoscale', 'disabled') if target.ciAttributes.availability == 'redundant' %>
+      <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id="instances_section">
+  <i class="icon-spinner icon-spin"></i> Loading...
+</div>
+<script>
+  <%= remote_function(:url => instances_cloud_path(@cloud, :instances_state => params[:instances_state] || 'unhealthy'), :method => :get) %>
+</script>

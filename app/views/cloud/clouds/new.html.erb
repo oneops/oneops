@@ -1,0 +1,18 @@
+<%= organization_page_header('clouds') %>
+<%= breadcrumb [{:label => 'clouds', :link => clouds_path}] %>
+
+<%= page_title :page_kind => 'Cloud', :page_label => 'New Cloud' %>
+<%= page_info 'Create new cloud' %>
+
+<%= section_panel 'Configuation', :id => 'details_attributes', :width => 'double', :position => 'left' do %>
+  <%= render 'base/shared/edit_form',
+             :resource   => @cloud,
+             :content    => 'new_cloud_details',
+             :remote     => false,
+             :form_url   => clouds_path,
+             :cancel_url => clouds_path %>
+<% end %>
+
+<%= section_panel 'Help', :id => 'cloud_help', :width => 'single', :position => 'right' do %>
+  Configure new cloud and designate teams to manage this cloud.
+<% end %>

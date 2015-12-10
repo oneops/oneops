@@ -1,0 +1,1 @@
+$("rfc_<%= @deployment_ci.rfcId %>_tab_log").update("<%= escape_javascript(render('cms/log', :log => @log_data, :refresh => "rfc_list_fetch_log(#{@deployment_ci.rfcId})")) %>");

@@ -1,0 +1,44 @@
+<%= section_panel 'Chart', :width => 'double' do %>
+  <div class="btn-toolbar">
+    <div class="range btn-group">
+      <% Operations::MonitorsController::CHART_TIME_RANGES.each do |range| %>
+        <% if @range == range %>
+          <%= link_to(icon('ok', range),
+                      '#',
+                      :remote => true,
+                      :class  => 'btn btn-mini active') %>
+        <% else %>
+          <%= link_to(range,
+                      charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :ids => @monitors.map(&:ciId), :range => range, :aggregate => params[:aggregate]),
+                      :remote => true,
+                      :class  => 'btn btn-mini') %>
+        <% end %>
+      <% end %>
+    </div>
+    <div class="refresh btn-group pull-right">
+      <%= link_to(icon('refresh'),
+                  charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :ids => @monitors.map(&:ciId), :range => @range, :aggregate => params[:aggregate]),
+                  :remote => true,
+                  :class  => 'btn btn-mini') %>
+    </div>
+  </div>
+  <% if params[:aggregate] == 'overlay' %>
+    <%= chart = {:ci_id => @instance.ciId,
+                          :name       => [],
+                          :series     => [],
+                          :data       => [],
+                          :start_time => @charts.first[:start_time],
+                          :end_time   => @charts.first[:end_time],
+                          :step       => @charts.first[:step]}
+        chart = @charts.inject(chart) do |t, c|
+          t[:name] << c[:name]
+          t[:series] += c[:series]
+          t[:data] += c[:data]
+          t
+        end
+        chart[:name] = chart[:name].join(',')
+        render 'base/shared/chart', :chart => chart %>
+  <% else %>
+    <%= render 'base/shared/chart', :chart => @charts %>
+  <% end %>
+<% end %>

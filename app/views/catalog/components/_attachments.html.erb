@@ -1,0 +1,13 @@
+<%= section_panel('Attachments', :width => 'single') do %>
+  <%= ci_list(@attachments) do |builder, target| %>
+    <% builder.target link_to_function('', %($j("#attachment_details div.attachment").hide();  $j("div#attachment_details_#{target.ciId}").show()), :remote => true) %>
+    <% builder.middle target.ciAttributes.source %>
+  <% end %>
+<% end %>
+<%= section_panel 'Attachment Details', :id => 'attachment_details', :width => 'double', :position => 'right' do %>
+  <% @attachments.each do |a| %>
+    <div id="attachment_details_<%= a.ciId %>" class="hide attachment">
+      <%= render('base/shared/edit_form', {:resource => a, :content => 'cms/cis/ci', :read_only => true}) %>
+    </div>
+  <% end %>
+<% end %>

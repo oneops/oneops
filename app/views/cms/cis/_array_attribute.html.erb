@@ -1,0 +1,43 @@
+<div class="array">
+  <%= builder.hidden_field attribute_name %>
+  <table id="<%= attribute_name %>_<%= Time.now.to_i %>_table">
+    <% (attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : []).each_with_index do |e, i| %>
+      <%= render 'cms/cis/array_attribute_row', :name => "#{attribute_name}_#{i}", :value => e %>
+    <% end %>
+  </table>
+  <%= link_to_function(content_tag(:i, '', :class => 'icon-plus') + ' add', "new_array_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') %>
+</div>
+<script type="text/javascript">
+  if (typeof(new_array_attribute_row_html) == "undefined") {
+    var new_array_attribute_row_html = "<%= escape_javascript(render('cms/cis/array_attribute_row', :name => 'new_array_attribute_row', :value => '')) %>";
+
+    window.new_array_attribute_row = function(table) {
+      var id = "" + new Date().getTime();
+      table.insert(new_array_attribute_row_html.replace(new RegExp("new_array_attribute_row", "g"), id));
+      table.up("form").dirty = true;
+      $(id).focus();
+    };
+
+    window.delete_array_attribute_row = function(row) {
+      var table = row.up("table");
+      row.remove();
+      table.up("form").dirty = true;
+      update_array_attribute_raw_value(table);
+    };
+
+    window.update_array_attribute_raw_value = function(table) {
+      var field = table.previous("input");
+      var rows = $$("#" + table.id + " tr");
+      if (rows && rows.length > 0) {
+        var row_values = [];
+        for (var i = 0; i < rows.length; i++) {
+          row_values.push(rows[i].down("input[type=text]").value);
+        }
+        field.value = Object.toJSON(row_values);
+      }
+      else {
+        field.value = "[]";
+      }
+    };
+  }
+</script>

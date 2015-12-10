@@ -1,0 +1,7 @@
+<%= section_panel 'Variable Details', :width => 'double', :position => 'right' do %>
+    <% locals = {:resource   => @variable,
+                 :content    => 'cms/cis/ci',
+                 :cancel_url => assembly_transition_environment_variables_path(@assembly, @environment),
+                 :form_url   => assembly_transition_environment_variable_path(@assembly, @environment, @variable)} %>
+    <%= render('base/shared/edit_form', locals) %>
+<% end %>

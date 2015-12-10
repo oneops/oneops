@@ -1,0 +1,58 @@
+<% enabled    = @composed_of.relationAttributes.enabled == 'true'
+   active     = !@platform.ciAttributes.attributes.has_key?(:is_active) || @platform.ciAttributes.is_active == 'true'
+   rfc_action = @platform.respond_to?(:rfcAction) && @platform.rfcAction %>
+<ul class="status">
+  <li class="status-marker">
+    <div class="marker">
+      <% if enabled %>
+        <%= marker('active', 'label-success') %>
+      <% else %>
+        <%= marker('inactive', '') %>
+      <% end %>
+      <%= marker('disabled', 'label-important') unless @composed_of.relationAttributes.enabled == 'true' %>
+    </div>
+    <div class="description">
+      <ul class="status-items">
+        <li><%= icon('play') %>Platform is <%= highlight(active ? 'active' : 'inactive') %></li>
+        <li><%= icon('off') %>Platform is <%= highlight(enabled ? 'enabled' : 'disabled') %></li>
+      </ul>
+      <% if has_transition?(@assembly.ciId) %>
+        <ul class="status-actions">
+          <% unless active %>
+            <li>
+              <%= link_to icon('eject', 'Terminate'),
+                          assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                          :method => :delete,
+                          :remote => true,
+                          :class  => 'btn btn-danger' %>
+            </li>
+            <% if enabled %>
+              <li>
+                <%= link_to icon('play', 'Activate'),
+                            activate_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                            :remote => true,
+                            :class  => 'btn btn-success' %>
+              </li>
+            <% end %>
+          <% end %>
+          <% unless rfc_action == 'delete' %>
+            <li>
+              <%= link_to enabled ? icon('off',' Disable') : icon('off',' Enable'),
+                          toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                          :remote => true,
+                          :class  => "btn btn-#{enabled ? 'danger' : 'success'}" %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+
+    </div>
+  </li>
+</ul>
+<%= render 'cms/cis/attributes', :ci => @platform, :f => f, :only => [:replace_after_minutes, :replace_after_repairs] %>
+<% if @scale_relations.present? %>
+  <div class="category">
+    <div class="name">Scaling</div>
+    	<%= render 'base/components/scale', :scale_relations => @scale_relations %>
+  </div>
+<% end %>

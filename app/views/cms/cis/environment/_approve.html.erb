@@ -1,0 +1,6 @@
+<%= render 'cms/cis/checkbox',
+           :attribute_name  => attribute_name,
+           :attribute_value => attribute_value,
+           :builder         => builder,
+           :read_only       => !is_admin?,
+           :id => "#{attribute_name}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>

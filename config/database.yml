@@ -1,0 +1,49 @@
+# PostgreSQL. Versions 7.4 and 8.x are supported.
+#
+# Install the pg driver:
+#   gem install pg
+# On Mac OS X with macports:
+#   gem install pg -- --with-pg-config=/opt/local/lib/postgresql84/bin/pg_config
+# On Windows:
+#   gem install pg
+#       Choose the win32 build.
+#       Install PostgreSQL and put its /bin directory on your path.
+development:
+  adapter: postgresql
+  encoding: unicode
+  database: kloopzapp
+  pool: 5
+  username: <%= ENV['OODB_USERNAME']%>
+  password: <%= ENV['OODB_PASSWORD'] %>
+  host: <%= ENV['OODB_HOST'] || 'kloopzappdb' %>
+  port: 5432
+
+shared:
+  adapter: postgresql
+  encoding: unicode
+  database: kloopzapp
+  pool: 5
+  username: kloopz
+  password: kloopz
+  host: <%= ENV['OODB_HOST'] || 'localhost' %>
+  port: 5432
+
+production:
+  adapter: postgresql
+  encoding: unicode
+  database: <%= ENV['OODB_DATABASE'] || 'kloopzapp' %>
+  pool: 5
+  username: <%= ENV['OODB_USERNAME'] %>
+  password: <%= ENV['OODB_PASSWORD'] %>
+  host: <%= ENV['OODB_HOST'] || 'kloopzappdb' %>
+  port: 5432
+
+enterprise:
+  adapter: postgresql
+  encoding: unicode
+  database: <%= ENV['OODB_DATABASE'] || 'kloopzapp' %>
+  pool: 5
+  username: <%= ENV['OODB_USERNAME'] %>
+  password: <%= ENV['OODB_PASSWORD'] %>
+  host: <%= ENV['OODB_HOST'] || 'kloopzappdb' %>
+  port: 5432

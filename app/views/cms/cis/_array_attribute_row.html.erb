@@ -1,0 +1,8 @@
+<tr>
+  <td>
+    <div class="input-append">
+      <%= text_field_tag(name, value, :onchange => %(update_array_attribute_raw_value($(this).up("table"))),:class=>'input-xlarge') %>
+      <%= link_to_function raw("<span class='add-on'><i class='icon-remove'></i></div>"), %(delete_array_attribute_row($(this).up("tr"))) %></span>
+    </div>
+  </td>
+</tr>

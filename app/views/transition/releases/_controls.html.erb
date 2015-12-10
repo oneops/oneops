@@ -1,0 +1,22 @@
+<% deploying  = @deployment && %w(active paused failed pending).index(@deployment.deploymentState)
+   generating = @environment.ciState == 'locked' %>
+<% if deploying || generating %>
+  <% if deploying %>
+    <div class="alert">You can not commit while deployment is in progress.</div>
+  <% end %>
+  <% if generating %>
+    <div class="alert">You can not commit while deployment plan generation is in progress.</div>
+  <% end %>
+  <%= button('Discard', nil,' btn btn-danger disabled') %>
+  <%= button('Commit & Deploy', nil,' btn btn-success disabled') %>
+<% else %>
+  <div>
+    <%= link_confirm_busy('Discard',
+                          :class   => 'btn btn-danger',
+                          :url     => discard_assembly_transition_environment_path(@assembly, @environment),
+                          :method  => :post,
+                          :confirm => 'Discard changes?',
+                          :busy    => 'Discarding changes...') %>
+    <%= render 'transition/commit_and_deploy_prompt' %>
+  </div>
+<% end %>

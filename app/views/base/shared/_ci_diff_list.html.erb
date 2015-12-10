@@ -1,0 +1,64 @@
+<%= ci_list(cis,
+            :class => 'ci-diff',
+            :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created)],
+                         :filter_by => %w(ciClass ciName diffAttributes),
+                         :compact   => false}) do |builder, target| %>
+  <% diff_attrs = target.diffAttributes
+     diff_attribute_desc = diff_attrs.map do |a|
+       attr = a['attribute']
+       mda = target.meta.md_attribute(attr)
+       mda ? mda.description : attr
+     end %>
+  <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" ciClass="#{target.ciClassName.split('.').last}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
+  <% builder.target nil %>
+  <% builder.icon ci_image_url(target) %>
+  <% builder.menu :none %>
+  <% builder.top do %>
+    <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
+    <span class="topdesc"><%= highlight(" - #{target.component.ciName} ") if target.respond_to?(:component) %><%= pluralize(diff_attrs.size, 'difference') %></span>
+  <% end %>
+  <% builder.middle do %>
+    <table class="table table-condensed table-bordered">
+      <% diff_attribute_map = {} %>
+      <% diff_attrs.each do |diff| %>
+        <% attr = diff['attribute'].to_s
+           diff_attribute_map[attr] = diff
+           md_attribute = target.meta.md_attribute(attr)
+           data_type = md_attribute.dataType
+           json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+           value = diff['value']
+           base_value = diff['base_value'] %>
+        <tr class="diff-container">
+          <td><%= highlight(md_attribute ? md_attribute.description : attr) %></td>
+          <td><pre class="changed"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
+          <td><pre class="original muted"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre></td>
+        </tr>
+      <% end %>
+      <% unless changes_only %>
+        <% target.ciAttributes.attributes.keys.sort.each do |attr| %>
+          <% unless diff_attribute_map[attr] %>
+            <% md_attribute = target.meta.md_attribute(attr)
+               data_type = md_attribute.dataType
+               json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+               value = target.ciAttributes.attributes[attr] %>
+            <tr class="no-diff muted">
+              <td><em><%= highlight(md_attribute ? md_attribute.description : "! #{attr}") %></em></td>
+              <td><pre><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
+              <td><pre class="muted"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
+            </tr>
+          <% end %>
+        <% end %>
+      <% end %>
+    </table>
+  <% end %>
+<% end %>
+
+<script>
+  $j(".ci-diff .list-body").find('.content, .status')
+      .click(function(e) {
+                  var target = $j(e.target);
+                  if (!target.parents(".middle")[0])
+                   $j(e.target).parents("li").find(".middle").toggle();
+                 });
+  $j(".ci-diff .diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+</script>

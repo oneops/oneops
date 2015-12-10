@@ -1,0 +1,122 @@
+<% save_url  = defined?(form_url) ? form_url : '#'
+   remote_x  = defined?(remote) ? remote : true
+   read_only = user_signed_in? && (!dto_allowed? || (defined?(read_only) && read_only))
+   new       = resource.new_record?
+   prefix    = "#{(resource.is_a?(Cms::Ci) ? resource.ciClassName : (resource.is_a?(Cms::Relation) ? resource.relationName : resource.class.name)).gsub(/\W/, '_')}_#{resource.id}_#{random_dom_id}"
+   block     = resource.persisted? && resource.errors.blank? %>
+<div>
+  <% if block && !read_only %>
+    <div class="edit-form-controls"></div>
+  <% end %>
+  <div id="<%= "#{prefix}_div" %>" class="edit_form">
+    <% html_options = {:id => "#{prefix}_form", :class => "form-horizontal #{'editing' unless read_only || block}"}
+       html_options[:onsubmit] = %(show_busy(#{"'#{escape_javascript(busy_block)}'" if busy_block.present?})) if defined?(busy_block)
+       form_options = {:remote => remote_x,
+                       :url    => save_url,
+                       :html   => html_options,
+                       :method => defined?(form_method) ? form_method : (new ? :post : :put)} %>
+    <%= form_for resource, form_options do |f| %>
+      <%= error_messages_for(resource) %>
+      <% content_template = if defined?(content)
+                              content
+                            elsif resource.is_a?(Cms::Ci)
+                              'cms/cis/ci'
+                            elsif resource.is_a?(Cms::Relation)
+                              'cms/relations/relation'
+                            end %>
+      <%= render content_template,
+                 :f => f,
+                 (resource.is_a?(Cms::Ci) ? :ci : (resource.is_a?(Cms::Relation) ? :relation : :resource)) => resource %>
+      <% unless read_only %>
+        <div id="<%= prefix %>_form_actions" class="form-actions" <%= "style=display:none" if block %>>
+        	<%= link_to(content_tag(:button, content_tag(:i, '', :class => 'icon-trash icon-white') + ' Delete', :class => "btn btn-danger secondary-action"),
+                      destroy_url,
+                      :confirm => 'Are you sure you want to proceed with delete?',
+                      :method  => :delete,
+                      :remote  => remote_x) unless new || !defined?(destroy_url) || destroy_url.blank? %>
+          <% unless !defined?(cancel_url) || cancel_url.blank? %>
+            <%= link_to(cancel_url, :disable_with => 'Wait...', :remote  => remote_x, :class => "btn btn-danger" ) do %>
+              <i class="icon-remove"></i> Cancel
+            <% end %>
+          <% end %>
+          <%= f.submit 'Save', :disable_with => 'Wait...', :class => "btn btn-success", :onclick => '$j(this).parents("form").trigger("beforeSave")' %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+  <script type="text/javascript">
+    window.edit_<%= prefix %> = function() {
+      enable_edit('<%= prefix %>_div');
+      $j('#<%= prefix %>_form_edit_link, #<%= prefix %>_form_cancel_link, #<%= prefix %>_form_save_link, #<%= prefix %>_form_actions').toggle();
+    };
+
+    window.cancel_<%= prefix %> = function() {
+      if ($j("#<%= prefix %>_form").attr("data-dirty") == "true" || <%= resource.errors.present? ? 'true' : 'false' %>) {
+        <% if !defined?(cancel_url) || cancel_url.blank?
+             if save_url.is_a?(Hash)
+               cancel_url = save_url.merge({:action => :edit})
+             else
+               cancel_url = URI.parse(save_url)
+               cancel_url.path += '/edit'
+               cancel_url = cancel_url.to_s
+             end
+           end %>
+        <% if remote_x %>
+          <%= remote_function(:url => cancel_url, :method => :get) %>
+        <% else %>
+          window.location.href = "<%= cancel_url %>";
+        <% end %>
+      }
+      else {
+        disable_edit('<%= prefix %>_div');
+        toggle(['<%= prefix %>_form_edit_link', '<%= prefix %>_form_cancel_link', '<%= prefix %>_form_save_link', '<%= prefix %>_form_actions']);
+      }
+    };
+
+    $j("#<%= prefix %>_form").change(function() {$j("#<%= prefix %>_form").attr("data-dirty",  "true");});
+
+    <% unless block %>
+      var form = $("<%= prefix %>_div").down("form");
+      form.edit = true;
+      form.addClassName("editing");
+    <% end %>
+
+    <% unless read_only || new %>
+      var controls = "<%= escape_javascript(link_to_function(icon_button('edit','Edit','mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide')) %>" +
+                     "<%= escape_javascript(link_to_function(icon_button('remove','Cancel','mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : '')) %>&nbsp;" +
+                     "<%= escape_javascript(link_to_function(icon_button('ok','Save','mini'), "$j('##{prefix}_form input[type=submit]').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')) %>";
+      try {
+        var section_menu = $('<%= prefix %>_div').up("div.section").down(".section-heading .menu");
+      } catch (e) {
+        section_menu = null;
+      }
+      if (section_menu) {
+        section_menu.update(controls);
+      }
+      else {
+        $('<%= prefix %>_div').previous(".edit-form-controls").insert(controls);
+      }
+    <% end %>
+
+    <% if read_only || block %>
+      disable_edit('<%= prefix %>_div');
+    <% end %>
+
+    $$('#' + '<%= prefix %>_div' + ' input[type=text]').each(function(el) {
+      if (el.readOnly) {
+        el.observe("click", function () {
+          if (this.doSelect) {
+            this.select();
+            this.doSelect = false;
+          }
+        });
+        el.observe("focus", function () {
+          this.doSelect = true;
+        });
+      }
+    });
+
+  $j('.control-label a').tooltip();
+
+  </script>
+</div>

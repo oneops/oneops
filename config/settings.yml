@@ -1,0 +1,122 @@
+# app/config/settings.yml
+
+defaults: &defaults
+  # Brand
+  brand:
+    image: logo-notext-32x32.png
+    name: '<font color="#333333">One</font><font color="#888888">Ops</font>'
+  identity: <%= ENV['IDENTITY'] || '' %>
+  support_email: <%= ENV['SUPPORT_EMAIL'] %>
+  news_url: <%= ENV['NEWS_URL'] %>
+  help_url: <%= ENV['HELP_URL'] %>
+  feedback_url: <%= ENV['FEEDBACK_URL'] || 'https://oneops.slack.com/messages/feedback/' %>
+  report_problem_url: <%= ENV['REPORT_PROBLEM_URL'] %>
+  support_chat_url: <%= ENV['SUPPORT_CHAT_URL'] || 'https://oneops.slack.com/messages/help/' %>
+  terms_of_service_url: <%= ENV['TERMS_OF_SERVICE_URL'] %>
+  privacy_policy_url: <%= ENV['PRIVACY_POLICY_URL'] %>
+
+  # Authentication types currently supported are database|ldap
+  authentication: database
+
+  # Omniauth configuration
+  # omniauth:
+    # github:
+      # key: <%= ENV['GITHUB_KEY'] %>
+      # secret: <%= ENV['GITHUB_SECRET'] %>
+      # host: <%= ENV['GITHUB_HOST'] || 'github.com' %>
+  #   twitter:
+  #     key: <%= ENV['TWITTER_KEY'] %>
+  #     secret: <%= ENV['TWITTER_SECRET'] %>
+  #   linkedin:
+  #     key: <%= ENV['LINKEDIN_KEY'] %>
+  #     secret: <%= ENV['LINKEDIN_SECRET'] %>
+  #   google:
+  #     key: <%= ENV['GOOGLE_KEY'] %>
+  #     secret: <%= ENV['GOOGLE_SECRET'] %>
+
+  # Set fixed organization name.
+  # Only valid with authentication type 'ldap'.
+  # ldap_organization: oneops
+
+  # Controls the self-registration vs. invitation only registrations.
+  # Only valid with authentication type 'database'.
+  invitations: false
+
+  # Controls the user confirmation requirements after registrations.
+  confirmation: false
+
+  # Prompt for EULA acceptance on every login session if missing
+  eula: true
+
+  # Mailer
+  host: <%= ENV['OO_HOSTNAME'] || 'my.oneops.com' %>
+  port: <%= ENV['OO_PORT'] || 443 %>
+  protocol: <%= ENV['OO_PROTOCOL'] || 'https' %>
+
+  mail_perform_deliveries: false
+  mail_delivery_method: <%= ENV['MAIL_DELIVERY_METHOD'] || 'smtp' %>
+  smtp_address: <%= ENV['SMTP_HOSTNAME'] || 'smtp' %>
+
+  # Backend services
+  cms_site: <%= ENV['CMS_SITE'] || 'http://cmsapi:8080/' %>
+  metrics_site: <%= ENV['METRICS_SITE'] || 'http://cmsapi:8080/' %>
+  events_site: <%= ENV['EVENTS_SITE'] || 'http://sensor:8080/' %>
+  notifications_site: <%= ENV['NOTIFICATION_SITE'] || 'http://antenna:8080/' %>
+  search_site: <%= ENV['SEARCH_SITE'] || 'http://search:9200/' %>
+  log_site: <%= ENV['LOG_SITE'] || ENV['SEARCH_SITE'] || 'http://search:9200/' %>
+  asset_url: <%= ENV['ASSET_URL'] %>
+
+  cms_path_prefix: <%= ENV['CMS_PATH_PREFIX'] || '/adapter/rest' %>
+  notification_hook:
+    user: <%= ENV['NOTIFICATION_USER'] || 'admin' %>
+    password: <%= ENV['NOTIFICATION_PASS'] || 'secret' %>
+  support:
+    user: <%= ENV['SUPPORT_USER'] || 'admin' %>
+    password: <%= ENV['SUPPORT_PASS'] || 'secret' %>
+
+  # Use 'components/states' to use Sensor's old API (calculate counters on-the-fly).
+  # Use 'components/states/count' to use Sensor's new optimized API (based on live counters).
+  sensor_health_path: <%= ENV['SENSOR_HEALTH_PATH'] || 'components/states/count' %>
+
+  # Use 'daq' to fetch logs from DAQ (old way).
+  # Use 'es' to fetch logs from Elastic Search (new way).
+  log_data_source: <%= ENV['LOG_DATA_SOURCE'] || 'daq' %>
+
+  policy_management: <%= ENV['POLICY_MANAGEMENT'] || 'false' %>
+  check_policy_compliance: <%= ENV['CHECK_POLICY_COMPLIANCE'] || 'false' %>
+
+  allow_cors: <%= ENV['ALLOW_CORS'] || 'true' %>
+  session_inactivity_timeout: <%= ENV['SESSION_INACTIVITY_TIMEOUT'] || 30 %>
+
+development: &development
+  <<: *defaults
+  authentication: database
+  omniauth:
+    twitter:
+      key: <%= ENV['TWITTER_KEY'] %>
+      secret: <%= ENV['TWITTER_SECRET'] %>
+    linkedin:
+      key: <%= ENV['LINKEDIN_KEY'] %>
+      secret: <%= ENV['LINKEDIN_SECRET'] %>
+    github:
+      key: <%= ENV['GITHUB_KEY'] %>
+      secret: <%= ENV['GITHUB_SECRET'] %>
+      host: <%= ENV['GITHUB_HOST'] || 'github.com' %>
+  policy_management: true
+
+production: &production
+  <<: *defaults
+  invitations: true
+  confirmation: true
+  eula: true
+  mail_perform_deliveries: true
+
+enterprise: &enterprise
+  <<: *defaults
+  authentication: ldap
+  ldap_domain: <%= ENV['LDAP_DOMAIN'] || nil %>
+  ldap_email_attribute: <%= ENV['LDAP_EMAIL_ATTRIBUTE'] || 'mail' %>
+  ldap_name_attribute: <%= ENV['LDAP_NAME_ATTRIBUTE'] || 'name' %>
+  confirmation: false
+  eula: true
+  mail_perform_deliveries: true

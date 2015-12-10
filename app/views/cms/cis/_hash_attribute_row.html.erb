@@ -1,0 +1,20 @@
+<tr>
+  <td>
+    <div class="input-append">
+      <% if fixed_keys %>
+        <%= hidden_field_tag("#{attribute_name}_key", key, :class => 'hash_key') %>
+        <span class="add-on hash_key"><b><%= key %></b></span>
+        <span class="add-on"><b>=</b></span>
+      <% else %>
+        <%= text_field_tag("#{attribute_name}_key", key, :onchange => %(update_hash_attribute_raw_value($(this).up("table"))), :class => fixed_keys ? 'hash_key readonly' : 'hash_key') %>
+        <span class="add-on"><b>=</b></span>
+      <% end %>
+    </div>
+  </td>
+  <td>
+    <div class="input-append" style="margin-left: -3px">
+      <%= text_field_tag("#{attribute_name}_value", value, :onchange => %(update_hash_attribute_raw_value($(this).up("table"))), :class => 'hash_value') %>
+      <%= link_to_function raw("<span class='add-on'><i class='icon-remove'></i></div>"), %(delete_hash_attribute_row($(this).up("tr"))) if allow_delete && !fixed_keys %>
+    </div>
+  </td>
+</tr>

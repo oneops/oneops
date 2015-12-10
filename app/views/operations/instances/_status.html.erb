@@ -1,0 +1,133 @@
+<ul class="status">
+  <li class="status-marker">
+    <% if @instance.rfcId > 0 %>
+      <div class="marker"><%= status_marker('configuration', @instance.rfcAction, action_to_label(@instance.rfcAction)) %></div>
+      <div class="description">
+        <% case @instance.rfcAction
+             when 'add'
+               conf_icon = 'plus'
+             when 'replace'
+               conf_icon = 'arrow-left'
+             when 'update'
+               conf_icon = 'repeat'
+             when 'delete'
+               conf_icon = 'minus'
+           end
+        %>
+        <ul>
+          <li><%= icon(conf_icon, ' ') %><%= @instance.rfcAction.capitalize %> requested by
+            <strong><%= @instance.rfcCreatedBy %></strong></li>
+          <li><%= icon('th-list', ' ') %>Part of environment release <strong><%= @release.releaseId %></strong>
+            committed <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong></li>
+          <% if @instance.rfcId == @instance.lastAppliedRfcId %>
+            <li><%= icon('ok', ' ') %>Deployment of change <%= @instance.rfcId %> <strong>completed</strong></li>
+          <% else %>
+            <li><%= icon('time', ' ') %>Deployment of this change is <strong>pending</strong></li>
+          <% end %>
+        </ul>
+      </div>
+    <% else %>
+      <% config_state = @component.lastAppliedRfcId == @realized_as.relationAttributes.last_manifest_rfc.to_i ? 'latest' : 'stale' %>
+      <div class="marker"><%= status_marker('configuration', config_state, state_to_label(config_state)) %></div>
+      <div class="description">
+        <ul>
+          <% if config_state == 'stale' %>
+            <li>
+              <%= icon('asterisk', ' ') %>Last component change in transition <%= highlight(@component.lastAppliedRfcId) %>
+              <ul>
+                <li><%= icon('user', ' ') %>made by <strong><%= @component_rfc.rfcCreatedBy %></strong></li>
+                <li><%= icon('th-list', ' ') %>as part of environment release <strong><%= link_to(@component_release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@component_release.releaseId}")) %></strong></li>
+                <li><%= icon('time', ' ') %>committed <strong><%= time_ago_in_words(@component_release.updated_timestamp) %></strong> by <strong><%= @component_release.commitedBy %></strong></li>
+              </ul>
+            </li>
+          <% end %>
+          <li>
+            <%= icon('repeat', ' ') %>Last deployed change <%= highlight(@instance.lastAppliedRfcId) %>
+            <ul>
+              <li><%= icon('user', ' ') %>made by <strong><%= @instance_rfc.rfcCreatedBy %></strong></li>
+              <li><%= icon('th-list', ' ') %>as part of environment release <strong><%=  link_to(@release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@release.releaseId}")) %></strong></li>
+              <li><%= icon('time', ' ') %>deployed <strong><%= time_ago_in_words(@instance_rfc.rfc_updated_timestamp) %></strong></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    <% end %>
+  </li>
+  <% if @instance.respond_to?(:ciState) && @instance.ciState == 'replace' %>
+    <li class="status-marker">
+      <div class="marker"><%= status_marker('state', @instance.ciState, state_to_label(@instance.ciState)) %></div>
+      <div class="description">
+        <ul>
+          <li><%= icon('arrow-left', ' ') %>This instance is marked to be <%= highlight('replaced') %></li>
+          <li>
+            <%= icon('time', ' ') %>State modified <strong><%= time_ago_in_words(@instance.updated_timestamp) %></strong>
+            <% if @instance.updatedBy.present? %>
+              by <strong><%= @instance.updatedBy %></strong>
+            <% end %>
+          </li>
+        </ul>
+        <% if has_operations?(@assembly.ciId) %>
+          <ul class="status-actions">
+            <li>
+              <%= link_confirm_busy(icon_button('undo', 'Undo Replace', 'info'),
+                                    :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'default'}),
+                                    :body    => "This will mark the component instance '#{@instance.ciName}' back to the default state in OneOps and cancel the pending replacement.".html_safe,
+                                    :confirm => 'Undo Replace?',
+                                    :method  => :put) %>
+            </li>
+          </ul>
+        <% end %>
+
+      </div>
+    </li>
+  <% end %>
+  <li class="status-marker">
+    <div class="marker"><%= status_marker('health', @ops_state, health_to_label(@ops_state)) %></div>
+    <div class="description">
+      <ul>
+        <% if @ops_state == 'good' %>
+          <li><%= icon('ok') %> All monitors are at normal levels</li>
+        <% else %>
+          <% if @ops_events.present? %>
+            <% monitor_threshold_map = Operations::MonitorsController.threshold_monitor_map(@monitors) %>
+            <% @ops_events.each_pair do |monitor_name, events| %>
+              <% events.each do |e| %>
+                <li>
+                  <%= icon('warning-sign', ' ') %>
+                  <% threshold_map = monitor_threshold_map[monitor_name]
+                     monitor       = threshold_map && threshold_map[e.name]
+                     full_name     = "#{monitor ? "#{monitor.ciAttributes.description}" : monitor_name}:#{e.name}" %>
+                  <strong><%= monitor ? link_to(full_name, "#monitors/list_item/#{monitor.ciId}") : full_name %></strong>
+                  reporting <strong><%= e.state %></strong>
+                  since <strong><%= time_ago_in_words(Time.at(e.timestamp / 1000)) %></strong>
+                </li>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% end %>
+        <% if @monitors.size > 0 %>
+          <li><%= icon('eye-open', ' ') %><%= @monitors.size %> monitors watching this instance</li>
+        <% else %>
+          <li><%= icon('eye-close', ' ') %><strong>NO</strong> monitors watching this instance</li>
+        <% end %>
+      </ul>
+    </div>
+  </li>
+
+  <% procedure = @procedures.sort_by(&:procedureId).first %>
+  <% if procedure && procedure.actions.present? %>
+    <% action = procedure.actions.first %>
+    <% if procedure && %w(pending inprogress).index(action.actionState) %>
+      <li class="status-marker">
+        <div class="marker"><%= status_marker(action.actionName, action.actionState, state_to_label(action.actionState)) %></div>
+        <div class="description">
+          <ul>
+            <li><%= icon('play', ' ') %>Action <strong><%= action.actionName %></strong> started
+              <strong><%= time_ago_in_words(Time.at(action.created/1000)) %></strong></li>
+            <li><%= icon('user', ' ') %>Submitted by <strong><%= procedure.createdBy %></strong></li>
+          </ul>
+        </div>
+      </li>
+    <% end %>
+  <% end %>
+</ul>

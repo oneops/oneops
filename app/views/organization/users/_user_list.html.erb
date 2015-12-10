@@ -1,0 +1,56 @@
+<% database_auth = Settings.authentication == 'database'
+   menu = (is_admin? ? [link_to(icon('plus','Add'), new_organization_user_path, :remote => true, :class => 'btn btn-mini')] : nil) %>
+<%= section_panel 'Users', :width => 'triple', :menu => menu do %>
+  <%= list(@users,
+           :new_link => (is_admin? ? link_to('Add User...', new_organization_user_path, :remote => true) : nil),
+           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Sign In Time', 'sign_in_time'], ['Sign In Count', 'sign_in_count']],
+                        :filter_by => %w(email team)}) do |builder, user| %>
+    <% builder.itemid user.id %>
+    <% teams = @user_teams[user.id] || [] %>
+    <% builder.attributes raw(%(username="#{user.username}" email="#{user.email}" created="#{user.created_at}" sign_in_time="#{user.current_sign_in_at}" sign_in_count="#{user.sign_in_count.to_s.rjust(7, '0')}" team="#{teams.join(', ')}")) %>
+    <% builder.target link_to('', edit_organization_user_path(user), :remote => true) if is_admin? %>
+    <% builder.top do %>
+    	<span class="topname"><%= user.username %></span>
+    	<span class="topdesc"><%= user.name %></span>
+    <% end %>
+    <% builder.middle do %>
+      <%= user.email %> |
+    	<% if user.confirmation_token? %>
+    		confirmation email sent <%= time_ago_in_words(user.confirmation_sent_at) %>
+    	<% end %>
+    	<% if user.current_sign_in_at %>
+    		sign in <%= time_ago_in_words(user.current_sign_in_at) %> from <%= user.current_sign_in_ip %> -
+    		sign in count <strong><%= user.sign_in_count %></strong>
+    	<% end %>
+      <% if teams.present? %>
+        <br><%= teams %>
+      <% end %>
+    <% end %>
+    <% builder.bottom do %>
+    	created <%= time_ago_in_words(user.created_at) %>
+    	<% if database_auth && Settings.confirmation && user.confirmation_token.blank? %>
+    		- confirmed <%= time_ago_in_words(user.confirmed_at) %>
+    	<% end %>
+    <% end %>
+    <% builder.status do %>
+    	<% if database_auth %>
+    	  <%= marker('confirmed',      'label-warning')   unless user.confirmation_token.blank? %>
+      	<%= marker('unconfirmed',    'label-warning')   if user.confirmation_token? %>
+      	<%= marker('locked',         'label-important') if user.locked_at? %>
+      	<%= marker('password reset', 'label-important') if user.reset_password_token? %>
+    	<% end %>
+      <%= marker('me', 'label-info') if user.username == current_user.username %>
+      <% teams.each do |team| %>
+        <%= marker(team, 'label-inverse') %>
+      <% end %>
+
+    <% end %>
+    <% builder.menu do %>
+      <% if is_admin? && current_user.id != user.id %>
+        <%= link_to(icon('remove', 'Remove'), organization_user_path(user), :method => :delete, :remote => true, :confirm => "Remove user '#{user.username}' from this organization?") %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id="reset_password_modal" class="modal hide"></div>
+<div id="organization_user_modal" class="modal hide"></div>

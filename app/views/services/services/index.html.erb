@@ -1,0 +1,29 @@
+<%= organization_page_header('services') %>
+<%= page_title :page_kind => 'Services', :page_label => nil %>
+<%= page_info 'Manage services' %>
+
+<%= section_panel "Services #{count_marker(@services.size)}",
+                  :width => 'triple',
+                  :menu  => @service_classes.present? && [{:display => icon('plus', 'Add'), :link => new_service_path}] do %>
+  <%= ci_list(@services, :new_link => @service_classes.present? && link_to('Add Service...', new_service_path)) do |builder, target| %>
+    <% edit_url = edit_service_path(target) %>
+    <% builder.target link_to('', edit_url) %>
+    <% builder.top do %>
+      <span class="topname"><%= target.ciName %></span>
+      <span class="topdesc"><%= target.ciClassName %></span>
+    <% end %>
+    <% builder.middle do %>
+      <dl class="dl-horizontal">
+      <% target.ciAttributes.attributes.reject { |k, v| v == '--ENCRYPTED--' }.sort.each do |k,v| %>
+        <% description = target.meta.attributes[:mdAttributes].detect {|x| x.attributeName == k}.description.presence || k %>
+        <dt title="<%= description %>"><%= description %></dt>
+        <dd><%= v %></dd>
+      <% end %>
+      </dl>
+    <% end %>
+    <% builder.menu do |ci| %>
+      <%= link_to icon('edit', ' Edit'), edit_service_path(ci) %>
+      <%= link_to icon('trash',' Remove'), service_path(ci), :method => :delete, :data => { :confirm => 'Confirm delete?' } %>
+    <% end %>
+  <% end %>
+<% end %>

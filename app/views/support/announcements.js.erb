@@ -1,0 +1,5 @@
+$j("#announcements_section").html("<%= escape_javascript(render('base/shared/edit_form',
+                                                                {:resource   => @announcements,
+                                                                 :content    => 'announcements_content',
+                                                                 :form_url   => update_announcements_support_path,
+                                                                 :cancel_url => announcements_support_path})) %>");

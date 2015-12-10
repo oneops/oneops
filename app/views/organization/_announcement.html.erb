@@ -1,0 +1,5 @@
+<% org = current_user.organization
+   announcement = org && org.announcement
+   if announcement.present? %>
+  <div class="announcement alert"><%= raw(announcement) %></div>
+<% end %>

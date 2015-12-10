@@ -1,0 +1,66 @@
+<% %>
+<%= ci_list(@components,
+            :menu    => has_transition?(@assembly.ciId) && [{:id => 'touch', :label => 'Touch', :url => touch_assembly_transition_environment_platform_components_path(@assembly, @environment, @platform), :method => :post, :param_name => 'componentCiIds'}],
+            :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created)],
+                         :filter_by => %w(ciClass ciName),
+                         :compact   => false}) do |builder, target| %>
+  <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" ciClass="#{target.ciClassName.split('.').last}")) %>
+  <% builder.target nil %>
+  <% builder.icon ci_image_url(target) %>
+  <% builder.top do %>
+    <span class="topname"><%= link_to(target.ciName, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, target)) %></span>
+  <% end %>
+  <% if target.ciAttributes.attributes.present? %>
+    <% builder.middle do %>
+      <% locked_attrs = target.ciAttrProps.attributes[:owner]
+         attrs = target.meta.attributes[:mdAttributes].inject([]) { |a, attr| a << attr if (locked_attrs && locked_attrs.attributes[attr.attributeName] == 'manifest') || attr.options[:important]; a } %>
+      <% if attrs.present? %>
+        <dl>
+          <% attrs.sort_by { |a| "#{a.options.has_key?(:category) ? a.options[:category] : '~'}|#{a.options.has_key?(:order) ? a.options[:order] : 999}" }.each do |a| %>
+            <% name = a.attributeName
+               value = target.ciAttributes.attributes[name] %>
+            <dt title="<%= a.description %>"><%= icon(locked_attrs && locked_attrs.attributes[name] == 'manifest' ? 'lock' : 'unlock') %> <%= a.description %></dt>
+            <dd>
+              <% if a.dataType == 'hash' %>
+                <% parsed = value.present? && JSON.parse(value) %>
+                <% if parsed.present? %>
+                  <table>
+                    <% parsed.each_pair do |k, v| %>
+                      <tr>
+                        <td title="<%= k %>"><%= k %>:</td>
+                        <td>&nbsp;</td>
+                        <td title="<%= v %>"><%= v %></td>
+                      </tr>
+                    <% end %>
+                  </table>
+                <% else %>
+                  &nbsp;
+                <% end %>
+              <% else %>
+                <%= truncate(value, 256).presence || raw('&nbsp;') %>
+              <% end %>
+            </dd>
+          <% end %>
+        </dl>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% builder.bottom :none %>
+  <% builder.status do %>
+    <% if @policy_compliance %>
+      <% violate_count = @policy_compliance[target.ciId] %>
+      <% if violate_count == 0 %>
+        <%= status_marker('policy', 'passed', 'label-success') %>
+      <% else %>
+        <%= status_marker('policy', "#{violate_count} failed", 'label-important') %>
+      <% end %>
+    <% end %>
+    <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.rfcAction.present? %>
+  <% end %>
+  <% builder.menu do |ci| %>
+    <%= link_to(icon('refresh', ' Touch'),
+                touch_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, ci),
+                :method => :post,
+                :remote => true) if @environment && ci.rfcAction.blank? %>
+  <% end %>
+<% end %>

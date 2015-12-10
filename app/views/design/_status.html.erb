@@ -1,0 +1,49 @@
+<ul class="status">
+  <li class="status-marker">
+    <% if @release %>
+      <% case @release.releaseState %>
+    <% when 'open' %>
+        <div class="marker"><%= status_marker('release', 'open', 'label-success') %></div>
+        <div class="description">
+          <ul class="status-items">
+            <li><%= icon('star') %>Design release <%= @release.releaseId %> created
+              <strong><%= time_ago_in_words(@release.created_timestamp) %></strong></li>
+            <li><%= icon('user') %>Created by <%= highlight(@release.createdBy) %></li>
+            <li><%= icon('th-list') %>Release contains <%= count_marker(@release.rfc_cis.size.to_s) %> change(s)</li>
+          </ul>
+          <ul class="status-actions">
+            <li>
+              <% # Include dummy 'time' parameter to force reload to ensure release loading regardless of current sort on PAGINATED release list. %>
+              <%= link_to('Review',
+                          assembly_design_path(@assembly, :anchor => path_to_release(@release).split('#').last),
+                          :class => 'btn btn-primary') %>
+            </li>
+            <% if has_design?(@assembly.ciId) %>
+              <li><%= render 'design/releases/controls' %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% else %>
+        <% state = (@release.releaseState == 'closed') ? 'commit' : 'discard' %>
+        <div class="marker"><%= status_marker('release', @release.releaseState, @release.releaseState == 'canceled' ? 'label-important' : '') %></div>
+        <div class="description">
+          <ul>
+            <li>
+              <%= icon('download-alt', ' ') %>Last design release <%= @release.releaseId %> <%= "#{state}" %>
+              <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong>
+            </li>
+            <% if state == 'commit' %>
+              <li><%= icon('comment') %> <%= @release.description %></li>
+            <% end %>
+            <li><%= icon('user') %> <%= state.capitalize %> by <%= highlight(@release.commitedBy) %></li>
+            <li><%= icon('th-list') %> <%= link_to(highlight('View', 'info'), '#releases') %> history of design
+              releases
+            </li>
+          </ul>
+        </div>
+      <% end %>
+    <% else %>
+      Create a new design by adding one or more platforms.
+    <% end %>
+  </li>
+</ul>
