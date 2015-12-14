@@ -28,6 +28,7 @@ import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.util.IndentPrinter;
@@ -78,6 +79,23 @@ public class InductorPublisher {
             logger.info(">>>>>>>>>>>>>>InductorPublisher initalized...");
     }
 
+    
+    /**
+     * Publish message.
+     *
+     * @param exec the exec
+     * @param waitTaskName the wait task name
+     * @param woType the wo type
+     * @throws JMSException the jMS exception
+     */
+    public void publishMessage(DelegateExecution exec, String waitTaskName, String woType) throws JMSException {
+    	String processId = exec.getProcessInstanceId();
+    	String execId = exec.getId();
+
+    	CmsWorkOrderSimpleBase wo = (CmsWorkOrderSimpleBase)exec.getVariable("wo");
+    	publishMessage(processId, execId, wo, waitTaskName, woType);
+    }
+    
     /**
      * Publish message.
      *
