@@ -15,7 +15,14 @@
       barGrouping,
       barGroupings;
   var colors = groupings.reduce(function(c, g) {
-    c[g.name] = d3.scale.category10();
+    if (g.colors) {
+      c[g.name] = function(name) {
+        return g.colors[name] || 'gray'
+      }
+    }
+    else {
+      c[g.name] = d3.scale.category10();
+    }
     return c;
   }, {});
   for(var i = 0, len = data.x.length; i < len; i++) {
