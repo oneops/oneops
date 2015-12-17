@@ -155,8 +155,8 @@ class ReportsController < ApplicationController
       # Start and end times are in seconds but notification timestamp is in ms.
       @histogram = {:x         => [],
                     :y         => [],
-                    :groupings => [{:name => :by_source, :label => 'By Source'},
-                                   {:name => :by_severity, :label => 'By Severity'}],
+                    :groupings => [{:name => :by_source, :label => 'By Source', :colors => {:deployment => 'green', :ops => 'orange', :procedure => 'blue'}},
+                                   {:name => :by_severity, :label => 'By Severity', :colors => {:info => 'blue', :warning => 'orange', :critical => 'red'}}],
                     :labels    => {:y => 'Count'}}
       if period == 'today' || period == 'yesterday'
         @histogram[:title]      = 'Hourly Counts'
