@@ -9,11 +9,9 @@
  * compiled file, but it's generally better to create a new file per style scope.
  *= require bootstrap
  *= require font-awesome
- *= require rickshaw
- *= require d3
+ *= require rickshaw-rails
  *= require tinytable
  *= require colors
- *= require graphviz
  *= require layout
  *= require jquery-ui
  *= require textareafullscreen

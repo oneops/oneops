@@ -38,7 +38,10 @@
         <span class="pull-right"><%= marker(short_ns_path, 'label-info') %></span>
       <% end %>
     <% end %>
-    <% builder.icon ci ? ci_image_url(target) : '/images/cms/Relation.png' %>
+    <% if ci %>
+      <% builder.icon ci_image_url(target) %>
+    <% else %>
+    <% end %>
     <% builder.menu :none %>
     <% builder.top do %>
       <div>
@@ -46,6 +49,7 @@
           <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
           <span class="topdesc"><%= target.ciClassName.split('.').last %></span>
         <% else %>
+          <%= icon('link', nil, 'relation') %>
           <%= target.ci_hash['fromCiName'] %>
           <span class="topdesc"><%= target.relationName.split('.').last %></span>
           <%= target.ci_hash['toCiName'] %>

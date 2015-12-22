@@ -6,7 +6,6 @@ body {
   font-size:   12px;
   line-height: 18px;
   background:  whitesmoke;
-  /*background-image: url('/images/background.png');*/
   width: 100%;
 }
 
@@ -1016,7 +1015,7 @@ img.authicon {
 .breadcrumb_image {
   float:    left;
   position: relative;
-  display:  none;
+  /*display:  none;*/
 }
 
 .breadcrumb_image img {
@@ -2462,6 +2461,11 @@ ul.status div.marker {
   width:    140px;
 }
 
+ul.status div.marker > i {
+  font-size: 50px;
+  margin-left: 40px;
+}
+
 ul.status div.marker span.label {
   font-size:   12px;
   font-weight: normal;
@@ -3814,8 +3818,13 @@ div.category > .name {
 
 .chart_container .legend .line {
   display: inline-block;
-  /*width: 90%;*/
+  width: 45%;
   text-overflow: ellipsis;
+}
+
+.rickshaw_legend {
+  background: transparent;
+  color: black;
 }
 
 .rickshaw_legend .action {
@@ -3824,6 +3833,10 @@ div.category > .name {
 
 .rickshaw_legend .action:hover {
   opacity: 1;
+}
+
+.rickshaw_legend .label:hover {
+  font-weight: bold;
 }
 
 .chart_container .y_axis {
@@ -4132,4 +4145,82 @@ div.error-message {
 div.error-message h1 {
   font-size: 18px;
   color: #f00;
+}
+
+
+.graph .node circle {
+  cursor: pointer;
+  fill: #fff;
+  stroke: steelblue;
+  stroke-width: 1.5px;
+}
+
+.graph .node text, .graph .edge text {
+	text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
+}
+
+.graph path.link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1px;
+}
+
+.graph .node circle {
+	fill: #fff;
+	stroke: #888;
+	stroke-width: 1.5px;
+}
+
+.graph .node circle.good {
+	stroke: #51a351;
+}
+
+.graph .node circle.underutilized {
+	stroke: steelblue;
+}
+
+.graph .node circle.notify  {
+	stroke: #faa732;
+	stroke-width: 2.5px;
+}
+
+.graph .node circle.overutilized {
+	stroke: #fa772b;
+	stroke-width: 2.5px;
+}
+
+.graph .node circle.unhealthy {
+	stroke: #bd362f;
+	stroke-width: 2.5px;
+}
+
+.graph .node text.add[deployment="pending"] {
+  fill: #51a351;
+}
+
+.graph .node text.replace[deployment="pending"] {
+  fill: #51a351;
+}
+
+.graph .node text.delete[deployment="pending"] {
+  fill: #bd362f;
+}
+
+.graph .node text.update[deployment="pending"] {
+  fill: #faa732;
+}
+
+.graph .node text[pkg="bom"] {
+  font-size: 10px;
+  font-weight: 300;
+}
+
+.graph .link {
+  fill: none;
+  stroke: #ccc;
+  stroke-width: 1px;
+}
+
+i.relation {
+  color: #444;
 }

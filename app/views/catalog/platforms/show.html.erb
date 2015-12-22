@@ -1,7 +1,7 @@
 <%= organization_page_header('catalogs') %>
 
 <%= breadcrumb [{:label => 'catalogs', :link => catalogs_path},
-                {:icon => '/images/cms/Catalog.png', :label => @catalog.ciName, :kind => 'Catalog', :link => catalog_path(@catalog)}] %>
+                {:label => @catalog.ciName, :kind => 'Catalog', :link => catalog_path(@catalog)}] %>
 
 <%= page_title :page_icon     => ci_image_url(@platform),
                :page_kind     => 'Platform',

@@ -38,10 +38,7 @@
 <% end %>
 
 <%= section_panel 'Continuous Deploy URL', :position => 'right', :width => 'single' do %>
-  <span class="clippy"><%= deploy_assembly_transition_environment_platform_component_url(@assembly.ciName, @environment.ciName, "#{@platform.ciName}!#{@platform.ciAttributes.major_version}", @component.ciName) %></span>
-  <script type="text/javascript">
-//      $j(document).ready(function () {$j('.clippy').clippy({clippy_path: "<%= image_path('clippy.swf') %>"});});
-  </script>
+  <span><%= deploy_assembly_transition_environment_platform_component_url(@assembly.ciName, @environment.ciName, "#{@platform.ciName}!#{@platform.ciAttributes.major_version}", @component.ciName) %></span>
 <% end %>
 
 <%= section_panel 'Help', :position => 'right', :width => 'single' do %>

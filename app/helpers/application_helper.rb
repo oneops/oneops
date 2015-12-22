@@ -7,6 +7,7 @@ module ApplicationHelper
                 :cloud            => 'cloud',
                 :assembly         => 'cogs',
                 :settings         => 'wrench',
+                :user             => 'user',
                 :manages_access   => 'key',
                 :org_scope        => 'sitemap',
                 :design           => 'puzzle-piece',
@@ -26,7 +27,7 @@ module ApplicationHelper
     services = []
     if Settings.omniauth
       Settings.omniauth.sort.each do |provider,keys|
-        services << link_to(image_tag("/images/auth/#{provider}_128.png", :class => 'authicon'), "/auth/#{provider}", :title => provider.capitalize)
+        services << link_to(provider, "/auth/#{provider}", :title => provider.capitalize)
       end
     end
     return raw(services.join(' '))
@@ -573,7 +574,7 @@ module ApplicationHelper
     when 'complete'
       'label-success'
     when 'closed'
-      ''
+      'label-success'
     when 'inprogress'
       'label-info'
     when 'pending'
@@ -899,6 +900,52 @@ module ApplicationHelper
     "#{platform.ciName} #{breadcrumb_marker("version #{platform.ciAttributes.major_version}", active ? 'label-success' : '')}"
   end
 
+  def release_state_icon(state, additional_classes = '')
+    icon = ''
+    text = ''
+    case state
+      when 'closed'
+        icon = 'ok'
+        text = 'text-success'
+      when 'open'
+        icon = 'folder-open'
+        text = 'text-info'
+      when 'canceled'
+        icon = 'ban-circle'
+        text = 'text-error'
+    end
+    content_tag(:i, '', :class => "icon-#{icon} #{text} #{additional_classes}", :alt => state)
+  end
+
+  def deployment_state_icon(state, additional_classes = '')
+    icon = ''
+    text = ''
+    case state
+      when 'pending'
+        icon = 'time'
+        text = 'muted'
+      when 'complete'
+        icon = 'ok'
+        text = 'text-success'
+      when 'failed'
+        icon = 'remove'
+        text = 'text-error'
+      when 'canceled'
+        icon = 'ban-circle'
+        text = 'text-error'
+      when 'active'
+        icon = 'spinner icon-spin'
+        text = 'text-info'
+      when 'paused'
+        icon = 'pause'
+        text = 'text-warning'
+      when 'pausing'
+        icon = 'pause'
+        text = 'text-warning'
+    end
+    content_tag(:i, '', :class => "icon-#{icon} #{text} #{additional_classes}", :alt => state)
+  end
+
   def rfc_action_icon(action, additional_classes = '')
     icon = ''
     text = ''
@@ -938,6 +985,9 @@ module ApplicationHelper
       when 'canceled'
         icon = 'ban-circle'
         text = 'text-error'
+      when 'active'
+        icon = 'spinner icon-spin'
+        text = 'text-info'
     end
     content_tag(:i, '', :class => "icon-#{icon} #{text} #{additional_classes}", :alt => state)
   end
