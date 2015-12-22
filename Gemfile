@@ -28,6 +28,8 @@ gem 'silencer', '0.6.0'
 gem 'jquery-rails', '~> 2.2.1'
 gem 'jquery-ui-rails'
 gem 'prototype-rails'
+gem 'd3-rails', '~> 3.5'
+gem 'rickshaw-rails', '1.5.0'
 
 gem 'bootstrap-sass', '~> 2.2.2'
 gem 'font-awesome-rails', '~> 3.2.1'

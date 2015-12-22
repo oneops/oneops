@@ -3,7 +3,7 @@
     <% enabled = target.ciAttributes.enabled == 'true'
        status = enabled ? 'enabled' : 'disabled' %>
     <% builder.target link_to('', edit_assembly_transition_environment_relay_path(@assembly, @environment, target), :remote => true) %>
-    <% builder.icon "/images/relay/#{target.ciClassName.split('.')[-2]}.png" %>
+    <% builder.icon ci_image_url(target) %>
     <% builder.status do %>
       <%= marker(status, state_to_label(status)) %>
     <% end %>

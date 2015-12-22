@@ -1,18 +1,18 @@
 <ul class="status">
   <li class="status-marker">
     <div class="marker">
-      <%= image_tag("/images/releases/#{release.releaseState}.png", :class => 'cms-large') %>
+      <%= release_state_icon(release.releaseState) %>
     </div>
     <div class="description">
       <ul>
-        <li><%= icon('info-sign') %> release <%= highlight(release.releaseId) %> is in <%= highlight(release.releaseState) %> state</li>
+        <li><%= icon('info-sign') %> release <%= highlight(release.releaseId) %> is in <%= highlight(release.releaseState, release.releaseState) %> state</li>
         <li><%= icon('star') %> created by <%= highlight(release.createdBy, 'info') %> <%= highlight(time_ago_in_words(release.created_timestamp)) %></li>
         <% if release.commitedBy %>
           <li><%= icon('download-alt') %> <%= release.releaseState == 'canceled' ? 'cancel' : 'commit' %> by <%= highlight(release.commitedBy, 'info') %>
             <%= highlight(time_ago_in_words(release.updated_timestamp)) %>
           </li>
         <% end %>
-        <% if release.releaseState == 'closed' %>
+        <% if release.releaseState == 'closed' && release.description.present? %>
           <li><%= icon('comment') %> <%= release.description %></li>
         <% end %>
       </ul>

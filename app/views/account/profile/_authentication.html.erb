@@ -24,7 +24,6 @@
 			<% builder.menu do %>
 		      <%= link_to(icon('trash','Delete'), target, :confirm => 'Are you sure?', :method => :delete) %>
 		   <% end %>
-			<% builder.icon "/images/auth/#{target.provider}_128.png" %>
 			<% builder.top target.provider %>
 			<% builder.middle do %>
 				UID: <%= target.uid %>
