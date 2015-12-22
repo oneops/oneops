@@ -1,7 +1,9 @@
 <%= section_panel 'Details', :width => 'double', :position => 'right' do %>
   <ul class="status">
     <li class="status-marker">
-      <div class="marker"><%= image_tag('/images/cms/Procedure.png', :class => 'cms-large') %></div>
+      <div class="marker">
+        <%= deployment_state_icon(@procedure.procedureState) %>
+      </div>
       <div class="description">
         <ul>
           <li><%= icon('info-sign') %>

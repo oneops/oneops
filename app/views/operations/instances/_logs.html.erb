@@ -6,7 +6,8 @@
         <input type="text" id="query" onkeyup="sorter.search('query')">
       </div>
       <div class="details">
-        <div>Records <span id="startrecord"></span>-<span id="endrecord"></span> of <span id="totalrecords"></span></div>
+        <div>Records <span id="startrecord"></span>-<span id="endrecord"></span> of <span id="totalrecords"></span>
+        </div>
         <div><a href="javascript:sorter.reset()">reset</a></div>
       </div>
     </div>
@@ -42,16 +43,16 @@
     <div id="tablefooter">
       <div id="tablenav">
         <div>
-          <img src="/images/tinytable/first.gif" width="16" height="16" alt="First Page" onclick="sorter.move(-1,true)"/>
-          <img src="/images/tinytable/previous.gif" width="16" height="16" alt="Previous Page" onclick="sorter.move(-1)"/>
-          <img src="/images/tinytable/next.gif" width="16" height="16" alt="Next Page" onclick="sorter.move(1)"/>
-          <img src="/images/tinytable/last.gif" width="16" height="16" alt="Last Page" onclick="sorter.move(1,true)"/>
+          <i class="icon-fast-backward" onclick="sorter.move(-1, true)"/>
+          <i class="icon-backward" onclick="sorter.move(-1)"/>
+          <i class="icon-forward" onclick="sorter.move(1)"/>
+          <i class="icon-fast-forward" onclick="sorter.move(1, true)"/>
         </div>
         <div>
           <select id="pagedropdown"></select>
         </div>
         <div>
-          <a href="javascript:sorter.showall()">view all</a>
+          <a href="javascript:sorter.showall()" style="vertical-align: -4px">view all</a>
         </div>
       </div>
       <div id="tablelocation">
@@ -63,10 +64,10 @@
             <option value="50">50</option>
             <option value="100">100</option>
           </select>
-          <span>Entries Per Page</span>
+          <span style="vertical-align:3px">Entries Per Page</span>
         </div>
-        <div class="page">Page <span id="currentpage"></span> of <span id="totalpages"></span></div>
       </div>
+      <div class="page">Page <span id="currentpage"></span> of <span id="totalpages"></span></div>
     </div>
   </div>
 

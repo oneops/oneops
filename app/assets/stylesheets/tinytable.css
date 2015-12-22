@@ -23,10 +23,10 @@
 .tinytable tfoot td {padding:6px 8px 8px}
 #tablefooter {height:15px; margin-top:20px}
 #tablenav {float:left}
-#tablenav img {cursor:pointer}
+#tablenav i {cursor:pointer; font-size: 16px; margin-right: 10px; vertical-align: -6px}
 #tablenav div {float:left; margin-right:15px}
-#tablelocation {float:right; font-size:12px}
+#tablelocation {float:left; font-size:12px}
 #tablelocation select {margin-right:3px}
 #tablelocation div {float:left; margin-left:15px}
-.page {margin-top:2px; font-style:italic}
+#tablefooter div.page {margin-top:2px; font-style:italic; float:right}
 #selectedrow td {background:#c6d5e1}

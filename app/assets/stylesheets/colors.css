@@ -434,7 +434,7 @@
 .highlight.info {
 }
 
-.highlight.complete, .highlight.success, .highlight.active {
+.highlight.complete, .highlight.success, .highlight.active, .highlight.closed {
 	color: #51a351;
 }
 .highlight.warning, .highlight.generating, .highlight.paused {
