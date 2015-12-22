@@ -19,10 +19,8 @@
 //= require jquery-ui
 //= require bootstrap
 //= require tinytable
-//= require d3.v3
-//= require d3.geom
-//= require rickshaw
-//= require d3.layout
+//= require d3
+//= require rickshaw-rails
 //= require jquery.textareafullscreen
 //= require diff_match_patch
 //= require jquery.pretty-text-diff

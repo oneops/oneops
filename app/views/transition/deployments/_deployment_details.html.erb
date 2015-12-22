@@ -2,7 +2,7 @@
   <ul class="status">
     <li>
       <div class="marker">
-        <%= image_tag(ci_image_url(@deployment), :class => 'cms-large') %>
+        <%= deployment_state_icon(@deployment.deploymentState) %>
       </div>
       <div class="description">
         <ul>

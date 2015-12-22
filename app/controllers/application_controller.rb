@@ -1092,7 +1092,7 @@ class ApplicationController < ActionController::Base
       "/images/cms/#{ci_class_name.split('.').last}.png"
     else
       split = ci_class_name.split('.')
-      "#{asset_url}#{split[(ci_class_name.start_with?('cloud.service') ? 2 : 1)..-1].join('.')}/#{split.last}.png"
+      "#{asset_url}#{split[1..-1].join('.')}/#{split.last}.png"
     end
   end
 
