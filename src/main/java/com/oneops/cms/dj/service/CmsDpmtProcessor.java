@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -50,6 +51,7 @@ import com.oneops.cms.util.ListUtils;
  */
 public class CmsDpmtProcessor {
 
+	public static final String OPEN_DEPLOYMENT_REGEXP = "active|failed|paused";
 	static Logger logger = Logger.getLogger(CmsDpmtProcessor.class);
 	
 	private DJDpmtMapper dpmtMapper;
@@ -206,38 +208,7 @@ public class CmsDpmtProcessor {
 		}
 	}
 	
-	/*
-	public List<CmsDeployment> dpmtApprove(List<CmsDpmtApproval> approvals) {
-		List<CmsDeployment> resultDpmts = new ArrayList<CmsDeployment>(); 
-		ListUtils<Long> lu = new ListUtils<Long>();
-		try {
-			Map<Long, List<CmsDpmtApproval>> approvalMap = lu.toMapOfList(approvals, "deploymentId");
-			for (Map.Entry<Long, List<CmsDpmtApproval>> dpmtApprovals : approvalMap.entrySet()) {
-				long dpmtId = dpmtApprovals.getKey();
-				String userId = null;
-				for (CmsDpmtApproval approval : dpmtApprovals.getValue()) {
-					userId = approval.getUpdatedBy();
-					dpmtMapper.dpmtApprove(approval);
-				}
-				CmsDeployment dpmt = new CmsDeployment();
-				dpmt.setDeploymentId(dpmtId);
-				dpmt.setUpdatedBy(userId);
-				dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
-				resultDpmts.add(updateDeployment(dpmt));
-			}
-			return resultDpmts;
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-			throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-			throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
-		} catch (IllegalAccessException e) {
-			e.printStackTrace();
-			throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
-		}
-	}
-	*/
+
 	
 	private boolean needApproval(CmsDeployment dpmt) {
 		boolean needApproval = false;
@@ -502,7 +473,6 @@ public class CmsDpmtProcessor {
 	/**
 	 * Delete global variables in pending_delete state
 	 * 
-	 * @param platforms
 	 */
 	private void deleteGlobalVars(String envNsPath) {
 		List <CmsCI> toDelComponents = cmProcessor.getCiByNsLikeByStateNaked(envNsPath + "/", null, "pending_deletion");
@@ -583,7 +553,9 @@ public class CmsDpmtProcessor {
 			return dpmtMapper.findLatestDeployment(nsPath, state);
 		}
 	}
-	
+
+
+
 	/**
 	 * Count deployment.
 	 *
@@ -677,7 +649,7 @@ public class CmsDpmtProcessor {
 	/**
 	 * Gets the deployment record by dpmtRfcId.
 	 *
-	 * @param dpmtId the dpmtRfcId
+	 * @param dpmtRecordId the dpmtRfcId
 	 * @return the deployment records
 	 */
 	public CmsDpmtRecord getDeploymentRecord(long dpmtRecordId) {
@@ -698,7 +670,6 @@ public class CmsDpmtProcessor {
 	 * Gets the deployment record cis.
 	 *
 	 * @param ciId the ciId
-	 * @param record state 
 	 * @return the deployment record cis
 	 */
 	public List<CmsDpmtRecord> getDeploymentRecordByCiId(long ciId, String state) {
@@ -732,5 +703,15 @@ public class CmsDpmtProcessor {
 	public List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId) {
 		return dpmtMapper.getDeploymentStateHist(deploymentId);
 	}
+
+	public CmsDeployment  getOpenDeployments(String nsPath) {
+		 List<CmsDeployment> openDeployments = findLatestDeployment(nsPath, null, false).stream().filter(cmsDeployment -> cmsDeployment.getDeploymentState().matches(OPEN_DEPLOYMENT_REGEXP)).collect(Collectors.toList());
+		if(openDeployments!=null ){
+			if(openDeployments.size()>1){
+				return openDeployments.get(0);
+			}
+		}
+		 return null;
+    }
 	
 }
