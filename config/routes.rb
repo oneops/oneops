@@ -36,6 +36,8 @@ Display::Application.routes.draw do
   get 'l/procedure/:id'  => 'lookup#procedure'
   get 'l/p/:id'          => 'lookup#procedure',  :as => 'lookup_procedure'
 
+  get '/api_docs' => 'welcome#api_docs'
+
   resource :support, :controller => 'support', :only => :none, :defaults => { :org_name => nil } do
     collection do
       get  'announcements'
