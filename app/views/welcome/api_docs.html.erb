@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" type="image/png" href="<%= asset_path('logo-notext-32x32.png') %>"/>
+  <link rel="shortcut icon" href="<%= asset_path('logo-notext-64x64.png') %>"/>
+  <link rel="apple-touch-icon" href="<%= asset_path('logo-touch-144x144.png') %>"/>
+  <title>OneOps API Docs</title>
+
+  <%= stylesheet_link_tag 'swagger-ui', :media => 'all' %>
+  <%= javascript_include_tag 'swagger-ui' %>
+</head>
+<body>
+  <%= render 'swagger_ui/swagger_ui', :discovery_url => '/apidocs/api-docs.json' %>
+</body>
+</html>

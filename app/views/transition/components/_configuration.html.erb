@@ -37,9 +37,12 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Continuous Deploy URL', :position => 'right', :width => 'single' do %>
-  <span><%= deploy_assembly_transition_environment_platform_component_url(@assembly.ciName, @environment.ciName, "#{@platform.ciName}!#{@platform.ciAttributes.major_version}", @component.ciName) %></span>
+<% if @environment.ciAttributes.codpmt == 'true' %>
+  <%= section_panel 'Continuous Deploy URL', :position => 'right', :width => 'single' do %>
+    <span><%= deploy_assembly_transition_environment_platform_component_url(@assembly.ciName, @environment.ciName, "#{@platform.ciName}!#{@platform.ciAttributes.major_version}", @component.ciName) %></span>
+  <% end %>
 <% end %>
+
 
 <%= section_panel 'Help', :position => 'right', :width => 'single' do %>
   <div>

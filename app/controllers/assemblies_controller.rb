@@ -9,6 +9,17 @@ class AssembliesController < ApplicationController
 
   before_filter :find_proxy, :only => [:destroy, :teams]
 
+  swagger_controller :assemblies, 'Assembly Management'
+
+  swagger_api :index do
+    summary 'Fetches all org assemblies accessible by current user.'
+    notes 'This lists all organization assemblies subject to access right.  Users with admin and organization ' \
+           'scope team priviliges will see all assemblies. Other users will see only assemblies that are assoociated ' \
+           'with any of the teams they belong to.'
+    param_org_name
+    response :unauthorized
+  end
+
   def index
     @assemblies = locate_assemblies.sort_by { |o| o.created_timestamp }
 
@@ -25,6 +36,15 @@ class AssembliesController < ApplicationController
 
       format.json { render :json => @assemblies }
     end
+  end
+
+  swagger_api :show do
+    summary 'Fetches an assembly.'
+    notes 'This fetches an assembly by CI id or name.'
+    param_org_name
+    param_ci_id :assembly
+    response :unauthorized
+    response :not_found
   end
 
   def show
@@ -53,6 +73,12 @@ class AssembliesController < ApplicationController
     end
   end
 
+  swagger_api :new do
+    summary 'Builds a new assembly CI with default attributes.'
+    param_org_name
+    response :unauthorized
+  end
+
   def new
     @assembly = Cms::Ci.build({:nsPath => organization_ns_path, :ciClassName => 'account.Assembly'})
 
@@ -60,6 +86,17 @@ class AssembliesController < ApplicationController
       format.html { load_catalog_templates }
       format.json { render_json_ci_response(true, @assembly) }
     end
+  end
+
+  swagger_api :create do
+    summary 'Creates a new assembly.'
+    notes 'If <b>catalog_template</b> is specified it will try to find a corresponding catalog and create ' \
+          'a design defined by the catalog.'
+    param_org_name
+    param :form, 'cms_ci', :string, :required, 'Assembly CI object.'
+    param :form, 'catalog_template', :string, :optional, 'Name of exisiting catalog defining a design that will be automatically created in this new assembly.'
+    response :unauthorized
+    response :unprocessable_entity
   end
 
   def create
