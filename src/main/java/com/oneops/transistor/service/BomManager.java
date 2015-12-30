@@ -23,6 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public interface BomManager {
-	public long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
-	public long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
+	long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
+	long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
+
+	long submitDeployment(long releaseId, String userId);
+
+	void check4openDeployment(String nsPath);
 }

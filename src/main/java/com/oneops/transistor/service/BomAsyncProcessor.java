@@ -27,7 +27,9 @@ import com.oneops.transistor.exceptions.TransistorException;
 
 public class BomAsyncProcessor {
 
-	static Logger logger = Logger.getLogger(BomAsyncProcessor.class);
+    public static final String THREAD_PREFIX_BOM = "async-env-";
+    public static final String THREAD_PREFIX_FLEX = "async-flex-";
+    static Logger logger = Logger.getLogger(BomAsyncProcessor.class);
 	
 	private BomManager bomManager;
 	private FlexManager flexManager;
@@ -57,49 +59,45 @@ public class BomAsyncProcessor {
 	
 	
 	private void buildBom(final long envId, final String userId, final Set<Long> excludePlats, final String desc, final boolean deploy, final boolean commit) {
-        final Runnable bomBuilder = new Runnable() {
-                public void run() { 
-                	String envMsg = null;
-                	try {
-                		long startTime = System.currentTimeMillis();
-                		if (deploy) {
-                			bomManager.generateAndDeployBom(envId, userId, excludePlats, desc, commit);
-                		} else {
-                			bomManager.generateBom(envId, userId, excludePlats, desc, commit);
-                		}
-                		long timeTaken = Math.round((System.currentTimeMillis() - startTime )/1000);
-                		envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + timeTaken + " seconds." ;
-                	} catch (Exception e) {
-                		logger.error("Exception in buildBom", e);
-                		e.printStackTrace();
-            			envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
-            			throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
-					} finally {
-                		envSemaphore.unlockEnv(envId, envMsg);
-                	}
+		Thread t = new Thread(() -> {
+            String envMsg = null;
+            try {
+                long startTime = System.currentTimeMillis();
+                if (deploy) {
+                    bomManager.generateAndDeployBom(envId, userId, excludePlats, desc, commit);
+                } else {
+                    bomManager.generateBom(envId, userId, excludePlats, desc, commit);
                 }
-            };
-        Thread t = new Thread(bomBuilder);
+                long timeTaken = Math.round((System.currentTimeMillis() - startTime )/1000);
+                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + timeTaken + " seconds." ;
+            } catch (Exception e) {
+                logger.error("Exception  in build bom ", e);
+                envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
+                throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
+            } finally {
+                envSemaphore.unlockEnv(envId, envMsg);
+            }
+        }, getThreadName(THREAD_PREFIX_BOM,envId));
         t.start();
     }
 
-	private void processFlexAsync(final long envId, final long flexRelId, final int step, final boolean scaleUp) {
-        final Runnable flexRunner = new Runnable() {
-                public void run() { 
-                	String envMsg = null;
-                	try {
-                		flexManager.processFlex(flexRelId, step, scaleUp, envId);
-                		envMsg = "";
-                	} catch (CmsBaseException e) {
-            			logger.error("CmsBaseException in processFlexAsync", e);
-            			e.printStackTrace();
-            			envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
-                	} finally {
-                		envSemaphore.unlockEnv(envId, envMsg);
-                	}
-                }
-            };
-        Thread t = new Thread(flexRunner);
+    private String getThreadName(String prefix,long envId) {
+        return prefix +String.valueOf(envId);
+    }
+
+    private void processFlexAsync(final long envId, final long flexRelId, final int step, final boolean scaleUp) {
+      Thread t = new Thread(() -> {
+            String envMsg = null;
+            try {
+                flexManager.processFlex(flexRelId, step, scaleUp, envId);
+                envMsg = "";
+            } catch (CmsBaseException e) {
+                logger.error("Exception occured while flexing the ",e);
+                envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
+            } finally {
+                envSemaphore.unlockEnv(envId, envMsg);
+            }
+        }, getThreadName(THREAD_PREFIX_FLEX,envId));
         t.start();
     }
 	
