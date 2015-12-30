@@ -38,9 +38,9 @@ public class CmsUtilProcessor {
 	/**
 	 * Acquires the named lock by the process
 	 *
-	 * @param String lockName - name of the lock
-	 * @param String processId - process identifier
-	 * @param int staleTimeout - time in seconds to consider the lock is old and stale
+	 * @param  lockName - name of the lock
+	 * @param  processId - process identifier
+	 * @param  staleTimeout - time in seconds to consider the lock is old and stale
 	 */
 	public boolean acquireLock(String lockName, String processId, int staleTimeout) {
 		boolean locked = utilMapper.acquireLock(lockName, processId, staleTimeout);
@@ -55,8 +55,8 @@ public class CmsUtilProcessor {
 	/**
 	 * Refresh the named lock by the process
 	 *
-	 * @param String lockName - name of the lock
-	 * @param String processId - process identifier
+	 * @param  lockName - name of the lock
+	 * @param  processId - process identifier
 	 */
 	public boolean refreshLock(String lockName, String processId) {
 		boolean locked = utilMapper.acquireLock(lockName, processId, 1000000);
@@ -69,8 +69,8 @@ public class CmsUtilProcessor {
 	/**
 	 * Release the named lock by the process
 	 *
-	 * @param String lockName - name of the lock
-	 * @param String processId - process identifier
+	 * @param lockName - name of the lock
+	 * @param  processId - process identifier
 	 */
 	public void releaseLock(String lockName, String processId) {
 		utilMapper.releaseLock(lockName, processId);

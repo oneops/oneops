@@ -1629,14 +1629,14 @@ public class CmsCmProcessor {
 
 			List<CmsCI> templateCis = getCiBy3(mgmtTemplNsPath, "mgmt." +  manifestCi.getCiClassName(), template);
 			if (templateCis.size() >0 ) {
-				templateCi = templateCis.get(0); 
+				templateCi = templateCis.get(0);
 			}
 
 		} else {
 			throw new CmsException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
                                 "Can not figure out template for manifest ciId - " + manifestCi.getCiId());
 		}
-		
+
 		return templateCi;
 		
 	}
