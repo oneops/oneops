@@ -110,6 +110,7 @@
         <property name="trUtil" ref="trUtil" />
 		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
 		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
+		<property name="bomManager" ref="bomManager"/>
 		<property name="cmsUtil" ref="cmsUtil" />
     </bean>
 
@@ -118,6 +119,8 @@
         <property name="nsManager" ref="cmsNsManager" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="dpmtProcessor" ref="cmsDpmtProcessor" />
+		<property name="bomManager" ref="bomManager" />
+
     </bean>
 
 	<bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">

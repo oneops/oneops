@@ -48,6 +48,8 @@ public class FlexManagerImpl implements FlexManager {
 	private BomRfcBulkProcessor bomRfcProcessor;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
+
+	private BomManager bomManager;
 	
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
@@ -76,33 +78,29 @@ public class FlexManagerImpl implements FlexManager {
 		this.dpmtProcessor = dpmtProcessor;
 	}
 
+	public BomManager getBomManager() {
+		return bomManager;
+	}
+
+	public void setBomManager(BomManager bomManager) {
+		this.bomManager = bomManager;
+	}
+
 	@Override
 	public long processFlex(long flexRelId, int step, boolean scaleUp, long envId) {
-		
+
 		String userId = "oneops-flex";
-		
+
 		CmsCIRelation flexRel = cmProcessor.getRelationById(flexRelId);
 		long manifestReleaseId = processManifestRelation(flexRel, step, scaleUp, userId);
 		//commit manifest release
 		rfcProcessor.commitRelease(manifestReleaseId, true, null,false,userId, "Flex relation changed by oneops-flex system");
 		CmsCI manPlat = getManifestPlatform(flexRel);
 		long bomReleaseId = processBomRelease(envId, manPlat, manifestReleaseId, userId);
-		submitDeployment(bomReleaseId, userId);
+		bomManager.submitDeployment(bomReleaseId, userId);
 		return bomReleaseId;
 	}
 
-	private long submitDeployment(long releaseId, String userId){
-
-		CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
-		CmsDeployment dpmt = new CmsDeployment();
-		dpmt.setNsPath(bomRelease.getNsPath());
-		dpmt.setReleaseId(bomRelease.getReleaseId());
-		dpmt.setCreatedBy(userId);
-		CmsDeployment newDpmt = dpmtProcessor.deployRelease(dpmt); 
-		logger.info("created new deployment - " + newDpmt.getDeploymentId());
-		return newDpmt.getDeploymentId();
-	}
-	
 	private CmsCI getManifestPlatform(CmsCIRelation flexRel) {
 		
 		List<CmsCIRelation> platRels = cmProcessor.getToCIRelations(flexRel.getFromCiId(), "manifest.Requires", "manifest.Platform");
@@ -190,6 +188,7 @@ public class FlexManagerImpl implements FlexManager {
 		}
 		return 0;
 	}
-	
-	
+
+
+
 }

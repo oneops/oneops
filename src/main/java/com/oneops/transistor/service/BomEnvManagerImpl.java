@@ -23,15 +23,13 @@ import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.ns.service.CmsNsManager;
-import com.oneops.cms.util.CmsError;
-import com.oneops.transistor.exceptions.TransistorException;
 
-public class BomEnvManagerImpl implements BomEnvManager {
+
+public class BomEnvManagerImpl implements BomEnvManager  {
 
 	static Logger logger = Logger.getLogger(BomEnvManagerImpl.class);
 
@@ -39,6 +37,8 @@ public class BomEnvManagerImpl implements BomEnvManager {
 	private CmsNsManager nsManager;
 	private CmsRfcProcessor rfcProcessor;
 	private CmsDpmtProcessor dpmtProcessor;
+
+	private BomManager bomManager;
 	
 	public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
 		this.dpmtProcessor = dpmtProcessor;
@@ -53,6 +53,10 @@ public class BomEnvManagerImpl implements BomEnvManager {
 
 	public void setNsManager(CmsNsManager nsManager) {
 		this.nsManager = nsManager;
+	}
+
+	public void setBomManager(BomManager bomManager) {
+		this.bomManager = bomManager;
 	}
 	
 	@Override
@@ -73,7 +77,7 @@ public class BomEnvManagerImpl implements BomEnvManager {
 	public long discardEnvBom(long envId) {
 		CmsCI env = cmProcessor.getCiById(envId);
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
-		check4openDeployment(bomNsPath);
+		bomManager.check4openDeployment(bomNsPath);
 		long bomReleaseId = 0;
 		List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 		for (CmsRelease bomRel : bomReleases) {
@@ -98,18 +102,8 @@ public class BomEnvManagerImpl implements BomEnvManager {
 			manifestReleaseId = manifestRel.getReleaseId();
 		}
 		return manifestReleaseId;
-	}	
-
-	private void check4openDeployment(String nsPath) {
-		List<CmsDeployment>  dpmts = dpmtProcessor.findLatestDeployment(nsPath, null, false);
-		if (dpmts.size()>0) {
-			CmsDeployment dpmt = dpmts.get(0);
-			if (dpmt.getDeploymentState().matches("active|failed|paused")) {
-				String err = "There is an active deployment in this environment, you need to cancel or retry it";
-				logger.error(err);
-				throw new TransistorException(CmsError.TRANSISTOR_ACTIVE_DEPLOYMENT_EXISTS, err);
-			}
-		}
 	}
+
+
 
 }

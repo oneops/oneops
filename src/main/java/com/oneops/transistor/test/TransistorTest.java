@@ -21,6 +21,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
+import com.oneops.cms.util.CmsError;
+import com.oneops.transistor.exceptions.TransistorException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 
@@ -43,6 +45,8 @@ public class TransistorTest  {
 		pr.setArgList(argList);
 		System.out.println(gson.toJson(pr));
 		*/
+		throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, null);
+
 	}
 
 	private static String getProcDef(String filePath) throws java.io.IOException {

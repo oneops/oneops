@@ -45,24 +45,6 @@ public class BomManagerImpl implements BomManager {
 
 	static Logger logger = Logger.getLogger(BomManagerImpl.class);
 
-	/*
-	private static Comparator<CmsCIRelation> BINDING_COMPARATOR = new Comparator<CmsCIRelation>()
-    {
-        public int compare(CmsCIRelation binding1, CmsCIRelation binding2)
-        {
-            return Integer.valueOf(binding1.getAttribute("priority").getDjValue()) - Integer.valueOf(binding2.getAttribute("priority").getDjValue());
-        }
-    };
-	
-	private static Comparator<CmsCIRelation> REVERSE_BINDING_COMPARATOR = new Comparator<CmsCIRelation>()
-		    {
-		        public int compare(CmsCIRelation binding1, CmsCIRelation binding2)
-		        {
-		            return Integer.valueOf(binding1.getAttribute("priority").getDjValue()) - Integer.valueOf(binding2.getAttribute("priority").getDjValue());
-		        }
-		    };
-	*/	    
-
     private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private BomRfcBulkProcessor bomRfcProcessor;
@@ -334,8 +316,8 @@ public class BomManagerImpl implements BomManager {
 	}
 	
 	
-	private long submitDeployment(long releaseId, String userId){
-
+	@Override
+	public long submitDeployment(long releaseId, String userId){
 		CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
 		CmsDeployment dpmt = new CmsDeployment();
 		dpmt.setNsPath(bomRelease.getNsPath());
@@ -346,16 +328,7 @@ public class BomManagerImpl implements BomManager {
 		return newDpmt.getDeploymentId();
 	}
 
-	/*
-	private boolean hasActive(List<CmsCIRelation> rels, Set<Long> disabledPlats) {
-		for (CmsCIRelation rel : rels) {
-			if (!"pending_deletion".equalsIgnoreCase(rel.getRelationState()) && !disabledPlats.contains(rel.getFromCiId())) {
-				return true; 
-			}
-		}
-		return false;
-	}
-	*/
+
 	
 	private long getPopulateParentAndGetReleaseId(String nsPath, String manifestNsPath) {
 		List<CmsRelease> releases = rfcProcessor.getLatestRelease(nsPath, "open"); 
@@ -457,15 +430,12 @@ public class BomManagerImpl implements BomManager {
 		}
 	}
 
-	private void check4openDeployment(String nsPath) {
-		List<CmsDeployment>  dpmts = dpmtProcessor.findLatestDeployment(nsPath, null, false);
-		if (dpmts.size()>0) {
-			CmsDeployment dpmt = dpmts.get(0);
-			if (dpmt.getDeploymentState().matches("active|failed|paused")) {
-				String err = "There is an active deployment in this environment, you need to cancel or retry it";
-				logger.error(err);
-				throw new TransistorException(CmsError.TRANSISTOR_ACTIVE_DEPLOYMENT_EXISTS, err);
-			}
+	@Override
+	public void check4openDeployment(String nsPath) {
+		CmsDeployment openDeployments = dpmtProcessor.getOpenDeployments(nsPath);
+		if (openDeployments != null) {
+			String err = "There is an active deployment " + openDeployments.getDeploymentId() + " in this environment with id , you need to cancel or retry it,";
+			throw new TransistorException(CmsError.TRANSISTOR_ACTIVE_DEPLOYMENT_EXISTS, err);
 		}
 	}
 
