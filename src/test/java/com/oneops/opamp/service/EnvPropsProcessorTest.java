@@ -100,11 +100,13 @@ public class EnvPropsProcessorTest {
 		this.cmProcessorMockRepairs= mock(CmsCmProcessor.class);
 		when(cmProcessorMockRepairs.getToCIRelationsNakedNoAttrs(ID_WITH_AUTO_REPAIR, "base.RealizedAs", null, null)).thenReturn(manifestCiReps);
 		when(cmProcessorMockRepairs.getToCIRelationsNakedNoAttrs(ID_WITH_AUTO_REPAIR, "manifest.Requires",null, "manifest.Platform")).thenReturn(manifestCiReps);
+		when(cmProcessorMockRepairs.getToCIRelations(ID_WITH_AUTO_REPAIR, "manifest.Requires",null, "manifest.Platform")).thenReturn(manifestCiReps);
 		when(cmProcessorMockRepairs.getToCIRelations(ID_WITH_AUTO_REPAIR, "manifest.ComposedOf",null, "manifest.Environment")).thenReturn(manifestCiReps);
 		//
 		this.cmProcessorMockScales=mock(CmsCmProcessor.class);
 		when(cmProcessorMockScales.getToCIRelationsNakedNoAttrs(ID_WITH_AUTO_SCALING, "base.RealizedAs", null, null)).thenReturn(manifestCiScals);
 		when(cmProcessorMockScales.getToCIRelationsNakedNoAttrs(ID_WITH_AUTO_SCALING, "manifest.Requires",null, "manifest.Platform")).thenReturn(manifestCiScals);
+		when(cmProcessorMockScales.getToCIRelations(ID_WITH_AUTO_SCALING, "manifest.Requires",null, "manifest.Platform")).thenReturn(manifestCiScals);
 		when(cmProcessorMockScales.getToCIRelations(ID_WITH_AUTO_SCALING, "manifest.ComposedOf",null, "manifest.Environment")).thenReturn(manifestCiScals);
 		
 	}
