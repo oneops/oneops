@@ -1122,6 +1122,9 @@ BEGIN
 
 	      if l_action = 'replace' then
 		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, 100, coalesce(l_dpmt.updated_by, l_dpmt.created_by));	
+		update cm_ci
+		set created = now(), created_by = coalesce(l_dpmt.created_by, created_by)
+		where ci_id = l_rfc_ci.ci_id;
 	      else		
 		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, coalesce(l_dpmt.updated_by, l_dpmt.created_by));	
 	      end if;
