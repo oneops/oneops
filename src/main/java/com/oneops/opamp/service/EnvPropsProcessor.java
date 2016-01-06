@@ -123,17 +123,17 @@ public class EnvPropsProcessor {
 	 * @return the cms ci
 	 */
 	public CmsCI isAutorepairEnbaled4bom(long ciId) {
-		CmsCI env = getEnv4Bom(ciId);
-		if (env == null) {
-			logger.error("can not get environment for ciid " + ciId);
+		CmsCI platform = getPlatform4Bom(ciId);
+		if (platform == null) {
+			logger.error("can not get platform for ciid " + ciId);
 			return null;
 		}
 		
-		if ("true".equalsIgnoreCase(env.getAttribute("autorepair").getDfValue())){
-			return env;
-		} else {
-			return null;
-		}
+		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair");
+		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue())){
+			return platform;
+		} 
+		return null;
 	}
 
 	/**
@@ -143,17 +143,17 @@ public class EnvPropsProcessor {
 	 * @return the cms ci
 	 */
 	public CmsCI isAutoScalingEnbaled4bom(long ciId) {
-		CmsCI env = getEnv4Bom(ciId);
-		if (env == null) {
-			logger.error("can not get environment for ciid " + ciId);
+		CmsCI platform = getPlatform4Bom(ciId);
+		if (platform == null) {
+			logger.error("can not get platform for ciid " + ciId);
 			return null;
 		}
 		
-		if ("true".equalsIgnoreCase(env.getAttribute("autoscale").getDfValue())){
-			return env;
-		} else {
-			return null;
+		CmsCIAttribute ciAttrib = platform.getAttribute("autoscale");
+		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
+			return platform;
 		}
+		return null;
 	}
 	
 	/**
@@ -163,16 +163,16 @@ public class EnvPropsProcessor {
 	 * @return the cms ci
 	 */
 	public CmsCI isAutoReplaceEnbaled4bom(long ciId) {
-		CmsCI env = getEnv4Bom(ciId);
-		if (env == null) {
-			logger.error("can not get environment for ciid " + ciId);
+		CmsCI platform = getPlatform4Bom(ciId);
+		if (platform == null) {
+			logger.error("can not get platform for ciid " + ciId);
 			return null;
 		}
-		CmsCIAttribute ciAttrib = env.getAttribute("autoreplace");
+		CmsCIAttribute ciAttrib = platform.getAttribute("autoreplace");
 		if (ciAttrib == null || ! "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
 			return null;
 		}
-		return env;
+		return platform;
 	}
 
 	/**
