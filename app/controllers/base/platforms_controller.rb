@@ -43,14 +43,14 @@ class Base::PlatformsController < ApplicationController
   end
 
   def diagram
-    graph = GraphViz::new( "G" )
+    graph = GraphViz::new('G')
     graph_options = {
           :truecolor  => true,
           :rankdir    => 'TB',
           :center     => true,
           :ratio      => 'fill',
-          :size       => params[:size] || "6,4",
-          :bgcolor    => "transparent"}
+          :size       => params[:size] || '6,4',
+          :bgcolor    => 'transparent'}
     graph[graph_options.merge(params.slice(*graph_options.keys))]
     graph.node[:fontsize  => 8,
                :fontname  => 'ArialMT',
@@ -58,8 +58,8 @@ class Base::PlatformsController < ApplicationController
                :color     => 'black',
                :fillcolor => 'whitesmoke',
                :fixedsize => true,
-               :width     => "2.50",
-               :height    => "0.66",
+               :width     => '2.50',
+               :height    => '0.66',
                :shape     => 'rect',
                :style     => 'rounded']
     graph.edge[:fontsize  => 10,
@@ -87,7 +87,7 @@ class Base::PlatformsController < ApplicationController
       elsif @catalog
         url = edit_catalog_platform_component_path(@catalog, @platform, ci.id)
       end
-      img = "<img scale='both' src='#{ci_image_url(ci)}'/>"
+      img = "<img scale='both' src='#{GRAPHVIZ_IMG_STUB}'/>"
       label = "<<table border='0' cellspacing='2' fixedsize='true' width='180' height='48'>"
       label << "<tr><td fixedsize='true' rowspan='2' cellpadding='4' width='40' height='40' align='center'>#{img}</td>"
       label << "<td align='left' cellpadding='0' width='124' fixedsize='true'><font point-size='12'>#{ci.ciName.size > 20 ? "#{ci.ciName[0..18]}..." : ci.ciName}</font></td></tr>"
@@ -95,6 +95,7 @@ class Base::PlatformsController < ApplicationController
       graph.add_node(node.toCiId.to_s,
                      :id => node.toCiId.to_s,
                      :target => "_parent",
+                     :tooltip => ci.ciClassName,
                      :URL    => url,
                      :label  => label,
                      :color  => to_color(ci.rfcAction))
@@ -135,7 +136,7 @@ class Base::PlatformsController < ApplicationController
       end
     end
 
-    send_data(graph.output(:svg => String), :type => 'image/svg+xml', :disposition => 'inline')
+    send_data(graphvis_sub_ci_remote_images(graph.output(:svg => String)), :type => 'image/svg+xml', :disposition => 'inline')
   end
 
 

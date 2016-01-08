@@ -365,7 +365,6 @@ Display::Application.routes.draw do
 
           resources :instances, :only => [:index]
 
-          get 'diagram',       :on => :member
           get 'graph',         :on => :member
           get 'notifications', :on => :member
           get 'search',        :on => :member
