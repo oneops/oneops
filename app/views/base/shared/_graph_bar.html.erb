@@ -1,6 +1,7 @@
 <% graph_id = "graph_#{random_dom_id}" %>
 <div id="<%= graph_id %>" class="graph-bar"></div>
 <script>
+  (function() {
   var data = {};
   data = <%= raw(data.to_json) %>;
 
@@ -25,6 +26,10 @@
     }
     return c;
   }, {});
+
+  var numberFormat = d3.format(','),
+      yTickFormat = d3.format('s');
+
   for(var i = 0, len = data.x.length; i < len; i++) {
     bar = data.y[i];
     if (typeof(bar) == 'number') {
@@ -63,6 +68,12 @@
 
   var graphDiv = d3.select("#<%= graph_id %>");
 
+  if (data.title) {
+    graphDiv.append("span")
+        .classed('title', true)
+        .text(data.title);
+  }
+
   if (groupings.length > 1) {
     graphDiv.append("div")
         .attr("class", "btn-group")
@@ -71,7 +82,7 @@
         .data(groupings)
         .enter()
         .append("button")
-        .classed("btn btn-mi", true)
+        .classed("btn btn-small", true)
         .classed("active", function (d) {
                    return d.name == groupings.current
                  })
@@ -111,7 +122,7 @@
   xAxis.selectAll("text")
       .style("text-anchor", "end")
       .attr("transform", function (d) {
-              return "rotate(-55)"
+              return "rotate(-45)";
             })
       .attr("dx", -10)
       .attr("dy", -5)
@@ -120,7 +131,7 @@
 
    xAxis.append("text")
       .attr("x", width / 2)
-      .attr("y", 2 * margin)
+      .attr("y", 3 * margin - 3)
       .attr("font-size", "14")
       .style("text-anchor", "middle")
       .text(data.labels.x);
@@ -132,7 +143,8 @@
   var yAxis = d3.svg.axis()
       .scale(y)
       .orient("left")
-      .ticks(height / 20);
+      .ticks(height / 20)
+      .tickFormat(function(d) {return yTickFormat(d)});
 
   svg.append("g")
       .attr("class", "y axis")
@@ -199,7 +211,12 @@
 
   function showBarTooltip(x) {
     var d = bars.find(function(b) {return b.x == x});
-    tooltip.html("<p>" + d.x + "</p><hr/>" + d.y[groupings.current].map(function(dd) {return "<p style='color:" + dd.color + "'>" + dd.label + ": " + dd.value + "</p>"}).reverse().join(""))
+    var html = "<p>" + d.x + "</p><hr/><table class='table table-condensed borderless'>" +
+        d.y[groupings.current].map(function (dd) {
+          return "<tr style='color:" + dd.color + "'><td>" + dd.label + ":</td><td style='text-align:right'>" + numberFormat(dd.value) + "</td></tr>"
+        })
+        .reverse().join("") + "</table>";
+    tooltip.html(html)
         .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
         .transition()
         .duration(200)
@@ -207,7 +224,7 @@
   }
 
   function showBarSegmentTooltip(d) {
-    tooltip.html(d.label + ": " + d.value)
+    tooltip.html(d.label + ": " + numberFormat(d.value))
         .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
         .transition()
         .duration(200)
@@ -219,4 +236,5 @@
         .duration(500)
         .style("opacity", 0);
   }
+  }());
 </script>

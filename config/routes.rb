@@ -36,6 +36,8 @@ Display::Application.routes.draw do
   get 'l/procedure/:id'  => 'lookup#procedure'
   get 'l/p/:id'          => 'lookup#procedure',  :as => 'lookup_procedure'
 
+  get '/api_docs' => 'welcome#api_docs'
+
   resource :support, :controller => 'support', :only => :none, :defaults => { :org_name => nil } do
     collection do
       get  'announcements'
@@ -98,12 +100,16 @@ Display::Application.routes.draw do
 
   scope '/:org_name' do
     resource :organization, :controller => 'organization', :only => [:show, :edit, :update] do
-      get 'notifications', :on => :member
-      get 'deployments',   :on => :member
-      get 'procedures',    :on => :member
-      get 'reports',       :on => :member
-      get 'health',        :on => :member
-      get 'search',        :on => :member
+      member do
+        get 'notifications'
+        get 'deployments'
+        get 'procedures'
+        get 'reports'
+        get 'health'
+        get 'search'
+        get 'cost_rate'
+        get 'cost'
+      end
 
       resources :users, :controller => 'organization/users'
 
@@ -167,6 +173,7 @@ Display::Application.routes.draw do
       post 'compute',      :on => :collection
       get  'health',       :on => :collection
       get  'notification', :on => :collection
+      get  'cost',         :on => :collection
     end
 
     resources :packs, :only => [:index]
@@ -352,13 +359,12 @@ Display::Application.routes.draw do
 
             get 'procedures', :on => :member
             get 'graph',      :on => :member
+            put 'autorepair', :on => :member
+            put 'autoscale',  :on => :member
           end
 
           resources :instances, :only => [:index]
 
-          put 'autorepair',    :on => :member
-          put 'autoscale',     :on => :member
-          get 'diagram',       :on => :member
           get 'graph',         :on => :member
           get 'notifications', :on => :member
           get 'search',        :on => :member

@@ -12,10 +12,9 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   def show
     respond_to do |format|
       format.html do
-        @environment_detail = Cms::CiDetail.find(@environment.id)
-        @release            = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
-        @bom_release        = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
-                                                             :releaseState => 'open'})
+        @release     = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
+        @bom_release = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
+                                                      :releaseState => 'open'})
 
         @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
         if @deployment && @deployment.deploymentState == 'pending'
@@ -39,88 +38,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
       format.json { render_json_ci_response(true, @environment) }
     end
-  end
-
-  def autorepair
-    if params[:status] == 'enable'
-      @environment.ciAttributes.autorepair = 'true'
-    elsif params[:status] == 'disable'
-      @environment.ciAttributes.autorepair = 'false'
-    end
-    ok = execute(@environment, :save)
-
-    respond_to do |format|
-      format.js do
-        @environment_detail = Cms::CiDetail.find(@environment.id)
-        flash[:error] = 'Failed to update autorepair!' unless ok
-      end
-
-      format.json { render_json_ci_response(ok, @environment) }
-    end
-  end
-
-  def autoscale
-    if params[:status] == 'enable'
-      @environment.ciAttributes.autoscale = 'true'
-    elsif params[:status] == 'disable'
-      @environment.ciAttributes.autoscale = 'false'
-    end
-    ok = execute(@environment, :save)
-
-    respond_to do |format|
-      format.js do
-        @environment_detail = Cms::CiDetail.find(@environment.id)
-        flash[:error] = 'Failed to update autoscale!' unless ok
-      end
-
-      format.json { render_json_ci_response(ok, @environment) }
-    end
-  end
-
-  def diagram
-    graph = GraphViz::new(:G)
-    graph[
-        :truecolor => true,
-        :rankdir   => 'TB',
-        :ratio     => 'fill',
-        :size      => params[:size] || "6,3",
-        :bgcolor   => "transparent"]
-    graph.node[:fontsize  => 8,
-               :fontname  => 'ArialMT',
-               :color     => 'black',
-               :fontcolor => 'black',
-               :fillcolor => 'whitesmoke',
-               :fixedsize => true,
-               :width     => "2.00",
-               :height    => "0.66",
-               :shape     => 'ractangle',
-               :style     => 'rounded']
-
-    @platforms = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
-                                               :direction         => 'from',
-                                               :targetClassName   => 'manifest.Platform',
-                                               :relationShortName => 'ComposedOf',
-                                               :includeToCi       => true})
-
-
-    @platforms.each do |node|
-      _img   = "<img scale='both' src='#{platform_image_url(node.toCi)}'></img>"
-      _label = "<<table border='0' cellspacing='2' fixedsize='true' width='144' height='48'>"
-      _label << "<tr><td fixedsize='true' rowspan='2' cellpadding='4' width='40' height='40' align='center'>#{_img}</td>"
-      _label << "<td align='left' cellpadding='0' width='90' fixedsize='true'><font point-size='12'><b>#{node.toCi.ciName}</b></font></td></tr>"
-      _label << "<tr><td align='left' cellpadding='0' width='90' fixedsize='true'>#{node.toCi.ciAttributes.pack} v#{node.toCi.ciAttributes.version}</td></tr></table>>"
-      graph.add_node(node.toCiId.to_s,
-                     :target => '_parent',
-                     :URL    => assembly_operations_environment_platform_path(@assembly, @environment, node.toCiId),
-                     :label  => _label,
-                     :color  => 'gray') # to be replaced with status color
-    end
-    @links_to = Cms::Relation.all(:params => {:nsPath => environment_manifest_ns_path(@environment), :relationShortName => 'LinksTo'})
-    @links_to.each do |edge|
-      graph.add_edge(edge.fromCiId.to_s, edge.toCiId.to_s, :color => 'gray')
-    end
-
-    send_data(graph.output(:svg => String), :type => 'image/svg+xml', :disposition => 'inline')
   end
 
   def graph
@@ -218,6 +135,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   end
 
   def load_notifications
-    @notifications = Search::Notification.find_by_ns("#{environment_ns_path(@environment)}/", :size => 50)
+    @notifications = Search::Notification.find_by_ns("#{environment_ns_path(@environment)}/", :size => 50, :_silent => true)
   end
 end

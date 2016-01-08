@@ -7,14 +7,14 @@
     <table style="width:100%">
       <tr>
         <td style="width:50%">
-          <%= cost_rate_graph(@cost_rate, :by_ns, 'By Platform') do |key|
+          <%= cost_donut(@cost_rate, :by_ns, 'By Platform') do |key|
             ns_split = key.split('/')
             "#{ns_split[-2]} ver.#{ns_split[-1]}"
           end
           %>
         </td>
         <td style="width:50%">
-          <%= cost_rate_graph(@cost_rate, :by_service, 'By Service') %>
+          <%= cost_donut(@cost_rate, :by_service, 'By Service') %>
         </td>
       </tr>
     </table>

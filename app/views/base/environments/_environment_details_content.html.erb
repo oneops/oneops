@@ -25,24 +25,3 @@
 <% end %>
 
 <%= render 'base/environments/clouds', :f => f %>
-
-<script>
-  var toggleRepairAndScale = function (show) {
-    if (show) {
-      $j(".control-group").has("input#cms_ci_ciAttributes_autorepair").show();
-      $j(".control-group").has("input#cms_ci_ciAttributes_autoscale").show();
-    }
-    else {
-      $j(".control-group").has("input#cms_ci_ciAttributes_autorepair").hide();
-      reset_check_box($j(".check-box").has("input#cms_ci_ciAttributes_autorepair"));
-      $j(".control-group").has("input#cms_ci_ciAttributes_autoscale").hide();
-      reset_check_box($j(".check-box").has("input#cms_ci_ciAttributes_autoscale"));
-    }
-  };
-
-  $j("#cms_ci_ciAttributes_monitoring").change(function (e) {
-    toggleRepairAndScale(e.target.value == 'true');
-  });
-
-  toggleRepairAndScale(<%= @environment.ciAttributes.monitoring == 'true' ? 'true' : 'false' %>);
-</script>

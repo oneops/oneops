@@ -1,0 +1,7 @@
+$j("#cost_report_results").html("<%= escape_javascript(render('cost')) %>");
+<% url = cost_reports_path(:ns_path    => @ns_path,
+                           :start_date => @start_date,
+                           :end_date   => @end_date,
+                           :interval   => @interval) %>
+replace_state("<%= url %>");
+hide_modal();

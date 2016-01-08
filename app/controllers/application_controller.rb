@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  GRAPHVIZ_IMG_STUB = '/images/cms/graphviz.png'
+
   before_filter :set_no_cache
 
   if Settings.allow_cors
@@ -45,7 +47,7 @@ class ApplicationController < ActionController::Base
                 :has_design?, :has_transition?, :has_operations?,
                 :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
-                :ci_image_url, :ci_class_image_url, :platform_image_url
+                :ci_image_url, :ci_class_image_url, :platform_image_url, :graphvis_sub_ci_remote_images
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -73,7 +75,7 @@ class ApplicationController < ActionController::Base
   end
 
   def search
-    @source = request.format == 'application/json' ? 'cms' : (params[:source].presence || 'es')
+    @source = request.format == params[:source].presence || ('application/json' ? 'cms' : 'es')
 
     return if request.format == 'text/html'
 
@@ -83,7 +85,7 @@ class ApplicationController < ActionController::Base
     class_name      = params[:class_name]
     @search_results = []
 
-    if @source == 'cms'
+    if @source == 'cms' || @source == 'simple'
       # CMS search.
       query_params = {:nsPath => ns_path, :recursive => true}
 
@@ -330,20 +332,23 @@ class ApplicationController < ActionController::Base
     return env
   end
 
-  def locate_manifest_platform(qualifier, environment)
+  def locate_manifest_platform(qualifier, environment, opts = {})
+    dj    = opts.delete(:dj)
+    dj    = true if dj.nil?
+    clazz = dj ? Cms::DjCi : Cms::Ci
     result = nil
     if qualifier =~ /\D/
       ci_name, version = qualifier.split('!')
       if version.present?
-        result = Cms::DjCi.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}/#{version}", 'manifest.Platform')
+        result = clazz.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}/#{version}", 'manifest.Platform', opts)
       else
-        result = Cms::DjCi.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}", 'manifest.Platform', :recursive => true)
+        result = clazz.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}", 'manifest.Platform', opts.merge(:recursive => true))
         result = result.find {|p| p.ciAttributes.is_active == 'true'} if result.is_a?(Array)
       end
       raise CiNotFoundException.new(qualifier, environment_manifest_ns_path(environment), 'manifest.Platform') unless result && result.ciClassName == 'manifest.Platform'
     else
       # ciId
-      result = Cms::DjCi.locate(qualifier, nil)
+      result = clazz.locate(qualifier, nil, nil, opts)
     end
     result
   end
@@ -592,7 +597,8 @@ class ApplicationController < ActionController::Base
       nodes << {:id       => active.toCiId.to_s,
                 :name     => platform,
                 :target   => "_parent",
-                :icon     => platform_image_url(active.toCi),
+                :icon     => GRAPHVIZ_IMG_STUB,
+                :tooltip  => platform_image_url(active.toCi),
                 :url      => "#{path}/platforms/#{active.toCi.ciId}",
                 :footer   => "version #{active.toCi.ciAttributes.major_version}",
                 :color    => active.toCi.respond_to?('rfcAction') ? to_color(active.toCi.rfcAction) : 'gray',
@@ -602,7 +608,7 @@ class ApplicationController < ActionController::Base
     links_to.each { |edge| edges << {:from  => platform_index[edge.fromCiId].toCiId.to_s,
                                      :to    => platform_index[edge.toCiId].toCiId.to_s,
                                      :color => edge.respond_to?('rfcAction') ? to_color(edge.rfcAction) : 'gray'} }
-    graph = _diagram(nodes,edges)
+    graph = _diagram(nodes, edges)
     return graph
   end
 
@@ -634,11 +640,11 @@ class ApplicationController < ActionController::Base
       label << "<td align='left' cellpadding='0'><font point-size='12'><b>#{node[:name].size > 18 ? "#{node[:name][0..16]}..." : node[:name]}</b></font></td></tr>"
       label << "<tr><td align='left' cellpadding='0'><font point-size='10'>#{node[:footer]}</font></td></tr>"
       label << "</table>>"
-      graph.add_nodes(node[:id],
+      graph.add_node(node[:id],
                       :target  => node[:target],
                       :URL     => node[:url],
+                      :tooltip => node[:tooltip],
                       :label   => label,
-                      :tooltip => node[:name],
                       :color   => node[:color])
     end
 
@@ -1104,6 +1110,16 @@ class ApplicationController < ActionController::Base
       "/images/pack/#{pack}.png"
     else
       "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.png"
+    end
+  end
+
+  def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
+    svg.scan(/(?<=xlink:title=")\w+\.[\.\w]+/).inject(svg) {|r, c| r.sub(img_stub, ci_class_image_url(c))}
+  end
+
+  def graphvis_sub_pack_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
+    svg.scan(/(?<=xlink:title=")http.*\.png/).inject(svg) do |r, c|
+      r.sub(img_stub, c).sub(c, c.split('/')[-3..-2].join('/'))
     end
   end
 end
