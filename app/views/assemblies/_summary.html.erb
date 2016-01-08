@@ -1,8 +1,4 @@
-<div class="cost-summary">
-  <script>
-    <%= remote_function(:url => cost_rate_assembly_path(@assembly), :method => :get) %>
-  </script>
-</div>
+<%= render 'base/cost/cost_summary' %>
 
 <%= section_panel('Design', :width => 'single', :position => 'right') do %>
   <% if @catalog.nil? %>
@@ -14,19 +10,6 @@
   <% elsif @catalog.releaseState == 'canceled' %>
     Last design release cancelled <%= highlight(time_ago_in_words(@catalog.updated_timestamp)) %> by <%= highlight(@catalog.commitedBy) %>
   <% end %>
-<% end %>
-
-<%= section_panel 'Notifications',
-                  :width    => 'double',
-                  :position => 'left',
-                  :menu     => [link_to(icon('filter', 'filter'),
-                                        notification_reports_path(:path   => "#{assembly_ns_path(@assembly)}/",
-                                                                  :period => 'today'),
-                                        :class => 'btn btn-mini')] do %>
-  <div id="notification_list"><i class="icon-spinner icon-spin"></i> Loading...</div>
-  <script type="text/javascript">
-    <%= remote_function(:url => notifications_assembly_path, :method => :get) %>
-  </script>
 <% end %>
 
 <%= section_panel('Environments', :width => 'single', :position => 'right') do %>
@@ -71,4 +54,16 @@
       <% end %>
     <% end %>
   <% end %>
+<% end %>
+
+<%= section_panel 'Notifications',
+                  :width    => 'double',
+                  :position => 'left',
+                  :menu     => [link_to(icon('bar-chart  icon-large'),
+                                        notification_reports_path(:path => "#{assembly_ns_path(@assembly)}/", :period => 'today'),
+                                        :class => 'btn btn-mini')] do %>
+  <div id="notification_list"><i class="icon-spinner icon-spin"></i> Loading...</div>
+  <script type="text/javascript">
+    <%= remote_function(:url => notifications_assembly_path, :method => :get) %>
+  </script>
 <% end %>

@@ -21,7 +21,6 @@
            :items => [{:label => 'summary', :template => 'summary', :selected => true},
                       {:label => 'profile', :template => 'profile'},
                       {:label => 'teams', :url => teams_assembly_path(@assembly)},
-                      {:label => 'cost', :url => cost_assembly_path(@assembly)},
                       {:label => 'reports', :url => reports_assembly_path(@assembly)},
                       {:label => 'health', :url => assembly_instances_path(@assembly, :instances_state => params[:instances_state] || 'unhealthy,notify')},
                       {:label => 'procedures', :url => operations_procedures_path(:ciId => @assembly.ciId)}] %>

@@ -100,12 +100,16 @@ Display::Application.routes.draw do
 
   scope '/:org_name' do
     resource :organization, :controller => 'organization', :only => [:show, :edit, :update] do
-      get 'notifications', :on => :member
-      get 'deployments',   :on => :member
-      get 'procedures',    :on => :member
-      get 'reports',       :on => :member
-      get 'health',        :on => :member
-      get 'search',        :on => :member
+      member do
+        get 'notifications'
+        get 'deployments'
+        get 'procedures'
+        get 'reports'
+        get 'health'
+        get 'search'
+        get 'cost_rate'
+        get 'cost'
+      end
 
       resources :users, :controller => 'organization/users'
 
@@ -169,6 +173,7 @@ Display::Application.routes.draw do
       post 'compute',      :on => :collection
       get  'health',       :on => :collection
       get  'notification', :on => :collection
+      get  'cost',         :on => :collection
     end
 
     resources :packs, :only => [:index]

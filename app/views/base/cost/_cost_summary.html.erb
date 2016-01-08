@@ -1,0 +1,13 @@
+<% url = url = @assembly ? cost_assembly_path(@assembly) : cost_organization_path
+   menu = [link_to(icon('bar-chart icon-large'),
+                   cost_reports_path(:ns_path => @assembly ? assembly_ns_path(@assembly) : organization_ns_path),
+                   :class => 'btn btn-mini')]
+   menu << link_to(icon('refresh'), url, :remote => true, :class => 'btn btn-mini') if Rails.env.shared? %>
+<%= section_panel 'Cost', :width => 'double', :position => 'left', :menu => menu do %>
+  <div class="cost-summary">
+    <i class="icon-spinner icon-spin"></i> Loading...
+  </div>
+  <script>
+    <%= remote_function(:url => url, :method => :get) %>
+  </script>
+<% end %>

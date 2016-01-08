@@ -112,6 +112,152 @@ class ReportsController < ApplicationController
     end
   end
 
+  def cost
+    min_ns_path = organization_ns_path
+    @ns_path    = params[:ns_path] || min_ns_path
+    @ns_path    = min_ns_path unless @ns_path.start_with?(min_ns_path)
+
+    begin
+      @start_date = Date.parse(params[:start_date])
+    rescue Exception => e
+      @start_date = Date.today.prev_month(2).beginning_of_month
+    end
+
+    begin
+      @end_date = Date.parse(params[:end_date])
+    rescue Exception => e
+      @end_date = Date.today.end_of_month
+    end
+    @end_date = @start_date.end_of_month if @start_date > @end_date
+
+    @interval = params[:interval]
+    inteval_length = (@end_date - @start_date).days
+    unless @interval.present? && %w(month week day).include?(@interval) && inteval_length > 1.send(@interval)
+      if inteval_length > 31.days
+        @interval = 'month'
+      elsif inteval_length > 7.days
+        @interval = 'week'
+      else
+        @interval = 'day'
+      end
+    end
+
+    groupings = [{:name => :by_service, :label => 'Service Type'},
+                 {:name => :by_cloud, :label => 'Cloud'}]
+    ns_path_depth = @ns_path.split('/').size
+    if ns_path_depth == 2
+      groupings << {:name  => :by_assembly,
+                    :label => 'Assembly',
+                    :path  => :by_ns,
+                    :sum   => lambda { |x| x.split('/')[2] }}
+      groupings << {:name  => :by_environment,
+                    :label => 'Environment',
+                    :path  => :by_ns,
+                    :sum   => lambda { |x| x.split('/')[2..3].join('/') }}
+    elsif ns_path_depth == 3
+      groupings << {:name  => :by_environment,
+                    :label => 'Environment',
+                    :path  => :by_ns,
+                    :sum   => lambda { |x| x.split('/')[3] }}
+      groupings << {:name  => :by_platform,
+                    :label => 'Platform',
+                    :path  => :by_ns,
+                    :sum   => lambda { |x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" }}
+    elsif ns_path_depth == 4
+      groupings << {:name  => :by_platform,
+                    :label => 'Platform',
+                    :path  => :by_ns,
+                    :sum   => lambda { |x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" }}
+    end
+
+    data = Search::Cost.cost_time_histogram(@ns_path, @start_date, @end_date, @interval)
+    if data
+      x, y = data[:buckets].inject([[],[]]) do |xy, time_bucket|
+        case @interval
+          when 'month'
+            xy.first << Date.parse(time_bucket['from_as_string']).strftime('%b %Y')
+          when 'day'
+            xy.first << Date.parse(time_bucket['from_as_string']).strftime('%b %d')
+          else
+            xy.first << "#{Date.parse(time_bucket['from_as_string']).strftime('%b %d')} - #{(Date.parse(time_bucket['to_as_string']) - 1.day).strftime('%b %d')}"
+        end
+        xy.last << groupings.inject({}) do |grouping_data, grouping|
+          grouping_name = grouping[:name]
+          grouping_data[grouping_name] = time_bucket[(grouping[:path].presence || grouping_name).to_s]['buckets'].inject([]) do |aa, grouping_bucket|
+            aa << {:label => grouping_bucket['key'], :value => grouping_bucket['cost']['value'].round(2)}
+          end
+          sum = grouping[:sum]
+          if sum
+            sum_aggs = grouping_data[grouping_name].inject({}) do |r, e|
+              key = sum.call(e[:label])
+              r[key] ||= 0
+              r[key] += e[:value]
+              r
+            end
+            grouping_data[grouping_name] = sum_aggs.map {|k, v| {:label => k, :value => v.round(2)}}
+          end
+          grouping_data[:total] = time_bucket['total']['value'].round(2)
+          grouping_data
+        end
+        xy
+      end
+      time_unit = data[:interval].capitalize
+      @cost = {:title     => "#{time_unit == 'Day' ? 'Dai' : time_unit}ly Cost",
+               :units     => {:x => @interval, :y => data[:unit]},
+               :labels    => {:x => nil, :y => nil},
+               :groupings => groupings,
+               :total     => data[:total].round(2),
+               :x         => x,
+               :y         => y}
+    end
+
+    # @cost = {:title     => 'Monthly Cost',
+    #          :labels    => {:x => 'Month', :y => 'Cost (USD)'},
+    #          :groupings => [{:name => :service_type, :label => 'By Service Type'},
+    #                         {:name => :cloud, :label => 'By Cloud'}],
+    #          :x         => %w(Aug Sep Oct Nov),
+    #          :y         => [{:service_type => [{:label => 'compute', :value => 7},
+    #                                            {:label => 'dns', :value => 1},
+    #                                            {:label => 'storage', :value => 4}],
+    #                          :cloud        => [{:label => 'dal1', :value => 16},
+    #                                            {:label => 'dfw1', :value => 13},
+    #                                            {:label => 'dfw2', :value => 3}]},
+    #                         {:service_type => [{:label => 'compute', :value => 2.7},
+    #                                            {:label => 'dns', :value => 1.4},
+    #                                            {:label => 'storage', :value => 1.2}],
+    #                          :cloud        => [{:label => 'dal1', :value => 3.7},
+    #                                            {:label => 'dfw1', :value => 2.4},
+    #                                            {:label => 'dfw3', :value => 1.5}]},
+    #                         {:service_type => [{:label => 'compute', :value => 23},
+    #                                            {:label => 'dns', :value => 6},
+    #                                            {:label => 'storage', :value => 4}],
+    #                          :cloud        => [{:label => 'dal1', :value => 13},
+    #                                            {:label => 'dfw1', :value => 7},
+    #                                            {:label => 'dfw2', :value => 2},
+    #                                            {:label => 'dfw3', :value => 5}]},
+    #                         {:service_type => [{:label => 'compute', :value => 15},
+    #                                            {:label => 'whatever', :value => 5.5},
+    #                                            {:label => 'dns', :value => 2.5},
+    #                                            {:label => 'storage', :value => 5.5}],
+    #                          :cloud        => [{:label => 'dal1', :value => 8},
+    #                                            {:label => 'dfw1', :value => 7},
+    #                                            {:label => 'dfw2', :value => 6}]}]}
+    # @cost = {:title  => 'Monthly Cost',
+    #          :labels => {:x => 'Month', :y => 'Cost (USD)'},
+    #          :x      => %w(Aug Sep Oct Nov),
+    #          :y      => [12, 5, 19, 25]}
+    respond_to do |format|
+      format.html
+      format.js
+      format.json do
+        if @cost
+          render :json => @cost
+        else
+          render :json => {:errors => ['Failed to fetch cost data']}, :status => :internal_server_error
+        end
+      end
+    end
+  end
 
   protected
 
@@ -136,8 +282,6 @@ class ReportsController < ApplicationController
         start_time = now.beginning_of_day.to_i
         end_time   = now.end_of_day.to_i
     end
-    search_params[:start] = start_time.to_i
-    search_params[:end]   = end_time.to_i
 
     type                     = params[:source]
     search_params[:type]     = type if type.present? && type != 'all'

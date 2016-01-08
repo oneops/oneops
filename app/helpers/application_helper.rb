@@ -15,7 +15,8 @@ module ApplicationHelper
                 :operations       => 'signal',
                 :cloud_services   => 'cog',
                 :cloud_compliance => 'briefcase',
-                :cloud_support    => 'medkit'}
+                :cloud_support    => 'medkit',
+                :cost             => 'money'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',          :icon => 'comments',    :url => Settings.support_chat_url},
                         {:label => 'Report a problem',  :icon => 'bug',         :url => Settings.report_problem_url},
@@ -1100,30 +1101,35 @@ module ApplicationHelper
     raw(result)
   end
 
-  def cost_rate_graph(cost_rate_data, category, title, &block)
-    total  = cost_rate_data[:total]
+  def cost_donut(data, category, title, &block)
+    total  = data[:total]
     if total && total > 0
-      unit       = cost_rate_data[:unit]
+      unit       = data[:unit]
       slices     = {}
       max_slices = 10
-      cost_rate_data[category].to_a.sort_by(&:last).reverse.each_with_index do |bucket, i|
+      data[category].to_a.sort_by(&:last).reverse.each_with_index do |bucket, i|
         key  = bucket.first
         name = block_given? ? yield(key) : key
         cost = bucket.last + (slices[name] ? slices[name][:value] : 0)
         slices[name] = {:name => name,
                         :value => cost,
-                        :label => "#{name} - #{number_with_precision(100 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2)} #{unit}/h)"}
+                        :label => "#{name} - #{number_with_precision(100 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2, :delimiter => ',')} #{unit}/h)"}
       end
-      if slices.size > max_slices
-        slices = slices.values.sort_by {|s| -s[:value]}[0..(max_slices - 2)].to_map {|s| s[:name]}
+
+      slices_count = slices.size
+      slices = slices.values.
+        sort_by {|s| -s[:value]}[0..(max_slices - 2)].
+        select {|s| s[:value] / total > 0.02}.
+        to_map {|s| s[:name]}
+      if slices.size < slices_count
         name = 'others'
         cost = total - slices.values.sum { |s| s[:value] }
         slices[name] = {:name  => name,
                         :value => cost,
-                        :label => "#{name} - #{number_with_precision(100 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2)} #{unit}/h)"}
+                        :label => "#{name} - #{number_with_precision(100.0 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2, :delimiter => ',')} #{unit}/h)"}
       end
       data = {:title  => title,
-              # :label  => number_with_precision(total, :precision => 2),
+              :label  => slices_count,
               :slices => slices.values}
       legend = nil
     else
