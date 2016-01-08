@@ -135,6 +135,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   end
 
   def load_notifications
-    @notifications = Search::Notification.find_by_ns("#{environment_ns_path(@environment)}/", :size => 50)
+    @notifications = Search::Notification.find_by_ns("#{environment_ns_path(@environment)}/", :size => 50, :_silent => true)
   end
 end
