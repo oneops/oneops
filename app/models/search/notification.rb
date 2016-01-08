@@ -61,13 +61,9 @@ class Search::Notification < Search::Base
   def self.histogram(ns_path, ranges, options = {})
     silent = options.delete(:_silent)
 
-    query = [{:wildcard => {'nsPath.keyword' => "#{ns_path}*"}}]
-
-    start_time = options.delete(:start)
-    query << {:range => {'timestamp' => {'gte' => start_time.to_i * 1000}}} if start_time.present?
-
-    end_time = options.delete(:end)
-    query << {:range => {'timestamp' => {'lte' => end_time.to_i * 1000}}} if end_time.present?
+    query = [{:wildcard => {'nsPath.keyword' => "#{ns_path}*"}},
+             {:range => {'timestamp' => {:gte => ranges.first.first,
+                                         :lte => ranges.last.last}}}]
 
     query_string = options.delete(:query)
     query << {:query_string => {:query => query_string}} if query_string.present?

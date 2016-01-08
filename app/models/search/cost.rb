@@ -1,5 +1,5 @@
 class Search::Cost < Search::Base
-  self.prefix       = '/cms-all/ci/_search'
+  self.prefix       = ''
   self.element_name = ''
 
   def self.cost_rate(ns_path)
@@ -92,37 +92,210 @@ class Search::Cost < Search::Base
           }
         }
       },
-      :size => 0
+      :size    => 0
     }
     begin
-      # return {:total => 5.5,
-      #         :unit       => 'usd',
-      #         :by_cloud   => {'qa-dfw2a' => 1.5, 'qa-dfw2b' => 3},
-      #         :by_service => {'compute' => 4.5, 'dns' => 1.5}}
-
-      # data = JSON.parse(post('', {}, search_params.to_json).body)
+      # data = JSON.parse(post('/cms-all/ci/_search', {}, search_params.to_json).body)
       # return data
 
-      data  = JSON.parse(post('', {}, search_params.to_json).body)['aggregations']
+      data  = JSON.parse(post('/cms-all/ci/_search', {}, search_params.to_json).body)['aggregations']
       total = data['data']['total']['value']
       if total > 0
-        result = {:total => total,
+        result = {:total => total.round(2),
                   :unit  => data['data']['unit']['buckets'][0]['key']}
         [:by_ns, :by_cloud].each do |group_name|
           group = result[group_name] = {}
           data[group_name.to_s]['buckets'].each do |b|
-            group[b['key']] = b['cost']['cost']['value']
+            group[b['key']] = b['cost']['cost']['value'].round(2)
           end
         end
         group = result[:by_service] = {}
         data['data']['by_service']['buckets'].each do |b|
-          group[b['key']] = b['cost']['value']
+          group[b['key']] = b['cost']['value'].round(2)
         end
       else
         result = {}
       end
     rescue Exception => e
-      handle_exception e, "Failed to perform 'cost_rate' for nsPath #{ns_path}"
+      handle_exception e, "Failed to fetch 'cost_rate' for nsPath #{ns_path}"
+    end
+    return result
+  end
+
+  def self.cost(ns_path, start_date, end_date)
+    result     = nil
+    start_date = start_date.to_date
+    end_date   = end_date.to_date
+    search_params = {
+      :query => {
+        :bool => {:must => [{:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}},
+                            {:range => {'date' => {:gte => start_date, :lte => end_date, :format => 'yyyy-MM-dd'}}}]
+        }
+      },
+      :_source => %w(ciId),
+      :aggs => {
+        :unit => {
+          :terms => {:field => 'unit'}
+        },
+        :total => {
+          :sum => {:field => 'cost'}
+        },
+        :by_ns => {
+          :terms => {
+            :field => 'nsPath.keyword',
+            :order => {'cost' => 'desc'},
+            # :order => {'_term' => 'asc'},
+            :size  => 9999
+          },
+          :aggs  => {
+            :cost => {
+              :sum => {:field => 'cost'}
+            }
+          }
+        },
+        :by_service => {
+          :terms => {
+            :field => 'serviceType.keyword',
+            :order => {'cost' => 'desc'},
+            # :order => {'_term' => 'asc'},
+            :size  => 9999
+          },
+          :aggs => {
+            :cost => {
+              :sum => {:field => 'cost'}
+            }
+          }
+        },
+        :by_cloud => {
+          :terms => {
+            :field => 'cloud.keyword',
+            :order => {'cost' => 'desc'},
+            # :order => {'_term' => 'asc'},
+            :size  => 9999
+          },
+          :aggs => {
+            :cost => {
+              :sum => {:field => 'cost'}
+            }
+          }
+        }
+      },
+      :size => 0
+    }
+
+    begin
+      # data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)
+      # return data
+
+      data  = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      total = data['total']['value']
+      if total > 0
+        result = {:start_date => start_date,
+                  :end_date   => end_date,
+                  :total      => total.round(2),
+                  :unit       => data['unit']['buckets'][0]['key']}
+        [:by_ns, :by_cloud, :by_service].each do |group_name|
+          group = result[group_name] = {}
+          data[group_name.to_s]['buckets'].each do |b|
+            group[b['key']] = b['cost']['value'].round(2)
+          end
+        end
+      else
+        result = {}
+      end
+    rescue Exception => e
+      handle_exception e, "Failed to fetch 'cost' for nsPath=#{ns_path}, date range=[#{start_date}, #{end_date}"
+    end
+    return result
+  end
+
+  def self.cost_time_histogram(ns_path, start_date, end_date, interval)
+    result     = nil
+    start_date = start_date.to_date
+    end_date   = end_date.to_date
+    ranges     = [[start_date, start_date.send("next_#{interval}").send("beginning_of_#{interval}").to_date]]
+    while ranges.last.last < end_date
+      ranges << [ranges.last.last, ranges.last.last + 1.send(interval)]
+    end
+    ranges.last[-1] = (end_date + 1.day)
+    search_params = {
+      :query => {
+        :bool => {:must => [{:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}},
+                            {:range => {'date' => {:gte => start_date, :lte => end_date, :format => "yyyy-MM-dd"}}}]
+        }
+      },
+      :_source => %w(ciId),
+      :aggs => {
+        :unit => {
+          :terms => {:field => 'unit'}
+        },
+        :total => {
+          :sum => {:field => 'cost'}
+        },
+        :time_histogram => {
+          :range => {:field => 'date', :ranges => ranges.map{|r| {:from => r.first, :to => r.last}}},
+          :aggs => {
+            :total => {
+              :sum => {:field => 'cost'}
+            },
+            :by_ns => {
+              :terms => {
+                :field => 'nsPath.keyword',
+                :order => {'cost' => 'desc'},
+                # :order => {'_term' => 'asc'},
+                :size  => 9999
+              },
+              :aggs  => {
+                :cost => {
+                  :sum => {:field => 'cost'}
+                }
+              }
+            },
+            :by_service => {
+              :terms => {
+                :field => 'serviceType.keyword',
+                :order => {'cost' => 'desc'},
+                # :order => {'_term' => 'asc'},
+                :size  => 9999
+              },
+              :aggs => {
+                :cost => {
+                  :sum => {:field => 'cost'}
+                }
+              }
+            },
+            :by_cloud => {
+              :terms => {
+                :field => 'cloud.keyword',
+                :order => {'cost' => 'desc'},
+                # :order => {'_term' => 'asc'},
+                :size  => 9999
+              },
+              :aggs => {
+                :cost => {
+                  :sum => {:field => 'cost'}
+                }
+              }
+            }
+          }
+        }
+      },
+      :size    => 0
+    }
+
+    begin
+      # data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)
+      # return data
+
+      data  = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      result = {:buckets    => data['time_histogram']['buckets'],
+                :start_date => start_date,
+                :end_date   => end_date,
+                :interval   => interval,
+                :unit       => data['unit']['buckets'][0].try { |x| x['key'] },
+                :total      => data['total']['value'].round(2)}
+    rescue Exception => e
+      handle_exception e, "Failed to fetch 'cost_time_histogram' for nsPath=#{ns_path}, date range=[#{start_date}, #{end_date}], interval=#{interval}"
     end
     return result
   end

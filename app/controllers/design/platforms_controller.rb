@@ -1,6 +1,16 @@
 class Design::PlatformsController < Base::PlatformsController
   before_filter :find_assembly_and_platform
 
+  swagger_controller :platforms, 'Design Platform Management'
+
+  swagger_api :index do
+    summary 'Fetches all platforms in the design of assembly.'
+    notes 'This fetches all platforms from design including new platforms from open release.'
+    param_org_name
+    param_parent_ci_id :assembly
+    response :unauthorized
+  end
+
   def index
     @platforms = Cms::DjRelation.all(:params => {:ciId              => @assembly.ciId,
                                                  :direction         => 'from',

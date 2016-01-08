@@ -1,0 +1,51 @@
+<% if @cost.present? %>
+  <% total = @cost[:total]
+     unit = @cost[:unit].upcase
+     ns_path_depth = @ns_path.split('/').size %>
+  <table style="width:100%; table-layout:fixed">
+    <tr>
+      <td class="glance">
+        <% cost_rate = @cost_rate && @cost_rate[:total]
+           cost_rate = cost_rate ? cost_rate.to_human(:precision => 1) : 'N/A' %>
+        <span>rate</span>
+        <strong><%= cost_rate %></strong>
+        <span><%= "#{unit.upcase}/hour" %></span>
+      </td>
+      <td class="glance">
+        <span>this month</span>
+        <strong><%= total.to_human %></strong>
+        <span><%= unit %></span>
+      </td>
+      <td colspan="2">
+        <% if @cost_projection %>
+          <%= render 'base/shared/graph_bar', :data => @cost_projection %>
+        <% end %>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <%= cost_donut(@cost, :by_service, 'By Service') %>
+      </td>
+      <td>
+        <%= cost_donut(@cost, :by_cloud, 'By Cloud') %>
+      </td>
+      <% if ns_path_depth == 2 %>
+        <td>
+          <%= cost_donut(@cost, :by_ns, 'By Assembly') {|key| key.split('/')[2]} %>
+        </td>
+        <td>
+          <%= cost_donut(@cost, :by_ns, 'By Environment') {|key| key.split('/')[2..3].join('/')} %>
+        </td>
+      <% else %>
+        <td>
+          <%= cost_donut(@cost, :by_ns, 'By Environment') {|key| key.split('/')[3]} %>
+        </td>
+        <td>
+          <%= cost_donut(@cost, :by_ns, 'By Platform') {|key| ns_split = key.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" } %>
+        </td>
+      <% end %>
+    </tr>
+  </table>
+<% else %>
+  <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to retrieve cost data</strong></p>
+<% end %>

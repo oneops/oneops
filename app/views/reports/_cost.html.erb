@@ -1,0 +1,114 @@
+<%= section_panel 'Report Criteria', :width => 'single', :position => 'left' do %>
+  <%= form_tag(cost_reports_path, :method => 'get', :remote => true, :onsubmit => 'show_busy()') do %>
+    <div class="filter-group">
+      <div class="name">Date Range</div>
+      <div class="sub-filter">
+        <div class="name">From</div>
+        <%= date_field_tag(:start_date, @start_date || Date.today.prev_month(3).beginning_of_month) %>
+      </div>
+      <div class="sub-filter">
+        <div class="name">To</div>
+        <%= date_field_tag(:end_date, @end_date || Date.today.end_of_month) %>
+      </div>
+      <div class="filter interval">
+        <div class="name">Interval</div>
+        <%= hidden_field_tag(:interval, @interval || 'month') %>
+        <% %w(month week day).each do |interval| %>
+          <a class="btn btn-small <%= 'active btn-primary' if @interval == interval %>"><%= interval %></a><br>
+        <% end %>
+      </div>
+      <div class="filter">
+        <div class="name">Namespace</div>
+        <div class="input-append">
+          <%= text_field_tag(:ns_path, @ns_path) %>
+          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('<%= organization_ns_path %>')"></i>
+        </div>
+      </div>
+      <hr/>
+      <%= submit_tag('Run', :class => 'btn btn-success') %>
+    </div>
+  <% end %>
+<% end %>
+<% cost_total = (@cost && @cost[:total]).to_f %>
+<%= section_panel cost_total > 0 ? @cost[:title] : 'Results', :width => 'double', :position => 'right' do %>
+  <% if @cost %>
+    <%
+       cost = @cost.deep_dup
+       max_segments = 10
+       cost[:y].each do |bar|
+         cost[:groupings].each do |grouping|
+           grouping_name = grouping[:name]
+           total         = bar[:total]
+           segments      = bar[grouping_name]
+           segment_count = bar[grouping_name].size
+           segments      = segments.sort_by { |s| -s[:value] }[0..(max_segments - 2)].select { |s| s[:value] / total > 0.02 }
+           if segments.size < segment_count
+             segments << {:label => 'others', :value => (total - segments.sum { |s| s[:value] }).round(2)}
+             bar[grouping_name] = segments
+           end
+         end
+       end
+    %>
+    <%= render 'base/shared/graph_bar', :data => cost %>
+    <br/>
+    <% groupings = @cost[:groupings] %>
+    <% groupings.each do |grouping| %>
+      <% grouping_name = grouping[:name] %>
+      <div class="report hide report-<%= grouping_name %>">
+        <% if cost_total > 0 %>
+          <table class="full-width">
+            <tr>
+              <th><%= @cost[:units][:x].capitalize %></th>
+              <th><%= grouping[:label] %></th>
+              <th class="metric"><%= @cost[:units][:y].upcase %></th>
+            </tr>
+            <% grouping_total = 0 %>
+            <% @cost[:x].each_with_index do |x, i| %>
+              <% y = @cost[:y][i][grouping_name]
+                 interval_total = 0 %>
+              <% if y.present? %>
+                <% y.each_with_index do |segment, j| %>
+                  <% value = segment[:value]
+                     interval_total += value %>
+                  <tr>
+                    <% if j == 0 %>
+                      <td rowspan="<%= y.size + 1 %>"><%= x %></td>
+                    <% end %>
+                    <td><%= segment[:label] %></td>
+                    <td class="metric"><%= number_with_precision(value, :precision => 2, :delimiter => ',') %></td>
+                  </tr>
+                <% end %>
+                <tr class="subtotal">
+                  <td>All</td>
+                  <td class="metric"><%= number_with_precision(interval_total, :precision => 2, :delimiter => ',') %></td>
+                </tr>
+                <% grouping_total += interval_total %>
+              <% end %>
+            <% end %>
+            <tr class="total">
+              <td>All</td>
+              <td class="metric" colspan="2"><%= number_with_precision(grouping_total, :precision => 2, :delimiter => ',') %></td>
+            </tr>
+          </table>
+        <% end %>
+      </div>
+    <% end %>
+    <script>
+      $j(".report.report-<%= groupings.first[:name] %>").slideDown(1000);
+      $j(".graph-bar").on("groupingChanged", function (e, grouping) {
+        $j(".report:visible").slideUp(1000);
+        $j(".report.report-" + grouping).delay(1000).slideDown(1000);
+      })
+    </script>
+  <% else %>
+    <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to retrieve cost data</strong></p>
+  <% end %>
+<% end %>
+<script>
+  $j(".filter.interval .btn").click(function() {
+    var button = $j(this);
+    button.siblings('input').val(button.html());
+    button.siblings('.btn').removeClass("active btn-primary");
+    button.addClass("active btn-primary");
+  });
+</script>

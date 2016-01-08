@@ -34,6 +34,9 @@ gem 'rickshaw-rails', '1.5.0'
 gem 'bootstrap-sass', '~> 2.2.2'
 gem 'font-awesome-rails', '~> 3.2.1'
 
+gem 'swagger-docs', '0.1.9'
+gem 'swagger-ui_rails', '0.1.7'
+
 # Turbolinks makes following links in your web application faster. Read more: https://github.com/rails/turbolinks
 #gem 'turbolinks'
 

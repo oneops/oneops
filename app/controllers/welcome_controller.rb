@@ -1,7 +1,11 @@
 class WelcomeController < ApplicationController
   skip_before_filter :authenticate_user!, :check_organization
-  before_filter :check_signed_in
-  layout false, :only => [:server_error]
+  before_filter :check_signed_in, :except => [:api_docs]
+  skip_filter *_process_action_callbacks.map(&:filter), :only => [:api_docs]
+
+  def api_docs
+    render :action => :api_docs, :layout => false
+  end
 
   def error
     @message = params[:message].presence
@@ -21,7 +25,7 @@ class WelcomeController < ApplicationController
   def server_error
     @exception = env['action_dispatch.exception']
     respond_to do |format|
-      format.html {render :status => :internal_server_error}
+      format.html {render :status => :internal_server_error, :layout => false}
       format.js {render :js => '', :status => :internal_server_error}
       format.json {render :json => {:code => 500, :exception => @exception.to_s}, :status => :internal_server_error}
     end

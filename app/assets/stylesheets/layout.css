@@ -1420,26 +1420,25 @@ img.authicon {
   font-size: smaller;
 }
 
-ul.glance {
+.glance {
 	position: relative;
-	float: left;
 	margin: 5px;
 	padding: 5px 0px 5px 0px;
 }
 
-ul.glance li {
+.glance li {
 	list-style-type: none;
 	float: left;
 	margin: 5px 15px;
 	min-width: 60px;
 }
 
-ul.glance li a {
+.glance a {
 	text-decoration: none;
 }
 
-ul.glance li strong {
-	font-size: 44px;
+.glance strong {
+	font-size: 36px;
 	display: block;
 	font-weight: normal;
 	text-align: center;
@@ -1448,17 +1447,17 @@ ul.glance li strong {
 	text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
 }
 
-ul.glance li span {
+.glance span {
 	font-size: 16px;
 	font-weight: 300;
 	text-align: center;
 	display: block;
 	color: #999;
 	margin-top: -5px;
-	font-variant:small-caps;
+	/*font-variant:small-caps;*/
 }
 
-ul.glance li a:hover strong, ul.glance li a:hover span {
+.glance a:hover strong, ul.glance  a:hover span {
 	color: #4183C4;
 }
 
@@ -3632,6 +3631,14 @@ label a input[type=checkbox] {
   width: 100%;
 }
 
+.graph-bar .title {
+  position: absolute;
+  right: 15px;
+  top:  10px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
 .graph-bar .bar-segment:hover {
   opacity: 0.7;
 }
@@ -3717,7 +3724,7 @@ ul.log li.error {
   text-align: left;
 }
 
-.report td.metric {
+.report td.metric, .report th.metric {
   text-align: right;
 }
 

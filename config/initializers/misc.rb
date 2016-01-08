@@ -28,3 +28,20 @@ class Array
     @info ||= {}
   end
 end
+
+class Numeric
+  def to_human(opts = {})
+    val = real
+    abs_val = real.abs
+    precision = opts[:precision] || 0
+    if abs_val >= 1000000000
+      return "#{(val / 1000000000.0).round(precision)}B"
+    elsif abs_val >= 1000000
+      return "#{(val / 1000000.0).round(precision)}M"
+    elsif abs_val >= 1000
+      return "#{(val / 1000.0).round(precision)}K"
+    else
+      return val.round(precision)
+    end
+  end
+end
