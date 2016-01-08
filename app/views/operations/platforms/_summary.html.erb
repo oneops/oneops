@@ -37,9 +37,23 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Platform Status', :id => 'status_section', :width => 'double', :position => 'left' do %>
+<%= section_panel 'Platform Status', :width => 'double', :position => 'left' do %>
   <%= render :partial => 'status' %>
 <% end %>
+
+<%= section_panel 'Automation Status', :width => 'double', :position => 'left' do %>
+  <ul class="status">
+    <li id="status_autorepair" class="status-marker">
+      <%= render 'status_autorepair' %>
+    </li>
+    <% if @platform.ciAttributes.availability == 'redundant' %>
+      <li id="status_autoscale" class="status-marker">
+      	<%= render 'status_autoscale' %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
 
 <%= section_panel 'Cloud Status', :width => 'double', :position => 'left' do %>
   <%= render 'transition/platforms/cloud_status' %>

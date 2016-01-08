@@ -359,12 +359,12 @@ Display::Application.routes.draw do
 
             get 'procedures', :on => :member
             get 'graph',      :on => :member
+            put 'autorepair', :on => :member
+            put 'autoscale',  :on => :member
           end
 
           resources :instances, :only => [:index]
 
-          put 'autorepair',    :on => :member
-          put 'autoscale',     :on => :member
           get 'diagram',       :on => :member
           get 'graph',         :on => :member
           get 'notifications', :on => :member
