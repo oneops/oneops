@@ -73,7 +73,7 @@ class ApplicationController < ActionController::Base
   end
 
   def search
-    @source = request.format == 'application/json' ? 'cms' : (params[:source].presence || 'es')
+    @source = request.format == params[:source].presence || ('application/json' ? 'cms' : 'es')
 
     return if request.format == 'text/html'
 
@@ -83,7 +83,7 @@ class ApplicationController < ActionController::Base
     class_name      = params[:class_name]
     @search_results = []
 
-    if @source == 'cms'
+    if @source == 'cms' || @source == 'simple'
       # CMS search.
       query_params = {:nsPath => ns_path, :recursive => true}
 
@@ -330,20 +330,23 @@ class ApplicationController < ActionController::Base
     return env
   end
 
-  def locate_manifest_platform(qualifier, environment)
+  def locate_manifest_platform(qualifier, environment, opts = {})
+    dj    = opts.delete(:dj)
+    dj    = true if dj.nil?
+    clazz = dj ? Cms::DjCi : Cms::Ci
     result = nil
     if qualifier =~ /\D/
       ci_name, version = qualifier.split('!')
       if version.present?
-        result = Cms::DjCi.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}/#{version}", 'manifest.Platform')
+        result = clazz.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}/#{version}", 'manifest.Platform', opts)
       else
-        result = Cms::DjCi.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}", 'manifest.Platform', :recursive => true)
+        result = clazz.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}", 'manifest.Platform', opts.merge(:recursive => true))
         result = result.find {|p| p.ciAttributes.is_active == 'true'} if result.is_a?(Array)
       end
       raise CiNotFoundException.new(qualifier, environment_manifest_ns_path(environment), 'manifest.Platform') unless result && result.ciClassName == 'manifest.Platform'
     else
       # ciId
-      result = Cms::DjCi.locate(qualifier, nil)
+      result = clazz.locate(qualifier, nil, nil, opts)
     end
     result
   end

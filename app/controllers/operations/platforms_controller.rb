@@ -10,6 +10,8 @@ class Operations::PlatformsController < Base::PlatformsController
   end
 
   def show
+    @platform_detail = Cms::CiDetail.find(@environment.id)
+
     @clouds = Cms::Relation.all(:params => {:relationName    => 'base.Consumes',
                                             :targetClassName => 'account.Cloud',
                                             :direction       => 'from',
@@ -69,6 +71,61 @@ class Operations::PlatformsController < Base::PlatformsController
     render :json =>  get_platform_procedures(@environment, @platform).map(&:toCi)
   end
 
+  def autorepair
+    if params[:status] == 'enable'
+      @platform.ciAttributes.autorepair = 'true'
+    elsif params[:status] == 'disable'
+      @platform.ciAttributes.autorepair = 'false'
+    end
+    @platform.attrProps.owner.autorepair = 'manifest'
+
+    ok = execute(@platform, :save)
+
+    respond_to do |format|
+      format.js do
+        @platform_detail = Cms::CiDetail.find(@platform.id)
+        flash[:error] = 'Failed to update autorepair!' unless ok
+      end
+
+      format.json { render_json_ci_response(ok, @platform) }
+    end
+  end
+
+  def autoscale
+    unless @platform.ciAttributes.availability == 'redundant'
+      message = 'Autoscale operation is allowed only for platforms with redundant availability.'
+      @platform.errors.add(:base, message)
+
+      respond_to do |format|
+        format.js do
+          flash[:error] = message
+          render :js => ''
+        end
+
+        format.json { render_json_ci_response(false, @platform) }
+      end
+      return
+    end
+
+    if params[:status] == 'enable'
+      @platform.ciAttributes.autoscale = 'true'
+    elsif params[:status] == 'disable'
+      @platform.ciAttributes.autoscale = 'false'
+    end
+    @platform.attrProps.owner.autoscale = 'manifest'
+
+    ok = execute(@platform, :save)
+
+    respond_to do |format|
+      format.js do
+        @platform_detail = Cms::CiDetail.find(@platform.id)
+        flash[:error] = 'Failed to update autoscale!' unless ok
+      end
+
+      format.json { render_json_ci_response(ok, @platform) }
+    end
+  end
+
 
   private
 
@@ -76,7 +133,7 @@ class Operations::PlatformsController < Base::PlatformsController
     @assembly    = locate_assembly(params[:assembly_id])
     @environment = locate_environment(params[:environment_id], @assembly)
     platform_id  = params[:id]
-    @platform = locate_manifest_platform(platform_id, @environment) if platform_id.present?
+    @platform    = locate_manifest_platform(platform_id, @environment, :dj => false, :attrProps => 'owner') if platform_id.present?
   end
 
   def platform_bom_ns_path(environment, platform)

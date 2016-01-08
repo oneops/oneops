@@ -1,0 +1,21 @@
+<% status = @platform.ciAttributes.autorepair == 'true' ? 'enabled' : 'disabled' %>
+<div class="marker">
+  <%= status_marker('autorepair', status, state_to_label(status)) %>
+</div>
+<div class="description">
+  <ul>
+    <li>
+      <%= icon('time', ' ') %> Autorepair <%= highlight(status) %>
+      <%= time_ago_in_words(Time.at(@platform_detail.attributes[:attributes].autorepair.updated/1000)) %>
+    </li>
+  </ul>
+  <% if has_operations?(@assembly.ciId) %>
+    <ul class="status-actions">
+      <% if status == 'enabled' %>
+        <li><%= link_to(icon_button('wrench', 'Disable', ''), autorepair_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'disable'), :method => :put, :remote => true) %></li>
+      <% else %>
+        <li><%= link_to(icon_button('wrench', 'Enable', 'success'), autorepair_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'enable'), :method => :put, :remote => true) %></li>
+      <% end %>
+    </ul>
+  <% end %>
+</div>

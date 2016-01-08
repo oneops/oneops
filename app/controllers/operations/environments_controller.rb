@@ -12,10 +12,9 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   def show
     respond_to do |format|
       format.html do
-        @environment_detail = Cms::CiDetail.find(@environment.id)
-        @release            = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
-        @bom_release        = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
-                                                             :releaseState => 'open'})
+        @release     = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
+        @bom_release = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
+                                                      :releaseState => 'open'})
 
         @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
         if @deployment && @deployment.deploymentState == 'pending'
@@ -38,42 +37,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
       end
 
       format.json { render_json_ci_response(true, @environment) }
-    end
-  end
-
-  def autorepair
-    if params[:status] == 'enable'
-      @environment.ciAttributes.autorepair = 'true'
-    elsif params[:status] == 'disable'
-      @environment.ciAttributes.autorepair = 'false'
-    end
-    ok = execute(@environment, :save)
-
-    respond_to do |format|
-      format.js do
-        @environment_detail = Cms::CiDetail.find(@environment.id)
-        flash[:error] = 'Failed to update autorepair!' unless ok
-      end
-
-      format.json { render_json_ci_response(ok, @environment) }
-    end
-  end
-
-  def autoscale
-    if params[:status] == 'enable'
-      @environment.ciAttributes.autoscale = 'true'
-    elsif params[:status] == 'disable'
-      @environment.ciAttributes.autoscale = 'false'
-    end
-    ok = execute(@environment, :save)
-
-    respond_to do |format|
-      format.js do
-        @environment_detail = Cms::CiDetail.find(@environment.id)
-        flash[:error] = 'Failed to update autoscale!' unless ok
-      end
-
-      format.json { render_json_ci_response(ok, @environment) }
     end
   end
 
