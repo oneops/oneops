@@ -1,8 +1,8 @@
 class AssembliesController < ApplicationController
-  include ::TeamAccess
+  include ::TeamAccess, ::CostSummary
 
   before_filter :find_assembly, :only => [:search, :show, :edit, :update, :destroy, :new_clone, :clone,
-                                          :teams, :update_teams, :reports, :notifications, :cost_rate]
+                                          :teams, :update_teams, :reports, :notifications, :cost_rate, :cost]
 
   before_filter :authorize_create, :only => [:new, :create, :new_clone, :clone]
   before_filter :authorize_update, :only => [:update, :destroy, :update_teams]
@@ -249,96 +249,6 @@ class AssembliesController < ApplicationController
   end
 
 
-  def cost_rate
-    @cost_rate = Search::Cost.cost_rate("#{assembly_ns_path(@assembly)}/*/bom")
-    respond_to do |format|
-      format.js
-      format.json {render :json => @cost_rate}
-    end
-  end
-
-  def cost
-    begin
-      @start = Date.parse(params[:start_date])
-    rescue Exception => e
-      @start = Date.today.prev_month(2).beginning_of_month
-    end
-    begin
-      @end = Date.parse(params[:end_date])
-    rescue Exception => e
-      @end = Date.today.end_of_month
-    end
-    @end = @start.end_of_month if @start > @end
-
-    groupings = [{:name => :service_type, :label => 'By Service Type'},
-                 {:name => :cloud, :label => 'By Cloud'}]
-
-    grouping_values = {:service_type => %w(compute storage dns), :cloud => %w(dal1 dfw1 dfw2 ndc)}
-    months = (@start.month..@end.month).to_a
-    y = months.inject([]) do |a, m|
-      month_cost = rand(20) + 10
-      a << groupings.inject({}) do |h, g|
-        grouping_name = g[:name]
-        vals = []
-        grouping_cost = month_cost
-        grouping_values[grouping_name].each_with_index() do |v, i|
-          cost = i == grouping_values[grouping_name].size - 1 ?  grouping_cost : rand(grouping_cost)
-          grouping_cost -= cost
-          vals << {:label => v, :value => cost} if cost > 0
-        end
-        h[grouping_name] = vals.sort! {|v1, v2| v2[:value] <=> v1[:value]}
-        h
-      end
-    end
-    @cost = {:title     => 'Monthly Cost',
-             :labels    => {:x => 'Month', :y => 'Cost (USD)'},
-             :groupings => groupings,
-             :x         => months.map {|m| Date::ABBR_MONTHNAMES[m]},
-             :y         => y}
-
-    # @cost = {:title     => 'Monthly Cost',
-    #          :labels    => {:x => 'Month', :y => 'Cost (USD)'},
-    #          :groupings => [{:name => :service_type, :label => 'By Service Type'},
-    #                         {:name => :cloud, :label => 'By Cloud'}],
-    #          :x         => %w(Aug Sep Oct Nov),
-    #          :y         => [{:service_type => [{:label => 'compute', :value => 7},
-    #                                            {:label => 'dns', :value => 1},
-    #                                            {:label => 'storage', :value => 4}],
-    #                          :cloud        => [{:label => 'dal1', :value => 16},
-    #                                            {:label => 'dfw1', :value => 13},
-    #                                            {:label => 'dfw2', :value => 3}]},
-    #                         {:service_type => [{:label => 'compute', :value => 2.7},
-    #                                            {:label => 'dns', :value => 1.4},
-    #                                            {:label => 'storage', :value => 1.2}],
-    #                          :cloud        => [{:label => 'dal1', :value => 3.7},
-    #                                            {:label => 'dfw1', :value => 2.4},
-    #                                            {:label => 'dfw3', :value => 1.5}]},
-    #                         {:service_type => [{:label => 'compute', :value => 23},
-    #                                            {:label => 'dns', :value => 6},
-    #                                            {:label => 'storage', :value => 4}],
-    #                          :cloud        => [{:label => 'dal1', :value => 13},
-    #                                            {:label => 'dfw1', :value => 7},
-    #                                            {:label => 'dfw2', :value => 2},
-    #                                            {:label => 'dfw3', :value => 5}]},
-    #                         {:service_type => [{:label => 'compute', :value => 15},
-    #                                            {:label => 'whatever', :value => 5.5},
-    #                                            {:label => 'dns', :value => 2.5},
-    #                                            {:label => 'storage', :value => 5.5}],
-    #                          :cloud        => [{:label => 'dal1', :value => 8},
-    #                                            {:label => 'dfw1', :value => 7},
-    #                                            {:label => 'dfw2', :value => 6}]}]}
-    # @cost = {:title  => 'Monthly Cost',
-    #          :labels => {:x => 'Month', :y => 'Cost (USD)'},
-    #          :x      => %w(Aug Sep Oct Nov),
-    #          :y      => [12, 5, 19, 25]}
-    respond_to do |format|
-      format.html {render 'assemblies/_cost'}
-      format.js
-      format.json {render :json => @cost_rate}
-    end
-  end
-
-
   protected
 
   def search_ns_path
@@ -375,7 +285,7 @@ class AssembliesController < ApplicationController
     end
 
     @assemblies.each do |a|
-      #a.release      = Cms::Release.latest(:nsPath => assembly_ns_path(a))
+      #a.release      = Cms::Release.latest(:nsPath => ns_path(a))
       a.release      = nil
       a.platforms    = platforms[a.ciName] || []
       a.environments = environments[a.ciName] || []

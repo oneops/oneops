@@ -16,6 +16,8 @@
       }
     }(data.legend);
 
+    var numberFormat = d3.format(',');
+
     var donuts = data.data,
         donutCount = donuts.length,
         graphDiv = d3.select("#<%= graph_id %>"),
@@ -51,7 +53,7 @@
     };
 
     tooltip.showSliceTooltip = function(d) {
-      tooltip.html(d.data.label || (d.data.name + " " + d.data.value))
+      tooltip.html(d.data.label || (d.data.name + " " + numberFormat(d.data.value)))
           .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
           .transition()
           .duration(200)
