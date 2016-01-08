@@ -507,7 +507,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     platforms ||= load_platforms
     links_to  = Cms::DjRelation.all(:params => {:nsPath => [@environment.nsPath, @environment.ciName, 'manifest'].join('/'), :relationShortName => 'LinksTo'})
     begin
-      return platforms_diagram(platforms, links_to, assembly_transition_environment_path(@assembly, @environment)).output(:svg => String)
+      return graphvis_sub_pack_remote_images(platforms_diagram(platforms, links_to, assembly_transition_environment_path(@assembly, @environment)).output(:svg => String))
     rescue
       return nil
     end

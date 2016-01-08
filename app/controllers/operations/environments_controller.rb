@@ -40,52 +40,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
-  def diagram
-    graph = GraphViz::new(:G)
-    graph[
-        :truecolor => true,
-        :rankdir   => 'TB',
-        :ratio     => 'fill',
-        :size      => params[:size] || "6,3",
-        :bgcolor   => "transparent"]
-    graph.node[:fontsize  => 8,
-               :fontname  => 'ArialMT',
-               :color     => 'black',
-               :fontcolor => 'black',
-               :fillcolor => 'whitesmoke',
-               :fixedsize => true,
-               :width     => "2.00",
-               :height    => "0.66",
-               :shape     => 'ractangle',
-               :style     => 'rounded']
-
-    @platforms = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
-                                               :direction         => 'from',
-                                               :targetClassName   => 'manifest.Platform',
-                                               :relationShortName => 'ComposedOf',
-                                               :includeToCi       => true})
-
-
-    @platforms.each do |node|
-      _img   = "<img scale='both' src='#{platform_image_url(node.toCi)}'></img>"
-      _label = "<<table border='0' cellspacing='2' fixedsize='true' width='144' height='48'>"
-      _label << "<tr><td fixedsize='true' rowspan='2' cellpadding='4' width='40' height='40' align='center'>#{_img}</td>"
-      _label << "<td align='left' cellpadding='0' width='90' fixedsize='true'><font point-size='12'><b>#{node.toCi.ciName}</b></font></td></tr>"
-      _label << "<tr><td align='left' cellpadding='0' width='90' fixedsize='true'>#{node.toCi.ciAttributes.pack} v#{node.toCi.ciAttributes.version}</td></tr></table>>"
-      graph.add_node(node.toCiId.to_s,
-                     :target => '_parent',
-                     :URL    => assembly_operations_environment_platform_path(@assembly, @environment, node.toCiId),
-                     :label  => _label,
-                     :color  => 'gray') # to be replaced with status color
-    end
-    @links_to = Cms::Relation.all(:params => {:nsPath => environment_manifest_ns_path(@environment), :relationShortName => 'LinksTo'})
-    @links_to.each do |edge|
-      graph.add_edge(edge.fromCiId.to_s, edge.toCiId.to_s, :color => 'gray')
-    end
-
-    send_data(graph.output(:svg => String), :type => 'image/svg+xml', :disposition => 'inline')
-  end
-
   def graph
     @assembly    = Cms::Ci.find(params[:assembly_id])
     @environment = Cms::Ci.find(params[:id])
