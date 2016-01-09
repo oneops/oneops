@@ -1,1 +1,2 @@
-window.location.reload(true);
+$j("#platform_status").html("<%= escape_javascript(render('platform_status')) %>");
+$j("#page_alert").html("<%= escape_javascript(page_alert) %>");

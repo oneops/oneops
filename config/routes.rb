@@ -357,10 +357,11 @@ Display::Application.routes.draw do
               end
             end
 
-            get 'procedures', :on => :member
-            get 'graph',      :on => :member
-            put 'autorepair', :on => :member
-            put 'autoscale',  :on => :member
+            get 'procedures',  :on => :member
+            get 'graph',       :on => :member
+            put 'autorepair',  :on => :member
+            put 'autoreplace', :on => :member
+            put 'autoscale',   :on => :member
           end
 
           resources :instances, :only => [:index]

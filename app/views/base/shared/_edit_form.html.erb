@@ -34,12 +34,8 @@
                       :confirm => 'Are you sure you want to proceed with delete?',
                       :method  => :delete,
                       :remote  => remote_x) unless new || !defined?(destroy_url) || destroy_url.blank? %>
-          <% unless !defined?(cancel_url) || cancel_url.blank? %>
-            <%= link_to(cancel_url, :disable_with => 'Wait...', :remote  => remote_x, :class => "btn btn-danger" ) do %>
-              <i class="icon-remove"></i> Cancel
-            <% end %>
-          <% end %>
-          <%= f.submit 'Save', :disable_with => 'Wait...', :class => "btn btn-success", :onclick => '$j(this).parents("form").trigger("beforeSave")' %>
+          <%= link_to_function(icon('remove', 'Cancel'), "cancel_#{prefix}()", :class => 'btn btn-danger') %>
+          <%= f.submit 'Save', :disable_with => 'Wait...', :class => 'btn btn-success', :onclick => '$j(this).parents("form").trigger("beforeSave")' %>
         </div>
       <% end %>
     <% end %>
