@@ -113,18 +113,7 @@ public class MdRestController extends AbstractRestController {
 		return clazz;
 	}
 
-	/*
-    @RequestMapping(value="/md/classes/{clazzName}/{eager}", method = RequestMethod.GET)
-    @ResponseBody
-    public CmsClazz getClassByNameExt(@PathVariable String clazzName, @PathVariable boolean eager){
-		CmsClazz clazz = mdManager.getClazz(clazzName, eager);
-		if (clazz == null) {
-			throw new DJException("there is no class with name " + clazzName);
-		} 
-        return mdManager.getClazz(clazzName, eager);
-    }
-	*/
-	
+		
     @RequestMapping(method=RequestMethod.POST, value="/md/classes")
     @ResponseBody
     public CmsClazz createClazz(@RequestBody CmsClazz clazz) {
