@@ -10,7 +10,7 @@ class Operations::PlatformsController < Base::PlatformsController
   end
 
   def show
-    @platform_detail = Cms::CiDetail.find(@environment.id)
+    @platform_detail = Cms::CiDetail.find(@platform.ciId)
 
     @clouds = Cms::Relation.all(:params => {:relationName    => 'base.Consumes',
                                             :targetClassName => 'account.Cloud',
@@ -85,6 +85,33 @@ class Operations::PlatformsController < Base::PlatformsController
       format.js do
         @platform_detail = Cms::CiDetail.find(@platform.id)
         flash[:error] = 'Failed to update autorepair!' unless ok
+      end
+
+      format.json { render_json_ci_response(ok, @platform) }
+    end
+  end
+
+  def autoreplace
+    if params[:status] == 'enable'
+      @platform.ciAttributes.autoreplace = 'true'
+    elsif params[:status] == 'disable'
+      @platform.ciAttributes.autoreplace = 'false'
+    end
+    @platform.attrProps.owner.autoreplace = 'manifest'
+    %w(replace_after_minutes replace_after_repairs).each do |attr|
+      value = params[attr]
+      if value.present?
+        @platform.ciAttributes.attributes[attr] = value
+        @platform.attrProps.owner.attributes[attr] = 'manifest'
+      end
+    end
+
+    ok = execute(@platform, :save)
+
+    respond_to do |format|
+      format.js do
+        @platform_detail = Cms::CiDetail.find(@platform.id)
+        flash[:error] = 'Failed to update autoreplace!' unless ok
       end
 
       format.json { render_json_ci_response(ok, @platform) }
