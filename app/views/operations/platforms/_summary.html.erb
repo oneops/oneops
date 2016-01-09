@@ -46,6 +46,10 @@
     <li id="status_autorepair" class="status-marker">
       <%= render 'status_autorepair' %>
     </li>
+    <li id="status_autoreplace" class="status-marker">
+      <%= render 'status_autoreplace' %>
+    </li>
+
     <% if @platform.ciAttributes.availability == 'redundant' %>
       <li id="status_autoscale" class="status-marker">
       	<%= render 'status_autoscale' %>

@@ -44,7 +44,9 @@ class Transition::PlatformsController < Base::PlatformsController
   end
 
   def update
-    ok = execute(@platform, :update_attributes, params[:cms_dj_ci])
+    ok = true
+    attrs = params[:cms_dj_ci]
+    ok = execute(@platform, :update_attributes, attrs) if attrs.present?
 
     # Save "Scale" relation changes.
     if ok
