@@ -68,5 +68,5 @@ The project is released under version 2.0 of the [Apache License](http://www.apa
 [Oneops UI]:../../../display
 [setup]:../../../setup
 [Client]:../../../cli
-[Contributing]:../../../developer-doc/_contribution/index.md
-[tomcat environment variables]:../../../dev-tools/setup-scripts/tom_setenv.sh
+[Contributing]:https://github.com/oneops/developer-doc/blob/master/_contribution/index.md
+[tomcat environment variables]:../../../dev-tools/blob/master/setup-scripts/tom_setenv.sh
