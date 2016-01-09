@@ -9,7 +9,7 @@
            cost_rate = cost_rate ? cost_rate.to_human(:precision => 1) : 'N/A' %>
         <span>rate</span>
         <strong><%= cost_rate %></strong>
-        <span><%= "#{unit.upcase}/hour" %></span>
+        <span><%= @cost_rate[:unit] if @cost_rate %></span>
       </td>
       <td class="glance">
         <span>this month</span>

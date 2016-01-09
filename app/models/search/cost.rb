@@ -101,8 +101,9 @@ class Search::Cost < Search::Base
       data  = JSON.parse(post('/cms-all/ci/_search', {}, search_params.to_json).body)['aggregations']
       total = data['data']['total']['value']
       if total > 0
+        unit = data['data']['unit']['buckets'][0]
         result = {:total => total.round(2),
-                  :unit  => data['data']['unit']['buckets'][0]['key']}
+                  :unit  => unit.presence && "#{unit['key'].upcase}/hour"}
         [:by_ns, :by_cloud].each do |group_name|
           group = result[group_name] = {}
           data[group_name.to_s]['buckets'].each do |b|
@@ -190,10 +191,11 @@ class Search::Cost < Search::Base
       data  = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
       total = data['total']['value']
       if total > 0
+        unit = data['unit']['buckets'][0]
         result = {:start_date => start_date,
                   :end_date   => end_date,
                   :total      => total.round(2),
-                  :unit       => data['unit']['buckets'][0]['key']}
+                  :unit       => unit.presence && unit['key'].upcase}
         [:by_ns, :by_cloud, :by_service].each do |group_name|
           group = result[group_name] = {}
           data[group_name.to_s]['buckets'].each do |b|
@@ -287,12 +289,13 @@ class Search::Cost < Search::Base
       # data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)
       # return data
 
-      data  = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      unit = data['unit']['buckets'][0]
       result = {:buckets    => data['time_histogram']['buckets'],
                 :start_date => start_date,
                 :end_date   => end_date,
                 :interval   => interval,
-                :unit       => data['unit']['buckets'][0].try { |x| x['key'] },
+                :unit       => unit.presence && unit['key'].upcase,
                 :total      => data['total']['value'].round(2)}
     rescue Exception => e
       handle_exception e, "Failed to fetch 'cost_time_histogram' for nsPath=#{ns_path}, date range=[#{start_date}, #{end_date}], interval=#{interval}"

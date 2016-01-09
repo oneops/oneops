@@ -1113,7 +1113,7 @@ module ApplicationHelper
         cost = bucket.last + (slices[name] ? slices[name][:value] : 0)
         slices[name] = {:name => name,
                         :value => cost,
-                        :label => "#{name} - #{number_with_precision(100 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2, :delimiter => ',')} #{unit}/h)"}
+                        :label => "#{name} - #{number_with_precision(100 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2, :delimiter => ',')} #{unit})"}
       end
 
       slices_count = slices.size
@@ -1126,7 +1126,7 @@ module ApplicationHelper
         cost = total - slices.values.sum { |s| s[:value] }
         slices[name] = {:name  => name,
                         :value => cost,
-                        :label => "#{name} - #{number_with_precision(100.0 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2, :delimiter => ',')} #{unit}/h)"}
+                        :label => "#{name} - #{number_with_precision(100.0 * cost / total, :precision => 1)}% (#{number_with_precision(cost, :precision => 2, :delimiter => ',')} #{unit})"}
       end
       data = {:title  => title,
               :label  => slices_count,
