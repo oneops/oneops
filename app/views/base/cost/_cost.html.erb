@@ -1,6 +1,6 @@
-<% if @cost.present? %>
+<% unless @cost.nil? %>
   <% total = @cost[:total]
-     unit = @cost[:unit].upcase
+     unit = @cost[:unit].try(:upcase)
      ns_path_depth = @ns_path.split('/').size %>
   <table style="width:100%; table-layout:fixed">
     <tr>
@@ -13,7 +13,7 @@
       </td>
       <td class="glance">
         <span>this month</span>
-        <strong><%= total.to_human %></strong>
+        <strong><%= total ? total.to_human : 'N/A' %></strong>
         <span><%= unit %></span>
       </td>
       <td colspan="2">

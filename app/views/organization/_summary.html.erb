@@ -1,4 +1,7 @@
-<%= render 'base/cost/cost_summary' %>
+<div class="section">
+  <%= render 'base/cost/cost_summary' %>
+  <%= render 'base/notifications/notifications_summary' %>
+</div>
 
 <div class="single right section">
   <ul class="glance">
@@ -42,18 +45,4 @@
   <% end %>
 <% else %>
   <%= render 'favorite_list', :favorites => favs %>
-<% end %>
-
-<%= section_panel 'Recent Notifications',
-                  :width    => 'double',
-                  :position => 'left',
-                  :menu     => [link_to(icon('bar-chart'),
-                                        notification_reports_path(:period => 'today'),
-                                        :class => 'btn btn-mini')] do %>
-  <div id="notification_list">
-    <i class="icon-spinner icon-spin"></i> Loading...
-  </div>
-  <script type="text/javascript">
-    <%= remote_function(:url => notifications_organization_path, :method => :get) %>
-  </script>
 <% end %>

@@ -68,13 +68,15 @@
                  interval_total = 0 %>
               <% if y.present? %>
                 <% y.each_with_index do |segment, j| %>
-                  <% value = segment[:value]
+                  <% label = segment[:label]
+                     value = segment[:value]
+                     url = segment[:url]
                      interval_total += value %>
                   <tr>
                     <% if j == 0 %>
                       <td rowspan="<%= y.size + 1 %>"><%= x %></td>
                     <% end %>
-                    <td><%= segment[:label] %></td>
+                    <td><%= url ? link_to(label, url) : label %></td>
                     <td class="metric"><%= number_with_precision(value, :precision => 2, :delimiter => ',') %></td>
                   </tr>
                 <% end %>

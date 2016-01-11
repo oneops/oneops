@@ -1093,24 +1093,16 @@ class ApplicationController < ActionController::Base
   end
 
   def ci_class_image_url(ci_class_name)
-    asset_url = Settings.asset_url
-    if asset_url.blank?
-      "/images/cms/#{ci_class_name.split('.').last}.png"
-    else
-      split = ci_class_name.split('.')
-      "#{asset_url}#{split[1..-1].join('.')}/#{split.last}.png"
-    end
+    asset_url = Settings.asset_url.presence || 'cms/'
+    split = ci_class_name.split('.')
+    "#{asset_url}#{split[1..-1].join('.')}/#{split.last}.png"
   end
 
   def platform_image_url(platform)
-    asset_url = Settings.asset_url
+    asset_url = Settings.asset_url.presence || 'cms/'
     ci_attrs = platform.ciAttributes
     pack = ci_attrs.pack
-    if asset_url.blank?
-      "/images/pack/#{pack}.png"
-    else
-      "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.png"
-    end
+    "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.png"
   end
 
   def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
