@@ -92,21 +92,23 @@ class Operations::PlatformsController < Base::PlatformsController
   end
 
   def autoreplace
-    if params[:status] == 'enable'
-      @platform.ciAttributes.autoreplace = 'true'
-    elsif params[:status] == 'disable'
-      @platform.ciAttributes.autoreplace = 'false'
-    end
-    @platform.attrProps.owner.autoreplace = 'manifest'
-    %w(replace_after_minutes replace_after_repairs).each do |attr|
-      value = params[attr]
-      if value.present?
-        @platform.ciAttributes.attributes[attr] = value
-        @platform.attrProps.owner.attributes[attr] = 'manifest'
+    ok = true
+    if request.put?
+      status = params[:status]
+      enable = (status == 'enable')
+      if enable || (status == 'disable')
+        @platform.ciAttributes.autoreplace = enable ? 'true' : 'false'
+        @platform.attrProps.owner.autoreplace = 'manifest'
       end
+      %w(replace_after_minutes replace_after_repairs).each do |attr|
+        value = params[attr]
+        if value.present?
+          @platform.ciAttributes.attributes[attr] = value
+          @platform.attrProps.owner.attributes[attr] = 'manifest'
+        end
+      end
+      ok = execute(@platform, :save)
     end
-
-    ok = execute(@platform, :save)
 
     respond_to do |format|
       format.js do

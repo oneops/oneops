@@ -360,6 +360,7 @@ Display::Application.routes.draw do
             get 'procedures',  :on => :member
             get 'graph',       :on => :member
             put 'autorepair',  :on => :member
+            get 'autoreplace', :on => :member
             put 'autoreplace', :on => :member
             put 'autoscale',   :on => :member
           end

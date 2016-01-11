@@ -20,30 +20,12 @@
     </ul>
   <% end %>
   <br/>
-  <div id="autoreplace_attrs">
-    <hr/>
-    <% if has_operations %>
-      <div class="pull-right">
-        <%= link_to_function(icon('edit', 'Edit'), "enable_edit('autoreplace_attrs')", :class => 'btn btn-mini')  %>
-      </div>
-    <% end %>
-    <%= form_tag autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
-      <% %w(replace_after_minutes replace_after_repairs).each do |a| %>
-        <% meta = @platform.meta.md_attribute(a) %>
-        <div class="control-group">
-          <%= label_tag a, link_to(meta.description, '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{meta.options[:help]}"), :class => 'control-label' %>
-          <div class="controls">
-            <%= number_field_tag a, @platform.ciAttributes.attributes[a], :class => 'input-small', :min => 1 %>
-          </div>
-        </div>
-      <% end %>
-      <div class="toolbar form-actions">
-        <%= button_tag((icon('ok', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
-        <%= link_to_function(icon('remove', 'Cancel'), "disable_edit('autoreplace_attrs')", :class => 'btn btn-danger') %>
-      </div>
-    <% end %>
-  </div>
-  <script>
-    disable_edit('autoreplace_attrs');
-  </script>
+  <%= section_panel 'Autoreplace Configuration', :width => 'full', :position => 'left' do %>
+    <%= render('base/shared/edit_form',
+               {:resource   => @platform,
+                :content    => 'autoreplace_configuration',
+                :form_url   => autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform),
+                # :form_method => :put,
+                :cancel_url => autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform)}) %>
+  <% end %>
 </div>
