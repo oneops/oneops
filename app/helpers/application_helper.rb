@@ -1143,10 +1143,8 @@ module ApplicationHelper
   end
 
   def ci_doc_link(ci, label, opts = {})
-    asset_url = Settings.asset_url
-    return nil if asset_url.blank?
-
-    anchor = opts[:anchor]
+    asset_url = Settings.asset_url.presence || 'cms/'
+    anchor    = opts[:anchor]
     link_to(raw(label),
             "#{asset_url}#{ci.ciClassName.split('.')[1..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
@@ -1154,12 +1152,10 @@ module ApplicationHelper
   end
 
   def platform_doc_link(platform, label, opts = {})
-    asset_url = Settings.asset_url
-    return nil if asset_url.blank?
-
-    ci_attrs = platform.ciAttributes
-    pack     = ci_attrs.pack
-    anchor   = opts[:anchor]
+    asset_url = Settings.asset_url.presence || 'cms/'
+    ci_attrs  = platform.ciAttributes
+    pack      = ci_attrs.pack
+    anchor    = opts[:anchor]
     link_to(raw(label),
             "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
