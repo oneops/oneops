@@ -1,5 +1,5 @@
 class AssembliesController < ApplicationController
-  include ::TeamAccess, ::CostSummary
+  include ::TeamAccess, ::CostSummary, ::NotificationSummary
 
   before_filter :find_assembly, :only => [:search, :show, :edit, :update, :destroy, :new_clone, :clone,
                                           :teams, :update_teams, :reports, :notifications, :cost_rate, :cost]
@@ -242,10 +242,6 @@ class AssembliesController < ApplicationController
       format.js   { render :action => :teams }
       format.json { render :json => @teams }
     end
-  end
-
-  def notifications
-    @notifications = Search::Notification.find_by_ns("#{assembly_ns_path(@assembly)}/", :size => 50)
   end
 
 
