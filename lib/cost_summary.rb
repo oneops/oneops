@@ -44,7 +44,7 @@ module CostSummary
     end
 
     respond_to do |format|
-      format.html {render 'base/cost/_cost'}
+      format.html {render 'base/cost/_cost_summary'}
       format.js {render 'base/cost/cost'}
       format.json do
         if @cost
