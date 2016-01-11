@@ -143,31 +143,36 @@ class ReportsController < ApplicationController
     end
 
     groupings = [{:name => :by_service, :label => 'Service Type'},
-                 {:name => :by_cloud, :label => 'Cloud'}]
-    ns_path_depth = @ns_path.split('/').size
+                 {:name => :by_cloud, :label => 'Cloud', :url => lambda {|x| edit_cloud_path(x)}}]
+    ns_path_split = @ns_path.split('/')
+    ns_path_depth = ns_path_split.size
     if ns_path_depth == 2
       groupings << {:name  => :by_assembly,
                     :label => 'Assembly',
                     :path  => :by_ns,
-                    :sum   => lambda { |x| x.split('/')[2] }}
+                    :sum   => lambda {|x| x.split('/')[2]},
+                    :url   => lambda {|x| assembly_path(x)}}
       groupings << {:name  => :by_environment,
                     :label => 'Environment',
                     :path  => :by_ns,
-                    :sum   => lambda { |x| x.split('/')[2..3].join('/') }}
+                    :sum   => lambda {|x| x.split('/')[2..3].join('/')},
+                    :url   => lambda {|x| split = x.split('/'); assembly_transition_environment_path(split[0], split[1])}}
     elsif ns_path_depth == 3
       groupings << {:name  => :by_environment,
                     :label => 'Environment',
                     :path  => :by_ns,
-                    :sum   => lambda { |x| x.split('/')[3] }}
+                    :sum   => lambda {|x| x.split('/')[3]},
+                    :url   => lambda {|x| assembly_transition_environment_path(ns_path_split[2], x)}}
       groupings << {:name  => :by_platform,
                     :label => 'Platform',
                     :path  => :by_ns,
-                    :sum   => lambda { |x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" }}
+                    :sum   => lambda {|x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}"}}
     elsif ns_path_depth == 4
       groupings << {:name  => :by_platform,
                     :label => 'Platform',
                     :path  => :by_ns,
-                    :sum   => lambda { |x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" }}
+                    :sum   => lambda {|x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}"},
+                    :url   => lambda {|x| ns_split = x.split('/'); assembly_transition_environment_platform_path(ns_path_split[2], ns_path_split[3], x.sub(' ver.', '!'))}}
     end
 
     data = Search::Cost.cost_time_histogram(@ns_path, @start_date, @end_date, @interval)
@@ -183,10 +188,13 @@ class ReportsController < ApplicationController
         end
         xy.last << groupings.inject({}) do |grouping_data, grouping|
           grouping_name = grouping[:name]
-          grouping_data[grouping_name] = time_bucket[(grouping[:path].presence || grouping_name).to_s]['buckets'].inject([]) do |aa, grouping_bucket|
-            aa << {:label => grouping_bucket['key'], :value => grouping_bucket['cost']['value'].round(2)}
-          end
           sum = grouping[:sum]
+          url = grouping[:url]
+          grouping_data[grouping_name] = time_bucket[(grouping[:path].presence || grouping_name).to_s]['buckets'].inject([]) do |aa, grouping_bucket|
+            aa << {:label => grouping_bucket['key'],
+                   :value => grouping_bucket['cost']['value'].round(2),
+                   :url   => url && !sum && url.call(grouping_bucket['key'])}
+          end
           if sum
             sum_aggs = grouping_data[grouping_name].inject({}) do |r, e|
               key = sum.call(e[:label])
@@ -194,7 +202,9 @@ class ReportsController < ApplicationController
               r[key] += e[:value]
               r
             end
-            grouping_data[grouping_name] = sum_aggs.map {|k, v| {:label => k, :value => v.round(2)}}
+            grouping_data[grouping_name] = sum_aggs.map {|k, v| {:label => k,
+                                                                 :value => v.round(2),
+                                                                 :url   => url && url.call(k)}}
           end
           grouping_data[:total] = time_bucket['total']['value'].round(2)
           grouping_data

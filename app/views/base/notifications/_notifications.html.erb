@@ -1,6 +1,6 @@
 <%= render('base/shared/graph_bar', :data => @histogram, :height => 150) if @histogram %>
 <% if @notifications %>
-  <%= notification_list @notifications, :toolbar => nil %>
+  <%= notification_list @notifications, :toolbar => nil, :new_link => notification_reports_path(:ns_path => @ns_path, :period => 'today') %>
 <% else %>
   <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to retrieve notifications</strong></p>
 <% end %>

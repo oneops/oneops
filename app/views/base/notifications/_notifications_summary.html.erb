@@ -1,0 +1,13 @@
+<% url = @assembly ? notifications_assembly_path(@assembly) : notifications_organization_path
+   menu = [link_to(icon('bar-chart icon-large'),
+                   notification_reports_path(:path => @assembly ? assembly_ns_path(@assembly) : organization_ns_path, :period => 'today'),
+                   :class => 'btn btn-mini')]
+   menu << link_to(icon('refresh'), url, :remote => true, :class => 'btn btn-mini') if Rails.env.shared? %>
+<%= section_panel 'Notifications', :width => 'double', :position => 'left', :menu => menu do %>
+  <div class="notifications-summary">
+    <i class="icon-spinner icon-spin"></i> Loading...
+  </div>
+  <script>
+    <%= remote_function(:url => url, :method => :get) %>
+  </script>
+<% end %>

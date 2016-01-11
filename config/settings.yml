@@ -88,6 +88,8 @@ defaults: &defaults
   allow_cors: <%= ENV['ALLOW_CORS'] || 'true' %>
   session_inactivity_timeout: <%= ENV['SESSION_INACTIVITY_TIMEOUT'] || 30 %>
 
+  show_cost: <%= ENV['SHOW_COST'] || 'false' %>
+
 development: &development
   <<: *defaults
   authentication: database
