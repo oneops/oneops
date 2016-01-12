@@ -1,0 +1,34 @@
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0" 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.0 http://maven.apache.org/xsd/assembly-1.1.0.xsd">
+  <id>fat</id>
+  <formats>
+    <format>jar</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <dependencySets>
+    <dependencySet>
+      <outputDirectory>/</outputDirectory>
+      <unpack>true</unpack>
+      <scope>runtime</scope>
+	  <excludes>
+        <exclude>aopalliance:aopalliance</exclude>
+        <exclude>org.bouncycastle:bcprov-jdk16</exclude>
+        <exclude>commons-logging:commons-logging</exclude>
+        <exclude>org.mybatis:mybatis</exclude>
+        <exclude>org.mybatis:mybatis-spring</exclude>
+        <exclude>log4j:log4j</exclude>
+        <exclude>org.springframework:spring-aop</exclude>
+        <exclude>org.springframework:spring-asm</exclude>
+        <exclude>org.springframework:spring-beans</exclude>
+        <exclude>org.springframework:spring-context</exclude>
+        <exclude>org.springframework:spring-core</exclude>
+        <exclude>org.springframework:spring-expression</exclude>
+        <exclude>org.springframework:spring-tx</exclude>
+        <exclude>org.springframework:spring-jdbc</exclude>
+        <exclude>com.google.code.gson:gson</exclude>
+        <exclude>org.apache.activemq:activemq-all</exclude>
+      </excludes>
+    </dependencySet>
+  </dependencySets>
+</assembly>
