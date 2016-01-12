@@ -31,10 +31,4 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Recent Notifications',
-                  :id       => 'summary_notifications',
-                  :width    => 'double',
-                  :position => 'left',
-                  :menu     => [link_to(icon('filter', 'filter'), notification_reports_path(:period => 'this week', :path => environment_ns_path(@environment)), :class => 'btn btn-mini')] do %>
-  <%= notification_list @notifications, :toolbar => nil %>
-<% end %>
+<%= render 'base/notifications/notifications_summary' %>

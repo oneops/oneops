@@ -1,4 +1,6 @@
 class Operations::EnvironmentsController < Base::EnvironmentsController
+  include ::NotificationSummary
+
   before_filter :find_assembly_and_environment
 
   def index
@@ -32,8 +34,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
         load_platform_cloud_instances_map
         @ops_states = Operations::Sensor.states(@deloyed_to_rels.map(&:fromCiId))
-
-        load_notifications
       end
 
       format.json { render_json_ci_response(true, @environment) }
@@ -72,11 +72,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
-  def notifications
-    load_notifications
-    render :json => @notifications
-  end
-
   def cost_rate
     @cost_rate = Search::Cost.cost_rate(environment_bom_ns_path(@environment))
     respond_to do |format|
@@ -84,6 +79,13 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
       format.js
       format.json {render :json => @cost_rate}
     end
+  end
+
+
+  protected
+
+  def search_ns_path
+    environment_ns_path(@environment)
   end
 
 
@@ -132,9 +134,5 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
       t[:children].push(platform)
     end
     return t
-  end
-
-  def load_notifications
-    @notifications = Search::Notification.find_by_ns("#{environment_ns_path(@environment)}/", :size => 50, :_silent => true)
   end
 end

@@ -1,0 +1,6 @@
+<% if @availability %>
+  <%= render 'availability_graph', :availability => @availability, :legend => false %>
+  <%= link_to_function(highlight(pluralize(@notifications.size, 'notification')), "setHashParam('#', 'notifications');") %>
+<% else %>
+  <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to retrieve availability data</strong></p>
+<% end %>
