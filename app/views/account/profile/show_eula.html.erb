@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="icon" type="image/png" href="<%= asset_path('logo-notext-32x32.png') %>"/>
+  <link rel="shortcut icon" href="<%= asset_path('logo-notext-64x64.png') %>"/>
+  <link rel="apple-touch-icon" href="<%= asset_path('logo-touch-144x144.png') %>"/>
+  <title>OneOps</title>
+
+  <%= stylesheet_link_tag 'application', :media => 'all' %>
+  <%= javascript_include_tag 'application' %>
+  <%= csrf_meta_tag %>
+</head>
+<body>
+<div id="container">
+    <div id="main" class="rounded-bottom">
+      <% terms_of_service_url = Settings.terms_of_service_url
+         privacy_policy_url = Settings.privacy_policy_url %>
+      <% if terms_of_service_url %>
+      <% end %>
+      <h1>Terms of Service</h1>
+      <br/>
+
+      <p>
+      <h5>
+        Please review our Terms of Service <%= link_to('here', terms_of_service_url, :target => '_blank') %> and accept
+        it below.
+      </h5>
+      </p>
+      <p>
+        BY SIGNING UP FOR AN ACCOUNT OR BY USING THE SERVICE, YOU HEREBY ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTAND, AND
+        AGREE TO BE BOUND BY THESE TERMS OF SERVICE.
+        THE TERMS "YOU" OR "YOUR" REFERS TO THE INDIVIDUAL OR CORPORATE END USER THAT IS SPECIFIED IN THE REGISTRATION
+        INFORMATION ASSOCIATED WITH SUCH END USER'S ACCOUNT FOR THE SERVICE.
+      </p>
+      <br/>
+      <hr/>
+
+      <% if privacy_policy_url.present? %>
+        <p>
+        <h4><strong>Privacy</strong></h4>
+        <h5>Please review our <%= link_to('Privacy Policy', privacy_policy_url, :target => '_blank') %>, which also
+          governs your use of the Service, to understand our practices and policies.</h5>
+        The terms Privacy Policy are expressly incorporated herein and made part of these Terms.
+        </p>
+      <% end %>
+      <hr>
+      <br/>
+      <%= form_tag accept_eula_account_profile_path, :method => :put, :class => 'form-inline' do %>
+        <label class="checkbox" for="eula_accepted">
+          <%= check_box_tag :eula_accepted, 'true', false, :onclick => '$j(this).parents("form").find("input[type=submit]").attr("disabled", !this.checked)' %>
+          <strong>I accept this Terms of Service</strong>
+        </label>
+        &nbsp;
+        &nbsp;
+        &nbsp;
+        <%= submit_tag 'Continue', :class => 'btn btn-primary', :disabled => true %>
+      <% end %>
+    </div>
+  </div>
+</body>
