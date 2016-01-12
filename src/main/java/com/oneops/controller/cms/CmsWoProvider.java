@@ -17,15 +17,6 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -55,6 +46,10 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.es.offerings.percolator.OfferingsMatcher;
+import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * The Class CmsWoProvider.
@@ -573,14 +568,14 @@ public class CmsWoProvider {
 	}
 
 	private List<CmsRfcCI>  getRequiresComputes(CmsRfcCI rfc) {
-		
+
 		List<CmsRfcCI> computes = new ArrayList<CmsRfcCI>();
-		CmsCI platform = getBox(rfc.getCiId());			
-		
-		List<CmsCIRelation> manifestComputeList = cmProcessor.getFromCIRelationsNakedNoAttrs(platform.getCiId(), "manifest.Requires", null, "manifest.Compute");
+		CmsCI platform = getBox(rfc.getCiId());
+
+		List<CmsCIRelation> manifestComputeList = cmProcessor.getFromCIRelationsNakedNoAttrs(platform.getCiId(), "manifest.Requires", null, "Compute");
 
 		for (CmsCIRelation rel : manifestComputeList) {
-			List<CmsRfcRelation> bomComputeRels = cmrfcProcessor.getFromCIRelations(rel.getToCiId(), "base.RealizedAs", "bom.Compute", "df");
+			List<CmsRfcRelation> bomComputeRels = cmrfcProcessor.getFromCIRelations(rel.getToCiId(), "base.RealizedAs", null, "df");
 			for (CmsRfcRelation realized : bomComputeRels) {
 				computes.add(realized.getToRfcCi());
 			}
