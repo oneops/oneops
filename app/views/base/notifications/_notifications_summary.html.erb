@@ -1,6 +1,15 @@
-<% url = @assembly ? notifications_assembly_path(@assembly) : notifications_organization_path
+<% if @environment
+     url = notifications_assembly_operations_environment_path(@assembly, @environment)
+     ns_path = environment_ns_path(@environment)
+   elsif @assembly
+     url = notifications_assembly_path(@assembly)
+     ns_path = assembly_ns_path(@assembly)
+   else
+     url = notifications_organization_path
+     ns_path = organization_ns_path
+   end
    menu = [link_to(icon('bar-chart icon-large'),
-                   notification_reports_path(:path => @assembly ? assembly_ns_path(@assembly) : organization_ns_path, :period => 'today'),
+                   notification_reports_path(:path => ns_path, :period => 'today'),
                    :class => 'btn btn-mini')]
    menu << link_to(icon('refresh'), url, :remote => true, :class => 'btn btn-mini') if Rails.env.shared? %>
 <%= section_panel 'Notifications', :width => 'double', :position => 'left', :menu => menu do %>

@@ -1,4 +1,4 @@
-<% if true || Settings.show_cost %>
+<% if Settings.show_cost %>
   <% url = @assembly ? cost_assembly_path(@assembly) : cost_organization_path
      menu = [link_to(icon('bar-chart icon-large'),
                      cost_reports_path(:ns_path => @assembly ? assembly_ns_path(@assembly) : organization_ns_path),

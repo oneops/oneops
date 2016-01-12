@@ -35,10 +35,12 @@
 <% end %>
 
 <%= section_panel 'Availability (%)', :width => 'single', :position => 'right' do %>
-  <%= render 'availability_graph', :availability => @availability, :legend => false %>
-  <% if @notifications.present? %>
-    <%= link_to(highlight(pluralize(@notifications.size, 'notification')), :anchor => 'notifications') %>
-  <% end %>
+  <div class="availability-summary">
+    <i class="icon-spinner icon-spin"></i> Loading...
+  </div>
+  <script>
+    <%= remote_function(:url => availability_assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance), :method => :get) %>
+  </script>
 <% end %>
 
 <%= section_panel 'Important Attributes', :width => 'double', :position => 'left' do %>
@@ -71,7 +73,6 @@
       </tbody>
     </table>
 	<% end %>
-
 <% end %>
 
 <%= render :partial => 'operations/procedures/toggle_procedure_log' %>
