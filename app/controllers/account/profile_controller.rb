@@ -3,6 +3,7 @@ class Account::ProfileController < ApplicationController
   skip_before_filter :check_username, :only => [:authentication_token]
   skip_before_filter :check_eula, :only => [:show_eula, :accept_eula]
   skip_before_filter :check_organization, :only => [:show, :update, :hide_wizard, :change_password, :change_organization, :reset_authentication_token, :show_eula, :accept_eula]
+  layout false, :only => [:show_eula]
 
   def show
     respond_to do |format|
