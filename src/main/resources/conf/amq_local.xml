@@ -1,0 +1,235 @@
+<beans
+        xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+    <!-- Allows us to use system properties as variables in this configuration file -->
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <value>file:${activemq.conf}/credentials.properties</value>
+        </property>
+    </bean>
+
+    <bean id="cmsClient" class="com.oneops.amq.plugins.CMSClient">
+        <property name="restTemplate" ref="restTemplate"/>
+        <property name="serviceUrl" value="http://cmsapi:8080/adapter/rest/"/>
+    </bean>
+
+    <bean id="postgres-ds" class="org.postgresql.ds.PGPoolingDataSource">
+        <property name="serverName" value="sysdb"/>
+        <property name="databaseName" value="activemq"/>
+        <property name="portNumber" value="5432"/>
+        <property name="user" value="activemq"/>
+        <property name="password" value="activemq"/>
+        <property name="dataSourceName" value="postgres"/>
+        <property name="initialConnections" value="30"/>
+        <property name="maxConnections" value="30"/>
+        <property name="tcpKeepAlive" value="true"/>
+    </bean>
+
+    <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+        <property name="supportedMediaTypes" value="application/json"/>
+    </bean>
+
+    <bean class="org.springframework.web.client.RestTemplate" id="restTemplate">
+        <property name="messageConverters">
+            <list>
+                <ref bean="jsonMessageConverter"/>
+            </list>
+        </property>
+    </bean>
+
+    <!--
+        The <broker> element is used to configure the ActiveMQ broker.
+    -->
+    <broker xmlns="http://activemq.apache.org/schema/core" brokerName="localhost" useJmx="true"
+            dataDirectory="${activemq.data}">
+
+        <destinationInterceptors>
+            <virtualDestinationInterceptor>
+                <virtualDestinations>
+                    <compositeTopic name="CMS.ALL" forwardOnly="false">
+                        <forwardTo>
+                            <filteredDestination selector="source='deployment' OR source='release'"
+                                                 queue="CONTROLLER.WO"/>
+                            <filteredDestination selector="source='opsprocedure'" queue="CONTROLLER.AO"/>
+                            <filteredDestination selector="source='deployment' OR source='opsprocedure' OR source='cm_ci' OR source='cm_ci_rel' OR source='release' OR source='namespace'"
+                                                 queue="search.stream"/>
+                        </forwardTo>
+                    </compositeTopic>
+                </virtualDestinations>
+            </virtualDestinationInterceptor>
+            <virtualDestinationInterceptor>
+                <virtualDestinations>
+                    <compositeQueue name="NOTIFICATIONS" forwardOnly="false">
+                        <forwardTo>
+                            <queue physicalName="search.stream"/>
+                        </forwardTo>
+                    </compositeQueue>
+                </virtualDestinations>
+            </virtualDestinationInterceptor>
+            <virtualDestinationInterceptor>
+                <virtualDestinations>
+                    <compositeQueue name="ActiveMQ.DLQ" forwardOnly="false">
+                        <forwardTo>
+                            <queue physicalName="search.stream"/>
+                        </forwardTo>
+                    </compositeQueue>
+                </virtualDestinations>
+            </virtualDestinationInterceptor>
+        </destinationInterceptors>
+
+        <destinationPolicy>
+            <policyMap>
+                <policyEntries>
+                    <policyEntry topic=">" producerFlowControl="false" memoryLimit="256mb">
+                        <pendingSubscriberPolicy>
+                            <vmCursor/>
+                        </pendingSubscriberPolicy>
+                    </policyEntry>
+                    <policyEntry queue=">" producerFlowControl="false" usePrefetchExtension="false">
+                    </policyEntry>
+                </policyEntries>
+            </policyMap>
+        </destinationPolicy>
+
+        <destinations>
+            <queue physicalName="CONTROLLER.WO"/>
+            <queue physicalName="CONTROLLER.AO"/>
+            <queue physicalName="search.stream"/>
+        </destinations>
+
+        <!--
+            The managementContext is used to configure how ActiveMQ is exposed in
+            JMX. By default, ActiveMQ uses the MBean server that is started by
+            the JVM. For more information, see:
+
+            http://activemq.apache.org/jmx.html
+        -->
+        <managementContext>
+            <managementContext createConnector="false"/>
+        </managementContext>
+
+        <!--
+            Configure message persistence for the broker. The default persistence
+            mechanism is the KahaDB store (identified by the kahaDB tag).
+            For more information, see:
+
+            http://activemq.apache.org/persistence.html
+        -->
+        <persistenceAdapter>
+            <!-- kahaDB directory="${activemq.data}/kahadb"/ -->
+            <jdbcPersistenceAdapter dataSource="#postgres-ds">
+                <statements>
+                    <statements>
+                        <property xmlns="http://www.springframework.org/schema/beans" name="createSchemaStatements">
+                            <list>
+
+                                <value>CREATE TABLE ACTIVEMQ_MSGS
+                                    (ID BIGINT NOT NULL,
+                                    PRIORITY BIGINT,
+                                    XID VARCHAR(250),
+                                    CONTAINER VARCHAR(250),
+                                    MSGID_PROD VARCHAR(250),
+                                    MSGID_SEQ BIGINT,
+                                    EXPIRATION BIGINT,
+                                    MSG BYTEA, PRIMARY KEY ( ID ) )
+                                </value>
+
+                                <value>CREATE INDEX ACTIVEMQ_MSGS_MIDX ON ACTIVEMQ_MSGS (MSGID_PROD,MSGID_SEQ)</value>
+                                <value>CREATE INDEX ACTIVEMQ_MSGS_XIDX ON ACTIVEMQ_MSGS (XID)</value>
+                                <value>CREATE INDEX ACTIVEMQ_MSGS_CIDX ON ACTIVEMQ_MSGS (CONTAINER)</value>
+                                <value>CREATE INDEX ACTIVEMQ_MSGS_EIDX ON ACTIVEMQ_MSGS (EXPIRATION)</value>
+                                <value>CREATE INDEX ACTIVEMQ_MSGS_PIDX ON ACTIVEMQ_MSGS (PRIORITY)</value>
+
+
+                                <value>CREATE TABLE ACTIVEMQ_ACKS
+                                    (CONTAINER VARCHAR(250) NOT NULL,
+                                    SUB_DEST VARCHAR(250),
+                                    CLIENT_ID VARCHAR(250) NOT NULL,
+                                    SUB_NAME VARCHAR(250) NOT NULL,
+                                    SELECTOR VARCHAR(250),
+                                    LAST_ACKED_ID BIGINT,
+                                    PRIORITY BIGINT DEFAULT 5 NOT NULL,
+                                    XID VARCHAR(250),
+                                    PRIMARY KEY ( CONTAINER, CLIENT_ID, SUB_NAME,PRIORITY))
+                                </value>
+                                <value>CREATE INDEX ACTIVEMQ_ACKS_XIDX ON ACTIVEMQ_ACKS (XID)</value>
+
+                                <value>CREATE TABLE ACTIVEMQ_LOCK
+                                    (ID BIGINT NOT NULL,
+                                    TIME BIGINT,
+                                    BROKER_NAME VARCHAR(250), PRIMARY KEY (ID))
+                                </value>
+
+                                <value>INSERT INTO ACTIVEMQ_LOCK (ID) VALUES (1)</value>
+
+                            </list>
+                        </property>
+                    </statements>
+                </statements>
+            </jdbcPersistenceAdapter>
+        </persistenceAdapter>
+
+
+        <sslContext>
+            <sslContext keyStore="broker.ks" keyStorePassword="kloopz"/>
+        </sslContext>
+
+        <plugins>
+            <bean xmlns="http://www.springframework.org/schema/beans" id="authorizationPlugin"
+                  class="com.oneops.amq.plugins.OneopsAuthPlugin">
+                <property name="cms" ref="cmsClient"/>
+            </bean>
+        </plugins>
+
+        <!--
+          The systemUsage controls the maximum amount of space the broker will
+          use before disabling caching and/or slowing down producers. For more information, see:
+          http://activemq.apache.org/producer-flow-control.html
+
+        <systemUsage>
+            <systemUsage>
+                <memoryUsage>
+                    <memoryUsage percentOfJvmHeap="70"/>
+                </memoryUsage>
+                <storeUsage>
+                    <storeUsage limit="100 gb"/>
+                </storeUsage>
+                <tempUsage>
+                    <tempUsage limit="50 gb"/>
+                </tempUsage>
+            </systemUsage>
+        </systemUsage>
+        -->
+
+        <!--
+            The transport connectors expose ActiveMQ over a given protocol to
+            clients and other brokers. For more information, see:
+
+            http://activemq.apache.org/configuring-transports.html
+        -->
+        <transportConnectors>
+            <!-- transportConnector name="openwire"      uri="tcp://0.0.0.0:61616"/>
+            <transportConnector name="openwire-ssl"  uri="ssl://0.0.0.0:61617"/-->
+            <transportConnector name="nio" uri="nio://0.0.0.0:61616"/>
+            <transportConnector name="nio+ssl" uri="nio+ssl://0.0.0.0:61617"/>
+        </transportConnectors>
+
+        <!-- destroy the spring context on shutdown to stop jetty -->
+        <shutdownHooks>
+            <bean xmlns="http://www.springframework.org/schema/beans" class="org.apache.activemq.hooks.SpringContextHook" />
+        </shutdownHooks>
+
+    </broker>
+
+    <!--
+        Enable web consoles, REST and Ajax APIs and demos
+        The web consoles requires by default login, you can disable this in the jetty.xml file
+
+        Take a look at ${ACTIVEMQ_HOME}/conf/jetty.xml for more details
+    -->
+    <import resource="jetty.xml"/>
+
+</beans>
