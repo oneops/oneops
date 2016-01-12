@@ -136,18 +136,6 @@ class Operations::InstancesController < ApplicationController
                                                     :relationShortName => 'WatchedBy',
                                                     :direction         => 'from',
                                                     :includeToCi       => true}).map(&:toCi)
-
-
-        created        = @instance.created / 1000
-        start_time     = 7.days.ago.to_i
-        @notifications = Search::Notification.find_by_ci_id(@instance.ciId, :since => start_time, :_silent => true)
-        if @notifications
-          ops_notifications = @notifications.select {|n| n['source'] == 'ops'}
-          @availability     = [calculate_availability(ops_notifications,
-                                                      @ops_state,
-                                                      start_time > created ? start_time : created,
-                                                      Time.now.to_i).merge(:label => '7 days')]
-        end
       end
 
       format.json do
@@ -204,6 +192,26 @@ class Operations::InstancesController < ApplicationController
   def cancel_deployment
     @instance.records('inprogress').each {|r| r.update_attribute(:dpmtRecordState, 'canceled')}
     @inprogress_records = @instance.records('inprogress')
+  end
+
+
+  def availability
+    created        = @instance.created / 1000
+    start_time     = 7.days.ago.to_i
+    @notifications = Search::Notification.find_by_ci_id(@instance.ciId, :since => start_time, :_silent => true)
+    if @notifications
+      @ops_state  = Operations::Sensor.states([@instance])[@instance.ciId]
+      @availability     = [calculate_availability(@notifications.select {|n| n['source'] == 'ops'},
+                                                  @ops_state,
+                                                  start_time > created ? start_time : created,
+                                                  Time.now.to_i).merge(:label => '7 days')]
+    end
+
+    respond_to do |format|
+      format.html {render '_availability'}
+      format.js
+      format.json {render :json => @availability}
+    end
   end
 
   def notifications
