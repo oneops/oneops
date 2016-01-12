@@ -15,9 +15,6 @@
   <%= stylesheet_link_tag 'application', :media => 'all' %>
   <%= javascript_include_tag 'application' %>
   <%= csrf_meta_tag %>
-  <% if Settings.identity == 'cd3' %>
-   <script type="text/javascript">(function() {var walkme = document.createElement('script'); walkme.type = 'text/javascript'; walkme.async = true; walkme.src = 'https://d3b3ehuo35wzeh.cloudfront.net/users/c22f29079dc14b85be39cde25f55b61c/walkme_c22f29079dc14b85be39cde25f55b61c_https.js'; var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(walkme, s);})();</script>
- <% end %>
 </head>
 <body>
   <% show_sidebar    = session[:sidebar].blank? || session[:sidebar] == 'true'
