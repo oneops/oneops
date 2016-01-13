@@ -172,7 +172,7 @@ public class EnvPropsProcessor {
 		if (ciAttrib == null || ! "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
 			return null;
 		}
-		return platform;
+		return getEnv4Bom(ciId);
 	}
 
 	/**
