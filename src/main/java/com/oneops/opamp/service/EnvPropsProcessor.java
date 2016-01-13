@@ -131,7 +131,7 @@ public class EnvPropsProcessor {
 		
 		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair");
 		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue())){
-			return platform;
+			return getEnv4Bom(ciId);
 		} 
 		return null;
 	}
@@ -151,7 +151,7 @@ public class EnvPropsProcessor {
 		
 		CmsCIAttribute ciAttrib = platform.getAttribute("autoscale");
 		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
-			return platform;
+			return getEnv4Bom(ciId);
 		}
 		return null;
 	}
@@ -172,7 +172,7 @@ public class EnvPropsProcessor {
 		if (ciAttrib == null || ! "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
 			return null;
 		}
-		return platform;
+		return getEnv4Bom(ciId);
 	}
 
 	/**
