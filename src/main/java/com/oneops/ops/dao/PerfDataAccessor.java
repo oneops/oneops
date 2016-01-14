@@ -78,8 +78,6 @@ import com.oneops.sensor.events.PerfEvent;
 import com.oneops.sensor.events.PerfEventPayload;
 
 /**
- * @author mike
- * 
  *         PerfDataAccessor - encapsulates cassandra data access for performance
  *         data clients: write: PerfSink uses process() and constructor or
  *         property setters for cassandra connection read:
