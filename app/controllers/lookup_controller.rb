@@ -74,6 +74,37 @@ class LookupController < ApplicationController
     end
   end
 
+  def policy_violations
+    clazz = nil
+    attrs = params[:cms_ci]
+    if attrs.present?
+      clazz = Cms::Ci
+    else
+      attrs = params[:cms_dj_ci]
+      clazz = Cms::DjCi if attrs.present?
+    end
+
+    unless clazz
+      render :json => {:errors => ["Invalid payload: 'cms_ci' || 'cms_dj_ci' structure is expected."]}, :status => :unprocessable_entity
+      return
+    end
+
+    ci = clazz.new(attrs, true)
+    unless authorize(ci.nsPath)
+      respond_to do |format|
+        format.js
+        format.json {render :json => {}, :status => :unauthorized}
+      end
+      return
+    end
+
+    @violations = ci.violates_policies
+    respond_to do |format|
+      format.js
+      format.json {render :json => @violations}
+    end
+  end
+
 
   private
 

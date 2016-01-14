@@ -133,6 +133,10 @@ Display::Application.routes.draw do
       get 'counterparts', :on => :collection
     end
 
+    resource :ci, :controller => 'lookup', :only => :none do
+      post 'policy_violations', :on => :collection
+    end
+
     #Provider services
     resources :services, :controller => 'services/services' do
       get :available, :on => :collection
@@ -247,7 +251,7 @@ Display::Application.routes.draw do
       resource :transition, :controller => 'transition', :only => [:show]
 
       namespace :transition do
-        resources :environments, :except => [:edit] do
+        resources :environments do
           post 'pull',         :on => :member
           post 'commit',       :on => :member
           post 'force_deploy', :on => :member
