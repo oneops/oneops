@@ -147,9 +147,11 @@
             <div id="page_header_container">
               <% if current_user.eula_accepted_at? %>
                 <div id="page_header">
-                  <%= render :partial => 'layouts/announcements' %>
+                  <% announcements = MiscDoc.announcements.document %>
+                  <%= render 'layouts/announcement', :announcement => announcements['critical'], :style => 'danger' %>
+                  <%= render 'layouts/announcement', :announcement => announcements['notice'], :style => 'info' %>
                   <div id="org_announcement">
-                    <%= render :partial => 'organization/announcement' if current_org && current_org.announcement.present? %>
+                    <%= render 'layouts/announcement', :announcement => current_org && current_org.announcement %>
                   </div>
                   <% wiz = wizard %>
                   <% if wiz.present? %>
