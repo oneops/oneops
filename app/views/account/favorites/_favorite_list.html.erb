@@ -14,10 +14,11 @@
       <% item_builder.target link_to('', favorite_path(:org_name => org_name, :id => item.ci_id)) %>
       <% item_builder.icon ci_class_image_url(item.ci_class_name) %>
       <% item_builder.top do %>
+        <small><%= (item.ci_class_name.presence || '').split('.').last.downcase %></small>
         <%= item.ci_name %>
         <%= link_to('remove', favorite_path(:org_name => org_name, :id => item.ci_id, :index => true), :method => :delete, :remote => true, :class => 'btn btn-mini btn-danger pull-right') %>
       <% end %>
-      <% item_builder.middle link_to(item.ns_path, path_to_ns(item.ns_path))  %>
+      <% item_builder.middle link_to(item.ns_path, path_to_ns(item.ns_path)) %>
     <% end %>
   <% end %>
 <% end %>
