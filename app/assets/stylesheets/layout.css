@@ -2514,11 +2514,11 @@ ul.status div.description .menu .dropdown-menu > li > a {
   color: inherit;
 }
 
-ul.status div.description > .dl-horizontal dt {
+ul.status div.description > .dl-horizontal > dt {
   width: 20px;
 }
 
-ul.status div.description > .dl-horizontal dd {
+ul.status div.description > .dl-horizontal > dd {
   margin-left: 30px;
 }
 
@@ -3487,7 +3487,7 @@ div.status .label {
 }
 
 .triple .input-xlarge {
-  width: 880px;
+  width: 680px;
 }
 
 .triple .input-xlarge.encrypted {
@@ -3886,6 +3886,25 @@ div.category > .name {
 
 .announcement {
   margin: 5px;
+  position: relative;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.announcement.collapsed {
+  height: 14px;
+  overflow: hidden;
+}
+
+.announcement > p {
+  margin: 0;
+  padding: 0;
+}
+
+.announcement > a.toggle {
+  position: absolute;
+  right: 10px;
+  top : 5px;
 }
 
 hr {

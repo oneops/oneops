@@ -4,7 +4,7 @@ class Base::PlatformsController < ApplicationController
       format.html do
         group_map = get_platform_requires_relation_temlates(@platform, @environment).inject({}) do |map, r|
           template_name    = r.toCi.ciName.split('::').last
-          short_class_name = r.toCi.ciClassName.split('.').last
+          short_class_name = r.toCi.ciClassName.split('.')[2..-1].join('.')
           cardinality      = r.relationAttributes.constraint.gsub('*', '999')
           group_id = "#{template_name}_#{@platform.ciId}"
           map.update(group_id => {:id            => group_id,

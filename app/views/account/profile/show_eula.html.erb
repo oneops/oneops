@@ -15,16 +15,15 @@
     <div id="main" class="rounded-bottom">
       <% terms_of_service_url = Settings.terms_of_service_url
          privacy_policy_url = Settings.privacy_policy_url %>
-      <% if terms_of_service_url %>
-      <% end %>
       <h1>Terms of Service</h1>
       <br/>
-
       <p>
-      <h5>
-        Please review our Terms of Service <%= link_to('here', terms_of_service_url, :target => '_blank') %> and accept
-        it below.
-      </h5>
+        <% if terms_of_service_url %>
+          <h5>
+            Please review our Terms of Service <%= link_to('here', terms_of_service_url, :target => '_blank') %> and accept
+            it below.
+          </h5>
+        <% end %>
       </p>
       <p>
         BY SIGNING UP FOR AN ACCOUNT OR BY USING THE SERVICE, YOU HEREBY ACKNOWLEDGE THAT YOU HAVE READ, UNDERSTAND, AND

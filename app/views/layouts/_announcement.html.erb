@@ -1,0 +1,14 @@
+<%if announcement.present? %>
+  <% dom_id = random_dom_id %>
+  <div id="<%= dom_id %>" class="announcement alert <%= "alert-#{style}" if defined?(style) == 'local-variable' %> collapsed">
+    <%= link_to_function(icon('caret-down icon-large'), '$j(this).parents(".announcement").toggleClass("collapsed").find("a.toggle > i").toggleClass("icon-caret-down icon-caret-up")', :class => 'toggle hide') %>
+    <p><%= raw(announcement) %></p>
+  </div>
+  <script>
+    var div = $j("#<%= dom_id %>"),
+        p = div.find("p");
+    if (p.height() > parseInt(p.css('line-height'))) {
+      div.find("a.toggle").show();
+    }
+  </script>
+<% end %>

@@ -4,6 +4,6 @@ $j("#organization_panel .section-content").html('<%= escape_javascript(render('b
                                                                                :form_url => organization_path})) %>');
 <% organization_page_header('organization') %>
 $j("#app_nav").html("<%= escape_javascript(content_for(:app_nav)) %>");
-$j("#org_announcement").html("<%= escape_javascript(render('announcement')) %>");
+$j("#org_announcement").html("<%= escape_javascript(render('layouts/announcement', :announcement => current_user.organization.announcement)) %>");
 $j(".sidebar .main").html("<%= escape_javascript(render('layouts/sidebar_menu')) %>");
 $j("#page_info").html("<%= escape_javascript(sanitize(@organization.full_name)) %>");

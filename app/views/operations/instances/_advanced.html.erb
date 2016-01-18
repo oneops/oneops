@@ -2,7 +2,7 @@
   <p>You can force a replacement of this instance by clicking on the button below. Performing this action will only
     mark the instance
     for replacement and you need to force a deployment in this environment to execute the replacement.</p>
-  <%= link_confirm_busy(icon_button('arrow-left', 'Replace', 'success'),
+  <%= link_confirm_busy(icon_button('exchange', 'Replace', 'success'),
                         :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'replace'}),
                         :body    => "This will mark the component instance '#{@instance.ciName}' for replacement in OneOps. Your cloud resources will not be affected immediately. To completely execute the replacement you will need to force a deployment.".html_safe,
                         :confirm => 'Replace?',

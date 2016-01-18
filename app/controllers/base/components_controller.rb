@@ -1,4 +1,4 @@
-    class Base::ComponentsController < ApplicationController
+class Base::ComponentsController < ApplicationController
   before_filter :find_platform
   before_filter :find_component, :only => [:show, :edit, :update, :destroy, :history, :update_services]
 

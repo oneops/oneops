@@ -958,7 +958,7 @@ module ApplicationHelper
         icon = 'minus'
         text = 'error'
       when 'replace'
-        icon = 'arrow-left'
+        icon = 'exchange'
         text = 'success'
       when 'update'
         icon = 'repeat'

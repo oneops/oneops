@@ -142,6 +142,19 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def edit
+    respond_to do |format|
+      format.html do
+        load_profiles
+        load_consumes_relations
+        load_available_clouds
+        render '_configuration'
+      end
+
+      format.json { render_json_ci_response(true, @environment) }
+    end
+  end
+
   def update
     load_available_clouds
     load_consumes_relations

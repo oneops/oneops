@@ -34,30 +34,17 @@
       <% end %>
     <% end %>
     <% if Settings.check_policy_compliance %>
-      <% policies = ci.violates_policies %>
       <dt>Policy Compliance</dt>
-      <% if policies.nil? %>
-        <dd class="text-error"><%= icon('warning-sign') %> <strong>Failed to check policy compliance</strong></dd>
-      <% elsif policies.empty? %>
-        <dd><%= marker('passed', 'label-success') %></dd>
-      <% else %>
-        <dd>
-          <%= marker('failed', 'label-important') %><br/>
-          <ul class="unstyled" style="margin-left:10px">
-            <% policies.each do |p| %>
-              <li>
-                <strong><%= p.ciName %></strong>
-                <% desc = p.ciAttributes.description %>
-                <% if desc.present? %>
-                  - <%= desc %>
-                <% end %>
-                <% doc_url = p.ciAttributes.docurl %>
-                <%= link_to(icon('book', 'more...'), doc_url, :target => '_blank') if doc_url.present? %>
-              </li>
-            <% end %>
-          </ul>
-        </dd>
-      <% end %>
+      <dd class="ci-policy-check">
+        <i class="icon-spinner icon-spin"></i> Checking...
+        <script>
+          $j.ajax({
+            url:  "<%= policy_violations_ci_path %>",
+            type: 'POST',
+            data: {"<%= ci.is_a?(Cms::DjCi) ? 'cms_dj_ci' : 'cms_ci' %>": <%= raw(ci.attributes.to_json) %>}
+          });
+        </script>
+      </dd>
     <% end %>
   </dl>
   <% if ci.respond_to?(:rfcId) && ci.rfcId.to_i > 0 %>
