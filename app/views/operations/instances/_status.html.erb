@@ -7,7 +7,7 @@
              when 'add'
                conf_icon = 'plus'
              when 'replace'
-               conf_icon = 'arrow-left'
+               conf_icon = 'exchange'
              when 'update'
                conf_icon = 'repeat'
              when 'delete'
@@ -58,7 +58,7 @@
       <div class="marker"><%= status_marker('state', @instance.ciState, state_to_label(@instance.ciState)) %></div>
       <div class="description">
         <ul>
-          <li><%= icon('arrow-left', ' ') %>This instance is marked to be <%= highlight('replaced') %></li>
+          <li><%= icon('exchange', ' ') %>This instance is marked to be <%= highlight('replaced') %></li>
           <li>
             <%= icon('time', ' ') %>State modified <strong><%= time_ago_in_words(@instance.updated_timestamp) %></strong>
             <% if @instance.updatedBy.present? %>

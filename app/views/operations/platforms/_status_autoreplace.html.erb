@@ -1,31 +1,55 @@
 <% status = @platform.ciAttributes.autoreplace == 'true' ? 'enabled' : 'disabled'
-   has_operations = has_operations?(@assembly.ciId)%>
+   enabled = status == 'enabled' %>
 <div class="marker">
   <%= status_marker('autoreplace', status, state_to_label(status)) %>
 </div>
 <div class="description">
-  <ul>
-    <li>
-      <%= icon('time', ' ') %> Autoreplace <%= highlight(status) %>
+  <% if has_operations?(@assembly.ciId) %>
+    <div class="menu dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+      <ul class="dropdown-menu" role="menu">
+        <% if enabled %>
+          <li class="text-error"><%= link_to(icon('exchange', 'Disable autoreplace', 'icon-fixed-width'), autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'disable'), :method => :put, :remote => true) %></li>
+        <% else %>
+          <li class="text-success"><%= link_to(icon('exchange', 'Enable autoreplace', 'icon-fixed-width'), autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'enable'), :method => :put, :remote => true) %></li>
+        <% end %>
+        <li><%= link_to_function(icon('dashboard', 'Change conditions', 'icon-fixed-width'), "$j('#autoreplace_configuration').show(500)") %></a></li>
+      </ul>
+    </div>
+  <% end %>
+
+  <dl class="dl-horizontal">
+    <dt class="text-<%= enabled ? 'success' : 'error' %>"><%= icon('time', ' ') %></dt>
+    <dd>
+      Autoreplace <%= highlight(status) %>
       <%= time_ago_in_words(Time.at(@platform_detail.attributes[:attributes].autoreplace.updated/1000)) %>
-    </li>
-  </ul>
-  <% if has_operations %>
-    <ul class="status-actions">
-      <% if status == 'enabled' %>
-        <li><%= link_to(icon_button('arrow-left', 'Disable', ''), autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'disable'), :method => :put, :remote => true) %></li>
-      <% else %>
-        <li><%= link_to(icon_button('arrow-left', 'Enable', 'success'), autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'enable'), :method => :put, :remote => true) %></li>
-      <% end %>
-    </ul>
-  <% end %>
-  <br/>
-  <%= section_panel 'Autoreplace Configuration', :width => 'full', :position => 'left' do %>
-    <%= render('base/shared/edit_form',
-               {:resource   => @platform,
-                :content    => 'autoreplace_configuration',
-                :form_url   => autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform),
-                # :form_method => :put,
-                :cancel_url => autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform)}) %>
-  <% end %>
+    </dd>
+    <dt><%= icon('dashboard') %></dt>
+    <dd>
+      Conditions:
+      <ul class="unstyled">
+        <% attrs = %w(replace_after_minutes replace_after_repairs) %>
+        <% attrs.each do |a| %>
+          <% meta = @platform.meta.md_attribute(a) %>
+          <li><%= meta.description %>: <%= highlight(@platform.ciAttributes.attributes[a]) %></li>
+        <% end %>
+      </ul>
+      <div id="autoreplace_configuration" class="hide well well-small">
+        <%= form_tag autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+          <% attrs.each do |a| %>
+            <% meta = @platform.meta.md_attribute(a) %>
+            <div class="control-group">
+              <%= label_tag a, link_to(meta.description, '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{meta.options[:help]}"), :class => 'control-label' %>
+              <div class="controls">
+                <%= number_field_tag a, @platform.ciAttributes.attributes[a], :class => 'input-small', :min => 1 %>
+              </div>
+            </div>
+          <% end %>
+          <br/>
+          <%= button_tag((icon('ok', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
+          <%= link_to(icon('remove', 'Cancel'), autoreplace_assembly_operations_environment_platform_path(@assembly, @environment, @platform), :method => :get, :remote => true, :class => 'btn btn-danger') %>
+        <% end %>
+      </div>
+    </dd>
+  </dl>
 </div>

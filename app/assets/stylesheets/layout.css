@@ -2514,11 +2514,11 @@ ul.status div.description .menu .dropdown-menu > li > a {
   color: inherit;
 }
 
-ul.status div.description > .dl-horizontal dt {
+ul.status div.description > .dl-horizontal > dt {
   width: 20px;
 }
 
-ul.status div.description > .dl-horizontal dd {
+ul.status div.description > .dl-horizontal > dd {
   margin-left: 30px;
 }
 
