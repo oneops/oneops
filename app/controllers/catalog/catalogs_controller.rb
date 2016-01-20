@@ -64,7 +64,7 @@ class Catalog::CatalogsController < ApplicationController
     @links_to = Cms::Relation.all(:params => {:nsPath            => catalog_ns_path(@catalog),
                                               :relationShortName => 'LinksTo'})
     graph = platforms_diagram(@platforms,@links_to,catalog_path(@catalog))
-    send_data(graph.output(:svg => String), :type => 'image/svg+xml', :disposition => 'inline')
+    send_data(graphvis_sub_pack_remote_images(graph.output(:svg => String)), :type => 'image/svg+xml', :disposition => 'inline')
   end
 
 
