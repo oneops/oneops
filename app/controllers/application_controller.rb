@@ -75,7 +75,7 @@ class ApplicationController < ActionController::Base
   end
 
   def search
-    @source = request.format == params[:source].presence || ('application/json' ? 'cms' : 'es')
+    @source = params[:source].presence || (request.format.json? ? 'cms' : 'es')
 
     return if request.format == 'text/html'
 
@@ -1093,14 +1093,16 @@ class ApplicationController < ActionController::Base
   end
 
   def ci_class_image_url(ci_class_name)
+    asset_url = Settings.asset_url.presence || '/cms/'
     split = ci_class_name.split('.')
-    "#{asset_url_prefix}#{split[1..-1].join('.')}/#{split.last}.png"
+    "#{asset_url}#{split[1..-1].join('.')}/#{split.last}.png"
   end
 
   def platform_image_url(platform)
+    asset_url = Settings.asset_url.presence || '/cms/'
     ci_attrs = platform.ciAttributes
     pack = ci_attrs.pack
-    "#{asset_url_prefix}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.png"
+    "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.png"
   end
 
   def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
@@ -1108,13 +1110,9 @@ class ApplicationController < ActionController::Base
   end
 
   def graphvis_sub_pack_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
-    prefix = Settings.asset_url.present? ? 'http' : '\/cms'
+    asset_url = (Settings.asset_url.present? || 'cms/')[0..3]
     svg.scan(/(?<=xlink:title=")#{prefix}.*\.png/).inject(svg) do |r, c|
       r.sub(img_stub, c).sub(c, c.split('/')[-3..-2].join('/'))
     end
-  end
-
-  def asset_url_prefix
-    Settings.asset_url.presence || '/cms/'
   end
 end
