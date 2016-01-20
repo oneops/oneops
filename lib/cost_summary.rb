@@ -1,6 +1,6 @@
 module CostSummary
   def cost_rate
-    @cost_rate = Search::Cost.cost_rate("#{search_ns_path}/*/bom")
+    @cost_rate = Search::Cost.cost_rate(search_ns_path)
     respond_to do |format|
       format.json do
         if @cost_rate
@@ -16,9 +16,9 @@ module CostSummary
     end_date = Date.today
     @ns_path = search_ns_path
 
-    @cost_rate = Search::Cost.cost_rate("#{@ns_path}/*/bom")
-
     @cost = Search::Cost.cost(@ns_path, end_date.beginning_of_month, end_date)
+
+    @cost_rate = Search::Cost.cost_rate(@ns_path)
 
     cost_hist = Search::Cost.cost_time_histogram(@ns_path, end_date.prev_month(2).beginning_of_month, end_date, :month)
     if cost_hist
