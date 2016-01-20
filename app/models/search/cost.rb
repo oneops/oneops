@@ -4,9 +4,12 @@ class Search::Cost < Search::Base
 
   def self.cost_rate(ns_path)
     result        = nil
+    ns_path = "#{ns_path}#{'*bom/' unless ns_path.include?('bom/')}"
+    ns_path = "#{ns_path}#{'/' unless ns_path.last == '/'}*"
+
     search_params = {
       :query   => {
-        :wildcard => {'nsPath.keyword' => "#{ns_path}/*"}
+        :wildcard => {'nsPath.keyword' => ns_path}
         # :filtered => {
         #   :query  => {:wildcard => {'nsPath.keyword' => "#{ns_path}/*"}},
         #   :filter => {:exists => {:field => 'workorder'}}
@@ -128,11 +131,7 @@ class Search::Cost < Search::Base
     start_date = start_date.to_date
     end_date   = end_date.to_date
     search_params = {
-      :query => {
-        :bool => {:must => [{:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}},
-                            {:range => {'date' => {:gte => start_date, :lte => end_date, :format => 'yyyy-MM-dd'}}}]
-        }
-      },
+      :query => cost_query_conditions(ns_path, start_date, end_date),
       :_source => %w(ciId),
       :aggs => {
         :unit => {
@@ -221,11 +220,7 @@ class Search::Cost < Search::Base
     end
     ranges.last[-1] = (end_date + 1.day)
     search_params = {
-      :query => {
-        :bool => {:must => [{:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}},
-                            {:range => {'date' => {:gte => start_date, :lte => end_date, :format => "yyyy-MM-dd"}}}]
-        }
-      },
+      :query => cost_query_conditions(ns_path, start_date, end_date),
       :_source => %w(ciId),
       :aggs => {
         :unit => {
@@ -301,5 +296,17 @@ class Search::Cost < Search::Base
       handle_exception e, "Failed to fetch 'cost_time_histogram' for nsPath=#{ns_path}, date range=[#{start_date}, #{end_date}], interval=#{interval}"
     end
     return result
+  end
+
+
+  private
+
+  def self.cost_query_conditions(ns_path, start_date, end_date)
+    {
+      :bool => {:must => [{:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}},
+                          {:range => {'date' => {:gte => start_date, :lte => end_date, :format => "yyyy-MM-dd"}}},
+                          {:range => {'cost' => {:gt => 0}}}]
+      }
+    }
   end
 end
