@@ -15,7 +15,7 @@ gem 'ruby-graphviz', :require => 'graphviz'
 
 gem 'json', '1.8.1'
 gem 'pg', '0.17.0'
-gem 'devise', '3.3.0'
+gem 'devise', '3.5.4'
 gem 'devise_ldap_authenticatable', '0.6.1'
 # gem 'omniauth'
 # gem 'omniauth-twitter'

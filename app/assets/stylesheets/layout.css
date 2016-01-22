@@ -221,6 +221,10 @@ body {
   color: #888;
 }
 
+.sidebar.dark .header .controls a:hover {
+  color: #fff;
+}
+
 .sidebar.dark .profile {
   position: absolute;
   bottom: 0;
@@ -281,6 +285,10 @@ body {
 
 .sidebar.light .header .controls a {
   color: #333;
+}
+
+.sidebar.light .header .controls a:hover {
+  color: #888;
 }
 
 .sidebar.light .profile {
@@ -359,6 +367,10 @@ body {
 
 .sidebar.blue .header .controls a {
   color: #444;
+}
+
+.sidebar.blue .header .controls a:hover {
+  color: #888;
 }
 
 .sidebar.blue .profile {
@@ -603,51 +615,35 @@ img.authicon {
   position: relative;
 }
 
-#sidebar_menu {
+.sidebar-toggle, .brand {
   float:    left;
   position: relative;
-  margin: 2px 0 0 10px;
-  height:   20px;
+  margin:   2px 5px 0 0;
+  font-size: 24px;
 }
 
-#brand {
-  float:    left;
-  position: relative;
-  margin:   2px 5px 0 10px;
-  height:   20px;
-}
-
-#brand img {
-  position: relative;
-  float:    left;
-  margin:   2px 5px 0 5px;
-  width:    20px;
-  height:   20px;
-}
-
-#sidebar_menu > a, #brand a {
-  position: relative;
-  float:    left;
-  font-size:   20px;
-  line-height: 25px;
+.sidebar-toggle > a {
   color: black;
-  font-weight: 200;
-  text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
-  text-decoration: none;
+  padding-right: 5px;
   opacity: 0.8;
 }
 
-#brand span.brandname {
+.brand .brand-name {
 	position: relative;
 	float: left;
+  margin-top: 3px;
+  opacity: 0.8;
 }
 
-#brand span.identity {
-	font-size: 16px;
-}
-
-#brand a:hover {
+.sidebar-toggle a:hover, .brand-name:hover {
 	opacity: 1;
+}
+
+.brand .brand-logo {
+  position: relative;
+  float:    left;
+  margin:   2px 5px 0 5px;
+  height:   24px;
 }
 
 #ajax {

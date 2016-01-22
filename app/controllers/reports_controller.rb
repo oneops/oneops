@@ -272,7 +272,7 @@ class ReportsController < ApplicationController
   protected
 
   def fetch_notifications(histogram = false)
-    path          = params[:path]
+    path          = params[:ns_path]
     suffix        = path.present? ? path.gsub(/^#{organization_ns_path}/, '') : ''
     ns_path       = "#{organization_ns_path}/#{suffix.gsub(/^\//, '')}"
     search_params = {}

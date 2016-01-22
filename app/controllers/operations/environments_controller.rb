@@ -1,5 +1,5 @@
 class Operations::EnvironmentsController < Base::EnvironmentsController
-  include ::NotificationSummary
+  include ::NotificationSummary, ::CostSummary
 
   before_filter :find_assembly_and_environment
 
@@ -69,15 +69,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
       ops_states = Operations::Sensor.states(@instances)
       @graph = environment_graph(@environment, composedof_rels, requires_rels, realizedas_rels, cis_bom, ops_states)
-    end
-  end
-
-  def cost_rate
-    @cost_rate = Search::Cost.cost_rate(environment_bom_ns_path(@environment))
-    respond_to do |format|
-      format.html {render '_cost_rate'}
-      format.js
-      format.json {render :json => @cost_rate}
     end
   end
 

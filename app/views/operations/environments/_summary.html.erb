@@ -2,11 +2,7 @@
   <%= render :partial => 'status' %>
 <% end %>
 
-<div class="cost-summary">
-  <script>
-    <%= remote_function(:url => cost_rate_assembly_operations_environment_path(@assembly, @environment), :method => :get) %>
-  </script>
-</div>
+<%= render 'base/cost/cost_summary', :width => 'single', :position => 'right' %>
 
 <%= section_panel 'Platforms', :id => 'platforms_list', :width => 'single', :position => 'right' do %>
   <% ci_relation_map = @platforms.inject({}) { |map, r| map[r.toCiId] = r; map } %>

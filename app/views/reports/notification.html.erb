@@ -4,10 +4,10 @@
 
 <%= page_info 'Notification Report' %>
 
-<% quick_filter = {'Failed Deployments Today'     => {:period => 'today',     :source => 'deployment', :severity => 'critical', :query => '', :path => '', :size => 200},
-                   'Failed Procedures  Today'     => {:period => 'today',     :source => 'procedure',  :severity => 'critical', :query => '', :path => '', :size => 200},
-                   'Failed Deployments Yesterday' => {:period => 'yesterday', :source => 'deployment', :severity => 'critical', :query => '', :path => '', :size => 200},
-                   'Failed Procedures  Yesterday' => {:period => 'yesterday', :source => 'procedure',  :severity => 'critical', :query => '', :path => '', :size => 200}} %>
+<% quick_filter = {'Failed Deployments Today'     => {:period => 'today',     :source => 'deployment', :severity => 'critical', :query => '', :ns_path => '', :size => 200},
+                   'Failed Procedures  Today'     => {:period => 'today',     :source => 'procedure',  :severity => 'critical', :query => '', :ns_path => '', :size => 200},
+                   'Failed Deployments Yesterday' => {:period => 'yesterday', :source => 'deployment', :severity => 'critical', :query => '', :ns_path => '', :size => 200},
+                   'Failed Procedures  Yesterday' => {:period => 'yesterday', :source => 'procedure',  :severity => 'critical', :query => '', :ns_path => '', :size => 200}} %>
 <%= section_panel 'Filter', :id => 'notification_filter_section', :width => 'single', :position => 'left' do %>
   <form onsubmit="updateNotificationList(); return false">
     <div class="filter-group quick">
@@ -49,7 +49,7 @@
       <div class="filter">
         <div class="name">Namespace</div>
         <div class="input-append">
-          <input type="text" class="path" value="<%= params[:path] %>">
+          <input type="text" class="path" value="<%= params[:ns_path] %>">
           <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
         </div>
       </div>
@@ -74,7 +74,7 @@
         query    = filterSection.find(".query").val(),
         size     = filterSection.find("#size").val(),
         path     = filterSection.find(".path").val();
-    var data = {period: period, source: source, severity: severity, query: query, size: size, path: path};
+    var data = {period: period, source: source, severity: severity, query: query, size: size, ns_path: path};
     $j.ajax({url: "<%= notification_reports_path %>",
              method: 'GET',
              data: data,

@@ -376,6 +376,7 @@ Display::Application.routes.draw do
           get 'graph',         :on => :member
           get 'notifications', :on => :member
           get 'search',        :on => :member
+          get 'cost',          :on => :member
           get 'cost_rate',     :on => :member
         end
 

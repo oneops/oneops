@@ -1,10 +1,6 @@
 # app/config/settings.yml
 
 defaults: &defaults
-  # Brand
-  brand:
-    image: logo-notext-32x32.png
-    name: '<font color="#333333">One</font><font color="#888888">Ops</font>'
   identity: <%= ENV['IDENTITY'] || '' %>
   support_email: <%= ENV['SUPPORT_EMAIL'] %>
   news_url: <%= ENV['NEWS_URL'] %>

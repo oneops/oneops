@@ -110,14 +110,14 @@
                   <% end %>
                 <% end %>
               <% end %>
+              <% if sticky_map %>
+                </div>
+              <% end %>
               <% if a.options.has_key?(:tip) %>
                 <% tip = a.options[:tip] %>
                 <% if tip.present? %>
                   <span class="help-block"><%= a.options[:tip] %></span>
                 <% end %>
-              <% end %>
-              <% if sticky_map %>
-                </div>
               <% end %>
 
               <% if base_attrs %>

@@ -6,8 +6,8 @@ module NotificationSummary
     start_time = (Time.now.beginning_of_hour + 1.hour - 1.day)
     @histogram = nil
     if @notifications.present? && @notifications.first['timestamp'] / 1000 > start_time.to_i
-      @histogram = {:groupings => [{:name => :by_source, :label => 'By Source', :colors => {:deployment => 'green', :ops => 'orange', :procedure => 'blue'}},
-                                   {:name => :by_severity, :label => 'By Severity', :colors => {:info => 'blue', :warning => 'orange', :critical => 'red'}}],
+      @histogram = {:groupings => [{:name => :by_severity, :label => 'By Severity', :colors => {:info => 'gray', :warning => '#FF7F0E', :critical => '#D62728'}},
+                                   {:name => :by_source, :label => 'By Source', :colors => {:deployment => '#2CA02C', :ops => '#FF7F0E', :procedure => '#1F77B4'}}],
                     :labels    => {:x => 'Time (hours)', :y => 'Count'},
                     :title     => 'Hourly Counts'}
       ranges = []

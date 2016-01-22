@@ -9,7 +9,7 @@
      ns_path = organization_ns_path
    end
    menu = [link_to(icon('bar-chart icon-large'),
-                   notification_reports_path(:path => ns_path, :period => 'today'),
+                   notification_reports_path(:ns_path => ns_path, :period => 'today'),
                    :class => 'btn btn-mini')]
    menu << link_to(icon('refresh'), url, :remote => true, :class => 'btn btn-mini') if Rails.env.shared? %>
 <%= section_panel 'Notifications', :width => 'double', :position => 'left', :menu => menu do %>

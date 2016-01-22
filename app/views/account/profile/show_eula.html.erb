@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="icon" type="image/png" href="<%= asset_path('logo-notext-32x32.png') %>"/>
-  <link rel="shortcut icon" href="<%= asset_path('logo-notext-64x64.png') %>"/>
-  <link rel="apple-touch-icon" href="<%= asset_path('logo-touch-144x144.png') %>"/>
+  <%= render 'layouts/head_icons' %>
   <title>OneOps</title>
 
   <%= stylesheet_link_tag 'application', :media => 'all' %>

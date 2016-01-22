@@ -8,43 +8,51 @@
     <tr>
       <td class="glance">
         <% cost_rate = @cost_rate && @cost_rate[:total]
-           cost_rate = cost_rate ? cost_rate.to_human(:precision => 1) : 'N/A' %>
+           cost_rate = cost_rate ? cost_rate.to_human(:precision => 2) : 'N/A' %>
         <span>rate</span>
         <strong><%= cost_rate %></strong>
-        <span><%= @cost_rate[:unit] if @cost_rate %></span>
+        <span><%= @cost_rate.present? ? @cost_rate[:unit] : raw('&nbsp;') %></span>
       </td>
       <td class="glance">
         <span>this month</span>
         <strong><%= total ? total.to_human : 'N/A' %></strong>
-        <span><%= unit %></span>
+        <span><%= unit || raw('&nbsp;') %></span>
       </td>
-      <% if total %>
+      <% if total && ns_path_depth < 4 %>
         <td colspan="2">
-          <% if @cost_projection %>
-            <%= render 'base/shared/graph_bar', :data => @cost_projection %>
-          <% end %>
+          <%= render('base/shared/graph_bar', :data => @cost_projection) if @cost_projection %>
         </td>
       <% end %>
     </tr>
     <% if total %>
       <tr>
+        <td>&nbsp;</td>
+      </tr>
+      <tr>
         <td>
           <%= cost_donut(@cost, :by_service, 'By Service') %>
         </td>
-        <td>
-          <%= cost_donut(@cost, :by_cloud, 'By Cloud') %>
-        </td>
         <% if ns_path_depth == 2 %>
+          <td>
+            <%= cost_donut(@cost, :by_cloud, 'By Cloud') %>
+          </td>
           <td>
             <%= cost_donut(@cost, :by_ns, 'By Assembly') {|key| key.split('/')[2]} %>
           </td>
           <td>
             <%= cost_donut(@cost, :by_ns, 'By Environment') {|key| key.split('/')[2..3].join('/')} %>
           </td>
-        <% else %>
+        <% elsif ns_path_depth == 3 %>
+          <td>
+            <%= cost_donut(@cost, :by_cloud, 'By Cloud') %>
+          </td>
           <td>
             <%= cost_donut(@cost, :by_ns, 'By Environment') {|key| key.split('/')[3]} %>
           </td>
+          <td>
+            <%= cost_donut(@cost, :by_ns, 'By Platform') {|key| ns_split = key.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" } %>
+          </td>
+        <% else %>
           <td>
             <%= cost_donut(@cost, :by_ns, 'By Platform') {|key| ns_split = key.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}" } %>
           </td>
