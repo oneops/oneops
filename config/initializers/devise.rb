@@ -51,7 +51,7 @@ Devise.setup do |config|
   # In Devise 3.1, we store an encrypted token in the database and the actual token is sent only via e-mail to the user.
   # We recommend users upgrading to set this option on production only for a couple days
   # TODO Remove after 6/1/2015.
-  config.allow_insecure_token_lookup = true
+  # config.allow_insecure_token_lookup = true
 
   # ==> LDAP Configuration
   config.ldap_logger = true

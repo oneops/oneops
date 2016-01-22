@@ -4,7 +4,7 @@
 <% end %>
 <div id="signin">
 	<%= section_panel 'Registration Confirmation' do %>
-		 <div class="logo"><%= link_to image_tag('logo.png') %></div>
+    <%= render 'layouts/brand' %>
 		  <%= form_for(resource, :as => resource_name, :url => confirmation_path(resource_name), :html => { :method => :post, :class => 'form-horizontal' }) do |f| %>
 		  	 <div class="control-group">
 		  	 	<%= f.label :email, :class => 'control-label' %>
