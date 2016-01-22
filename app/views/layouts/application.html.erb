@@ -1,16 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <link rel="icon" type="image/png" href="<%= asset_path('logo-notext-32x32.png') %>"/>
-  <link rel="shortcut icon" href="<%= asset_path('logo-notext-64x64.png') %>"/>
-  <link rel="apple-touch-icon" href="<%= asset_path('logo-touch-144x144.png') %>"/>
-  <% if content_for?(:title_clean_env) %>
-    <title><%= h yield(:title_clean_env) %></title>
-  <% elsif content_for?(:title_clean) %>
-    <title><%= h yield(:title_clean) %></title>
-  <% else %>
-    <title>OneOps</title>
-  <% end %>
+  <%= render 'layouts/head_icons' %>
+  <title><%= content_for?(:title_clean) ? yield(:title_clean) : 'OneOps' %></title>
 
   <%= stylesheet_link_tag 'application', :media => 'all' %>
   <%= javascript_include_tag 'application' %>
@@ -67,12 +59,10 @@
       <% if user_signed_in? %>
         <div class="top-nav" data-spy="affix" data-offset="0">
           <div id="header" class="<%= 'hide' if show_sidebar %>">
-            <div id="sidebar_menu">
+            <div class="sidebar-toggle">
               <%= link_to_function(icon('reorder'), 'toggleSidebar()') %>
             </div>
-            <div id="brand">
-              <%= link_to raw("<span class=\"brandname\">#{Settings.brand['name']}</span>#{image_tag(Settings.brand['image'])}<span class=\"identity\">#{Settings.identity}</span>"), root_path %>
-            </div>
+            <%= render 'layouts/brand' %>
             <div id="ajax"><%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %></div>
             <div id="user_nav" class="rounded-bottom">
               <%= render :partial => 'layouts/user_nav' %>
@@ -100,10 +90,7 @@
             <div class="sidebar affix <%= sidebar_theme %> <%= 'hide' unless show_sidebar %>">
               <div class="header">
                 <div class="logo">
-                  <%= link_to(root_path) do %>
-                    OneOps <%= image_tag('logo-notext-64x64.png') %>
-                    <%= link_to_function(raw('&nbsp;&nbsp;&nbsp;'), 'event.altKey && toggleSidebarTheme()') %>
-                  <% end %>
+                  <%= render 'layouts/brand' %>
                 </div>
                 <div class="controls">
                   <%= link_to_function(icon('tint'), 'toggleSidebarTheme()') %>
