@@ -17,20 +17,18 @@
  *******************************************************************************/
 package com.oneops.cms.transmitter;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
+import com.oneops.cms.transmitter.domain.CMSEvent;
+import com.oneops.cms.transmitter.domain.PubStatus;
+import org.apache.log4j.Logger;
 
+import javax.jms.JMSException;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
-import javax.jms.JMSException;
-
-import org.apache.log4j.Logger;
-
-import com.oneops.cms.transmitter.domain.CMSEvent;
-import com.oneops.cms.transmitter.domain.PubStatus;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MainScheduler {
 
@@ -95,8 +93,9 @@ public class MainScheduler {
 		while (events.size()>0) {
 			logger.info("Got " + events.size() + " ci events; Using CIEventPublisher");
 			for (CMSEvent event : events) {
+				String action = event.getHeaders().get("action");
 				try {
-					if (event.getPayload() != null) {
+					if (event.getPayload() != null || "delete".equals(action)) {
 						ciEventPublisher.publishMessage(event);
 					} else {
 						logger.info("Event payload found null for " + event.getHeaders());
