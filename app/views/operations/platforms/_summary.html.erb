@@ -58,6 +58,8 @@
   </ul>
 <% end %>
 
-<%= section_panel 'Cloud Status', :width => 'double', :position => 'left' do %>
-  <%= render 'transition/platforms/cloud_status' %>
+<% if @clouds.present? %>
+  <%= section_panel 'Cloud Status', :width => 'double', :position => 'left' do %>
+    <%= render 'transition/platforms/cloud_status' %>
+  <% end %>
 <% end %>

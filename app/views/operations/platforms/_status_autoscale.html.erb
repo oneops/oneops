@@ -20,7 +20,7 @@
     <dt class="text-<%= enabled ? 'success' : 'error' %>"><%= icon('time', ' ') %></dt>
     <dd>
       Autoscale <%= highlight(status) %>
-      <%= time_ago_in_words(Time.at(@platform_detail.attributes[:attributes].autoscale.updated/1000)) %>
+      <%= time_ago_in_words(Time.at(@platform_detail.attributes[:attributes].autoscale.updated/1000)) if @platform_detail %>
     </dd>
   </dl>
 </div>
