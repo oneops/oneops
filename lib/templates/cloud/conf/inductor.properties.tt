@@ -1,0 +1,26 @@
+amq.connect_string = failover:(<%=
+  hosts = []
+  @mqhost.split(",").each do |h|
+     hosts.push("ssl://" + h + ":" + options[:mqport].to_s + "?keepAlive=true")
+  end
+  hosts.join(",")
+   %>)?jms.useCompression=true&initialReconnectDelay=1000&maxReconnectAttempts=-1&startupMaxReconnectAttempts=0&jms.prefetchPolicy.queuePrefetch=1
+amq.zone = <%= @location.gsub("clouds/","clouds:") %>
+amq.authkey = <%= @authkey %>
+amq.in_queue = <%= @queue_name %>
+packer_home = <%= @inductor %>/packer
+data_dir = <%= @home %>/data
+scan_path = <%= @home %>/retry
+scan_period = 5
+retry_count = 2
+ip_attribute = <%= @ip_attribute %>
+mgmt_domain = <%= @collector_domain %>
+perf_collector_cert_location = <%= @perf_collector_cert_location %>
+mgmt_url = <%= @mgmt_url %>
+mgmt_cert = <%= @logstash_cert_location %>
+daq_enabled = <%= @daq_enabled %>
+dns = <%= @dns %>
+debug_mode = <%= @debug %>
+max_consumers = <%= @max_consumers %>
+local_max_consumers = <%= @local_max_consumers %>
+env_vars = <%= @env_vars %>

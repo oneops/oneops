@@ -1,0 +1,21 @@
+{
+  "files": [
+    {
+      "paths": [
+        "<%= @home %>/log/inductor.log"
+      ]
+    }
+  ],
+  <%
+  hosts = @logstash_hosts.split(",")
+   dest = Array.new
+   hosts.each do |h|
+     dest.push(h)
+   end
+  %>    
+  "network": {
+    "servers": <%= dest.to_json %> ,
+    "ssl ca": "<%= @logstash_cert_location %>",
+    "timeout": 15
+  }
+}

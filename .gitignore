@@ -1,0 +1,5 @@
+.project
+Gemfile.lock
+.DS_Store
+target/
+*.gem

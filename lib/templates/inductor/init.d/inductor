@@ -1,0 +1,45 @@
+#!/bin/bash
+# description: OneOps Inductor Status Start Stop Restart  
+# chkconfig: 234 20 80  
+
+default_location="/opt/oneops/inductor_env.sh"
+source $default_location
+
+if [ -z "${INDUCTOR_HOME}" ]; then
+  echo "need to setup env var INDUCTOR_HOME or put in $default_location"
+  exit 1
+fi
+
+cd $INDUCTOR_HOME
+
+case $1 in
+	start)
+    	inductor start
+		;;
+	stop)
+		inductor stop
+		;;
+	restart)
+		inductor restart
+		;;
+	restart_agent)
+		inductor restart_agent
+		;;
+	status)
+		inductor status
+		;;
+	tail)
+		inductor tail
+		;;
+	check)
+		inductor check
+		;;
+	check_agent)
+		inductor check_agent
+		;;
+
+	*)
+		echo "Usage: $0 {start|stop|restart|restart_agent|check|check_agent|status|tail}"
+		exit 2
+    	;;
+esac

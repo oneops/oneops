@@ -1,0 +1,200 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'choice'
+require 'cms'
+
+
+Choice.options do
+
+  banner "Usage: cms [GLOBAL OPTIONS] [CI|RELATION OPTIONS] [COMMON OPTIONS] [list of id's]"
+
+  separator ''
+  separator 'Global options:'
+
+  option :schema do
+    short '-s'
+    long '--schema=SCHEMA'
+    desc 'Target schema. One of: cm, dj or rfc.'
+    desc '(default: cm)'
+    valid %w[cm dj rfc]
+  end
+
+  option :relation do
+    short '-r'
+    long '--relation'
+    desc 'Relation data.'
+  end
+  
+  option :nsPath do
+    short '-ns'
+    long '--nsPath=NAMESPACE'
+    desc 'Namespace'
+  end
+
+  separator ''
+  separator 'Ci options:'
+
+  option :ciClassName do
+    short '-c'
+    long '--ciClassName=CLASS'
+    desc 'Class'
+  end
+
+  option :ciName do
+    short '-n'
+    long '--ciName=NAME'
+    desc 'Name'
+  end
+
+  separator ''
+  separator 'Relation options:'
+
+  option :ciId do
+    short '-i'
+    long '--ciId=ID'
+    desc 'Id of the starting ci in relations'
+  end
+
+  option :direction do
+    short '-d'
+    long '--direction=FROM|TO'
+    desc 'Class'
+  end
+
+  option :relationName do
+    short '-rn'
+    long '--relationName=NAME'
+    desc 'Relation Name'
+  end
+
+  option :relationShortName do
+    short '-rsn'
+    long '--relationShortName=NAME'
+    desc 'Relation Short Name'
+  end
+
+  option :targetClassName do
+    short '-tc'
+    long '--targetClassName=NAME'
+    desc 'Target Class Name'
+  end
+
+  option :includeToCi do
+    short '-to'
+    long '--includeToCi'
+    desc 'Include *To* ci in the relation'
+  end
+
+  option :includeFromCi do
+    short '-from'
+    long '--includeFromCi'
+    desc 'Include *From* ci in the relation'
+  end
+
+  separator ''
+  separator 'Common options:'
+
+  option :output do
+    short '-o'
+    long '--output *FORMAT'
+    desc 'Format output with: to_yaml|to_json|to_xml|inspect.'
+    desc '(default: yaml).'
+    default 'to_yaml'
+  end
+
+  option :help do
+    short '-h'
+    long '--help'
+    desc 'Show this message.'
+  end
+
+  option :version do
+    short '-v'
+    long '--version'
+    desc 'Show version.'
+    action do
+      puts "cms version #{Cms::VERSION}"
+      exit
+    end
+  end
+
+  option :debug do
+    long '--debug'
+    desc 'Show debug.'
+    action do
+      class ActiveResource::Connection
+        # Creates new Net::HTTP instance for communication with
+        # remote service and resources.
+        def http
+          http = Net::HTTP.new(@site.host, @site.port)
+          http.use_ssl = @site.is_a?(URI::HTTPS)
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE if http.use_ssl
+          http.read_timeout = @timeout if @timeout
+          #Here's the addition that allows you to see the output
+          http.set_debug_output $stderr
+          return http
+        end
+      end
+    end
+  end
+
+end
+
+
+class ActiveResource::Base
+    def load(attributes)
+      raise ArgumentError, "expected an attributes Hash, got #{attributes.inspect}" unless attributes.is_a?(Hash)
+      @prefix_options, attributes = split_options(attributes)
+      attributes.each do |key, value|
+        @attributes[key.to_s] =
+          case value
+            when Array
+              resource = find_or_create_resource_for_collection(key)
+              value.map do |attrs|
+                if attrs.is_a?(Hash)
+                  resource.new(attrs)
+                else
+                  attrs.duplicable? ? attrs.dup : attrs
+                end
+              end
+            when Hash
+              resource = find_or_create_resource_for(key)
+              resource.new(value)
+            else
+              case key
+              when :created
+                Time.at(value/1000)
+              when :updated
+                Time.at(value/1000)
+              else
+                value.dup rescue value
+              end
+          end
+      end
+      self
+    end
+end
+
+output = Choice.choices.output
+
+case Choice.choices.schema
+when 'rfc'
+  cmsclass = Choice.choices.relation ? 'Cms::RfcRelation' : 'Cms::RfcCi'
+when 'dj'
+  cmsclass = Choice.choices.relation ? 'Cms::DjRelation' : 'Cms::DjCi'
+else
+  cmsclass = Choice.choices.relation ? 'Cms::Relation' : 'Cms::Ci'
+end
+
+if Choice.rest.length > 0
+  Choice.rest.each do |id|
+    r = cmsclass.constantize.find(id)
+    puts output.collect { |o| r.send(o) }.join(' ')
+  end
+else
+  cmsclass.constantize.all(:params => Choice.choices).each do |r|
+    puts output.collect { |o| r.send(o) }.join(' ')
+  end
+end
+
