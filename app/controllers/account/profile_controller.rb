@@ -81,6 +81,6 @@ class Account::ProfileController < ApplicationController
   private
 
   def strong_params
-    params[:user].permit(:email, :password, :password_confirmation, :remember_me, :show_wizard, :name, :username)
+    params[:user].permit(:email, :current_password, :password, :password_confirmation, :remember_me, :show_wizard, :name, :username)
   end
 end

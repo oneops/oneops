@@ -18,4 +18,10 @@ class Team < ActiveRecord::Base
 
   validates_presence_of   :name
   validates_uniqueness_of :name, :scope => :organization_id
+
+  validates_each :name do |r, attr, value|
+    r.errors.add(:name, "of '#{ADMINS}' team can not be changed.") if r.changes[:name] && r.changes[:name].first == ADMINS
+  end
+
+  before_update {!(changes[:name] && changes[:name].first == ADMINS)}
 end

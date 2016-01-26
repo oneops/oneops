@@ -88,6 +88,7 @@ class Cloud::CloudsController < ApplicationController
 
     respond_to do |format|
       format.html { index }
+      format.js
       format.json { render_json_ci_response(ok, @cloud) }
     end
   end
