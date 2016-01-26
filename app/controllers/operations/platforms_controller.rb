@@ -10,7 +10,7 @@ class Operations::PlatformsController < Base::PlatformsController
   end
 
   def show
-    @platform_detail = Cms::CiDetail.find(@platform.ciId)
+    load_platform_detail
 
     @clouds = Cms::Relation.all(:params => {:relationName    => 'base.Consumes',
                                             :targetClassName => 'account.Cloud',
@@ -77,13 +77,13 @@ class Operations::PlatformsController < Base::PlatformsController
     elsif params[:status] == 'disable'
       @platform.ciAttributes.autorepair = 'false'
     end
-    @platform.attrProps.owner.autorepair = 'manifest'
+    @platform.attrOwner.autorepair = 'manifest'
 
     ok = execute(@platform, :save)
 
     respond_to do |format|
       format.js do
-        @platform_detail = Cms::CiDetail.find(@platform.id)
+        load_platform_detail
         flash[:error] = 'Failed to update autorepair!' unless ok
       end
 
@@ -98,13 +98,13 @@ class Operations::PlatformsController < Base::PlatformsController
       enable = (status == 'enable')
       if enable || (status == 'disable')
         @platform.ciAttributes.autoreplace = enable ? 'true' : 'false'
-        @platform.attrProps.owner.autoreplace = 'manifest'
+        @platform.attrOwner.autoreplace = 'manifest'
       end
       %w(replace_after_minutes replace_after_repairs).each do |attr|
         value = params[attr]
         if value.present?
           @platform.ciAttributes.attributes[attr] = value
-          @platform.attrProps.owner.attributes[attr] = 'manifest'
+          @platform.attrOwner.attributes[attr] = 'manifest'
         end
       end
       ok = execute(@platform, :save)
@@ -112,7 +112,7 @@ class Operations::PlatformsController < Base::PlatformsController
 
     respond_to do |format|
       format.js do
-        @platform_detail = Cms::CiDetail.find(@platform.id)
+        load_platform_detail
         flash[:error] = 'Failed to update autoreplace!' unless ok
       end
 
@@ -141,13 +141,13 @@ class Operations::PlatformsController < Base::PlatformsController
     elsif params[:status] == 'disable'
       @platform.ciAttributes.autoscale = 'false'
     end
-    @platform.attrProps.owner.autoscale = 'manifest'
+    @platform.attrOwner.autoscale = 'manifest'
 
     ok = execute(@platform, :save)
 
     respond_to do |format|
       format.js do
-        @platform_detail = Cms::CiDetail.find(@platform.id)
+        load_platform_detail
         flash[:error] = 'Failed to update autoscale!' unless ok
       end
 
@@ -161,8 +161,18 @@ class Operations::PlatformsController < Base::PlatformsController
   def find_assembly_environment_platform
     @assembly    = locate_assembly(params[:assembly_id])
     @environment = locate_environment(params[:environment_id], @assembly)
+
     platform_id  = params[:id]
-    @platform    = locate_manifest_platform(platform_id, @environment, :dj => false, :attrProps => 'owner') if platform_id.present?
+    if platform_id.present?
+       @platform = locate_manifest_platform(platform_id, @environment, :attrProps => 'owner')
+      unless request.get? || @platform.rfcAction == 'add'
+        @platform = locate_manifest_platform(platform_id, @environment, :dj => false, :attrProps => 'owner')
+      end
+    end
+  end
+
+  def load_platform_detail
+    @platform_detail = Cms::CiDetail.find(@platform.ciId) unless @platform.is_a?(Cms::DjCi) && @platform.rfcAction == 'add'
   end
 
   def platform_bom_ns_path(environment, platform)

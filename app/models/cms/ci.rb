@@ -130,6 +130,10 @@ class Cms::Ci < Cms::Base
     errors.blank? ? super : {:errors => errors.full_messages}
   end
 
+  def attrOwner
+    attrProps.owner
+  end
+
 
   protected
 

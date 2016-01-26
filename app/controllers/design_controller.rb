@@ -34,7 +34,7 @@ class DesignController < ApplicationController
     links_to = Cms::DjRelation.all(:params => {:nsPath            => [@assembly.nsPath, @assembly.ciName].join('/'),
                                                :relationShortName => 'LinksTo'})
     begin
-      return graphvis_sub_pack_remote_images(platforms_diagram(platforms, links_to, assembly_design_path(@assembly)).output(:svg => String))
+      return graphvis_sub_pack_remote_images(platforms_diagram(platforms, links_to, assembly_design_path(@assembly), params[:size]).output(:svg => String))
     rescue
       return nil
     end

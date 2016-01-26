@@ -251,7 +251,7 @@ module ApplicationHelper
     ci_id = params[:id]
     if ci_id.present? && /(\/assemblies\/)|(\/clouds\/)/ =~ request.url
       fav = link_to_function(content_tag(:i, '', :class => "icon-bookmark#{'-empty' unless current_user.favorite(ci_id.to_i)}", :title => 'Mark/remove favorite'),
-                             "toggleFavorite(this, #{ci_id })",
+                             "toggleFavorite(this, '#{ci_id }')",
                              :class => 'favorite')
 
     end

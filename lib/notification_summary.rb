@@ -1,4 +1,7 @@
 module NotificationSummary
+  HISTOGRAM_GROUPING = [{:name => :by_severity, :label => 'By Severity', :colors => {:info => '#aaa', :warning => '#FF7F0E', :critical => '#D62728'}},
+                        {:name => :by_source, :label => 'By Source', :colors => {:deployment => '#2CA02C', :ops => '#FF7F0E', :procedure => '#1F77B4'}}]
+
   def notifications
     @ns_path = "#{search_ns_path}/"
     @notifications = Search::Notification.find_by_ns(@ns_path, :size => 50, :_silent => true)
@@ -6,8 +9,7 @@ module NotificationSummary
     start_time = (Time.now.beginning_of_hour + 1.hour - 1.day)
     @histogram = nil
     if @notifications.present? && @notifications.first['timestamp'] / 1000 > start_time.to_i
-      @histogram = {:groupings => [{:name => :by_severity, :label => 'By Severity', :colors => {:info => 'gray', :warning => '#FF7F0E', :critical => '#D62728'}},
-                                   {:name => :by_source, :label => 'By Source', :colors => {:deployment => '#2CA02C', :ops => '#FF7F0E', :procedure => '#1F77B4'}}],
+      @histogram = {:groupings => HISTOGRAM_GROUPING,
                     :labels    => {:x => 'Time (hours)', :y => 'Count'},
                     :title     => 'Hourly Counts'}
       ranges = []

@@ -584,7 +584,7 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def platforms_diagram(platforms, links_to, path)
+  def platforms_diagram(platforms, links_to, path, size = nil)
     nodes = Array.new
     edges = Array.new
 
@@ -592,13 +592,14 @@ class ApplicationController < ActionController::Base
     platform_index = platforms.index_by{ |p| p.toCi.ciId }
     platform_group = platforms.group_by{ |p| p.toCi.ciName }
 
-    platform_group.each do |platform,versions|
+    platform_group.each do |platform, versions|
       active = versions.find { |v| v.toCi.ciAttributes.attributes.has_key?(:is_active) && v.toCi.ciAttributes.is_active == 'false' } || versions.first
+      platform_ci_attrs = active.toCi.ciAttributes
       nodes << {:id       => active.toCiId.to_s,
                 :name     => platform,
-                :target   => "_parent",
+                :target   => '_parent',
                 :icon     => GRAPHVIZ_IMG_STUB,
-                :tooltip  => platform_image_url(active.toCi),
+                :tooltip  => "#{platform_ci_attrs.source}/#{platform_ci_attrs.pack}/#{platform_ci_attrs.version}",
                 :url      => "#{path}/platforms/#{active.toCi.ciId}",
                 :footer   => "version #{active.toCi.ciAttributes.major_version}",
                 :color    => active.toCi.respond_to?('rfcAction') ? to_color(active.toCi.rfcAction) : 'gray',
@@ -608,30 +609,29 @@ class ApplicationController < ActionController::Base
     links_to.each { |edge| edges << {:from  => platform_index[edge.fromCiId].toCiId.to_s,
                                      :to    => platform_index[edge.toCiId].toCiId.to_s,
                                      :color => edge.respond_to?('rfcAction') ? to_color(edge.rfcAction) : 'gray'} }
-    graph = _diagram(nodes, edges)
-    return graph
+    return _diagram(nodes, edges, size)
   end
 
-  def _diagram(nodes,edges,options = {})
+  def _diagram(nodes, edges, size)
     graph = GraphViz::new(:G)
     graph[:truecolor   => true,
           :rankdir     => 'TB',
           :ratio       => 'fill',
-          :size        => '6,3',
+          :size        => size || '6,3',
           :compound    => true,
           :concentrate => true,
           :bgcolor     => 'transparent']
 
-    graph.node[options.merge(:fontsize  => 8,
-                             :fontname  => 'ArialMT',
-                             :color     => 'black',
-                             :fontcolor => 'black',
-                             :fillcolor => 'whitesmoke',
-                             :fixedsize => true,
-                             :width     => '2.50',
-                             :height    => '0.66',
-                             :shape     => 'ractangle',
-                             :style     => 'rounded')]
+    graph.node[{:fontsize  => 8,
+                :fontname  => 'ArialMT',
+                :color     => 'black',
+                :fontcolor => 'black',
+                :fillcolor => 'whitesmoke',
+                :fixedsize => true,
+                :width     => '2.50',
+                :height    => '0.66',
+                :shape     => 'ractangle',
+                :style     => 'rounded'}]
 
     nodes.each do |node|
       label = "<<table border='0' cellspacing='2' fixedsize='true' width='175' height='48'>"
@@ -1099,8 +1099,11 @@ class ApplicationController < ActionController::Base
 
   def platform_image_url(platform)
     ci_attrs = platform.ciAttributes
-    pack = ci_attrs.pack
-    "#{asset_url_prefix}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.png"
+    pack_image_url(ci_attrs.source, ci_attrs.pack, ci_attrs.version)
+  end
+
+  def pack_image_url(source, pack, version)
+    "#{asset_url_prefix}public/#{source}/packs/#{pack}/#{version}/#{pack}.png"
   end
 
   def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
@@ -1108,9 +1111,8 @@ class ApplicationController < ActionController::Base
   end
 
   def graphvis_sub_pack_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
-    prefix = Settings.asset_url.present? ? 'http' : '\/cms'
-    svg.scan(/(?<=xlink:title=")#{prefix}.*\.png/).inject(svg) do |r, c|
-      r.sub(img_stub, c).sub(c, c.split('/')[-3..-2].join('/'))
+    svg.scan(/(?<=xlink:title=").+\/.+\/\d+/).inject(svg) do |r, c|
+      r.sub(img_stub, pack_image_url(*c.split('/')))
     end
   end
 
