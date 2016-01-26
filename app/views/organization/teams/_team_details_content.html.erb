@@ -1,6 +1,8 @@
 <div class="control-group">
   <%= f.label :name, 'Name*', :class => 'control-label' %>
-  <div class="controls"><%= f.text_field :name, :class => 'input-xlarge', :required => true, :placeholder => 'Name' %></div>
+  <div class="controls" editable="<%= @team.name != Team::ADMINS %>">
+    <%= f.text_field :name, :class => 'input-xlarge', :required => true, :placeholder => 'Name' %>
+  </div>
 </div>
 <div class="control-group">
   <%= f.label :description, 'Description', :class => 'control-label' %>
