@@ -5,7 +5,7 @@
               :read_only   => !is_admin?,
               :cancel_url  => organization_teams_path,
               :form_url    => @team.new_record? ? organization_teams_path : organization_team_path(@team),
-              :destroy_url => @team.new_record? ? nil : organization_team_path(@team)}) %>
+              :destroy_url => @team.new_record? || @team.name == Team::ADMINS ? nil : organization_team_path(@team)}) %>
 <% end %>
 
 <% unless @team.new_record? %>
