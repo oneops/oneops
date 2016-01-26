@@ -43,12 +43,6 @@ body {
   text-decoration: none;
 }
 
-.sidebar .header .logo img {
-  font-size: 20px;
-  height: 20px;
-  vertical-align: top;
-}
-
 .sidebar .header .controls {
   position: absolute;
   right: 5px;
@@ -615,10 +609,10 @@ img.authicon {
   position: relative;
 }
 
-.sidebar-toggle, .brand {
+.sidebar-toggle {
   float:    left;
   position: relative;
-  margin:   2px 5px 0 0;
+  margin:   2px 5px 0 8px;
   font-size: 24px;
 }
 
@@ -628,22 +622,14 @@ img.authicon {
   opacity: 0.8;
 }
 
-.brand .brand-name {
-	position: relative;
-	float: left;
-  margin-top: 3px;
-  opacity: 0.8;
-}
-
-.sidebar-toggle a:hover, .brand-name:hover {
-	opacity: 1;
+.brand {
+  float:    left;
+  position: relative;
+  margin: 2px 0 0 0;
 }
 
 .brand .brand-logo {
-  position: relative;
-  float:    left;
-  margin:   2px 5px 0 5px;
-  height:   22px;
+  height:   24px;
 }
 
 #ajax {
@@ -817,7 +803,7 @@ img.authicon {
 #app_nav {
   float:    right;
   position: relative;
-  width:    500px;
+  width:    505px;
   margin:   0 5px 0 5px;
 }
 
