@@ -85,6 +85,10 @@ class Chef
                 content = File.open(local_file)
              end
 
+             puts "doc: #{local_file} remote: #{remote_file}"
+             file = @remote_dir.files.create :key => remote_file, :body => content             
+             
+             # components can be services, sinks, relays too
              if image_groupings.size > 0
                orig_remote = remote_file
                image_groupings.each do |g|
@@ -96,11 +100,6 @@ class Chef
                  puts "doc: #{local_file} remote: #{remote_file}"
                  file = @remote_dir.files.create :key => remote_file, :body => content
                end
-
-             else
-
-               puts "doc: #{local_file} remote: #{remote_file}"
-               file = @remote_dir.files.create :key => remote_file, :body => content
              end
 
            end
