@@ -108,7 +108,7 @@ class OrganizationController < ApplicationController
 
     @organization = Organization.where(:name => org_name).first
 
-    redirect_to not_found_path
+    redirect_to not_found_path unless @organization
   end
 
   def request_access
