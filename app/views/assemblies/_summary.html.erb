@@ -37,7 +37,7 @@
           <%= icon('cloud') %>
           <% target.clouds.each do |r| %>
             <% c = r.toCi %>
-            &nbsp;<%= link_to(c.ciName, cloud_path(c)) %>&nbsp;
+            &nbsp;<%= link_to(c.ciName, edit_cloud_path(c)) %>&nbsp;
           <% end %>
         </span>
       <% end %>
