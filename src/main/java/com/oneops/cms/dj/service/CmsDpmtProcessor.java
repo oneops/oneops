@@ -704,14 +704,21 @@ public class CmsDpmtProcessor {
 		return dpmtMapper.getDeploymentStateHist(deploymentId);
 	}
 
-	public CmsDeployment  getOpenDeployments(String nsPath) {
-		 List<CmsDeployment> openDeployments = findLatestDeployment(nsPath, null, false).stream().filter(cmsDeployment -> cmsDeployment.getDeploymentState().matches(OPEN_DEPLOYMENT_REGEXP)).collect(Collectors.toList());
-		if(openDeployments!=null ){
-			if(openDeployments.size()>1){
-				return openDeployments.get(0);
-			}
-		}
-		 return null;
+    /**
+     *  Gets the current deployments in progress for environment.
+     * @param nsPath The path to search for open deployments .
+     * @return will return *Null*  if no deployment is found in |active|failed|paused| ,else return first deployment
+     *        found in matching state
+     */
+    public CmsDeployment getOpenDeployments(String nsPath) {
+        List<CmsDeployment> currentDeployments = findLatestDeployment(nsPath, null, false);
+        List<CmsDeployment> openDeployments = currentDeployments.stream().filter(cmsDeployment -> cmsDeployment.getDeploymentState().matches(OPEN_DEPLOYMENT_REGEXP)).collect(Collectors.toList());
+        if (openDeployments != null) {
+            if (openDeployments.size() > 0) {
+                return openDeployments.get(0);
+            }
+        }
+        return null;
     }
-	
+
 }
