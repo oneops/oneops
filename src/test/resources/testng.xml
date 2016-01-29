@@ -10,8 +10,9 @@
 	     <package name="com.oneops.cms.cm.service"/>		      
 	           
 	     <package name="com.oneops.cms.cm.ops.domain"/>		      
-	     <package name="com.oneops.cms.dj.domain"/>		      
-	     <package name="com.oneops.cms.md.domain"/>		      
+	     <package name="com.oneops.cms.dj.domain"/>
+		  <package name="com.oneops.cms.dj.service"/>
+		  <package name="com.oneops.cms.md.domain"/>		      
 	     <package name="com.oneops.cms.ns.domain"/>		      
 	     <package name="com.oneops.cms.ops.domain"/>
 	     <package name="com.oneops.cms.simple.domain"/>		      
