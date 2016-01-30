@@ -24,7 +24,7 @@
       <div class="control-group">
         <% a = attributes_meta.detect { |m| m.attributeName == 'pack' } %>
         <%= c.label :pack, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
-        <div class="controls"><%= c.select :pack, grouped_options_for_select(packs[first_source], nil, :prompt => 'Please select'), {}, :id => 'pack_select', :required => true %></div>
+        <div class="controls"><%= c.select :pack, grouped_options_for_select(packs[first_source], nil), { :prompt => 'Please select' }, :id => 'pack_select', :required => true %></div>
       </div>
 
       <div class="control-group">
