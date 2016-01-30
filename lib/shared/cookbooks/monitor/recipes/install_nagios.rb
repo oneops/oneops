@@ -70,8 +70,9 @@ link "/etc/nagios3" do
   to "/etc/nagios"
 end    
 
-execute "mkdir -p /opt/nagios /var/cache/nagios3 /var/log/nagios3/archives /var/run/nagios3 /var/lib/nagios3/rw /var/log/nagios3/rw /var/lib/nagios3/spool/checkresults"
+execute "mkdir -p /opt/nagios /var/cache/nagios3 /var/log/nagios3/archives /var/run/nagios3 /var/run/nagios /var/lib/nagios3/rw /var/log/nagios3/rw /var/lib/nagios3/spool/checkresults"
 execute "chown nagios:nagios /var/run/nagios3"
+execute "chown nagios:nagios /var/run/nagios"
 execute "chown nagios:nagios /var/cache/nagios3"
 execute "chown -R nagios:nagios /var/lib/nagios3"
 execute "chown -R nagios:nagios /var/log/nagios3"
