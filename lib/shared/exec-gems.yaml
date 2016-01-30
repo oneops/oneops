@@ -66,3 +66,8 @@ puppet:
     -
       - hiera
       - 1.1.2
+
+chef-11.18.12:
+    -
+      - mime-types
+      - 1.25.0
