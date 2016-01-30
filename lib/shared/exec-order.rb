@@ -85,15 +85,15 @@ case dsl
 when "chef"
   Dir.chdir "cookbooks"
 
-  # tmp system json 1.8.1 removal
-  `gem uninstall json -v 1.8.1 >/dev/null 2>&1`
-
   # check version
   current_version = `bundle list | grep chef`.to_s.chomp
-  expected_value = "  * chef (#{version})"
-  if $?.to_i != 0 || current_version != expected_value
-    puts "current: #{current_version}, expected: #{expected_value} - updating Gemfile"
-    gem_list = gem_config["common"] + gem_config["chef-#{version}"]
+  if $?.to_i != 0 || current_version.to_s.index(version).nil?
+    puts "current: #{current_version}, expected: #{version} - updating Gemfile"
+    version_gems = [["chef",version]]
+    if !gem_config["chef-#{version}"].nil?
+       version_gems += gem_config["chef-#{version}"]
+    end
+    gem_list = gem_config["common"] + version_gems
     gem_list.push(['chef', version])
     gen_gemfile_and_install(gem_list,dsl)
   end
