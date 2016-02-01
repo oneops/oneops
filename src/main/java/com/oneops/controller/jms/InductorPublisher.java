@@ -50,6 +50,8 @@ public class InductorPublisher {
 	//private long timeToLive;
     private Map<String, MessageProducer> bindingQueusMap = new HashMap<String, MessageProducer>();
     private static final String QUEUE_SUFFIX = ".ind-wo";
+    private static final String SHARED_QUEUE = "shared" + QUEUE_SUFFIX;
+    private static final String USE_SHARED_FLAG = "com.oneops.controller.use-shared-queue";
     private Connection connection = null;
     private Session session = null; 
     final private Gson gson = new Gson();
@@ -114,7 +116,12 @@ public class InductorPublisher {
 	    	message.setJMSCorrelationID(corelationId);
 	    	message.setStringProperty("task_id", corelationId);
 	    	message.setStringProperty("type", woType);
-	    	String queueName = (wo.getCloud().getCiAttributes().get("location").replaceAll("/", ".") + QUEUE_SUFFIX).substring(1);
+	    	String queueName = null;
+	    	if ("true".equals(System.getProperty(USE_SHARED_FLAG))) {
+	    		queueName = SHARED_QUEUE;
+	    	} else {
+	    		queueName = (wo.getCloud().getCiAttributes().get("location").replaceAll("/", ".") + QUEUE_SUFFIX).substring(1);
+	    	}
 	    	if (!bindingQueusMap.containsKey(queueName)) {
 	    		bindingQueusMap.put(queueName, newMessageProducer(queueName));
 	    	}
