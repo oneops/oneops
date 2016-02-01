@@ -37,7 +37,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.oneops.cms.controller.service.CmsWoProvider;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
@@ -59,7 +58,6 @@ public class DpmtRestController extends AbstractRestController {
 	private CmsDjManager djManager;
 	private CmsUtil cmsUtil = new CmsUtil();
 	private CmsScopeVerifier scopeVerifier; 
-	private CmsWoProvider woProvider;
 	
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
@@ -73,14 +71,6 @@ public class DpmtRestController extends AbstractRestController {
 	
 	public void setDjManager(CmsDjManager djManager) {
 		this.djManager = djManager;
-	}
-	
-	public CmsWoProvider getWoProvider() {
-		return woProvider;
-	}
-
-	public void setWoProvider(CmsWoProvider woProvider) {
-		this.woProvider = woProvider;
 	}
 
 	@ExceptionHandler(DJException.class)
@@ -237,59 +227,6 @@ public class DpmtRestController extends AbstractRestController {
 		dpmt.setDeploymentState("canceled");
 		return djManager.updateDeployment(dpmt);
 	}
-	
-	
-	@RequestMapping(value="/dj/simple/deployments/{dpmtId}/workorders", method = RequestMethod.GET)
-	@ResponseBody
-	public List<CmsWorkOrderSimple> getWorkOrders(@PathVariable long dpmtId,
-			@RequestParam(value="state", required = false) String state,  
-			@RequestParam(value="execorder", required = false) Integer execOrder,
-			@RequestParam(value="limit", required = false) Integer limit){
-		
-		List<CmsWorkOrderSimple> wosList = new ArrayList<CmsWorkOrderSimple>();
-		List<CmsWorkOrder> woList = woProvider.getWorkOrders(dpmtId, state, execOrder, limit);
-		
-		for (CmsWorkOrder wo : woList) {
-			wosList.add(cmsUtil.custWorkOrder2Simple(wo));
-		}
-			
-		return wosList;
-	}
-
-	@RequestMapping(value="/dj/simple/deployments/{dpmtId}/workorderids", method = RequestMethod.GET)
-	@ResponseBody
-	public List<CmsWorkOrderSimple> getWorkOrderIds(@PathVariable long dpmtId,
-			@RequestParam(value="state", required = false) String state,  
-			@RequestParam(value="execorder", required = false) Integer execOrder,
-			@RequestParam(value="limit", required = false) Integer limit){
-		
-		List<CmsWorkOrderSimple> wosList = new ArrayList<CmsWorkOrderSimple>();
-		List<CmsWorkOrder> woList = woProvider.getWorkOrderIds(dpmtId, state, execOrder, limit);
-		
-		for (CmsWorkOrder wo : woList) {
-			wosList.add(cmsUtil.custWorkOrder2Simple(wo));
-		}
-			
-		return wosList;
-	}
-
-	@RequestMapping(value="/dj/simple/deployments/{dpmtId}/workorders/{dpmtRecordId}", method = RequestMethod.GET)
-	@ResponseBody
-	public CmsWorkOrderSimple getWorkOrder(@PathVariable long dpmtId,
-			@PathVariable long dpmtRecordId,
-			@RequestParam(value="state", required = false) String state,  
-			@RequestParam(value="execorder", required = false) Integer execOrder){
-		
-		CmsWorkOrder wo = woProvider.getWorkOrder(dpmtRecordId, state, execOrder);
-		
-		if (wo == null) {
-			throw new DJException(CmsError.DJ_INCONSITENCY_WITH_DEPLOYMENT_RECORD_ERROR,
-                "There is no workorder with this id/state/order - " + dpmtRecordId + "/" + state + "/" + execOrder);
-		}	
-		
-		return cmsUtil.custWorkOrder2Simple(wo);
-	}
-	
 	
 	@RequestMapping(value="/dj/simple/deployments/{dpmtId}/workorders", method = RequestMethod.PUT)
 	@ResponseBody

@@ -71,7 +71,6 @@
         	<property name="cmManager" ref="cmsCmManager" />
         	<property name="opsManager" ref="opsManager" />
         	<property name="scopeVerifier" ref="scopeVerifier" />
-        	<property name="woProvider" ref="cmsWoProvider" />
     	</bean>
 
 	  	<bean id="djRestController" class="com.oneops.cms.ws.rest.DjRestController">
@@ -88,7 +87,6 @@
 	  	<bean id="dpmtRestController" class="com.oneops.cms.ws.rest.DpmtRestController">
         	<property name="djManager" ref="cmsDjManager" />
         	<property name="scopeVerifier" ref="scopeVerifier" />
-        	<property name="woProvider" ref="cmsWoProvider" />
     	</bean>
 
 	  	<bean id="nsRestController" class="com.oneops.cms.ws.rest.NsRestController">

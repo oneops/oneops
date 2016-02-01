@@ -48,7 +48,6 @@ import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
-import com.oneops.cms.controller.service.CmsWoProvider;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.exceptions.DJException;
@@ -70,7 +69,6 @@ public class CmRestController extends AbstractRestController {
 	private CmsCmManager cmManager;
 	private OpsManager opsManager;
 	private CmsScopeVerifier scopeVerifier; 
-	private CmsWoProvider woProvider;
 	
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
@@ -88,14 +86,6 @@ public class CmRestController extends AbstractRestController {
 
 	public void setCmManager(CmsCmManager cmManager) {
 		this.cmManager = cmManager;
-	}
-	
-	public CmsWoProvider getWoProvider() {
-		return woProvider;
-	}
-
-	public void setWoProvider(CmsWoProvider woProvider) {
-		this.woProvider = woProvider;
 	}
 
 	@ExceptionHandler(DJException.class)
@@ -732,21 +722,6 @@ public class CmRestController extends AbstractRestController {
     	long timeTook = System.currentTimeMillis() - startingTime;
     	logger.debug("Time taken to get opsproc for ciId:<"+ciId  +":actionCiId:"+actionCiId+":nsPath:"+nsPath+":state:"+state+":limit:"+limit+":procedureName:"+procedureName+":recursive:"+recursive+" > "+timeTook);
     	return opsProcedures;
-    }
-
-
-    @RequestMapping(value="/cm/ops/procedures/{procedureId}/actionorders", method = RequestMethod.GET)
-    @ResponseBody
-    public List<CmsActionOrderSimple> getActionOrders(@PathVariable long procedureId,
-            @RequestParam(value="state", required = false) OpsProcedureState state,
-            @RequestParam(value="execorder", required = false) Integer execOrder){
-
-        List<CmsActionOrderSimple> aosList = new ArrayList<CmsActionOrderSimple>();
-
-        for (CmsActionOrder ao : woProvider.getActionOrders(procedureId, state, execOrder)) {
-            aosList.add(cmsUtil.custActionOrder2Simple(ao));
-        }
-        return aosList;
     }
 
     @RequestMapping(value="/cm/ops/procedures/{procedureId}/actionorders", method = RequestMethod.PUT)

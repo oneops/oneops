@@ -184,25 +184,4 @@
 		<property name="procProcessor" ref="procProcessor" />
     </bean>
     
-    <elasticsearch:transport-client id="client" cluster-nodes="${es.host:search}:9300" cluster-name="oneops" client-transport-ping-timeout="5s"/>
-		
-	<bean id="offeringMatcher" class="com.oneops.es.offerings.percolator.OfferingsMatcher">
-		<property name="client" ref="client" />
-		<property name="indexName" value="${es.offerings.index.name:cms-all}"/>
-		<property name="indexType" value="${es.offerings.index.type:ci}"/>
-		<property name="clientTimeout" value="${es.client.timeout:5}"/>
-	</bean>
-    
-    <bean id="cmsWoProvider" class="com.oneops.cms.controller.service.CmsWoProvider">
-		<property name="dpmtMapper" ref="dpmtMapper" />
-		<property name="cmrfcProcessor" ref="cmsCmRfcMrgProcessor" />
-		<property name="cmProcessor" ref="cmsCmProcessor" />
-		<property name="djMapper" ref="djMapper" />
-	    <property name="rfcUtil" ref="rfcUtil" />
-	    <property name="cmsUtil" ref="cmsUtil" />
-	    <property name="opsMapper" ref="opsMapper" />
-	    <property name="colProcessor" ref="colProcessor" />
-	    <property name="offeringMatcher" ref="offeringMatcher" />
-	</bean>
-    
 </beans>
