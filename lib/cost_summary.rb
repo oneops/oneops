@@ -14,6 +14,7 @@ module CostSummary
 
   def cost
     end_date = Date.today
+    end_date -= 1.day if end_date.day == 1
     @ns_path = search_ns_path
 
     @cost = Search::Cost.cost(@ns_path, end_date.beginning_of_month, end_date)
