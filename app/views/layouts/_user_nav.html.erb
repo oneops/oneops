@@ -32,7 +32,7 @@
   <li><%= link_to(icon('signout'), destroy_user_session_path) %></li>
 </ul>
 
-<% if current_user.organization_id.present? %>
+<% if current_user.organization_id.present? && current_user.organization %>
   <script>
     window.toggleFavorite = function (source, id) {
       var favoriteEl = $j(source);

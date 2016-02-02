@@ -182,12 +182,17 @@ window.toggle = function(what_to_toggle) {
   }
 };
 
-window.flash = function(notice, error) {
+window.flash = function(notice, error, alert) {
   if (notice) {
     var fn = $('flash_notice');
-    fn.update(notice);
+    fn.down('.content').update(notice);
     fn.show();
     setTimeout("Effect.Fade('flash_notice', {duration: 2.0, from: " + fn.getOpacity() + "});", 3000)
+  }
+  if (alert) {
+    fn = $('flash_alert');
+    fn.down('.content').update(alert);
+    fn.show();
   }
   if (error) {
 //    var fe = $('flash_error');

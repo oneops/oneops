@@ -31,18 +31,32 @@ a {
 }
 
 #flash_notice {
-  background-color: #62bc62;
+  background-color: #57A757;
   background-repeat: repeat-x;
-  background-image: -khtml-gradient(linear, left top, left bottom, from(#97d397), to(#62bc62));
-  background-image: -moz-linear-gradient(#97d397, #62bc62);
-  background-image: -ms-linear-gradient(#97d397, #62bc62);
-  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #97d397), color-stop(100%, #62bc62));
-  background-image: -webkit-linear-gradient(#97d397, #62bc62);
-  background-image: -o-linear-gradient(#97d397, #62bc62);
-  background-image: linear-gradient(#97d397, #62bc62);
-  border-bottom-color: #46a546;
+  background-image: -khtml-gradient(linear, left top, left bottom, from(#6dd16d), to(#57A757));
+  background-image: -moz-linear-gradient(#6dd16d, #57A757);
+  background-image: -ms-linear-gradient(#6dd16d, #57A757);
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #6dd16d), color-stop(100%, #57A757));
+  background-image: -webkit-linear-gradient(#6dd16d, #57A757);
+  background-image: -o-linear-gradient(#6dd16d, #57A757);
+  background-image: linear-gradient(#6dd16d, #57A757);
+  border-bottom-color: #3d763d;
 }
-#flash_error, #flash_alert {
+
+#flash_alert {
+  background-color: #E38800;
+  background-repeat: repeat-x;
+  background-image: -khtml-gradient(linear, left top, left bottom, from(#ffa500), to(#E38800));
+  background-image: -moz-linear-gradient(#ffa500, #E38800);
+  background-image: -ms-linear-gradient(#ffa500, #E38800);
+  background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #ffa500), color-stop(100%, #E38800));
+  background-image: -webkit-linear-gradient(#ffa500, #E38800);
+  background-image: -o-linear-gradient(#ffa500, #E38800);
+  background-image: linear-gradient(#ffa500, #E38800);
+  border-bottom-color: #ae5e00;
+}
+
+#flash_error {
   background-color: #d83a2e;
   background-repeat: repeat-x;
   background-image: -khtml-gradient(linear, left top, left bottom, from(#e4776f), to(#d83a2e));
