@@ -42,15 +42,18 @@ class Inductor < Thor
       say_status('warning',"execute 'bundle install' from #{options[:path]} directory to complete the install")
     end
 
-    # local gem repo - remove compute dependency and optimize speed
+    # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
     empty_directory "#{options[:path]}/shared/cookbooks/vendor/cache"
-    gem_paths = `gem env path`.chomp.split(":")
-    gem_paths.each do |path|
-      run("cp #{path}/cache/* #{options[:path]}/shared/cookbooks/vendor/cache/")
+
+    if ENV.has_key?("USE_GEM_CACHE")
+      gem_paths = `gem env path`.chomp.split(":")
+      gem_paths.each do |path|
+        run("cp #{path}/cache/* #{options[:path]}/shared/cookbooks/vendor/cache/")
+      end
+      Dir.chdir("#{options[:path]}/shared/cookbooks/vendor/cache/")
+      run("gem generate_index")
     end
-    Dir.chdir("#{options[:path]}/shared/cookbooks/vendor/cache/")
-    run("gem generate_index")
 
     say_status :success, "Next Step: cd inductor ; inductor add"
   end
