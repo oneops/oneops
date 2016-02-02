@@ -13,12 +13,6 @@
      sidebar_theme   = session[:sidebar_theme].presence || 'dark' %>
     <div id="container" class="<%= 'sidebar-visible' if show_sidebar %>">
       <div id="overlay" style="display:none" class="rounded-bottom shadow"></div>
-      <div id="flash">
-        <% [:notice, :error].each do |name| %>
-          <div id="flash_<%= name %>" style='display:none' class="rounded-bottom shadow" onclick="this.hide();"></div>
-        <% end %>
-        <%= javascript_tag "document.observe('dom:loaded', function() {flash('#{escape_javascript(flash[:notice])}', '#{escape_javascript(flash[:error])}#{escape_javascript(flash[:alert])}')})" if flash[:error] || flash[:notice] || flash[:alert] %>
-      </div>
       <div id="busy_modal" class="modal hide">
         <div class="modal-header">
           <h3>Please wait</h3>
@@ -56,6 +50,18 @@
       </script>
 
       <%= render('layouts/flash_error') %>
+      <% content_for :flash do %>
+        <div id="flash">
+          <% [:notice, :alert, :error].each do |name| %>
+            <div id="flash_<%= name %>" style='display:none' class="rounded-bottom shadow flash">
+              <button class="close" onclick="$j(this).parent().hide(500);">&times;</button>
+              <div class="content"></div>
+            </div>
+          <% end %>
+          <%= javascript_tag "document.observe('dom:loaded', function() {flash('#{escape_javascript(flash[:notice])}', '#{escape_javascript(flash[:error])}', '#{escape_javascript(flash[:alert])}')})" if flash[:error] || flash[:notice] || flash[:alert] %>
+        </div>
+      <% end %>
+
       <% if user_signed_in? %>
         <div class="top-nav" data-spy="affix" data-offset="0">
           <div id="header" class="<%= 'hide' if show_sidebar %>">
@@ -83,6 +89,7 @@
             </div>
           </div>
         </div>
+
         <div class="scaffold">
           <% if user_signed_in? %>
             <% current_org = current_user.organization
@@ -131,6 +138,7 @@
             </div>
           <% end %>
           <div id="page_container">
+            <%= yield :flash %>
             <div id="page_header_container">
               <% if current_user.eula_accepted_at? %>
                 <div id="page_header">
@@ -184,6 +192,7 @@
           </div>
         </div>
       <% else %>
+        <%= yield :flash %>
         <div id="main" class="rounded-bottom">
           <%= yield %>
         </div>
