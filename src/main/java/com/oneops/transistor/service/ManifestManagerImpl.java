@@ -17,20 +17,6 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -41,9 +27,13 @@ import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.domain.ManifestRfcContainer;
-import com.oneops.transistor.domain.ManifestRootRfcContainer;
 import com.oneops.transistor.domain.ManifestRfcRelationTriplet;
+import com.oneops.transistor.domain.ManifestRootRfcContainer;
 import com.oneops.transistor.exceptions.TransistorException;
+import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.concurrent.*;
 
 public class ManifestManagerImpl implements ManifestManager {
 	
@@ -175,7 +165,11 @@ public class ManifestManagerImpl implements ManifestManager {
 				processPlatformRfcs(touple.manifestPlatformRfcs,userId);
 				
 				CmsRfcCI manifestPlatformRfc = touple.manifestPlatformRfcs.getManifestPlatformRfc();
-				manifestRfcProcessor.getMissingServices(manifestPlatformRfc.getCiId());
+				Set<String> missingSrvs = manifestRfcProcessor.getMissingServices(manifestPlatformRfc.getCiId());
+				if (missingSrvs.size() > 0) {
+					logger.info(">>>>> Not all services available for platform: " + manifestPlatformRfc.getCiName() + ", the missing services: " + missingSrvs.toString());
+					disablePlatform(manifestPlatformRfc.getCiId(), userId);
+				}
 				logger.info("New release id = " + manifestPlatformRfc.getReleaseId());
 				logger.info("Done working on platform " + manifestPlatformRfc.getCiName());
 				
