@@ -24,8 +24,11 @@ module CostSummary
     cost_hist = Search::Cost.cost_time_histogram(@ns_path, end_date.prev_month(2).beginning_of_month, end_date, :month)
     if cost_hist
       x, y = cost_hist[:buckets].inject([[], []]) do |xy, time_bucket|
-        xy.first << Date.parse(time_bucket['from_as_string']).strftime('%b %Y')
-        xy.last << {:cost => [{:label => 'realized', :value => time_bucket['total']['value'].round(2)}]}
+        bucket_total = time_bucket['total']['value'].round(2)
+        if xy.first.size > 0 || bucket_total > 0   # skip months in the beginning if they are 'costless'.
+          xy.first << Date.parse(time_bucket['from_as_string']).strftime('%b %Y')
+          xy.last << {:cost => [{:label => 'realized', :value => bucket_total}]}
+        end
         xy
       end
 
