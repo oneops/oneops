@@ -23,17 +23,20 @@ module CostSummary
 
     cost_hist = Search::Cost.cost_time_histogram(@ns_path, end_date.prev_month(2).beginning_of_month, end_date, :month)
     if cost_hist
-      x, y = cost_hist[:buckets].inject([[], []]) do |xy, time_bucket|
+      buckets = cost_hist[:buckets]
+      last_bucket_index = buckets.size - 1
+      x = []
+      y = []
+      buckets.each_with_index do |time_bucket, i|
         bucket_total = time_bucket['total']['value'].round(2)
-        if xy.first.size > 0 || bucket_total > 0   # skip months in the beginning if they are 'costless'.
-          xy.first << Date.parse(time_bucket['from_as_string']).strftime('%b %Y')
-          xy.last << {:cost => [{:label => 'realized', :value => bucket_total}]}
+        if x.size > 0 || bucket_total > 0 || i == last_bucket_index  # skip months in the beginning if they are 'costless' but always add last month.
+          x << Date.parse(time_bucket['from_as_string']).strftime('%b %Y')
+          y << {:cost => [{:label => 'realized', :value => bucket_total}]}
         end
-        xy
       end
 
       cost_rate = @cost_rate && @cost_rate[:total]
-      if cost_rate
+      if cost_rate && y.size > 0
         y.last[:cost] << {:label => 'projected',
                           :value => (cost_rate * (end_date.end_of_month.to_time.to_i - end_date.to_time.to_i) / 3600.0).round(2)}
       end
