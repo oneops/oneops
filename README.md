@@ -3,22 +3,24 @@ OneOps Inductor
 
 
 
-Build
------
+Build and Install
+-----------------
 
 Build the jar file. It will be in `target/inductor-VERSION.jar`.
 
 	mvn clean package
 
 
-Build the gem. It will create an `inductor-VERSION.gem` in the root directory.
+The inductor is packaged with oneops-admin gem. To build:
 
-	gem build inductor.gemspec
-	
-	
-Install the gem from the root directory.
+    cd <source dir>/oneops-admin
+    mkdir target ; cp <source dir>/inductor/target/inductor-VERSION.jar target/
+    gem build oneops-admin.gemspec
 
-	gem install inductor-VERSION.gem
+	
+Install the gem:
+
+	gem install oneops-admin-VERSION.gem
 	
 
 Usage
