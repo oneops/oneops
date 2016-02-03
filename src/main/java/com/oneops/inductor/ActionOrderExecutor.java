@@ -431,7 +431,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
 			String destination = "/home/" + user + "/" + cookbookPath;
 
 			String[] rsyncCmdLineWithKey = rsyncCmdLine.clone();
-			rsyncCmdLineWithKey[3] += "-p " + port + " -qi " + keyFile;
+			rsyncCmdLineWithKey[5] += "-p " + port + " -qi " + keyFile;
 
 			// always sync base cookbooks/modules
 			String[] deploy = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,

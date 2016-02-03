@@ -77,6 +77,8 @@ public abstract class AbstractOrderExecutor {
                 "/usr/bin/rsync",
                 "-az",
                 "--force",
+                "--exclude=*.png",
+                "--exclude=*.md",
                 "--rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ",
                 "--timeout=" + config.getRsyncTimeout()
         };

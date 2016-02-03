@@ -507,7 +507,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 			}
 
 			String[] rsyncCmdLineWithKey = rsyncCmdLine.clone();
-			rsyncCmdLineWithKey[3] += "-p " + port + " -qi " + keyFile;
+			rsyncCmdLineWithKey[5] += "-p " + port + " -qi " + keyFile;
 
 			// return with failure if empty
 			if (host == null || host.isEmpty()) {
