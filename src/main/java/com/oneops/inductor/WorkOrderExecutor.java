@@ -783,7 +783,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 		String cookbook = config.getCircuitDir()
 				.replace("packer", cookbookPath) + "/";
 		String[] rsyncCmdLineWithKey = rsyncCmdLine.clone();
-		rsyncCmdLineWithKey[3] += "-p " + port + " -qi " + keyFile;
+		rsyncCmdLineWithKey[5] += "-p " + port + " -qi " + keyFile;
 		String[] deploy = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
 				new String[] {
 						cookbook,
@@ -801,7 +801,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 		// put shared cookbooks
 		cookbook = config.getCircuitDir().replace("packer", "shared") + "/";
 		rsyncCmdLineWithKey = rsyncCmdLine.clone();
-		rsyncCmdLineWithKey[3] += "-p " + port + " -qi " + keyFile;
+		rsyncCmdLineWithKey[5] += "-p " + port + " -qi " + keyFile;
 		deploy = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
 				new String[] { cookbook,
 						user + "@" + host + ":/home/" + user + "/shared" });
