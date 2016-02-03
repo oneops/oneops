@@ -276,16 +276,16 @@ public class Notifications {
 			logger.error("Can not get CmsCI for id - " + ciId);
 			return;
 		}
-
+		long manifestCiId = event.getManifestId();
 		String text = buildNotificationPrefix(ci.getNsPath());
 		if ("overutilized".equals(state)) {
 			text += " ci: " + ci.getCiName() + " is " + state + "! Can not add more hosts - the max pool size is reached.";
+			sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " ci is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
 		} else {
 			text += " ci: " + ci.getCiName() + " is " + state + "! Can not remove more hosts - the min pool size is reached.";
+			sendSimpleCiNotification(ci, NotificationSeverity.info, ci.getCiName() + " ci is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
 		}
-		long manifestCiId = event.getManifestId();
-
-		sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " ci is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+		
 	}
 
 	/**
