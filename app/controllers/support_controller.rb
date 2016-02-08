@@ -1,12 +1,20 @@
 class SupportController < ReportsController
-  skip_before_filter :authenticate_user!, :authenticate_user_from_token, :check_reset_password, :check_eula,
-                     :check_username, :check_organization, :set_active_resource_headers
+  skip_before_filter :check_reset_password, :check_eula, :check_username, :check_organization, :set_active_resource_headers
   before_filter :clear_active_resource_headers
-  http_basic_authenticate_with :name => Settings.support.user, :password =>  Settings.support.password
+  before_filter :authorize
+
+  def show
+  end
 
   def announcements
     @announcements = MiscDoc.announcements
     @announcements.document = {:notice => nil, :critical => nil} unless @announcements.document
+
+    respond_to do |format|
+      format.html
+      format.js
+      format.json {render :json => @announcements}
+    end
   end
 
   def update_announcements
@@ -17,14 +25,117 @@ class SupportController < ReportsController
       flash[:error] = "Could not update announcements: #{doc.error.full_messages.join('; ')}"
     end
 
-    render :action => :announcements
+    respond_to do |format|
+      format.html {render :action => :announcements}
+      format.js {render :action => :announcements}
+      format.json {render :json => @announcements}
+    end
   end
 
   def compute_report
   end
 
-  def user_signed_in?
-    false
+  def organizations
+    name      = "%#{params[:name]}%"
+    page_size = (params[:size].presence || (request.format.json? ? 100 : 9999999)).to_i
+    offset    = (params[:offset].presence || 0).to_i
+    sort      = params[:sort].presence || 'organizations.name ASC'
+    scope     = Organization.where('organizations.name ILIKE ?', name)
+
+    total = scope.count
+    @organizations = scope.limit(page_size).offset(offset).order(sort).
+      joins(:teams).
+      select('organizations.*, count(distinct teams.id) as team_count').
+      joins('LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id').
+      select('organizations.*, count(distinct teams_users.user_id) as user_count').
+      joins('LEFT OUTER JOIN groups_teams ON teams.id = groups_teams.team_id').
+      select('organizations.*, count(distinct groups_teams.group_id) as group_count').
+      group('organizations.id').all
+
+    respond_to do |format|
+      format.html
+
+      format.js
+
+      format.json do
+        response.headers['oneops-list-total-count'] = total.to_s
+        response.headers['oneops-list-page-size']   = @organizations.size.to_s
+        response.headers['oneops-list-offset']      = offset.to_s
+        render :json => @organizations
+      end
+    end
+  end
+
+  def organization
+    org_name   = params[:name]
+    @organization = Organization.where(:name => org_name).first
+    ok = @organization.present?
+    if ok
+      ns_path        = organization_ns_path(@organization.name)
+      assembly_count = Cms::Ci.all(:params => {:nsPath      => ns_path,
+                                               :ciClassName => 'account.Assembly'}).size
+      cloud_count    = Cms::Ci.all(:params => {:nsPath      => ns_path,
+                                               :ciClassName => 'account.Cloud'}).size
+      instance_count = Cms::Relation.count(:nsPath            => ns_path,
+                                           :recursive         => true,
+                                           :relationShortName => 'DeployedTo',
+                                           :direction         => 'to',
+                                           :groupBy           => 'ciId').values.sum
+      @counts = {'admin'    => @organization.teams.where(:name => Team::ADMINS).first.users.size,
+                 'team'     => @organization.teams.size,
+                 'cloud'    => cloud_count,
+                 'asembly'  => assembly_count,
+                 'instance' => instance_count}
+
+      if request.delete?
+        if instance_count > 0
+          ok = false
+          message = "Cannot delete organization with deployed instances (#{instance_count})."
+          flash[:error] = message
+          @organization.errors.add(:base, message)
+        end
+
+        if ok
+          confirmation_errors = []
+          @counts.each_pair {|name, count| confirmation_errors << name unless params["#{name}_count"].to_i == count}
+          if confirmation_errors.present?
+            ok = false
+            message = "Incorrect confirmation counts for: #{confirmation_errors.join(', ')}."
+            flash[:error] = message
+            @organization.errors.add(:base, message)
+          end
+        end
+
+        if ok
+          Organization.transaction do
+            ci = @organization.ci
+            ok = @organization.destroy
+            if ok
+              ok = execute(ci, :destroy)
+              flash[:alert] = "Organization #{@organization.name} and all its data are PERMANENTLY deleted." if ok
+            else
+              raise ActiveRecord::Rollback, 'Failed to delete organization in CMS.'
+            end
+          end
+        end
+      end
+    else
+      flash[:error] = "Organization '#{org_name}' not found." unless @organization
+    end
+
+    respond_to do |format|
+      format.js
+
+      format.json do
+        if ok
+          render :json => {:organization => @organization, :counts => @counts}, :status => :ok
+        elsif @organization
+          render :json => {:errors => @organization.errors.full_messages}, :status => :unprocessable_entity
+        else
+          render :json => {:errors => ['not found']}, :status => :not_found
+        end
+      end
+    end
   end
 
 
@@ -108,5 +219,47 @@ class SupportController < ReportsController
     scope = ['Service', 'Org/Tenant', 'Allocation', {'Assembly' => ['name', 'owner']}]
 
     return graph_data, scope
+  end
+
+
+  private
+
+  def authorize
+    auth_config = Settings.support_auth
+    if auth_config.blank?
+      unauthorized('Unavailable.')
+      return
+    end
+
+    begin
+      auth_json = JSON.parse(auth_config)
+    rescue Exception => e
+      auth_json = {'*' => auth_config}
+    end
+
+    user_groups = current_user.groups.pluck(:name).to_map
+    @permissions = {}
+    @permissions = auth_json.inject({}) do |h, (perm, groups)|
+      ok = (groups.is_a?(Array) ? groups : groups.to_s.split(',')).any? { |g| user_groups[g.strip] }
+      h[perm] = ok if ok
+      h
+    end
+
+    return if @permissions['*']
+
+    action = action_name
+    if action == 'show'
+      perm = @permissions.keys.first
+    elsif action.start_with?('organization')
+      perm = 'organization'
+    elsif action.start_with?('compute')
+      perm = 'compute_report'
+    elsif action.include?('announcements')
+      perm = 'compute_report'
+    else
+      perm = action
+    end
+
+    unauthorized unless @permissions[perm]
   end
 end

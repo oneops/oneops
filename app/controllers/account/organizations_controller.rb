@@ -51,18 +51,29 @@ class Account::OrganizationsController < ApplicationController
       end
     end
 
+
     if ok
-      if Cms::Ci.count("#{organization_ns_path(@organization.name)}/bom", true) > 0
+      old_org_scope = Cms::Relation.headers['X-Cms-Scope']
+      ns_path = "/#{@organization.name}"
+      Cms::Relation.headers['X-Cms-Scope'] = ns_path
+      instance_count = Cms::Relation.count(:nsPath            => ns_path,
+                                           :recursive         => true,
+                                           :relationShortName => 'DeployedTo',
+                                           :direction         => 'to',
+                                           :groupBy           => 'ciId').values.sum
+      if instance_count > 0
         ok = false
-        @organization.errors.add(:base, 'Cannot delete organization with deployments.')
+        @organization.errors.add(:base, "Cannot delete organization with deployed instances (#{instance_count}).")
       end
+      Cms::Relation.headers['X-Cms-Scope'] = old_org_scope
     end
 
     if ok
+      old_org_scope = Cms::Ci.headers['X-Cms-Scope']
       Cms::Ci.headers.delete('X-Cms-Scope')
       ci = Cms::Ci.first(:params => {:nsPath => '/', :ciClassName => 'account.Organization', :ciName => @organization.name})
       ok = execute(ci, :destroy)
-      Cms::Ci.headers['X-Cms-Scope'] = "/#{@organization.name}" if @organization
+      Cms::Ci.headers['X-Cms-Scope'] = old_org_scope
     end
 
     if ok

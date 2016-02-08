@@ -4246,3 +4246,8 @@ div.error-message h1 {
 i.relation {
   color: #444;
 }
+
+.support-functions > li > a {
+  font-size: 14px;
+  color: black;
+}

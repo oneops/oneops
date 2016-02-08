@@ -16,7 +16,7 @@
         <span class="topname"><%= target.ci_name %></span>
         <span class="topdesc"><%= ci_class_name.split('.').last.downcase %></span>
         <%= link_to_function('stop watching',
-                             %($j.ajax({url: "#{watch_path}", type: "DELETE", data: {ciIds: ["#{target.ns_path},#{target.ci_name}"]}})),
+                             %($j.ajax({url: "#{watch_path(:org_name => target.ns_path.split('/')[1])}", type: "DELETE", data: {ciIds: ["#{target.ns_path},#{target.ci_name}"]}})),
                              :class => 'btn btn-mini btn-danger pull-right') %>
       <% end %>
       <% builder.middle link_to(target.ns_path, path_to_ns(target.ns_path)) %>

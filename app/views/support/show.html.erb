@@ -1,0 +1,13 @@
+<h2>Support Operations</h2>
+<br/>
+<% all_perms = @permissions['*']
+   links = []
+   links << link_to(icon('bullhorn',  'Announcements',  'icon-fixed-width'), announcements_support_path)  if all_perms || @permissions['announcement']
+   links << link_to(icon('sitemap',   'Organizations',  'icon-fixed-width'), organizations_support_path)  if all_perms || @permissions['organization']
+   links << link_to(icon('bar-chart', 'Compute Report', 'icon-fixed-width'), compute_report_support_path) if all_perms || @permissions['compute_report']
+   links << link_to(icon('search',    'Search',         'icon-fixed-width'), search_support_path)         if all_perms || @permissions['search'] %>
+<ul class="support-functions nav nav-tabs nav-stacked">
+  <% links.each do |link| %>
+    <li><%= link %></li>
+  <% end %>
+</ul>
