@@ -16,3 +16,16 @@
     </ul>
   <% end %>
 <% end %>
+
+<%= section_panel 'Delete Assembly', :width => 'single', :position => 'right' do %>
+  <% if manages_access_for_assembly?(@assembly.ciId) %>
+    <%= link_confirm_busy(icon_button('trash', ' Delete', 'danger'),
+                          :url     => assembly_path(@assembly),
+                          :body    => raw('<p>Click OK to permanently delete this assembly.</p>
+                                  			   <p><strong class="label label-important">WARNING: All configuration will be PERMANENTLY lost.</strong></p>'),
+                          :method  => :delete,
+                          :remote  => true,
+                          :busy    => "Deleting assembly '#{@assembly.ciName}'",
+                          :confirm => 'Delete this assembly?') %>
+  <% end %>
+<% end %>

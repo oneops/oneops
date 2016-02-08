@@ -143,19 +143,29 @@ class AssembliesController < ApplicationController
 
     respond_to do |format|
       format.js {render :action => :edit}
-      format.json { render_json_ci_response(ok, @assembly) }
+      format.json {render_json_ci_response(ok, @assembly)}
     end
   end
 
+  swagger_api :destroy do
+    summary 'Deletes an assembly.'
+    notes 'This deletes an assembly by CI id or name. Deteling is allowed only if assembly has no deployed instances.'
+    param_org_name
+    param_ci_id :assembly
+    response :unauthorized
+    response :not_found
+    response :unprocessable_entity
+  end
+
   def destroy
-    ok = true
-    Cms::Relation.all(:params => {:ciId              => @assembly.ciId,
-                                  :direction         => 'from',
-                                  :relationShortName => 'RealizedIn',
-                                  :targetClassName   => 'manifest.Environment'}).each do |e|
-      ok = Cms::Ci.count("#{environment_ns_path(e.toCi)}/bom", true) == 0
-      break unless ok
-    end
+    count = Cms::Relation.count(:nsPath            => assembly_ns_path(@assembly),
+                                :recursive         => true,
+                                :relationShortName => 'DeployedTo',
+                                :direction         => 'to',
+                                :groupBy           => 'ciId')
+    cloud_count = count.size
+    instance_count = count.values.sum
+    ok = instance_count == 0
 
     if ok
       ok = execute(@assembly, :destroy)
@@ -164,14 +174,14 @@ class AssembliesController < ApplicationController
         @proxy.destroy
       end
     else
-      message = 'Cannot delete assembly with deployments.  Please disable all platforms in all environments before deleting the assembly.'
+      message = "Cannot delete assembly with deployments: there are #{instance_count} #{'instance'.pluralize(instance_count)} deployed to #{cloud_count} #{'cloud'.pluralize(cloud_count)}. Please disable all platforms in all environments before deleting the assembly."
       flash[:error] = message
       @assembly.errors.add(:base, message)
     end
 
     respond_to do |format|
-      format.html { index }
-      format.json { render_json_ci_response(ok, @assembly) }
+      format.js { render(:json => '') unless ok }
+      format.json {render_json_ci_response(ok, @assembly)}
     end
   end
 
