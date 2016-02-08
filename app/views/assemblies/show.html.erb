@@ -1,26 +1,15 @@
 <%= assembly_page_header(@assembly, '') %>
 
-<% page_options = manages_access_for_assembly?(@assembly.ciId) &&
-    [link_confirm_busy(icon_button('trash', ' Delete', 'danger'),
-                       :url     => assembly_path(@assembly),
-                       :body    => raw('<p>Click OK to permanently delete this assembly.</p>
-                                  								        <p><strong class="label label-important">WARNING: All configuration will be lost.</strong></p>'),
-                       :method  => :delete,
-                       :remote => false,
-                       :busy    => "Deleting assembly '#{@assembly.ciName}'",
-                       :confirm => 'Delete assembly?')] %>
-
 <%= page_title({:page_kind     => 'Assembly',
                 :page_label    => @assembly.ciName,
-                :page_options  => page_options,
                 :page_sublabel => "created by #{@assembly.createdBy} #{time_ago_in_words(@assembly.created_timestamp)}"}) %>
 
 <%= page_info 'View assembly info, manage assembly configuration and team permission settings' %>
 
 <%= render 'base/shared/page_nav_pages',
            :items => [{:label => 'summary', :template => 'summary', :selected => true},
-                      {:label => 'profile', :template => 'profile'},
                       {:label => 'teams', :url => teams_assembly_path(@assembly)},
                       {:label => 'reports', :url => reports_assembly_path(@assembly)},
                       {:label => 'health', :url => assembly_instances_path(@assembly, :instances_state => params[:instances_state] || 'unhealthy,notify')},
-                      {:label => 'procedures', :url => operations_procedures_path(:ciId => @assembly.ciId)}] %>
+                      {:label => 'procedures', :url => operations_procedures_path(:ciId => @assembly.ciId)},
+                      {:label => 'settings', :template => 'settings'}] %>

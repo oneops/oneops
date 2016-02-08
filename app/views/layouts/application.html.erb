@@ -116,19 +116,19 @@
                         </a>
                         <%= render('layouts/favorites_dropdown') %>
                       </li>
-                      <li>
-                        <%= link_to(organizations_account_profile_path,
-                                    :remote       => true,
-                                    :class        => 'dropdown-toggle',
-                                    'data-toggle' => 'dropdown') do %>
-                          <%= raw("#{icon('sitemap', current_org.name)} #{icon('caret-right', '', 'pull-right')}") %>
-                        <% end %>
-                        <ul class="org_dropdown dropdown-menu">
-                          <li style="text-align:center"><a><i class="icon-spinner icon-spin"></i></a></li>
-                        </ul>
-                      </li>
                     <% end %>
                   <% end %>
+                  <li>
+                    <%= link_to(organizations_account_profile_path,
+                                :remote       => true,
+                                :class        => 'dropdown-toggle',
+                                'data-toggle' => 'dropdown') do %>
+                      <%= raw("#{icon('sitemap', current_org ? current_org.name : content_tag(:em, 'organizations', :class => 'muted'))} #{icon('caret-right', '', 'pull-right')}") %>
+                    <% end %>
+                    <ul class="org_dropdown dropdown-menu">
+                      <li style="text-align:center"><a><i class="icon-spinner icon-spin"></i></a></li>
+                    </ul>
+                  </li>
                   <li><%= link_to(icon('signout', 'Signout'), destroy_user_session_path) %></li>
                 </ul>
               </div>

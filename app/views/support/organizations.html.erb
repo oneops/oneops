@@ -1,0 +1,30 @@
+<%= section_panel 'Organizations',
+                  :width => 'triple',
+                  :menu  => [link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")', :class => 'btn btn-mini')] do %>
+  <%= list(@organizations,
+           :toolbar  => {:sort_by => [%w(Name name), %w(Created created)],
+                         :filter_by => %w(name)}) do |builder, org| %>
+    <% builder.itemid org.id %>
+    <% builder.attributes raw(%(name="#{org.name}" created="#{org.created_at}")) %>
+    <% builder.top do %>
+      <%= org.name %>
+      <% if org.full_name? %>
+        <span class="topdesc"><%= org.full_name %></span>
+      <% end %>
+
+    <% end %>
+    <% builder.middle do %>
+      <strong><%= org.team_count %></strong> <%= 'team'.pluralize(org.team_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
+      <strong><%= org.user_count %></strong> <%= 'user'.pluralize(org.user_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
+      <strong><%= org.group_count %></strong> <%= 'group'.pluralize(org.group_count) %>
+    <% end %>
+    <% builder.bottom do %>
+      created <%= time_ago_in_words(org.created_at) %>
+    <% end %>
+
+    <% builder.menu do %>
+      <%= link_to(content_tag(:span, icon('info-sign', 'More...')), organization_support_path(:name => org.name), :remote => true) %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id="delete_organization_modal" class="modal hide"></div>

@@ -481,7 +481,7 @@ class ApplicationController < ActionController::Base
       if current_user.username != session[:username]
         logger.error "Current username '#{current_user.username}' doesn't match session: #{session.inspect}"
         sign_out
-        flash[:warning] = 'Please verify your identity by signing in.'
+        flash[:alert] = 'Please verify your identity by signing in.'
         redirect_to new_user_session_path
         return
       end
@@ -565,7 +565,7 @@ class ApplicationController < ActionController::Base
   def process_flash_messages
     return unless request.xhr?
 
-    response.body += ";flash('#{escape_javascript(flash[:notice])}', '#{escape_javascript(flash[:error])}');" if flash[:notice].present? || flash[:error].present?
+    response.body += ";flash('#{escape_javascript(flash[:notice])}', '#{escape_javascript(flash[:error])}', '#{escape_javascript(flash[:alert])}');" if flash[:notice].present? || flash[:error].present? || flash[:alert].present?
     flash.discard
   end
 
@@ -715,7 +715,7 @@ class ApplicationController < ActionController::Base
     respond_to do |format|
       format.html { redirect_to redirect_path, :alert => message }
       format.js   { render :js => "$j('.modal').modal('hide'); flash(null, 'Unauthorized access!')" }
-      format.json { render :json => '', :status => :unauthorized }
+      format.json { render :json => message, :status => :unauthorized }
     end
   end
 

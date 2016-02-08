@@ -38,7 +38,7 @@ Display::Application.routes.draw do
 
   get '/api_docs' => 'welcome#api_docs'
 
-  resource :support, :controller => 'support', :only => :none, :defaults => { :org_name => nil } do
+  resource :support, :controller => 'support', :only => [:show], :defaults => { :org_name => nil } do
     collection do
       get  'announcements'
       put  'update_announcements'
@@ -46,6 +46,10 @@ Display::Application.routes.draw do
       get  'compute'
       post 'compute'
       get  'search'
+      get  'organizations'
+
+      get    'organization/:name', :action => 'organization', :as => 'organization'
+      # delete 'organization/:name', :action => 'organization'
     end
   end
 

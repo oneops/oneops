@@ -1,13 +1,17 @@
-<% current_user.organizations.order(:name).each do |org| %>
-  <li>
-    <%= link_to(change_organization_account_profile_path(:org_id => org.id), :method => :put) do %>
-      <%= icon(current_user.organization.id == org.id ? 'ok' : '', nil, 'icon-fixed-width') %> <%= org.name %>
-      <% if org.full_name.present? %>
-        <br/>
-        <small style="margin-left:40px"><%= org.full_name %></small>
+<% orgs = current_user.organizations.order(:name) %>
+<% if orgs.present? %>
+  <% orgs.each do |org| %>
+    <li>
+      <%= link_to(change_organization_account_profile_path(:org_id => org.id), :method => :put) do %>
+        <%= icon(current_user.organization_id == org.id ? 'ok' : '', nil, 'icon-fixed-width') %> <%= org.name %>
+        <% if org.full_name.present? %>
+          <br/>
+          <small style="margin-left:40px"><%= org.full_name %></small>
+        <% end %>
       <% end %>
-    <% end %>
-  </li>
+    </li>
+  <% end %>
+  <li class="divider"></li>
 <% end %>
-<li class="divider"></li>
-<li><%= link_to_function(content_tag(:small, 'Find organization...'), '$j("#organization_lookup_modal").modal("show")') %></li>
+<li><%= link_to_function(icon(site_icon('search'), content_tag(:small, 'Find organization...'), 'icon-fixed-width'), '$j("#organization_lookup_modal").modal("show")') %></li>
+<li><%= link_to(icon(site_icon('organization'), content_tag(:small, 'Manage your organizations'), 'icon-fixed-width'), account_profile_path(:anchor => 'organizations')) %></li>

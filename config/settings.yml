@@ -2,7 +2,9 @@
 
 defaults: &defaults
   identity: <%= ENV['IDENTITY'] || '' %>
+  support_auth: '<%= ENV['SUPPORT_AUTH'] %>'
   support_email: <%= ENV['SUPPORT_EMAIL'] %>
+
   news_url: <%= ENV['NEWS_URL'] %>
   help_url: <%= ENV['HELP_URL'] %>
   feedback_url: <%= ENV['FEEDBACK_URL'] || 'https://oneops.slack.com/messages/feedback/' %>
@@ -66,9 +68,6 @@ defaults: &defaults
   notification_hook:
     user: <%= ENV['NOTIFICATION_USER'] || 'admin' %>
     password: <%= ENV['NOTIFICATION_PASS'] || 'secret' %>
-  support:
-    user: <%= ENV['SUPPORT_USER'] || 'admin' %>
-    password: <%= ENV['SUPPORT_PASS'] || 'secret' %>
 
   # Use 'components/states' to use Sensor's old API (calculate counters on-the-fly).
   # Use 'components/states/count' to use Sensor's new optimized API (based on live counters).

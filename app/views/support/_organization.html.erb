@@ -1,0 +1,50 @@
+<div class="modal-header">
+  <button class="close" data-dismiss="modal">&times;</button>
+  <h3><%= @organization.name %></h3>
+</div>
+<%= form_tag(organization_support_path, :remote => true, :method => :delete, :class => 'form-horizontal') do %>
+  <div class="modal-body">
+    <% if @organization.full_name? %>
+      <h4><%= @organization.full_name %></h4>
+    <% end %>
+    <p>Organiation owner is <strong><%= @organization.ci.ciAttributes.owner %></strong>.</p>
+    <p>
+      This organization has
+      <strong><%= raw @counts.to_a.map {|name, count| "#{count} #{name.pluralize(count)}"}.join('</strong>, <strong>') %></strong>.
+      <br/>
+    </p>
+    <% if @counts['instance'] == 0 %>
+      <div class="hide delete-org">
+        <hr/>
+        <p><strong class='label label-important'>WARNING: All data for this organization will be permanently lost.</strong></p>
+        <p>
+          Please confirm you would like to PERMANENTLY delete organization <b><%= @organization.name %></b>
+          by re-entering counts below.
+        </p>
+        <br/>
+        <%= hidden_field_tag :name, @organization.name %>
+        <% @counts.keys.each do |name| %>
+          <div class="control-group">
+            <% field_name = "#{name}_count".to_sym %>
+            <%= label_tag field_name, "#{name.capitalize} count", :class => 'control-label' %>
+            <div class="controls">
+              <%= text_field_tag field_name,
+                                 nil,
+                                 :required     => true,
+                                 :class        => 'input-medium',
+                                 :autocomplete => 'off',
+                                 :placeholder  => "#{name} count..." %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <%# link_to_function(icon('trash', 'Delete this organization...'), '$j(this).hide();$j(".delete-org").show()') %>
+      <div class="hide delete-org">
+        <button class="btn btn-large" data-dismiss="modal">Cancel</button>
+        <%= submit_tag 'Permanently delete', :class => 'btn btn-danger btn-large' %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
