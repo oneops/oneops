@@ -212,8 +212,8 @@ class ApplicationController < ActionController::Base
     "#{organization_ns_path}/_services"
   end
 
-  def clouds_ns_path
-    "#{organization_ns_path}/_clouds"
+  def clouds_ns_path(org = current_user.organization.name)
+    "#{organization_ns_path(org)}/_clouds"
   end
 
   def cloud_ns_path(cloud)
