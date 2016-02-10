@@ -1,0 +1,6 @@
+<% if announcements %>
+  <% doc = announcements.document %>
+  <%= render 'layouts/announcement', :announcement => doc['critical'], :style => 'danger' %>
+  <%= render 'layouts/announcement', :announcement => doc['notice'], :style => 'info' %>
+<% end %>
+

@@ -1,0 +1,6 @@
+<%= render('base/shared/edit_form',
+           {:resource   => @announcements,
+            :content    => 'announcements_content',
+            :read_only  => false,
+            :form_url   => announcements_support_path,
+            :cancel_url => announcements_support_path}) %>

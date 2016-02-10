@@ -1,6 +1,4 @@
-$j("#announcements_section .section-content")
-    .html("<%= escape_javascript(render('base/shared/edit_form',
-                                        {:resource   => @announcements,
-                                         :content    => 'announcements_content',
-                                         :form_url   => update_announcements_support_path,
-                                         :cancel_url => announcements_support_path})) %>");
+$j("#announcements_section .section-content").html("<%= escape_javascript(render('announcements')) %>");
+<% if request.put? %>
+  $j("#site_announcements").html("<%= escape_javascript(render('layouts/site_announcements', :announcements => @announcements)) %>");
+<% end %>

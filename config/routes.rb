@@ -41,7 +41,7 @@ Display::Application.routes.draw do
   resource :support, :controller => 'support', :only => [:show], :defaults => { :org_name => nil } do
     collection do
       get  'announcements'
-      put  'update_announcements'
+      put  'announcements'
       get  'compute_report'
       get  'compute'
       post 'compute'
@@ -59,6 +59,8 @@ Display::Application.routes.draw do
       get 'lookup_attr_name'
     end
   end
+
+  resource :watch, :controller => 'watch', :only => [:show, :destroy]
 
   post '/:org_name/request_access' => 'organization#request_access', :as => 'organization_request_access'
   get '/:org_name' => 'organization#public_profile', :as => 'organization_public_profile'
@@ -130,7 +132,7 @@ Display::Application.routes.draw do
 
     resources :notifications
 
-    resource :watch, :controller => 'watch', :only => [:show, :create, :destroy]
+    resource :watch, :controller => 'watch', :only => [:create, :destroy]
     resources :favorites, :controller => 'account/favorites', :only => [:show, :create, :destroy]
 
     resource :lookup, :controller => 'lookup', :only => :none do
