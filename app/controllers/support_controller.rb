@@ -8,26 +8,19 @@ class SupportController < ReportsController
 
   def announcements
     @announcements = MiscDoc.announcements
-    @announcements.document = {:notice => nil, :critical => nil} unless @announcements.document
+    if request.put?
+      if @announcements.update_attribute(:document, params[:document])
+        flash[:notice] = 'Updated announcements.'
+      else
+        flash[:error] = "Could not update announcements: #{@announcements.errors.full_messages.join('; ')}"
+      end
+    else
+      @announcements.document ||= {:notice => nil, :critical => nil}
+    end
 
     respond_to do |format|
       format.html
       format.js
-      format.json {render :json => @announcements}
-    end
-  end
-
-  def update_announcements
-    @announcements = MiscDoc.announcements
-    if @announcements.update_attribute(:document, params[:document])
-      flash[:notice] = 'Updated announcements.'
-    else
-      flash[:error] = "Could not update announcements: #{doc.error.full_messages.join('; ')}"
-    end
-
-    respond_to do |format|
-      format.html {render :action => :announcements}
-      format.js {render :action => :announcements}
       format.json {render :json => @announcements}
     end
   end
@@ -71,10 +64,11 @@ class SupportController < ReportsController
     @organization = Organization.where(:name => org_name).first
     ok = @organization.present?
     if ok
-      ns_path        = organization_ns_path(@organization.name)
+      org_name       = @organization.name
+      ns_path        = organization_ns_path(org_name)
       assembly_count = Cms::Ci.all(:params => {:nsPath      => ns_path,
                                                :ciClassName => 'account.Assembly'}).size
-      cloud_count    = Cms::Ci.all(:params => {:nsPath      => ns_path,
+      cloud_count    = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path(org_name),
                                                :ciClassName => 'account.Cloud'}).size
       instance_count = Cms::Relation.count(:nsPath            => ns_path,
                                            :recursive         => true,
@@ -112,7 +106,7 @@ class SupportController < ReportsController
             ok = @organization.destroy
             if ok
               ok = execute(ci, :destroy)
-              flash[:alert] = "Organization #{@organization.name} and all its data are PERMANENTLY deleted." if ok
+              flash[:alert] = "Organization #{org_name} and all its data are PERMANENTLY deleted." if ok
             else
               raise ActiveRecord::Rollback, 'Failed to delete organization in CMS.'
             end
@@ -255,7 +249,7 @@ class SupportController < ReportsController
     elsif action.start_with?('compute')
       perm = 'compute_report'
     elsif action.include?('announcements')
-      perm = 'compute_report'
+      perm = 'announcement'
     else
       perm = action
     end

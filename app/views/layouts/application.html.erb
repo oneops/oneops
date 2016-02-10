@@ -142,9 +142,9 @@
             <div id="page_header_container">
               <% if current_user.eula_accepted_at? %>
                 <div id="page_header">
-                  <% announcements = MiscDoc.announcements.document %>
-                  <%= render 'layouts/announcement', :announcement => announcements['critical'], :style => 'danger' %>
-                  <%= render 'layouts/announcement', :announcement => announcements['notice'], :style => 'info' %>
+                  <div id="site_announcements">
+                    <%= render 'layouts/site_announcements', :announcements => MiscDoc.announcements %>
+                  </div>
                   <div id="org_announcement">
                     <%= render 'layouts/announcement', :announcement => current_org && current_org.announcement %>
                   </div>
