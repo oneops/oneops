@@ -113,6 +113,7 @@ when "chef"
      end
      config_content += "log_level :#{log_level}\n"
      config_content += "formatter :#{formatter}\n"
+     config_content += "verify_api_cert true\n"
      config_content += "file_cache_path \"/tmp\"\n"
      config_content += "lockfile \"/tmp/#{ci}.lock\"\n"
 
