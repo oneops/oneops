@@ -49,11 +49,9 @@
         <%= marker(profile, 'label-info') if profile.present? %>
         <%= marker('autorepair', 'label-success') if target.ciAttributes.autorepair == 'true' %>
         <%= marker('autoscale', 'label-success')  if target.ciAttributes.autoscale == 'true' && target.ciAttributes.availability == 'redundant' %>
+        <%= marker(icon('eye-open', 'watching', 'icon-large'), 'label-inverse') if watching %>
         <%= icon('star') %>
         <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
-        <% if watching %>
-          <i class="icon-large icon-eye-open"></i>
-        <% end %>
       <% end %>
     <% end %>
   <% end %>

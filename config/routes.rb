@@ -60,7 +60,7 @@ Display::Application.routes.draw do
     end
   end
 
-  resource :watch, :controller => 'watch', :only => [:show, :destroy]
+  resource :watch, :controller => 'watch', :only => [:show, :create, :destroy]
 
   post '/:org_name/request_access' => 'organization#request_access', :as => 'organization_request_access'
   get '/:org_name' => 'organization#public_profile', :as => 'organization_public_profile'
