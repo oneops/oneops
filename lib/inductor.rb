@@ -58,7 +58,6 @@ class Inductor < Thor
     say_status :success, "Next Step: cd inductor ; inductor add"
   end
 
-
   desc "add", "Add cloud to the inductor"
   method_option :mqhost, :type => :string, :default => 'localhost'
   method_option :mqport, :type => :numeric, :default => 61617
@@ -79,6 +78,7 @@ class Inductor < Thor
   method_option :force, :default => true
   method_option :additional_java_args, :type => :string, :required => false
   method_option :env_vars, :type => :string, :default => ''
+  method_option :amq_truststore_location, :type => :string, :required => false
 
   def add
     @inductor = File.expand_path(Dir.pwd)
@@ -125,11 +125,12 @@ class Inductor < Thor
     end
     @queue_name = dot_name +".ind-wo"
     @authkey = options[:authkey] || ask("What is the authorization key?")
-    #java -Dconf.dir=/opt/oneops/inductor/clouds-enabled/public.walmartlabs.clouds.openstack-ctf3/conf -Dlog4j.configuration=file:///opt/oneops/inductor/clouds-enabled/public.walmartlabs.clouds.openstack-ctf3/conf/log4j.xml -Djavax.net.ssl.trustStore=/opt/oneops/inductor/lib/client.ts -jar /usr/lib/ruby/gems/1.8/gems/oneops-admin-1.0.0/target/inductor-1.1.0.jar
     @additional_java_args= options[:additional_java_args] || ask("Any additional java args to default (If empty uses default.)?")
 
     @env_vars = ask('Additional env vars to be used for workorder exec? (If empty uses default.)')
     @env_vars = options[:env_vars] if @env_vars.empty?
+    
+    @amq_truststore_location = options[:amq_truststore_location] || ask("Location of TrustStore to connect AMQ (If empty no trustStore is used)?")
 
     @home = File.expand_path("clouds-available/#{dot_name}")
     @logstash_cert_location = "#{@home}/logstash-forwarder/cert/logstash-forwarder.crt" if  @logstash_cert_location.empty?
@@ -142,6 +143,7 @@ class Inductor < Thor
     empty_directory "#{@home}/backup"
     empty_directory "#{@home}/data"
     empty_directory "#{@home}/retry"
+    
     # enable cloud
     inside("clouds-available") do
       if File.symlink?("../clouds-enabled/#{dot_name}")
@@ -255,7 +257,6 @@ class Inductor < Thor
         else
           args = "-Dconf.dir=#{long_path}/conf "
           args += "-Dlog4j.configuration=file://#{long_path}/conf/log4j.xml "
-          args += "-Djavax.net.ssl.trustStore=#{Inductor.ts} "
           if File.exist?("#{long_path}/conf/vmargs")
             additional_args =`cat #{long_path}/conf/vmargs`.chomp
             args += additional_args
@@ -370,6 +371,8 @@ class Inductor < Thor
       stop_logstash_agent_by_cloud(long_cloud)
       start_logstash_agent_by_cloud(long_cloud)
    end
+   
+
 
   end
 
@@ -549,12 +552,7 @@ class Inductor < Thor
   def self.source_root
     File.dirname(__FILE__)
   end
-
-  @ts = File.expand_path("lib/client.ts",Dir.pwd)
-  def self.ts
-    return @ts
-  end
-
+  
   def self.jar
     File.expand_path("../target/inductor-1.1.0.jar", File.dirname(__FILE__))
   end
