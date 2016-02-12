@@ -187,8 +187,8 @@ public class FlexStateProcessorTest {
 		try {
 			//these will just remove keys from the Set; 
 			//simple test; just make sure no exception
-			fsp.processOverutilized(event);
-			fsp.processUnderutilized(event);
+			fsp.processOverutilized(event, true);
+			fsp.processUnderutilized(event, true, System.currentTimeMillis());
 		} catch (OpampException e) {
 			logger.warn("Not expected to catch here ",e);
 			throw new RuntimeException(e);
@@ -214,14 +214,14 @@ public class FlexStateProcessorTest {
 			OpsBaseEvent event = new OpsBaseEvent();
 			event.setCiId(ID_WITH_AUTO_SCALING);
 
-			fsp.processOverutilized(event);
+			fsp.processOverutilized(event, true);
 			//drives private method for growPool...
 			event = new OpsBaseEvent();
 			event.setCiId(ID_WITHOUT_AUTO_SCALING);
-			fsp.processOverutilized(event);
+			fsp.processOverutilized(event, true);
 			event = new OpsBaseEvent();
 			event.setCiId(ID_WITHOUT_AUTO_REPAIR);
-			fsp.processOverutilized(event);
+			fsp.processOverutilized(event, true);
 
 		} catch (OpampException e) {
 			logger.warn("Not expected to catch here ",e);
@@ -250,14 +250,14 @@ public class FlexStateProcessorTest {
 			OpsBaseEvent event = new OpsBaseEvent();
 			event.setCiId(0L);
 
-			processor.processUnderutilized(event); //actually not
+			processor.processUnderutilized(event, true, System.currentTimeMillis()); //actually not
 			event = new OpsBaseEvent();
 			event.setCiId(ID_WITH_AUTO_REPAIR);
-			processor.processUnderutilized(event);
+			processor.processUnderutilized(event, true, System.currentTimeMillis());
 
 			event = new OpsBaseEvent();
 			event.setCiId(ID_WITH_AUTO_SCALING);
-			processor.processUnderutilized(event); //is underutilized 
+			processor.processUnderutilized(event, true, System.currentTimeMillis()); //is underutilized 
 			
 		} catch (OpampException e) {
 			logger.warn("Not expected to catch here ",e);

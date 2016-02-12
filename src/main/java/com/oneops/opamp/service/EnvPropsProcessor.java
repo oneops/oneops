@@ -42,7 +42,7 @@ public class EnvPropsProcessor {
 	
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
-	private long coolOffPeriodMili = 180000;
+	private static final long COOLOFF_PREIOD_4_RELEASE = 180000;
 	private static final String OPAMP_STATUS = "IS_OPAMP_SUSPENDED";
 
 	private static final String AUTO_REPLACE_STATUS_VAR = "IS_AUTO_REPLACE_SUSPENDED";
@@ -259,7 +259,7 @@ public class EnvPropsProcessor {
 		if (bomReleases.size() >0 ) {
 			if (! "closed".equals(bomReleases.get(0).getReleaseState())) {
 				return true;
-			} else if ((System.currentTimeMillis() - bomReleases.get(0).getUpdated().getTime()) < coolOffPeriodMili) {
+			} else if ((System.currentTimeMillis() - bomReleases.get(0).getUpdated().getTime()) < COOLOFF_PREIOD_4_RELEASE) {
 				return true;
 			} else if (manReleases.size() >0 
 					&& bomReleases.get(0).getParentReleaseId() != manReleases.get(0).getReleaseId()) {
@@ -272,6 +272,23 @@ public class EnvPropsProcessor {
 		
 		return false;
 	}
+
+	public boolean isFirstAfterBomReleaseClosed(CmsCI env, long eventTimestamp, long coolOff) {
+		String bomNs = env.getNsPath() + "/" + env.getCiName() + "/bom";
+
+		List<CmsRelease> bomReleases = rfcProcessor.getLatestRelease(bomNs, null);
+
+		if (bomReleases.size() >0 ) {
+			long bomReleaseTime = bomReleases.get(0).getUpdated().getTime() + COOLOFF_PREIOD_4_RELEASE;
+			long bomReleaseAndCoolOff = bomReleaseTime + (coolOff * 60000) + 59000;
+			if (bomReleaseTime < eventTimestamp && eventTimestamp < bomReleaseAndCoolOff) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
 	
 	public List<CmsCI> getPlatformsForEnv(long ciId) {
 		List<CmsCI> platforms = new ArrayList<CmsCI>();
