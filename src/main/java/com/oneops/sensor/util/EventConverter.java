@@ -46,6 +46,7 @@ public class EventConverter {
 		bEvent.setTimestamp(oEvent.getTimestamp());
 		bEvent.setCount(oEvent.getCount());
 		bEvent.setStatus(oEvent.getStatus());
+		bEvent.setCoolOff(oEvent.getCoolOff());
 		return bEvent;
 	}
 	

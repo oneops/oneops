@@ -254,6 +254,7 @@ public class OpsEventListener implements UpdateListener {
             ciEvent.setOldState(oldCiState);
             //TODO change ciEvent to have notify state ?
             ciEvent.setPayLoad(payload);
+            ciEvent.setTimestamp(System.currentTimeMillis());
 
             if (!newCiState.equals(oldCiState)) {
                 coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp());
