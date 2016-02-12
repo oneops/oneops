@@ -17,7 +17,6 @@
  *******************************************************************************/
 package com.oneops.opamp.jms;
 
-import java.util.List;
 import java.util.Map;
 
 import javax.jms.JMSException;
@@ -28,7 +27,6 @@ import javax.jms.TextMessage;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.exceptions.OpsException;
 import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.opamp.service.BadStateProcessor;
@@ -121,7 +119,6 @@ public class OpsEventListener implements MessageListener {
 			if (!envProcessor.isOpAmpSuspended() && (msg instanceof TextMessage)) {
 				try {
 					String type = msg.getStringProperty("type");
-					 type = msg.getStringProperty("type");
 
 					if ("ci-change-state".equals(type)) {
 						CiChangeStateEvent event = gson.fromJson(((TextMessage)msg).getText(), CiChangeStateEvent.class);
@@ -137,6 +134,8 @@ public class OpsEventListener implements MessageListener {
 						} else {
 							logger.warn("state counters found null for " + event.getCiId());
 						}
+						
+						boolean isNewState = (event.getNewState() != null) && (!event.getNewState().equals(event.getOldState()));
 
 						//Changed to pass the ChangeEvent context event
 					    if (event.getPayLoad() != null && event.getNewState().equals(event.getOldState()) && opsEvent.getState().equalsIgnoreCase("close")) {
@@ -156,9 +155,9 @@ public class OpsEventListener implements MessageListener {
 					    		bsProcessor.processUnhealthyState(event);	
 					    	}
 						} else if ("overutilized".equals(event.getNewState())) {
-							fsProcessor.processOverutilized(eventUtil.getOpsEvent(event));
+							fsProcessor.processOverutilized(eventUtil.getOpsEvent(event), isNewState);
 						} else if ("underutilized".equals(event.getNewState())) {
-							fsProcessor.processUnderutilized(eventUtil.getOpsEvent(event));
+							fsProcessor.processUnderutilized(eventUtil.getOpsEvent(event), isNewState, event.getTimestamp());
 						}else if (event.getPayLoad() != null &&  "notify".equals(event.getNewState()) && eventUtil.shouldNotify(event, opsEvent) )   {
 							//skip the notification in case payload is null
 							notifier.sendOpsEventNotification(event);

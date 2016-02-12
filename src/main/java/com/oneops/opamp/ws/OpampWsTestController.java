@@ -91,7 +91,7 @@ public class OpampWsTestController {
 		OpsBaseEvent opsEvent = new OpsBaseEvent();
 		opsEvent.setCiId(ciId);
 		try {
-			flexStateProcessor.processOverutilized(opsEvent);
+			flexStateProcessor.processOverutilized(opsEvent, true);
 		} catch (OpampException e) {
 			logger.error("OpampException in testFelxUp", e);
 		}
@@ -111,7 +111,7 @@ public class OpampWsTestController {
 		OpsBaseEvent opsEvent = new OpsBaseEvent();
 		opsEvent.setCiId(ciId);
 		try {
-			flexStateProcessor.processUnderutilized(opsEvent);
+			flexStateProcessor.processUnderutilized(opsEvent, true, System.currentTimeMillis());
 		} catch (OpampException e) {
 			logger.error("OpampException in testFelxDown", e);		}
 		return "shrinked pool";

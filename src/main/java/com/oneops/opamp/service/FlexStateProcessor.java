@@ -18,12 +18,9 @@
 package com.oneops.opamp.service;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.springframework.web.client.RestClientException;
@@ -48,7 +45,9 @@ public class FlexStateProcessor {
 	private Notifications notifier;
 	private RestTemplate restTemplate;
     private String transistorUrl;
-	private Set<Long> postponedCis = Collections.synchronizedSet(new HashSet<Long>());
+    private static final String CI_STATE_OVERUTILIZED = "overutilized";
+    private static final String CI_STATE_UNDERUTILIZED = "underutilized";
+	//private Set<Long> postponedCis = Collections.synchronizedSet(new HashSet<Long>());
 	
 	/**
 	 * Sets the cm processor.
@@ -110,22 +109,22 @@ public class FlexStateProcessor {
 	 * @param event
 	 * @throws OpampException the opamp exception
 	 */
-	public void processOverutilized(OpsBaseEvent event) throws OpampException{
+	public void processOverutilized(OpsBaseEvent event, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
-		if ("overutilized".equals(coProcessor.getCIstate(ciId))) {
+		if (CI_STATE_OVERUTILIZED.equals(coProcessor.getCIstate(ciId))) {
 			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
 			if (env != null) {
 				if (envProcessor.isCloudActive4Bom(ciId)) {
-					growPool(event, env);
+					growPool(event, env, isNewState);
 				} else {
-					notifier.sendFlexNotificationInactiveCloud(event, "overutilized");
+					notifier.sendFlexNotificationInactiveCloud(event, CI_STATE_OVERUTILIZED);
 				}
 			} else {
-				notifier.sendFlexNotificationNoRepair(event, "overutilized");
+				notifier.sendFlexNotificationNoRepair(event, CI_STATE_OVERUTILIZED);
 			}
 		} else {
 			// ci is already healthy
-			postponedCis.remove(ciId);
+			//postponedCis.remove(ciId);
 			logger.info("Ci is good now - " + ciId);
 		}
 	}
@@ -136,14 +135,14 @@ public class FlexStateProcessor {
 	 * @param ciId the ci id
 	 * @throws OpampException the opamp exception
 	 */
-	public void processUnderutilized(OpsBaseEvent opsEvent) throws OpampException{
+	public void processUnderutilized(OpsBaseEvent opsEvent, boolean isNewState, long originalEventTimestamp) throws OpampException{
 		long ciId = opsEvent.getCiId();
 		//check if it still needs resize
 		if ("underutilized".equals(coProcessor.getCIstate(ciId))) {
 			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
 			if (env != null) {
 				if (envProcessor.isCloudActive4Bom(ciId)) {
-					shrinkPool(opsEvent, env);
+					shrinkPool(opsEvent, env, isNewState, originalEventTimestamp);
 				} else {
 					notifier.sendFlexNotificationInactiveCloud(opsEvent, "underutilized");
 				}
@@ -152,15 +151,14 @@ public class FlexStateProcessor {
 			}
 		} else {
 			// ci is already healthy
-			postponedCis.remove(ciId);
+			//postponedCis.remove(ciId);
 			logger.info("Ci is good now - " + ciId);
 		}
 	}
 	
 	
-	private void growPool(OpsBaseEvent event, CmsCI env) throws OpampException{
+	private void growPool(OpsBaseEvent event, CmsCI env, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
-		String state = "overutilized";
 		if (! envProcessor.isOpenRelease4Env(env)) {
 			//first lets get manifest compute so we can get flex relation
 			long manifestCompId = findManifestComputeId(ciId);
@@ -177,47 +175,46 @@ public class FlexStateProcessor {
 						if (current<max) {
 							step = (max-current >= step) ? step : max-current; 
 							processFlexRelation(flexRel, env, step, true);
-							notifier.sendFlexNotificationProcessing(event, state, step);
+							notifier.sendFlexNotificationProcessing(event, CI_STATE_OVERUTILIZED, step);
 						} else {
-							notifier.sendFlexNotificationLimitIsReached(event, state);
+							notifier.sendFlexNotificationLimitIsReached(event, CI_STATE_OVERUTILIZED);
 							logger.info("Max pool size reached for ci - " + ciId);
 						}
 					} else {
 						String errText = "The platform is in partually deployed state for ci - " + ciId; 
 						logger.error(errText);
-						notifier.sendFlexNotificationErrorProcessing(event, state, errText);
+						notifier.sendFlexNotificationErrorProcessing(event, CI_STATE_OVERUTILIZED, errText);
 					}
 				} else {
 					String errText = "Can not get felx realtion for ci - " + ciId; 
 					logger.error(errText);
-					notifier.sendFlexNotificationErrorProcessing(event, state, errText);
+					notifier.sendFlexNotificationErrorProcessing(event, CI_STATE_OVERUTILIZED, errText);
 				}
 			} else {
 				String errText = "Can not get manifest Compute for ci - " + ciId;
 				logger.error(errText);
-				notifier.sendFlexNotificationErrorProcessing(event, state, errText);
+				notifier.sendFlexNotificationErrorProcessing(event, CI_STATE_OVERUTILIZED, errText);
 			}
 			// at this point ci either processed or there is an critical error
-			postponedCis.remove(ciId);
+			//postponedCis.remove(ciId);
 		} else {
-			if (!postponedCis.contains(ciId)) { 
-				postponedCis.add(ciId);
-				notifier.sendFlexNotificationPostponeProcessing(event, state);
+			if (isNewState) { 
+				notifier.sendFlexNotificationPostponeProcessing(event, CI_STATE_OVERUTILIZED);
 			}
 			throw new OpampException("There is an open release for the env - " + env.getCiName());
 		}
 	}
 	
-	private void shrinkPool(OpsBaseEvent event, CmsCI env) throws OpampException{
+	private void shrinkPool(OpsBaseEvent event, CmsCI env, boolean isNewState, long originalEventTimestamp) throws OpampException{
 		long ciId = event.getCiId();
-		String state = "underutilized";
+		//String state = "underutilized";
 		if (! envProcessor.isOpenRelease4Env(env)) {
 			//first lets get manifest compute so we can get flex relation
 			long manifestCompId = findManifestComputeId(ciId);
 			
 			if (manifestCompId > 0) {
 				//if there is any pool member that is overutilized we postpone shrinking
-				if (isAnyPoolMemberOver(event, manifestCompId, state)) {
+				if (isAnyPoolMemberOver(event, manifestCompId, CI_STATE_UNDERUTILIZED)) {
 					throw new OpampException("There is an overutilized pool member for ciId - " + ciId);
 				}
 				CmsCIRelation flexRel = findFlexRelation(manifestCompId);
@@ -233,34 +230,35 @@ public class FlexStateProcessor {
 						if (current>min) {
 							step = (current-min >= step) ? step : current-min; 
 							processFlexRelation(flexRel, env, step, false);
-							notifier.sendFlexNotificationProcessing(event, state, step);
+							notifier.sendFlexNotificationProcessing(event, CI_STATE_UNDERUTILIZED, step);
 						} else {
-							notifier.sendFlexNotificationLimitIsReached(event, state);
+							if (isNewState || envProcessor.isFirstAfterBomReleaseClosed(env, originalEventTimestamp, event.getCoolOff())) {
+								notifier.sendFlexNotificationLimitIsReached(event, CI_STATE_UNDERUTILIZED);
+							}
 							logger.info("Min pool size reached for ci - " + ciId);
 						}
 					} else {
 						String errText = "The platform is in partually deployed state for ci - " + ciId; 
 						logger.error(errText);
-						notifier.sendFlexNotificationErrorProcessing(event, state, errText);
+						notifier.sendFlexNotificationErrorProcessing(event, CI_STATE_UNDERUTILIZED, errText);
 					}
 				} else {
 					String errText = "Can not get felx realtion for ci - " + ciId; 
 					logger.error(errText);
-					notifier.sendFlexNotificationErrorProcessing(event, state, errText);
+					notifier.sendFlexNotificationErrorProcessing(event, CI_STATE_UNDERUTILIZED, errText);
 
 				}
 			} else {
 				String errText = "Can not get manifest Compute for ci - " + ciId; 
 				logger.error(errText);
-				notifier.sendFlexNotificationErrorProcessing(event, state, errText);
+				notifier.sendFlexNotificationErrorProcessing(event, CI_STATE_UNDERUTILIZED, errText);
 
 			}
 			// at this point ci either processed or there is an critical error
-			postponedCis.remove(ciId);
+			//postponedCis.remove(ciId);
 		} else {
-			if (!postponedCis.contains(ciId)) { 
-				postponedCis.add(ciId);
-				notifier.sendFlexNotificationPostponeProcessing(event, state);
+			if (isNewState) { 
+				notifier.sendFlexNotificationPostponeProcessing(event, CI_STATE_UNDERUTILIZED);
 			}
 			throw new OpampException("There is an open release for the env - " + env.getCiName());
 		}

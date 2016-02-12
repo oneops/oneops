@@ -17,18 +17,18 @@
  *******************************************************************************/
 package com.oneops.opamp.ws;
 
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
+
 import org.testng.annotations.Test;
 
 import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.opamp.service.BadStateProcessor;
 import com.oneops.opamp.service.FlexStateProcessor;
-import com.oneops.opamp.ws.OpampWsController;
-import com.oneops.opamp.ws.OpampWsTestController;
 import com.oneops.ops.events.OpsBaseEvent;
-
-import static org.mockito.Mockito.*;
-import static org.testng.Assert.*;
-import static org.mockito.Mockito.doThrow;
 
 
 public class OpampWsTestControllerTest {
@@ -66,8 +66,8 @@ public class OpampWsTestControllerTest {
 		event.setCiId(anyLong());
 
  			try {
-				doThrow(new OpampException("expected")).when(fspThrowing).processOverutilized(event);	
-				doThrow(new OpampException("expected")).when(fspThrowing).processUnderutilized(event);
+				doThrow(new OpampException("expected")).when(fspThrowing).processOverutilized(event, true);	
+				doThrow(new OpampException("expected")).when(fspThrowing).processUnderutilized(event, true, System.currentTimeMillis());
 
 			} catch (OpampException e) {
 				e.printStackTrace();
