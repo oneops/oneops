@@ -89,7 +89,7 @@ public class StmtBuilderTest {
     public void buildTriggerStmtTest() {
 
         String triggerStmt = "insert into OpsEvent select ciId, manifestId, timestamp, bucket, metrics, 'open' as state, 'metric' "
-                + "as type, source, 'opsmq-compute-cpu:HighCpuUtil' as name, 'notify' as ciState, count(1) as count from "
+                + "as type, source, 15 as coolOff, 'opsmq-compute-cpu:HighCpuUtil' as name, 'notify' as ciState, count(1) as count from "
                 + "PerfEvent(manifestId = 4823266 and bucket = '1h' and source = 'opsmq-compute-cpu' and (metrics.avg('CpuIdle') "
                 + "<= 20.0)).win:time(5 min) group by ciId having count(1)>=1 output first every 15 minutes";
 
@@ -111,7 +111,7 @@ public class StmtBuilderTest {
 
         StmtBuilder builder = new StmtBuilder();
         String stmt = builder.buildTriggerStmt(4823266, "opsmq-compute-cpu", "HighCpuUtil", thrDef);
-
+        System.out.println(stmt); 
         assertEquals(triggerStmt, stmt);
 
     }
