@@ -29,6 +29,7 @@ public class CiChangeStateEvent implements Serializable {
 	private String oldState;
 	private String newState;
 	private String payLoad;
+	private long timestamp;
 
 	private Map<String, Long> componentStatesCounters;
 	
@@ -75,5 +76,11 @@ public class CiChangeStateEvent implements Serializable {
 			hasStateChanged = false;
 		}
 		return hasStateChanged;
+	}
+	public long getTimestamp() {
+		return timestamp;
+	}
+	public void setTimestamp(long timestamp) {
+		this.timestamp = timestamp;
 	}	
 }

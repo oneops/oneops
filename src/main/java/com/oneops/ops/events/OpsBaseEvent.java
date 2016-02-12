@@ -28,6 +28,7 @@ public class OpsBaseEvent extends BasicEvent{
 	private long count;
 	private String type;
 	private String source;
+	private int coolOff;
 
 	//NEW |EXISTING
 	private String status = Status.NEW;
@@ -73,6 +74,12 @@ public class OpsBaseEvent extends BasicEvent{
 	}
 	public void setStatus(String status) {
 		this.status = status;
+	}
+	public int getCoolOff() {
+		return coolOff;
+	}
+	public void setCoolOff(int coolOff) {
+		this.coolOff = coolOff;
 	}
 
 
