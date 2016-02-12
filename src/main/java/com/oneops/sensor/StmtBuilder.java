@@ -78,6 +78,7 @@ public class StmtBuilder {
         // Set bigger capacity (450) to reduce internal buffer allocation.
         return new StringBuilder(450)
                 .append("insert into OpsEvent select ciId, manifestId, timestamp, bucket, metrics, 'open' as state, 'metric' as type, source, ")
+                .append(coolOff).append(" as coolOff, ")
                 .append("'").append(name).append("'")
                 .append(" as name, ")
                 .append("'").append(def.getState()).append("'")
