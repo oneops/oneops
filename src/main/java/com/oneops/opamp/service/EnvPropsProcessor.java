@@ -143,6 +143,7 @@ public class EnvPropsProcessor {
 	 * @return the cms ci
 	 */
 	public CmsCI isAutoScalingEnbaled4bom(long ciId) {
+		
 		CmsCI platform = getPlatform4Bom(ciId);
 		if (platform == null) {
 			logger.error("can not get platform for ciid " + ciId);
@@ -261,12 +262,18 @@ public class EnvPropsProcessor {
 				return true;
 			} else if ((System.currentTimeMillis() - bomReleases.get(0).getUpdated().getTime()) < COOLOFF_PREIOD_4_RELEASE) {
 				return true;
-			} else if (manReleases.size() >0 
-					&& bomReleases.get(0).getParentReleaseId() != manReleases.get(0).getReleaseId()) {
-				//latest bom release is closed (deployed) and it's parent manifest release id is the same as latest manifest release id
-				//This means there are changes which are committed but not deployed yet by the user.
-				logger.info("Env namespace " + envNS + " has changes which are committed but not deployed.");
-				return true;
+			} else {
+				List<CmsRelease> latestClosedManifestReleases = rfcProcessor.getLatestRelease(envNS + "/manifest", "closed");
+				if (latestClosedManifestReleases.size() == 0) {
+					logger.info("Env " + envNS + " has no committed release.");
+					return true;
+				}
+				if (bomReleases.get(0).getParentReleaseId() != latestClosedManifestReleases.get(0).getReleaseId()) {
+					//latest bom release is closed (deployed) and it's parent manifest release id is the same as latest manifest release id
+					//This means there are changes which are committed but not deployed yet by the user.
+					logger.info("Env namespace " + envNS + " has changes which are committed but not deployed.");
+					return true;
+				}
 			}
 		}
 		
