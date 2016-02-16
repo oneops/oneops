@@ -1,8 +1,9 @@
 class Account::FavoritesController < ApplicationController
   skip_before_filter :check_organization, :only => [:index]
   def index
-    @favorites = current_user.favorites.joins(:organization).all.group_by {|p| p.organization.name}.values.inject([]) do |a, g|
-      a << {:id => g.first.organization_id, :organization => g.first.organization.name, :items => g}
+    @favorites = current_user.favorites.includes(:organization).order('organizations.name, ci_name').all.
+      group_by {|p| p.organization}.inject([]) do |a, (org, favs)|
+      a << {:id => org.id, :organization => org.name, :items => favs}
     end
     @favorites = @favorites.sort_by {|g| g[:organization]}
 

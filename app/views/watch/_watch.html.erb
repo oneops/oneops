@@ -28,12 +28,7 @@
 <script>
   if (!window.toggleCiWatch) {
     window.toggleCiWatch = function(watch, id) {
-      if (watch) {
-        $j.ajax({url: "<%= watch_path %>", type: "POST", data: {ciIds: [id]}});
-      }
-      else {
-        $j.ajax({url: "<%= watch_path %>", type: "DELETE", data: {ciIds: [id]}});
-      }
+      $j.ajax({url: "<%= watch_path %>", type: watch ? "POST" : "DELETE", data: {ciId: id}});
     }
   }
 </script>

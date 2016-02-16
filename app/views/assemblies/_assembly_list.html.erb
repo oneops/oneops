@@ -2,16 +2,17 @@
    toolbar = {:list_name => 'assemblies',
               :sort_by   => [%w(Name ciName), %w(Created created), %w(Watching watch)],
               :filter_by => %w(ciName)}
-   menu = [{:id => 'watch',   :label => 'Watch',  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
-           {:id => 'unwatch', :label => 'Ignore', :url => watch_path, :method => :delete, :param_name => 'ciIds'}] %>
-<%= ci_list(@assemblies, :toolbar => toolbar, :menu => menu, :new_link => (manages_access? ? link_to(icon('plus', 'New Assembly...'), new_assembly_path) : nil)) do |builder, target| %>
+   menu = [{:id => 'watch',   :label => icon('eye-open', 'Watch',  'icon-fixed-width'),  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
+           {:id => 'unwatch', :label => icon('eye-close','Ignore', 'icon-fixed-width'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}] %>
+<%= ci_list(@assemblies,
+            :toolbar => toolbar,
+            :menu => menu,
+            :new_link => (manages_access? ? link_to(icon('plus', 'New Assembly...'), new_assembly_path) : nil)) do |builder, target| %>
   <%= watching = watched_map[target.ciId] %>
   <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" watch="#{watching ? 0 : 1}") %>
   <% builder.target link_to('', assembly_path(target), :remote => false) %>
   <% builder.status do %>
-    <% if watching %>
-      <i class="icon-large icon-eye-open"></i>
-    <% end %>
+    <%= marker(icon('eye-open', 'watching', 'icon-large'), 'label-inverse') if watching %>
   	<%= status_marker('design', 'open', 'label-info') if target.release && target.release.releaseState == 'open' %>
   <% end %>
   <% builder.menu do |ci| %>
