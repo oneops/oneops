@@ -172,7 +172,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 				runList.add("recipe[attachment::after_" + action + "]");
 			}
 
-		} else {
+		} else if (!action.equals(ADD_FAIL_CLEAN)) {
 			// this is to call global monitoring service from the inductor host 
 			// or gen config on inductor to handle new compute
 			if (wo.getServices().get("monitoring") != null ||
