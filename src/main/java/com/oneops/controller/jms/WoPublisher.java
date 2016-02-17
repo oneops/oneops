@@ -16,15 +16,11 @@
  *******************************************************************************/
 package com.oneops.controller.jms;
 
-import javax.jms.Connection;
-import javax.jms.DeliveryMode;
-import javax.jms.Destination;
-import javax.jms.JMSException;
-import javax.jms.MessageProducer;
-import javax.jms.Session;
-import javax.jms.TextMessage;
+import java.util.HashMap;
+import java.util.Map;
 
-import org.apache.activemq.ActiveMQConnectionFactory;
+import javax.jms.JMSException;
+
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -32,6 +28,8 @@ import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.util.AsyncSearchPublisher;
+import com.oneops.util.MessageData;
 
 /**
  * JMS publisher class which publishes both work-orders and action-orders
@@ -44,38 +42,21 @@ public class WoPublisher {
 	
 	private static Logger logger = Logger.getLogger(WoPublisher.class);
 	
-	private Connection connection = null;
-    private Session session = null; 
+	private AsyncSearchPublisher asyncSearchPublisher; 
     final private Gson gson = new Gson();
-    private String queueName;
+
     private boolean isPubEnabled;
     
     private final String SEARCH_FLAG = "IS_SEARCH_ENABLED";
-
-    private ActiveMQConnectionFactory connFactory;
-    private MessageProducer producer;
     
     /**
      *
      * @throws JMSException
      */
     public void init() throws JMSException {
-        connection = connFactory.createConnection();
-        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-        connection.start();
-        logger.info(">>>>WOPublisher initalized...");
-        initProducer();
         isPubEnabled = "true".equals(System.getenv(SEARCH_FLAG));
+        logger.info(">>>>WOPublisher initalized...");
     }
-    
-    private void initProducer() throws JMSException {
-    	 // Create the session
-        Destination destination = session.createQueue(queueName);
-        // Create the producer.
-        producer = session.createProducer(destination);
-        producer.setDeliveryMode(DeliveryMode.PERSISTENT);
-    }
-    
     
     /**
      * 
@@ -84,19 +65,21 @@ public class WoPublisher {
      */
     public void publishMessage(CmsWorkOrderSimpleBase cmsWoSimpleBase,String type,String id) throws JMSException {
     	if(isPubEnabled){
-    		cmsWoSimpleBase = CmsUtil.maskSecuredFields(cmsWoSimpleBase,type);
-	    	TextMessage message = session.createTextMessage(gson.toJson(cmsWoSimpleBase));
-	    	message.setStringProperty("type", getType(type));
-	    	message.setStringProperty("msgId", id);
-	    	producer.send(message);
-	    	if (cmsWoSimpleBase instanceof CmsWorkOrderSimple) {
-	    		logger.info("WO published to search stream queue for RfcId: "+((CmsWorkOrderSimple)cmsWoSimpleBase).getRfcId());
-	    	} else if (cmsWoSimpleBase instanceof CmsActionOrderSimple) {
-	    		logger.info("AO published to search stream queue for procedureId/actionId: " 
-	    				    + ((CmsActionOrderSimple)cmsWoSimpleBase).getProcedureId() + "/" 
-	    				    + ((CmsActionOrderSimple)cmsWoSimpleBase).getActionId());
-	    	}
-	    	logger.debug("WO published to search stream queue: "+message.getText());
+			cmsWoSimpleBase = CmsUtil.maskSecuredFields(cmsWoSimpleBase, type);
+			String payload = gson.toJson(cmsWoSimpleBase);
+			Map<String, String> headers = new HashMap<String, String>();
+			headers.put("type", getType(type));
+			headers.put("msgId", id);
+			MessageData data = new MessageData(payload, headers);
+			asyncSearchPublisher.publishAsync(data);
+			if (cmsWoSimpleBase instanceof CmsWorkOrderSimple) {
+				logger.info("WO published to search stream queue for RfcId: "
+						+ ((CmsWorkOrderSimple) cmsWoSimpleBase).getRfcId());
+			} else if (cmsWoSimpleBase instanceof CmsActionOrderSimple) {
+				logger.info("AO published to search stream queue for procedureId/actionId: "
+						+ ((CmsActionOrderSimple) cmsWoSimpleBase).getProcedureId() + "/"
+						+ ((CmsActionOrderSimple) cmsWoSimpleBase).getActionId());
+			}
     	}
     }
     
@@ -115,18 +98,8 @@ public class WoPublisher {
 		return null;
 	}
 
-	/**
-     * Sets the conn factory.
-     *
-     * @param connFactory the new conn factory
-     */
-    public void setConnFactory(ActiveMQConnectionFactory connFactory) {
-		this.connFactory = connFactory;
+	public void setAsyncSearchPublisher(AsyncSearchPublisher asyncSearchPublisher) {
+		this.asyncSearchPublisher = asyncSearchPublisher;
 	}
-
-	public void setQueueName(String queueName) {
-		this.queueName = queueName;
-	}
-	
 
 }

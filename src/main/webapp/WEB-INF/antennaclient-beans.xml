@@ -9,6 +9,7 @@
             init-method="init" destroy-method="destroy">
        	<property name="scanFolder" value="/opt/oneops/controller/antenna/retry" />
        	<property name="connFactory" ref="jmsFactory" />
+       	<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
    	</bean>
 
 </beans>

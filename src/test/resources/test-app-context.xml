@@ -42,10 +42,20 @@
 	</bean>
 	
 	<bean id="woPublisher" class="com.oneops.controller.jms.WoPublisher" init-method="init">
-    	<property name="connFactory" ref="stubConnectionFactory" />
-    	<property name="queueName" value="search.stream" />
+    	<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
     </bean>
-
 	
+	<bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+		<property name="connFactory" ref="stubConnectionFactory" />
+		<property name="searchSender" ref="searchJmsSender" />
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<property name="name" value="controller-search-publish" />
+		<property name="shortName" value="controller" />
+		<property name="backlogThreshold" value="10" />
+		<property name="scanFolder" value="/opt/oneops/controller/search/retry" />
+		<property name="minFreeSpaceMB" value="50" />
+	</bean>
 	
 </beans>
