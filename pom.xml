@@ -23,6 +23,9 @@
 	  <libs.version>1.0.0</libs.version>
 	  <simple-xml.version>2.6.6</simple-xml.version>
 	  <cmsdal.version>1.0.4</cmsdal.version>
+	  <mockito-all.version>1.8.4</mockito-all.version>
+	  <mockrunner.version>0.3.1</mockrunner.version>
+	  <awaitility.version>1.7.0</awaitility.version>
   </properties>
 
   <dependencies>
@@ -53,6 +56,17 @@
 				<groupId>org.slf4j</groupId>
 			</exclusion>
 		</exclusions>
+	</dependency>
+	<dependency>
+		  <groupId>org.apache.activemq</groupId>
+		  <artifactId>activemq-runtime-config</artifactId>
+		  <version>${activemq.version}</version>
+	</dependency>
+	<dependency>
+		  <groupId>com.jayway.awaitility</groupId>
+		  <artifactId>awaitility</artifactId>
+		  <version>${awaitility.version}</version>
+		  <scope>test</scope>
 	</dependency>
  	<dependency>
 		<groupId>com.google.code.gson</groupId>
@@ -133,6 +147,18 @@
 		<version>${cmsdal.version}</version>
 		<optional>false</optional>
 	</dependency>
+	<dependency>
+		<groupId>org.mockito</groupId>
+		<artifactId>mockito-all</artifactId>
+		<version>${mockito-all.version}</version>
+		<scope>test</scope>
+    </dependency>
+    <dependency>
+		<groupId>com.mockrunner</groupId>
+		<artifactId>mockrunner</artifactId>
+		<version>${mockrunner.version}</version>
+		<scope>test</scope>
+    </dependency>
   </dependencies>
 <!--
    <repositories>

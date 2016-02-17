@@ -1,0 +1,2 @@
+{"deploymentId":546589,"releaseId":546559,"maxExecOrder":6,"nsPath":"/local-dev/prod1/dev/bom","deploymentState":"paused","processId":"87820!87820","createdBy":"bannama","updatedBy":"bannama","comments":"","created":"Jan 5, 2016 7:15:37 PM","updated":"Jan 8, 2016 3:56:55 PM"}
+{"deploymentId":546590,"releaseId":546560,"maxExecOrder":4,"nsPath":"/local-dev/prod1/qa/bom","deploymentState":"paused","processId":"87840!85820","createdBy":"bannama","updatedBy":"bannama","comments":"","created":"Jan 5, 2016 7:16:37 PM","updated":"Jan 8, 2016 7:32:21 PM"}
