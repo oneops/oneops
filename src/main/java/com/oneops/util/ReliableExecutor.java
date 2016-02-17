@@ -21,6 +21,8 @@ package com.oneops.util;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.google.gson.Gson;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +31,7 @@ import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -43,8 +46,16 @@ public abstract class ReliableExecutor <I> {
 
 	protected long scanPeriod = 5;
 	protected String scanFolder;
+	protected int minFreeSpaceMB = 50;
+
+	protected int backlogThreshold = 1000;
+	protected String name;
+	protected String shortName;
 
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
+	
+	private final ExecutorService executors = Executors.newCachedThreadPool();
+	
 	protected Gson gson = new Gson();
 	
 	public void setScanPeriod( int scanPeriod ) {
@@ -63,8 +74,8 @@ public abstract class ReliableExecutor <I> {
 	}
 	
 	public void executeAsync(I param) {
-		FirstOneThread th = new FirstOneThread( param );
-		th.start();
+		Executor task = new Executor( param );
+		executors.submit(task);
 	}
 
 	public boolean executeSync(I param) {
@@ -121,7 +132,7 @@ public abstract class ReliableExecutor <I> {
 
 	final Runnable scanner = new Runnable() {
         public void run() {
-	        logger.trace("Scanning folder ...");
+        	logger.trace("Scanning folder ...");
 	        File folder = new File( scanFolder );
 	        for(String fileName: new TreeSet<String>( Arrays.asList(folder.list()))) {
 		        File file = new File(scanFolder + File.separator + fileName);
@@ -146,13 +157,18 @@ public abstract class ReliableExecutor <I> {
 	        logger.trace("Scanning folder finish.");
         }
     };
-
+ 
 	private boolean firstOneRun(I param) {
 		if( process( param ) ){
 		    return true;
 		}
 		try {
-			FileWriter wr  = new FileWriter( scanFolder + File.separator + System.currentTimeMillis() + String.valueOf(param.hashCode()));
+			if (name != null) {
+				logger.warn(name + " execution failed. storing data to a file.");	
+			}
+			
+			checkBacklog();
+			FileWriter wr  = new FileWriter( getFileName(param) );
 			gson.toJson(param,  wr );
 			wr.close();
 		} catch( Exception e ) {
@@ -161,12 +177,38 @@ public abstract class ReliableExecutor <I> {
 		}
 		return false;
 	}
+	
+	private void checkBacklog() {
+		File folder = new File(scanFolder);
+		String[] files = folder.list();
+		if (name != null) {
+			if (files.length > backlogThreshold) {
+				logger.warn(name + " - retry backlog is high : " + files.length);
+			}
+		}
+		long freeMB = folder.getFreeSpace() / 1024 / 1024;
+		// if available space is < minFreeSpaceMB log a warning
+		if (freeMB < minFreeSpaceMB) {
+			logger.warn("!!! Freespace (" + scanFolder + ") is very low " + freeMB + "MB !!!");
+		}
+	}
+	
+	private String getFileName(I param) {
+		String fileName = null;
+		if (StringUtils.isEmpty(shortName)) {
+			fileName = scanFolder + File.separator + System.currentTimeMillis() + String.valueOf(param.hashCode());	
+		}
+		else {
+			fileName = scanFolder + File.separator + shortName + "-" + System.currentTimeMillis() + String.valueOf(param.hashCode());
+		}
+		return fileName;
+	}
 
-	class FirstOneThread extends Thread {
+	class Executor implements Runnable {
 
 		private I param;
 
-		FirstOneThread(I param) {
+		Executor(I param) {
 			this.param = param;
 		}
 
@@ -174,5 +216,21 @@ public abstract class ReliableExecutor <I> {
 		public void run() {
 			firstOneRun( param );
 		}
+	}
+
+	public void setBacklogThreshold(int backlogThreshold) {
+		this.backlogThreshold = backlogThreshold;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setMinFreeSpaceMB(int minFreeSpaceMB) {
+		this.minFreeSpaceMB = minFreeSpaceMB;
+	}
+
+	public void setShortName(String shortName) {
+		this.shortName = shortName;
 	}
 }

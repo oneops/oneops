@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/util
+						http://www.springframework.org/schema/util/spring-util.xsd
+						http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.0.xsd
+						http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+	
+	<amq:broker id="searchBroker" useJmx="false" persistent="false">
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:61636" />
+		</amq:transportConnectors>
+	</amq:broker>
+
+	<amq:connectionFactory id="searchmqFactory" brokerURL="failover:(tcp://localhost:61636?keepAlive=true)?timeout=500" />
+	
+    <bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+        <property name="connFactory" ref="searchmqFactory" />
+        <property name="searchSender" ref="searchJmsSender" />
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender"  init-method="init" destroy-method="destroy">
+		<property name="backlogThreshold" value="100" />
+        <property name="scanFolder" value="/opt/oneops/test/search/retry" />
+        <property name="name" value="test-search-publish" />
+	</bean>
+
+	<!-- bean id="searchPublisherSpy" class="org.mockito.Mockito"
+		factory-method="spy">
+		<constructor-arg ref="searchPublisherActual" />
+	</bean> -->
+
+	<bean id="searchConsumer" class="com.oneops.util.JMSConsumer" init-method="init" destroy-method="terminate">
+		<property name="connectionFactory" ref="searchmqFactory" />
+		<property name="destinationName" value="search.stream" />
+		<property name="destinationType" value="queue" />
+	</bean>
+
+</beans>
