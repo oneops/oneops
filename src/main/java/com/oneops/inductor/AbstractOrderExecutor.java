@@ -306,7 +306,7 @@ public abstract class AbstractOrderExecutor {
 		// remove first bom. and last Component Class
 		classParts.remove(0);
 		classParts.remove(classParts.size() - 1);
-		if (classParts.size() > 0 && !classParts.get(0).equals("service"))
+		if (classParts.size() > 0)
 			cookbookPath = "circuit-" + Joiner.on("-").join(classParts);
 		else
 			cookbookPath = "circuit-main-1";
