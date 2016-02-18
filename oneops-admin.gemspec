@@ -5,6 +5,7 @@ require 'version'
 Gem::Specification.new do |s|
   s.name        = 'oneops-admin'
   s.version     = '1.0.0'
+  s.license     = 'Apache 2.0'
   s.author      = 'OneOps'
   s.email       = 'support@oneops.com'
   s.homepage    = 'http://www.oneops.com'
