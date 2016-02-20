@@ -26,11 +26,9 @@
 <% end %>
 
 <div id="organization_details">
-<%= section_panel 'Assemblies', :width => 'double', :position => 'right' do %>
-  <div id="assembly_list">
-    <% if current_user.organizations.present? %>
-      <i class="icon-spin icon-large icon-spinner"></i> Loading
-    <% end %>
-  </div>
-<% end %>
+  <%= section_panel 'Assemblies', :width => 'double', :position => 'right' do %>
+    <div id="assembly_list">
+      <% loading_indicator if current_user.organizations.present? %>
+    </div>
+  <% end %>
 </div>

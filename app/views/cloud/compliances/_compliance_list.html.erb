@@ -16,7 +16,7 @@
     <% builder.status do %>
       <% status = target.ciAttributes.enabled == 'true' ? 'enabled' : 'disabled' %>
       <%= marker(status, state_to_label(status)) %>
-      <%= icon('star', '', 'icon-large') if target.ciAttributes.approval == 'true' %>
+      <%= icon('star', '', 'fa-lg') if target.ciAttributes.approval == 'true' %>
     <% end %>
   <% end %>
 <% end %>

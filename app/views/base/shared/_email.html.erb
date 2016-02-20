@@ -20,7 +20,7 @@
   </div>
 
   <div class="modal-footer">
-    <%= link_to_function(raw(icon('remove', 'cancel')), 'hide_modal()', :class => 'btn btn-danger') %>
+    <%= link_to_function(raw(icon('times', 'cancel')), 'hide_modal()', :class => 'btn btn-danger') %>
     <% if defined?(function) %>
       <%= link_to_function(raw(icon('envelope', 'ok')), 'emailFormOk()', :class => 'btn btn-success') %>
     <% elsif defined?(url) %>

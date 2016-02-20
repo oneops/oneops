@@ -3,7 +3,7 @@
     <div class="range btn-group">
       <% Operations::MonitorsController::CHART_TIME_RANGES.each do |range| %>
         <% if @range == range %>
-          <%= link_to(icon('ok', range),
+          <%= link_to(icon('check', range),
                       '#',
                       :remote => true,
                       :class  => 'btn btn-mini active') %>

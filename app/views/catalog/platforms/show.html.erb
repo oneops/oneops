@@ -36,7 +36,7 @@
 <%= section_panel 'Diagram',
                   :width    => 'double',
                   :position => 'left',
-                  :menu     => [link_to(content_tag(:i, '', :class => 'icon-resize-full') + ' Full', diagram_catalog_platform_path(@catalog, @platform, :size => '11,8'), :target => "_blank", :class => 'btn btn-mini')] do %>
+                  :menu     => [link_to(icon('caret-square-o-right', 'Full') , diagram_catalog_platform_path(@catalog, @platform, :size => '11,8'), :target => "_blank", :class => 'btn btn-mini')] do %>
   <div class="diagram">
     <%= content_tag(:object, '', :data => diagram_catalog_platform_path(@catalog, @platform), :class => 'diagram') %>
   </div>

@@ -4,8 +4,8 @@
       <%= @procedure.procedureName %>
       <div class="status"><span id="procedure_state" class="highlight <%= @procedure.procedureState %>"><%= @procedure.procedureState.upcase %></span></div>
     </div>
-    <div class="close"><i class="icon-large icon-remove"  onclick="close_procedure_overlay()"></i></div>
-    <div class="close"><i class="icon-large icon-refresh" onclick="refresh_procedure_status()"></i></div>
+    <div class="close"><i class="fa-lg fa-times"  onclick="close_procedure_overlay()"></i></div>
+    <div class="close"><i class="fa-lg fa-refresh" onclick="refresh_procedure_status()"></i></div>
   </div>
   <div class="main">
     <%= render 'action_list' %>
@@ -48,7 +48,7 @@
 
   var rfcStateIconMap = {};
   <% %w(pending inprogress complete failed canceled).each do |state| %>
-    rfcStateIconMap['<%= state %>'] = "<%= escape_javascript(rfc_state_icon(state, 'icon-large')) %>";
+    rfcStateIconMap['<%= state %>'] = "<%= escape_javascript(rfc_state_icon(state, 'fa-lg')) %>";
   <% end %>
 
   window.refresh_status_results = function (procedure_state, action_states) {

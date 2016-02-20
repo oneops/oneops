@@ -11,7 +11,7 @@
      expandable = new_comment || state_approvals.present? %>
   <div class="accordion-group">
     <div class="accordion-heading">
-      <div class="accordion-toggle" <%= raw %(onclick="$j('#deployment_state_event_#{event.eventId}').toggle(300);$j(this).find('i').toggleClass('icon-caret-down icon-caret-up')") if expandable %>>
+      <div class="accordion-toggle" <%= raw %(onclick="$j('#deployment_state_event_#{event.eventId}').toggle(300);$j(this).find('i').toggleClass('fa-caret-down fa-caret-up')") if expandable %>>
         <%= highlight(Time.at(event.updated/1000).to_s(:db)) %>
         <%= highlight(event.newState, event.newState) %>
         <% if event.updatedBy.present? %>
@@ -47,7 +47,7 @@
                         <% next_event = state_events[i + 1] %>
                         <% if (a.updated + a.expiresIn * 60 * 1000) > (next_event ? next_event.updated : Time.now.to_f * 1000) %>
                           <td class="text-success">
-                            <%= icon('ok') %>
+                            <%= icon('check') %>
                             <b><%= a.state %></b>
                           </td>
                           <td>
@@ -59,7 +59,7 @@
                           </td>
                         <% else %>
                           <td class="text-warning">
-                            <%= icon('moon') %>
+                            <%= icon('moon-o') %>
                             <b>expired</b>
                           </td>
                           <td>
@@ -72,12 +72,12 @@
                         <% end %>
                       <% elsif a.state == 'pending' %>
                         <td class="text-info">
-                          <%= icon('time') %>
+                          <%= icon('clock-o') %>
                           <b><%= a.state %></b>
                         </td>
                       <% elsif a.state == 'rejected' %>
                         <td class="text-error">
-                          <%= icon('ban-circle') %>
+                          <%= icon('ban') %>
                           <b><%= a.state %></b>
                         </td>
                         <td>

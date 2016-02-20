@@ -14,7 +14,7 @@
     		<% attribute_list.sort_by {|a| a.options.has_key?(:order) ? a.options[:order] : 999 }.each do |a| %>
   		   	<div class="control-group">
             <% if a.options.has_key?(:help) %>
-              <%= c.label a.attributeName, link_to(a.description + (a.isMandatory ? '*' : ''), '#', :tabindex => "-1", :rel => 'tooltip', :title => "#{a.options[:help]}"), :class => 'control-label' %>
+              <%= c.label a.attributeName, link_to(a.description + (a.isMandatory ? '*' : ''), '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{a.options[:help]}"), :class => 'control-label' %>
             <% else %>
               <%= c.label a.attributeName, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
             <% end %>
@@ -78,7 +78,7 @@
                                        :required     => required,
                                        :placeholder  => placeholder) %>
                   <span class="check-box add-on <%= 'muted' if attribute_value == '--ENCRYPTED--' %>">
-                    <small><i class="show-typing icon-large icon-check-empty">&nbsp;&nbsp;Show typing</i></small>
+                    <small><%= icon('square-o', 'show typing', 'show-typing fa-lg fa-fw') %></small>
                   </span>
                 </div>
                 <% else %>
@@ -165,7 +165,7 @@
     setTimeout(function() {
       if (!input.is(":focus")) {
         input.attr('type', 'password');
-        cb.removeClass('icon-check').addClass('icon-check-empty');
+        cb.removeClass('fa-check-square-o').addClass('fa-square-o');
       }
     }, 1000);
   });
@@ -178,13 +178,13 @@
     }
 
     var cb = target.find('i.show-typing');
-    if (cb.hasClass('icon-check-empty')) {
+    if (cb.hasClass('fa-square-o')) {
       input.attr('type', 'text');
-      cb.addClass('icon-check').removeClass('icon-check-empty');
+      cb.addClass('fa-check-square-o').removeClass('fa-square-o');
     }
     else {
       input.attr('type', 'password');
-      cb.addClass('icon-check-empty').removeClass('icon-check');
+      cb.addClass('fa-square-o').removeClass('fa-check-square-o');
     }
     input.select();
   });

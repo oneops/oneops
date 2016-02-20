@@ -18,7 +18,7 @@
           <div class="name">Namespace</div>
           <div class="input-append">
             <input type="text" class="nspath" value="<%= params[:nspath] || search_ns_path %>" pattern="<%= search_ns_path.gsub('/', '\/') %>(\/|\w|-)*">
-            <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
+            <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
           </div>
         </div>
       <% end %>
@@ -29,7 +29,7 @@
         <% pkg = pkg || params[:package] || 'bom' %>
         <% [['account (account.*)', 'account'], ['cloud services (cloud.service.*)', 'cloud.service'], ['design (catalog.*)', 'catalog'], ['transition (manifest.*)', 'manifest'], ['operations (bom.*)', 'bom']].each do |p| %>
           <a class="btn btn-small <%= 'active btn-primary' if pkg == p[1] %>" filter="<%= p[1] %>">
-            <i class="icon-fixed-width <%= 'icon-ok' if pkg == p[1] %>"></i>
+            <i class="fa fa-fw <%= 'fa-check' if pkg == p[1] %>"></i>
             <%= p[0] %>
           </a><br>
         <% end %>
@@ -43,7 +43,7 @@
           <div class="input-prepend">
             <% class_name = params[:class_name] %>
             <input type="text" class="class-name" value="<%= class_name ? class_name.sub(/^#{pkg}\./, '') : '' %>">
-            <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+            <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('')"></i>
           </div>
         </div>
       <% end %>
@@ -53,20 +53,20 @@
         <div class="name">Attribute</div>
         <div class="sub-filter input-append attr-name">
           <input type="text" class="attr-name" value="<%= params[:attr_name] %>" placeholder="attribute name">
-          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+          <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('')"></i>
         </div>
         <div class="sub-filter attr-operator">
           <% operator = params[:attr_operator] || 'eq' %>
           <% [%w(equal eq), ['not equal',  'neq'], %w(contains like)].each do |p| %>
             <a class="btn btn-small <%= 'active btn-primary' if operator == p[1] %>" filter="<%= p[1] %>">
-              <i class="icon-fixed-width <%= 'icon-ok' if operator == p[1] %>"></i>
+              <i class="fa fa-fw <%= 'fa-check' if operator == p[1] %>"></i>
               <%= p[0] %>
             </a><br>
           <% end %>
         </div>
         <div class="sub-filter input-append attr-name">
           <input type="text" class="attr-value" value="<%= params[:attr_value] %>" placeholder="attribute value">
-          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+          <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('')"></i>
         </div>
       </div>
 
@@ -179,9 +179,9 @@
     var button = $j(this);
     var parent = button.parent();
     button.siblings().removeClass("active btn-primary");
-    parent.find("i.icon-ok").removeClass("icon-ok");
+    parent.find("i.fa-check").removeClass("fa-check");
     button.addClass("active btn-primary");
-    button.find("i").addClass('icon-ok');
+    button.find("i.fa").addClass('fa-check');
     if (parent.hasClass("package")) {
       searchFilterSection.find("input.class-name").val("");
       searchFilterSection.find("input.attr-name").val("");

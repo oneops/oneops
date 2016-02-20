@@ -14,11 +14,11 @@
         <% end %>
       </div>
     </div>
-    <div class="close" onclick="close_deployment_overlay()"><i class="icon-large icon-remove"></i></div>
+    <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>
     <% if @deployment && !@deployment.new_record? %>
-      <div class="close" onclick="refresh_deployment_status()"><i class="icon-large icon-refresh"></i></div>
+      <div class="close" onclick="refresh_deployment_status()"><%= icon('refresh', '', 'fa-lg') %></div>
     <% elsif !@deployment %>
-      <div class="close" onclick="refresh_compile_status()"><i class="icon-large icon-refresh"></i></div>
+      <div class="close" onclick="refresh_compile_status()"><%= icon('refresh', '', 'fa-lg') %></div>
     <% end %>
     <%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %>
     <% if @deployment && !@deployment.new_record? && @deployment.comments.present? %>
@@ -33,20 +33,16 @@
     <div class="problems alert alert-danger hide"></div>
     <% if @deployment %>
       <% if @state_history %>
-        <%= section_panel 'History',
-                          :width => 'full',
-                          :hide_content  => true,
-                          :menu  => [link_to_function(content_tag(:i, ' Show', :class => 'icon-caret-down icon-large'),
-                                                      'toggle_deployment_section(this)',
-                                                      :class => 'btn btn-mini')] do %>
+        <%= section_panel('History',
+                          :width                => 'full',
+                          :hide_content         => true,
+                          :collapseable_content => true) do %>
           <div id="overlay_deployment_history"><%= render 'state_history' %></div>
         <% end %>
       <% end %>
-      <%= section_panel 'Plan',
-                        :width => 'full',
-                        :menu  => [link_to_function(content_tag(:i, ' Hide', :class => 'icon-caret-up icon-large'),
-                                                    'toggle_deployment_section(this)',
-                                                    :class => 'btn btn-mini')] do %>
+      <%= section_panel('Plan',
+                        :width                => 'full',
+                        :collapseable_content => true) do %>
         <ul class="execOrder">
           <% @rfc_cis.group_by(&:execOrder).sort.each do |exec_order, order_rfcs| %>
             <li id="step_<%= exec_order %>" class="execOrder">
@@ -84,7 +80,7 @@
                           <div class="component rounded shadow white" style="cursor:pointer" onclick="$j('#<%= component_dom_id %>').toggle(300)">
                             <div class="info">
                               <% if ops_state_alerts.present? %>
-                                <i class="icon-2x icon-exclamation text-error"></i>
+                                <i class="fa fa-2x fa-exclamation text-error"></i>
                               <% end %>
                               <%= image_tag ci_class_image_url(component_class), :alt => component_type %>
                               <div class="name ellipsis"><%= component %></div>
@@ -157,7 +153,7 @@
                                 <% if ops_state_alert %>
                                   <% bad_ops_state_count += 1 %>
                                   <div class="text-error well well-small">
-                                    <i class="icon-large icon-exclamation"></i>&nbsp;&nbsp;
+                                    <%= icon('exclamation', '', 'fa-lg') %>&nbsp;&nbsp;
                                     <% instance_state_alert = ops_state_alert[:instance]
                                        managed_via_alert = ops_state_alert[:managed_via] %>
                                     <% if instance_state_alert %>
@@ -186,10 +182,10 @@
       <div class="problems alert alert-warning">
         Generating deployment plan. You can view deployment plan and start deployment after plan generation is done.
       </div>
-      <div style="text-align: center; padding: 50px 0"><i class="icon-spin icon-refresh icon-4x"></i></div>
+      <div style="text-align: center; padding: 50px 0"><%= icon('refresh', '', 'fa-spin fa-4x') %></div>
     <% else @environment.comments.present? %>
       <div class="problems alert alert-danger"><%= @environment.comments %></div>
-      <div style="text-align: center; padding: 50px 0"><i class="icon-warning-sign icon-4x"></i></div>
+      <div style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
     <% end %>
   </div>
   <div class="controls">
@@ -296,7 +292,7 @@
     var logTab = $j(/#log_\d+$/.exec(e.target.href)[0]);
     if (!logTab.find(".log")[0]) {
       logTab.html("<%= escape_javascript(render 'cms/log', :log => [], :auto_scroll_toggle => true, :refresh => 'refresh_deployment_status()') %>");
-      logTab.find(".log").html('<li><i class="icon-spinner icon-spin"></i> Loading...</liv>');
+      logTab.find(".log").html('<li>' + '<%= escape_javascript(loading_indicator) %>' + '</li>');
     }
   });
 
@@ -340,12 +336,12 @@
       if (rfcComments) {
         var rfcFailed = rfcState == 'failed';
         if (rfcFailed) {
-          commentsDiv.html('<i class="icon-large icon-warning-sign"></i>&nbsp;&nbsp;');
+          commentsDiv.html('<%= escape_javascript(icon('exclamation-triangle', '', 'fa-lg')) %>&nbsp;&nbsp;');
           commentsDiv.toggleClass("alert-danger", rfcFailed);
           problems.push(rfcComments);
         }
         else {
-          commentsDiv.html('<i class="icon-large icon-info-sign"></i>&nbsp;&nbsp;')
+          commentsDiv.html('<%= escape_javascript(icon('info-circle', '', 'fa-lg')) %>&nbsp;&nbsp;')
           commentsDiv.toggleClass("alert-info",   !rfcFailed);
         }
         commentsDiv.append(rfcComments || '');
@@ -407,13 +403,4 @@
 
     return true;
   };
-
-  window.toggle_deployment_section = function(source) {
-    var section = $j(source).parents(".section"),
-        content = section.find(".section-content"),
-        btn = section.find(".section-heading").find("i.icon-caret-up, i.icon-caret-down");
-    btn.html(content.is(":visible") ? " Show" : " Hide");
-    btn.toggleClass("icon-caret-up icon-caret-down");
-    content.toggle();
-  }
 </script>

@@ -20,37 +20,49 @@
       <div class="name">Custom Filters</div>
       <div class="filter period">
         <div class="name">Period</div>
-        <% period = params[:period] %>
+        <% period = params[:period] || 'today' %>
         <% ['today', 'yesterday', 'this week', 'last week'].each do |p| %>
-          <a class="btn btn-small <%= 'active btn-primary' if period == p %>" filter="<%= p %>"><%= p %></a><br>
+          <a class="btn btn-small <%= 'active btn-primary' if period == p %>" filter="<%= p %>">
+            <i class="fa <%= 'fa-check' if period == p %>"></i>
+            <%= p %>
+          </a>
+          <br>
         <% end %>
       </div>
       <div class="filter source">
         <div class="name">Source</div>
         <% source = params[:source] %>
-        <% [%w(deployment deployment), %w(procedure procedure), %w(ci other)].each do |s| %>
-          <a class="btn btn-small <%= 'active btn-primary' if source == s[0] %>" filter="<%= s[0] %>"><%= s[1] %></a><br>
+        <% [[nil, 'all'], %w(deployment deployment), %w(procedure procedure), %w(ci other)].each do |s| %>
+          <a class="btn btn-small <%= 'active btn-primary' if source == s[0] %>" filter="<%= s[0] %>">
+            <i class="fa <%= 'fa-check' if source == s[0] %>"></i>
+            <%= s[1] %>
+          </a>
+          <br>
         <% end %>
       </div>
       <div class="filter severity">
         <div class="name">Severity</div>
         <% severity = params[:severity] %>
-        <% %w(all critical warning).each do |s| %>
-          <a class="btn btn-small <%= 'active btn-primary' if severity == s %>" filter="<%= s %>"><%= s %></a><br>
+        <% [[nil, 'all'], %w(critical critical), %w(warning warning)].each do |s| %>
+          <a class="btn btn-small <%= 'active btn-primary' if severity == s[0] %>" filter="<%= s[0] %>">
+            <i class="fa <%= 'fa-check' if severity == s[0] %>"></i>
+            <%= s[1] %>
+          </a>
+          <br>
         <% end %>
       </div>
       <div class="filter">
         <div class="name">Contains Text</div>
         <div class="input-append">
           <input type="text" class="query" value="<%= params[:query] %>">
-          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+          <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('')"></i>
         </div>
       </div>
       <div class="filter">
         <div class="name">Namespace</div>
         <div class="input-append">
           <input type="text" class="path" value="<%= params[:ns_path] %>">
-          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+          <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= organization_ns_path %>')"></i>
         </div>
       </div>
       <div class="filter">
@@ -95,8 +107,10 @@
 
   filterSection.find(".period .btn, .source .btn, .severity .btn").click(function() {
     var button = $j(this);
+    button.parent().find("i.fa-check").removeClass("fa-check");
     button.siblings().removeClass("active btn-primary");
     button.addClass("active btn-primary");
+    button.find("i.fa").addClass('fa-check');
   });
 
   <% if params[:period].present? %>

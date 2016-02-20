@@ -2,35 +2,32 @@ module ApplicationHelper
   SITE_ICONS = {:organization     => 'sitemap',
                 :home             => 'home',
                 :dashboard        => 'dashboard',
-                :service          => 'beaker',
-                :catalog          => 'archive',
+                :service          => 'cog',
+                :catalog          => 'tags',
                 :cloud            => 'cloud',
                 :assembly         => 'cogs',
-                :settings         => 'wrench',
+                :settings         => 'sliders',
                 :user             => 'user',
                 :manages_access   => 'key',
                 :org_scope        => 'sitemap',
                 :design           => 'puzzle-piece',
-                :transition       => 'play-sign',
+                :transition       => 'play-circle-o',
                 :operations       => 'signal',
                 :cloud_services   => 'cog',
                 :cloud_compliance => 'briefcase',
                 :cloud_support    => 'medkit',
                 :cost             => 'money'}
 
-  GENERAL_SITE_LINKS = [{:label => 'Get help',          :icon => 'comments',    :url => Settings.support_chat_url},
-                        {:label => 'Report a problem',  :icon => 'bug',         :url => Settings.report_problem_url},
-                        {:label => 'Feedback',          :icon => 'comment-alt', :url => Settings.feedback_url},
-                        {:label => 'Documentation',     :icon => 'book',        :url => Settings.help_url},
-                        {:label => 'Release notes',     :icon => 'rss',         :url => Settings.news_url}]
+  GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
+                        {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
+                        {:label => 'Feedback',         :icon => 'comment-o', :url => Settings.feedback_url},
+                        {:label => 'Documentation',    :icon => 'book',      :url => Settings.help_url},
+                        {:label => 'Release notes',    :icon => 'rss',       :url => Settings.news_url}]
 
   def omniauth_services
-    services = []
-    if Settings.omniauth
-      Settings.omniauth.sort.each do |provider,keys|
-        services << link_to(provider, "/auth/#{provider}", :title => provider.capitalize)
-      end
-    end
+    omniauth = Settings.omniauth
+    return '' unless omniauth
+    services = omniauth.keys.sort.inject([]) {|s, p| s << link_to(p, "/auth/#{p}", :title => p.capitalize)}
     return raw(services.join(' '))
   end
 
@@ -125,7 +122,7 @@ module ApplicationHelper
                         :remote       => true,
                         :class        => 'dropdown-toggle',
                         'data-toggle' => 'dropdown')
-        html << '<ul class="dropdown-menu"><li style="text-align:center"><a href="/"><i class="icon-spinner icon-spin"></i></a></li></ul>'
+        html << '<ul class="dropdown-menu"><li style="text-align:center"><a href="/"><i class="fa-spinner fa-spin"></i></a></li></ul>'
         html << '</li>'
       end
     else
@@ -157,28 +154,28 @@ module ApplicationHelper
           if dto_area == 'design'
             no_more = true
           elsif dto_area != current_dto
-            assembly_nav << %(<li class="indent">#{link_to(icon("circle-arrow-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_name_label(ci.ciName)} environment"), path_to_ci(ci, dto_area))}</li>)
+            assembly_nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_name_label(ci.ciName)} environment"), path_to_ci(ci, dto_area))}</li>)
           end
         elsif ci_class_name.end_with?('.Platform')
           unless current_dto == 'design'
             if dto_area == 'design'
-              assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-left', "#{assembly_nav_name_label(ci.ciName)} platform"), path_to_ci(ci, dto_area))}</li>)
+              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-left', "#{assembly_nav_name_label(ci.ciName)} platform"), path_to_ci(ci, dto_area))}</li>)
             else
-              assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-up', "#{assembly_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
-              assembly_nav << %(<li class="indent">#{link_to(icon("circle-arrow-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_platform_label(ci)} platform"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
+              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
+              assembly_nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_platform_label(ci)} platform"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
             end
           end
         else
           if current_dto == 'design'
-            assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-up', "#{assembly_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform && dto_area == 'design'
+            assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform && dto_area == 'design'
           else
             if dto_area == 'design'
-              assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-up', "#{assembly_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
-              assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-left', "#{assembly_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>)
+              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
+              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-left', "#{assembly_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>)
             else
-              assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-up', "#{assembly_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
-              assembly_nav << %(<li class="indent">#{link_to(icon('circle-arrow-up', "#{assembly_nav_platform_label(@platform)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
-              assembly_nav << %(<li class="indent">#{link_to(icon("circle-arrow-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
+              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
+              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_platform_label(@platform)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
+              assembly_nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
             end
           end
         end
@@ -250,7 +247,7 @@ module ApplicationHelper
     fav   = ''
     ci_id = params[:id]
     if ci_id.present? && /(\/assemblies\/)|(\/clouds\/)/ =~ request.url
-      fav = link_to_function(content_tag(:i, '', :class => "icon-bookmark#{'-empty' unless current_user.favorite(ci_id.to_i)}", :title => 'Mark/remove favorite'),
+      fav = link_to_function(content_tag(:i, '', :class => "fa fa-bookmark#{'-o' unless current_user.favorite(ci_id.to_i)}", :title => 'Mark/remove favorite'),
                              "toggleFavorite(this, '#{ci_id }')",
                              :class => 'favorite')
 
@@ -361,7 +358,7 @@ module ApplicationHelper
       render(:partial => 'base/shared/list',
              :locals => {:list_content => render_notification_list_content(notification_collection, options, &block), :options => options})
     else
-      raw(%(<p class="text-error">#{icon('warning-sign')} Failed to load notification_collection, please try again later.</p>))
+      raw(%(<p class="text-error">#{icon('exclamation-triangle')} Failed to load notification_collection, please try again later.</p>))
     end
   end
 
@@ -702,9 +699,13 @@ module ApplicationHelper
     status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {})
   end
 
-  def icon(name, text = '', iconclass = false)
-    #text = text.empty? ? text : " #{text}"
-    content_tag(:i, '', :class => iconclass ? "icon-#{name} #{iconclass}" : "icon-#{name}") + (text.present? ? raw(" #{text}") : '')
+  def icon(name, text = '', icon_class = '')
+    icon_html = content_tag(:i, '', :class => "fa fa-#{name} #{icon_class}")
+    raw("#{icon_html}#{" #{text}" if text.present?}")
+  end
+
+  def loading_indicator(message = 'Loading...')
+    icon('spinner', message, 'fa-spin')
   end
 
   def notification_icon(source)
@@ -714,15 +715,15 @@ module ApplicationHelper
     when 'procedure'
       icon = 'cogs'
     when 'ops'
-      icon = 'warning-sign'
+      icon = 'exclamation-triangle'
     when 'opamp'
       icon = 'bar-chart'
     when 'system'
-      icon = 'warning-sign'
+      icon = 'exclamation-triangle'
     else
-      icon = 'question-sign'
+      icon = 'question-circle'
     end
-    content_tag(:i, '', :class => "icon-#{icon}")
+    content_tag(:i, '', :class => "fa fa-#{icon}")
   end
 
   def button(text, btn_size = false, btn_class = false)
@@ -906,16 +907,16 @@ module ApplicationHelper
     text = ''
     case state
       when 'closed'
-        icon = 'ok'
+        icon = 'check'
         text = 'text-success'
       when 'open'
         icon = 'folder-open'
         text = 'text-info'
       when 'canceled'
-        icon = 'ban-circle'
+        icon = 'ban'
         text = 'text-error'
     end
-    content_tag(:i, '', :class => "icon-#{icon} #{text} #{additional_classes}", :alt => state)
+    content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end
 
   def deployment_state_icon(state, additional_classes = '')
@@ -923,19 +924,19 @@ module ApplicationHelper
     text = ''
     case state
       when 'pending'
-        icon = 'time'
+        icon = 'clock-o'
         text = 'muted'
       when 'complete'
-        icon = 'ok'
+        icon = 'check'
         text = 'text-success'
       when 'failed'
         icon = 'remove'
         text = 'text-error'
       when 'canceled'
-        icon = 'ban-circle'
+        icon = 'ban'
         text = 'text-error'
       when 'active'
-        icon = 'spinner icon-spin'
+        icon = 'spinner fa-spin'
         text = 'text-info'
       when 'paused'
         icon = 'pause'
@@ -944,7 +945,7 @@ module ApplicationHelper
         icon = 'pause'
         text = 'text-warning'
     end
-    content_tag(:i, '', :class => "icon-#{icon} #{text} #{additional_classes}", :alt => state)
+    content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end
 
   def rfc_action_icon(action, additional_classes = '')
@@ -964,7 +965,7 @@ module ApplicationHelper
         icon = 'repeat'
         text = 'warning'
     end
-    content_tag(:i, ' ', :class => "rfc-action icon-#{icon} text-#{text} #{additional_classes}")
+    content_tag(:i, ' ', :class => "rfc-action fa fa-#{icon} text-#{text} #{additional_classes}")
   end
 
   def rfc_state_icon(state, additional_classes = '')
@@ -972,25 +973,25 @@ module ApplicationHelper
     text = ''
     case state
       when 'pending'
-        icon = 'time'
+        icon = 'clock-o'
         text = 'muted'
       when 'inprogress'
-        icon = 'spinner icon-spin'
+        icon = 'spinner fa-spin'
         text = ''
       when 'complete'
-        icon = 'ok'
+        icon = 'check'
         text = 'text-success'
       when 'failed'
         icon = 'remove'
         text = 'text-error'
       when 'canceled'
-        icon = 'ban-circle'
+        icon = 'ban'
         text = 'text-error'
       when 'active'
-        icon = 'spinner icon-spin'
+        icon = 'spinner fa-spin'
         text = 'text-info'
     end
-    content_tag(:i, '', :class => "icon-#{icon} #{text} #{additional_classes}", :alt => state)
+    content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end
 
   def rfc_header(rfc, options)
@@ -998,7 +999,7 @@ module ApplicationHelper
     duration         = options[:duration]
     deployment_state = options[:deployment_state]
     result   = ''
-    result << rfc_action_icon(rfc.rfcAction, 'icon-large')
+    result << rfc_action_icon(rfc.rfcAction, 'fa-lg')
     result << '&nbsp;&nbsp;'
     result << %(#{highlight(rfc.nsPath.gsub(/(\/_design\/)|(\/manifest\/)|\/bom\//, '/').split('/')[3..-1].join('/'))}&nbsp;&nbsp;#{rfc.ciClassName.split('.').last} )
     result << '&nbsp;&nbsp;'
@@ -1091,11 +1092,11 @@ module ApplicationHelper
 
   def team_list_permission_marking(team)
     result = %w(manages_access org_scope).inject('') do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'icon-large text-error') if team.name == Team::ADMINS || team.send("#{perm}?")
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg text-error') if team.name == Team::ADMINS || team.send("#{perm}?")
       a
     end
     result = %w(cloud_services cloud_compliance cloud_support design transition operations).inject(result) do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'icon-large') if team.send("#{perm}?")
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg') if team.send("#{perm}?")
       a
     end
     raw(result)

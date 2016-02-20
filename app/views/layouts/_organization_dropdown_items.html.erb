@@ -3,7 +3,7 @@
   <% orgs.each do |org| %>
     <li>
       <%= link_to(change_organization_account_profile_path(:org_id => org.id), :method => :put) do %>
-        <%= icon(current_user.organization_id == org.id ? 'ok' : '', nil, 'icon-fixed-width') %> <%= org.name %>
+        <%= icon(current_user.organization_id == org.id ? 'ok' : '', nil, 'fa-fw') %> <%= org.name %>
         <% if org.full_name.present? %>
           <br/>
           <small style="margin-left:40px"><%= org.full_name %></small>
@@ -13,5 +13,5 @@
   <% end %>
   <li class="divider"></li>
 <% end %>
-<li><%= link_to_function(icon(site_icon('search'), content_tag(:small, 'Find organization...'), 'icon-fixed-width'), '$j("#organization_lookup_modal").modal("show")') %></li>
-<li><%= link_to(icon(site_icon('organization'), content_tag(:small, 'Manage your organizations'), 'icon-fixed-width'), account_profile_path(:anchor => 'organizations')) %></li>
+<li><%= link_to_function(icon(site_icon('search'), content_tag(:small, 'Find organization...'), 'fa-fw'), '$j("#organization_lookup_modal").modal("show")') %></li>
+<li><%= link_to(icon(site_icon('organization'), content_tag(:small, 'Manage your organizations'), 'fa-fw'), account_profile_path(:anchor => 'organizations')) %></li>

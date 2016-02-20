@@ -31,10 +31,9 @@
     function transitions($el, $editor) {
         relocate($editor);
 
-        if (isFullscreen()) {
-            $el.focus();
-        } else {
-            $el.focus();
+        $el.focus();
+        $el[0].setSelectionRange();
+        if (!isFullscreen()) {
             $editor.css('opacity', 1);
         }
     }
@@ -61,11 +60,7 @@
 
     FullscreenTextarea.prototype.$el = null;
 
-    FullscreenTextarea.prototype.$widget = null;
-
     FullscreenTextarea.prototype.$editor = null;
-
-    FullscreenTextarea.prototype.$icon = null;
 
     FullscreenTextarea.prototype.init = function (opts) {
         var content;
@@ -79,11 +74,13 @@
             return;
         }
 
-        content = '<div class="tx-editor-wrapper"><div class="tx-editor"><a href="#" class="tx-icon"><i class="icon-border icon-resize-full"></i></a></div></div>';
+        content = '<div class="tx-editor-wrapper"><div class="tx-editor"><div class="tx-toolbar">' +
+          '<a class="tx-btn"><i class="fa fa-border fa-files-o"></i></a>' +
+          '<a class="tx-btn"><i class="fa fa-border fa-expand"></i></a>' +
+          '</div></div></div>';
         this.$wrapper = $(content).insertAfter(this.$el);
         this.$wrapper.css('width', this.$el.css('width'));
         this.$editor = this.$wrapper.find('.tx-editor');
-        this.$icon = this.$editor.find('.tx-icon');
         this.$editor.append(this.$el);
 
         this.$el.css({
@@ -93,7 +90,11 @@
         });
 
         //Fullscreen icon click event
-        this.$icon.on('click.txeditor.icon', this.onIconClick);
+      this.$editor.find('.tx-toolbar i.fa-expand').on('click.txeditor.icon', this.onIconClick);
+      var textArea = this.$el[0];
+      copyToClipboard(this.$editor.find('.tx-toolbar i.fa-files-o'),
+                      function() {return textArea;});
+
     };
 
 
@@ -133,7 +134,7 @@
 
         $editor.addClass('expanded');
         transitions(this.$el, this.$editor);
-        $editor.find('.tx-icon i.icon-resize-full').addClass('icon-resize-small').removeClass('icon-resize-full');
+        $editor.find('.tx-toolbar i.fa-expand').addClass('fa-compress').removeClass('fa-expand');
 
         //Adjust editor size on resize
         $(window).on('resize.txeditor', this.onResize);
@@ -159,7 +160,7 @@
 
         transitions(this.$el, $editor);
 
-        $editor.find('.tx-icon i.icon-resize-small').removeClass('icon-resize-small').addClass('icon-resize-full');
+        $editor.find('.tx-toolbar i.fa-compress').removeClass('fa-compress').addClass('fa-expand');
 
         if (settings.overlay) {
             this.removeOverlay();
@@ -178,7 +179,6 @@
         $wrapper.remove();
 
         this.$wrapper = null;
-        this.$icon = null;
         this.$editor = null;
 
         $(window).off('keyup.txeditor', this.onKeyUp)

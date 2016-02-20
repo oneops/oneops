@@ -14,7 +14,7 @@
   <td>
     <div class="input-append" style="margin-left: -3px">
       <%= text_field_tag("#{attribute_name}_value", value, :onchange => %(update_hash_attribute_raw_value($(this).up("table"))), :class => 'hash_value') %>
-      <%= link_to_function raw("<span class='add-on'><i class='icon-remove'></i></div>"), %(delete_hash_attribute_row($(this).up("tr"))) if allow_delete && !fixed_keys %>
+      <%= link_to_function raw("<span class='add-on'>#{icon('times')}</div>"), %(delete_hash_attribute_row($(this).up("tr"))) if allow_delete && !fixed_keys %>
     </div>
   </td>
 </tr>

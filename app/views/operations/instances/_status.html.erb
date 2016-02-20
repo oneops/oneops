@@ -15,14 +15,14 @@
            end
         %>
         <ul>
-          <li><%= icon(conf_icon, ' ') %><%= @instance.rfcAction.capitalize %> requested by
+          <li><%= icon(conf_icon) %> <%= @instance.rfcAction.capitalize %> requested by
             <strong><%= @instance.rfcCreatedBy %></strong></li>
-          <li><%= icon('th-list', ' ') %>Part of environment release <strong><%= @release.releaseId %></strong>
+          <li><%= icon('th-list') %> Part of environment release <strong><%= @release.releaseId %></strong>
             committed <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong></li>
           <% if @instance.rfcId == @instance.lastAppliedRfcId %>
-            <li><%= icon('ok', ' ') %>Deployment of change <%= @instance.rfcId %> <strong>completed</strong></li>
+            <li><%= icon('check') %> Deployment of change <%= @instance.rfcId %> <strong>completed</strong></li>
           <% else %>
-            <li><%= icon('time', ' ') %>Deployment of this change is <strong>pending</strong></li>
+            <li><%= icon('clock-o') %> Deployment of this change is <strong>pending</strong></li>
           <% end %>
         </ul>
       </div>
@@ -33,20 +33,20 @@
         <ul>
           <% if config_state == 'stale' %>
             <li>
-              <%= icon('asterisk', ' ') %>Last component change in transition <%= highlight(@component.lastAppliedRfcId) %>
+              <%= icon('asterisk') %> Last component change in transition <%= highlight(@component.lastAppliedRfcId) %>
               <ul>
-                <li><%= icon('user', ' ') %>made by <strong><%= @component_rfc.rfcCreatedBy %></strong></li>
-                <li><%= icon('th-list', ' ') %>as part of environment release <strong><%= link_to(@component_release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@component_release.releaseId}")) %></strong></li>
-                <li><%= icon('time', ' ') %>committed <strong><%= time_ago_in_words(@component_release.updated_timestamp) %></strong> by <strong><%= @component_release.commitedBy %></strong></li>
+                <li><%= icon('user') %> made by <strong><%= @component_rfc.rfcCreatedBy %></strong></li>
+                <li><%= icon('th-list') %> as part of environment release <strong><%= link_to(@component_release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@component_release.releaseId}")) %></strong></li>
+                <li><%= icon('clock-o') %> committed <strong><%= time_ago_in_words(@component_release.updated_timestamp) %></strong> by <strong><%= @component_release.commitedBy %></strong></li>
               </ul>
             </li>
           <% end %>
           <li>
-            <%= icon('repeat', ' ') %>Last deployed change <%= highlight(@instance.lastAppliedRfcId) %>
+            <%= icon('repeat') %> Last deployed change <%= highlight(@instance.lastAppliedRfcId) %>
             <ul>
-              <li><%= icon('user', ' ') %>made by <strong><%= @instance_rfc.rfcCreatedBy %></strong></li>
-              <li><%= icon('th-list', ' ') %>as part of environment release <strong><%=  link_to(@release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@release.releaseId}")) %></strong></li>
-              <li><%= icon('time', ' ') %>deployed <strong><%= time_ago_in_words(@instance_rfc.rfc_updated_timestamp) %></strong></li>
+              <li><%= icon('user') %> made by <strong><%= @instance_rfc.rfcCreatedBy %></strong></li>
+              <li><%= icon('th-list') %> as part of environment release <strong><%=  link_to(@release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@release.releaseId}")) %></strong></li>
+              <li><%= icon('clock-o') %> deployed <strong><%= time_ago_in_words(@instance_rfc.rfc_updated_timestamp) %></strong></li>
             </ul>
           </li>
         </ul>
@@ -58,9 +58,9 @@
       <div class="marker"><%= status_marker('state', @instance.ciState, state_to_label(@instance.ciState)) %></div>
       <div class="description">
         <ul>
-          <li><%= icon('exchange', ' ') %>This instance is marked to be <%= highlight('replaced') %></li>
+          <li><%= icon('exchange') %> This instance is marked to be <%= highlight('replaced') %></li>
           <li>
-            <%= icon('time', ' ') %>State modified <strong><%= time_ago_in_words(@instance.updated_timestamp) %></strong>
+            <%= icon('clock-o') %> State modified <strong><%= time_ago_in_words(@instance.updated_timestamp) %></strong>
             <% if @instance.updatedBy.present? %>
               by <strong><%= @instance.updatedBy %></strong>
             <% end %>
@@ -86,14 +86,14 @@
     <div class="description">
       <ul>
         <% if @ops_state == 'good' %>
-          <li><%= icon('ok') %> All monitors are at normal levels</li>
+          <li><%= icon('check') %> All monitors are at normal levels</li>
         <% else %>
           <% if @ops_events.present? %>
             <% monitor_threshold_map = Operations::MonitorsController.threshold_monitor_map(@monitors) %>
             <% @ops_events.each_pair do |monitor_name, events| %>
               <% events.each do |e| %>
                 <li>
-                  <%= icon('warning-sign', ' ') %>
+                  <%= icon('exclamation-triangle') %>
                   <% threshold_map = monitor_threshold_map[monitor_name]
                      monitor       = threshold_map && threshold_map[e.name]
                      full_name     = "#{monitor ? "#{monitor.ciAttributes.description}" : monitor_name}:#{e.name}" %>
@@ -106,9 +106,9 @@
           <% end %>
         <% end %>
         <% if @monitors.size > 0 %>
-          <li><%= icon('eye-open', ' ') %><%= @monitors.size %> monitors watching this instance</li>
+          <li><%= icon('eye') %><%= @monitors.size %> monitors watching this instance</li>
         <% else %>
-          <li><%= icon('eye-close', ' ') %><strong>NO</strong> monitors watching this instance</li>
+          <li><%= icon('eye-slash') %> <strong>NO</strong> monitors watching this instance</li>
         <% end %>
       </ul>
     </div>
@@ -122,9 +122,9 @@
         <div class="marker"><%= status_marker(action.actionName, action.actionState, state_to_label(action.actionState)) %></div>
         <div class="description">
           <ul>
-            <li><%= icon('play', ' ') %>Action <strong><%= action.actionName %></strong> started
+            <li><%= icon('play') %> Action <strong><%= action.actionName %></strong> started
               <strong><%= time_ago_in_words(Time.at(action.created/1000)) %></strong></li>
-            <li><%= icon('user', ' ') %>Submitted by <strong><%= procedure.createdBy %></strong></li>
+            <li><%= icon('user') %> Submitted by <strong><%= procedure.createdBy %></strong></li>
           </ul>
         </div>
       </li>

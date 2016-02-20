@@ -1,9 +1,9 @@
 <%= assembly_page_header(@assembly, 'design') %>
 
-<% page_options = [link_to(icon_button('edit', ' Edit'), assembly_path(@assembly))]
+<% page_options = nil
    if manages_access?
-     page_options += [link_to(icon_button('copy', ' Copy'), new_clone_assembly_path(@assembly), :remote => true),
-                      link_to(icon_button('save', ' Save to Catalog'), new_clone_assembly_path(@assembly, :export => 'catalog'), :remote => true)]
+     page_options = [link_to(icon_button('files-o',  'Copy'), new_clone_assembly_path(@assembly), :remote => true),
+                     link_to(icon_button('floppy-o', 'Save to Catalog'), new_clone_assembly_path(@assembly, :export => 'catalog'), :remote => true)]
    end %>
 <%= page_title({:page_kind     => 'Design',
                 :page_label    => @assembly.ciName,

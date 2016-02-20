@@ -6,22 +6,22 @@
     </div>
     <div class="description">
       <dl class="dl-horizontal">
-        <dt><%= icon(cloud_admin_status_icon(status), '', 'icon-fixed-width') %></dt>
+        <dt><%= icon(cloud_admin_status_icon(status), '', 'fa-fw') %></dt>
         <dd>Administrative status is <%= highlight(status) %>.</dd>
         <% if status == 'offline' %>
           <% actions = %w(active inert) %>
-          <dt><%= icon('stop', '', 'text-warning icon-fixed-width') %></dt>
+          <dt><%= icon('stop', '', 'text-warning fa-fw') %></dt>
           <dd>All transition and operations activity is <%= highlight('not allowed') %>.</dd>
         <% elsif status == 'inert' %>
           <% actions = %w(active offline) %>
-          <dt><%= icon('pause', '', 'text-info icon-fixed-width') %></dt>
+          <dt><%= icon('pause', '', 'text-info fa-fw') %></dt>
           <dd>
             All transition and operations activity is still <%= highlight('enabled') %> but
             this cloud <%= highlight('may not be added') %> to any new or existing environments.
           </dd>
         <% else %>
           <% actions = %w(inert offline) %>
-          <dt><%= icon('play', '', 'text-success icon-fixed-width') %></dt>
+          <dt><%= icon('play', '', 'text-success fa-fw') %></dt>
           <dd>All transition and operations activity is <%= highlight('enabled') %>.</dd>
         <% end %>
       </dl>

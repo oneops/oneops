@@ -7,7 +7,7 @@
             actionId    = logTab.attr("actionId");
         if (!logTab.find(".log")[0]) {
           logTab.find(".accordion-inner").html("<%= escape_javascript(render 'cms/log', :log => [], :auto_scroll_toggle => true, :refresh => 'toggleProcedureLog(this, true)') %>");
-          logTab.find(".log").html('<li><i class="icon-spinner icon-spin"></i> Loading...</liv>');
+          logTab.find(".log").html('<li>' + '<%= escape_javascript(loading_indicator) %>' + '</li>');
         }
         if (refresh || !logTab.is(":visible")) {
           <%= remote_function :url => log_data_operations_procedures_path, :method => :get, :with => "'procedure_id='+procedureId+'&action_ids[]='+actionId" %>

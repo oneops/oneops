@@ -8,7 +8,7 @@
       <%= render 'cms/cis/hash_attribute_row', :attribute_name => attribute_name, :key => k, :value => v, :fixed_keys => fk, :allow_delete => delete %>
     <% end %>
   </table>
-  <%= link_to_function(content_tag(:i, '', :class => 'icon-plus') + ' add', "new_hash_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') if add && !fk %>
+  <%= link_to_function(icon('plus', 'add'), "new_hash_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') if add && !fk %>
 </div>
 <script type="text/javascript">
   if (typeof(new_hash_attribute_row_html) == "undefined") {

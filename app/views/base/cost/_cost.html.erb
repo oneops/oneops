@@ -1,5 +1,5 @@
 <% if @cost.nil? %>
-  <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to retrieve cost data</strong></p>
+  <p class="text-error"><%= icon('exclamation-triangle') %> <strong>Failed to retrieve cost data</strong></p>
 <% else %>
   <% total = @cost[:total]
      unit = @cost[:unit].try(:upcase)

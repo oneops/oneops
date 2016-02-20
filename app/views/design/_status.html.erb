@@ -29,7 +29,7 @@
         <div class="description">
           <ul>
             <li>
-              <%= icon('download-alt', ' ') %>Last design release <%= @release.releaseId %> <%= "#{state}" %>
+              <%= icon('arrow-circle-o-down') %> Last design release <%= @release.releaseId %> <%= "#{state}" %>
               <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong>
             </li>
             <% if state == 'commit' %>

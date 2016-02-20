@@ -26,7 +26,7 @@
     the deployment of this instance.<br><br>
     <code><strong>Use with caution.</strong></code>
   </p>
-  <%= link_to icon('remove', 'Cancel Deploy'),
+  <%= link_to icon('times', 'Cancel Deploy'),
               cancel_deployment_assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance),
               :method => :put,
               :remote => true,

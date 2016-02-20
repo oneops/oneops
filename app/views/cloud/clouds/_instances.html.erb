@@ -43,9 +43,9 @@
       <%= status_marker('health', target.opsState, health_to_label(target.opsState)) %>
       <% if procedure %>
         <%= action = procedure.actions.find {|a| a.ciId == target.ciId}
-            content =  "#{icon('wrench', '', 'icon-fixed-width')} #{action.actionName}<br>"
-            content << "#{icon('user', '', 'icon-fixed-width')} #{procedure.createdBy}<br>"
-            content << "#{icon('time', '', 'icon-fixed-width')} #{time_ago_in_words(Time.at(action.updated/1000))}<br>"
+            content =  "#{icon('wrench', '', 'fa-fw')} #{action.actionName}<br>"
+            content << "#{icon('user', '', 'fa-fw')} #{procedure.createdBy}<br>"
+            content << "#{icon('clock-o', '', 'fa-fw')} #{time_ago_in_words(Time.at(action.updated/1000))}<br>"
             content << link_to('View', edit_operations_procedure_path(procedure), :remote => true, :class => 'btn btn-mini btn-info')
             status_marker('procedure', 'active', state_to_label('active'), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Active Procedure', 'data-trigger' => 'click', 'data-content' => content, 'data-placement' => 'top') %>
       <% end %>

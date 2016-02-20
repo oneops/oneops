@@ -1,7 +1,7 @@
 <%if announcement.present? %>
   <% dom_id = random_dom_id %>
   <div id="<%= dom_id %>" class="announcement alert <%= "alert-#{style}" if defined?(style) == 'local-variable' %> collapsed">
-    <%= link_to_function(icon('caret-down icon-large'), '$j(this).parents(".announcement").toggleClass("collapsed").find("a.toggle > i").toggleClass("icon-caret-down icon-caret-up")', :class => 'toggle hide') %>
+    <%= link_to_function(icon('caret-down', '', 'fa-lg'), '$j(this).parents(".announcement").toggleClass("collapsed").find("a.toggle > i").toggleClass("fa-caret-down fa-caret-up")', :class => 'toggle hide') %>
     <p><%= raw(announcement) %></p>
   </div>
   <script>

@@ -5,7 +5,7 @@
       <%= render 'cms/cis/array_attribute_row', :name => "#{attribute_name}_#{i}", :value => e %>
     <% end %>
   </table>
-  <%= link_to_function(content_tag(:i, '', :class => 'icon-plus') + ' add', "new_array_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') %>
+  <%= link_to_function(icon('plus', 'add'), "new_array_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') %>
 </div>
 <script type="text/javascript">
   if (typeof(new_array_attribute_row_html) == "undefined") {

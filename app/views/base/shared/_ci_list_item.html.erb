@@ -20,7 +20,7 @@
   <% menu = builder[:menu] %>
   <% unless menu == :none %>
     <div class="menu dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
       <ul class="dropdown-menu" role="menu">
         <% if builder[:menu].present? %>
           <%= raw "<li>#{builder[:menu].gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
@@ -29,10 +29,10 @@
         <li>
           <a href="#" class="favorite" onclick="toggleFavorite(this, <%= ci_id %>); return false;">
             <% if current_user.favorite(ci_id) %>
-              <i class="icon-bookmark"></i>
+              <i class="fa fa-bookmark"></i>
               <span class="text">Remove favorite</span>
             <% else %>
-              <i class="icon-bookmark-empty"></i>
+              <i class="fa fa-bookmark-o"></i>
               <span class="text">Mark favorite</span>
             <% end %>
           </a>
@@ -45,7 +45,7 @@
     <% if builder.include?(:selectable) && !builder[:selectable] %>
       <i class="placeholder"></i>
     <% else %>
-      <i class="icon-large icon-check-empty select" onclick="event.stopPropagation();toggle_select_item(this)"></i>
+      <i class="fa fa-lg fa-square-o select" onclick="event.stopPropagation();toggle_select_item(this)"></i>
     <% end %>
   <% end %>
 

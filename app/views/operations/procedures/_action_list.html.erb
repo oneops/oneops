@@ -11,7 +11,7 @@
               <strong><%= link_to(action.ci.ciName, path_to_ci(action.ci)) %></strong>
               <span class="pull-right">
                 <strong><%= action.actionName == 'user-custom-attachment' ? @procedure.procedureName : action.actionName %></strong>&nbsp;&nbsp;
-                <span id="action_state_indicator_<%= action.actionId %>"><%= rfc_state_icon(action.actionState || 'complete', 'icon-large') %></span>
+                <span id="action_state_indicator_<%= action.actionId %>"><%= rfc_state_icon(action.actionState || 'complete', 'fa-lg') %></span>
               </span>
             </div>
           </div>

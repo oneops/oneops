@@ -20,7 +20,7 @@
           </div>
           <script type="text/javascript">
             $j("#service_select").on("change", function () {
-              $j("#service_details").html('<i class="icon-spinner icon-spin"></i> Loading...');
+              $j("#service_details").html('<%= escape_javascript(loading_indicator) %>');
               $j.ajax({url:  "<%= new_cloud_service_path(@cloud) %>", data: {mgmtCiId: this.value}});
             });
           </script>

@@ -15,24 +15,24 @@
       <div class="description">
         <% if allow_actions %>
           <div class="menu dropdown">
-            <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
             <ul class="dropdown-menu" role="menu">
               <% if primary %>
-                <li><%= link_to_function(icon('level-down', 'Make Secondary', 'icon-fixed-width'), "make_cloud_secondary(#{cloud_id})") %></a></li>
+                <li><%= link_to_function(icon('level-down', 'Make Secondary', 'fa-fw'), "make_cloud_secondary(#{cloud_id})") %></a></li>
               <% else %>
-                <li class="text-info"><%= link_to_function(icon('level-up', 'Make Primary', 'icon-fixed-width'), "make_cloud_primary(#{cloud_id})") %></a></li>
+                <li class="text-info"><%= link_to_function(icon('level-up', 'Make Primary', 'fa-fw'), "make_cloud_primary(#{cloud_id})") %></a></li>
               <% end %>
               <% if status == 'active' %>
-                <li class="text-error"><%= link_to_function(icon('pause', 'Ignore', 'icon-fixed-width'), "change_cloud_status(#{cloud_id}, 'inactive')") %></li>
-                <li class="text-warning">  <%= link_to_function(icon('cloud-download', 'Shutdown', 'icon-fixed-width'), "change_cloud_status(#{cloud_id}, 'offline')") %></li>
+                <li class="text-error"><%= link_to_function(icon('pause', 'Ignore', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'inactive')") %></li>
+                <li class="text-warning">  <%= link_to_function(icon('cloud-download', 'Shutdown', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'offline')") %></li>
               <% elsif status == 'inactive' %>
-                <li class="text-success"><%= link_to_function(icon('cloud-upload', 'Activate', 'icon-fixed-width'), "change_cloud_status(#{cloud_id}, 'active')") %></li>
-                <li class="text-warning">  <%= link_to_function(icon('cloud-download', 'Shutdown', 'icon-fixed-width'), "change_cloud_status(#{cloud_id}, 'offline')") %></li>
+                <li class="text-success"><%= link_to_function(icon('cloud-upload', 'Activate', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'active')") %></li>
+                <li class="text-warning">  <%= link_to_function(icon('cloud-download', 'Shutdown', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'offline')") %></li>
               <% elsif status == 'offline' %>
-                <li class="text-success"><%= link_to_function(icon('cloud-upload', 'Start', 'icon-fixed-width'), "change_cloud_status(#{cloud_id}, 'active')") %></li>
+                <li class="text-success"><%= link_to_function(icon('cloud-upload', 'Start', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'active')") %></li>
               <% end %>
-              <li><%= link_to_function(icon('sort-by-order', 'Change deployment order', 'icon-fixed-width'), "$j('#dpmt_order_#{cloud_id} > div').show(500)") %></a></li>
-              <li><%= link_to_function(icon('sort-by-attributes', 'Change scale percentage', 'icon-fixed-width'), "$j('#pct_scale_#{cloud_id} > div').show(500)") %></a></li>
+              <li><%= link_to_function(icon('sort-numeric-asc', 'Change deployment order', 'fa-fw'), "$j('#dpmt_order_#{cloud_id} > div').show(500)") %></a></li>
+              <li><%= link_to_function(icon('sort-amount-asc', 'Change scale percentage', 'fa-fw'), "$j('#pct_scale_#{cloud_id} > div').show(500)") %></a></li>
             </ul>
           </div>
         <% end %>
@@ -60,7 +60,7 @@
             <dt><%= icon('cloud-download', '', 'muted') %></dt>
             <dd>Administrative status of cloud <%= cloud.toCi.ciName %> is <%= highlight(status) %>.</dd>
           <% end %>
-          <dt><%= icon('sort-by-order') %></dt>
+          <dt><%= icon('sort-numeric-asc') %></dt>
           <dd id="dpmt_order_<%= cloud_id %>">
             <% dpmt_order = cloud.relationAttributes.attributes['dpmt_order'] || cloud.meta.mdAttributes.find {|a| a.attributeName == 'dpmt_order'}.defaultValue.to_i %>
             Cloud deployment order is <%= highlight(dpmt_order) %>
@@ -68,12 +68,12 @@
               <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
                 <%= hidden_field_tag :cloud_id, cloud_id %>
                 <%= number_field_tag 'attributes[dpmt_order]', dpmt_order, :class => 'input-mini', :step => 1 %>
-                <%= button_tag((icon('ok', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
+                <%= button_tag((icon('check', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
                 <%= link_to_function(icon('remove', 'Cancel'), "$j('#dpmt_order_#{cloud_id} > div').hide(500)", :class => 'btn btn-danger') %>
               <% end %>
             </div>
           </dd>
-          <dt><%= icon('sort-by-attributes') %></dt>
+          <dt><%= icon('sort-amount-asc') %></dt>
           <dd id="pct_scale_<%= cloud_id %>">
             <% pct_scale = cloud.relationAttributes.attributes['pct_scale'] || cloud.meta.mdAttributes.find {|a| a.attributeName == 'pct_scale'}.defaultValue.to_i %>
             Cloud scale at <%= highlight(pct_scale) %>%
@@ -84,7 +84,7 @@
                   <%= number_field_tag 'attributes[pct_scale]', pct_scale, :class => 'input-mini', :min => 1 %>
                   <span class="add-on">%</span>
                 </div>
-                <%= button_tag((icon('ok', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
+                <%= button_tag((icon('check', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
                 <%= link_to_function(icon('remove', 'Cancel'), "$j('#pct_scale_#{cloud_id} > div').hide(500)", :class => 'btn btn-danger') %>
               <% end %>
             </div>
@@ -92,7 +92,7 @@
   		  </dl>
         <% if cloud.toCi.ciAttributes.adminstatus == 'offline' %>
           <div class="alert alert-danger pull-left">
-            <%= icon('warning-sign') %> This cloud is <strong>offline</strong> globally for the whole organization.
+            <%= icon('exclamation-triangle') %> This cloud is <strong>offline</strong> globally for the whole organization.
           </div>
         <% end %>
       </div>

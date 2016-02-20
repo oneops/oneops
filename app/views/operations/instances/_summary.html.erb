@@ -35,9 +35,7 @@
 <% end %>
 
 <%= section_panel 'Availability (%)', :width => 'single', :position => 'right' do %>
-  <div class="availability-summary">
-    <i class="icon-spinner icon-spin"></i> Loading...
-  </div>
+  <div class="availability-summary"><%= loading_indicator %></div>
   <script>
     <%= remote_function(:url => availability_assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance), :method => :get) %>
   </script>

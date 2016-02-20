@@ -3,7 +3,7 @@
 <div class="list-toolbar <%= 'hide' if pagination %>" list-name="<%= toolbar[:list_name] || controller.class.to_s.gsub(/\W/, '_') %>" filters="<%= filter_by.join(',') if filter_by %>">
   <% if sort_by %>
     <div class="btn-group sort pull-left">
-      <a class="btn btn-mini sort-indicator" onclick="toggle_order(this)"><i class="icon-sort"> Sort</i></a>
+      <a class="btn btn-mini sort-indicator" onclick="toggle_order(this)"><%= icon('sort', content_tag(:span, 'Sort')) %></a>
       <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" href="#"><%= icon('caret-down') %></a>
       <ul class="dropdown-menu">
         <% sort_by.each do |attr| %>
@@ -16,18 +16,17 @@
   <% unless compact.nil? %>
     <button class="btn btn-mini" style="margin-left: 10px" onclick="toggle_compact(this)">
       <% if compact %>
-        <i class="icon-large icon-expand-alt"><span> Expand</span></i>
+        <i class="fa fa-lg fa-plus-square-o"><span> Expand</span></i>
       <% else %>
-        <i class="icon-large icon-collapse-alt"><span> Collapse</span></i>
+        <i class="fa fa-lg fa-minus-square-o"><span> Collapse</span></i>
       <% end %>
     </button>
   <% end %>
   <% if menu.present? %>
     <div class="btn-group menu pull-right">
-      <button class="btn btn-mini" onclick="select_all_items(this)" title="Select All"><i class="icon-large icon-check"></i></button>
-      <button class="btn btn-mini" onclick="unselect_all_items(this)" title="Unselect All"><i class="icon-large icon-check-empty"></i></button>
-      <a class="btn btn-mini" data-toggle="dropdown" href="#"><i class="icon-cog icon-large"></i> Action</a>
-      <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" href="#"><%= icon('caret-down') %></a>
+      <button class="btn btn-mini" onclick="select_all_items(this)" title="Select All"><i class="fa fa-lg fa-check-square-o"></i></button>
+      <button class="btn btn-mini" onclick="unselect_all_items(this)" title="Unselect All"><i class="fa fa-lg fa-square-o"></i></button>
+      <a class="btn btn-mini" data-toggle="dropdown" href="#"><%= icon('cog', 'Action', 'fa-lg') %> <%= icon('caret-down') %></a>
       <ul class="dropdown-menu">
         <% menu.each do |i| %>
           <% if i.blank? %>
@@ -43,7 +42,7 @@
     <div class="filter">
       <%= count_marker '', 'list-count-marker' unless pagination %>
       <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-medium search-query', :placeholder => 'type to filter...', (pagination ? :onchnage : :onkeyup) => "filter_changed(this, false)") %>
-      <i class="icon-remove-sign" onclick="filter_changed(this, true)"></i>
+      <i class="fa fa-times-circle" onclick="filter_changed(this, true)"></i>
     </div>
   <% end %>
 </div>
@@ -57,7 +56,8 @@
       }
       else {
         indicator.attr("sort-by", attr);
-        indicator.find("i").html(" " + label).removeClass("icon-sort").addClass("icon-sort-by-attributes").removeClass("icon-flip-vertical");
+        indicator.find("i").removeClass("fa-sort").addClass("fa-sort-amount-asc").removeClass("fa-flip-vertical");
+        indicator.find("span").html(" " + label);
         var listDiv = indicator.closest(".list-toolbar").parent();
         if (!listDiv.hasClass('list-paginated')) {
           sort_list(listDiv.find(".list-body > ul")[0], attr, false);
@@ -68,7 +68,7 @@
         var prefix = LOCAL_STORAGE_KEY_PREFIX + indicator.closest(".list-toolbar").attr("list-name") + "_list_";
         localStorage.setItem(prefix + "sort_attribute", attr);
         localStorage.setItem(prefix + "sort_label", label);
-        localStorage.setItem(prefix + "sort_desc", indicator.find("i").hasClass("icon-flip-vertical"));
+        localStorage.setItem(prefix + "sort_desc", indicator.find("i").hasClass("fa-flip-vertical"));
       }
       listDiv.trigger('sortChanged');
     };
@@ -81,9 +81,9 @@
       }
 
       var icon = button.find("i");
-      if (icon.hasClass("icon-sort-by-attributes")) {
-        icon.toggleClass("icon-flip-vertical");
-        var desc = icon.hasClass("icon-flip-vertical");
+      if (icon.hasClass("fa-sort-amount-asc")) {
+        icon.toggleClass("fa-flip-vertical");
+        var desc = icon.hasClass("fa-flip-vertical");
         var toolbar = button.closest(".list-toolbar");
         var listDiv = toolbar.parent();
         if (!listDiv.hasClass('list-paginated')) {
@@ -100,7 +100,7 @@
       list = $j(list);
       return {
         field: list.find(".sort-indicator").attr("sort-by"),
-        order: list.find(".sort-indicator .icon-flip-vertical").length > 0 ? 'desc' : 'asc'
+        order: list.find(".sort-indicator .fa-flip-vertical").length > 0 ? 'desc' : 'asc'
       }
     }
   }
@@ -224,7 +224,7 @@
       setTimeout(function() {
         update_filter_marker(list);
       }, 100);
-      if (list.find(".btn i.icon-expand-alt").length) {
+      if (list.find(".btn i.fa-plus-square-o").length) {
         list.find(".list-body > ul > li:visible .middle").hide();
       }
     };

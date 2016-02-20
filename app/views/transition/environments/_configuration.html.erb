@@ -8,3 +8,31 @@
 <% end %>
 
 <%= render 'watch/watch', :ci => @environment %>
+
+<% if has_transition?(@assembly.ciId) %>
+  <%= section_panel 'Delete Environment', :width => 'single', :position => 'right' do %>
+    <% instance_count    = @deloyed_to_rels.size
+       active_deployment = @deployment && @deployment.deploymentState != 'complete' && @deployment.deploymentState != 'canceled' %>
+    <% if instance_count > 0 || active_deployment %>
+      <% if instance_count > 0 %>
+        <p>This environment has <b><%= instance_count %></b> <%= 'instance'.pluralize(instance_count) %>.</p>
+      <% end %>
+      <% if active_deployment %>
+        <p>This environment has a deployment in <b><%= @deployment.deploymentState %></b> state.</p>
+      <% end %>
+      <p>
+        An environment <b>can not be deleted</b> if it has deployed instances or open deployment.
+        Please disable all platforms and cancel open deployment before deleting the envrionment.
+      </p>
+      <%= icon_button('trash', 'Delete', nil, 'danger disabled') %>
+    <% else %>
+      <%= link_confirm_busy(icon_button('trash', ' Delete', 'danger'),
+                            :url     => assembly_transition_environment_path(@assembly, @environment),
+                            :body    => raw("<p>Click OK to permanently delete environment <b>'#{@environment.ciName}'</b>.</p>
+                                             <p><strong class='label label-important'>WARNING: All configuration for this enviroment will be permanently lost.</strong></p>"),
+                            :method  => :delete,
+                            :busy    => "Deleting environment '#{@environment.ciName}'",
+                            :confirm => 'Delete environment?') %>
+    <% end %>
+  <% end %>
+<% end %>

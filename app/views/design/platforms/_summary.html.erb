@@ -16,7 +16,7 @@
         <% if group[:cardinality].max > group_items.size %>
           <%= link_to(content_tag(:button, icon('plus'), :class => 'btn btn-mini'), new_assembly_design_platform_component_path(@assembly, @platform, :template_name => group[:template_name]), :disable_with => 'wait...' ) %>
         <% else %>
-          <%= content_tag(:button, content_tag(:i, '', :class => 'icon-ban-circle transparent'),  :class => 'btn btn-mini disabled') %>
+          <%= content_tag(:button, content_tag(:i, '', :class => 'fa fa-ban transparent'),  :class => 'btn btn-mini disabled') %>
         <% end %>
       <% end %>
     <% end %>

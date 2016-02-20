@@ -17,8 +17,8 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Delete Assembly', :width => 'single', :position => 'right' do %>
-  <% if manages_access_for_assembly?(@assembly.ciId) %>
+<% if manages_access_for_assembly?(@assembly.ciId) %>
+  <%= section_panel 'Delete Assembly', :width => 'single', :position => 'right' do %>
     <%= link_confirm_busy(icon_button('trash', ' Delete', 'danger'),
                           :url     => assembly_path(@assembly),
                           :body    => raw('<p>Click OK to permanently delete this assembly.</p>
