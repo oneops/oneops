@@ -2,7 +2,7 @@
   <% case @release.releaseState %>
   <% when 'open' %>
     <% compiling = @environment.ciState == 'locked'
-       deploying = @deployment && %w(active paused failed pending).index(@deployment.deploymentState)
+       deploying = @deployment && !%w(complete canceled).index(@deployment.deploymentState)
        comments = @environment.comments %>
     <div class="marker"><%= status_marker('release', 'open', state_to_label(@release.releaseState)) %></div>
     <div class="description">

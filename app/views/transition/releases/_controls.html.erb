@@ -1,4 +1,4 @@
-<% deploying  = @deployment && %w(active paused failed pending).index(@deployment.deploymentState)
+<% deploying  = @deployment && !%w(complete canceled).index(@deployment.deploymentState)
    generating = @environment.ciState == 'locked' %>
 <% content_for :discard_button do %>
   <%= link_confirm_busy('Discard',
