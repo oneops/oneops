@@ -303,10 +303,15 @@ public abstract class AbstractOrderExecutor {
 		List<String> classParts = new LinkedList<String>(
 				Arrays.asList(className.split("\\.")));
 
-		// remove first bom. and last Component Class
+		// remove first bom. or cloud. and last Component Class
 		classParts.remove(0);
 		classParts.remove(classParts.size() - 1);
-		if (classParts.size() > 0 && !classParts.get(0).equals("service"))
+
+		// remove service
+		if (classParts.size() > 0 && classParts.get(0).equals("service"))
+			classParts.remove(0);
+			
+		if (classParts.size() > 0)	
 			cookbookPath = "circuit-" + Joiner.on("-").join(classParts);
 		else
 			cookbookPath = "circuit-main-1";
