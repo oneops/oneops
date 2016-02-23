@@ -227,7 +227,7 @@
         pinIcon.removeClass("fa-rotate-270");
       }
       else {
-        localStorage.setItem(local_storage_key_sidebar_pin, '');
+        localStorage.setItem(local_storage_key_sidebar_pin, 'false');
         pinIcon.addClass("fa-rotate-270");
       }
       $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar: pin}}});
@@ -244,13 +244,13 @@
     };
 
     <% if user_signed_in? && session[:sidebar].nil? %>
-      if (localStorage.getItem(local_storage_key_sidebar_pin) == 'false') {
-        setTimeout(function() {
+      setTimeout(function() {
+        if (localStorage.getItem(local_storage_key_sidebar_pin) == 'false') {
           toggleSidebar();
           toggleSidebarPin();
-          toggleSidebarTheme(localStorage.getItem(local_storage_key_sidebar_theme));
-        }, 100);
-      }
+        }
+        toggleSidebarTheme(localStorage.getItem(local_storage_key_sidebar_theme));
+      }, 100);
     <% end %>
   </script>
 </body>
