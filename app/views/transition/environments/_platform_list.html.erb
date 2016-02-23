@@ -39,7 +39,7 @@
       <% end %>
       <% unless rfc_action == 'delete' %>
         <%= caption = enabled ? 'Disable' : 'Enable'
-            link_to enabled ? icon('off',' Disable') : icon('off',' Enable'),
+            link_to enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
                     toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
                     :title        => caption,
                     :disable_with => 'wait...',

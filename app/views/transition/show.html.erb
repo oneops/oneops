@@ -2,18 +2,18 @@
 
 <%= page_title :page_kind     => 'Transition', :page_label => @assembly.ciName,
                :page_sublabel => "created by #{@assembly.createdBy}",
-               :page_options  => [link_to(icon_button('eye-open', ' View'), assembly_path(@assembly))] %>
+               :page_options  => [link_to(icon_button('eye', ' View'), assembly_path(@assembly))] %>
 
 <%= page_info @assembly.ciAttributes.description %>
 
 <% if @profiles.blank? %>
-  <% new_button = {:display => icon('star-empty', 'New Environment'),
+  <% new_button = {:display => icon('star-o', 'New Environment'),
                    :link    => new_assembly_transition_environment_path(@assembly)} %>
 <% else %>
   <% new_button = capture do %>
     <div class="btn-group">
       <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" data-placement='left'>
-        <%= icon('star-empty', 'New Environment') %> <%= icon('caret-down') %>
+        <%= icon('star-o', 'New Environment') %> <%= icon('caret-down') %>
       </a>
       <ul class="dropdown-menu pull-right">
         <% @profiles.each do |p| %>

@@ -12,7 +12,7 @@
       <span class="topname"><%= team.name %></span><br/>
       <span class="topdesc">
         <%= status_marker(icon('user'), user_count, user_count > 0 ? 'label-info' : '') %>
-        <%= status_marker(icon('group'), group_count, group_count > 0 ? 'label-info' : '') %>
+        <%= status_marker(icon('users'), group_count, group_count > 0 ? 'label-info' : '') %>
       </span>
     <% end %>
     <% builder.middle team.description %>

@@ -2,8 +2,8 @@
    toolbar = {:list_name => 'assemblies',
               :sort_by   => [%w(Name ciName), %w(Created created), %w(Watching watch)],
               :filter_by => %w(ciName)}
-   menu = [{:id => 'watch',   :label => icon('eye-open', 'Watch',  'icon-fixed-width'),  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
-           {:id => 'unwatch', :label => icon('eye-close','Ignore', 'icon-fixed-width'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}] %>
+   menu = [{:id => 'watch',   :label => icon('eye', 'Watch',  'fa-fw'),  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
+           {:id => 'unwatch', :label => icon('eye-slash','Ignore', 'fa-fw'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}] %>
 <%= ci_list(@assemblies,
             :toolbar => toolbar,
             :menu => menu,
@@ -12,14 +12,14 @@
   <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" watch="#{watching ? 0 : 1}") %>
   <% builder.target link_to('', assembly_path(target), :remote => false) %>
   <% builder.status do %>
-    <%= marker(icon('eye-open', 'watching', 'icon-large'), 'label-inverse') if watching %>
+    <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
   	<%= status_marker('design', 'open', 'label-info') if target.release && target.release.releaseState == 'open' %>
   <% end %>
   <% builder.menu do |ci| %>
     <%= link_to(icon('edit', ' Edit'),   assembly_path(ci, :anchor => 'profile')) %>
     <% if manages_access? %>
-      <%= link_to(icon('copy',  ' Copy'),  new_clone_assembly_path(ci), :remote => true) %>
-      <%= link_to(icon('save',  ' Save to Catalog'), new_clone_assembly_path(ci, :export => 'catalog'), :remote => true) %>
+      <%= link_to(icon('files-o',  ' Copy'),  new_clone_assembly_path(ci), :remote => true) %>
+      <%= link_to(icon('floppy-o', ' Save to Catalog'), new_clone_assembly_path(ci, :export => 'catalog'), :remote => true) %>
     <% end %>
   <% end %>
   <% builder.icon :none %>

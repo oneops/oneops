@@ -15,21 +15,23 @@
   font-size: 16px;
 }
 
-.tx-editor-wrapper .tx-editor .tx-icon {
+.tx-editor-wrapper .tx-editor .tx-toolbar {
   position: absolute;
   right: -11px;
-  top: 4px;
+  top: 3px;
   cursor: pointer;
   z-index: 3;
   font-size: 12px;
 }
 
-.tx-editor-wrapper .tx-editor i {
-  border-color: gray;
+.tx-editor-wrapper .tx-editor .tx-toolbar a {
+  border: solid 1px gray;
   color: gray;
+  margin-left: 5px;
+  padding: 2px 0;
 }
 
-.tx-editor-wrapper .tx-editor .tx-icon i:hover {
+.tx-editor-wrapper .tx-editor .tx-toolbar a:hover {
   color: black;
   border-color: black;
 }

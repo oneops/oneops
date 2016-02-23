@@ -17,7 +17,7 @@
 
     <% builder.menu do %>
       <% if org.users.count > 1 %>
-        <%= link_to(icon('remove', 'Leave'), leave_account_organization_path(org), :method => :delete, :remote => true, :confirm => "Leave organization #{org.name}?") %>
+        <%= link_to(icon('times', 'Leave'), leave_account_organization_path(org), :method => :delete, :remote => true, :confirm => "Leave organization #{org.name}?") %>
       <% else %>
         <%= link_to(account_organization_path(org), :method => :delete, :remote => true, :confirm => "Permanently delete organization #{org.name}?") do %>
           <span class="text-error"><%= icon('trash', 'Delete') %></span>
@@ -29,7 +29,7 @@
 <%= section_panel 'New Organization', :width => 'single' do %>
   <span class="help-block">
     <p class="text-info">
-      <%= icon('info-sign') %>
+      <%= icon('info-circle') %>
       Before creating a new organization first consider joining an existing organization. You can search organizatons
       to view public profile and to request access.
     </p>

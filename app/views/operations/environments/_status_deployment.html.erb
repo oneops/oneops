@@ -22,7 +22,7 @@
   <% if has_transition %>
     <ul class="status-actions">
       <li>
-        <%= link_busy(button(icon('ok', 'Deploy'), nil, 'success'),
+        <%= link_busy(button(icon('check', 'Deploy'), nil, 'success'),
                       :url    => new_assembly_transition_environment_deployment_path(@assembly, @environment),
                       :method => :get,
                       :busy   => 'Retrieving deployment plan...') %>
@@ -36,7 +36,7 @@
     <div class="marker"><%= status_marker('deployment', 'generating', 'label-info') %></div>
     <div class="description">
       <ul>
-        <li><%= icon('info-sign', ' ', 'icon-fixed-width') %>You must wait till deployment plan is generated before deploying</li>
+        <li><%= icon('info-circle', ' ', 'fa-fw') %>You must wait till deployment plan is generated before deploying</li>
       </ul>
       <%= yield :deploy %>
     </div>
@@ -46,17 +46,17 @@
       <ul>
         <li><%= render 'base/shared/deployment_progress', :deployment => @deployment, :width => '440px' %></li>
         <li>
-          <%= icon('star', ' ', 'icon-fixed-width') %>Deployment <%= @deployment.deploymentId %> created
+          <%= icon('star', ' ', 'fa-fw') %>Deployment <%= @deployment.deploymentId %> created
           <strong><%= time_ago_in_words(@deployment.created_timestamp) %></strong>
         </li>
-        <li><%= icon('user', ' ', 'icon-fixed-width') %>Created by <strong><%= @deployment.createdBy %></strong></li>
+        <li><%= icon('user', ' ', 'fa-fw') %>Created by <strong><%= @deployment.createdBy %></strong></li>
         <% if @deployment.deploymentState == 'failed' %>
           <li>
-            <%= icon('warning-sign', ' ', 'icon-fixed-width') %>
+            <%= icon('exclamation-triangle', ' ', 'fa-fw') %>
             Deployment <strong>failed</strong>
             <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
           </li>
-          <li><%= icon('ok-circle',' ', 'icon-fixed-width') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
+          <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
           <% problems = @deployment.rfc_cis.inject(@deployment.description.present? ? [@deployment.description] : []) do |p, ci|
                p << ci.comments if ci.comments.present? && ci.dpmtRecordState == 'failed'
                p
@@ -92,8 +92,8 @@
     <div class="marker"><%= status_marker('deployment', 'pending', 'label-info') %></div>
     <div class="description">
       <ul>
-        <li><%= icon('warning-sign', ' ', 'icon-fixed-width') %>Environment needs a deployment</li>
-        <li><%= icon('ok-circle',' ', 'icon-fixed-width') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
+        <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
+        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
       </ul>
       <%= yield :deploy %>
     </div>
@@ -102,15 +102,15 @@
     <div class="description">
       <ul class="status-items">
         <li>
-          <%= icon('ok', ' ', 'icon-fixed-width') %>Last deployment <%= @deployment.deploymentId %> <%= @deployment.deploymentState %>
+          <%= icon('check', ' ', 'fa-fw') %>Last deployment <%= @deployment.deploymentId %> <%= @deployment.deploymentState %>
           <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
         </li>
-        <li><%= icon('user', ' ', 'icon-fixed-width') %>Deployed by <%= highlight(@deployment.createdBy) %></li>
+        <li><%= icon('user', ' ', 'fa-fw') %>Deployed by <%= highlight(@deployment.createdBy) %></li>
         <li>
-          <%= icon('time', ' ', 'icon-fixed-width') %>Duration of last deployment was
+          <%= icon('clock-o', ' ', 'fa-fw') %>Duration of last deployment was
           <strong><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</strong>
         </li>
-        <li><%= icon('ok-circle',' ', 'icon-fixed-width') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
+        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
       </ul>
       <%= yield :force_deploy %>
     </div>
@@ -119,7 +119,7 @@
     <div class="description">
       <% if @release && @release.releaseState == 'closed' %>
         <ul>
-          <li><%= icon('warning-sign', ' ', 'icon-fixed-width') %>Environment needs a deployment</li>
+          <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
         </ul>
       <% end %>
       <%= yield :force_deploy %>

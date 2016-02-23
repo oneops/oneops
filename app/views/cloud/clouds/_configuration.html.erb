@@ -6,9 +6,7 @@
                   :width    => 'single',
                   :position => 'right',
                   :menu     => has_cloud_services?(@cloud.ciId) ? [:display => icon('plus', 'Add'), :link => new_cloud_service_path(@cloud)] : nil do %>
-  <div id="cloud_services_list">
-    <i class="icon-spinner icon-spin"></i> Loading...
-  </div>
+  <div id="cloud_services_list"><%= loading_indicator %></div>
   <script type="text/javascript">
     <%= remote_function(:url => cloud_services_path(@cloud), :method => :get) %>
   </script>

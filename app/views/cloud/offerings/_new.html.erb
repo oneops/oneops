@@ -15,7 +15,7 @@
           <script type="text/javascript">
             $j("#offering_select").on("change", function () {
               if (this.value) {
-                $j("#new_offering_details").html('<i class="icon-spinner icon-spin"></i> Loading...');
+                $j("#new_offering_details").html('<%= escape_javascript(loading_indicator) %>');
                 $j.ajax({
                   url:  "<%= new_cloud_service_offering_path(@cloud, @service) %>",
                   data: {mgmtOfferingCiId: this.value}

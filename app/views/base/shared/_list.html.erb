@@ -44,7 +44,7 @@
       <% if pagination %>
         <div class="paginate-footer">
           <%= link_to_function("Load #{pagination[:size]} more", 'list_paginate(this, "add")', :class => 'btn load-next', :style => 'display:none') %>
-          <%= link_to_function(icon('spinner', 'Loading...', 'icon-spin'), '', :class => 'btn disabled loading', :style => 'display:none') %>
+          <%= link_to_function(icon('spinner', 'Loading...', 'fa-spin'), '', :class => 'btn disabled loading', :style => 'display:none') %>
         </div>
       <% end %>
     </div>
@@ -80,8 +80,8 @@
 
     window.toggle_select_item = function(source) {
       source = $j(source);
-      source.toggleClass('icon-check');
-      source.toggleClass('icon-check-empty');
+      source.toggleClass('fa-check-square-o');
+      source.toggleClass('fa-square-o');
       $j(source.parents('li')[0]).toggleClass(CURRENT_ITEM_CLASS);
       var list = $j($j(source).parents('.list')[0]);
       if (selected_items(list).length) {
@@ -95,14 +95,14 @@
     window.select_all_items = function(source) {
       var list = $j($j(source).parents('.list')[0]);
       list.find(".list-body > ul > li:visible").addClass(CURRENT_ITEM_CLASS);
-      list.find("li:visible i.select").addClass("icon-check").removeClass('icon-check-empty');
+      list.find("li:visible i.select").addClass("fa-check-square-o").removeClass('fa-square-o');
       enable_list_menu(list);
     };
 
     window.unselect_all_items = function(source) {
       var list = $j($j(source).parents('.list')[0]);
       list.find(".list-body > ul > li:visible").removeClass(CURRENT_ITEM_CLASS);
-      list.find("li:visible i.select").addClass("icon-check-empty").removeClass("icon-check");
+      list.find("li:visible i.select").addClass("fa-square-o").removeClass("fa-check-square-o");
       disable_list_menu(list);
     };
 
@@ -116,15 +116,15 @@
     };
 
     window.selected_items = function(list) {
-      return list.find(".list-body > ul > li:visible").has("i.select.icon-check");
+      return list.find(".list-body > ul > li:visible").has("i.select.fa-check-square-o");
     };
 
     window.toggle_compact = function(source) {
       var btn = $j(source);
       var i = btn.find("i");
-      var expanding = i.hasClass("icon-expand-alt");
+      var expanding = i.hasClass("fa-plus-square-o");
       i.find("span").html(expanding ? " Collapse" : " Expand");
-      i.toggleClass("icon-expand-alt icon-collapse-alt");
+      i.toggleClass("fa-plus-square-o fa-minus-square-o");
       var items = $j(btn.parents('.list')[0]).find(".list-body > ul > li:visible .middle");
       if (expanding) {
         items.show();
@@ -160,10 +160,10 @@
           size    = parseInt(listDiv.attr('data-paginate-size'));
 
       var refreshIcon = listDiv.find(".refresh i");
-      if (refreshIcon.hasClass("icon-spin")) {
+      if (refreshIcon.hasClass("fa-spin")) {
         return;
       }
-      refreshIcon.addClass("icon-spin");
+      refreshIcon.addClass("fa-spin");
 
       if (mode == 'refresh') {
         if (offset > 0) {
@@ -207,7 +207,7 @@
         error: function () {
           listDiv.find('.list-toolbar').show();
           listDiv.find('.list-toolbar').find('input, a').prop('disabled', false);
-          listDiv.find(".refresh i").removeClass("icon-spin");
+          listDiv.find(".refresh i").removeClass("fa-spin");
           listDiv.find('.paginate-footer .btn.loading').hide();
           // Maybe error is due to bad filter, try to reset it.
           if (get_list_filter(listDiv)['value']) {
@@ -231,7 +231,7 @@
       if (showing_size < total_count) {
         listDiv.find('.paginate-footer .btn.load-next').show();
       }
-      listDiv.find(".refresh i").removeClass("icon-spin");
+      listDiv.find(".refresh i").removeClass("fa-spin");
       var listItemId = getHashParam(listDiv.find('.list-body').attr('data-hash-param-name'));
       if (listItemId) {
         listDiv.find("#item_" + listItemId + ":not(.current) .target a").click();

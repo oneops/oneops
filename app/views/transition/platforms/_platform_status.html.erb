@@ -13,8 +13,8 @@
     </div>
     <div class="description">
       <ul class="status-items">
-        <li><%= icon('play') %>Platform is <%= highlight(active ? 'active' : 'inactive') %></li>
-        <li><%= icon('off') %>Platform is <%= highlight(enabled ? 'enabled' : 'disabled') %></li>
+        <li><%= icon('play') %> Platform is <%= highlight(active ? 'active' : 'inactive') %></li>
+        <li><%= icon('power-off') %> Platform is <%= highlight(enabled ? 'enabled' : 'disabled') %></li>
       </ul>
       <% if has_transition?(@assembly.ciId) %>
         <ul class="status-actions">
@@ -37,7 +37,7 @@
           <% end %>
           <% unless rfc_action == 'delete' %>
             <li>
-              <%= link_to enabled ? icon('off',' Disable') : icon('off',' Enable'),
+              <%= link_to enabled ? icon('toggle-off', 'Disable') : icon('toggle-off', 'Enable'),
                           toggle_assembly_transition_environment_platform_path(@assembly, @environment, @platform),
                           :remote => true,
                           :class  => "btn btn-#{enabled ? 'danger' : 'success'}" %>

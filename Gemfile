@@ -32,7 +32,9 @@ gem 'd3-rails', '~> 3.5'
 gem 'rickshaw-rails', '1.5.0'
 
 gem 'bootstrap-sass', '~> 2.2.2'
-gem 'font-awesome-rails', '~> 3.2.1'
+gem 'font-awesome-rails', '4.5.0.1'
+
+gem 'clipboard-rails', '1.5.8'
 
 gem 'swagger-docs', '0.1.9'
 gem 'swagger-ui_rails', '0.1.7'

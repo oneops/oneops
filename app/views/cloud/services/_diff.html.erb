@@ -1,5 +1,5 @@
 <% changes_only = params[:changes_only] != 'false'
-   menu = [link_busy(icon(changes_only ? 'check' : 'check-empty', 'changes only'),
+   menu = [link_busy(icon(changes_only ? 'check-square-o' : 'square-o', 'changes only'),
                                 :url          => diff_cloud_services_path(@cloud, :changes_only => !changes_only),
                                 :remote       => true,
                                 'data-toggle' => 'button',

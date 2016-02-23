@@ -36,7 +36,7 @@
     <% if Settings.check_policy_compliance %>
       <dt>Policy Compliance</dt>
       <dd class="ci-policy-check">
-        <i class="icon-spinner icon-spin"></i> Checking...
+        <%= loading_indicator('Checking...') %>
         <script>
           $j.ajax({
             url:  "<%= policy_violations_ci_path %>",

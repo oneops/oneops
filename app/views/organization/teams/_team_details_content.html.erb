@@ -20,7 +20,7 @@
                    :attribute_value => @team.manages_access,
                    :checked_value   => true,
                    :unchecked_value => false %>
-        <span class="help-block"><%= icon(site_icon(:manages_access), '', 'icon-large text-error') %>
+        <span class="help-block"><%= icon(site_icon(:manages_access), '', 'fa-lg text-error') %>
           When checked and this team is assigned to a cloud or an assembly it allows team members to manage other team
           assignments. Additionally, when checked it allows team members to create new clouds and assemblies.
         </span>
@@ -35,7 +35,7 @@
                    :attribute_value => @team.org_scope,
                    :checked_value   => true,
                    :unchecked_value => false %>
-        <span class="help-block"><%= icon(site_icon(:org_scope), '', 'icon-large text-error') %>
+        <span class="help-block"><%= icon(site_icon(:org_scope), '', 'fa-lg text-error') %>
           When checked this team will automatically have access to all assemblies and clouds in the organization
           (without the need to assign it explicitly and governed by the permissions specified below
         </span>

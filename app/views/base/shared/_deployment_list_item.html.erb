@@ -15,7 +15,7 @@
   <% menu = builder[:menu] %>
   <% if menu.present? %>
     <div class="menu">
-      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-vertical') %>&nbsp;</span></a>
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
       <ul class="dropdown-menu">
         <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
       </ul>

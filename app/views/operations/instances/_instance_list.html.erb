@@ -1,7 +1,7 @@
 <% menu = %w(good notify unhealthy overutilized underutilized).map do |state|
     selected_states = params[:instances_state]
     selected = selected_states == 'all' || selected_states.include?(state)
-    link_to_function(icon(selected ? 'check' : 'check-empty', state),
+    link_to_function(icon(selected ? 'check-square-o' : 'square-o', state),
                      'filter_instances_by_health(this)',
                      :class => "btn btn-mini #{'active' if selected}",
                      :instance_state => state)
@@ -62,9 +62,9 @@
       <%= status_marker('deployment', deployment_state, state_to_label(deployment_state), 'data-toggle' => deployment_comments.present? && 'popover', 'data-title' => 'Deployment Comments', 'data-trigger' => 'click', 'data-content' => deployment_comments, 'data-placement' => 'top') if deployment_state.present? %>
       <% if procedure %>
         <%= action = procedure.actions.find {|a| a.ciId == target.ciId}
-            content =  "#{icon('wrench', '', 'icon-fixed-width')} #{action.actionName}<br>"
-            content << "#{icon('user', '', 'icon-fixed-width')} #{procedure.createdBy}<br>"
-            content << "#{icon('time', '', 'icon-fixed-width')} #{time_ago_in_words(Time.at(action.updated/1000))}<hr>"
+            content =  "#{icon('wrench', '', 'fa-fw')} #{action.actionName}<br>"
+            content << "#{icon('user', '', 'fa-fw')} #{procedure.createdBy}<br>"
+            content << "#{icon('clock-o', '', 'fa-fw')} #{time_ago_in_words(Time.at(action.updated/1000))}<hr>"
             content << link_to('View', edit_operations_procedure_path(procedure), :remote => true, :class => 'btn btn-mini btn-info')
             status_marker('procedure', 'active', state_to_label('active'), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Active Procedure', 'data-trigger' => 'click', 'data-content' => content, 'data-placement' => 'top') %>
       <% end %>
@@ -152,7 +152,7 @@
   window.filter_instances_by_health = function(target) {
     var btn = $j(target);
     btn.toggleClass('active');
-    btn.find("i").toggleClass("icon-check icon-check-empty");
+    btn.find("i").toggleClass("fa-check-square-o fa-square-o");
 
     var states = btn.parents('.btn-group').find(".btn.active").toArray().map(function(b) {return b.getAttribute("instance_state")});
     $j.get("<%= url_for %>", {instances_state: states.join(",")});

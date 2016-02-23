@@ -14,14 +14,18 @@
         <div class="name">Interval</div>
         <%= hidden_field_tag(:interval, @interval || 'month') %>
         <% %w(month week day).each do |interval| %>
-          <a class="btn btn-small <%= 'active btn-primary' if @interval == interval %>"><%= interval %></a><br>
+          <a class="btn btn-small <%= 'active btn-primary' if @interval == interval %>">
+            <i class="fa <%= 'fa-check' if @interval == interval %>"></i>
+            <%= interval %>
+          </a>
+          <br>
         <% end %>
       </div>
       <div class="filter">
         <div class="name">Namespace</div>
         <div class="input-append">
           <%= text_field_tag(:ns_path, @ns_path) %>
-          <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('<%= organization_ns_path %>')"></i>
+          <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= organization_ns_path %>')"></i>
         </div>
       </div>
       <hr/>
@@ -103,14 +107,16 @@
       })
     </script>
   <% else %>
-    <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to retrieve cost data</strong></p>
+    <p class="text-error"><%= icon('exclamation-triangle') %> <strong>Failed to retrieve cost data</strong></p>
   <% end %>
 <% end %>
 <script>
   $j(".filter.interval .btn").click(function() {
     var button = $j(this);
     button.siblings('input').val(button.html());
+    button.parent().find("i.fa-check").removeClass("fa-check");
     button.siblings('.btn').removeClass("active btn-primary");
     button.addClass("active btn-primary");
+    button.find("i.fa").addClass('fa-check');
   });
 </script>

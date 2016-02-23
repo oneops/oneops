@@ -5,21 +5,21 @@
   <div class="description">
     <ul class="status-items">
       <li>
-        <%= icon('magnet',' ') %>Latest design release <%= @catalog.releaseId %>
+        <%= icon('magnet') %> Latest design release <%= @catalog.releaseId %>
         <% if @design_pull_releasse %>
           pulled <strong><%= time_ago_in_words(@design_pull_releasse.created_timestamp) %></strong>
         <% end %>
       </li>
-      <li><%= icon('user',' ') %>Design commit by <strong><%= @catalog.createdBy %></strong></li>
+      <li><%= icon('user') %> Design commit by <strong><%= @catalog.createdBy %></strong></li>
       <% if @catalog.description.present? %>
         <li><%= icon('comment') %><%= @catalog.description %></li>
       <% end %>
       <% if open_manifest_release %>
-        <li><%= icon('info-sign') %>Design pull is <b>disabled</b> until current release is committed</li>
+        <li><%= icon('info-circle') %>Design pull is <b>disabled</b> until current release is committed</li>
       <% end %>
       <% if design_pull_in_progress %>
         <li class="text-info">
-          <%= icon('info-sign') %>Design pull is already in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>.
+          <%= icon('info-circle') %>Design pull is already in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>.
           Design pull is <b>disabled</b>
         </li>
       <% end %>
@@ -44,21 +44,21 @@
   <div class="marker"><%= status_marker('design', 'pull', 'label-info') %></div>
   <div class="description">
     <ul class="status-items">
-      <li><%= icon('star-empty',' ') %>New design release <%= @catalog.releaseId %> available since <strong><%= time_ago_in_words(@catalog.updated_timestamp) %></strong></li>
-      <li><%= icon('user',' ') %>Design commit by <strong><%= @catalog.createdBy %></strong></li>
+      <li><%= icon('star-o') %> New design release <%= @catalog.releaseId %> available since <strong><%= time_ago_in_words(@catalog.updated_timestamp) %></strong></li>
+      <li><%= icon('user') %> Design commit by <strong><%= @catalog.createdBy %></strong></li>
       <% if @catalog.description.present? %>
         <li><%= icon('comment') %><%= @catalog.description %></li>
       <% end %>
       <% if open_manifest_release %>
-        <li><%= icon('info-sign') %>Design pull is <b>disabled</b> until current release is committed</li>
+        <li><%= icon('info-circle') %>Design pull is <b>disabled</b> until current release is committed</li>
       <% end %>
       <% if design_pull_in_progress %>
         <li class="text-info">
-          <%= icon('info-sign') %>Design pull is already in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>
+          <%= icon('info-circle') %>Design pull is already in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>
           Design pull is <b>disabled</b>
         </li>
       <% elsif @manifest %>
-        <li><%= icon('ok',' ') %>Last design pulled in this environment was <strong><%= @manifest.parentReleaseId || 'n/a' %></strong></li>
+        <li><%= icon('check') %> Last design pulled in this environment was <strong><%= @manifest.parentReleaseId || 'n/a' %></strong></li>
       <% end %>
     </ul>
     <% if has_transition?(@assembly.ciId) %>

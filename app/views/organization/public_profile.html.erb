@@ -19,7 +19,7 @@
   <%= section_panel 'Request Access', :width => 'single', :position => 'right' do %>
     <%= form_tag(organization_request_access_path(:org_name => @organization.name), :remote => true) do %>
       <span class="help-block">
-        <%= icon('info-sign') %>
+        <%= icon('info-circle') %>
         You can request access to this organization by sending email to organization administrator. You will be notififed by email
         once organization admin adds you to one of the teams in this organization.
       </span>

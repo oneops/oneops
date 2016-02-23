@@ -1,4 +1,4 @@
-<%= section_panel 'Notification Relays', :width => 'single', :menu => [{:display => icon('star-empty', 'New Relay'), :link => new_assembly_transition_environment_relay_path(@assembly, @environment), :remote => true}] do %>
+<%= section_panel 'Notification Relays', :width => 'single', :menu => [{:display => icon('star-o', 'New Relay'), :link => new_assembly_transition_environment_relay_path(@assembly, @environment), :remote => true}] do %>
   <%= ci_list(@relays, :new_link => link_to('New Relay...', new_assembly_transition_environment_relay_path(@assembly, @environment), :remote => true)) do |builder, target| %>
     <% enabled = target.ciAttributes.enabled == 'true'
        status = enabled ? 'enabled' : 'disabled' %>

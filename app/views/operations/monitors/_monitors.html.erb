@@ -23,7 +23,7 @@
                      'data-placement' => 'right') %>
         <% end %>
       <% end %>
-      <%= icon('heart') if target.ciAttributes.heartbeat == 'true' %>
+      <%= icon('heartbeat') if target.ciAttributes.heartbeat == 'true' %>
     <% end %>
     <% builder.top do %>
       <span class="topname"><%= target.ciAttributes.description.presence || target.ciName %> </span>

@@ -29,12 +29,12 @@
                  (resource.is_a?(Cms::Ci) ? :ci : (resource.is_a?(Cms::Relation) ? :relation : :resource)) => resource %>
       <% unless read_only %>
         <div id="<%= prefix %>_form_actions" class="form-actions" <%= "style=display:none" if block %>>
-        	<%= link_to(content_tag(:button, content_tag(:i, '', :class => 'icon-trash icon-white') + ' Delete', :class => "btn btn-danger secondary-action"),
+        	<%= link_to(content_tag(:button, icon('trash', 'Delete', 'fa-inverse'), :class => 'btn btn-danger secondary-action'),
                       destroy_url,
                       :confirm => 'Are you sure you want to proceed with delete?',
                       :method  => :delete,
                       :remote  => remote_x) unless new || !defined?(destroy_url) || destroy_url.blank? %>
-          <%= link_to_function(icon('remove', 'Cancel'), "cancel_#{prefix}()", :class => 'btn btn-danger') %>
+          <%= link_to_function(icon('times', 'Cancel'), "cancel_#{prefix}()", :class => 'btn') %>
           <%= f.submit 'Save', :disable_with => 'Wait...', :class => 'btn btn-success', :onclick => '$j(this).parents("form").trigger("beforeSave")' %>
         </div>
       <% end %>
@@ -78,9 +78,9 @@
     <% end %>
 
     <% unless read_only || new %>
-      var controls = "<%= escape_javascript(link_to_function(icon_button('edit','Edit','mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide')) %>" +
-                     "<%= escape_javascript(link_to_function(icon_button('remove','Cancel','mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : '')) %>&nbsp;" +
-                     "<%= escape_javascript(link_to_function(icon_button('ok','Save','mini'), "$j('##{prefix}_form input[type=submit]').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')) %>";
+      var controls = "<%= escape_javascript(link_to_function(icon_button('edit',  'Edit',   'mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide')) %>" +
+                     "<%= escape_javascript(link_to_function(icon_button('times', 'Cancel', 'mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : '')) %>&nbsp;" +
+                     "<%= escape_javascript(link_to_function(icon_button('check', 'Save',   'mini btn-success'), "$j('##{prefix}_form input[type=submit]').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')) %>";
       try {
         var section_menu = $('<%= prefix %>_div').up("div.section").down(".section-heading .menu");
       } catch (e) {

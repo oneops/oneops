@@ -8,7 +8,7 @@
           <%= current_user.organization.name %> <%= icon('caret-down') %>
         <% end %>
         <ul class="org_dropdown dropdown-menu">
-          <li style="text-align:center"><a><i class="icon-spinner icon-spin"></i></a></li>
+          <li style="text-align:center"><a><i class="fa-spinner fa-spin"></i></a></li>
         </ul>
       </div>
     </li>
@@ -29,7 +29,7 @@
   <% end %>
   <% chat_url = Settings.support_chat_url %>
   <li><%= link_to(icon('comments'), chat_url, :target => '_blank') if chat_url.present? %></li>
-  <li><%= link_to(icon('signout'), destroy_user_session_path) %></li>
+  <li><%= link_to(icon('sign-out'), destroy_user_session_path) %></li>
 </ul>
 
 <% if current_user.organization_id.present? && current_user.organization %>
@@ -39,7 +39,7 @@
       var icon = favoriteEl.find("i");
       if (icon) {
         var url, type, text;
-        if (icon.hasClass("icon-bookmark-empty")) {
+        if (icon.hasClass("fa-bookmark-o")) {
           url = "<%= favorites_path(:org_name => current_user.organization.name) %>";
           type = "POST";
           text = "Remove favorite";
@@ -53,7 +53,7 @@
                  type:    type,
                  data:    {ciId: id},
                  success: function () {
-                   icon.toggleClass("icon-bookmark icon-bookmark-empty");
+                   icon.toggleClass("fa-bookmark fa-bookmark-o");
                    favoriteEl.find(".text").html(text);
                  }
                 });

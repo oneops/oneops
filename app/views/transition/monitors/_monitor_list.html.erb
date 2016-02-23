@@ -2,7 +2,7 @@
    new_path = new_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component) %>
 <%= section_panel 'Monitors',
                   :width => 'single',
-                  :menu  => new_allowed && [link_to(icon('star-empty','New Monitor'), new_path, :remote => true, :class => 'btn btn-mini')] do %>
+                  :menu  => new_allowed && [link_to(icon('star-o','New Monitor'), new_path, :remote => true, :class => 'btn btn-mini')] do %>
   <%= ci_list(@monitors, :new_link => new_allowed && link_to('New Monitor...', new_path, :remote => true)) do |builder, target| %>
     <% edit_path = edit_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, target) %>
     <% builder.target link_to('', edit_path, :remote => true) %>
@@ -14,7 +14,7 @@
       <%= marker(status, state_to_label(status)) %>
       <%= marker('custom', 'label-info') if is_custom_monitor?(target) %>
       <%= status_marker('thresholds', ActiveSupport::JSON.decode(target.ciAttributes.thresholds).size, 'label-info') %>
-      <%= icon('heart') if target.ciAttributes.heartbeat == 'true' %>
+      <%= icon('heartbeat') if target.ciAttributes.heartbeat == 'true' %>
     <% end %>
 
     <% if has_transition?(@assembly.ciId) %>

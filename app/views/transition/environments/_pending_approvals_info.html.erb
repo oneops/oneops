@@ -1,5 +1,5 @@
 <li>
-  <%= icon('certificate', ' ', 'icon-fixed-width') %>
+  <%= icon('certificate', ' ', 'fa-fw') %>
   <div style="display:inline-table">
   <%= pluralize(@pending_approvals.size, 'approval') %> pending
     (<%= link_to(highlight('view'), assembly_transition_environment_path(@assembly, @environment, :anchor => "deployments/list_item/#{@deployment.deploymentId}")) %> full approval history)

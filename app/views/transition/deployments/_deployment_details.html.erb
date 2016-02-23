@@ -7,7 +7,7 @@
       <div class="description">
         <ul>
           <li>
-            <%= icon('info-sign') %> deployment <%= highlight(@deployment.deploymentId) %> for
+            <%= icon('info-circle') %> deployment <%= highlight(@deployment.deploymentId) %> for
             release <%= link_to(highlight(@manifest.releaseId), assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@manifest.releaseId}")) %> is
             in <%= highlight(@deployment.deploymentState, @deployment.deploymentState) %> state
           </li>
@@ -17,13 +17,13 @@
           </li>
           <% if @deployment.deploymentState == 'complete' %>
             <li>
-              <%= icon('time', ' ') %> duration was
+              <%= icon('clock-o') %> duration was
               <strong><%= time_duration_in_words((@deployment.updated_timestamp - @deployment.created_timestamp) * 1000) %></strong>
             </li>
           <% else %>
             <% if @deployment.updatedBy %>
               <li>
-                <%= icon('download-alt') %> <%= @deployment.deploymentState %>
+                <%= icon('arrow-circle-o-down') %> <%= @deployment.deploymentState %>
                 by <%= highlight(@deployment.updatedBy, 'info') %>
                 <%= highlight(time_ago_in_words(@deployment.updated_timestamp)) %>
               </li>
@@ -33,7 +33,7 @@
             <li><%= icon('comment') %> <%= @deployment.comments %></li>
           <% end %>
           <% if @deployment.ops.present? %>
-            <li><%= icon('warning-sign') %> <%= @deployment.ops %></li>
+            <li><%= icon('exclamation-triangle') %> <%= @deployment.ops %></li>
           <% end %>
         </ul>
       </div>

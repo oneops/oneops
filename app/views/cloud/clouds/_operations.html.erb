@@ -21,9 +21,7 @@
     <% end %>
   <% end %>
 <% end %>
-<div id="instances_section">
-  <i class="icon-spinner icon-spin"></i> Loading...
-</div>
+<div id="instances_section"><%= loading_indicator %></div>
 <script>
   <%= remote_function(:url => instances_cloud_path(@cloud, :instances_state => params[:instances_state] || 'unhealthy'), :method => :get) %>
 </script>

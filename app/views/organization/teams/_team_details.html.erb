@@ -12,16 +12,16 @@
 	<%= section_panel icon('user', 'User Members'),
                     :width    => 'double',
                     :position => 'right',
-                    :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'icon-fixed-width'), 'new_team_user_dialog()', :remote => true, :class => 'btn btn-mini')] : nil do %>
+                    :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'new_team_user_dialog()', :remote => true, :class => 'btn btn-mini')] : nil do %>
 		<div id="team_user_members">
 			<%= render('organization/team_members/user_list') %>
 		</div>
 	<% end %>
   <br>
-  <%= section_panel icon('group', 'Group Members'),
+  <%= section_panel icon('users', 'Group Members'),
                      :width    => 'double',
                      :position => 'right',
-                     :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'icon-fixed-width'), 'new_team_group_dialog()', :remote => true, :class => 'btn btn-mini')] : nil do %>
+                     :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'new_team_group_dialog()', :remote => true, :class => 'btn btn-mini')] : nil do %>
 		<div id="team_group_members">
 			<%= render('organization/team_members/group_list') %>
 		</div>

@@ -6,7 +6,7 @@
                :page_label    => @platform.ciName,
                :doc_link   => platform_doc_link(@platform, icon('book'), :anchor => 'design', :class => 'doc-link'),
                :page_options  => current_user.has_design?(@assembly.ciId) &&
-                                 [link_to(icon_button('copy', ' Copy'), new_clone_assembly_design_platform_path(@assembly, @platform), :remote => true),
+                                 [link_to(icon_button('files-o', ' Copy'), new_clone_assembly_design_platform_path(@assembly, @platform), :remote => true),
                                   link_to(icon_button('trash', ' Delete', 'danger'), assembly_design_platform_path(@assembly, @platform), :method => :delete, :data => {:confirm => 'Confirm delete?'})],
                :page_sublabel => "created by #{@platform.createdBy}" %>
 

@@ -92,7 +92,7 @@
     };
 
     window.rfc_list_fetch_log = function(rfcId) {
-      $j("#rfc_" + rfcId + "_tab_log").html('<i class="icon-spinner icon-spin"></i> Loading...');
+      $j("#rfc_" + rfcId + "_tab_log").html('<%= escape_javascript(loading_indicator) %>');
       <%= remote_function :url    => log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
                           :method => :get,
                           :with   => "'rfcId='+rfcId" %>

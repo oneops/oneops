@@ -7,7 +7,7 @@
     <% end %>
   </table>
 </div>
-<%= link_to_function(content_tag(:i, '', :class => 'icon-plus') + ' Add', 'new_metrics_struct_entry(this)', :class => 'btn btn-mini', :style => 'display:none') %>
+<%= link_to_function(icon('plus', 'Add'), 'new_metrics_struct_entry(this)', :class => 'btn btn-mini', :style => 'display:none') %>
 <script type="text/javascript">
   var new_metrics_struct_entry_html = "<%= escape_javascript(render('cms/cis/monitor/metric',
                                                                        :metric_name => '',
@@ -31,7 +31,7 @@
 
     window.toggle_metrics_struct_entry = function(source) {
       var metricDiv = $j(source);
-      metricDiv.find('.header i').toggleClass('icon-caret-down icon-caret-up');
+      metricDiv.find('.header i').toggleClass('fa-caret-down fa-caret-up');
       var body = metricDiv.find("div.body");
       var visible = body.is(":visible");
       body.toggle();

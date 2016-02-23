@@ -8,14 +8,12 @@
      url = notifications_organization_path
      ns_path = organization_ns_path
    end
-   menu = [link_to(icon('bar-chart icon-large'),
+   menu = [link_to(icon('bar-chart fa-lg'),
                    notification_reports_path(:ns_path => ns_path, :period => 'today'),
                    :class => 'btn btn-mini')]
    menu << link_to(icon('refresh'), url, :remote => true, :class => 'btn btn-mini') if Rails.env.shared? %>
 <%= section_panel 'Notifications', :width => 'double', :position => 'left', :menu => menu do %>
-  <div class="notifications-summary">
-    <i class="icon-spinner icon-spin"></i> Loading...
-  </div>
+  <div class="notifications-summary"><%= loading_indicator %></div>
   <script>
     <%= remote_function(:url => url, :method => :get) %>
   </script>

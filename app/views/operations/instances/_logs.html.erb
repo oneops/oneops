@@ -43,10 +43,10 @@
     <div id="tablefooter">
       <div id="tablenav">
         <div>
-          <i class="icon-fast-backward" onclick="sorter.move(-1, true)"/>
-          <i class="icon-backward" onclick="sorter.move(-1)"/>
-          <i class="icon-forward" onclick="sorter.move(1)"/>
-          <i class="icon-fast-forward" onclick="sorter.move(1, true)"/>
+          <i class="fa fa-fast-backward" onclick="sorter.move(-1, true)"/>
+          <i class="fa fa-backward" onclick="sorter.move(-1)"/>
+          <i class="fa fa-forward" onclick="sorter.move(1)"/>
+          <i class="fa fa-fast-forward" onclick="sorter.move(1, true)"/>
         </div>
         <div>
           <select id="pagedropdown"></select>
@@ -101,5 +101,5 @@
     });
   </script>
 <% else %>
-  <p class="text-error"><%= icon('warning-sign') %> <strong>Failed to check policy compliance</strong></p>
+  <p class="text-error"><%= icon('exclamation-triangle') %> <strong>Failed to check policy compliance</strong></p>
 <% end %>

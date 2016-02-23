@@ -19,8 +19,8 @@
 <% watched_map = current_user.watches.where(:ci_class_name => 'manifest.Environment').inject({}) {|m, a| m[a.ci_id] = true; m} %>
 <%= ci_list(@environments,
             :new_link => new_link,
-            :menu     => [{:id => 'watch',   :label => icon('eye-open',  'Watch',  'icon-fixed-width'), :url => watch_path, :method => :post, :param_name => 'ciIds'},
-                          {:id => 'unwatch', :label => icon('eye-close', 'Ignore', 'icon-fixed-width'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}],
+            :menu     => [{:id => 'watch',   :label => icon('eye',  'Watch',  'fa-fw'), :url => watch_path, :method => :post, :param_name => 'ciIds'},
+                          {:id => 'unwatch', :label => icon('eye-slash', 'Ignore', 'fa-fw'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}],
             :toolbar  => {:list_name => 'transition_environments',
                           :sort_by   => [%w(Name ciName), %w(Profile profile), %w(Created created), %w(Watching watch)],
                           :filter_by => %w(ciName profile)}) do |builder, target| %>
@@ -39,7 +39,7 @@
 		</span>
   <% end %>
   <% builder.middle do %>
-    <%= icon('cloud', nil, 'icon-large muted') %>
+    <%= icon('cloud', nil, 'fa-lg muted') %>
     &nbsp;&nbsp;&nbsp;primary: <strong><%= target.clouds.select {|r| r.relationAttributes.priority.to_i == 1}.map {|r| r.toCi.ciName}.sort.join(', ') %></strong>
     <% secondary_clouds = target.clouds.select {|r| r.relationAttributes.priority.to_i == 2}.map {|r| r.toCi.ciName}.sort %>
     <% if secondary_clouds.present? %>
@@ -74,7 +74,7 @@
     <% else %>
       <%= status_marker('deployment', 'pending', 'label-info') if target.bom_release %>
     <% end %>
-    <%= marker(icon('eye-open', 'watching', 'icon-large'), 'label-inverse') if watching %>
+    <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
 	 <%= icon('star') %>
 	 <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
   <% end %>

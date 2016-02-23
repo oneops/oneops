@@ -33,8 +33,8 @@
       </div>
       <div class="filter">
         <div class="name">Actions</div>
-        <%= link_to_function raw(icon('play', 'Evaluate')), '$j(this).parents("form").submit()', :class => 'btn btn-success' %>
-        <%= link_to_function(icon('save', 'Save as New Policy...'), 'save_query_as_policy(this)', :class => 'btn btn-primary', :style => 'margin-top:10px') %>
+        <%= link_to_function(icon('play', 'Evaluate'), '$j(this).parents("form").submit()', :class => 'btn btn-success') %>
+        <%= link_to_function(icon('floppy-o', 'Save as New Policy...'), 'save_query_as_policy(this)', :class => 'btn btn-primary', :style => 'margin-top:10px') %>
       </div>
     </div>
   <% end %>

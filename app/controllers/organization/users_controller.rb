@@ -84,16 +84,30 @@ class Organization::UsersController < ApplicationController
     org_team_ids = current_user.organization.teams.map(&:id)
     @user.team_ids = (@user.team_ids - org_team_ids + (params[:teams] || []).map(&:to_i))
 
+    check_reset_org
+
     index
   end
 
   def destroy
-    user = current_user.organization.users.find(params[:id])
-    if user
-      current_user.organization.teams.each { |team| team.users.delete(user) }
-      flash[:notice] = "Successfully removed user #{user.username} from '#{current_user.organization.name}'"
+    @user = current_user.organization.users.find(params[:id])
+    if @user
+      current_user.organization.teams.each { |team| team.users.delete(@user) }
+      flash[:notice] = "Successfully removed user #{@user.username} from '#{current_user.organization.name}'"
+
+      check_reset_org
     end
 
     index
+  end
+
+  private
+
+  def check_reset_org
+    org_id = current_user.organization_id
+    if @user.organization_id == org_id && @user.teams.where(:organization_id => org_id).count == 0
+      @user.organization = @user.organizations.first
+      @user.save
+    end
   end
 end

@@ -3,20 +3,20 @@
     <% watching = current_user.watches.where(:ci_id => ci.ciId).first %>
     <div class="btn-group">
       <% if watching %>
-        <%= link_to_function icon('eye-open', 'Watching'), "toggleCiWatch(false, #{ci.ciId})", :class => 'btn' %>
+        <%= link_to_function icon('eye', 'Watching'), "toggleCiWatch(false, #{ci.ciId})", :class => 'btn' %>
       <% else %>
-        <%= link_to_function icon('eye-close',  'Ignoring'),  "toggleCiWatch(true, #{ci.ciId})", :class => 'btn' %>
+        <%= link_to_function icon('eye-slash',  'Ignoring'),  "toggleCiWatch(true, #{ci.ciId})", :class => 'btn' %>
       <% end %>
       <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
         <span class="caret"></span>
       </a>
       <ul class="dropdown-menu">
         <% if watching %>
-          <li><%= link_to icon('eye-open',  'Watch'),  '#', :class => 'disabled' %></li>
-          <li><%= link_to_function icon('eye-close', 'Ignore'), "toggleCiWatch(false, #{ci.ciId})" %></li>
+          <li><%= link_to icon('eye',  'Watch'),  '#', :class => 'disabled' %></li>
+          <li><%= link_to_function icon('eye-slash', 'Ignore'), "toggleCiWatch(false, #{ci.ciId})" %></li>
         <% else %>
-          <li><%= link_to_function icon('eye-open',  'Watch'),  "toggleCiWatch(true, #{ci.ciId})" %></li>
-          <li><%= link_to icon('eye-close', 'Ignore'), '#', :class => 'disabled' %></li>
+          <li><%= link_to_function icon('eye',  'Watch'),  "toggleCiWatch(true, #{ci.ciId})" %></li>
+          <li><%= link_to icon('eye-slash', 'Ignore'), '#', :class => 'disabled' %></li>
         <% end %>
       </ul>
     </div>

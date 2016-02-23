@@ -24,6 +24,7 @@
 //= require jquery.textareafullscreen
 //= require diff_match_patch
 //= require jquery.pretty-text-diff
+//= require clipboard
 
 var LOCAL_STORAGE_KEY_PREFIX = "oneops_display_";
 
@@ -101,7 +102,7 @@ window.disable_edit = function(container_id) {
   $$("#" + container_id + " input[type=checkbox]").each(function(input) {input.disabled = true});
   $$("#" + container_id + " select").each(function(input) {input.disabled = true});
   $$("#" + container_id + " img").each(function(img) {img.style.cursor = 'default'});
-  $$("#" + container_id + " .controls div:not(.alert):not(.radio) a:not(.btn-check-box):not(.lock):not(.tx-icon):not([rel=tooltip])").each(function(a) {a.hide();});
+  $$("#" + container_id + " .controls div:not(.alert):not(.radio) a:not(.btn-check-box):not(.lock):not(.tx-btn):not([rel=tooltip])").each(function(a) {a.hide();});
   $$("#" + container_id + " .controls div.radio .btn").each(function(a) {a.addClassName('disabled');});
   $$("#" + container_id + " .controls .check-box").each(function(a) {a.addClassName('disabled');});
   $$("#" + container_id + " .instructions").each(function(a) {a.hide();});
@@ -362,4 +363,31 @@ function setHashParam(name, newValue) {
   else if (!oldValue && newValue) {
     location.hash = location.hash + prefix + newValue;
   }
+}
+
+function copyToClipboard(trigger, target) {
+  $j(trigger).one("click",
+                  function (e) {
+                    new Clipboard(this, {target: target})
+                      .on('success', function (e) {
+                            e.clearSelection();
+                            $j(e.trigger).tooltip({title: "Copied to<br>clipboard!", html: true, placement: "bottom"})
+                              .tooltip("show")
+                              .on("mouseout", function (e) {
+                                    $j(this).tooltip("destroy")
+                                  });
+                          })
+                      .on('error', function (e) {
+                            $j(e.trigger).tooltip({
+                              title:     "Press<br>⌘-C / Ctrl-C<br>to copy",
+                              html:      true,
+                              placement: "bottom"
+                            })
+                              .tooltip("show")
+                              .on("mouseout", function (e) {
+                                    $j(this).tooltip("destroy")
+                                  });
+                          })
+                      .onClick(e);
+                  });
 }

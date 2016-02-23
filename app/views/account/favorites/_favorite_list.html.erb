@@ -18,7 +18,7 @@
       <% end %>
       <% item_builder.middle link_to(item.ns_path, path_to_ns(item.ns_path)) %>
       <% item_builder.menu do %>
-        <%= link_to(icon('trash', 'Remove', 'icon-fixed-width'), favorite_path(:org_name => org_name, :id => item.ci_id, :index => true), :method => :delete, :remote => true) %>
+        <%= link_to(icon('trash', 'Remove', 'fa-fw'), favorite_path(:org_name => org_name, :id => item.ci_id, :index => true), :method => :delete, :remote => true) %>
       <% end %>
     <% end %>
   <% end %>

@@ -30,7 +30,7 @@
       <% elsif item[:html] %>
         <%= item[:html] %>
       <% elsif item[:url] %>
-        <i class="icon-spinner icon-spin"></i> Loading...
+        <%= loading_indicator %>
       <% end %>
     </div>
   <% end %>

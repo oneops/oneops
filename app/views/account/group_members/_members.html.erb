@@ -22,7 +22,7 @@
       <%= link_to(member.admin? ? icon('level-down', 'Revoke admin') : icon('level-up', 'Grant admin'), account_group_member_path(@group, member.user.id),
                   :method => :put,
                   :remote => true) %>
-      <%= link_to(icon('remove', 'Remove'), account_group_member_path(@group, member.user.id),
+      <%= link_to(icon('times', 'Remove'), account_group_member_path(@group, member.user.id),
                   :method  => :delete,
                   :remote  => true,
                   :confirm => "Remove user '#{member.user.username}' from group '#{@group.name}'?") %>

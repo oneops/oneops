@@ -39,7 +39,7 @@
       </tr>
     <% end %>
   </table>
-  <%= link_to_function(content_tag(:i, '', :class => 'icon-plus') + ' Add', "new_thresholds_struct_entry($(this).up('div.monitor_thresholds'))", :class => 'btn btn-mini', :style => 'display:none') %>
+  <%= link_to_function(icon('plus', 'Add'), "new_thresholds_struct_entry($(this).up('div.monitor_thresholds'))", :class => 'btn btn-mini', :style => 'display:none') %>
 </div>
 <script type="text/javascript">
   var threshold_buckets = JSON.parse("<%= raw(escape_javascript(Hash[buckets.to_a.map(&:reverse)].to_json)) %>");
@@ -65,7 +65,7 @@
     };
 
     window.toggle_thresholds_struct_entry = function(threshold_div) {
-      $j(threshold_div).find('.header i').toggleClass('icon-caret-down icon-caret-up');
+      $j(threshold_div).find('.header i').toggleClass('fa-caret-down fa-caret-up');
       var body = $(threshold_div).down("div.body");
       body.toggle();
       if (body.visible()) {

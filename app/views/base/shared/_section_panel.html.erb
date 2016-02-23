@@ -1,3 +1,4 @@
+<% hide_content_x = defined?(hide_content) %>
 <div <%= "id=#{id}" if defined?(id) == 'local-variable' && id.present? %> class="section rounded <%= width %> <%= position %>">
   <% if title.present? || menu.present? %>
     <div class="section-heading rounded-top">
@@ -14,10 +15,13 @@
             <% end %>
           </div>
         <% end %>
+        <%= link_to_function(icon(hide_content_x ? 'caret-down' : 'caret-up'),
+                             '$j(this).find("i").toggleClass("fa-caret-up fa-caret-down").parents(".section").find(".section-content").toggle(500)',
+                             :class => 'content-toggle') if defined?(collapseable_content) && collapseable_content %>
       </div>
     </div>
   <% end %>
-  <div class="section-content <%= width %> <%= 'hide' if defined?(hide_content) %>">
+  <div class="section-content <%= width %> <%= 'hide' if hide_content_x %>">
     <%= body %>
   </div>
 </div>

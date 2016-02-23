@@ -19,7 +19,7 @@
         </div>
         <div class="modal-body" style="text-align: center">
           <div class="message" style="margin-bottom: 20px"></div>
-          <i class="icon-refresh icon-2x icon-spin"></i>
+          <i class="fa fa-refresh fa-2x fa-spin"></i>
         </div>
       </div>
 
@@ -66,7 +66,7 @@
         <div class="top-nav" data-spy="affix" data-offset="0">
           <div id="header" class="<%= 'hide' if show_sidebar %>">
             <div class="sidebar-toggle">
-              <%= link_to_function(icon('reorder'), 'toggleSidebar()') %>
+              <%= link_to_function(icon('bars'), 'toggleSidebar()') %>
             </div>
             <%= render 'layouts/brand' %>
             <div id="ajax"><%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %></div>
@@ -101,8 +101,8 @@
                 </div>
                 <div class="controls">
                   <%= link_to_function(icon('tint'), 'toggleSidebarTheme()') %>
-                  <%= link_to_function(icon('pushpin', '', show_sidebar ? '' : 'icon-rotate-270'), 'toggleSidebarPin()') %>
-                  <%= link_to_function(icon('remove'), 'toggleSidebar()') %>
+                  <%= link_to_function(icon('thumb-tack', '', show_sidebar ? '' : 'fa-rotate-270'), 'toggleSidebarPin()') %>
+                  <%= link_to_function(icon('times'), 'toggleSidebar()') %>
                 </div>
               </div>
               <div class="profile">
@@ -126,10 +126,10 @@
                       <%= raw("#{icon('sitemap', current_org ? current_org.name : content_tag(:em, 'organizations', :class => 'muted'))} #{icon('caret-right', '', 'pull-right')}") %>
                     <% end %>
                     <ul class="org_dropdown dropdown-menu">
-                      <li style="text-align:center"><a><i class="icon-spinner icon-spin"></i></a></li>
+                      <li style="text-align:center"><a><i class="fa-spinner fa-spin"></i></a></li>
                     </ul>
                   </li>
-                  <li><%= link_to(icon('signout', 'Signout'), destroy_user_session_path) %></li>
+                  <li><%= link_to(icon('sign-out', 'Signout'), destroy_user_session_path) %></li>
                 </ul>
               </div>
               <div class="main">
@@ -220,15 +220,15 @@
     };
 
     window.toggleSidebarPin = function() {
-      var pinIcon = $j('.sidebar').find(".controls .icon-pushpin");
-      var pin = pinIcon.hasClass("icon-rotate-270");
+      var pinIcon = $j('.sidebar').find(".controls .fa-thumb-tack");
+      var pin = pinIcon.hasClass("fa-rotate-270");
       if (pin) {
         localStorage.setItem(local_storage_key_sidebar_pin, 'true');
-        pinIcon.removeClass("icon-rotate-270");
+        pinIcon.removeClass("fa-rotate-270");
       }
       else {
         localStorage.setItem(local_storage_key_sidebar_pin, '');
-        pinIcon.addClass("icon-rotate-270");
+        pinIcon.addClass("fa-rotate-270");
       }
       $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar: pin}}});
     };

@@ -9,7 +9,7 @@
     <% option_value = o[:value]
        selected = option_value == attribute_value %>
     <a class="btn <%= btn_class if defined?(btn_class) %> <%= 'active' if selected %>" data-radio-value="<%= option_value %>">
-      <i class="icon-fixed-width <%= selected ? 'icon-check' : 'icon-check-empty' %>"></i> <%= o[:label] %>
+      <i class="fa fa-fw <%= selected ? 'fa-check-square-o' : 'fa-square-o' %>"></i> <%= o[:label] %>
     </a>
   <% end %>
 </div>
@@ -20,14 +20,14 @@
       var parent = btn.parents('.radio');
       var oldActiveBtn = parent.find(".btn");
       oldActiveBtn.removeClass('active');
-      var oldActiveIcon = oldActiveBtn.find("i.icon-check");
-      oldActiveIcon.removeClass('icon-check');
-      oldActiveIcon.addClass('icon-check-empty');
+      var oldActiveIcon = oldActiveBtn.find("i.fa-check-square-o");
+      oldActiveIcon.removeClass('fa-check-square-o');
+      oldActiveIcon.addClass('fa-square-o');
 
       btn.addClass('active');
-      var nowActiveIcon = btn.find("i.icon-check-empty");
-      nowActiveIcon.removeClass('icon-check-empty');
-      nowActiveIcon.addClass('icon-check');
+      var nowActiveIcon = btn.find("fa-square-o");
+      nowActiveIcon.removeClass('fa-square-o');
+      nowActiveIcon.addClass('fa-check-square-o');
 
       var input = parent.find("input[type=hidden]");
       input.val(btn.attr('data-radio-value')).trigger("change");

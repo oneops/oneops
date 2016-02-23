@@ -15,7 +15,7 @@
           </div>
           <script type="text/javascript">
             $j("#compliance_class_select").on("change", function () {
-              $j("#new_compliance_details").html('<i class="icon-spinner icon-spin"></i> Loading...');
+              $j("#new_compliance_details").html('<%= escape_javascript(loading_indicator) %>');
               $j.ajax({url: "<%= new_cloud_compliance_path(@cloud) %>", data: {compliance_class: this.value}});
             });
           </script>

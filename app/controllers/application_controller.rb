@@ -122,7 +122,7 @@ class ApplicationController < ActionController::Base
 
       if query.present? || class_name.present?
         begin
-          search_params                        = {:nsPath => "#{ns_path}/*", :size => max_size}
+          search_params                        = {:nsPath => "#{ns_path}#{'/' unless ns_path.last == '/'}*", :size => max_size}
           search_params[:query]                = {:query => query, :fields => %w(ciAttributes.* ciClassName ciName)} if query.present?
           # search_params[:query]                = query if query.present?
           search_params['ciClassName.keyword'] = class_name if class_name.present?
@@ -539,11 +539,6 @@ class ApplicationController < ActionController::Base
 
   def check_organization
     if user_signed_in?
-      if current_user.organization_id.blank?
-        redirect_to account_profile_path
-        return
-      end
-
       org_name = params[:org_name]
       if org_name.present? && !(current_user.organization && current_user.organization.name == org_name)
         org = current_user.organizations.where('organizations.name' => org_name).first

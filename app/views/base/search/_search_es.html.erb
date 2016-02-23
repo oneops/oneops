@@ -7,14 +7,14 @@
       <% else %>
         <div class="filter">
           <textarea class="query"><%= params[:query] %></textarea>
-          <i class="icon-remove-circle icon-large" onclick="$j(this).siblings('textarea').val('')"></i>
+          <i class="fa fa-times-circle-o fa-lg" onclick="$j(this).siblings('textarea').val('')"></i>
         </div>
       <% end %>
 
       <div class="filter">
         <div class="name">
           <%= link_to_function(raw("Filters #{icon('caret-down')}"),
-                               '$j(this).parents(".filter").find(".sub-filter").toggle();$j(this).find("i").toggleClass("icon-caret-down").toggleClass("icon-caret-up")') %>
+                               '$j(this).parents(".filter").find(".sub-filter").toggle();$j(this).find("i").toggleClass("fa-caret-down").toggleClass("fa-caret-up")') %>
         </div>
         <% if defined?(ns_path) %>
           <input type="hidden" class="nspath" value="<%= ns_path %>">
@@ -23,7 +23,7 @@
             <div class="name">Namespace</div>
             <div class="input-append">
               <input type="text" class="nspath" value="<%= params[:nspath] || search_ns_path %>" pattern="<%= search_ns_path.gsub('/', '\/') %>(\/|\w|-)*">
-              <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
+              <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
             </div>
           </div>
         <% end %>
@@ -35,7 +35,7 @@
             <div class="name">Class</div>
             <div class="input-prepend">
               <input type="text" class="class-name" value="<%= params[:class_name] %>">
-              <i class="icon-remove-circle icon-large add-on" onclick="$j(this).siblings('input').val('')"></i>
+              <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('')"></i>
             </div>
           </div>
         <% end %>
@@ -45,7 +45,7 @@
         <div class="filter quick">
           <div class="name">
             <%= link_to_function(raw("Quick Search #{icon('caret-down')}"),
-                                 '$j(this).parents(".filter").find(".btn").toggle();$j(this).find("i").toggleClass("icon-caret-down").toggleClass("icon-caret-up")') %>
+                                 '$j(this).parents(".filter").find(".btn").toggle();$j(this).find("i").toggleClass("fa-caret-down").toggleClass("fa-caret-up")') %>
           </div>
           <% quick_filters.keys.sort.each do |q| %>
             <a class="btn btn-small btn-<%= quick_filters[q][:run] ? 'success' : 'info' %>" style="display:none"><%= q %></a>

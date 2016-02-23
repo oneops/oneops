@@ -151,7 +151,7 @@ class Account::OrganizationsController < ApplicationController
       end
       return true
     else
-      @organization.errors.add(:base, 'Can not orphan existing organization.')
+      @organization.errors.add(:base, 'Can not orphan existing organization - you are the only admin for this organization.')
       return false
     end
   end

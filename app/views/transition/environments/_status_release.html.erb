@@ -2,24 +2,24 @@
   <% case @release.releaseState %>
   <% when 'open' %>
     <% compiling = @environment.ciState == 'locked'
-       deploying = @deployment && %w(active paused failed pending).index(@deployment.deploymentState)
+       deploying = @deployment && !%w(complete canceled).index(@deployment.deploymentState)
        comments = @environment.comments %>
     <div class="marker"><%= status_marker('release', 'open', state_to_label(@release.releaseState)) %></div>
     <div class="description">
       <ul class="status-items">
-        <li><%= icon('star', ' ', 'icon-fixed-width') %>Environment release <%= @release.releaseId %> created
+        <li><%= icon('star', ' ', 'fa-fw') %>Environment release <%= @release.releaseId %> created
           <strong><%= time_ago_in_words(@release.created_timestamp) %></strong></li>
-        <li><%= icon('user', ' ', 'icon-fixed-width') %>Created by <strong><%= @release.createdBy %></strong></li>
-        <li><%= icon('th-list', ' ', 'icon-fixed-width') %>Release
+        <li><%= icon('user', ' ', 'fa-fw') %>Created by <strong><%= @release.createdBy %></strong></li>
+        <li><%= icon('th-list', ' ', 'fa-fw') %>Release
           contains <%= count_marker(@release.rfc_cis.size.to_s) %> change(s)
         </li>
         <% if @deployment && %w(active failed).index(@deployment.deploymentState) %>
-          <li><%= icon('ban-circle', ' ', 'icon-fixed-width') %><%= highlight('Commit') %> is disabled due
+          <li><%= icon('ban', ' ', 'fa-fw') %><%= highlight('Commit') %> is disabled due
             to <%= highlight(@deployment.deploymentState) %> deployment
           </li>
         <% end %>
         <% if @deployment && ['failed'].index(@deployment.deploymentState) %>
-          <li><%= icon('ban-circle', ' ', 'icon-fixed-width') %>Please <strong>cancel</strong> the failed deployment in
+          <li><%= icon('ban', ' ', 'fa-fw') %>Please <strong>cancel</strong> the failed deployment in
             order to proceed
             with the commit
           </li>
@@ -73,12 +73,12 @@
     <div class="marker"><%= status_marker('release', @release.releaseState, @release.releaseState == 'canceled' ? 'label-important' : '') %></div>
     <div class="description">
       <ul>
-        <li><%= icon('download-alt', ' ', 'icon-fixed-width') %>Last environment
+        <li><%= icon('arrow-circle-o-down', ' ', 'fa-fw') %>Last environment
           release <%= @release.releaseId %> <%= "#{state}" %>
           <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong></li>
-        <li><%= icon('user', ' ', 'icon-fixed-width') %>Commit by <strong><%= @release.commitedBy %></strong></li>
+        <li><%= icon('user', ' ', 'fa-fw') %>Commit by <strong><%= @release.commitedBy %></strong></li>
         <li><%= icon('comment') %> <%= @release.description %></li>
-        <li><%= icon('th-list', ' ', 'icon-fixed-width') %><%= link_to(highlight('View', 'info'), '#releases') %>
+        <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#releases') %>
           history of environment releases
         </li>
       </ul>

@@ -1,7 +1,7 @@
 <div class="alert alert-danger">
   <% problems.each_with_index do |problem, i| %>
     <% if problem.size > 200 %>
-      <%= problem[0..200] %> <%= link_to_function(icon('ellipsis-horizontal'), '$j(this).siblings("p").toggle(300)', :class => 'btn btn-mini') %>
+      <%= problem[0..200] %> <%= link_to_function(icon('ellipsis-h'), '$j(this).siblings("p").toggle(300)', :class => 'btn btn-mini') %>
       <p class="hide">...<%= problem[201..-1] %></p>
     <% else %>
       <%= problem %>
