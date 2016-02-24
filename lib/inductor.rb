@@ -247,10 +247,8 @@ class Inductor < Thor
           if sudo_opt.size >0
             cmd += "'"
           end
-          puts "options verbose: #{options[:verbose]}"
           run("#{cmd} >/dev/null 2>&1 &", :verbose => options[:verbose])
-          #run("#{cmd} >/dev/null 2>&1 &", :verbose => true)
-          say_status('start',long_cloud)
+          say_status('start',long_cloud + " consumer")
         end
 
         start_logstash_agent_by_cloud(long_cloud)
@@ -258,8 +256,8 @@ class Inductor < Thor
 
     def stop_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("ps -ef | grep inductor |grep java |grep #{File.expand_path(long_cloud)} |grep -v grep |awk '{print \"sudo kill\", $2}' |sh", :verbose => true)
-      say_status('stop',long_cloud)
+      run("ps -ef | grep inductor |grep java |grep #{File.expand_path(long_cloud)} |grep -v grep |awk '{print \"sudo kill\", $2}' |sh", :verbose => options[:verbose])
+      say_status('stop',long_cloud + " consumer")
 
       stopping=true
       cmd = "pgrep -f \"#{long_path}.*inductor-\""
@@ -292,7 +290,7 @@ class Inductor < Thor
     def force_stop_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
       run("ps -ef | grep inductor | grep #{File.expand_path(long_cloud)} | grep -v grep | awk '{print \"sudo kill -9\", $2}' |sh", :verbose => false)
-      say_status('force stop',long_cloud)
+      say_status('force stop',long_cloud + " consumer")
       stop_logstash_agent_by_cloud(long_cloud)
     end
 
@@ -327,7 +325,8 @@ class Inductor < Thor
 
    def stop_logstash_agent_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("ps -ef |grep logstash-forwarder |grep #{long_path} |grep -v grep |awk '{print \"sudo kill -9\", $2}' |sh", :verbose => true)
+      cmd = "ps -ef |grep logstash-forwarder |grep #{long_path} |grep -v grep |awk '{print \"sudo kill -9\", $2}' |sh"
+      run(cmd, :verbose => options[:verbose])
       say_status('stop',"logstash agent " +long_path)
    end
 
