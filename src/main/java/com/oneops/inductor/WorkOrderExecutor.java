@@ -639,6 +639,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 					}else {
 						String comments = getCommentsFromResult(result);
 						logger.error(logKey + comments);
+						wo.setComments(comments);
 					}
 
 					removeRemoteWorkOrder(wo, keyFile, procR);
