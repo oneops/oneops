@@ -34,3 +34,4 @@ debug_mode = <%= @debug %>
 max_consumers = <%= @max_consumers %>
 local_max_consumers = <%= @local_max_consumers %>
 env_vars = <%= @env_vars %>
+tunnel_metrics = <%= @tunnel_metrics %>

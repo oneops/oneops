@@ -17,9 +17,9 @@ class Inductor < Thor
     empty_directory "#{options[:path]}/log"
     empty_directory "#{options[:path]}/shared"
     directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/shared"
-    system("chmod +x #{options[:path]}/shared/*.rb")
+    system("sudo chmod +x #{options[:path]}/shared/*.rb")
+    system("sudo chmod +x #{Inductor.logstash_forwarder}")
 
-    #copy_file File.expand_path('../target/inductor-1.0.1.jar',File.dirname(__FILE__)), "#{path}/lib"
     if options[:bundle]
       inside(File.expand_path(options[:path])) do
 
@@ -59,9 +59,11 @@ class Inductor < Thor
   end
 
   desc "add", "Add cloud to the inductor"
+  method_option :run_as_user, :type => :string, :default => 'ooadmin' 
   method_option :mqhost, :type => :string, :default => 'localhost'
   method_option :mqport, :type => :numeric, :default => 61617
   method_option :daq_enabled, :type => :string, :default => 'false'
+  method_option :tunnel_metrics, :type => :string, :default => 'off'  
   method_option :collector_domain, :type => :string, :default => 'collector.oneops.com'
   method_option :perf_collector_cert, :type => :string, :default => ''
   method_option :dns, :type => :string, :default => 'off'
@@ -82,6 +84,10 @@ class Inductor < Thor
 
   def add
     @inductor = File.expand_path(Dir.pwd)
+
+    @run_as_user = ask("Run as user (if empty defaults to ooadmin)?")
+    @run_as_user = options[:run_as_user] if @run_as_user.empty?
+    
     @mqhost = ask("What message queue host (if empty defaults to localhost)?")
     @mqhost = options[:mqhost] if @mqhost.empty?
 
@@ -95,8 +101,11 @@ class Inductor < Thor
     @daq_enabled = options[:daq_enabled] if @daq_enabled.empty?
 
     @collector_domain = ''
+    @tunnel_metrics = ''
     if @daq_enabled == 'true'
       @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
+      @tunnel_metrics = ask("Tunnel metrics thru ssh tunnel (defaults to off)?")
+      @tunnel_metrics = options[:tunnel_metrics] if @tunnel_metrics.empty?
       @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
     end
     @collector_domain = options[:collector_domain] if @collector_domain.empty?
@@ -143,7 +152,9 @@ class Inductor < Thor
     empty_directory "#{@home}/backup"
     empty_directory "#{@home}/data"
     empty_directory "#{@home}/retry"
-    
+    `sudo bash -c 'echo "#{@run_as_user}" > #{@home}/conf/run_as_user'`
+    `sudo chown -R #{@run_as_user} #{@home} /tmp/chef-*`
+        
     # enable cloud
     inside("clouds-available") do
       if File.symlink?("../clouds-enabled/#{dot_name}")
@@ -153,7 +164,7 @@ class Inductor < Thor
         say_status('enable',"clouds-enabled/#{dot_name}")
       end
     end
-
+    
     say_status :success, "Next Step: inductor start ; inductor tail"
 
   end
@@ -196,26 +207,6 @@ class Inductor < Thor
 
   no_commands do
 
-   def agent_status_by_cloud(long_cloud,say_things=true)
-      ec = 0
-      long_path = File.expand_path(long_cloud)
-      inductor_agent = "#{long_path}/bin/inductor_agent.sh"
-      log_dir = "#{long_path}/log"
-      system("chmod +x #{inductor_agent}")
-      cmd = "#{inductor_agent} status #{log_dir}"
-      puts "cmd: #{cmd}" if options[:verbose]
-      status_result = `#{cmd}`
-      status = "log agent ok"
-      color = :green
-      if status_result.to_s =~ /not/
-        ec = 1
-        status = "log agent down"
-        color = :red
-      end
-      say_status(status, "#{long_cloud} "+status_result.to_s, color) if say_things
-      return ec
-    end
-
     def status_by_cloud(long_cloud)
       ec = 0
       long_path = File.expand_path(long_cloud)
@@ -233,21 +224,6 @@ class Inductor < Thor
       return ec
     end
 
-
-   def start_agent_by_cloud(long_cloud)
-        long_path = File.expand_path(long_cloud)
-
-        agent_running = agent_status_by_cloud(long_cloud,false)
-        if agent_running < 1
-          say_status("start","#{long_cloud} log agent already running")
-        else
-          inductor_agent = "#{long_path}/bin/inductor_agent.sh"
-          system("chmod +x #{inductor_agent}")
-          run("#{inductor_agent} start #{long_path}/log >/dev/null 2>&1 &", :verbose => false)
-          say_status("start", "log agent")
-        end
-    end
-
     def start_by_cloud(long_cloud)
         long_path = File.expand_path(long_cloud)
         cmd = "pgrep -f \"#{long_path}.*inductor-\""
@@ -261,18 +237,28 @@ class Inductor < Thor
             additional_args =`cat #{long_path}/conf/vmargs`.chomp
             args += additional_args
           end
-          run("java #{args} -jar #{Inductor.jar} >/dev/null 2>&1 &", :verbose => false)
+          current_user=`whoami`.chomp
+          run_as_user=`cat #{long_path}/conf/run_as_user`.chomp
+          sudo_opt = ""
+          if run_as_user != current_user
+            sudo_opt = "sudo -u #{run_as_user} bash -i -c '"
+          end
+          cmd = "#{sudo_opt} java #{args} -jar #{Inductor.jar}"
+          if sudo_opt.size >0
+            cmd += "'"
+          end
+          puts "options verbose: #{options[:verbose]}"
+          run("#{cmd} >/dev/null 2>&1 &", :verbose => options[:verbose])
+          #run("#{cmd} >/dev/null 2>&1 &", :verbose => true)
           say_status('start',long_cloud)
         end
 
-        start_agent_by_cloud(long_cloud)
         start_logstash_agent_by_cloud(long_cloud)
-
     end
 
     def stop_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("ps -ef | grep inductor | grep #{File.expand_path(long_cloud)} | grep -v grep | awk '{print \"kill\", $2}' |sh", :verbose => false)
+      run("ps -ef | grep inductor |grep java |grep #{File.expand_path(long_cloud)} |grep -v grep |awk '{print \"sudo kill\", $2}' |sh", :verbose => true)
       say_status('stop',long_cloud)
 
       stopping=true
@@ -299,32 +285,15 @@ class Inductor < Thor
         force_stop_by_cloud(long_cloud)
       end
 
-      stop_agent_by_cloud(long_cloud)
       stop_logstash_agent_by_cloud(long_cloud)
     end
 
 
     def force_stop_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("ps -ef | grep inductor | grep #{File.expand_path(long_cloud)} | grep -v grep | awk '{print \"kill -9\", $2}' |sh", :verbose => false)
+      run("ps -ef | grep inductor | grep #{File.expand_path(long_cloud)} | grep -v grep | awk '{print \"sudo kill -9\", $2}' |sh", :verbose => false)
       say_status('force stop',long_cloud)
-
-      stop_agent_by_cloud(long_cloud)
       stop_logstash_agent_by_cloud(long_cloud)
-    end
-
-
-
-    def stop_agent_by_cloud(long_cloud)
-      long_path = File.expand_path(long_cloud)
-      log_dir = "#{long_path}/log"
-      inductor_agent = " #{long_path}/bin/inductor_agent.sh"
-      say_status("stop",`#{inductor_agent} stop #{log_dir}`)
-    end
-
-    def restart_agent_by_cloud(long_cloud)
-      stop_agent_by_cloud(long_cloud)
-      start_agent_by_cloud(long_cloud)
     end
 
     def restart_by_cloud(cloud)
@@ -336,21 +305,29 @@ class Inductor < Thor
       long_path = File.expand_path(long_cloud)
       conf_file = "#{long_path}/logstash-forwarder/conf/logstash-forwarder.conf"
       log_file  = "#{long_path}/logstash-forwarder/log/output.log"
-      system("chmod 755 #{log_file}")
+      system("sudo chmod 666 #{log_file}")
       cmd = "pgrep -lf logstash-forwarder|grep #{File.expand_path(long_cloud)}|grep -v grep|wc -l"
       status_result =`#{cmd}`
       if status_result.to_i > 0
         say_status("start","#{long_cloud} logstash_agent already running",:green)
       else
-        system("chmod +x #{Inductor.logstash_forwarder}")
-        run("nohup #{Inductor.logstash_forwarder} -config=#{conf_file} >#{log_file} 2>&1 &", :verbose => false)
+        current_user=`whoami`.chomp
+        run_as_user=`cat #{long_path}/conf/run_as_user`.chomp
+        sudo_opt = ""
+        if run_as_user != current_user
+          sudo_opt = "sudo -u #{run_as_user} "
+        end
+        cmd = "exec nohup #{sudo_opt} #{Inductor.logstash_forwarder} -config=#{conf_file} >#{log_file} 2>&1 &"
+        inside(long_path) do
+          run("#{cmd}", :verbose => options[:verbose])
+        end
         say_status("start", "#{long_cloud} logstash agent",:green)
       end
    end
 
    def stop_logstash_agent_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("pgrep -lf logstash-forwarder|grep #{long_path}|grep -v grep|awk '{print $1}'|xargs kill -9", :verbose => false)
+      run("ps -ef |grep logstash-forwarder |grep #{long_path} |grep -v grep |awk '{print \"sudo kill -9\", $2}' |sh", :verbose => true)
       say_status('stop',"logstash agent " +long_path)
    end
 
@@ -378,19 +355,11 @@ class Inductor < Thor
 
 
   desc "start NAME", "Inductor start"
+  method_option :verbose, :aliases => "-v", :default => false
   def start (pattern='*')
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         start_by_cloud(long_cloud)
-      end
-    end
-  end
-
-  desc "start_agent NAME", "Inductor log agent start"
-  def start_agent(pattern='*')
-    inside("clouds-enabled") do
-      Dir.glob(pattern).each do |long_cloud|
-        start_agent_by_cloud(long_cloud)
       end
     end
   end
@@ -405,6 +374,7 @@ class Inductor < Thor
   end
 
   desc "stop NAME", "Inductor stop (will finish processing active threads)"
+  method_option :verbose, :aliases => "-v", :default => false
   def stop (pattern='*')
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
@@ -418,15 +388,6 @@ class Inductor < Thor
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         force_stop_by_cloud(long_cloud)
-      end
-    end
-  end
-
-  desc "stop_agent NAME", "Inductor log agent stop"
-  def stop_agent (pattern='*')
-    inside("clouds-enabled") do
-      Dir.glob(pattern).each do |long_cloud|
-        stop_agent_by_cloud(long_cloud)
       end
     end
   end
@@ -445,13 +406,6 @@ class Inductor < Thor
     pattern = "*" if pattern.nil?
     invoke :stop, pattern
     invoke :start, pattern
-  end
-
-  desc "restart_agent NAME", "Inductor restart"
-  def restart_agent(pattern='*')
-    pattern = "*" if pattern.nil?
-    invoke :stop_agent, pattern
-    invoke :start_agent, pattern
   end
 
   desc "restart_logstash_agent NAME", "Inductor logstash agent restart"
@@ -474,18 +428,6 @@ class Inductor < Thor
     system(cmd)
   end
 
-  desc "status_agent", "Inductor log flume agent status"
-  method_option :verbose, :aliases => "-v", :default => nil
-  def status_agent
-    ec = 0
-    inside("clouds-enabled") do
-      Dir.glob("*").each do |long_cloud|
-        ec = agent_status_by_cloud(long_cloud)
-      end
-    end
-    exit ec
-  end
-
   desc "status_logstash_agent NAME", "Inductor logstash agent status"
   def status_logstash_agent (pattern='*')
     inside("clouds-enabled") do
@@ -496,7 +438,7 @@ class Inductor < Thor
   end
 
   desc "status", "Inductor status"
-  method_option :verbose, :aliases => "-v", :default => nil
+  method_option :verbose, :aliases => "-v", :default => false
   def status
     ec = 0
     inside("clouds-enabled") do
@@ -523,16 +465,16 @@ class Inductor < Thor
     exit ec
   end
 
-  desc "check_agent", "Inductor check agent"
+  desc "check_agent", "Inductor check logstash forwarder"
   method_option :verbose, :aliases => "-v", :default => nil
   def check_agent
 
     ec = 0
     inside("clouds-enabled") do
       Dir.glob("*").each do |long_cloud|
-        ec = agent_status_by_cloud(long_cloud)
+        ec = status_logstash_agent_by_cloud(long_cloud)
         if ec != 0
-          restart_agent_by_cloud(long_cloud)
+          restart_logstash_agent_by_cloud(long_cloud)
         end
       end
     end
@@ -565,3 +507,4 @@ class Inductor < Thor
 end
 
 Inductor.start
+
