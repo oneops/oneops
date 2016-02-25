@@ -59,7 +59,6 @@ when /rackspace/
     :rackspace_api_key => cloud[:password],
     :rackspace_username => cloud[:username],
     :rackspace_region => cloud[:region]
-
   })
 
   network_provider = Fog::Rackspace::NetworkV2.new({
