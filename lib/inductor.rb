@@ -12,7 +12,7 @@ class Inductor < Thor
   method_option :force, :default => true
   def create
 
-    if !File.exists("inductor/user")
+    if !File.exists?("inductor/user")
       current_user=`whoami`.chomp
       `mkdir -p inductor`
       File.write("inductor/user",current_user)
