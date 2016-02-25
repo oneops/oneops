@@ -5,7 +5,6 @@ require 'json'
 
 class Inductor < Thor
   include Thor::Actions
-    
 
   desc "create", "Creates and configures a new inductor"
   method_option :path, :default => File.expand_path('inductor', Dir.pwd)
@@ -13,14 +12,13 @@ class Inductor < Thor
   method_option :force, :default => true
   def create
 
-    
     if !File.exists("inductor/user")
       current_user=`whoami`.chomp
       `mkdir -p inductor`
       File.write("inductor/user",current_user)
+    else
+      validate_user      
     end
-    
-    validate_user
         
     directory File.expand_path('templates/inductor',File.dirname(__FILE__)), options[:path]
     empty_directory "#{options[:path]}/clouds-available"
@@ -68,7 +66,6 @@ class Inductor < Thor
   end
 
   desc "add", "Add cloud to the inductor"
-  method_option :run_as_user, :type => :string, :default => 'ooadmin' 
   method_option :mqhost, :type => :string, :default => 'localhost'
   method_option :mqport, :type => :numeric, :default => 61617
   method_option :daq_enabled, :type => :string, :default => 'false'
