@@ -22,7 +22,8 @@ class Operations::PlatformsController < Base::PlatformsController
         @requires = Cms::DjRelation.all(:params => {:ciId         => @platform.ciId,
                                                     :direction    => 'from',
                                                     :includeToCi  => true,
-                                                    :relationName => 'manifest.Requires'})
+                                                    :relationName => 'manifest.Requires',
+                                                    :attrProps    => 'owner'})
 
         state_info = Operations::Sensor.component_states(@requires.map(&:toCiId))
         @requires.each { |r| r.toCi.health = state_info[r.toCiId.to_s] }

@@ -1,4 +1,3 @@
-<% %>
 <%= ci_list(@components,
             :menu    => has_transition?(@assembly.ciId) && [{:id => 'touch', :label => 'Touch', :url => touch_assembly_transition_environment_platform_components_path(@assembly, @environment, @platform), :method => :post, :param_name => 'componentCiIds'}],
             :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created)],
@@ -12,37 +11,7 @@
   <% end %>
   <% if target.ciAttributes.attributes.present? %>
     <% builder.middle do %>
-      <% locked_attrs = target.ciAttrProps.attributes[:owner]
-         attrs = target.meta.attributes[:mdAttributes].inject([]) { |a, attr| a << attr if (locked_attrs && locked_attrs.attributes[attr.attributeName] == 'manifest') || attr.options[:important]; a } %>
-      <% if attrs.present? %>
-        <dl>
-          <% attrs.sort_by { |a| "#{a.options.has_key?(:category) ? a.options[:category] : '~'}|#{a.options.has_key?(:order) ? a.options[:order] : 999}" }.each do |a| %>
-            <% name = a.attributeName
-               value = target.ciAttributes.attributes[name] %>
-            <dt title="<%= a.description %>"><%= icon(locked_attrs && locked_attrs.attributes[name] == 'manifest' ? 'lock' : 'unlock') %> <%= a.description %></dt>
-            <dd>
-              <% if a.dataType == 'hash' %>
-                <% parsed = value.present? && JSON.parse(value) %>
-                <% if parsed.present? %>
-                  <table>
-                    <% parsed.each_pair do |k, v| %>
-                      <tr>
-                        <td title="<%= k %>"><%= k %>:</td>
-                        <td>&nbsp;</td>
-                        <td title="<%= v %>"><%= v %></td>
-                      </tr>
-                    <% end %>
-                  </table>
-                <% else %>
-                  &nbsp;
-                <% end %>
-              <% else %>
-                <%= truncate(value, 256).presence || raw('&nbsp;') %>
-              <% end %>
-            </dd>
-          <% end %>
-        </dl>
-      <% end %>
+      <%= render 'cms/cis/important', :ci => target %>
     <% end %>
   <% end %>
   <% builder.bottom :none %>

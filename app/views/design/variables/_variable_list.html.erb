@@ -1,18 +1,28 @@
+<% has_design = has_design?(@assembly.ciId)
+   menu = [{:id => 'lock',   :label => icon('lock', 'Lock', 'fa-fw'),     :url => lock_assembly_design_variables_path(@assembly), :method => :put, :param_name => 'ciIds'},
+           {:id => 'unlock', :label => icon('unlock', 'Unlock', 'fa-fw'), :url => unlock_assembly_design_variables_path(@assembly), :method => :put, :param_name => 'ciIds'}] %>
 <%= section_panel 'Variables',
                   :width => 'single',
-                  :menu  => [link_to(icon('star-o', 'New Variable'), new_assembly_design_variable_path(@assembly), :remote => true, :class => 'btn btn-mini')] do %>
-  <%= ci_list(@variables, :new_link => link_to('New Variable...', new_assembly_design_variable_path(@assembly), :remote => true)) do |builder, target| %>
+                  :menu  => has_design && [link_to(icon('plus', 'Add'), new_assembly_design_variable_path(@assembly), :remote => true, :class => 'btn btn-mini')] do %>
+  <%= ci_list(@variables,
+              :new_link => link_to(icon('plus', 'Add Variable...'), new_assembly_design_variable_path(@assembly), :remote => true),
+      :menu => menu) do |builder, target| %>
     <% builder.target link_to('', edit_assembly_design_variable_path(@assembly, target), :remote => true) %>
 	 <% builder.icon :none %>
-    <% builder.middle target.ciAttributes.attributes['secure'] == 'true' ? icon('key', '*******') : target.ciAttributes.value  %>
-    <% if has_design?(@assembly.ciId) %>
-      <% builder.menu do |ci| %>
-        <%= link_to(icon('trash',' Delete'), assembly_design_variable_path(@assembly, ci),      :remote => true, :method => :delete, :confirm => "Delete variable '#{ci.ciName}'?") %>
+    <% builder.middle do %>
+      <% if target.ciAttributes.attributes['secure'] == 'true' %>
+        <%= icon('lock') if target.ciAttrProps.owner.attributes['encrypted_value'] == 'design' %>
+        <%= icon('key', '*******') %>
+      <% else %>
+        <%= icon('lock') if target.ciAttrProps.owner.attributes['value'] == 'design' %>
+        <%= target.ciAttributes.value %>
       <% end %>
     <% end %>
-
+    <% if has_design %>
+      <% builder.menu do |ci| %>
+        <%= link_to(icon('trash',' Delete'), assembly_design_variable_path(@assembly, ci), :remote => true, :method => :delete, :confirm => "Delete variable '#{ci.ciName}'?") %>
+      <% end %>
+    <% end %>
   <% end %>
 <% end %>
-<%= section_panel 'Variable Details', :id => 'variable_details', :width => 'double', :position => 'right' do %>
-  Please select a variable from the list to view/edit it or create a new variable.
-<% end %>
+<div id="variable_details"></div>

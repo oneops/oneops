@@ -20,7 +20,9 @@ class Design::PlatformsController < Base::PlatformsController
   end
 
   def new
-    @platform = Cms::DjCi.build(:nsPath => assembly_ns_path(@assembly), :ciClassName => 'catalog.Platform')
+    @platform = Cms::DjCi.build({:nsPath      => assembly_ns_path(@assembly),
+                                 :ciClassName => 'catalog.Platform'},
+                                {:owner => {}})
 
     respond_to do |format|
       format.html do
@@ -36,7 +38,8 @@ class Design::PlatformsController < Base::PlatformsController
     platform_hash = params[:cms_dj_ci].merge(:nsPath => assembly_ns_path(@assembly), :ciClassName => 'catalog.Platform')
     platform_hash[:ciAttributes][:major_version] = 1
     platform_hash[:ciAttributes][:description] ||= ''
-    @platform = Transistor.create_platform(@assembly.ciId, Cms::Ci.build(platform_hash))
+    attr_props = platform_hash.delete(:ciAttrProps)
+    @platform = Transistor.create_platform(@assembly.ciId, Cms::DjCi.build(platform_hash, attr_props))
     ok = @platform.errors.empty?
 
     save_platform_links if ok
@@ -210,8 +213,7 @@ class Design::PlatformsController < Base::PlatformsController
     @assembly = locate_assembly(params[:assembly_id])
     platform_id = params[:id]
     if platform_id.present?
-      @platform = Cms::DjCi.locate(platform_id, assembly_ns_path(@assembly), 'catalog.Platform')
-      raise ActiveResource::ResourceNotFound.new('Platform not found') if @platform && @platform.ciClassName != 'catalog.Platform'
+      @platform = Cms::DjCi.locate(platform_id, assembly_ns_path(@assembly), 'catalog.Platform', :attrProps => 'owner')
     end
   end
 

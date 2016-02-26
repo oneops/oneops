@@ -1,9 +1,10 @@
 class Design::ComponentsController < Base::ComponentsController
   def new
     find_template
-    @component = Cms::DjCi.build(:nsPath      => design_platform_ns_path(@assembly, @platform),
-                                 :ciClassName => component_class_name(),
-                                 :ciName      => @template_name)
+    @component = Cms::DjCi.build({:nsPath      => design_platform_ns_path(@assembly, @platform),
+                                  :ciClassName => component_class_name(),
+                                  :ciName      => @template_name},
+                                 {:owner => {}})
 
     if @template
       ci_attributes = @component.ciAttributes.attributes
@@ -26,8 +27,11 @@ class Design::ComponentsController < Base::ComponentsController
 
   def create
     find_template
+
     ns_path    = design_platform_ns_path(@assembly, @platform)
-    @component = Cms::DjCi.build(params[:cms_dj_ci].merge(:nsPath => ns_path, :ciClassName => component_class_name))
+    attrs      = params[:cms_dj_ci].merge(:nsPath => ns_path, :ciClassName => component_class_name)
+    attr_props = attrs.delete(:ciAttrProps)
+    @component = Cms::DjCi.build(attrs, attr_props)
     relation   = Cms::DjRelation.build(:relationName => 'base.Requires',
                                        :nsPath       => ns_path,
                                        :fromCiId     => @platform.ciId,
@@ -121,7 +125,7 @@ class Design::ComponentsController < Base::ComponentsController
   end
 
   def find_component
-    @component = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform))
+    @component = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform), nil, :attrProps => 'owner')
     if @component.is_a?(Array)
       class_name = params[:class_name]
       @component = @component.find { |c| c.ciClassName.ends_with?(class_name) } if class_name.present?

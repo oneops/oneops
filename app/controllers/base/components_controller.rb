@@ -35,9 +35,11 @@ class Base::ComponentsController < ApplicationController
 
         build_linkable_component_sibling_map(@component)
 
-        @attachments = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
-                                                       :direction         => 'from',
-                                                       :relationShortName => 'EscortedBy'}).map(&:toCi).sort_by { |r| r.ciName }
+        if in_transition?
+          @attachments = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+                                                         :direction         => 'from',
+                                                         :relationShortName => 'EscortedBy'}).map(&:toCi).sort_by { |r| r.ciName }
+        end
         render :action => :edit
       end
 
@@ -60,8 +62,8 @@ class Base::ComponentsController < ApplicationController
         find_params = {:ciId              => @component.ciId,
                        :direction         => 'from',
                        :relationShortName => 'DependsOn',
-                       :includeToCi       => true}
-        find_params[:attrProps] = 'owner' if in_transition?
+                       :includeToCi       => true,
+                       :attrProps         => 'owner'}
         @depends_on_relations = Cms::DjRelation.all(:params => find_params)
         depends_on.each_pair do |to_id, dor_hash|
           relation = @depends_on_relations.detect {|r| r.toCiId == to_id.to_i || r.toCi.ciName == to_id}
@@ -92,7 +94,7 @@ class Base::ComponentsController < ApplicationController
   def update_services
     requires_relation
     @requires.relationAttributes.services = params[:services].select(&:present?).join(',')
-    @requires.relationAttrProps.owner.services = params[:owner] if in_transition?
+    @requires.relationAttrProps.owner.services = params[:owner]
     ok = execute(@requires, :save)
 
     respond_to do |format|
@@ -121,11 +123,10 @@ class Base::ComponentsController < ApplicationController
   end
 
   def requires_relation
-    find_params = {:ciId              => @component.ciId,
-                   :direction         => 'to',
-                   :relationShortName => 'Requires'}
-    find_params[:attrProps] = 'owner' if in_transition?
-    @requires = Cms::DjRelation.first(:params => find_params)
+    @requires = Cms::DjRelation.first(:params => {:ciId              => @component.ciId,
+                                                  :direction         => 'to',
+                                                  :relationShortName => 'Requires',
+                                                  :attrProps         => 'owner'})
   end
 
   def find_template
@@ -140,8 +141,7 @@ class Base::ComponentsController < ApplicationController
     find_params = {:ciId              => platform_template.ciId,
                    :direction         => 'from',
                    :relationShortName => 'Requires'}
-    find_params[:attrProps] = 'owner' if in_transition?
-    requires = Cms::DjRelation.all(:params => find_params).detect { |r| r.toCi.ciName == @template_name }
+    requires = Cms::Relation.all(:params => find_params).detect { |r| r.toCi.ciName == @template_name }
     unless requires
       @template = nil
       return
@@ -161,15 +161,12 @@ class Base::ComponentsController < ApplicationController
   end
 
   def find_component_siblings
-    return @component_siblings if @component_siblings
-
-    find_params = {:ciId              => @platform.ciId,
-                   :relationShortName => 'Requires',
-                   :direction         => 'from',
-                   :targetClassName   => @component.ciClassName,
-                   :attr              => "template:eq:#{@template_name}"}
-    find_params[:attrProps] = 'owner' if in_transition?
-    @component_siblings = Cms::DjRelation.all(:params => find_params)
+    @component_siblings ||= Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                            :relationShortName => 'Requires',
+                                                            :direction         => 'from',
+                                                            :targetClassName   => @component.ciClassName,
+                                                            :attr              => "template:eq:#{@template_name}",
+                                                            :attrProps         => 'owner'})
   end
 
   def find_sibling_depends_relations(components)

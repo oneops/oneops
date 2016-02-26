@@ -7,9 +7,9 @@ class Cms::DjCi < Cms::RfcCi
     Cms::DjRelation.all( :params => { :ciId => self.id }.merge(options) )
   end
 
-  def self.build(attributes = {})
-    ci = super
-    ci.ciAttrProps = Cms::AttrMap.new
+  def self.build(attributes = {}, attr_props = {})
+    ci = super(attributes)
+    ci.ciAttrProps = Cms::AttrMap.new(attr_props)
     ci
   end
 

@@ -1,0 +1,8 @@
+<%= section_panel 'Variable Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             :resource    => @variable,
+             :content     => 'cms/cis/ci',
+             :cancel_url  => assembly_design_variables_path(@assembly),
+             :form_url    => @variable.new_record? ? assembly_design_variables_path(@assembly) : assembly_design_variable_path(@assembly, @variable),
+             :destroy_url => @variable.persisted? ? assembly_design_variable_path(@assembly, @variable) : nil) %>
+<% end %>

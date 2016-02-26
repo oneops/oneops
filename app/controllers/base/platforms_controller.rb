@@ -17,7 +17,8 @@ class Base::PlatformsController < ApplicationController
         components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                      :direction         => 'from',
                                                      :relationShortName => 'Requires',
-                                                     :includeToCi       => true})
+                                                     :includeToCi       => true,
+                                                     :attrProps         => 'owner'})
         components.each do |c|
           group_id = "#{c.relationAttributes.template}_#{@platform.ciId}"
           group_map[group_id][:items] << c.toCi

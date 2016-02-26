@@ -35,6 +35,11 @@
           <% end %>
         <% end %>
       <% end %>
+      <% if ci.ciAttributes.attributes.present? %>
+        <% item_builder.middle do %>
+          <%= render 'cms/cis/important', :ci => ci %>
+        <% end %>
+      <% end %>
       <% if has_design %>
         <% item_builder.menu do |target| %>
           <%= link_to icon('trash', ' Delete'),

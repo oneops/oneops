@@ -3,7 +3,7 @@
    component_services = rel_attrs.respond_to?(:services) && rel_attrs.services ? rel_attrs.services.split(',').map(&:strip) : template_services %>
 <div class="ciAttributes">
   <div class="pull-right input-prepend">
-    <%= render 'cms/cis/sticky', :name => 'owner', :value => @requires.relationAttrProps.owner.attributes['services'] if @environment %>
+    <%= render 'cms/cis/sticky', :name => 'owner', :value => @requires.relationAttrProps.owner.attributes['services'] %>
   </div>
   <ul class="unstyled">
     <% services = template_services.inject({}) do |m, s|
