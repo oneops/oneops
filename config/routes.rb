@@ -225,7 +225,10 @@ Display::Application.routes.draw do
       end
 
       namespace :design do
-        resources :variables
+        resources :variables do
+          put 'lock',   :on => :collection
+          put 'unlock', :on => :collection
+        end
 
         resources :platforms do
           get  'new_clone',       :on => :member
@@ -234,7 +237,10 @@ Display::Application.routes.draw do
           get  'component_types', :on => :member
           get  'diff',            :on => :member
 
-          resources :variables, :controller => 'local_variables'
+          resources :variables, :controller => 'local_variables' do
+            put 'lock',   :on => :collection
+            put 'unlock', :on => :collection
+          end
 
           resources :components do
             get 'history', :on => :member

@@ -10,9 +10,9 @@ class Design::AttachmentsController < Base::AttachmentsController
   end
 
   def new
-    @attachment = Cms::DjCi.build(:ciClassName  => 'catalog.Attachment',
-                                  :nsPath       => @component.nsPath,
-                                  :ciName       => 'New_Attachment_Name')
+    @attachment = Cms::DjCi.build({:ciClassName => 'catalog.Attachment',
+                                   :nsPath      => @component.nsPath},
+                                  {:owner => {}})
     respond_to do |format|
       format.js   { render :action => :edit }
       format.json { render_json_ci_response(@attachment.present?, @attachment) }
@@ -20,7 +20,9 @@ class Design::AttachmentsController < Base::AttachmentsController
   end
 
   def create
-    @attachment = Cms::DjCi.build(params[:cms_dj_ci].merge(:nsPath => @component.nsPath, :ciClassName => 'catalog.Attachment'))
+    attrs       = params[:cms_dj_ci].merge(:nsPath => @component.nsPath, :ciClassName => 'catalog.Attachment')
+    attr_props  = attrs.delete(:ciAttrProps)
+    @attachment = Cms::DjCi.build(attrs, attr_props)
     relation    = Cms::DjRelation.build(:nsPath       => @component.nsPath,
                                         :relationName => 'catalog.EscortedBy',
                                         :fromCiId     => @component.ciId,
@@ -53,7 +55,7 @@ class Design::AttachmentsController < Base::AttachmentsController
   end
 
   def find_attachment
-    @attachment = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform), 'catalog.Attachment')
+    @attachment = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform), 'catalog.Attachment', :attrProps => 'owner')
     unless @component
       @component = Cms::DjRelation.first(:params => {:ciId              => @attachment.ciId,
                                                      :direction         => 'to',

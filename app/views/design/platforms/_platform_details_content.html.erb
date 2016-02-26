@@ -1,19 +1,17 @@
 <%= render 'cms/cis/properties', :ci => @platform, :f => f, :read_only => @platform.persisted? %>
 <div class="ciAttributes">
+  <% new_record = @platform.new_record?
+     fields = [:description]
+     fields << :major_version unless new_record %>
+  <%= render 'cms/cis/attributes', :ci => @platform, :f => f, :only => fields %>
+
   <%= f.fields_for :ciAttributes, @platform.ciAttributes do |c| %>
-    <% attributes_meta = @platform.meta.attributes[:mdAttributes] %>
-
-    <div class="control-group">
-      <% a = attributes_meta.detect { |m| m.attributeName == 'description' } %>
-      <%= c.label :description, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
-      <div class="controls"><%= c.text_field :description, :class => 'input-xlarge' %></div>
-    </div>
-
-    <% if @platform.new_record? %>
+    <% if new_record %>
       <%= c.hidden_field :major_version %>
 
-      <% pack_sources, pack_versions, packs = packs_info
-        first_source = pack_sources.sort.first %>
+      <% attributes_meta = @platform.meta.attributes[:mdAttributes]
+         pack_sources, pack_versions, packs = packs_info
+         first_source = pack_sources.sort.first %>
       <div class="control-group">
         <% a = attributes_meta.detect { |m| m.attributeName == 'source' } %>
         <%= c.label :source, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
@@ -53,14 +51,6 @@
           $("version_select").update(version_select_options[$("source_select").value][this.value]);
         });
       </script>
-    <% else %>
-      <% a = attributes_meta.detect { |m| m.attributeName == 'major_version' } %>
-      <% if a %>
-        <div class="control-group">
-          <%= c.label :major_version, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
-          <div class="controls"><%= c.number_field :major_version, :class => 'span1', :required => a.isMandatory, :pattern => a.options[:pattern] %></div>
-        </div>
-      <% end %>
     <% end %>
   <% end %>
 </div>

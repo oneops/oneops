@@ -1,5 +1,4 @@
-<% locals = {:resource   => @variable,
-             :content    => 'cms/cis/ci',
-             :cancel_url => assembly_design_variables_path(@assembly),
-             :form_url   => @variable.new_record? ? assembly_design_variables_path(@assembly) : assembly_design_variable_path(@assembly, @variable)} %>
-$("variable_details").down(".section-content").update("<%= escape_javascript(render('base/shared/edit_form', locals)) %>");
+$j("#variable_details").html("<%= escape_javascript(render('variable_details')) %>")[0].scrollIntoView(false);
+<% unless request.method == 'GET' %>
+  $j("#page_alert").html("<%= escape_javascript(page_alert) %>");
+<% end %>

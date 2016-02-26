@@ -391,3 +391,13 @@ function copyToClipboard(trigger, target) {
                       .onClick(e);
                   });
 }
+
+function toggleAttrPropOwner(source) {
+  source = $j(source);
+  if (source.parents("form")[0].edit) {
+    var input      = source.find("input[type=hidden]"),
+        ownerValue = input.attr('data-owner-value');
+    input.val(input.val() == ownerValue ? "" : ownerValue);
+    source.find("i.fa").toggleClass("fa-lock fa-unlock");
+  }
+}

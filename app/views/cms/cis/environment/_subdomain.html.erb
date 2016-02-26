@@ -7,11 +7,14 @@
   <% else %>
     <%= builder.text_field attribute_name, :readonly => true, :class => 'readonly input-xlarge' %>
   <% end %>
-  <p><div id="subdomain" class="well lead <%= 'hide' unless visible  %>"><%= attribute_value %></div></p>
+  <p><div id="subdomain" class="well well-small lead <%= 'hide' unless visible  %>"><%= attribute_value %></div></p>
   <div class="btn-group <%= 'hide' unless visible  %>" data-toggle="buttons-checkbox">
-    <%= link_to_function 'environment',  "subdomain_changed()", :id => 'subdomain_environment',  :class => "btn #{'active' if new_record || attribute_value.include?(ci.ciName) && ci.ciName.present?}" %>
-    <%= link_to_function 'assembly',     "subdomain_changed()", :id  => 'subdomain_assembly',     :class => "btn #{'active' if new_record || (@assembly && attribute_value.include?(@assembly.ciName))}" %>
-    <%= link_to_function 'organization', "subdomain_changed()", :id => 'subdomain_organization', :class => "btn #{'active' if new_record || attribute_value.include?(current_user.organization.name)}" %>
+    <%= selected = new_record || attribute_value.include?(ci.ciName) && ci.ciName.present?
+        link_to_function icon("#{'check-' if selected}square-o", 'environment'), 'subdomain_changed()', :id => 'subdomain_environment',  :class => "btn #{'active' if selected}" %>
+    <%= selected = new_record || (@assembly && attribute_value.include?(@assembly.ciName))
+        link_to_function icon("#{'check-' if selected}square-o", 'assembly'), 'subdomain_changed()', :id  => 'subdomain_assembly',     :class => "btn #{'active' if selected}" %>
+    <%= selected = new_record || attribute_value.include?(current_user.organization.name)
+        link_to_function icon("#{'check-' if selected}square-o", 'organization'), 'subdomain_changed()', :id => 'subdomain_organization', :class => "btn #{'active' if selected}" %>
   </div>
   <span class="help-block <%= 'hide' unless visible  %>">
      Toggle the buttons above to include environment, assembly and/or organization names in the subdomain.
@@ -25,18 +28,22 @@
 
     window.update_subdomain = function() {
       var parts = [];
-      if ($("subdomain_environment").hasClassName('active')) {
+      if ($j("#subdomain_environment").hasClass('active')) {
         parts.push($("cms_ci_ciName").value);
       }
-      if ($("subdomain_assembly").hasClassName('active')) {
+      if ($j("#subdomain_assembly").hasClass('active')) {
         parts.push("<%= escape_javascript(@assembly ? @assembly.ciName : '') %>");
       }
-      if ($("subdomain_organization").hasClassName('active')) {
+      if ($j("#subdomain_organization").hasClass('active')) {
         parts.push("<%= escape_javascript(current_user.organization.name) %>");
       }
-      $("cms_ci_ciAttributes_subdomain").value = parts.join(".");
-      $("subdomain").update( parts.join("."));
 
+      var subdomain = parts.join(".");
+      $j("#cms_ci_ciAttributes_subdomain").val(subdomain);
+      $j("#subdomain").html(subdomain);
+      var btnGroup = $j("#subdomain_environment").parents(".btn-group");
+      btnGroup.find(".btn:not(.active) i.fa").removeClass('fa-check-square-o').addClass('fa-square-o');
+      btnGroup.find(".btn.active i.fa").removeClass('fa-square-o').addClass('fa-check-square-o');
     };
 
     $j(function() {

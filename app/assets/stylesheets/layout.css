@@ -2322,7 +2322,6 @@ img.authicon {
 .section-heading .menu {
   position: relative;
   float:       right;
-  margin-right: 12px;
   padding: 7px 5px;
 }
 
@@ -3095,7 +3094,8 @@ div.ciAttributes {
 .ciAttributes .text {
   font-family: monospace;
   white-space: pre;
-  font-size:   10px;
+  font-size:   12px;
+  min-height:  54px;
 }
 
 .ciAttributes .input-xlarge {
@@ -3187,6 +3187,10 @@ div.ciAttributes {
 }
 .ciAttributes .multiselect .btn {
   margin: 3px 3px 3px 0;
+}
+
+.input-prepend > .multiselect {
+  padding-left: 10px;
 }
 
 .ciAttributes #domain {
@@ -3511,15 +3515,15 @@ div.status .label {
 }
 
 .input-xlarge {
-  width: 360px;
+  width: 388px;
 }
 
 .input-xlarge.encrypted {
-  width: 282px;
+  width: 310px;
 }
 
 .select-xlarge {
-  width: 376px;
+  width: 402px;
 }
 
 .triple .input-xlarge {
@@ -4288,4 +4292,13 @@ i.relation {
 .support-functions > li > a {
   font-size: 14px;
   color: black;
+}
+
+.btn > i.fa {
+  vertical-align: baseline;
+}
+
+.form-horizontal .form-actions {
+  text-align: center;
+  padding: 15px;
 }

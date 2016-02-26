@@ -2,8 +2,8 @@
    new_path   = new_assembly_design_platform_component_attachment_path(@assembly, @platform, @component) %>
 <%= section_panel('Attachments',
                   :width => 'single',
-									:menu  => has_design && [link_to(icon('star-o','New Attachment'), new_path, :remote => true, :class => 'btn btn-mini')]) do %>
-  <%= ci_list(@attachments, :new_link => link_to('New Attachment...', new_path, :remote => true)) do |builder, target| %>
+									:menu  => has_design && [link_to(icon('plus','Add'), new_path, :remote => true, :class => 'btn btn-mini')]) do %>
+  <%= ci_list(@attachments, :new_link => link_to(icon('plus', 'Add Attachment...'), new_path, :remote => true)) do |builder, target| %>
     <% edit_path = edit_assembly_design_platform_component_attachment_path(@assembly, @platform, @component, target) %>
     <% builder.target link_to('', edit_path, :remote => true) %>
     <% builder.middle target.ciAttributes.source %>

@@ -17,6 +17,11 @@
     <% builder.attributes %(ciName="#{target.ciName}" health="#{state}") %>
     <% builder.target link_to('', assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, target)) %>
     <% builder.icon ci_image_url(target) %>
+    <% if target.ciAttributes.attributes.present? %>
+      <% builder.middle do %>
+        <%= render 'cms/cis/important', :ci => target %>
+      <% end %>
+    <% end %>
     <% builder.status do %>
       <% if health %>
         <%= content = ''
