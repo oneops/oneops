@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   s.add_dependency "activemodel", '= 3.1.12'
   s.add_dependency "fog", '= 1.29.0'
   s.add_dependency "aws-s3", '~> 0.6', '>= 0.6.3'
-  s.add_dependency "chef", '= 11.14.2'
+  s.add_dependency "chef", '= 11.18.12'
 
   s.add_development_dependency "rake", '~> 10.1.1', '>= 10.1.1'
 
