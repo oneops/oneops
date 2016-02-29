@@ -54,8 +54,7 @@
 		<property name="name" value="controller-search-publish" />
 		<property name="shortName" value="controller" />
 		<property name="backlogThreshold" value="10" />
-		<property name="scanFolder" value="/opt/oneops/controller/search/retry" />
-		<property name="minFreeSpaceMB" value="50" />
+		<property name="scanFolder" value="/tmp/search/retry" />
 	</bean>
 	
 </beans>

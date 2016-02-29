@@ -95,7 +95,6 @@
 		<property name="shortName" value="controller" />
 		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
 		<property name="scanFolder" value="/opt/oneops/controller/search/retry" />
-		<property name="minFreeSpaceMB" value="${SEARCH_RETRY_FREESPACE_MB:50}" />
 	</bean>
 
     <bean id="inductorListener" class="com.oneops.controller.jms.InductorListener" >
