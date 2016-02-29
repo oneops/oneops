@@ -43,12 +43,14 @@ public class SearchSenderTest {
 	private ClassPathXmlApplicationContext context;
 	private JMSConsumer consumer;
 	private AsyncSearchPublisher searchPublisher;
+	String retryDir;
 
 	@BeforeTest
 	public void initContext() {
 		context = new ClassPathXmlApplicationContext("classpath:test-commons-context.xml");
 		consumer = context.getBean(JMSConsumer.class);
 		searchPublisher = context.getBean(AsyncSearchPublisher.class);
+		retryDir = context.getBean("retryDir", String.class);
 	}
 	
 	
@@ -72,12 +74,6 @@ public class SearchSenderTest {
 		headers.put("source", "test");
 		MessageData data = new MessageData(text, headers);
 		searchPublisher.publishAsync(data);
-		try {
-			Thread.sleep(5000);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-		
 		await().atMost(5, TimeUnit.SECONDS).until(() -> (consumer.getCounter() == 1));
 		Assert.assertEquals(consumer.getMessages().getFirst().getPayload(), text);
 		Assert.assertEquals(consumer.getMessages().getFirst().getHeaders(), headers);
@@ -170,7 +166,7 @@ public class SearchSenderTest {
 	private boolean isRetryDirectoryEmpty() {
 		DirectoryStream<Path> dirStream = null;
 		try {
-			Path retryPath = FileSystems.getDefault().getPath("/opt/oneops/test/search/retry");
+			Path retryPath = FileSystems.getDefault().getPath(retryDir);
 			dirStream = java.nio.file.Files.newDirectoryStream(retryPath);
 			return !dirStream.iterator().hasNext();
 		} catch (IOException e) {
@@ -187,7 +183,7 @@ public class SearchSenderTest {
 	}
 
 	private void emptyRetryDir() {
-		File folder = new File("/opt/oneops/test/search/retry");
+		File folder = new File(retryDir);
 		try {
 			Files.deleteDirectoryContents(folder);
 		} catch (IOException e) {

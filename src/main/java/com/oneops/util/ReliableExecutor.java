@@ -20,12 +20,6 @@ package com.oneops.util;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
@@ -34,6 +28,12 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
 
 public abstract class ReliableExecutor <I> {
 
@@ -46,7 +46,6 @@ public abstract class ReliableExecutor <I> {
 
 	protected long scanPeriod = 5;
 	protected String scanFolder;
-	protected int minFreeSpaceMB = 50;
 
 	protected int backlogThreshold = 1000;
 	protected String name;
@@ -186,11 +185,6 @@ public abstract class ReliableExecutor <I> {
 				logger.warn(name + " - retry backlog is high : " + files.length);
 			}
 		}
-		long freeMB = folder.getFreeSpace() / 1024 / 1024;
-		// if available space is < minFreeSpaceMB log a warning
-		if (freeMB < minFreeSpaceMB) {
-			logger.warn("!!! Freespace (" + scanFolder + ") is very low " + freeMB + "MB !!!");
-		}
 	}
 	
 	private String getFileName(I param) {
@@ -224,10 +218,6 @@ public abstract class ReliableExecutor <I> {
 
 	public void setName(String name) {
 		this.name = name;
-	}
-
-	public void setMinFreeSpaceMB(int minFreeSpaceMB) {
-		this.minFreeSpaceMB = minFreeSpaceMB;
 	}
 
 	public void setShortName(String shortName) {

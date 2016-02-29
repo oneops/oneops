@@ -25,8 +25,12 @@
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender"  init-method="init" destroy-method="destroy">
 		<property name="backlogThreshold" value="100" />
-        <property name="scanFolder" value="/opt/oneops/test/search/retry" />
+        <property name="scanFolder" ref="retryDir" />
         <property name="name" value="test-search-publish" />
+	</bean>
+	
+	<bean id="retryDir" class="java.lang.String">
+		<constructor-arg value="/tmp/search/retry"/>
 	</bean>
 
 	<!-- bean id="searchPublisherSpy" class="org.mockito.Mockito"
