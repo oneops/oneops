@@ -127,6 +127,7 @@ class Search::Cost < Search::Base
   end
 
   def self.cost(ns_path, start_date, end_date)
+
     result     = nil
     start_date = start_date.to_date
     end_date   = end_date.to_date

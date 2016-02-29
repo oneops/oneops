@@ -12,5 +12,5 @@
      end %>
   <%= render 'base/shared/graph_donut', :data => {:data => data, :legend => ops_state_legend}, :legend => legend %>
 <% else %>
-  <p class="text-error"><%= icon('exclamation-triangle') %> Data not availalbe</p>
+  <%= falied_loading_indicator('Data not availalbe') %>
 <% end %>

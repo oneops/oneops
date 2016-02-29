@@ -230,7 +230,7 @@
         localStorage.setItem(local_storage_key_sidebar_pin, 'false');
         pinIcon.addClass("fa-rotate-270");
       }
-      $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar: pin}}});
+      $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar: "" + pin}}});
     };
 
     var SIDEBAR_THEMES = ['dark', 'light', 'blue'];
@@ -240,7 +240,10 @@
               SIDEBAR_THEMES[(SIDEBAR_THEMES.indexOf(current) + 1) % SIDEBAR_THEMES.length];
       $j(".sidebar").removeClass(current).addClass(newOne);
       localStorage.setItem(local_storage_key_sidebar_theme, newOne);
-      $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar_theme: newOne}}});
+
+      if (newOne != "<%= sidebar_theme %>") {
+        $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar_theme: newOne}}});
+      }
     };
 
     <% if user_signed_in? && session[:sidebar].nil? %>

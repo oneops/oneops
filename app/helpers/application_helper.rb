@@ -358,7 +358,7 @@ module ApplicationHelper
       render(:partial => 'base/shared/list',
              :locals => {:list_content => render_notification_list_content(notification_collection, options, &block), :options => options})
     else
-      raw(%(<p class="text-error">#{icon('exclamation-triangle')} Failed to load notification_collection, please try again later.</p>))
+      falied_loading_indicator('Failed to load notification_collection, please try again later.</p>')
     end
   end
 
@@ -706,6 +706,10 @@ module ApplicationHelper
 
   def loading_indicator(message = 'Loading...')
     icon('spinner', message, 'fa-spin')
+  end
+
+  def falied_loading_indicator(message = 'Failed to load')
+    raw(%(<p class="text-error">#{icon('exclamation-triangle')} <strong>#{message}</strong></p>))
   end
 
   def notification_icon(source)

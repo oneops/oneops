@@ -12,7 +12,7 @@
   <%= section_panel('Diagram',
                     :width    => 'double',
                     :position => 'left',
-                    :menu     => [link_to(icon('caret-square-o-right', 'Full'), diagram_assembly_design_path(@assembly, :size => '11,8'), :target => '_blank', :class => 'btn btn-mini')]) do %>
+                    :menu     => [link_to(icon('expand'), diagram_assembly_design_path(@assembly, :size => '11,8'), :target => '_blank', :class => 'btn btn-mini')]) do %>
   	<div class="diagram"><%= raw(@diagram) %></div>
   <% end %>
 <% end %>

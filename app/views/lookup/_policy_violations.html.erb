@@ -1,5 +1,5 @@
 <% if @violations.nil? %>
-  <span class="text-error"><%= icon('exclamation-triangle') %> <strong>Failed to check policy compliance</strong></span>
+  <%= falied_loading_indicator('Failed to check policy compliance') %>
 <% elsif @violations.empty? %>
   <%= marker('passed', 'label-success') %>
 <% else %>

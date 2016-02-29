@@ -2,5 +2,5 @@
 <% if @notifications %>
   <%= notification_list @notifications, :toolbar => nil, :new_link => link_to(icon('bar-chart', 'more...'), notification_reports_path(:ns_path => @ns_path, :period => 'today')) if @notifications.present? %>
 <% else %>
-  <p class="text-error"><%= icon('exclamation-triangle') %> <strong>Failed to retrieve notifications</strong></p>
+  <%= falied_loading_indicator('Failed to retrieve notifications') %>
 <% end %>
