@@ -14,4 +14,5 @@
 
 <%= render 'base/shared/page_nav_pages', :items => [{:label => 'summary', :template => 'summary', :selected => true},
                                                     {:label => 'variables', :url => assembly_design_platform_variables_path(@assembly, @platform)},
+                                                    {:label => 'diagram', :url => diagram_assembly_design_platform_path(@assembly, @platform)},
                                                     {:label => 'diff', :url => diff_assembly_design_platform_path(@assembly, @platform, :committed => params[:committed], :changes_only => params[:changes_only])}] %>

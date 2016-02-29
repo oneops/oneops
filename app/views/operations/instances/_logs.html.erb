@@ -101,5 +101,5 @@
     });
   </script>
 <% else %>
-  <p class="text-error"><%= icon('exclamation-triangle') %> <strong>Failed to check policy compliance</strong></p>
+  <%= falied_loading_indicator('Failed to check policy compliance') %>
 <% end %>

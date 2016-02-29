@@ -33,11 +33,10 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Diagram',
-                  :width    => 'double',
-                  :position => 'left',
-                  :menu     => [link_to(icon('caret-square-o-right', 'Full') , diagram_catalog_platform_path(@catalog, @platform, :size => '11,8'), :target => "_blank", :class => 'btn btn-mini')] do %>
-  <div class="diagram">
-    <%= content_tag(:object, '', :data => diagram_catalog_platform_path(@catalog, @platform), :class => 'diagram') %>
-  </div>
-<% end %>
+<div id="page_nav_diagram">
+  <%= loading_indicator %>
+  <script>
+    <%= remote_function(:url => diagram_catalog_platform_path(@catalog, @platform, :size => '6,4'), :method => :get) %>
+  </script>
+</div>
+

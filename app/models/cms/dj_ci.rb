@@ -9,7 +9,7 @@ class Cms::DjCi < Cms::RfcCi
 
   def self.build(attributes = {}, attr_props = {})
     ci = super(attributes)
-    ci.ciAttrProps = Cms::AttrMap.new(attr_props)
+    ci.ciAttrProps = Cms::AttrMap.new(attr_props || {})
     ci
   end
 
