@@ -31,7 +31,7 @@
 
 	<bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
 		init-method="init" destroy-method="destroy">
-		<property name="scanFolder" value="/opt/oneops/cms-publisher/antenna/retry" />
+		<property name="scanFolder" value="/tmp/antenna/retry" />
 		<property name="connFactory" ref="amqFactory" />
 	</bean>
 
@@ -80,7 +80,7 @@
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
 		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
-		<property name="scanFolder" value="/opt/oneops/cms-publisher/search/retry" />
+		<property name="scanFolder" value="/tmp/search/retry" />
 		<property name="name" value="transmitter-search-publish" />
 	</bean>
 	

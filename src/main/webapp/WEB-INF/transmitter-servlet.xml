@@ -133,7 +133,6 @@
 		<property name="shortName" value="transmitter" />
 		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
 		<property name="scanFolder" value="/opt/oneops/transmitter/search/retry" />
-		<property name="minFreeSpaceMB" value="${SEARCH_RETRY_FREESPACE_MB:50}" />
 	</bean>
     
   	<bean id="scheduler" class="com.oneops.cms.transmitter.MainScheduler"  destroy-method="cleanup">

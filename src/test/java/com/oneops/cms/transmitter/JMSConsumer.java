@@ -76,7 +76,6 @@ public class JMSConsumer implements ExceptionListener {
 				if (message instanceof TextMessage) {
 					TextMessage textMessage = (TextMessage) message;
 					String text = textMessage.getText();
-					System.out.println("Received: " + text);
 					counter.incrementAndGet();
 					if (isRecording.get()) {
 						addData(message, text);
