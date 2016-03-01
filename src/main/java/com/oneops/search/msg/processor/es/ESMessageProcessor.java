@@ -17,15 +17,6 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor.es;
 
-import java.util.Date;
-
-import org.apache.commons.httpclient.util.DateUtil;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.log4j.Logger;
-import org.dozer.DozerBeanMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.oneops.antenna.domain.NotificationMessage;
@@ -43,14 +34,15 @@ import com.oneops.search.domain.CmsNotificationSearch;
 import com.oneops.search.domain.CmsOpsProcedureSearch;
 import com.oneops.search.msg.index.Indexer;
 import com.oneops.search.msg.index.impl.ESIndexer;
-import com.oneops.search.msg.processor.CIMessageProcessor;
-import com.oneops.search.msg.processor.DpmtMessageProcessor;
-import com.oneops.search.msg.processor.MessageProcessor;
-import com.oneops.search.msg.processor.NSMessageProcessor;
-import com.oneops.search.msg.processor.OfferingsMessageProcessor;
-import com.oneops.search.msg.processor.OpsProcMessageProcessor;
-import com.oneops.search.msg.processor.PolicyMessageProcessor;
-import com.oneops.search.msg.processor.RelationMsgProcessor;
+import com.oneops.search.msg.processor.*;
+import org.apache.commons.httpclient.util.DateUtil;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.log4j.Logger;
+import org.dozer.DozerBeanMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Date;
 
 /**
  * Elastic Search message processor. Indexes the
@@ -117,7 +109,7 @@ public class ESMessageProcessor implements MessageProcessor {
 				if("manifest.Environment".equals(ci.getCiClassName()) &&
 						StringUtils.isNotEmpty(ci.getComments()) && ci.getComments().startsWith(SUCCESS_PREFIX)){
 					ciMessageProcessor.processDeploymentPlanMsg(ci,indexer,searchGson);
-				}else if("account.Policy".equals(ci.getCiClassName())){
+				}else if("account.Policy".equals(ci.getCiClassName()) || "mgmt.manifest.Policy".equals(ci.getCiClassName())){
 					policyMessageProcessor.processMessage(simpleCI);
 				}else if("cloud.Offering".equals(ci.getCiClassName())){
 					offeringMessageProcessor.processMessage(simpleCI);
