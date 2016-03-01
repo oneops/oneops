@@ -9,8 +9,8 @@
       <% name  = a.attributeName
          value = ci_attrs.attributes[name] %>
   		<dt title="<%= a.description %>">
+        <%= icon('lock') if locked_attrs && locked_attrs.attributes[name] == owner_value %>
         <%= a.description %>
-        <%= icon(locked_attrs && locked_attrs.attributes[name] == owner_value ? 'lock' : 'unlock') %>
       </dt>
   		<dd>
         <% if a.dataType == 'hash' || a.dataType == 'array' %>
