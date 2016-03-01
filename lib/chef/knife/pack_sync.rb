@@ -396,6 +396,7 @@ class Chef
           upload_template_payloads(nspath,pack,resources,children,platform,env)
           upload_template_procedures(nspath,pack,resources,children,platform,env)
           upload_template_variables(nspath,pack,package,platform,env)
+          upload_template_policies(nspath,pack,package,platform,env)
         end
       end
 
@@ -1009,6 +1010,42 @@ class Chef
           end
 
         end
+      end
+
+      def upload_template_policies(nspath,pack,package,platform,env)
+        pack.environment_policies(env).each do |policy_name,policy_attributes|
+          ciClassName = "#{package}.Policy"
+
+          ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => policy_name })
+
+          if ci.nil?
+            ci = build('Cms::Ci', :nsPath => nspath,
+                       :ciClassName => ciClassName,
+                       :ciName => policy_name)
+
+            if save(ci)
+              ui.info("Successfuly saved policy #{policy_name} for environment #{env} and #{pack}")
+            else
+              ui.error("Could not save policy #{policy_name} for environment #{env}, skipping it")
+            end
+          end
+
+          # policy ci attributes
+          ci.ciAttributes.attributes.each do |name,value|
+            if policy_attributes[name]
+              ci.ciAttributes.send(name+'=',policy_attributes[name])
+            end
+          end
+
+          Log.debug(ci.inspect)
+          if save(ci)
+            ui.info("Successfuly saved policy #{policy_name} attributes for environment #{env} and #{pack}")
+          else
+            ui.error("Could not save policy #{policy_name} attributes for environment #{env} and #{pack}, skipping it")
+          end
+
+        end
+
       end
 
       def ensure_path_exists(nspath)
