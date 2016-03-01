@@ -1898,6 +1898,12 @@ img.authicon {
   color: #333;
 }
 
+.list-body li .content .middle dl dt {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow-x: hidden;
+}
+
 .list-body li .content .middle .dl-horizontal dt {
 	width: 75px;
 }
