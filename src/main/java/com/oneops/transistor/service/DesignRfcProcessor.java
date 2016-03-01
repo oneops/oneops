@@ -67,7 +67,7 @@ public class DesignRfcProcessor {
 	}
 	
 	
-	public long generatePlatFromTmpl(CmsRfcCI designPlatform, long assemblyId, String userId, String scope) {
+	public CmsRfcCI generatePlatFromTmpl(CmsRfcCI designPlatform, long assemblyId, String userId, String scope) {
 
 		CmsCI assembly = cmProcessor.getCiById(assemblyId);
 		designPlatform.setNsPath(assembly.getNsPath() + "/" + assembly.getCiName());
@@ -110,7 +110,7 @@ public class DesignRfcProcessor {
 		CmsRfcRelation composedOf = trUtil.bootstrapRelationRfc(assemblyId, designPlatformRfc.getCiId(), "base.ComposedOf", designPlatform.getNsPath(), designPlatform.getNsPath(), null);
 		cmRfcMrgProcessor.upsertRelationRfc(composedOf, userId);
 		processLocalVars(templatePlatform.getCiId(), designPlatformRfc.getCiId(), platNsPath, designPlatform.getNsPath(), userId);
-		return designPlatformRfc.getCiId();
+		return designPlatformRfc;
 	}
 
 	public long deletePlatform(long designPlatformId, String userId, String scope) {
@@ -475,7 +475,7 @@ public class DesignRfcProcessor {
 	}
 	
 	
-	private CmsRfcCI popRfcCiFromTemplate(CmsCI templCi, String targetClassPrefix, String nsPath, String releaseNsPath) {
+	public CmsRfcCI popRfcCiFromTemplate(CmsCI templCi, String targetClassPrefix, String nsPath, String releaseNsPath) {
 		
 		CmsRfcCI newRfc = new CmsRfcCI();
 		newRfc.setNsPath(nsPath);
@@ -507,7 +507,7 @@ public class DesignRfcProcessor {
 		return newRfc;
 	}
 	
-	private CmsRfcRelation popRfcRelFromTemplate(CmsCIRelation mgmtCiRelation, String relPrefix, String nsPath, String releaseNsPath) {
+	public CmsRfcRelation popRfcRelFromTemplate(CmsCIRelation mgmtCiRelation, String relPrefix, String nsPath, String releaseNsPath) {
 		
 		CmsRfcRelation newRfc = new CmsRfcRelation();
 		newRfc.setNsPath(nsPath);
