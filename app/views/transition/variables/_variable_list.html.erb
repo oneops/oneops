@@ -1,4 +1,4 @@
-<% menu = [{:id => 'lock',   :label => icon('lock', 'Lock', 'fa-fw'),     :url => lock_assembly__environment_variables_path(@assembly, @environment), :method => :put, :param_name => 'ciIds'},
+<% menu = [{:id => 'lock',   :label => icon('lock', 'Lock', 'fa-fw'),     :url => lock_assembly_transition_environment_variables_path(@assembly, @environment), :method => :put, :param_name => 'ciIds'},
            {:id => 'unlock', :label => icon('unlock', 'Unlock', 'fa-fw'), :url => unlock_assembly_transition_environment_variables_path(@assembly, @environment), :method => :put, :param_name => 'ciIds'}] %>
 <%= section_panel 'Variables', :width => 'single' do %>
   <%= ci_list(@variables, :menu => menu) do |builder, target| %>
