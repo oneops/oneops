@@ -17,6 +17,7 @@ import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
+import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.export.domain.ComponentExport;
@@ -29,10 +30,12 @@ public class DesignExportProcessor {
 	private CmsCmProcessor cmProcessor;
 	private DesignRfcProcessor designRfcProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
+	private CmsRfcProcessor rfcProcessor;
 	private TransUtil trUtil;
 	private CIMapper ciMapper;
 	
 	private static final String BAD_ASSEMBLY_ID_ERROR_MSG = "Assmbly does not exists with id=";
+	private static final String OPEN_RELEASE_ERROR_MSG = "Design have open release. Please commit/discard before import.";
 	private static final String BAD_TEMPLATE_ERROR_MSG = "Can not find template for pack: ";
 	private static final String CANT_FIND_REQUIRES_ERROR_MSG = "Can not find Requires relation for ci id=";
 	private static final String CANT_FIND_PLATFORM_BY_NAME_ERROR_MSG = "Can not find platform with name: $toPlaform, used in links of platform $fromPlatform";
@@ -58,6 +61,10 @@ public class DesignExportProcessor {
 	private static final String DUMMY_ENCRYPTED_IMP_VALUE = "CHANGE ME!!!";
 	private static final String ENCRYPTED_PREFIX = "::ENCRYPTED::";
 
+	public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
+		this.rfcProcessor = rfcProcessor;
+	}
+	
 	public void setTrUtil(TransUtil trUtil) {
 		this.trUtil = trUtil;
 	}
@@ -241,7 +248,14 @@ public class DesignExportProcessor {
 		if (assembly == null) {
 			throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ASSEMBLY_ID_ERROR_MSG + assemblyId);
 		}
+		
 		String designNsPath = assembly.getNsPath() + "/" + assembly.getCiName();
+		
+		List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(designNsPath, "open");
+		if (openReleases.size()>0) {
+			throw new DesignExportException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
+		}
+		
 		if (!des.getVariables().isEmpty()) {
 			importGlobalVars(assemblyId,designNsPath, des.getVariables(), userId);
 		}
@@ -261,10 +275,15 @@ public class DesignExportProcessor {
 				importLocalVars(designPlatform.getCiId(), platNsPath, designNsPath, platformExp.getVariables(), userId);
 			}
 			if (platformExp.getComponents() != null) {
+				Set<Long> componentIds = new HashSet<>(); 
 				for (ComponentExport componentExp : platformExp.getComponents()) {
-					importComponent(designPlatform, componentExp, platNsPath, designNsPath, userId);
+					componentIds.add(importComponent(designPlatform, componentExp, platNsPath, designNsPath, userId));
 				}
-				importDependss(platformExp.getComponents(),platNsPath, designNsPath,userId);
+				importDepends(platformExp.getComponents(),platNsPath, designNsPath,userId);
+				//if its existing platform - process absolete components
+				if (existingPlatRfcs.size()>0) {
+					procesObsoleteOptionalComponents(designPlatform.getCiId(),componentIds, userId);
+				}
 			}
 		}
 		
@@ -277,6 +296,18 @@ public class DesignExportProcessor {
 		} else {
 			return 0;
 		}
+	}
+	
+	private void procesObsoleteOptionalComponents(long platformId, Set<Long> importedCiIds, String userId) {
+		List<CmsCIRelation> requiresRels = cmProcessor.getFromCIRelations(platformId, REQUIRES_RELATION, null);
+		for (CmsCIRelation requires : requiresRels) {
+			if (requires.getAttribute("constraint").getDjValue().startsWith("0.")) {
+				if (!importedCiIds.contains(requires.getToCiId())) {
+					//this is absolete optional component that does not exists in export - remove from design
+					cmRfcMrgProcessor.requestCiDelete(requires.getToCiId(), userId);
+				}
+			}
+		}	
 	}
 	
 	private void importLinksTos(DesignExportSimple des, String designNsPath, String userId)  {
@@ -301,7 +332,7 @@ public class DesignExportProcessor {
 		}	
 	}
 
-	private void importDependss(List<ComponentExport> componentExports, String platformNsPath, String designNsPath, String userId)  {
+	private void importDepends(List<ComponentExport> componentExports, String platformNsPath, String designNsPath, String userId)  {
 		for (ComponentExport ce : componentExports) {
 			if (ce.getDepends() != null && !ce.getDepends().isEmpty()) {
 				Map<String, CmsRfcCI> components = new HashMap<String, CmsRfcCI>();
@@ -389,7 +420,7 @@ public class DesignExportProcessor {
 	}
 	
 	
-	private void importComponent(CmsRfcCI designPlatform, ComponentExport compExpCi, String platNsPath, String releaseNsPath, String userId) {
+	private long importComponent(CmsRfcCI designPlatform, ComponentExport compExpCi, String platNsPath, String releaseNsPath, String userId) {
 		//ExportCi compExpCi = componentExp.getComponent();
 		List<CmsRfcCI> existingComponent = cmRfcMrgProcessor.getDfDjCiNakedLower(platNsPath, compExpCi.getType(), compExpCi.getName(), null);
 		CmsRfcCI componentRfc = null;
@@ -420,6 +451,8 @@ public class DesignExportProcessor {
 		if (compExpCi.getAttachments() != null) {
 			importAttachements(componentRfc,compExpCi.getAttachments(), releaseNsPath, userId);
 		}
+		
+		return componentRfc.getCiId();
 	}
 
 	private void importAttachements(CmsRfcCI componentRfc, List<ExportCi> attachments, String releaseNsPath, String userId) {

@@ -65,6 +65,7 @@
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="ciMapper" ref="ciMapper" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
     </bean>
 
 
