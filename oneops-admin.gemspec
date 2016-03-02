@@ -23,7 +23,9 @@ Gem::Specification.new do |s|
   s.add_dependency "fog", '= 1.29.0'
   s.add_dependency "aws-s3", '~> 0.6', '>= 0.6.3'
   s.add_dependency "chef", '= 11.18.12'
-
+  s.add_dependency "ohai", '= 7.4.0'
+  s.add_dependency "mime-types", '= 1.25'
+  s.add_dependency "mixlib-shellout", '= 1.4.0'
   s.add_development_dependency "rake", '~> 10.1.1', '>= 10.1.1'
 
   s.bindir       = 'bin'
