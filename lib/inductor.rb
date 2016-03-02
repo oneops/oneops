@@ -8,6 +8,7 @@ class Inductor < Thor
 
   desc "create", "Creates and configures a new inductor"
   method_option :path, :default => File.expand_path('inductor', Dir.pwd)
+  method_option :bundle, :default => true
   method_option :force, :default => true
   def create
 
@@ -25,6 +26,28 @@ class Inductor < Thor
     empty_directory "#{options[:path]}/log"
     empty_directory "#{options[:path]}/shared"
     directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/shared"
+
+    if options[:bundle]
+      inside(File.expand_path(options[:path])) do
+
+        rubygems=ENV['rubygems']
+        unless ENV['rubygems']
+          rubygems = `source /etc/profile.d/oneops.sh 2> /dev/null && echo $rubygems`.chomp
+        end
+
+        if !rubygems.empty?
+          run("sed -i 's@http://rubygems.org@#{rubygems}@' Gemfile")
+        end
+        run("bundle install")
+        ec = $?.to_i
+        if ec != 0
+          say_status :error, "bundle install exit code: #{ec}"
+          exit ec
+        end
+      end
+    else
+      say_status('warning',"execute 'bundle install' from #{options[:path]} directory to complete the install")
+    end
 
     # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
