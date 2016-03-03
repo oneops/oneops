@@ -413,7 +413,7 @@ public class WorkflowController {
 		        }
 		        
 		        logger.info(">>>>>>Completed " + pokesCounter + " subprocesses out of " + execsSyncWait.size() + " waiting!");
-
+		        signalSubJoin(processId);
 		    }
 	    }
 	}
