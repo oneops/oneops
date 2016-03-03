@@ -8,7 +8,6 @@ class Inductor < Thor
 
   desc "create", "Creates and configures a new inductor"
   method_option :path, :default => File.expand_path('inductor', Dir.pwd)
-  method_option :bundle, :default => true
   method_option :force, :default => true
   def create
 
@@ -26,28 +25,6 @@ class Inductor < Thor
     empty_directory "#{options[:path]}/log"
     empty_directory "#{options[:path]}/shared"
     directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/shared"
-
-    if options[:bundle]
-      inside(File.expand_path(options[:path])) do
-
-        rubygems=ENV['rubygems']
-        unless ENV['rubygems']
-          rubygems = `source /etc/profile.d/oneops.sh 2> /dev/null && echo $rubygems`.chomp
-        end
-
-        if !rubygems.empty?
-          run("sed -i 's@http://rubygems.org@#{rubygems}@' Gemfile")
-        end
-        run("bundle install")
-        ec = $?.to_i
-        if ec != 0
-          say_status :error, "bundle install exit code: #{ec}"
-          exit ec
-        end
-      end
-    else
-      say_status('warning',"execute 'bundle install' from #{options[:path]} directory to complete the install")
-    end
 
     # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
@@ -75,17 +52,17 @@ class Inductor < Thor
   method_option :dns, :type => :string
   method_option :debug, :type => :string
   method_option :ip_attribute, :type => :string 
-  method_option :organization, :type => :string
+  method_option :queue, :type => :string
   method_option :authkey, :type => :string
+  method_option :mgmt_url, :type => :string
   method_option :logstash_cert_location, :type => :string
   method_option :logstash_hosts, :type => :string
   method_option :max_consumers, :type => :string
   method_option :local_max_consumers, :type => :string
-  method_option :force, :default => true
-  method_option :additional_java_args, :type => :string, :default => ''
-  method_option :env_vars, :type => :string, :default => ''
+  method_option :additional_java_args, :type => :string
+  method_option :env_vars, :type => :string
   method_option :amq_truststore_location, :type => :string
-
+  method_option :force, :default => true
   def add
     validate_user
     @inductor = File.expand_path(Dir.pwd)
@@ -150,7 +127,7 @@ class Inductor < Thor
       @ip_attribute = 'private_ip' if @ip_attribute.empty?      
     end
 
-    @location = options[:organization] || ask("Queue location?")
+    @queue = options[:queue] || ask("Queue?")
 
     @mgmt_url = options[:mgmt_url] || ask("URL to the UI?")
 
@@ -166,15 +143,25 @@ class Inductor < Thor
     @max_consumers = options[:max_consumers] || ask("Max Consumers?")
     @local_max_consumers = options[:local_max_consumers] || ask("Max Local Consumers (ones for iaas)?")
 
+    # convert if they copied cloud location from ui
     dot_name = ""
-    @location.split("/").each do |v|
+    @queue.split("/").each do |v|
       dot_name += "." if !dot_name.empty?
       dot_name += "#{v}" if !v.empty?
     end
-    @queue_name = dot_name +".ind-wo"
+    # if real queue name used
+    if dot_name.empty?
+      @queue_name = @queue
+      if !@queue.end_with?(".ind-wo")
+        @queue_name += ".ind-wo"
+      end
+      dot_name = @queue.gsub(".ind-wo","")
+    else
+      @queue_name = dot_name +".ind-wo"      
+    end
     @authkey = options[:authkey] || ask("What is the authorization key?")
-    @additional_java_args= options[:additional_java_args]
-    @env_vars = options[:env_vars]
+    @additional_java_args= options[:additional_java_args] || ask("Additional Java args (default empty)?")
+    @env_vars = options[:env_vars] || ask("Environment Variables to pass to Executor (default empty)?")
     
     @amq_truststore_location = options[:amq_truststore_location] || ask("Location of TrustStore to connect AMQ (If empty no trustStore is used)?")
 
