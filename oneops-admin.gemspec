@@ -40,7 +40,6 @@ Gem::Specification.new do |s|
   s.add_dependency "azure_mgmt_resources", '= 0.1.1'
   s.add_dependency "rspec", '= 3.4.0'
   s.add_dependency "rake", '= 10.1.1'
-  s.add_dependency "bundler", '= 1.10.6'
 
   s.bindir       = 'bin'
   s.require_path = 'lib'
