@@ -65,47 +65,82 @@ class Inductor < Thor
   method_option :force, :default => true
   def add
     validate_user
-    @inductor = File.expand_path(Dir.pwd)
-    
-    @mqhost = ask("What message queue host (if empty defaults to localhost)?")
-    @mqhost = options[:mqhost] if @mqhost.empty?
+    if options[:mqhost]
+      @mqhost = options[:mqhost]
+    else
+      @mqhost = ask("What message queue host (if empty defaults to localhost)?")
+      @mqhost = 'localhost' if @mqhost.empty?
+    end
 
-    @dns = ask("Manage dns? (on or off - defaults to off)")
-    @dns = options[:dns] if @dns.empty?
+    if options[:dns]
+      @dns = options[:dns]
+    else
+      @dns = ask("Manage dns? (on or off - defaults to off)")
+      @dns = 'off' if @dns.empty?
+    end
 
-    @debug = ask("Debug mode? (keeps ssh keys and doesn't terminate compute on compute::add failure. on or off - defaults to off)")
-    @debug = options[:debug] if @debug.empty?
+    if options[:debug]
+      @debug = options[:debug]
+    else
+      @debug = ask("Debug mode? (keeps ssh keys and doesn't terminate compute on compute::add failure. on or off - defaults to off)")
+      @debug = 'off' if @debug.empty?
+    end
 
-    @daq_enabled = ask("Metrics collections? (if empty defaults to false)?")
-    @daq_enabled = options[:daq_enabled] if @daq_enabled.empty?
+    if options[:daq_enabled]
+      @daq_enabled = options[:daq_enabled]
+    else
+      @daq_enabled = ask("Metrics collections? (if empty defaults to false)?")
+      @daq_enabled = 'false' if @daq_enabled.empty?
+    end
 
     @collector_domain = ''
     @tunnel_metrics = ''
     if @daq_enabled == 'true'
-      @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
-      @tunnel_metrics = ask("Tunnel metrics thru ssh tunnel (defaults to off)?")
-      @tunnel_metrics = options[:tunnel_metrics] if @tunnel_metrics.empty?
-      @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
-    end
-    @collector_domain = options[:collector_domain] if @collector_domain.empty?
 
-    @ip_attribute = ask("What compute attribute to use for the ip to connect (if empty defaults to private_ip)?")
-    @ip_attribute = options[:ip_attribute] if @ip_attribute.empty?
+      if options[:collector_domain]
+        @collector_domain = options[:collector_domain]
+      else
+        @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
+      end
+
+      if options[:tunnel_metrics]
+        @tunnel_metrics = options[:tunnel_metrics]
+      else
+        @tunnel_metrics = ask("Tunnel metrics thru ssh tunnel (defaults to off)?")
+        @tunnel_metrics = 'off' if @tunnel_metrics.empty?
+      end
+
+      if options[:perf_collector_cert]
+        @perf_collector_cert_location = options[:perf_collector_cert]
+      else
+        @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
+      end
+    end
+
+
+    if options[:ip_attribute]
+      @ip_attribute = options[:ip_attribute]
+    else
+      @ip_attribute = ask("What compute attribute to use for the ip to connect (if empty defaults to private_ip)?")
+      @ip_attribute = 'private_ip' if @ip_attribute.empty?
+    end
 
     @queue = options[:queue] || ask("Queue?")
 
     @mgmt_url = options[:mgmt_url] || ask("URL to the UI?")
 
-    @logstash_cert_location = ask("Logstash cert file location ? (If empty defaults to local cloud cert)")
-    @logstash_hosts = ask("Comma seperated list of logstash host:port ? (if empty defaults to localhost:5000)")
-    @logstash_hosts = options[:logstash_hosts] if  @logstash_hosts.empty?
+    @logstash_cert_location = options[:logstash_cert_location] || ask("Logstash cert file location ? (If empty defaults to local cloud cert)")
 
-    @max_consumers = ask("Max Consumers?")
-    @max_consumers = options[:max_consumers] if @max_consumers.empty?
+    if options[:logstash_hosts]
+      @logstash_hosts = options[:logstash_hosts]
+    else
+      @logstash_hosts = ask("Comma seperated list of logstash host:port ? (if empty defaults to localhost:5000)")
+      @logstash_hosts = 'localhost:5000' if  @logstash_hosts.empty?
+    end
 
-    @local_max_consumers =  ask("Max Local Consumers (ones for iaas)?")
-    @local_max_consumers = options[:local_max_consumers] if @local_max_consumers.empty?
-
+    @max_consumers = options[:max_consumers] || ask("Max Consumers?")
+    @local_max_consumers = options[:local_max_consumers] || ask("Max Local Consumers (ones for iaas)?")
+      
     # convert if they copied cloud location from ui
     dot_name = ""
     @queue.split("/").each do |v|
