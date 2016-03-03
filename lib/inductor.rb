@@ -8,7 +8,6 @@ class Inductor < Thor
 
   desc "create", "Creates and configures a new inductor"
   method_option :path, :default => File.expand_path('inductor', Dir.pwd)
-  method_option :bundle, :default => true
   method_option :force, :default => true
   def create
 
@@ -26,28 +25,6 @@ class Inductor < Thor
     empty_directory "#{options[:path]}/log"
     empty_directory "#{options[:path]}/shared"
     directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/shared"
-
-    if options[:bundle]
-      inside(File.expand_path(options[:path])) do
-
-        rubygems=ENV['rubygems']
-        unless ENV['rubygems']
-          rubygems = `source /etc/profile.d/oneops.sh 2> /dev/null && echo $rubygems`.chomp
-        end
-
-        if !rubygems.empty?
-          run("sed -i 's@http://rubygems.org@#{rubygems}@' Gemfile")
-        end
-        run("bundle install")
-        ec = $?.to_i
-        if ec != 0
-          say_status :error, "bundle install exit code: #{ec}"
-          exit ec
-        end
-      end
-    else
-      say_status('warning',"execute 'bundle install' from #{options[:path]} directory to complete the install")
-    end
 
     # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
@@ -68,80 +45,121 @@ class Inductor < Thor
   desc "add", "Add cloud to the inductor"
   method_option :mqhost, :type => :string, :default => 'localhost'
   method_option :mqport, :type => :numeric, :default => 61617
-  method_option :daq_enabled, :type => :string, :default => 'false'
-  method_option :tunnel_metrics, :type => :string, :default => 'off'  
-  method_option :collector_domain, :type => :string, :default => 'collector.oneops.com'
-  method_option :perf_collector_cert, :type => :string, :default => ''
-  method_option :dns, :type => :string, :default => 'off'
-  method_option :debug, :type => :string, :default => 'off'
-  method_option :ip_attribute, :type => :string, :default => 'private_ip'
-  method_option :organization, :type => :string, :required => false
-  method_option :provider, :type => :string, :required => false
-  method_option :cloud, :type => :string, :required => false
-  method_option :authkey, :type => :string, :required => false
-  method_option :logstash_cert_location, :type => :string, :default => ''
-  method_option :logstash_hosts, :type => :string, :default => 'localhost:5000'
-  method_option :max_consumers, :type => :string, :default => '10'
-  method_option :local_max_consumers, :type => :string, :default => '5'
+  method_option :daq_enabled, :type => :string
+  method_option :tunnel_metrics, :type => :string 
+  method_option :collector_domain, :type => :string
+  method_option :perf_collector_cert, :type => :string
+  method_option :dns, :type => :string
+  method_option :debug, :type => :string
+  method_option :ip_attribute, :type => :string 
+  method_option :queue, :type => :string
+  method_option :authkey, :type => :string
+  method_option :mgmt_url, :type => :string
+  method_option :logstash_cert_location, :type => :string
+  method_option :logstash_hosts, :type => :string
+  method_option :max_consumers, :type => :string
+  method_option :local_max_consumers, :type => :string
+  method_option :additional_java_args, :type => :string
+  method_option :env_vars, :type => :string
+  method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
-  method_option :additional_java_args, :type => :string, :required => false
-  method_option :env_vars, :type => :string, :default => ''
-  method_option :amq_truststore_location, :type => :string, :required => false
-
   def add
     validate_user
-    @inductor = File.expand_path(Dir.pwd)
-    
-    @mqhost = ask("What message queue host (if empty defaults to localhost)?")
-    @mqhost = options[:mqhost] if @mqhost.empty?
+    if options[:mqhost]
+      @mqhost = options[:mqhost]
+    else
+      @mqhost = ask("What message queue host (if empty defaults to localhost)?")
+      @mqhost = 'localhost' if @mqhost.empty?
+    end
 
-    @dns = ask("Manage dns? (on or off - defaults to off)")
-    @dns = options[:dns] if @dns.empty?
+    if options[:dns]
+      @dns = options[:dns]
+    else
+      @dns = ask("Manage dns? (on or off - defaults to off)")
+      @dns = 'off' if @dns.empty?
+    end
 
-    @debug = ask("Debug mode? (keeps ssh keys and doesn't terminate compute on compute::add failure. on or off - defaults to off)")
-    @debug = options[:debug] if @debug.empty?
+    if options[:debug]
+      @debug = options[:debug]
+    else
+      @debug = ask("Debug mode? (keeps ssh keys and doesn't terminate compute on compute::add failure. on or off - defaults to off)")
+      @debug = 'off' if @debug.empty?
+    end
 
-    @daq_enabled = ask("Metrics collections? (if empty defaults to false)?")
-    @daq_enabled = options[:daq_enabled] if @daq_enabled.empty?
+    if options[:daq_enabled]
+      @daq_enabled = options[:daq_enabled]
+    else
+      @daq_enabled = ask("Metrics collections? (if empty defaults to false)?")
+      @daq_enabled = 'false' if @daq_enabled.empty?
+    end
 
     @collector_domain = ''
     @tunnel_metrics = ''
     if @daq_enabled == 'true'
-      @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
-      @tunnel_metrics = ask("Tunnel metrics thru ssh tunnel (defaults to off)?")
-      @tunnel_metrics = options[:tunnel_metrics] if @tunnel_metrics.empty?
-      @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
+
+      if options[:collector_domain]
+        @collector_domain = options[:collector_domain]
+      else
+        @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
+      end
+
+      if options[:tunnel_metrics]
+        @tunnel_metrics = options[:tunnel_metrics]
+      else
+        @tunnel_metrics = ask("Tunnel metrics thru ssh tunnel (defaults to off)?")
+        @tunnel_metrics = 'off' if @tunnel_metrics.empty?
+      end
+
+      if options[:perf_collector_cert]
+        @perf_collector_cert_location = options[:perf_collector_cert]
+      else
+        @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
+      end
     end
-    @collector_domain = options[:collector_domain] if @collector_domain.empty?
 
-    @ip_attribute = ask("What compute attribute to use for the ip to connect (if empty defaults to private_ip)?")
-    @ip_attribute = options[:ip_attribute] if @ip_attribute.empty?
 
-    @location = options[:organization] || ask("Queue location?")
+    if options[:ip_attribute]
+      @ip_attribute = options[:ip_attribute]
+    else
+      @ip_attribute = ask("What compute attribute to use for the ip to connect (if empty defaults to private_ip)?")
+      @ip_attribute = 'private_ip' if @ip_attribute.empty?
+    end
+
+    @queue = options[:queue] || ask("Queue?")
 
     @mgmt_url = options[:mgmt_url] || ask("URL to the UI?")
 
-    @logstash_cert_location = ask("Logstash cert file location ? (If empty defaults to local cloud cert)")
-    @logstash_hosts = ask("Comma seperated list of logstash host:port ? (if empty defaults to localhost:5000)")
-    @logstash_hosts = options[:logstash_hosts] if  @logstash_hosts.empty?
+    @logstash_cert_location = options[:logstash_cert_location] || ask("Logstash cert file location ? (If empty defaults to local cloud cert)")
 
-    @max_consumers = ask("Max Consumers?")
-    @max_consumers = options[:max_consumers] if @max_consumers.empty?
+    if options[:logstash_hosts]
+      @logstash_hosts = options[:logstash_hosts]
+    else
+      @logstash_hosts = ask("Comma seperated list of logstash host:port ? (if empty defaults to localhost:5000)")
+      @logstash_hosts = 'localhost:5000' if  @logstash_hosts.empty?
+    end
 
-    @local_max_consumers =  ask("Max Local Consumers (ones for iaas)?")
-    @local_max_consumers = options[:local_max_consumers] if @local_max_consumers.empty?
-
+    @max_consumers = options[:max_consumers] || ask("Max Consumers?")
+    @local_max_consumers = options[:local_max_consumers] || ask("Max Local Consumers (ones for iaas)?")
+      
+    # convert if they copied cloud location from ui
     dot_name = ""
-    @location.split("/").each do |v|
+    @queue.split("/").each do |v|
       dot_name += "." if !dot_name.empty?
       dot_name += "#{v}" if !v.empty?
     end
-    @queue_name = dot_name +".ind-wo"
+    # if real queue name used
+    if dot_name.empty?
+      @queue_name = @queue
+      if !@queue.end_with?(".ind-wo")
+        @queue_name += ".ind-wo"
+      end
+      dot_name = @queue.gsub(".ind-wo","")
+    else
+      @queue_name = dot_name +".ind-wo"      
+    end
     @authkey = options[:authkey] || ask("What is the authorization key?")
-    @additional_java_args= options[:additional_java_args] || ask("Any additional java args to default (If empty uses default.)?")
-
-    @env_vars = ask('Additional env vars to be used for workorder exec? (If empty uses default.)')
-    @env_vars = options[:env_vars] if @env_vars.empty?
+    @additional_java_args= options[:additional_java_args] || ask("Additional Java args (default empty)?")
+    @env_vars = options[:env_vars] || ask("Environment Variables to pass to Executor (default empty)?")
     
     @amq_truststore_location = options[:amq_truststore_location] || ask("Location of TrustStore to connect AMQ (If empty no trustStore is used)?")
 
@@ -211,7 +229,11 @@ class Inductor < Thor
 
     def validate_user
       current_user = `whoami`.chomp
-      user=`cat user`.chomp
+      if File.exists?("inductor/user")
+        user=`cat inductor/user`.chomp       
+      else
+        user=`cat user`.chomp
+      end
       if current_user != user
         puts "Inductor was created using user: #{user} - Please sudo to that user."
         exit 1

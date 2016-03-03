@@ -28,6 +28,8 @@ Gem::Specification.new do |s|
   s.add_dependency "mime-types", '= 1.25.1'
   s.add_dependency "mixlib-shellout", '= 1.4.0'
   s.add_dependency "net-ssh", '= 2.6.5'
+  s.add_dependency "net-scp", '= 1.1.2'
+  s.add_dependency "net-ldap", '= 0.6.1'   
   s.add_dependency "json", '= 1.8.3'
   s.add_dependency "nokogiri", '= 1.5.11'
   s.add_dependency "kramdown", '= 1.9.0'
