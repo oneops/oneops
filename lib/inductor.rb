@@ -231,7 +231,11 @@ class Inductor < Thor
 
     def validate_user
       current_user = `whoami`.chomp
-      user=`cat user`.chomp
+      if File.exists?("inductor/user")
+        user=`cat inductor/user`.chomp       
+      else
+        user=`cat user`.chomp
+      end
       if current_user != user
         puts "Inductor was created using user: #{user} - Please sudo to that user."
         exit 1
