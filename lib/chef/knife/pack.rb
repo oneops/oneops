@@ -75,6 +75,7 @@ class Chef
       @variables = Mash.new
       @env_run_lists = {"_default" => Chef::RunList.new}
       @owner = ''
+      @policies = Mash.new
       #@couchdb_rev = nil
       #@couchdb_id = nil
       #@couchdb = couchdb || Chef::CouchDB.new
@@ -458,12 +459,48 @@ class Chef
       @variables[name]
     end
 
+
+    def policies(arg=nil)
+      set_or_return(
+          :policies,
+          arg,
+          :kind_of => Hash
+      )
+    end
+
+    def policy(name, options={})
+      validate(
+          options,
+          {
+              :except => { :kind_of => Array },
+              :only => { :kind_of => Array },
+              :description => { :kind_of => String },
+              :owner => { :kind_of => String },
+              :value => { :kind_of => String }
+          }
+      )
+      @policies[name] = options
+      @policies[name]
+    end
+
     def environment_variables(environment)
       @variables.reject do |n,r|
         if vars = r[:only]
           vars.include?(environment) ? false : true
         elsif eps = r[:except]
           vars.include?(environment) ? true : false
+        else
+          false
+        end
+      end
+    end
+
+    def environment_policies(environment)
+      @policies.reject do |n,r|
+        if pols = r[:only]
+          pols.include?(environment) ? false : true
+        elsif eps = r[:except]
+          pols.include?(environment) ? true : false
         else
           false
         end
@@ -493,6 +530,7 @@ class Chef
         "entrypoints" => @entrypoints,
         "procedures" => @procedures,
         "variables" => @variables,
+        "policies" => @policies,
         "chef_type" => "pack",
         "run_list" => run_list,
         "owner" => @owner,
