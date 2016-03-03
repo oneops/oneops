@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.transistor.domain.CatalogExport;
+import com.oneops.transistor.export.domain.DesignExportSimple;
 
 @Transactional
 public interface DesignManager {
@@ -32,6 +33,9 @@ public interface DesignManager {
 	public long saveAssemblyAsCatalog(CmsCI catalogCI, long sourceAssemblyId, String userId, String scope);
 	public CatalogExport exportCatalog(long catalogCIid, String scope);
 	public long importCatalog(CatalogExport catExp, String userId, String scope);
+	public DesignExportSimple exportDesign(long assemblyId, String name, String description);
+	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des); 
+	public void updateOwner(long assemblyId);
 	
 }
 

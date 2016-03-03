@@ -20,11 +20,17 @@ package com.oneops.transistor.service;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.transistor.domain.CatalogExport;
+import com.oneops.transistor.export.domain.DesignExportSimple;
 
 public class DesignManagerImpl implements DesignManager {
 
 	private DesignRfcProcessor designRfcProcessor;
+	private DesignExportProcessor designExpProcessor;
 	private CatalogProcessor catalogProcessor;
+	
+	public void setDesignExpProcessor(DesignExportProcessor designExpProcessor) {
+		this.designExpProcessor = designExpProcessor;
+	}
 
 	public void setDesignRfcProcessor(DesignRfcProcessor designRfcProcessor) {
 		this.designRfcProcessor = designRfcProcessor;
@@ -37,7 +43,8 @@ public class DesignManagerImpl implements DesignManager {
 	@Override
 	public long generatePlatform(CmsRfcCI platRfc, long assemblyId,
 			String userId, String scope) {
-		return designRfcProcessor.generatePlatFromTmpl(platRfc, assemblyId, userId, scope);
+		CmsRfcCI designPlatformRfc = designRfcProcessor.generatePlatFromTmpl(platRfc, assemblyId, userId, scope); 
+		return designPlatformRfc.getCiId();
 	}
 
 	@Override
@@ -72,6 +79,21 @@ public class DesignManagerImpl implements DesignManager {
 	@Override
 	public long deletePlatform(long platformId, String userId, String scope) {
 		return designRfcProcessor.deletePlatform(platformId, userId, scope);
+	}
+
+	@Override
+	public DesignExportSimple exportDesign(long assemblyId, String name, String description) {
+		return designExpProcessor.exportDesign(assemblyId, name, description);
+	}
+
+	@Override
+	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des) {
+		return designExpProcessor.importDesign(assemblyId, userId, scope, des);
+	}
+
+	@Override
+	public void updateOwner(long assemblyId) {
+		designExpProcessor.populateOwnerAttribute(assemblyId);
 	}
 
 

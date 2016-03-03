@@ -460,6 +460,34 @@ public class TransUtil {
 		
 	}
 
+	public CmsRfcCI bootstrapRfc(String ciName,String className, String nsPath, String releaseNsPath, Set<String> attrsToBootstrap) {
+		
+		CmsRfcCI newRfc = new CmsRfcCI();
+		newRfc.setNsPath(nsPath);
+		newRfc.setCiName(ciName);
+		newRfc.setReleaseNsPath(releaseNsPath);
+		
+		CmsClazz targetClazz = mdProcessor.getClazz(className);
+		
+		newRfc.setCiClassId(targetClazz.getClassId());
+		newRfc.setCiClassName(className);
+		
+	    for (CmsClazzAttribute clAttr : targetClazz.getMdAttributes()) {
+	    	if (clAttr.getDefaultValue() != null || 
+	    			(attrsToBootstrap!=null && attrsToBootstrap.contains(clAttr.getAttributeName()))) {
+	    		CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+	    		rfcAttr.setAttributeId(clAttr.getAttributeId());
+	    		rfcAttr.setAttributeName(clAttr.getAttributeName());
+	    		rfcAttr.setNewValue(clAttr.getDefaultValue());
+	    		newRfc.addAttribute(rfcAttr);
+	    	}
+	    }
+	    
+		return newRfc;
+	}
+
+	
+	
 	public CmsRfcRelation bootstrapRelationRfcWithAttrs(long fromCiId, long toCiId, String relName, String nsPath, String releaseNsPath, Map<String, CmsCIRelationAttribute> baseAttrs) {
 		CmsRfcRelation newRfc = new CmsRfcRelation();
 		newRfc.setNsPath(nsPath);
@@ -637,4 +665,5 @@ public class TransUtil {
 	public void processAllVars(CmsCI ci, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
 		cmsUtil.processAllVars(ci, cloudVars, globalVars, localVars);
 	}
+
 }

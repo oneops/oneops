@@ -19,6 +19,8 @@
 	
 	<bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
 
+	<bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil"/>
+
 	<bean id="trUtil" class="com.oneops.transistor.service.TransUtil">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="nsManager" ref="cmsNsManager" />
@@ -57,6 +59,16 @@
         <property name="trUtil" ref="trUtil" />
     </bean>
 
+	<bean id="designExpProcessor" class="com.oneops.transistor.service.DesignExportProcessor">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="designRfcProcessor" ref="designRfcProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="trUtil" ref="trUtil" />
+		<property name="ciMapper" ref="ciMapper" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+    </bean>
+
+
 	<bean id="catalogProcessor" class="com.oneops.transistor.service.CatalogProcessor">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="trUtil" ref="trUtil" />
@@ -73,6 +85,7 @@
 
 	<bean id="dManager" class="com.oneops.transistor.service.DesignManagerImpl">
 		<property name="designRfcProcessor" ref="designRfcProcessor" />
+		<property name="designExpProcessor" ref="designExpProcessor" />
 		<property name="catalogProcessor" ref="catalogProcessor" />
     </bean>
 

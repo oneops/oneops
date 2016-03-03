@@ -54,6 +54,7 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.domain.IaasRequest;
 import com.oneops.transistor.exceptions.TransistorException;
+import com.oneops.transistor.export.domain.DesignExportSimple;
 import com.oneops.transistor.service.BomAsyncProcessor;
 import com.oneops.transistor.service.BomEnvManager;
 import com.oneops.transistor.service.DesignManager;
@@ -267,6 +268,64 @@ public class TransistorRestController extends AbstractRestController {
 		}
 	}
 
+	@RequestMapping(value="/assemblies/{assemblyId}/export", method = RequestMethod.GET)
+	@ResponseBody
+	public DesignExportSimple exportDesign(
+			@PathVariable long assemblyId,
+			@RequestParam(value="name", required = false) String name,
+			@RequestParam(value="description", required = false) String description,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+		try {
+			if (name == null) {
+				name = "OneOps design";
+			}
+			return dManager.exportDesign(assemblyId, name, description);
+		}  catch (CmsBaseException te) {
+			logger.error(te);
+			te.printStackTrace();
+			throw te;
+		}
+	}
+
+	@RequestMapping(value="/assemblies/{assemblyId}/populateOwner", method = RequestMethod.GET)
+	@ResponseBody
+	public String populateOwner(
+			@PathVariable long assemblyId,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+		try {
+			dManager.updateOwner(assemblyId);
+			return "All Done";
+		}  catch (CmsBaseException te) {
+			logger.error(te);
+			te.printStackTrace();
+			throw te;
+		}
+	}
+	
+	
+	@RequestMapping(value="/assemblies/{assemblyId}/import", method = RequestMethod.POST)
+	@ResponseBody
+	public Map<String,String> importDesign(
+			@RequestBody DesignExportSimple designExport,
+			@PathVariable long assemblyId,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+		
+		dManager.importDesign(assemblyId, userId, scope, designExport);
+		
+		Map<String, String> result = new HashMap<String,String>(1); 
+		result.put("result", "success");
+		return result;
+	}
+	
 	@RequestMapping(value="/environments/{envId}", method = RequestMethod.PUT)
 	@ResponseBody
 	public Map<String,String> generateManifest(
