@@ -8,7 +8,7 @@ license 'Copyright OneOps, All rights reserved.'
 
 grouping 'default',
          :access    => 'global',
-         :packages  => %w(base account),
+         :packages  => %w(base mgmt.catalog mgmt.manifest account),
          :namespace => true
 
 

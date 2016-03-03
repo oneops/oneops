@@ -1,22 +1,24 @@
 Overview
 ========
 
-It is used to setup the framework for cookbook an packs
+Circuit loads model from relative sources.
 
 Repository Directories
 ======================
 
 This repository contains several directories, and each directory contains a README file that describes what it is for in greater detail, and how to use it for managing your systems with Chef.
 
-* `config/` - Contains the Rake configuration file, `rake.rb`.
 * `cookbooks/` - Cookbooks you download or create.
 * `cloud/` - Cloud create and configure.
+* `packs/` - Platform Management Packs to set relationships and availability dimensions.
 
 
-Configuration
+Common Usage:
 =============
-
---circuit create
-
-Use the knife commands to create and install the packs and cookbooks.
+```
+circuit create
+cd circuit ; circuit init
+cd ../circuit-something-someversion
+circuit install
+```
 

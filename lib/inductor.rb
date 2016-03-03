@@ -8,39 +8,23 @@ class Inductor < Thor
 
   desc "create", "Creates and configures a new inductor"
   method_option :path, :default => File.expand_path('inductor', Dir.pwd)
-  method_option :bundle, :default => true
   method_option :force, :default => true
   def create
+
+    if !File.exists?("inductor/user")
+      current_user=`whoami`.chomp
+      `mkdir -p inductor`
+      File.write("inductor/user",current_user)
+    else
+      validate_user      
+    end
+        
     directory File.expand_path('templates/inductor',File.dirname(__FILE__)), options[:path]
     empty_directory "#{options[:path]}/clouds-available"
     empty_directory "#{options[:path]}/clouds-enabled"
     empty_directory "#{options[:path]}/log"
     empty_directory "#{options[:path]}/shared"
     directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/shared"
-    system("chmod +x #{options[:path]}/shared/*.rb")
-
-    #copy_file File.expand_path('../target/inductor-1.0.1.jar',File.dirname(__FILE__)), "#{path}/lib"
-    if options[:bundle]
-      inside(File.expand_path(options[:path])) do
-
-        rubygems=ENV['rubygems']
-        unless ENV['rubygems']
-          rubygems = `source /etc/profile.d/oneops.sh 2> /dev/null && echo $rubygems`.chomp
-        end
-
-        if !rubygems.empty?
-          run("sed -i 's@http://rubygems.org@#{rubygems}@' Gemfile")
-        end
-        run("bundle install")
-        ec = $?.to_i
-        if ec != 0
-          say_status :error, "bundle install exit code: #{ec}"
-          exit ec
-        end
-      end
-    else
-      say_status('warning',"execute 'bundle install' from #{options[:path]} directory to complete the install")
-    end
 
     # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
@@ -58,78 +42,126 @@ class Inductor < Thor
     say_status :success, "Next Step: cd inductor ; inductor add"
   end
 
-
   desc "add", "Add cloud to the inductor"
   method_option :mqhost, :type => :string, :default => 'localhost'
   method_option :mqport, :type => :numeric, :default => 61617
-  method_option :daq_enabled, :type => :string, :default => 'false'
-  method_option :collector_domain, :type => :string, :default => 'collector.oneops.com'
-  method_option :perf_collector_cert, :type => :string, :default => ''
-  method_option :dns, :type => :string, :default => 'off'
-  method_option :debug, :type => :string, :default => 'off'
-  method_option :ip_attribute, :type => :string, :default => 'private_ip'
-  method_option :organization, :type => :string, :required => false
-  method_option :provider, :type => :string, :required => false
-  method_option :cloud, :type => :string, :required => false
-  method_option :authkey, :type => :string, :required => false
-  method_option :logstash_cert_location, :type => :string, :default => ''
-  method_option :logstash_hosts, :type => :string, :default => 'localhost:5000'
-  method_option :max_consumers, :type => :string, :default => '10'
-  method_option :local_max_consumers, :type => :string, :default => '5'
+  method_option :daq_enabled, :type => :string
+  method_option :tunnel_metrics, :type => :string 
+  method_option :collector_domain, :type => :string
+  method_option :perf_collector_cert, :type => :string
+  method_option :dns, :type => :string
+  method_option :debug, :type => :string
+  method_option :ip_attribute, :type => :string 
+  method_option :queue, :type => :string
+  method_option :authkey, :type => :string
+  method_option :mgmt_url, :type => :string
+  method_option :logstash_cert_location, :type => :string
+  method_option :logstash_hosts, :type => :string
+  method_option :max_consumers, :type => :string
+  method_option :local_max_consumers, :type => :string
+  method_option :additional_java_args, :type => :string
+  method_option :env_vars, :type => :string
+  method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
-  method_option :additional_java_args, :type => :string, :required => false
-  method_option :env_vars, :type => :string, :default => ''
-
   def add
-    @inductor = File.expand_path(Dir.pwd)
-    @mqhost = ask("What message queue host (if empty defaults to localhost)?")
-    @mqhost = options[:mqhost] if @mqhost.empty?
+    validate_user
+    if options[:mqhost]
+      @mqhost = options[:mqhost]
+    else
+      @mqhost = ask("What message queue host (if empty defaults to localhost)?")
+      @mqhost = 'localhost' if @mqhost.empty?
+    end
 
-    @dns = ask("Manage dns? (on or off - defaults to off)")
-    @dns = options[:dns] if @dns.empty?
+    if options[:dns]
+      @dns = options[:dns]
+    else
+      @dns = ask("Manage dns? (on or off - defaults to off)")
+      @dns = 'off' if @dns.empty?
+    end
 
-    @debug = ask("Debug mode? (keeps ssh keys and doesn't terminate compute on compute::add failure. on or off - defaults to off)")
-    @debug = options[:debug] if @debug.empty?
+    if options[:debug]
+      @debug = options[:debug]
+    else
+      @debug = ask("Debug mode? (keeps ssh keys and doesn't terminate compute on compute::add failure. on or off - defaults to off)")
+      @debug = 'off' if @debug.empty?
+    end
 
-    @daq_enabled = ask("Metrics collections? (if empty defaults to false)?")
-    @daq_enabled = options[:daq_enabled] if @daq_enabled.empty?
+    if options[:daq_enabled]
+      @daq_enabled = options[:daq_enabled]
+    else
+      @daq_enabled = ask("Metrics collections? (if empty defaults to false)?")
+      @daq_enabled = 'false' if @daq_enabled.empty?
+    end
 
     @collector_domain = ''
+    @tunnel_metrics = ''
     if @daq_enabled == 'true'
-      @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
-      @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
+
+      if options[:collector_domain]
+        @collector_domain = options[:collector_domain]
+      else
+        @collector_domain = ask("What collector domain (the domain of your forge or collector)?")
+      end
+
+      if options[:tunnel_metrics]
+        @tunnel_metrics = options[:tunnel_metrics]
+      else
+        @tunnel_metrics = ask("Tunnel metrics thru ssh tunnel (defaults to off)?")
+        @tunnel_metrics = 'off' if @tunnel_metrics.empty?
+      end
+
+      if options[:perf_collector_cert]
+        @perf_collector_cert_location = options[:perf_collector_cert]
+      else
+        @perf_collector_cert_location = ask("Perf Collector cert file location ? (If empty defaults to local cloud cert)")
+      end
     end
-    @collector_domain = options[:collector_domain] if @collector_domain.empty?
 
-    @ip_attribute = ask("What compute attribute to use for the ip to connect (if empty defaults to private_ip)?")
-    @ip_attribute = options[:ip_attribute] if @ip_attribute.empty?
 
-    @location = options[:organization] || ask("Queue location?")
+    if options[:ip_attribute]
+      @ip_attribute = options[:ip_attribute]
+    else
+      @ip_attribute = ask("What compute attribute to use for the ip to connect (if empty defaults to private_ip)?")
+      @ip_attribute = 'private_ip' if @ip_attribute.empty?
+    end
+
+    @queue = options[:queue] || ask("Queue?")
 
     @mgmt_url = options[:mgmt_url] || ask("URL to the UI?")
 
-    @logstash_cert_location = ask("Logstash cert file location ? (If empty defaults to local cloud cert)")
-    @logstash_hosts = ask("Comma seperated list of logstash host:port ? (if empty defaults to localhost:5000)")
-    @logstash_hosts = options[:logstash_hosts] if  @logstash_hosts.empty?
+    @logstash_cert_location = options[:logstash_cert_location] || ask("Logstash cert file location ? (If empty defaults to local cloud cert)")
 
-    @max_consumers = ask("Max Consumers?")
-    @max_consumers = options[:max_consumers] if @max_consumers.empty?
+    if options[:logstash_hosts]
+      @logstash_hosts = options[:logstash_hosts]
+    else
+      @logstash_hosts = ask("Comma seperated list of logstash host:port ? (if empty defaults to localhost:5000)")
+      @logstash_hosts = 'localhost:5000' if  @logstash_hosts.empty?
+    end
 
-    @local_max_consumers =  ask("Max Local Consumers (ones for iaas)?")
-    @local_max_consumers = options[:local_max_consumers] if @local_max_consumers.empty?
-
+    @max_consumers = options[:max_consumers] || ask("Max Consumers?")
+    @local_max_consumers = options[:local_max_consumers] || ask("Max Local Consumers (ones for iaas)?")
+      
+    # convert if they copied cloud location from ui
     dot_name = ""
-    @location.split("/").each do |v|
+    @queue.split("/").each do |v|
       dot_name += "." if !dot_name.empty?
       dot_name += "#{v}" if !v.empty?
     end
-    @queue_name = dot_name +".ind-wo"
+    # if real queue name used
+    if dot_name.empty?
+      @queue_name = @queue
+      if !@queue.end_with?(".ind-wo")
+        @queue_name += ".ind-wo"
+      end
+      dot_name = @queue.gsub(".ind-wo","")
+    else
+      @queue_name = dot_name +".ind-wo"      
+    end
     @authkey = options[:authkey] || ask("What is the authorization key?")
-    #java -Dconf.dir=/opt/oneops/inductor/clouds-enabled/public.walmartlabs.clouds.openstack-ctf3/conf -Dlog4j.configuration=file:///opt/oneops/inductor/clouds-enabled/public.walmartlabs.clouds.openstack-ctf3/conf/log4j.xml -Djavax.net.ssl.trustStore=/opt/oneops/inductor/lib/client.ts -jar /usr/lib/ruby/gems/1.8/gems/oneops-admin-1.0.0/target/inductor-1.1.0.jar
-    @additional_java_args= options[:additional_java_args] || ask("Any additional java args to default (If empty uses default.)?")
-
-    @env_vars = ask('Additional env vars to be used for workorder exec? (If empty uses default.)')
-    @env_vars = options[:env_vars] if @env_vars.empty?
+    @additional_java_args= options[:additional_java_args] || ask("Additional Java args (default empty)?")
+    @env_vars = options[:env_vars] || ask("Environment Variables to pass to Executor (default empty)?")
+    
+    @amq_truststore_location = options[:amq_truststore_location] || ask("Location of TrustStore to connect AMQ (If empty no trustStore is used)?")
 
     @home = File.expand_path("clouds-available/#{dot_name}")
     @logstash_cert_location = "#{@home}/logstash-forwarder/cert/logstash-forwarder.crt" if  @logstash_cert_location.empty?
@@ -142,6 +174,7 @@ class Inductor < Thor
     empty_directory "#{@home}/backup"
     empty_directory "#{@home}/data"
     empty_directory "#{@home}/retry"
+        
     # enable cloud
     inside("clouds-available") do
       if File.symlink?("../clouds-enabled/#{dot_name}")
@@ -151,7 +184,7 @@ class Inductor < Thor
         say_status('enable',"clouds-enabled/#{dot_name}")
       end
     end
-
+    
     say_status :success, "Next Step: inductor start ; inductor tail"
 
   end
@@ -194,26 +227,19 @@ class Inductor < Thor
 
   no_commands do
 
-   def agent_status_by_cloud(long_cloud,say_things=true)
-      ec = 0
-      long_path = File.expand_path(long_cloud)
-      inductor_agent = "#{long_path}/bin/inductor_agent.sh"
-      log_dir = "#{long_path}/log"
-      system("chmod +x #{inductor_agent}")
-      cmd = "#{inductor_agent} status #{log_dir}"
-      puts "cmd: #{cmd}" if options[:verbose]
-      status_result = `#{cmd}`
-      status = "log agent ok"
-      color = :green
-      if status_result.to_s =~ /not/
-        ec = 1
-        status = "log agent down"
-        color = :red
+    def validate_user
+      current_user = `whoami`.chomp
+      if File.exists?("inductor/user")
+        user=`cat inductor/user`.chomp       
+      else
+        user=`cat user`.chomp
       end
-      say_status(status, "#{long_cloud} "+status_result.to_s, color) if say_things
-      return ec
+      if current_user != user
+        puts "Inductor was created using user: #{user} - Please sudo to that user."
+        exit 1
+      end      
     end
-
+    
     def status_by_cloud(long_cloud)
       ec = 0
       long_path = File.expand_path(long_cloud)
@@ -231,21 +257,6 @@ class Inductor < Thor
       return ec
     end
 
-
-   def start_agent_by_cloud(long_cloud)
-        long_path = File.expand_path(long_cloud)
-
-        agent_running = agent_status_by_cloud(long_cloud,false)
-        if agent_running < 1
-          say_status("start","#{long_cloud} log agent already running")
-        else
-          inductor_agent = "#{long_path}/bin/inductor_agent.sh"
-          system("chmod +x #{inductor_agent}")
-          run("#{inductor_agent} start #{long_path}/log >/dev/null 2>&1 &", :verbose => false)
-          say_status("start", "log agent")
-        end
-    end
-
     def start_by_cloud(long_cloud)
         long_path = File.expand_path(long_cloud)
         cmd = "pgrep -f \"#{long_path}.*inductor-\""
@@ -255,24 +266,21 @@ class Inductor < Thor
         else
           args = "-Dconf.dir=#{long_path}/conf "
           args += "-Dlog4j.configuration=file://#{long_path}/conf/log4j.xml "
-          args += "-Djavax.net.ssl.trustStore=#{Inductor.ts} "
           if File.exist?("#{long_path}/conf/vmargs")
             additional_args =`cat #{long_path}/conf/vmargs`.chomp
             args += additional_args
           end
-          run("java #{args} -jar #{Inductor.jar} >/dev/null 2>&1 &", :verbose => false)
-          say_status('start',long_cloud)
+          run("java #{args} -jar #{Inductor.jar} >/dev/null 2>&1 &", :verbose => options[:verbose])
+          say_status('start',long_cloud + " consumer")
         end
 
-        start_agent_by_cloud(long_cloud)
-        start_logstash_agent_by_cloud(long_cloud)
-
+        start_logstash_forwarder_by_cloud(long_cloud)
     end
 
     def stop_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("ps -ef | grep inductor | grep #{File.expand_path(long_cloud)} | grep -v grep | awk '{print \"kill\", $2}' |sh", :verbose => false)
-      say_status('stop',long_cloud)
+      run("ps -ef | grep inductor |grep java |grep #{File.expand_path(long_cloud)} |grep -v grep |awk '{print \"kill\", $2}' |sh", :verbose => options[:verbose])
+      say_status('stop',long_cloud + " consumer")
 
       stopping=true
       cmd = "pgrep -f \"#{long_path}.*inductor-\""
@@ -298,32 +306,15 @@ class Inductor < Thor
         force_stop_by_cloud(long_cloud)
       end
 
-      stop_agent_by_cloud(long_cloud)
-      stop_logstash_agent_by_cloud(long_cloud)
+      stop_logstash_forwarder_by_cloud(long_cloud)
     end
 
 
     def force_stop_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
       run("ps -ef | grep inductor | grep #{File.expand_path(long_cloud)} | grep -v grep | awk '{print \"kill -9\", $2}' |sh", :verbose => false)
-      say_status('force stop',long_cloud)
-
-      stop_agent_by_cloud(long_cloud)
-      stop_logstash_agent_by_cloud(long_cloud)
-    end
-
-
-
-    def stop_agent_by_cloud(long_cloud)
-      long_path = File.expand_path(long_cloud)
-      log_dir = "#{long_path}/log"
-      inductor_agent = " #{long_path}/bin/inductor_agent.sh"
-      say_status("stop",`#{inductor_agent} stop #{log_dir}`)
-    end
-
-    def restart_agent_by_cloud(long_cloud)
-      stop_agent_by_cloud(long_cloud)
-      start_agent_by_cloud(long_cloud)
+      say_status('force stop',long_cloud + " consumer")
+      stop_logstash_forwarder_by_cloud(long_cloud)
     end
 
     def restart_by_cloud(cloud)
@@ -331,29 +322,31 @@ class Inductor < Thor
       start_by_cloud(cloud)
     end
 
-    def start_logstash_agent_by_cloud(long_cloud)
+    def start_logstash_forwarder_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
       conf_file = "#{long_path}/logstash-forwarder/conf/logstash-forwarder.conf"
       log_file  = "#{long_path}/logstash-forwarder/log/output.log"
-      system("chmod 755 #{log_file}")
-      cmd = "pgrep -lf logstash-forwarder|grep #{File.expand_path(long_cloud)}|grep -v grep|wc -l"
+      cmd = "pgrep -af logstash-forwarder|grep #{File.expand_path(long_cloud)}|grep -v grep|wc -l"
       status_result =`#{cmd}`
       if status_result.to_i > 0
         say_status("start","#{long_cloud} logstash_agent already running",:green)
       else
-        system("chmod +x #{Inductor.logstash_forwarder}")
-        run("nohup #{Inductor.logstash_forwarder} -config=#{conf_file} >#{log_file} 2>&1 &", :verbose => false)
+        cmd = "exec nohup #{Inductor.logstash_forwarder} -config=#{conf_file} >#{log_file} 2>&1 &"
+        inside(long_path) do
+          run("#{cmd}", :verbose => options[:verbose])
+        end
         say_status("start", "#{long_cloud} logstash agent",:green)
       end
    end
 
-   def stop_logstash_agent_by_cloud(long_cloud)
+   def stop_logstash_forwarder_by_cloud(long_cloud)
       long_path = File.expand_path(long_cloud)
-      run("pgrep -lf logstash-forwarder|grep #{long_path}|grep -v grep|awk '{print $1}'|xargs kill -9", :verbose => false)
+      cmd = "ps -ef |grep logstash-forwarder |grep #{long_path} |grep -v grep |awk '{print \"kill -9\", $2}' |sh"
+      run(cmd, :verbose => options[:verbose])
       say_status('stop',"logstash agent " +long_path)
    end
 
-   def status_logstash_agent_by_cloud(long_cloud)
+   def status_logstash_forwarder_by_cloud(long_cloud)
       cmd = "pgrep -lf logstash-forwarder|grep #{File.expand_path(long_cloud)}|grep -v grep|wc -l"
       status_result =`#{cmd}`
       if status_result.to_i > 0
@@ -366,16 +359,18 @@ class Inductor < Thor
       say_status(status,"#{long_cloud} " + status_result.to_s, color)
    end
 
-   def restart_logstash_agent_by_cloud(long_cloud)
-      stop_logstash_agent_by_cloud(long_cloud)
-      start_logstash_agent_by_cloud(long_cloud)
+   def restart_logstash_forwarder_by_cloud(long_cloud)
+      stop_logstash_forwarder_by_cloud(long_cloud)
+      start_logstash_forwarder_by_cloud(long_cloud)
    end
-
+   
   end
 
 
   desc "start NAME", "Inductor start"
+  method_option :verbose, :aliases => "-v", :default => false
   def start (pattern='*')
+    validate_user
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         start_by_cloud(long_cloud)
@@ -383,26 +378,20 @@ class Inductor < Thor
     end
   end
 
-  desc "start_agent NAME", "Inductor log agent start"
-  def start_agent(pattern='*')
+  desc "start_logstash_forwarder NAME", "Inductor logstash agent start"
+  def start_logstash_forwarder(pattern='*')
+    validate_user     
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
-        start_agent_by_cloud(long_cloud)
-      end
-    end
-  end
-
-  desc "start_logstash_agent NAME", "Inductor logstash agent start"
-  def start_logstash_agent(pattern='*')
-    inside("clouds-enabled") do
-      Dir.glob(pattern).each do |long_cloud|
-        start_logstash_agent_by_cloud(long_cloud)
+        start_logstash_forwarder_by_cloud(long_cloud)
       end
     end
   end
 
   desc "stop NAME", "Inductor stop (will finish processing active threads)"
+  method_option :verbose, :aliases => "-v", :default => false
   def stop (pattern='*')
+    validate_user    
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         stop_by_cloud(long_cloud)
@@ -412,6 +401,7 @@ class Inductor < Thor
 
   desc "force_stop NAME", "Inductor force stop (will kill -9)"
   def force_stop (pattern='*')
+    validate_user    
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         force_stop_by_cloud(long_cloud)
@@ -419,20 +409,12 @@ class Inductor < Thor
     end
   end
 
-  desc "stop_agent NAME", "Inductor log agent stop"
-  def stop_agent (pattern='*')
+  desc "stop_logstash_forwarder NAME", "Inductor logstash agent stop"
+  def stop_logstash_forwarder (pattern='*')
+    validate_user    
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
-        stop_agent_by_cloud(long_cloud)
-      end
-    end
-  end
-
-  desc "stop_logstash_agent NAME", "Inductor logstash agent stop"
-  def stop_logstash_agent (pattern='*')
-    inside("clouds-enabled") do
-      Dir.glob(pattern).each do |long_cloud|
-        stop_logstash_agent_by_cloud(long_cloud)
+        stop_logstash_forwarder_by_cloud(long_cloud)
       end
     end
   end
@@ -444,18 +426,11 @@ class Inductor < Thor
     invoke :start, pattern
   end
 
-  desc "restart_agent NAME", "Inductor restart"
-  def restart_agent(pattern='*')
+  desc "restart_logstash_forwarder NAME", "Inductor logstash agent restart"
+  def restart_logstash_forwarder(pattern='*')
     pattern = "*" if pattern.nil?
-    invoke :stop_agent, pattern
-    invoke :start_agent, pattern
-  end
-
-  desc "restart_logstash_agent NAME", "Inductor logstash agent restart"
-  def restart_logstash_agent(pattern='*')
-    pattern = "*" if pattern.nil?
-    invoke :stop_logstash_agent, pattern
-    invoke :start_logstash_agent, pattern
+    invoke :stop_logstash_forwarder, pattern
+    invoke :start_logstash_forwarder, pattern
   end
 
   desc "tail", "Inductor log tail"
@@ -471,29 +446,17 @@ class Inductor < Thor
     system(cmd)
   end
 
-  desc "status_agent", "Inductor log flume agent status"
-  method_option :verbose, :aliases => "-v", :default => nil
-  def status_agent
-    ec = 0
-    inside("clouds-enabled") do
-      Dir.glob("*").each do |long_cloud|
-        ec = agent_status_by_cloud(long_cloud)
-      end
-    end
-    exit ec
-  end
-
-  desc "status_logstash_agent NAME", "Inductor logstash agent status"
-  def status_logstash_agent (pattern='*')
+  desc "status_logstash_forwarder NAME", "Inductor logstash agent status"
+  def status_logstash_forwarder (pattern='*')
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
-        status_logstash_agent_by_cloud(long_cloud)
+        status_logstash_forwarder_by_cloud(long_cloud)
       end
     end
   end
 
   desc "status", "Inductor status"
-  method_option :verbose, :aliases => "-v", :default => nil
+  method_option :verbose, :aliases => "-v", :default => false
   def status
     ec = 0
     inside("clouds-enabled") do
@@ -508,6 +471,7 @@ class Inductor < Thor
   method_option :verbose, :aliases => "-v", :default => nil
   def check
 
+    validate_user
     ec = 0
     inside("clouds-enabled") do
       Dir.glob("*").each do |long_cloud|
@@ -520,16 +484,17 @@ class Inductor < Thor
     exit ec
   end
 
-  desc "check_agent", "Inductor check agent"
+  desc "check_agent", "Inductor check logstash forwarder"
   method_option :verbose, :aliases => "-v", :default => nil
   def check_agent
 
+    validate_user
     ec = 0
     inside("clouds-enabled") do
       Dir.glob("*").each do |long_cloud|
-        ec = agent_status_by_cloud(long_cloud)
+        ec = status_logstash_forwarder_by_cloud(long_cloud)
         if ec != 0
-          restart_agent_by_cloud(long_cloud)
+          restart_logstash_forwarder_by_cloud(long_cloud)
         end
       end
     end
@@ -549,12 +514,7 @@ class Inductor < Thor
   def self.source_root
     File.dirname(__FILE__)
   end
-
-  @ts = File.expand_path("lib/client.ts",Dir.pwd)
-  def self.ts
-    return @ts
-  end
-
+  
   def self.jar
     File.expand_path("../target/inductor-1.1.0.jar", File.dirname(__FILE__))
   end
@@ -567,3 +527,4 @@ class Inductor < Thor
 end
 
 Inductor.start
+

@@ -85,7 +85,7 @@ default_impl 'oo::chef-11.4.0'
 EOH
     end
     
-    puts "Next Step: cd #{options[:path]} ; Use knife commands to add the cookbook and packs"
+    puts "Next Step: cd circuit ; circuit init"
   end
 
   def self.source_root

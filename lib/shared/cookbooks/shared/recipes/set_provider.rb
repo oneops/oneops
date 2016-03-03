@@ -57,8 +57,16 @@ when /rackspace/
 
   provider = Fog::Compute::RackspaceV2.new({
     :rackspace_api_key => cloud[:password],
-    :rackspace_username => cloud[:username]
+    :rackspace_username => cloud[:username],
+    :rackspace_region => cloud[:region]
   })
+
+  network_provider = Fog::Rackspace::NetworkV2.new({
+    :rackspace_api_key => cloud[:password],
+    :rackspace_username => cloud[:username],
+    :rackspace_region => cloud[:region]
+  })
+  node.set["network_provider"] = network_provider
 
 when /azure/
   provider = 'azure'
@@ -96,7 +104,8 @@ when /cinder/
 when /rackspace/
   node.set[:storage_provider] = Fog::Rackspace::BlockStorage.new({
     :rackspace_api_key => cloud[:password],
-    :rackspace_username => cloud[:username]
+    :rackspace_username => cloud[:username],
+    :rackspace_region => cloud[:region]
   })  
 end
 
