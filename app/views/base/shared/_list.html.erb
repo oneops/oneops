@@ -5,7 +5,9 @@
    hash_param_name = list_name || 'list_item'
    pagination      = options[:paginate].presence || nil
    header          = options[:header].presence || nil
-   footer          = options[:footer].presence || nil %>
+   footer          = options[:footer].presence || nil
+   new_link        = options[:new_link].presence
+   new_link        = nil unless new_link.present? && dto_allowed? %>
 <div id="<%= list_id %>" class="<%= list_class %> <%= 'list-paginated' if pagination %>"
  <%= raw %(data-paginate-url="#{pagination[:url]}" data-paginate-size="#{pagination[:size]}" data-paginate-offset="0") if pagination %> >
   <% if header || pagination %>
@@ -24,23 +26,18 @@
   <div class="list-body" data-hash-param-name="<%= hash_param_name %>">
     <ul>
       <%= raw(list_content) %>
-      <li class="paginate-insert-locator"></li>
-      <% new_link = options[:new_link]
-         if new_link.blank?
-           new_path = options[:new_path]
-           new_link = link_to('Create New ...', new_path, :remote => true) if new_path.present?
-         end %>
-      <% if new_link.present? && dto_allowed? %>
-        <% new_item_id = list_name ? "new_#{list_name}" : '' %>
-        <li <%= raw("id='item_#{new_item_id}'") if new_item_id.present? %> class="new" onclick="mark_current_list_item(this, '<%= new_item_id %>')">
-          <span class='link target'><%= new_link %></span>
-        </li>
-      <% end %>
     </ul>
   </div>
-  <% if footer || pagination %>
+  <% if footer || pagination || new_link %>
     <div class="list-footer">
+      <% if new_link %>
+        <div class="new-link">
+          <%= new_link %>
+        </div>
+      <% end %>
+
       <%= footer if footer %>
+
       <% if pagination %>
         <div class="paginate-footer">
           <%= link_to_function("Load #{pagination[:size]} more", 'list_paginate(this, "add")', :class => 'btn load-next', :style => 'display:none') %>
@@ -221,8 +218,8 @@
       var showing_size = (content_offset + content_size);
       var listDiv = $j(list).closest('.list-paginated');
       listDiv.attr('data-paginate-offset', content_offset + content_size);
-      listDiv.find(".list-body > ul > li:not(.new):not(.paginate-insert-locator):nth-child(n+" + content_offset + ")").remove();
-      listDiv.find(".paginate-insert-locator").before(content);
+      listDiv.find(".list-body > ul > li:nth-child(n+" + (content_offset + 1) + ")").remove();
+      listDiv.find(".list-body > ul").append(content);
       listDiv.find('.paginate-header span.summary').html("Showing " + showing_size + " of " + total_count);
       listDiv.find('.list-header').show();
       listDiv.find('.list-toolbar').show();

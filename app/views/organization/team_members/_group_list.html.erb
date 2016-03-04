@@ -1,5 +1,5 @@
 <%= grouped_list(@team.groups.includes(:users).all,
-                 :new_link => is_admin? && link_to_function('Add group...', 'new_team_group_dialog()'),
+                 :new_link => is_admin? && link_to_function(icon('plus', 'Add group...'), 'new_team_group_dialog()'),
                  :collapse => true,
                  :toolbar  => {:list_name => 'team_group_list',
                                :filter_by => %w(username group)}) do |group_builder, group| %>

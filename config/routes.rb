@@ -47,8 +47,10 @@ Display::Application.routes.draw do
       post 'compute'
       get  'search'
       get  'organizations'
+      get  'users'
+      get  'user'
 
-      get    'organization/:name', :action => 'organization', :as => 'organization'
+      get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
     end
   end

@@ -231,7 +231,7 @@
 
     window.update_filter_marker = function(list) {
       list = $j(list);
-      list.find(".list-count-marker").html(list.find(".list-body ul li:not(.new):not(.group-header):not(.paginate-insert-locator):visible").length);
+      list.find(".list-count-marker").html(list.find(".list-body ul li:not(.group-header):visible").length);
     }
   }
 </script>

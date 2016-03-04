@@ -1,5 +1,5 @@
 <%= list(@team.users.all,
-         :new_link => is_admin? && link_to_function('Add user...', 'new_team_user_dialog()'),
+         :new_link => is_admin? && link_to_function(icon('plus', 'Add user...'), 'new_team_user_dialog()'),
          :toolbar => {:list_name => 'team_user_list',
                       :sort_by   => [%w(Username username), %w(Email email)],
                       :filter_by => %w(username email)}) do |builder, user| %>

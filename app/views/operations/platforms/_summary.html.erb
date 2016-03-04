@@ -2,7 +2,7 @@
   <% toolbar = {:list_name => 'component_instances',
                 :sort_by   => [%w(Name ciName), %w(Health health)],
                 :filter_by => %w(ciName health)} %>
-  <%= ci_list(@requires.map(&:toCi).sort_by(&:ciClassName), :new_path => nil, :toolbar => toolbar) do |builder, target| %>
+  <%= ci_list(@requires.map(&:toCi).sort_by(&:ciClassName), :toolbar => toolbar) do |builder, target| %>
     <% health = target.health
        state = nil
        if health

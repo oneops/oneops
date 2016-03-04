@@ -1,0 +1,54 @@
+<% if @user %>
+  <%= section_panel 'Info', :width => 'single' do %>
+    <dl>
+      <dt>ID</dt>
+      <dd><%= @user.id %></dd>
+      <dt>Name</dt>
+      <dd><%= @user.name %></dd>
+      <dt>Email</dt>
+      <dd><%= @user.email %></dd>
+      <dt>Created At</dt>
+      <dd><%= time_ago_in_words(@user.created_at) %></dd>
+      <dt>Last Sign-in At</dt>
+      <dd><%= time_ago_in_words(@user.last_sign_in_at) %></dd>
+    </dl>
+  <% end %>
+  <%= section_panel 'Organizatios & Teams', :width => 'single', :position => 'left' do %>
+    <%= grouped_list(@teams, :toolbar => {:sort_by   => nil,
+                                          :filter_by => %w(org team)}) do |group_builder, org| %>
+      <% items = org[:items] %>
+      <% group_builder.icon ci_class_image_url('account.Organization') %>
+      <% org_name = org[:organization]
+         group_builder.title org_name %>
+      <% group_builder.menu do %>
+        <span class="label label-count"><%= items.size %></span>
+      <% end %>
+      <%= group_builder.items(items.sort_by(&:name)) do |item_builder, team| %>
+        <% item_builder.itemid "team_#{team.id}" %>
+        <% item_builder.attributes raw(%(org="#{org_name}" team="#{team.name}")) %>
+        <% item_builder.top team.name %>
+        <% desc = team.description %>
+        <% item_builder.middle desc if desc.present? %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <%= section_panel 'Groups', :width => 'single' do %>
+    <%= list(@groups,
+             :toolbar  => {:list_name => 'group_list',
+                           :sort_by   => [%w(Name name), %w(Created created)],
+                           :filter_by => %w(name)}) do |builder, group| %>
+      <% group_admin = group.admin? %>
+      <% builder.itemid "group_#{group.id}" %>
+      <% builder.attributes raw(%(name="#{group.name}" created="#{group.created_at}")) %>
+      <% builder.top group.name %>
+      <% desc = group.description %>
+      <% builder.middle desc if desc.present? %>
+      <% builder.bottom raw("created #{time_ago_in_words(group.created_at)} by #{group.created_by}") %>
+      <% builder.status do %>
+        <%= marker('admin', 'label-info') if group_admin %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% else %>
+  User not found.
+<% end %>

@@ -1712,7 +1712,7 @@ img.authicon {
   border-bottom: none;
 }
 
-.list-body > ul > li:not(.new):last-child {
+.list-body > ul > li:last-child {
   border-bottom:    solid 1px #eee;
 }
 
@@ -4181,6 +4181,13 @@ hr {
 
 .list .paginate-header .refresh:hover {
   opacity: 1;
+}
+
+.list .list-footer .new-link {
+  width: 100%;
+  text-align: center;
+  font-size: 14px;
+  padding: 5px 0;
 }
 
 .list .paginate-footer .btn {

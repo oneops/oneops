@@ -2,7 +2,7 @@
    menu = (is_admin? ? [link_to(icon('plus','Add'), new_organization_user_path, :remote => true, :class => 'btn btn-mini')] : nil) %>
 <%= section_panel 'Users', :width => 'triple', :menu => menu do %>
   <%= list(@users,
-           :new_link => (is_admin? ? link_to('Add User...', new_organization_user_path, :remote => true) : nil),
+           :new_link => (is_admin? ? link_to(icon('plus', 'Add User...'), new_organization_user_path, :remote => true) : nil),
            :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Sign In Time', 'sign_in_time'], ['Sign In Count', 'sign_in_count']],
                         :filter_by => %w(email team)}) do |builder, user| %>
     <% builder.itemid user.id %>

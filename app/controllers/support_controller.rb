@@ -132,6 +132,40 @@ class SupportController < ReportsController
     end
   end
 
+  def users
+    username = params[:login]
+    users = []
+    if username.present?
+      login = "%#{username}%"
+      users = User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
+    end
+
+    render :json => users
+  end
+
+  def user
+    user_id = params[:id]
+    if user_id.present?
+      @user = User.where((user_id =~ /\D/ ? :username : :id) => user_id).first
+      if @user
+        @groups = @user.groups.select('groups.*, group_members.admin').order(:name).all
+        team_ids = @user.teams.pluck('teams.organization_id') + @user.teams_via_groups.pluck('teams.organization_id').uniq
+        @teams = Team.where('teams.id IN (?)', team_ids).
+          includes(:organization).
+          order('organizations.name, teams.name').all.
+          group_by {|t| t.organization}.inject([]) do |a, (org, teams)|
+          a << {:id => org.id, :organization => org.name, :items => teams}
+        end
+      end
+    end
+
+    respond_to do |format|
+      format.html
+      format.js
+      format.json {render_json_ci_response(@user.present?, @user)}
+    end
+  end
+
 
   protected
 
@@ -246,6 +280,8 @@ class SupportController < ReportsController
       perm = @permissions.keys.first
     elsif action.start_with?('organization')
       perm = 'organization'
+    elsif action.start_with?('user')
+      perm = 'user'
     elsif action.start_with?('compute')
       perm = 'compute_report'
     elsif action.include?('announcements')

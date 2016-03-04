@@ -56,7 +56,7 @@ class Organization::UsersController < ApplicationController
     user = User.where(:username => username).first
     if user
       if current_user.organization.users.exists?(user)
-        flash[:error] = "User #{username} is already added to organization '#{current_user.organization.name}'."
+        flash[:error] = "User #{username} is already a member of organization '#{current_user.organization.name}'."
       else
         team_ids = params[:teams]
         if team_ids.present?
