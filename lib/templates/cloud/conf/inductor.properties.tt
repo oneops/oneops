@@ -18,7 +18,7 @@ amq.authkey = <%=
   end
   auth %>
 amq.in_queue = <%= @queue_name %>
-packer_home = <%= @inductor %>/packer
+packer_home = <%= @inductor_dir %>/packer
 data_dir = <%= @home %>/data
 scan_path = <%= @home %>/retry
 scan_period = 5
