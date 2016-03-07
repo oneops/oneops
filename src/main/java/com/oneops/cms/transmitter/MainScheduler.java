@@ -36,8 +36,7 @@ public class MainScheduler {
 
 	private boolean isRunning = false;
 	private long lastRun;
-	private ControllerEventPublisher controllerEventPublisher;
-	private CIEventPublisher ciEventPublisher;
+	private EventPublisher eventPublisher;
 	private ControllerEventReader controllerEventReader;
 	private CIEventReader ciEventReader;
 	
@@ -68,7 +67,7 @@ public class MainScheduler {
 			for (CMSEvent event : events) {
 				try {
 					if (event.getPayload() != null) {
-						controllerEventPublisher.publishMessage(event);
+						eventPublisher.publishControllerEvents(event);
 					} else {
 						logger.info("Event payload found null for " + event.getHeaders());
 					}
@@ -96,7 +95,7 @@ public class MainScheduler {
 				String action = event.getHeaders().get("action");
 				try {
 					if (event.getPayload() != null || "delete".equals(action)) {
-						ciEventPublisher.publishMessage(event);
+						eventPublisher.publishCIEvents(event);
 					} else {
 						logger.info("Event payload found null for " + event.getHeaders());
 					}
@@ -118,13 +117,9 @@ public class MainScheduler {
 		ciEventsJobHandle.cancel(true);
 		isRunning = false;
 	}
-	
-	public void setControllerEventPublisher(ControllerEventPublisher controllerEventPublisher) {
-		this.controllerEventPublisher = controllerEventPublisher;
-	}
 
-	public void setCiEventPublisher(CIEventPublisher ciEventPublisher) {
-		this.ciEventPublisher = ciEventPublisher;
+	public void setEventPublisher(EventPublisher eventPublisher) {
+		this.eventPublisher = eventPublisher;
 	}
 
 	public void setControllerEventReader(ControllerEventReader controllerEventReader) {

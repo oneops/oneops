@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jms="http://www.springframework.org/schema/jms"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:amq="http://activemq.apache.org/schema/core"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/util
+						http://www.springframework.org/schema/util/spring-util.xsd
+						http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.0.xsd
+						http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+
+	<amq:broker id="amqBroker" useJmx="false" persistent="false">
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:61626" />
+		</amq:transportConnectors>
+	</amq:broker>
+
+	<amq:connectionFactory id="amqFactory" brokerURL="failover:(tcp://localhost:61626?keepAlive=true)?timeout=2000" />
+	
+	<amq:broker id="searchBroker" useJmx="false" persistent="false">
+		<amq:transportConnectors>
+			<amq:transportConnector uri="tcp://localhost:61636" />
+		</amq:transportConnectors>
+	</amq:broker>
+
+	<amq:connectionFactory id="searchmqFactory" brokerURL="failover:(tcp://localhost:61636?keepAlive=true)?timeout=2000" />
+	
+	<bean id="notificationConfig" class="com.oneops.cms.transmitter.NotificationConfigurator"
+		init-method="init" />
+
+	<bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
+		init-method="init" destroy-method="destroy">
+		<property name="scanFolder" value="/tmp/antenna/retry" />
+		<property name="connFactory" ref="amqFactory" />
+	</bean>
+
+	<bean id="controllerEventReader" class="org.mockito.Mockito"
+		factory-method="mock">
+		<constructor-arg value="com.oneops.cms.transmitter.ControllerEventReader" />
+	</bean>
+
+	<bean id="ciEventReader" class="org.mockito.Mockito"
+		factory-method="mock">
+		<constructor-arg value="com.oneops.cms.transmitter.CIEventReader" />
+	</bean>
+
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_FALLBACK" />
+		<property name="searchSystemEnvironment" value="true" />
+	</bean>
+
+	<bean id="eventPublisher" class="com.oneops.cms.transmitter.EventPublisher">
+		<property name="antennaClient" ref="antennaClient" />
+		<property name="notificationConfig" ref="notificationConfig" />
+		<property name="cmsPublisher" ref="cmsPublisherSpy" />
+		<property name="searchPublisher" ref="searchPublisherSpy" />
+	</bean>
+
+	<bean id="cmsPublisherActual" class="com.oneops.cms.transmitter.CmsPublisher"
+		init-method="init" destroy-method="cleanup">
+		<property name="connFactory" ref="amqFactory" />
+	</bean>
+
+	<bean id="cmsPublisherSpy" class="org.mockito.Mockito"
+		factory-method="spy">
+		<constructor-arg ref="cmsPublisherActual" />
+	</bean>
+
+	<bean id="searchPublisherActual" class="com.oneops.cms.transmitter.SearchPublisher">
+		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+	</bean>
+
+    <bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+        <property name="connFactory" ref="searchmqFactory" />
+        <property name="searchSender" ref="searchJmsSender" />
+        
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
+		<property name="scanFolder" value="/tmp/search/retry" />
+		<property name="name" value="transmitter-search-publish" />
+	</bean>
+	
+
+	<bean id="searchPublisherSpy" class="org.mockito.Mockito"
+		factory-method="spy">
+		<constructor-arg ref="searchPublisherActual" />
+	</bean>
+
+	<bean id="topicConsumer" class="com.oneops.cms.transmitter.JMSConsumer"
+		init-method="init" destroy-method="terminate">
+		<property name="connectionFactory" ref="amqFactory" />
+		<property name="destinationName" value="CMS.ALL" />
+		<property name="destinationType" value="topic" />
+	</bean>
+
+	<bean id="searchConsumer" class="com.oneops.cms.transmitter.JMSConsumer"
+		init-method="init" destroy-method="terminate">
+		<property name="connectionFactory" ref="searchmqFactory" />
+		<property name="destinationName" value="search.stream" />
+		<property name="destinationType" value="queue" />
+	</bean>
+
+	<bean id="scheduler" class="com.oneops.cms.transmitter.MainScheduler"
+		destroy-method="cleanup">
+		<property name="eventPublisher" ref="eventPublisher" />
+		<property name="controllerEventReader" ref="controllerEventReader" />
+		<property name="ciEventReader" ref="ciEventReader" />
+	</bean>
+
+</beans>

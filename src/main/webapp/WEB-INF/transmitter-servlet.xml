@@ -73,26 +73,27 @@
                 <entry key="initialReconnectDelay" value="100"/>
                 <entry key="maxReconnectDelay" value="5000"/>
                 <entry key="maxReconnectAttempts" value="-1"/>
-                <entry key="backup" value="false"/>
                 <entry key="randomize" value="false"/>
+                <entry key="timeout" value="3000"/>
             </util:map>
         </property>
     </bean>
 
     <bean id="searchmqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
         <property name="brokerURL" value="#{searchBrokerURI.build()}"/>
-        <property name="userName" value="${AMQ_USER}"/>
-        <property name="password" value="${KLOOPZ_AMQ_PASS}"/>
+        <property name="userName" value="${SEARCHMQ_USER}"/>
+        <property name="password" value="${SEARCHMQ_PASS}"/>
     </bean>
 
     <bean id="notificationConfig" class="com.oneops.cms.transmitter.NotificationConfigurator" init-method="init"/>
 
   	<bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
 	            init-method="init" destroy-method="destroy">
-	       	<property name="scanFolder" value="/opt/oneops/cms-publisher/antenna/retry" />
-       		<property name="connFactory" ref="amqFactory" />
+		<property name="scanFolder" value="/opt/oneops/transmitter/antenna/retry" />
+		<property name="connFactory" ref="amqFactory" />
+		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
    	</bean>
-
+   	
 	<bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init" destroy-method="cleanup">
 		<property name="sessionFactory" ref="sqlSessionFactory" />
     </bean>
@@ -107,22 +108,35 @@
 	  <property name="searchSystemEnvironment" value="true"/>
 	</bean>
 
+	<bean id="eventPublisher" class="com.oneops.cms.transmitter.EventPublisher">
+		<property name="antennaClient" ref="antennaClient" />
+		<property name="notificationConfig" ref="notificationConfig" />
+		<property name="cmsPublisher" ref="cmsPublisher" />
+		<property name="searchPublisher" ref="searchPublisher" />
+	</bean>
 
-	<bean id="controllerEventPublisher" class="com.oneops.cms.transmitter.ControllerEventPublisher" init-method="init" destroy-method="cleanup">
-        <property name="antennaClient" ref="antennaClient" />
-        <property name="notificationConfig" ref="notificationConfig" />
+	<bean id="cmsPublisher" class="com.oneops.cms.transmitter.CmsPublisher" init-method="init" destroy-method="cleanup">
         <property name="connFactory" ref="amqFactory" />
     </bean>
 
-    <bean id="ciEventPublisher" class="com.oneops.cms.transmitter.CIEventPublisher" init-method="init" destroy-method="cleanup">
-        <property name="antennaClient" ref="antennaClient" />
-        <property name="notificationConfig" ref="notificationConfig" />
-        <property name="connFactory" ref="searchmqFactory" />
-    </bean>
+	<bean id="searchPublisher" class="com.oneops.cms.transmitter.SearchPublisher">
+		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+	</bean>
+
+    <bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+		<property name="connFactory" ref="searchmqFactory" />
+		<property name="searchSender" ref="searchJmsSender" />
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<property name="name" value="transmitter-search-publish" />
+		<property name="shortName" value="transmitter" />
+		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
+		<property name="scanFolder" value="/opt/oneops/transmitter/search/retry" />
+	</bean>
     
   	<bean id="scheduler" class="com.oneops.cms.transmitter.MainScheduler"  destroy-method="cleanup">
-  		<property name="controllerEventPublisher" ref="controllerEventPublisher" />
-        <property name="ciEventPublisher" ref="ciEventPublisher" />
+  		<property name="eventPublisher" ref="eventPublisher" />
   		<property name="controllerEventReader" ref="controllerEventReader" />
   		<property name="ciEventReader" ref="ciEventReader" />
    	</bean>
