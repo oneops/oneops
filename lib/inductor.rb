@@ -235,7 +235,7 @@ class Inductor < Thor
       else
         user=`cat user`.chomp
         if $?.to_i != 0          
-          puts "Inductor was created using user: #{user} - Please sudo to that user."
+          puts "There is no inductor installed in this directory."
         end
       end
       if current_user != user
