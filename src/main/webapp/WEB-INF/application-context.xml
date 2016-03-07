@@ -82,7 +82,44 @@
             init-method="init" destroy-method="destroy">
        	<property name="scanFolder" value="/opt/oneops/opamp/antenna/retry" />
        	<property name="connFactory" ref="jmsFactory" />
+       	<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
    	</bean>
+	
+	<bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+		<property name="connFactory" ref="searchmqFactory" />
+		<property name="searchSender" ref="searchJmsSender" />
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<property name="name" value="opamp-search-publish" />
+		<property name="shortName" value="opamp" />
+		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
+		<property name="scanFolder" value="/opt/oneops/opamp/search/retry" />
+	</bean>
+	
+    <bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="host" value="${SEARCH_AMQ_HOST:searchmq}"/>
+        <property name="port" value="61616"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="true"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="100"/>
+                <entry key="maxReconnectDelay" value="5000"/>
+                <entry key="maxReconnectAttempts" value="-1"/>
+                <entry key="randomize" value="false"/>
+                <entry key="timeout" value="3000"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <bean id="searchmqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="#{searchBrokerURI.build()}"/>
+        <property name="userName" value="${SEARCHMQ_USER}"/>
+        <property name="password" value="${SEARCHMQ_PASS}"/>
+    </bean>
 	
 	<bean id="notifier" class="com.oneops.opamp.service.Notifications">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
