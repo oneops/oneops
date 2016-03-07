@@ -64,6 +64,7 @@ class Inductor < Thor
   method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
   def add
+    @inductor_dir = File.expand_path(Dir.pwd)    
     validate_user
     if options[:mqhost]
       @mqhost = options[:mqhost]
@@ -233,6 +234,9 @@ class Inductor < Thor
         user=`cat inductor/user`.chomp       
       else
         user=`cat user`.chomp
+        if $?.to_i != 0          
+          puts "Inductor was created using user: #{user} - Please sudo to that user."
+        end
       end
       if current_user != user
         puts "Inductor was created using user: #{user} - Please sudo to that user."
