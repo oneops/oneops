@@ -236,6 +236,7 @@ class Inductor < Thor
         user=`cat user`.chomp
         if $?.to_i != 0          
           puts "There is no inductor installed in this directory."
+          exit 1
         end
       end
       if current_user != user
