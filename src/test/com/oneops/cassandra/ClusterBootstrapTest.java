@@ -46,7 +46,7 @@ public class ClusterBootstrapTest extends AbstractTestNGSpringContextTests {
     private ClusterBootstrap cb;
 
 
-    @Test
+    @Test(enabled=false)
     public void testGetCluster() throws Exception {
         assertNotNull(cb);
         Cluster c = (cb.getCluster("test_cluster"));

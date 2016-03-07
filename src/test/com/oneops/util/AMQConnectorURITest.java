@@ -79,9 +79,5 @@ public class AMQConnectorURITest {
                 "jms.redeliveryPolicy.backOffMultiplier=2";
 
         assertEquals(uri, String.format(res, host));
-
-        acu.setDnsResolve(true);
-        uri = acu.build();
-        assertEquals(uri, String.format(res, "kloopzmq1"));
     }
 }

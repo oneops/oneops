@@ -19,10 +19,15 @@ package com.oneops.antenna.client;
 
 import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.antenna.domain.NotificationType;
+import com.oneops.util.AsyncSearchPublisher;
+import com.oneops.util.MessageData;
 import com.oneops.util.ReliableExecutor;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.jms.*;
 
@@ -42,6 +47,8 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
     private Connection connection = null;
     private Session session = null;
     private MessageProducer producer = null;
+    
+    private AsyncSearchPublisher asyncSearchPublisher; 
 
     public void setTimeToLive(long timeToLive) {
         this.timeToLive = timeToLive;
@@ -110,11 +117,23 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
         super.init();
         logger.info(">>>>>>>>>>>>>>Antenna client initialized!");
     }
-
-
+    
     public void destroy() {
         super.destroy();
         closeConnection();
+    }
+    
+    @Override
+	public void executeAsync(NotificationMessage param) {
+		super.executeAsync(param);
+		publishSearchAsync(param);
+	}
+    
+    private void publishSearchAsync(NotificationMessage notificationMessage) {
+    	Map<String, String> headers = new HashMap<String, String>();
+    	headers.put("source", "notification");
+    	MessageData data = new MessageData(gson.toJson(notificationMessage), headers);
+		asyncSearchPublisher.publishAsync(data);
     }
 
     @Override
@@ -131,7 +150,7 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
             return false;
         }
     }
-
+    
     public static void main(String[] args) {
         System.out.println("Start ReliableExecutor");
         JMSTransmitter t = new JMSTransmitter();
@@ -150,4 +169,9 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
         t.destroy();
         System.out.println("Stop ReliableExecutor");
     }
+
+	public void setAsyncSearchPublisher(AsyncSearchPublisher searchPublisher) {
+		this.asyncSearchPublisher = searchPublisher;
+	}
+
 }
