@@ -3,6 +3,6 @@
 <%= page_info 'Manage assemblies' %>
 
 <%= section_panel "Assemblies #{count_marker(@assemblies.size)}", :width => 'triple',
-																						:menu => (is_admin? ? [{:display => icon('plus', 'New Assembly'), :link => new_assembly_path}] : nil) do %>
+																						:menu => (is_admin? ? [{:display => icon('plus', 'New'), :link => new_assembly_path}] : nil) do %>
   <div id="assembly_list"><%= render 'assemblies/assembly_list' %></div>
 <% end %>

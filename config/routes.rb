@@ -222,7 +222,7 @@ Display::Application.routes.draw do
       resources :instances, :controller => 'operations/instances', :only => [:index]
 
       # Design.
-      resource :design, :controller => 'design', :only => [:show] do
+      resource :design, :controller => 'design', :only => [:show, :edit, :update] do
         get  'diagram', :on => :member
       end
 

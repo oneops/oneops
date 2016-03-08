@@ -1,8 +1,8 @@
 <%= assembly_page_header(@assembly, 'transition') %>
 
-<%= page_title :page_kind     => 'Transition', :page_label => @assembly.ciName,
-               :page_sublabel => "created by #{@assembly.createdBy}",
-               :page_options  => [link_to(icon_button('eye', ' View'), assembly_path(@assembly))] %>
+<%= page_title :page_kind     => 'Transition',
+               :page_label    => link_to(@assembly.ciName, assembly_path(@assembly)),
+               :page_sublabel => "created by #{@assembly.createdBy}" %>
 
 <%= page_info @assembly.ciAttributes.description %>
 
