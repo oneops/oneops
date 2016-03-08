@@ -740,7 +740,8 @@ class Chef
       if o
         services(o.services) unless o.services.empty?
         environments(o.environments)
-        resources(o.resources)
+        platform(o.platform)
+	resources(o.resources)
         relations(o.relations)
         recipes(o.recipes) if defined?(o.recipes)
         serviced_bys(o.serviced_bys)
