@@ -6,7 +6,7 @@
 
 <%= section_panel 'Platforms', :id => 'platforms_list', :width => 'single', :position => 'right' do %>
   <% ci_relation_map = @platforms.inject({}) { |map, r| map[r.toCiId] = r; map } %>
-  <%= ci_list(@platforms.map(&:toCi), :new_path => nil) do |builder, target| %>
+  <%= ci_list(@platforms.map(&:toCi)) do |builder, target| %>
     <% relation = ci_relation_map[target.ciId] %>
     <% builder.target link_to('', assembly_operations_environment_platform_path(@assembly, @environment, target)) %>
     <% builder.icon platform_image_url(target) %>

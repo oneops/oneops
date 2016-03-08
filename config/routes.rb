@@ -47,8 +47,10 @@ Display::Application.routes.draw do
       post 'compute'
       get  'search'
       get  'organizations'
+      get  'users'
+      get  'user'
 
-      get    'organization/:name', :action => 'organization', :as => 'organization'
+      get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
     end
   end
@@ -220,7 +222,7 @@ Display::Application.routes.draw do
       resources :instances, :controller => 'operations/instances', :only => [:index]
 
       # Design.
-      resource :design, :controller => 'design', :only => [:show] do
+      resource :design, :controller => 'design', :only => [:show, :edit, :update] do
         get  'diagram', :on => :member
       end
 

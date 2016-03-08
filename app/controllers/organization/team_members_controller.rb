@@ -14,7 +14,7 @@ class Organization::TeamMembersController < ApplicationController
       @member = User.where(:username => username).first
       if @member
         if @team.users.exists?(@member)
-          error = "User #{username} is already added to team '#{@team.name}'."
+          error = "User #{username} is already a member of team '#{@team.name}'."
         else
           @team.users << @member
         end

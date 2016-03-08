@@ -1,0 +1,29 @@
+<%= section_panel 'User Lookup',
+                  :position => 'left',
+                  :width    => 'triple' do %>
+  <%= form_tag(user_support_url, :remote => true, :method => :get, :class => 'form-inline') do %>
+    <%= text_field_tag :id, @user && @user.username, :class => 'input-large', :required => true, :autocomplete => 'off', :placeholder => 'Enter username or id...' %>
+    <%= submit_tag 'Show info', :class => 'btn btn-success' %>
+  <% end %>
+  <hr/>
+<% end %>
+
+<div id="user_info">
+  <%= render('user_info') if @user %>
+</div>
+
+<script>
+  var userLookupFn = function (query, process) {
+    return $j.get('<%= users_support_path %>',
+                  {login: query},
+                  function (data) {
+                    return process(data);
+                  });
+  };
+
+  var updaterFn = function (item) {
+    return item.split(' ')[0];
+  };
+
+  $j('input#id').typeahead({source: userLookupFn, updater: updaterFn});
+</script>

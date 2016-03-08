@@ -4,6 +4,7 @@
    links = []
    links << link_to(icon('bullhorn',  'Announcements',  'fa-fw'), announcements_support_path)  if all_perms || @permissions['announcement']
    links << link_to(icon('sitemap',   'Organizations',  'fa-fw'), organizations_support_path)  if all_perms || @permissions['organization']
+   links << link_to(icon('user',      'Users',          'fa-fw'), user_support_path)           if all_perms || @permissions['user']
    links << link_to(icon('bar-chart', 'Compute Report', 'fa-fw'), compute_report_support_path) if all_perms || @permissions['compute_report']
    links << link_to(icon('search',    'Search',         'fa-fw'), search_support_path)         if all_perms || @permissions['search'] %>
 <ul class="support-functions nav nav-tabs nav-stacked">

@@ -1,4 +1,4 @@
-<%= ci_list(@platforms, :new_link => link_to('New Platform...', new_assembly_design_platform_path(@assembly))) do |builder, target| %>
+<%= ci_list(@platforms, :new_link => link_to(icon('plus', 'Add Platform...'), new_assembly_design_platform_path(@assembly))) do |builder, target| %>
   <% edit_url = assembly_design_platform_path(@assembly, target) %>
   <% builder.target link_to('', edit_url) %>
   <% builder.icon platform_image_url(target) %>

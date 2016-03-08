@@ -1,0 +1,17 @@
+<%= assembly_page_header(@assembly, 'design') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)}] %>
+
+<%= page_title({:page_kind => 'Import'}) %>
+
+<%= page_info 'Update design by importing yaml file' %>
+
+<%= form_tag assembly_design_path(@assembly), :method => :put, :multipart => true do %>
+  <fieldset>
+    <label>Specify design configuration YAML file</label>
+    <%= file_field_tag :data_file, :style => 'margin-left:25px' %>
+    <label style="margin-top: 20px">or paste design YAML configuration here</label>
+    <%= text_area_tag(:data, nil, :rows => 20, :style => 'width:95%;margin-left:25px') %>
+  </fieldset>
+  <br/>
+  <%= link_to_function(icon('upload', 'Import'), '$j(this).parents("form").submit()', 'btn btn-success', :class => 'btn btn-success') %>
+<% end %>

@@ -8,7 +8,7 @@
     <% builder.icon :none %>
     <% if is_admin? %>
       <% builder.menu do %>
-        <%= link_to(icon('star-o', 'New Assembly'), new_assembly_path(:catalog_template => target.ciId)) %>
+        <%= link_to(icon('plus', 'New Assembly'), new_assembly_path(:catalog_template => target.ciId)) %>
       <% end %>
     <% end %>
   <% end %>
@@ -19,9 +19,9 @@
     <% builder.target link_to('', catalog_path(target), :remote => false) %>
     <% builder.icon :none %>
     <% builder.menu do %>
-      <%= link_to(icon('star-o',          'New Assembly'), new_assembly_path(:catalog_template => target.ciId)) if is_admin? %>
-      <%= link_to(icon('arrow-circle-o-down', 'Export'),       export_catalog_path(target)) %>
-      <%= link_to(icon('trash',               'Delete'),       catalog_path(target), :method => :delete, :confirm => "Delete catalog '#{target.ciName}'?") %>
+      <%= link_to(icon('plus',     'New Assembly'), new_assembly_path(:catalog_template => target.ciId)) if is_admin? %>
+      <%= link_to(icon('download', 'Export'), export_catalog_path(target)) %>
+      <%= link_to(icon('trash',    'Delete'), catalog_path(target), :method => :delete, :confirm => "Delete catalog '#{target.ciName}'?") %>
     <% end %>
   <% end %>
 <% end %>
@@ -46,7 +46,7 @@
         <%= file_field_tag :data, :required => true %>
       </div>
     </div>
-    <%= link_to_function(icon_button('arrow-circle-o-up', 'Import', nil, 'success'), 'import_catalog(this)') %>
+    <%= link_to_function(icon_button('upload', 'Import', nil, 'success'), 'import_catalog(this)') %>
   <% end %>
 <% end %>
 <script type="text/javascript">

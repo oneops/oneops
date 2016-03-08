@@ -5,6 +5,22 @@ class Transistor < ActiveResource::Base
   self.element_name = ''
   self.include_format_in_path = false
 
+  def self.export_design(assembly)
+    begin
+      return get("assemblies/#{assembly.ciId}/export")
+    rescue Exception => e
+      return nil, handle_exception(e, 'Failed to export design:')
+    end
+  end
+
+  def self.import_design(assembly, design)
+    begin
+      return JSON.parse(post("assemblies/#{assembly.ciId}/import", {}, design.to_json).body)['result'] == 'success'
+    rescue Exception => e
+      return false, handle_exception(e, 'Failed to import design:')
+    end
+  end
+
   def self.export_catalog(catalog_id)
     get("catalogs/#{catalog_id}/export")
   end
@@ -14,7 +30,7 @@ class Transistor < ActiveResource::Base
     begin
       id = JSON.parse(post('catalogs/import', {}, data.to_json).body)['catalogCiId']
     rescue Exception => e
-      handle_exception e, "Failed to import catalog:"
+      handle_exception e, 'Failed to import catalog:'
     end
     return id
   end

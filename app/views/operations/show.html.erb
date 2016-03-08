@@ -1,9 +1,8 @@
 <%= assembly_page_header(@assembly, 'operations') %>
 
 <%= page_title :page_kind     => 'Operations',
-               :page_label    => @assembly.ciName,
-               :page_sublabel => "created by #{@assembly.createdBy}",
-               :page_options  => [link_to(icon_button('edit', ' Edit'), assembly_path(@assembly))] %>
+               :page_label    => link_to(@assembly.ciName, assembly_path(@assembly)),
+               :page_sublabel => "created by #{@assembly.createdBy}" %>
 
 <%= page_info @assembly.ciAttributes.description %>
 

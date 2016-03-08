@@ -1,6 +1,6 @@
 <% group_admin = @group.is_admin?(current_user) %>
 <%= list(@group.members.includes(:user).order('users.username'),
-         :new_link => (group_admin ? link_to_function('Add Member...', 'new_group_member_dialog()', :remote => true) : nil),
+         :new_link => (group_admin ? link_to_function(icon('plus', 'Add Member...'), 'new_group_member_dialog()', :remote => true) : nil),
          :toolbar  => {:list_name => 'group_member_list',
                        :sort_by   => [%w(Username username), %w(Email email), %w(Added added), %w(Admin admin)],
                        :filter_by => %w(username email)}) do |builder, member| %>

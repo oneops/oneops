@@ -16,7 +16,9 @@ module ApplicationHelper
                 :cloud_services   => 'cog',
                 :cloud_compliance => 'briefcase',
                 :cloud_support    => 'medkit',
-                :cost             => 'money'}
+                :cost             => 'money',
+                :export           => 'download',
+                :import           => 'upload'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -242,7 +244,11 @@ module ApplicationHelper
     page_kind = options[:page_kind]
     icon_lookup = page_icon.presence || page_kind
     icon_name = icon_lookup.present? && (site_icon!(icon_lookup.downcase) || site_icon!(icon_lookup.downcase.singularize))
-    html = image_tag(page_icon) unless icon_name
+    if icon_name
+      html << icon(icon_name) if icon_name
+    else
+      html = image_tag(page_icon)
+    end
 
     fav   = ''
     ci_id = params[:id]
@@ -253,7 +259,6 @@ module ApplicationHelper
 
     end
     block = ''
-    block << icon(icon_name, '', 'pull-left') if icon_name
     block << content_tag(:span, sanitize(page_kind), :class => 'page_kind') if page_kind
     doc_link = options[:doc_link]
     if options[:page_label]

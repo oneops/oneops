@@ -2,7 +2,7 @@
                   :width => 'single',
                   :menu  => [link_to(icon('plus', 'Add'), new_account_group_path, :remote => true, :class => 'btn btn-mini')] do %>
   <%= list(@groups,
-           :new_link => link_to('Add Group...', new_account_group_path, :remote => true),
+           :new_link => link_to(icon('plus', 'Add Group...'), new_account_group_path, :remote => true),
            :toolbar  => {:list_name => 'group_list',
                          :sort_by   => [%w(Name name), %w(Created created)],
                          :filter_by => %w(name)}) do |builder, group| %>
