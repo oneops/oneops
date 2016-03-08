@@ -142,7 +142,7 @@ attribute 'autoreplace',
   :description => "Auto Replace",
   :grouping => 'manifest',
   :required => "required",
-  :default => "false",
+  :default => "true",
   :format => {
     :category => '4.Availability',
     :order => 6,
