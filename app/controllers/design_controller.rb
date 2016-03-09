@@ -23,7 +23,7 @@ class DesignController < ApplicationController
 
       format.yaml do
         design = Transistor.export_design(@assembly)
-        render :text => design.to_yaml, :content_type => 'text/yaml'
+        render :text => design.to_yaml, :content_type => 'text/data_string'
       end
     end
   end
@@ -32,18 +32,22 @@ class DesignController < ApplicationController
   end
 
   def update
-    ok = false
+    data = nil
     data_file = params[:data_file]
-    yaml = (data_file && data_file.read).presence || params[:data]
+    data_string = (data_file && data_file.read).presence || params[:data]
     begin
-      data = YAML.load(yaml)
+      data = YAML.load(data_string)
     rescue
-      data = nil
+      begin
+        data = JSON.parse(data_string)
+      rescue
+      end
     end
 
     if data.present?
       ok, message = Transistor.import_design(@assembly, data)
     else
+      ok = false
       message = 'Please specify proper design coonfguration in YAML format.'
     end
 
@@ -85,8 +89,15 @@ class DesignController < ApplicationController
 
   def check_open_release
     if @release && @release.releaseState == 'open'
-      flash.now[:error] = 'Design import is not allowed when there is an open release. Please commit or discard current release before proceeding with import.'
-      show
+      message = 'Design import is not allowed when there is an open release. Please commit or discard current release before proceeding with import.'
+      respond_to do |format|
+        format.html do
+          flash.now[:error] = message
+          show
+        end
+
+        format.json {render_json_ci_response(false, nil, [message])}
+      end
     end
   end
 

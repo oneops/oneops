@@ -1,12 +1,13 @@
 <%= assembly_page_header(@assembly, 'design') %>
 
-<% page_options = [link_to(icon('download', 'Export'), assembly_design_path(@assembly, :format => :yaml), :target => '_blank', :class => 'btn btn-small')]
+<% page_options = []
+   # page_options << [link_to(icon('download', 'Export'), assembly_design_path(@assembly, :format => :yaml), :target => '_blank', :class => 'btn btn-small')]
    if manages_access?
-     if @release && @release.releaseState == 'open'
-       page_options << link_to_function(icon('upload', 'Import'), '', :class => 'btn btn-small disabled')
-     else
-       page_options << link_to(icon('upload', 'Import'), edit_assembly_design_path(@assembly), :class => 'btn btn-small')
-     end
+     # if @release && @release.releaseState == 'open'
+     #   page_options << link_to_function(icon('upload', 'Import'), '', :class => 'btn btn-small disabled')
+     # else
+     #   page_options << link_to(icon('upload', 'Import'), edit_assembly_design_path(@assembly), :class => 'btn btn-small')
+     # end
      page_options << link_to(icon('files-o', 'Copy'), new_clone_assembly_path(@assembly), :remote => true, :class => 'btn btn-small')
      page_options << link_to(icon('floppy-o', 'Save to Catalog'), new_clone_assembly_path(@assembly, :export => 'catalog'), :remote => true, :class => 'btn btn-small')
    end %>

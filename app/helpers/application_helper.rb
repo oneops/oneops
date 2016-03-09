@@ -300,7 +300,7 @@ module ApplicationHelper
     options.reverse_merge!(:title => title, :menu => nil)
     defaults = {:width => 'double', :position => 'left'}
     options = defaults.merge(options)
-    options.merge!(:body => capture(&block))
+    options.merge!(:body => capture(&block)) if block_given?
     raw(%(#{render(:partial => 'base/shared/section_panel', :locals => options)}))
   end
 

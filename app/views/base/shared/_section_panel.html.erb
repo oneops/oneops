@@ -22,6 +22,12 @@
     </div>
   <% end %>
   <div class="section-content <%= width %> <%= 'hide' if hide_content_x %>">
-    <%= body %>
+    <%= body if defined?(body) %>
+    <% if defined?(url) %>
+      <%= loading_indicator %>
+      <script>
+        <%= remote_function(:url => url, :method => defined?(method) == 'local-variable' ? method : :get) %>
+      </script>
+    <% end %>
   </div>
 </div>
