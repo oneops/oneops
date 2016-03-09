@@ -6,17 +6,17 @@
     <% group_builder.title group[:template_name] %>
     <% group_builder.menu do %>
       <% group_items.select(&:rfcAction).group_by(&:rfcAction).each do |action, count| %>
-      	<span class="label <%= action_to_label(action) %> label-count"><%= count.size %></span>
+        <span class="label <%= action_to_label(action) %> label-count"><%= count.size %></span>
       <% end %>
       <% norfc = group_items.reject(&:rfcAction).size %>
       <% if norfc > 0 %>
-      	<span class="label label-count"><%= norfc %></span>
+        <span class="label label-count"><%= norfc %></span>
       <% end %>
       <% if has_design %>
         <% if group[:cardinality].max > group_items.size %>
-          <%= link_to(content_tag(:button, icon('plus'), :class => 'btn btn-mini'), new_assembly_design_platform_component_path(@assembly, @platform, :template_name => group[:template_name]), :disable_with => 'wait...' ) %>
+          <%= link_to(content_tag(:button, icon('plus'), :class => 'btn btn-mini'), new_assembly_design_platform_component_path(@assembly, @platform, :template_name => group[:template_name]), :disable_with => 'wait...') %>
         <% else %>
-          <%= content_tag(:button, content_tag(:i, '', :class => 'fa fa-ban transparent'),  :class => 'btn btn-mini disabled') %>
+          <%= content_tag(:button, content_tag(:i, '', :class => 'fa fa-ban transparent'), :class => 'btn btn-mini disabled') %>
         <% end %>
       <% end %>
     <% end %>
@@ -52,9 +52,16 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Configuration', :width => 'double', :position => 'left' do %>
-  <div id="configuration"></div>
-  <script type="text/javascript">
-    <%= remote_function(:url => edit_assembly_design_platform_path(@assembly, @platform), :method => :get) %>
-  </script>
+<%= section_panel 'Configuration',
+                  :width    => 'double',
+                  :position => 'left',
+                  :id       => 'platform_configuration',
+                  :url      => edit_assembly_design_platform_path(@assembly, @platform) do %>
 <% end %>
+
+<div id="page_nav_diagram">
+  <%= section_panel 'Diagram',
+                    :width    => 'double',
+                    :position => 'left',
+                    :url      => diagram_assembly_design_platform_path(@assembly, @platform, :size => '6,4') %>
+</div>
