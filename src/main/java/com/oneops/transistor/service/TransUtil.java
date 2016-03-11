@@ -161,6 +161,7 @@ public class TransUtil {
 	    }
 	}
 
+	
 	public CmsRfcCI cloneRfcCIBasic(CmsRfcCI rfcCi) {
 		
 		CmsRfcCI newRfc = new CmsRfcCI();

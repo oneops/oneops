@@ -7,15 +7,8 @@ public class ExportCi {
 	private String name;
 	private String type;
 	private String comments;
-	private String template;
 	private Map<String,String> attributes;
 	
-	public String getTemplate() {
-		return template;
-	}
-	public void setTemplate(String template) {
-		this.template = template;
-	}
 	public String getName() {
 		return name;
 	}
