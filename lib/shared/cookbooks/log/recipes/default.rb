@@ -17,7 +17,7 @@ end
 ZONE = `cat /opt/oneops/cloud`
 MGMT_DOMAIN = `cat /opt/oneops/mgmt_domain`
 
-destination="#{ZONE.strip}.collector.#{MGMT_DOMAIN.strip}:35854"
+destination="#{ZONE.strip}.logs.#{MGMT_DOMAIN.strip}:35854"
 
 #Create sub directories
 `mkdir -p /etc/customlogs/logstash/cert/`
