@@ -6,7 +6,15 @@ import java.util.List;
 public class ComponentExport extends ExportCi{
 	private List<ExportCi> attachments;
 	private List<String> depends;
+	private String template;
 
+	public String getTemplate() {
+		return template;
+	}
+	public void setTemplate(String template) {
+		this.template = template;
+	}
+	
 	public List<ExportCi> getAttachments() {
 		return attachments;
 	}

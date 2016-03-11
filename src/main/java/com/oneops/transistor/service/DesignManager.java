@@ -33,7 +33,7 @@ public interface DesignManager {
 	public long saveAssemblyAsCatalog(CmsCI catalogCI, long sourceAssemblyId, String userId, String scope);
 	public CatalogExport exportCatalog(long catalogCIid, String scope);
 	public long importCatalog(CatalogExport catExp, String userId, String scope);
-	public DesignExportSimple exportDesign(long assemblyId, String name, String description);
+	public DesignExportSimple exportDesign(long assemblyId, String description);
 	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des); 
 	public void updateOwner(long assemblyId);
 	
