@@ -64,7 +64,7 @@ attribute 'cmd_options',
     :help => 'Command line options that will substituted',
     :category => '3.Collection',
     :order => 2,
-    :fixed_keys => 'true'
+    :fixed_keys => 'false'
   }
 
 attribute 'cmd_line',
