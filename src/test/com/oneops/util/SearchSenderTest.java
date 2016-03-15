@@ -51,6 +51,9 @@ public class SearchSenderTest {
 		consumer = context.getBean(JMSConsumer.class);
 		searchPublisher = context.getBean(AsyncSearchPublisher.class);
 		retryDir = context.getBean("retryDir", String.class);
+		while (!consumer.isStarted()) {
+			//wait until the consumers are started
+		}
 	}
 	
 	
