@@ -33,7 +33,9 @@ class Inductor < Thor
     # chmod exec-order.rb
     `chmod +x #{options[:path]}/shared/exec-order.rb`
 
-    if ENV.has_key?("USE_GEM_CACHE")
+    # Check if local gem cache is enabled. Default value is yes.
+    use_gem_cache = (ENV['USE_GEM_CACHE'] || 'yes').downcase == 'yes'
+    if use_gem_cache
       gem_paths = `gem env path`.chomp.split(":")
       gem_paths.each do |path|
         run("cp #{path}/cache/* #{options[:path]}/shared/cookbooks/vendor/cache/")
