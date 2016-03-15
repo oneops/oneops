@@ -53,6 +53,7 @@ import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.domain.IaasRequest;
+import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 import com.oneops.transistor.service.BomAsyncProcessor;
@@ -104,6 +105,13 @@ public class TransistorRestController extends AbstractRestController {
 	@ExceptionHandler(TransistorException.class)
 	@ResponseBody
 	public void handleExceptions(TransistorException e, HttpServletResponse response) throws IOException {
+		logger.error(e);
+		sendError(response,HttpServletResponse.SC_BAD_REQUEST,e);
+	}
+
+	@ExceptionHandler(DesignExportException.class)
+	@ResponseBody
+	public void handleExceptions(DesignExportException e, HttpServletResponse response) throws IOException {
 		logger.error(e);
 		sendError(response,HttpServletResponse.SC_BAD_REQUEST,e);
 	}

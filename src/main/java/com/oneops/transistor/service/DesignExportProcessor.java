@@ -19,6 +19,7 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.export.domain.ComponentExport;
@@ -41,6 +42,9 @@ public class DesignExportProcessor {
 	private static final String CANT_FIND_REQUIRES_ERROR_MSG = "Can not find Requires relation for ci id=";
 	private static final String CANT_FIND_PLATFORM_BY_NAME_ERROR_MSG = "Can not find platform with name: $toPlaform, used in links of platform $fromPlatform";
 	private static final String CANT_FIND_COMPONENT_BY_NAME_ERROR_MSG = "Can not find component with name: $toComponent, used in depends of component $fromComponent";
+	private static final String IMPORT_ERROR_PLAT_COMP = "Platform/Component - ";
+	private static final String IMPORT_ERROR_PLAT_COMP_ATTACH = "Platform/Component/Attachment - ";
+
 	
 	private static final String GLOBAL_VAR_RELATION = "base.ValueFor";
 	private static final String LOCAL_VAR_RELATION = "catalog.ValueFor";
@@ -58,6 +62,9 @@ public class DesignExportProcessor {
 	private static final String DESIGN_ATTACHMENT_CLASS = "catalog.Attachment";
 	private static final String MGMT_PREFIX = "mgmt.";
 	private static final String OWNER_DESIGN = "design";
+	private static final String ATTR_SECURE = "secure";
+	private static final String ATTR_VALUE = "value";
+	private static final String ATTR_ENC_VALUE = "encrypted_value";
 	
 	private static final String DUMMY_ENCRYPTED_IMP_VALUE = "CHANGE ME!!!";
 	private static final String ENCRYPTED_PREFIX = "::ENCRYPTED::";
@@ -262,14 +269,35 @@ public class DesignExportProcessor {
 		for (PlatformExport platformExp : des.getPlatforms()) {
 			
 			CmsRfcCI platformRfc = newFromExportCiWithMdAttrs(platformExp, designNsPath, designNsPath, new HashSet<String>(Arrays.asList("description")));
-			if (platformRfc.getAttribute("description").getNewValue() == null) {
-				platformRfc.getAttribute("description").setNewValue("");
-			}
 			List<CmsRfcCI> existingPlatRfcs = cmRfcMrgProcessor.getDfDjCi(designNsPath, platformRfc.getCiClassName(), platformRfc.getCiName(), null);
 			CmsRfcCI designPlatform = null;
 			if (existingPlatRfcs.size()>0) {
-				designPlatform = existingPlatRfcs.get(0); 
+				CmsRfcCI existingPlat = existingPlatRfcs.get(0);
+				boolean needUpdate = false;
+				if (platformExp.getAttributes() != null) {
+					if (platformExp.getAttributes().containsKey("major_version")
+						&& !existingPlat.getAttribute("major_version").getNewValue().equals(platformExp.getAttributes().get("major_version"))) {
+						
+						existingPlat.getAttribute("major_version").setNewValue(platformExp.getAttributes().get("major_version"));
+						needUpdate = true;
+					}
+					if (platformExp.getAttributes().containsKey("description")
+							&& !existingPlat.getAttribute("description").getNewValue().equals(platformExp.getAttributes().get("description"))) {
+							
+							existingPlat.getAttribute("description").setNewValue(platformExp.getAttributes().get("description"));
+							needUpdate = true;
+						}
+
+				}
+				if (needUpdate) {
+					designPlatform = cmRfcMrgProcessor.upsertCiRfc(existingPlat, userId);
+				} else {
+					designPlatform = existingPlat;
+				}
 			} else {
+				if (platformRfc.getAttribute("description").getNewValue() == null) {
+					platformRfc.getAttribute("description").setNewValue("");
+				}
 				designPlatform = designRfcProcessor.generatePlatFromTmpl(platformRfc, assemblyId, userId, scope);
 			}
 			String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
@@ -365,15 +393,15 @@ public class DesignExportProcessor {
 			Set<String> attrsToBootstrap = new HashSet<String>();
 			CmsRfcCI varBaseRfc = null;
 			if (var.getValue().startsWith(ENCRYPTED_PREFIX)) {
-				attrsToBootstrap.add("secure");
-				attrsToBootstrap.add("encrypted_value");
+				attrsToBootstrap.add(ATTR_SECURE);
+				attrsToBootstrap.add(ATTR_ENC_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), GLOBAL_VAR_CLASS, designNsPath, designNsPath, attrsToBootstrap);
-				varBaseRfc.getAttribute("secure").setNewValue("true");
-				varBaseRfc.getAttribute("encrypted_value").setNewValue(parseEncryptedImportValue(var.getValue()));
+				varBaseRfc.getAttribute(ATTR_SECURE).setNewValue("true");
+				varBaseRfc.getAttribute(ATTR_ENC_VALUE).setNewValue(parseEncryptedImportValue(var.getValue()));
 			} else {
-				attrsToBootstrap.add("value");
+				attrsToBootstrap.add(ATTR_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), GLOBAL_VAR_CLASS, designNsPath, designNsPath, attrsToBootstrap);
-				varBaseRfc.getAttribute("value").setNewValue(var.getValue());
+				varBaseRfc.getAttribute(ATTR_VALUE).setNewValue(var.getValue());
 			}
 			
 			if (existingVars.isEmpty()) {
@@ -405,15 +433,15 @@ public class DesignExportProcessor {
 			Set<String> attrsToBootstrap = new HashSet<String>();
 			CmsRfcCI varBaseRfc = null;
 			if (var.getValue().startsWith(ENCRYPTED_PREFIX)) {
-				attrsToBootstrap.add("secure");
-				attrsToBootstrap.add("encrypted_value");
+				attrsToBootstrap.add(ATTR_SECURE);
+				attrsToBootstrap.add(ATTR_ENC_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), LOCAL_VAR_CLASS, platformNsPath, releaseNsPath, attrsToBootstrap);
-				varBaseRfc.getAttribute("secure").setNewValue("true");
-				varBaseRfc.getAttribute("encrypted_value").setNewValue(parseEncryptedImportValue(var.getValue()));
+				varBaseRfc.getAttribute(ATTR_SECURE).setNewValue("true");
+				varBaseRfc.getAttribute(ATTR_ENC_VALUE).setNewValue(parseEncryptedImportValue(var.getValue()));
 			} else {
-				attrsToBootstrap.add("value");
+				attrsToBootstrap.add(ATTR_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), LOCAL_VAR_CLASS, platformNsPath, releaseNsPath, attrsToBootstrap);
-				varBaseRfc.getAttribute("value").setNewValue(var.getValue());
+				varBaseRfc.getAttribute(ATTR_VALUE).setNewValue(var.getValue());
 			}
 			
 			if (existingVars.isEmpty()) {
@@ -432,64 +460,77 @@ public class DesignExportProcessor {
 	
 	
 	private long importComponent(CmsRfcCI designPlatform, ComponentExport compExpCi, String platNsPath, String releaseNsPath, String userId) {
-		//ExportCi compExpCi = componentExp.getComponent();
 		List<CmsRfcCI> existingComponent = cmRfcMrgProcessor.getDfDjCiNakedLower(platNsPath, compExpCi.getType(), compExpCi.getName(), null);
 		CmsRfcCI componentRfc = null;
-		if (existingComponent.size() > 0) {
-			CmsRfcCI existingRfc = existingComponent.get(0);
-			CmsRfcCI component = newFromExportCi(compExpCi);
-			component.setNsPath(platNsPath);
-			component.setRfcId(existingRfc.getRfcId());
-			component.setCiId(existingRfc.getCiId());
-			component.setReleaseNsPath(releaseNsPath);
-			componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
-		} else {
-			//this is optional component lets find template
-			String packNsPath = getPackNsPath(designPlatform);
-			List<CmsCI> mgmtComponents = cmProcessor.getCiBy3(packNsPath, MGMT_PREFIX + compExpCi.getType(), compExpCi.getTemplate());
-			if (mgmtComponents.isEmpty()) {
-				//can not find template - abort
-				throw new DesignExportException(DesignExportException.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR, BAD_TEMPLATE_ERROR_MSG + packNsPath + ";" + compExpCi.getType() + ";" + compExpCi.getTemplate());
+		try {
+			if (existingComponent.size() > 0) {
+				CmsRfcCI existingRfc = existingComponent.get(0);
+				CmsRfcCI component = newFromExportCi(compExpCi);
+				component.setNsPath(platNsPath);
+				component.setRfcId(existingRfc.getRfcId());
+				component.setCiId(existingRfc.getCiId());
+				component.setReleaseNsPath(releaseNsPath);
+				componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
+			} else {
+				//this is optional component lets find template
+				String packNsPath = getPackNsPath(designPlatform);
+				List<CmsCI> mgmtComponents = cmProcessor.getCiBy3(packNsPath, MGMT_PREFIX + compExpCi.getType(), compExpCi.getTemplate());
+				if (mgmtComponents.isEmpty()) {
+					//can not find template - abort
+					throw new DesignExportException(DesignExportException.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR, BAD_TEMPLATE_ERROR_MSG + packNsPath + ";" + compExpCi.getType() + ";" + compExpCi.getTemplate());
+				}
+				
+				CmsCI template = mgmtComponents.get(0);
+				CmsRfcCI component = designRfcProcessor.popRfcCiFromTemplate(template, "catalog", platNsPath, releaseNsPath);
+				applyExportCiToTemplateRfc(compExpCi, component);
+				componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
+				createRequires(designPlatform, template, componentRfc,userId);
+				processMgmtDependsOnRels(designPlatform, template, componentRfc, userId);
 			}
-			
-			CmsCI template = mgmtComponents.get(0);
-			CmsRfcCI component = designRfcProcessor.popRfcCiFromTemplate(template, "catalog", platNsPath, releaseNsPath);
-			applyExportCiToTemplateRfc(compExpCi, component);
-			componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
-			createRequires(designPlatform, template, componentRfc,userId);
-			processMgmtDependsOnRels(designPlatform, template, componentRfc, userId);
+		} catch (DJException dje) {
+			//missing required attributes
+			throw new DesignExportException(dje.getErrorCode(),IMPORT_ERROR_PLAT_COMP 
+											+ designPlatform.getCiName() 
+											+ "/" + compExpCi.getName() + ":" + dje.getMessage());  
 		}
+
 		if (compExpCi.getAttachments() != null) {
-			importAttachements(componentRfc,compExpCi.getAttachments(), releaseNsPath, userId);
+			for (ExportCi attachmentExp : compExpCi.getAttachments()) {
+				try {
+				importAttachements(componentRfc, attachmentExp, releaseNsPath, userId);
+				} catch (DJException dje) {
+					throw new DesignExportException(dje.getErrorCode(),IMPORT_ERROR_PLAT_COMP_ATTACH 
+													+ designPlatform.getCiName() 
+													+ "/" + compExpCi.getName() 
+													+ "/" + attachmentExp.getName() + ":" + dje.getMessage());  
+				}
+			}
 		}
-		
 		return componentRfc.getCiId();
 	}
 
-	private void importAttachements(CmsRfcCI componentRfc, List<ExportCi> attachments, String releaseNsPath, String userId) {
-		for (ExportCi attachmentExp : attachments) {
-			List<CmsRfcCI> existingAttachments = cmRfcMrgProcessor.getDfDjCiNakedLower(componentRfc.getNsPath(), DESIGN_ATTACHMENT_CLASS, attachmentExp.getName(), null);
-			CmsRfcCI attachmentRfc = null;
-			if (!existingAttachments.isEmpty()) {
-				CmsRfcCI existingRfc = existingAttachments.get(0);
-				CmsRfcCI attachment = newFromExportCi(attachmentExp);
-				attachment.setNsPath(existingRfc.getNsPath());
-				attachment.setRfcId(existingRfc.getRfcId());
-				attachment.setCiId(existingRfc.getCiId());
-				attachment.setReleaseNsPath(releaseNsPath);
-				attachmentRfc = cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
-			} else {
-				CmsRfcCI attachment = newFromExportCi(attachmentExp);
-				attachment.setNsPath(componentRfc.getNsPath());
-				attachment.setReleaseNsPath(releaseNsPath);
-				attachmentRfc = cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
-				CmsRfcRelation escortedBy = trUtil.bootstrapRelationRfc(componentRfc.getCiId(), attachmentRfc.getCiId(), ESCORTED_RELATION, componentRfc.getNsPath(), releaseNsPath, null);
-				if (componentRfc.getRfcId() > 0) {
-					escortedBy.setFromRfcId(componentRfc.getRfcId());
-				}
-				escortedBy.setToRfcId(attachmentRfc.getRfcId());
-				cmRfcMrgProcessor.upsertRelationRfc(escortedBy, userId);
+	private void importAttachements(CmsRfcCI componentRfc, ExportCi attachmentExp, String releaseNsPath, String userId) {
+		List<CmsRfcCI> existingAttachments = cmRfcMrgProcessor.getDfDjCiNakedLower(componentRfc.getNsPath(), DESIGN_ATTACHMENT_CLASS, attachmentExp.getName(), null);
+		CmsRfcCI attachmentRfc = null;
+		if (!existingAttachments.isEmpty()) {
+			CmsRfcCI existingRfc = existingAttachments.get(0);
+			CmsRfcCI attachment = newFromExportCi(attachmentExp);
+			attachment.setNsPath(existingRfc.getNsPath());
+			attachment.setRfcId(existingRfc.getRfcId());
+			attachment.setCiId(existingRfc.getCiId());
+			attachment.setReleaseNsPath(releaseNsPath);
+			attachmentRfc = cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
+		} else {
+			CmsRfcCI attachment = newFromExportCi(attachmentExp);
+			attachment.setNsPath(componentRfc.getNsPath());
+			attachment.setReleaseNsPath(releaseNsPath);
+			attachmentRfc = cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
+			CmsRfcRelation escortedBy = trUtil.bootstrapRelationRfc(componentRfc.getCiId(), attachmentRfc.getCiId(), ESCORTED_RELATION, componentRfc.getNsPath(), releaseNsPath, null);
+			if (componentRfc.getRfcId() > 0) {
+				escortedBy.setFromRfcId(componentRfc.getRfcId());
 			}
+			escortedBy.setToRfcId(attachmentRfc.getRfcId());
+			cmRfcMrgProcessor.upsertRelationRfc(escortedBy, userId);
 		}
 	}
 	
@@ -643,10 +684,10 @@ public class DesignExportProcessor {
 	private String[] checkVar4Export(CmsCI var) {
 		String name = var.getCiName();
 		String value = null;
-		if ("true".equals(var.getAttribute("secure").getDjValue())) {
+		if ("true".equals(var.getAttribute(ATTR_SECURE).getDjValue())) {
 			value = DUMMY_ENCRYPTED_EXP_VALUE;
 		} else {
-			value = var.getAttribute("value").getDjValue();
+			value = var.getAttribute(ATTR_VALUE).getDjValue();
 		}
 		String[] result = {name, value};
 		return result;
