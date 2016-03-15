@@ -323,18 +323,23 @@ public class FlexStateProcessor {
 	private long findManifestComputeId(long ciId) {
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		long bomComputeId = 0;
-		if ("bom.Compute".equals(ci.getCiClassName())) {
+		if (ci.getCiClassName().endsWith(".Compute")) {
 			bomComputeId = ci.getCiId();
 		} else {
-			List<CmsCIRelation> bomManagedViaRels = cmProcessor.getFromCIRelationsNaked(ciId, "bom.ManagedVia", "bom.Compute");
+			List<CmsCIRelation> bomManagedViaRels = cmProcessor.getFromCIRelations(ciId, "bom.ManagedVia", null);
 			if (bomManagedViaRels.size()>0) {
-				bomComputeId =  bomManagedViaRels.get(0).getToCiId();
+				CmsCI managedViaCI = bomManagedViaRels.get(0).getToCi();
+				if (managedViaCI.getCiClassName().endsWith(".Compute")) {
+					bomComputeId =  managedViaCI.getCiId();
+				} else {
+					return 0;
+				}
 			} else {
 				return 0;
 			}
 		}
 		
-		List<CmsCIRelation> realizedAsRels = cmProcessor.getToCIRelationsNaked(bomComputeId, "base.RealizedAs", "manifest.Compute");
+		List<CmsCIRelation> realizedAsRels = cmProcessor.getToCIRelationsNaked(bomComputeId, "base.RealizedAs", null);
 		if (realizedAsRels.size()>0) {
 			return realizedAsRels.get(0).getFromCiId();
 		} else {
