@@ -51,6 +51,7 @@ public class JMSConsumer implements ExceptionListener {
 	
 	private LinkedList<MessageData> messages;
 	private AtomicBoolean isRecording = new AtomicBoolean(false);
+	private AtomicBoolean isStarted = new AtomicBoolean(false);
 	
 	public void init() {
 		new Thread(() -> startConsumer()).start();
@@ -70,16 +71,17 @@ public class JMSConsumer implements ExceptionListener {
 			}
 			
 			consumer = session.createConsumer(destination);
+			isStarted.compareAndSet(false, true);
 			while (true) {
 				Message message = consumer.receive();
 
 				if (message instanceof TextMessage) {
 					TextMessage textMessage = (TextMessage) message;
 					String text = textMessage.getText();
-					counter.incrementAndGet();
 					if (isRecording.get()) {
 						addData(message, text);
 					}
+					counter.incrementAndGet();
 				} 
 			}
 
@@ -114,13 +116,17 @@ public class JMSConsumer implements ExceptionListener {
 		isRecording.getAndSet(false);
 	}
 	
+	public boolean isStarted() {
+		return isStarted.get();
+	}
+	
 	public void terminate() {
 		try {
 			consumer.close();
 			session.close();
 			connection.close();
 		} catch (JMSException e) {
-			e.printStackTrace();
+
 		}
 	}
 	
