@@ -51,6 +51,7 @@ public class JMSConsumer implements ExceptionListener {
 	
 	private LinkedList<MessageData> messages;
 	private AtomicBoolean isRecording = new AtomicBoolean(false);
+	private AtomicBoolean isStarted = new AtomicBoolean(false);
 	
 	public void init() {
 		new Thread(() -> startConsumer()).start();
@@ -70,6 +71,7 @@ public class JMSConsumer implements ExceptionListener {
 			}
 			
 			consumer = session.createConsumer(destination);
+			isStarted.compareAndSet(false, true);
 			while (true) {
 				Message message = consumer.receive();
 
@@ -121,7 +123,7 @@ public class JMSConsumer implements ExceptionListener {
 			session.close();
 			connection.close();
 		} catch (JMSException e) {
-			e.printStackTrace();
+
 		}
 	}
 	
@@ -137,6 +139,10 @@ public class JMSConsumer implements ExceptionListener {
 
 	public int getCounter() {
 		return counter.get();
+	}
+	
+	public boolean isStarted() {
+		return isStarted.get();
 	}
 
 	public void setConnectionFactory(ActiveMQConnectionFactory connectionFactory) {
