@@ -33,16 +33,21 @@ public class EventPublisher {
 
 	private CmsPublisher cmsPublisher;
 	
-	private SearchPublisher searchPublisher;
+	private SearchSender searchPublisher;
 	
     private ReliableExecutor<NotificationMessage> antennaClient;
 
     private NotificationConfigurator notificationConfig;
+    
+    protected boolean publishControllerEventsAsync;
 
     public void publishControllerEvents(CMSEvent event) throws JMSException {
     	notifyEvent(event);
     	cmsPublisher.publishMessage(event);
-    	searchPublisher.publishMessage(event);
+    	//publish to search only if it is async
+    	if (publishControllerEventsAsync) {
+    		searchPublisher.publishMessage(event);	
+    	}
     }
     
     public void publishCIEvents(CMSEvent event) throws JMSException {
@@ -114,7 +119,7 @@ public class EventPublisher {
 		this.cmsPublisher = cmsPublisher;
 	}
 
-	public void setSearchPublisher(SearchPublisher searchPublisher) {
+	public void setSearchPublisher(SearchSender searchPublisher) {
 		this.searchPublisher = searchPublisher;
 	}
 
@@ -125,5 +130,9 @@ public class EventPublisher {
     public void setNotificationConfig(NotificationConfigurator notificationConfig) {
         this.notificationConfig = notificationConfig;
     }
+
+	public void setPublishControllerEventsAsync(boolean isSearchPublishAsync) {
+		this.publishControllerEventsAsync = isSearchPublishAsync;
+	}
 	
 }

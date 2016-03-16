@@ -55,7 +55,8 @@
 		<property name="antennaClient" ref="antennaClient" />
 		<property name="notificationConfig" ref="notificationConfig" />
 		<property name="cmsPublisher" ref="cmsPublisherSpy" />
-		<property name="searchPublisher" ref="searchPublisherSpy" />
+		<property name="searchPublisher" ref="searchSenderSpy" />
+		<property name="publishControllerEventsAsync" value="true" />
 	</bean>
 
 	<bean id="cmsPublisherActual" class="com.oneops.cms.transmitter.CmsPublisher"
@@ -68,26 +69,27 @@
 		<constructor-arg ref="cmsPublisherActual" />
 	</bean>
 
-	<bean id="searchPublisherActual" class="com.oneops.cms.transmitter.SearchPublisher">
-		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+	<bean id="searchSenderActual" class="com.oneops.cms.transmitter.SearchSender">
+		<property name="searchPublisher" ref="searchPublisher" />
 	</bean>
 
-    <bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+    <bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
         <property name="connFactory" ref="searchmqFactory" />
         <property name="searchSender" ref="searchJmsSender" />
-        
+        <property name="searchPublishAsync" value="true" />
 	</bean>
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<constructor-arg value="10"/>
 		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
 		<property name="scanFolder" value="/tmp/search/retry" />
 		<property name="name" value="transmitter-search-publish" />
 	</bean>
 	
 
-	<bean id="searchPublisherSpy" class="org.mockito.Mockito"
+	<bean id="searchSenderSpy" class="org.mockito.Mockito"
 		factory-method="spy">
-		<constructor-arg ref="searchPublisherActual" />
+		<constructor-arg ref="searchSenderActual" />
 	</bean>
 
 	<bean id="topicConsumer" class="com.oneops.cms.transmitter.JMSConsumer"
