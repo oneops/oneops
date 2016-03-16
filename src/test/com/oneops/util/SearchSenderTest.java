@@ -42,14 +42,14 @@ public class SearchSenderTest {
 
 	private ClassPathXmlApplicationContext context;
 	private JMSConsumer consumer;
-	private AsyncSearchPublisher searchPublisher;
+	private SearchPublisher searchPublisher;
 	String retryDir;
 
 	@BeforeTest
 	public void initContext() {
 		context = new ClassPathXmlApplicationContext("classpath:test-commons-context.xml");
 		consumer = context.getBean(JMSConsumer.class);
-		searchPublisher = context.getBean(AsyncSearchPublisher.class);
+		searchPublisher = context.getBean(SearchPublisher.class);
 		retryDir = context.getBean("retryDir", String.class);
 		while (!consumer.isStarted()) {
 			//wait until the consumers are started
@@ -76,7 +76,7 @@ public class SearchSenderTest {
 		headers.put("messageId", "1");
 		headers.put("source", "test");
 		MessageData data = new MessageData(text, headers);
-		searchPublisher.publishAsync(data);
+		searchPublisher.publish(data);
 		await().atMost(5, TimeUnit.SECONDS).until(() -> (consumer.getCounter() == 1));
 		Assert.assertEquals(consumer.getMessages().getFirst().getPayload(), text);
 		Assert.assertEquals(consumer.getMessages().getFirst().getHeaders(), headers);
@@ -97,7 +97,7 @@ public class SearchSenderTest {
 				MessageData[] dataList = getMessages();
 
 				for (MessageData data : dataList) {
-					searchPublisher.publishAsync(data);
+					searchPublisher.publish(data);
 				}
 
 				Thread.sleep(2000);
@@ -112,7 +112,7 @@ public class SearchSenderTest {
 				consumer.reset();
 				// send messages again
 				for (MessageData data : dataList) {
-					searchPublisher.publishAsync(data);
+					searchPublisher.publish(data);
 				}
 				await().atMost(10, TimeUnit.SECONDS).until(() -> (consumer.getCounter() == 3));
 				LinkedList<MessageData> list = consumer.getMessages();

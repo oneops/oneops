@@ -18,12 +18,14 @@
 
 	<amq:connectionFactory id="searchmqFactory" brokerURL="failover:(tcp://localhost:61636?keepAlive=true)?timeout=500" />
 	
-    <bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+    <bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
         <property name="connFactory" ref="searchmqFactory" />
         <property name="searchSender" ref="searchJmsSender" />
+        <property name="searchPublishAsync" value="true" />
 	</bean>
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender"  init-method="init" destroy-method="destroy">
+		<constructor-arg value="10"/>
 		<property name="backlogThreshold" value="100" />
         <property name="scanFolder" ref="retryDir" />
         <property name="name" value="test-search-publish" />

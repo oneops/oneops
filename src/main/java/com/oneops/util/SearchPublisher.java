@@ -22,15 +22,24 @@ import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 
-public class AsyncSearchPublisher extends AbstractMessagePublisher {
+import org.apache.activemq.ActiveMQConnectionFactory;
+
+public class SearchPublisher extends AbstractMessagePublisher {
 
 	protected final String SEARCH_QUEUE = "search.stream";
 	
 	protected MessageProducer producer;
 
 	private SearchJmsSender searchSender;
+	
+	protected boolean searchPublishAsync;
 
+	protected ActiveMQConnectionFactory syncConnFactory;
+	
+	protected ActiveMQConnectionFactory asyncConnFactory;
+	
 	public void init() {
+		setConnFactory();
 		try {
 			super.init();
 		} catch (JMSException e) {
@@ -40,15 +49,29 @@ public class AsyncSearchPublisher extends AbstractMessagePublisher {
 		searchSender.initialize(session, producer);
 	}
 
+	private void setConnFactory() {
+		if (searchPublishAsync && asyncConnFactory != null) {
+			this.connFactory = asyncConnFactory;
+		}
+		if (!searchPublishAsync && syncConnFactory != null) {
+			this.connFactory = syncConnFactory;
+		}
+	}
+	
 	@Override
 	protected void createProducers(Session session) throws JMSException {
 		Destination destination = session.createQueue(SEARCH_QUEUE);
 		producer = session.createProducer(destination);
 		setProducerProperties(producer);
 	}
-
-	public void publishAsync(MessageData data) {
-		searchSender.executeAsync(data);
+	
+	public void publish(MessageData data) {
+		if (searchPublishAsync) {
+			searchSender.executeAsync(data);
+		}
+		else {
+			searchSender.executeSync(data);
+		}
 	}
 	
 	@Override
@@ -62,6 +85,18 @@ public class AsyncSearchPublisher extends AbstractMessagePublisher {
 
 	public void setSearchSender(SearchJmsSender searchSender) {
 		this.searchSender = searchSender;
+	}
+
+	public void setSyncConnFactory(ActiveMQConnectionFactory syncConnFactory) {
+		this.syncConnFactory = syncConnFactory;
+	}
+
+	public void setAsyncConnFactory(ActiveMQConnectionFactory asyncConnFactory) {
+		this.asyncConnFactory = asyncConnFactory;
+	}
+
+	public void setSearchPublishAsync(boolean searchPublishAsync) {
+		this.searchPublishAsync = searchPublishAsync;
 	}
 	
 }
