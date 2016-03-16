@@ -432,16 +432,23 @@ public class DesignExportProcessor {
 			List<CmsRfcCI> existingVars = cmRfcMrgProcessor.getDfDjCiNakedLower(platformNsPath, LOCAL_VAR_CLASS, var.getKey(), null);
 			Set<String> attrsToBootstrap = new HashSet<String>();
 			CmsRfcCI varBaseRfc = null;
-			if (var.getValue().startsWith(ENCRYPTED_PREFIX)) {
+			String varValue = null;
+			if (var.getValue() == null) {
+				varValue = "";
+			} else {
+				varValue = var.getValue(); 
+			}
+			
+			if (varValue.startsWith(ENCRYPTED_PREFIX)) {
 				attrsToBootstrap.add(ATTR_SECURE);
 				attrsToBootstrap.add(ATTR_ENC_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), LOCAL_VAR_CLASS, platformNsPath, releaseNsPath, attrsToBootstrap);
 				varBaseRfc.getAttribute(ATTR_SECURE).setNewValue("true");
-				varBaseRfc.getAttribute(ATTR_ENC_VALUE).setNewValue(parseEncryptedImportValue(var.getValue()));
+				varBaseRfc.getAttribute(ATTR_ENC_VALUE).setNewValue(parseEncryptedImportValue(varValue));
 			} else {
 				attrsToBootstrap.add(ATTR_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), LOCAL_VAR_CLASS, platformNsPath, releaseNsPath, attrsToBootstrap);
-				varBaseRfc.getAttribute(ATTR_VALUE).setNewValue(var.getValue());
+				varBaseRfc.getAttribute(ATTR_VALUE).setNewValue(varValue);
 			}
 			
 			if (existingVars.isEmpty()) {
