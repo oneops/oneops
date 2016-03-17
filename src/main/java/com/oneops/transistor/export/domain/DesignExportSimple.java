@@ -6,17 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 public class DesignExportSimple {
-	private String description;
 	private Map<String,String> variables;
 	private List<PlatformExport> platforms;
-
-	public String getDescription() {
-		return description;
-	}
-
-	public void setDescription(String description) {
-		this.description = description;
-	}
 
 	public Map<String,String> getVariables() {
 		return variables;
