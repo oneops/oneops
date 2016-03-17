@@ -119,7 +119,7 @@ public class ESMessageProcessor implements MessageProcessor {
 				if(ci.getCiClassName().startsWith("bom")){
 					message = ciMessageProcessor.processCIMsg(simpleCI,searchGson);
 				}else{
-					message = searchGson.toJson(ci);
+					message = searchGson.toJson(simpleCI);
 				}
 				indexer.index(msgId, "ci", message);
 				relationMsgProcessor.processRelationForCi(message,indexer);
