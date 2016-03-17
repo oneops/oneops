@@ -94,14 +94,13 @@ public class DesignExportProcessor {
 		this.cmProcessor = cmProcessor;
 	}
 
-	public DesignExportSimple exportDesign(long assemblyId, String exportDesc) {
+	public DesignExportSimple exportDesign(long assemblyId) {
 		CmsCI assembly = cmProcessor.getCiById(assemblyId);
 		if (assembly == null) {
 			throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ASSEMBLY_ID_ERROR_MSG + assemblyId);
 		}
 		
 		DesignExportSimple des = new DesignExportSimple();
-		des.setDescription(exportDesc);
 		//check open design release?
 		
 		//get the global vars
@@ -662,6 +661,7 @@ public class DesignExportProcessor {
 				}
 				if (rfc.getAttribute(attr.getKey()) != null) {
 					rfc.getAttribute(attr.getKey()).setNewValue(newValue);
+					rfc.getAttribute(attr.getKey()).setOwner(OWNER_DESIGN);
 				} else {CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
 					rfcAttr.setAttributeName(attr.getKey());
 					rfcAttr.setNewValue(newValue);

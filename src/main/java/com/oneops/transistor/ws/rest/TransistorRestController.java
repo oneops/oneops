@@ -280,13 +280,12 @@ public class TransistorRestController extends AbstractRestController {
 	@ResponseBody
 	public DesignExportSimple exportDesign(
 			@PathVariable long assemblyId,
-			@RequestParam(value="description", required = false) String description,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
 		if (userId == null) userId = "oneops-system";
 		try {
-			return dManager.exportDesign(assemblyId, description);
+			return dManager.exportDesign(assemblyId);
 		}  catch (CmsBaseException te) {
 			logger.error(te);
 			te.printStackTrace();
