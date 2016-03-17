@@ -54,6 +54,8 @@ public class Notifications {
 
 	protected static final String OLD_STATE = "oldState";
 
+	private static final String METRICS = "metrics";
+
 	protected static final String STATUS = "status";
 
 	protected static final String CI_NAME = "ciName";
@@ -86,6 +88,7 @@ public class Notifications {
 	private CmsCmProcessor cmProcessor;
 	private EnvPropsProcessor envProcessor;
 	private EventUtil eventUtil;
+    private Gson gson = new Gson();
 
 	public NotificationMessage sendOpsEventNotification(CiChangeStateEvent event) {
 		return sendOpsEventNotification(event, null, null);
@@ -130,6 +133,10 @@ public class Notifications {
 		notify.putPayloadEntry(NEW_STATE, event.getNewState());
 		notify.putPayloadEntry(CLASS_NAME, ci.getCiClassName());
 		notify.putPayloadEntry(STATE, oEvent.getState());
+		if (oEvent.getMetrics() != null) {
+			notify.putPayloadEntry(METRICS, gson.toJson(oEvent.getMetrics()));	
+		}
+		
 		if (payloadEntries != null && payloadEntries.size() > 0) {
 			notify.putPayloadEntries(payloadEntries);
 		}
