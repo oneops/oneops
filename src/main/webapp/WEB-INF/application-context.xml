@@ -80,21 +80,23 @@
 
   	<bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
             init-method="init" destroy-method="destroy">
-       	<property name="scanFolder" value="/opt/oneops/opamp/antenna/retry" />
+       	<property name="scanFolder" value="${OPAMP_ANTENNA_RETRY_DIR:/opt/oneops/opamp/antenna/retry}" />
        	<property name="connFactory" ref="jmsFactory" />
-       	<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+       	<property name="searchPublisher" ref="searchPublisher" />
    	</bean>
 	
-	<bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+	<bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
 		<property name="connFactory" ref="searchmqFactory" />
 		<property name="searchSender" ref="searchJmsSender" />
+		<property name="searchPublishAsync" value="${SEARCH_PUBLISH_ASYNC:true}" />
 	</bean>
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<constructor-arg value="${OPAMP_SEARCH_PUBLISH_POOLSIZE:50}"/>
 		<property name="name" value="opamp-search-publish" />
 		<property name="shortName" value="opamp" />
 		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
-		<property name="scanFolder" value="/opt/oneops/opamp/search/retry" />
+		<property name="scanFolder" value="${OPAMP_SEARCH_RETRY_DIR:/opt/oneops/opamp/search/retry}" />
 	</bean>
 	
     <bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
