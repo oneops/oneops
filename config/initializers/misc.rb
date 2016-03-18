@@ -27,6 +27,16 @@ class Array
   def info
     @info ||= {}
   end
+
+  def delete_blank
+    delete_if { |e| (((e.instance_of?(Hash) || e.instance_of?(Array)) && e.delete_blank) || e).blank? }
+  end
+end
+
+class Hash
+  def delete_blank
+    delete_if { |k, v| (((v.instance_of?(Hash) || v.instance_of?(Array)) && v.delete_blank) || v).blank? }
+  end
 end
 
 class Numeric

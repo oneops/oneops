@@ -1,5 +1,5 @@
 class Cms::Ci < Cms::Base
-  VALID_CI_NAME_REGEXP = '(?=[a-zA-Z])[a-zA-Z0-9\-]{1,32}'
+  VALID_CI_NAME_REGEXP =
 
   self.prefix      = "#{Settings.cms_path_prefix}/cm/simple/"
   self.primary_key = :ciId
@@ -8,6 +8,22 @@ class Cms::Ci < Cms::Base
   # in order for validation to run only once.  Using "validate" results in all validation run twice (including
   # expensive calls to 'percolate').
   before_validation :validate_ci
+
+  def self.valid_ci_name_regexp(ci_class_name = nil)
+    "(?=[a-zA-Z])[a-zA-Z0-9\\-#{'_' unless strict_ci_name(ci_class_name)}]{1,32}"
+  end
+
+  def self.valid_ci_name_message(ci_class_name = nil)
+    "must start with a letter and may be up to 32 characters long consisting of digits, letters #{', underscores' unless strict_ci_name(ci_class_name)} and dashes only"
+  end
+
+  def self.strict_ci_name(ci_class_name)
+    ci_class_name == 'account.Organization' ||
+      ci_class_name == 'account.Assembly' ||
+      ci_class_name == 'manifest.Environment' ||
+      ci_class_name == 'catalog.Platform' ||
+      ci_class_name == 'manifest.Platform'
+  end
 
   def self.build(attributes = {})
     attrs = self.from_ci_md(attributes[:ciClassName]).merge(attributes)
@@ -156,7 +172,10 @@ class Cms::Ci < Cms::Base
 
   def validate_ci
     if name_editable?
-      errors.add(:base, "Invalid name '#{ciName}' (name should start with a letter and may be up to 32 characters long consisting of digits, letters and dashes only.") unless ciName =~ /^#{VALID_CI_NAME_REGEXP}$/
+      unless ciName =~ /^#{self.class.valid_ci_name_regexp(ciClassName)}$/
+        message = self.class.valid_ci_name_message(ciClassName)
+        errors.add(:base, "Invalid name '#{ciName}' (#{message}).")
+      end
     end
     check_attribute_pattern
     check_policy_compliance if Settings.check_policy_compliance
@@ -173,7 +192,7 @@ class Cms::Ci < Cms::Base
             errors.add(:base, "'#{a.description}' is invalid [#{pattern}].") unless value =~ pattern
           end
         elsif a.isMandatory
-          errors.add(:base, "'#{a.description}' [#{a.attributeName}] must be present.")
+          errors.add(:base, "#{a.description} [#{a.attributeName}] must be present.")
         end
       end
     end
@@ -183,7 +202,7 @@ class Cms::Ci < Cms::Base
     policies = violates_policies(true)
     if policies.present?
       list = policies.map {|p| "#{p.ciName}#{" (#{p.ciAttributes.description})" if p.ciAttributes.description.present?}"}.join('; ')
-      errors.add(:base, "Failed policy compliance for: #{list}.")
+      errors.add(:base, "Failed compliance for #{'policy'.pluralize(policies.size)}: #{list}.")
     end
   end
 

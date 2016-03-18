@@ -12,7 +12,7 @@
     <div class="control-group">
        <%= label_tag :ciName, 'New Platform Name', :class => 'control-label' %>
        <div class="controls">
-         <%= text_field_tag :to_ci_name, @platform.ciName, :required => true, :pattern => Cms::Ci::VALID_CI_NAME_REGEXP %>
+         <%= text_field_tag :to_ci_name, @platform.ciName, :required => true, :pattern => Cms::Ci.valid_ci_name_regexp(@platform.ciClassName) %>
        </div>
    	</div>
   </div>

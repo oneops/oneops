@@ -166,12 +166,7 @@ class Base::PlatformsController < ApplicationController
   protected
 
   def get_platform_requires_relation_temlates(platform, environment = nil)
-    platform_attr = platform.ciAttributes
-    if environment
-      availability = (platform.ciAttributes.availability.presence || 'default').downcase
-      availability = environment.ciAttributes.availability.downcase if availability == 'default'
-    end
-    ns_path = "/public/#{platform_attr.source}/packs/#{platform_attr.pack}/#{platform_attr.version}#{"/#{availability}" if environment}"
+    ns_path = environment ? platform_pack_transition_ns_path(platform) : platform_pack_design_ns_path(platform)
     template_ci = Cms::Ci.first(:params => {:nsPath      => ns_path,
                                             :ciClassName => "mgmt.#{scope}.Platform"})
     Cms::Relation.all(:params => {:ciId              => template_ci.ciId,

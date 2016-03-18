@@ -38,6 +38,14 @@ class Cms::CiMd < Cms::Base
     return md
   end
 
+  def self.look_up!(ci_class_name = nil)
+    begin
+      look_up(ci_class_name)
+    rescue Exception => e
+      return nil
+    end
+  end
+
   def md_attribute(name)
     @md_attributes ||= attributes[:mdAttributes].inject({}) {|m, a| m[a.attributeName] = a; m}
     @md_attributes[name]

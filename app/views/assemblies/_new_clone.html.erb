@@ -31,7 +31,7 @@
     <div class="control-group">
       <%= label_tag :ciName, clone ? 'New Assembly Name' : 'New Catalog Name', :class => 'control-label' %>
       <div class="controls">
-        <%= text_field_tag :ciName, '', :required => true, :pattern => Cms::Ci::VALID_CI_NAME_REGEXP %>
+        <%= text_field_tag :ciName, '', :required => true, :pattern => Cms::Ci.valid_ci_name_regexp('account.Assembly') %>
       </div>
     </div>
     <div class="control-group">

@@ -1,0 +1,23 @@
+<%= assembly_page_header(@assembly, 'design') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)}] %>
+
+<%= page_title({:page_kind => 'Design Load', :page_icon => 'import'}) %>
+
+<%= page_info 'Update design by loading design configuration in yaml or json format' %>
+
+<%= form_tag load_assembly_design_path(@assembly), :method => :put, :multipart => true do %>
+  <% if @errors %>
+    <div class="alert alert-danger error-messages">
+      <h5>Please correct the following errors:</h5>
+      <pre style="background:transparent; max-height:300px; overflow:auto"><%= @errors.to_yaml.gsub("---\n", '') %></pre>
+    </div>
+  <% end %>
+  <fieldset>
+    <label>Specify design configuration YAML or JSON file</label>
+    <%= file_field_tag :data_file, :style => 'margin-left:25px' %>
+    <label style="margin-top: 20px">or directly paste design YAML or JSON configuration here</label>
+    <%= text_area_tag(:data, @data_string, :rows => 20, :style => 'width:95%;margin-left:25px') %>
+  </fieldset>
+  <br/>
+  <%= link_to_function(icon('upload', 'Load'), '$j(this).parents("form").submit()', 'btn btn-success', :class => 'btn btn-success') %>
+<% end %>

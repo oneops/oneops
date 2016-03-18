@@ -76,7 +76,7 @@ Display::Application.configure do
   config.log_formatter = ::Logger::Formatter.new
 
   # User "silencer" gem to suppress logging of certain requests (e.g. "/users/sign_in" used for ECV).
-  config.middleware.swap Rails::Rack::Logger, Silencer::Logger, :silence => ['/users/sign_in']
+  config.middleware.swap Rails::Rack::Logger, Silencer::Logger, :silence => ['/status/ecv']
 
   if defined?(LogStasher)
     # Enable the logstasher logs for the current environment
