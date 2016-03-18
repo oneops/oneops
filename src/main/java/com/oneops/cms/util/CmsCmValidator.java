@@ -385,7 +385,7 @@ public class CmsCmValidator {
 	 * @param attr2 the attr2
 	 * @return true, if successful
 	 */
-	public boolean attrsEqual(CmsBasicAttribute attr1, CmsBasicAttribute attr2) {
+	public boolean attrsEqual(CmsBasicAttribute attr1, CmsBasicAttribute attr2, boolean checkOwner) {
 		if (attr1 == null || attr2 == null) {
 			return false;
 		}
@@ -395,11 +395,15 @@ public class CmsCmValidator {
 		if (!equalStrs(attr1.getDjValue(), attr2.getDjValue())){
 			return false;
 		}
+		if (checkOwner && !equalStrs(attr1.getOwner(), attr2.getOwner())){
+			return false;
+		}
+		
 		return true;
 	}
 	
 	
-	private boolean equalStrs(String str1, String str2) {
+	public boolean equalStrs(String str1, String str2) {
 		if (str1 == null && str2 == null) {
 			return true;
 		}
