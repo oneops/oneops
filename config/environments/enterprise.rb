@@ -59,7 +59,7 @@ Display::Application.configure do
   # config.action_mailer.raise_delivery_errors = false
   config.action_mailer.perform_deliveries = Settings.mail_perform_deliveries
   config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = { :address => Settings.smtp_address }
+  config.action_mailer.smtp_settings = { :address => Settings.smtp_address, :enable_starttls_auto => false }
   config.action_mailer.default_url_options = { :host => Settings.host, :port => Settings.port, :protocol => Settings.protocol }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
