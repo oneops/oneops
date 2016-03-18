@@ -28,7 +28,7 @@ public class MessageSender {
 
 	private int concurrency;
 	private AtomicBoolean isRunning = new AtomicBoolean(false);
-	private AsyncSearchPublisher searchPublisher;
+	private SearchPublisher searchPublisher;
 	
 	private AtomicLong sequence = new AtomicLong(0);
 	private AtomicLong counter = new AtomicLong(0);
@@ -40,7 +40,7 @@ public class MessageSender {
 	
 	private String baseMsg = "{\"deploymentId\":%s,\"releaseId\":546559,\"maxExecOrder\":6,\"nsPath\":\"/local-dev/prod1/dev/bom\",\"created\":\"%2$ta %2$tb %2$td %2$tT %2$tZ %2$tY\",\"updated\":\"%2$ta %2$tb %2$td %2$tT %2$tZ %2$tY\"}";
 	
-	public MessageSender(int concurrency, AsyncSearchPublisher searchPublisher) {
+	public MessageSender(int concurrency, SearchPublisher searchPublisher) {
 		this.concurrency = concurrency;
 		this.searchPublisher = searchPublisher;
 	}
@@ -92,7 +92,7 @@ public class MessageSender {
 			while (isRunning.get()) {
 				executors.submit(() -> {
 					try {
-						searchPublisher.publishAsync(getData());
+						searchPublisher.publish(getData());
 					} catch (Throwable e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -100,7 +100,7 @@ public class MessageSender {
 					counter.getAndIncrement();
 				});
 				try {
-					Thread.sleep(rand.nextInt(10));
+					Thread.sleep(rand.nextInt(100));
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -121,7 +121,7 @@ public class MessageSender {
 		this.concurrency = concurrency;
 	}
 
-	public void setSearchPublisher(AsyncSearchPublisher searchPublisher) {
+	public void setSearchPublisher(SearchPublisher searchPublisher) {
 		this.searchPublisher = searchPublisher;
 	}
 	

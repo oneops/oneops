@@ -19,7 +19,7 @@ package com.oneops.antenna.client;
 
 import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.antenna.domain.NotificationType;
-import com.oneops.util.AsyncSearchPublisher;
+import com.oneops.util.SearchPublisher;
 import com.oneops.util.MessageData;
 import com.oneops.util.ReliableExecutor;
 
@@ -48,7 +48,7 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
     private Session session = null;
     private MessageProducer producer = null;
     
-    private AsyncSearchPublisher asyncSearchPublisher; 
+    private SearchPublisher searchPublisher; 
 
     public void setTimeToLive(long timeToLive) {
         this.timeToLive = timeToLive;
@@ -133,7 +133,7 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
     	Map<String, String> headers = new HashMap<String, String>();
     	headers.put("source", "notification");
     	MessageData data = new MessageData(gson.toJson(notificationMessage), headers);
-		asyncSearchPublisher.publishAsync(data);
+    	searchPublisher.publish(data);
     }
 
     @Override
@@ -170,8 +170,8 @@ public class JMSTransmitter extends ReliableExecutor<NotificationMessage> {
         System.out.println("Stop ReliableExecutor");
     }
 
-	public void setAsyncSearchPublisher(AsyncSearchPublisher searchPublisher) {
-		this.asyncSearchPublisher = searchPublisher;
+	public void setSearchPublisher(SearchPublisher searchPublisher) {
+		this.searchPublisher = searchPublisher;
 	}
 
 }

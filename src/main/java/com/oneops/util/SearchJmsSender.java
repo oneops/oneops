@@ -29,6 +29,14 @@ public class SearchJmsSender extends ReliableExecutor<MessageData> {
 	private Session session;
 	private MessageProducer producer;
 	
+	public SearchJmsSender(int threadPoolSize, boolean doSyncOnRejection) {
+		super(threadPoolSize, doSyncOnRejection);
+	}
+	
+	public SearchJmsSender(int threadPoolSize) {
+		super(threadPoolSize);
+	}
+	
 	public void initialize(Session session, MessageProducer producer) {
 		this.session = session;
 		this.producer = producer;
@@ -46,16 +54,20 @@ public class SearchJmsSender extends ReliableExecutor<MessageData> {
 	@Override
 	protected boolean process(MessageData data) {
 		try {
-			TextMessage message = createTextMessage(data);
-			producer.send(message);
-			if (logger.isDebugEnabled()) {
-				logger.debug("message published to search.stream queue: " + message.getText());	
+			if (session != null && producer != null) {
+				TextMessage message = createTextMessage(data);
+				producer.send(message);
+				if (logger.isDebugEnabled()) {
+					logger.debug("message published to search.stream queue: " + message.getText());	
+				}
+				return true;
 			}
+			
 		} catch (Exception e) {
 			logger.error("Exception occurred while sending message to search.stream", e);
-			return false;
 		}
-		return true;
+		return false;
+		
 	}
 
 }

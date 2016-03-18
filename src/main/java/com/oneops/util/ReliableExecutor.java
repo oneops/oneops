@@ -25,9 +25,7 @@ import java.lang.reflect.ParameterizedType;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.TreeSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -50,12 +48,35 @@ public abstract class ReliableExecutor <I> {
 	protected int backlogThreshold = 1000;
 	protected String name;
 	protected String shortName;
-
+	protected int threadPoolSize;
+	
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
 	
-	private final ExecutorService executors = Executors.newCachedThreadPool();
+	private ThreadPoolExecutor executors;
 	
 	protected Gson gson = new Gson();
+	
+	public ReliableExecutor() {
+		executors = (ThreadPoolExecutor) Executors.newCachedThreadPool();
+	}
+	
+	public ReliableExecutor(int threadPoolSize) {
+		this(threadPoolSize, false);
+	}
+	
+	public ReliableExecutor(int threadPoolSize, boolean doSyncOnRejection) {
+		this.threadPoolSize = threadPoolSize;
+		RejectedExecutionHandler handler;
+		if (doSyncOnRejection) {
+			handler = new ThreadPoolExecutor.CallerRunsPolicy();
+		}
+		else {
+			handler = new ThreadPoolExecutor.AbortPolicy();
+		}
+		executors = new ThreadPoolExecutor(0, threadPoolSize,
+								60L, TimeUnit.SECONDS,
+								new SynchronousQueue<Runnable>(), handler);
+	}
 	
 	public void setScanPeriod( int scanPeriod ) {
 		this.scanPeriod = scanPeriod;
@@ -73,8 +94,13 @@ public abstract class ReliableExecutor <I> {
 	}
 	
 	public void executeAsync(I param) {
-		Executor task = new Executor( param );
-		executors.submit(task);
+		Task task = new Task( param );
+		try {
+			executors.submit(task);
+		} catch (RejectedExecutionException e) {
+			logger.error("Exception while submitting task in ReliableExecutor ", e);
+			writeToFile(param);
+		}
 	}
 
 	public boolean executeSync(I param) {
@@ -161,9 +187,15 @@ public abstract class ReliableExecutor <I> {
 		if( process( param ) ){
 		    return true;
 		}
+		writeToFile(param);
+		return false;
+	}
+	
+	private void writeToFile(I param) {
 		try {
 			if (name != null) {
-				logger.warn(name + " execution failed. storing data to a file.");	
+				logger.warn(name + " execution failed. storing data to a file.");
+				logger.warn(name + " - Active workers count : " + executors.getActiveCount());
 			}
 			
 			checkBacklog();
@@ -174,7 +206,6 @@ public abstract class ReliableExecutor <I> {
 			logger.error( e.getMessage() );
 			logger.debug( e.getMessage(), e );
 		}
-		return false;
 	}
 	
 	private void checkBacklog() {
@@ -198,11 +229,11 @@ public abstract class ReliableExecutor <I> {
 		return fileName;
 	}
 
-	class Executor implements Runnable {
+	class Task implements Runnable {
 
 		private I param;
 
-		Executor(I param) {
+		Task(I param) {
 			this.param = param;
 		}
 
@@ -223,4 +254,5 @@ public abstract class ReliableExecutor <I> {
 	public void setShortName(String shortName) {
 		this.shortName = shortName;
 	}
+
 }
