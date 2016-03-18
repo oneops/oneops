@@ -15,7 +15,7 @@
         <%= @procedure.procedureName %>
         <div class="status"><span class="highlight">NEW</span></div>
       </div>
-      <div class="close"><i class="fa-lg fa-times" onclick="close_procedure_overlay()"></i></div>
+      <div class="close"><i class="fa fa-lg fa-times" onclick="close_procedure_overlay()"></i></div>
     </div>
 
     <% arglist = @procedure.arglist
@@ -61,12 +61,11 @@
       </div>
     <% end %>
 
-
     <div class="controls">
       <table>
         <tr>
-          <td><%= button_to_function 'cancel', 'close_procedure_overlay()', :class => 'btn' %></td>
-          <td><%= f.submit :value => 'Start Now', :disable_with => 'running...', :class => 'btn btn-success' %></td>
+          <td><%= button_tag 'Cancel', :type => 'button', :onclick => 'close_procedure_overlay()', :class => 'btn' %></td>
+          <td><%= f.button 'Start', :class => 'btn btn-success', :data => {:disable_with => 'Starting...'} %></td>
         </tr>
       </table>
     </div>

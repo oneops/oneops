@@ -11,7 +11,7 @@
       </a>
       <ul class="dropdown-menu">
         <% (@instance.meta.actions + @custom_actions).each do |action| %>
-          <li>
+          <li onclick="$j(this).parents('.btn-group').find('.dropdown-toggle').dropdown('toggle');">
             <% procedure_params = {:ciId              => @instance.ciId,
                                    :procedureCiId     => 0,
                                    :procedureState    => 'active',
