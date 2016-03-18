@@ -4,8 +4,8 @@
       <%= @procedure.procedureName %>
       <div class="status"><span id="procedure_state" class="highlight <%= @procedure.procedureState %>"><%= @procedure.procedureState.upcase %></span></div>
     </div>
-    <div class="close"><i class="fa-lg fa-times"  onclick="close_procedure_overlay()"></i></div>
-    <div class="close"><i class="fa-lg fa-refresh" onclick="refresh_procedure_status()"></i></div>
+    <div class="close"><i class="fa fa-lg fa-times"  onclick="close_procedure_overlay()"></i></div>
+    <div class="close"><i class="fa fa-lg fa-refresh" onclick="refresh_procedure_status()"></i></div>
   </div>
   <div class="main">
     <%= render 'action_list' %>
@@ -14,15 +14,15 @@
     <div class="controls">
       <table>
         <tr id="controls_active" <%= "style=display:none" unless @procedure.procedureState == 'active' %>>
-          <td><%= render 'update_status', :label => 'cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></td>
+          <td><%= render 'update_status', :label => 'Cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></td>
         </tr>
         <tr id="controls_pending" <%= "style=display:none" unless @procedure.procedureState == 'pending' %>>
-          <td><%= render 'update_status', :label => 'discard', :status => 'discarded', :message => 'discarding...', :style => 'danger' %></td>
-          <td><%= render 'update_status', :label => 'execute', :status => 'active', :message => 'executing...', :style => 'success' %></td>
+          <td><%= render 'update_status', :label => 'Discard', :status => 'discarded', :message => 'discarding...', :style => 'danger' %></td>
+          <td><%= render 'update_status', :label => 'Execute', :status => 'active', :message => 'executing...', :style => 'success' %></td>
         </tr>
         <tr id="controls_failed" <%= "style=display:none" unless @procedure.procedureState == 'failed' %>>
-          <td><%= render 'update_status', :label => 'cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></td>
-          <td><%= render 'update_status', :label => 'retry', :status => 'active', :message => 'retrying...', :style => 'success' %></td>
+          <td><%= render 'update_status', :label => 'Cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></td>
+          <td><%= render 'update_status', :label => 'Retry', :status => 'active', :message => 'retrying...', :style => 'success' %></td>
         </tr>
       </table>
     </div>

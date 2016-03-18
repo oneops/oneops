@@ -562,6 +562,7 @@ img.authicon {
 #overlay div.controls input.button, #overlay div.controls button {
   height:    40px;
   font-size: 16px;
+  min-width: 80px;
 }
 
 #overlay div.controls div.btn-group {
