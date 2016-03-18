@@ -24,14 +24,14 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.oneops.cms.transmitter.domain.CMSEvent;
-import com.oneops.util.AsyncSearchPublisher;
+import com.oneops.util.SearchPublisher;
 import com.oneops.util.MessageData;
 
-public class SearchPublisher {
+public class SearchSender {
 
 	private Logger logger = LoggerFactory.getLogger(this.getClass());
 	
-	private AsyncSearchPublisher asyncSearchPublisher;
+	private SearchPublisher searchPublisher;
 	private Gson gson = new Gson();
 
 	protected String getHeaders(CMSEvent event) {
@@ -39,20 +39,20 @@ public class SearchPublisher {
 	}
 
 	public void publishMessage(CMSEvent event) throws JMSException {
-		sendAsync(event);
+		sendEvent(event);
 		if (logger.isDebugEnabled()) {
 			logger.debug("Submitted msg for publishing to search.stream " + getHeaders(event));
 		}
 	}
 
-	private void sendAsync(CMSEvent event) {
+	private void sendEvent(CMSEvent event) {
 		String payload = gson.toJson(event.getPayload());
 		MessageData data = new MessageData(payload, event.getHeaders());
-		asyncSearchPublisher.publishAsync(data);
+		searchPublisher.publish(data);
 	}
 
-	public void setAsyncSearchPublisher(AsyncSearchPublisher publisher) {
-		this.asyncSearchPublisher = publisher;
+	public void setSearchPublisher(SearchPublisher publisher) {
+		this.searchPublisher = publisher;
 	}
 
 }
