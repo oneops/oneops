@@ -42,15 +42,17 @@
 	</bean>
 	
 	<bean id="woPublisher" class="com.oneops.controller.jms.WoPublisher" init-method="init">
-    	<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+    	<property name="searchPublisher" ref="searchPublisher" />
     </bean>
 	
-	<bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+	<bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
 		<property name="connFactory" ref="stubConnectionFactory" />
 		<property name="searchSender" ref="searchJmsSender" />
+		<property name="searchPublishAsync" value="false" />
 	</bean>
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<constructor-arg value="10"/>
 		<property name="name" value="controller-search-publish" />
 		<property name="shortName" value="controller" />
 		<property name="backlogThreshold" value="10" />

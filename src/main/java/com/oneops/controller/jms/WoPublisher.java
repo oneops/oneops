@@ -28,7 +28,7 @@ import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsUtil;
-import com.oneops.util.AsyncSearchPublisher;
+import com.oneops.util.SearchPublisher;
 import com.oneops.util.MessageData;
 
 /**
@@ -42,7 +42,7 @@ public class WoPublisher {
 	
 	private static Logger logger = Logger.getLogger(WoPublisher.class);
 	
-	private AsyncSearchPublisher asyncSearchPublisher; 
+	private SearchPublisher searchPublisher; 
     final private Gson gson = new Gson();
 
     private boolean isPubEnabled;
@@ -71,7 +71,7 @@ public class WoPublisher {
 			headers.put("type", getType(type));
 			headers.put("msgId", id);
 			MessageData data = new MessageData(payload, headers);
-			asyncSearchPublisher.publishAsync(data);
+			searchPublisher.publish(data);
 			if (cmsWoSimpleBase instanceof CmsWorkOrderSimple) {
 				logger.info("WO published to search stream queue for RfcId: "
 						+ ((CmsWorkOrderSimple) cmsWoSimpleBase).getRfcId());
@@ -98,8 +98,8 @@ public class WoPublisher {
 		return null;
 	}
 
-	public void setAsyncSearchPublisher(AsyncSearchPublisher asyncSearchPublisher) {
-		this.asyncSearchPublisher = asyncSearchPublisher;
+	public void setSearchPublisher(SearchPublisher asyncSearchPublisher) {
+		this.searchPublisher = asyncSearchPublisher;
 	}
 
 }

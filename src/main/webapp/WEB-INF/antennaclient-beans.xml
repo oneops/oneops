@@ -7,9 +7,9 @@
  
   	<bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
             init-method="init" destroy-method="destroy">
-       	<property name="scanFolder" value="/opt/oneops/controller/antenna/retry" />
+       	<property name="scanFolder" value="${CONTROLLER_ANTENNA_RETRY_DIR:/opt/oneops/controller/antenna/retry}" />
        	<property name="connFactory" ref="jmsFactory" />
-       	<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+       	<property name="searchPublisher" ref="searchPublisher" />
    	</bean>
 
 </beans>

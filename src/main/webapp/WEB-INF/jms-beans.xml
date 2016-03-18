@@ -11,7 +11,7 @@
 
 	<!--import resource="/activiti-context.xml"/>
 	<import resource="/cmsclient-beans.xml"/-->
-	
+		
 	<amq:queue id="woQueue" physicalName="CONTROLLER.WO" />
 	<amq:queue id="aoQueue" physicalName="CONTROLLER.AO" />
 	<amq:queue id="indRespQueue" physicalName="controller.response" />
@@ -56,46 +56,11 @@
 		<property name="notifier" ref="deploymentNotifier"/>
     </bean>
 
-	<!-- AMQ broker connector URI -->
-	<bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
-		<property name="transport" value="failover" />
-		<property name="protocol" value="tcp" />
-		<property name="host" value="${SEARCH_AMQ_HOST:searchmq}" />
-		<property name="port" value="61616" />
-		<property name="keepAlive" value="true" />
-		<property name="dnsResolve" value="true" />
-		<property name="transportOptions">
-			<map>
-				<entry key="initialReconnectDelay" value="100" />
-				<entry key="maxReconnectDelay" value="5000" />
-				<entry key="maxReconnectAttempts" value="-1" />
-				<entry key="randomize" value="false" />
-				<entry key="timeout" value="3000" />
-			</map>
-		</property>
-	</bean>
-
-	<bean id="searchmqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
-		<property name="brokerURL" value="#{searchBrokerURI.build()}" />
-		<property name="userName" value="${SEARCHMQ_USER}" />
-		<property name="password" value="${SEARCHMQ_PASS}" />
-	</bean>
 
 	<bean id="woPublisher" class="com.oneops.controller.jms.WoPublisher" init-method="init">
-		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+		<property name="searchPublisher" ref="searchPublisher" />
 	</bean>
 
-	<bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
-		<property name="connFactory" ref="searchmqFactory" />
-		<property name="searchSender" ref="searchJmsSender" />
-	</bean>
-	
-	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
-		<property name="name" value="controller-search-publish" />
-		<property name="shortName" value="controller" />
-		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
-		<property name="scanFolder" value="/opt/oneops/controller/search/retry" />
-	</bean>
 
     <bean id="inductorListener" class="com.oneops.controller.jms.InductorListener" >
     	<!--property name="connFactory" ref="jmsFactory" /-->
@@ -157,6 +122,45 @@
 		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
 		<!--property name="sessionAcknowledgeMode" value="2"/-->
 		<property name="sessionTransacted" value="true"/>
+	</bean>
+	
+	<bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
+		<property name="transport" value="failover" />
+		<property name="protocol" value="tcp" />
+		<property name="host" value="${SEARCH_AMQ_HOST:searchmq}" />
+		<property name="port" value="61616" />
+		<property name="keepAlive" value="true" />
+		<property name="dnsResolve" value="true" />
+		<property name="transportOptions">
+			<map>
+				<entry key="initialReconnectDelay" value="100" />
+				<entry key="maxReconnectDelay" value="5000" />
+				<entry key="maxReconnectAttempts" value="-1" />
+				<entry key="randomize" value="false" />
+				<entry key="timeout" value="${SEARCH_PUBLISH_TIMEOUT:3000}" />
+			</map>
+		</property>
+	</bean>
+
+	<bean id="searchmqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="#{searchBrokerURI.build()}" />
+		<property name="userName" value="${SEARCHMQ_USER}" />
+		<property name="password" value="${SEARCHMQ_PASS}" />
+	</bean>
+	
+	<bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
+		<property name="asyncConnFactory" ref="searchmqFactory" />
+		<property name="syncConnFactory" ref="jmsFactory" />
+		<property name="searchSender" ref="searchJmsSender" />
+		<property name="searchPublishAsync" value="${SEARCH_PUBLISH_ASYNC:false}" />
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<constructor-arg value="${CONTROLLER_SEARCH_PUBLISH_POOLSIZE:50}"/>
+		<property name="name" value="controller-search-publish" />
+		<property name="shortName" value="controller" />
+		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
+		<property name="scanFolder" value="${CONTROLLER_SEARCH_RETRY_DIR:/opt/oneops/controller/search/retry}" />
 	</bean>
 
 </beans>
