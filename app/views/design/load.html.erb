@@ -19,5 +19,5 @@
     <%= text_area_tag(:data, @data_string, :rows => 20, :style => 'width:95%;margin-left:25px') %>
   </fieldset>
   <br/>
-  <%= link_to_function(icon('upload', 'Load'), '$j(this).parents("form").submit()', 'btn btn-success', :class => 'btn btn-success') %>
+  <%= button_tag(icon('upload', 'Load'), :class => 'btn btn-success', :data => {:disable_with => '<i class="fa fa-upload"></i> Loading...'}) %>
 <% end %>

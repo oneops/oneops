@@ -26,7 +26,7 @@ class Cms::Ci < Cms::Base
   end
 
   def self.build(attributes = {})
-    attrs = self.from_ci_md(attributes[:ciClassName]).merge(attributes)
+    attrs = self.from_ci_md(attributes[:ciClassName]).deep_merge(attributes)
     self.new(attrs)
   end
 
