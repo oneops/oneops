@@ -121,7 +121,7 @@ public class BomManagerImpl implements BomManager {
 		execOrder = generateBomForOfflineClouds(envId, userId, excludePlats, manifestNs, bomNsPath, envVars, execOrder, desc);
 		//logger.info(">>>> execOrder=" + execOrder);
 		
-		long relelaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNs);
+		long relelaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNs, "open");
 		long rfcCount = 0;
 		if (relelaseId >0) {
 			rfcProcessor.brushExecOrder(relelaseId);
@@ -136,6 +136,8 @@ public class BomManagerImpl implements BomManager {
 			for (CmsCI localVar : cmProcessor.getCiByNsLikeByStateNaked(manifestNs, "manifest.Globalvar", "pending_deletion")) {
 				cmProcessor.deleteCI(localVar.getCiId(), true);
 			}
+			//if there is nothing to deploy update parent relese on latest closed bom relese
+			getPopulateParentAndGetReleaseId(bomNsPath, manifestNs, "closed");
 		}
 		
 		return relelaseId;
@@ -330,8 +332,8 @@ public class BomManagerImpl implements BomManager {
 
 
 	
-	private long getPopulateParentAndGetReleaseId(String nsPath, String manifestNsPath) {
-		List<CmsRelease> releases = rfcProcessor.getLatestRelease(nsPath, "open"); 
+	private long getPopulateParentAndGetReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
+		List<CmsRelease> releases = rfcProcessor.getLatestRelease(nsPath, bomReleaseState); 
 		if (releases.size() >0) {
 			CmsRelease bomRelease = releases.get(0);
 			List<CmsRelease> manifestReleases = rfcProcessor.getLatestRelease(manifestNsPath, "closed");
