@@ -6,8 +6,8 @@
    if editable %>
   <div class="control-group" style="margin-top: 10px">
     <%= f.label :ciName, 'Name', :class => 'control-label' %>
-    <div class="controls"><%= f.text_field :ciName, :class => 'input-xlarge', :required => true, :pattern => Cms::Ci::VALID_CI_NAME_REGEXP %>
-      <br/><em>must be unique with at least one letter character, 32 characters max</em>
+    <div class="controls"><%= f.text_field :ciName, :class => 'input-xlarge', :required => true, :pattern => Cms::Ci.valid_ci_name_regexp(ci.ciClassName) %>
+      <br/><em><%= Cms::Ci.valid_ci_name_message(ci.ciClassName) %></em>
     </div>
   </div>
 <% else %>

@@ -31,7 +31,7 @@ class Operations::PlatformsController < Base::PlatformsController
         @instances     = Cms::DjCi.all(:params => {:nsPath => platform_bom_ns_path(@environment, @platform)})
         @bom_release   = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
         @ops_states    = Operations::Sensor.states(@instances)
-        @procedure_cis = get_platform_procedures(@environment, @platform)
+        @procedure_cis = get_platform_procedures(@platform)
         @procedures    = Cms::Procedure.all(:params => {:ciId => @platform.ciId})
 
         @policy_compliance = Cms::Ci.violates_policies(@requires.map(&:toCi), false, true) if Settings.check_policy_compliance
@@ -69,7 +69,7 @@ class Operations::PlatformsController < Base::PlatformsController
   end
 
   def procedures
-    render :json =>  get_platform_procedures(@environment, @platform).map(&:toCi)
+    render :json =>  get_platform_procedures(@platform).map(&:toCi)
   end
 
   def autorepair
@@ -180,11 +180,9 @@ class Operations::PlatformsController < Base::PlatformsController
     "#{environment_ns_path(environment)}/bom/#{platform.ciName}/#{platform.ciAttributes.major_version}"
   end
 
-  def get_platform_procedures(environment, platform)
-    availability = (platform.ciAttributes.availability.presence || 'default').downcase
-    availability = environment.ciAttributes.availability.downcase if availability == 'default'
-    ns_path      = "/public/#{platform.ciAttributes.source}/packs/#{platform.ciAttributes.pack}/#{platform.ciAttributes.version}/#{availability}"
-    template_ci  = Cms::Ci.first(:params => {:nsPath => ns_path, :ciClassName => 'mgmt.manifest.Platform'})
+  def get_platform_procedures(platform)
+    template_ci = Cms::Ci.first(:params => {:nsPath      => platform_pack_transition_ns_path(platform),
+                                            :ciClassName => 'mgmt.manifest.Platform'})
     return [] unless template_ci
     Cms::Relation.all(:params => {:ciId              => template_ci.ciId,
                                   :relationShortName => 'ControlledBy',

@@ -31,7 +31,7 @@
     <div class="control-group">
       <%= label_tag :name, 'Name', :class => 'control-label' %>
       <div class="controls">
-        <%= text_field_tag :name, '', :pattern => Cms::Ci::VALID_CI_NAME_REGEXP %>
+        <%= text_field_tag :name, '', :pattern => Cms::Ci.valid_ci_name_regexp('catalog.Platform') %>
       </div>
     </div>
     <div class="control-group">

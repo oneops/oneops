@@ -4311,3 +4311,7 @@ i.relation {
   text-align: center;
   padding: 15px;
 }
+
+.btn-small .caret {
+  margin-top: 8px;
+}
