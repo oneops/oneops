@@ -89,9 +89,9 @@
 
   	<bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
 	            init-method="init" destroy-method="destroy">
-		<property name="scanFolder" value="/opt/oneops/transmitter/antenna/retry" />
+		<property name="scanFolder" value="${TRANSMITTER_ANTENNA_RETRY_DIR:/opt/oneops/transmitter/antenna/retry}" />
 		<property name="connFactory" ref="amqFactory" />
-		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+		<property name="searchPublisher" ref="searchPublisher" />
    	</bean>
    	
 	<bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init" destroy-method="cleanup">
@@ -112,27 +112,30 @@
 		<property name="antennaClient" ref="antennaClient" />
 		<property name="notificationConfig" ref="notificationConfig" />
 		<property name="cmsPublisher" ref="cmsPublisher" />
-		<property name="searchPublisher" ref="searchPublisher" />
+		<property name="searchPublisher" ref="searchSender" />
+		<property name="publishControllerEventsAsync" value="${SEARCH_PUBLISH_ASYNC:false}" />
 	</bean>
 
 	<bean id="cmsPublisher" class="com.oneops.cms.transmitter.CmsPublisher" init-method="init" destroy-method="cleanup">
         <property name="connFactory" ref="amqFactory" />
     </bean>
 
-	<bean id="searchPublisher" class="com.oneops.cms.transmitter.SearchPublisher">
-		<property name="asyncSearchPublisher" ref="asyncSearchPublisher" />
+	<bean id="searchSender" class="com.oneops.cms.transmitter.SearchSender">
+		<property name="searchPublisher" ref="searchPublisher" />
 	</bean>
 
-    <bean id="asyncSearchPublisher" class="com.oneops.util.AsyncSearchPublisher" init-method="init" destroy-method="destroy">
+    <bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
 		<property name="connFactory" ref="searchmqFactory" />
 		<property name="searchSender" ref="searchJmsSender" />
+		<property name="searchPublishAsync" value="${SEARCH_PUBLISH_ASYNC:true}" />
 	</bean>
 	
 	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<constructor-arg value="${TRANSMITTER_SEARCH_PUBLISH_POOLSIZE:50}"/>
 		<property name="name" value="transmitter-search-publish" />
 		<property name="shortName" value="transmitter" />
 		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
-		<property name="scanFolder" value="/opt/oneops/transmitter/search/retry" />
+		<property name="scanFolder" value="${TRANSMITTER_SEARCH_RETRY_DIR:/opt/oneops/transmitter/search/retry}" />
 	</bean>
     
   	<bean id="scheduler" class="com.oneops.cms.transmitter.MainScheduler"  destroy-method="cleanup">

@@ -57,7 +57,7 @@ public class MessagePublisherTest {
 	private ClassPathXmlApplicationContext context;
 
 	private CmsPublisher cmsPublisher;
-	private SearchPublisher searchPublisher;
+	private SearchSender searchSender;
 	private JMSConsumer topicConsumer;
 	private JMSConsumer searchConsumer;
 	private MainScheduler scheduler;
@@ -67,7 +67,7 @@ public class MessagePublisherTest {
 	private void init() {
 		context = new ClassPathXmlApplicationContext("**/test-app-context.xml");
 		cmsPublisher = context.getBean("cmsPublisherSpy", CmsPublisher.class);
-		searchPublisher = context.getBean("searchPublisherSpy", SearchPublisher.class);
+		searchSender = context.getBean("searchSenderSpy", SearchSender.class);
 		topicConsumer = context.getBean("topicConsumer", JMSConsumer.class);
 		searchConsumer = context.getBean("searchConsumer", JMSConsumer.class);
 		scheduler = context.getBean(MainScheduler.class);
@@ -97,7 +97,7 @@ public class MessagePublisherTest {
 			scheduler.stopPublishing();
 			Thread.sleep(1000);
 			verify(cmsPublisher).publishMessage(depEvents.get(0));
-			verify(searchPublisher, times(depEvents.size())).publishMessage(any(CMSEvent.class));
+			verify(searchSender, times(depEvents.size())).publishMessage(any(CMSEvent.class));
 		} catch (Exception e) {
 			e.printStackTrace();
 			Assert.fail();
@@ -121,7 +121,7 @@ public class MessagePublisherTest {
 			await().atMost(5, TimeUnit.SECONDS).until(() -> (searchConsumer.getCounter() == ciCount));
 			scheduler.stopPublishing();
 			Thread.sleep(1000);
-			verify(searchPublisher, times(ciCount)).publishMessage(any(CMSEvent.class));
+			verify(searchSender, times(ciCount)).publishMessage(any(CMSEvent.class));
 		} catch (Exception e) {
 			e.printStackTrace();
 			Assert.fail();
@@ -153,7 +153,7 @@ public class MessagePublisherTest {
 					verify(cmsPublisher, times(2)).publishMessage(event1);
 				}
 
-				verify(searchPublisher, times(count)).publishMessage(any(CMSEvent.class));
+				verify(searchSender, times(count)).publishMessage(any(CMSEvent.class));
 				Assert.assertEquals(searchConsumer.getCounter(), 0);
 				searchConsumer.startRecording();
 
