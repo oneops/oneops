@@ -152,6 +152,16 @@ public class CmsUtil {
         	ci.addAttribute(attr);
         }
         
+		if (ciSimple.getAttrProps() != null) {
+			for (String attrProp : ciSimple.getAttrProps().keySet()) {
+				if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
+					for (String attrName : ciSimple.getAttrProps().get(attrProp).keySet()) {
+						ci.getAttribute(attrName).setOwner(ciSimple.getAttrProps().get(attrProp).get(attrName));
+					}
+				}
+			}
+		}
+        
         return ci;
 	}
 

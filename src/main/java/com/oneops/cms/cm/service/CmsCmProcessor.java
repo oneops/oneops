@@ -717,7 +717,7 @@ public class CmsCmProcessor {
 			if (existingAttr == null || existingAttr.getCiAttributeId() == 0) {
 				ciMapper.addCIAttributeAndPublish(updAttr);
 			} else {
-				if (!cmValidator.attrsEqual(existingAttr, updAttr)) {
+				if (!cmValidator.attrsEqual(existingAttr, updAttr, updAttr.getOwner() != null)) {
 					updAttr.setCiAttributeId(existingAttr.getCiAttributeId());
 					ciMapper.updateCIAttribute(updAttr);
 					ciChanged = true;
@@ -1588,7 +1588,7 @@ public class CmsCmProcessor {
 			if (existingAttr == null || existingAttr.getCiRelationAttributeId() == 0) {
 				ciMapper.addRelationAttributeAndPublish(updAttr);
 			} else {
-				if (!cmValidator.attrsEqual(existingAttr, updAttr)) {
+				if (!cmValidator.attrsEqual(existingAttr, updAttr, updAttr.getOwner() != null)) {
 					updAttr.setCiRelationAttributeId(existingAttr.getCiRelationAttributeId());
 					ciMapper.updateCIRelationAttribute(updAttr);
 				}
