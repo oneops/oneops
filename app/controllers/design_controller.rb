@@ -249,7 +249,7 @@ class DesignController < ApplicationController
                         component_ci = Cms::DjCi.build({:ciClassName  => component_class,
                                                         :nsPath       => platform_ns_path,
                                                         :ciName       => comp_name,
-                                                        :ciAttributes => comp.slice(*component_md_attrs)})
+                                                        :ciAttributes => component_template.ciAttributes.attributes.merge(comp.slice(*component_md_attrs))})
 
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name]['errors'] = component_ci.errors.full_messages unless component_ci.valid?
                         result['platforms'].last['components'] << ci_to_import(component_ci, :template => template)
