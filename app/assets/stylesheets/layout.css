@@ -4316,3 +4316,11 @@ i.relation {
 .btn-small .caret {
   margin-top: 8px;
 }
+
+.input-file input[type=file] {
+  width: 0.01em;
+  height: 0.01em;
+  position: absolute;
+  overflow: hidden;
+  opacity: 0;
+}

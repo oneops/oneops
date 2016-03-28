@@ -1,4 +1,4 @@
-<%if announcement.present? %>
+<% if announcement.present? %>
   <% dom_id = random_dom_id %>
   <div id="<%= dom_id %>" class="announcement alert <%= "alert-#{style}" if defined?(style) == 'local-variable' %> collapsed">
     <%= link_to_function(icon('caret-down', '', 'fa-lg'), '$j(this).parents(".announcement").toggleClass("collapsed pinned").find("a.toggle > i").toggleClass("fa-caret-down fa-caret-up")', :class => 'toggle hide') %>
@@ -7,18 +7,20 @@
   <script>
     var div = $j("#<%= dom_id %>"),
         p = div.find("p");
-    if (p.height() <= parseInt(p.css('line-height'))) {
-    } else {
+    if (p.height() > parseInt(p.css('line-height'))) {
       div.find("a.toggle").show();
-      div.find("p")
-          .hover(function () {
-                  div.removeClass("collapsed")
-                },
-                function () {
-                  if (!div.hasClass("pinned")) {
-                    div.addClass("collapsed");
+      p.hover(function () {
+                setTimeout(function () {
+                  if (div.has("p:hover").length) {
+                    div.removeClass("collapsed");
                   }
-                });
+                }, 500);
+              },
+              function () {
+                if (!div.hasClass("pinned")) {
+                  div.addClass("collapsed");
+                }
+              });
     }
   </script>
 <% end %>

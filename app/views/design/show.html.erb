@@ -10,13 +10,13 @@
     <li><%= link_to('to JSON', extract_assembly_design_path(@assembly, :format => :json), :target => '_blank') %></li>
   </ul>
 <% end %>
-<% # page_options << extract
+<% page_options << extract
    if manages_access?
-     # if @release && @release.releaseState == 'open'
-     #   page_options << link_to_function(icon('upload', 'Load'), '', :class => 'btn btn-small disabled')
-     # else
-     #   page_options << link_to(icon('upload', 'Load'), load_assembly_design_path(@assembly), :class => 'btn btn-small')
-     # end
+     if @release && @release.releaseState == 'open'
+       page_options << link_to_function(icon('upload', 'Load'), '', :class => 'btn btn-small disabled')
+     else
+       page_options << link_to(icon('upload', 'Load'), load_assembly_design_path(@assembly), :class => 'btn btn-small')
+     end
      page_options << link_to(icon('files-o', 'Copy'), new_clone_assembly_path(@assembly), :remote => true, :class => 'btn btn-small')
      page_options << link_to(icon('floppy-o', 'Save to Catalog'), new_clone_assembly_path(@assembly, :export => 'catalog'), :remote => true, :class => 'btn btn-small')
    end %>

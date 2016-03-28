@@ -3,21 +3,33 @@
 
 <%= page_title({:page_kind => 'Design Load', :page_icon => 'import'}) %>
 
-<%= page_info 'Update design by loading design configuration in yaml or json format' %>
+<%= page_info 'Update design by loading design configuration in <em>YAML</em> or <em>JSON</em> format' %>
 
-<%= form_tag load_assembly_design_path(@assembly), :method => :put, :multipart => true do %>
-  <% if @errors %>
-    <div class="alert alert-danger error-messages">
-      <h5>Please correct the following errors:</h5>
-      <pre style="background:transparent; max-height:300px; overflow:auto"><%= @errors.to_yaml.gsub("---\n", '') %></pre>
-    </div>
-  <% end %>
+<% if @errors %>
+  <div class="alert alert-danger error-messages">
+    <h5>Please correct the following errors:</h5>
+    <pre style="background:transparent; max-height:300px; overflow:auto"><%= @errors.to_yaml.gsub("---\n", '') %></pre>
+  </div>
+<% end %>
+<%= form_tag load_assembly_design_path(@assembly), :method => :put, :multipart => true, :class => 'form-horizontal' do %>
   <fieldset>
-    <label>Specify design configuration YAML or JSON file</label>
-    <%= file_field_tag :data_file, :style => 'margin-left:25px' %>
-    <label style="margin-top: 20px">or directly paste design YAML or JSON configuration here</label>
-    <%= text_area_tag(:data, @data_string, :rows => 20, :style => 'width:95%;margin-left:25px') %>
+    <div class="control-group">
+      <label class="control-label">Specify design configuration <em>YAML</em> or <em>JSON</em> file</label>
+      <div class="controls">
+        <%= render 'base/shared/input_file', :field_name => :data_file %>
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="control-label">or</label>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Directly paste design <em>YAML</em> or <em>JSON</em> configuration here</label>
+      <div class="controls">
+        <%= text_area_tag(:data, @data_string, :rows => 20, :style => 'width:95%') %>
+      </div>
+    </div>
   </fieldset>
-  <br/>
-  <%= button_tag(icon('upload', 'Load'), :class => 'btn btn-success', :data => {:disable_with => '<i class="fa fa-upload"></i> Loading...'}) %>
+  <div class="form-actions">
+    <%= button_tag(icon('upload', 'Load'), :class => 'btn btn-success', :data => {:disable_with => '<i class="fa fa-upload"></i> Loading...'}) %>
+  </div>
 <% end %>

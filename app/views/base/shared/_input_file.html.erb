@@ -1,0 +1,18 @@
+<% dom_id   = random_dom_id
+   prompt_x = defined?(prompt) ? prompt : 'Choose a file...' %>
+<div id="<%= dom_id %>" class="input-file">
+  <%= file_field_tag(field_name, :multiple => defined?(multiple) && multiple) %>
+  <%= label_tag(:data_file, icon('file-text', content_tag(:span, prompt_x), 'fa-fw'), :class => 'btn btn-primary btn-large') %>
+</div>
+
+<script>
+  $j("#<%= dom_id %> input[type=file]").change(function() {
+    var count = this.files.length;
+    if (count) {
+      caption = count > 1 ? count + " files" : this.value.split("\\").last();
+    } else {
+      caption = "<%= escape_javascript(prompt_x) %>";
+    }
+    $j(this).siblings('label').find('span').html(caption);
+  });
+</script>
