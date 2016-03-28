@@ -53,7 +53,7 @@ class DesignController < ApplicationController
         end
       else
         ok = false
-        @errors = ['Please specify proper design coonfguration in YAML format.']
+        @errors = ['Please specify valid design coonfguration in YAML or JSON format.']
       end
 
       respond_to do |format|
@@ -246,13 +246,14 @@ class DesignController < ApplicationController
                       comps.each_pair do |comp_name, comp|
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name] = {}
 
-                        component_ci = Cms::DjCi.build({:ciClassName  => component_class,
-                                                        :nsPath       => platform_ns_path,
-                                                        :ciName       => comp_name,
-                                                        :ciAttributes => component_template.ciAttributes.attributes.merge(comp.slice(*component_md_attrs))})
+                        component_attrs = comp.slice(*component_md_attrs)
+                        component_ci    = Cms::DjCi.build({:ciClassName  => component_class,
+                                                           :nsPath       => platform_ns_path,
+                                                           :ciName       => comp_name,
+                                                           :ciAttributes => component_template.ciAttributes.attributes.merge(component_attrs)})
 
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name]['errors'] = component_ci.errors.full_messages unless component_ci.valid?
-                        result['platforms'].last['components'] << ci_to_import(component_ci, :template => template)
+                        result['platforms'].last['components'] << ci_to_import(component_ci, :template => template, :attributes => component_attrs)
 
                         transfer_if_present('depends', comp, result['platforms'].last['components'].last)
 
@@ -262,13 +263,14 @@ class DesignController < ApplicationController
                           errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'] = {}
                           attachments.each do |attachment_name, attachment|
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name] = {}
-                            attachment_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
-                                                             :nsPath       => platform_ns_path,
-                                                             :ciName       => attachment_name,
-                                                             :ciAttributes => attachment.slice(*attachment_md_attrs)})
+                            attachment_attrs = attachment.slice(*attachment_md_attrs)
+                            attachment_ci    = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
+                                                                :nsPath       => platform_ns_path,
+                                                                :ciName       => attachment_name,
+                                                                :ciAttributes => attachment_attrs})
 
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
-                            result['platforms'].last['components'].last['attachments'] << ci_to_import(attachment_ci)
+                            result['platforms'].last['components'].last['attachments'] << ci_to_import(attachment_ci, :attributes => attachment_attrs)
                           end
                         end
                       end
@@ -296,9 +298,10 @@ class DesignController < ApplicationController
     return errors.blank? && result, errors
   end
 
-  def ci_to_import(ci, extra = nil)
-    result = {:name => ci.ciName, :type => ci.ciClassName, :attributes => ci.ciAttributes.attributes.to_hash}
-    result.merge!(extra) if extra.present?
+  def ci_to_import(ci, extra = {})
+    result = {:name => ci.ciName, :type => ci.ciClassName}
+    extra[:attributes] ||= ci.ciAttributes.attributes.to_hash
+    result.merge!(extra)
     result
   end
 
