@@ -16,7 +16,8 @@ class Chef
     include Chef::Mixin::ParamsValidate
     #include Chef::IndexQueue::Indexable
 
-    attr_reader   :environments,
+    attr_reader   :platform,
+    		  :environments,
                   :resources,
                   :relations,
                   :serviced_bys,
@@ -61,6 +62,7 @@ class Chef
       @ignore = false
       @enabled = true
       @type = ''
+      @platform = Hash.new
       @services = ''
       @environments = Mash.new
       @resources = Mash.new
@@ -217,6 +219,15 @@ class Chef
       @resources.reject { |n,r| !r[:design] }
     end
 
+    def platform(arg=nil)
+      set_or_return(
+        :platform,
+        arg,
+        :kind_of => Hash
+      )
+
+    end   
+ 
     def environment_resources(environment)
       @resources.reject do |n,r|
         if envs = r[:only]
@@ -518,7 +529,8 @@ class Chef
         "ignore" => @ignore,
         "enabled" => @enabled,
         "type" => @type,
-        "services" => @services,
+	"platform" => @platform,
+	"services" => @services,
         "environments" => @environments,
         "resources" => @resources,
         'json_class' => self.class.name,
@@ -553,6 +565,7 @@ class Chef
       ignore(o.ignore)
       enabled(o.enabled)
       type(o.type)
+      platform(o.platform)
       services(o.services) unless o.services.empty?
       environments(o.environments)
       resources(o.resources)
@@ -579,6 +592,7 @@ class Chef
       pack.ignore(o["ignore"])
       pack.enabled(o["enabled"])
       pack.type(o["type"])
+      pack.platform(o["platform"])
       pack.services(o["services"])
       pack.environments(o["environments"])
       pack.resources(o["resources"])
@@ -726,7 +740,8 @@ class Chef
       if o
         services(o.services) unless o.services.empty?
         environments(o.environments)
-        resources(o.resources)
+        platform(o.platform)
+	resources(o.resources)
         relations(o.relations)
         recipes(o.recipes) if defined?(o.recipes)
         serviced_bys(o.serviced_bys)

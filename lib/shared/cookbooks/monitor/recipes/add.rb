@@ -67,14 +67,16 @@ end
 
 
 conf_dir = "/etc/nagios"
-
+perf_dir = "/opt/oneops/perf"
 if is_new_compute
   puuid = (0..32).to_a.map{|a| rand(32).to_s(32)}.join
   conf_dir = "/tmp/#{puuid}"
+  perf_dir = conf_dir + "/perf"
   execute "mkdir -p #{conf_dir}/conf.d"
 end
 
 node.set["nagios_conf_dir"] = conf_dir
+node.set["perf_conf_dir"] = perf_dir
 
 template "#{conf_dir}/nagios.cfg" do
     source "nagios.cfg.erb"
@@ -130,7 +132,7 @@ if node.workorder.payLoad.has_key?("WatchedBy")
       config += "interval=60"
     end
     
-    metric_config_dir = "/opt/oneops/perf/#{node.workorder.rfcCi.ciId}-#{monitor['ciName']}"
+    metric_config_dir = "#{perf_dir}/#{node.workorder.rfcCi.ciId}-#{monitor['ciName']}"
     `mkdir -p #{metric_config_dir}`
     metric_config_file = "#{metric_config_dir}/config"
     # write simple dstype file
@@ -325,7 +327,7 @@ ruby_block 'setup nagios' do
       
       
       # copy config and restart nagios
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/;" +
+      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/; sudo cp -r #{conf_dir}/perf /opt/oneops/; " +
             "sudo ln -sf /etc/nagios /etc/nagios3; sudo chmod +x /opt/nagios/libexec/* " + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")

@@ -29,6 +29,9 @@ class Inductor < Thor
     # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
     empty_directory "#{options[:path]}/shared/cookbooks/vendor/cache"
+    
+    # chmod exec-order.rb
+    `chmod +x #{options[:path]}/shared/exec-order.rb`
 
     if ENV.has_key?("USE_GEM_CACHE")
       gem_paths = `gem env path`.chomp.split(":")
@@ -64,6 +67,7 @@ class Inductor < Thor
   method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
   def add
+    @inductor_dir = File.expand_path(Dir.pwd)    
     validate_user
     if options[:mqhost]
       @mqhost = options[:mqhost]
@@ -233,6 +237,10 @@ class Inductor < Thor
         user=`cat inductor/user`.chomp       
       else
         user=`cat user`.chomp
+        if $?.to_i != 0          
+          puts "There is no inductor installed in this directory."
+          exit 1
+        end
       end
       if current_user != user
         puts "Inductor was created using user: #{user} - Please sudo to that user."

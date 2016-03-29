@@ -6,7 +6,11 @@ amq.connect_string = failover:(<%=
   hosts.join(",")
    %>)?jms.useCompression=true&initialReconnectDelay=1000&maxReconnectAttempts=-1&startupMaxReconnectAttempts=0&jms.prefetchPolicy.queuePrefetch=1
 amq.zone = <%= 
-  loc = @queue.gsub("clouds/","clouds:")
+  # handle either queue or cloud location
+  loc = @queue.gsub(".","/").gsub("clouds/","clouds:")
+  if loc[0,1] != "/"
+    loc = "/"+loc
+  end
   if @authkey.include?(":")
     loc = @authkey.split(":").first
   end
@@ -18,7 +22,7 @@ amq.authkey = <%=
   end
   auth %>
 amq.in_queue = <%= @queue_name %>
-packer_home = <%= @inductor %>/packer
+packer_home = <%= @inductor_dir %>/packer
 data_dir = <%= @home %>/data
 scan_path = <%= @home %>/retry
 scan_period = 5

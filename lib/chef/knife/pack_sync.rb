@@ -239,6 +239,7 @@ class Chef
         end
         # Upload design template
         design_resources = pack.design_resources
+	
         Chef::Log.debug([pack.name.capitalize,'mgmt.catalog',design_resources,comments].to_yaml)
         ns = "#{source}/#{pack.name}/#{pack.version}"
         upload_template(ns,pack.name,'mgmt.catalog',pack,'_default',design_resources,comments)
@@ -414,12 +415,20 @@ class Chef
           ui.info("Updating #{ciClassName} for template #{template_name}")
         end
 
+        #iterate over platform attributes and populate them with pack attributes from file
+        platform.ciAttributes.attributes.each do |name, value|
+          if pack.platform && pack.platform[:attributes] && pack.platform[:attributes].has_key?(name)
+     		platform.ciAttributes.send(name+'=', pack.platform[:attributes][name])
+           end
+        end
+
         platform.comments = comments
         platform.ciAttributes.description = pack.description
         platform.ciAttributes.source = config[:register]
         platform.ciAttributes.pack = pack.name.capitalize
         platform.ciAttributes.version = pack.version
-        Chef::Log.debug("SERVICES: #{pack.services.inspect}")
+        
+	Chef::Log.debug("SERVICES: #{pack.services.inspect}")
         platform.ciAttributes.services = pack.services.to_json if platform.ciAttributes.respond_to?('services')
 
         Chef::Log.debug(platform.to_json)
