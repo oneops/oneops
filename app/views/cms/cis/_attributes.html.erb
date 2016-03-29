@@ -26,7 +26,7 @@
                   <%= render 'cms/cis/sticky',
                              :name      => "#{f.object_name}[ciAttrProps][owner][#{a.attributeName}]",
                              :value     => ci.ciAttrProps.owner.attributes[a.attributeName],
-                             :read_only => read_only %>
+                             :read_only => read_only && !ci.ciClassName.start_with?('catalog.') %>
               <% end %>
               <% pattern         = a.options[:pattern]
                  required        = a.isMandatory ? true : nil

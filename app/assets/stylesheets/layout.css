@@ -3094,6 +3094,16 @@ div.ciAttributes {
   cursor:     text;
 }
 
+.edit_form form .controls .help-block {
+  display: none;
+  margin-top: 5px;
+}
+
+.edit_form form.editing .controls .help-block {
+  display: inherit;
+  font-style: italic;
+}
+
 .ciAttributes .text {
   font-family: monospace;
   white-space: pre;
@@ -4155,10 +4165,6 @@ hr {
   font-size: 12px;
 }
 
-.controls .help-block {
-  margin-top: 10px;
-}
-
 .accordion-group {
   margin-bottom: 4px;
 }
@@ -4323,4 +4329,9 @@ i.relation {
   position: absolute;
   overflow: hidden;
   opacity: 0;
+}
+
+.tx-editor-wrapper .tx-editor .tx-toolbar a.tx-btn {
+  padding: 2px 5px;
+  background: white;
 }
