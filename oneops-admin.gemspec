@@ -34,6 +34,8 @@ Gem::Specification.new do |s|
   s.add_dependency "nokogiri", '= 1.5.11'
   s.add_dependency "kramdown", '= 1.9.0'
   s.add_dependency "route53", '= 0.3.2'
+  s.add_dependency "ms_rest", '= 0.1.1'
+  s.add_dependency "ms_rest_azure", '= 0.1.1' 
   s.add_dependency "azure_mgmt_compute", '= 0.1.1'
   s.add_dependency "azure_mgmt_storage", '= 0.1.1'
   s.add_dependency "azure_mgmt_network", '= 0.1.1'
