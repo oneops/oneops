@@ -65,7 +65,7 @@ class DesignController < ApplicationController
           end
         end
 
-        format.json {ok ? show : render_json_ci_response(false, nil, @errors)}
+        format.json {ok ? render(:json => {}) : render(:json => {:errors => @errors}, :status => :unprocessable_entity)}
       end
     end
   end
@@ -94,7 +94,7 @@ class DesignController < ApplicationController
           show
         end
 
-        format.json {render_json_ci_response(false, nil, [message])}
+        format.json {render :json => {:errors => [message]}, :status => :unprocessable_entity}
       end
     end
   end
