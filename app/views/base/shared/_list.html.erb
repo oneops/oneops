@@ -120,7 +120,7 @@
       var btn = $j(source);
       var i = btn.find("i");
       var expanding = i.hasClass("fa-plus-square-o");
-      i.find("span").html(expanding ? " Collapse" : " Expand");
+      i.siblings("span").html(expanding ? " Collapse" : " Expand");
       i.toggleClass("fa-plus-square-o fa-minus-square-o");
       var items = $j(btn.parents('.list')[0]).find(".list-body > ul > li:visible .middle");
       if (expanding) {
