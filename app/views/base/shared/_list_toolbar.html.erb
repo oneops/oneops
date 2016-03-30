@@ -13,15 +13,10 @@
     </div>
   <% end %>
   <% compact = toolbar[:compact] %>
-  <% unless compact.nil? %>
-    <button class="btn btn-mini" style="margin-left: 10px" onclick="toggle_compact(this)">
-      <% if compact %>
-        <i class="fa fa-lg fa-plus-square-o"><span> Expand</span></i>
-      <% else %>
-        <i class="fa fa-lg fa-minus-square-o"><span> Collapse</span></i>
-      <% end %>
-    </button>
-  <% end %>
+  <%= link_to_function(compact ? icon('plus-square-o', 'Expand') : icon('minus-square-o', 'Collapse'),
+                       'toggle_compact(this)',
+                       :class => 'btn btn-mini',
+                       :style => 'margin-left:10px') unless compact.nil? %>
   <% if menu.present? %>
     <div class="btn-group menu pull-right">
       <button class="btn btn-mini" onclick="select_all_items(this)" title="Select All"><i class="fa fa-lg fa-check-square-o"></i></button>
