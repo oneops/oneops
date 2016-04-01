@@ -3,7 +3,7 @@
    fk     = defined?(fixed_keys) ? fixed_keys : false %>
 <div class="hash">
   <%= builder.hidden_field attribute_name %>
-  <table id="<%= attribute_name %>_<%= Time.now.to_i %>_table">
+  <table>
     <% (attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : {}).each_pair do |k, v| %>
       <%= render 'cms/cis/hash_attribute_row', :attribute_name => attribute_name, :key => k, :value => v, :fixed_keys => fk, :allow_delete => delete %>
     <% end %>
@@ -11,10 +11,9 @@
   <%= link_to_function(icon('plus', 'add'), "new_hash_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') if add && !fk %>
 </div>
 <script type="text/javascript">
-  if (typeof(new_hash_attribute_row_html) == "undefined") {
-    var new_hash_attribute_row_html = "<%= escape_javascript(render('cms/cis/hash_attribute_row', :attribute_name => 'new_hash_attribute_row', :key => '', :value => '', :fixed_keys => fk, :allow_delete => delete)) %>";
-
+  if (!window.new_hash_attribute_row) {
     window.new_hash_attribute_row = function(table) {
+      var new_hash_attribute_row_html = "<%= escape_javascript(render('cms/cis/hash_attribute_row', :attribute_name => 'new_hash_attribute_row', :key => '', :value => '', :fixed_keys => false, :allow_delete => true)) %>";
       var id = "" + new Date().getTime();
       table.insert(new_hash_attribute_row_html.replace(new RegExp("new_hash_attribute_row", "g"), id));
       table.up("form").dirty = true;
@@ -30,7 +29,7 @@
 
     window.update_hash_attribute_raw_value = function(table) {
       var field = table.previous("input");
-      var rows = $$("#" + table.id + " tr");
+      var rows = table.select("tr");
       if (rows && rows.length > 0) {
         var row_values = {};
         for (var i = 0; i < rows.length; i++) {

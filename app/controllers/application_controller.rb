@@ -32,7 +32,7 @@ class ApplicationController < ActionController::Base
     attr_accessor :locateId, :nsPath, :ciType
 
     def initialize(id, ns_path = nil, ci_type = nil)
-      super("Could not locate #{ci_type || 'CI'} with id/name '#{id}'#{" in namespace '#{ns_paths}'" if nsPath.present?}.")
+      super("Could not locate #{ci_type || 'CI'} with id/name '#{id}'#{" in namespace '#{ns_path}'" if ns_path.present?}.")
     end
   end
 
