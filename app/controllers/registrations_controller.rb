@@ -1,10 +1,7 @@
 class RegistrationsController < Devise::RegistrationsController
   skip_before_filter :check_organization, :only => [:destroy]
 
-  def edit
-    @authentications = current_user.authentications if current_user
-    super
-  end
+  respond_to :json, :only => [:create, :update, :destroy]
 
   def create
     if Settings.invitations
@@ -41,6 +38,11 @@ class RegistrationsController < Devise::RegistrationsController
     end
   end
 
+  def edit
+    @authentications = current_user.authentications if current_user
+    super
+  end
+
   def destroy
     user = User.find(params[:id])
     unless user.id == current_user.id
@@ -54,9 +56,8 @@ class RegistrationsController < Devise::RegistrationsController
     # login = "%#{params[:login]}%"
     # render :json => User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
     login = params[:login].to_s.strip
-    x = User.where('username = ?', login).limit(1).map { |u| "#{u.username} #{u.name if u.name.present?}" }
-    Rails.logger.info "=== #{x}"
-    render :json => x
+    hits = User.where('username = ?', login).limit(1).map { |u| "#{u.username} #{u.name if u.name.present?}" }
+    render :json => hits
   end
 
 
