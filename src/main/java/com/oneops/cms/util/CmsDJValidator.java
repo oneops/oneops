@@ -337,10 +337,10 @@ public class CmsDJValidator {
 	 */
 	public boolean rfcAttrsEqual(CmsRfcAttribute attr1, CmsRfcAttribute attr2) {
 		if (attr1 == null || attr2 == null) return false;
-		if (!equalStrs(attr1.getNewValue(), attr2.getNewValue())) return false;
 		if (attr1.getOwner() != null && attr1.getOwner().length()==0) attr1.setOwner(null);
 		if (attr2.getOwner() != null && attr2.getOwner().length()==0) attr2.setOwner(null);
 		if (!equalStrs(attr1.getOwner(), attr2.getOwner())) return false;
+		if (!equalStrs(attr1.getNewValue(), attr2.getNewValue())) return false;
 		return true;
 	}
 
