@@ -107,7 +107,7 @@ public class DesignExportProcessor {
 		List<CmsCIRelation> globalVarRels = cmProcessor.getToCIRelations(assemblyId, GLOBAL_VAR_RELATION, GLOBAL_VAR_CLASS);
 		
 		for (CmsCIRelation gvRel : globalVarRels) {
-			String[] var = checkVar4Export(gvRel.getFromCi());
+			String[] var = checkVar4Export(gvRel.getFromCi(), false);
 			if (var != null) {
 				des.addVariable(var[0],var[1]);
 			}
@@ -140,7 +140,7 @@ public class DesignExportProcessor {
 			List<CmsCIRelation> localVarRels = cmProcessor.getToCIRelations(platform.getCiId(), LOCAL_VAR_RELATION, LOCAL_VAR_CLASS);
 			
 			for (CmsCIRelation lvRel : localVarRels) {
-				String[] var = checkVar4Export(lvRel.getFromCi());
+				String[] var = checkVar4Export(lvRel.getFromCi(), true);
 				if (var != null) {
 					pe.addVariable(var[0],var[1]);
 				}
@@ -688,12 +688,18 @@ public class DesignExportProcessor {
 		return false;
 	}
 	
-	private String[] checkVar4Export(CmsCI var) {
+	private String[] checkVar4Export(CmsCI var, boolean checkLock) {
 		String name = var.getCiName();
 		String value = null;
 		if ("true".equals(var.getAttribute(ATTR_SECURE).getDjValue())) {
+			if (checkLock && !OWNER_DESIGN.equals(var.getAttribute(ATTR_ENC_VALUE).getOwner())) {
+				return null;
+			}
 			value = DUMMY_ENCRYPTED_EXP_VALUE;
 		} else {
+			if (checkLock && !OWNER_DESIGN.equals(var.getAttribute(ATTR_VALUE).getOwner())) {
+				return null;
+			}
 			value = var.getAttribute(ATTR_VALUE).getDjValue();
 		}
 		String[] result = {name, value};
