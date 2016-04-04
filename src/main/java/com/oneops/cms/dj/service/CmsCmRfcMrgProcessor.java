@@ -1328,7 +1328,10 @@ public class CmsCmRfcMrgProcessor {
 		
 		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
 			CmsRfcAttribute existingAttr = baseCi.getAttribute(attr.getAttributeName());
-			if(!(djValidator.rfcAttrsEqual(attr, existingAttr)) && !CmsCrypto.ENC_DUMMY.equals(attr.getNewValue())) {
+			if (CmsCrypto.ENC_DUMMY.equals(attr.getNewValue())) {
+				attr.setNewValue(existingAttr.getNewValue());
+			}
+			if(!(djValidator.rfcAttrsEqual(attr, existingAttr))) {
 				newRfc.addAttribute(attr);
 				needUpdate = true;
 			}	
