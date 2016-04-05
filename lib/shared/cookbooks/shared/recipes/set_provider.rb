@@ -90,6 +90,7 @@ if node.workorder.services.has_key?("storage")
   storage = storage_service["ciAttributes"]
   storage_class = storage_service["ciClassName"].split(".").last.downcase
   node.set["storage_provider_class"] = storage_class
+  Chef::Log.info(" i am here node.storage_provider_class: " + node.storage_provider_class)
 end
 
 case storage_class
@@ -106,13 +107,15 @@ when /rackspace/
     :rackspace_api_key => cloud[:password],
     :rackspace_username => cloud[:username],
     :rackspace_region => cloud[:region]
-  })  
+  }) 
+when /azure/
+  provider_class = "azureblobs" 
 end
 
 
 if !node.has_key?(:storage_provider) || node.storage_provider == nil
-  node.set[:storage_provider] = provider
-  node.set[:storage_provider_class] = provider_class
+     node.set[:storage_provider] = provider
+     node.set[:storage_provider_class] = provider_class
 end
 
 node.set[:iaas_provider] = provider
