@@ -1,85 +1,114 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta content='text/html; charset=UTF-8' http-equiv='Content-Type' />
-    <style type="text/css" media="screen">
-      body {
-      	font-family: "Helvetica Neue","Helvetica",Arial,sans-serif;
-      }
-      div.heading {
-		font-size: 18px;
-		font-weight: 300;
-		line-height: 20px;
-		text-shadow: 0px 1px 0px rgba(255, 255, 255, 0.5);
-		border-bottom: 1px solid #bbbbbb;
-	  }
-	  div.title {
-	  	padding: 10px;
-	  }
-	  div.content {
-	  	padding: 10px;
-	  }
-	  div.severity {
-		  font-size: 20px;
-	  }
-	  div.success {
-	  	color: #468847;
-	  }
-	  div.warning {
-	  	color: #faa732;
-	  }
-	  div.critical {
-	  	color: #b94a48;
-	  }
-	  div.info {
-	  	color: #3a87ad;
-	  }
-	  div.content {
-		position: relative;
-		float: left;
-		clear: both;
-		padding: 10px;
-		font-size: 12px;
-	  }
-	  div.subject {
-		font-weight: bold;
-		font-size: 14px;
-	  }
-	  div.text {
-		font-size: 13px;
-	  }
-	  div.path {
-		color: #888;
-	  }
-	  div.time {
-		color: #888;
-	  }
-    </style>
-  </head>
-  <body>
-	<div class="notification">
-    <div class="heading">
-      <div class="title severity <%= @data[:severity] %>"><%= @data[:severity].capitalize %></div>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
+  <style type="text/css" media="screen">
+    body {
+      font-family: "Helvetica Neue", "Helvetica", Arial, sans-serif;
+    }
+
+    div.heading {
+      font-size: 18px;
+      font-weight: 300;
+      line-height: 20px;
+      text-shadow: 0px 1px 0px rgba(255, 255, 255, 0.5);
+      border-bottom: 1px solid #bbbbbb;
+    }
+
+    div.title {
+      padding: 10px;
+    }
+
+    div.content {
+      padding: 10px;
+    }
+
+    div.severity {
+      font-size: 20px;
+    }
+
+    div.success {
+      color: #468847;
+    }
+
+    div.warning {
+      color: #faa732;
+    }
+
+    div.critical {
+      color: #b94a48;
+    }
+
+    div.info {
+      color: #3a87ad;
+    }
+
+    div.content {
+      position: relative;
+      float: left;
+      clear: both;
+      padding: 10px;
+      font-size: 12px;
+    }
+
+    div.subject {
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    div.text {
+      font-size: 13px;
+    }
+
+    div.path {
+      color: #888;
+    }
+
+    div.time {
+      color: #888;
+    }
+
+    div.payload table {
+      margin-left: 20px;
+    }
+
+    div.payload table td {
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+<div class="notification">
+  <div class="heading">
+    <div class="title severity <%= @data[:severity] %>"><%= @data[:severity].capitalize %></div>
+  </div>
+  <div class="content">
+    <div class="content subject">
+      <%= @data[:subject] %>
     </div>
-	  <div class="content">
-  		<div class="content subject">
-  			<%= @data[:subject] %>
-  		</div>
-  		<div class="content text">
-  			<%= @data[:text] %>
-        <br>
-        <br>
-        <% if @component_health.present? %>
-          Component health is <b><%= @component_health.upcase %></b><%= " (#{pluralize(@data[:payload][@component_health].to_i, 'instance')})" unless @component_health == 'good' %>.
-        <% end %>
-  		</div>
-  		<div class="content path">
-  			<%= notification_callback(@data, true) %>
-  		</div>
-  		<div class="content time">
-  			Sent by OneOps <%= Settings.identity %> on <%= Time.at(@data[:timestamp]/1000).utc.to_s if @data[:timestamp] %>
-  		</div>
-	  </div>
-	</div>
-  </body>
+    <div class="content text">
+      <%= @data[:text] %>
+      <br>
+      <br>
+      <% if @component_health.present? %>
+        Component health is
+        <b><%= @component_health.upcase %></b><%= " (#{pluralize(@data[:payload][@component_health].to_i, 'instance')})" unless @component_health == 'good' %>.
+      <% end %>
+      <% payload = @data[:payload] %>
+      <% if payload.present? %>
+        <div class="payload">
+          Payload:
+          <%= render 'base/shared/nested_hash', :data => payload %>
+        </div>
+      <% end %>
+    </div>
+    <div class="content path">
+      <%= notification_callback(@data, true) %>
+    </div>
+    <div class="content time">
+      Sent by OneOps <%= Settings.identity %> on <%= Time.at(@data[:timestamp]/1000).utc.to_s if @data[:timestamp] %>
+    </div>
+  </div>
+</div>
+</body>
 </html>
