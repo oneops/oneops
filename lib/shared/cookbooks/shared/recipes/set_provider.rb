@@ -90,7 +90,6 @@ if node.workorder.services.has_key?("storage")
   storage = storage_service["ciAttributes"]
   storage_class = storage_service["ciClassName"].split(".").last.downcase
   node.set["storage_provider_class"] = storage_class
-  Chef::Log.info(" i am here node.storage_provider_class: " + node.storage_provider_class)
 end
 
 case storage_class
