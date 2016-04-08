@@ -108,7 +108,7 @@ when /rackspace/
     :rackspace_region => cloud[:region]
   }) 
 when /azure/
-  provider_class = "azureblobs" 
+  provider_class = "azuredatadisk" 
 end
 
 
