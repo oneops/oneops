@@ -45,8 +45,8 @@ public class FlexStateProcessor {
 	private Notifications notifier;
 	private RestTemplate restTemplate;
     private String transistorUrl;
-    private static final String CI_STATE_OVERUTILIZED = "overutilized";
-    private static final String CI_STATE_UNDERUTILIZED = "underutilized";
+    public static final String CI_STATE_OVERUTILIZED = "overutilized";
+    public static final String CI_STATE_UNDERUTILIZED = "underutilized";
 	//private Set<Long> postponedCis = Collections.synchronizedSet(new HashSet<Long>());
 	
 	/**

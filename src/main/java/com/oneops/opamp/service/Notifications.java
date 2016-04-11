@@ -241,7 +241,14 @@ public class Notifications {
 		}
 		String text = buildNotificationPrefix(ci.getNsPath()) + " ci: " + ci.getCiName() + " is " + state + "! The Cloud is marked as inactive. No autoscaling will be performed.";
 		long manifestCiId = opsEvent.getManifestId();
-		sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " is " + state + "!", text, (opsEvent != null) ? opsEvent.getSource() : null, manifestCiId);
+		NotificationSeverity severity;
+		if (FlexStateProcessor.CI_STATE_OVERUTILIZED.equals(state)) {
+			severity = NotificationSeverity.critical;
+		} else {
+			severity = NotificationSeverity.warning;
+		}
+		sendSimpleCiNotification(ci, severity, ci.getCiName() + " is " + state + "!", text, (opsEvent != null) ? opsEvent.getSource() : null, manifestCiId);
+
 	}
 
 	/**
@@ -260,7 +267,13 @@ public class Notifications {
 
 		String text = buildNotificationPrefix(ci.getNsPath()) + " ci: " + ci.getCiName() + " is " + state + "! Autoscale is not enabled on this environment.";
 		long manifestCiId = event.getManifestId();
-		sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+		NotificationSeverity severity;
+		if (FlexStateProcessor.CI_STATE_OVERUTILIZED.equals(state)) {
+			severity = NotificationSeverity.critical;
+		} else {
+			severity = NotificationSeverity.warning;
+		}
+		sendSimpleCiNotification(ci, severity, ci.getCiName() + " is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
 	}
 
 	/**
@@ -278,7 +291,7 @@ public class Notifications {
 		}
 		long manifestCiId = event.getManifestId();
 		String text = buildNotificationPrefix(ci.getNsPath());
-		if ("overutilized".equals(state)) {
+		if (FlexStateProcessor.CI_STATE_OVERUTILIZED.equals(state)) {
 			text += " ci: " + ci.getCiName() + " is " + state + "! Can not add more hosts - the max pool size is reached.";
 			sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " ci is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
 		} else {
