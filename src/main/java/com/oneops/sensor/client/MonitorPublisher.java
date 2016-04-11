@@ -92,7 +92,7 @@ public class MonitorPublisher {
 
 			producer.send(message);
 	    	logger.info("Published: monitor for ciId:" + mr.getCiId() + "; manifestId:" + mr.getManifestId() + "; action:" + mr.getAction());
-	    	logger.info(message.getText());
+	    	logger.debug(message.getText());
 		} catch (JMSException e) {
 			logger.error("caught Exception publishing",e);
 			throw new SensorClientException(e);
