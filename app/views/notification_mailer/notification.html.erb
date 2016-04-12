@@ -94,7 +94,7 @@
         Component health is
         <b><%= @component_health.upcase %></b><%= " (#{pluralize(@data[:payload][@component_health].to_i, 'instance')})" unless @component_health == 'good' %>.
       <% end %>
-      <% payload = @data[:payload] %>
+      <% payload = @data[:payload].delete_blank %>
       <% if payload.present? %>
         <div class="payload">
           Payload:

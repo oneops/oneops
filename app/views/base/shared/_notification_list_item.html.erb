@@ -1,6 +1,6 @@
 <% severity = item['severity'].downcase
    source   = item['source']
-   payload  = item['payload'] %>
+   payload  = item['payload'].delete_blank %>
 <li id="item_<%= item['timestamp'] %>" class="severity-<%= severity %>"
     <%= builder[:attributes] || raw(%(timestamp="#{item['timestamp']}" source="#{item['source']}" severity="#{item['severity']}" subject="#{item['subject']}" text="#{item['text']}" date="#{Time.at(item['timestamp']).strftime('%m/%d')}")) %>>
 	<div class="head">
