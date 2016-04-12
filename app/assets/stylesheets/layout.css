@@ -2051,6 +2051,7 @@ img.authicon {
 	font-size: 13px;
 	padding: 5px 5px 2px 5px;
 	margin-left: 30px;
+  width: 95%;
 }
 
 .list-notification .list-body li .text {
@@ -2063,6 +2064,9 @@ img.authicon {
   width: 95%;
 }
 
+.list-notification .list-body li .text .middle table td {
+  vertical-align: top;
+}
 .slider {
 	position: absolute;
 	width: 615px;
@@ -3876,7 +3880,8 @@ div.category > .name {
 
 .chart_container .legend .line {
   display: inline-block;
-  width: 45%;
+  width: 95%;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
 

@@ -1,19 +1,29 @@
 <% severity = item['severity'].downcase
-   source   = item['source'] %>
+   source   = item['source']
+   payload  = item['payload'] %>
 <li id="item_<%= item['timestamp'] %>" class="severity-<%= severity %>"
-    <%= builder[:attributes] || raw(%(time="#{item['timestamp']}" source="#{item['source']}" severity="#{item['severity']}" subject="#{item['subject']}" text="#{item['text']}" date="#{Time.at(item['timestamp']).strftime('%m/%d')}")) %>>
+    <%= builder[:attributes] || raw(%(timestamp="#{item['timestamp']}" source="#{item['source']}" severity="#{item['severity']}" subject="#{item['subject']}" text="#{item['text']}" date="#{Time.at(item['timestamp']).strftime('%m/%d')}")) %>>
 	<div class="head">
 		<%= builder[:head] || notification_icon(source) %>
 	</div>
 	<div class="subject">
-		<% if builder[:subject] %>
-			<%= builder[:subject] %>
-		<% else %>
-			<%= highlight(item['subject'], severity) %>
-		<% end %>
+    <% if payload.present? %>
+      <%= link_to_function(icon('plus-square-o', '&nbsp;', 'fa-lg'),
+                           "$j(this).find('i.fa').toggleClass('fa-plus-square-o fa-minus-square-o').parents('li').find('.middle').toggle(500)", :class => 'pull-right') %>
+    <% end %>
+    <% if builder[:subject] %>
+      <%= builder[:subject] %>
+    <% else %>
+      <%= highlight(item['subject'], severity) %>
+    <% end %>
 	</div>
 	<div class="text">
 		<%= builder[:text] || item['text'] %>
+    <% if payload.present? %>
+      <div class="middle" style="display:none">
+        <%= render 'base/shared/nested_hash', :data => payload %>
+      </div>
+    <% end %>
 	</div>
 	<div class="time">
 		<%= time_ago_in_words(Time.at(item['timestamp'] / 1000)) %>

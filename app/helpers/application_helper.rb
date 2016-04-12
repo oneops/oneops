@@ -358,8 +358,9 @@ module ApplicationHelper
     if notification_collection
       options[:toolbar] = nil if notification_collection.blank? && options[:paginate].blank?
       options.reverse_merge!({:class   => 'list-notification',
-                              :toolbar => {:sort_by   => [%w(Time time), %w(Source source), %w(Severity severity)],
-                                           :filter_by => %w(date severity source subject text)}})
+                              :toolbar => {:sort_by   => [%w(Time timestamp), %w(Source source), %w(Severity severity)],
+                                           :filter_by => %w(date severity source subject text),
+                                           :compact   => true}})
       render(:partial => 'base/shared/list',
              :locals => {:list_content => render_notification_list_content(notification_collection, options, &block), :options => options})
     else
