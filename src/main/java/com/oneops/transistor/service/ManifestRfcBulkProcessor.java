@@ -1531,17 +1531,23 @@ public class ManifestRfcBulkProcessor {
 		
 		if(existingCi != null){
 			needUpdate = (!(rfcCi.getCiName().equalsIgnoreCase(existingCi.getCiName()))) || needUpdate  ;
-			
+			// process attributes
+			List<String> equalAttrs = new ArrayList<String>();
 			for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
 				CmsCIAttribute existingAttr = existingCi.getAttribute(attr.getAttributeName());
 				if(!(djValidator.equalStrs(attr.getNewValue(), existingAttr.getDjValue())) && !CmsCrypto.ENC_DUMMY.equals(attr.getNewValue())) {
 					needUpdate = true;
-					break;
-				}	
+				} else {
+					//attrs equal - will remove from RFC
+					equalAttrs.add(attr.getAttributeName());
+				}
+			}
+			for (String eqAttr : equalAttrs) {
+				rfcCi.getAttributes().remove(eqAttr);
 			}
 		}
 		
-		if(needUpdate){
+		if(needUpdate){ 
 			return rfcCi;
 		}else{
 			return null;
