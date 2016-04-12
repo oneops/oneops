@@ -444,10 +444,13 @@ public class DesignExportProcessor {
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), LOCAL_VAR_CLASS, platformNsPath, releaseNsPath, attrsToBootstrap);
 				varBaseRfc.getAttribute(ATTR_SECURE).setNewValue("true");
 				varBaseRfc.getAttribute(ATTR_ENC_VALUE).setNewValue(parseEncryptedImportValue(varValue));
+				varBaseRfc.getAttribute(ATTR_ENC_VALUE).setOwner(OWNER_DESIGN);
+				
 			} else {
 				attrsToBootstrap.add(ATTR_VALUE);
 				varBaseRfc = trUtil.bootstrapRfc(var.getKey(), LOCAL_VAR_CLASS, platformNsPath, releaseNsPath, attrsToBootstrap);
 				varBaseRfc.getAttribute(ATTR_VALUE).setNewValue(varValue);
+				varBaseRfc.getAttribute(ATTR_VALUE).setOwner(OWNER_DESIGN);
 			}
 			
 			if (existingVars.isEmpty()) {
