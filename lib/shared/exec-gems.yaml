@@ -20,24 +20,6 @@ common:
     -
       - highline
       - 1.6.21
-    -
-      - ms_rest
-      - 0.1.1
-    -
-      - ms_rest_azure
-      - 0.1.1
-    -
-      - azure_mgmt_compute
-      - 0.1.1
-    -
-      - azure_mgmt_network
-      - 0.1.1
-    -
-      - azure_mgmt_storage
-      - 0.1.1
-    -
-      - azure_mgmt_resources
-      - 0.1.1
 
 chef-10.16.6:
     # workaround for chef install dependency issues
@@ -89,3 +71,25 @@ chef-11.18.12:
     -
       - mime-types
       - 1.25.0
+    -
+      - ms_rest
+      - 0.1.1
+    -
+      - ms_rest_azure
+      - 0.1.1
+    -
+      - azure_mgmt_compute
+      - 0.1.1
+    -
+      - azure_mgmt_network
+      - 0.1.1
+    -
+      - azure_mgmt_storage
+      - 0.1.1
+    -
+      - azure_mgmt_resources
+      - 0.1.1
+    -
+      - azure
+      - 0.6.4
+
