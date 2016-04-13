@@ -335,7 +335,9 @@ public class BomRfcBulkProcessor {
 			for (CmsLink rel : dummyUpdateRels) {
 				dummyUpdates.add(rel.getFromCiId());
 				for (BomRfc bomRfc : bomRfcs) {
-					if (bomRfc.rfc.getCiId() == rel.getFromCiId()) {
+					if (bomRfc.rfc == null) {
+						 logger.info("bom.rfc null for " + bomRfc.ciName + " nspath: " + nsPath);;
+					} else if (bomRfc.rfc.getCiId() == rel.getFromCiId()) {
 						long startTime = System.currentTimeMillis();
 						mapPropagations(bomRfc.manifestCiId, manifestPropagations);
 						if (manifestPropagations.get(bomRfc.manifestCiId).size() != 0) {
