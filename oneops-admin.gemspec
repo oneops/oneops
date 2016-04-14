@@ -40,6 +40,8 @@ Gem::Specification.new do |s|
   s.add_dependency "azure_mgmt_storage", '= 0.1.1'
   s.add_dependency "azure_mgmt_network", '= 0.1.1'
   s.add_dependency "azure_mgmt_resources", '= 0.1.1'
+  s.add_dependency "azure", '= 0.6.4'
+  
   s.add_dependency "rake", '= 10.1.1'
 
   s.bindir       = 'bin'
