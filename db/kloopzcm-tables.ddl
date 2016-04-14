@@ -620,6 +620,10 @@ CREATE INDEX cm_ops_actions_state_id_idx
  ON kloopzcm.cm_ops_actions
  ( state_id );
 
+CREATE INDEX cm_ops_actions_ci_proc_idx
+ ON kloopzcm.cm_ops_actions
+ ( ci_id, ops_proc_id );
+
 CREATE TABLE kloopzcm.cm_ci_relations (
                 ci_relation_id BIGINT NOT NULL,
                 ns_id BIGINT NOT NULL,
