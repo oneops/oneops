@@ -47,6 +47,11 @@ class Operations::InstancesController < ApplicationController
     end
 
     if @instances.present?
+      if @platform
+        pack_ns_path = platform_pack_ns_path(@platform)
+        @instances.each { |i| i.add_policy_locations(pack_ns_path) }
+      end
+
       deployed_to_map = deployed_to.inject({}) do |h, rel|
         h[rel.fromCiId] = @clouds[rel.toCiId]
         h
@@ -276,7 +281,7 @@ class Operations::InstancesController < ApplicationController
     @platform    = locate_manifest_platform(platform_id, @environment) if platform_id.present?
     component_id = params[:component_id]
     if @platform && component_id.present?
-      @component = Cms::DjCi.locate(component_id, @platform.nsPath)
+      @component = locate_ci_in_platform_ns(component_id, @platform)
       handle_ci_not_found(CiNotFoundException.new(component_id, @platform.nsPath, 'component')) unless @component
     end
   end
@@ -297,6 +302,8 @@ class Operations::InstancesController < ApplicationController
       end
       return
     end
+
+    @instance.add_policy_locations(platform_pack_ns_path(@platform))
 
     @realized_as = Cms::DjRelation.first(:params => {:ciId              => @instance.ciId,
                                                      :direction         => 'to',

@@ -1,14 +1,5 @@
-class Operations::ComponentsController < ApplicationController
-  before_filter :find_parents_and_component
-
-  def index
-    @components = Cms::Relation.all(:params => {:ciId         => @platform.ciId,
-                                                :direction    => 'from',
-                                                :includeToCi  => true,
-                                                :relationName => 'manifest.Requires'}).map(&:toCi)
-
-    render :json => @components
-  end
+class Operations::ComponentsController < Base::ComponentsController
+  before_filter :find_component
 
   def show
     respond_to do |format|
@@ -69,11 +60,11 @@ class Operations::ComponentsController < ApplicationController
 
   private
 
-  def find_parents_and_component
+  def find_platform
     @assembly    = locate_assembly(params[:assembly_id])
     @environment = locate_environment(params[:environment_id], @assembly)
     @platform    = locate_manifest_platform(params[:platform_id], @environment)
     component_id = params[:id]
-    @component   = Cms::DjCi.locate(component_id, @platform.nsPath) if component_id.present?
+    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
   end
 end

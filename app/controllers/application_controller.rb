@@ -257,6 +257,10 @@ class ApplicationController < ActionController::Base
     return "/public/#{platform_attr.source}/packs/#{platform_attr.pack}/#{platform_attr.version}"
   end
 
+  def platform_pack_ns_path(platform)
+    in_design? ? platform_pack_design_ns_path(platform) : platform_pack_transition_ns_path(platform)
+  end
+
   def platform_pack_transition_ns_path(platform)
     platform_attr = platform.ciAttributes
     return "/public/#{platform_attr.source}/packs/#{platform_attr.pack}/#{platform_attr.version}/#{platform.ciAttributes.availability.downcase}"
@@ -271,7 +275,7 @@ class ApplicationController < ActionController::Base
   end
 
   def bom_platform_ns_path(environment_ci, platform_ci)
-    "#{environment_bom_ns_path(environment_ci)}#{platform_ci.ciName}/#{platform_ci.ciAttributes.major_version}"
+    "#{environment_bom_ns_path(environment_ci)}/#{platform_ci.ciName}/#{platform_ci.ciAttributes.major_version}"
   end
 
   def token_ns_path(token_ci)
@@ -327,9 +331,19 @@ class ApplicationController < ActionController::Base
   end
 
   def locate_environment(id, assembly)
-    env = Cms::Ci.locate(id, assembly_ns_path(assembly), 'manifest.Environment')
-    raise CiNotFoundException.new(id, organization_ns_path, 'manifest.Environment') unless env && env.ciClassName == 'manifest.Environment'
+    ns_path = assembly_ns_path(assembly)
+    ci_class_name = 'manifest.Environment'
+    env = Cms::Ci.locate(id, ns_path, ci_class_name)
+    raise CiNotFoundException.new(id, ns_path, ci_class_name) unless env && env.ciClassName == ci_class_name
     return env
+  end
+
+  def locate_catalog_platform(qualifier, assembly, opts = {})
+    ns_path = assembly_ns_path(assembly)
+    ci_class_name = 'catalog.Platform'
+    platform = Cms::DjCi.locate(qualifier, ns_path, ci_class_name, opts)
+    raise CiNotFoundException.new(qualifier, ns_path, ci_class_name) unless platform && platform.ciClassName == ci_class_name
+    return platform
   end
 
   def locate_manifest_platform(qualifier, environment, opts = {})
@@ -351,6 +365,15 @@ class ApplicationController < ActionController::Base
       result = clazz.locate(qualifier, nil, nil, opts)
     end
     result
+  end
+
+  def locate_ci_in_platform_ns(qualifier, platform, ci_class_name = nil, opts = {})
+    ns_path = in_design? ? "#{platform.nsPath}/_design/#{platform.ciName}" : platform.nsPath
+    ci = Cms::DjCi.locate(qualifier, ns_path, ci_class_name, opts)
+    raise CiNotFoundException.new(qualifier, ns_path, ci_class_name) unless ci && (ci_class_name.blank? || ci.ciClassName == ci_class_name)
+
+    ci.add_policy_locations(platform_pack_ns_path(platform))
+    return ci
   end
 
   def locate_cloud_service_template(service)
@@ -920,7 +943,7 @@ class ApplicationController < ActionController::Base
                                                                 :assembly_id => assembly,
                                                                 :platform_id => platform,
                                                                 :id          => name,
-                                                                :class_name  => class_name.split('.').last)
+                                                                :class_name  => "catalog.#{class_name.split('.', 2).last}")
           elsif dto_area == 'operations'
             return assembly_operations_environment_platform_component_path(:org_name       => org,
                                                                            :assembly_id    => assembly,

@@ -47,12 +47,7 @@ class Transition::ComponentsController < Base::ComponentsController
   end
 
   def find_component(id = params[:id])
-    @component = Cms::DjCi.locate(id, @platform.nsPath, nil, :attrProps => 'owner')
-    if @component.is_a?(Array)
-      class_name = params[:class_name]
-      @component = @component.find { |c| c.ciClassName.ends_with?(class_name) } if class_name.present?
-    end
-    @component = nil if @component && !@component.ciClassName.start_with?('manifest')
+    @component = locate_ci_in_platform_ns(id, @platform, nil, :attrProps => 'owner')
   end
 
   def redirect_to_show_platform

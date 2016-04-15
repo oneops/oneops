@@ -68,22 +68,36 @@ class Cms::Ci < Cms::Base
     data
   end
 
-  def violates_policies!(active = false)
-    percolate(ciId, active)
+  def policy_locations
+    @policy_locations ||= [nsPath.split('/')[0..1].join('/')]
   end
 
-  def self.violates_policies!(targets, active = false, count_only = false)
-    mpercolate(targets.map(&:ciId), targets.first.nsPath.split('/')[0..1].join('/'), active, count_only)
+  def policy_locations=(locations)
+    @policy_locations = locations
+  end
+
+  def add_policy_locations(*locations)
+    @policy_locations = policy_locations + locations
+  end
+
+  def violates_policies!(active = false)
+    percolate(ciId, active)
   end
 
   def violates_policies(active = false)
     percolate(attributes, active)
   end
 
+  def self.violates_policies!(targets, active = false, count_only = false)
+    first_target = targets.first
+    return nil if first_target.blank?
+    mpercolate(targets.map(&:ciId), first_target.policy_locations, active, count_only)
+  end
+
   def self.violates_policies(targets, active = false, count_only = false)
     first_target = targets.first
     return nil if first_target.blank?
-    mpercolate(targets.map(&:attributes), first_target.nsPath.split('/')[0..1].join('/'), active, count_only)
+    mpercolate(targets.map(&:attributes), first_target.policy_locations, active, count_only)
   end
 
   def state(state, options = {})
@@ -211,9 +225,9 @@ class Cms::Ci < Cms::Base
     begin
       policy_ids = Search::Base.percolate('/cms-all/ci',
                                           target,
-                                          'ci.nsPath.keyword'    => nsPath.split('/')[0..1].join('/'),
+                                          'ci.nsPath.keyword'    => policy_locations,
                                           'ci.ciAttributes.mode' => active ? 'active' : %w(active passive))
-    rescue  Exception => e
+    rescue Exception => e
     end
 
     return policy_ids if policy_ids.blank?

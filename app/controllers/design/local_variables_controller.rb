@@ -37,14 +37,19 @@ class Design::LocalVariablesController < Base::VariablesController
   end
 
   def find_variables
-    @variables = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
-                                                 :direction         => 'to',
-                                                 :relationShortName => 'ValueFor',
-                                                 :targetClassName   => 'catalog.Localvar',
-                                                 :attrProps         => 'owner'}).map(&:fromCi)
+    pack_ns_path = platform_pack_ns_path(@platform)
+    @variables   = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                   :direction         => 'to',
+                                                   :relationShortName => 'ValueFor',
+                                                   :targetClassName   => 'catalog.Localvar',
+                                                   :attrProps         => 'owner'}).map do |r|
+      variable = r.fromCi
+      variable.add_policy_locations(pack_ns_path)
+      variable
+    end
   end
 
   def find_variable
-    @variable = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform), 'catalog.Localvar', :attrProps => 'owner')
+    @variable = locate_ci_in_platform_ns(params[:id], @platform, 'catalog.Localvar', :attrProps => 'owner')
   end
 end

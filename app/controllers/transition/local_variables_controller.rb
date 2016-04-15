@@ -9,15 +9,20 @@ class Transition::LocalVariablesController < Base::VariablesController
   end
 
   def find_variables
+    pack_ns_path = platform_pack_ns_path(@platform)
     @variables = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                  :direction         => 'to',
                                                  :relationShortName => 'ValueFor',
                                                  :targetClassName   => 'manifest.Localvar',
-                                                 :attrProps         => 'owner'}).map(&:fromCi)
+                                                 :attrProps         => 'owner'}).map do |r|
+      variable = r.fromCi
+      variable.add_policy_locations(pack_ns_path)
+      variable
+    end
 
   end
 
   def find_variable
-    @variable = Cms::DjCi.locate(params[:id], @platform.nsPath, 'manifest.Localvar', {:attrProps => 'owner'})
+    @variable = locate_ci_in_platform_ns(params[:id], @platform, 'manifest.Localvar', :attrProps => 'owner')
   end
 end

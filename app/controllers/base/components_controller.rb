@@ -3,10 +3,15 @@ class Base::ComponentsController < ApplicationController
   before_filter :find_component, :only => [:show, :edit, :update, :destroy, :history, :update_services]
 
   def index
+    pack_ns_path = platform_pack_ns_path(@platform)
     @components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                   :direction         => 'from',
                                                   :relationShortName => 'Requires',
-                                                  :attrProps         => 'owner'}).map(&:toCi)
+                                                  :attrProps         => 'owner'}).map do |r|
+      component = r.toCi
+      component.add_policy_locations(pack_ns_path)
+      component
+    end
 
     respond_to do |format|
       format.js do
@@ -135,7 +140,7 @@ class Base::ComponentsController < ApplicationController
     @template_name = params[:template_name].presence || requires_relation.relationAttributes.template
     scope = in_transition? ? 'mgmt.manifest' : 'mgmt.catalog'
 
-    platform_template = Cms::Ci.first(:params => {:nsPath      => in_transition? ? platform_pack_transition_ns_path(@platform) : platform_pack_design_ns_path(@platform),
+    platform_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path(@platform),
                                                   :ciClassName => "#{scope}.Platform"})
 
     find_params = {:ciId              => platform_template.ciId,
