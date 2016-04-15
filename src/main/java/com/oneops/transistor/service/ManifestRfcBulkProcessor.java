@@ -1489,7 +1489,7 @@ public class ManifestRfcBulkProcessor {
 	}
 	
 	private Map<Long, CmsCI> getExistingCis(String nsPath) {
-		List<CmsCI> manifestPlatCiList = cmProcessor.getCiByNsLikeByState(nsPath, null, "default");
+		List<CmsCI> manifestPlatCiList = cmProcessor.getCiBy3NsLike(nsPath, null,  null);
 		Map<Long, CmsCI> manifestPlatCIs = new HashMap<Long, CmsCI>();
 		for (CmsCI manifestCI : manifestPlatCiList) {
 			Long key = manifestCI.getCiId();
