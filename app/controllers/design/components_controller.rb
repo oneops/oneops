@@ -125,13 +125,7 @@ class Design::ComponentsController < Base::ComponentsController
   end
 
   def find_component
-    @component = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform), nil, :attrProps => 'owner')
-    if @component.is_a?(Array)
-      class_name = params[:class_name]
-      @component = @component.find { |c| c.ciClassName.ends_with?(class_name) } if class_name.present?
-    end
-    @component = nil if @component && !@component.ciClassName.start_with?('catalog')
-    redirect_to assembly_design_platform_path(@assembly, @platform) unless @component
+    @component = locate_ci_in_platform_ns(params[:id], @platform, params[:class_name], :attrProps => 'owner')
   end
 
   def redirect_to_show_platform

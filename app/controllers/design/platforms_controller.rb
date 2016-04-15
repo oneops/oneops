@@ -138,7 +138,8 @@ class Design::PlatformsController < Base::PlatformsController
     changes_only = params[:changes_only] != 'false'
 
     # Compare components.
-    pack_components = Cms::Relation.all(:params => {:nsPath            => platform_pack_design_ns_path(@platform),
+    platform_pack_ns_path = platform_pack_design_ns_path(@platform)
+    pack_components = Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
                                                     :relationShortName => 'Requires',
                                                     :includeFromCi     => false,
                                                     :includeToCi       => true}).inject({}) do |m, r|
@@ -163,10 +164,10 @@ class Design::PlatformsController < Base::PlatformsController
     end
 
     # Compare variables.
-    pack_variables = Cms::Relation.all(:params => {:nsPath            => platform_pack_design_ns_path(@platform),
-                                                    :relationShortName => 'ValueFor',
-                                                    :includeFromCi     => true,
-                                                    :includeToCi       => false}).inject({}) do |m, r|
+    pack_variables = Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
+                                                   :relationShortName => 'ValueFor',
+                                                   :includeFromCi     => true,
+                                                   :includeToCi       => false}).inject({}) do |m, r|
       m[r.fromCi.ciName] = r.fromCi
       m
     end

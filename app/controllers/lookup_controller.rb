@@ -85,7 +85,11 @@ class LookupController < ApplicationController
     end
 
     unless clazz
-      render :json => {:errors => ["Invalid payload: 'cms_ci' || 'cms_dj_ci' structure is expected."]}, :status => :unprocessable_entity
+      respond_to do |format|
+        format.js
+        format.json {render :json => {:errors => ["Invalid payload: 'cms_ci' || 'cms_dj_ci' structure is expected."]}, :status => :unprocessable_entity}
+      end
+
       return
     end
 
@@ -98,6 +102,8 @@ class LookupController < ApplicationController
       return
     end
 
+    policy_locations = params[:locations]
+    ci.policy_locations = policy_locations if policy_locations.present?
     @violations = ci.violates_policies
     respond_to do |format|
       format.js

@@ -2,7 +2,7 @@ class Base::PlatformsController < ApplicationController
   def show
     respond_to do |format|
       format.html do
-        group_map = get_platform_requires_relation_temlates(@platform, @environment).inject({}) do |map, r|
+        group_map = get_platform_requires_relation_temlates(@platform).inject({}) do |map, r|
           template_name    = r.toCi.ciName.split('::').last
           short_class_name = r.toCi.ciClassName.split('.')[2..-1].join('.')
           cardinality      = r.relationAttributes.constraint.gsub('*', '999')
@@ -14,21 +14,25 @@ class Base::PlatformsController < ApplicationController
                                   :items         => []})
         end
 
+        pack_ns_path = platform_pack_ns_path(@platform)
+
         components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                      :direction         => 'from',
                                                      :relationShortName => 'Requires',
                                                      :includeToCi       => true,
-                                                     :attrProps         => 'owner'})
-        components.each do |c|
-          group_id = "#{c.relationAttributes.template}_#{@platform.ciId}"
-          group_map[group_id][:items] << c.toCi
+                                                     :attrProps         => 'owner'}).map do |r|
+          group_id = "#{r.relationAttributes.template}_#{@platform.ciId}"
+          component = r.toCi
+          component.add_policy_locations(pack_ns_path)
+          group_map[group_id][:items] << component
+          component
         end
 
         group_map.reject! { |k, v| v[:items].blank? } if @environment
 
         @component_groups = group_map.values.sort {|g1, g2| g1[:template_name] <=> g2[:template_name]}
 
-        @policy_compliance = Cms::Ci.violates_policies(components.map(&:toCi), false, true) if Settings.check_policy_compliance
+        @policy_compliance = Cms::Ci.violates_policies(components, false, true) if Settings.check_policy_compliance
 
         render(:action => :show)
       end
@@ -165,9 +169,8 @@ class Base::PlatformsController < ApplicationController
 
   protected
 
-  def get_platform_requires_relation_temlates(platform, environment = nil)
-    ns_path = environment ? platform_pack_transition_ns_path(platform) : platform_pack_design_ns_path(platform)
-    template_ci = Cms::Ci.first(:params => {:nsPath      => ns_path,
+  def get_platform_requires_relation_temlates(platform)
+    template_ci = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path(platform),
                                             :ciClassName => "mgmt.#{scope}.Platform"})
     Cms::Relation.all(:params => {:ciId              => template_ci.ciId,
                                   :relationShortName => 'Requires',

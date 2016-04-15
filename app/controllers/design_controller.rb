@@ -210,6 +210,7 @@ class DesignController < ApplicationController
             transfer_if_present('links', plat, result['platforms'].last)
 
             platform_ns_path = design_platform_ns_path(@assembly, platform_ci)
+            pack_ns_path = platform_pack_ns_path(platform_ci)
 
             vars = plat['variables']
             if vars.present?
@@ -220,6 +221,7 @@ class DesignController < ApplicationController
                                           :nsPath       => platform_ns_path,
                                           :ciName       => var_name,
                                           :ciAttributes => {:value => value}})
+                var_ci.add_policy_locations(pack_ns_path)
                 errors['platforms'][plat_name]['variables'][var_name] = {'errors' => var_ci.errors.full_messages} unless var_ci.valid?
                 result['platforms'].last['variables'][var_name] = value
               end
@@ -251,6 +253,7 @@ class DesignController < ApplicationController
                                                            :nsPath       => platform_ns_path,
                                                            :ciName       => comp_name,
                                                            :ciAttributes => component_template.ciAttributes.attributes.merge(component_attrs)})
+                        component_ci.add_policy_locations(pack_ns_path)
 
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name]['errors'] = component_ci.errors.full_messages unless component_ci.valid?
                         result['platforms'].last['components'] << ci_to_import(component_ci, :template => template, :attributes => component_attrs)
@@ -268,6 +271,7 @@ class DesignController < ApplicationController
                                                                 :nsPath       => platform_ns_path,
                                                                 :ciName       => attachment_name,
                                                                 :ciAttributes => attachment_attrs})
+                            attachment_ci.add_policy_locations(pack_ns_path)
 
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
                             result['platforms'].last['components'].last['attachments'] << ci_to_import(attachment_ci, :attributes => attachment_attrs)

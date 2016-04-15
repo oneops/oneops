@@ -23,10 +23,15 @@ class Operations::MonitorsController < Base::MonitorsController
   end
 
   def index
+    pack_ns_path = platform_pack_ns_path(@platform)
     @monitors = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
                                                 :relationShortName => 'WatchedBy',
                                                 :direction         => 'from',
-                                                :includeToCi       => true}).map(&:toCi)
+                                                :includeToCi       => true}).map do |r|
+      monitor = r.toCi
+      monitor.add_policy_locations(pack_ns_path)
+      monitor
+    end
 
     @events = {}
     events_by_monitor = Operations::Events.for_instance(@instance.ciId)
@@ -53,7 +58,7 @@ class Operations::MonitorsController < Base::MonitorsController
   end
 
   def show
-    @monitor = Cms::DjCi.locate(params[:id], @platform.nsPath)
+    @monitor = locate_ci_in_platform_ns(params[:id], @platform, 'manifest.Monitor')
     @range = params[:range] || 'hour'
     @monitor.charts = get_charts(@instance, [@monitor], params)
 
@@ -83,11 +88,7 @@ class Operations::MonitorsController < Base::MonitorsController
     @environment = locate_environment(params[:environment_id], @assembly)
     @platform    = locate_manifest_platform(params[:platform_id], @environment)
     component_id = params[:component_id]
-    @component   = Cms::DjCi.locate(component_id, @platform.nsPath) if component_id.present?
-    unless @component
-      handle_ci_not_found(CiNotFoundException.new(component_id, @platform.nsPath, 'component'))
-      return
-    end
+    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
     @instance    = Cms::DjCi.locate(params[:instance_id], @platform.nsPath.gsub('/manifest/', '/bom/'))
     unless @component
       @component = Cms::DjRelation.first(:params => {:ciId              => @instance.ciId,

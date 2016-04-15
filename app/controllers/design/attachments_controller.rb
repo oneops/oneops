@@ -49,13 +49,13 @@ class Design::AttachmentsController < Base::AttachmentsController
 
   def find_parent_cis
     @assembly    = locate_assembly(params[:assembly_id])
-    @platform    = Cms::DjCi.locate(params[:platform_id], assembly_ns_path(@assembly), 'catalog.Platform')
+    @platform    = locate_catalog_platform(params[:platform_id], @assembly)
     component_id = params[:component_id]
-    @component = Cms::DjCi.locate(component_id, design_platform_ns_path(@assembly, @platform)) if component_id.present?
+    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
   end
 
   def find_attachment
-    @attachment = Cms::DjCi.locate(params[:id], design_platform_ns_path(@assembly, @platform), 'catalog.Attachment', :attrProps => 'owner')
+    @attachment = locate_ci_in_platform_ns(params[:id], @platform, 'catalog.Attachment', :attrProps => 'owner')
     unless @component
       @component = Cms::DjRelation.first(:params => {:ciId              => @attachment.ciId,
                                                      :direction         => 'to',

@@ -16,11 +16,11 @@ class Transition::AttachmentsController < Base::AttachmentsController
     @environment = locate_environment(params[:environment_id], @assembly)
     @platform    = locate_manifest_platform(params[:platform_id], @environment)
     component_id = params[:component_id]
-    @component   = Cms::DjCi.locate(component_id, @platform.nsPath) if component_id.present?
+    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
   end
 
   def find_attachment
-    @attachment = Cms::DjCi.locate(params[:id], transition_platform_ns_path(@environment, @platform), 'manifest.Attachment', {:attrProps => 'owner'})
+    @attachment = locate_ci_in_platform_ns(params[:id], @platform, 'manifest.Attachment', :attrProps => 'owner')
     unless @component
       @component = Cms::DjRelation.first(:params => {:ciId              => @attachment.ciId,
                                                      :direction         => 'to',

@@ -2,10 +2,16 @@ class Transition::MonitorsController < Base::MonitorsController
   before_filter :find_monitor_and_parents
 
   def index
+    pack_ns_path = platform_pack_ns_path(@platform)
     @monitors = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
                                                 :relationShortName => 'WatchedBy',
                                                 :direction         => 'from',
-                                                :includeToCi       => true}).map(&:toCi)
+                                                :includeToCi       => true}).map do |r|
+      monitor = r.toCi
+      monitor.add_policy_locations(pack_ns_path)
+      monitor
+    end
+
     respond_to do |format|
       format.html { render '_monitor_list' }
       format.js   { render :action => :index }
@@ -103,21 +109,18 @@ class Transition::MonitorsController < Base::MonitorsController
     # "cm" for it yet and therefore we will work with "dj" version.
     relation_attr = (params[:cms_dj_relation] || params[:cms_relation])[:relationAttributes]
     unless @watched_by_rel.rfcAction == 'add'
-
       @watched_by_rel = Cms::Relation.first(:params => {:ciId              => @monitor.ciId,
                                                         :relationShortName => 'WatchedBy',
                                                         :direction         => 'to',
+                                                        :includeFromCi     => false,
                                                         :includeToCi       => false})
     end
 
-    @watched_by_rel.relationAttributes = relation_attr
+    @watched_by_rel.relationAttributes.attributes = relation_attr
+    @watched_by_rel.fromCi = nil   # So we do not validate "fromCi" object on save, otherwise errors in ''fromCi'  may fail the whole save.
     ok = execute(@watched_by_rel, :save)
 
-    if ok
-      flash[:notice] = 'Successfully updated.'
-    else
-      flash[:error] = 'Failed to update attributes.'
-    end
+    flash[:notice] = 'Successfully updated.' if ok
 
     respond_to do |format|
       format.js   { render :action => :edit }
@@ -147,11 +150,11 @@ class Transition::MonitorsController < Base::MonitorsController
     @environment = locate_environment(params[:environment_id], @assembly)
     @platform    = locate_manifest_platform(params[:platform_id], @environment)
     component_id = params[:component_id]
-    @component   = Cms::DjCi.locate(component_id, @platform.nsPath) if component_id.present?
+    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
 
     monitor_id = params[:id]
     if monitor_id.present?
-      @monitor = Cms::DjCi.locate(monitor_id, @platform.nsPath)
+      @monitor = locate_ci_in_platform_ns(monitor_id, @platform, 'manifest.Monitor')
       @watched_by_rel = Cms::DjRelation.first(:params => {:ciId              => @monitor.ciId,
                                                           :relationShortName => 'WatchedBy',
                                                           :direction         => 'to'})

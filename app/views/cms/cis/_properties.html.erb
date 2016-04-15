@@ -41,7 +41,8 @@
           $j.ajax({
             url:  "<%= policy_violations_ci_path %>",
             type: 'POST',
-            data: {"<%= ci.is_a?(Cms::DjCi) ? 'cms_dj_ci' : 'cms_ci' %>": <%= raw(ci.attributes.to_json) %>}
+            data: {"<%= ci.is_a?(Cms::DjCi) ? 'cms_dj_ci' : 'cms_ci' %>": <%= raw(ci.attributes.to_json) %>,
+                   locations: <%= raw(ci.policy_locations.to_json) %>}
           });
         </script>
       </dd>
