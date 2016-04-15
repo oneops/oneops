@@ -17,11 +17,20 @@
  *******************************************************************************/
 package com.oneops.ops.dao;
 
+import static me.prettyprint.hector.api.factory.HFactory.createKeyspace;
+
+import java.util.*;
+import java.util.Map.Entry;
+
+import org.apache.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.oneops.cassandra.ClusterBootstrap;
+import com.oneops.ops.OrphanCloseEvent;
 import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsEvent;
 import com.oneops.sensor.schema.SchemaBuilder;
+
 import me.prettyprint.cassandra.model.ConfigurableConsistencyLevel;
 import me.prettyprint.cassandra.serializers.BytesArraySerializer;
 import me.prettyprint.cassandra.serializers.LongSerializer;
@@ -33,12 +42,7 @@ import me.prettyprint.hector.api.beans.*;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
 import me.prettyprint.hector.api.query.*;
-import org.apache.log4j.Logger;
 import rx.Observable;
-
-import java.util.*;
-
-import static me.prettyprint.hector.api.factory.HFactory.createKeyspace;
 
 public class OpsEventDao {
 
@@ -52,6 +56,7 @@ public class OpsEventDao {
     private Keyspace keyspace;
     protected Mutator<byte[]> eventMutator;
     protected Mutator<Long> ciMutator;
+    protected Mutator<Long> orphanCloseMutator;
     private ClusterBootstrap cb;
     private Gson gson = new Gson();
 
@@ -103,6 +108,7 @@ public class OpsEventDao {
         keyspace = createKeyspace(keyspaceName, cluster, cl);
         eventMutator = HFactory.createMutator(keyspace, bytesSerializer);
         ciMutator = HFactory.createMutator(keyspace, longSerializer);
+        orphanCloseMutator = HFactory.createMutator(keyspace, longSerializer);
     }
 
 
@@ -167,6 +173,119 @@ public class OpsEventDao {
 
         return isNew;
     }
+
+	public void addOrphanCloseEventForCi(long ciId, String eventName, long manifestId, String openEvent) {
+		long mId = getOrphanCloseEventForCi(ciId, eventName);
+		if (mId == 0) {
+			List<HColumn<String, byte[]>> subCols = new ArrayList<>();
+
+			HColumn<String, byte[]> manifestIdCol = HFactory.createColumn("manifestId",
+					longSerializer.toBytes(manifestId), stringSerializer, bytesSerializer);
+			HColumn<String, byte[]> payloadCol = HFactory.createColumn("openEvent", openEvent.getBytes(),
+					stringSerializer, bytesSerializer);
+			subCols.add(manifestIdCol);
+			subCols.add(payloadCol);
+
+			orphanCloseMutator.insert(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF, HFactory.createSuperColumn(eventName,
+					subCols, stringSerializer, stringSerializer, bytesSerializer));
+		}
+	}
+
+	private long getOrphanCloseEventForCi(long ciId, String eventName) {
+		SubColumnQuery<Long, String, String, byte[]> scolq = HFactory
+				.createSubColumnQuery(keyspace, longSerializer, stringSerializer, stringSerializer, bytesSerializer)
+				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setKey(ciId).setSuperColumn(eventName)
+				.setColumn("manifestId");
+
+		HColumn<String, byte[]> resultCol = scolq.execute().get();
+		if (resultCol != null) {
+			return longSerializer.fromBytes(resultCol.getValue());
+		}
+		return 0;
+	}
+
+	public List<OrphanCloseEvent> getAllOrphanCloseEvents(final int batchSize) {
+		RangeSuperSlicesQuery<Long, String, String, byte[]> rssQuery = HFactory
+				.createRangeSuperSlicesQuery(keyspace, longSerializer, stringSerializer, stringSerializer, bytesSerializer)
+				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setRange(null, null, false, batchSize)
+				.setRowCount(batchSize);
+
+		Long lastKey = null;
+		List<OrphanCloseEvent> list = new ArrayList<OrphanCloseEvent>();
+
+		while (true) {
+
+			rssQuery.setKeys(lastKey, null);
+			OrderedSuperRows<Long, String, String, byte[]> sRows = rssQuery.execute().get();
+			Iterator<SuperRow<Long, String, String, byte[]>> rowsIt = sRows.iterator();
+			if (lastKey != null && rowsIt != null)
+				rowsIt.next();
+
+			while (rowsIt.hasNext()) {
+				SuperRow<Long, String, String, byte[]> sRow = rowsIt.next();
+				// Shift start key for the next batch.
+				lastKey = sRow.getKey();
+				for (HSuperColumn<String, String, byte[]> sCol : sRow.getSuperSlice().getSuperColumns()) {
+					if (sCol.getColumns().size() > 0) {
+						OrphanCloseEvent orphanEvent = parseOrphanSuperCol(sCol);
+						orphanEvent.setCiId(sRow.getKey());
+						list.add(orphanEvent);
+					}
+				}
+			}
+
+			if (sRows.getCount() < batchSize) {
+				break;
+			}
+		}
+		return list;
+	}
+
+	private OrphanCloseEvent parseOrphanSuperCol(HSuperColumn<String, String, byte[]> sCol) {
+		OrphanCloseEvent orphanData = null;
+		if (sCol != null) {
+			orphanData = new OrphanCloseEvent();
+			orphanData.setName(sCol.getName());
+			for (HColumn<String, byte[]> col : sCol.getColumns()) {
+				if (col.getName().equals("manifestId")) {
+					orphanData.setManifestId(longSerializer.fromBytes(col.getValue()));
+				} else if (col.getName().equals("openEvent")) {
+					orphanData.setOpenEventPayload(stringSerializer.fromBytes(col.getValue()));
+				}
+			}
+		}
+		return orphanData;
+	}
+
+	public void removeOrphanCloseEvents(Map<Long, List<OrphanCloseEvent>> eventsMap) {
+		if (!eventsMap.isEmpty()) {
+			Iterator<Entry<Long, List<OrphanCloseEvent>>> iterator = eventsMap.entrySet().iterator();
+			while (iterator.hasNext()) {
+				Entry<Long, List<OrphanCloseEvent>> entry = iterator.next();
+				long ciId = entry.getKey();
+				List<OrphanCloseEvent> list = entry.getValue();
+				int count = getOrphanCountForCi(ciId);
+				if (count <= list.size()) {
+					orphanCloseMutator.addDeletion(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF);
+				} else {
+					for (OrphanCloseEvent event : list) {
+						orphanCloseMutator.addDeletion(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF, event.getName(),
+								stringSerializer);
+					}
+				}
+			}
+			orphanCloseMutator.execute();
+		}
+	}
+
+	private int getOrphanCountForCi(long ciId) {
+		CountQuery<Long, String> cq = HFactory.createCountQuery(keyspace, longSerializer, stringSerializer)
+				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setKey(ciId).setRange(null, null, 1000);
+
+		QueryResult<Integer> r = cq.execute();
+		return r.get();
+	}
+
 
     /**
      * Query open events with given ciId
