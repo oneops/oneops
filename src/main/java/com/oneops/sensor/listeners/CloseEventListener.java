@@ -26,6 +26,7 @@ import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.dao.OpsEventDao;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsCloseEvent;
+import com.oneops.ops.events.OpsEvent;
 import com.oneops.sensor.jms.OpsEventPublisher;
 import com.oneops.sensor.util.EventConverter;
 
@@ -48,6 +49,7 @@ public class CloseEventListener implements UpdateListener {
     private Gson gson = new Gson();
     private CiOpsProcessor coProcessor;
     private OpsEventPublisher opsEventPub;
+    private boolean orphanEventEnabled = true;
 
     /**
      * Sets the ops event pub.
@@ -87,6 +89,8 @@ public class CloseEventListener implements UpdateListener {
         logger.debug("in " + CloseEventListener.class.getSimpleName());
         for (EventBean eBean : newEvents) {
             OpsCloseEvent event = (OpsCloseEvent) eBean.getUnderlying();
+            OpsEvent openEvent = event.getOpenEvent();
+            event.setOpenEvent(null);
             String oldCiState = coProcessor.getCIstate(event.getCiId());
             event.setTimestamp(System.currentTimeMillis());
             String payload = gson.toJson(EventConverter.convert(event));
@@ -108,8 +112,24 @@ public class CloseEventListener implements UpdateListener {
                 opsEventPub.publishCiStateMessage(ciEvent);
                 publishedMessage = true;
             }
+            else {
+            	if (orphanEventEnabled) {
+            		//if there was no open event to close, it could mean that the OpsEventListener is not executed yet.
+                	//this may lead to an inconsistency between esper and cassandra states for this event. 
+                	//so save this event as orphan so that the OrphanEventHandler will process this later
+                	logger.warn("no open event found to close - ciId : " + event.getCiId() + 
+                			", eventName : " + event.getName() + ", marking this as orphan close event");
+                	String openEventPayload = gson.toJson(EventConverter.convert(openEvent));
+                	opsEventDao.addOrphanCloseEventForCi(event.getCiId(), event.getName(), event.getManifestId(), openEventPayload);	
+            	}
+            }
             logger.info("close event  for " + event.getCiId() + " :" + event.getName() + " :lastOpenId: " + lastOpenId + " :publishedMessage: " + publishedMessage);
         }
     }
+
+
+	public void setOrphanEventEnabled(boolean orphanEventEnabled) {
+		this.orphanEventEnabled = orphanEventEnabled;
+	}
 
 }
