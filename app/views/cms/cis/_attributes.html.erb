@@ -57,6 +57,7 @@
                 <%= render 'cms/cis/array_attribute',
                            :attribute_name  => a.attributeName,
                            :attribute_value => attribute_value,
+                           :pattern         => pattern,
                            :builder         => c %>
               <% when 'hash' %>
               	<% allow_add = a.options.include?(:allow_add) ? a.options[:allow_add] : true %>
@@ -64,16 +65,17 @@
                 <%= render 'cms/cis/hash_attribute',
                            :attribute_name  => a.attributeName,
                            :attribute_value => attribute_value,
-                           :fixed_keys => a.options[:fixed_keys],
-                           :allow_add => allow_add,
-                           :allow_delete => allow_delete,
+                           :fixed_keys      => a.options[:fixed_keys],
+                           :allow_add       => allow_add,
+                           :allow_delete    => allow_delete,
+                           :pattern         => pattern,
                            :builder         => c %>
               <% else %>
                 <% if a.isEncrypted %>
                   <div class="input-append">
                   <%= c.password_field(a.attributeName,
                                        :value        => attribute_value,
-                                       :class        => "input-xlarge encrypted",
+                                       :class        => 'input-xlarge encrypted',
                                        :autocomplete => 'off',
                                        :required     => required,
                                        :placeholder  => placeholder) %>

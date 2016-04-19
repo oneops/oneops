@@ -60,7 +60,7 @@
     };
 
     window.update_metrics_struct_raw_value = function (metricsDiv) {
-      metricsDiv.parents("form").attr("dirty", true);
+      metricsDiv.parents("form").attr("data-dirty", true);
       var metrics = metricsDiv.find("div.monitor_metric").toArray()
           .reduce(function (m, div) {
                     var metricDiv = $j(div);

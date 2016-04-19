@@ -1,3 +1,4 @@
+<% onchange = %(update_hash_attribute_raw_value(this)) %>
 <tr>
   <td>
     <div class="input-append">
@@ -6,15 +7,23 @@
         <span class="add-on hash_key"><b><%= key %></b></span>
         <span class="add-on"><b>=</b></span>
       <% else %>
-        <%= text_field_tag("#{attribute_name}_key", key, :onchange => %(update_hash_attribute_raw_value($(this).up("table"))), :class => fixed_keys ? 'hash_key readonly' : 'hash_key') %>
+        <%= text_field_tag("#{attribute_name}_key", key, :onchange => onchange, :class => fixed_keys ? 'hash_key readonly' : 'hash_key') %>
         <span class="add-on"><b>=</b></span>
       <% end %>
     </div>
   </td>
   <td>
     <div class="input-append" style="margin-left: -3px">
-      <%= text_field_tag("#{attribute_name}_value", value, :onchange => %(update_hash_attribute_raw_value($(this).up("table"))), :class => 'hash_value') %>
-      <%= link_to_function raw("<span class='add-on'>#{icon('times')}</div>"), %(delete_hash_attribute_row($(this).up("tr"))) if allow_delete && !fixed_keys %>
+      <% field_opts = {:class    => 'hash_value',
+                       :onchange => onchange} %>
+      <% if pattern.is_a?(Array) %>
+        <% pattern += [value] if value.present? && pattern.none? {|e| value == (e.is_a?(Array) ? e.last : e)} %>
+        <%= select_tag("#{attribute_name}_value", options_for_select(pattern, value), field_opts) %>
+      <% else %>
+        <%= text_field_tag("#{attribute_name}_value",  value, field_opts.merge(:pattern => pattern)) %>
+      <% end %>
+
+      <%= link_to_function raw("<span class='add-on'>#{icon('times')}</div>"), %(delete_hash_attribute_row(this)) if allow_delete && !fixed_keys %>
     </div>
   </td>
 </tr>

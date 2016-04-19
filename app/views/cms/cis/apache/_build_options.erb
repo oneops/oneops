@@ -28,7 +28,7 @@
     };
 
     window.update_build_options_struct_raw_value = function(build_options_div) {
-      build_options_div.up("form").dirty = true;
+      build_options_div.up("form").setAttribute('data-dirty', true);
       var build_options = {'srcdir':    build_options_div.down("input.srcdir").value,
       							'version':   build_options_div.down("input.version").value,
                            'prefix':    build_options_div.down("input.prefix").value,

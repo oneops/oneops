@@ -138,7 +138,7 @@
     };
 
     window.update_thresholds_struct_raw_value = function(thresholds_div) {
-      thresholds_div.up("form").dirty = true;
+      thresholds_div.up("form").setAttribute('data-dirty', true);
       var field = thresholds_div.previous("input");
       var threshold_divs = $$("#" + thresholds_div.id + " div.monitor_threshold");
       if (threshold_divs && threshold_divs.length > 0) {
