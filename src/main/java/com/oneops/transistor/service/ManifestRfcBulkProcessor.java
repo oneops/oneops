@@ -473,7 +473,8 @@ public class ManifestRfcBulkProcessor {
 				otherPlatRfc.getAttribute("is_active").setNewValue("false");
 				otherPlatRfc.getAttribute("is_active").setOwner("manifest");
 				cmRfcMrgProcessor.upsertCiRfc(otherPlatRfc, userId);
-				//generateDummyEntrypointUpdates(otherPlat.getCiId(),userId);
+				// dummy rfc for inactive platform versions to delete their fqdn entries
+				generateDummyEntrypointUpdates(otherPlat.getCiId(),userId);
 			}
 		}
 		
