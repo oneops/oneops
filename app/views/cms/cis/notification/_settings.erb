@@ -24,7 +24,7 @@
     };
 
     window.update_settings_struct_raw_value = function(settings_div) {
-      settings_div.up("form").dirty = true;
+      settings_div.up("form").setAttribute('data-dirty', true);
       var settings = {'endpoint':    settings_div.down("input.endpoint").value,
       							'access':   settings_div.down("input.access").value,
                            'secure':    settings_div.down("input.secure").value};

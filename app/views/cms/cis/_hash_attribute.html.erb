@@ -1,45 +1,66 @@
-<% add    = defined?(allow_add) ? allow_add : true
-   delete = defined?(allow_delete) ? allow_delete : true
-   fk     = defined?(fixed_keys) ? fixed_keys : false %>
+<% add       = defined?(allow_add) ? allow_add : true
+   delete    = defined?(allow_delete) ? allow_delete : true
+   fk        = defined?(fixed_keys) ? fixed_keys : false
+   pattern_x = defined?(pattern) && pattern %>
 <div class="hash">
   <%= builder.hidden_field attribute_name %>
   <table>
-    <% (attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : {}).each_pair do |k, v| %>
-      <%= render 'cms/cis/hash_attribute_row', :attribute_name => attribute_name, :key => k, :value => v, :fixed_keys => fk, :allow_delete => delete %>
-    <% end %>
+    <tbody>
+      <% if attribute_value.present? %>
+        <% ActiveSupport::JSON.decode(attribute_value).each_pair do |k, v| %>
+          <%= render 'cms/cis/hash_attribute_row',
+                     :attribute_name => attribute_name,
+                     :key            => k,
+                     :value          => v,
+                     :fixed_keys     => fk,
+                     :allow_delete   => delete,
+                     :pattern        => pattern_x %>
+        <% end %>
+      <% end %>
+    </tbody>
+    <tfoot class="hide">
+      <%= render('cms/cis/hash_attribute_row',
+                 :attribute_name => "new_hash_attribute_row_#{attribute_name}",
+                 :key            => '',
+                 :value          => '',
+                 :fixed_keys     => false,
+                 :allow_delete   => true,
+                 :pattern        => pattern_x) %>
+    </tfoot>
   </table>
-  <%= link_to_function(icon('plus', 'add'), "new_hash_attribute_row($(this).previous('table'))", :class => 'btn btn-mini') if add && !fk %>
+  <%= link_to_function(icon('plus', 'add'), "new_hash_attribute_row(this)", :class => 'btn btn-mini') if add && !fk %>
 </div>
 <script type="text/javascript">
   if (!window.new_hash_attribute_row) {
-    window.new_hash_attribute_row = function(table) {
-      var new_hash_attribute_row_html = "<%= escape_javascript(render('cms/cis/hash_attribute_row', :attribute_name => 'new_hash_attribute_row', :key => '', :value => '', :fixed_keys => false, :allow_delete => true)) %>";
-      var id = "" + new Date().getTime();
-      table.insert(new_hash_attribute_row_html.replace(new RegExp("new_hash_attribute_row", "g"), id));
-      table.up("form").dirty = true;
-      $(id + "_key").focus();
+    window.new_hash_attribute_row = function(source) {
+      var table    = $j(source).prev("table"),
+          new_html = table.find("tfoot").html(),
+          row_id   = "" + new Date().getTime();
+      table.find("tbody").append(new_html.replace(new RegExp("new_hash_attribute_row", "g"), row_id));
+      table.parents("form").attr('data-dirty', 'true');
+      $j(row_id + "_key").focus();
     };
 
     window.delete_hash_attribute_row = function(row) {
-      var table = row.up("table");
+      row = $j(row).closest("tr");
+      var table = row.parents("table");
       row.remove();
-      table.up("form").dirty = true;
+      table.parents("form").attr('data-dirty', 'true');
       update_hash_attribute_raw_value(table);
     };
 
-    window.update_hash_attribute_raw_value = function(table) {
-      var field = table.previous("input");
-      var rows = table.select("tr");
-      if (rows && rows.length > 0) {
-        var row_values = {};
-        for (var i = 0; i < rows.length; i++) {
-          row_values[rows[i].down("input.hash_key").value] = rows[i].down("input.hash_value[type=text]").value;
-        }
-        field.value = Object.toJSON(row_values);
-      }
-      else {
-        field.value = "{}";
-      }
+    window.update_hash_attribute_raw_value = function(source) {
+      var table = $j(source).closest('table');
+      var result = table.find("tbody tr").toArray()
+          .reduce(function (h, row) {
+                    row = $j(row);
+                    h[row.find("input.hash_key").val()] = row.find(".hash_value").val();
+                    return h;
+                  },
+                  {});
+
+      var field = table.prev("input");
+      field.val(Object.toJSON(result));
     };
   }
 </script>

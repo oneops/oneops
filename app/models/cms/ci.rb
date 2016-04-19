@@ -89,9 +89,7 @@ class Cms::Ci < Cms::Base
   end
 
   def self.violates_policies!(targets, active = false, count_only = false)
-    first_target = targets.first
-    return nil if first_target.blank?
-    mpercolate(targets.map(&:ciId), first_target.policy_locations, active, count_only)
+    mpercolate(targets.map(&:ciId), targets.first.policy_locations, active, count_only)
   end
 
   def self.violates_policies(targets, active = false, count_only = false)
@@ -201,9 +199,27 @@ class Cms::Ci < Cms::Base
         value = ciAttributes.send(a.attributeName)
         if value.present?
           pattern = a.options.is_a?(Hash) && a.options.has_key?(:pattern) && a.options[:pattern]
-          if pattern
-            pattern = /#{pattern}/
-            errors.add(:base, "'#{a.description}' is invalid [#{pattern}].") unless value =~ pattern
+          data_type = a.dataType
+          if data_type == 'hash' || data_type == 'array'
+            begin
+              json = JSON.parse(value)
+            rescue Exception => e
+              json = nil
+              errors.add(:base, "'#{a.description}' must be a valid JSON.")
+            end
+            if json && pattern.present?
+              if data_type == 'hash'
+                json.each_pair do |k, v|
+                  errors.add(:base, "'#{a.description}' has invalid value for key '#{k}' [expected: #{pattern_desc(pattern)}].") unless check_pattern(pattern, v)
+                end
+              else
+                json.each do |e|
+                  errors.add(:base, "'#{a.description}' has invalid entry '#{e}' [expected: #{pattern_desc(pattern)}].") unless check_pattern(pattern, e)
+                end
+              end
+            end
+          elsif pattern.present?
+            errors.add(:base, "'#{a.description}' is invalid [expected: #{pattern_desc(pattern)}].") unless check_pattern(pattern, value)
           end
         elsif a.isMandatory
           errors.add(:base, "#{a.description} [#{a.attributeName}] must be present.")
@@ -258,5 +274,13 @@ class Cms::Ci < Cms::Base
       map[ci_id] = count_only ? result[i].size : result[i].map {|policy_id| policies[policy_id.to_i]}
     end
     return map
+  end
+
+  def check_pattern(pattern, value)
+    pattern.is_a?(Array) ? pattern.include?(value) : value =~ /#{pattern}/
+  end
+
+  def pattern_desc(pattern)
+    pattern.is_a?(Array) ? pattern.join('|') : pattern
   end
 end

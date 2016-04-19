@@ -3119,6 +3119,10 @@ div.ciAttributes {
   width: 388px;
 }
 
+.ciAttributes .input-xlarge.encrypted {
+  width: 282px;
+}
+
 .ciAttributes .input-prepend .input-xlarge {
   width: 346px;
 }
@@ -3163,12 +3167,16 @@ div.ciAttributes {
   margin: auto 2px;
 }
 
-.ciAttributes .array td .input-xlarge {
+.ciAttributes .array td .entry {
   width: 360px;
 }
 
-.ciAttributes .input-prepend .array td .input-xlarge {
+.ciAttributes .input-prepend .array td input.entry {
   width: 318px;
+}
+
+.ciAttributes .input-prepend .array td select.entry {
+  width: 331px;
 }
 
 .ciAttributes .array .btn, .ciAttributes .hash .btn {
@@ -3189,13 +3197,22 @@ div.ciAttributes {
   font-size: 19px;
 }
 
-.ciAttributes .hash_key, .ciAttributes input.hash_value[type=text] {
+.ciAttributes .hash_key,
+.ciAttributes input.hash_value {
   width:     161px;
-  height:    20px;
 }
 
-.ciAttributes .input-prepend .hash_key, .ciAttributes .input-prepend input.hash_value[type=text] {
+.ciAttributes select.hash_value {
+  width:     174px;
+}
+
+.ciAttributes .input-prepend .hash_key,
+.ciAttributes .input-prepend input.hash_value {
   width:     140px;
+}
+
+.ciAttributes .input-prepend select.hash_value {
+  width:     153px;
 }
 
 
