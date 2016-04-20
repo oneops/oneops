@@ -1,5 +1,7 @@
 # install lsof for some port and fd monitors to get as nagios user
-package "lsof"
+package "lsof" do
+  not_if { ::File.exists?("/usr/sbin/lsof") }
+end
 
 case node.platform
 when "redhat","centos","fedora"
@@ -11,13 +13,23 @@ end
 nagios_service = "nagios"
 case node.platform
 when "redhat","centos","fedora","suse"
-  package "nagios"    
-  package "nagios-plugins"
+  package "nagios" do
+    not_if "rpm -qa | egrep -qe 'nagios-[0-9]+'"
+  end    
+  package "nagios-plugins" do
+    not_if "rpm -qa | egrep -qe 'nagios-plugins-[0-9]+'"
+  end
   
   unless node.platform == "suse"
-    package "nagios-devel"  
-    package "nagios-plugins-load"
-    package "nagios-plugins-http"
+    package "nagios-devel" do
+      not_if "rpm -qa | egrep -qe 'nagios-devel-[0-9]+'"
+    end  
+    package "nagios-plugins-load" do
+      not_if "rpm -qa | egrep -qe 'nagios-plugins-load-[0-9]+'"
+    end
+    package "nagios-plugins-http" do
+      not_if "rpm -qa | egrep -qe 'nagios-plugins-[0-9]+'"
+    end
   end
   
   execute "cp /usr/lib64/nagios/plugins/check_load /opt/nagios/libexec/" do
@@ -47,7 +59,9 @@ when "redhat","centos","fedora","suse"
   end
 else
   nagios_service = "nagios3"
-  package "nagios3-core"
+  package "nagios3-core" do
+    not_if "dpkg -l | egrep -qe 'nagios3-core'"
+  end
 
   # ubuntu 12.04 + nagios 3.2.3 has issue with not setting p1_file, but ok with it empty
   execute "mkdir -p /usr/lib/nagios3 ; touch /usr/lib/nagios3/p1.pl"
