@@ -28,7 +28,7 @@ when "redhat","centos","fedora","suse"
       not_if "rpm -qa | egrep -qe 'nagios-plugins-load-[0-9]+'"
     end
     package "nagios-plugins-http" do
-      not_if "rpm -qa | egrep -qe 'nagios-plugins-[0-9]+'"
+      not_if "rpm -qa | egrep -qe 'nagios-plugins-http-[0-9]+'"
     end
   end
   
