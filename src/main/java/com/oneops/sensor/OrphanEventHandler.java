@@ -42,15 +42,14 @@ public class OrphanEventHandler {
 
 	private final ScheduledExecutorService orphanEventScheduler = Executors.newScheduledThreadPool(1);
 	private ScheduledFuture<?> jobHandle;
-	private int initialDelay = 120;
-	private int delay = 60;
+	private int initialDelay = 15;
+	private int delay = 10;
 	
 	private Gson gson = new Gson();
 	
 	private boolean orphanHandlerEnabled = false;
 	
 	public void start() {
-		//TODO: delete all data for this instance from orphan_close_events CF once while starting?
 		if (orphanHandlerEnabled) {
 			jobHandle = orphanEventScheduler.scheduleWithFixedDelay(new EventResenderTask(), initialDelay, delay, TimeUnit.MINUTES);	
 		}
@@ -78,8 +77,8 @@ public class OrphanEventHandler {
 							}
 							else {
 								logger.info("there is no open event found for the ci " + orphanEvent.getCiId() + ", removing the orphan close event.");
-							}	
-							addToRemoveMap(eventsToDeleteMap, orphanEvent);
+								addToRemoveMap(eventsToDeleteMap, orphanEvent);
+							}
 						}
 					}
 				}

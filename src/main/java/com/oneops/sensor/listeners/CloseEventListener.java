@@ -111,6 +111,7 @@ public class CloseEventListener implements UpdateListener {
                 }
                 opsEventPub.publishCiStateMessage(ciEvent);
                 publishedMessage = true;
+                opsEventDao.removeOrphanEvent(event.getCiId(), event.getManifestId(), event.getName());
             }
             else {
             	if (orphanEventEnabled) {
