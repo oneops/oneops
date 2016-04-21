@@ -175,38 +175,35 @@ public class OpsEventDao {
     }
 
 	public void addOrphanCloseEventForCi(long ciId, String eventName, long manifestId, String openEvent) {
-		long mId = getOrphanCloseEventForCi(ciId, eventName);
-		if (mId == 0) {
+		String event = getOrphanCloseEventForCi(ciId, eventName, manifestId);
+		if (event == null) {
 			List<HColumn<String, byte[]>> subCols = new ArrayList<>();
 
-			HColumn<String, byte[]> manifestIdCol = HFactory.createColumn("manifestId",
-					longSerializer.toBytes(manifestId), stringSerializer, bytesSerializer);
-			HColumn<String, byte[]> payloadCol = HFactory.createColumn("openEvent", openEvent.getBytes(),
+			HColumn<String, byte[]> payloadCol = HFactory.createColumn(eventName, openEvent.getBytes(),
 					stringSerializer, bytesSerializer);
-			subCols.add(manifestIdCol);
 			subCols.add(payloadCol);
 
-			orphanCloseMutator.insert(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF, HFactory.createSuperColumn(eventName,
-					subCols, stringSerializer, stringSerializer, bytesSerializer));
+			orphanCloseMutator.insert(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF, HFactory.createSuperColumn(manifestId,
+					subCols, longSerializer, stringSerializer, bytesSerializer));
 		}
 	}
 
-	private long getOrphanCloseEventForCi(long ciId, String eventName) {
-		SubColumnQuery<Long, String, String, byte[]> scolq = HFactory
-				.createSubColumnQuery(keyspace, longSerializer, stringSerializer, stringSerializer, bytesSerializer)
-				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setKey(ciId).setSuperColumn(eventName)
-				.setColumn("manifestId");
+	private String getOrphanCloseEventForCi(long ciId, String eventName, long manifestId) {
+		SubColumnQuery<Long, Long, String, byte[]> scolq = HFactory
+				.createSubColumnQuery(keyspace, longSerializer, longSerializer, stringSerializer, bytesSerializer)
+				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setKey(ciId).setSuperColumn(manifestId)
+				.setColumn(eventName);
 
 		HColumn<String, byte[]> resultCol = scolq.execute().get();
 		if (resultCol != null) {
-			return longSerializer.fromBytes(resultCol.getValue());
+			return stringSerializer.fromBytes(resultCol.getValue());
 		}
-		return 0;
+		return null;
 	}
 
 	public List<OrphanCloseEvent> getAllOrphanCloseEvents(final int batchSize) {
-		RangeSuperSlicesQuery<Long, String, String, byte[]> rssQuery = HFactory
-				.createRangeSuperSlicesQuery(keyspace, longSerializer, stringSerializer, stringSerializer, bytesSerializer)
+		RangeSuperSlicesQuery<Long, Long, String, byte[]> rssQuery = HFactory
+				.createRangeSuperSlicesQuery(keyspace, longSerializer, longSerializer, stringSerializer, bytesSerializer)
 				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setRange(null, null, false, batchSize)
 				.setRowCount(batchSize);
 
@@ -216,20 +213,24 @@ public class OpsEventDao {
 		while (true) {
 
 			rssQuery.setKeys(lastKey, null);
-			OrderedSuperRows<Long, String, String, byte[]> sRows = rssQuery.execute().get();
-			Iterator<SuperRow<Long, String, String, byte[]>> rowsIt = sRows.iterator();
+			OrderedSuperRows<Long, Long, String, byte[]> sRows = rssQuery.execute().get();
+			Iterator<SuperRow<Long, Long, String, byte[]>> rowsIt = sRows.iterator();
 			if (lastKey != null && rowsIt != null)
 				rowsIt.next();
 
 			while (rowsIt.hasNext()) {
-				SuperRow<Long, String, String, byte[]> sRow = rowsIt.next();
+				SuperRow<Long, Long, String, byte[]> sRow = rowsIt.next();
 				// Shift start key for the next batch.
 				lastKey = sRow.getKey();
-				for (HSuperColumn<String, String, byte[]> sCol : sRow.getSuperSlice().getSuperColumns()) {
-					if (sCol.getColumns().size() > 0) {
-						OrphanCloseEvent orphanEvent = parseOrphanSuperCol(sCol);
-						orphanEvent.setCiId(sRow.getKey());
-						list.add(orphanEvent);
+				for (HSuperColumn<Long, String, byte[]> sCol : sRow.getSuperSlice().getSuperColumns()) {
+					if (sCol.getSize() > 0) {
+						long manifestId = sCol.getName();
+						for (HColumn<String, byte[]> col : sCol.getColumns()) {
+							String eventName = col.getName();
+							String openEvent = stringSerializer.fromBytes(col.getValue());
+							OrphanCloseEvent orphanEvent = new OrphanCloseEvent(lastKey, manifestId, eventName, openEvent);
+							list.add(orphanEvent);
+						}
 					}
 				}
 			}
@@ -241,22 +242,6 @@ public class OpsEventDao {
 		return list;
 	}
 
-	private OrphanCloseEvent parseOrphanSuperCol(HSuperColumn<String, String, byte[]> sCol) {
-		OrphanCloseEvent orphanData = null;
-		if (sCol != null) {
-			orphanData = new OrphanCloseEvent();
-			orphanData.setName(sCol.getName());
-			for (HColumn<String, byte[]> col : sCol.getColumns()) {
-				if (col.getName().equals("manifestId")) {
-					orphanData.setManifestId(longSerializer.fromBytes(col.getValue()));
-				} else if (col.getName().equals("openEvent")) {
-					orphanData.setOpenEventPayload(stringSerializer.fromBytes(col.getValue()));
-				}
-			}
-		}
-		return orphanData;
-	}
-
 	public void removeOrphanCloseEvents(Map<Long, List<OrphanCloseEvent>> eventsMap) {
 		if (!eventsMap.isEmpty()) {
 			Iterator<Entry<Long, List<OrphanCloseEvent>>> iterator = eventsMap.entrySet().iterator();
@@ -264,26 +249,41 @@ public class OpsEventDao {
 				Entry<Long, List<OrphanCloseEvent>> entry = iterator.next();
 				long ciId = entry.getKey();
 				List<OrphanCloseEvent> list = entry.getValue();
-				int count = getOrphanCountForCi(ciId);
-				if (count <= list.size()) {
-					orphanCloseMutator.addDeletion(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF);
-				} else {
-					for (OrphanCloseEvent event : list) {
-						orphanCloseMutator.addDeletion(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF, event.getName(),
-								stringSerializer);
-					}
-				}
-			}
-			orphanCloseMutator.execute();
+				removeOrphanEvent(ciId, list);
+			}	
 		}
 	}
 
-	private int getOrphanCountForCi(long ciId) {
-		CountQuery<Long, String> cq = HFactory.createCountQuery(keyspace, longSerializer, stringSerializer)
-				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setKey(ciId).setRange(null, null, 1000);
+	private int getOrphanCountForCi(long ciId, long manifestId) {
+		SubCountQuery<Long, Long, String> cq = HFactory.createSubCountQuery(keyspace, longSerializer, longSerializer, stringSerializer)
+				.setColumnFamily(SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF).setKey(ciId).setSuperColumn(manifestId).setRange(null, null, 1000);
 
 		QueryResult<Integer> r = cq.execute();
 		return r.get();
+	}
+	
+	private void removeOrphanEvent(long ciId, List<OrphanCloseEvent> orphanEvents) {
+		if ((orphanEvents != null) && (!orphanEvents.isEmpty())) {
+			long manifestId = orphanEvents.get(0).getManifestId();
+			int count = getOrphanCountForCi(ciId, manifestId);
+			if (count > 0) {
+				if (count <= orphanEvents.size()) {
+					orphanCloseMutator.addDeletion(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF);
+				} else {
+					for (OrphanCloseEvent event : orphanEvents) {
+						orphanCloseMutator.addSubDelete(ciId, SchemaBuilder.ORPHAN_CLOSE_EVENTS_CF, manifestId, event.getName(),
+								longSerializer, stringSerializer);
+					}
+				}
+				orphanCloseMutator.execute();	
+			}
+		}
+	}
+	
+	public void removeOrphanEvent(long ciId, long manifestId, String eventName) {
+		List<OrphanCloseEvent> list = new ArrayList<OrphanCloseEvent>();
+		list.add(new OrphanCloseEvent(ciId, manifestId, eventName, null));
+		removeOrphanEvent(ciId, list);
 	}
 
 

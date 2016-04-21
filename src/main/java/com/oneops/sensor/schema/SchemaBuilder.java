@@ -100,7 +100,7 @@ public class SchemaBuilder {
 		if (!existingCFNames.contains(ORPHAN_CLOSE_EVENTS_CF)) {
 			ColumnFamilyDefinition cfResetOpsDef = HFactory.createColumnFamilyDefinition(keyspaceName,
 					ORPHAN_CLOSE_EVENTS_CF, 
-					ComparatorType.BYTESTYPE);
+					ComparatorType.LONGTYPE);
 			cfResetOpsDef.setColumnType(ColumnType.SUPER);
 			cfResetOpsDef.setSubComparatorType(ComparatorType.BYTESTYPE);
 			cluster.addColumnFamily(cfResetOpsDef,true);
@@ -176,7 +176,7 @@ public class SchemaBuilder {
 		
 		ColumnFamilyDefinition cfOrphanEventsDef = HFactory.createColumnFamilyDefinition(keyspaceName,
 				ORPHAN_CLOSE_EVENTS_CF, 
-				ComparatorType.BYTESTYPE);
+				ComparatorType.LONGTYPE);
 		cfOrphanEventsDef.setColumnType(ColumnType.SUPER);
 		cfOrphanEventsDef.setSubComparatorType(ComparatorType.BYTESTYPE);
 
