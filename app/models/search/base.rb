@@ -2,7 +2,7 @@ class Search::Base < ActiveResource::Base
   self.site         = Settings.search_site
   self.prefix       = ''
   self.element_name = ''
-  self.timeout      = 10
+  self.timeout      = Rails.env.shared? ? 3 : 10
 
   def self.search(index, options = {})
     silent       = options.delete(:_silent)

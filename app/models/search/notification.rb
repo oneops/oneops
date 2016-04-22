@@ -33,10 +33,10 @@ class Search::Notification < Search::Base
     query = [{:wildcard => {'nsPath.keyword' => "#{ns_path}*"}}]
 
     start_time = options.delete(:start)
-    query << {:range => {'timestamp' => {'gte' => start_time.to_i * 1000}}} if start_time.present?
+    query << {:range => {'timestamp' => {:gte => start_time}}} if start_time.present?
 
     end_time = options.delete(:end)
-    query << {:range => {'timestamp' => {'lte' => end_time.to_i * 1000}}} if end_time.present?
+    query << {:range => {'timestamp' => {:lte => end_time}}} if end_time.present?
 
     query_string = options.delete(:query)
     query << {:query_string => {:query => query_string}} if query_string.present?
@@ -91,6 +91,7 @@ class Search::Notification < Search::Base
           }
         }
       },
+      :sort => [{'timestamp' => {:order => 'desc'}}],
       :size  => 0
     }
 
