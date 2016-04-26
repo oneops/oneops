@@ -1,3 +1,0 @@
-before_script:
-- cd ${WORKSPACE};rm -rf cmsdal/;git clone git@github.com:oneops/cmsdal.git;cd cmsdal;mvn clean install -Dmaven.test.skip=true
-sudo: false
