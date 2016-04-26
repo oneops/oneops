@@ -92,9 +92,10 @@ class ReportsController < ApplicationController
       end
 
       format.js do
-        fetch_notifications(params[:offset].blank?)
+        histogram = params[:offset].blank?
+        fetch_notifications(histogram)
 
-        unless @notifications
+        unless histogram || @notifications
           flash[:error] = 'Failed to load notifications.'
           render :js => ''
         end
@@ -269,6 +270,7 @@ class ReportsController < ApplicationController
     end
   end
 
+
   protected
 
   def fetch_notifications(histogram = false)
@@ -293,6 +295,10 @@ class ReportsController < ApplicationController
         end_time   = now.end_of_day.to_i
     end
 
+    # Start and end times are in seconds but notification timestamp is in ms.
+    start_time *= 1000
+    end_time *= 1000
+
     type                     = params[:source]
     search_params[:type]     = type if type.present? && type != 'all'
     severity                 = params[:severity]
@@ -306,7 +312,6 @@ class ReportsController < ApplicationController
     search_params[:query] = queries.join(' AND ') if queries.present?
 
     if histogram
-      # Start and end times are in seconds but notification timestamp is in ms.
       @histogram = {:x         => [],
                     :y         => [],
                     :groupings => ::NotificationSummary::HISTOGRAM_GROUPING,
@@ -320,22 +325,32 @@ class ReportsController < ApplicationController
         @histogram[:x]          = %w(Mon Tue Wed Thu Fri Sat Sun)
         @histogram[:labels][:x] = 'Day of the week'
       end
-      unit = 1000 * (end_time - start_time) / @histogram[:x].length
+      unit = (end_time - start_time) / @histogram[:x].length
       ranges = []
-      @histogram[:x].size.times {|i| ranges << [start_time * 1000 + i * unit, start_time * 1000 + (i + 1) * unit]}
-      hist_data = Search::Notification.histogram(ns_path, ranges, search_params)
-      y_values  = [0] * @histogram[:x].length
+      @histogram[:x].size.times {|i| ranges << [start_time + i * unit, start_time + (i + 1) * unit]}
+      hist_data = Search::Notification.histogram(ns_path, ranges, search_params.merge(:_silent => true))
+      unless hist_data
+        @histogram = nil
+        return
+      end
+
+      y_values = [0] * @histogram[:x].length
       hist_data.each do |r|
-        # y_values[(r['from'] - start_time * 1000) / unit] = r['doc_count']
-        y_values[(r['from'] - start_time * 1000) / unit] = {:by_source => r['by_source']['buckets'].map{|b| {:label => b['key'], :value => b['doc_count']}},
-                                                            :by_severity => r['by_severity']['buckets'].map{|b| {:label => b['key'], :value => b['doc_count']}}}
+        # A little hack below in sorting severity buckets (" sort_by {|b| -b['key'].size} ") to ensure
+        # proper order of 'critical', 'warnning', 'info'.
+        y_values[(r['from'] - start_time) / unit] = {:by_source => r['by_source']['buckets'].map{|b| {:label => b['key'], :value => b['doc_count']}},
+                                                     :by_severity => r['by_severity']['buckets'].sort_by {|b| -b['key'].size}.map{|b| {:label => b['key'], :value => b['doc_count']}}}
       end
       @histogram[:y] = y_values
+    else
+      search_params[:size]  = @size
+      search_params[:from]  = (params[:offset].presence || 0).to_i
+      search_params[:sort]  = params[:sort]
+      search_params[:start] = start_time
+      search_params[:end]   = end_time
+
+      @notifications = Search::Notification.find_by_ns(ns_path, search_params)
     end
-    search_params[:size] = @size
-    search_params[:from] = (params[:offset].presence || 0).to_i
-    search_params[:sort] = params[:sort]
-    @notifications = Search::Notification.find_by_ns(ns_path, search_params)
   end
 
   def compute_report_data

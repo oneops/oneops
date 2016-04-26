@@ -20,8 +20,10 @@ module NotificationSummary
       if hist_data.present?
         @histogram[:x] = ranges.map {|r| "#{Time.at(r.first / 1000).strftime('%H:%M')} - #{Time.at(r.last / 1000).strftime('%H:%M')}"}
         @histogram[:y] = hist_data.inject([]) do |a, r|
+          # A little hack below in sorting severity buckets (" sort_by {|b| -b['key'].size} ") to ensure
+          # proper order of 'critical', 'warnning', 'info'.
           a << {:by_source   => r['by_source']['buckets'].map { |b| {:label => b['key'], :value => b['doc_count']} },
-                :by_severity => r['by_severity']['buckets'].map { |b| {:label => b['key'], :value => b['doc_count']} }}
+                :by_severity => r['by_severity']['buckets'].sort_by {|b| -b['key'].size}.map { |b| {:label => b['key'], :value => b['doc_count']} }}
         end
       end
     end
