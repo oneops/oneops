@@ -4357,3 +4357,12 @@ i.relation {
   padding: 2px 5px;
   background: white;
 }
+
+.tx-editor.expanded .typeahead.dropdown-menu {
+  margin-top: -400px;
+  margin-left: 400px;
+}
+
+form.editing .tx-editor.expanded .tx-btn.insert-var {
+  display: inline;
+}

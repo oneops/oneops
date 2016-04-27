@@ -90,9 +90,9 @@
         });
 
         //Fullscreen icon click event
-      this.$editor.find('.tx-toolbar i.fa-expand').on('click.txeditor.icon', this.onIconClick);
+      this.$editor.find('.tx-toolbar i.fa-expand').parent().on('click.txeditor.icon', this.onIconClick);
       var textArea = this.$el[0];
-      copyToClipboard(this.$editor.find('.tx-toolbar i.fa-files-o'),
+      copyToClipboard(this.$editor.find('.tx-toolbar i.fa-files-o').parent(),
                       function() {return textArea;});
 
     };

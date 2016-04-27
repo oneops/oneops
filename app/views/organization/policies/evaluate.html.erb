@@ -29,7 +29,7 @@
       <%= text_field_tag :ns_path, @ns_path, :class => '', :placeholder => 'Namespace', :pattern => "#{search_ns_path.gsub('/', '\/')}(\/|\w|-)*" %>
       <div class="filter" style="padding-left: 5%">
         <div class="name">Query Conditions</div>
-        <%= text_area_tag :query, @query, :class => '', :rows => 5, :placeholder => 'Query' %>
+        <%= text_area_tag :query, @query, :class => '', :rows => 10, :placeholder => 'Query' %>
       </div>
       <div class="filter">
         <div class="name">Actions</div>
