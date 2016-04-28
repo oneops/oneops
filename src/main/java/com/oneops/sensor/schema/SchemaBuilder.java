@@ -41,6 +41,7 @@ public class SchemaBuilder {
 	public static final String CI_OPEN_EVENTS_CF = "ci_open_events";
 	public static final String CI_STATE_HIST_CF = "ci_state_hist";
 	public static final String COMPONENT_STATE_CF = "component_states";
+	public static final String ORPHAN_CLOSE_EVENTS_CF = "orphan_close_events";
 
 	
 	private static Logger logger = Logger.getLogger(SchemaBuilder.class);
@@ -96,6 +97,16 @@ public class SchemaBuilder {
 			logger.info("Added column family " + OPS_EVENTS_CF);
 		}
 		
+		if (!existingCFNames.contains(ORPHAN_CLOSE_EVENTS_CF)) {
+			ColumnFamilyDefinition cfResetOpsDef = HFactory.createColumnFamilyDefinition(keyspaceName,
+					ORPHAN_CLOSE_EVENTS_CF, 
+					ComparatorType.LONGTYPE);
+			cfResetOpsDef.setColumnType(ColumnType.SUPER);
+			cfResetOpsDef.setSubComparatorType(ComparatorType.BYTESTYPE);
+			cluster.addColumnFamily(cfResetOpsDef,true);
+			logger.info("Added column family " + ORPHAN_CLOSE_EVENTS_CF);
+		}
+
 		if (!existingCFNames.contains(CI_STATE_HIST_CF)) {
 			ColumnFamilyDefinition cfCiStateHistDef = HFactory.createColumnFamilyDefinition(keyspaceName,                              
 					CI_STATE_HIST_CF, 
@@ -163,7 +174,12 @@ public class SchemaBuilder {
 		cfComponentStateDef.setDefaultValidationClass(ComparatorType.COUNTERTYPE.getClassName());
 		cfComponentStateDef.setKeyValidationClass(ComparatorType.LONGTYPE.getClassName());
 		
-		
+		ColumnFamilyDefinition cfOrphanEventsDef = HFactory.createColumnFamilyDefinition(keyspaceName,
+				ORPHAN_CLOSE_EVENTS_CF, 
+				ComparatorType.LONGTYPE);
+		cfOrphanEventsDef.setColumnType(ColumnType.SUPER);
+		cfOrphanEventsDef.setSubComparatorType(ComparatorType.BYTESTYPE);
+
 		KeyspaceDefinition newKeyspace = HFactory.createKeyspaceDefinition(keyspaceName,                 
 		              ThriftKsDef.DEF_STRATEGY_CLASS,  
 		              1,
