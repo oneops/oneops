@@ -191,7 +191,8 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="relationName", required = false) String relName,
 			@RequestParam(value="direction", required = false) String direction,
 			@RequestParam(value="recursive", required = false) Boolean recursive,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) {
 		
 		CmsCI ci = cmManager.getCiById(ciId);
 
@@ -200,7 +201,7 @@ public class CmRestController extends AbstractRestController {
 
 		scopeVerifier.verifyScope(scope, ci);
 
-		cmManager.updateCiState(ciId, newState, relName, direction, recursive != null);
+		cmManager.updateCiState(ciId, newState, relName, direction, recursive != null, userId);
 
 		return "{\"updated\"}";	
 	
@@ -213,7 +214,8 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="relationName", required = false) String relName,
 			@RequestParam(value="direction", required = false) String direction,
 			@RequestParam(value="recursive", required = false) Boolean recursive,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) {
 		
 		CmsCI ci = cmManager.getCiById(ciId);
 
@@ -222,7 +224,7 @@ public class CmRestController extends AbstractRestController {
 
 		scopeVerifier.verifyScope(scope, ci);
 
-		cmManager.updateCiState(ciId, newState, relName, direction, recursive != null);
+		cmManager.updateCiState(ciId, newState, relName, direction, recursive != null, userId);
 
 		return "{\"updated\"}";	
 	
@@ -237,14 +239,15 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="relationName", required = false) String relName,
 			@RequestParam(value="direction", required = false) String direction,
 			@RequestParam(value="recursive", required = false) Boolean recursive,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) {
 		
 		String[] idsStr = ids.split(",");
 	    Long[] ciIds = new Long[idsStr.length];
 	    for (int i=0; i<idsStr.length; i++) {
              ciIds[i] = Long.valueOf(idsStr[i]);
 	    }
-		cmManager.updateCiStateBulk(ciIds, newState, relName, direction, recursive != null);
+		cmManager.updateCiStateBulk(ciIds, newState, relName, direction, recursive != null, userId);
 		return "{\"updated\"}";	
 	}
 	
