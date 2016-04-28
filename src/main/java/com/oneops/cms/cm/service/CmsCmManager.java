@@ -34,9 +34,9 @@ import com.oneops.cms.util.domain.CmsVar;
 public interface CmsCmManager {
 	CmsCI createCI(CmsCI ci);
 	CmsCI updateCI(CmsCI ci);
-	void updateCiState(long ciId, String ciState, String relName, String direction, boolean recursive);
-	void updateCiStateBulk(Long[] ids, String ciState, String relName, String direction, boolean recursive);
-	CmsCI updateCiState(long ciId, String ciState);
+	void updateCiState(long ciId, String ciState, String relName, String direction, boolean recursive, String user);
+	void updateCiStateBulk(Long[] ids, String ciState, String relName, String direction, boolean recursive, String user);
+	CmsCI updateCiState(long ciId, String ciState, String user);
 	void deleteCI(long ciId);
 	CmsCI getCiByGoid(String goid);
 	CmsCI getCiById(long id);
