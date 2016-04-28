@@ -737,7 +737,7 @@ public class CmsCmProcessor {
 	 * @param long ciId, String new ciState 
 	 * @return the cms ci
 	 */
-	public CmsCI updateCiState(long ciId, String ciState) {
+	public CmsCI updateCiState(long ciId, String ciState, String user) {
 		
 		CmsCI existingCi = ciMapper.getCIById(ciId);
 
@@ -751,6 +751,7 @@ public class CmsCmProcessor {
 			throw new CIValidationException(CmsError.VALIDATION_COMMON_ERROR, "There is no such ci state defined - " + ciState);
 		}
 		existingCi.setCiStateId(ciStateId);
+		existingCi.setUpdatedBy(user);
 		ciMapper.updateCI(existingCi);
 
 		return existingCi;

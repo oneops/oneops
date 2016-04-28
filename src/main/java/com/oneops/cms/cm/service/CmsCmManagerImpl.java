@@ -369,11 +369,11 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	}
 
 	@Override
-	public CmsCI updateCiState(long ciId, String ciState) {
-		return updateCiState(ciId, ciState, false);
+	public CmsCI updateCiState(long ciId, String ciState, String user) {
+		return updateCiState(ciId, ciState, false, user);
 	}
 
-	private CmsCI updateCiState(long ciId, String ciState, boolean checkRfc) {
+	private CmsCI updateCiState(long ciId, String ciState, boolean checkRfc, String user) {
 		if (checkRfc) {
 			CmsRfcCI rfc =  rfcProcessor.getOpenRfcCIByCiId(ciId);
 			if (rfc != null) {
@@ -381,7 +381,7 @@ public class CmsCmManagerImpl implements CmsCmManager {
                         "There is an open rfc for this CI ci_id = " + ciId);
 			}
 		}
-		return cmProcessor.updateCiState(ciId, ciState);
+		return cmProcessor.updateCiState(ciId, ciState, user);
 	}
 	
 	
@@ -394,7 +394,7 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	
 	@Override
 	public void updateCiStateBulk(Long[] ids, String ciState, String relName,
-			String direction, boolean recursive) {
+			String direction, boolean recursive, String user) {
 		
 		List<Long> idList = Arrays.asList(ids);
 		
@@ -410,7 +410,7 @@ public class CmsCmManagerImpl implements CmsCmManager {
 		}
 		
 		for (long ciId : ids) {
-			updateCiState(ciId, ciState, relName, direction, recursive, false);
+			updateCiState(ciId, ciState, relName, direction, recursive, false, user);
 		}
 	}
 
@@ -421,8 +421,8 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	 * @return void
 	 */
 	public void updateCiState(long ciId, String ciState, String relName,
-			String direction, boolean recursive) {
-		updateCiState(ciId,  ciState, relName, direction, recursive, true);
+			String direction, boolean recursive, String user) {
+		updateCiState(ciId,  ciState, relName, direction, recursive, true, user);
 	}
 
 	/**
@@ -435,26 +435,26 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	 * @param checkRfc
 	 */
 	private void updateCiState(long ciId, String ciState, String relName,
-			String direction, boolean recursive, boolean checkRfc) {
+			String direction, boolean recursive, boolean checkRfc, String user) {
 		
-		updateCiState(ciId, ciState, checkRfc);
+		updateCiState(ciId, ciState, checkRfc, user);
 		if (relName != null) {
 			if (direction == null || "to".equals(direction)) {
 				List<CmsCIRelation> rels = cmProcessor.getToCIRelationsNakedNoAttrs(ciId, relName, null, null);
 				for (CmsCIRelation rel : rels) {
 					if (recursive) {
-						updateCiState(rel.getFromCiId(), ciState, relName, direction, true, checkRfc);
+						updateCiState(rel.getFromCiId(), ciState, relName, direction, true, checkRfc, user);
 					} else {
-						updateCiState(rel.getFromCiId(), ciState, checkRfc);
+						updateCiState(rel.getFromCiId(), ciState, checkRfc, user);
 					}
 				}
 			} else {
 				List<CmsCIRelation> rels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, relName, null, null);
 				for (CmsCIRelation rel : rels) {
 					if (recursive) {
-						updateCiState(rel.getToCiId(), ciState, relName, direction, true, checkRfc);
+						updateCiState(rel.getToCiId(), ciState, relName, direction, true, checkRfc, user);
 					} else {
-						updateCiState(rel.getToCiId(), ciState, checkRfc);
+						updateCiState(rel.getToCiId(), ciState, checkRfc, user);
 					}
 				}
 			}
