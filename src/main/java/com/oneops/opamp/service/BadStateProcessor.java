@@ -307,7 +307,7 @@ public class BadStateProcessor {
 		try {
 			// first mark the ci state as "replace"
 			cmManager.updateCiState(ciId, "replace", "bom.ManagedVia", "to",
-					false);
+					false, ONEOPS_AUTOREPLACE_USER);
             logger.info("marked the ciId [" + ciId + "] for replace using headers using user"+ONEOPS_AUTOREPLACE_USER);
 			// now submit the deployment
 			Map<String, String> params = new HashMap<String, String>();
