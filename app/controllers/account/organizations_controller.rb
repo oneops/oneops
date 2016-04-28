@@ -12,7 +12,15 @@ class Account::OrganizationsController < ApplicationController
 
   def create
     org = Organization.new(:name => params[:name])
-    team = org.teams.build(:name => Team::ADMINS,:design => true,:transition=>true,:operations=>true)
+    team = org.teams.build(:name             => Team::ADMINS,
+                           :design           => true,
+                           :transition       => true,
+                           :operations       => true,
+                           :cloud_services   => true,
+                           :cloud_compliance => true,
+                           :cloud_support    => true,
+                           :manages_access   => true,
+                           :org_scope        => true)
     team.users << current_user
     if org.save
       current_user.update_attribute(:organization_id, org.id)
