@@ -18,6 +18,7 @@
 package com.oneops.sensor.util;
 
 import com.oneops.cms.util.service.CmsUtilManager;
+import com.oneops.sensor.OrphanEventHandler;
 import com.oneops.sensor.Sensor;
 import com.oneops.sensor.jms.SensorListener;
 import com.oneops.sensor.jms.SensorListenerContainer;
@@ -61,6 +62,7 @@ public class InstanceManager {
 	private String processId;
 	private AMQConnectorURI opsMQURI;
 	private SensorListener sensorListener;
+	private OrphanEventHandler orphanEventHandler;
 	
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 	private ScheduledFuture<?> jobLockRefreshHandle = null;
@@ -138,6 +140,7 @@ public class InstanceManager {
 					try {
 						sensor.init(instanceId, poolSize);
 						initJmsListeners(instanceId, poolSize);
+						orphanEventHandler.start();
 					} catch (Exception e) {
 						cleanup();
 						throw new RuntimeException(e);
@@ -262,6 +265,10 @@ public class InstanceManager {
 
 	public String getProcessId() {
 		return processId;
+	}
+
+	public void setOrphanEventHandler(OrphanEventHandler orphanEventHandler) {
+		this.orphanEventHandler = orphanEventHandler;
 	}
 
 }

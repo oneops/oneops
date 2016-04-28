@@ -145,6 +145,7 @@
         <property name="opsEventDao" ref="opsEventDao"/>
         <property name="coProcessor" ref="coProcessor"/>
         <property name="opsEventPub" ref="opsEventPub"/>
+        <property name="orphanEventEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:true}"/>
         <!--property name="opsCiStateDao" ref="opsCiStateDao"/-->
     </bean>
 
@@ -206,6 +207,15 @@
         <property name="opsMQURI" ref="brokerURI"/>
         <property name="sensorListener" ref="sensorListener"/>
         <property name="monListenerContainer" ref="monListenerContainer"/>
+        <property name="orphanEventHandler" ref="orphanEventHandler"/>
+    </bean>
+
+	<bean id="orphanEventHandler" class="com.oneops.sensor.OrphanEventHandler" destroy-method="cleanup">
+        <property name="sensor" ref="sensor"/>
+        <property name="opsEventDao" ref="opsEventDao"/>
+        <property name="initialDelay" value="${ORPHAN_HANDLER_INIT_DELAY:15}"/>
+        <property name="delay" value="${ORPHAN_HANDLER_DELAY:10}"/>
+        <property name="orphanHandlerEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:true}"/>
     </bean>
 
 </beans>

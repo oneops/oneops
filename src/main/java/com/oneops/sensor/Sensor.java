@@ -236,7 +236,7 @@ public class Sensor {
      *
      * @param e OpsEvent
      */
-    private void sendOpsEvent(OpsEvent e) {
+    void sendOpsEvent(OpsEvent e) {
         logger.info("Loading OpsEvent(CiId = " + e.getCiId() + ", manifestId = " + e.getManifestId() + ", name = " + e.getName() + ", state = " + e.getState() + ")");
         this.epService.getEPRuntime().sendEvent(e);
     }
@@ -889,6 +889,10 @@ public class Sensor {
             thresholdsJson = "n";
         }
         tsDao.addCiThresholds(ciId, manifestId, source, checksum, thresholdsJson, isHeartbeat, hbDuration);
+    }
+    
+    public boolean isManagedByThisInstance(long manifestId) {
+    	return (manifestId % poolSize) == instanceId;
     }
 
     private class FakeEvent {
