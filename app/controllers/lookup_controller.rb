@@ -31,7 +31,7 @@ class LookupController < ApplicationController
   def procedure
     begin
       procedure = Cms::Procedure.find(params[:id])
-      ci = procedure && Cms::DjCi.find(procedure.ciId)
+      ci        = procedure && Cms::DjCi.find(procedure.ciId)
     rescue
     end
 
@@ -41,9 +41,9 @@ class LookupController < ApplicationController
 
   def counterparts
     # Saving an additional lookup - construct a barebone Ci on-the-fly.
-    ci = params[:ci]
+    ci        = params[:ci]
     ci[:ciId] = ci[:ciId].to_i
-    @ci = Cms::Ci.new(ci, true)
+    @ci       = Cms::Ci.new(ci, true)
     unless @ci
       render :text => 'Ci not found', :status => :not_found
       return
@@ -55,22 +55,22 @@ class LookupController < ApplicationController
       return
     end
 
-    ci_class_name = @ci.ciClassName
-    find_params = {:nsPath      => "/#{org}/#{assembly}",
-                   :recursive   => true,
-                   :ciClassName => ci_class_name}
+    ci_class_name        = @ci.ciClassName
+    find_params          = {:nsPath      => "/#{org}/#{assembly}",
+                            :recursive   => true,
+                            :ciClassName => ci_class_name}
     find_params[:ciName] = @ci.ciName unless ['Assembly', 'Environment', 'Platform'].include?(ci_class_name.split('.').last)
-    @counterparts = Cms::Ci.all(:params => find_params)
-    split = ci_class_name.split('.')
+    @counterparts        = Cms::Ci.all(:params => find_params)
+    split                = ci_class_name.split('.')
     if split[0] == 'catalog'
-      split[0] = 'manifest'
+      split[0]                  = 'manifest'
       find_params[:ciClassName] = split.join('.')
-      @counterparts += Cms::Ci.all(:params => find_params)
+      @counterparts             += Cms::Ci.all(:params => find_params)
     end
 
     respond_to do |format|
       format.js
-      format.json {render :json => @counterparts}
+      format.json { render :json => @counterparts }
     end
   end
 
@@ -87,7 +87,7 @@ class LookupController < ApplicationController
     unless clazz
       respond_to do |format|
         format.js
-        format.json {render :json => {:errors => ["Invalid payload: 'cms_ci' || 'cms_dj_ci' structure is expected."]}, :status => :unprocessable_entity}
+        format.json { render :json => {:errors => ["Invalid payload: 'cms_ci' || 'cms_dj_ci' structure is expected."]}, :status => :unprocessable_entity }
       end
 
       return
@@ -97,18 +97,59 @@ class LookupController < ApplicationController
     unless authorize(ci.nsPath)
       respond_to do |format|
         format.js
-        format.json {render :json => {}, :status => :unauthorized}
+        format.json { render :json => {}, :status => :unauthorized }
       end
       return
     end
 
-    policy_locations = params[:locations]
+    policy_locations    = params[:locations]
     ci.policy_locations = policy_locations if policy_locations.present?
-    @violations = ci.violates_policies
+    @violations         = ci.violates_policies
     respond_to do |format|
       format.js
-      format.json {render :json => @violations}
+      format.json { render :json => @violations }
     end
+  end
+
+  def variables
+    result      = {}
+    assembly_id = params[:assembly_id]
+
+    if assembly_id.present?
+      assembly = locate_assembly(assembly_id)
+      if authorize(assembly.nsPath)
+        env_id      = params[:environment_id]
+        platform_id = params[:platform_id]
+        if env_id.present?
+          result[:global] = var_list('GLOBAL',
+                                     Cms::DjRelation.all(:params => {:ciId              => env_id,
+                                                                     :direction         => 'to',
+                                                                     :relationShortName => 'ValueFor',
+                                                                     :targetClassName   => 'manifest.Globalvar'}))
+          result[:local]  = var_list('LOCAL',
+                                     Cms::DjRelation.all(:params => {:ciId              => platform_id,
+                                                                     :direction         => 'to',
+                                                                     :relationShortName => 'ValueFor',
+                                                                     :targetClassName   => 'manifest.Localvar'})) if platform_id.present?
+          result[:cloud] = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
+                                                   :ciClassName => 'account.Cloudvar',
+                                                   :recursive   => true}).map(&:ciName).uniq.map { |v| {:name => v, :type => 'CLOUD'} }
+        else
+          result[:global] = var_list('GLOBAL',
+                                     Cms::DjRelation.all(:params => {:ciId              => assembly.ciId,
+                                                                     :direction         => 'to',
+                                                                     :relationShortName => 'ValueFor',
+                                                                     :targetClassName   => 'catalog.Globalvar'}))
+          result[:local]  = var_list('LOCAL',
+                                     Cms::DjRelation.all(:params => {:ciId              => platform_id,
+                                                                     :direction         => 'to',
+                                                                     :relationShortName => 'ValueFor',
+                                                                     :targetClassName   => 'catalog.Localvar'})) if platform_id.present?
+        end
+      end
+    end
+
+    render :json => result, :status => result.blank? ? :unauthorized : :ok
   end
 
 
@@ -129,7 +170,7 @@ class LookupController < ApplicationController
 
   def authorize(ns_path)
     root, org_name = ns_path.split('/')
-    org = current_user.organizations.where('organizations.name' => org_name).first
+    org            = current_user.organizations.where('organizations.name' => org_name).first
     return false unless org
 
     unless is_admin?(org) || has_org_scope?(org)
@@ -138,6 +179,15 @@ class LookupController < ApplicationController
     end
 
     return true
+  end
+
+  def var_list(type, relations)
+    relations.map do |r|
+      var = r.fromCi
+      {:name => var.ciName,
+       :type => type,
+       :value => var.ciAttributes.secure == 'true' ? var.ciAttributes.encrypted_value : var.ciAttributes.value}
+    end
   end
 end
 
