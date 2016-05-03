@@ -193,20 +193,6 @@
     input.select();
   });
 
-  window.toggleBaseDiff = function(source) {
-    var link = $j(source),
-        form = link.parents("form"),
-        containers = form.find(".ciAttributes .diff-container");
-    link.html(containers.is(":visible") ? "Show" : "Hide");
-    containers.toggle();
-    containers = form.find(".ciAttributes .diff-container:not(.calculated)");
-    setTimeout(function() {
-      containers.prettyTextDiff({cleanup: true});
-      containers.find(".diff").show();
-      containers.addClass('calculated');
-    }, 100);
-  };
-
   var filters = {};
   <% ci.meta.attributes[:mdAttributes].each do |a| %>
     <% filter = a.options[:filter] %>
@@ -289,41 +275,61 @@
     }
   });
 
-  <% var_lookup_params = {}
-     var_lookup_params[:assembly_id]    = @assembly.ciId if @assembly && @assembly.persisted?
-     var_lookup_params[:environment_id] = @environment.ciId if @environment && @environment.persisted?
-     var_lookup_params[:platform_id]    = @platform.ciId if @platform && @platform.persisted? && (@component || @attachment) %>
-  <% if var_lookup_params.present? %>
-    var oneopsVariableCache;
-    $j("#<%= dom_id %> input[type=text], #<%= dom_id %> textarea")
-        .typeahead({
-                     items: 30,
-                     minLength: 3,
-                     source: function (query, process) {
-                       var element = this.$element;
-                       var stringAtCursor = element.val().substr(0, element.prop("selectionStart"));
-                       var match = stringAtCursor.match(/\$OO[^}]*}?$/);
-                       if (match) {
-                         element.attr('autocomplete', 'off');
-                         this.matchString = match[0];
-                         this.matchVarType = this.matchString.substr(4).split('{')[0].toUpperCase();
-                         this.matchVarName = this.matchString.split(/[{}\s]/)[1];
-                         if (this.matchVarType &&
-                             !"GLOBAL".startsWith(this.matchVarType) &&
-                             !"LOCAL".startsWith(this.matchVarType) &&
-                             !"CLOUD".startsWith(this.matchVarType)) {
-                           this.matchVarName = this.matchVarName || this.matchVarType;
-                           this.matchVarType = null;
-                         }
-                         this.matchVarName = this.matchVarName && this.matchVarName.toLowerCase();
+  if (!window.toggleBaseDiff) {
+    window.toggleBaseDiff = function(source) {
+      var link = $j(source),
+          form = link.parents("form"),
+          containers = form.find(".ciAttributes .diff-container");
+      link.html(containers.is(":visible") ? "Show" : "Hide");
+      containers.toggle();
+      containers = form.find(".ciAttributes .diff-container:not(.calculated)");
+      setTimeout(function() {
+        containers.prettyTextDiff({cleanup: true});
+        containers.find(".diff").show();
+        containers.addClass('calculated');
+      }, 100);
+    };
 
-                         if (this.matchString.length == 0) {
-                           return [];
-                         }
-                         else if (oneopsVariableCache) {
-                           return oneopsVariableCache;
-                         }
-                         else {
+    var oneopsVariableCache = {};
+    window.variableTypeahead = function(target) {
+      var container = $j(target).closest("div.ciAttributes");
+      var lookupUrl = container.attr("data-oneops-variable-lookup");
+      if (!lookupUrl) {
+        return;
+      }
+
+      container.find("input[type=text], textarea")
+          .typeahead({
+                       items: 30,
+                       minLength: 3,
+                       source: function (query, process) {
+                         var containerId = container[0].id;
+                         var element = this.$element;
+                         var stringAtCursor = element.val().substr(0, element.prop("selectionStart"));
+                         var match = stringAtCursor.match(/\$OO[^}]*}?$/);
+                         if (match) {
+                           element.attr('autocomplete', 'off');
+                           this.matchString = match[0];
+                           this.matchVarType = this.matchString.substr(4).split('{')[0].toUpperCase();
+                           this.matchVarName = this.matchString.split(/[{}\s]/)[1];
+                           if (this.matchVarType &&
+                               !"GLOBAL".startsWith(this.matchVarType) &&
+                               !"LOCAL".startsWith(this.matchVarType) &&
+                               !"CLOUD".startsWith(this.matchVarType)) {
+                             this.matchVarName = this.matchVarName || this.matchVarType;
+                             this.matchVarType = null;
+                           }
+                           this.matchVarName = this.matchVarName && this.matchVarName.toLowerCase();
+
+                           if (this.matchString.length == 0) {
+                             return [];
+                           }
+
+                           var varCache = oneopsVariableCache[containerId];
+                           if (varCache) {
+                             return varCache;
+                           }
+
                            var oneopsVarTypeaheadFn = function(name, type, value) {
                              this.name  = name;
                              this.type  = type;
@@ -333,84 +339,96 @@
                              return this.name + "|" + this.type;
                            };
 
-                           oneopsVariableCache = [];
-                           $j.get('<%= variables_lookup_path(var_lookup_params) %>',
+                           oneopsVariableCache[containerId] = varCache = [];
+                           $j.get(lookupUrl,
                                   {},
                                   function (data) {
                                     for (var scope in data) {
-                                      oneopsVariableCache = data[scope].reduce(function (a, v) {
+                                      varCache = data[scope].reduce(function (a, v) {
                                         a.push(new oneopsVarTypeaheadFn(v.name, v.type, v.value));
                                         return a;
-                                      }, oneopsVariableCache);
+                                      }, varCache);
                                     }
-                                    return process(oneopsVariableCache);
+                                    return process(varCache);
                                   });
                            return ['loading...'];
                          }
-                       }
-                       else {
-                         this.matchString = this.matchVarName = null;
-                         return [];
-                       }
-                     },
-                     matcher: function (item) {
-                       return item == 'loading...' ||
-                              ((!this.matchVarType || item.type.startsWith(this.matchVarType)) &&
-                               (!this.matchVarName || item.name.toLowerCase().indexOf(this.matchVarName) >= 0));
-                     },
-                     sorter: function(items) {
-                       var matchString = this.matchVarName;
-                       return items.sort(function(a, b) {
-                         return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : a.type.localeCompare(b.type)) || a.name.localeCompare(b.name);
-                       });
-                     },
-                     updater: function (item) {
-                       if (item == 'loading...') {
-                         return null;
-                       }
-                       var element = this.$element;
-                       var val = element.val();
+                         else {
+                           this.matchString = this.matchVarName = null;
+                           return [];
+                         }
+                       },
+                       matcher: function (item) {
+                         return item == 'loading...' ||
+                                ((!this.matchVarType || item.type.startsWith(this.matchVarType)) &&
+                                 (!this.matchVarName || item.name.toLowerCase().indexOf(this.matchVarName) >= 0));
+                       },
+                       sorter: function(items) {
+                         var matchString = this.matchVarName;
+                         return items.sort(function(a, b) {
+                           return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : a.type.localeCompare(b.type)) || a.name.localeCompare(b.name);
+                         });
+                       },
+                       updater: function (item) {
+                         if (item == 'loading...') {
+                           return null;
+                         }
+                         var element = this.$element;
+                         var val = element.val();
 
-                       var split = item.split("|");
-                       var replacement = "$OO_" + split[1] + "{" + split[0] + "}";
+                         var split = item.split("|");
+                         var replacement = "$OO_" + split[1] + "{" + split[0] + "}";
 
-                       var cursorAt = element.prop("selectionStart");
-                       var matchStartAt = val.substr(0, cursorAt).lastIndexOf(this.matchString);
+                         var cursorAt = element.prop("selectionStart");
+                         var matchStartAt = val.substr(0, cursorAt).lastIndexOf(this.matchString);
 
-                       var putCursorAt = matchStartAt + replacement.length;
-                       setTimeout(function () {
-                         element[0].setSelectionRange(putCursorAt, putCursorAt);
-                       }, 10);
+                         var putCursorAt = matchStartAt + replacement.length;
+                         setTimeout(function () {
+                           element[0].setSelectionRange(putCursorAt, putCursorAt);
+                         }, 10);
 
-                       var tail = val.substr(cursorAt);
-                       var leftover = tail.match(/^[^}\s]*}?/);
-                       if (leftover) {
-                         tail = tail.substr(leftover[0].length);
+                         var tail = val.substr(cursorAt);
+                         var leftover = tail.match(/^[^}\s]*}?/);
+                         if (leftover) {
+                           tail = tail.substr(leftover[0].length);
+                         }
+                         return val.substr(0, matchStartAt) + replacement + tail;
+                       },
+                       highlighter: function (item) {
+                         if (item == 'loading...') {
+                           return item;
+                         }
+                         else {
+                           return item.type + ": " + item.name + (item.value ? (" <small>(" + item.value.truncate(15) + ")</small>") : "");
+                         }
                        }
-                       return val.substr(0, matchStartAt) + replacement + tail;
-                     },
-                     highlighter: function (item) {
-                       if (item == 'loading...') {
-                         return item;
-                       }
-                       else {
-                         return item.type + ": " + item.name + (item.value ? (" <small>(" + item.value.truncate(15) + ")</small>") : "");
-                       }
-                     }
-                   });
+                     });
 
-  $j("#<%= dom_id %> .tx-editor .tx-toolbar")
-      .prepend('<a class="tx-btn insert-var hide" title="insert variable"><i class="fa fa-code"></i></a>')
-      .find(".insert-var")
-      .click(function (e) {
-               var textarea = $j(e.target).parents(".tx-editor").find("textarea");
-               var val = textarea.val();
-               var cursorAt = textarea.prop("selectionStart");
-               textarea.val(val.substr(0, cursorAt) + "$OO_" + val.substr(cursorAt));
-               textarea[0].setSelectionRange(cursorAt + 4, cursorAt + 4);
-               setTimeout(function () {
-                 textarea.typeahead("lookup").focus();
-               }, 100);
-             });
+      container.find(".tx-editor .tx-toolbar")
+          .prepend('<a class="tx-btn insert-var hide" title="insert variable"><i class="fa fa-code"></i></a>')
+          .find(".insert-var")
+          .click(function (e) {
+                   var textarea = $j(e.target).parents(".tx-editor").find("textarea");
+                   var val = textarea.val();
+                   var cursorAt = textarea.prop("selectionStart");
+                   textarea.val(val.substr(0, cursorAt) + "$OO_" + val.substr(cursorAt));
+                   textarea[0].setSelectionRange(cursorAt + 4, cursorAt + 4);
+                   setTimeout(function () {
+                     textarea.typeahead("lookup").focus();
+                   }, 100);
+                 });
+    }
+  }
+
+  <% var_lookup_params = {}
+     var_lookup_params[:assembly_id]    = @assembly.ciId    if @assembly && @assembly.persisted?
+     var_lookup_params[:environment_id] = @environment.ciId if @environment && @environment.persisted?
+     var_lookup_params[:platform_id]    = @platform.ciId    if @platform && @platform.persisted? && (@component || @attachment) %>
+  <% if var_lookup_params.present? %>
+  (function() {
+    var ciAttrDiv = $j("#<%= dom_id %>");
+    ciAttrDiv.attr("data-oneops-variable-lookup", "<%= variables_lookup_path(var_lookup_params) %>");
+    variableTypeahead(ciAttrDiv);
+  })();
   <% end %>
 </script>

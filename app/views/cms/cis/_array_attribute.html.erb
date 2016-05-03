@@ -27,7 +27,9 @@
           row_id   = "" + new Date().getTime();
       table.find("tbody").append(new_html.replace(new RegExp("new_array_attribute_row", "g"), row_id));
       table.parents("form").attr('data-dirty', 'true');
-      $j(row_id).focus();
+      var row = table.find("tbody tr:last-child");
+      row.find(".entry").focus();
+      variableTypeahead(row);
     };
 
     window.delete_array_attribute_row = function(row) {
