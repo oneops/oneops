@@ -38,7 +38,9 @@
           row_id   = "" + new Date().getTime();
       table.find("tbody").append(new_html.replace(new RegExp("new_hash_attribute_row", "g"), row_id));
       table.parents("form").attr('data-dirty', 'true');
-      $j(row_id + "_key").focus();
+      var row = table.find("tbody tr:last-child");
+      row.find(".hash_key").focus();
+      variableTypeahead(row);
     };
 
     window.delete_hash_attribute_row = function(row) {

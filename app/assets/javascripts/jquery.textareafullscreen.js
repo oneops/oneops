@@ -75,8 +75,8 @@
         }
 
         content = '<div class="tx-editor-wrapper"><div class="tx-editor"><div class="tx-toolbar">' +
-          '<a class="tx-btn"><i class="fa fa-files-o"></i></a>' +
-          '<a class="tx-btn"><i class="fa fa-expand"></i></a>' +
+          '<a class="tx-btn" title="copy value to clipboard"><i class="fa fa-files-o"></i></a>' +
+          '<a class="tx-btn" title="expand/collapse"><i class="fa fa-expand"></i></a>' +
           '</div></div></div>';
         this.$wrapper = $(content).insertAfter(this.$el);
         this.$wrapper.css('width', this.$el.css('width'));
