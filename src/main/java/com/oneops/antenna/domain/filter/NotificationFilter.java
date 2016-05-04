@@ -71,16 +71,26 @@ public class NotificationFilter implements MessageFilter {
      */
     private String selectorPattern;
 
+    /**
+     * Env Profiles to be used for message filtering based on type of env the notification is coming from
+     */
+    private String envProfilePattern;
+    
 
     @Override
     public boolean accept(NotificationMessage msg) {
+    	String envProfile = msg.getEnvironmentProfileName();
         // Filter ALL (ie, filtering == none) or that specific event type
         if (NotificationType.none == this.eventType || msg.getType() == this.eventType) {
             // Filter ALL (ie, filtering == none) or >= specific event severity
             if (msg.getSeverity().getLevel() >= this.eventSeverity.getLevel()) {
                 if (hasValidNSPath(msg.getNsPath())) {
-                    // ToDo - add cloud and selector pattern check once it is finalized.
-                    return true;
+                	if (envProfile == null || envProfile.trim().equals("")
+                			|| envProfilePattern == null
+                			|| envProfile.matches(envProfilePattern.trim())) {
+                        // ToDo - add cloud and selector pattern check once it is finalized.
+                        return true;                		
+                	}
                 }
             }
         }
@@ -135,11 +145,18 @@ public class NotificationFilter implements MessageFilter {
                 if (attr != null) {
                     pattern = attr.getDjValue();
                 }
+                //Env profile
+                attr = sink.getAttribute("env_profile");
+                String envProfilePattern = null;
+                if (attr != null) {
+                    envProfilePattern = attr.getDjValue();
+                }
                 NotificationFilter filter = new NotificationFilter().eventType(eventType)
                         .eventSeverity(eventSeverity)
                         .clouds(clouds)
                         .nsPaths(nsPaths)
-                        .selectorPattern(pattern);
+                        .selectorPattern(pattern)
+                        .envProfilePattern(envProfilePattern);
                 logger.info("Notification filter : " + filter);
                 return filter;
             }
@@ -148,7 +165,12 @@ public class NotificationFilter implements MessageFilter {
     }
 
 
-    /**
+    private NotificationFilter envProfilePattern(String envProfilePattern) {
+    	this.envProfilePattern = envProfilePattern;
+    	return this;
+    }
+
+	/**
      * Checks whether the message nspath is a valid one for filtering.
      *
      * @param nsPath notification message nspath
@@ -222,6 +244,7 @@ public class NotificationFilter implements MessageFilter {
         sb.append(", clouds=").append(Arrays.toString(clouds));
         sb.append(", nsPaths=").append(Arrays.toString(nsPaths));
         sb.append(", selectorPattern='").append(selectorPattern).append('\'');
+        sb.append(", envProfilePattern='").append(envProfilePattern).append('\'');
         sb.append('}');
         return sb.toString();
     }
