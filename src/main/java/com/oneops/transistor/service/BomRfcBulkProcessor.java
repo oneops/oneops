@@ -70,6 +70,8 @@ public class BomRfcBulkProcessor {
     private static final String BOM_REALIZED_RELATION_NAME = "base.RealizedAs";
     private static final String BOM_DEPENDS_ON_RELATION_NAME = "bom.DependsOn";
     private static final String BOM_MANAGED_VIA_RELATION_NAME = "bom.ManagedVia";
+    private static final int MAX_RECUSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "50"));
+    private static final int MAX_NUM_OF_EDGES = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxEdges", "100000")); 
     
 	private CmsCmProcessor cmProcessor;
 	private CmsMdProcessor mdProcessor;
@@ -148,7 +150,7 @@ public class BomRfcBulkProcessor {
 				boms.add(newBom);	
 				mfstId2nodeId.put(String.valueOf(newBom.manifestCiId) + "-" + 1, new ArrayList<String>(Arrays.asList(newBom.nodeId)));
 				
-				boms.addAll(processNode(newBom, namesMap, bindingRel, mfstId2nodeId, manifestDependsOnRels, 1, usePercent));
+				boms.addAll(processNode(newBom, namesMap, bindingRel, mfstId2nodeId, manifestDependsOnRels, 1, usePercent, 1));
 				startingPoint = getStartingPoint(mfstPlatComponents, boms);
 			}
 			// this is needed to work around ibatis 
@@ -445,7 +447,7 @@ public class BomRfcBulkProcessor {
 		Map<String, BomLink> links = new HashMap<String, BomLink>(); 
 		for (BomRfc bom :boms) {
 			if (bom.fromLinks.size()==0) {
-				processOrder(bom, bomMap, startExecOrder);
+				processOrder(bom, bomMap, startExecOrder, 1);
 			} else {
 				for (BomLink link : bom.fromLinks) {
 					links.put(link.fromNodeId + "@" + link.toNodeId, link);
@@ -1106,13 +1108,21 @@ public class BomRfcBulkProcessor {
 		}
 	}
 	*/
-	private void processOrder(BomRfc bom, Map<String, BomRfc> bomMap, int order) {
+	private void processOrder(BomRfc bom, Map<String, BomRfc> bomMap, int order, int recursionDepth) {
 
+		if (recursionDepth >= MAX_RECUSION_DEPTH) {
+			String err = "Circular dependency detected, (level - " + recursionDepth + "),\n please check the platform diagram for " + extractPlatformNameFromNsPath(bom.mfstCi.getNsPath());
+			logger.error(err);
+			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_TRAVERSE, err);
+		}
+
+		
+		
 		bom.execOrder = (order > bom.execOrder) ? order : bom.execOrder;
 		order += 1;
 		for (BomLink link : bom.toLinks) {
 			BomRfc parentBom = bomMap.get(link.fromNodeId);
-			processOrder(parentBom, bomMap, order);
+			processOrder(parentBom, bomMap, order, recursionDepth + 1);
 		}
 	}
 	
@@ -1326,8 +1336,24 @@ public class BomRfcBulkProcessor {
 		return map;
 	}
 
-	private List<BomRfc> processNode(BomRfc node, Map<String, Integer> namesMap, CmsCIRelation binding, Map<String, List<String>> mfstIdEdge2nodeId, Map<Long,Map<String,List<CmsCIRelation>>> manifestDependsOnRels, int edgeNum, boolean usePercent){
+	private List<BomRfc> processNode(BomRfc node, Map<String, Integer> namesMap, CmsCIRelation binding, Map<String, List<String>> mfstIdEdge2nodeId, Map<Long,Map<String,List<CmsCIRelation>>> manifestDependsOnRels, int edgeNum, boolean usePercent, int recursionDepth){
+		
+		if (recursionDepth >= MAX_RECUSION_DEPTH) {
+			String err = "Circular dependency detected, (level - " + recursionDepth + "),\n please check the platform diagram for " + extractPlatformNameFromNsPath(node.mfstCi.getNsPath());
+			logger.error(err);
+			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_TRAVERSE, err);
+		}
 
+		if (edgeNum >= MAX_NUM_OF_EDGES) {
+			String err = "Max number of edges is reached - " + edgeNum + "\n please check the platform diagram for " + extractPlatformNameFromNsPath(node.mfstCi.getNsPath());
+			logger.error(err);
+			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_TRAVERSE, err);
+		}
+
+		
+		
+		logger.info("working on " + node.ciName + "; recursion depth - " + recursionDepth);
+		
 		List<BomRfc> newBoms = new ArrayList<BomRfc>();
 
 		if (node.isProcessed) {
@@ -1346,8 +1372,6 @@ public class BomRfcBulkProcessor {
 		
 		mfstFromRels = manifestDependsOnRels.get(node.manifestCiId).get("from");
 		mfstToRels = manifestDependsOnRels.get(node.manifestCiId).get("to");;
-		
-		logger.info("working on " + node.ciName);
 		
 		//logger.info("got " + mfstFromRels.size() + " 'from' relations");
 		//logger.info("got " + mfstToRels.size() + " 'to' relations");
@@ -1393,7 +1417,7 @@ public class BomRfcBulkProcessor {
 					key = String.valueOf(newBom.manifestCiId)+ "-" + newEdgeNum;
 					if (!mfstIdEdge2nodeId.containsKey(key)) mfstIdEdge2nodeId.put(key, new ArrayList<String>());
 					mfstIdEdge2nodeId.get(key).add(newBom.nodeId);
-					newBoms.addAll(processNode(newBom, namesMap, binding, mfstIdEdge2nodeId, manifestDependsOnRels, newEdgeNum, usePercent));
+					newBoms.addAll(processNode(newBom, namesMap, binding, mfstIdEdge2nodeId, manifestDependsOnRels, newEdgeNum, usePercent, recursionDepth + 1));
 				}
 			} else {
 				for (String toNodeId : mfstIdEdge2nodeId.get(key)) {
@@ -1427,7 +1451,7 @@ public class BomRfcBulkProcessor {
 					newBom.fromLinks.add(link);
 					newBoms.add(newBom);
 					mfstIdEdge2nodeId.get(String.valueOf(newBom.manifestCiId)+ "-" + edgeNum).add(newBom.nodeId);
-					newBoms.addAll(processNode(newBom, namesMap, binding, mfstIdEdge2nodeId, manifestDependsOnRels, edgeNum, usePercent));
+					newBoms.addAll(processNode(newBom, namesMap, binding, mfstIdEdge2nodeId, manifestDependsOnRels, edgeNum, usePercent, recursionDepth + 1));
 				}
 			} else {
 				for (String fromNodeId : mfstIdEdge2nodeId.get(key)) {
@@ -1560,6 +1584,11 @@ public class BomRfcBulkProcessor {
 		} else if (existingRel != null){
 			rfc.setCiRelationId(existingRel.getCiRelationId());
 		}
+	}
+	
+	private String extractPlatformNameFromNsPath(String ns) {
+		String[] nsParts = ns.split("/");
+		return nsParts[nsParts.length-2] + "(" + nsParts[nsParts.length-1] + ")"; 
 	}
 	
 	private class BomRfc  {
