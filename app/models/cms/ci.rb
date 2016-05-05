@@ -277,7 +277,7 @@ class Cms::Ci < Cms::Base
   end
 
   def check_pattern(pattern, value)
-    pattern.is_a?(Array) ? pattern.include?(value) : value =~ /#{pattern}/
+    pattern.is_a?(Array) ? (pattern.any? {|e| value == (e.is_a?(Array) ? e.last : e)}) : value =~ /#{pattern}/
   end
 
   def pattern_desc(pattern)
