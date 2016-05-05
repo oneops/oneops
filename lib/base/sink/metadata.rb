@@ -201,6 +201,15 @@ attribute 'severity_level',
                   ['All', 'none']]}
           }
 
+attribute 'env_profile',
+          :description => 'Environment Profile Pattern',
+	  :default => '',
+          :format => {
+              :help => 'Send notifications only for matching environment profile regex. Ex: Prod|prod|stage. Leave empty to send for all environment profiles',
+              :category => '3.Filtering',
+              :order => 4
+          }
+
 attribute 'ns_paths',
           :description => 'NS Paths',
           :data_type => 'Array',
@@ -209,7 +218,7 @@ attribute 'ns_paths',
               :help => 'NS paths to be used for message filtering',
               :filter => {'all' => {'visible' => 'filter_enabled:eq:true'}},
               :category => '3.Filtering',
-              :order => 4
+              :order => 5
           }
 
 attribute 'monitoring_clouds',
@@ -220,7 +229,7 @@ attribute 'monitoring_clouds',
               :help => 'OneOps clouds to be used for message filtering',
               :filter => {'all' => {'visible' => 'filter_enabled:eq:true'}},
               :category => '3.Filtering',
-              :order => 5
+              :order => 6
           }
 
 attribute 'msg_selector_regex',
@@ -230,7 +239,7 @@ attribute 'msg_selector_regex',
               :help => 'Selector regex to filter messages. * to select all the messages.',
               :filter => {'all' => {'visible' => 'filter_enabled:eq:true'}},
               :category => '3.Filtering',
-              :order => 6
+              :order => 7
           }
 
 # Message Transformation
