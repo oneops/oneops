@@ -339,7 +339,7 @@ class Inductor < Thor
       if status_result.to_i > 0
         say_status("start","#{long_cloud} logstash_agent already running",:green)
       else
-        cmd = "exec nohup #{Inductor.logstash_forwarder} -config=#{conf_file} >#{log_file} 2>&1 &"
+        cmd = "exec nohup #{Inductor.logstash_forwarder} -config=#{conf_file} -spool-size 20 >#{log_file} 2>&1 &"
         inside(long_path) do
           run("#{cmd}", :verbose => options[:verbose])
         end
