@@ -428,14 +428,15 @@ public class CmRestController extends AbstractRestController {
 	@ResponseBody
 	public String delteCISimple(
 			@PathVariable long ciId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {	
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) {	
 
 		if (scope != null) {
 			CmsCI ci = cmManager.getCiById(ciId);
 			scopeVerifier.verifyScope(scope, ci);
 		}
 		
-		cmManager.deleteCI(ciId);
+		cmManager.deleteCI(ciId, userId);
 		return "{\"deleted\"}";
 	}
 	
