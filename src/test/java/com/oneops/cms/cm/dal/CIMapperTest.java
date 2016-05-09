@@ -228,13 +228,13 @@ public class CIMapperTest {
     @Test
 	public void deleteCITest() throws Exception{
         int ciStateId = 200;
-		ciMapper.deleteCI(ciId, false);
+		ciMapper.deleteCI(ciId, false, "TestUser");
 
         CmsCI ci = ciMapper.getCIById(ciId);
 		Assert.assertNotNull("Deleted CI is null", ci);
         Assert.assertEquals(ci.getCiStateId(), ciStateId);
 
-        ciMapper.deleteCI(ciId, true);
+        ciMapper.deleteCI(ciId, true, "TestUser");
         ci = ciMapper.getCIById(ciId);
 		Assert.assertNull("Deleted CI is not null", ci);
 	}

@@ -19,6 +19,8 @@ package com.oneops.cms.ns.dal;
 
 import java.util.List;
 
+import org.apache.ibatis.annotations.Param;
+
 import com.oneops.cms.ns.domain.CmsNamespace;
 
 
@@ -33,6 +35,6 @@ public interface NSMapper {
 	CmsNamespace getNamespaceById(long nsId);
 	void deleteNamespace(String nsPath);
 	void lockNamespace(String nsPath);
-	void vacuumNamespace(long nsId);
+	void vacuumNamespace(@Param("nsId") long nsId, @Param("userId") String userId);
 
 }

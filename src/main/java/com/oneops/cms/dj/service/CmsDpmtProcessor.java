@@ -463,24 +463,24 @@ public class CmsDpmtProcessor {
 				}
 			}
 			if (vacuumAllowed) {
-				nsMapper.vacuumNamespace(plat.getNsId());
+				nsMapper.vacuumNamespace(plat.getNsId(), dpmt.getCreatedBy());
 			}
 		}
 		
-		deleteGlobalVars(manifestRelease.getNsPath());
+		deleteGlobalVars(manifestRelease.getNsPath(), dpmt.getCreatedBy());
 	}
 	
 	/**
 	 * Delete global variables in pending_delete state
 	 * 
 	 */
-	private void deleteGlobalVars(String envNsPath) {
+	private void deleteGlobalVars(String envNsPath, String userId) {
 		List <CmsCI> toDelComponents = cmProcessor.getCiByNsLikeByStateNaked(envNsPath + "/", null, "pending_deletion");
 		//if no components are marked for deletion then delete the global variables in pending_deletion state
 		if(toDelComponents.isEmpty()){
 			//delete global vars in pending_delete state
 			for (CmsCI globalVar : cmProcessor.getCiByNsLikeByStateNaked(envNsPath, "manifest.Globalvar", "pending_deletion")) {
-				cmProcessor.deleteCI(globalVar.getCiId(), true);
+				cmProcessor.deleteCI(globalVar.getCiId(), true, userId);
 			}
 		}
 	}
@@ -505,6 +505,7 @@ public class CmsDpmtProcessor {
 	public void completeWorkOrder(CmsWorkOrder wo) {
 		dpmtMapper.updDpmtRecordState(wo);
 		if (!wo.getRfcCi().getRfcAction().equalsIgnoreCase("delete")  &&  wo.getResultCi() != null) {
+			wo.getResultCi().setUpdatedBy(wo.getRfcCi().getCreatedBy() + ":controller");
 			cmProcessor.updateCI(wo.getResultCi());
 		}
 		//return dpmtMapper.getDeploymentRecord(wo.getDpmtRecordId());

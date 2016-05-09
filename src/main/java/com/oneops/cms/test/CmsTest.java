@@ -311,7 +311,7 @@ public class CmsTest {
 	@SuppressWarnings("unused")
 	private static void testDeleteCi() throws SQLException {
 
-		cmMan.deleteCI(1040);
+		cmMan.deleteCI(1040, "TestUser");
 
 		System.out.println("Deleted");
 	}
