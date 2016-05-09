@@ -99,8 +99,8 @@ BEGIN
     insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
     values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 100);
 
-    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old)
-    values (nextval('log_pk_seq'), now(), 100, p_ci_id, p_ci_name, p_class_id, l_class_name, p_comments, p_state_id, p_state_id);
+    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old, created_by)
+    values (nextval('log_pk_seq'), now(), 100, p_ci_id, p_ci_name, p_class_id, l_class_name, p_comments, p_state_id, p_state_id, p_created_by);
 
 END;
 $BODY$
@@ -129,14 +129,14 @@ ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, chara
 
 -- DROP FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer, bigint);
 
-CREATE OR REPLACE FUNCTION cm_create_relation(p_ci_relation_id bigint, p_ns_id bigint, p_from_ci_id bigint, p_relation_id integer, p_to_ci_id bigint, p_rel_goid character varying, p_comments character varying, p_state_id integer, P_last_rfc_id bigint)
+CREATE OR REPLACE FUNCTION cm_create_relation(p_ci_relation_id bigint, p_ns_id bigint, p_from_ci_id bigint, p_relation_id integer, p_to_ci_id bigint, p_rel_goid character varying, p_comments character varying, p_state_id integer, p_last_rfc_id bigint)
   RETURNS void AS
 $BODY$
 BEGIN
 
     begin 		
 		insert into cm_ci_relations (ci_relation_id, ns_id, from_ci_id, relation_goid, relation_id, to_ci_id, ci_state_id, comments, last_applied_rfc_id)
-		values (p_ci_relation_id, p_ns_id, p_from_ci_id, p_rel_goid, p_relation_id, p_to_ci_id, p_state_id, p_comments, P_last_rfc_id);
+		values (p_ci_relation_id, p_ns_id, p_from_ci_id, p_rel_goid, p_relation_id, p_to_ci_id, p_state_id, p_comments, p_last_rfc_id);
     
 		insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
     	values (nextval('event_pk_seq'), p_ci_relation_id, 'cm_ci_rel' , 200);
@@ -153,15 +153,11 @@ $BODY$
   COST 100;
 ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer, bigint) OWNER TO kloopzcm;
 
--- Function: cm_delete_ci(bigint, boolean)
+-- Function: (bigint, boolean)
 
 -- DROP FUNCTION cm_delete_ci(bigint, boolean);
 
--- Function: cm_delete_ci(bigint, boolean)
-
--- DROP FUNCTION cm_delete_ci(bigint, boolean);
-
-CREATE OR REPLACE FUNCTION cm_delete_ci(p_ci_id bigint, p_delete4real boolean)
+CREATE OR REPLACE FUNCTION cm_delete_ci(p_ci_id bigint, p_delete4real boolean, p_deleted_by character varying)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -171,12 +167,13 @@ DECLARE
     l_class_id integer;
     l_class_name character varying;
     l_comments character varying;
+    l_created_by character varying;
     l_state_id integer;
     l_flags integer;
 BEGIN
 
-    select into l_ci_name, l_is_namespace, l_this_ns_path, l_class_id, l_class_name, l_comments, l_state_id, l_flags   
-		ci.ci_name, cl.is_namespace, ns.ns_path, cl.class_id, cl.class_name, ci.comments, ci.ci_state_id, cl.flags  
+    select into l_ci_name, l_is_namespace, l_this_ns_path, l_class_id, l_class_name, l_comments, l_state_id, l_flags, l_created_by   
+		ci.ci_name, cl.is_namespace, ns.ns_path, cl.class_id, cl.class_name, ci.comments, ci.ci_state_id, cl.flags, ci.created_by  
     from cm_ci ci, md_classes cl, ns_namespaces ns
     where ci.ci_id = p_ci_id
       and ci.class_id = cl.class_id
@@ -204,8 +201,8 @@ BEGIN
 	    	insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
 		    values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 300);
 		
-		    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old)
-		    values (nextval('log_pk_seq'), now(), 300, p_ci_id, l_ci_name, l_class_id, l_class_name, l_comments, l_state_id, l_state_id);
+		    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old, created_by, updated_by)
+		    values (nextval('log_pk_seq'), now(), 300, p_ci_id, l_ci_name, l_class_id, l_class_name, l_comments, l_state_id, l_state_id, l_created_by, p_deleted_by);
 		
 		    delete from cm_ci where ci_id = p_ci_id; 
 	    else
@@ -220,7 +217,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_delete_ci(bigint, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION cm_delete_ci(bigint, boolean, character varying) OWNER TO kloopzcm;
 
 -- Function: cm_delete_relation(bigint, boolean)
 
@@ -318,8 +315,8 @@ BEGIN
     insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
     values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 200);
 
-    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old)
-    values (nextval('log_pk_seq'), now(), 200, p_ci_id, coalesce(p_ci_name, l_ci_name), l_class_id, l_class_name, coalesce(p_comments, l_comments), l_state_id, coalesce(p_state_id, l_state_id));
+    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old, updated_by)
+    values (nextval('log_pk_seq'), now(), 200, p_ci_id, coalesce(p_ci_name, l_ci_name), l_class_id, l_class_name, coalesce(p_comments, l_comments), l_state_id, coalesce(p_state_id, l_state_id), p_updated_by);
     
 END;
 $BODY$
@@ -445,7 +442,7 @@ ALTER FUNCTION cm_update_rel_attribute(bigint, text, text, character varying, ch
 
 -- DROP FUNCTION cm_vac_ns(bigint);
 
-CREATE OR REPLACE FUNCTION cm_vac_ns(p_ns_id bigint)
+CREATE OR REPLACE FUNCTION cm_vac_ns(p_ns_id bigint, p_user character varying)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -461,7 +458,7 @@ BEGIN
 	and ci_state_id = 200
 	order by ci_id
     loop
-	perform cm_delete_ci(l_cm_ci.ci_id, true);	
+	perform cm_delete_ci(l_cm_ci.ci_id, true, p_user);	
     end loop;
 
     for l_cm_rel in 
@@ -479,7 +476,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_vac_ns(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION cm_vac_ns(bigint, character varying) OWNER TO kloopzcm;
 
 -- Function: dj_cancel_deployment(bigint, character varying, character varying, character varying)
 
@@ -684,7 +681,7 @@ BEGIN
 	end if;
 
 	if l_action = 'delete' then
-	   perform cm_delete_ci(l_rfc_ci.ci_id, p_delete4real);	
+	   perform cm_delete_ci(l_rfc_ci.ci_id, p_delete4real, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));	
 	end if;
 
     end loop;
@@ -1100,7 +1097,7 @@ BEGIN
 	
 	if l_action = 'add' then
 	   if l_ci_exists = 0 then
-	      perform cm_create_ci(l_rfc_ci.ci_id, l_rfc_ci.ns_id, l_rfc_ci.class_id, l_rfc_ci.ci_goid, l_rfc_ci.ci_name, l_rfc_ci.comments, l_new_ci_state_id, l_rfc_ci.rfc_id, coalesce(l_dpmt.updated_by, l_dpmt.created_by));	
+	      perform cm_create_ci(l_rfc_ci.ci_id, l_rfc_ci.ns_id, l_rfc_ci.class_id, l_rfc_ci.ci_goid, l_rfc_ci.ci_name, l_rfc_ci.comments, l_new_ci_state_id, l_rfc_ci.rfc_id, l_dpmt.created_by);	
 
 	      for l_rfc_ci_attr in 
 			SELECT *
@@ -1121,12 +1118,12 @@ BEGIN
 	   if l_ci_exists > 0 then
 
 	      if l_action = 'replace' then
-		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, 100, coalesce(l_dpmt.updated_by, l_dpmt.created_by));	
+		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, 100, l_dpmt.created_by);	
 		update cm_ci
 		set created = now(), created_by = coalesce(l_dpmt.created_by, created_by)
 		where ci_id = l_rfc_ci.ci_id;
 	      else		
-		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, coalesce(l_dpmt.updated_by, l_dpmt.created_by));	
+		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, l_dpmt.created_by);	
 	      end if;
 	      
 	      for l_rfc_ci_attr in 
@@ -1155,7 +1152,7 @@ BEGIN
 	end if;
 
 	if l_action = 'delete' then
-	   perform cm_delete_ci(l_rfc_ci.ci_id, true);	
+	   perform cm_delete_ci(l_rfc_ci.ci_id, true, l_dpmt.created_by);	
 
 	   if p_dpmt_id is not null then
 		select into l_dpmt_complete_id state_id
