@@ -145,7 +145,7 @@
         <property name="opsEventDao" ref="opsEventDao"/>
         <property name="coProcessor" ref="coProcessor"/>
         <property name="opsEventPub" ref="opsEventPub"/>
-        <property name="orphanEventEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:false}"/>
+        <property name="orphanEventEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:true}"/>
         <!--property name="opsCiStateDao" ref="opsCiStateDao"/-->
     </bean>
 
@@ -215,7 +215,7 @@
         <property name="opsEventDao" ref="opsEventDao"/>
         <property name="initialDelay" value="${ORPHAN_HANDLER_INIT_DELAY:15}"/>
         <property name="delay" value="${ORPHAN_HANDLER_DELAY:10}"/>
-        <property name="orphanHandlerEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:false}"/>
+        <property name="orphanHandlerEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:true}"/>
     </bean>
 
 </beans>
