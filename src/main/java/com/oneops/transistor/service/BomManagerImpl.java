@@ -134,7 +134,7 @@ public class BomManagerImpl implements BomManager {
 		//if release id is 0 check if there is global var in pending_deletion state. If yes delete it.
 		if(relelaseId == 0){
 			for (CmsCI localVar : cmProcessor.getCiByNsLikeByStateNaked(manifestNs, "manifest.Globalvar", "pending_deletion")) {
-				cmProcessor.deleteCI(localVar.getCiId(), true);
+				cmProcessor.deleteCI(localVar.getCiId(), true, userId);
 			}
 			//if there is nothing to deploy update parent relese on latest closed bom relese
 			getPopulateParentAndGetReleaseId(bomNsPath, manifestNs, "closed");
@@ -419,7 +419,7 @@ public class BomManagerImpl implements BomManager {
 		}
 		//same thing need to happened for monitors
 		for (CmsCI monitor : cmProcessor.getCiByNsLikeByStateNaked(manifestNsPath, "manifest.Monitor", "pending_deletion")) {
-			cmProcessor.deleteCI(monitor.getCiId(), true);
+			cmProcessor.deleteCI(monitor.getCiId(), true, userId);
 		}
 		
 		//if we have new manifest release - discard open bom release

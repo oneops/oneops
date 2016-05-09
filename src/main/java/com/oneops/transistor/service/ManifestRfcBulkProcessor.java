@@ -1169,7 +1169,7 @@ public class ManifestRfcBulkProcessor {
 		//remove deleted attachements
 		for (Long deleteAttachCiId : existingAttachments) {
 			//need to remove ci here since there is no mob objects for attachement
-			cmProcessor.deleteCI(deleteAttachCiId, true);
+			cmProcessor.deleteCI(deleteAttachCiId, true, userId);
 			//and now remove the rfc if any
 			cmRfcMrgProcessor.requestCiDelete(deleteAttachCiId, userId);
 		}
