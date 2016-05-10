@@ -801,7 +801,7 @@ public class BomRfcBulkProcessor {
 			} else {
 				//if no boms lets see if we have some in other cloud
 				if (cmProcessor.getCountFromCIRelationsByNS(bom.mfstCi.getCiId(),  "base.RealizedAs", null, null, nsPath, false) == 0) {
-					cmProcessor.deleteCI(bom.mfstCi.getCiId(), true);
+					cmProcessor.deleteCI(bom.mfstCi.getCiId(), true, userId);
 				}
 			}
 		} else {
@@ -1058,9 +1058,9 @@ public class BomRfcBulkProcessor {
 			if (platformCi.getCiState().equalsIgnoreCase("pending_deletion") && numOfBoms==0) {
 				//if no bom exists - delete the manifest platform for real
 				for (CmsCIRelation mfstPlatComponentRel : mfstPlatComponents) {
-					cmProcessor.deleteCI(mfstPlatComponentRel.getToCiId(), true);
+					cmProcessor.deleteCI(mfstPlatComponentRel.getToCiId(), true, userId);
 				}
-				cmProcessor.deleteCI(platformCi.getCiId(), true);
+				cmProcessor.deleteCI(platformCi.getCiId(), true, userId);
 				trUtil.deleteNs(platNsPath);
 			}
 			
