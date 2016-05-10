@@ -131,9 +131,6 @@ class LookupController < ApplicationController
                                                                      :direction         => 'to',
                                                                      :relationShortName => 'ValueFor',
                                                                      :targetClassName   => 'manifest.Localvar'})) if platform_id.present?
-          result[:cloud] = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
-                                                   :ciClassName => 'account.Cloudvar',
-                                                   :recursive   => true}).map(&:ciName).uniq.map { |v| {:name => v, :type => 'CLOUD'} }
         else
           result[:global] = var_list('GLOBAL',
                                      Cms::DjRelation.all(:params => {:ciId              => assembly.ciId,
@@ -146,6 +143,9 @@ class LookupController < ApplicationController
                                                                      :relationShortName => 'ValueFor',
                                                                      :targetClassName   => 'catalog.Localvar'})) if platform_id.present?
         end
+        result[:cloud] = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
+                                                 :ciClassName => 'account.Cloudvar',
+                                                 :recursive   => true}).map(&:ciName).uniq.map {|v| {:name => v, :type => 'CLOUD'}}
       end
     end
 
