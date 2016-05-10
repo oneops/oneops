@@ -1,4 +1,4 @@
-CREATE SEQUENCE kloopzcm.md_pk_seq
+﻿CREATE SEQUENCE kloopzcm.md_pk_seq
    INCREMENT 1
    START 1000;
 ALTER TABLE kloopzcm.md_pk_seq OWNER TO kloopzcm;
@@ -46,6 +46,19 @@ ALTER TABLE kloopzcm.md_class_attributes ADD COLUMN is_immutable BOOLEAN DEFAULT
 ALTER TABLE kloopzcm.md_class_actions ADD COLUMN arguments TEXT;
 
 ALTER TABLE kloopzcm.md_classes ADD COLUMN flags INTEGER DEFAULT 0 NOT NULL;
+
+ALTER TABLE kloopzcm.cm_ci_log ADD COLUMN created_by character varying(200);
+ALTER TABLE kloopzcm.cm_ci_log ADD COLUMN updated_by character varying(200);
+
+ALTER TABLE kloopzcm.cm_ci_attribute_log ADD COLUMN created_by character varying(200);
+ALTER TABLE kloopzcm.cm_ci_attribute_log ADD COLUMN updated_by character varying(200);
+
+ALTER TABLE kloopzcm.cm_ci_relation_log ADD COLUMN created_by character varying(200);
+ALTER TABLE kloopzcm.cm_ci_relation_log ADD COLUMN updated_by character varying(200);
+
+ALTER TABLE kloopzcm.cm_ci_relation_attr_log ADD COLUMN created_by character varying(200);
+ALTER TABLE kloopzcm.cm_ci_relation_attr_log ADD COLUMN updated_by character varying(200);
+
 
 ALTER TABLE dj_rfc_ci DROP CONSTRAINT dj_rfc_rid_fk;
 
