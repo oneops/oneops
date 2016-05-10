@@ -1,0 +1,16 @@
+<%= section_panel 'Policies', :width => 'single', :position => 'left' do %>
+  <%= ci_list(@policies,
+              :toolbar => {:sort_by   => [%w(Name ciName), %w(Created created), ['Execution Mode', 'mode']],
+                           :filter_by => %w(ciName mode),
+                           :list_name => 'pack_policy'}) do |builder, target| %>
+    <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" mode="#{target.ciAttributes.mode}") %>
+    <% builder.target link_to('', organization_policy_path(:id => target), :remote => true) %>
+    <% builder.icon :none %>
+    <% builder.top do %>
+      <span class="topname"><%= target.ciName %></span>
+      <span class="topdesc"><%= target.ciAttributes.mode %></span>
+    <% end %>
+    <% builder.middle target.ciAttributes.description if target.ciAttributes.description.present? %>
+  <% end %>
+<% end %>
+<div id="policy_details"></div>

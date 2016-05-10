@@ -1,5 +1,11 @@
 class Cms::Ci < Cms::Base
-  VALID_CI_NAME_REGEXP =
+  class NotFoundException < Exception
+    attr_accessor :locateId, :nsPath, :ciType
+
+    def initialize(id, ns_path = nil, ci_type = nil)
+      super("Could not locate #{ci_type || 'CI'} with id/name '#{id}'#{" in namespace '#{ns_path}'" if ns_path.present?}.")
+    end
+  end
 
   self.prefix      = "#{Settings.cms_path_prefix}/cm/simple/"
   self.primary_key = :ciId
@@ -30,7 +36,8 @@ class Cms::Ci < Cms::Base
     self.new(attrs)
   end
 
-  def self.locate(qualifier, ns_path, class_name = nil, params = {})
+  def self.locate(qualifier, ns_path, class_name = nil, params = {}, &block)
+    ci = nil
     if qualifier =~ /\D/
       # Must be a ciName, look it up by ciName and class name within namespace.
       find_params = {:nsPath => ns_path, :ciName => qualifier}
@@ -40,10 +47,28 @@ class Cms::Ci < Cms::Base
       headers['X-Cms-Scope'] = ns_path
       result = all(:params => find_params)
       headers['X-Cms-Scope'] = old_scope
-      result.size > 1 ? result : result.first
+      ci = result.size > 1 ? (block_given? && yield(result)) : result.first
     else
       # All digits, must be a ciId, look it up by ID.
-      find(qualifier, :params => params)
+      begin
+        ci = find(qualifier, :params => params)
+      rescue Exception => e
+        if e.is_a?(ActiveResource::BadRequest)
+          begin
+            error_code = JSON.parse(e.response.body)['errorCode']
+          rescue Exception => e2
+            raise e
+          end
+          raise NotFoundException.new(qualifier, ns_path, class_name) if error_code == 1006
+        end
+        raise e
+      end
+    end
+
+    if ci && (class_name.blank? || (class_name.include?('.') ? ci.ciClassName == class_name : ci.ciClassName.end_with?(class_name)))
+      return ci
+    else
+      raise NotFoundException.new(qualifier, ns_path, class_name)
     end
   end
 
@@ -277,7 +302,7 @@ class Cms::Ci < Cms::Base
   end
 
   def check_pattern(pattern, value)
-    pattern.is_a?(Array) ? pattern.include?(value) : value =~ /#{pattern}/
+    pattern.is_a?(Array) ? (pattern.any? {|e| value == (e.is_a?(Array) ? e.last : e)}) : value =~ /#{pattern}/
   end
 
   def pattern_desc(pattern)

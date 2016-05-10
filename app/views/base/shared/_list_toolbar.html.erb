@@ -35,7 +35,9 @@
   <% end %>
   <% if filter_by %>
     <div class="filter">
-      <%= count_marker '', 'list-count-marker' unless pagination %>
+      <% unless pagination %>
+        <small><span class="badge badge-info list-count-marker">8</span></small>
+      <% end %>
       <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-medium search-query', :placeholder => 'type to filter...', (pagination ? :onchnage : :onkeyup) => "filter_changed(this, false)") %>
       <i class="fa fa-times-circle" onclick="filter_changed(this, true)"></i>
     </div>
@@ -55,7 +57,7 @@
         indicator.find("span").html(" " + label);
         var listDiv = indicator.closest(".list-toolbar").parent();
         if (!listDiv.hasClass('list-paginated')) {
-          sort_list(listDiv.find(".list-body > ul")[0], attr, false);
+          sort_list(listDiv.find(".list-body > ul")[0], current_attr ? [attr, current_attr] : [attr], false);
         }
       }
 
@@ -82,7 +84,7 @@
         var toolbar = button.closest(".list-toolbar");
         var listDiv = toolbar.parent();
         if (!listDiv.hasClass('list-paginated')) {
-          sort_list(listDiv.find(".list-body ul")[0], icon.closest(".sort-indicator").attr("sort-by"), desc);
+          sort_list(listDiv.find(".list-body ul")[0], [icon.closest(".sort-indicator").attr("sort-by")], desc);
         }
         if (localStorage) {
           localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + toolbar.attr("list-name") + "_list_sort_desc", desc);

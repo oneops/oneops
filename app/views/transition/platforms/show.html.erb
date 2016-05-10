@@ -8,7 +8,8 @@
 <%= page_title :page_icon     => platform_image_url(@platform),
                :page_kind     => "#{@platform.ciAttributes.pack.capitalize} Platform",
                :page_label    => breadcrumb_platform_label,
-               :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => 'transition', :class => 'doc-link'),
+               :doc_link      => platform_pack_link(@platform) +
+                                 platform_doc_link(@platform, icon('book'), :anchor => 'transition'),
                :page_sublabel => "created by #{@platform.createdBy}" %>
 
 <%= page_info "#{@platform.ciName}.#{@environment.ciAttributes.subdomain}" %>

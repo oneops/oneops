@@ -1,24 +1,27 @@
 module ApplicationHelper
-  SITE_ICONS = {:organization     => 'sitemap',
-                :home             => 'home',
-                :dashboard        => 'dashboard',
-                :service          => 'cog',
-                :catalog          => 'tags',
-                :cloud            => 'cloud',
-                :assembly         => 'cogs',
-                :settings         => 'sliders',
-                :user             => 'user',
-                :manages_access   => 'key',
-                :org_scope        => 'sitemap',
-                :design           => 'puzzle-piece',
-                :transition       => 'play-circle-o',
-                :operations       => 'signal',
-                :cloud_services   => 'cog',
-                :cloud_compliance => 'briefcase',
-                :cloud_support    => 'medkit',
-                :cost             => 'money',
-                :export           => 'download',
-                :import           => 'upload'}
+  SITE_ICONS = {:organization           => 'sitemap',
+                :home                   => 'home',
+                :dashboard              => 'dashboard',
+                :service                => 'cog',
+                :catalog                => 'tags',
+                :pack                   => 'archive',
+                :cloud                  => 'cloud',
+                :assembly               => 'cogs',
+                :settings               => 'sliders',
+                :user                   => 'user',
+                :manages_access         => 'key',
+                :org_scope              => 'sitemap',
+                :design                 => 'puzzle-piece',
+                :transition             => 'play-circle-o',
+                :operations             => 'signal',
+                :single_availability    => 'cube',
+                :redundant_availability => 'cubes',
+                :cloud_services         => 'cog',
+                :cloud_compliance       => 'briefcase',
+                :cloud_support          => 'medkit',
+                :cost                   => 'money',
+                :export                 => 'download',
+                :import                 => 'upload'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -79,7 +82,7 @@ module ApplicationHelper
     organization_title
     menu_items = []
     menu_items << {:label => 'services', :icon => site_icon(:service), :link => services_path} if current_user.organization.services
-    menu_items << {:label => 'catalogs', :icon => site_icon(:catalog), :link => catalogs_path} if current_user.organization.catalogs
+    menu_items << {:label => 'catalogs', :icon => site_icon(:catalog), :link => catalog_path} if current_user.organization.catalogs
 
     if current_user.organization.assemblies
       menu_items << {:label => 'clouds', :icon => site_icon(:cloud), :link => clouds_path}
@@ -92,7 +95,56 @@ module ApplicationHelper
       selected_item = menu_items.detect { |i| i[:label] == selected}
       selected_item[:selected] = true if selected_item
     end
+
+    if @design
+      ci = @component || @platform
+      begin
+        catalog_design_nav(@design, ci)
+      rescue Exception => e
+        Rails.logger.warn "Failed to generate context nav: #{e}.\nDesign: #{@design.inspect}\nCI: #{ci.inspect if ci}"
+      end
+    elsif @platform
+      begin
+        catalog_pack_nav(@platform, @component)
+      rescue Exception => e
+        Rails.logger.warn "Failed to generate context nav: #{e}.\nPack: #{@platform.inspect}\nCI: #{@component.inspect if @component}"
+      end
+    end
+
     app_nav(menu_items)
+  end
+
+  def catalog_design_nav(design, ci)
+      nav = %(<li class="title">#{link_to(icon(site_icon(:design), "&nbsp;#{context_nav_name_label(design.ciName)}"), catalog_design_path(design))}</li>)
+      if ci
+        unless ci.ciClassName.end_with?('.Platform')
+          nav << '<li class="divider small"></li>'
+          nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{context_nav_name_label(@platform.ciName)} platform"), catalog_design_platform_path(@design, @platform))}</li>)
+          # more_link = link_to(icon('', 'more...'),
+          #                     counterparts_lookup_path(:ci => ci.attributes.slice(:ciId, :nsPath, :ciClassName, :ciName)),
+          #                     :remote => true)
+          # nav << %(<li class='indent minor more'>#{more_link}</li>)
+        end
+      end
+
+      content_for(:context_nav, raw(nav))
+  end
+
+  def catalog_pack_nav(platform, component)
+    scope = platform.ciClassName.end_with?('catalog.Platform') ?  'design' : platform.nsPath.split('/').last
+    nav = %(<li class="title">#{link_to(icon(site_icon(:pack), "&nbsp;#{context_nav_name_label(platform.ciName)} #{content_tag(:sub, icon(site_icon("#{scope}_availability"), scope))}"), catalog_pack_platform_path(:platform_id => platform))}</li>)
+    if scope == 'design'
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:single_availability), "#{context_nav_name_label('single')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'single'))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:redundant_availability), "#{context_nav_name_label('redundant')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'redundant'))}</li>)
+    elsif scope == 'single'
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:design), "#{context_nav_name_label('design')}"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => nil))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:redundant_availability), "#{context_nav_name_label('redundant')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'redundant'))}</li>)
+    elsif scope == 'redundant'
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:design), "#{context_nav_name_label('design')}"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => nil))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:single_availability), "#{context_nav_name_label('single')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'single'))}</li>)
+    end
+
+    content_for(:context_nav, raw(nav))
   end
 
   def assembly_title(assembly)
@@ -101,6 +153,7 @@ module ApplicationHelper
     content << content_tag(:div, link_to('assemblies', assemblies_path).html_safe, :class => 'title_text')
     content << content_tag(:div, ' / ', :class => 'title_text')
     content << content_tag(:div, link_to(assembly.ciName, assembly_path(assembly)).html_safe, :class => 'title_text')
+
     content_for(:title) { content.html_safe }
     content_for(:title_clean) {  "#{assembly.ciName} - #{current_user.organization.name} | OneOps" }
   end
@@ -139,45 +192,45 @@ module ApplicationHelper
     begin
       assembly_nav(assembly, ci, dto_links, selected)
     rescue Exception => e
-      Rails.logger.warn "Failed to generate assembly nav: #{e}.\nAssembly: #{assembly.inspect}\nCI: #{ci.inspect if ci}"
+      Rails.logger.warn "Failed to generate context nav: #{e}.\nAssembly: #{assembly.inspect}\nCI: #{ci.inspect if ci}"
     end
   end
 
   def assembly_nav(assembly, ci, dto_links, current_dto)
-    assembly_nav = %(<li class="title">#{link_to(icon(site_icon(:assembly), "&nbsp;#{assembly_nav_name_label(assembly.ciName)}"), assembly_path(assembly))}</li>)
-    assembly_nav << %(<li class="divider small"></li>)
+    nav = %(<li class="title">#{link_to(icon(site_icon(:assembly), "&nbsp;#{context_nav_name_label(assembly.ciName)}"), assembly_path(assembly))}</li>)
+    nav << %(<li class="divider small"></li>)
     if ci
       ci_class_name = ci.ciClassName
       dto_links.each do |l|
         no_more = false
         dto_area = l[:label]
-        assembly_nav << %(<li class="major #{'highlight' if dto_area == current_dto}">#{link_to(icon(site_icon(dto_area), dto_area), l[:url])}</li>)
+        nav << %(<li class="major #{'highlight' if dto_area == current_dto}">#{link_to(icon(site_icon(dto_area), dto_area), l[:url])}</li>)
         if ci_class_name == 'manifest.Environment'
           if dto_area == 'design'
             no_more = true
           elsif dto_area != current_dto
-            assembly_nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_name_label(ci.ciName)} environment"), path_to_ci(ci, dto_area))}</li>)
+            nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{context_nav_name_label(ci.ciName)} environment"), path_to_ci(ci, dto_area))}</li>)
           end
         elsif ci_class_name.end_with?('.Platform')
           unless current_dto == 'design'
             if dto_area == 'design'
-              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-left', "#{assembly_nav_name_label(ci.ciName)} platform"), path_to_ci(ci, dto_area))}</li>)
+              nav << %(<li class="indent">#{link_to(icon('arrow-circle-left', "#{context_nav_name_label(ci.ciName)} platform"), path_to_ci(ci, dto_area))}</li>)
             else
-              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
-              assembly_nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_platform_label(ci)} platform"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
+              nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{context_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
+              nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_platform_label(ci)} platform"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
             end
           end
         else
           if current_dto == 'design'
-            assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform && dto_area == 'design'
+            nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{context_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform && dto_area == 'design'
           else
             if dto_area == 'design'
-              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
-              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-left', "#{assembly_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>)
+              nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{context_nav_name_label(@platform.ciName)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
+              nav << %(<li class="indent">#{link_to(icon('arrow-circle-left', "#{context_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>)
             else
-              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
-              assembly_nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_platform_label(@platform)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
-              assembly_nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{assembly_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
+              nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{context_nav_name_label(@environment.ciName)} environment"), path_to_ci(@environment, dto_area))}</li>) if @environment
+              nav << %(<li class="indent">#{link_to(icon('arrow-circle-up', "#{assembly_nav_platform_label(@platform)} platform"), path_to_ci(@platform, dto_area))}</li>) if @platform
+              nav << %(<li class="indent">#{link_to(icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}", "#{context_nav_name_label(ci.ciName)} component"), path_to_ci(ci, dto_area))}</li>) unless dto_area == current_dto
             end
           end
         end
@@ -185,24 +238,24 @@ module ApplicationHelper
           more_link = link_to(icon('', 'more...'),
                               counterparts_lookup_path(:ci => ci.attributes.slice(:ciId, :nsPath, :ciClassName, :ciName), :dto_area => current_dto),
                               :remote => true)
-          assembly_nav << %(<li class='indent minor #{dto_area} more'>#{more_link}</li>)
+          nav << %(<li class='indent minor #{dto_area} more'>#{more_link}</li>)
         end
       end
     else
       dto_links.each do |l|
         dto_area = l[:label]
-        assembly_nav << %(<li class="#{'highlight' if dto_area == current_dto}">#{link_to(icon(site_icon(dto_area), dto_area), l[:url])}</li>)
+        nav << %(<li class="#{'highlight' if dto_area == current_dto}">#{link_to(icon(site_icon(dto_area), dto_area), l[:url])}</li>)
       end
     end
 
-    content_for(:assembly_nav, raw(assembly_nav))
+    content_for(:context_nav, raw(nav))
   end
 
   def assembly_nav_platform_label(platform)
-    "#{assembly_nav_name_label(platform.ciName)} <small class=\"muted\">ver. #{platform.ciAttributes.major_version}</small>"
+    "#{context_nav_name_label(platform.ciName)} <small class=\"muted\">ver. #{platform.ciAttributes.major_version}</small>"
   end
 
-  def assembly_nav_name_label(name)
+  def context_nav_name_label(name)
     "<span class='name'>#{name}</span>"
   end
 
@@ -278,15 +331,14 @@ module ApplicationHelper
   end
 
   def error_messages_for(model)
-    html = ''
-    if model.errors.any?
-      html << '<div class="alert alert-danger error-messages">Please correct the following errors:'
-      html << '<ul>'
-      model.errors.full_messages.each {|m| html << "<li>#{html_escape(m)}</li>"}
-      html << '</ul>'
-      html << '</div>'
-      html << '<script>$j(".error-messages")[0].scrollIntoView(false)</script>'
-    end
+    errors = model.errors
+    html = %(<div class="alert alert-danger error-messages #{'hide' if errors.blank?}">)
+    html << 'Please correct the following errors:'
+    html << '<ul>'
+    errors.full_messages.each {|m| html << "<li>#{html_escape(m)}</li>"}
+    html << '</ul>'
+    html << '</div>'
+    html << '<script>$j(".error-messages")[0].scrollIntoView(false)</script>' if errors.present?
     raw(html)
   end
 
@@ -318,7 +370,7 @@ module ApplicationHelper
 
   def ci_list(ci_collection, options = {}, &block)
     options[:toolbar] = nil if ci_collection.blank?
-    options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:sort_by => [%w(Id ciId), %w(Name ciName), %w(Created created)], :filter_by => %w(ciName)}})
+    options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:sort_by => [%w(Name ciName), %w(Created created)], :filter_by => %w(ciName ciId)}})
     render(:partial => 'base/shared/list', :locals => {:list_content => ListItemBuilder.build_list_item_content(ci_collection, self, options, &block), :options => options})
   end
 
@@ -677,7 +729,7 @@ module ApplicationHelper
   end
 
   def count_marker(count, label_class = '', options = {})
-    content_tag(:span, count, options.merge(:class => "label label-count #{label_class}"))
+    content_tag(:span, count, options.merge(:class => "label label-text #{label_class}"))
   end
 
   def status_marker(name, value, label_class = '', options = {})
@@ -844,8 +896,8 @@ module ApplicationHelper
         else
           url = edit_assembly_design_platform_component_path(@assembly, @platform, ci.id)
         end
-      elsif @catalog
-        url = edit_catalog_platform_component_path(@catalog, @platform, ci.id)
+      elsif @design
+        url = edit_catalog_design_platform_component_path(@design, @platform, ci.id)
       end
       img = "<img scale='both' src='#{ci_image_url(ci)}>"
       label = "<<table border='0' cellspacing='2' fixedsize='true' width='180' height='48'>"
@@ -898,8 +950,8 @@ module ApplicationHelper
     send_data(graph.output(:svg => String), :type => 'image/svg+xml', :disposition => 'inline')
   end
 
-  def breadcrumb_marker(count, label_class = '', options = {})
-    content_tag(:span, count, options.merge(:class => "label label-breadcrumb #{label_class}"))
+  def breadcrumb_marker(text, label_class = '', options = {})
+    content_tag(:span, text, options.merge(:class => "label label-breadcrumb #{label_class}"))
   end
 
   def breadcrumb_environment_label(env = @environment)
@@ -1170,6 +1222,19 @@ module ApplicationHelper
     link_to(raw(label),
             "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
-            :class  => opts[:class] || '')
+            :class  => 'doc-link',
+            :title  => 'go to documentation')
+  end
+
+  def platform_pack_link(platform, label = icon(site_icon(:pack)))
+    ci_attrs     = platform.ciAttributes
+    source       = ci_attrs.source
+    pack_name    = ci_attrs.pack
+    version      = ci_attrs.version
+    availability = ci_attrs.attributes[:availability]
+    link_to(raw(label),
+            catalog_pack_platform_path(source, pack_name, version, availability, pack_name),
+            :class => 'doc-link',
+            :title => 'go to pack page')
   end
 end

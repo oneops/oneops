@@ -29,9 +29,7 @@
   <div class="content">
     <div class="top">
       <%= image_tag(builder[:icon], :class => 'icon') if builder[:icon] %>
-      <% if builder[:top] %>
-        <span class="topname"><%= builder[:top] %></span>
-      <% end %>
+      <%= builder[:top] %>
     </div>
     <% if builder[:middle] %>
       <div class="middle"><%= builder[:middle] %></div>

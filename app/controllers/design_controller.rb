@@ -11,7 +11,7 @@ class DesignController < ApplicationController
                                                     :targetClassName => 'catalog.Platform',
                                                     :relationName    => 'base.ComposedOf'})
         @platforms = platforms.map(&:toCi)
-        @diagram = prepare_platforms_diagram(platforms)
+        @diagram = prepare_platforms_diagram(platforms) if @platforms.present?
 
         render :action => :show
       end

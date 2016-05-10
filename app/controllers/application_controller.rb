@@ -8,10 +8,10 @@ class ApplicationController < ActionController::Base
     before_filter :cors_headers, :except => [:cors_options]
   end
 
-
   rescue_from DeviseLdapAuthenticatable::LdapException do |exception|
     render :text => exception, :status => 500
   end
+
   protect_from_forgery
 
   before_action :configure_permitted_parameters, :if => :devise_controller?
@@ -28,26 +28,18 @@ class ApplicationController < ActionController::Base
   class UnauthorizedException < Exception
   end
 
-  class CiNotFoundException < Exception
-    attr_accessor :locateId, :nsPath, :ciType
-
-    def initialize(id, ns_path = nil, ci_type = nil)
-      super("Could not locate #{ci_type || 'CI'} with id/name '#{id}'#{" in namespace '#{ns_path}'" if ns_path.present?}.")
-    end
-  end
-
-
   rescue_from(Exception, :with => :handle_generic_exception)
   rescue_from(UnauthorizedException, :with => :handle_unauthorized)
-  rescue_from(CiNotFoundException, :with => :handle_ci_not_found)
+  rescue_from(Cms::Ci::NotFoundException, :with => :handle_ci_not_found)
 
-  helper_method :in_design?, :in_transition?, :in_operations?, :packs_info, :is_admin?,
-                :manages_access?, :manages_access_for_cloud?, :manages_access_for_assembly?,
+  helper_method :in_catalog?, :in_design?, :in_transition?, :in_operations?,
+                :is_admin?, :manages_access?, :manages_access_for_cloud?, :manages_access_for_assembly?,
                 :has_org_scope?, :dto_allowed?, :locate_assemblies,
                 :has_design?, :has_transition?, :has_operations?,
                 :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
-                :ci_image_url, :ci_class_image_url, :platform_image_url, :graphvis_sub_ci_remote_images
+                :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
+                :graphvis_sub_ci_remote_images, :packs_info
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -175,16 +167,6 @@ class ApplicationController < ActionController::Base
                                                            :ci_class_name   => ci.ciClassName)
   end
 
-  def scope
-    if in_design? || in_catalog?
-      'catalog'
-    elsif in_transition?
-      'manifest'
-    elsif in_operations?
-      'operations'
-    end
-  end
-
   def search_ns_path
     organization_ns_path
   end
@@ -204,10 +186,6 @@ class ApplicationController < ActionController::Base
     "/#{org}"
   end
 
-  def catalogs_ns_path
-    '/public/packer/catalogs'
-  end
-
   def services_ns_path
     "#{organization_ns_path}/_services"
   end
@@ -224,16 +202,20 @@ class ApplicationController < ActionController::Base
     "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}"
   end
 
-  def private_catalogs_ns_path
+  def private_catalog_designs_ns_path
     "#{organization_ns_path}/_catalogs"
   end
 
-  def catalog_ns_path(catalog_ci)
-    "#{catalog_ci.nsPath}/#{catalog_ci.ciName}"
+  def catalog_designs_ns_path
+    '/public/packer/catalogs'
   end
 
-  def catalog_platform_ns_path(catalog_ci, platform_ci)
-    "#{catalog_ns_path(catalog_ci)}/_design/#{platform_ci.ciName}"
+  def catalog_design_ns_path(design_ci)
+    "#{design_ci.nsPath}/#{design_ci.ciName}"
+  end
+
+  def catalog_design_platform_ns_path(design_ci, platform_ci)
+    "#{catalog_design_ns_path(design_ci)}/_design/#{platform_ci.ciName}"
   end
 
   def assembly_ns_path(assembly_ci)
@@ -252,18 +234,27 @@ class ApplicationController < ActionController::Base
     "#{environment_ns_path(environment_ci)}/bom"
   end
 
+  def pack_design_ns_path(source, pack, version)
+    "/public/#{source}/packs/#{pack}/#{version}"
+  end
+
   def platform_pack_design_ns_path(platform)
+    return platform.nsPath if platform.ciClassName.start_with?('mgmt.')
     platform_attr = platform.ciAttributes
-    return "/public/#{platform_attr.source}/packs/#{platform_attr.pack}/#{platform_attr.version}"
+    pack_design_ns_path(platform_attr.source,  platform_attr.pack, platform_attr.version)
   end
 
   def platform_pack_ns_path(platform)
-    in_design? ? platform_pack_design_ns_path(platform) : platform_pack_transition_ns_path(platform)
+    platform.ciClassName.end_with?('catalog.Platform') ? platform_pack_design_ns_path(platform) : platform_pack_transition_ns_path(platform)
+  end
+
+  def pack_transition_ns_path(source, pack, version, availability)
+    "/public/#{source}/packs/#{pack}/#{version}/#{availability.downcase}"
   end
 
   def platform_pack_transition_ns_path(platform)
     platform_attr = platform.ciAttributes
-    return "/public/#{platform_attr.source}/packs/#{platform_attr.pack}/#{platform_attr.version}/#{platform.ciAttributes.availability.downcase}"
+    pack_transition_ns_path(platform_attr.source, platform_attr.pack, platform_attr.version, platform.ciAttributes.availability.downcase)
   end
 
   def design_platform_ns_path(assembly_ci, platform_ci)
@@ -280,6 +271,11 @@ class ApplicationController < ActionController::Base
 
   def token_ns_path(token_ci)
     "#{token_ci.nsPath}/#{token_ci.ciName}"
+  end
+
+  def locate_catalog_design(design_id)
+    Cms::Ci.locate(design_id, catalog_designs_ns_path, 'account.Design') ||
+      Cms::Ci.locate(design_id, private_catalog_designs_ns_path, 'account.Design')
   end
 
   def locate_cloud(id)
@@ -306,7 +302,6 @@ class ApplicationController < ActionController::Base
 
   def locate_assembly(id)
     assembly = Cms::Ci.locate(id, organization_ns_path, 'account.Assembly')
-    raise CiNotFoundException.new(id, organization_ns_path, 'account.Assembly') unless assembly && assembly.ciClassName == 'account.Assembly'
 
     if read_only_request?
       unless is_admin? || has_org_scope? ||
@@ -331,35 +326,42 @@ class ApplicationController < ActionController::Base
   end
 
   def locate_environment(id, assembly)
-    ns_path = assembly_ns_path(assembly)
-    ci_class_name = 'manifest.Environment'
-    env = Cms::Ci.locate(id, ns_path, ci_class_name)
-    raise CiNotFoundException.new(id, ns_path, ci_class_name) unless env && env.ciClassName == ci_class_name
-    return env
+    Cms::Ci.locate(id, assembly_ns_path(assembly), 'manifest.Environment')
   end
 
-  def locate_catalog_platform(qualifier, assembly, opts = {})
-    ns_path = assembly_ns_path(assembly)
-    ci_class_name = 'catalog.Platform'
-    platform = Cms::DjCi.locate(qualifier, ns_path, ci_class_name, opts)
-    raise CiNotFoundException.new(qualifier, ns_path, ci_class_name) unless platform && platform.ciClassName == ci_class_name
-    return platform
+  def locate_catalog_design_platform(qualifier, design, opts = {})
+    Cms::Ci.locate(qualifier, catalog_design_ns_path(design), 'catalog.Platform', opts)
+  end
+
+  def locate_pack_platform(qualifier, source, pack, version, availability = nil, opts = {})
+    if availability.blank?
+      Cms::Ci.locate(qualifier, pack_design_ns_path(source, pack, version), 'mgmt.catalog.Platform', opts)
+    else
+      Cms::Ci.locate(qualifier, pack_transition_ns_path(source, pack, version, availability), 'mgmt.manifest.Platform', opts)
+    end
+  end
+
+  def locate_design_platform(qualifier, assembly, opts = {})
+    Cms::DjCi.locate(qualifier, assembly_ns_path(assembly), 'catalog.Platform', opts)
   end
 
   def locate_manifest_platform(qualifier, environment, opts = {})
     dj    = opts.delete(:dj)
     dj    = true if dj.nil?
     clazz = dj ? Cms::DjCi : Cms::Ci
-    result = nil
     if qualifier =~ /\D/
       ci_name, version = qualifier.split('!')
       if version.present?
-        result = clazz.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}/#{version}", 'manifest.Platform', opts)
+        result = clazz.locate(ci_name,
+                              "#{environment_manifest_ns_path(environment)}/#{ci_name}/#{version}",
+                              'manifest.Platform',
+                              opts)
       else
-        result = clazz.locate(ci_name, "#{environment_manifest_ns_path(environment)}/#{ci_name}", 'manifest.Platform', opts.merge(:recursive => true))
-        result = result.find {|p| p.ciAttributes.is_active == 'true'} if result.is_a?(Array)
+        result = clazz.locate(ci_name,
+                              "#{environment_manifest_ns_path(environment)}/#{ci_name}",
+                              'manifest.Platform',
+                              opts.merge(:recursive => true)) {|a| a.find {|p| p.ciAttributes.is_active == 'true'}}
       end
-      raise CiNotFoundException.new(qualifier, environment_manifest_ns_path(environment), 'manifest.Platform') unless result && result.ciClassName == 'manifest.Platform'
     else
       # ciId
       result = clazz.locate(qualifier, nil, nil, opts)
@@ -368,10 +370,8 @@ class ApplicationController < ActionController::Base
   end
 
   def locate_ci_in_platform_ns(qualifier, platform, ci_class_name = nil, opts = {})
-    ns_path = in_design? ? "#{platform.nsPath}/_design/#{platform.ciName}" : platform.nsPath
+    ns_path = (in_design? || in_catalog?) ? "#{platform.nsPath}/_design/#{platform.ciName}" : platform.nsPath
     ci = Cms::DjCi.locate(qualifier, ns_path, ci_class_name, opts)
-    raise CiNotFoundException.new(qualifier, ns_path, ci_class_name) unless ci && (ci_class_name.blank? || ci.ciClassName == ci_class_name)
-
     ci.add_policy_locations(platform_pack_ns_path(platform))
     return ci
   end
@@ -742,6 +742,7 @@ class ApplicationController < ActionController::Base
   end
 
   def handle_ci_not_found(exception)
+    Rails.logger.warn "CI not found: #{exception.message}"
     respond_to do |format|
       format.html {redirect_to not_found_url}
       format.js {render :status => :not_found}
@@ -861,16 +862,16 @@ class ApplicationController < ActionController::Base
       end
     elsif class_name == 'account.Design'
       root, org, _catalog = ns_path.split('/')
-      return catalog_path(:org_name => org, :id => ci_id)
+      return catalog_design_path(:org_name => org, :id => ci_id)
     elsif class_name.start_with?('catalog.')
       if ns_path.include?('/_catalogs/')
-        root, org, _catalogs, catalog, _design, platform = ns_path.split('/')
+        root, org, _catalogs, design, _design, platform = ns_path.split('/')
         if platform.present?
-          return catalog_platform_path(:org_name => org, :catalog_id => catalog, :id => platform)
+          return catalog_design_platform_component_path(:org_name => org, :design_id => design, :platform_id => platform, :id => name)
         elsif class_name == 'catalog.Platform'
-          return catalog_platform_path(:org_name => org, :catalog_id => catalog, :id => name)
+          return catalog_design_platform_path(:org_name => org, :design_id => design, :id => name)
         else
-          return catalog_path(:org_name => org, :id => catalog)
+          return catalog_design_path(:org_name => org, :id => design)
         end
       else
         root, org, assembly, _design, platform = ns_path.split('/')
@@ -1028,11 +1029,11 @@ class ApplicationController < ActionController::Base
         return services_path(:org_name => org)
       end
     elsif ns_path.include?('/_catalogs')
-      root, org, _catalogs, catalog, _design, platform = ns_path.split('/')
+      root, org, _catalogs, design, _design, platform = ns_path.split('/')
       if platform.present?
-        return catalog_platform_path(:org_name => org, :catalog_id => catalog, :id => platform)
+        return catalog_design_platform_path(:org_name => org, :design_id => design, :id => platform)
       else
-        return catalogs_path(:org_name => org)
+        return catalog_design_path(:org_name => org, :design_id => design)
       end
     elsif ns_path.include?('/_design/')
       root, org, assembly, _design, platform = ns_path.split('/')
@@ -1112,6 +1113,7 @@ class ApplicationController < ActionController::Base
 
   def ci_class_image_url(ci_class_name)
     split = ci_class_name.split('.')
+    split = split[1..-1] if split.first == 'mgmt'
     "#{asset_url_prefix}#{split[1..-1].join('.')}/#{split.last}.png"
   end
 

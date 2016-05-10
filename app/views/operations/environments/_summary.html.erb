@@ -13,12 +13,14 @@
     <% enabled = relation.relationAttributes.enabled == 'true' %>
     <% active = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true %>
     <% builder.status do %>
+      <% availability = target.ciAttributes.availability %>
+      <div class="marker" title="<%= availability %> availability">
+        <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+      </div>
       <%= status_marker('version', "#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
       <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
       <%= marker('disabled', 'label-important') unless enabled %>
       <%= instance_marker(@platform_clouds, target) %>
-      <%= icon('star') %>
-      <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
     <% end %>
     <% builder.top do %>
       <span class="topname"><%= target.ciName %></span>

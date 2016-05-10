@@ -2,18 +2,42 @@ class Catalog::ComponentsController < Base::ComponentsController
   private
 
   def find_platform
-    @catalog  = Cms::Ci.locate(params[:catalog_id], catalogs_ns_path,         'account.Design') ||
-                Cms::Ci.locate(params[:catalog_id], private_catalogs_ns_path, 'account.Design')
-    @assembly = @catalog
-    @platform = Cms::Ci.locate(params[:platform_id], catalog_ns_path(@catalog), 'catalog.Platform')
+    design_id = params[:design_id]
+    if design_id
+      # Catalog design scope.
+      @design   = locate_catalog_design(design_id)
+      @platform = locate_design_platform(params[:platform_id], @design)
+    else
+      # Packs scope.
+      @platform = locate_pack_platform(params[:platform_id], params[:source], params[:pack], params[:version], params[:availability])
+
+      # TODO - this is to address the inconsistency with capitalization in the "pack" attribute of "mgmt.*.Platform"
+      @platform.ciAttributes.pack = @platform.ciName unless @platform.ciAttributes.pack == @platform.ciName
+    end
   end
 
   def find_component
-    @component = Cms::Ci.locate(params[:id], catalog_platform_ns_path(@catalog, @platform))
-    if @component.is_a?(Array)
-      class_name = params[:class_name]
-      @component = @component.find { |c| c.ciClassName.ends_with?(class_name) } if class_name.present?
+    if @design
+      # Catalog design scope.
+      @component = locate_ci_in_platform_ns(params[:id], @platform, params[:class_name])
+    else
+      # Packs scope.
+      @component = Cms::Ci.locate(params[:id], @platform.nsPath, params[:class_name])
+
+      @template = @component
+      @template_name = @component.ciName
+      @template.requires = Cms::Relation.first(:params => {:ciId              => @component.ciId,
+                                                           :direction         => 'to',
+                                                           :relationShortName => 'Requires'})
+      @requires = @template.requires
     end
-    @component = nil if @component && !@component.ciClassName.start_with?('catalog')
+  end
+
+  def requires_relation
+    if @design
+      @requires = Cms::Relation.first(:params => {:ciId              => @component.ciId,
+                                                  :direction         => 'to',
+                                                  :relationShortName => 'Requires'})
+    end
   end
 end

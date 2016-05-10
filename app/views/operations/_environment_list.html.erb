@@ -29,6 +29,10 @@
     <% end %>
   <% end %>
   <% builder.status do %>
+    <% availability = target.ciAttributes.availability %>
+    <div class="marker" title="<%= availability %> availability">
+      <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+    </div>
     <%= marker(profile, 'label-info') if profile.present? %>
     <% if disabled_platforms_count == 0 %>
       <%= status_marker('platforms', 'enabled', 'label-success') %>
@@ -50,8 +54,6 @@
     <%= target.ciAttributes.autorepair == 'true' ? status_marker('autorepair', 'enabled', 'label-success') : status_marker('autorepair', 'disabled') %>
     <%= target.ciAttributes.autoscale == 'true' ? status_marker('autoscale', 'enabled', 'label-success') : status_marker('autoscale', 'disabled') if target.ciAttributes.availability == 'redundant' %>
     <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
-	 	<%= icon('star') %>
-	 	<%= icon('star') if target.ciAttributes.availability == 'redundant' %>
   <% end %>
 <% end %>
 

@@ -1,0 +1,32 @@
+<%= section_panel 'Components', :width => 'single', :position => 'right' do %>
+  <%= grouped_ci_list(@component_groups) do |group_builder, group| %>
+    <% group_items = group[:items] %>
+    <% group_builder.icon ci_class_image_url(group[:class_name]) %>
+    <% group_builder.title group[:template_name] %>
+
+    <% group_builder.menu do %>
+      <% if group_items.present? %>
+        <span class="label label-count"><%= group_items.size %></span>
+      <% end %>
+    <% end %>
+
+    <%= group_builder.items(group_items) do |item_builder, ci| %>
+      <% item_builder.attributes raw(%(ciName="#{ci.ciName}")) %>
+      <% item_builder.target link_to('', @design ?
+                                           catalog_design_platform_component_path(@design, @platform, ci) :
+                                           catalog_pack_platform_component_path(:platform_id => @platform, :id => ci)) %>
+      <% item_builder.icon :none %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div id="page_nav_diagram">
+  <%= loading_indicator %>
+  <script>
+    <%= remote_function(:url    => @design ?
+                                     diagram_catalog_design_platform_path(@design, @platform, :size => '6,4') :
+                                     diagram_catalog_pack_platform_path(:id => @platform, :size => '6,4'),
+                        :method => :get) %>
+  </script>
+</div>
+

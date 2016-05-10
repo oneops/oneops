@@ -1,0 +1,20 @@
+<%= section_panel 'Platforms', :width => 'single', :position => 'right' do %>
+  <%= ci_list(@platforms) do |builder, target| %>
+    <% builder.target link_to('', catalog_design_platform_path(@design, target)) %>
+    <% builder.icon platform_image_url(target) %>
+    <% builder.top do %>
+      <%= target.ciName %>
+    <% end %>
+    <% builder.middle target.ciAttributes.description %>
+    <% builder.bottom do %>
+	   <%= "platform pack #{target.ciAttributes.pack} #{target.ciAttributes.version}" %>
+	 <% end %>
+  <% end %>
+<% end %>
+
+<%= section_panel 'Diagram',
+                  :width    => 'double',
+                  :position => 'left',
+                  :menu     => [link_to(icon('expand'), diagram_catalog_design_path(@design, :size => '11,8'), :target => "_blank", :class => 'btn btn-mini')] do %>
+  <%= content_tag(:object, '', :data => diagram_catalog_design_path(@design), :class => 'diagram') %>
+<% end %>

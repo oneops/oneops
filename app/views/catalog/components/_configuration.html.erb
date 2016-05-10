@@ -1,3 +1,39 @@
 <%= section_panel 'Configuration Attributes', :width => 'double' do %>
   <%= render 'base/shared/edit_form', :resource => @component, :content => 'base/components/component_details_content', :read_only => true %>
 <% end %>
+
+<% if @template.requires.relationAttributes.services.present? ||
+                                @requires.relationAttributes.attributes[:services].present? %>
+  <%= section_panel 'Cloud Services', :position => 'right', :width => 'single' do %>
+    <%= render 'base/shared/edit_form', {:resource => @component,
+                                         :content  => 'services_details'} %>
+  <% end %>
+<% end %>
+
+<% if @depends_on_relations.present? %>
+  <%= section_panel "#{@component.ciClassName.split('.').last} Depends On", :width => 'single', :position => 'right' do %>
+    <%= ci_list @depends_on_relations.map(&:toCi) do |builder, target| %>
+      <% builder.target link_to('', @design ?
+                                      catalog_design_platform_component_path(@design, @platform, target) :
+                                      catalog_pack_platform_component_path(:platform_id => @platform, :id => target)) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @dependents.present? %>
+  <%= section_panel "Depends On #{@component.ciClassName.split('.').last}", :width => 'single', :position => 'right' do %>
+    <%= ci_list @dependents do |builder, target| %>
+      <% builder.target link_to('', @design ?
+                                      catalog_design_platform_component_path(@design, @platform, target) :
+                                      catalog_pack_platform_component_path(:platform_id => @platform, :id => target)) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>

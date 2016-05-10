@@ -12,7 +12,10 @@ class Base::VariablesController < ApplicationController
   end
 
   def show
-    render_json_ci_response(@variable.present?, @variable)
+    respond_to do |format|
+      format.js
+      format.json { render_json_ci_response(@variable.present?, @variable)}
+    end
   end
 
   def edit

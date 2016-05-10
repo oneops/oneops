@@ -1,0 +1,7 @@
+<%= organization_page_header('catalogs') %>
+<%= page_title :page_kind => 'Catalogs', :page_label => nil %>
+<%= page_info 'Browse catalog of assembly designs and platform packs' %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:id => 'designs', :label => icon(site_icon(:design), 'designs'), :url => catalog_designs_path, :selected => true},
+                      {:id => 'packs', :label => icon(site_icon(:pack), 'packs'), :url => catalog_packs_path}] %>

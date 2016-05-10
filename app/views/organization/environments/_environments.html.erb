@@ -23,8 +23,10 @@
       <% end %>
     <% end %>
     <% builder.status do %>
-      <%= icon('star') %>
-      <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
+      <% availability = target.ciAttributes.availability %>
+      <div class="marker" title="<%= availability %> availability">
+        <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+      </div>
     <% end %>
     <% builder.menu do |ci| %>
       <%= link_to(icon('edit', ' Edit'), edit_organization_environment_path(ci), :remote => true) %>

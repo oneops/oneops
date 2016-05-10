@@ -1,14 +1,10 @@
 <%= organization_page_header('organization') %>
 <% if @policy %>
-  <%= breadcrumb [{:icon  => ci_class_image_url('account.Organization'),
-                   :label => current_user.organization.name,
-                   :kind  => 'Organization',
-                   :link  => edit_organization_path},
-                  {:label => 'policies',
+  <%= breadcrumb [{:label => 'policies',
                    :link  => edit_organization_path(:anchor => 'policies')},
                   {:icon  => ci_image_url(@policy),
                    :label => @policy.ciName,
-                   :kind  => 'Policy',
+                   :kind  => 'policy',
                    :link  => path_to_ci(@policy)}] %>
 <% else %>
   <%= breadcrumb [{:icon  => ci_class_image_url('account.Organization'),
@@ -16,6 +12,7 @@
                    :kind  => 'Organization',
                    :link  => edit_organization_path}] %>
 <% end %>
+
 <%= page_title :page_icon  => ci_image_url(@policy),
                :page_kind  => 'Policy Evaluation' %>
 

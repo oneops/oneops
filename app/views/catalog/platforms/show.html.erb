@@ -1,42 +1,39 @@
+<% tabs = [{:label => 'summary', :template => 'summary', :selected => true}]
+   if @design
+     page_title_opts = {:page_icon     => platform_image_url(@platform),
+                        :page_kind     => 'Platform',
+                        :page_label    => @platform.ciName,
+                        :doc_link      => platform_pack_link(@platform) +
+                                          platform_doc_link(@platform, icon('book'), :anchor => 'design'),
+                        :page_sublabel => @platform.ciAttributes.description}
+
+     crumbs = [{:label => icon(site_icon(:design), 'designs'), :link => catalog_path(:anchor => 'designs')}]
+     crumbs << {:label => @design.ciName, :kind => 'design', :link => catalog_design_path(@design)}
+
+     tabs << {:label => 'variables', :url => catalog_design_platform_variables_path(@design, @platform)}
+   else
+     if @platform.ciClassName.end_with?('catalog.Platform')
+       doc_anchor = 'design'
+       bc_label   = icon(site_icon('design'), 'design')
+     else
+       doc_anchor   = 'transition'
+       availability = params[:availability]
+       bc_label     = icon(availability == 'redundant' ? 'cubes' : 'cube', "#{availability} availability")
+     end
+     page_title_opts = {:page_icon     => platform_image_url(@platform),
+                        :page_kind     => 'Platform Pack',
+                        :page_label    => "#{@platform.ciName} #{content_tag(:sub, content_tag(:small, bc_label))}",
+                        :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => doc_anchor),
+                        :page_sublabel => @platform.ciAttributes.description}
+
+     crumbs = [{:label => icon(site_icon(:pack), 'packs'), :link => catalog_path(:anchor => 'packs')}]
+
+     tabs << {:label => 'variables', :url => catalog_pack_platform_variables_path(:platform_id => @platform.ciId)}
+     tabs << {:label => 'policies',  :url => catalog_pack_platform_policies_path(:platform_id => @platform.ciId)}
+   end %>
+
 <%= organization_page_header('catalogs') %>
+<%= breadcrumb crumbs %>
+<%= page_title page_title_opts %>
 
-<%= breadcrumb [{:label => 'catalogs', :link => catalogs_path},
-                {:label => @catalog.ciName, :kind => 'Catalog', :link => catalog_path(@catalog)}] %>
-
-<%= page_title :page_icon     => ci_image_url(@platform),
-               :page_kind     => 'Platform',
-               :page_label    => @platform.ciName,
-               :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => 'design', :class => 'doc-link'),
-               :page_sublabel => @platform.ciAttributes.description %>
-
-<%= page_info 'View platform configuration' %>
-
-<%= section_panel 'Components', :width => 'single', :position => 'right' do %>
-  <%= grouped_ci_list(@component_groups) do |group_builder, group| %>
-    <% group_items = group[:items] %>
-    <% group_builder.icon ci_class_image_url(group[:class_name]) %>
-    <% group_builder.title do %>
-      <%= group[:template_name] %>
-    <% end %>
-    <% group_builder.menu do %>
-      <% if group_items.present? %>
-        <span class="label label-count"><%= group_items.size %></span>
-      <% end %>
-
-    <% end %>
-
-    <%= group_builder.items(group_items) do |item_builder, ci| %>
-      <% item_builder.attributes raw(%(ciName="#{ci.ciName}")) %>
-      <% item_builder.target link_to('', edit_catalog_platform_component_path(@catalog, @platform, ci)) %>
-      <% item_builder.icon :none %>
-    <% end %>
-  <% end %>
-<% end %>
-
-<div id="page_nav_diagram">
-  <%= loading_indicator %>
-  <script>
-    <%= remote_function(:url => diagram_catalog_platform_path(@catalog, @platform, :size => '6,4'), :method => :get) %>
-  </script>
-</div>
-
+<%= render 'base/shared/page_nav_pages', :items => tabs %>

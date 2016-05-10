@@ -13,12 +13,14 @@
   <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}") %>
   <% builder.target link_to('', assembly_transition_environment_platform_path(@assembly, @environment, target)) %>
   <% builder.status do %>
+    <% availability = target.ciAttributes.availability %>
+    <div class="marker" title="<%= availability %> availability">
+      <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+    </div>
 	  <%= status_marker('version',"#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
     <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if rfc_action %>
     <%= marker('disabled','label-important') unless enabled %>
     <%= instance_marker(@platform_clouds, target) %>
-    <%= icon('star') %>
-    <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
   <% end %>
   <% if has_transition %>
     <% builder.menu do |ci| %>

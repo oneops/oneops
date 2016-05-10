@@ -47,6 +47,10 @@
     <% end %>
   <% end %>
   <% builder.status do %>
+    <% availability = target.ciAttributes.availability %>
+    <div class="marker" title="<%= availability %> availability">
+      <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+    </div>
     <%= marker(profile, 'label-info') if profile.present? %>
     <% if target.manifest && target.manifest.parentReleaseId != @catalog.releaseId %>
       <%= status_marker('design', 'pull', 'label-info') %>
@@ -75,7 +79,5 @@
       <%= status_marker('deployment', 'pending', 'label-info') if target.bom_release %>
     <% end %>
     <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
-	 <%= icon('star') %>
-	 <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
   <% end %>
 <% end %>

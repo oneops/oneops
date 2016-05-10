@@ -2,7 +2,9 @@
                   :width    => 'double',
                   :position => 'left',
                   :menu     => @diagram && [link_to(icon('expand', 'Full'),
-                                                    diagram_catalog_platform_path(@catalog, @platform, :size => '11,8'),
+                                                    @design ?
+                                                        diagram_catalog_design_platform_path(@design, @platform, :size => '11,8') :
+                                                        diagram_catalog_pack_platform_path(:platform_id => @platform, :size => '11,8'),
                                                     :target => '_blank',
                                                     :class  => 'btn btn-mini')] do %>
   <%= render 'base/platforms/diagram' %>

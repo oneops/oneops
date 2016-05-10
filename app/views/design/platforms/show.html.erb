@@ -4,7 +4,8 @@
 <%= page_title :page_icon     => platform_image_url(@platform),
                :page_kind     => "#{@platform.ciAttributes.pack.capitalize} Platform",
                :page_label    => @platform.ciName,
-               :doc_link   => platform_doc_link(@platform, icon('book'), :anchor => 'design', :class => 'doc-link'),
+               :doc_link      => platform_pack_link(@platform) +
+                                 platform_doc_link(@platform, icon('book'), :anchor => 'design'),
                :page_options  => current_user.has_design?(@assembly.ciId) &&
                                  [link_to(icon('files-o', ' Copy'), new_clone_assembly_design_platform_path(@assembly, @platform), :remote => true, :class => 'btn btn-small'),
                                   link_to(icon('trash', ' Delete', 'danger'), assembly_design_platform_path(@assembly, @platform), :method => :delete, :class => 'btn btn-small btn-danger', :data => {:confirm => 'Confirm delete?'})],
