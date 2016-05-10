@@ -31,7 +31,7 @@ import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.oneops.ops.OrphanCloseEvent;
 import com.oneops.ops.dao.OpsEventDao;
-import com.oneops.ops.events.OpsEvent;
+import com.oneops.sensor.domain.OpenEvent;
 
 public class OrphanEventHandler {
 	
@@ -44,6 +44,7 @@ public class OrphanEventHandler {
 	private ScheduledFuture<?> jobHandle;
 	private int initialDelay = 15;
 	private int delay = 10;
+	private long orphanTimeout = 120000;//2 minutes
 	
 	private Gson gson = new Gson();
 	
@@ -52,6 +53,9 @@ public class OrphanEventHandler {
 	public void start() {
 		if (orphanHandlerEnabled) {
 			jobHandle = orphanEventScheduler.scheduleWithFixedDelay(new EventResenderTask(), initialDelay, delay, TimeUnit.MINUTES);	
+		}
+		else {
+			logger.info("orphanHandlerEnabled is set to false, OrphanEventHandler is not started");
 		}
 	}
 	
@@ -71,13 +75,24 @@ public class OrphanEventHandler {
 						if (sensor.isManagedByThisInstance(orphanEvent.getManifestId())) {
 							//check if there is an open event for this ci, if it exists then send the open event to Esper
 							long openEventId = opsEventDao.getCiOpenEventId(orphanEvent.getCiId(), orphanEvent.getName());
+							OpenEvent event = gson.fromJson(orphanEvent.getOpenEventPayload(), OpenEvent.class);
 							if (openEventId > 0) {
-								OpsEvent event = gson.fromJson(orphanEvent.getOpenEventPayload(), OpsEvent.class);
-								sensor.sendOpsEvent(event);
+								sensor.sendOpsEvent(event.getOpsEvent());
+								addToRemoveMap(eventsToDeleteMap, orphanEvent);
+								if (logger.isDebugEnabled()) {
+									logger.debug("sent open event for ci : " + orphanEvent.getCiId() + ", name : " + orphanEvent.getName());	
+								}
 							}
 							else {
-								logger.info("there is no open event found for the ci " + orphanEvent.getCiId() + ", removing the orphan close event.");
-								addToRemoveMap(eventsToDeleteMap, orphanEvent);
+								long diff = System.currentTimeMillis() - event.getTimestamp();
+								if (diff > 0 && diff < orphanTimeout) {
+									logger.info("there is no open event found for the ci " + orphanEvent.getCiId() + ", will retry in next run");
+								}
+								else {
+									logger.info("there is no open event found for the ci " + orphanEvent.getCiId() + ", removing the orphan close event.");
+									addToRemoveMap(eventsToDeleteMap, orphanEvent);	
+								}
+								
 							}
 						}
 					}

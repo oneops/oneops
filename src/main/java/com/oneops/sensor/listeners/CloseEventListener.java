@@ -27,6 +27,7 @@ import com.oneops.ops.dao.OpsEventDao;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsCloseEvent;
 import com.oneops.ops.events.OpsEvent;
+import com.oneops.sensor.domain.OpenEvent;
 import com.oneops.sensor.jms.OpsEventPublisher;
 import com.oneops.sensor.util.EventConverter;
 
@@ -111,7 +112,6 @@ public class CloseEventListener implements UpdateListener {
                 }
                 opsEventPub.publishCiStateMessage(ciEvent);
                 publishedMessage = true;
-                opsEventDao.removeOrphanEvent(event.getCiId(), event.getManifestId(), event.getName());
             }
             else {
             	if (orphanEventEnabled) {
@@ -120,7 +120,10 @@ public class CloseEventListener implements UpdateListener {
                 	//so save this event as orphan so that the OrphanEventHandler will process this later
                 	logger.warn("no open event found to close - ciId : " + event.getCiId() + 
                 			", eventName : " + event.getName() + ", marking this as orphan close event");
-                	String openEventPayload = gson.toJson(EventConverter.convert(openEvent));
+                	OpenEvent opsOpenEvent = new OpenEvent();
+                	opsOpenEvent.setOpsEvent(openEvent);
+                	opsOpenEvent.setTimestamp(System.currentTimeMillis());
+                	String openEventPayload = gson.toJson(opsOpenEvent);
                 	opsEventDao.addOrphanCloseEventForCi(event.getCiId(), event.getName(), event.getManifestId(), openEventPayload);	
             	}
             }
