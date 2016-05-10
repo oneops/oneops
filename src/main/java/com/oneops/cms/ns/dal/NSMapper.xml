@@ -10,10 +10,9 @@
 	    {call ns_create_namespace(#{nsPath}, #{nsId,jdbcType=BIGINT, mode=OUT})}
 	 </insert> 
 
-	 <insert id="vacuumNamespace" parameterType="long" statementType="CALLABLE">
-	    {call cm_vac_ns(#{value})}
-	 </insert> 
-
+	 <update id="vacuumNamespace" parameterType="map" statementType="CALLABLE">
+	    {call cm_vac_ns(#{nsId}, #{userId})}
+	 </update> 
 	 
 	 <select id="getNamespace" parameterType="string" resultType="com.oneops.cms.ns.domain.CmsNamespace">
 		select ns.ns_id as nsId, ns.ns_path as nsPath, ns.created

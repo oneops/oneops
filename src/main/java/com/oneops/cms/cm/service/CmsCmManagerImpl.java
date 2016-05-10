@@ -131,8 +131,8 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	 * @see com.oneops.cms.cm.service.CmsCmManager#deleteCI(long)
 	 */
 	@Override
-	public void deleteCI(long ciId) {
-		cmProcessor.deleteCI(ciId);
+	public void deleteCI(long ciId, String userId) {
+		cmProcessor.deleteCI(ciId, userId);
 	}
 
 

@@ -23,7 +23,7 @@
 	 </update> 
 
 	 <update id="deleteCI" parameterType="map" statementType="CALLABLE">
-	    {call cm_delete_ci(#{ciId}, #{delete4real})}
+	    {call cm_delete_ci(#{ciId}, #{delete4real},#{deletedBy})}
 	 </update> 
 
 	 <insert id="addCIAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIAttribute" statementType="CALLABLE">

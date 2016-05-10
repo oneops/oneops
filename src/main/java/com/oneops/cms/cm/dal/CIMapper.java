@@ -37,7 +37,7 @@ public interface CIMapper {
 	
 	void createCI(CmsCI ci);
 	void updateCI(CmsCI ci);
-	void deleteCI(@Param("ciId") long ciId, @Param("delete4real") boolean delete4real);
+	void deleteCI(@Param("ciId") long ciId, @Param("delete4real") boolean delete4real, @Param("deletedBy") String userId);
 
 	void addCIAttribute(CmsCIAttribute attr);
     void addCIAttributeAndPublish(CmsCIAttribute attr);

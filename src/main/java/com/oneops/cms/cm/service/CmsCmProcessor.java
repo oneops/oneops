@@ -765,8 +765,8 @@ public class CmsCmProcessor {
 	 *
 	 * @param ciId the ci id
 	 */
-	public void deleteCI(long ciId) {
-		deleteCI(ciId, true);
+	public void deleteCI(long ciId, String userId) {
+		deleteCI(ciId, true, userId);
 	}
 
 	/**
@@ -775,8 +775,8 @@ public class CmsCmProcessor {
 	 * @param ciId the ci id
 	 * @param delete4real the delete4real
 	 */
-	public void deleteCI(long ciId, boolean delete4real) {
-		ciMapper.deleteCI(ciId, delete4real);
+	public void deleteCI(long ciId, boolean delete4real, String userId) {
+		ciMapper.deleteCI(ciId, delete4real, userId);
 	}
 	
 

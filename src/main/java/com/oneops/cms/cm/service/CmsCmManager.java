@@ -37,7 +37,7 @@ public interface CmsCmManager {
 	void updateCiState(long ciId, String ciState, String relName, String direction, boolean recursive, String user);
 	void updateCiStateBulk(Long[] ids, String ciState, String relName, String direction, boolean recursive, String user);
 	CmsCI updateCiState(long ciId, String ciState, String user);
-	void deleteCI(long ciId);
+	void deleteCI(long ciId, String userId);
 	CmsCI getCiByGoid(String goid);
 	CmsCI getCiById(long id);
 	List<CmsCI> getCiByIdList(List<Long> ids);
