@@ -1546,8 +1546,12 @@ img.authicon {
 
 .list-toolbar div.filter .list-count-marker {
   position: absolute;
-  right: 20px;
-  top: 5px
+  right: 22px;
+  top: 4px;
+  font-size: 10px;
+  opacity: 0.85;
+  padding-top: 1px;
+  padding-bottom: 1px;
 }
 
 .list-toolbar div.filter i.fa-times-circle {
@@ -2345,7 +2349,7 @@ img.authicon {
 }
 
 .section-heading .menu i {
-  padding-right: 3px;
+  padding: 0 2px;
 }
 
 .section-heading .menu img {
@@ -4015,7 +4019,8 @@ hr {
   font-size: 20px;
   display: inline-block;
   position: relative;
-  margin-left: 5px;
+  margin-left: 10px;
+  margin-right: 5px;
   vertical-align: 5px;
 }
 

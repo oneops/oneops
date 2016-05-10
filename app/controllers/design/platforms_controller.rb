@@ -213,9 +213,7 @@ class Design::PlatformsController < Base::PlatformsController
   def find_assembly_and_platform
     @assembly = locate_assembly(params[:assembly_id])
     platform_id = params[:id]
-    if platform_id.present?
-      @platform = Cms::DjCi.locate(platform_id, assembly_ns_path(@assembly), 'catalog.Platform', :attrProps => 'owner')
-    end
+    @platform = locate_design_platform(platform_id, @assembly, :attrProps => 'owner') if platform_id.present?
   end
 
   def build_linkable_platform_map

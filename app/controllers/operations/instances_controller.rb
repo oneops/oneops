@@ -280,10 +280,7 @@ class Operations::InstancesController < ApplicationController
     platform_id  = params[:platform_id]
     @platform    = locate_manifest_platform(platform_id, @environment) if platform_id.present?
     component_id = params[:component_id]
-    if @platform && component_id.present?
-      @component = locate_ci_in_platform_ns(component_id, @platform)
-      handle_ci_not_found(CiNotFoundException.new(component_id, @platform.nsPath, 'component')) unless @component
-    end
+    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
   end
 
   def find_instance

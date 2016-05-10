@@ -50,7 +50,7 @@ class Design::ComponentsController < Base::ComponentsController
     @component = relation.toCi if ok
 
     if ok
-    # Make sure all "DependsOn" relations are present (according to platform template) since we added a new sibling.
+      # Make sure all "DependsOn" relations are present (according to platform template) since we added a new sibling.
       platform_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_design_ns_path(@platform),
                                                     :ciClassName => "mgmt.#{@platform.ciClassName}"})
       component_template_id_name_map = Cms::Relation.all(:params => {:ciId              => platform_template.ciId,
@@ -65,7 +65,7 @@ class Design::ComponentsController < Base::ComponentsController
         components.select {|d| d.relationAttributes.template == component_template_id_name_map[depends_relation_template.fromCiId]}.each do |from_component|
           components.select {|d| d.relationAttributes.template == component_template_id_name_map[depends_relation_template.toCiId]}.each do |to_component|
             if from_component.toCiId == @component.ciId || to_component.toCiId == @component.ciId
-              depends_relation = Cms::DjRelation.build(:relationName => "#{scope}.DependsOn",
+              depends_relation = Cms::DjRelation.build(:relationName => 'catalog.DependsOn',
                                                        :nsPath       => ns_path,
                                                        :fromCiId     => from_component.toCiId,
                                                        :toCiId       => to_component.toCiId)
@@ -121,7 +121,7 @@ class Design::ComponentsController < Base::ComponentsController
 
   def find_platform
     @assembly = locate_assembly(params[:assembly_id])
-    @platform = Cms::DjCi.locate(params[:platform_id], assembly_ns_path(@assembly), 'catalog.Platform')
+    @platform = locate_design_platform(params[:platform_id], @assembly)
   end
 
   def find_component

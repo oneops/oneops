@@ -33,7 +33,7 @@ class Design::LocalVariablesController < Base::VariablesController
 
   def find_parents
     @assembly = locate_assembly(params[:assembly_id])
-    @platform = Cms::DjCi.locate(params[:platform_id], assembly_ns_path(@assembly), 'catalog.Platform')
+    @platform = locate_design_platform(params[:platform_id], @assembly)
   end
 
   def find_variables

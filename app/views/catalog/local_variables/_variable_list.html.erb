@@ -1,0 +1,22 @@
+<% if @variables.blank? %>
+  This platform has no local variables.
+<% else %>
+  <%= section_panel 'Variables', :position => 'left', :width => 'single' do %>
+    <%= ci_list(@variables) do |builder, target| %>
+      <% builder.target link_to('',
+                                @design ?
+                                    catalog_design_platform_variable_path(@design, @platform, target) :
+                                    catalog_pack_platform_variable_path(:platform_id => @platform, :id => target),
+                                :remote => true) %>
+      <% builder.icon :none %>
+      <% builder.middle do %>
+        <% if target.ciAttributes.attributes['secure'] == 'true' %>
+          <%= icon('key', '*******') %>
+        <% else %>
+          <%= target.ciAttributes.value %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <div id="variable_details"></div>
+<% end %>

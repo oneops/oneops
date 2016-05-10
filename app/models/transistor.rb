@@ -21,8 +21,8 @@ class Transistor < ActiveResource::Base
     end
   end
 
-  def self.export_catalog(catalog_id)
-    get("catalogs/#{catalog_id}/export")
+  def self.export_catalog(design_id)
+    get("catalogs/#{design_id}/export")
   end
 
   def self.import_catalog(data)
@@ -35,12 +35,12 @@ class Transistor < ActiveResource::Base
     return id
   end
 
-  def self.create_assembly_from_catalog(catalog_id, assembly_ci)
+  def self.create_assembly_from_catalog(design_id, assembly_ci)
     id = nil
     begin
-      id = JSON.parse(post("catalogs/#{catalog_id}/assemblies", {}, assembly_ci.to_json).body)['resultCiId']
+      id = JSON.parse(post("catalogs/#{design_id}/assemblies", {}, assembly_ci.to_json).body)['resultCiId']
     rescue Exception => e
-      handle_exception e, "Failed to create assembly [#{assembly_ci}] from catalog '#{catalog_id}'"
+      handle_exception e, "Failed to create assembly [#{assembly_ci}] from catalog '#{design_id}'"
     end
     return  id
   end

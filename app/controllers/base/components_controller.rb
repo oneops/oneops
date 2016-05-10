@@ -23,10 +23,7 @@ class Base::ComponentsController < ApplicationController
   end
 
   def show
-    load_depends_on_and_dependents
-    @component.dependents = @dependents
-    @component.dependsOn  = @depends_on_relations.map(&:toCi)
-    render_json_ci_response(@component.present?, @component)
+    edit
   end
 
   def edit
@@ -34,13 +31,13 @@ class Base::ComponentsController < ApplicationController
     respond_to do |format|
       format.html do
         find_template
-        @managed_via = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
-                                                       :direction         => 'from',
-                                                       :relationShortName => 'ManagedVia'})
-
         build_linkable_component_sibling_map(@component)
 
         if in_transition?
+          @managed_via = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+                                                         :direction         => 'from',
+                                                         :relationShortName => 'ManagedVia'})
+
           @attachments = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
                                                          :direction         => 'from',
                                                          :relationShortName => 'EscortedBy'}).map(&:toCi).sort_by { |r| r.ciName }
@@ -176,9 +173,16 @@ class Base::ComponentsController < ApplicationController
 
   def find_sibling_depends_relations(components)
     component_map = components.inject({}) { |h, c| h[c.toCiId] = c; h }
-    Cms::DjRelation.all(:params => {:nsPath            => in_transition? ?
-                                                            transition_platform_ns_path(@environment, @platform) :
-                                                            design_platform_ns_path(@assembly, @platform),
+    ns_path = if @platform.ciClassName.start_with?('mgmt.')
+                @platform.nsPath
+              elsif in_catalog?
+                design_platform_ns_path(@design, @platform)
+              elsif in_design?
+                design_platform_ns_path(@assembly, @platform)
+              else
+                transition_platform_ns_path(@environment, @platform)
+              end
+    Cms::DjRelation.all(:params => {:nsPath            => ns_path,
                                     :relationShortName => 'DependsOn',
                                     :targetClassName   => @component.ciClassName,
                                     :attr              => 'source:eq:user'}).select() { |r| component_map[r.fromCiId] }
@@ -238,7 +242,7 @@ class Base::ComponentsController < ApplicationController
     if ok
       (new_depends_on_ids - old_depends_on_ids).each do |component_id|
         relation = Cms::DjRelation.build({:nsPath       => @component.nsPath,
-                                          :relationName => "#{scope}.DependsOn",
+                                          :relationName => "#{@platform.ciClassName.split('.')[-2]}.DependsOn",
                                           :fromCiId     => @component.ciId,
                                           :toCiId       => component_id,})
         relation.relationAttributes.source = 'user'

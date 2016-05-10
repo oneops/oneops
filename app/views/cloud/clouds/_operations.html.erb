@@ -15,9 +15,12 @@
     <% end %>
     <% builder.middle link_to(icon(site_icon('assembly'), assembly), assembly_path(assembly)) %>
     <% builder.status do %>
+      <% availability = target.ciAttributes.availability %>
+      <div class="marker" title="<%= availability %> availability">
+        <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+      </div>
       <%= target.ciAttributes.autorepair == 'true' ? status_marker('autorepair', 'enabled', 'label-success') : status_marker('autorepair', 'disabled') %>
       <%= target.ciAttributes.autoscale == 'true' ? status_marker('autoscale', 'enabled', 'label-success') : status_marker('autoscale', 'disabled') if target.ciAttributes.availability == 'redundant' %>
-      <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
     <% end %>
   <% end %>
 <% end %>

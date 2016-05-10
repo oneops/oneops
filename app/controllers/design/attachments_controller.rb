@@ -49,7 +49,7 @@ class Design::AttachmentsController < Base::AttachmentsController
 
   def find_parent_cis
     @assembly    = locate_assembly(params[:assembly_id])
-    @platform    = locate_catalog_platform(params[:platform_id], @assembly)
+    @platform    = locate_design_platform(params[:platform_id], @assembly)
     component_id = params[:component_id]
     @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
   end

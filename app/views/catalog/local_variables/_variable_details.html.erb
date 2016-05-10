@@ -1,0 +1,9 @@
+<%= section_panel 'Variable Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             :resource  => @variable,
+             :content   => 'cms/cis/ci',
+             :read_only => true,
+             :form_url  => @design ?
+                 catalog_design_platform_variable_path(@design, @platform, @variable) :
+                 catalog_pack_platform_variable_path(:platform_id => @platform, :id => @variable)) %>
+<% end %>

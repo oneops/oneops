@@ -100,9 +100,9 @@ class AssembliesController < ApplicationController
   end
 
   def create
-    catalog_id = params[:catalog_template]
-    if catalog_id.present?
-      assembly_id = Transistor.create_assembly_from_catalog(catalog_id, params[:cms_ci].merge(:nsPath => organization_ns_path, :ciClassName => 'account.Assembly'))
+    design_id = params[:catalog_template]
+    if design_id.present?
+      assembly_id = Transistor.create_assembly_from_catalog(design_id, params[:cms_ci].merge(:nsPath => organization_ns_path, :ciClassName => 'account.Assembly'))
       @assembly = Cms::Ci.find(assembly_id) if assembly_id.present?
       ok = @assembly.present?
     else
@@ -133,6 +133,7 @@ class AssembliesController < ApplicationController
 
   def edit
     respond_to do |format|
+      format.html {render 'assemblies/_settings'}
       format.js
       format.json { render_json_ci_response(true, @assembly) }
     end
@@ -195,7 +196,7 @@ class AssembliesController < ApplicationController
     export = params[:export]
     if export.present?
       action = 'save'
-      ci[:nsPath]      = private_catalogs_ns_path
+      ci[:nsPath]      = private_catalog_designs_ns_path
       ci[:ciClassName] = 'account.Design'
     else
       action   = 'clone'
@@ -303,7 +304,7 @@ class AssembliesController < ApplicationController
   end
 
   def load_catalog_templates
-    @catalog_templates = Cms::Ci.all(:params => {:nsPath => catalogs_ns_path,         :ciClassName => 'account.Design'}) +
-                         Cms::Ci.all(:params => {:nsPath => private_catalogs_ns_path, :ciClassName => 'account.Design'})
+    @catalog_designs = Cms::Ci.all(:params => {:nsPath => catalog_designs_ns_path,         :ciClassName => 'account.Design'}) +
+                         Cms::Ci.all(:params => {:nsPath => private_catalog_designs_ns_path, :ciClassName => 'account.Design'})
   end
 end

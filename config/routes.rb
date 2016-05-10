@@ -12,6 +12,7 @@ Display::Application.routes.draw do
   get '/status/ecv' => 'status#ecv'
 
   get '/error' => 'welcome#error', :as => :error_redirect
+  get '/not_found_error' => 'welcome#not_found_error', :as => :not_found
 
   get 'users/:id' => 'organization/users#show', :as => 'user'
   match '/auth/:provider/callback' => 'authentications#create', :via => [:get, :post]
@@ -189,17 +190,43 @@ Display::Application.routes.draw do
       get  'cost',         :on => :collection
     end
 
-    resources :packs, :only => [:index]
+    resources :packs, :controller => 'catalog/packs', :only => [:index]
 
-    # Design catalogs.
-    resources :catalogs, :controller => 'catalog/catalogs', :only => [:index, :show, :destroy] do
-      get  'export',  :on => :member
-      post 'import',  :on => :collection
-      get  'diagram', :on => :member
+    resource :catalog, :controller => 'catalog', :only => [:show]
 
-      resources :platforms, :controller => 'catalog/platforms', :only => [:index, :show] do
-        get 'diagram', :on => :member
-        resources :components, :controller => 'catalog/components', :only => [:index, :edit]
+    namespace :catalog do
+      # Design catalogs.
+      resources :designs, :only => [:index, :show, :destroy] do
+        get  'export',  :on => :member
+        post 'import',  :on => :collection
+        get  'diagram', :on => :member
+
+        resources :variables, :only => [:index, :show]
+
+        resources :platforms, :only => [:index, :show] do
+          get 'diagram', :on => :member
+
+          resources :variables, :controller => 'local_variables', :only => [:index, :show]
+
+          resources :components, :only => [:index, :show] do
+            resources :attachments, :only => [:index, :show]
+          end
+        end
+      end
+
+      resources :packs, :only => [:index]
+
+      scope '/packs/:source/:pack/:version(/:availability)', :as => 'pack' do
+        resources :platforms, :only => [:show] do
+          get 'diagram', :on => :member
+
+          resources :variables, :controller => 'local_variables', :only => [:index, :show]
+          resources :policies, :only => [:index, :show]
+
+          resources :components, :only => [:index, :show] do
+            resources :attachments, :only => [:index, :show]
+          end
+        end
       end
     end
 
@@ -437,7 +464,7 @@ Display::Application.routes.draw do
   post 'notify' => 'relays#notify'
 
   match 'error' => 'welcome#error', :via => :all
-  get '/404'  => 'welcome#not_found_error', :as => 'not_found'
+  get '/404'  => 'welcome#not_found_error'
   get '/500'  => 'welcome#server_error'
 
   root :to => 'welcome#index', :defaults => {:org_name => nil}, :as => :root

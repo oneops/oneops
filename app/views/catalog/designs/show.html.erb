@@ -1,0 +1,13 @@
+<%= organization_page_header('catalogs') %>
+
+<%= breadcrumb [{:label => 'designs', :link => catalog_path(:anchor => 'designs')}] %>
+
+<%= page_title :page_kind     => 'Design',
+               :page_label    => @design.ciName,
+               :page_sublabel => @design.ciAttributes.description %>
+
+<%= page_info 'View catalog configuration' %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                      {:label => 'variables', :url => catalog_design_variables_path(@design)}] %>

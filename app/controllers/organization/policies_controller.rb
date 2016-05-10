@@ -1,19 +1,6 @@
-class Organization::PoliciesController < ApplicationController
+class Organization::PoliciesController < Base::PoliciesController
   before_filter :authorize_admin, :only => [:new, :create, :update, :destroy, :evaluate]
   before_filter :find_policy, :only => [:show, :edit, :update, :destroy, :evaluate]
-
-  def index
-    @policies = Cms::Ci.all(:params => {:nsPath      => organization_ns_path,
-                                        :ciClassName => 'account.Policy'})
-    respond_to do |format|
-      format.js { render :action => :index }
-      format.json { render :json => @policies }
-    end
-  end
-
-  def show
-    render_json_ci_response(true, @policy)
-  end
 
   def new
     attrs = params[:policy].presence || {}
@@ -30,10 +17,6 @@ class Organization::PoliciesController < ApplicationController
       format.js { ok ? index : edit }
       format.json { render_json_ci_response(ok, @policy) }
     end
-  end
-
-  def edit
-    render :action => :edit
   end
 
   def update
@@ -87,7 +70,12 @@ class Organization::PoliciesController < ApplicationController
   end
 
 
-  private
+  protected
+
+  def find_policies
+    @policies = Cms::Ci.all(:params => {:nsPath      => organization_ns_path,
+                                        :ciClassName => 'account.Policy'})
+  end
 
   def find_policy
     policy_id = params[:id]

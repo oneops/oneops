@@ -15,7 +15,7 @@
          a << link_to(c.nsPath.split('/').last, path_to_ci(c)) if c.ciId != @ci.ciId && c.ciClassName.start_with?('catalog.')
          a
        end
-       groups << {:title => "#{assembly_nav_name_label(ci_name)} component in", :items => items} if items.present?
+       groups << {:title => "#{context_nav_name_label(ci_name)} component in", :items => items} if items.present?
      end
    else
      if ci_class_name == 'manifest.Environment'
@@ -30,14 +30,14 @@
          a << link_to(ns_path_split[3], path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name && ns_path_split[4] == 'manifest'
          a
        end
-       groups << {:title => "#{assembly_nav_name_label(ci_name)} platform in environment", :items => items} if items.present?
+       groups << {:title => "#{context_nav_name_label(ci_name)} platform in environment", :items => items} if items.present?
      elsif ci_class_name == 'manifest.Platform'
        items = @counterparts.inject([]) do |a, c|
          ns_path_split = c.nsPath.split('/')
          a << link_to(raw("#{ns_path_split[3]}/#{ci_name} <small class='muted'>ver.#{c.ciAttributes.major_version}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name
          a
        end
-       groups << {:title => "#{assembly_nav_name_label(ci_name)} platform in other environments", :items => items} if items.present?
+       groups << {:title => "#{context_nav_name_label(ci_name)} platform in other environments", :items => items} if items.present?
 
        items = @counterparts.inject([]) do |a, c|
          a << link_to(raw("#{c.ciName} <small class='muted'>ver.#{c.ciAttributes.major_version}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.nsPath.split('/')[3] == env
@@ -51,7 +51,7 @@
          a << link_to(raw("#{ns_path_split[3]}/#{platform} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if ns_path_split[4] == 'manifest' && ns_path_split[5] == platform
          a
        end
-       groups << {:title => "#{assembly_nav_name_label(ci_name)} in", :items => items} if items.present?
+       groups << {:title => "#{context_nav_name_label(ci_name)} in", :items => items} if items.present?
      elsif ci_class_name.start_with?('manifest.')
        platform = ci_ns_path_split[5]
        items = @counterparts.inject([]) do |a, c|
@@ -59,14 +59,14 @@
          a << link_to(raw("#{ns_path_split[3]}/#{ns_path_split[5]} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && ns_path_split[5] == platform
          a
        end
-       groups << {:title => "#{assembly_nav_name_label(ci_name)} component in other environments", :items => items} if items.present?
+       groups << {:title => "#{context_nav_name_label(ci_name)} component in other environments", :items => items} if items.present?
 
        items = @counterparts.inject([]) do |a, c|
          ns_path_split = c.nsPath.split('/')
          a << link_to(raw("#{ns_path_split[5]} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && ns_path_split[3] == env
          a
        end
-       groups << {:title => "#{assembly_nav_name_label(ci_name)} component in other platforms", :items => items} if items.present?
+       groups << {:title => "#{context_nav_name_label(ci_name)} component in other platforms", :items => items} if items.present?
      end
    end
 %>

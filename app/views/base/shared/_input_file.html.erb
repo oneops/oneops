@@ -2,7 +2,7 @@
    prompt_x = defined?(prompt) ? prompt : 'Choose a file...' %>
 <div id="<%= dom_id %>" class="input-file">
   <%= file_field_tag(field_name, :multiple => defined?(multiple) && multiple) %>
-  <%= label_tag(:data_file, icon('file-text', content_tag(:span, prompt_x), 'fa-fw'), :class => 'btn btn-primary btn-large') %>
+  <%= label_tag(field_name, icon('file-text', content_tag(:span, prompt_x), 'fa-fw'), :class => 'btn btn-primary btn-large') %>
 </div>
 
 <script>

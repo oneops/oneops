@@ -94,7 +94,6 @@ $j(document).ajaxError(function(a, jqxhr, info, error) {
 window.disable_edit = function(container_id) {
   var form = $(container_id).down("form");
   if (form) {
-    form.edit = false;
     form.removeClassName("editing");
   }
   $$("#" + container_id + " input").each(function(input) {input.readOnly = true; input.addClassName('readonly')});
@@ -110,11 +109,7 @@ window.disable_edit = function(container_id) {
 };
 
 window.enable_edit = function(container_id) {
-  var form = $(container_id).down("form");
-  if (form) {
-    form.edit = true;
-    form.addClassName("editing");
-  }
+  var form = $j("#" + container_id).find("form").addClass("editing");
   $$("#" + container_id + " .form-actions input").each(function(input) {input.readOnly = false; input.removeClassName('readonly')});
   $$("#" + container_id + " .controls:not([editable=false]) input").each(function(input) {input.readOnly = false; input.removeClassName('readonly')});
   $$("#" + container_id + " .controls:not([editable=false]) textarea").each(function(input) {input.readOnly = false; input.removeClassName('readonly')});
@@ -238,20 +233,28 @@ window.center_vertical = function(el) {
   el.setStyle( { position: 'absolute', top: Math.floor(centerY) + 'px'} );
 };
 
-window.sort_list = function(container, attribute_name, desc) {
+window.sort_list = function(container, sortAttrs, desc) {
   container = $(container);
+  var result;
   var items = container.childElements().sort(function(a, b) {
-    var a_value = a.getAttribute(attribute_name);
-    var b_value = b.getAttribute(attribute_name);
-    if (a_value != null && b_value != null) {
-      return (a_value < b_value ? -1 : (a_value > b_value ? 1 : 0)) * (desc ? -1 : 1);
+    result = 0;
+    for (var i = 0; i < sortAttrs.length; i++) {
+      var a_value = a.getAttribute(sortAttrs[i]);
+      var b_value = b.getAttribute(sortAttrs[i]);
+      if (a_value != null && b_value != null) {
+        result = (a_value < b_value ? -1 : (a_value > b_value ? 1 : 0)) * (desc ? -1 : 1);
+        if (result) {
+          return result;
+        }
+      }
+      else if (a_value != null) {
+        return -1;
+      }
+      else {
+        return 1;
+      }
     }
-    else if (a_value != null) {
-      return -1;
-    }
-    else {
-      return 1;
-    }
+    return result;
   });
   items.each(function(li) {
     li.remove();
@@ -394,7 +397,7 @@ function copyToClipboard(trigger, target) {
 
 function toggleAttrPropOwner(source) {
   source = $j(source);
-  if (source.parents("form")[0].edit) {
+  if (source.parents("form").hasClass('editing')) {
     var input      = source.find("input[type=hidden]"),
         ownerValue = input.attr('data-owner-value');
     input.val(input.val() == ownerValue ? "" : ownerValue);

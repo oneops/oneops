@@ -2,6 +2,7 @@ class Base::PlatformsController < ApplicationController
   def show
     respond_to do |format|
       format.html do
+        scope = @platform.ciClassName.split('.')[-2]
         group_map = get_platform_requires_relation_temlates(@platform).inject({}) do |map, r|
           template_name    = r.toCi.ciName.split('::').last
           short_class_name = r.toCi.ciClassName.split('.')[2..-1].join('.')
@@ -76,10 +77,12 @@ class Base::PlatformsController < ApplicationController
 
       ns_path = if @environment
                   transition_platform_ns_path(@environment, @platform)
-                elsif @catalog
-                  catalog_platform_ns_path(@catalog, @platform)
-                else
+                elsif @design
+                  catalog_design_platform_ns_path(@design, @platform)
+                elsif @assembly
                   design_platform_ns_path(@assembly, @platform)
+                else
+                  @platform.nsPath
                 end
       depends_rels = Cms::DjRelation.all(:params => {:nsPath => ns_path, :relationShortName => 'DependsOn'})
 
@@ -89,15 +92,16 @@ class Base::PlatformsController < ApplicationController
                                                    :includeToCi       => true})
       components.each do |node|
         ci = node.toCi
-        url = nil
         if @assembly
           if @environment
-            url = edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, ci.id)
+            url = edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, ci)
           else
-            url = edit_assembly_design_platform_component_path(@assembly, @platform, ci.id)
+            url = edit_assembly_design_platform_component_path(@assembly, @platform, ci)
           end
-        elsif @catalog
-          url = edit_catalog_platform_component_path(@catalog, @platform, ci.id)
+        elsif @design
+          url = catalog_design_platform_component_path(@design, @platform, ci)
+        else
+          url = catalog_pack_platform_component_path(:platform_id => @platform, :id => ci)
         end
         img = "<img scale='both' src='#{GRAPHVIZ_IMG_STUB}'/>"
         label = "<<table border='0' cellspacing='2' fixedsize='true' width='180' height='48'>"
@@ -170,9 +174,15 @@ class Base::PlatformsController < ApplicationController
   protected
 
   def get_platform_requires_relation_temlates(platform)
-    template_ci = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path(platform),
-                                            :ciClassName => "mgmt.#{scope}.Platform"})
-    Cms::Relation.all(:params => {:ciId              => template_ci.ciId,
+    ci_class_name = @platform.ciClassName
+    if ci_class_name.start_with?('mgmt.')
+      # Catalog packs scope.
+      mgmt_platform = @platform
+    else
+      mgmt_platform = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path(platform),
+                                              :ciClassName => "mgmt.#{ci_class_name}"})
+    end
+    Cms::Relation.all(:params => {:ciId              => mgmt_platform.ciId,
                                   :relationShortName => 'Requires',
                                   :direction         => 'from',
                                   :includeToCi       => true,

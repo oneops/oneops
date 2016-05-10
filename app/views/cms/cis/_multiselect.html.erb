@@ -19,7 +19,7 @@
       $j(source).toggleClass('active');
       setTimeout(function () {
         $j(source).parent().toggleClass('active');
-        if (source.up("form").edit) {
+        if (source.up("form").hasClassName('editing')) {
           var selections = [];
           var button_div = $j(source).parents("div.multiselect");
           var selected = button_div.find("a.btn.active");

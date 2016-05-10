@@ -14,7 +14,7 @@
       <li><%= link_to(icon(site_icon(:service), 'Services'), services_path) %></li>
     <% end %>
     <% if current_org.catalogs %>
-      <li><%= link_to(icon(site_icon(:catalog), 'Catalogs'), catalogs_path) %></li>
+      <li><%= link_to(icon(site_icon(:catalog), 'Catalogs'), catalog_path) %></li>
     <% end %>
     <% if current_org.assemblies %>
       <li><%= link_to(icon(site_icon(:cloud), 'Clouds'), clouds_path) %></li>
@@ -23,9 +23,9 @@
     <li><%= link_to(icon(site_icon(:search), 'Search'), search_organization_path) %></li>
     <li><%= link_to(icon(site_icon(:settings), 'Settings'), edit_organization_path) %></li>
 
-    <% if content_for?(:assembly_nav) %>
+    <% if content_for?(:context_nav) %>
       <li class="divider"></li>
-      <%= yield :assembly_nav %>
+      <%= yield :context_nav %>
     <% end %>
 
     <li class="divider"></li>

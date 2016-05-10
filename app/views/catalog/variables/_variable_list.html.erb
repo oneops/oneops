@@ -1,0 +1,20 @@
+<% if @variables.blank? %>
+  This design has no global variables.
+<% else %>
+  <%= section_panel 'Variables', :position => 'left', :width => 'single' do %>
+    <%= ci_list(@variables) do |builder, target| %>
+      <% builder.target link_to('', catalog_design_variable_path(@design, target), :remote => true) %>
+      <% builder.icon :none %>
+      <% builder.middle do %>
+        <% if target.ciAttributes.attributes['secure'] == 'true' %>
+          <%= icon('lock') if target.ciAttrProps.owner.attributes['encrypted_value'] == 'design' %>
+          <%= icon('key', '*******') %>
+        <% else %>
+          <%= icon('lock') if target.ciAttrProps.owner.attributes['value'] == 'design' %>
+          <%= target.ciAttributes.value %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <div id="variable_details"></div>
+<% end %>

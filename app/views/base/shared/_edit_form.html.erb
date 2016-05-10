@@ -36,7 +36,7 @@
                       :remote  => remote_x) unless new || !defined?(destroy_url) || destroy_url.blank? %>
           <%= link_to_function(icon('times', 'Cancel'), "cancel_#{prefix}()", :class => 'btn') %>
           <%= link_to_function(icon('check', 'Save'),
-                               'if (!$j(this).hasClass("disabled")) $j(this).addClass("disabled").parents("form").trigger("beforeSave").submit();',
+                               'if (!$j(this).hasClass("disabled")) $j(this).parents("form").trigger("beforeSave").submit();',
                                :class => 'btn btn-success save') %>
         </div>
       <% end %>
@@ -71,18 +71,38 @@
       }
     };
 
-    $j("#<%= prefix %>_form").change(function() {$j("#<%= prefix %>_form").attr("data-dirty",  "true");});
-
-    <% unless block %>
-      var form = $("<%= prefix %>_div").down("form");
-      form.edit = true;
-      form.addClassName("editing");
-    <% end %>
+    $j("#<%= prefix %>_form")
+        .change(function () {
+                  $j("#<%= prefix %>_form").attr("data-dirty", "true");
+                })
+        .submit(function (e) {
+                  var form = $j(this);
+                  if (this.checkValidity && !this.checkValidity()) {
+                    var invalidFields = form.find(":invalid"),
+                        errorsDiv     = $j('div.error-messages'),
+                        errorList     = errorsDiv.find("ul");
+                    errorList.html('');
+                    invalidFields.each(function (index, field) {
+                      var label = $j(field).parents(".control-group").find("label.control-label").text() || field.id || "",
+                          message = field.validationMessage || 'Invalid value.';
+                      errorList.append("<li><a onclick=\"getElementById('" + field.id + "').focus()\">" + label + "</a>: " + message + "</li>");
+                    });
+                    errorsDiv.show()[0].scrollIntoView(false);
+                    invalidFields[0].focus();
+                    e.preventDefault();
+                    return false;
+                  }
+                  else {
+                    form.find(".form-actions .btn:has(i.fa-check)").addClass('disabled');
+                    form.parents(".section").find(".section-heading .menu .btn:has(i.fa-check)").addClass('disabled');
+                    return true;
+                  }
+                });
 
     <% unless read_only || new %>
       var controls = "<%= escape_javascript(link_to_function(icon_button('edit',  'Edit',   'mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide')) %>" +
                      "<%= escape_javascript(link_to_function(icon_button('times', 'Cancel', 'mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : '')) %>&nbsp;" +
-                     "<%= escape_javascript(link_to_function(icon_button('check', 'Save',   'mini btn-success'), "$j(this).find('.btn').addClass('disabled'); $j('##{prefix}_form .form-actions .btn.save').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')) %>";
+                     "<%= escape_javascript(link_to_function(icon_button('check', 'Save',   'mini btn-success'), "$j('##{prefix}_form .form-actions .btn.save').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')) %>";
       try {
         var section_menu = $('<%= prefix %>_div').up("div.section").down(".section-heading .menu");
       } catch (e) {

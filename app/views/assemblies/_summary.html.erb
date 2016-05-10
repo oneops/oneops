@@ -46,12 +46,14 @@
         <%= link_to(icon(site_icon('operations'), 'operations'), assembly_operations_environment_path(@assembly, target)) %>
       <% end %>
       <% builder.status do %>
+        <% availability = target.ciAttributes.availability %>
+        <div class="marker" title="<%= availability %> availability">
+          <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+        </div>
         <%= marker(profile, 'label-info') if profile.present? %>
         <%= marker('autorepair', 'label-success') if target.ciAttributes.autorepair == 'true' %>
         <%= marker('autoscale', 'label-success')  if target.ciAttributes.autoscale == 'true' && target.ciAttributes.availability == 'redundant' %>
         <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
-        <%= icon('star') %>
-        <%= icon('star') if target.ciAttributes.availability == 'redundant' %>
       <% end %>
     <% end %>
   <% end %>
