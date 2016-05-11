@@ -98,7 +98,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 		} else {
 				// skip fqdn workorder if dns is disabled
 				if (config.isDnsDisabled()
-					&& wo.getRfcCi().getCiClassName().contains("Fqdn")) {
+					&& wo.getRfcCi().getCiClassName().matches("bom\\..*\\.Fqdn")) {
 				wo.setDpmtRecordState(COMPLETE);
 				CmsCISimple resultCi = new CmsCISimple();
 
@@ -957,7 +957,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 			CmsRfcCISimple hostCi = wo.getPayLoad()
 					.get(InductorConstants.MANAGED_VIA).get(0);
 
-			if (wo.getRfcCi().getCiClassName().contains("Cluster")) {
+			if (wo.getRfcCi().getCiClassName().matches("bom\\..*\\.Cluster")) {
 				List<CmsRfcCISimple> hosts = wo.getPayLoad().get(
 						InductorConstants.MANAGED_VIA);
 				@SuppressWarnings("rawtypes")
@@ -971,7 +971,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 			}
 
 			if (hostCi.getCiClassName() != null
-					&& hostCi.getCiClassName().contains("Ring")) {
+					&& hostCi.getCiClassName().matches("bom\\..*\\.Ring")) {
 
 				String[] ips = hostCi.getCiAttributes().get("dns_record")
 						.split(",");
@@ -985,7 +985,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 				}
 
 			} else if (hostCi.getCiClassName() != null
-					&& hostCi.getCiClassName().contains("Cluster")) {
+					&& hostCi.getCiClassName().matches("bom\\..*\\.Cluster")) {
 
 				if ((hostCi.getCiAttributes().containsKey("shared_type") && hostCi
 						.getCiAttributes().get("shared_type")
