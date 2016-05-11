@@ -86,7 +86,7 @@ public class NotificationFilter implements MessageFilter {
             if (msg.getSeverity().getLevel() >= this.eventSeverity.getLevel()) {
                 if (hasValidNSPath(msg.getNsPath())) {
                 	if (envProfile == null || envProfile.trim().equals("")
-                			|| envProfilePattern == null
+                			|| envProfilePattern == null || envProfilePattern.trim().equals("")
                 			|| envProfile.matches(envProfilePattern.trim())) {
                         // ToDo - add cloud and selector pattern check once it is finalized.
                         return true;                		
