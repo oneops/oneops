@@ -181,6 +181,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
 		chefRequest.put("workorder", ao);
 		chefRequest.put("run_list", runList);
 		chefRequest.put("app_name", appName);
+		chefRequest.put("ip_attribute", config.getIpAttribute());		
 		chefRequest.put("name", ao.getCi().getCiName());
 
 		// set mgmt cert
