@@ -134,14 +134,14 @@ module ApplicationHelper
     scope = platform.ciClassName.end_with?('catalog.Platform') ?  'design' : platform.nsPath.split('/').last
     nav = %(<li class="title">#{link_to(icon(site_icon(:pack), "&nbsp;#{context_nav_name_label(platform.ciName)} #{content_tag(:sub, icon(site_icon("#{scope}_availability"), scope))}"), catalog_pack_platform_path(:platform_id => platform))}</li>)
     if scope == 'design'
-      nav << %(<li class="indent">#{link_to(icon(site_icon(:single_availability), "#{context_nav_name_label('single')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'single'))}</li>)
-      nav << %(<li class="indent">#{link_to(icon(site_icon(:redundant_availability), "#{context_nav_name_label('redundant')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'redundant'))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:single_availability), "#{context_nav_name_label('single')} availability"), catalog_pack_platform_path(:id => platform.ciName, :availability => 'single'))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:redundant_availability), "#{context_nav_name_label('redundant')} availability"), catalog_pack_platform_path(:id => platform.ciName, :availability => 'redundant'))}</li>)
     elsif scope == 'single'
-      nav << %(<li class="indent">#{link_to(icon(site_icon(:design), "#{context_nav_name_label('design')}"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => nil))}</li>)
-      nav << %(<li class="indent">#{link_to(icon(site_icon(:redundant_availability), "#{context_nav_name_label('redundant')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'redundant'))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:design), "#{context_nav_name_label('design')}"), catalog_pack_platform_path(:id => platform.ciName, :availability => nil))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:redundant_availability), "#{context_nav_name_label('redundant')} availability"), catalog_pack_platform_path(:id => platform.ciName, :availability => 'redundant'))}</li>)
     elsif scope == 'redundant'
-      nav << %(<li class="indent">#{link_to(icon(site_icon(:design), "#{context_nav_name_label('design')}"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => nil))}</li>)
-      nav << %(<li class="indent">#{link_to(icon(site_icon(:single_availability), "#{context_nav_name_label('single')} availability"), catalog_pack_platform_path(:platform_id => platform.ciName, :availability => 'single'))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:design), "#{context_nav_name_label('design')}"), catalog_pack_platform_path(:id => platform.ciName, :availability => nil))}</li>)
+      nav << %(<li class="indent">#{link_to(icon(site_icon(:single_availability), "#{context_nav_name_label('single')} availability"), catalog_pack_platform_path(:id => platform.ciName, :availability => 'single'))}</li>)
     end
 
     content_for(:context_nav, raw(nav))
