@@ -6,6 +6,10 @@ Oneops admin gem consist of 2 gems.
 1. inductor
 2. circuit
 
+Pre-requisites
+-----
+The `inductor.jar` artefact is required for the gem to build correctly. See [oneops/inductor](https://github.com/oneops/inductor).
+
 Build
 -----
 
