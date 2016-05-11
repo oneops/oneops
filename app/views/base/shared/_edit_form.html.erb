@@ -5,12 +5,11 @@
    prefix    = "#{(resource.is_a?(Cms::Ci) ? resource.ciClassName : (resource.is_a?(Cms::Relation) ? resource.relationName : resource.class.name)).gsub(/\W/, '_')}_#{resource.id}_#{random_dom_id}"
    block     = resource.persisted? && resource.errors.blank? %>
 <div>
-  <% if block && !read_only %>
-    <div class="edit-form-controls"></div>
-  <% end %>
   <div id="<%= "#{prefix}_div" %>" class="edit_form">
+    <% unless read_only %>
+      <div class="edit-form-controls"></div>
+    <% end %>
     <% html_options = {:id => "#{prefix}_form", :class => "form-horizontal #{'editing' unless read_only || block}"}
-       html_options[:onsubmit] = %(show_busy(#{"'#{escape_javascript(busy_block)}'" if busy_block.present?})) if defined?(busy_block)
        form_options = {:remote => remote_x,
                        :url    => save_url,
                        :html   => html_options,
@@ -95,25 +94,23 @@
                   else {
                     form.find(".form-actions .btn:has(i.fa-check)").addClass('disabled');
                     form.parents(".section").find(".section-heading .menu .btn:has(i.fa-check)").addClass('disabled');
+                    <% if defined?(busy_block) %>
+                      show_busy("<% escape_javascript(busy_block) %>");
+                    <% end %>
                     return true;
                   }
                 });
 
-    <% unless read_only || new %>
-      var controls = "<%= escape_javascript(link_to_function(icon_button('edit',  'Edit',   'mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide')) %>" +
-                     "<%= escape_javascript(link_to_function(icon_button('times', 'Cancel', 'mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : '')) %>&nbsp;" +
-                     "<%= escape_javascript(link_to_function(icon_button('check', 'Save',   'mini btn-success'), "$j('##{prefix}_form .form-actions .btn.save').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')) %>";
-      try {
-        var section_menu = $('<%= prefix %>_div').up("div.section").down(".section-heading .menu");
-      } catch (e) {
-        section_menu = null;
+    <% unless read_only %>
+      <% control_buttons = [link_to_function(icon_button('times', 'Cancel', 'mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : ''),
+                            link_to_function(icon_button('check', 'Save',   'mini btn-success'), "$j('##{prefix}_form .form-actions .btn.save').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')]
+        control_buttons << link_to_function(icon_button('edit',  'Edit',   'mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide') unless new%>
+
+      var controlsContainer = $j("#<%= prefix %>_div").parents("div.section").find(".section-heading .menu");
+      if (!controlsContainer[0]) {
+        controlsContainer = $j("#<%= prefix %>_div").find(".edit-form-controls");
       }
-      if (section_menu) {
-        section_menu.update(controls);
-      }
-      else {
-        $('<%= prefix %>_div').previous(".edit-form-controls").insert(controls);
-      }
+      controlsContainer.html("<%= escape_javascript(raw(control_buttons.join('&nbsp;'))) %>");
     <% end %>
 
     <% if read_only || block %>
