@@ -5,8 +5,9 @@
 <% if @template.requires.relationAttributes.services.present? ||
                                 @requires.relationAttributes.attributes[:services].present? %>
   <%= section_panel 'Cloud Services', :position => 'right', :width => 'single' do %>
-    <%= render 'base/shared/edit_form', {:resource => @component,
-                                         :content  => 'services_details'} %>
+    <%= render 'base/shared/edit_form', {:resource  => @component,
+                                         :read_only =>  true,
+                                         :content   => 'services_details'} %>
   <% end %>
 <% end %>
 
