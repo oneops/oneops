@@ -2,4 +2,7 @@
                                      :content  => 'services_details',
                                      :form_url => @environment ?
                                          update_services_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component) :
+                                         update_services_assembly_design_platform_component_path(@assembly, @platform, @component),
+                                     :cancel_url => @environment ?
+                                         update_services_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component) :
                                          update_services_assembly_design_platform_component_path(@assembly, @platform, @component)} %>
