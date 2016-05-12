@@ -277,6 +277,7 @@ Display::Application.routes.draw do
 
           resources :components do
             get 'history', :on => :member
+            get 'update_services', :on => :member
             put 'update_services', :on => :member
 
             resources :attachments
@@ -324,6 +325,7 @@ Display::Application.routes.draw do
 
             resources :components, :only => [:index, :show, :edit, :update] do
               get  'history',         :on => :member
+              get  'update_services', :on => :member
               put  'update_services', :on => :member
               post 'touch',           :on => :member
               post 'touch',           :on => :collection

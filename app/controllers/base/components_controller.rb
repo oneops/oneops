@@ -95,9 +95,12 @@ class Base::ComponentsController < ApplicationController
 
   def update_services
     requires_relation
-    @requires.relationAttributes.services = params[:services].select(&:present?).join(',')
-    @requires.relationAttrProps.owner.services = params[:owner]
-    ok = execute(@requires, :save)
+    ok = true
+    if request.put?
+      @requires.relationAttributes.services = params[:services].select(&:present?).join(',')
+      @requires.relationAttrProps.owner.services = params[:owner]
+      ok = execute(@requires, :save)
+    end
 
     respond_to do |format|
       format.js do

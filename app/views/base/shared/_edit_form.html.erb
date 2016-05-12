@@ -33,7 +33,7 @@
                       :confirm => 'Are you sure you want to proceed with delete?',
                       :method  => :delete,
                       :remote  => remote_x) unless new || !defined?(destroy_url) || destroy_url.blank? %>
-          <%= link_to_function(icon('times', 'Cancel'), "cancel_#{prefix}()", :class => 'btn') %>
+          <%= link_to_function(icon('times', 'Cancel'), "cancel_#{prefix}()", :class => 'btn cancel') %>
           <%= link_to_function(icon('check', 'Save'),
                                'if (!$j(this).hasClass("disabled")) $j(this).parents("form").trigger("beforeSave").submit();',
                                :class => 'btn btn-success save') %>
@@ -93,7 +93,8 @@
                   }
                   else {
                     form.find(".form-actions .btn:has(i.fa-check)").addClass('disabled');
-                    form.parents(".section").find(".section-heading .menu .btn:has(i.fa-check)").addClass('disabled');
+                    form.parents(".section").find(".section-heading .menu .btn.save").addClass('disabled');
+                    form.parents(".section").find(".section-heading .menu .btn.cancel").addClass('disabled');
                     <% if defined?(busy_block) %>
                       show_busy("<% escape_javascript(busy_block) %>");
                     <% end %>
@@ -102,9 +103,9 @@
                 });
 
     <% unless read_only %>
-      <% control_buttons = [link_to_function(icon_button('times', 'Cancel', 'mini'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => block ? 'hide' : ''),
-                            link_to_function(icon_button('check', 'Save',   'mini btn-success'), "$j('##{prefix}_form .form-actions .btn.save').click()", :id => "#{prefix}_form_save_link", :class => block ? 'hide' : '')]
-        control_buttons << link_to_function(icon_button('edit',  'Edit',   'mini'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => block ? '' : 'hide') unless new%>
+      <% control_buttons = [link_to_function(icon('times', 'Cancel'), "cancel_#{prefix}()", :id => "#{prefix}_form_cancel_link", :class => "btn btn-mini cancel", :style => block ? 'display:none' : '' ),
+                            link_to_function(icon('check', 'Save'), "$j('##{prefix}_form .form-actions .btn.save').click()", :id => "#{prefix}_form_save_link", :class => "btn btn-mini btn-success save", :style => block ? 'display:none' : '')]
+        control_buttons << link_to_function(icon('edit',  'Edit'), "edit_#{prefix}()", :id => "#{prefix}_form_edit_link", :class => "btn btn-mini edit #{'hide' unless block}") unless new %>
 
       var controlsContainer = $j("#<%= prefix %>_div").parents("div.section").find(".section-heading .menu");
       if (!controlsContainer[0]) {
