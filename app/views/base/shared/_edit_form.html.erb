@@ -51,10 +51,10 @@
       if ($j("#<%= prefix %>_form").attr("data-dirty") == "true" || <%= resource.errors.present? ? 'true' : 'false' %> || <%= resource.new_record? %>) {
         <% if !defined?(cancel_url) || cancel_url.blank?
              if save_url.is_a?(Hash)
-               cancel_url = save_url.merge({:action => :edit})
+               cancel_url = save_url.merge({:action => new ? :index : :edit})
              else
                cancel_url = URI.parse(save_url)
-               cancel_url.path += '/edit'
+               cancel_url.path += '/edit' unless new
                cancel_url = cancel_url.to_s
              end
            end %>
@@ -72,13 +72,13 @@
 
     $j("#<%= prefix %>_form")
         .change(function () {
-                  $j("#<%= prefix %>_form").attr("data-dirty", "true");
+                  $j(this).attr("data-dirty", "true");
                 })
         .submit(function (e) {
                   var form = $j(this);
                   if (this.checkValidity && !this.checkValidity()) {
                     var invalidFields = form.find(":invalid"),
-                        errorsDiv     = $j('div.error-messages'),
+                        errorsDiv     = form.find('div.error-messages'),
                         errorList     = errorsDiv.find("ul");
                     errorList.html('');
                     invalidFields.each(function (index, field) {
