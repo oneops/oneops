@@ -249,6 +249,7 @@ class DesignController < ApplicationController
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name] = {}
 
                         component_attrs = comp.slice(*component_md_attrs)
+                        component_attrs = convert_json_attrs(component_attrs)
                         component_ci    = Cms::DjCi.build({:ciClassName  => component_class,
                                                            :nsPath       => platform_ns_path,
                                                            :ciName       => comp_name,
@@ -267,6 +268,7 @@ class DesignController < ApplicationController
                           attachments.each do |attachment_name, attachment|
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name] = {}
                             attachment_attrs = attachment.slice(*attachment_md_attrs)
+                            attachment_attrs = convert_json_attrs(attachment_attrs)
                             attachment_ci    = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
                                                                 :nsPath       => platform_ns_path,
                                                                 :ciName       => attachment_name,
@@ -300,6 +302,10 @@ class DesignController < ApplicationController
 
     errors = errors.delete_blank
     return errors.blank? && result, errors
+  end
+
+  def convert_json_attrs(attrs)
+    attrs.each_pair {|k, v| attrs[k] = v.to_json if v.present? && !v.is_a?(String)}
   end
 
   def ci_to_import(ci, extra = {})
