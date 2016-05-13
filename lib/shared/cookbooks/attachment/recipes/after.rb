@@ -1,5 +1,5 @@
 if node.workorder.payLoad.has_key?('EscortedBy') &&
-   node.workorder.rfcCi.ciClassName != "bom.Compute"
+   node.workorder.rfcCi.ciClassName !~ /\.Compute/
    
   attachments = node.workorder.payLoad.EscortedBy
   after = Array.new
