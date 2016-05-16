@@ -21,11 +21,11 @@ class DesignController < ApplicationController
   def extract
     respond_to do |format|
       format.json do
-        render :json => export_design
+        render :json => export_design(params[:collapse])
       end
 
       format.yaml do
-        render :text => export_design.to_yaml, :content_type => 'text/data_string'
+        render :text => export_design(params[:collapse]).to_yaml, :content_type => 'text/data_string'
       end
     end
   end
@@ -114,7 +114,7 @@ class DesignController < ApplicationController
     end
   end
 
-  def export_design
+  def export_design(collapse = false)
     design = Transistor.export_design(@assembly)
     # return design
 
@@ -140,12 +140,18 @@ class DesignController < ApplicationController
         plat['components'] = components.group_by {|c| "#{c['template']}/#{c['type'].sub(/^catalog\./, '')}"}.inject({}) do |templates_hash, (template_name, template_components)|
           templates_hash[template_name] = template_components.sort_by {|c| c['name']}.to_map_with_value do |c|
             comp = c['attributes'].presence || {}
+            comp = convert_json_attrs_from_string(comp, c['type']) unless collapse
 
             transfer_if_present('depends', c, comp)
 
             attachments = c['attachments']
-            comp['attachments'] = attachments.sort_by {|a| a['name']}.to_map_with_value {|a| [a['name'], a['attributes']]} if attachments.present?
-
+            if attachments.present?
+              comp['attachments'] = attachments.sort_by {|a| a['name']}.to_map_with_value do |a|
+                attrs = a['attributes']
+                attrs = convert_json_attrs_from_string(attrs, 'catalog.Attachment') unless collapse
+                [a['name'], attrs]
+              end
+            end
             [c['name'], comp]
           end
           templates_hash
@@ -304,7 +310,28 @@ class DesignController < ApplicationController
     return errors.blank? && result, errors
   end
 
-  def convert_json_attrs(attrs)
+  def convert_json_attrs_from_string(attrs, ci_class_name)
+    return attrs if attrs.blank?
+
+    types = %w(array hash struct)
+    ci_md = Cms::CiMd.look_up(ci_class_name)
+    attrs.each_pair do |k, v|
+      if v.present?
+        attr_md = ci_md.md_attribute(k)
+        if attr_md
+          if types.include?(attr_md.dataType)
+            begin
+              attrs[k] = JSON.parse(v)
+            rescue Exception => e
+              # Do nothing - leave as string.
+            end
+          end
+        end
+      end
+    end
+  end
+
+  def convert_json_attrs_to_string(attrs)
     attrs.each_pair {|k, v| attrs[k] = v.to_json if v.present? && !v.is_a?(String)}
   end
 
