@@ -786,10 +786,10 @@
     <column id="COL260" populated="true" UUID="08ba560a-d5aa-403c-bc94-91795d9fae9f" autoIncrement="false" autoIncrementSequenceName="cm_ci_log_ci_state_id_old_seq" defaultValue="" name="ci_state_id_old" nullable="1" physicalName="ci_state_id_old" precision="0" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="4" userDefinedTypeUUID="63b011c7-c81f-4c75-8271-632b3c87f727" >
      <remarks></remarks>
     </column>
-    <column id="COL261" populated="true" UUID="cffff325-5fde-4f6c-8c07-881b0cb9fcf6" autoIncrement="false" autoIncrementSequenceName="cm_ci_log_created_by_seq" defaultValue="" name="created_by" nullable="0" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL261" populated="true" UUID="cffff325-5fde-4f6c-8c07-881b0cb9fcf6" autoIncrement="false" autoIncrementSequenceName="cm_ci_log_created_by_seq" defaultValue="" name="created_by" nullable="1" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
-    <column id="COL262" populated="true" UUID="49820a5a-9c84-46d6-8c7e-c82321191966" autoIncrement="false" autoIncrementSequenceName="cm_ci_log_updated_by_seq" defaultValue="" name="updated_by" nullable="0" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL262" populated="true" UUID="49820a5a-9c84-46d6-8c7e-c82321191966" autoIncrement="false" autoIncrementSequenceName="cm_ci_log_updated_by_seq" defaultValue="" name="updated_by" nullable="1" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
     </folder>
@@ -848,10 +848,10 @@
     <column id="COL280" populated="true" UUID="e3361586-9ceb-48a2-883c-7d083a4f17d2" autoIncrement="false" autoIncrementSequenceName="cm_ci_attribute_log_df_attribute_value_old_seq" defaultValue="" name="df_attribute_value_old" nullable="1" physicalName="df_attribute_value_old" precision="0" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="2005" userDefinedTypeUUID="9c22ed40-2868-4d9e-96ca-789234a53c8f" >
      <remarks></remarks>
     </column>
-    <column id="COL281" populated="true" UUID="1ed2819c-67e5-4467-a16b-63889f4c3dad" autoIncrement="false" autoIncrementSequenceName="cm_ci_attribute_log_created_by_seq" defaultValue="" name="created_by" nullable="0" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL281" populated="true" UUID="1ed2819c-67e5-4467-a16b-63889f4c3dad" autoIncrement="false" autoIncrementSequenceName="cm_ci_attribute_log_created_by_seq" defaultValue="" name="created_by" nullable="1" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
-    <column id="COL282" populated="true" UUID="eb91fb1c-15ee-405d-9e69-b563ca9e29c7" autoIncrement="false" autoIncrementSequenceName="cm_ci_attribute_log_updated_by_seq" defaultValue="" name="updated_by" nullable="0" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL282" populated="true" UUID="eb91fb1c-15ee-405d-9e69-b563ca9e29c7" autoIncrement="false" autoIncrementSequenceName="cm_ci_attribute_log_updated_by_seq" defaultValue="" name="updated_by" nullable="1" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
     </folder>
@@ -899,10 +899,10 @@
     <column id="COL297" populated="true" UUID="80bd142b-e5e9-49df-b126-5477e2e56017" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_log_comments_seq" defaultValue="" name="comments" nullable="1" physicalName="comments" precision="2000" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
-    <column id="COL298" populated="true" UUID="681a0f15-a331-4e8a-972b-a834dd7f4c9c" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_log_created_by_seq" defaultValue="" name="created_by" nullable="0" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL298" populated="true" UUID="681a0f15-a331-4e8a-972b-a834dd7f4c9c" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_log_created_by_seq" defaultValue="" name="created_by" nullable="1" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
-    <column id="COL299" populated="true" UUID="2126d7e5-3665-478a-b47c-d4ec43da0f03" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_log_updated_by_seq" defaultValue="" name="updated_by" nullable="0" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL299" populated="true" UUID="2126d7e5-3665-478a-b47c-d4ec43da0f03" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_log_updated_by_seq" defaultValue="" name="updated_by" nullable="1" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
     </folder>
@@ -961,10 +961,10 @@
     <column id="COL317" populated="true" UUID="3c88ab6f-9819-4c97-a905-0b006691e885" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_attr_log_df_attribute_value_old_seq" defaultValue="" name="df_attribute_value_old" nullable="1" physicalName="df_attribute_value_old" precision="0" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="2005" userDefinedTypeUUID="9c22ed40-2868-4d9e-96ca-789234a53c8f" >
      <remarks></remarks>
     </column>
-    <column id="COL318" populated="true" UUID="4d2f4598-516c-44ff-ad58-f84c1f3fd79c" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_attr_log_created_by_seq" defaultValue="" name="created_by" nullable="0" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL318" populated="true" UUID="4d2f4598-516c-44ff-ad58-f84c1f3fd79c" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_attr_log_created_by_seq" defaultValue="" name="created_by" nullable="1" physicalName="created_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
-    <column id="COL319" populated="true" UUID="a07bf9c4-31b3-4d39-9591-a2cb1b6ee9a0" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_attr_log_updated_by_seq" defaultValue="" name="updated_by" nullable="0" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
+    <column id="COL319" populated="true" UUID="a07bf9c4-31b3-4d39-9591-a2cb1b6ee9a0" autoIncrement="false" autoIncrementSequenceName="cm_ci_relation_attr_log_updated_by_seq" defaultValue="" name="updated_by" nullable="1" physicalName="updated_by" precision="200" referenceCount="1" scale="0" sourceDataTypeName="UserDefinedSQLType" type="12" userDefinedTypeUUID="831ac2d4-0e65-47ec-a0b7-62b7f6b8760a" >
      <remarks></remarks>
     </column>
     </folder>
@@ -2230,7 +2230,7 @@
    </relationship>
   </relationships>
  </target-database>
- <ddl-generator type="ca.sqlpower.architect.ddl.PostgresDDLGenerator" allow-connection="true" target-schema="kloopzcm"> </ddl-generator>
+ <ddl-generator type="ca.sqlpower.architect.ddl.PostgresDDLGenerator" allow-connection="false" target-schema="kloopzcm"> </ddl-generator>
  <liquibase-settings useSeparateChangeSets="false" generateId="false" idStart="1"/>
  <compare-dm-settings  ddlGenerator="ca.sqlpower.architect.ddl.PostgresDDLGenerator"  outputFormatAsString="SQL"  saveFlag="true" >
   <source-stuff   datastoreTypeAsString="FILE"   filePath="/Users/zika/work/kloopz/kloopz-cms/db/kloopzdb.architect"  />
