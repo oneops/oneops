@@ -255,8 +255,8 @@ CREATE TABLE kloopzcm.cm_ci_relation_attr_log (
                 dj_attribute_value_old TEXT,
                 df_attribute_value TEXT,
                 df_attribute_value_old TEXT,
-                created_by VARCHAR(200) NOT NULL,
-                updated_by VARCHAR(200) NOT NULL,
+                created_by VARCHAR(200),
+                updated_by VARCHAR(200),
                 CONSTRAINT cm_ci_relation_attr_log_pk PRIMARY KEY (log_id)
 );
 
@@ -275,8 +275,8 @@ CREATE TABLE kloopzcm.cm_ci_relation_log (
                 ci_state_id INTEGER NOT NULL,
                 ci_state_id_old INTEGER,
                 comments VARCHAR(2000),
-                created_by VARCHAR(200) NOT NULL,
-                updated_by VARCHAR(200) NOT NULL,
+                created_by VARCHAR(200),
+                updated_by VARCHAR(200),
                 CONSTRAINT cm_ci_relation_log_pk PRIMARY KEY (log_id)
 );
 
@@ -299,8 +299,8 @@ CREATE TABLE kloopzcm.cm_ci_attribute_log (
                 dj_attribute_value_old TEXT,
                 df_attribute_value TEXT,
                 df_attribute_value_old TEXT,
-                created_by VARCHAR(200) NOT NULL,
-                updated_by VARCHAR(200) NOT NULL,
+                created_by VARCHAR(200),
+                updated_by VARCHAR(200),
                 CONSTRAINT cm_ci_attribute_log_pk PRIMARY KEY (log_id)
 );
 
@@ -320,8 +320,8 @@ CREATE TABLE kloopzcm.cm_ci_log (
                 comments VARCHAR(2000),
                 ci_state_id INTEGER NOT NULL,
                 ci_state_id_old INTEGER,
-                created_by VARCHAR(200) NOT NULL,
-                updated_by VARCHAR(200) NOT NULL,
+                created_by VARCHAR(200),
+                updated_by VARCHAR(200),
                 CONSTRAINT cm_ci_log_pk PRIMARY KEY (log_id)
 );
 
