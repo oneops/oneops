@@ -1507,6 +1507,19 @@ public class CmsRfcProcessor {
     }
 
     /**
+     * Gets the closed relation rfcs by ciid (to or from).
+     *
+     * @param ciId the ci id
+     * @return the closed relation rfc ci by ci id
+     */
+    public List<CmsRfcRelation> getClosedRelationRfcCIByCiId(long ciId) {
+        List<CmsRfcRelation> rfcList = djMapper.getClosedRfcRelationByCiId(ciId);
+        populateRfcRelationAttributes(rfcList);
+        return rfcList;
+    }
+    
+    
+    /**
      * Gets the roll up rfc.
      *
      * @param ciId the ci id

@@ -500,7 +500,7 @@
           and rci.ns_id = ns.ns_id
           and rci.class_id = cl.class_id
           and rci.action_id = a.action_id
-		ORDER BY rci.rfc_id asc
+		ORDER BY rci.rfc_id desc
 	 </select>
 
     <select id="getRollUpRfc" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
@@ -615,6 +615,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -647,6 +651,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -661,6 +669,45 @@
           and rfr.relation_id = rel.relation_id
           and rfr.action_id = a.action_id
           and rfr.ns_id = ns.ns_id
+	 </select>
+
+	 <select id="getClosedRfcRelationByCiId" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId, 
+			   rfr.release_id as releaseId,
+			   rfr.ns_id as nsId,
+			   ns.ns_path as nsPath,
+			   rfr.ci_relation_id as ciRelationId, 
+			   rfr.from_rfc_id as fromRfcId, 
+			   rfr.from_ci_id as fromCiId, 
+			   rfr.relation_id as relationId,
+			   rel.relation_name as relationName,
+			   rfr.relation_goid as relationGoid, 
+      		   rfr.to_ci_id as toCiId, 
+      		   rfr.to_rfc_id as toRfcId, 
+      		   rfr.action_id as rfcActionId, 
+      		   a.action_name as rfcAction,
+      		   rfr.execution_order as execOrder,
+		       rfr.created_by as createdBy,
+		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
+      		   rfr.is_active_in_release as isActiveInRelease, 
+       		   rfr.last_rfc_id as lastAppliedRfcId,
+       		   r.release_type as releaseType,
+       		   rfr.comments,
+       		   rfr.created
+        FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
+        where (rfr.from_ci_id = #{value} or rfr.to_ci_id = #{value}) 
+          and rfr.release_id = r.release_id
+          and r.release_state_id = rs.release_state_id
+          and rs.state_name = 'closed'
+          and rfr.is_active_in_release = true
+          and rfr.relation_id = rel.relation_id
+          and rfr.action_id = a.action_id
+          and rfr.ns_id = ns.ns_id
+        order by rfr.rfc_id desc  
 	 </select>
 
 
@@ -681,7 +728,11 @@
       		   a.action_name as rfcAction,
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
-		       rfr.updated_by as updatedBy, 
+		       rfr.updated_by as updatedBy,
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -714,6 +765,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId, 
        		   r.release_type as releaseType,
@@ -750,6 +805,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -787,6 +846,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -833,6 +896,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -878,7 +945,11 @@
       		   a.action_name as rfcAction,
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
-		       rfr.updated_by as updatedBy, 
+		       rfr.updated_by as updatedBy,
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated, 
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -912,7 +983,11 @@
       		   a.action_name as rfcAction,
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
-		       rfr.updated_by as updatedBy, 
+		       rfr.updated_by as updatedBy,
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated, 
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -947,6 +1022,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -982,6 +1061,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -1040,6 +1123,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId,
        		   r.release_type as releaseType,
@@ -1142,6 +1229,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId, 
        		   r.release_type as releaseType,
@@ -1195,6 +1286,10 @@
       		   rfr.execution_order as execOrder,
 		       rfr.created_by as createdBy,
 		       rfr.updated_by as updatedBy, 
+		       rfr.created_by as rfcCreatedBy,
+		       rfr.updated_by as rfcUpdatedBy, 
+		       rfr.created as rfcCreated,
+		       rfr.updated as rfcUpdated,
       		   rfr.is_active_in_release as isActiveInRelease, 
        		   rfr.last_rfc_id as lastAppliedRfcId, 
        		   r.release_type as releaseType,

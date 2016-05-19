@@ -72,6 +72,7 @@ public interface DJMapper {
 	CmsRfcRelation getRfcRelationById(long rfcId);
 	CmsRfcRelation getOpenRfcRelationByCiRelId(long ciRelationId);
 	List<CmsRfcRelation> getRfcRelationByReleaseId(long releaseId);
+	List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId);
 	List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath);
 	List<CmsRfcRelation> getRfcRelationBy4(@Param("releaseId") long releaseId,@Param("isActive") Boolean isActive,@Param("fromCiId") Long fromCiId, @Param("toCiId") Long toCiId);
 	List<CmsRfcRelation> getOpenRfcRelationBy2(@Param("fromCiId") Long fromCiId, @Param("toCiId") Long toCiId, @Param("relName") String relName,@Param("shortRelName") String shortRelName);
