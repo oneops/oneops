@@ -255,7 +255,7 @@ class DesignController < ApplicationController
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name] = {}
 
                         component_attrs = comp.slice(*component_md_attrs)
-                        component_attrs = convert_json_attrs(component_attrs)
+                        component_attrs = convert_json_attrs_to_string(component_attrs)
                         component_ci    = Cms::DjCi.build({:ciClassName  => component_class,
                                                            :nsPath       => platform_ns_path,
                                                            :ciName       => comp_name,
@@ -274,7 +274,7 @@ class DesignController < ApplicationController
                           attachments.each do |attachment_name, attachment|
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name] = {}
                             attachment_attrs = attachment.slice(*attachment_md_attrs)
-                            attachment_attrs = convert_json_attrs(attachment_attrs)
+                            attachment_attrs = convert_json_attrs_to_string(attachment_attrs)
                             attachment_ci    = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
                                                                 :nsPath       => platform_ns_path,
                                                                 :ciName       => attachment_name,
