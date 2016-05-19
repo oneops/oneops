@@ -45,6 +45,8 @@ import static com.oneops.inductor.InductorConstants.*;
 public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 	private Semaphore semaphore = null;
+	
+	private static final String BOM_CLASS_PREFIX = "bom\\.(.*\\.)*";
 
 	public WorkOrderExecutor(Config config, Semaphore semaphore) {
 		super(config);
@@ -98,7 +100,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 		} else {
 				// skip fqdn workorder if dns is disabled
 				if (config.isDnsDisabled()
-					&& wo.getRfcCi().getCiClassName().matches("bom\\..*\\.Fqdn")) {
+					&& wo.getRfcCi().getCiClassName().matches(BOM_CLASS_PREFIX + "Fqdn")) {
 				wo.setDpmtRecordState(COMPLETE);
 				CmsCISimple resultCi = new CmsCISimple();
 
@@ -957,7 +959,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 			CmsRfcCISimple hostCi = wo.getPayLoad()
 					.get(InductorConstants.MANAGED_VIA).get(0);
 
-			if (wo.getRfcCi().getCiClassName().matches("bom\\..*\\.Cluster")) {
+			if (wo.getRfcCi().getCiClassName().matches(BOM_CLASS_PREFIX + "Cluster")) {
 				List<CmsRfcCISimple> hosts = wo.getPayLoad().get(
 						InductorConstants.MANAGED_VIA);
 				@SuppressWarnings("rawtypes")
@@ -971,7 +973,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 			}
 
 			if (hostCi.getCiClassName() != null
-					&& hostCi.getCiClassName().matches("bom\\..*\\.Ring")) {
+					&& hostCi.getCiClassName().matches(BOM_CLASS_PREFIX + "Ring")) {
 
 				String[] ips = hostCi.getCiAttributes().get("dns_record")
 						.split(",");
@@ -985,7 +987,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 				}
 
 			} else if (hostCi.getCiClassName() != null
-					&& hostCi.getCiClassName().matches("bom\\..*\\.Cluster")) {
+					&& hostCi.getCiClassName().matches(BOM_CLASS_PREFIX + "Cluster")) {
 
 				if ((hostCi.getCiAttributes().containsKey("shared_type") && hostCi
 						.getCiAttributes().get("shared_type")
