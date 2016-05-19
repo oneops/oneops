@@ -230,20 +230,30 @@ public class DjRestController extends AbstractRestController {
 	@RequestMapping(value="/dj/simple/rfc/cis", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CmsRfcCISimple> getRfcCiBy3(
-			@RequestParam("releaseId") long releaseId,  
+			@RequestParam(value="releaseId", required = false) Long releaseId,  
 			@RequestParam(value="isActive", required = false) Boolean isActive, 
 			@RequestParam(value="ciId", required = false) Long ciId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		if (isActive == null) {
-			isActive = true;
-		}
-		List<CmsRfcCI> rfcList = djManager.getRfcCIBy3(releaseId, isActive, ciId);
 		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<CmsRfcCISimple>();
-		for (CmsRfcCI rfc : rfcList) {
-			scopeVerifier.verifyScope(scope, rfc);
-			rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc));
+		List<CmsRfcCI> rfcList = null;
+		if (releaseId != null) {
+			if (isActive == null) {
+				isActive = true;
+			}
+			rfcList = djManager.getRfcCIBy3(releaseId, isActive, ciId);
+			
+		} else if (ciId != null) {
+			rfcList = djManager.getClosedRfcCIByCiId(ciId);
 		}
+		
+		if (rfcList != null) {
+			for (CmsRfcCI rfc : rfcList) {
+				scopeVerifier.verifyScope(scope, rfc);
+				rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc));
+			}
+		}
+
 		return rfcSimpleList;
 	}
 	
@@ -332,23 +342,32 @@ public class DjRestController extends AbstractRestController {
 	@RequestMapping(value="/dj/simple/rfc/relations", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CmsRfcRelationSimple> getRfcRelationBy3(
-			@RequestParam("releaseId") long releaseId,  
+			@RequestParam(value="releaseId",  required = false) Long releaseId,  
 			@RequestParam(value="isActive", required = false) Boolean isActive, 
 			@RequestParam(value="fromCiId", required = false) Long fromCiId,
 			@RequestParam(value="toCiId", required = false) Long toCiId,
+			@RequestParam(value="ciId", required = false) Long ciId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		if (isActive == null) {
-			isActive = true;
-		}
-		List<CmsRfcRelation> relList = djManager.getRfcRelationBy3(releaseId, isActive, fromCiId, toCiId);
 		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<CmsRfcRelationSimple>();
-		for (CmsRfcRelation rel : relList) {
-
-			scopeVerifier.verifyScope(scope, rel);
-
-			relSimpleList.add(cmsUtil.custRfcRel2RfcRelSimple(rel));
+		List<CmsRfcRelation> relList = null;
+		
+		if (releaseId != null) {
+			if (isActive == null) {
+				isActive = true;
+			}
+			relList = djManager.getRfcRelationBy3(releaseId, isActive, fromCiId, toCiId);
+		} else if (ciId != null){
+			relList = djManager.getClosedRfcRelationByCiId(ciId);
 		}
+		
+		if (relList != null) {
+			for (CmsRfcRelation rel : relList) {
+				scopeVerifier.verifyScope(scope, rel);
+				relSimpleList.add(cmsUtil.custRfcRel2RfcRelSimple(rel));
+			}
+		}
+		
 		return relSimpleList;
 	}
 	
