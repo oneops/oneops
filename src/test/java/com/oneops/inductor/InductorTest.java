@@ -27,6 +27,8 @@ import org.junit.Test;
 
 import com.mockrunner.mock.jms.MockTextMessage;
 
+import junit.framework.Assert;
+
 public class InductorTest {
 
 	private String testWo = "";
@@ -106,4 +108,30 @@ public class InductorTest {
 		}
 		i.onMessage(m);
 	}
+	
+	@Test
+	public void testBomClass() {
+		String bomPrefix = "bom\\.(.*\\.)*";
+		String fqdnBomClass = bomPrefix + "Fqdn";
+		Assert.assertTrue("bom.Fqdn".matches(fqdnBomClass));
+		Assert.assertTrue("bom.oneops.1.Fqdn".matches(fqdnBomClass));
+		Assert.assertTrue("bom.main.Fqdn".matches(fqdnBomClass));
+		Assert.assertFalse("bomFqdn".matches(fqdnBomClass));
+		Assert.assertFalse("bom.Compute".matches(fqdnBomClass));
+		
+		String ringBomClass = bomPrefix + "Ring";
+		Assert.assertTrue("bom.Ring".matches(ringBomClass));
+		Assert.assertTrue("bom.oneops.1.Ring".matches(ringBomClass));
+		Assert.assertTrue("bom.main.Ring".matches(ringBomClass));
+		Assert.assertFalse("bomRing".matches(ringBomClass));
+		Assert.assertFalse("bom.Compute".matches(ringBomClass));
+		
+		String clusterBomClass = bomPrefix + "Cluster";
+		Assert.assertTrue("bom.Cluster".matches(clusterBomClass));
+		Assert.assertTrue("bom.oneops.1.Cluster".matches(clusterBomClass));
+		Assert.assertTrue("bom.main.Cluster".matches(clusterBomClass));
+		Assert.assertFalse("bomCluster".matches(clusterBomClass));
+		Assert.assertFalse("bom.Compute".matches(clusterBomClass));
+	}
+	
 }
