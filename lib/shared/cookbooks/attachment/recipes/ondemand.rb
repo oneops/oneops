@@ -71,14 +71,12 @@ if node.workorder.payLoad.has_key?('EscortedBy')
 
     if a[:ciAttributes].has_key?("exec_cmd")
       _exec_cmd = a[:ciAttributes][:exec_cmd].gsub(/\r\n?/,"\n")
-      ruby_block "execute command for on-demand #{a[:ciName]} attachment" do
-        block do
-          Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
-          shell_out!("#{_exec_cmd} ",
-                     :live_stream => Chef::Log::logger)
-        end
+      bash "execute on-demand command" do
+        code <<-EOH
+#{_exec_cmd}
+        EOH
         not_if { _exec_cmd.empty? }
-      end
+      end 
     end
 
   end

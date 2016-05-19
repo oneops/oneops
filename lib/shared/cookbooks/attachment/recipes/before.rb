@@ -1,6 +1,7 @@
 if node.workorder.payLoad.has_key?('EscortedBy') &&
-   node.workorder.rfcCi.ciClassName !~ /\.Compute/
+   node.workorder.rfcCi.ciClassName != "bom.Compute"
 
+  
   attachments = node.workorder.payLoad.EscortedBy 
   before = Array.new  
   attachments.each do |a|
@@ -74,15 +75,13 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
 
     if a[:ciAttributes].has_key?("exec_cmd")
       _exec_cmd = a[:ciAttributes][:exec_cmd].gsub(/\r\n?/,"\n")
-      ruby_block "execute command for before-#{node.workorder.rfcCi.rfcAction} #{a[:ciName]} attachment" do
-        block do
-          Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
-          shell_out!("#{_exec_cmd} ",
-                     :live_stream => Chef::Log::logger)
-        end
+      bash "execute before command" do
+        code <<-EOH
+#{_exec_cmd}
+        EOH
         not_if { _exec_cmd.empty? }
-      end
+      end   
     end
-
+    
   end
 end
