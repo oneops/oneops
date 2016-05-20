@@ -346,31 +346,6 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	public List<CmsDpmtRecord> getDpmtRecordRelations(long dpmtId) {
 		return dpmtProcessor.getDeploymentRecordRelations(dpmtId);
 	}
-
-	/* (non-Javadoc)
-	 * @see com.oneops.cms.dj.service.CmsDjManager#getWorkOrders(long, java.lang.String, java.lang.Integer)
-	 */
-//	@Override
-//	public List<CmsWorkOrder> getWorkOrders(long deploymentId, String state,
-//			Integer execOrder, Integer limit) {
-//		return woProvider.getWorkOrders(deploymentId, state, execOrder, limit);
-//	}
-
-	/* (non-Javadoc)
-	 * @see com.oneops.cms.dj.service.CmsDjManager#getWorkOrderIds(long, java.lang.String, java.lang.Integer,java.lang.Integer)
-	 */
-//	@Override
-//	public List<CmsWorkOrder> getWorkOrderIds(long deploymentId, String state,
-//			Integer execOrder, Integer limit) {
-//		return woProvider.getWorkOrderIds(deploymentId, state, execOrder, limit);
-//	}
-//
-//	/* (non-Javadoc)
-//	 * @see com.oneops.cms.dj.service.CmsDjManager#getWorkOrder(long, java.lang.String, java.lang.Integer)
-//	 */
-//	public CmsWorkOrder getWorkOrder(long dpmtRecordId, String state, Integer execOrder) {
-//		return woProvider.getWorkOrder(dpmtRecordId, state, execOrder);
-//	}
 	
 	/* (non-Javadoc)
 	 * @see com.oneops.cms.dj.service.CmsDjManager#updateDpmtRecord(com.oneops.cms.dj.domain.CmsDpmtRecord)
@@ -439,6 +414,11 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	@Override
 	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
 		return dpmtProcessor.updateApprovalList(approvals);
+	}
+
+	@Override
+	public List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId) {
+		return rfcProcessor.getClosedRelationRfcCIByCiId(ciId);
 	}
 	
 }

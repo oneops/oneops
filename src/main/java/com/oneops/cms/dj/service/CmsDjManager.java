@@ -57,6 +57,7 @@ public interface CmsDjManager {
 	CmsRfcRelation getRfcRelationById(long rfcId);
 	long rmRfcRelationFromRelease(long rfcId);
 	List<CmsRfcRelation> getRfcRelationByReleaseId(long releaseId);
+	List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId);
 	List<CmsRfcRelation> getRfcRelationBy3(long releaseId,Boolean isActive,Long fromCiId, Long toCiId);
 
 	CmsDeployment deployRelease(long releaseId);
