@@ -45,19 +45,17 @@ public class WoPublisher {
 	private SearchPublisher searchPublisher; 
     final private Gson gson = new Gson();
 
-    private boolean isPubEnabled;
+	private boolean isPubEnabled =true;
     
-    private final String SEARCH_FLAG = "IS_SEARCH_ENABLED";
-    
+
     /**
      *
      * @throws JMSException
      */
     public void init() throws JMSException {
-        isPubEnabled = "true".equals(System.getenv(SEARCH_FLAG));
-        logger.info(">>>>WOPublisher initalized...");
+        logger.info(">>>>WOPublisher initialized... searchEnabled " + isPubEnabled);
     }
-    
+
     /**
      * 
      * @param workOrder
@@ -80,7 +78,9 @@ public class WoPublisher {
 						+ ((CmsActionOrderSimple) cmsWoSimpleBase).getProcedureId() + "/"
 						+ ((CmsActionOrderSimple) cmsWoSimpleBase).getActionId());
 			}
-    	}
+    	}else {
+			logger.warn(">>>WOPublisher is disabled, the current value of environment variable IS_SEARCH_ENABLED " + isPubEnabled);
+		}
     }
     
     
@@ -100,6 +100,14 @@ public class WoPublisher {
 
 	public void setSearchPublisher(SearchPublisher asyncSearchPublisher) {
 		this.searchPublisher = asyncSearchPublisher;
+	}
+
+	public boolean isPubEnabled() {
+		return isPubEnabled;
+	}
+
+	public void setPubEnabled(boolean pubEnabled) {
+		isPubEnabled = pubEnabled;
 	}
 
 }

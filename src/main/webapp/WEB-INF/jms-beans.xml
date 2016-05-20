@@ -4,14 +4,10 @@
 	   xmlns:amq="http://activemq.apache.org/schema/core"
 	   xsi:schemaLocation="http://www.springframework.org/schema/beans
 			http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-
-
-			http://activemq.apache.org/schema/core 
+			http://activemq.apache.org/schema/core
             http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd">
 
-	<!--import resource="/activiti-context.xml"/>
-	<import resource="/cmsclient-beans.xml"/-->
-		
+
 	<amq:queue id="woQueue" physicalName="CONTROLLER.WO" />
 	<amq:queue id="aoQueue" physicalName="CONTROLLER.AO" />
 	<amq:queue id="indRespQueue" physicalName="controller.response" />
@@ -59,11 +55,11 @@
 
 	<bean id="woPublisher" class="com.oneops.controller.jms.WoPublisher" init-method="init">
 		<property name="searchPublisher" ref="searchPublisher" />
+        <property name="pubEnabled" value="${IS_SEARCH_ENABLED:true}" ></property>
 	</bean>
 
 
     <bean id="inductorListener" class="com.oneops.controller.jms.InductorListener" >
-    	<!--property name="connFactory" ref="jmsFactory" /-->
     	<property name="wfController" ref="wfController" />
     	<property name="woPublisher" ref="woPublisher" />
     	<property name="sensorClient" ref="sensorClient" />
@@ -94,8 +90,6 @@
 		<property name="concurrentConsumers" value="${controller.wo.max_consumers:2}" />
 		<property name="destination" ref="woQueue" />
 		<property name="messageListener" ref="cmsListener" />
-		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
-		<!--property name="sessionAcknowledgeMode" value="2"/-->
 		<property name="sessionTransacted" value="true"/>
 	</bean>
 
@@ -119,8 +113,6 @@
 		<property name="concurrentConsumers" value="${controller.response.max_consumers:2}" />
 		<property name="destination" ref="indRespQueue" />
 		<property name="messageListener" ref="inductorListener" />
-		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
-		<!--property name="sessionAcknowledgeMode" value="2"/-->
 		<property name="sessionTransacted" value="true"/>
 	</bean>
 	
