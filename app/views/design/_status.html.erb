@@ -9,7 +9,8 @@
             <li><%= icon('star') %>Design release <%= @release.releaseId %> created
               <strong><%= time_ago_in_words(@release.created_timestamp) %></strong></li>
             <li><%= icon('user') %>Created by <%= highlight(@release.createdBy) %></li>
-            <li><%= icon('th-list') %>Release contains <%= count_marker(@release.rfc_cis.size.to_s) %> change(s)</li>
+            <% change_count = @release.rfc_cis.size %>
+            <li><%= icon('th-list') %>Release contains <%= highlight(change_count) %> <%= 'change'.pluralize(change_count) %></li>
           </ul>
           <ul class="status-actions">
             <li>

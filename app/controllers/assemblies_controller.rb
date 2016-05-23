@@ -280,13 +280,13 @@ class AssembliesController < ApplicationController
 
   def load_assembly_list
     platforms = Cms::Ci.all(:params => {:nsPath => "#{organization_ns_path}/", :ciClassName => 'catalog.Platform', :recursive => true}).inject({}) do |m, p|
-      name    = p.nsPath.split('/').last
+      root, org, name = p.nsPath.split('/', 3)
       m[name] = (m[name] || []) << p
       m
     end
 
     environments = Cms::Ci.all(:params => {:nsPath => "#{organization_ns_path}/", :ciClassName => 'manifest.Environment', :recursive => true}).inject({}) do |m, p|
-      name    = p.nsPath.split('/').last
+      root, org, name = p.nsPath.split('/', 3)
       m[name] = (m[name] || []) << p
       m
     end
