@@ -259,8 +259,9 @@ Display::Application.routes.draw do
 
       namespace :design do
         resources :variables do
-          put 'lock',   :on => :collection
-          put 'unlock', :on => :collection
+          put 'lock',    :on => :collection
+          put 'unlock',  :on => :collection
+          get 'history', :on => :member
         end
 
         resources :platforms do
@@ -269,18 +270,22 @@ Display::Application.routes.draw do
           get  'diagram',         :on => :member
           get  'component_types', :on => :member
           get  'diff',            :on => :member
+          get 'history',          :on => :member
 
           resources :variables, :controller => 'local_variables' do
-            put 'lock',   :on => :collection
-            put 'unlock', :on => :collection
+            put 'lock',    :on => :collection
+            put 'unlock',  :on => :collection
+            get 'history', :on => :member
           end
 
           resources :components do
-            get 'history', :on => :member
+            get 'history',         :on => :member
             get 'update_services', :on => :member
             put 'update_services', :on => :member
 
-            resources :attachments
+            resources :attachments do
+              get 'history', :on => :member
+            end
           end
 
           resources :attachments, :only => [:show, :edit, :update, :destroy]
@@ -308,8 +313,9 @@ Display::Application.routes.draw do
           get  'search',       :on => :member
 
           resources :variables, :only => [:index, :show, :edit, :update] do
-            put 'lock',   :on => :collection
-            put 'unlock', :on => :collection
+            put 'lock',    :on => :collection
+            put 'unlock',  :on => :collection
+            get 'history', :on => :member
           end
 
           resources :relays do
@@ -322,6 +328,7 @@ Display::Application.routes.draw do
             get 'diagram',             :on => :member
             put 'cloud_configuration', :on => :member
             put 'cloud_priority',      :on => :member
+            get 'history',             :on => :member
 
             resources :components, :only => [:index, :show, :edit, :update] do
               get  'history',         :on => :member
@@ -331,20 +338,24 @@ Display::Application.routes.draw do
               post 'touch',           :on => :collection
               post 'deploy',          :on => :member
 
-              resources :attachments, :only => [:index, :show, :edit, :update]
+              resources :attachments, :only => [:index, :show, :edit, :update] do
+                get 'history', :on => :member
+              end
 
               resources :monitors do
                 get 'watched_by',        :on => :member
                 put 'update_watched_by', :on => :member
                 put 'toggle',            :on => :member
+                get 'history',           :on => :member
               end
 
               resources :logs
             end
 
             resources :variables, :controller => 'local_variables', :only => [:index, :show, :edit, :update] do
-              put 'lock',   :on => :collection
-              put 'unlock', :on => :collection
+              put 'lock',    :on => :collection
+              put 'unlock',  :on => :collection
+              get 'history', :on => :member
             end
 
             resources :attachments, :only => [:show, :edit, :update]

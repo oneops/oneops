@@ -1,4 +1,6 @@
 class Base::ComponentsController < ApplicationController
+  include ::RfcHistory
+
   before_filter :find_platform
   before_filter :find_component, :only => [:show, :edit, :update, :destroy, :history, :update_services]
 
@@ -85,14 +87,6 @@ class Base::ComponentsController < ApplicationController
     end
   end
 
-  def history
-    @history = @component.history
-    respond_to do |format|
-      format.js { render 'base/components/history' }
-      format.json { render :json => @history }
-    end
-  end
-
   def update_services
     requires_relation
     ok = true
@@ -114,6 +108,10 @@ class Base::ComponentsController < ApplicationController
   end
 
   protected
+
+  def ci_resource
+    @component
+  end
 
   def find_platform
     # Overridden by subclasses.

@@ -1,4 +1,6 @@
 class Base::PlatformsController < ApplicationController
+  include ::RfcHistory
+
   def show
     respond_to do |format|
       format.html do
@@ -172,6 +174,10 @@ class Base::PlatformsController < ApplicationController
 
 
   protected
+
+  def ci_resource
+    @platform
+  end
 
   def get_platform_requires_relation_temlates(platform)
     ci_class_name = @platform.ciClassName

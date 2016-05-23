@@ -1924,7 +1924,7 @@ img.authicon {
   line-height: 15px;
   margin: 5px 2px 0px 2px;
   color: #888;
-  opacity: 0.3;
+  opacity: 0.5;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4370,4 +4370,27 @@ i.relation {
 
 form.editing .tx-editor.expanded .tx-btn.insert-var {
   display: inline;
+}
+
+.ci-properties-menu {
+  position: absolute;
+  top: 5px;
+  right: 10px;
+}
+
+.ci-properties-menu .dropdown-toggle {
+  color: black;
+  opacity: 0.5;
+  text-decoration: none;
+  font-size: 20px;
+}
+
+.ci-properties-menu .dropdown-toggle:hover {
+  opacity: 1;
+}
+
+.ci-properties-menu .dropdown-menu {
+	left: auto;
+	position: absolute;
+  right: 0;
 }

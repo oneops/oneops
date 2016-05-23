@@ -21,7 +21,8 @@ module ApplicationHelper
                 :cloud_support          => 'medkit',
                 :cost                   => 'money',
                 :export                 => 'download',
-                :import                 => 'upload'}
+                :import                 => 'upload',
+                :history                => 'history'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -197,6 +198,7 @@ module ApplicationHelper
   end
 
   def assembly_nav(assembly, ci, dto_links, current_dto)
+    Rails.logger.info "=== #{current_dto}"
     nav = %(<li class="title">#{link_to(icon(site_icon(:assembly), "&nbsp;#{context_nav_name_label(assembly.ciName)}"), assembly_path(assembly))}</li>)
     nav << %(<li class="divider small"></li>)
     if ci
@@ -960,13 +962,11 @@ module ApplicationHelper
   end
 
   def breadcrumb_platform_label(platform = @platform)
-    active = @platform.ciAttributes.attributes.has_key?(:is_active) && @platform.ciAttributes.is_active == 'false' ? false : true
+    active = platform.ciAttributes.attributes.has_key?(:is_active) && @platform.ciAttributes.is_active == 'false' ? false : true
     "#{platform.ciName} #{breadcrumb_marker("version #{platform.ciAttributes.major_version}", active ? 'label-success' : '')}"
   end
 
   def release_state_icon(state, additional_classes = '')
-    icon = ''
-    text = ''
     case state
       when 'closed'
         icon = 'check'
@@ -977,6 +977,9 @@ module ApplicationHelper
       when 'canceled'
         icon = 'ban'
         text = 'text-error'
+      else
+        icon = ''
+        text = ''
     end
     content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end

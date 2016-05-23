@@ -1,0 +1,91 @@
+<% ci_name = ci.ciName %>
+<%= list((rfc_cis.presence || []) + (rfc_relations.presence || []),
+            :class => 'release-diff',
+            :toolbar => {:list_name => 'release_rfc_list',
+                         :sort_by   => [%w(Timestamp timestamp), %w(Release release), %w(Type rfcType)],
+                         :filter_by => %w(release attributeName rfcType relationName timestamp),
+                         :compact   => true}) do |builder, target| %>
+  <% is_ci = target.is_a?(Cms::RfcCi)
+     rfc_id = target.rfcId
+     relation_name = is_ci ? '' : target.relationName.split('.').last
+     diff_attrs = is_ci ? target.ciAttributes.attributes : target.relationAttributes.attributes
+     base_attrs = is_ci ? target.ciBaseAttributes.attributes : target.relationBaseAttributes.attributes
+     meta = target.meta
+     diff_attribute_desc = diff_attrs.keys.map do |attr|
+       mda = meta.md_attribute(attr)
+       mda ? mda.description : attr
+     end
+     timestamp = target.rfc_updated_timestamp.presence || target.rfc_created_timestamp.presence || target.updated_timestamp.presence || target.created_timestamp
+     timestamp_str = timestamp.present? && timestamp.strftime('%F %R') %>
+  <% builder.itemid rfc_id %>
+  <% builder.attributes raw(%(release="#{target.releaseId}" timestamp="#{timestamp_str}" rfcType="#{is_ci ? 'ci' : 'relation'}" relationName="#{relation_name}" attributeName="#{diff_attribute_desc.join('+')}")) %>
+  <% builder.target nil %>
+  <% builder.status do %>
+    <%= marker(timestamp_str, 'label-inverse') if timestamp_str.present? %>
+    <%= link_to(redirect_release_path(target.releaseId)) do %>
+      <%= status_marker('release', target.releaseId) %>
+    <% end %>
+    <%= status_marker('id', target.rfcId) %>
+    <%= status_marker('action', target.rfcAction, action_to_label(target.rfcAction)) %>
+  <% end %>
+  <% builder.menu :none %>
+  <% builder.top do %>
+    <div>
+      <% if is_ci %>
+        <%= ci_name %>
+      <% else %>
+        <%= link_to(redirect_ci_path(target.toCiId == ci.ciId ? target.fromCiId : target.toCiId)) do %>
+          <% unless target.fromCiId == ci.ciId %>
+            <span><%= target.ci_hash['fromCiName'] %></span>
+            <small><%= icon('link', nil, 'relation') %></small>
+          <% end %>
+          <span><%= relation_name %></span>
+          <% unless target.toCiId == ci.ciId %>
+            <small><%= icon('link', nil, 'relation') %></small>
+            <span><%= target.ci_hash['toCiName'] %></span>
+          <% end %>
+        <% end %>
+      <% end %>
+      <span class="topdesc">
+        <em>
+          <% if target.rfcUpdated && target.rfc_updated_timestamp.present? %>
+            last modified <% updated_by = target.rfcUpdatedBy || target.rfcCreatedBy  %>
+            <%= time_ago_in_words(target.rfc_updated_timestamp) %> <%= "by #{updated_by}" if updated_by %>
+          <% elsif target.rfc_created_timestamp %>
+            created <%= time_ago_in_words(target.rfc_created_timestamp) %> <%= "by #{target.rfcCreatedBy}" if target.rfcCreatedBy %>
+          <% else %>
+            &nbsp;
+          <% end %>
+        </em>
+      </span>
+      <% if diff_attrs.present? %>
+        <span class="topdesc pull-right">
+          <small><%= pluralize(diff_attrs.size, 'change') %>&nbsp;</small>
+          <%= link_to_function(icon('plus-square-o', '', 'fa-lg'),
+                               "$j(this).find('i.fa').toggleClass('fa-plus-square-o fa-minus-square-o').parents('li').find('.middle').toggle(500)") %>
+        </span>
+      <% end %>
+    </div>
+  <% end %>
+  <% builder.middle do %>
+    <% if diff_attrs.present?  %>
+      <table class="table table-condensed">
+        <% diff_attrs.each_pair do |attr, value| %>
+          <% md_attribute = meta.md_attribute(attr)
+             data_type = md_attribute.dataType
+             json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+             base_value = base_attrs[attr] %>
+          <tr class="attribute"><td colspan="2"><%= md_attribute ? md_attribute.description : attr %></td></tr>
+          <tr class="diff-container">
+            <td><pre class="changed"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
+            <td><pre class="original muted"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre></td>
+          </tr>
+        <% end %>
+      </table>
+    <% end %>
+  <% end %>
+<% end %>
+
+<script>
+  $j(".release-diff .diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+</script>
