@@ -5,14 +5,19 @@
   </script>
 <% end %>
 
+<%= section_panel 'Platform Configuration & Status', :width => 'double', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @platform,
+              :content  => 'cms/cis/properties',
+             :read_only => true}) %>
+  <hr/>
+  <div id="platform_status"><%= render('platform_status') %></div>
+<% end %>
+
 <% if @scale_relations.present? %>
   <%= section_panel 'Scaling', :id => 'platform_configuration', :width => 'double', :position => 'left' do %>
     <div id="platform_configuration"><%= render 'configuration' %></div>
   <% end %>
-<% end %>
-
-<%= section_panel 'Platform Status', :width => 'double', :position => 'left' do %>
-  <div id="platform_status"><%= render('platform_status') %></div>
 <% end %>
 
 <%= section_panel 'Cloud Status', :width => 'double', :position => 'left' do %>

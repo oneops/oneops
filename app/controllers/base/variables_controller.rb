@@ -1,7 +1,9 @@
 class Base::VariablesController < ApplicationController
+  include ::RfcHistory
+
   before_filter :find_parents
   before_filter :find_variables, :only => [:index, :lock, :unlock]
-  before_filter :find_variable, :only => [:show, :edit, :update, :destroy]
+  before_filter :find_variable, :only => [:show, :edit, :update, :destroy, :history]
 
   def index
     find_variables unless @variables
@@ -64,6 +66,10 @@ class Base::VariablesController < ApplicationController
 
   def find_variables
     # Abstract, implemented by subclass.
+  end
+
+  def ci_resource
+    @variable
   end
 
   def do_lock(lock)

@@ -147,6 +147,11 @@ class ApplicationController < ActionController::Base
 
   protected
 
+  def ci_resource
+    # Should be overwritten by subclasses.
+    raise Exception.new("Controller #{self.class.name} did not define ci resource.")
+  end
+
   def locate_proxy(qualifier, ns_path)
     find_params = {'ci_proxies.ns_path' => ns_path}
     if qualifier =~ /\D/

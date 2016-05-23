@@ -1,6 +1,5 @@
 class Transition::AttachmentsController < Base::AttachmentsController
-  before_filter :find_parent_cis
-  before_filter :find_attachment, :only => [:show, :edit, :update]
+  before_filter :find_parent_and_attachment
 
   def show
     respond_to do |format|
@@ -11,21 +10,21 @@ class Transition::AttachmentsController < Base::AttachmentsController
 
   private
 
-  def find_parent_cis
-    @assembly    = locate_assembly(params[:assembly_id])
-    @environment = locate_environment(params[:environment_id], @assembly)
-    @platform    = locate_manifest_platform(params[:platform_id], @environment)
-    component_id = params[:component_id]
-    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
-  end
+  def find_parent_and_attachment
+    @assembly     = locate_assembly(params[:assembly_id])
+    @environment  = locate_environment(params[:environment_id], @assembly)
+    @platform     = locate_manifest_platform(params[:platform_id], @environment)
+    component_id  = params[:component_id]
+    @component    = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
+    attachment_id = params[:id]
+    if attachment_id.present?
+      @attachment = locate_ci_in_platform_ns(attachment_id, @platform, 'manifest.Attachment', :attrProps => 'owner')
+      unless @component
+        @component = Cms::DjRelation.first(:params => {:ciId              => @attachment.ciId,
+                                                       :direction         => 'to',
+                                                       :relationShortName => 'EscortedBy'}).fromCi
 
-  def find_attachment
-    @attachment = locate_ci_in_platform_ns(params[:id], @platform, 'manifest.Attachment', :attrProps => 'owner')
-    unless @component
-      @component = Cms::DjRelation.first(:params => {:ciId              => @attachment.ciId,
-                                                     :direction         => 'to',
-                                                     :relationShortName => 'EscortedBy'}).fromCi
-
+      end
     end
   end
 end

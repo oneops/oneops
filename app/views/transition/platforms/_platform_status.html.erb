@@ -37,7 +37,7 @@
           <% end %>
           <% unless rfc_action == 'delete' %>
             <li>
-              <%= link_to enabled ? icon('toggle-off', 'Disable') : icon('toggle-off', 'Enable'),
+              <%= link_to enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
                           toggle_assembly_transition_environment_platform_path(@assembly, @environment, @platform),
                           :remote => true,
                           :class  => "btn btn-#{enabled ? 'danger' : 'success'}" %>
