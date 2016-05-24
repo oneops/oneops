@@ -115,8 +115,6 @@ public class NotificationsTest {
 		//method first does a lookup finds nothing and just returns
 		noti.sendOpsEventNotification(null);	
 
-		noti.sendOpsEventNotification(null);
-
 		CiChangeStateEvent event = new CiChangeStateEvent();
 		event.setCiId(NOT_FOUND_KEY);
 
@@ -128,7 +126,13 @@ public class NotificationsTest {
 		noti.sendFlexNotificationProcessing(event,"",1);
 		noti.sendFlexNotificationProcessing(event,"overutilized",1);
 
-
+		noti.sendFlexNotificationErrorProcessing(event,"","");
+		noti.sendFlexNotificationPostponeProcessing(event,"");
+		noti.sendGoodNotification(event);
+		noti.sendDependsOnUnhealthyNotification(event);
+		noti.sendRepairNotification(event, null);
+		noti.sendRepairCriticalNotification(event, null);
+		noti.sendPostponedRepairNotification(event, null);
 		
 	}
 	@Test
@@ -140,14 +144,18 @@ public class NotificationsTest {
 		CiChangeStateEvent event = new CiChangeStateEvent();
 		event.setCiId(CMS_KEY);
 
-		//noti.sendFlexNotificationNoRepair(event,"");
-		//noti.sendFlexNotificationLimitIsReached(event,"");
-		//noti.sendFlexNotificationProcessing(event,"",1);
-		//noti.sendFlexNotificationErrorProcessing(event,"","");
-		//noti.sendFlexNotificationPostponeProcessing(event,"");
-		//noti.sendDependsOnUnhealthyNotification(event);
-		//noti.sendUnhealthyNotificationNoRepair(event);
-	}
+		noti.sendUnhealthyNotificationNoRepair(event);
+ 		noti.sendFlexNotificationNoRepair(event,"");
+ 		noti.sendFlexNotificationLimitIsReached(event,"");
+ 		noti.sendFlexNotificationProcessing(event,"",1);
+ 		noti.sendFlexNotificationErrorProcessing(event,"","");
+ 		noti.sendFlexNotificationPostponeProcessing(event,"");
+ 		noti.sendGoodNotification(event);
+ 		noti.sendDependsOnUnhealthyNotification(event);
+ 		noti.sendRepairNotification(event, null);
+ 		noti.sendRepairCriticalNotification(event, null);
+ 		noti.sendPostponedRepairNotification(event,null);
+ }
 	
 	
 	
