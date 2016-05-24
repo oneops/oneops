@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.ops.events.CiChangeStateEvent;
 import org.apache.log4j.Logger;
 import org.springframework.web.client.RestTemplate;
 import org.testng.annotations.BeforeClass;
@@ -181,7 +182,7 @@ public class FlexStateProcessorTest {
 		//it is neither overutilized or underutilized state
 		FlexStateProcessor fsp = new FlexStateProcessor();
 		fsp.setCoProcessor(cop);		
-		OpsBaseEvent event = new OpsBaseEvent();
+		CiChangeStateEvent event = new CiChangeStateEvent();
 		event.setCiId(ID_NOT_FOUND);
 
 		try {
@@ -211,15 +212,15 @@ public class FlexStateProcessorTest {
 		fsp.setTransistorUrl(null);		
 	
 		 try {
-			OpsBaseEvent event = new OpsBaseEvent();
+			 CiChangeStateEvent event = new CiChangeStateEvent();
 			event.setCiId(ID_WITH_AUTO_SCALING);
 
 			fsp.processOverutilized(event, true);
 			//drives private method for growPool...
-			event = new OpsBaseEvent();
+			event = new CiChangeStateEvent();
 			event.setCiId(ID_WITHOUT_AUTO_SCALING);
 			fsp.processOverutilized(event, true);
-			event = new OpsBaseEvent();
+			event = new CiChangeStateEvent();
 			event.setCiId(ID_WITHOUT_AUTO_REPAIR);
 			fsp.processOverutilized(event, true);
 
@@ -247,15 +248,15 @@ public class FlexStateProcessorTest {
 		processor.setCmProcessor(cmProcessorMock);
 
 		try {
-			OpsBaseEvent event = new OpsBaseEvent();
+			CiChangeStateEvent event = new CiChangeStateEvent();
 			event.setCiId(0L);
 
 			processor.processUnderutilized(event, true, System.currentTimeMillis()); //actually not
-			event = new OpsBaseEvent();
+			event = new CiChangeStateEvent();
 			event.setCiId(ID_WITH_AUTO_REPAIR);
 			processor.processUnderutilized(event, true, System.currentTimeMillis());
 
-			event = new OpsBaseEvent();
+			event = new CiChangeStateEvent();
 			event.setCiId(ID_WITH_AUTO_SCALING);
 			processor.processUnderutilized(event, true, System.currentTimeMillis()); //is underutilized 
 			
