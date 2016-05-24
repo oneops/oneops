@@ -332,7 +332,7 @@ class DesignController < ApplicationController
   end
 
   def convert_json_attrs_to_string(attrs)
-    attrs.each_pair {|k, v| attrs[k] = v.to_json if v.present? && !v.is_a?(String)}
+    attrs.each_pair {|k, v| attrs[k] = v.to_json if v && !v.is_a?(String)}
   end
 
   def ci_to_import(ci, extra = {})
