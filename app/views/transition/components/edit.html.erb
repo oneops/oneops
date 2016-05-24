@@ -19,8 +19,7 @@
 
 <%= page_info "managed via #{@managed_via.map {|r| link_to(highlight(r.toCi.ciName), edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, r.toCi))}.join(', ')}" if @managed_via.present? %>
 
-<%= items = [{:label => 'configuration', :template => 'configuration', :selected => true},
-             {:label => 'history', :url => history_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component)}]
+<%= items = [{:label => 'configuration', :template => 'configuration', :selected => true}]
     items << {:label => 'attachments', :template => 'transition/attachments/attachment_list'} if @attachments.present?
     items << {:label => 'monitors', :url => assembly_transition_environment_platform_component_monitors_path(@assembly, @environment, @platform, @component)}
     items << {:label => 'logging', :url => assembly_transition_environment_platform_component_logs_path(@assembly, @environment, @platform, @component)} if @environment.ciAttributes.logging == 'true'
