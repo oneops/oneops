@@ -115,8 +115,6 @@ public class NotificationsTest {
 		//method first does a lookup finds nothing and just returns
 		noti.sendOpsEventNotification(null);	
 
-		noti.sendOpsEventNotification(null);
-
 		CiChangeStateEvent event = new CiChangeStateEvent();
 		event.setCiId(NOT_FOUND_KEY);
 
@@ -128,26 +126,37 @@ public class NotificationsTest {
 		noti.sendFlexNotificationProcessing(event,"",1);
 		noti.sendFlexNotificationProcessing(event,"overutilized",1);
 
-
+		noti.sendFlexNotificationErrorProcessing(event,"","");
+		noti.sendFlexNotificationPostponeProcessing(event,"");
+		noti.sendGoodNotification(event);
+		noti.sendDependsOnUnhealthyNotification(event);
+		noti.sendRepairNotification(event, null);
+		noti.sendRepairCriticalNotification(event, null);
+		noti.sendPostponedRepairNotification(event, null);
 		
 	}
 	@Test
 	public void testWithCiMock(){
 		Notifications noti = new Notifications();
+		EventUtil eventUtil = new EventUtil();
+		eventUtil.setGson(new Gson());
+		noti.setEventUtil(eventUtil);
 		noti.setAntennaClient(antennaClientMock);
 		noti.setCmProcessor(cmProcessorMock);
 		noti.setEnvProcessor(envProcessorMock);
-		CiChangeStateEvent event = new CiChangeStateEvent();
-		event.setCiId(CMS_KEY);
 
-		//noti.sendFlexNotificationNoRepair(event,"");
-		//noti.sendFlexNotificationLimitIsReached(event,"");
-		//noti.sendFlexNotificationProcessing(event,"",1);
-		//noti.sendFlexNotificationErrorProcessing(event,"","");
-		//noti.sendFlexNotificationPostponeProcessing(event,"");
-		//noti.sendDependsOnUnhealthyNotification(event);
-		//noti.sendUnhealthyNotificationNoRepair(event);
-	}
+		noti.sendUnhealthyNotificationNoRepair(getCiChangeEvent(UNHEALTHY, GOOD, OPEN, NEW));
+ 		noti.sendFlexNotificationNoRepair(getCiChangeEvent(OVERUTILIZED, GOOD, OPEN, NEW),"");
+ 		noti.sendFlexNotificationLimitIsReached(getCiChangeEvent(OVERUTILIZED, GOOD, OPEN, NEW),"");
+ 		noti.sendFlexNotificationProcessing(getCiChangeEvent(OVERUTILIZED, GOOD, OPEN, NEW),"",1);
+ 		noti.sendFlexNotificationErrorProcessing(getCiChangeEvent(OVERUTILIZED, GOOD, OPEN, NEW),"","");
+ 		noti.sendFlexNotificationPostponeProcessing(getCiChangeEvent(OVERUTILIZED, GOOD, OPEN, NEW),"");
+ 		noti.sendGoodNotification(getCiChangeEvent(OVERUTILIZED, GOOD, OPEN, NEW));
+ 		noti.sendDependsOnUnhealthyNotification(getCiChangeEvent(UNHEALTHY, GOOD, OPEN, NEW));
+ 		noti.sendRepairNotification(getCiChangeEvent(UNHEALTHY, GOOD, OPEN, NEW), null);
+ 		noti.sendRepairCriticalNotification(getCiChangeEvent(UNHEALTHY, GOOD, OPEN, NEW), null);
+ 		noti.sendPostponedRepairNotification(getCiChangeEvent(UNHEALTHY, GOOD, OPEN, NEW),null);
+ }
 	
 	
 	
@@ -353,6 +362,8 @@ public class NotificationsTest {
     private static final String NEW = "new";
     private static final String OPEN = "open";
     private static final String UNHEALTHY = "unhealthy";
+    private static final String UNDERUTILIZED = "underutilized";
+    private static final String OVERUTILIZED = "overutilized";
     private static final String GOOD = "good";
 
     private CiChangeStateEvent getCiChangeEvent(String newState, String oldState, String state, String status)

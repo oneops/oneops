@@ -404,8 +404,8 @@ public class Notifications {
 	 * @param opsEvent
 	 * @deprecated
 	 */
-	public void sendGoodNotification(OpsBaseEvent opsEvent) {
-		long ciId = opsEvent.getCiId();
+	public void sendGoodNotification(CiChangeStateEvent event) {
+		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
 			logger.error("Can not get CmsCI for id - " + ciId);
@@ -413,9 +413,8 @@ public class Notifications {
 		}
 
 		String text = buildNotificationPrefix(ci.getNsPath()) + " ci: " + ci.getCiName() + " is recovered!";
-		long manifestCiId = opsEvent.getManifestId();
 
-		sendSimpleCiNotification(ci, NotificationSeverity.info, ci.getCiName() + " recovered.", text, (opsEvent != null) ? opsEvent.getSource() : null, manifestCiId);
+		sendOpsEventNotification(event, null, NotificationSeverity.info, ci.getCiName() + " recovered.", text, null);
 	}
 
 	/**
