@@ -19,7 +19,7 @@
 .tx-editor-wrapper .tx-editor .tx-toolbar {
   position: absolute;
   right: -11px;
-  top: 3px;
+  top: -10px;
   cursor: pointer;
   z-index: 3;
   font-size: 12px;
