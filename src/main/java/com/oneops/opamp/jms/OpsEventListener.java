@@ -155,16 +155,16 @@ public class OpsEventListener implements MessageListener {
 					    		bsProcessor.processUnhealthyState(event);	
 					    	}
 						} else if ("overutilized".equals(event.getNewState())) {
-							fsProcessor.processOverutilized(eventUtil.getOpsEvent(event), isNewState);
+							fsProcessor.processOverutilized(event, isNewState);
 						} else if ("underutilized".equals(event.getNewState())) {
-							fsProcessor.processUnderutilized(eventUtil.getOpsEvent(event), isNewState, event.getTimestamp());
+							fsProcessor.processUnderutilized(event, isNewState, event.getTimestamp());
 						}else if (event.getPayLoad() != null &&  "notify".equals(event.getNewState()) && eventUtil.shouldNotify(event, opsEvent) )   {
 							//skip the notification in case payload is null
 							notifier.sendOpsEventNotification(event);
 						} else if ("good".equals(event.getNewState()) && "unhealthy".equals(event.getOldState())) {
 							logger.info("sending good notification for cid: " + event.getCiId() + " " + (opsEvent!=null ? opsEvent.getSource():"") + " status " + (opsEvent!=null ? opsEvent.getStatus():"") + " ostate:"
 									+ event.getOldState() + " nstate: " + event.getNewState() );
-							bsProcessor.processGoodState(event);
+							bsProcessor.processGoodState(event);								
 						} else if (event.getPayLoad() != null && "good".equals(event.getNewState()) 
 								&& "notify".equals(event.getOldState())) {//skip the notification in case payload is null
 							logger.info("sending recoverynotification for cid: " + event.getCiId() + " " + (opsEvent!=null ? opsEvent.getSource():"") + " status " + (opsEvent!=null ? opsEvent.getStatus():"") + " ostate:"

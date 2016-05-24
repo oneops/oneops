@@ -100,6 +100,11 @@ public class Notifications {
 		return sendOpsEventNotification(event, note, severity, null);
 	}
 
+	private NotificationMessage sendOpsEventNotification(CiChangeStateEvent event, String note,
+			NotificationSeverity severity, Object object) {
+		return sendOpsEventNotification(event, note, severity, null, null, null);
+	}
+
 	/**
 	 * Send ops event notification.
 	 *
@@ -109,7 +114,7 @@ public class Notifications {
 	 *
 	 */
 	public NotificationMessage sendOpsEventNotification(CiChangeStateEvent event, String note, 
-			NotificationSeverity severity, Map<String, String> payloadEntries) {
+			NotificationSeverity severity, String subject, String text, Map<String, String> payloadEntries) {
 		OpsBaseEvent oEvent = getEventUtil().getOpsEvent(event);
 		if (oEvent == null)
 			return null;
@@ -170,17 +175,32 @@ public class Notifications {
             } else {
                 notify.setSeverity(severity);
             }
-            notify.setSubject(oEvent.getName()+  SUBJECT_SUFFIX_OPEN_EVENT);
+            if (StringUtils.isNotEmpty(subject)) {
+            	notify.setSubject(subject);
+            } else {
+            	notify.setSubject(oEvent.getName()+  SUBJECT_SUFFIX_OPEN_EVENT);	
+            }
+            
 			//subject = <monitorName:[threshold_name|heartbeat]> [is violated|recovered]
              //	text = <ciName> is <newState>, <<opamp action/notes>>
-			notify.setText(ci.getCiName() + " is in " + event.getNewState()+" state");
+            if (StringUtils.isNotEmpty(text)) {
+            	notify.setText(text);
+            } else {
+            	notify.setText(ci.getCiName() + " is in " + event.getNewState()+" state");	
+            }
 		} else if (oEvent.getState().equalsIgnoreCase("close")) {
     		// close events go on INFO
 			notify.setSeverity(NotificationSeverity.info);
-			notify.setSubject(oEvent.getName()+ SUBJECT_SUFFIX_CLOSE_EVENT);
-			notify.setText("ci: " + ci.getCiName() + " is in : " + event.getNewState());
-			notify.setText(ci.getCiName() + " is in " + event.getNewState()+" state");
-
+            if (! StringUtils.isNotEmpty(subject)) {
+            	notify.setSubject(subject);
+            } else {
+            	notify.setSubject(oEvent.getName()+ SUBJECT_SUFFIX_CLOSE_EVENT);
+            }
+            if (StringUtils.isNotEmpty(text)) {
+            	notify.setText(text);
+            } else {
+            	notify.setText(ci.getCiName() + " is in " + event.getNewState()+" state");
+            }
 		}
 		if (StringUtils.isNotEmpty(note)) {
 			notify.appendText("; " + note);
@@ -239,23 +259,22 @@ public class Notifications {
 	 * @param opsEvent
      * @param  state
 	 */
-	public void sendFlexNotificationInactiveCloud(OpsBaseEvent opsEvent, String state) {
-		long ciId = opsEvent.getCiId();
+	public void sendFlexNotificationInactiveCloud(CiChangeStateEvent event, String state) {
+		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
 			logger.error("Can not get CmsCI for id - " + ciId);
 			return;
 		}
 		String text = buildNotificationPrefix(ci.getNsPath()) + " ci: " + ci.getCiName() + " is " + state + "! The Cloud is marked as inactive. No autoscaling will be performed.";
-		long manifestCiId = opsEvent.getManifestId();
 		NotificationSeverity severity;
 		if (FlexStateProcessor.CI_STATE_OVERUTILIZED.equals(state)) {
 			severity = NotificationSeverity.critical;
 		} else {
 			severity = NotificationSeverity.warning;
 		}
-		sendSimpleCiNotification(ci, severity, ci.getCiName() + " is " + state + "!", text, (opsEvent != null) ? opsEvent.getSource() : null, manifestCiId);
-
+		String subject = ci.getCiName() + " is " + state + "!";
+		sendOpsEventNotification(event, null, severity, subject, text, null);
 	}
 
 	/**
@@ -264,7 +283,7 @@ public class Notifications {
 	 * @param event
 	 * @param state
 	 */
-	public void sendFlexNotificationNoRepair(OpsBaseEvent event, String state) {
+	public void sendFlexNotificationNoRepair(CiChangeStateEvent event, String state) {
 		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
@@ -273,14 +292,14 @@ public class Notifications {
 		}
 
 		String text = buildNotificationPrefix(ci.getNsPath()) + " ci: " + ci.getCiName() + " is " + state + "! Autoscale is not enabled on this environment.";
-		long manifestCiId = event.getManifestId();
 		NotificationSeverity severity;
 		if (FlexStateProcessor.CI_STATE_OVERUTILIZED.equals(state)) {
 			severity = NotificationSeverity.critical;
 		} else {
 			severity = NotificationSeverity.warning;
 		}
-		sendSimpleCiNotification(ci, severity, ci.getCiName() + " is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+		String subject = ci.getCiName() + " is " + state + "!";
+		sendOpsEventNotification(event, null, severity, subject, text, null);
 	}
 
 	/**
@@ -289,21 +308,21 @@ public class Notifications {
 	 * @param event
 	 * @param state
 	 */
-	public void sendFlexNotificationLimitIsReached(OpsBaseEvent event, String state) {
+	public void sendFlexNotificationLimitIsReached(CiChangeStateEvent event, String state) {
 		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
 			logger.error("Can not get CmsCI for id - " + ciId);
 			return;
 		}
-		long manifestCiId = event.getManifestId();
 		String text = buildNotificationPrefix(ci.getNsPath());
+		String subject = ci.getCiName() + " ci is " + state + "!";
 		if (FlexStateProcessor.CI_STATE_OVERUTILIZED.equals(state)) {
 			text += " ci: " + ci.getCiName() + " is " + state + "! Can not add more hosts - the max pool size is reached.";
-			sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " ci is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+			sendOpsEventNotification(event, null, NotificationSeverity.critical, subject, text, null);
 		} else {
 			text += " ci: " + ci.getCiName() + " is " + state + "! Can not remove more hosts - the min pool size is reached.";
-			sendSimpleCiNotification(ci, NotificationSeverity.info, ci.getCiName() + " ci is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+			sendOpsEventNotification(event, null, NotificationSeverity.info, subject, text, null);
 		}
 		
 	}
@@ -317,7 +336,7 @@ public class Notifications {
 	 * @param step
 	 *            the step
 	 */
-	public void sendFlexNotificationProcessing(OpsBaseEvent event, String state, int step) {
+	public void sendFlexNotificationProcessing(CiChangeStateEvent event, String state, int step) {
 		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
@@ -331,9 +350,10 @@ public class Notifications {
 		} else {
 			text += " ci: " + ci.getCiName() + " is " + state + "! Going to remove " + step + " host(s) from the pool.";
 		}
-		long manifestCiId = event.getManifestId();
 
-		sendSimpleCiNotification(ci, NotificationSeverity.info, ci.getCiName() + " is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+		String subject = ci.getCiName() + " is " + state + "!";
+		
+		sendOpsEventNotification(event, null, NotificationSeverity.info, subject, text, null);
 	}
 
 	/**
@@ -343,8 +363,7 @@ public class Notifications {
 	 * @param state
 	 * @param error
 	 */
-//TODO refactor to use new  notification
-	public void sendFlexNotificationErrorProcessing(OpsBaseEvent event, String state, String error) {
+	public void sendFlexNotificationErrorProcessing(CiChangeStateEvent event, String state, String error) {
 		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
@@ -354,10 +373,8 @@ public class Notifications {
 
 		String text = buildNotificationPrefix(ci.getNsPath());
 		text += " ci: " + ci.getCiName() + " is " + state + "! Can not process due to this error: " + error;
-		long manifestCiId = event.getManifestId();
-
-		sendSimpleCiNotification(ci, NotificationSeverity.critical, ci.getCiName() + " is " + state + "! Error processing", text, (event != null) ? event.getSource() : null,
-		        manifestCiId);
+		String subject = ci.getCiName() + " is " + state + "! Error processing";
+		sendOpsEventNotification(event, null, NotificationSeverity.critical, subject, text, null);
 	}
 
 	/**
@@ -366,9 +383,7 @@ public class Notifications {
 	 * @param event
 	 * @param state
 	 */
-//TODO refactor to use new  notification
-
-	public void sendFlexNotificationPostponeProcessing(OpsBaseEvent event, String state) {
+	public void sendFlexNotificationPostponeProcessing(CiChangeStateEvent event, String state) {
 		long ciId = event.getCiId();
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		if (ci == null) {
@@ -378,9 +393,9 @@ public class Notifications {
 
 		String text = buildNotificationPrefix(ci.getNsPath());
 		text += " ci: " + ci.getCiName() + " is " + state + "! Can not change the pool size because there is an open release for this environment, will try later!";
-		long manifestCiId = event.getManifestId();
-
-		sendSimpleCiNotification(ci, NotificationSeverity.warning, ci.getCiName() + " is " + state + "!", text, (event != null) ? event.getSource() : null, manifestCiId);
+		String subject = ci.getCiName() + " is " + state + "!";
+		
+		sendOpsEventNotification(event, null, NotificationSeverity.warning, subject, text, null);
 	}
 
 	/**

@@ -31,6 +31,7 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.ops.CiOpsProcessor;
+import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
 
 /** FlexStateProcessor
@@ -109,7 +110,7 @@ public class FlexStateProcessor {
 	 * @param event
 	 * @throws OpampException the opamp exception
 	 */
-	public void processOverutilized(OpsBaseEvent event, boolean isNewState) throws OpampException{
+	public void processOverutilized(CiChangeStateEvent event, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
 		if (CI_STATE_OVERUTILIZED.equals(coProcessor.getCIstate(ciId))) {
 			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
@@ -135,19 +136,19 @@ public class FlexStateProcessor {
 	 * @param ciId the ci id
 	 * @throws OpampException the opamp exception
 	 */
-	public void processUnderutilized(OpsBaseEvent opsEvent, boolean isNewState, long originalEventTimestamp) throws OpampException{
-		long ciId = opsEvent.getCiId();
+	public void processUnderutilized(CiChangeStateEvent event, boolean isNewState, long originalEventTimestamp) throws OpampException{
+		long ciId = event.getCiId();
 		//check if it still needs resize
 		if ("underutilized".equals(coProcessor.getCIstate(ciId))) {
 			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
 			if (env != null) {
 				if (envProcessor.isCloudActive4Bom(ciId)) {
-					shrinkPool(opsEvent, env, isNewState, originalEventTimestamp);
+					shrinkPool(event, env, isNewState, originalEventTimestamp);
 				} else {
-					notifier.sendFlexNotificationInactiveCloud(opsEvent, "underutilized");
+					notifier.sendFlexNotificationInactiveCloud(event, "underutilized");
 				}
 			} else {
-				notifier.sendFlexNotificationNoRepair(opsEvent, "underutilized");
+				notifier.sendFlexNotificationNoRepair(event, "underutilized");
 			}
 		} else {
 			// ci is already healthy
@@ -157,7 +158,7 @@ public class FlexStateProcessor {
 	}
 	
 	
-	private void growPool(OpsBaseEvent event, CmsCI env, boolean isNewState) throws OpampException{
+	private void growPool(CiChangeStateEvent event, CmsCI env, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
 		if (! envProcessor.isOpenRelease4Env(env)) {
 			//first lets get manifest compute so we can get flex relation
@@ -205,7 +206,7 @@ public class FlexStateProcessor {
 		}
 	}
 	
-	private void shrinkPool(OpsBaseEvent event, CmsCI env, boolean isNewState, long originalEventTimestamp) throws OpampException{
+	private void shrinkPool(CiChangeStateEvent event, CmsCI env, boolean isNewState, long originalEventTimestamp) throws OpampException{
 		long ciId = event.getCiId();
 		//String state = "underutilized";
 		if (! envProcessor.isOpenRelease4Env(env)) {
@@ -232,7 +233,8 @@ public class FlexStateProcessor {
 							processFlexRelation(flexRel, env, step, false);
 							notifier.sendFlexNotificationProcessing(event, CI_STATE_UNDERUTILIZED, step);
 						} else {
-							if (isNewState || envProcessor.isFirstAfterBomReleaseClosed(env, originalEventTimestamp, event.getCoolOff())) {
+							if (isNewState || envProcessor.isFirstAfterBomReleaseClosed(env, originalEventTimestamp, 
+									notifier.getEventUtil().getOpsEvent(event).getCoolOff())) {
 								notifier.sendFlexNotificationLimitIsReached(event, CI_STATE_UNDERUTILIZED);
 							}
 							logger.info("Min pool size reached for ci - " + ciId);
@@ -264,7 +266,7 @@ public class FlexStateProcessor {
 		}
 	}
 
-	private boolean isAnyPoolMemberOver(OpsBaseEvent event, long manifestCompId, String state) {
+	private boolean isAnyPoolMemberOver(CiChangeStateEvent event, long manifestCompId, String state) {
 		long ciId = event.getCiId();
 		if (isAnyPoolMemberOverUtil(manifestCompId)) {
 			return true;
