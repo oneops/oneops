@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
 
+import com.oneops.ops.events.CiChangeStateEvent;
 import org.testng.annotations.Test;
 
 import com.oneops.opamp.exceptions.OpampException;
@@ -62,7 +63,7 @@ public class OpampWsTestControllerTest {
 		assertEquals(SHRINKED_POOL,testFlexDown);
 		
 		FlexStateProcessor fspThrowing = mock(FlexStateProcessor.class);
-		OpsBaseEvent event = mock(OpsBaseEvent.class);
+		CiChangeStateEvent event = mock(CiChangeStateEvent.class);
 		event.setCiId(anyLong());
 
  			try {

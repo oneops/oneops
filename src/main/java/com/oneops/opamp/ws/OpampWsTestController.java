@@ -88,7 +88,7 @@ public class OpampWsTestController {
 	public String testFelxUp(@PathVariable int ciId) {
 		logger.info("TESTING>>>>> flexing up ciId" + ciId);
 		
-		OpsBaseEvent opsEvent = new OpsBaseEvent();
+		CiChangeStateEvent opsEvent = new CiChangeStateEvent();
 		opsEvent.setCiId(ciId);
 		try {
 			flexStateProcessor.processOverutilized(opsEvent, true);
@@ -108,7 +108,7 @@ public class OpampWsTestController {
 	@ResponseBody
 	public String testFelxDown(@PathVariable int ciId) {
 		logger.info("TESTING>>>>> flexing down ciId" + ciId);
-		OpsBaseEvent opsEvent = new OpsBaseEvent();
+		CiChangeStateEvent opsEvent = new CiChangeStateEvent();
 		opsEvent.setCiId(ciId);
 		try {
 			flexStateProcessor.processUnderutilized(opsEvent, true, System.currentTimeMillis());
