@@ -13,7 +13,7 @@
     </div>
   <% end %>
   <% compact = toolbar[:compact] %>
-  <%= link_to_function(compact ? icon('plus-square-o', 'Expand') : icon('minus-square-o', 'Collapse'),
+  <%= link_to_function(compact ? icon('angle-double-down', content_tag(:span, 'Expand')) : icon('angle-double-up', content_tag(:span, 'Collapse')),
                        'toggle_compact(this)',
                        :class => 'btn btn-mini',
                        :style => 'margin-left:10px') unless compact.nil? %>
@@ -221,7 +221,7 @@
       setTimeout(function() {
         update_filter_marker(list);
       }, 100);
-      if (list.find(".btn i.fa-plus-square-o").length) {
+      if (list.find(".btn i.fa-angle-double-down").length) {
         list.find(".list-body > ul > li:visible .middle").hide();
       }
     };

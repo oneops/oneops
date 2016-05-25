@@ -1,4 +1,9 @@
 <%= section_panel 'Status', :id => 'overview_status_section', :width => 'double', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @instance,
+              :content  => 'cms/cis/properties',
+             :read_only => true}) %>
+  <hr/>
 	<%= render 'status' %>
 <% end %>
 

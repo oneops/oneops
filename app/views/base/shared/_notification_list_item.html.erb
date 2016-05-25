@@ -8,8 +8,8 @@
 	</div>
 	<div class="subject">
     <% if payload.present? %>
-      <%= link_to_function(icon('plus-square-o', '&nbsp;', 'fa-lg'),
-                           "$j(this).find('i.fa').toggleClass('fa-plus-square-o fa-minus-square-o').parents('li').find('.middle').toggle(500)", :class => 'pull-right') %>
+      <%= link_to_function(icon('angle-down', '&nbsp;', 'fa-lg'),
+                           "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)", :class => 'pull-right') %>
     <% end %>
     <% if builder[:subject] %>
       <%= builder[:subject] %>

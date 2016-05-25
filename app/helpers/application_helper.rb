@@ -198,6 +198,7 @@ module ApplicationHelper
   end
 
   def assembly_nav(assembly, ci, dto_links, current_dto)
+    Rails.logger.info "=== #{}"
     nav = %(<li class="title">#{link_to(icon(site_icon(:assembly), "&nbsp;#{context_nav_name_label(assembly.ciName)}"), assembly_path(assembly))}</li>)
     nav << %(<li class="divider small"></li>)
     if ci
