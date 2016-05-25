@@ -22,8 +22,10 @@
   <% builder.target nil %>
   <% builder.status do %>
     <%= marker(timestamp_str, 'label-inverse') if timestamp_str.present? %>
-    <%= link_to(redirect_release_path(target.releaseId)) do %>
-      <%= status_marker('release', target.releaseId) %>
+    <% unless ci.ciClassName.start_with?('bom.') %>
+      <%= link_to(redirect_release_path(target.releaseId)) do %>
+        <%= status_marker('release', "#{target.releaseId} #{icon('external-link')}") %>
+      <% end %>
     <% end %>
     <%= status_marker('id', target.rfcId) %>
     <%= status_marker('action', target.rfcAction, action_to_label(target.rfcAction)) %>
@@ -61,8 +63,8 @@
       <% if diff_attrs.present? %>
         <span class="topdesc pull-right">
           <small><%= pluralize(diff_attrs.size, 'change') %>&nbsp;</small>
-          <%= link_to_function(icon('plus-square-o', '', 'fa-lg'),
-                               "$j(this).find('i.fa').toggleClass('fa-plus-square-o fa-minus-square-o').parents('li').find('.middle').toggle(500)") %>
+          <%= link_to_function(icon('angle-down', '', 'fa-lg'),
+                               "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)") %>
         </span>
       <% end %>
     </div>

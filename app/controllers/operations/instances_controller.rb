@@ -1,4 +1,6 @@
 class Operations::InstancesController < ApplicationController
+  include ::RfcHistory
+
   NOTIFICATION_RANGES       = %w(day week month)
   NOTIFICATION_RANGE_LENGTH = HashWithIndifferentAccess.new(:day   => 60 * 60 * 24,
                                                             :week  => 60 * 60 * 24 * 7,
@@ -268,6 +270,13 @@ class Operations::InstancesController < ApplicationController
   def logs
     data = Daq.instance_logs([{:ci_id => @instance.ciId, :start => 0, :end => 1.minute.from_now.to_i * 1000}])
     @log_data = data && data[0] && data[0]['logData']
+  end
+
+
+  protected
+
+  def ci_resource
+    @instance
   end
 
 

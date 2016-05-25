@@ -119,18 +119,18 @@
     window.toggle_compact = function(source) {
       var btn = $j(source);
       var i = btn.find("i");
-      var expanding = i.hasClass("fa-plus-square-o");
+      var expanding = i.hasClass("fa-angle-double-down");
       i.siblings("span").html(expanding ? " Collapse" : " Expand");
-      i.toggleClass("fa-plus-square-o fa-minus-square-o");
+      i.toggleClass("fa-angle-double-down fa-angle-double-up");
       var list = btn.parents('.list');
       var items = list.find(".list-body > ul > li:visible .middle");
       if (expanding) {
         items.show();
-        list.find(".list-body > ul > li:visible i.fa-plus-square-o").removeClass("fa-plus-square-o").addClass("fa-minus-square-o")
+        list.find(".list-body > ul > li:visible i.fa-angle-down").removeClass("fa-angle-down").addClass("fa-angle-up")
       }
       else {
         items.hide();
-        list.find(".list-body > ul > li:visible i.fa-minus-square-o").removeClass("fa-minus-square-o").addClass("fa-plus-square-o")
+        list.find(".list-body > ul > li:visible i.fa-angle-up").removeClass("fa-angle-up").addClass("fa-angle-down")
       }
     };
 

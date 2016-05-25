@@ -401,6 +401,7 @@ Display::Application.routes.draw do
                 get 'notifications',     :on => :member
                 get 'logs',              :on => :member
                 put 'state',             :on => :member
+                get 'history',           :on => :member
 
                 resources :monitors, :only => [:index, :show] do
                   get 'charts', :on => :collection
@@ -415,6 +416,7 @@ Display::Application.routes.draw do
               get 'notifications',     :on => :member
               get 'logs',              :on => :member
               put 'state',             :on => :member
+              get 'history',           :on => :member
 
               resources :monitors, :only => [:index, :show] do
                 get 'charts', :on => :collection
