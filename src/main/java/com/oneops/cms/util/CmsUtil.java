@@ -1210,9 +1210,7 @@ public class CmsUtil {
 			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-					"CI " + ci.getCiName() + ", attribute: "
-							+ manifestAttr.getAttributeName()
-							+ " has bad local var reference! value="+ resolvedValue);
+					getErrorMessage(ci.getCiName(), manifestAttr.getAttributeName(),resolvedValue,varName));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1226,6 +1224,8 @@ public class CmsUtil {
 			logger.debug("Dj/Dfvalue set to :"+resAfter+ " in Ci "+ci.getCiId());
 		}
 	}
+
+
 
 	/** sets the Attributes Dj and Df value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
@@ -1243,9 +1243,7 @@ public class CmsUtil {
 			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-					"CI " + ciName + ", attribute: "
-						  + attrName
-						  + " has bad local var reference! value="+ resolvedValue);
+					getErrorMessage(ciName, attrName, resolvedValue, varName));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1256,8 +1254,15 @@ public class CmsUtil {
 		}
 		return resAfter;
 	}
-	
-	
+
+	protected String getErrorMessage(String ciName, String attrName, String resolvedValue, String varName) {
+		return "CI " + ciName + ", attribute: "
+              + attrName
+              + " has bad local var <"+varName+ "> reference! value="+ resolvedValue;
+	}
+
+
+
 	/** sets the Attributes old and new value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
 	private void checkAndSetAttrValue(CmsRfcCI ci, String resolvedValue, CmsRfcAttribute manifestAttr, String varName, String replPrefix) {
@@ -1277,9 +1282,7 @@ public class CmsUtil {
 			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-					"RfcCI " + ci.getCiName() + ", attribute: "
-							+ manifestAttr.getAttributeName()
-							+ " has bad local var reference! value="+ resolvedValue);
+					getErrorMessage(ci.getCiName(),  manifestAttr.getAttributeName(),resolvedValue,varName));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1293,7 +1296,8 @@ public class CmsUtil {
 			logger.debug("old/new value set to :"+resAfter+ " in RfcCi "+ci.getCiId());
 		}
 	}
-	
+
+
 	/** take a variable name, look it up in the globalVars Map. If the value is a simple value return that. If the value
 	 * is a reference to a variable in the Cloud Map, look it up in the clodVars Map and return the value */
 	private String resolveGlobalVar(Map<String, String> cloudVars, Map<String, String> globalVars, String variableToResolve) {
