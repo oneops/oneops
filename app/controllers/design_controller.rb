@@ -53,7 +53,7 @@ class DesignController < ApplicationController
         end
       else
         ok = false
-        @errors = ['Please specify valid design coonfguration in YAML or JSON format.']
+        @errors = ['Please specify valid design configuration in YAML or JSON format.']
       end
 
       respond_to do |format|
