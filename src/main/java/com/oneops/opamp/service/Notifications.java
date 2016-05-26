@@ -191,7 +191,7 @@ public class Notifications {
 		} else if (oEvent.getState().equalsIgnoreCase("close")) {
     		// close events go on INFO
 			notify.setSeverity(NotificationSeverity.info);
-            if (! StringUtils.isNotEmpty(subject)) {
+            if (StringUtils.isNotEmpty(subject)) {
             	notify.setSubject(subject);
             } else {
             	notify.setSubject(oEvent.getName()+ SUBJECT_SUFFIX_CLOSE_EVENT);
