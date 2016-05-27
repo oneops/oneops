@@ -16,37 +16,11 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
-import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import org.activiti.engine.delegate.DelegateExecution;
-import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.retry.RetryCallback;
-import org.springframework.retry.RetryContext;
-import org.springframework.retry.backoff.ExponentialBackOffPolicy;
-import org.springframework.retry.listener.RetryListenerSupport;
-import org.springframework.retry.policy.SimpleRetryPolicy;
-import org.springframework.retry.support.RetryTemplate;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.google.gson.Gson;
 import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.antenna.domain.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.ops.domain.CmsActionOrder;
-import com.oneops.cms.cm.ops.domain.CmsOpsAction;
-import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
-import com.oneops.cms.cm.ops.domain.OpsActionState;
-import com.oneops.cms.cm.ops.domain.OpsProcedureState;
+import com.oneops.cms.cm.ops.domain.*;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.crypto.CmsCrypto;
@@ -66,6 +40,15 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.controller.util.ControllerUtil;
 import com.oneops.controller.workflow.WorkflowController;
+import org.activiti.engine.delegate.DelegateExecution;
+import org.apache.log4j.Logger;
+import org.springframework.web.client.RestTemplate;
+
+import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * The Class CMSClient.
@@ -126,12 +109,6 @@ public class CMSClient {
         this.stepWoLimit = stepWoLimit;
     }
 
-    public void setRetryTemplate(RetryTemplate retryTemplate) {
-        this.retryTemplate = retryTemplate;
-    }
-
-    @Autowired
-    private RetryTemplate retryTemplate;
 
     /**
      * Sets the rest template.
@@ -235,11 +212,8 @@ public class CMSClient {
         logger.info("Geting work order pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
         long startTime = System.currentTimeMillis();
         try {
-            //CmsWorkOrderSimple wo = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/workorders/{dpmtRecId}?execorder={execOrder}", CmsWorkOrderSimple.class, dpmtRec.getDeploymentId(), dpmtRec.getDpmtRecordId(), execOrder));
-        	
         	CmsWorkOrderSimple wo  = cmsWoProvider.getWorkOrderSimple(dpmtRec.getDpmtRecordId(), null, execOrder);
         	logger.info("Time taked to get wo - " + (System.currentTimeMillis() - startTime)  + "ms; pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
-        	
         	if (wo != null) {
 	        	decryptWo(wo);
 	        	CmsWorkOrderSimple strippedWo = controllerUtil.stripWO(wo);
@@ -302,7 +276,6 @@ public class CMSClient {
     public void checkDpmt(DelegateExecution exec) throws GeneralSecurityException {
         CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
         try {
-            //CmsDeployment cmsDpmt = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}", CmsDeployment.class, dpmt.getDeploymentId()));
         	CmsDeployment cmsDpmt = djManager.getDeployment(dpmt.getDeploymentId());
         	if (cmsDpmt == null) {
         		throw new DJException(CmsError.DJ_NO_DEPLOYMENT_WITH_GIVEN_ID_ERROR,"Cant get deployment with id = " + dpmt.getDeploymentId());
@@ -453,8 +426,7 @@ public class CMSClient {
         logger.info("Geting action orders for procedure id = " + proc.getProcedureId());
         long startTime = System.currentTimeMillis();
         try {
-            //CmsActionOrderSimple[] aos = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "/cm/ops/procedures/{procedureId}/actionorders?execorder={execOrder}&state=pending", CmsActionOrderSimple[].class, proc.getProcedureId(), execOrder));
-        	List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
+             List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
         	logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
         	for (CmsActionOrderSimple ao : aoList) {
                 decryptAo(ao);
@@ -511,13 +483,6 @@ public class CMSClient {
             if (newState.equalsIgnoreCase(COMPLETE)) {
                 CmsActionOrder ao = cmsUtil.custSimple2ActionOrder(aos);
                 opsManager.completeActionOrder(ao);
-                /*
-                
-                retryTemplate.execute(retryContext -> {
-                    restTemplate.put(serviceUrl + "cm/ops/procedures/{procedureId}/actionorders", ao, ao.getProcedureId());
-                    return null;
-                });
-                */
             } else {
                 CmsOpsAction action = new CmsOpsAction();
                 action.setActionId(aos.getActionId());
@@ -529,13 +494,7 @@ public class CMSClient {
                     exec.setVariable("proc", proc);
                 }
                 opsManager.updateOpsAction(action);
-                /*
-                retryTemplate.execute(retryContext -> {
-                    restTemplate.put(serviceUrl + "cm/ops/procedures/{procedureId}/actions", action, action.getProcedureId());
-                    return null;
-                });
-                */
-            }
+             }
         } catch (CmsBaseException rce) {
             logger.error(rce);
             CmsOpsProcedure proc = (CmsOpsProcedure) exec.getVariable("proc");
@@ -561,11 +520,7 @@ public class CMSClient {
         }
         String envNsPath = "/" + nsParts[1] + "/" + nsParts[2];
         String envName = nsParts[NSPATH_ENV_ELEM_NO];
-
-        //CmsCISimple[] envs = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "/cm/simple/cis?ciClassName=manifest.Environment&nsPath={envNsPath}&ciName={envName}", CmsCISimple[].class, envNsPath, envName));
-
         List<CmsCI> envs = cmManager.getCiBy3(envNsPath, "manifest.Environment", envName);
-        
         CmsCISimple env = null;
         if (envs.size() > 0) {
             env = cmsUtil.custCI2CISimple(envs.get(0), "df") ;
@@ -581,28 +536,7 @@ public class CMSClient {
         }
     }
 
-    /**
-     * Commit and deploy release.
-     *
-     * @param exec the exec
-     * @throws GeneralSecurityException the general security exception
-     */
-    public void commitAndDeployRelease(DelegateExecution exec) throws GeneralSecurityException {
-        CmsRelease release = (CmsRelease) exec.getVariable("release");
-        CmsCISimple env = (CmsCISimple) exec.getVariable("env");
-        logger.info("Committing and deploying manifest release with id = " + release.getReleaseId());
-        Map<String, String> descMap = new HashMap<String, String>();
-        descMap.put("description", "oneops autodeploy");
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Long> bomDpmtMap = retryTemplate.execute(retryContext -> restTemplate.postForObject(transUrl + "environments/{envId}/deployments/deploy", descMap, Map.class, env.getCiId()));
-            logger.info("BOM deployment id = " + bomDpmtMap.get("deploymentId"));
-        } catch (RestClientException e) {
-            //should
-            logger.error("Deployment of manifest release " + release.getReleaseId() + " failed with error:\n" + e.getMessage());
-        }
 
-    }
 
 
     private void decryptWo(CmsWorkOrderSimple wo) throws GeneralSecurityException {
@@ -706,37 +640,6 @@ public class CMSClient {
     }
 
 
-    @Bean
-    protected RetryTemplate getRetryTemplate(@Value("${controller.retryCount:3}") int retryCount, @Value("${controller.intial_delay:1000}") int initialDelay, @Value("${controller.maxInterval:10000}") int maxInterval) {
-        RetryTemplate retryTemplate = new RetryTemplate();
-        retryTemplate.setRetryPolicy(new SimpleRetryPolicy(retryCount, Collections.singletonMap(RestClientException.class, true)));
-        ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
-        backOffPolicy.setInitialInterval(initialDelay);
-        backOffPolicy.setMaxInterval(maxInterval);
-        retryTemplate.setBackOffPolicy(backOffPolicy);
-        retryTemplate.setThrowLastExceptionOnExhausted(true);
 
-
-        retryTemplate.registerListener(new DefaultListenerSupport());
-
-        return retryTemplate;
-    }
-
-
-    private static class DefaultListenerSupport extends RetryListenerSupport {
-        @Override
-        public <T, E extends Throwable> void onError(RetryContext context, RetryCallback<T, E> callback, Throwable throwable) {
-            logger.info("Remote call failed, Will retry (count = " + context.getRetryCount()+" ) exception :" +throwable.getClass().getSimpleName());
-            super.onError(context, callback, throwable);
-        }
-
-        @Override
-        public <T, E extends Throwable> void close(final RetryContext context, final RetryCallback<T, E> callback, final Throwable throwable) {
-            if (throwable != null) {
-                logger.info("Final  retry attempt failed,  ", throwable);
-            }
-        }
-
-    }
 }
 

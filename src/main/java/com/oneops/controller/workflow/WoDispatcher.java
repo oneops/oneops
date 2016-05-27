@@ -186,10 +186,5 @@ public class WoDispatcher {
 		Thread t = new Thread(pocker);
 		t.start();
 	}
-	/*
-	public void updateWoState(DelegateExecution exec, CmsWorkOrderSimple wo, String newState) {
-		cmsClient.updateWoState(exec, wo, newState);
-		wfController.checkSyncWait(exec.getProcessInstanceId(), exec.getId());
-	}	
-	*/
+
 }
