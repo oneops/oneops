@@ -27,6 +27,7 @@ attribute 'value',
           :default     => '',
           :format      => {
             :category => 'Value',
+            :pattern  => '[^ ]+.*[^ ]',
             :order    => 2,
             :help     => 'Enter the variable value. You can reference this variable in component attribute values as $OO_LOCAL{varname}',
             :filter   => {'all' => {'visible' => 'secure:neq:true', 'editable' => 'secure:neq:true'}}
@@ -38,6 +39,7 @@ attribute 'encrypted_value',
           :default     => '',
           :format      => {
             :category => 'Value',
+            :pattern  => '[^ ]+.*[^ ]',
             :order    => 3,
             :help     => 'Enter the variable value. The provided value will be encrypted on save and stored securely. You can reference this variable in component attribute values as $OO_LOCAL{varname}',
             :filter   => {'all' => {'visible' => 'secure:eq:true', 'editable' => 'secure:eq:true'}}
