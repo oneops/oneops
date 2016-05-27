@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.crypto;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.bouncycastle.crypto.KeyGenerationParameters;
 import org.bouncycastle.crypto.engines.DESedeEngine;
@@ -69,7 +70,7 @@ public class CmsCryptoDES implements CmsCrypto {
             throw new GeneralSecurityException(e);
         }
         long t2 = System.currentTimeMillis();
-        logger.info("Time taken to encrypt(millis) :" + (t2 - t1));
+        logger.debug("Time taken to encrypt(millis) :" + (t2 - t1));
         return ENC_PREFIX + os.toString();
     }
 
@@ -112,6 +113,9 @@ public class CmsCryptoDES implements CmsCrypto {
 
 
     private String decryptStr(String instr) throws GeneralSecurityException {
+        if(StringUtils.isEmpty(instr)){
+            return instr;
+        }
         long t1 = System.currentTimeMillis();
         PaddedBufferedBlockCipher decryptor = new PaddedBufferedBlockCipher(
                 new CBCBlockCipher(new DESedeEngine()));
@@ -129,7 +133,7 @@ public class CmsCryptoDES implements CmsCrypto {
             throw new GeneralSecurityException(e);
         }
         long t2 = System.currentTimeMillis();
-        logger.info("Time taken to decrypt(millis) : " + (t2 - t1));
+        logger.debug("Time taken to decrypt(millis) : " + (t2 - t1));
         return (new String(cipherText)).replaceAll("\\u0000+$", "");
     }
 

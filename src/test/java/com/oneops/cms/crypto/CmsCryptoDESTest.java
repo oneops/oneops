@@ -20,6 +20,7 @@ package com.oneops.cms.crypto;
 import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CmsException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -75,6 +76,12 @@ public class CmsCryptoDESTest {
     public void testDecrypt() throws Exception {
         String decryptedUUID = crypto.decrypt(encryptedString);
         Assert.assertTrue(rawString.equals(decryptedUUID));
+    }
+
+    @Test
+    public void testEmptyString() throws Exception {
+        String decryptedText = crypto.decrypt(CmsCrypto.ENC_PREFIX);
+        Assert.assertTrue(StringUtils.EMPTY.equals(decryptedText));
     }
 
 }

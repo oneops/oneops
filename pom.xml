@@ -23,6 +23,7 @@
         <testng.version>6.1.1</testng.version>
         <mockito-all.version>1.8.4</mockito-all.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <commons-lang3.version>3.4</commons-lang3.version>
     </properties>
 
     <build>
@@ -162,6 +163,11 @@
             <artifactId>mockito-all</artifactId>
             <version>${mockito-all.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
         </dependency>
     </dependencies>
 
