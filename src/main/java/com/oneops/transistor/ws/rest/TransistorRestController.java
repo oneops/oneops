@@ -446,7 +446,7 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 
-			long releaseId = envManager.discardEnvManifest(envId);
+			long releaseId = envManager.discardEnvManifest(envId, userId);
 			Map<String,Long> result = new HashMap<String,Long>(1);
 			result.put("releaseId", releaseId);
 			return result;
