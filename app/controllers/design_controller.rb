@@ -32,28 +32,38 @@ class DesignController < ApplicationController
 
   def load
     if request.put?
+      ok = false
       data = nil
       data_file = params[:data_file]
       @data_string = (data_file && data_file.read).presence || params[:data]
-      begin
-        data = YAML.load(@data_string)
-      rescue
+      if @data_string =~ /^\s*\{/
         begin
           data = JSON.parse(@data_string)
-        rescue
+        rescue Exception => e
+          @errors = ["Failed to parse configuration file - invalid JSON: #{e.message}"]
+        end
+      else
+        begin
+          data = YAML.load(@data_string)
+        rescue Exception => e
+          more_info = e.is_a?(Psych::SyntaxError) ? "%s %s at line %d column %d" % [e.problem, e.context, e.line, e.column] : e.message
+          @errors = ["Failed to parse configuration file - invalid YAML: #{more_info}"]
         end
       end
 
       if data.present?
-        import_data, @errors = prepare_import_design_data(data)
+        begin
+          import_data, @errors = prepare_import_design_data(data)
+        rescue Exception => e
+          @errors = ['Failed to parse configuration file - unexpected data structure.']
+        end
 
         if import_data
           ok, message = Transistor.import_design(@assembly, import_data)
           @errors = [message] unless ok
         end
-      else
-        ok = false
-        @errors = ['Please specify valid design configuration in YAML or JSON format.']
+      elsif data
+        @errors = ['Failed to parse configuration file - no data detected.']
       end
 
       respond_to do |format|
@@ -192,7 +202,7 @@ class DesignController < ApplicationController
       result['platforms'] = []
       errors['platforms'] = {}
       plats.each_pair do |plat_name, plat|
-        errors['platforms'][plat_name] = {'errors' => []}
+        errors['platforms'][plat_name] = {}
 
         pack_path = plat['pack']
         if pack_path =~ /^\w+\/[\w\-]+:\d+$/
@@ -209,7 +219,9 @@ class DesignController < ApplicationController
           pack_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
                                                     :ciClassName => 'mgmt.catalog.Platform'})
           if pack_template
-            errors['platforms'][plat_name]['errors'] = platform_ci.errors.full_messages unless platform_ci.valid?
+            unless platform_ci.valid?
+              errors['platforms'][plat_name]['errors'] = platform_ci.errors.full_messages
+            end
 
             result['platforms'] << ci_to_import(platform_ci)
 
@@ -287,21 +299,21 @@ class DesignController < ApplicationController
                         end
                       end
                     else
-                      errors['platforms'][plat_name]['components'][template_and_class]['errors'] << 'Unknown component type (template).'
+                      errors['platforms'][plat_name]['components'][template_and_class] = "Unknown component template [#{template}]"
                     end
                   else
-                    errors['platforms'][plat_name]['components'][template_and_class]['errors'] << 'Unknown component type (class).'
+                    errors['platforms'][plat_name]['components'][template_and_class] = "Unknown component class [#{component_class}]"
                   end
                 else
-                  errors['platforms'][plat_name]['components'][template_and_class]['errors'] << 'Invalid component template/type specification. Expected format: <template>/<class> .'
+                  errors['platforms'][plat_name]['components'][template_and_class] = 'Invalid component template/type specification. Expected format: <template>/<class>'
                 end
               end
             end
           else
-            errors['platforms'][plat_name]['errors'] << 'Unknown platform pack.'
+            errors['platforms'][plat_name] = "Unknown platform pack [#{pack_path}]"
           end
         else
-          errors['platforms'][plat_name]['errors'] << 'Invalid platform pack specification. Expected format: <source>/<pack>:<version> .'
+          errors['platforms'][plat_name] = 'Invalid platform pack specification. Expected format: <source>/<pack>:<version>'
         end
       end
     end
