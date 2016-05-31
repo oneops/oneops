@@ -34,6 +34,14 @@
             <% end %>
           </li>
         <% end %>
+        <% if @instance.respond_to?(:ciState) && has_operations?(@assembly.ciId) %>
+          <li class="divider"></li>
+          <% if @instance.ciState == 'default' %>
+            <li><%= render 'replace_link', :type => 'link' %></li>
+          <% elsif @instance.ciState == 'replace' %>
+            <li><%= render 'undo_replace_link', :type => 'link' %></li>
+          <% end %>
+        <% end %>
       </ul>
     </div>
   <% end %>
