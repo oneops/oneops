@@ -19,7 +19,6 @@
 		<xstream.version>1.4.8</xstream.version>
 		<jackson-mapper-asl.version>1.8.11</jackson-mapper-asl.version>
 		<xbean-spring.version>3.7</xbean-spring.version>
-		<commons-httpclient.version>3.1</commons-httpclient.version>
 		<com.springsource.javax.annotation.version>1.0.0</com.springsource.javax.annotation.version>
 		<libs.version>1.0.0</libs.version>
 		<com.springsource.javax.jms.version>1.1.0</com.springsource.javax.jms.version>
@@ -100,11 +99,7 @@
 			<artifactId>xbean-spring</artifactId>
 			<version>${xbean-spring.version}</version>
 		</dependency>
-		<dependency>
-        	<groupId>commons-httpclient</groupId>
-        	<artifactId>commons-httpclient</artifactId>
-        	<version>${commons-httpclient.version}</version>
-    	</dependency>
+
 		
 		<!-- Active MQ -->
 		<dependency>
