@@ -138,8 +138,7 @@ class DesignController < ApplicationController
     result['platforms'] = platforms.sort_by {|p| p['name']}.inject({}) do |plats, p|
       attrs = p['attributes']
       plat = {'pack' => "#{attrs.delete('source')}/#{attrs.delete('pack')}:#{attrs.delete('version')}"}
-      transfer_if_present('description', p, attrs)
-      attrs.delete('description')
+      attrs.delete('description') if attrs['description'].blank?
       plat.merge!(attrs)
 
       transfer_if_present('links', p, plat)
