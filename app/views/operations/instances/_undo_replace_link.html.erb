@@ -1,0 +1,5 @@
+<%= link_confirm_busy(type == 'button' ? icon_button('undo', 'Undo Replace', 'info') : icon('undo', 'Undo Replace'),
+                      :url     => state_assembly_operations_instance_path(@assembly, @instance, :params => {:state => 'default'}),
+                      :body    => "This will mark the component instance '#{@instance.ciName}' back to the default state in OneOps and undo the pending replacement.".html_safe,
+                      :confirm => 'Undo Replace?',
+                      :method  => :put) %>

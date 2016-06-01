@@ -8,7 +8,7 @@
 <% if @errors %>
   <div class="alert alert-danger error-messages">
     <h5>Please correct the following errors:</h5>
-    <pre style="background:transparent; max-height:300px; overflow:auto"><%= @errors.to_yaml.gsub("---\n", '') %></pre>
+    <pre style="background:transparent; max-height:300px; overflow:auto"><%= @errors.is_a?(Hash) ? @errors.to_yaml.gsub("---\n", '') : @errors.join("\n") %></pre>
   </div>
 <% end %>
 <%= form_tag load_assembly_design_path(@assembly), :method => :put, :multipart => true, :class => 'form-horizontal' do %>
