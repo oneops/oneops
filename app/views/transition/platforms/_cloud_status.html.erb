@@ -7,7 +7,9 @@
        primary  = priority == '1' %>
 		<li class="status-marker">
 			<div class="marker">
-        <%= cloud_marker(cloud.toCi, primary, status) %>
+        <%= marker("#{cloud.toCi.ciName} #{icon('external-link')}", cloud_admin_status_label(status)) %>
+        <br/>
+        <%= marker(icon('cloud', primary ? 'primary' : 'secondary'),  primary ? 'label-info' : '') %>
       </div>
       <div class="description">
         <% if allow_actions %>

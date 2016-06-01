@@ -681,10 +681,12 @@ module ApplicationHelper
     case status
       when 'active'
         'label-success'
-      when 'inert'
-        'label-info'
+      when 'inactive'
+        'label-important'
       when 'offline'
         'label-warning'
+      when 'inert'
+        'label-info'
       else
         ''
     end
@@ -759,18 +761,9 @@ module ApplicationHelper
   end
 
   def cloud_marker(cloud, primary, status)
-    status_class = if status == 'active'
-                     'label-success'
-                   elsif status == 'offline'
-                     'label-warning'
-                   elsif status
-                     'label-important'
-                   else
-                     ''
-                   end
     marker = status_marker(icon('cloud', primary ? 'primary' : 'secondary'),
                   "#{cloud.ciName} #{icon('external-link')}",
-                  status_class,
+                   cloud_admin_status_label(status),
                   :name_class => primary ? 'info' : '')
     link_to(marker, edit_cloud_path(cloud))
   end
