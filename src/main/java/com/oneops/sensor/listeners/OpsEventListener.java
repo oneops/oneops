@@ -180,10 +180,10 @@ public class OpsEventListener implements UpdateListener {
                     //the stream is broken will skip this event
                     logger.error("got HEARTBEAT event - " + gson.toJson(event));
                     if (!sensorHeartBeat.isUp(event.getChannel())) {
-                        logger.error("BUT seems like the matrics channel " + event.getChannel() + " is down since "
+                        logger.error("BUT seems like the metrics channel " + event.getChannel() + " is down since "
                                 + (new Date(sensorHeartBeat.getDownSince(event.getChannel()))).toString());
                     } else {
-                        logger.error("BUT seems like the matrics channel " + event.getChannel() + " is just recently recovered since "
+                        logger.error("BUT seems like the metrics channel " + event.getChannel() + " is just recently recovered since "
                                 + (new Date(sensorHeartBeat.getUpSince(event.getChannel()))).toString());
 
                     }
