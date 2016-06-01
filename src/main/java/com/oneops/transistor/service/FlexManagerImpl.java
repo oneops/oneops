@@ -142,9 +142,9 @@ public class FlexManagerImpl implements FlexManager {
 		int min = Integer.valueOf(flexRel.getAttribute("min").getDjValue());
 		int max = Integer.valueOf(flexRel.getAttribute("max").getDjValue());
 		if (scaleUp && current < max) {
-			flexRel.getAttribute("current").setDjValue(String.valueOf(current + 1));
+			flexRel.getAttribute("current").setDjValue(String.valueOf(current + step));
 		} else if (!scaleUp && current > min) {
-			flexRel.getAttribute("current").setDjValue(String.valueOf(current - 1));
+			flexRel.getAttribute("current").setDjValue(String.valueOf(current - step));
 		} else {
 			logger.warn("Flex capacity limit was reached for relation - " + flexRel.getRelationGoid());
 			return 0;
