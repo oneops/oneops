@@ -15,7 +15,9 @@
 
     <!-- Common lib components -->
     <import resource="classpath:shared-lib-context.xml"/>
-    <!-- Mybatis components  -->
+	<import resource="classpath:security-config.xml"/>
+
+	<!-- Mybatis components  -->
     <import resource="mybatis-beans.xml"/>
 
     <!-- Enable auto scanning & annotation config -->

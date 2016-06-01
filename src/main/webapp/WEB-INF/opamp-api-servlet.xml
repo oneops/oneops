@@ -51,5 +51,22 @@
 	  		<property name="flexStateProcessor" ref="fsProcessor" />
     	</bean>
 
-	    
-	</beans>
+<!--Enabling ECV -->
+	<import resource="classpath:ecv-beans.xml"/>
+	<bean id="defaultHealthCheck" class="com.oneops.ecv.health.DefaultHealthCheck"/>
+
+	<bean id="defaultHealthChecker" class="com.oneops.ecv.health.HealthCheckerImpl">
+		<property name="healthChecksToRun">
+			<util:list id="beanList">
+				<ref bean="defaultHealthCheck"/>
+			</util:list>
+		</property>
+	</bean>
+
+	<bean id="statusController" class="com.oneops.ecv.ws.StatusController">
+		<property name="healthChecker" ref="defaultHealthChecker"/>
+		<property name="config" ref="ecvConfig"/>
+		<property name="authUtil" ref="authUtil"/>
+	</bean>
+
+</beans>
