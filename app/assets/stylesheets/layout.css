@@ -1186,6 +1186,11 @@ img.authicon {
 	padding: 0px;
 }
 
+#page_info div.marker {
+  float: none;
+  vertical-align: 1px;
+}
+
 #page_alert {
 	position: relative;
 	float: left;

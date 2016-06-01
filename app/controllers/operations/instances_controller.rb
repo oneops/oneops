@@ -55,7 +55,8 @@ class Operations::InstancesController < ApplicationController
       end
 
       deployed_to_map = deployed_to.inject({}) do |h, rel|
-        h[rel.fromCiId] = @clouds[rel.toCiId]
+        rel.toCi = @clouds[rel.toCiId]
+        h[rel.fromCiId] = rel
         h
       end
 
@@ -143,17 +144,19 @@ class Operations::InstancesController < ApplicationController
                                                     :relationShortName => 'WatchedBy',
                                                     :direction         => 'from',
                                                     :includeToCi       => true}).map(&:toCi)
+
+        @deployed_to = @from_relations.select {|r| r.relationName == 'base.DeployedTo'}.first
+        if @platform && @deployed_to
+          @consumes = Cms::DjRelation.all(:params => {:nsPath    => transition_platform_ns_path(@environment, @platform),
+                                                      :direction => 'to'}).find {|r| r.toCiId == @deployed_to.toCiId}
+        end
       end
 
       format.json do
         @instance.opsState   = @ops_state
         @instance.opsEvents  = @ops_events
-        @instance.deployedTo = Cms::Relation.first(:params => {:relationName    => 'base.DeployedTo',
-                                                               :targetClassName => 'account.Cloud',
-                                                               :direction       => 'from',
-                                                               :includeToCi     => true,
-                                                               :ciId            => @instance.ciId}).try(:toCi)
-        @instance.dependsOn  = @from_relations.select { |r| r.relationName == 'bom.DependsOn' }.map(&:toCi)
+        @instance.deployedTo = @from_relations.find {|r| r.relationName == 'base.DeployedTo'}.try(:toCi)
+        @instance.dependsOn  = @from_relations.select {|r| r.relationName == 'bom.DependsOn'}.map(&:toCi)
         @instance.dependents = @dependents
 
         render_json_ci_response(true, @instance)

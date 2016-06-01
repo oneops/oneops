@@ -735,7 +735,7 @@ module ApplicationHelper
 
   def status_marker(name, value, label_class = '', options = {})
     toggle = options['data-toggle']
-    marker = content_tag(:span, name, :class => "label label-marker-name #{options.delete(:name_class)}")
+    marker = content_tag(:span, raw(name), :class => "label label-marker-name #{options.delete(:name_class)}")
     marker << content_tag(:span, raw("#{value}#{" #{icon('caret-down')}" if toggle}"), :class => "label label-marker-value #{label_class}")
     id = random_dom_id
     result = content_tag(:div, marker.html_safe, options.merge(:class => 'marker', :id => id))
@@ -756,6 +756,23 @@ module ApplicationHelper
       a + "#{cloud.toCi.ciName} - <strong class='#{state_to_text(status)}'>#{count}</strong><br>"
     end
     status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {})
+  end
+
+  def cloud_marker(cloud, primary, status)
+    status_class = if status == 'active'
+                     'label-success'
+                   elsif status == 'offline'
+                     'label-warning'
+                   elsif status
+                     'label-important'
+                   else
+                     ''
+                   end
+    marker = status_marker(icon('cloud', primary ? 'primary' : 'secondary'),
+                  "#{cloud.ciName} #{icon('external-link')}",
+                  status_class,
+                  :name_class => primary ? 'info' : '')
+    link_to(marker, edit_cloud_path(cloud))
   end
 
   def icon(name, text = '', icon_class = '')

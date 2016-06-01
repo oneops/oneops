@@ -7,10 +7,7 @@
        primary  = priority == '1' %>
 		<li class="status-marker">
 			<div class="marker">
-        <%= status_marker(primary ? 'primary' : 'secondary',
-                          cloud.toCi.ciName,
-                          status == 'active' ? 'label-success' : (status == 'offline' ? 'label-warning' : 'label-important'),
-                          :name_class => primary ? 'info' : '') %>
+        <%= cloud_marker(cloud.toCi, primary, status) %>
       </div>
       <div class="description">
         <% if allow_actions %>

@@ -20,12 +20,15 @@
                :page_label    => @instance.ciName,
                :page_sublabel => "created by #{@instance.createdBy}" %>
 
-<% deployed_to = @from_relations.select { |r| r.relationName == 'base.DeployedTo' }.first %>
-<% managed_via = @from_relations.select { |r| r.relationName == 'bom.ManagedVia' }.first %>
+<% managed_via = @from_relations.select { |r| r.relationName == 'bom.ManagedVia' }.first
+   primary     = @deployed_to.relationAttributes.priority == '1'
 
-<% info = ''
-   info += "deployed to #{link_to(highlight(deployed_to.toCi.ciName), edit_cloud_path(deployed_to.toCi))} - " if deployed_to.present?
-   info += "managed via #{link_to(highlight(managed_via.toCi.ciName), assembly_operations_environment_platform_instance_path(@assembly, @environment, @platform, managed_via.toCi))}" if managed_via.present? %>
+   info = ''
+   if @deployed_to
+     cloud = @deployed_to.toCi
+     info += "deployed to #{cloud_marker(cloud, primary, @consumes && @consumes.relationAttributes.adminstatus)}"
+   end
+   info += " | managed via #{link_to(highlight(managed_via.toCi.ciName), assembly_operations_environment_platform_instance_path(@assembly, @environment, @platform, managed_via.toCi))}" if managed_via.present? %>
 <%= page_info info %>
 
 <%= render 'base/shared/page_nav_pages', :items => [{:label => 'summary',       :template => 'summary', :selected => true},
