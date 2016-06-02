@@ -45,6 +45,7 @@
             <groupId>com.espertech</groupId>
             <artifactId>esper</artifactId>
             <version>${esper.version}</version>
+            <scope>${esper.scope}</scope>
         </dependency>
         <dependency>
             <groupId>cglib</groupId>
@@ -234,5 +235,27 @@
             <url>http://repository.springsource.com/maven/bundles/external</url>
         </repository>
     </repositories>
+<profiles>
+    <profile>
+        <id>esper-compile</id>
+        <activation>
+            <activeByDefault>true</activeByDefault>
+        </activation>
+        <properties>
+            <esper.scope>compile</esper.scope>
+        </properties>
+   </profile>
+    <profile>
+        <id>esper-external</id>
+        <activation>
+            <activeByDefault>false</activeByDefault>
+        </activation>
+        <properties>
+            <esper.scope>provided</esper.scope>
+        </properties>
+
+   </profile>
+
+</profiles>
 
 </project>
