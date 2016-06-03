@@ -55,8 +55,13 @@ class Operations::InstancesController < ApplicationController
       end
 
       deployed_to_map = deployed_to.inject({}) do |h, rel|
-        rel.toCi = @clouds[rel.toCiId]
-        h[rel.fromCiId] = rel
+        # TODO This is just a temp hack for json API responder to maintain backward compatibility for the API.
+        if request.format.json?
+          h[rel.fromCiId] = @clouds[rel.toCiId]
+        else
+          rel.toCi = @clouds[rel.toCiId]
+          h[rel.fromCiId] = rel
+        end
         h
       end
 
