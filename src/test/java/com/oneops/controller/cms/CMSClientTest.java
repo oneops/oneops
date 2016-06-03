@@ -32,6 +32,7 @@ import java.util.Map;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
 import org.springframework.http.HttpStatus;
+import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -96,6 +97,7 @@ public class CMSClientTest {
 		cc.setCmsCrypto(cmsCrypto);
 		cc.setServiceUrl(serviceUrl);
 		cc.setTransUrl(transUrl);
+		cc.setRetryTemplate(new RetryTemplate());
 		cc.setCmsWoProvider(mockWoProvider);
 		cc.setControllerUtil(ctrlUtil);
 		cc.setDjManager(djManager);
@@ -148,7 +150,26 @@ public class CMSClientTest {
 
 	}
 
-
+	@Test(priority=10)
+	public void commitAndDeployTest() throws GeneralSecurityException{
+		
+		DelegateExecution delegateExecution = mock(DelegateExecution.class);
+		CmsRelease cmsRelease = mock(CmsRelease.class);
+		when(cmsRelease.getReleaseId()).thenReturn(TEST_CI_ID / 2);
+		
+		CmsCISimple cmsCISimpleEnv = mock(CmsCISimple.class);
+		when(cmsCISimpleEnv.getCiId()).thenReturn(TEST_CI_ID);
+		
+		when(delegateExecution.getVariable("release")).thenReturn(cmsRelease);
+		when(delegateExecution.getVariable("env")).thenReturn(cmsCISimpleEnv);
+			
+		cc.setRestTemplate(mockHttpClientPostCommitAndDeploy);
+		try {
+			cc.commitAndDeployRelease(delegateExecution);
+		} catch (GeneralSecurityException e) {
+			throw e;
+		}
+	}
 
 	@SuppressWarnings("unchecked")
 	@Test(priority=11)
@@ -171,6 +192,31 @@ public class CMSClientTest {
 		}
 	}
 
+
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void checkDeploymentTestWithRestTemplateThrowExceptionShouldSucced() throws Exception{
+		DelegateExecution delegateExecution = mock(DelegateExecution.class);
+		CmsDeployment cmsDeployment = new CmsDeployment();
+		cmsDeployment.setCreatedBy("created-by-mock");
+		when(delegateExecution.getVariable("dpmt")).thenReturn(cmsDeployment);
+
+		RestTemplate restTemplate = mock(RestTemplate.class);
+		//when(restTemplate.getForObject(anyString(), any(Class.class) , anyLong())).thenThrow(new RestClientException("test")).thenReturn(cmsDeployment);
+		when(restTemplate.getForObject(anyString(), any(Class.class), anyLong())).thenThrow(new RestClientException("test")).thenThrow(new RestClientException("test")).thenReturn(cmsDeployment);
+		cc.setRestTemplate(restTemplate);
+		try {
+			cc.setRetryTemplate(cc.getRetryTemplate(3,2000,1000));
+			cc.checkDpmt(delegateExecution);
+			CmsDeployment cmsDeploymentPost = (CmsDeployment) delegateExecution.getVariable("dpmt");
+			assertEquals(cmsDeploymentPost.getCreatedBy(), "created-by-mock", "object mutated unexpectedly");
+
+		} catch (GeneralSecurityException e) {
+			logger.warn("unexpected to catch here",e) ;
+			throw e;
+		}
+	}
 
 
 	@Test(priority=12)
