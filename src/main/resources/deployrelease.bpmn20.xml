@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:activiti="http://activiti.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.oneops.com/controller">
+  <process id="deployrelease" name="Release commit and deploy process" isExecutable="true">
+  
+   <startEvent id="execStart" name="Start Ops Procedure execution"/>
+        <sequenceFlow id="f1" name="" sourceRef="execStart" targetRef="aStart"/>
+
+        <receiveTask id="aStart" name="ackStart"/>
+        <sequenceFlow id="f2" name="" sourceRef="aStart" targetRef="getenv"/>
+        
+        <serviceTask id="getenv" name="getenv" activiti:expression="#{cmsClient.getEnv4Release(execution)}"></serviceTask>
+        <sequenceFlow id="f3" name="" sourceRef="getenv" targetRef="envCheck"/>
+        
+        <exclusiveGateway id="envCheck" name="envCheck"></exclusiveGateway>
+	    <sequenceFlow id="moveOnFlow" name="moveOnFlow" sourceRef="envCheck" targetRef="timer">
+	      <conditionExpression xsi:type="tFormalExpression">${env!=null}</conditionExpression>
+	    </sequenceFlow>
+	    <sequenceFlow id="noEnv" name="noEnv" sourceRef="envCheck" targetRef="execEnd">
+	      <conditionExpression xsi:type="tFormalExpression">${env==null}</conditionExpression>
+	    </sequenceFlow>
+        
+        <intermediateCatchEvent id="timer">
+            <timerEventDefinition>
+                <timeDuration>${delay}</timeDuration>
+            </timerEventDefinition>
+        </intermediateCatchEvent>
+        <sequenceFlow id="f4" name="" sourceRef="timer" targetRef="commitanddeploy"/>
+
+
+        <serviceTask id="commitanddeploy" name="Commit and Deploy Release" activiti:expression="#{cmsClient.commitAndDeployRelease(execution)}"/>
+        
+        <sequenceFlow id="endFlow" name="The end flow" sourceRef="commitanddeploy" targetRef="execEnd"/>
+
+    <endEvent id="execEnd" name="End Ops Procedure execution"/>
+  
+  
+  </process>
+</definitions>
