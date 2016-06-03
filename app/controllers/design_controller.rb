@@ -36,7 +36,7 @@ class DesignController < ApplicationController
       data = nil
       data_file = params[:data_file]
       @data_string = (data_file && data_file.read).presence || params[:data]
-      if @data_string =~ /^\s*\{/
+      if @data_string =~ /\A\s*\{/
         begin
           data = JSON.parse(@data_string)
         rescue Exception => e
