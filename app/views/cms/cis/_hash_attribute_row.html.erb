@@ -7,7 +7,10 @@
         <span class="add-on hash_key"><b><%= key %></b></span>
         <span class="add-on"><b>=</b></span>
       <% else %>
-        <%= text_field_tag("#{attribute_name}_key", key, :onchange => onchange, :class => fixed_keys ? 'hash_key readonly' : 'hash_key') %>
+        <%= text_field_tag("#{attribute_name}_key", key,
+                           :onchange    => onchange,
+                           :class       => fixed_keys ? 'hash_key readonly' : 'hash_key',
+                           :placeholder => placeholders[:key]) %>
         <span class="add-on"><b>=</b></span>
       <% end %>
     </div>
@@ -17,10 +20,15 @@
       <% field_opts = {:class    => 'hash_value',
                        :onchange => onchange} %>
       <% if pattern.is_a?(Array) %>
-        <% pattern += [value] if value.present? && pattern.none? {|e| value == (e.is_a?(Array) ? e.last : e)} %>
-        <%= select_tag("#{attribute_name}_value", options_for_select(pattern, value), field_opts) %>
+        <% pattern += [value] if value.present? && pattern.none? { |e| value == (e.is_a?(Array) ? e.last : e) } %>
+        <%= select_tag("#{attribute_name}_value",
+                       raw(%(<option disabled="disabled" value>#{placeholders[:value]}</option>#{options_for_select(pattern, value)})),
+                       field_opts) %>
       <% else %>
-        <%= text_field_tag("#{attribute_name}_value",  value, field_opts.merge(:pattern => pattern)) %>
+        <%= text_field_tag("#{attribute_name}_value",
+                           value,
+                           field_opts.merge(:pattern     => pattern,
+                                            :placeholder => placeholders[:value])) %>
       <% end %>
 
       <%= link_to_function raw("<span class='add-on'>#{icon('times')}</div>"), %(delete_hash_attribute_row(this)) if allow_delete && !fixed_keys %>

@@ -32,8 +32,10 @@
               <% pattern         = a.options[:pattern]
                  required        = a.isMandatory ? true : nil
                  attribute_value = ci_attributes.send(a.attributeName)
-                 placeholder     = a.isMandatory && attribute_value.blank? ? 'this field is required' : nil
-                 data_type       = a.dataType %>
+                 data_type       = a.dataType
+                 form_options    = a.options[:form]
+                 prompt          = form_options && form_options[:prompt]
+                 placeholder     = prompt.presence || (a.isMandatory && attribute_value.blank? ? 'this field is required' : nil) %>
               <% case data_type %>
               <% when 'enum' %>
                 <%= c.select a.attributeName, options_for_select(eval(a.valueFormat), attribute_value), :class => 'select-xlarge' %>
@@ -59,6 +61,7 @@
                            :attribute_name  => a.attributeName,
                            :attribute_value => attribute_value,
                            :pattern         => pattern,
+                           :prompt          => prompt,
                            :builder         => c %>
               <% when 'hash' %>
               	<% allow_add = a.options.include?(:allow_add) ? a.options[:allow_add] : true %>
@@ -70,6 +73,7 @@
                            :allow_add       => allow_add,
                            :allow_delete    => allow_delete,
                            :pattern         => pattern,
+                           :prompt          => prompt,
                            :builder         => c %>
               <% else %>
                 <% if a.isEncrypted %>
@@ -85,16 +89,16 @@
                   </span>
                 </div>
                 <% else %>
-                  <% if a.options.has_key?(:form) %>
-                    <% case a.options[:form][:field] %>
+                  <% if form_options.present? %>
+                    <% case form_options[:field] %>
                       <% when 'textarea' %>
                         <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern %>
                       <% when 'checkbox' %>
-                        <% if a.options[:form][:multiple] == 'true' %>
+                        <% if form_options[:multiple] == 'true' %>
                           <%= render 'cms/cis/multiselect',
                                      :attribute_name     => a.attributeName,
                                      :attribute_value    => attribute_value,
-                                     :options_for_select => a.options[:form][:options_for_select],
+                                     :options_for_select => form_options[:options_for_select],
                                      :builder            => c %>
                         <% else %>
                           <%= render 'cms/cis/checkbox',
@@ -104,7 +108,7 @@
                                      :id => "#{a.attributeName}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>
                         <% end %>
                       <% when 'select' %>
-                        <%= c.select(a.attributeName, options_for_select(a.options[:form][:options_for_select], attribute_value), {}, :class => 'select-xlarge') %>
+                        <%= c.select(a.attributeName, options_for_select(form_options[:options_for_select], attribute_value), {}, :class => 'select-xlarge') %>
                       <% else %>
                         <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern %>
                       <% end %>

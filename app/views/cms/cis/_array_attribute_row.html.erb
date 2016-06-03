@@ -5,9 +5,12 @@
                        :onchange => %(update_array_attribute_raw_value(this))} %>
       <% if pattern.is_a?(Array) %>
         <% pattern += [value] if value.present? && pattern.none? {|e| value == (e.is_a?(Array) ? e.last : e)} %>
-        <%= select_tag(name, options_for_select(pattern, value), field_opts) %>
+        <%= select_tag(name,
+                       raw(%(<option disabled="disabled" value>#{placeholder}</option>#{options_for_select(pattern, value)})),
+                       field_opts) %>
       <% else %>
-        <%= text_field_tag(name, value, field_opts.merge(:pattern => pattern)) %>
+        <%= text_field_tag(name, value, field_opts.merge(:pattern     => pattern,
+                                                         :placeholder => placeholder)) %>
       <% end %>
 
       <%= link_to_function raw("<span class='add-on'>#{icon('times')}</div>"), %(delete_array_attribute_row(this)) %>

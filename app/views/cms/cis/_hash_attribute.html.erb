@@ -1,7 +1,8 @@
-<% add       = defined?(allow_add) ? allow_add : true
-   delete    = defined?(allow_delete) ? allow_delete : true
-   fk        = defined?(fixed_keys) ? fixed_keys : false
-   pattern_x = defined?(pattern) && pattern %>
+<% add           = defined?(allow_add) ? allow_add : true
+   delete        = defined?(allow_delete) ? allow_delete : true
+   fk            = defined?(fixed_keys) ? fixed_keys : false
+   pattern_x     = defined?(pattern) && pattern
+   placeholders  = (defined?(prompt) && prompt.presence) || {:key => 'key', :value => 'value'} %>
 <div class="hash">
   <%= builder.hidden_field attribute_name %>
   <table>
@@ -14,18 +15,20 @@
                      :value          => v,
                      :fixed_keys     => fk,
                      :allow_delete   => delete,
-                     :pattern        => pattern_x %>
+                     :pattern        => pattern_x,
+                     :placeholders   => placeholders %>
         <% end %>
       <% end %>
     </tbody>
     <tfoot class="hide">
-      <%= render('cms/cis/hash_attribute_row',
+      <%= render 'cms/cis/hash_attribute_row',
                  :attribute_name => "new_hash_attribute_row_#{attribute_name}",
                  :key            => '',
                  :value          => '',
                  :fixed_keys     => false,
                  :allow_delete   => true,
-                 :pattern        => pattern_x) %>
+                 :pattern        => pattern_x,
+                 :placeholders   => placeholders %>
     </tfoot>
   </table>
   <%= link_to_function(icon('plus', 'add'), "new_hash_attribute_row(this)", :class => 'btn btn-mini') if add && !fk %>
