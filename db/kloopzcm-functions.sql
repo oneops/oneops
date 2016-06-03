@@ -1823,7 +1823,7 @@ BEGIN
         is_encrypted = coalesce(p_is_encrypted, is_encrypted),
         is_immutable = coalesce(p_is_immutable,is_immutable),
         force_on_dependent = coalesce(p_force_on_dependent, force_on_dependent),
-        default_value = coalesce(p_default_value, default_value),
+        default_value = p_default_value,
         value_format = coalesce(p_value_format, value_format),
         description = coalesce(p_descr, description)
     where attribute_id = p_attribute_id;
