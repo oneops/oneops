@@ -1,19 +1,23 @@
-<% pattern_x = defined?(pattern) && pattern %>
+<% pattern_x   = defined?(pattern) && pattern
+   placeholder = (defined?(prompt) && prompt.presence) || '' %>
 <div class="array">
   <%= builder.hidden_field attribute_name %>
   <table>
     <tbody>
     <% (attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : []).each_with_index do |e, i| %>
-      <%= render 'cms/cis/array_attribute_row', :name => "#{attribute_name}_#{i}",
-                 :value                               => e,
-                 :pattern                             => pattern_x %>
+      <%= render 'cms/cis/array_attribute_row',
+                 :name        => "#{attribute_name}_#{i}",
+                 :value       => e,
+                 :pattern     => pattern_x,
+                 :placeholder => placeholder %>
     <% end %>
     </tbody>
     <tfoot class="hide">
-      <%= render('cms/cis/array_attribute_row',
-                :name    => "new_array_attribute_row_#{attribute_name}",
-                :value   => '',
-                :pattern => pattern_x) %>
+    <%= render('cms/cis/array_attribute_row',
+               :name        => "new_array_attribute_row_#{attribute_name}",
+               :value       => '',
+               :pattern     => pattern_x,
+               :placeholder => placeholder) %>
     </tfoot>
   </table>
   <%= link_to_function(icon('plus', 'add'), "new_array_attribute_row(this)", :class => 'btn btn-mini') %>

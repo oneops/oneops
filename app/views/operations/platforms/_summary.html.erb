@@ -24,9 +24,8 @@
     <% end %>
     <% builder.status do %>
       <% if health %>
-        <%= content = ''
-            health.each_pair { |s, count| content += "<strong>#{count}</strong> #{s}<br>" }
-            status_marker('health', state, health_to_label(state), 'data-toggle' => 'tooltip', 'data-html' => true, 'data-title' => content, 'data-trigger' => 'hover') %>
+        <%= content = health.inject('') {|c, (s, count)| c + "<span class='#{health_to_text(s)}'><strong>#{count}</strong> #{s}</span><br>"}
+            status_marker('health', state, health_to_label(state), 'data-toggle' => 'tooltip', 'data-html' => true, 'data-title' => content, 'data-trigger' => 'hover', 'data-placement' => 'bottom') %>
       <% end %>
       <% if @policy_compliance %>
         <% violate_count = @policy_compliance[target.ciId] %>

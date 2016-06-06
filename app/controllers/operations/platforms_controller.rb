@@ -26,7 +26,11 @@ class Operations::PlatformsController < Base::PlatformsController
                                                     :attrProps    => 'owner'})
 
         state_info = Operations::Sensor.component_states(@requires.map(&:toCiId))
-        @requires.each { |r| r.toCi.health = state_info[r.toCiId.to_s] }
+        @requires.each do |r|
+          comp_state_info = state_info[r.toCiId.to_s]
+          comp_state_info.except!('updated') if comp_state_info
+          r.toCi.health = comp_state_info
+        end
 
         @instances     = Cms::DjCi.all(:params => {:nsPath => platform_bom_ns_path(@environment, @platform)})
         @bom_release   = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})

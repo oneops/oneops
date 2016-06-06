@@ -17,7 +17,24 @@
      sort_by << ['Deployment Status', 'deployment']
      filter_by << 'deployment'
    end
-   toolbar = {:list_name => @component ? 'component_instances' : (@environment ? 'environment_instances' : 'assembly_instances'),
+   unless @component
+     sort_by << ['Component Type', 'componentType']
+     filter_by << 'componentType'
+     unless @platform
+       sort_by << ['Namespace', 'nsPath']
+       filter_by << 'nsPath'
+     end
+   end
+   list_name = if @component
+                 'component_instances'
+               elsif @platform
+                 'platform_instances'
+               elsif @environment
+                 'environment_instances'
+               else
+                 'assembly_instances'
+               end
+   toolbar = {:list_name => list_name,
               :sort_by   => sort_by,
               :filter_by => filter_by}
 
@@ -39,10 +56,10 @@
        deployment_info     = @deployment_info && @deployment_info[target.ciId]
        deployment_state    = deployment_info && deployment_info[:state]
        deployment_comments = deployment_info && deployment_info[:comments]
-       deployed_to         = target.deployedTo
+       deployed_to         = target.cloud
        primary             = deployed_to && deployed_to.relationAttributes.priority == '1'
        priority_name      = primary ? 'primary' : 'secondary' %>
-    <% builder.attributes %(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}") %>
+    <% builder.attributes %(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}") %>
     <% builder.target nil %>
     <% builder.selectable target.lastAppliedRfcId.to_i > 0 %>
     <% builder.icon :none if @component %>
@@ -109,12 +126,14 @@
       var data = {actionCiIds:    instance_ids,
                   procedureName:  procedureNames[actionId],
                   procedureCiId:  0,
-                  procedureState: "active",
-                  ciId:           "<%= @component.try(:ciId) ||  @environment.try(:ciId) || @assembly.try(:ciId) %>"};
+                  procedureState: "active"};
       <% if @component %>
         data["ciId"] = "<%= @component.ciId %>";
         data["actionCiClassName"] = "<%= @component.ciClassName %>";
         data["relationName"] = "base.RealizedAs";
+      <% elsif @platform %>
+        data["ciId"] = "<%= @platform.ciId %>";
+        data["relationName"] = "manifest.Requires,base.RealizedAs";
       <% elsif @environment %>
         data["ciId"] = "<%= @environment.ciId %>";
         data["relationName"] = "manifest.ComposedOf,manifest.Requires,base.RealizedAs";
