@@ -55,20 +55,17 @@ class Operations::InstancesController < ApplicationController
       end
 
       deployed_to_map = deployed_to.inject({}) do |h, rel|
-        # TODO This is just a temp hack for json API responder to maintain backward compatibility for the API.
-        if request.format.json?
-          h[rel.fromCiId] = @clouds[rel.toCiId]
-        else
-          rel.toCi = @clouds[rel.toCiId]
-          h[rel.fromCiId] = rel
-        end
+        rel.toCi = @clouds[rel.toCiId]
+        h[rel.fromCiId] = rel
         h
       end
 
       @ops_states = @instances.blank? ? {} : Operations::Sensor.states(@instances)
       @instances = @instances.select do |i|
         i.opsState   = @ops_states[i.ciId]
-        i.deployedTo = deployed_to_map[i.ciId]
+        i.cloud      = deployed_to_map[i.ciId]
+        i.deployedTo = deployed_to_map[i.ciId].try(:toCi)
+
         @state == 'all' || (i.opsState && @state.include?(i.opsState))
       end
     end
@@ -331,7 +328,13 @@ class Operations::InstancesController < ApplicationController
   end
 
   def scope_ns_path
-    params[:environment_id].present? ? environment_bom_ns_path(@environment) : assembly_ns_path(@assembly)
+    if @platform
+      bom_platform_ns_path(@environment, @platform)
+    elsif @environment
+      environment_bom_ns_path(@environment)
+    elsif @assembly
+      assembly_ns_path(@assembly)
+    end
   end
 
   def calculate_availability(ops_notifications, end_state, start_time, end_time)

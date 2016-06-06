@@ -668,6 +668,23 @@ module ApplicationHelper
     end
   end
 
+  def health_to_text(state)
+    case state
+    when 'good'
+      'text-success'
+    when 'notify'
+      'text-info'
+    when 'unhealthy'
+      'text-error'
+    when 'overutilized'
+      'text-warning'
+    when 'underutilized'
+      'text-info'
+    else
+      ''
+    end
+  end
+
   def ops_state_legend
     [{:name => 'good',          :color => '#468847'},
      {:name => 'notify', :color => '#3a87ad'},

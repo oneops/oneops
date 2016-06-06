@@ -192,26 +192,41 @@
         var filter_field = list.find(".list-toolbar-filter");
         var filtersFields = list.find(".list-toolbar").attr("filters");
         var taItems = filtersFields.split(",");
-        taItems.unshift(filtersFields);
-        taItems = taItems.map(function(i) {return i + "=";});
-        filter_field.typeahead({source:   taItems,
-                                 matcher: function (item) {
-                                   var split = this.query.split(/:|=/),
-                                       field = split.length > 1 ? split[0] : null;
-                                   return field ? item.indexOf(field) == 0 : true;
-                                 },
-                                 sorter:  function (items) {
-                                   return items;
-                                 },
-                                 updater: function (item) {
-                                   var split = this.query.split(/:|=/),
-                                       val = split[split.length - 1],
-                                       result = item == taItems[0] ? val : item + val;
-                                   setTimeout(function () {
-                                     filter_changed(filter_field[0]);
-                                   }, 10);
-                                   return result;
-                                 }});
+        filter_field.typeahead({items: 15,
+                                source:  function (query, process) {
+                                  var split = query.split(/:|=/);
+                                  var val = split.length > 1 ? split[1] : split[0];
+                                  var items = taItems.map(function(i) {return i + "=" + val;});
+                                  items.unshift(val);
+                                  return items;
+                                },
+                                matcher: function (item) {
+                                  return true;
+                                },
+                                sorter: function(items) {
+                                  var query = this.query;
+                                  return items.sort(function(a, b) {
+                                    if (a == query){
+                                      return -1;
+                                    }
+                                    else if (b == query) {
+                                      return 1;
+                                    }
+                                    else {
+                                      return a.localeCompare(b);
+                                    }
+                                  });
+                                },
+                                highlighter: function (item) {
+                                  var split = item.split('=');
+                                  return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
+                                },
+                                updater: function (item) {
+                                  setTimeout(function () {
+                                    filter_changed(filter_field[0]);
+                                  }, 10);
+                                  return item;
+                                }});
         var filter = localStorage.getItem(prefix + "filter");
         if (filter) {
           filter_field.val(filter);

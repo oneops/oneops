@@ -410,7 +410,7 @@ Display::Application.routes.draw do
             end
 
             # Allow routing to instances without nesting under component.
-            resources :instances, :only => [:show, :destroy] do
+            resources :instances, :only => [:index, :show, :destroy] do
               put 'cancel_deployment', :on => :member
               get 'availability',      :on => :member
               get 'notifications',     :on => :member
