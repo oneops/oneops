@@ -55,6 +55,7 @@ class Operations::InstancesController < ApplicationController
       end
 
       deployed_to_map = deployed_to.inject({}) do |h, rel|
+        rel.attributes.delete(:fromCi)   # This is very important not only to reduce the payload size but more importantly to prevent potential cyclic references during json generation in json responder.
         rel.toCi = @clouds[rel.toCiId]
         h[rel.fromCiId] = rel
         h
