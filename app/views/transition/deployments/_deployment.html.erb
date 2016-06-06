@@ -60,7 +60,7 @@
                       <% component_rfcs.group_by { |rfc| rfc.ciName.split('-')[-2].to_i }.sort.each do |cloud_id, cloud_rfcs| %>
                         <% component_dom_id = random_dom_id %>
                         <% ops_state_alerts = {}
-                           class_rfcs.each do |rfc|
+                           cloud_rfcs.each do |rfc|
                              alert_info = {}
                              instance_state = @ops_states[rfc.ciId]
                              alert_info[:instance] = {:ciId => rfc.ciId, :state => instance_state} if instance_state.present? && instance_state != 'good'
@@ -204,7 +204,7 @@
           <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
           <td><%= render 'transition/deployments/action',
                          :action => 'deploy',
-                         :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work order')} that rely on instances in bad state." %></td>
+                         :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work order')} relying on instance(s) in bad state." %></td>
         </tr>
       </table>
     <% else %>
