@@ -807,68 +807,6 @@ public class ManifestRfcBulkProcessor {
 		}
 	}
 
-	/*
-	private void processInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, String platNsPath, String envNsPath, String userId) {
-		processInterRelations(internalRels, ciIdsMap, platNsPath,envNsPath, null, null, userId);
-	}	
-	*/
-	
-	
-/*	
-	private Set<String> _processInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, String platNsPath, String envNsPath, CmsCI env, CmsRfcCI manifestPlat, String userId) {
-
-		Set<String> newRelsGoids = new HashSet<String>();
-		
-		for (CmsCIRelation ciRel : internalRels) {
-			Long fromCiId = ciRel.getFromCiId();
-			Long toCiId = ciRel.getToCiId();
-			if (ciIdsMap.containsKey(fromCiId)){
-				for (Long fromRfcCiId : ciIdsMap.get(fromCiId)) {
-					if (ciIdsMap.containsKey(toCiId)) {
-						for (Long toRfcCiId : ciIdsMap.get(toCiId)) {
-							CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-							rfcRelation.setFromCiId(fromRfcCiId);
-							rfcRelation.setToCiId(toRfcCiId);
-							setCiRelationId(rfcRelation);
-							rfcRelation.setCreatedBy(userId);
-							rfcRelation.setUpdatedBy(userId);
-							CmsRfcRelation newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcRelation, userId);
-							newRelsGoids.add(newRfcRelation.getRelationGoid());
-							logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
-						}
-					} else if (env != null && ciRel.getRelationName().equals(MGMT_MANIFEST_WATCHEDBY)) { //this is special case for monitors
-						
-						CmsRfcCI manifestRfc = cmRfcMrgProcessor.getCiById(fromCiId, "df"); 
-						String monCiName = manifestPlat.getCiName() + "-" + manifestRfc.getCiName() + "-" + ciRel.getToCi().getCiName();
-						
-						CmsCI oldPlatMon = getOldPlatMonitor(manifestPlat,monCiName);
-						
-						CmsRfcCI monRfc = trUtil.mergeCis(ciRel.getToCi(), oldPlatMon, "manifest", platNsPath, envNsPath);
-						monRfc.setCiName(monCiName);
-						List<CmsCI> existingMons = cmProcessor.getCiBy3(monRfc.getNsPath(), monRfc.getCiClassName(),monCiName); 
-							//rfcProcessor.getOpenRfcCIByClazzAnd2Names(monRfc.getNsPath(), monRfc.getCiClassName(), monRfc.getCiName(), monCiName); 
-						//if there is an existing monitor - don't override it - skip
-						if (existingMons.size() == 0) {
-							setCiId(monRfc, monCiName);
-							monRfc.setCreatedBy(userId);
-							monRfc.setUpdatedBy(userId);
-							CmsRfcCI newMonRfc = cmRfcMrgProcessor.upsertCiRfc(monRfc, userId);
-							CmsRfcRelation rfcWatchRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-							rfcWatchRelation.setFromCiId(fromRfcCiId);
-							rfcWatchRelation.setToCiId(newMonRfc.getCiId());
-							setCiRelationId(rfcWatchRelation);
-							rfcWatchRelation.setCreatedBy(userId);
-							rfcWatchRelation.setUpdatedBy(userId);
-							CmsRfcRelation newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcWatchRelation, userId);
-							logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
-						}
-					}
-				}
-			}
-		}
-		return newRelsGoids;
-	}
-*/
 	
 	private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String platNsPath, String envNsPath, CmsRfcCI manifestPlat, 
 			String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
@@ -1182,8 +1120,13 @@ public class ManifestRfcBulkProcessor {
 		MergeResult mrgMaps = new MergeResult();
 		
 		for (Edge edge : edges.values()) {
+			if (edge.templateRel == null) {
+				// this design component does not belong in this env (i.e. LB in single env) skip
+				continue;
+			}
 			if (edge.userRels.size()>0) {
-				CmsCI templLeafCi = (edge.templateRel != null) ? edge.templateRel.getToCi() : null;  
+				CmsCI templLeafCi = edge.templateRel.getToCi();
+				
 				List<Long> manifestCiIds = new ArrayList<Long>();
 				List<CmsRfcCI> newManifestRfcs = new ArrayList<>();
 				for (CmsCIRelation userRel : edge.userRels) {
@@ -1255,15 +1198,12 @@ public class ManifestRfcBulkProcessor {
 						platformRfcs.getRfcRelationList().remove(leafRfcRelation);
 					}
 				}
-				if (templLeafCi != null) { 
-					if(!manifestCiIds.isEmpty()){
-						mrgMaps.templateIdsMap.put(templLeafCi.getCiId(), manifestCiIds);
-					}
-					if(!newManifestRfcs.isEmpty()){
-						mrgMaps.rfcMap.put(templLeafCi.getCiId(), newManifestRfcs);
-					}
+				if(!manifestCiIds.isEmpty()){
+					mrgMaps.templateIdsMap.put(templLeafCi.getCiId(), manifestCiIds);
 				}
-				
+				if(!newManifestRfcs.isEmpty()){
+					mrgMaps.rfcMap.put(templLeafCi.getCiId(), newManifestRfcs);
+				}
 			} else {
 					String cardinality = edge.templateRel.getAttribute("constraint").getDfValue();
 					if ("1..1".equalsIgnoreCase(cardinality) ||
