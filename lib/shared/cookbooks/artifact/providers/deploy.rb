@@ -47,12 +47,15 @@ def load_current_resource
   end
 
   if Chef::Artifact.latest?(@new_resource.version) && Chef::Artifact.from_http?(@new_resource.artifact_location)
-    Chef::Application.fatal! "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
+    msg = "You cannot specify the latest version for an artifact when attempting to download an artifact using http(s)!"
+    puts "***FAULT:FATAL=#{msg}"
+    Chef::Application.fatal!(msg)
   end
 
   if @new_resource.name =~ /\s/
-    Chef::Log.warn "Whitespace detected in resource name. Failing Chef run."
-    Chef::Application.fatal! "The name attribute for this resource is significant, and there cannot be whitespace. The preferred usage is to use the name of the artifact."
+    msg = "There cannot be whitespace in resource name. The preferred usage is to use the name of the artifact."
+    puts "***FAULT:FATAL=#{msg}"
+    Chef::Application.fatal!(msg)
   end
 
   chef_gem "i18n" do
@@ -219,7 +222,9 @@ def extract_artifact!
         end
       end
     else
-      Chef::Application.fatal! "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
+      msg = "Cannot extract artifact because of its extension. Supported types are [tar.gz tgz tar tar.bz2 tbz zip war jar]."
+      puts "***FAULT:FATAL=#{msg}"
+      Chef::Application.fatal!(msg)
     end
 
     # Working with artifacts that are packaged under an extra top level directory
@@ -573,7 +578,9 @@ private
         Chef::Log.info "artifact_deploy[retrieve_artifact!] Retrieving artifact local path #{artifact_location}"
         retrieve_from_local
       else
-        Chef::Application.fatal! "artifact_deploy[retrieve_artifact!] Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
+        msg = "Cannot retrieve artifact #{artifact_location}! Please make sure the artifact exists in the specified location."
+        puts "***FAULT:FATAL=#{msg}"
+        Chef::Application.fatal!(msg)
       end
     end
   end
