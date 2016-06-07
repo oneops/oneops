@@ -233,9 +233,7 @@
           filter_changed(filter_field[0]);
         }
       }
-      setTimeout(function() {
-        update_filter_marker(list);
-      }, 100);
+      update_filter_marker(list);
       if (list.find(".btn i.fa-angle-double-down").length) {
         list.find(".list-body > ul > li:visible .middle").hide();
       }
@@ -243,7 +241,9 @@
 
     window.update_filter_marker = function(list) {
       list = $j(list);
-      list.find(".list-count-marker").html(list.find(".list-body ul li:not(.group-header):visible").length);
+      // Can not rely on ':visible' selector because of racing condition.
+      var count = list.find(".list-body > ul > li:not(.group-header)").not(function(i, e) {return e.style.display == 'none'}).length;
+      list.find(".list-count-marker").html(count);
     }
   }
 </script>
