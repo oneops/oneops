@@ -89,13 +89,14 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	}
 	
 	@Override
-	public long discardEnvManifest(long envId) {
+	public long discardEnvManifest(long envId, String userId) {
 		CmsCI env = cmProcessor.getCiById(envId);
 		String manifestNsPath = env.getNsPath() + "/" + env.getCiName() + "/manifest";
 		long manifestReleaseId = 0;
 		List<CmsRelease> manifestReleases = rfcProcessor.getReleaseBy3(manifestNsPath, null, "open");
 		for (CmsRelease manifestRel : manifestReleases) {
 			manifestRel.setReleaseState("canceled");
+			manifestRel.setCommitedBy(userId);
 			rfcProcessor.updateRelease(manifestRel);
 			env.setComments("");
 			cmProcessor.updateCI(env);

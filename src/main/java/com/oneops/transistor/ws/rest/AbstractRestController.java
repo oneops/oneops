@@ -31,6 +31,8 @@ public class AbstractRestController {
 
 	private Gson gson = new Gson();
 
+	protected static final String ONEOPS_SYSTEM_USER = "oneops-system";
+
     protected void sendError(HttpServletResponse response, int code, CmsError ex) throws IOException {
             ErrorResponse error = new ErrorResponse(code, ex);
             response.setStatus(error.getCode());

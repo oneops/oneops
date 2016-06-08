@@ -444,9 +444,12 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
-			if (userId == null) userId = "oneops-system";
+			if (userId == null) {
+				logger.info("userId is null, using system user for discardManifest, envId : " + envId);
+				userId = ONEOPS_SYSTEM_USER;
+			}
 
-			long releaseId = envManager.discardEnvManifest(envId);
+			long releaseId = envManager.discardEnvManifest(envId, userId);
 			Map<String,Long> result = new HashMap<String,Long>(1);
 			result.put("releaseId", releaseId);
 			return result;
@@ -758,4 +761,5 @@ public class TransistorRestController extends AbstractRestController {
 		}
 		return excludePlats;
 	}
+
 }
