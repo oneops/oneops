@@ -44,13 +44,6 @@
         <property name="rfcUtil" ref="rfcUtil" />
     </bean>
     
-    <!-- <bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcProcessor">
-		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
-		<property name="cmProcessor" ref="cmsCmProcessor" />
-		<property name="mdProcessor" ref="cmsMdProcessor" />
-		<property name="rfcProcessor" ref="cmsRfcProcessor" />
-        <property name="trUtil" ref="trUtil" />
-    </bean> -->
 
 	<bean id="designRfcProcessor" class="com.oneops.transistor.service.DesignRfcProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />

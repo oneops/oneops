@@ -204,12 +204,9 @@ public class ManifestRfcBulkProcessor {
 	public ManifestRfcContainer processPlatform(CmsCI designPlatform, CmsCI env, String nsPath, String userId, String availMode) {
 		
 		ManifestRfcContainer platformRfcs = new ManifestRfcContainer();
-
-		logger.info("Started working on: " + designPlatform.getCiName());
-		
-
 		String platNsPath = nsPath + "/" + designPlatform.getCiName() + "/" + designPlatform.getAttribute("major_version").getDfValue();
-		
+		logger.info("Started working on: " + platNsPath);
+
 		String manifestAvailMode = null;
 		
 		CmsRfcCI manifestPlat = null;
@@ -283,7 +280,9 @@ public class ManifestRfcBulkProcessor {
 		processLocalVars(designPlatform.getCiId(), manifestPlatRfc.getCiId(),platNsPath, nsPath, userId, existingManifestCIs, existingManifestPlatRels, platformRfcs);
 		processClouds(env,manifestPlatRfc, platNsPath, nsPath, userId, existingManifestCIs, existingManifestPlatRels,platformRfcs);
 		
-		platformRfcs.setManifestPlatformRfc(manifestPlatRfc);		
+		platformRfcs.setManifestPlatformRfc(manifestPlatRfc);
+		logger.info("Done creating rfc's for: " + manifestPlatRfc.getNsPath());
+
 		return platformRfcs;
 		
 	}

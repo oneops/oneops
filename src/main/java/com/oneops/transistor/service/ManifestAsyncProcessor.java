@@ -43,39 +43,38 @@ public class ManifestAsyncProcessor {
 	}
 
 	public long generateEnvManifest(long envId, String userId, Map<String, String> platModes) {
+		String oldThreadName = Thread.currentThread().getName();
+		Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName,envId));
 		envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE);
 		ExecutorService executor = Executors.newSingleThreadExecutor();
 		long releaseId = 0;
-		
-		Callable<Long> callable = new Callable<Long>() {
-			
-			@Override
-			public Long call() throws Exception {
-				long relId = 0;
-				String envMsg = null;
-				try {
-					relId = manifestManager.generateEnvManifest(envId, userId, platModes);
-				} catch (CmsBaseException e) {
-					logger.error("CmsBaseException occurred", e);
-					e.printStackTrace();
-					envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
-					throw e;
-				} finally {
-					envSemaphore.unlockEnv(envId, envMsg);
-				}
-				return relId;
-			}
-		};
-		
+		Callable<Long> callable = () -> {
+            long relId = 0;
+            String envMsg = null;
+            try {
+                relId = manifestManager.generateEnvManifest(envId, userId, platModes);
+            } catch (CmsBaseException e) {
+                logger.error("CmsBaseException occurred", e);
+                envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
+                throw e;
+            } finally {
+
+                envSemaphore.unlockEnv(envId, envMsg);
+            }
+            return relId;
+        };
+
 		Future<Long> future = executor.submit(callable);
 	    executor.shutdown();
-		
+
 		try {
 			releaseId =  future.get();
 		} catch (InterruptedException | ExecutionException e) {
 			logger.error("Error in retrieving release id " , e);
+		}finally {
+			Thread.currentThread().setName(oldThreadName);
 		}
-		
+
 		return releaseId;
 	}
 
