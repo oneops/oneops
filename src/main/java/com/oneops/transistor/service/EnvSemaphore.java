@@ -25,6 +25,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.TransistorException;
+import org.apache.log4j.Logger;
 
 public class EnvSemaphore {
 	
@@ -34,6 +35,7 @@ public class EnvSemaphore {
 	protected static final String ERROR_PREFIX = "ERROR:";
 	protected static final String SUCCESS_PREFIX = "SUCCESS:";
 	protected static final String COMPILE_INTERRUPTED = "Environment compilation was interrupted, please recompile!";
+	private static final Logger logger = Logger.getLogger(EnvSemaphore.class);
 
 	private Set<Long> envUnderProcess = Collections.synchronizedSet(new HashSet<Long>());
 
@@ -51,6 +53,7 @@ public class EnvSemaphore {
 		env.setCiState(lock);
 		env.setComments("");
 		cmManager.updateCI(env);
+		logger.info("locked env id " +envId +" state:" +env.getCiState());
 		envUnderProcess.add(envId);
 	}
 	
@@ -59,6 +62,7 @@ public class EnvSemaphore {
 		env.setCiState(DEFAULT_STATE);
 		env.setComments(envMsg);
 		cmManager.updateCI(env);
+		logger.info("unlocked env id " +envId +" state:" +env.getCiState());
 		envUnderProcess.remove(envId);
 	}
 	

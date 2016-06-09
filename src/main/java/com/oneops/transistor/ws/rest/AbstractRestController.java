@@ -37,7 +37,7 @@ public class AbstractRestController {
             ErrorResponse error = new ErrorResponse(code, ex);
             response.setStatus(error.getCode());
             response.getWriter().write(gson.toJson(error));
-            logger.error("Exception occurred while serving the request"+ex.getErrorCode());
+            logger.error("Exception occurred while serving the request "+ex.getErrorCode());
     }
 
 }

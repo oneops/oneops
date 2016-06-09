@@ -54,7 +54,7 @@ public class ManifestManagerImpl implements ManifestManager {
 	private final static String BASE_DEPLOYED_TO = "base.DeployedTo";
 	private final static String ACCOUNT_CLOUD = "account.Cloud";
 	private final static String RELEASE_STATE_OPEN = "open";
-	
+
 	public void setCmRfcMrgProcessor(CmsCmRfcMrgProcessor cmRfcMrgProcessor) {
 		this.cmRfcMrgProcessor = cmRfcMrgProcessor;
 	}
@@ -87,9 +87,11 @@ public class ManifestManagerImpl implements ManifestManager {
 
 	@Override
 	public long generateEnvManifest(long envId, String userId, Map<String, String> platModes) {
-		
+		long t1 = System.currentTimeMillis();
+		String oldThreadName = Thread.currentThread().getName();
+		Thread.currentThread().setName(getProcessingThreadName(oldThreadName,envId));
 		List<CmsCIRelation> assemblyRels = cmProcessor.getToCIRelations(envId, BASE_REALIZED_IN,null, ACCOUNT_ASSEMBLY);
-		CmsCI assembly = null;  
+		CmsCI assembly = null;
 		if (assemblyRels.size()>0) {
 			assembly = assemblyRels.get(0).getFromCi();
 		} else {
@@ -97,7 +99,7 @@ public class ManifestManagerImpl implements ManifestManager {
 			logger.error(error);
 			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_GET_ASSEMBLY, error);
 		}
-		
+
 		CmsCI env = getEnv(envId);
 		
 		String nsPath = env.getNsPath() + "/" + env.getCiName() + "/manifest";
@@ -171,7 +173,7 @@ public class ManifestManagerImpl implements ManifestManager {
 					disablePlatform(manifestPlatformRfc.getCiId(), userId);
 				}
 				logger.info("New release id = " + manifestPlatformRfc.getReleaseId());
-				logger.info("Done working on platform " + manifestPlatformRfc.getCiName());
+				logger.info("Done working on platform " + manifestPlatformRfc.getNsPath());
 				
 				design2manifestPlatMap.put(touple.designPlatCI, manifestPlatformRfc);
 			} catch (Exception e) {
@@ -185,14 +187,17 @@ public class ManifestManagerImpl implements ManifestManager {
         //now we need to process linkedTo relations
 		manifestRfcProcessor.processLinkedTo(design2manifestPlatMap, nsPath, userId);
 		
-		//now lets delete old exisitng plats that do not exists in new manifest
+		//now lets delete old existing plats that do not exists in new manifest
 		manifestRfcProcessor.processDeletedPlatforms(design2manifestPlatMap.values(), env, nsPath, userId);
 		
 		//process global variables from design
 		manifestRfcProcessor.processGlobalVars(assembly.getCiId(), env, nsPath, userId);
-		
-		return populateParentRelease(env, nsPath);
+		long t2 = System.currentTimeMillis();
+		long envReleaseId = populateParentRelease(env, nsPath);
+		logger.info("Pull design for   "+ nsPath+"  completed in  "+(t2-t1) +" millis with releaseId " +releaseId );
+		return envReleaseId;
 	}
+
 
 	/**
 	 * 
@@ -515,8 +520,8 @@ public class ManifestManagerImpl implements ManifestManager {
 	public void updatePlatformCloud(CmsRfcRelation cloudRel, String userId) {
 		manifestRfcProcessor.updatePlatfomCloudStatus(cloudRel, userId);
 	}
-	
-	
+
+
 	private class ManifestRfcProcessorTask implements Callable<DesignCIManifestRfcTouple> {
         private final CmsCI env;
         private final String nsPath;
@@ -538,13 +543,16 @@ public class ManifestManagerImpl implements ManifestManager {
 		}
 
 		public DesignCIManifestRfcTouple call() {
+			String oldThreadName = Thread.currentThread().getName();
             try {
-                ManifestRfcContainer manifestPlatformRfcs =  manifestRfcProcessor.processPlatform(platRelation.getToCi(), env, nsPath, userId, availMode);
+				Thread.currentThread().setName(getProcessingThreadName(oldThreadName,env.getCiId()));
+				ManifestRfcContainer manifestPlatformRfcs =  manifestRfcProcessor.processPlatform(platRelation.getToCi(), env, nsPath, userId, availMode);
             	DesignCIManifestRfcTouple touple = new DesignCIManifestRfcTouple(platRelation.getToCi().getCiId(),manifestPlatformRfcs);
             	return touple;
             } finally {
-                countDownLatch.countDown();
-            }
+				countDownLatch.countDown();
+				Thread.currentThread().setName(oldThreadName);
+			}
         }
  
     }
