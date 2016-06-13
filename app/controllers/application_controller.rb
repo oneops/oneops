@@ -1059,7 +1059,7 @@ class ApplicationController < ActionController::Base
       else
         return assembly_transition_path(:org_name => org, :assembly_id => assembly)
       end
-    elsif ns_path.include?('/bom/')
+    elsif ns_path =~ (/\/bom(\/|$)/)
       root, org, assembly, env, bom, platform, platform_version = ns_path.split('/')
       if platform.present? && platform_version.present?
         return assembly_operations_environment_platform_path(:org_name       => org,

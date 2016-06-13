@@ -21,7 +21,17 @@
 		<%= builder[:text] || item['text'] %>
     <% if payload.present? %>
       <div class="middle" style="display:none">
-        <%= render 'base/shared/nested_hash', :data => payload %>
+        <% builder = lambda do |k, v|
+             if k == 'deploymentId'
+               link_to(v, redirect_deployment_path(v))
+             elsif k == 'ciName'
+               cms_id = item['cmsId']
+               cms_id.blank? ? v : link_to(v, redirect_ci_url(:only_path => false, :id => cms_id))
+             else
+               v
+             end
+           end %>
+        <%= render 'base/shared/nested_hash', :data => payload, :builder => builder %>
       </div>
     <% end %>
 	</div>

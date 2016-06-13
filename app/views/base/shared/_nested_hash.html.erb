@@ -1,3 +1,4 @@
+<% builder_x = defined?(builder) && builder %>
 <% if data.present? %>
   <table>
     <% data.each_pair do |k, v| %>
@@ -11,7 +12,13 @@
         <tr>
           <td title="<%= k %>"><%= k %>:</td>
           <td>&nbsp;&nbsp;</td>
-          <td title="<%= v %>"><%= v.is_a?(Hash) ? render('base/shared/nested_hash', :data => v) : v %></td>
+          <td title="<%= v %>">
+            <% if v.is_a?(Hash) %>
+              <%= render('base/shared/nested_hash', :data => v) %>
+            <% else %>
+              <%= builder_x ? builder_x.call(k, v) : v %>
+            <% end %>
+          </td>
         </tr>
       <% end %>
     <% end %>

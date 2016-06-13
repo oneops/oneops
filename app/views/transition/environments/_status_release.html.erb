@@ -77,7 +77,9 @@
           release <%= @release.releaseId %> <%= "#{state}" %>
           <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong></li>
         <li><%= icon('user', ' ', 'fa-fw') %>Commit by <strong><%= @release.commitedBy %></strong></li>
-        <li><%= icon('comment') %> <%= @release.description %></li>
+        <% if @release.description.present? %>
+          <li><%= icon('comment') %><%= @release.description %></li>
+        <% end %>
         <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#releases') %>
           history of environment releases
         </li>
