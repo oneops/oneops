@@ -103,7 +103,7 @@
       <% end %>
     </div>
     <div class="content path">
-      <%= notification_callback(@data, true) %>
+      <%= notification_callback(@data) %>
     </div>
     <div class="content time">
       Sent by OneOps <%= Settings.identity %> on <%= Time.at(@data[:timestamp]/1000).utc.to_s if @data[:timestamp] %>

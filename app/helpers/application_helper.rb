@@ -425,34 +425,17 @@ module ApplicationHelper
     raw ListItemBuilder.build_list_item_content(notification_collection, self, options.merge(:item_partial => 'base/shared/notification_list_item'), &block)
   end
 
-  def notification_callback(data, full_url = false)
+  def notification_callback(data)
     nspath = data['nsPath']
     source = data['source']
     case source
-      when 'deployment'
-        root, organization, assembly, environment, scope = nspath.split('/')
-        if full_url
-          link_to(nspath, assembly_transition_environment_url(:only_path   => false,
-                                                              :org_name    => organization,
-                                                              :assembly_id => assembly,
-                                                              :id          => environment))
-        else
-          link_to(nspath, assembly_transition_environment_path(:org_name    => organization,
-                                                               :assembly_id => assembly,
-                                                               :id          => environment))
-        end
+      when 'procedure'
+        Rails.logger.info "=== #{data.to_yaml}"
+        link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
       when 'procedure', 'opamp', 'ops'
-        if full_url
-          link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
-        else
-          link_to("#{nspath}/#{data['cmsId']}", redirect_ci_path(:id => data['cmsId']))
-        end
+        link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
       else
-        if full_url
-          link_to(nspath, redirect_ns_url(:only_path => false, :params => {:path => nspath}))
-        else
-          link_to(nspath, redirect_ns_path(:params => {:path => nspath}))
-        end
+        link_to(nspath, redirect_ns_url(:only_path => false, :params => {:path => nspath}))
     end
   end
 

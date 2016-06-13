@@ -156,9 +156,12 @@ class Operations::InstancesController < ApplicationController
       end
 
       format.json do
+        deployed_to = @from_relations.find {|r| r.relationName == 'base.DeployedTo'}
+
         @instance.opsState   = @ops_state
         @instance.opsEvents  = @ops_events
-        @instance.deployedTo = @from_relations.find {|r| r.relationName == 'base.DeployedTo'}.try(:toCi)
+        @instance.cloud      = deployed_to
+        @instance.deployedTo = deployed_to.try(:toCi)
         @instance.dependsOn  = @from_relations.select {|r| r.relationName == 'bom.DependsOn'}.map(&:toCi)
         @instance.dependents = @dependents
 
