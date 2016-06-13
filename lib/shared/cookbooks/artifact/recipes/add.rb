@@ -91,8 +91,8 @@ node.set[:data_bag] = {
   }
 }
 
-Chef::Log.info("nexus #{node[:data_bag].inspect}")
-Chef::Log.info("artifact #{node[:artifact].inspect}")
+#Chef::Log.info("nexus #{node[:data_bag].inspect}")
+#Chef::Log.info("artifact #{node[:artifact].inspect}")
 
 ciName = node.workorder[:rfcCi][:ciName] if node.workorder[:rfcCi]
 ciName = node.workorder[:ci][:ciName] if node.workorder[:ci]
