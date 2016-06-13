@@ -74,6 +74,8 @@
         <property name="trUtil" ref="trUtil" />
         <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
         <property name="executorService" ref="manifestExecutor" />
+		<!--15 mins-->
+		<property name="timeoutInMilliSeconds" value="${MANIFEST_MAX_TIME_LIMIT_IN_MILLIS:  #{ T(Integer).valueOf(15*60*1000) } }" />
     </bean>
 
 	<bean id="dManager" class="com.oneops.transistor.service.DesignManagerImpl">

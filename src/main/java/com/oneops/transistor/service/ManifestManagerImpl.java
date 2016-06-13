@@ -36,15 +36,16 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class ManifestManagerImpl implements ManifestManager {
-	
-	static Logger logger = Logger.getLogger(ManifestManagerImpl.class);
+
+	static final Logger logger = Logger.getLogger(ManifestManagerImpl.class);
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
 	private ManifestRfcBulkProcessor manifestRfcProcessor;
 	private TransUtil trUtil;
 	private ExecutorService executorService;
-	
+	private int timeoutInMilliSeconds;
+
 	private final static String BASE_REALIZED_IN = "base.RealizedIn";
 	private final static String MANIFEST_PLATFORM = "manifest.Platform";
 	private final static String MANIFEST_COMPOSED_OF = "manifest.ComposedOf";
@@ -54,6 +55,12 @@ public class ManifestManagerImpl implements ManifestManager {
 	private final static String BASE_DEPLOYED_TO = "base.DeployedTo";
 	private final static String ACCOUNT_CLOUD = "account.Cloud";
 	private final static String RELEASE_STATE_OPEN = "open";
+
+
+	public void setTimeoutInMilliSeconds(int timeoutInMilliSeconds) {
+		this.timeoutInMilliSeconds = timeoutInMilliSeconds;
+	}
+
 
 	public void setCmRfcMrgProcessor(CmsCmRfcMrgProcessor cmRfcMrgProcessor) {
 		this.cmRfcMrgProcessor = cmRfcMrgProcessor;
@@ -126,7 +133,6 @@ public class ManifestManagerImpl implements ManifestManager {
 			return releaseId;
 		}
 		
-		//ExecutorService executor = Executors.newFixedThreadPool(designPlatRels.size());
 		final CountDownLatch latch = new CountDownLatch(designPlatRels.size());
 		List<Future<DesignCIManifestRfcTouple>> submittedFutureTasks = new ArrayList<Future<DesignCIManifestRfcTouple>>();
 		
@@ -147,18 +153,18 @@ public class ManifestManagerImpl implements ManifestManager {
 		boolean allPlatsProcessed = false;
         try {
         	 // latch.await(); //wait till all platform processing threads return
-	        	allPlatsProcessed = latch.await(600000, TimeUnit.MILLISECONDS); //wait for all platform processing threads to finish with timeout of 10 mins
+	        	allPlatsProcessed = latch.await(timeoutInMilliSeconds, TimeUnit.MILLISECONDS); //wait for all platform processing threads to finish with timeout of 10 mins
 	            if (!allPlatsProcessed) {
-	                logger.error("All platforms not processed within timeout duration of 10 mins.");
-	                throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Failed to pull latest design for all platform within timeout duration of 10 mins.");
+	                logger.error("All platforms not processed within timeout duration of "+ timeoutInMilliSeconds);
+	                throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Failed to pull latest design for all platform within timeout duration of "+ timeoutInMilliSeconds +" millis");
 	            }
-        } catch (InterruptedException ie) {
+		} catch (InterruptedException ie) {
             for (Future<DesignCIManifestRfcTouple> job : submittedFutureTasks) {
                 job.cancel(true);
             }
             throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Design pull process interrupted. ");
         }
-        
+
         for (Future<DesignCIManifestRfcTouple> task : submittedFutureTasks){
         	
         	DesignCIManifestRfcTouple touple;
@@ -179,7 +185,6 @@ public class ManifestManagerImpl implements ManifestManager {
 			} catch (Exception e) {
 				logger.error("Error in pulling latest design for all platforms ",e);
 				throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Error in pulling latest design for all platforms ");
-				
 			}
         	
         }
@@ -194,7 +199,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		manifestRfcProcessor.processGlobalVars(assembly.getCiId(), env, nsPath, userId);
 		long t2 = System.currentTimeMillis();
 		long envReleaseId = populateParentRelease(env, nsPath);
-		logger.info("Pull design for   "+ nsPath+"  completed in  "+(t2-t1) +" millis with releaseId " +releaseId );
+		logger.info("Pull design for  "+ nsPath+" completed in  "+(t2-t1) +" millis (releaseId " +envReleaseId +")");
 		return envReleaseId;
 	}
 
@@ -205,7 +210,8 @@ public class ManifestManagerImpl implements ManifestManager {
 	 * @param userId
 	 */
 	private void processPlatformRfcs(ManifestRfcContainer manifestPlatformRfcs, String userId) {
-		
+
+		long  t1= System.currentTimeMillis();
 		/***** Handle root RFC and relations ******/
 		CmsRfcCI rootRfc = null;
 		if(manifestPlatformRfcs.getRootRfcRelTouple().getRfcCI() != null){
@@ -326,6 +332,9 @@ public class ManifestManagerImpl implements ManifestManager {
 			}
 			cmRfcMrgProcessor.requestRelationDelete(delRelation.getCiRelationId(), userId);
 		}
+		long  t2= System.currentTimeMillis();
+		logger.info(" processPlatformRfcs  "+ manifestPlatformRfcs.getManifestPlatformRfc().getNsPath() +" completed in  "+(t2-t1)  );
+
 	}
 
 	private long checkPlatformPackCompliance(List<CmsCIRelation> designPlatRels , CmsCI env, String nsPath, String userId) {
@@ -552,7 +561,7 @@ public class ManifestManagerImpl implements ManifestManager {
             } finally {
 				countDownLatch.countDown();
 				Thread.currentThread().setName(oldThreadName);
-			}
+            }
         }
  
     }
