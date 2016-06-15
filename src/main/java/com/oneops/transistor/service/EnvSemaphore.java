@@ -33,6 +33,8 @@ public class EnvSemaphore {
 	protected static final String LOCKED_STATE = "locked";
 	protected static final String MANIFEST_LOCKED_STATE = "manifest_locked";
 	protected static final String ERROR_PREFIX = "ERROR:";
+	protected  static final String MANIFEST_ERROR=ERROR_PREFIX+"MANIFEST:";
+	protected  static final String BOM_ERROR=ERROR_PREFIX+"BOM:";
 	protected static final String SUCCESS_PREFIX = "SUCCESS:";
 	protected static final String COMPILE_INTERRUPTED = "Environment compilation was interrupted, please recompile!";
 	private static final Logger logger = Logger.getLogger(EnvSemaphore.class);

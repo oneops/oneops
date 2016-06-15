@@ -25,7 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ManifestAsyncProcessor {
-	static Logger logger = Logger.getLogger(ManifestAsyncProcessor.class);
+	private static final Logger logger = Logger.getLogger(ManifestAsyncProcessor.class);
 	
 	private ManifestManager manifestManager;
 	private EnvSemaphore envSemaphore;
@@ -39,27 +39,34 @@ public class ManifestAsyncProcessor {
 	}
 
 	public long generateEnvManifest(long envId, String userId, Map<String, String> platModes) {
-		String oldThreadName = Thread.currentThread().getName();
-		Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName,envId));
-		envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE);
-		ExecutorService executor = Executors.newSingleThreadExecutor();
 		long releaseId = 0;
-		executor.submit(() -> {
-			long relId = 0;
-			String envMsg = null;
-			try {
-				relId = manifestManager.generateEnvManifest(envId, userId, platModes);
-			} catch (CmsBaseException e) {
-				logger.error("CmsBaseException occurred", e);
-				envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
-				throw e;
-			} finally {
-				envSemaphore.unlockEnv(envId, envMsg);
-			}
-			return relId;
-		});
-		executor.shutdown();
-		Thread.currentThread().setName(oldThreadName);
+		String oldThreadName = Thread.currentThread().getName();
+		Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName, envId));
+		try {
+			envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE);
+			ExecutorService executor = Executors.newSingleThreadExecutor();
+			releaseId = 0;
+			executor.submit(() -> {
+				long relId = 0;
+				String envMsg = null;
+				try {
+					relId = manifestManager.generateEnvManifest(envId, userId, platModes);
+				} catch (CmsBaseException e) {
+					logger.error("CmsBaseException occurred", e);
+					envMsg = EnvSemaphore.MANIFEST_ERROR + e.getMessage();
+					throw e;
+				} finally {
+					//error in design pull
+					envSemaphore.unlockEnv(envId, envMsg);
+				}
+				return relId;
+			});
+			executor.shutdown();
+		}
+		finally {
+			Thread.currentThread().setName(oldThreadName);
+		}
+		//Asynchronous processing will return release id of 0.
 		return releaseId;
 	}
 

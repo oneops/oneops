@@ -72,7 +72,7 @@ public class BomAsyncProcessor {
                 envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + timeTaken + " seconds." ;
             } catch (Exception e) {
                 logger.error("Exception  in build bom ", e);
-                envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
+                envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
                 throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
             } finally {
                 envSemaphore.unlockEnv(envId, envMsg);
@@ -92,8 +92,8 @@ public class BomAsyncProcessor {
                 flexManager.processFlex(flexRelId, step, scaleUp, envId);
                 envMsg = "";
             } catch (CmsBaseException e) {
-                logger.error("Exception occured while flexing the ",e);
-                envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
+                logger.error("Exception occurred while flexing the ",e);
+                envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
             } finally {
                 envSemaphore.unlockEnv(envId, envMsg);
             }
