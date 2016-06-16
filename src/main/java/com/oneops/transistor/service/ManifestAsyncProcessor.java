@@ -17,19 +17,15 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-
+import com.oneops.cms.exceptions.CmsBaseException;
 import org.apache.log4j.Logger;
 
-import com.oneops.cms.exceptions.CmsBaseException;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ManifestAsyncProcessor {
-	static Logger logger = Logger.getLogger(ManifestAsyncProcessor.class);
+	private static final Logger logger = Logger.getLogger(ManifestAsyncProcessor.class);
 	
 	private ManifestManager manifestManager;
 	private EnvSemaphore envSemaphore;
@@ -43,38 +39,34 @@ public class ManifestAsyncProcessor {
 	}
 
 	public long generateEnvManifest(long envId, String userId, Map<String, String> platModes) {
-		String oldThreadName = Thread.currentThread().getName();
-		Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName,envId));
-		envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE);
-		ExecutorService executor = Executors.newSingleThreadExecutor();
 		long releaseId = 0;
-		Callable<Long> callable = () -> {
-            long relId = 0;
-            String envMsg = null;
-            try {
-                relId = manifestManager.generateEnvManifest(envId, userId, platModes);
-            } catch (CmsBaseException e) {
-                logger.error("CmsBaseException occurred", e);
-                envMsg = EnvSemaphore.ERROR_PREFIX + e.getMessage();
-                throw e;
-            } finally {
-
-                envSemaphore.unlockEnv(envId, envMsg);
-            }
-            return relId;
-        };
-
-		Future<Long> future = executor.submit(callable);
-	    executor.shutdown();
-
+		String oldThreadName = Thread.currentThread().getName();
+		Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName, envId));
 		try {
-			releaseId =  future.get();
-		} catch (InterruptedException | ExecutionException e) {
-			logger.error("Error in retrieving release id " , e);
-		}finally {
+			envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE);
+			ExecutorService executor = Executors.newSingleThreadExecutor();
+			releaseId = 0;
+			executor.submit(() -> {
+				long relId = 0;
+				String envMsg = null;
+				try {
+					relId = manifestManager.generateEnvManifest(envId, userId, platModes);
+				} catch (CmsBaseException e) {
+					logger.error("CmsBaseException occurred", e);
+					envMsg = EnvSemaphore.MANIFEST_ERROR + e.getMessage();
+					throw e;
+				} finally {
+					//error in design pull
+					envSemaphore.unlockEnv(envId, envMsg);
+				}
+				return relId;
+			});
+			executor.shutdown();
+		}
+		finally {
 			Thread.currentThread().setName(oldThreadName);
 		}
-
+		//Asynchronous processing will return release id of 0.
 		return releaseId;
 	}
 
