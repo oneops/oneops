@@ -33,7 +33,7 @@
               <%= icon('arrow-circle-o-down') %> Last design release <%= @release.releaseId %> <%= "#{state}" %>
               <strong><%= time_ago_in_words(@release.updated_timestamp) %></strong>
             </li>
-            <% if state == 'commit' %>
+            <% if state == 'commit' && @release.description.present? %>
               <li><%= icon('comment') %> <%= @release.description %></li>
             <% end %>
             <li><%= icon('user') %> <%= state.capitalize %> by <%= highlight(@release.commitedBy) %></li>

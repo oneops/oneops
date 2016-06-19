@@ -2,10 +2,9 @@
 
 <%= assembly_page_header(@assembly, 'design') %>
 
-<% platform_label = @platform.ciName + ' ' + count_marker("version #{@platform.ciAttributes.major_version}",'label-success') %>
 <%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)},
                 {:icon  => platform_image_url(@platform),
-                 :label => platform_label,
+                 :label => breadcrumb_platform_label(@platform),
                  :kind  => 'Platform',
                  :link  => assembly_design_platform_path(@assembly, @platform)}] %>
 

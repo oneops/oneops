@@ -18,7 +18,7 @@
          a << link_to(c.nsPath.split('/').last, path_to_ci(c)) if c.ciId != @ci.ciId && c.ciClassName.start_with?('catalog.')
          a
        end
-       groups << {:title => "#{content_tag(:strong, ci_name)} component in", :items => items} if items.present?
+       groups << {:title => "#{content_tag(:strong, ci_name)} in", :items => items} if items.present?
      elsif ci_class_name.end_with?('.Environment')
      elsif ci_class_name.end_with?('.Platform')
        groups[0][:items] << link_to(raw("#{icon('arrow-circle-left')} #{content_tag(:strong, ci_name)} platform"), assembly_design_platform_path(assembly, ci_name))
@@ -97,7 +97,7 @@
       <% title = g[:title] %>
       <% if title.present? %>
         <li class="disabled title">
-          <%= link_to_function(raw("#{title} #{count_marker(items.size, 'label-info')}"), '') %>
+          <%= link_to_function(raw("#{title} #{count_marker(items.size, 'badge-info')}"), '') %>
         </li>
       <% end %>
       <% items.sort.each do |item| %>

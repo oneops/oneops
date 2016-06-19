@@ -304,6 +304,7 @@ Display::Application.routes.draw do
       namespace :transition do
         resources :environments do
           post 'pull',         :on => :member
+          get  'pull_status',  :on => :member
           post 'commit',       :on => :member
           post 'force_deploy', :on => :member
           post 'discard',      :on => :member

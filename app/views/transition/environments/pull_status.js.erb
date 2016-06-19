@@ -1,0 +1,5 @@
+<% if @environment.ciState == 'manifest_locked' %>
+  $j("#design_pull_in_progress").html("<%= escape_javascript(render('design_pull_in_progress')) %>");
+<% else %>
+  window.location = "<%= assembly_transition_environment_path(@assembly, @environment) %>";
+<% end %>

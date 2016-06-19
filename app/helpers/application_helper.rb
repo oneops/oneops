@@ -236,7 +236,7 @@ module ApplicationHelper
           end
         end
         unless no_more
-          more_link = link_to(icon('', 'more...'),
+          more_link = link_to(icon('plus-square-o', 'more...'),
                               counterparts_lookup_path(:ci => ci.attributes.slice(:ciId, :nsPath, :ciClassName, :ciName), :dto_area => current_dto),
                               :remote => true)
           nav << %(<li class='indent minor #{dto_area} more'>#{more_link}</li>)
@@ -731,8 +731,8 @@ module ApplicationHelper
     result
   end
 
-  def count_marker(count, label_class = '', options = {})
-    content_tag(:span, count, options.merge(:class => "label label-text #{label_class}"))
+  def count_marker(count, badge_class = '', options = {})
+    content_tag(:span, count, options.merge(:class => "badge #{badge_class}"))
   end
 
   def status_marker(name, value, label_class = '', options = {})
