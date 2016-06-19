@@ -255,6 +255,9 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def pull_status
+  end
+
   def commit
     generate_bom(true)
   end
