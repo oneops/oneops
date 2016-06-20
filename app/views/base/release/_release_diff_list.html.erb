@@ -29,7 +29,7 @@
        end
        rfc_ci_relations = ci && rfc_relations_map["#{target.ciName}***#{target.ciClassName}"] %>
     <% builder.itemid rfc_id %>
-    <% builder.attributes raw(%(rfcName="#{ci ? target.ciName : target.relationName}" created="#{target.created}" rfcClass="#{(ci ? target.ciClassName : target.relationName).split('.').last}" naamespace="#{target.nsPath}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
+    <% builder.attributes raw(%(rfcName="#{ci ? target.ciName : target.relationName}" created="#{target.created}" rfcClass="#{(ci ? target.ciClassName : target.relationName).split('.').last}" namespace="#{target.nsPath}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
     <% builder.target nil %>
     <% builder.status do %>
       <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) %>
