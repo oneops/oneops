@@ -57,8 +57,12 @@ class Account::FavoritesController < ApplicationController
     proxy = current_user.favorites.where(:ci_id => params[:id].to_i).first
     if proxy
       current_user.favorite_ids = current_user.favorite_ids.reject {|p_id| p_id == proxy.id}
-      ci = Cms::DjCi.locate(ci_id, proxy.ns_path)
-      proxy.destroy unless ci
+      # Clean up proxies if ci is gone.
+      begin
+        Cms::DjCi.locate(ci_id, proxy.ns_path)
+      rescue Cms::Ci::NotFoundException => e
+        proxy.destroy
+      end
     end
     respond_to do |format|
       format.js { params[:index].present? ? index : render(:action => :create) }
