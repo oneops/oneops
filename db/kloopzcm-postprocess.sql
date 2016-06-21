@@ -116,7 +116,7 @@ CREATE INDEX cm_ops_actions_state_id_idx
  ( state_id );
 
 CREATE UNIQUE INDEX dj_dpmt_state_idx
-   ON dj_deployment (release_id, state_id) where state_id in (100, 300, 500);
+   ON dj_deployment (release_id, state_id) where state_id in (10, 100, 300, 500);
  
 CREATE UNIQUE INDEX dj_release_state_idx
    ON dj_releases (ns_id, release_state_id) where release_state_id = 100;
