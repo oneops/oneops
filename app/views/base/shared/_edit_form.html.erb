@@ -96,7 +96,7 @@
                     form.parents(".section").find(".section-heading .menu .btn.save").addClass('disabled');
                     form.parents(".section").find(".section-heading .menu .btn.cancel").addClass('disabled');
                     <% if defined?(busy_block) %>
-                      show_busy("<% escape_javascript(busy_block) %>");
+                      show_busy("<%= escape_javascript(busy_block) %>");
                     <% end %>
                     return true;
                   }
