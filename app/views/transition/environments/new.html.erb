@@ -14,7 +14,7 @@
              :resource   => @environment,
              :content    => 'base/environments/environment_details_content',
              :remote     => false,
-             :form_url   => assembly_transition_environments_path(@assembly),
+             :form_url   => assembly_transition_environments_path(@assembly, :async => true),
              :busy_block => 'Creating Environment',
              :cancel_url => assembly_transition_path(@assembly) %>
 <% end %>

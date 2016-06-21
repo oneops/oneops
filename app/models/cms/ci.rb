@@ -59,7 +59,7 @@ class Cms::Ci < Cms::Base
           rescue Exception => e2
             raise e
           end
-          raise NotFoundException.new(qualifier, ns_path, class_name) if error_code == 1006
+          raise NotFoundException.new(qualifier, ns_path, class_name) if error_code == 1006 || error_code == 2007
         end
         raise e
       end

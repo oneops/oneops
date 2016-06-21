@@ -105,8 +105,8 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     ok = save_consumes_relations if ok
 
     if ok
-      release_id, error = Transistor.pull_design(@environment.ciId, availability_map)
-      @environment.errors.add(:base, "Failed to automatically pull design: #{error}") unless release_id
+      ok, error = pull_design(availability_map, params[:async] == 'true')
+      @environment.errors.add(:base, "Failed to automatically pull design: #{error}") unless ok
 
       environment_ns_path = environment_ns_path(@environment)
       relay = Cms::Ci.build(:ciClassName => 'manifest.relay.email.Relay',
@@ -235,7 +235,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     availability_map = build_platform_availability(@design_platforms)
 
     if availability_map
-      ok, error = Transistor.pull_design(@environment.ciId, availability_map)
+      ok, error = pull_design(availability_map, params[:async] == 'true')
       unless ok
         flash[:error] = "Failed to pull design. #{error.presence || 'Please try again later.'}"
         @environment.errors.add(:base, 'Failed to pull design.')
@@ -256,6 +256,10 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
   end
 
   def pull_status
+    respond_to do |format|
+      format.js
+      format.json { render_json_ci_response(true, @environment) }
+    end
   end
 
   def commit
@@ -526,6 +530,26 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
       return graphvis_sub_pack_remote_images(platforms_diagram(platforms, links_to, assembly_transition_environment_path(@assembly, @environment), params[:size]).output(:svg => String))
     rescue
       return nil
+    end
+  end
+
+  def pull_design(availability_map, async)
+    release_id, error = Transistor.pull_design(@environment.ciId, availability_map)
+    return false, error unless release_id
+
+    @environment.reload
+    return true if async
+
+    start_time = Time.now
+    while @environment.ciState == 'manifest_locked' && (Time.now - start_time < Transistor.timeout)
+      sleep(3)
+      @environment.reload
+    end
+
+    if @environment.ciState == 'manifest_locked'
+      return false, 'Timed out pulling design, design pull is still in progress'
+    else
+      return true
     end
   end
 end

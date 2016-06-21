@@ -57,10 +57,10 @@
           <% end %>
         <% else %>
           <%= link_confirm_busy(design_latest ? button('Force Pull', nil, 'inverse') : button('Pull Design', nil, 'info'),
-                                :url     => pull_assembly_transition_environment_path(@assembly, @environment),
+                                :url     => pull_assembly_transition_environment_path(@assembly, @environment, :async => true),
                                 :method  => :post,
                                 :confirm => 'Pull latest design?',
-                                :busy    => 'Pulling latest design...') %>
+                                :busy    => 'Initiating latest design pull ...') %>
         <% end %>
       </li>
     </ul>
