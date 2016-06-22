@@ -21,6 +21,7 @@ import com.oneops.cms.exceptions.CmsBaseException;
 import org.apache.log4j.Logger;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -42,8 +43,10 @@ public class ManifestAsyncProcessor {
 		long releaseId = 0;
 		String oldThreadName = Thread.currentThread().getName();
 		Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName, envId));
+		final String processId = UUID.randomUUID().toString();
+
 		try {
-			envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE);
+			envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE, processId );
 			ExecutorService executor = Executors.newSingleThreadExecutor();
 			releaseId = 0;
 			executor.submit(() -> {
@@ -57,7 +60,8 @@ public class ManifestAsyncProcessor {
 					throw e;
 				} finally {
 					//error in design pull
-					envSemaphore.unlockEnv(envId, envMsg);
+
+					envSemaphore.unlockEnv(envId, envMsg,processId );
 				}
 				return relId;
 			});

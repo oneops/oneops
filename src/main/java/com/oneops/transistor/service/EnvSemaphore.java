@@ -17,16 +17,19 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.service.CmsCmManager;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.service.CmsUtilProcessor;
+import com.oneops.transistor.exceptions.TransistorException;
+import org.apache.log4j.Logger;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.service.CmsCmManager;
-import com.oneops.cms.util.CmsError;
-import com.oneops.transistor.exceptions.TransistorException;
-import org.apache.log4j.Logger;
-
+@Transactional
 public class EnvSemaphore {
 	
 	protected static final String DEFAULT_STATE = "default";
@@ -42,29 +45,42 @@ public class EnvSemaphore {
 	private Set<Long> envUnderProcess = Collections.synchronizedSet(new HashSet<Long>());
 
 	protected CmsCmManager cmManager;
-	
+	private CmsUtilProcessor cmUtilProcessor;
+	private int envTimeOutInSeconds;
+
 	public void setCmManager(CmsCmManager cmManager) {
 		this.cmManager = cmManager;
 	}
-	
-	public void lockEnv(long envId, String lock) {
-		CmsCI env = cmManager.getCiById(envId);
-		if (env.getCiState().equals(LOCKED_STATE) || env.getCiState().equals(MANIFEST_LOCKED_STATE)) {
+
+	public void lockEnv(long envId, String lock, String processId) {
+		if (cmUtilProcessor.acquireLock(getLockName(envId), processId, envTimeOutInSeconds)) {
+			CmsCI env = cmManager.getCiById(envId);
+			if (env.getCiState().equals(LOCKED_STATE) || env.getCiState().equals(MANIFEST_LOCKED_STATE)) {
+				throw new TransistorException(CmsError.TRANSISTOR_ENVIRONMENT_IN_LOCKED_STATE, "Environment is in a locked state.");
+			}
+			env.setCiState(lock);
+			env.setComments("");
+			cmManager.updateCI(env);
+			logger.info("locked env id " + envId + " state:" + env.getCiState() );
+			envUnderProcess.add(envId);
+		} else {
+			//could not acquire lock as env is locked
+			logger.info("could not acquire lock for  " + envId + " lock:" + lock);
 			throw new TransistorException(CmsError.TRANSISTOR_ENVIRONMENT_IN_LOCKED_STATE, "Environment is in a locked state.");
 		}
-		env.setCiState(lock);
-		env.setComments("");
-		cmManager.updateCI(env);
-		logger.info("locked env id " +envId +" state:" +env.getCiState());
-		envUnderProcess.add(envId);
 	}
-	
-	public void unlockEnv(long envId, String envMsg) {
+
+	private String getLockName(long envId) {
+		return envId+"-" + LOCKED_STATE;
+	}
+
+	public void unlockEnv(long envId, String envMsg, String processId) {
+		cmUtilProcessor.releaseLock(getLockName(envId), processId);
 		CmsCI env = cmManager.getCiById(envId);
 		env.setCiState(DEFAULT_STATE);
 		env.setComments(envMsg);
 		cmManager.updateCI(env);
-		logger.info("unlocked env id " +envId +" state:" +env.getCiState());
+		logger.info("unlocked env id " + envId + " state:" + env.getCiState());
 		envUnderProcess.remove(envId);
 	}
 	
@@ -83,5 +99,20 @@ public class EnvSemaphore {
 		env.setComments(ERROR_PREFIX + COMPILE_INTERRUPTED);
 		cmManager.updateCI(env);
 	}
-	
+
+	public void setCmUtilProcessor(CmsUtilProcessor cmUtilProcessor) {
+		this.cmUtilProcessor = cmUtilProcessor;
+	}
+
+	public CmsUtilProcessor getCmUtilProcessor() {
+		return cmUtilProcessor;
+	}
+
+	public void setEnvTimeOutInSeconds(int envTimeOutInSeconds) {
+		this.envTimeOutInSeconds = envTimeOutInSeconds;
+	}
+
+	public int getEnvTimeOutInSeconds() {
+		return envTimeOutInSeconds;
+	}
 }

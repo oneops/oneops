@@ -18,6 +18,7 @@
 package com.oneops.transistor.service;
 
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
@@ -48,18 +49,19 @@ public class BomAsyncProcessor {
 	}
 
 	public void compileEnv(long envId, String userId, Set<Long> excludePlats, String desc, boolean autodeploy, boolean commit) {
-		envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE);
 		buildBom(envId, userId, excludePlats, desc, autodeploy, commit);
 	}
 
 	public void processFlex(long envId, long flexRelId, int step, boolean scaleUp) {
-		envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE);
 		processFlexAsync(envId, flexRelId, step, scaleUp);
 	}
 	
 	
 	private void buildBom(final long envId, final String userId, final Set<Long> excludePlats, final String desc, final boolean deploy, final boolean commit) {
-		Thread t = new Thread(() -> {
+        final String processId =UUID.randomUUID().toString();
+        envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE,processId );
+
+        Thread t = new Thread(() -> {
             String envMsg = null;
             try {
                 long startTime = System.currentTimeMillis();
@@ -75,7 +77,7 @@ public class BomAsyncProcessor {
                 envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
                 throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
             } finally {
-                envSemaphore.unlockEnv(envId, envMsg);
+                envSemaphore.unlockEnv(envId, envMsg, processId);
             }
         }, getThreadName(THREAD_PREFIX_BOM,envId));
         t.start();
@@ -86,7 +88,9 @@ public class BomAsyncProcessor {
     }
 
     private void processFlexAsync(final long envId, final long flexRelId, final int step, final boolean scaleUp) {
-      Thread t = new Thread(() -> {
+        final String processId = UUID.randomUUID().toString();
+        envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE,processId );
+        Thread t = new Thread(() -> {
             String envMsg = null;
             try {
                 flexManager.processFlex(flexRelId, step, scaleUp, envId);
@@ -95,7 +99,7 @@ public class BomAsyncProcessor {
                 logger.error("Exception occurred while flexing the ",e);
                 envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
             } finally {
-                envSemaphore.unlockEnv(envId, envMsg);
+                envSemaphore.unlockEnv(envId, envMsg, processId);
             }
         }, getThreadName(THREAD_PREFIX_FLEX,envId));
         t.start();
