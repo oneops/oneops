@@ -41,6 +41,17 @@ platforms:
           dbname: displaydb
           username: $OO_LOCAL{dbuser}
 
+# links to
+  adapter:
+    pack: oneops/tomcat:1
+  transistor:
+    pack: oneops/tomcat:1
+  sensor:
+    pack: oneops/tomcat:1
+  antenna:
+    pack: oneops/tomcat:1
+  daqws:
+    pack: oneops/tomcat:1
 
   # display
   display:
@@ -54,6 +65,11 @@ platforms:
       dbpass: $OO_GLOBAL{display-dbpass}
     links:
       - displaydb
+      - adapter
+      - transistor
+      - sensor
+      - antenna
+      - daqws
     components:
       secgroup/oneops.1.Secgroup:
         secgroup:
