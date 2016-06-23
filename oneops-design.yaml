@@ -1,0 +1,211 @@
+---
+variables:
+  distbase: http://store.oneops.walmart.com/share/release/
+  version: 13.12.16
+  display-dbuser: display
+  display-dbpass: display
+  fqdn-alias: www.oneops.com
+
+platforms:
+
+# displaydb
+  displaydb:
+    pack: oneops/postgresql:1
+    major_version: 1
+    variables:
+      dbuser: $OO_GLOBAL{display-dbuser}
+      dbpass: $OO_GLOBAL{display-dbpass}
+    components:
+      secgroup/oneops.1.Secgroup:
+        secgroup:
+          inbound:
+            - '22 22 tcp 0.0.0.0/0'
+            - '5432 5432 tcp 0.0.0.0/0'
+      compute/oneops.1.Compute:
+        compute:
+          size: M
+          ostype: centos-7.2
+          repo_list:
+            - 'yum -y localinstall https://download.postgresql.org/pub/repos/yum/9.2/redhat/rhel-7-x86_64/pgdg-centos94-9.2-2.noarch.rpm'
+      postgresql/oneops.1.Postgresql:
+        postgresql:
+          version: 9.2
+          postgresql_conf:
+            tcp_keepalives_count: 5
+            tcp_keepalives_idle: 60
+            tcp_keepalives_interval: 5
+            max_connections: 1000
+      database/oneops.1.Database:
+        displaydb:
+          password: $OO_LOCAL{dbpass}
+          dbname: displaydb
+          username: $OO_LOCAL{dbuser}
+
+
+  # display
+  display:
+    pack: oneops/rails:1
+    major_version: 1
+    variables:
+      version: $OO_GLOBAL{version}
+      rails-env: production
+      processes: '16'
+      dbuser: $OO_GLOBAL{display-dbuser}
+      dbpass: $OO_GLOBAL{display-dbpass}
+    links:
+      - displaydb
+    components:
+      secgroup/oneops.1.Secgroup:
+        secgroup:
+          inbound:
+            - '22 22 tcp 0.0.0.0/0'
+            - '80 80 tcp 0.0.0.0/0'
+      compute/oneops.1.Compute:
+        compute:
+          size: S
+          ostype: centos-7.2
+      library/oneops.1.Library:
+        library:
+          packages:
+            - gcc-c++
+            - centos:libpq-dev ubuntu:postgresql-libs
+            - centos:libxslt1-dev ubuntu:libxslt-devel
+            - centos:libxml2-dev ubuntu:libxml2-devel
+            - centos:zlib1g-dev ubuntu:zlib
+            - graphviz
+      user/oneops.1.User:
+        display:
+          username: display
+          home_directory: /home/display
+      artifact/oneops.1.Artifact:
+        display:
+          repository: releases
+          install_dir: /opt/oneops/display
+          location: $OO_GLOBAL{distbase}/oneops-$OO_GLOBAL{version}/display.tar.gz
+          version: $OO_GLOBAL{version}
+          restart: |-
+            env_vars = {
+              'RAILS_ENV' => "$OO_LOCAL{rails-env}"
+              'OODB_USERNAME' => "display",
+              'OODB_PASSWORD' => "$OO_LOCAL{dbpass}"
+            }
+            node.set['oneops'] = {:home => '/usr/local/oneops', :settings => env_vars}
+            execute "mkdir -p #{node[:oneops][:home]}"
+            execute "rm -fr #{node[:oneops][:home]}/dist"
+            execute "ln -sf /opt/oneops/display/releases/$OO_GLOBAL{version}/oneops/dist #{node[:oneops][:home]}/dist"
+            directory "#{node[:oneops][:home]}/app"
+            execute 'app extract' do
+              command "tar zxf #{node[:oneops][:home]}/dist/app.tar.gz --no-same-owner --no-same-permissions"
+              cwd "#{node[:oneops][:home]}/app"
+            end
+            execute 'app bundle' do
+              command "bundle install --local --without development"
+              cwd "#{node[:oneops][:home]}/app"
+            end
+            www_user = 'display'
+            execute 'set user permissions for passenger' do
+              command "chown #{www_user}:#{www_user} config.ru config/environment.rb"
+              cwd "#{node[:oneops][:home]}/app"
+            end
+            directory "#{node[:oneops][:home]}/app/log" do
+              owner www_user
+              group www_user
+              mode '0755'
+              action :create
+            end
+            directory "#{node[:oneops][:home]}/app/tmp/cache" do
+              owner www_user
+              group www_user
+              mode '0755'
+              recursive true
+              action :create
+            end
+            execute "rm -fr #{node[:oneops][:home]}/app/tmp/cache/*"
+            # only run on the 1st node
+            # if primary and active platform version
+            ci            = node.workorder.rfcCi
+            compute_index = ci[:ciName].split('-').last.to_i
+            if compute_index == 1 && node.workorder.cloud.ciAttributes.priority == '1' && node[:workorder][:box][:ciAttributes][:is_active] == 'true'
+              execute 'app db:migrate' do
+                command "bundle exec rake db:migrate OODB_USERNAME=$OO_LOCAL{dbuser} OODB_PASSWORD=$OO_LOCAL{dbpass}"
+                environment(env_vars)
+                cwd "#{node[:oneops][:home]}/app"
+                Chef::Log.info("Executing DB migrate on compute :#{compute_index}")
+              end
+            end
+            execute 'app assets:clean and assets:precompile' do
+              command "bundle exec rake assets:clean && bundle exec rake assets:precompile"
+              environment(env_vars)
+              cwd "#{node[:oneops][:home]}/app"
+              not_if "cmp update.sha1 current.sha1", :cwd => "#{node[:oneops][:home]}/app"
+            end
+            execute 'app set permissions for log' do
+              command "chown -R #{www_user}:#{www_user} log tmp"
+              cwd "#{node[:oneops][:home]}/app"
+            end
+            execute 'service httpd start' do
+              not_if "cmp update.sha1 current.sha1", :cwd => "#{node[:oneops][:home]}/app"
+            end
+      apache/oneops.1.Apache:
+        apache:
+          extra: |-
+            SetOutputFilter DEFLATE
+            AddOutputFilterByType DEFLATE text/html text/plain text/xml text/javascript
+          ports:
+            - 80
+          user: display
+          modules:
+            - mod_log_config
+            - mod_mime
+            - mod_dir
+            - mod_status
+            - mod_alias
+            - mod_auth_basic
+            - mod_authz_host
+            - mod_proxy
+            - mod_proxy_balancer
+            - mod_proxy_http
+            - mod_rewrite
+            - mod_headers
+            - mod_expires
+            - mod_ssl
+            - mod_setenvif
+            - mod_env
+            - mod_deflate
+      daemon/oneops.1.Daemon:
+        httpd:
+          service_name: httpd
+          pattern: httpd
+          use_script_status: true
+          control_script_location: /etc/init.d/httpd
+      website/oneops.1.Website:
+        website:
+          server_name: $OO_GLOBAL{fqdn-alias}
+          directives: |-
+            Options Indexes FollowSymLinks MultiViews
+            AllowOverride AuthConfig
+            Order allow,deny
+            allow from all
+          port: 80
+          root: /usr/local/oneops/display/public
+          extra: |-
+            RailsEnv enterprise
+            PassengerMinInstances $OO_LOCAL{processes}
+            PassengerMaxPoolSize $OO_LOCAL{processes}
+            <Directory /usr/local/oneops/display/public>
+              Allow from all
+              Options -MultiViews
+            </Directory>
+            <LocationMatch "^/assets/.*$">
+              Header unset ETag
+              FileETag None
+              # RFC says only cache for 1 year
+              ExpiresActive On
+              ExpiresDefault "access plus 1 year"
+            </LocationMatch>
+            <LocationMatch "^/images/.*$">
+              Header unset ETag
+              FileETag None
+              ExpiresActive On
+              ExpiresDefault "access plus 1 hour"
+            </LocationMatch>
