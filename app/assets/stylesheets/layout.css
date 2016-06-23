@@ -3456,6 +3456,7 @@ div.monitor_metric .body input.display-group {
 
 div.modal-body {
 	font-size: 16px;
+  overflow-y: auto;
 }
 
 div.modal-body .comment {
