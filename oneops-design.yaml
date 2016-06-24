@@ -43,8 +43,11 @@ platforms:
     links:
       - amqdb
     variables:
+      distbase: $OO_GLOBAL{DISTBASE}
+      version: $OO_GLOBAL{VERSION}
       broker-cert-location: /var/lib/certs/broker.ks
-      broker-cert-pass: '::ENCRYPTED::'
+      broker-cert-pass: change*me
+      adminpass: change*me
       amqpass: change*me
       dbuser: amq
       dbpass: amq
@@ -67,12 +70,12 @@ platforms:
           key:
       keystore/oneops.1.Keystore:
         broker-keystore:
-          keystore_password:
+          keystore_password: $OO_LOCAL{broker-cert-pass}
           keystore_filename: $OO_LOCAL{broker-cert-location}
-      topic/Topic:
+      topic/oneops.1.Topic:
         topic-cms-all:
           topicname: CMS.ALL
-      queue/Queue:
+      queue/oneops.1.Queue:
         queue-controller-wo:
           queuename: CONTROLLER.WO
         queue-notifications:
@@ -83,28 +86,28 @@ platforms:
           queuename: search.stream
         queue-sensor-mgmt:
           queuename: sensor-mgmt
-      artifact/Artifact:
+      artifact/oneops.1.Artifact:
         amq-artifact:
+          repository: Using full RepoURL
+          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          version: $OO_LOCAL{version}
           install_dir: /opt/oneops/artifact
-          password: '::ENCRYPTED::'
+          configure: |-
+            execute "cp /opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist/amqplugin-fat.jar /opt/activemq/lib/"
           restart: |-
             service "activemq" do
               action :restart
             end
-          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
-          configure: |-
-            execute "cp /opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist/amqplugin-fat.jar /opt/activemq/lib/"
-          version: $OO_LOCAL{version}
-          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
-      activemq/Activemq:
+      activemq/oneops.1.Activemq:
         activemq:
           brokerauthenabled: 'true'
           maxmemory: '4096'
           adminconsolesecure: 'true'
           initmemory: '4096'
-          adminconsolekeystorepassword: '::ENCRYPTED::'
-          brokerpassword: '::ENCRYPTED::'
-          adminpassword: '::ENCRYPTED::'
+          adminconsolekeystorepassword: $OO_LOCAL{adminpass}
+          brokerpassword: $OO_LOCAL{broker-cert-pass}
+          adminpassword: $OO_LOCAL{adminpass}
           environment:
             KLOOPZ_AMQ_PASS: $OO_LOCAL{amqpass}
           brokerusername: system
@@ -121,10 +124,7 @@ platforms:
               exec_cmd: service activemq restart
               priority: '1'
               content: |-
-                <beans
-                  xmlns="http://www.springframework.org/schema/beans"
-                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+                <beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
 
                   <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
                     <property name="locations">
@@ -206,79 +206,76 @@ platforms:
                         <locker>
                           <lease-database-locker lockAcquireSleepInterval="20000" leaseHolderId="${ONEOPS_COMPUTE_CI_ID}"/>
                         </locker>
-                      <statements>
-                        <property xmlns="http://www.springframework.org/schema/beans" name="createSchemaStatements">
-                          <list>
-                            <value>
-                              CREATE TABLE ACTIVEMQ_MSGS
-                              (ID BIGINT NOT NULL,
-                              PRIORITY BIGINT,
-                              XID VARCHAR(250),
-                              CONTAINER VARCHAR(250),
-                              MSGID_PROD VARCHAR(250),
-                              MSGID_SEQ BIGINT,
-                              EXPIRATION BIGINT,
-                              MSG BYTEA, PRIMARY KEY ( ID ) )
-                            </value>
-                            <value>CREATE INDEX ACTIVEMQ_MSGS_MIDX ON ACTIVEMQ_MSGS (MSGID_PROD,MSGID_SEQ)</value>
-                            <value>CREATE INDEX ACTIVEMQ_MSGS_XIDX ON ACTIVEMQ_MSGS (XID)</value>
-                            <value>CREATE INDEX ACTIVEMQ_MSGS_CIDX ON ACTIVEMQ_MSGS (CONTAINER)</value>
-                            <value>CREATE INDEX ACTIVEMQ_MSGS_EIDX ON ACTIVEMQ_MSGS (EXPIRATION)</value>
-                            <value>CREATE INDEX ACTIVEMQ_MSGS_PIDX ON ACTIVEMQ_MSGS (PRIORITY)</value>
-                            <value>
-                              CREATE TABLE ACTIVEMQ_ACKS
-                              (CONTAINER VARCHAR(250) NOT NULL,
-                              SUB_DEST VARCHAR(250),
-                              CLIENT_ID VARCHAR(250) NOT NULL,
-                              SUB_NAME VARCHAR(250) NOT NULL,
-                              SELECTOR VARCHAR(250),
-                              LAST_ACKED_ID BIGINT,
-                              PRIORITY BIGINT DEFAULT 5 NOT NULL,
-                              XID VARCHAR(250),
-                              PRIMARY KEY ( CONTAINER, CLIENT_ID, SUB_NAME,PRIORITY))
-                            </value>
-                            <value>CREATE INDEX ACTIVEMQ_ACKS_XIDX ON ACTIVEMQ_ACKS (XID)</value>
-                          </list>
-                        </property>
-                      </statements>
-                    </jdbcPersistenceAdapter>
-                  </persistenceAdapter>
+                        <statements>
+                          <property xmlns="http://www.springframework.org/schema/beans" name="createSchemaStatements">
+                            <list>
+                              <value>
+                                CREATE TABLE ACTIVEMQ_MSGS
+                                (ID BIGINT NOT NULL,
+                                PRIORITY BIGINT,
+                                XID VARCHAR(250),
+                                CONTAINER VARCHAR(250),
+                                MSGID_PROD VARCHAR(250),
+                                MSGID_SEQ BIGINT,
+                                EXPIRATION BIGINT,
+                                MSG BYTEA, PRIMARY KEY ( ID ) )
+                              </value>
+                              <value>CREATE INDEX ACTIVEMQ_MSGS_MIDX ON ACTIVEMQ_MSGS (MSGID_PROD,MSGID_SEQ)</value>
+                              <value>CREATE INDEX ACTIVEMQ_MSGS_XIDX ON ACTIVEMQ_MSGS (XID)</value>
+                              <value>CREATE INDEX ACTIVEMQ_MSGS_CIDX ON ACTIVEMQ_MSGS (CONTAINER)</value>
+                              <value>CREATE INDEX ACTIVEMQ_MSGS_EIDX ON ACTIVEMQ_MSGS (EXPIRATION)</value>
+                              <value>CREATE INDEX ACTIVEMQ_MSGS_PIDX ON ACTIVEMQ_MSGS (PRIORITY)</value>
+                              <value>
+                                CREATE TABLE ACTIVEMQ_ACKS
+                                (CONTAINER VARCHAR(250) NOT NULL,
+                                SUB_DEST VARCHAR(250),
+                                CLIENT_ID VARCHAR(250) NOT NULL,
+                                SUB_NAME VARCHAR(250) NOT NULL,
+                                SELECTOR VARCHAR(250),
+                                LAST_ACKED_ID BIGINT,
+                                PRIORITY BIGINT DEFAULT 5 NOT NULL,
+                                XID VARCHAR(250),
+                                PRIMARY KEY ( CONTAINER, CLIENT_ID, SUB_NAME,PRIORITY))
+                              </value>
+                              <value>CREATE INDEX ACTIVEMQ_ACKS_XIDX ON ACTIVEMQ_ACKS (XID)</value>
+                            </list>
+                          </property>
+                        </statements>
+                      </jdbcPersistenceAdapter>
+                    </persistenceAdapter>
 
-                  <sslContext>
-                    <sslContext keyStore="$OO_LOCAL{broker-cert-location}" keyStorePassword="$OO_LOCAL{broker-cert-pass}"/>
-                  </sslContext>
+                    <sslContext>
+                      <sslContext keyStore="$OO_LOCAL{broker-cert-location}" keyStorePassword="$OO_LOCAL{broker-cert-pass}"/>
+                    </sslContext>
 
-                  <plugins>
-                    <bean xmlns="http://www.springframework.org/schema/beans" id="authorizationPlugin" class="com.oneops.amq.plugins.OneopsAuthPlugin">
-                      <property name="cms" ref="cmsClient"/>
-                    </bean>
-                  </plugins>
+                    <plugins>
+                      <bean xmlns="http://www.springframework.org/schema/beans" id="authorizationPlugin" class="com.oneops.amq.plugins.OneopsAuthPlugin">
+                        <property name="cms" ref="cmsClient"/>
+                      </bean>
+                    </plugins>
 
-                  <systemUsage>
-                    <memoryUsage>
-                      <memoryUsage percentOfJvmHeap="70"/>
-                    </memoryUsage>
-                    <storeUsage>
-                      <storeUsage limit="100 gb"/>
-                    </storeUsage>
-                    <tempUsage>
-                      <tempUsage limit="50 gb"/>
-                    </tempUsage>
-                  </systemUsage>
+                    <systemUsage>
+                      <memoryUsage>
+                        <memoryUsage percentOfJvmHeap="70"/>
+                      </memoryUsage>
+                      <storeUsage>
+                        <storeUsage limit="100 gb"/>
+                      </storeUsage>
+                      <tempUsage>
+                        <tempUsage limit="50 gb"/>
+                      </tempUsage>
+                    </systemUsage>
 
-                  <transportConnectors>
-                    <transportConnector name="openwire-ssl"  uri="ssl://0.0.0.0:61617"/-->
-                    <transportConnector name="nio" uri="nio://0.0.0.0:61616"/>
-                    <transportConnector name="nio+ssl" uri="nio+ssl://0.0.0.0:61617"/>
-                  </transportConnectors>
+                    <transportConnectors>
+                      <transportConnector name="nio" uri="nio://0.0.0.0:61616"/>
+                      <transportConnector name="nio+ssl" uri="nio+ssl://0.0.0.0:61617"/>
+                    </transportConnectors>
 
-                  <shutdownHooks>
-                    <bean xmlns="http://www.springframework.org/schema/beans" class="org.apache.activemq.hooks.SpringContextHook" />
-                  </shutdownHooks>
+                    <shutdownHooks>
+                      <bean xmlns="http://www.springframework.org/schema/beans" class="org.apache.activemq.hooks.SpringContextHook" />
+                    </shutdownHooks>
 
-                </broker>
-
-                <import resource="jetty.xml"/>
-
-              </beans>
+                  </broker>
+                  <import resource="jetty.xml"/>
+                </beans>
               run_on: after-add,after-replace,after-update
