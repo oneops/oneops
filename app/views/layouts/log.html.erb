@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
+  <style type="text/css" media="screen">
+    ol.log {
+      font-size: 14px;
+      background: #eee;
+    }
+
+    ol.log li {
+      color: #999;
+      background: white;
+      padding-left: 10px;
+      line-height: 20px;
+    }
+
+    ol.log li span {
+      color: black;
+    }
+
+    ol.log span.info {
+      color: green;
+    }
+
+    ol.log span.warning {
+      color: orange;
+    }
+
+    ol.log span.error {
+      color: red;
+    }
+  </style>
+</head>
+<body>
+  <%= yield %>
+</body>
+</html>

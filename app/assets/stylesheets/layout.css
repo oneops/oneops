@@ -2902,7 +2902,6 @@ div.rfc-list img, div.action-list img {
 .wf .manifest a {
   text-decoration: none;
   font-weight:     normal;
-  font-size:       12px;
 }
 
 .wf .manifest strong a {
@@ -3748,6 +3747,12 @@ label a input[type=checkbox] {
 .log-header {
   padding-bottom: 3px;
   border-bottom: solid 1px #eee
+}
+
+.log-header .dropdown-menu {
+	left: auto;
+	position: absolute;
+  right: 0;
 }
 
 .log-body {
