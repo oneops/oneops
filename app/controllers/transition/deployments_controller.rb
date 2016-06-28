@@ -233,20 +233,24 @@
   end
 
   def log_data
-    @deployment_ci = Cms::DeploymentCi.all(:params => {:deploymentId => params[:id]}).find {|r| r.rfcId == params[:rfcId].to_i}
+    rfc_id = params[:rfcId].to_i
+    @deployment_ci = Cms::DeploymentCi.all(:params => {:deploymentId => params[:id]}).find {|r| r.rfcId == rfc_id}
     unless @deployment_ci
       render :text => 'Deployment record not found', :status => :not_found
       return
     end
 
     ids = [@deployment_ci.dpmtRecordId]
+    raw_data  = get_log_data(ids)
+    @log_data = raw_data.blank? ? [] : raw_data[0]['logData']
     respond_to do |format|
-      format.js do
-        raw_data  = get_log_data(ids)
-        @log_data = raw_data.blank? ? [] : raw_data[0]['logData']
+      format.html do
+        @rfc = Cms::RfcCi.find(rfc_id)
+        render :layout => 'log'
       end
-
-      format.json { render :json => get_log_data(ids)}
+      format.js
+      format.json { render :json => raw_data}
+      format.text { render :text => @log_data.map {|m| m['message']}.join("\n")}
     end
   end
 

@@ -25,6 +25,8 @@ class SessionsController < Devise::SessionsController
     token = Devise.friendly_token
     session[:token] = token
     current_user.update_attribute(:session_token, token)
+    browser_timezone = params[:browser_timezone]
+    session[:browser_timezone] = browser_timezone.to_i if browser_timezone.present?
   end
 
 

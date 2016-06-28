@@ -1,0 +1,29 @@
+<h4>
+  Procedure:
+  <%= @procedure.procedureName %> (<%= @procedure.procedureId %>)
+  <%= @procedure.nsPath %>
+  <br/>
+</h4>
+
+<% @procedure.log_data.each_pair do |action_id, log_data| %>
+  <% aid = action_id.to_i
+     action = @procedure.actions.find {|a| a.actionId == aid} %>
+  <% if action %>
+    <h5>Action: <%= action.actionName %> (<%= action.actionId %>)</h5>
+  <% end %>
+  <ol class="log">
+    <% log_data.each do |e| %>
+      <% message = e['message'].gsub(/^.*cmd out:/, '')
+         if message =~ /ERROR:|FATAL:/
+           class_name = 'error'
+         elsif message =~ /WARN:/
+           class_name = 'warning'
+         elsif message =~ /INFO:/
+           class_name = 'info'
+         else
+           class_name = ''
+         end %>
+      <li><span class="<%= class_name %>"><%= message %></span></li>
+    <% end %>
+  </ol>
+<% end %>

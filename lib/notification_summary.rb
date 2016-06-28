@@ -18,7 +18,8 @@ module NotificationSummary
       end
       hist_data = Search::Notification.histogram(@ns_path, ranges, :_silent => true)
       if hist_data.present?
-        @histogram[:x] = ranges.map {|r| "#{Time.at(r.first / 1000).strftime('%H:%M')} - #{Time.at(r.last / 1000).strftime('%H:%M')}"}
+        time_offset = browser_timezone_offset * 3600
+        @histogram[:x] = ranges.map {|r| "#{Time.at(r.first / 1000 + time_offset).utc.strftime('%H:%M')} - #{Time.at(r.last / 1000 + time_offset).utc.strftime('%H:%M')}"}
         @histogram[:y] = hist_data.inject([]) do |a, r|
           # A little hack below in sorting severity buckets (" sort_by {|b| -b['key'].size} ") to ensure
           # proper order of 'critical', 'warnning', 'info'.

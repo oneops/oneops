@@ -162,12 +162,30 @@ class Operations::ProceduresController < ApplicationController
 
   def log_data
     @procedure = Cms::Procedure.find(params[:procedure_id])
+    return not_found('procedure not found') unless @procedure
     return unauthorized unless allow_access?(@procedure.ciId, true)
 
-    @procedure.log_data = pull_log_data(params[:action_ids] || @procedure.actions.map(&:actionId)) if @procedure
+    log_data = pull_log_data(params[:action_ids] || @procedure.actions.map(&:actionId))
+    @procedure.log_data = log_data
     respond_to do |format|
+      format.html { render :layout => 'log' }
       format.js
-      format.json { render_json_ci_response(@procedure.present?, @procedure) }
+      format.json { render_json_ci_response(true, @procedure) }
+      format.text do
+        if log_data.size == 1
+          text = log_data.values.first.map { |m| m['message'] }.join("\n");
+        elsif log_data.size > 1
+          text = log_data.inject([]) do |a, (action_id, log)|
+            a << "ActionId: #{action_id}"
+            a << log.map { |m| m['message'] }.join("\n")
+            a << "\n\n"
+          end
+          text = text.join("\n")
+        else
+          text = ''
+        end
+        render :text => text
+      end
     end
   end
 

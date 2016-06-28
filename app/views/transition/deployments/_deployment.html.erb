@@ -291,7 +291,12 @@
     refresh_deployment_status();
     var logTab = $j(/#log_\d+$/.exec(e.target.href)[0]);
     if (!logTab.find(".log")[0]) {
-      logTab.html("<%= escape_javascript(render 'cms/log', :log => [], :auto_scroll_toggle => true, :refresh => 'refresh_deployment_status()') %>");
+      var html = "<%= escape_javascript(render 'cms/log',
+                                               :log => [],
+                                               :auto_scroll_toggle => true,
+                                               :url => log_data_assembly_transition_environment_deployment_path(@assembly, @environment, params[:id], :rfcId => 999, :format => :text),
+                                               :refresh => 'refresh_deployment_status()') %>";
+      logTab.html(html.replace(/rfcId=999/g, "rfcId=" + logTab.attr('id').replace("log_", "")));
       logTab.find(".log").html('<li>' + '<%= escape_javascript(loading_indicator) %>' + '</li>');
     }
   });

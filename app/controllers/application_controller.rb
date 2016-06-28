@@ -747,11 +747,15 @@ class ApplicationController < ActionController::Base
   end
 
   def handle_ci_not_found(exception)
-    Rails.logger.warn "CI not found: #{exception.message}"
+    not_found(exception.message)
+  end
+
+  def not_found(message)
+    Rails.logger.warn "CI not found: #{message}"
     respond_to do |format|
       format.html {redirect_to not_found_url}
       format.js {render :status => :not_found}
-      format.json {render :json => {:errors => [exception.message]}, :status => :not_found}
+      format.json {render :json => {:errors => [message]}, :status => :not_found}
     end
   end
 
@@ -1143,5 +1147,9 @@ class ApplicationController < ActionController::Base
 
   def asset_url_prefix
     Settings.asset_url.presence || '/cms/'
+  end
+
+  def browser_timezone_offset(default = 0)
+    session[:browser_timezone] || default
   end
 end
