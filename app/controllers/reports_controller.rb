@@ -283,7 +283,7 @@ class ReportsController < ApplicationController
     case period
       when 'yesterday'
         start_time = now.yesterday.beginning_of_day.to_i
-        end_time   = now.yesterday.end_of_day.to_i
+        end_time   = now.beginning_of_day.to_i
       when 'this week'
         start_time = now.beginning_of_week.to_i
         end_time   = now.end_of_week.to_i
@@ -292,7 +292,7 @@ class ReportsController < ApplicationController
         end_time   = now.beginning_of_week.yesterday.end_of_week.to_i
       else
         start_time = now.beginning_of_day.to_i
-        end_time   = now.end_of_day.to_i
+        end_time   = now.tomorrow.beginning_of_day.to_i
     end
 
     # Start and end times are in seconds but notification timestamp is in ms.
@@ -318,16 +318,18 @@ class ReportsController < ApplicationController
                     :labels    => {:y => 'Count'}}
       if period == 'today' || period == 'yesterday'
         @histogram[:title]      = 'Hourly Counts'
-        @histogram[:x]          = (0..23).to_a
         @histogram[:labels][:x] = 'Time (hours)'
+
+        ranges, unit = notification_histogram_ranges(start_time, end_time, 24)
+        time_offset = browser_timezone_offset * 3600
+        @histogram[:x] = ranges.map {|r| "#{Time.at(r.first / 1000 + time_offset).utc.strftime('%H:%M')} - #{Time.at(r.last / 1000 + time_offset).utc.strftime('%H:%M')}"}
       else
         @histogram[:title]      = 'Daily Counts'
-        @histogram[:x]          = %w(Mon Tue Wed Thu Fri Sat Sun)
         @histogram[:labels][:x] = 'Day of the week'
+
+        ranges, unit = notification_histogram_ranges(start_time, end_time, 7)
+        @histogram[:x] = %w(Mon Tue Wed Thu Fri Sat Sun)
       end
-      unit = (end_time - start_time) / @histogram[:x].length
-      ranges = []
-      @histogram[:x].size.times {|i| ranges << [start_time + i * unit, start_time + (i + 1) * unit]}
       hist_data = Search::Notification.histogram(ns_path, ranges, search_params.merge(:_silent => true))
       unless hist_data
         @histogram = nil
@@ -351,6 +353,12 @@ class ReportsController < ApplicationController
 
       @notifications = Search::Notification.find_by_ns(ns_path, search_params)
     end
+  end
+
+  def notification_histogram_ranges(start_time, end_time, range_count)
+    unit   = (end_time - start_time) / range_count
+    ranges = range_count.times.inject([]) { |a, i| a << [start_time + i * unit, start_time + (i + 1) * unit] }
+    return ranges, unit
   end
 
   def compute_report_data

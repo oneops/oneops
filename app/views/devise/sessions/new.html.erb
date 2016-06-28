@@ -5,6 +5,9 @@
                  :as => resource_name,
                  :url => session_path(resource_name),
                  :html => {:class => 'form-horizontal', :autocomplete => 'off'}) do |f| %>
+
+      <%= hidden_field_tag :browser_timezone, 0 %>
+
       <div class="control-group">
         <%= f.label :username, :class => 'control-label' %>
         <div class="controls">
@@ -54,3 +57,6 @@
     <% end %>
   <% end %>
 </div>
+<script>
+  $j("#browser_timezone").val(- new Date().getTimezoneOffset() / 60);
+</script>

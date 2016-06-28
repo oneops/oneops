@@ -102,12 +102,14 @@ class Operations::MonitorsController < Base::MonitorsController
     end_time   = options[:end_time].to_i
     step       = options[:step].to_i
     unless start_time > 0 && step > 0 && (end_time > start_time)
-      @range       = options[:range] || 'hour'
+      @range       = options[:range].presence || session[:monitor_chart_range].presence || 'hour'
       step         = CHART_TIME_RANGE_STEP[@range]
       range_length = CHART_TIME_RANGE_LENGTH[@range]
       current_time = Time.now.to_i
       end_time     = current_time - (current_time % step)
       start_time   = end_time - range_length
+
+      session[:monitor_chart_range] = @range
     end
 
     groups = monitors.inject({}) do |s, monitor|

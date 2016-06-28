@@ -1148,4 +1148,8 @@ class ApplicationController < ActionController::Base
   def asset_url_prefix
     Settings.asset_url.presence || '/cms/'
   end
+
+  def browser_timezone_offset(default = 0)
+    session[:browser_timezone] || default
+  end
 end
