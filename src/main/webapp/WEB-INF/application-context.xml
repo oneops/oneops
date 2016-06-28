@@ -127,7 +127,7 @@
 	<bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">
         <property name="cmManager" ref="cmsCmManager" />
 		<property name="cmUtilProcessor" ref="uProcessor" />
-		<property name="envTimeOutInSeconds" value="${envLockTimeOutInSeconds: 30 }"/>
+		<property name="envTimeOutInSeconds" value="${envLockTimeOutInSeconds: 10 }"/>
 	</bean>
 
 	<bean id="uProcessor" class="com.oneops.cms.util.service.CmsUtilProcessor">
