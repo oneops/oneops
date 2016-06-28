@@ -1,0 +1,248 @@
+---
+variables:
+
+platforms:
+  controller:
+    pack: oneops/tomcat:1
+    description: 'Controller is an [activiti] based workflow engine responsible for executing work orders and action orders'
+    major_version: '1'
+    links:
+         - transistor
+    variables:
+        deploycontext: controller
+        notifypass: '::ENCRYPTED::'
+        antenna-retry-dir: /mnt/retry/controller/antenna/antenna/
+        search-retry-dir: /mnt/retry/controller/search/
+        activiti-db-host: activitidb
+        activiti-db-user:
+        activiti-db-pass: '::ENCRYPTED::'
+        version: controller-$OO_GLOBAL{VERSION}
+        ecv-user: $$OO_GLOBAL{ECV-USER}
+        ecv-secret: $OO_GLOBAL{ECV-SECRET}
+        tomcatloglocation: $OO_GLOBAL{TOMCATLOGLOCATION}
+        tomcatheapdumppath: $OO_GLOBAL{TOMCATHEAPDUMPPATH}
+        tomcatgclog: $OO_GLOBAL{TOMCATGCLOG}
+        tomcat-access-log-format: $OO_GLOBAL{TOMCAT-ACCESS-LOG-FORMAT}
+        domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
+        amqpass: $OO_GLOBAL{AMQPASS}
+        cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
+        cms-db-user: OO_GLOBAL{CMS-DB-USER}
+        cms-db-pass: OO_GLOBAL{CMS-DB-PASS}
+        api-user: OO_GLOBAL{API-USER}
+        api-secret: OO_GLOBAL{API-SECRET}
+        cms-des-file-location: OO_GLOBAL{CMS-DES-FILE-LOCATION}
+        cms-db-des-key: OO_GLOBAL{CMS-DB-DES-KEY}
+        distbase: $OO_GLOBAL{DISTBASE}
+        install-dir: $OO_GLOBAL{INSTALL-DIR}
+        search-amq-user: $OO_GLOBAL{SEARCH-AMQ-USER}
+        search-amq-pass: $OO_GLOBAL{SEARCH-AMQ-PASS}
+        domain: $OO_GLOBAL{DOMAIN}
+    components:
+      compute/oneops.1.Compute:
+        compute:
+          size: M
+      tomcat/oneops.1.Tomcat:
+        tomcat:
+          polling_frequency_post_startup_check: '1'
+          pre_shutdown_command: curl -s --connect-timeout 5 --max-time 5  -u $OO_LOCAL{ecv-user}:$OO_LOCAL{ecv-secret}
+            -X PUT  http://localhost:8080/$OO_LOCAL{deploycontext}/rest/ecv/status/shutdown
+          install_type: binary
+          mem_start: 2048m
+          protocol: HTTP/1.1
+          system_properties:
+            sun.net.spi.nameservice.provider.2: default
+            sun.net.spi.nameservice.provider.1: dns,sun
+            oneops.url: https://$OO_LOCAL{domain-alias}
+            oo.cassandra.client.active_clients: 10
+            oo.cassandra.client.timeout: 5000
+
+          post_startup_command: |
+                      #!/bin/sh
+                      function check_ecv_status {
+                          if [  -f "/opt/tomcat7/webapps/$OO_LOCAL{deploycontext}.war" ]; then
+                          time_to_wait=5
+                          no_of_retries=13
+                              for (( i = 1; i <= no_of_retries; i++ )); do
+                                  response=$(curl -s --connect-timeout 5 --max-time 5 -o /dev/null -w "%{http_code}" $1)
+                                      if [ -z $response ] || [ $response -ne 200 ]; then
+                                          if [ $i -eq 13 ]; then
+                                              echo "failure.. response code is $response on $1.. maximum retries happened.. exiting with failure"
+                                              exit 1
+                                          fi
+                                      echo "failure.. response code is $response on $1"
+                                      echo -e "sleeping $time_to_wait seconds.. retry $i of $((no_of_retries-1))"
+                                      sleep $time_to_wait
+                                      continue
+                                      elif [ $response -eq 200 ]; then
+                                          echo "success.. response code is $response on $1.. exiting with success"
+                                          exit 0
+                                      fi
+                              done
+                          else
+                              echo "Web app $OO_LOCAL{deploycontext} does not exit.. unable to check ecv status. exiting"
+                              exit 0
+                          fi
+                      }
+                      check_ecv_status http://localhost:8080/$OO_LOCAL{deploycontext}/rest/ecv/status
+
+          logfiles_path: $OO_LOCAL{tomcatloglocation}
+          max_number_of_retries_for_post_startup_check: '2'
+          ssl_port: '8443'
+          startup_params:
+          - +UseParallelOldGC
+          - PermSize=256m
+          - MaxPermSize=256m
+          - +UseCompressedOops
+          - SurvivorRatio=10
+          - SoftRefLRUPolicyMSPerMB=125
+          - +HeapDumpOnOutOfMemoryError
+          - HeapDumpPath=$OO_LOCAL{tomcatheapdumppath}
+          - CompileThreshold=1500
+          - +UseGCLogFileRotation
+          - NumberOfGCLogFiles=10
+          - GCLogFileSize=10M
+          - +PrintGCDateStamps
+          - +DisableExplicitGC
+          - +PrintGCApplicationStoppedTime
+          policy: |
+              grant codeBase "file:${catalina.base}/webapps/-" {
+                      permission java.security.AllPermission;
+              };
+          mirrors: []
+          access_log_pattern: $OO_LOCAL{tomcat-access-log-format}
+          build_version: '62'
+          advanced_connector_config:
+            connectionTimeout: '20000'
+            maxKeepAliveRequests: '100'
+          access_log_dir: $OO_LOCAL{tomcatloglocation}
+          webapp_install_dir: /opt/tomcat7/webapps
+          version: '7.0'
+          ajp_port: '8009'
+          environment:
+            KLOOPZ_NOTIFY_URL: https://$OO_LOCAL{domain-alias}/notify
+            KLOOPZ_NOTIFY_PASS: $OO_LOCAL{notifypass}
+            KLOOPZ_AMQ_PASS: $OO_LOCAL{amqpass}
+            CMS_DB_HOST: $OO_LOCAL{cms-db-host}
+            CMS_DB_USER: $OO_LOCAL{cms-db-user}
+            CMS_DB_PASS: $OO_LOCAL{cms-db-pass}
+            ECV_USER: $OO_LOCAL{ecv-user}
+            ECV_SECRET: $OO_LOCAL{ecv-secret}
+            API_USER: $OO_LOCAL{api-user}
+            API_SECRET: $OO_LOCAL{api-secret}
+            CMS_DES_PEM: $OO_LOCAL{cms-des-file-location}
+            API_ACESS_CONTROL: 'permitAll'
+            SEARCHMQ_USER: $OO_LOCAL{search-amq-user}
+            SEARCHMQ_PASS: $OO_LOCAL{search-amq-pass}
+            CONTROLLER_ANTENNA_RETRY_DIR: $OO_LOCAL{antenna-retry-dir}
+            CONTROLLER_SEARCH_RETRY_DIR: $OO_LOCAL{search-retry-dir}
+            ACTIVITI_DB_HOST: $OO_LOCAL{activiti-db-host}.$OO_LOCAL{domain}
+            ACTIVITI_DB_USER: $OO_LOCAL{activiti-db-user}
+            ACTIVITI_DB_PASS: $OO_LOCAL{activiti-db-pass}
+          port: '8080'
+          mem_max: 4096m
+          server_port: '8005'
+          tomcat_install_dir: /opt
+          attachments:
+            cms-cert:
+              headers: ''
+              path: /tmp/download_file
+              exec_cmd: "CERT_FILE=$OO_LOCAL{cms-des-file-location}\r\nCERT_DIR=$OO_LOCAL{install-dir}/certs/\r\nmkdir
+                -p $CERT_DIR\r\necho $OO_LOCAL{cms-db-des-key}>$CERT_DIR/oo.key\r\n\r\n\r\n\r\n"
+              basic_auth_user: ''
+              basic_auth_password: ''
+              checksum: ''
+              source: ''
+              priority: '1'
+              content: ''
+              run_on: before-add,before-replace,before-update
+      daemon/oneops.1.Daemon:
+        daemon-tomcat:
+          service_name: tomcat7
+          use_script_status: 'true'
+          control_script_location: /etc/init.d/tomcat7
+      artifact/oneops.1.Artifact:
+        app:
+          install_dir: /opt/oneops/artifact
+          password: '::ENCRYPTED::'
+          restart: |
+                      node.set["oneops"] = {
+
+                                    :home => "/usr/local/oneops",
+                                  :install_dir => "/usr/local/oneops"
+                                }
+                                node.set["tomcat"] = {
+                                  :webapp_dir => "/opt/tomcat7/webapps"
+                                }
+                                tomcat_user = "tomcat6"
+                                case node.platform
+                                when "redhat","centos","fedora"
+                                  tomcat_user = "tomcat"
+                                end
+
+
+                                execute "rm -f /usr/local/oneops/dist"
+
+                                link "/usr/local/oneops/dist" do
+                                  to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
+                                end
+
+
+                                # war cleanup and deploy
+                                ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
+
+                                  execute "#{war} war clean" do
+                                     command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
+                                  end
+                                  execute "#{war} war deploy" do
+                                     command "cp #{node[:oneops][:home]}/dist/#{war}*.war #{node[:tomcat][:webapp_dir]}"
+                                  end
+
+                                end
+
+                                service "tomcat7" do
+                                  action :restart
+                                end
+                      #End of restart
+
+          should_expand: 'true'
+          checksum: ''
+          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          repository: '*Using full RepoURL*'
+          version: $OO_LOCAL{version}
+          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          username: not_required
+          attachments:
+            disableECV:
+              headers: ''
+              path: /tmp/download_file
+              exec_cmd: curl -v  -u $OO_LOCAL{ecv-user}:$OO_LOCAL{ecv-secret} -X PUT  http://localhost:8080/$OO_LOCAL{deploycontext}/rest/ecv/status/offline
+              basic_auth_password: ''
+              basic_auth_user: ''
+              checksum: ''
+              source: ''
+              priority: '1'
+              content: ''
+              run_on: on-demand
+            enableECV:
+              path: /tmp/download_file
+              headers: ''
+              basic_auth_user: ''
+              basic_auth_password: ''
+              exec_cmd:  curl -v  -u $OO_LOCAL{ecv-user}:$OO_LOCAL{ecv-secret} -X PUT  http://localhost:8080/$OO_LOCAL{deploycontext}/rest/ecv/status/online
+              checksum: ''
+              source: ''
+              priority: '1'
+              content: ''
+              run_on: on-demand
+      keystore/oneops.1.Keystore:
+        keystore:
+          keystore_password: '::ENCRYPTED::'
+          keystore_filename: /var/lib/certs/keystore.jks
+      certificate/oneops.1.Certificate:
+        certificate: {}
+      user/oneops.1.User:
+        ooadmin:
+          home_directory_mode: '755'
+          home_directory: /home/ooadmin
+          ulimit: '16384'
+          username: ooadmin
