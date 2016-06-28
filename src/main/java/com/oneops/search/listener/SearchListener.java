@@ -17,17 +17,17 @@
  *******************************************************************************/
 package com.oneops.search.listener;
 
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageListener;
-import javax.jms.TextMessage;
-
+import com.oneops.search.msg.processor.MessageProcessor;
+import org.apache.activemq.command.ActiveMQTextMessage;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
-import com.oneops.search.msg.processor.MessageProcessor;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.TextMessage;
 
 /**
  * 
@@ -63,7 +63,7 @@ public class SearchListener implements MessageListener {
 		String jsonMsg = message.getText();
 		String type = message.getStringProperty("type");
 		//Check if message is coming from Dead Letter Queue
-		if(message.getStringProperty("dlqDeliveryFailureCause") != null){
+		if("ActiveMQ.DLQ".equals(((ActiveMQTextMessage)message).getDestination().getPhysicalName())){
 			type = "dlq";
 		}
 		if(type == null){type = message.getStringProperty("source");};
@@ -92,7 +92,7 @@ public class SearchListener implements MessageListener {
 	
 	/**
 	 * 
-	 * @param woProcessor
+	 * @param msgProcessor
 	 */
 	public void setMsgProcessor(MessageProcessor msgProcessor) {
 		this.msgProcessor = msgProcessor;
