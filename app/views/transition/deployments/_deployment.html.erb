@@ -1,7 +1,8 @@
+<% deployment_persisted = @deployment && !@deployment.new_record? %>
 <div class="wf">
   <div class="header">
     <div class="instance">
-      <span class="type">Deployment</span><%= @deployment && !@deployment.new_record? ? @deployment.id : '' %>
+      <span class="type">Deployment</span><%= deployment_persisted ? @deployment.id : '' %>
       <div class="status">
         <% deployment_state = @deployment ? (@deployment.deploymentState.presence || 'new') : 'generating' %>
         <%= content_tag(:span, deployment_state.upcase, :id => 'deployment_state', :class => "highlight #{deployment_state}") %>
@@ -15,13 +16,13 @@
       </div>
     </div>
     <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>
-    <% if @deployment && !@deployment.new_record? %>
+    <% if deployment_persisted %>
       <div class="close" onclick="refresh_deployment_status()"><%= icon('refresh', '', 'fa-lg') %></div>
     <% elsif !@deployment %>
       <div class="close" onclick="refresh_compile_status()"><%= icon('refresh', '', 'fa-lg') %></div>
     <% end %>
     <%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %>
-    <% if @deployment && !@deployment.new_record? && @deployment.comments.present? %>
+    <% if deployment_persisted && @deployment.comments.present? %>
       <div class="comments">
         <hr>
         <%= icon('comments') %> <%= @deployment.comments %>
@@ -287,19 +288,22 @@
     timer = setInterval(refresh_deployment_status, 5000);
   <% end %>
 
-  $j('a[href^="#log_"]').on('shown', function (e) {
-    refresh_deployment_status();
-    var logTab = $j(/#log_\d+$/.exec(e.target.href)[0]);
-    if (!logTab.find(".log")[0]) {
-      var html = "<%= escape_javascript(render 'cms/log',
-                                               :log => [],
-                                               :auto_scroll_toggle => true,
-                                               :url => log_data_assembly_transition_environment_deployment_path(@assembly, @environment, params[:id], :rfcId => 999, :format => :text),
-                                               :refresh => 'refresh_deployment_status()') %>";
-      logTab.html(html.replace(/rfcId=999/g, "rfcId=" + logTab.attr('id').replace("log_", "")));
-      logTab.find(".log").html('<li>' + '<%= escape_javascript(loading_indicator) %>' + '</li>');
-    }
-  });
+  <% if deployment_persisted %>
+    $j('a[href^="#log_"]').on('shown', function (e) {
+      refresh_deployment_status();
+      var logTab = $j(/#log_\d+$/.exec(e.target.href)[0]);
+      if (!logTab.find(".log")[0]) {
+        var html = "<%= escape_javascript(render 'cms/log',
+                                                 :log => [],
+                                                 :auto_scroll_toggle => true,
+                                                 :url => log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment, :rfcId => 999, :format => :text),
+                                                 :refresh => 'refresh_deployment_status()') %>";
+        logTab.html(html.replace(/rfcId=999/g, "rfcId=" + logTab.attr('id').replace("log_", "")));
+        logTab.find(".log").html('<li>' + '<%= escape_javascript(loading_indicator) %>' + '</li>');
+      }
+    });
+  <% end %>
+
 
   var rfcStateIconMap = {};
   <% %w(pending inprogress complete failed canceled).each do |state| %>
