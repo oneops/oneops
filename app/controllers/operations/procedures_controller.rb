@@ -70,7 +70,8 @@ class Operations::ProceduresController < ApplicationController
                  :direction    => direction,
                  :targetIds    => @target_ids,
                  :actions      => [action]}
-        @procedure.definition = {:name => procedure_name, :flow => full_flow}.to_json
+        x = {:name => procedure_name, :flow => full_flow}
+        @procedure.definition = x.to_json
       else
         @procedure.definition = {:name => procedure_name, :flow => [], :actions => [action]}.to_json
       end

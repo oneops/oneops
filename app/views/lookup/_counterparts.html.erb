@@ -41,12 +41,14 @@
        end
        groups << {:title => 'Other environments', :items => items} if items.present?
      elsif ci_class_name == 'catalog.Platform'
-       items = @counterparts.inject([]) do |a, c|
-         ns_path_split = c.nsPath.split('/')
-         a << link_to(ns_path_split[3], path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name && ns_path_split[4] == 'manifest'
-         a
+       @counterparts.group_by { |c| c.ciAttributes.major_version }.to_a.sort_by { |c| c.first }.each do |ver, cc|
+         items = cc.inject([]) do |a, c|
+           ns_path_split = c.nsPath.split('/')
+           a << link_to(ns_path_split[3], path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name && ns_path_split[4] == 'manifest'
+           a
+         end
+         groups << {:title => "#{content_tag(:strong, ci_name)} <small class='muted'>ver.#{ver}</small> in environment", :items => items} if items.present?
        end
-       groups << {:title => "#{content_tag(:strong, ci_name)} platform in environment", :items => items} if items.present?
      elsif ci_class_name == 'manifest.Platform'
        groups[0][:items] << link_to(raw("#{icon("arrow-circle-#{current_dto == 'operations' ? 'left' : 'right'}")} #{content_tag(:strong, ci_name)} platform"), path_to_ci(@ci, target_dto)) unless target_dto == current_dto
 

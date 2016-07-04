@@ -19,7 +19,7 @@ class Catalog::ComponentsController < Base::ComponentsController
   def find_component
     if @design
       # Catalog design scope.
-      @component = locate_ci_in_platform_ns(params[:id], @platform, params[:class_name])
+      @component = Cms::Ci.locate(params[:id], @platform.nsPath, params[:class_name])
     else
       # Packs scope.
       @component = Cms::Ci.locate(params[:id], @platform.nsPath, params[:class_name])

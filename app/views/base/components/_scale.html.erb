@@ -14,35 +14,24 @@
   <%= fields_for :depends_on do |dors_f| %>
     <% scale_relations.each do |dor| %>
       <%= dors_f.fields_for dor.toCiId.to_s, dor do |dor_f| %>
-        <tr>
-          <td><%= dor.toCi.ciName %></td>
-          <% if dor.relationAttributes.flex == 'true' %>
-            <%= dor_f.hidden_field :ciRelationId %>
-            <%= dor_f.hidden_field :fromCiId %>
-            <%= dor_f.hidden_field :toCiId %>
-            <%= dor_f.fields_for :relationAttributes, dor.relationAttributes do |dor_attr_f| %>
-              <td class="controls"><%= dor_attr_f.number_field :pct_dpmt, :min => 1, :max => 100, :class => 'span1' %></td>
-              <td class="controls"><%= dor_attr_f.number_field :current, :min => dor.relationAttributes.min, :max => dor.relationAttributes.max, :class => 'span1 scale-current' %></td>
-              <td class="controls"><%= dor_attr_f.number_field :min, :min => 1, :max => dor.relationAttributes.max, :class => 'span1 scale-min', :onchange => 'scale_adjust_min_max(this)' %></td>
-              <td class="controls"><%= dor_attr_f.number_field :max, :min => dor.relationAttributes.min, :class => 'span1 scale-max', :onchange => 'scale_adjust_min_max(this)' %></td>
-              <td class="controls"><%= dor_attr_f.number_field :step_up, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
-              <td class="controls"><%= dor_attr_f.number_field :step_down, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
-              <%= dor_attr_f.hidden_field :flex %>
-              <%= dor_attr_f.hidden_field :converge %>
+        <% if dor.relationAttributes.flex == 'true' %>
+          <tr>
+            <td><%= dor.toCi.ciName %></td>
+              <%= dor_f.hidden_field :toCiId %>
+              <%= dor_f.fields_for :relationAttributes, dor.relationAttributes do |dor_attr_f| %>
+                <td class="controls"><%= dor_attr_f.number_field :pct_dpmt, :min => 1, :max => 100, :class => 'span1' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :current, :min => dor.relationAttributes.min, :max => dor.relationAttributes.max, :class => 'span1 scale-current' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :min, :min => 1, :max => dor.relationAttributes.max, :class => 'span1 scale-min', :onchange => 'scale_adjust_min_max(this)' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :max, :min => dor.relationAttributes.min, :class => 'span1 scale-max', :onchange => 'scale_adjust_min_max(this)' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :step_up, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :step_down, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
 
-              <% %w(pct_dpmt current min max step_up step_up step_down flex converge).each do |attr_prop| %>
-                <%= hidden_field_tag "#{dor_f.object_name}[relationAttrProps][owner][#{attr_prop}]", dor.relationAttrProps.owner.attributes[attr_prop] %>
+                <% %w(pct_dpmt current min max step_up step_down).each do |attr_prop| %>
+                  <%= hidden_field_tag "#{dor_f.object_name}[relationAttrProps][owner][#{attr_prop}]", dor.relationAttrProps.owner.attributes[attr_prop] %>
+                <% end %>
               <% end %>
-            <% end %>
-          <% else %>
-            <td><%= dor.relationAttributes.pct_dpmt %></td>
-            <td><%= dor.relationAttributes.current %></td>
-            <td><%= dor.relationAttributes.min %></td>
-            <td><%= dor.relationAttributes.max %></td>
-            <td><%= dor.relationAttributes.respond_to?(:step_up) ? dor.relationAttributes.step_up : "1" %></td>
-            <td><%= dor.relationAttributes.respond_to?(:step_down) ? dor.relationAttributes.step_down : "1" %></td>
-          <% end %>
-        </tr>
+          </tr>
+        <% end %>
       <% end %>
     <% end %>
   <% end %>
