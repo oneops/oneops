@@ -62,7 +62,7 @@ class Transition::MonitorsController < Base::MonitorsController
     dj_ci = params[:cms_dj_ci]
     unless is_custom_monitor?
       attrs = dj_ci[:ciAttributes]
-      dj_ci[:ciAttributes] = %w(cmd_options thresholds heartbeat duration).inject({}) do |m, a|
+      dj_ci[:ciAttributes] = %w(cmd_options sample_interval thresholds heartbeat duration).inject({}) do |m, a|
         m[a] = attrs[a]
         m
       end
