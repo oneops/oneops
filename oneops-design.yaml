@@ -2,10 +2,12 @@
 variables:
 
 platforms:
+   adapter:
+     pack: oneops/tomcat:1
+   transistor:
+     pack: oneops/tomcat:1
    opamp:
      pack: oneops/tomcat:1
-     major_version: '1'
-     description:  Processes ops events(unhealthy, notify) and decide what to do with them.
      links:
      - adapter
      - transistor
