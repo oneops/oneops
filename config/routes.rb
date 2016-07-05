@@ -332,12 +332,14 @@ Display::Application.routes.draw do
             get 'history',             :on => :member
 
             resources :components, :only => [:index, :show, :edit, :update] do
-              get  'history',         :on => :member
-              get  'update_services', :on => :member
-              put  'update_services', :on => :member
-              post 'touch',           :on => :member
-              post 'touch',           :on => :collection
-              post 'deploy',          :on => :member
+              get  'history',           :on => :member
+              get  'update_services',   :on => :member
+              put  'update_services',   :on => :member
+              get  'depends_on',        :on => :member
+              put  'update_depends_on', :on => :member
+              post 'touch',             :on => :member
+              post 'touch',             :on => :collection
+              post 'deploy',            :on => :member
 
               resources :attachments, :only => [:index, :show, :edit, :update] do
                 get 'history', :on => :member

@@ -1,5 +1,8 @@
 <%= section_panel 'Configuration Attributes', :width => 'double' do %>
-  <%= render 'base/shared/edit_form', :resource => @component, :content => 'base/components/component_details_content', :read_only => true %>
+  <%= render 'base/shared/edit_form',
+             :resource  => @component,
+             :content   => 'component_details_content',
+             :read_only => true %>
 <% end %>
 
 <% if @template.requires.relationAttributes.services.present? ||

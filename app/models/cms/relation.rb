@@ -21,7 +21,7 @@ class Cms::Relation < Cms::Base
   end
 
   def self.build(attributes = {})
-    attrs = self.from_relation_md(attributes[:relationName]).merge(attributes)
+    attrs = self.from_relation_md(attributes[:relationName]).deep_merge(attributes)
     self.new(attrs)
   end
 

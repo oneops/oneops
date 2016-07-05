@@ -3636,6 +3636,10 @@ span.label-count, span.label-breadcrumb {
   width: 500px;
 }
 
+.table.scale tr:not(:first-child) td {
+  border: none;
+}
+
 table.scale td {
 	font-size: 14px;
 	vertical-align: middle;

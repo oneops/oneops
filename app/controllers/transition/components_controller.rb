@@ -1,4 +1,6 @@
 class Transition::ComponentsController < Base::ComponentsController
+  DEPENDS_ON_EDITABLE_ATTRS = %w(pct_dpmt current min max step_up step_down propagate_to)
+
   def touch
     ok = true
     component_ci_ids = params[:componentCiIds]
@@ -34,6 +36,37 @@ class Transition::ComponentsController < Base::ComponentsController
       render_json_ci_response(ok, @component)
     else
       render :json => {:errors => ['Ambiguous: more than one component.']}, :status => :unprocessable_entity
+    end
+  end
+
+  def depends_on
+    find_component
+    load_depends_on_relations
+    respond_to do |format|
+      format.js
+      format.json { render_json_ci_response(true, @depends_on_relations) }
+    end
+  end
+
+  def update_depends_on
+    find_component
+    ok = true
+    load_depends_on_relations
+    (params[:depends_on] || {}).each_pair do |to_id, dor_hash|
+      relation = @depends_on_relations.detect {|r| r.toCiId == to_id.to_i || r.toCi.ciName == to_id}
+      if relation
+        attrs = dor_hash[:relationAttributes].slice(*DEPENDS_ON_EDITABLE_ATTRS)
+        relation.relationAttributes.attributes.update(attrs)
+        owner = relation.relationAttrProps.owner.attributes
+        attrs.keys.each {|a| owner[a] = 'manifest'}
+        ok = execute_nested(@component, relation, :save)
+        break unless ok
+      end
+    end
+
+    respond_to do |format|
+      format.js {render :action => :depends_on}
+      format.json { render_json_ci_response(ok, @depends_on_relations, @component.errors.full_messages) }
     end
   end
 

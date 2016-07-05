@@ -1,0 +1,22 @@
+<% read_only_x = defined?(read_only) && read_only %>
+<div class="category">
+  <div class="name">Depends On</div>
+  <div class="control-group">
+    <label class="control-label"><%= link_to('Peers', '#', :rel => 'tooltip', :title => 'Dependencies on other peer components of the same type') %></label>
+    <div class="controls">
+      <% peers.keys.sort_by {|d| d.toCi.ciName}.each do |d| %>
+        <% linked = peers[d] %>
+        <% if !read_only_x || linked %>
+          <%= render 'cms/cis/checkbox',
+                     :attribute_name  => 'sibling_depends_on[]',
+                     :attribute_value => linked ? d.toCiId : '',
+                     :unchecked_value => nil,
+                     :checked_value   => d.toCiId,
+                     :label           => d.toCi.ciName,
+                     :read_only       => read_only_x %>
+          <br/>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

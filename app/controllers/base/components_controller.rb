@@ -29,7 +29,8 @@ class Base::ComponentsController < ApplicationController
   end
 
   def edit
-    load_depends_on_and_dependents
+    load_depends_on_relations
+    load_dependents
     respond_to do |format|
       format.html do
         find_template
@@ -63,12 +64,7 @@ class Base::ComponentsController < ApplicationController
     if ok
       depends_on = params[:depends_on]
       if depends_on.present?
-        find_params = {:ciId              => @component.ciId,
-                       :direction         => 'from',
-                       :relationShortName => 'DependsOn',
-                       :includeToCi       => true,
-                       :attrProps         => 'owner'}
-        @depends_on_relations = Cms::DjRelation.all(:params => find_params)
+        load_depends_on_relations
         depends_on.each_pair do |to_id, dor_hash|
           relation = @depends_on_relations.detect {|r| r.toCiId == to_id.to_i || r.toCi.ciName == to_id}
           if relation
@@ -79,10 +75,11 @@ class Base::ComponentsController < ApplicationController
       end
     end
 
-    ok = save_sibling_depends_on_relations if ok
+    ok = save_sibling_depends_on_relations if in_design? && ok
 
     respond_to do |format|
-      format.html { ok ? redirect_to_show_platform : edit }
+      # format.html { ok ? redirect_to_show_platform : edit }
+      format.html { edit }
       format.json { render_json_ci_response(ok, @component) }
     end
   end
@@ -173,20 +170,12 @@ class Base::ComponentsController < ApplicationController
   end
 
   def find_sibling_depends_relations(components)
-    component_map = components.inject({}) { |h, c| h[c.toCiId] = c; h }
-    ns_path = if @platform.ciClassName.start_with?('mgmt.')
-                @platform.nsPath
-              elsif in_catalog?
-                design_platform_ns_path(@design, @platform)
-              elsif in_design?
-                design_platform_ns_path(@assembly, @platform)
-              else
-                transition_platform_ns_path(@environment, @platform)
-              end
-    Cms::DjRelation.all(:params => {:nsPath            => ns_path,
+    component_map = components.to_map(&:toCiId)
+    Cms::DjRelation.all(:params => {:nsPath            => @component.nsPath,
                                     :relationShortName => 'DependsOn',
                                     :targetClassName   => @component.ciClassName,
-                                    :attr              => 'source:eq:user'}).select() { |r| component_map[r.fromCiId] }
+                                    :attr              => 'source:eq:user'}).
+      select {|r| r.rfcAction != 'delete' && component_map[r.fromCiId]}
   end
 
   def build_linkable_component_sibling_map(root_component)
@@ -214,39 +203,40 @@ class Base::ComponentsController < ApplicationController
   end
 
   def save_sibling_depends_on_relations
-    new_depends_on_ids = (params[:sibling_depends_on].presence || []).map do |id|
-      begin
-        Cms::DjCi.locate(id, @component.nsPath).ciId.to_i
-      rescue
-        nil
+    component_id_map = find_component_siblings.to_map(&:toCiId)
+    component_id_map.delete(@component.ciId)
+    new_depends_on_ids = (params[:sibling_depends_on].presence || []).inject([]) do |a, ci_id|
+      if ci_id.present?
+        ci_id = ci_id.to_i
+        a << ci_id if component_id_map.include?(ci_id)
       end
+      a
     end
-    new_depends_on_ids.compact!
+    new_depends_on_id_map = new_depends_on_ids.to_map
 
-    old_depends_on_relations = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
-                                                               :direction         => 'from',
-                                                               :relationShortName => 'DependsOn'})
-    component_id_map         = find_component_siblings.inject({}) { |m, d| m[d.toCiId] = d; m }
-    old_depends_on_relations = old_depends_on_relations.select { |r| component_id_map.has_key?(r.toCiId) }
-    old_depends_on_ids       = old_depends_on_relations.map(&:toCiId)
+    old_depends_on_rels = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+                                                          :direction         => 'from',
+                                                          :relationShortName => 'DependsOn'}).
+      select {|r| r.rfcAction != 'delete' && component_id_map[r.toCiId]}
 
     ok = true
 
     # Destroy relations to siblings that became unlinked.
-    (old_depends_on_ids - new_depends_on_ids).each do |component_id|
-      relation = old_depends_on_relations.detect { |r| r.toCiId == component_id }
-      ok = execute_nested(@component, relation, :destroy)
-      break unless ok
+    old_depends_on_rels.each do |r|
+      unless new_depends_on_id_map[r.toCiId]
+        ok = execute_nested(@component, r, :destroy)
+        break unless ok
+      end
     end
 
     # Create relations to siblings that became linked.
     if ok
-      (new_depends_on_ids - old_depends_on_ids).each do |component_id|
+      (new_depends_on_ids - old_depends_on_rels.map(&:toCiId)).each do |component_id|
         relation = Cms::DjRelation.build({:nsPath       => @component.nsPath,
-                                          :relationName => "#{@platform.ciClassName.split('.')[-2]}.DependsOn",
+                                          :relationName => 'catalog.DependsOn',
                                           :fromCiId     => @component.ciId,
-                                          :toCiId       => component_id,})
-        relation.relationAttributes.source = 'user'
+                                          :toCiId       => component_id,
+                                          :relationAttributes => {:source => 'user'}})
         ok = execute_nested(@component, relation, :save)
         break unless ok
       end
@@ -255,17 +245,19 @@ class Base::ComponentsController < ApplicationController
     return ok
   end
 
-  def load_depends_on_and_dependents
-    @dependents = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
-                                                  :direction         => 'to',
-                                                  :relationShortName => 'DependsOn',
-                                                  :includeFromCi     => true}).map(&:fromCi)
-    @depends_on_relations = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
-                                                            :direction         => 'from',
-                                                            # removed temporary until talking to VZ about search condition with non-existing attr
-                                                            #:attr              => "source:neq:user",
-                                                            :relationShortName => 'DependsOn',
-                                                            :attrProps         => 'owner'}) unless @depends_on_relations.present?
+  def load_depends_on_relations
+    @depends_on_relations ||= Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+                                                              :direction         => 'from',
+                                                              :relationShortName => 'DependsOn',
+                                                              :attrProps         => 'owner'})
+
+  end
+
+  def load_dependents
+    @dependents ||= Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+                                                    :direction         => 'to',
+                                                    :relationShortName => 'DependsOn',
+                                                    :includeFromCi     => true}).map(&:fromCi)
 
   end
 end

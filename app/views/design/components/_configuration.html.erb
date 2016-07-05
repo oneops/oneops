@@ -1,5 +1,7 @@
 <%= section_panel 'Configuration Attributes' do %>
-  <%= locals = {:resource => @component, :content => 'base/components/component_details_content', :remote => false}
+  <%= locals = {:resource => @component,
+                :content  => 'component_details_content',
+                :remote   => false}
       locals[:cancel_url] = assembly_design_platform_path(@assembly, @platform)
       if @component.new_record?
         locals[:form_url] = assembly_design_platform_components_path(@assembly, @platform)
