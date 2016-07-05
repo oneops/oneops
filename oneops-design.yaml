@@ -4,7 +4,7 @@ variables:
 platforms:
   daqws:
     pack: oneops/tomcat:1
-    major_version: '1'
+
     variables:
         deploycontext: antenna
         version: daq-api-$OO_GLOBAL{VERSION}
