@@ -18,7 +18,7 @@
             <%= dor_f.hidden_field :toCiId %>
             <% rel_attrs = dor.relationAttributes %>
             <%= dor_f.fields_for :relationAttributes, rel_attrs do |dor_attr_f| %>
-              <td class="controls"><%= dor_attr_f.select :propagate_to, options_for_select(%w(both from to none), rel_attrs.propagate_to) %></td>
+              <td class="controls"><%= dor_attr_f.select :propagate_to, options_for_select(%w(none both from), rel_attrs.propagate_to) %></td>
             <% end %>
         </tr>
       <% end %>
