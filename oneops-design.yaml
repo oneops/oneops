@@ -2,10 +2,10 @@
 variables:
 
 platforms:
+  transistor:
+    pack: oneops/tomcat:1
   controller:
     pack: oneops/tomcat:1
-    description: 'Controller is an [activiti] based workflow engine responsible for executing work orders and action orders'
-    major_version: '1'
     links:
          - transistor
     variables:
