@@ -26,8 +26,6 @@ variables:
 platforms:
     adapter:
       pack: oneops/tomcat:1
-      major_version: '1'
-      description: Adapter exposes set of rest apis to perform CRUD operations on the configuration stored in cms-db
       variables:
         deploycontext: adapter
         version: adapter-$OO_GLOBAL{VERSION}
