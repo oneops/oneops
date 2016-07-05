@@ -32,50 +32,51 @@ class DesignController < ApplicationController
 
   def load
     if request.put?
-      ok = false
-      data = nil
+      loaded = false
+
+      @preview = params[:preview] == 'true'
       data_file = params[:data_file]
       @data_string = (data_file && data_file.read).presence || params[:data]
-      if @data_string =~ /\A\s*\{/
-        begin
-          data = JSON.parse(@data_string)
-        rescue Exception => e
-          @errors = ["Failed to parse configuration file - invalid JSON: #{e.message}"]
-        end
-      else
-        begin
-          data = YAML.load(@data_string)
-        rescue Exception => e
-          more_info = e.is_a?(Psych::SyntaxError) ? "%s %s at line %d column %d" % [e.problem, e.context, e.line, e.column] : e.message
-          @errors = ["Failed to parse configuration file - invalid YAML: #{more_info}"]
-        end
+
+      begin
+        assembled_data, @data_string, @errors = assemble_load_data(@data_string)
+      rescue Exception => e
+        @errors = ["Failed to assemble configuration file - unexpected import data. #{e}"]
       end
 
-      if data.present?
+      if assembled_data
         begin
-          import_data, @errors = prepare_import_design_data(data)
+          load_data, @errors = convert_load_data(assembled_data)
         rescue Exception => e
-          @errors = ['Failed to parse configuration file - unexpected data structure.']
+          @errors = ["Failed to parse configuration file - unexpected data structure. #{e}"]
         end
 
-        if import_data
-          ok, message = Transistor.import_design(@assembly, import_data)
-          @errors = [message] unless ok
+        if load_data && !@preview
+          loaded, message = Transistor.import_design(@assembly, load_data)
+          @errors = [message] unless loaded
         end
-      elsif data
-        @errors = ['Failed to parse configuration file - no data detected.']
       end
 
       respond_to do |format|
         format.html do
-          # render :text => (import_data || errors).to_yaml, :content_type => 'text/data_string'
-          if ok
+          # render :text => (load_data || errors).to_yaml, :content_type => 'text/data_string'
+          if loaded
             flash[:notice] = 'Successfully loaded design.'
             redirect_to assembly_design_url(@assembly)
           end
         end
 
-        format.json {ok ? render(:json => {}) : render(:json => {:errors => @errors}, :status => :unprocessable_entity)}
+        format.json do
+            render(:json   => @errors.blank? ? assembled_data : (assembled_data || {}).merge(:errors => @errors),
+                   :status => @preview ? :ok : :unprocessable_entity)
+        end
+
+        if @preview
+          format.yaml do
+            render :text => @errors.blank? ? assembled_data : (assembled_data || {}).merge(:errors => @errors).to_yaml,
+                   :content_type => 'text/data_string'
+          end
+        end
       end
     end
   end
@@ -172,7 +173,53 @@ class DesignController < ApplicationController
     result
   end
 
-  def prepare_import_design_data(data)
+  def assemble_load_data(data_string)
+    return nil, data_string, ['Failed to parse configuration file - no data detected.'] if data_string.blank?
+
+    data, format, errors = parse_load_data(data_string)
+    return nil, data_string, errors if errors.present?
+
+    imports = data.delete('import')
+    return data, data_string if imports.blank?
+
+    imports_data = {}
+    errors = {}
+    imports.each do |import|
+      begin
+        uri = URI(import)
+      rescue Exception => e
+        errors[import] = "Invalid import URI: #{e}"
+        next
+      end
+
+      begin
+        response = Net::HTTP.get_response(uri)
+        if response.is_a?(Net::HTTPOK)
+          import_string = response.body
+        else
+          raise Exception.new(response.body)
+        end
+      rescue Exception => e
+        errors[import] = "Failed to load: #{e}"
+        next
+      end
+
+      import_data, import_format, error = parse_load_data(import_string)
+      if import_data
+        imports_data = imports_data.deep_merge(import_data) if errors.blank?
+      else
+        errors[import] = "Failed to parse: #{error}"
+      end
+    end
+
+    if errors.blank?
+      return data.deep_merge(imports_data), format == :yaml ? imports_data.to_yaml : imports_data.to_json
+    else
+      return false, data_string, {'import' => errors}
+    end
+  end
+
+  def convert_load_data(data)
     result = {}
     errors = {}
 
@@ -182,10 +229,9 @@ class DesignController < ApplicationController
     if vars.present?
       result['variables'] = {}
       errors['variables'] = {}
-      ns_path = assembly_ns_path
       vars.each do |var_name, value|
         var_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Globalvar',
-                                  :nsPath       => ns_path,
+                                  :nsPath       => assembly_ns_path,
                                   :ciName       => var_name,
                                   :ciAttributes => {:value => value}})
         errors['variables'][var_name] = {'errors' => var_ci.errors.full_messages} unless var_ci.valid?
@@ -222,7 +268,7 @@ class DesignController < ApplicationController
               errors['platforms'][plat_name]['errors'] = platform_ci.errors.full_messages
             end
 
-            result['platforms'] << ci_to_import(platform_ci)
+            result['platforms'] << ci_to_load(platform_ci)
 
             transfer_if_present('links', plat, result['platforms'].last)
 
@@ -274,7 +320,7 @@ class DesignController < ApplicationController
                         component_ci.add_policy_locations(pack_ns_path)
 
                         errors['platforms'][plat_name]['components'][template_and_class][comp_name]['errors'] = component_ci.errors.full_messages unless component_ci.valid?
-                        result['platforms'].last['components'] << ci_to_import(component_ci, :template => template, :attributes => component_attrs)
+                        result['platforms'].last['components'] << ci_to_load(component_ci, :template => template, :attributes => component_attrs)
 
                         transfer_if_present('depends', comp, result['platforms'].last['components'].last)
 
@@ -293,7 +339,7 @@ class DesignController < ApplicationController
                             attachment_ci.add_policy_locations(pack_ns_path)
 
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
-                            result['platforms'].last['components'].last['attachments'] << ci_to_import(attachment_ci, :attributes => attachment_attrs)
+                            result['platforms'].last['components'].last['attachments'] << ci_to_load(attachment_ci, :attributes => attachment_attrs)
                           end
                         end
                       end
@@ -321,6 +367,26 @@ class DesignController < ApplicationController
     return errors.blank? && result, errors
   end
 
+  def parse_load_data(data_string)
+    format = :yaml
+    if data_string =~ /\A\s*\{/
+      format = :json
+      begin
+        data = JSON.parse(data_string)
+      rescue Exception => e
+        return nil, format, ["Failed to parse configuration file - invalid JSON: #{e.message}"]
+      end
+    else
+      begin
+        data = YAML.load(data_string)
+      rescue Exception => e
+        more_info = e.is_a?(Psych::SyntaxError) ? "%s %s at line %d column %d" % [e.problem, e.context, e.line, e.column] : e.message
+        return nil, format, ["Failed to parse configuration file - invalid YAML: #{more_info}"]
+      end
+    end
+    return data, format
+  end
+
   def convert_json_attrs_from_string(attrs, ci_class_name)
     return attrs if attrs.blank?
 
@@ -346,7 +412,7 @@ class DesignController < ApplicationController
     attrs.each_pair {|k, v| attrs[k] = v.to_json if v && !v.is_a?(String)}
   end
 
-  def ci_to_import(ci, extra = {})
+  def ci_to_load(ci, extra = {})
     result = {:name => ci.ciName, :type => ci.ciClassName}
     extra[:attributes] ||= ci.ciAttributes.attributes.to_hash
     result.merge!(extra)
