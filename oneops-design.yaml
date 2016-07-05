@@ -1,10 +1,10 @@
 ---
 variables:
 platforms:
+  adapter:
+    pack: oneops/tomcat:1
   sensor:
     pack: oneops/tomcat:1
-    major_version: '1'
-    description: 'Esper based Monitoring component that process perf metrics feed'
     links:
      - adapter
     variables:
