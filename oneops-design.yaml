@@ -2,10 +2,10 @@
 variables:
 
 platforms:
+   adapter:
+     pack: oneops/tomcat:1
    transmitter:
      pack: oneops/tomcat:1
-     major_version: '1'
-     description: Web app  for publishing cms changes.
      links:
      - adapter
      variables:
