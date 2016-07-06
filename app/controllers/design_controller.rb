@@ -213,7 +213,8 @@ class DesignController < ApplicationController
     end
 
     if errors.blank?
-      return data.deep_merge(imports_data), format == :yaml ? imports_data.to_yaml : imports_data.to_json
+      data = imports_data.deep_merge(data)
+      return data, format == :yaml ? data.to_yaml : data.to_json
     else
       return false, data_string, {'import' => errors}
     end
@@ -364,6 +365,7 @@ class DesignController < ApplicationController
     end
 
     errors = errors.delete_blank
+    errors = ['No configuration data detected.'] if result.blank? && errors.blank?
     return errors.blank? && result, errors
   end
 
