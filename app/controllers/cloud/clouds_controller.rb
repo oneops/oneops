@@ -166,6 +166,20 @@ class Cloud::CloudsController < ApplicationController
     end
   end
 
+  def public_services
+    servicess = Cms::Relation.all(:params => {:nsPath            => '/public',
+                                              :relationShortName => 'Provides',
+                                              :fromClassName     => 'mgmt.Cloud',
+                                              :includeToCi       => true,
+                                              :recursive         => true}).inject({}) do |m, r|
+      type = r.relationAttributes.service
+      (m[type] ||= []) << r.toCi
+      m
+    end
+
+    render :json => servicess
+  end
+
 
   protected
 
