@@ -72,7 +72,7 @@ public class BomRfcBulkProcessor {
     private static final String BOM_MANAGED_VIA_RELATION_NAME = "bom.ManagedVia";
     private static final int MAX_RECUSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "50"));
     private static final int MAX_NUM_OF_EDGES = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxEdges", "100000"));
-	private static final String CONVERGE_RELATION_ATTRIBUTE = "converge"; 
+    private static final String CONVERGE_RELATION_ATTRIBUTE = "converge"; 
     
 	private CmsCmProcessor cmProcessor;
 	private CmsMdProcessor mdProcessor;
