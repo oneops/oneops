@@ -74,7 +74,7 @@ if node.workorder.payLoad.has_key?('EscortedBy')
       ruby_block "executing bash -c '#{_exec_cmd}' command for custom #{a[:ciName]} attachment" do
         block do
           Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
-          shell_out!("bash -c #{_exec_cmd}", :live_stream => Chef::Log::logger)
+          shell_out!("bash -c '#{_exec_cmd}'", :live_stream => Chef::Log::logger)
         end
         not_if { _exec_cmd.empty? }
       end
