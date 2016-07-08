@@ -1010,6 +1010,8 @@ class ApplicationController < ActionController::Base
         return edit_organization_path(:org_name => org, :anchor => "policies/list_item/#{ci_id}")
       elsif class_name == 'account.Organization'
         return edit_organization_path(:org_name => name)
+      elsif class_name.start_with?('account.notification')
+        return edit_organization_path(:org_name => org, :anchor => "notifications/list_item/#{ci_id}")
       end
     end
   end

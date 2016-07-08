@@ -107,6 +107,10 @@ Display::Application.routes.draw do
   # TODO: move under account
   resources :authentications, :only => [:create, :destroy]
 
+  resources :clouds, :controller => 'cloud/clouds', :only => :none do
+    get :public_services,  :on => :collection
+  end
+
   scope '/:org_name' do
     resource :organization, :controller => 'organization', :only => [:show, :edit, :update] do
       member do
@@ -153,7 +157,8 @@ Display::Application.routes.draw do
     end
 
     resources :clouds, :controller => 'cloud/clouds' do
-      get :locations,  :on => :collection
+      get :locations, :on => :collection
+
       member do
         get :operations
         get :instances
