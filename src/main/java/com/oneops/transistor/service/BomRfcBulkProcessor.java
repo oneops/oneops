@@ -143,15 +143,14 @@ public class BomRfcBulkProcessor {
 			Map<String, List<String>> mfstId2nodeId = new HashMap<String,List<String>>();
 			
 			CmsCI startingPoint = mfstPlatComponents.get(0).getToCi(); 
-			Map<String, Integer> namesMap = new HashMap<String, Integer>();
 			Map<Long,Map<String,List<CmsCIRelation>>> manifestDependsOnRels = new HashMap<Long,Map<String,List<CmsCIRelation>>>();
 			
 			while (startingPoint != null) {
-				BomRfc newBom = bootstrapNewBom(startingPoint, namesMap, bindingRel.getToCiId(), 1);
+				BomRfc newBom = bootstrapNewBom(startingPoint, bindingRel.getToCiId(), 1);
 				boms.add(newBom);	
 				mfstId2nodeId.put(String.valueOf(newBom.manifestCiId) + "-" + 1, new ArrayList<String>(Arrays.asList(newBom.nodeId)));
 				
-				boms.addAll(processNode(newBom, namesMap, bindingRel, mfstId2nodeId, manifestDependsOnRels, 1, usePercent, 1));
+				boms.addAll(processNode(newBom, bindingRel, mfstId2nodeId, manifestDependsOnRels, 1, usePercent, 1));
 				startingPoint = getStartingPoint(mfstPlatComponents, boms);
 			}
 			// this is needed to work around ibatis 
@@ -1337,7 +1336,7 @@ public class BomRfcBulkProcessor {
 		return map;
 	}
 
-	private List<BomRfc> processNode(BomRfc node, Map<String, Integer> namesMap, CmsCIRelation binding, Map<String, List<String>> mfstIdEdge2nodeId, Map<Long,Map<String,List<CmsCIRelation>>> manifestDependsOnRels, int edgeNum, boolean usePercent, int recursionDepth){
+	private List<BomRfc> processNode(BomRfc node, CmsCIRelation binding, Map<String, List<String>> mfstIdEdge2nodeId, Map<Long,Map<String,List<CmsCIRelation>>> manifestDependsOnRels, int edgeNum, boolean usePercent, int recursionDepth){
 		
 		if (recursionDepth >= MAX_RECUSION_DEPTH) {
 			String err = "Circular dependency detected, (level - " + recursionDepth + "),\n please check the platform diagram for " + extractPlatformNameFromNsPath(node.mfstCi.getNsPath());
@@ -1405,7 +1404,7 @@ public class BomRfcBulkProcessor {
 				//for (int i=node.getExisitngFromLinks(fromRel.getToCi().getCiId()).size()+1; i<=numEdges; i++) {
 				for (int i=node.getExisitngFromLinks(fromRel.getToCi().getCiId()).size() + 1 + ((edgeNumLocal-1) * numEdges); i<=numEdges + ((edgeNumLocal-1) * numEdges); i++) {	
 					int newEdgeNum = (i > edgeNumLocal) ? i : edgeNumLocal;
-					BomRfc newBom = bootstrapNewBom(fromRel.getToCi(), namesMap, binding.getToCiId(), newEdgeNum);
+					BomRfc newBom = bootstrapNewBom(fromRel.getToCi(), binding.getToCiId(), newEdgeNum);
 					BomLink link = new BomLink();
 					link.fromNodeId = node.nodeId;
 					link.fromMfstCiId = node.manifestCiId;
@@ -1419,7 +1418,7 @@ public class BomRfcBulkProcessor {
 
 					if (!mfstIdEdge2nodeId.containsKey(key)) mfstIdEdge2nodeId.put(key, new ArrayList<String>());
 					mfstIdEdge2nodeId.get(key).add(newBom.nodeId);
-					newBoms.addAll(processNode(newBom, namesMap, binding, mfstIdEdge2nodeId, manifestDependsOnRels, newEdgeNum, usePercent, recursionDepth + 1));
+					newBoms.addAll(processNode(newBom, binding, mfstIdEdge2nodeId, manifestDependsOnRels, newEdgeNum, usePercent, recursionDepth + 1));
 				}
 			} else {
 				for (String toNodeId : mfstIdEdge2nodeId.get(key)) {
@@ -1446,7 +1445,7 @@ public class BomRfcBulkProcessor {
 								&& Boolean.valueOf(toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())) 
 								&& node.getExisitngToLinks(toRel.getFromCi().getCiId() 
 								+ getName(toRel.getFromCi().getCiName(), binding.getToCiId(), edgeNum)) == null)) {
-					BomRfc newBom = bootstrapNewBom(toRel.getFromCi(), namesMap, binding.getToCiId(), edgeNum);
+					BomRfc newBom = bootstrapNewBom(toRel.getFromCi(), binding.getToCiId(), edgeNum);
 					BomLink link = new BomLink();
 					link.toNodeId = node.nodeId;
 					link.toMfstCiId = node.manifestCiId;
@@ -1456,7 +1455,7 @@ public class BomRfcBulkProcessor {
 					newBom.fromLinks.add(link);
 					newBoms.add(newBom);
 					mfstIdEdge2nodeId.get(String.valueOf(newBom.manifestCiId)+ "-" + edgeNum).add(newBom.nodeId);
-					newBoms.addAll(processNode(newBom, namesMap, binding, mfstIdEdge2nodeId, manifestDependsOnRels, edgeNum, usePercent, recursionDepth + 1));
+					newBoms.addAll(processNode(newBom, binding, mfstIdEdge2nodeId, manifestDependsOnRels, edgeNum, usePercent, recursionDepth + 1));
 				}
 			} else {
 				for (String fromNodeId : mfstIdEdge2nodeId.get(key)) {
@@ -1477,7 +1476,7 @@ public class BomRfcBulkProcessor {
 	
 	
 	
-	private BomRfc bootstrapNewBom(CmsCI ci, Map<String, Integer> namesMap, long bindingId, int edgeNum) {
+	private BomRfc bootstrapNewBom(CmsCI ci, long bindingId, int edgeNum) {
 		BomRfc newBom = new BomRfc();
 		newBom.manifestCiId = ci.getCiId();
 		newBom.mfstCi = ci;
