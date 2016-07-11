@@ -1445,7 +1445,7 @@ public class BomRfcBulkProcessor {
 						|| ((toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE) != null 
 								&& Boolean.valueOf(toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())) 
 								&& node.getExisitngToLinks(toRel.getFromCi().getCiId() 
-								+ getName(toRel.getFromCi().getCiName(), namesMap, binding.getToCiId(), edgeNum)) == null)) {
+								+ getName(toRel.getFromCi().getCiName(), binding.getToCiId(), edgeNum)) == null)) {
 					BomRfc newBom = bootstrapNewBom(toRel.getFromCi(), namesMap, binding.getToCiId(), edgeNum);
 					BomLink link = new BomLink();
 					link.toNodeId = node.nodeId;
@@ -1481,12 +1481,12 @@ public class BomRfcBulkProcessor {
 		BomRfc newBom = new BomRfc();
 		newBom.manifestCiId = ci.getCiId();
 		newBom.mfstCi = ci;
-		newBom.ciName = getName(ci.getCiName(), namesMap, bindingId, edgeNum);
+		newBom.ciName = getName(ci.getCiName(), bindingId, edgeNum);
 		newBom.nodeId = newBom.manifestCiId + newBom.ciName; 
 		return newBom;
 	}
 	
-	private String getName(String base, Map<String, Integer> namesMap, long bindingId, int edgeNum) {
+	private String getName(String base, long bindingId, int edgeNum) {
 		return base + "-" +  bindingId + "-" + edgeNum;
 	}
 	
