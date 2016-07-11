@@ -167,12 +167,9 @@ public class ThresholdsDao {
             realizedAsMutator.execute();
             //we don't need a full count just indication that some bom CIs exists
             remainingIdsInMap = getManifestCount(manifestId, 1);
+            logger.info("remainingIdsInMap : " + remainingIdsInMap + " for manifestId : " + manifestIdin);
             if (remainingIdsInMap == 0) {
-                //lets remove manifest->ciIDs map
-                realizedAsMutator.addDeletion(manifestId, SchemaBuilder.REALIZED_AS_CF);
-                realizedAsMutator.execute();
-                //and remove the thresholds
-                removeAllManifestThresholds(manifestId);
+            	removeRealizedAsRow(manifestId);
             }
         }
         manifestMapMutator.addDeletion(ciId, SchemaBuilder.MANIFESTMAP_CF);
@@ -181,6 +178,7 @@ public class ThresholdsDao {
     }
 
     public void removeRealizedAsRow(Long manifestId) {
+    	//lets remove manifest->ciIDs map
         realizedAsMutator.addDeletion(manifestId, SchemaBuilder.REALIZED_AS_CF);
         realizedAsMutator.execute();
         //and remove the thresholds
