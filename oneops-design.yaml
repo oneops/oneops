@@ -23,9 +23,14 @@ variables:
   SEARCH-AMQ-PASS: '::ENCRYPTED::'
   SEARCH-AMQ-USER: '**changeme**'
   VERSION: 16.06.24-RC1
+  BACKUP-HOST : '**changeme**'
 platforms:
+    cmsdb:
+     pack: oneops/postgresql:1
     adapter:
       pack: oneops/tomcat:1
+      links:
+        - cmsdb
       variables:
         deploycontext: adapter
         version: adapter-$OO_GLOBAL{VERSION}
