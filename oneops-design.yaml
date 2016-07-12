@@ -1,12 +1,18 @@
 ---
 variables:
 platforms:
+  opsmq:
+    pack: oneops/activemq:1
+  amq:
+    pack: oneops/activemq:1
   adapter:
     pack: oneops/tomcat:1
   sensor:
     pack: oneops/tomcat:1
     links:
      - adapter
+     - amq
+     - opsmq
     variables:
         deploycontext: sensor
         ESPER-version: 4.4.0
