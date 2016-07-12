@@ -2,12 +2,15 @@
 variables:
 
 platforms:
+  activitidb:
+     pack: oneops/postgresql:1
   transistor:
     pack: oneops/tomcat:1
   controller:
     pack: oneops/tomcat:1
     links:
          - transistor
+         - activitidb
     variables:
         deploycontext: controller
         notifypass: '::ENCRYPTED::'
