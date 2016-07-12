@@ -2,8 +2,10 @@
 variables:
 
 platforms:
+  amq:
+    pack: oneops/activemq:1
   activitidb:
-     pack: oneops/postgresql:1
+    pack: oneops/postgresql:1
   transistor:
     pack: oneops/tomcat:1
   controller:
@@ -11,6 +13,7 @@ platforms:
     links:
          - transistor
          - activitidb
+         - amq
     variables:
         deploycontext: controller
         notifypass: '::ENCRYPTED::'
