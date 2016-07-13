@@ -2,6 +2,8 @@
 variables:
 
 platforms:
+   amq:
+     pack: oneops/activemq:1
    adapter:
      pack: oneops/tomcat:1
    antenna:
@@ -9,6 +11,7 @@ platforms:
      description: Responsible for persisting and sending  notifications
      links:
      - adapter
+     - amq
      variables:
        deploycontext: antenna
        version: antenna-$OO_GLOBAL{VERSION}
