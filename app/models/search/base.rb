@@ -4,6 +4,10 @@ class Search::Base < ActiveResource::Base
   self.element_name = ''
   self.timeout      = Rails.env.shared? ? 3 : 10
 
+  def self.search_raw(index, payload)
+    JSON.parse(post(index, {}, payload.to_json).body)
+  end
+
   def self.search(index, options = {})
     silent       = options.delete(:_silent)
     source       = options.delete(:_source)
