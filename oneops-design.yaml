@@ -2,12 +2,15 @@
 variables:
 
 platforms:
+   amq:
+     pack: oneops/activemq:1
    adapter:
      pack: oneops/tomcat:1
    transmitter:
      pack: oneops/tomcat:1
      links:
      - adapter
+     - amq
      variables:
         antenna-retry-dir: /mnt/retry/transmitter/antenna/antenna/
         deploycontext: transmitter
