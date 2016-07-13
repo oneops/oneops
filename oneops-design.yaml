@@ -2,6 +2,8 @@
 variables:
 
 platforms:
+   amq:
+     pack: oneops/activemq:1
    adapter:
      pack: oneops/tomcat:1
    transistor:
@@ -11,6 +13,7 @@ platforms:
      links:
      - adapter
      - transistor
+     - amq
      variables:
         opamp-search-retry-dir: /mnt/retry/opamp/search/
         opamp-antenna-retry-dir: /mnt/retry/opamp/antenna/
