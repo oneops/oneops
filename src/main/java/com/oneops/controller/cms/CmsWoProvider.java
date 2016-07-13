@@ -420,14 +420,19 @@ public class CmsWoProvider {
 		CmsCI lowestOffering = null;
 		for(String offId:offeringIds){
 			CmsCI offering = cmProcessor.getCiById(Long.valueOf(offId));
-			if(lowestOffering == null){
-				lowestOffering = offering;
-				continue;
-			}else{
-				Double costValue = Double.valueOf(cmProcessor.getCiById(Long.valueOf(offId)).getAttribute("cost_rate").getDfValue());
-				if(costValue < Double.valueOf(lowestOffering.getAttribute("cost_rate").getDfValue())){
+			if (offering != null) {
+				if(lowestOffering == null){
 					lowestOffering = offering;
+					continue;
+				}else{
+					Double costValue = Double.valueOf(offering.getAttribute("cost_rate").getDfValue());
+					if(costValue < Double.valueOf(lowestOffering.getAttribute("cost_rate").getDfValue())){
+						lowestOffering = offering;
+					}
 				}
+			}
+			else {
+				logger.warn("offering not found, offId : " + offId);
 			}
 		}
 		return lowestOffering;
