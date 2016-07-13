@@ -1,10 +1,8 @@
 ---
 variables:
-  distbase: http://store.oneops.walmart.com/share/release/
-  version: 13.12.16
-  display-dbuser: display
-  display-dbpass: display
-  fqdn-alias: www.oneops.com
+  DISTBASE: http://store.oneops.walmart.com/share/release/
+  VERSION: 13.12.16
+  FQDN-ALIAS: www.oneops.com
 
 platforms:
 
@@ -13,8 +11,8 @@ platforms:
     pack: oneops/postgresql:1
     major_version: 1
     variables:
-      dbuser: $OO_GLOBAL{display-dbuser}
-      dbpass: $OO_GLOBAL{display-dbpass}
+      dbuser: kloopzapp
+      dbpass: '::ENCRYPTED::'
     components:
       secgroup/oneops.1.Secgroup:
         secgroup:
@@ -58,7 +56,8 @@ platforms:
     pack: oneops/rails:1
     major_version: 1
     variables:
-      version: $OO_GLOBAL{version}
+      version: $OO_GLOBAL{VERSION}
+      distbase: $OO_GLOBAL{DISTBASE}
       rails-env: production
       processes: '16'
       dbuser: $OO_GLOBAL{display-dbuser}
@@ -97,8 +96,8 @@ platforms:
         display:
           repository: releases
           install_dir: /opt/oneops/display
-          location: $OO_GLOBAL{distbase}/oneops-$OO_GLOBAL{version}/display.tar.gz
-          version: $OO_GLOBAL{version}
+          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}/display.tar.gz
+          version: $OO_LOCAL{version}
           restart: |-
             env_vars = {
               'RAILS_ENV' => "$OO_LOCAL{rails-env}"
@@ -108,7 +107,7 @@ platforms:
             node.set['oneops'] = {:home => '/usr/local/oneops', :settings => env_vars}
             execute "mkdir -p #{node[:oneops][:home]}"
             execute "rm -fr #{node[:oneops][:home]}/dist"
-            execute "ln -sf /opt/oneops/display/releases/$OO_GLOBAL{version}/oneops/dist #{node[:oneops][:home]}/dist"
+            execute "ln -sf /opt/oneops/display/releases/$OO_LOCAL{version}/oneops/dist #{node[:oneops][:home]}/dist"
             directory "#{node[:oneops][:home]}/app"
             execute 'app extract' do
               command "tar zxf #{node[:oneops][:home]}/dist/app.tar.gz --no-same-owner --no-same-permissions"
@@ -196,7 +195,7 @@ platforms:
           control_script_location: /etc/init.d/httpd
       website/oneops.1.Website:
         website:
-          server_name: $OO_GLOBAL{fqdn-alias}
+          server_name: $OO_GLOBAL{FQDN-ALIAS}
           directives: |-
             Options Indexes FollowSymLinks MultiViews
             AllowOverride AuthConfig
