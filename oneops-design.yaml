@@ -13,6 +13,7 @@ platforms:
       distbase: $OO_GLOBAL{DISTBASE}
       version: $OO_GLOBAL{VERSION}
       circuit-oneops-1-version: 1
+      oneops-admin-version: oneops-admin-$OO_GLOBAL{VERSION}
     components:
       apache/oneops.1.Apache:
         apache:
