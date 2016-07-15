@@ -498,8 +498,10 @@ class ApplicationController < ActionController::Base
     token, foo = Base64.decode64(request.authorization.split(' ', 2).last || '').split(/:/, 2)
     user  = token.present? && User.where(:authentication_token => token.to_s).first
 
-    # We are passing store => false, so the user is not actually stored in the session and a token is needed for every request.
+    request.env["devise.skip_trackable"] = true   # do not update user record with "trackable" stats (i.e. sign_in_count, last_sign_in_at, etc...) for API requests.
+    # Passing in store => false, so the user is not actually stored in the session and a token is needed for every request.
     sign_in(user, store: false) if user
+    request.env["devise.skip_trackable"] = false
   end
 
   def check_username
