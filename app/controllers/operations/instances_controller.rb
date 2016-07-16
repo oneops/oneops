@@ -32,7 +32,8 @@ class Operations::InstancesController < ApplicationController
     if @state.present?
       if component_scope
         deployed_to = Cms::Relation.all(:params => {:nsPath            => @component.nsPath.sub('/manifest/', '/bom/'),
-                                                    :relationShortName => 'DeployedTo'})
+                                                    :relationShortName => 'DeployedTo',
+                                                    :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.')})
         instance_ids = Cms::Relation.all(:params => {:ciId              => @component.ciId,
                                                      :direction         => 'from',
                                                      :includeToCi       => false,
@@ -95,7 +96,7 @@ class Operations::InstancesController < ApplicationController
                                                                 :recursive => true,
                                                                 :actions   => true,
                                                                 :state     => 'active',
-                                                                :limit     => 10000}).inject({}) do |m, p|
+                                                                :limit     => 1000}).inject({}) do |m, p|
             p.actions.each {|a| m[a.ciId] = p}
             m
           end
