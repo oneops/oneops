@@ -19,7 +19,7 @@
             <% rel_attrs = dor.relationAttributes %>
             <%= dor_f.fields_for :relationAttributes, rel_attrs do |dor_attr_f| %>
               <% rel_attrs.propagate_to = 'none' unless rel_attrs.respond_to?('propagate_to') %>
-              <td class="controls"><%= dor_attr_f.select :propagate_to, options_for_select(%w(none both from), rel_attrs.propagate_to) %></td>
+              <td class="controls"><%= dor_attr_f.select :propagate_to, options_for_select(%w(none both from to), rel_attrs.propagate_to) %></td>
             <% end %>
         </tr>
       <% end %>

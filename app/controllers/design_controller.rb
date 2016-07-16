@@ -59,7 +59,6 @@ class DesignController < ApplicationController
 
       respond_to do |format|
         format.html do
-          # render :text => (load_data || errors).to_yaml, :content_type => 'text/data_string'
           if loaded
             flash[:notice] = 'Successfully loaded design.'
             redirect_to assembly_design_url(@assembly)
@@ -67,8 +66,12 @@ class DesignController < ApplicationController
         end
 
         format.json do
-            render(:json   => @errors.blank? ? assembled_data : (assembled_data || {}).merge(:errors => @errors),
-                   :status => @preview ? :ok : :unprocessable_entity)
+            if @errors.blank?
+              render(:json => assembled_data, :status => :ok)
+            else
+              render(:json   => (assembled_data || {}).merge(:errors => @errors),
+                     :status => @preview ? :ok : :unprocessable_entity)
+            end
         end
 
         if @preview

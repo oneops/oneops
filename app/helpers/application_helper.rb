@@ -430,7 +430,6 @@ module ApplicationHelper
     source = data['source']
     case source
       when 'procedure'
-        Rails.logger.info "=== #{data.to_yaml}"
         link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
       when 'procedure', 'opamp', 'ops'
         link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))

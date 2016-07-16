@@ -23,51 +23,58 @@ class Operations::InstancesController < ApplicationController
   def index
     component_scope = params[:component_id].present?
     @instances      = []
+    @ops_states     = {}
     @clouds         = {}
     @state          = params[:instances_state]
     deployed_to     = []
+    instance_ids    = []
+
     if @state.present?
       if component_scope
-        @instances = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+        deployed_to = Cms::Relation.all(:params => {:nsPath            => @component.nsPath.sub('/manifest/', '/bom/'),
+                                                    :relationShortName => 'DeployedTo',
+                                                    :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.')})
+        instance_ids = Cms::Relation.all(:params => {:ciId              => @component.ciId,
                                                      :direction         => 'from',
-                                                     :relationShortName => 'RealizedAs'}).map(&:toCi)
-        deployed_to = Cms::DjRelation.all(:params => {:nsPath            => @instances.first.nsPath,
-                                                      :relationShortName => 'DeployedTo'}) if @instances.present?
+                                                     :includeToCi       => false,
+                                                     :relationShortName => 'RealizedAs'}).map(&:toCiId)
       else
-        deployed_to = Cms::DjRelation.all(:params => {:nsPath            => scope_ns_path,
-                                                      :relationShortName => 'DeployedTo',
-                                                      :recursive         => true,
-                                                      :includeFromCi     => true})
-        @instances = deployed_to.map(&:fromCi)
+        deployed_to = Cms::Relation.all(:params => {:nsPath            => scope_ns_path,
+                                                    :relationShortName => 'DeployedTo',
+                                                    :recursive         => true})
+        instance_ids = deployed_to.map(&:fromCiId)
       end
 
       @clouds = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
-                                        :ciClassName => 'account.Cloud'}).inject({}) do |h, c|
-        h[c.ciId] = c
-        h
-      end
+                                        :ciClassName => 'account.Cloud'}).to_map(&:ciId)
     end
 
-    if @instances.present?
-      if @platform
-        pack_ns_path = platform_pack_ns_path(@platform)
-        @instances.each { |i| i.add_policy_locations(pack_ns_path) }
-      end
-
+    if instance_ids.present?
       deployed_to_map = deployed_to.inject({}) do |h, rel|
-        rel.attributes.delete(:fromCi)   # This is very important not only to reduce the payload size but more importantly to prevent potential cyclic references during json generation in json responder.
+        # rel.attributes.delete(:fromCi)   # This is very important not only to reduce the payload size but more importantly to prevent potential cyclic references during json generation in json responder.
         rel.toCi = @clouds[rel.toCiId]
         h[rel.fromCiId] = rel
         h
       end
 
-      @ops_states = @instances.blank? ? {} : Operations::Sensor.states(@instances)
-      @instances = @instances.select do |i|
+      @ops_states = Operations::Sensor.states(instance_ids)
+      unless @state == 'all'
+        instance_ids = instance_ids.select do |i|
+          state = @ops_states[i]
+          state && @state.include?(state)
+        end
+      end
+      @instances = Cms::Ci.list(instance_ids).map {|i| Cms::Ci.new(i, true)}
+
+      if @platform
+        pack_ns_path = platform_pack_ns_path(@platform)
+        @instances.each {|i| i.add_policy_locations(pack_ns_path)}
+      end
+
+      @instances.each do |i|
         i.opsState   = @ops_states[i.ciId]
         i.cloud      = deployed_to_map[i.ciId]
         i.deployedTo = deployed_to_map[i.ciId].try(:toCi)
-
-        @state == 'all' || (i.opsState && @state.include?(i.opsState))
       end
     end
 
@@ -89,7 +96,7 @@ class Operations::InstancesController < ApplicationController
                                                                 :recursive => true,
                                                                 :actions   => true,
                                                                 :state     => 'active',
-                                                                :limit     => 10000}).inject({}) do |m, p|
+                                                                :limit     => 1000}).inject({}) do |m, p|
             p.actions.each {|a| m[a.ciId] = p}
             m
           end
