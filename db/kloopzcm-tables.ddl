@@ -696,6 +696,10 @@ CREATE INDEX cm_ci_relation_attr_a_idx
  ON kloopzcm.cm_ci_relation_attributes
  ( attribute_id );
 
+CREATE INDEX cm_ci_relation_attr_dj_value_idx
+ ON kloopzcm.cm_ci_relation_attributes
+ ( attribute_id, dj_attribute_value );
+
 CREATE TABLE kloopzcm.md_class_relations (
                 link_id INTEGER NOT NULL,
                 from_class_id INTEGER NOT NULL,
