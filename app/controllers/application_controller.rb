@@ -71,9 +71,12 @@ class ApplicationController < ActionController::Base
 
     return if request.format == 'text/html'
 
-    min_ns_path     = search_ns_path
-    ns_path         = params[:ns_path] || min_ns_path
-    ns_path         = min_ns_path unless ns_path.start_with?(min_ns_path)
+    min_ns_path = search_ns_path
+    ns_path     = params[:ns_path] || min_ns_path
+    unless ns_path.start_with?(min_ns_path)
+      unauthorized('Invalid namespace')
+      return
+    end
     class_name      = params[:class_name]
     @search_results = []
 
