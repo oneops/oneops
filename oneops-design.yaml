@@ -25,12 +25,12 @@ platforms:
        domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
        amqpass: $OO_GLOBAL{AMQPASS}
        cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
-       cms-db-user: OO_GLOBAL{CMS-DB-USER}
-       cms-db-pass: OO_GLOBAL{CMS-DB-PASS}
-       api-user: OO_GLOBAL{API-USER}
-       api-secret: OO_GLOBAL{API-SECRET}
-       cms-des-file-location: OO_GLOBAL{CMS-DES-FILE-LOCATION}
-       cms-db-des-key: OO_GLOBAL{CMS-DB-DES-KEY}
+       cms-db-user: $OO_GLOBAL{CMS-DB-USER}
+       cms-db-pass: $OO_GLOBAL{CMS-DB-PASS}
+       api-user: $OO_GLOBAL{API-USER}
+       api-secret: $OO_GLOBAL{API-SECRET}
+       cms-des-file-location: $OO_GLOBAL{CMS-DES-FILE-LOCATION}
+       cms-db-des-key: $OO_GLOBAL{CMS-DB-DES-KEY}
        distbase: $OO_GLOBAL{DISTBASE}
        install-dir: $OO_GLOBAL{INSTALL-DIR}
      components:
