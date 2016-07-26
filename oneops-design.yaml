@@ -8,8 +8,8 @@ platforms:
     pack: oneops/postgresql:1
     major_version: 1
     variables:
-      dbuser: amq
-      dbpass: amq
+      dbuser: activemq
+      dbpass: '::ENCRYPTED::'
     components:
       secgroup/oneops.1.Secgroup:
         secgroup:
@@ -20,8 +20,6 @@ platforms:
         compute:
           size: M
           ostype: centos-7.2
-          repo_list:
-            - 'yum -y localinstall https://download.postgresql.org/pub/repos/yum/9.2/redhat/rhel-7-x86_64/pgdg-centos94-9.2-2.noarch.rpm'
       postgresql/oneops.1.Postgresql:
         postgresql:
           version: 9.2
@@ -31,7 +29,7 @@ platforms:
             tcp_keepalives_interval: 5
             max_connections: 1000
       database/oneops.1.Database:
-        amqdb:
+        database:
           password: $OO_LOCAL{dbpass}
           dbname: amqdb
           username: $OO_LOCAL{dbuser}
