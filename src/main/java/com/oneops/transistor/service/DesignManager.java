@@ -36,6 +36,7 @@ public interface DesignManager {
 	public DesignExportSimple exportDesign(long assemblyId);
 	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des); 
 	public void updateOwner(long assemblyId);
+    public long refreshPack(long platformId, String userId, String scope);
 	
 }
 

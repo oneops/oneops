@@ -27,6 +27,7 @@ public class DesignManagerImpl implements DesignManager {
 	private DesignRfcProcessor designRfcProcessor;
 	private DesignExportProcessor designExpProcessor;
 	private CatalogProcessor catalogProcessor;
+	private PackRefreshProcessor packRefreshProcessor;
 	
 	public void setDesignExpProcessor(DesignExportProcessor designExpProcessor) {
 		this.designExpProcessor = designExpProcessor;
@@ -38,6 +39,10 @@ public class DesignManagerImpl implements DesignManager {
 
 	public void setCatalogProcessor(CatalogProcessor catalogProcessor) {
 		this.catalogProcessor = catalogProcessor;
+	}
+
+	public void setPackRefreshProcessor(PackRefreshProcessor packRefreshProcessor) {
+		this.packRefreshProcessor = packRefreshProcessor;
 	}
 
 	@Override
@@ -96,5 +101,8 @@ public class DesignManagerImpl implements DesignManager {
 		designExpProcessor.populateOwnerAttribute(assemblyId);
 	}
 
-
+	@Override
+	public long refreshPack(long platformId, String userId, String scope) {
+		return packRefreshProcessor.refreshPack(platformId, userId, scope);
+	}
 }

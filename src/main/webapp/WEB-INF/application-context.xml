@@ -75,6 +75,7 @@
 		<property name="designRfcProcessor" ref="designRfcProcessor" />
 		<property name="designExpProcessor" ref="designExpProcessor" />
 		<property name="catalogProcessor" ref="catalogProcessor" />
+		<property name="packRefreshProcessor" ref="packRefreshProcessor" />
     </bean>
 
 	<bean id="iaasManager" class="com.oneops.transistor.service.IaasManagerImpl">
@@ -145,6 +146,16 @@
 		<property name="manifestManager" ref="manifestManager" />
         <property name="envSemaphore" ref="envSemaphore" />
     </bean>
+
+	<bean id="packRefreshProcessor" class="com.oneops.transistor.service.PackRefreshProcessor" >
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="djValidator" ref="cmsDjValidator" />
+		<property name="rfcUtil" ref="rfcUtil" />
+		<property name="trUtil" ref="trUtil" />
+	</bean>
 
   </beans>
      
