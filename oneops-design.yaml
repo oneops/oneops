@@ -21,8 +21,8 @@ platforms:
         notifypass: '::ENCRYPTED::'
         version: opamp-$OO_GLOBAL{VERSION}
         notifypass: '::ENCRYPTED::'
-        ecv-user: $$OO_GLOBAL{ECV-USER}
-        ecv-secret: $$OO_GLOBAL{ECV-USER}
+        ecv-user: $OO_GLOBAL{ECV-USER}
+        ecv-secret: $OO_GLOBAL{ECV-USER}
         tomcatloglocation: $OO_GLOBAL{TOMCATLOGLOCATION}
         tomcatheapdumppath: $OO_GLOBAL{TOMCATHEAPDUMPPATH}
         tomcatgclog: $OO_GLOBAL{TOMCATGCLOG}
@@ -30,12 +30,12 @@ platforms:
         domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
         amqpass: $OO_GLOBAL{AMQPASS}
         cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
-        cms-db-user: OO_GLOBAL{CMS-DB-USER}
-        cms-db-pass: OO_GLOBAL{CMS-DB-PASS}
-        api-user: OO_GLOBAL{API-USER}
-        api-secret: OO_GLOBAL{API-SECRET}
-        cms-des-file-location: OO_GLOBAL{CMS-DES-FILE-LOCATION}
-        cms-db-des-key: OO_GLOBAL{CMS-DB-DES-KEY}
+        cms-db-user: $OO_GLOBAL{CMS-DB-USER}
+        cms-db-pass: $OO_GLOBAL{CMS-DB-PASS}
+        api-user: $OO_GLOBAL{API-USER}
+        api-secret: $OO_GLOBAL{API-SECRET}
+        cms-des-file-location: $OO_GLOBAL{CMS-DES-FILE-LOCATION}
+        cms-db-des-key: $OO_GLOBAL{CMS-DB-DES-KEY}
         distbase: $OO_GLOBAL{DISTBASE}
         install-dir: $OO_GLOBAL{INSTALL-DIR}
         search-amq-user: $OO_GLOBAL{SEARCH-AMQ-USER}
@@ -191,7 +191,7 @@ platforms:
 
 
                            # war cleanup and deploy
-                           ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
+                           ["$OO_LOCAL{deploycontext}"].each do |war|
 
                              execute "#{war} war clean" do
                                 command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
