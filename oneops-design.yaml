@@ -36,12 +36,13 @@ platforms:
            mount_point: /db
            fstype: xfs
        database/oneops.1.Database:
-         db-cms:
+         database:
            dbname: kloopzdb
            username: kloopzcm
+           password: changeme
        artifact/oneops.1.Artifact:
          db-artifact:
-           install-dir: $OO_LOCAL{install-dir}
+           install_dir: $OO_LOCAL{install-dir}
            as_user: root
            restart: |
             # disable this on secondary clouds in transition
