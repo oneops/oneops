@@ -208,10 +208,9 @@ public class PackRefreshProcessor {
                         logger.debug("new delete ci rfc id = " + deleteRfc.getRfcId());
                         continue;
                     }
-                    else {
-                        newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
-                        logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
-                    }
+
+                    newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
+                    logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
 
                     if(newLeafRfc != null){
                         catalogCiIds.add(newLeafRfc.getCiId());
@@ -390,6 +389,7 @@ public class PackRefreshProcessor {
             if (djValidator.equalStrs(attr.getNewValue(), existingAttr.getDjValue())) {
                 equalAttrs.add(attr.getAttributeName());
             } else {
+                attr.setNewValue(existingAttr.getDjValue());
                 needUpdate = true;
             }
         }
