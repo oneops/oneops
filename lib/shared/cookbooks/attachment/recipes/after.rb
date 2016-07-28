@@ -27,7 +27,7 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
     
     _source = a[:ciAttributes][:source]
     
-    if _source.empty?
+    if _source.nil? || _source.empty?
       
       _content = a[:ciAttributes][:content]
       
