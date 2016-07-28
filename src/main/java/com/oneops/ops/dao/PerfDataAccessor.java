@@ -23,21 +23,17 @@ import static me.prettyprint.hector.api.factory.HFactory.createMutator;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.*;
+import java.util.concurrent.*;
+
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
+
+import com.oneops.cassandra.ClusterBootstrap;
+import com.oneops.ops.PerfDataRequest;
+import com.oneops.ops.PerfHeader;
+import com.oneops.sensor.events.PerfEvent;
+import com.oneops.sensor.events.PerfEventPayload;
 
 import me.prettyprint.cassandra.model.BasicColumnFamilyDefinition;
 import me.prettyprint.cassandra.model.ConfigurableConsistencyLevel;
@@ -50,32 +46,14 @@ import me.prettyprint.cassandra.service.ThriftKsDef;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.HConsistencyLevel;
 import me.prettyprint.hector.api.Keyspace;
-import me.prettyprint.hector.api.beans.HColumn;
-import me.prettyprint.hector.api.beans.HSuperColumn;
-import me.prettyprint.hector.api.beans.OrderedRows;
-import me.prettyprint.hector.api.beans.Row;
-import me.prettyprint.hector.api.beans.Rows;
-import me.prettyprint.hector.api.beans.SuperSlice;
+import me.prettyprint.hector.api.beans.*;
 import me.prettyprint.hector.api.ddl.ColumnType;
 import me.prettyprint.hector.api.ddl.ComparatorType;
 import me.prettyprint.hector.api.exceptions.HInvalidRequestException;
 import me.prettyprint.hector.api.exceptions.HectorException;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
-import me.prettyprint.hector.api.query.CountQuery;
-import me.prettyprint.hector.api.query.MultigetSliceQuery;
-import me.prettyprint.hector.api.query.QueryResult;
-import me.prettyprint.hector.api.query.RangeSlicesQuery;
-import me.prettyprint.hector.api.query.SuperSliceQuery;
-
-import org.apache.log4j.Logger;
-import org.springframework.stereotype.Component;
-
-import com.oneops.cassandra.ClusterBootstrap;
-import com.oneops.ops.PerfDataRequest;
-import com.oneops.ops.PerfHeader;
-import com.oneops.sensor.events.PerfEvent;
-import com.oneops.sensor.events.PerfEventPayload;
+import me.prettyprint.hector.api.query.*;
 
 /**
  *         PerfDataAccessor - encapsulates cassandra data access for performance
@@ -156,25 +134,18 @@ public class PerfDataAccessor implements CassandraConstants {
     	this.cb = cb;
     }
 
-	class Task implements Callable<String> {
-		private ClusterBootstrap cb;
 
-		public Task(ClusterBootstrap cb) {
-			this.cb = cb;
-		}
-
-		@Override
-		public String call() throws Exception {
-			logger.info("Initializing PerfDataAccessor cluster...");
-			cluster = cb.getCluster(clusterName);// # of connections and
-													// timeouts are configured
-													// as part of system
-													// property
-			logger.info("Connected to cluster : " + clusterName);
-			return "Ready!";
-		}
+	private String connectToCluster() {
+		logger.info("Initializing PerfDataAccessor cluster...");
+		cluster = cb.getCluster(clusterName);// # of connections and
+												// timeouts are configured
+												// as part of system
+												// property
+		logger.info("Connected to cluster : " + clusterName);
+		return "Ready!";
 	}
-
+	
+	
 	/**
 	 * Inits the DAOs/connections
 	 */
@@ -182,7 +153,7 @@ public class PerfDataAccessor implements CassandraConstants {
 		logger.info("PerfDataAccessor: " + ":" + clusterName
 				+ ":" + keyspaceName);
 		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<String> future = executor.submit(new Task(cb));
+		Future<String> future = executor.submit(() -> connectToCluster());
 
 		try {
 			logger.info("Started connecting.. with timeOut " + TIMEOUT_IN_SECONDS);
@@ -199,7 +170,16 @@ public class PerfDataAccessor implements CassandraConstants {
 		}
 
 		executor.shutdownNow();
-
+		initCluster();
+	}
+	
+	public void initSync() {
+		logger.info("PerfDataAccessor - initSync: " + ":" + clusterName + ":" + keyspaceName);
+		connectToCluster();
+		initCluster();
+	}
+	
+	private void initCluster() {
 		if (cluster.getConnectionManager().getActivePools().isEmpty()) {
 			logger.error("no cassandra hosts available - shutting down");
 			throw new HectorException("no cassandra hosts available ");
@@ -297,7 +277,6 @@ public class PerfDataAccessor implements CassandraConstants {
 				throw new HectorException("could not get hostname or ip...fail");
 			}
 		}
-
 	}
 
 	private String getRraByStat(String stat, int reqStep) {
