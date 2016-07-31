@@ -21,6 +21,7 @@
     <% charts.each do |c| %>
       <% chart_name = c[:name] %>
       chart_div = document.getElementById("<%= chart_name %>_chart");
+      <% c[:data] = c[:data].sort_by {|m| m['header']['metric']} %>
       data = JSON.parse('<%= sanitize(c[:data].to_json) -%>');
       if (data) {
         startTime = <%= c[:start_time] %>;
@@ -64,7 +65,8 @@
           graph:  graph,
           legend: new Rickshaw.Graph.Legend({
             graph:   graph,
-            element: document.getElementById('<%= chart_name %>_legend')
+            element: document.getElementById('<%= chart_name %>_legend'),
+            naturalOrder: true
           })
         });
 
