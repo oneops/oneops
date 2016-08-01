@@ -378,15 +378,15 @@ public class DesignExportProcessor {
 						throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, errorMsg);
 					}
 					CmsRfcCI fromComponent = components.get(ce.getName());
-					Map<String, CmsCIRelationAttribute> attrs = new HashMap<String, CmsCIRelationAttribute>();
-					CmsCIRelationAttribute attr = new CmsCIRelationAttribute();
 					if (fromComponent.getCiClassName().equals(toComponent.getCiClassName())) {
+						Map<String, CmsCIRelationAttribute> attrs = new HashMap<String, CmsCIRelationAttribute>();
+						CmsCIRelationAttribute attr = new CmsCIRelationAttribute();
 						attr.setAttributeName("source");
 						attr.setDjValue("user");
 						attrs.put(attr.getAttributeName(), attr);
+						CmsRfcRelation dependsOn = trUtil.bootstrapRelationRfcWithAttrs(fromComponent.getCiId(), toComponent.getCiId(), DEPENDS_ON_RELATION, platformNsPath, designNsPath, attrs);
+						upsertRelRfc(dependsOn, fromComponent, toComponent, 0, userId);
 					}
-					CmsRfcRelation LinksTo = trUtil.bootstrapRelationRfcWithAttrs(fromComponent.getCiId(), toComponent.getCiId(), DEPENDS_ON_RELATION, platformNsPath, designNsPath, attrs);
-					upsertRelRfc(LinksTo, fromComponent, toComponent, 0, userId);
 				}
 			}
 		}
