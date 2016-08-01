@@ -112,6 +112,13 @@ public class BomManagerImpl implements BomManager {
 			commitManifestRelease(manifestNs, bomNsPath, userId, desc);
 		}
 		
+		//if we have an open bom release then return the release id
+		CmsRelease bomRelease = check4OpenBomRelease(bomNsPath);
+		if (bomRelease != null) {
+			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
+			return bomRelease.getReleaseId();
+		}
+		
 		Map<String,String> envVars = cmsUtil.getGlobalVars(env);
 		
 		logger.info(">>> Starting generating BOM for active clouds... ");
@@ -142,6 +149,15 @@ public class BomManagerImpl implements BomManager {
 		
 		return relelaseId;
 		
+	}
+	
+	private CmsRelease check4OpenBomRelease(String bomNsPath) {
+		CmsRelease release = null;
+		List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
+		if (bomReleases.size() > 0) {
+			release = bomReleases.get(0);
+		}
+		return release;
 	}
 	
 	public int generateBomForActiveClouds(long envId, String userId, Set<Long> excludePlats, String manifestNs, String bomNsPath, Map<String,String> envVars, String desc) {
