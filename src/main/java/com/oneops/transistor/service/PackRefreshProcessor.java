@@ -94,7 +94,7 @@ public class PackRefreshProcessor {
         if(designPlatform == null){
             String errMsg = "Can not find platform for id = " + platformId + ";";
             logger.error(errMsg);
-            throw new TransistorException(CmsError.TRANSISTOR_CANNOT_FIND_ENVIRONMENT, errMsg);
+            throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, errMsg);
         }
 
         List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(designPlatform.getNsPath(), "open");
