@@ -1,0 +1,43 @@
+---
+variables:
+
+platforms:
+ reports:
+    pack: oneops/apache:1
+    links:
+    - searchdb
+    components:
+      website/oneops.1.Website:
+        website-reports:
+          server_name: reports.$OO_GLOBAL{env_name}.oneops.com
+          port: '80'
+          directives: |
+           Options Indexes FollowSymLinks MultiViews
+                  AllowOverride None
+                  Order allow,deny
+                  allow from all
+          root: /opt/oneops/kibana
+          extra: |
+           <Directory /opt/oneops/kibana>
+                  Allow from all
+                  Options -MultiViews
+            </Directory>
+      artifact/oneops.1.Artifact:
+        kibana:
+          install_dir: /opt/oneops
+          password: '::ENCRYPTED::'
+          as_user: root
+          restart: |
+
+          as_group: root
+          location: https://download.elasticsearch.org/kibana/kibana/kibana-3.0.1.tar.gz
+          repository: thirdparty
+          version: $OO_LOCAL{appVersion}
+          url: $OO_CLOUD{nexus}/nexus/
+          username: gecnexus
+      user/oneops.1.User:
+        ooadmin:
+          home_directory_mode: '755'
+          home_directory: /home/ooadmin
+          ulimit: '16384'
+          username: ooadmin
