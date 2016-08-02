@@ -115,11 +115,7 @@ public class PackRefreshProcessor {
         }
         CmsCI templatePlatform = templatePlatforms.get(0);
 
-        Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels = new HashMap<String, Map<String,CmsCIRelation>>();
-        //Load existing Relations for existing manifest platform
-        if(designPlatform != null){
-            existingCatalogPlatRels = getExistingCatalogPlatRels(designPlatform.getNsPath()+"/_design/" + designPlatform.getCiName());
-        }
+        Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels = getExistingCatalogPlatRels(designPlatform.getNsPath()+"/_design/" + designPlatform.getCiName());
 
         processPlatform(templatePlatform,designPlatform, existingCatalogPlatRels, userId);
 
@@ -140,7 +136,7 @@ public class PackRefreshProcessor {
         List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
         List<CmsCIRelation> designRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
 
-        List<CmsRfcRelation> existingDependsOnRels = cmRfcMrgProcessor.getDfDjRelations("catalog.DependsOn", null, platNsPath, null, null, null);
+        List<CmsCIRelation> existingDependsOnRels = cmProcessor.getCIRelationsNaked(platNsPath, "catalog.DependsOn", null, null, null);
 
         List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
         Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -171,11 +167,9 @@ public class PackRefreshProcessor {
 
         Set<String> newRelIds = processPackInterRelations(templInternalRels, templateIdsMap, platNsPath , releaseNsPath, existingCatalogPlatRels, userId);
 
-        for (CmsRfcRelation existingDpOn : existingDependsOnRels) {
+        for (CmsCIRelation existingDpOn : existingDependsOnRels) {
             if (!newRelIds.contains(existingDpOn.getRelationGoid())) {
-                    if (existingDpOn.getCiRelationId() >0) {
-                        cmProcessor.deleteRelation(existingDpOn.getCiRelationId());
-                    }
+                    //call to create the delete relation rfc
                     cmRfcMrgProcessor.requestRelationDelete(existingDpOn.getCiRelationId(), userId);
             }
         }
@@ -186,7 +180,7 @@ public class PackRefreshProcessor {
 
     private Map<Long, List<Long>> processEdges(Map<String, Edge> edges , CmsCI designPlatform, String platformNsPath , String releaseNsPath , String userId) {
 
-        Map<Long, List<Long>> templateIdsMap =  new HashMap();
+        Map<Long, List<Long>> templateIdsMap =  new HashMap<>();
 
         for (Edge edge : edges.values()) {
             if (edge.userRels.size()>0) {
@@ -210,9 +204,9 @@ public class PackRefreshProcessor {
                     }
 
                     newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
-                    logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
 
                     if(newLeafRfc != null){
+                        logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
                         catalogCiIds.add(newLeafRfc.getCiId());
                     }else{
                         catalogCiIds.add(leafRfc.getCiId());
@@ -249,9 +243,6 @@ public class PackRefreshProcessor {
                     templateIdsMap.put(edge.templateRel.getToCi().getCiId(), catalogCiIds);
 
                     CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,null, platformNsPath, releaseNsPath, null);
-//                    if(platformRfc.getRfcId() > 0) {
-//                        leafRfcRelation.setFromRfcId(platformRfc.getRfcId());
-//                    }
 
                     leafRfcRelation.setFromCiId(designPlatform.getCiId());
                     if (newLeafRfc.getRfcId() > 0 ) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
@@ -291,13 +282,10 @@ public class PackRefreshProcessor {
                             if(needUpdateRfcRelation(rfcRelation, existingCIRel)){
                                 newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcRelation, userId);
                                 logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
+                                newRelsGoids.add(newRfcRelation.getRelationGoid());
                             }else{
-                                newRfcRelation = rfcUtil.mergeRfcRelAndCiRel(null , existingCIRel, "df");
+                                newRelsGoids.add(existingCIRel.getRelationGoid());
                             }
-                            newRelsGoids.add(newRfcRelation.getRelationGoid());
-
-                            //CmsRfcRelation newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcRelation, userId);
-                            logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
                         }
                     }
                 }
@@ -363,7 +351,7 @@ public class PackRefreshProcessor {
                 rfc.setCiRelationId(rel.getCiRelationId());
                 for (String attrName : rel.getAttributes().keySet()) {
                     CmsCIRelationAttribute existingAttr = rel.getAttribute(attrName);
-                    if (existingAttr != null && existingAttr.getOwner() != null && existingAttr.getOwner().equalsIgnoreCase("catalog")) {
+                    if (existingAttr != null && existingAttr.getOwner() != null && existingAttr.getOwner().equalsIgnoreCase("design")) {
                         rfc.getAttributes().remove(attrName);
                     }
                 }
@@ -408,8 +396,7 @@ public class PackRefreshProcessor {
         newRfc.setNsPath(nsPath);
         newRfc.setReleaseNsPath(releaseNsPath);
 
-        String targetClazzName = null;
-        targetClazzName = targetPrefix + "." + trUtil.getLongShortClazzName(templateCi.getCiClassName());
+        String targetClazzName = targetPrefix + "." + trUtil.getLongShortClazzName(templateCi.getCiClassName());
 
         CmsClazz targetClazz = mdProcessor.getClazz(targetClazzName);
         newRfc.setCiClassId(targetClazz.getClassId());
@@ -428,7 +415,7 @@ public class PackRefreshProcessor {
             clazzAttrs.put(clAttr.getAttributeName(), clAttr);
         }
 
-        //populate values from manifest template obj if it's not null
+        //populate values from template obj if it's not null
         trUtil.applyCiToRfc(newRfc, templateCi, clazzAttrs, true, false);
 
         return newRfc;
