@@ -7,11 +7,15 @@ platforms:
   amq:
     pack: oneops/activemq:1
 
+  searchmq:
+    pack: oneops/activemq:1
+
   # searchdb
   searchdb:
     pack: oneops/es:1
     major_version: 1
     links:
+    - searchmq
     - amq
     variables:
     components:
@@ -39,13 +43,9 @@ platforms:
         logstash-cert:
           path: /opt/.certs/logstash.crt
           content: |-
-            -----BEGIN CERTIFICATE-----
-            -----END CERTIFICATE-----
         logstash-key:
           path: /opt/.certs/logstash.key
           content: |-
-            -----BEGIN PRIVATE KEY-----
-            -----END PRIVATE KEY-----
           depends:
           - logstash-cert
       daemon/oneops.1.Daemon:
@@ -140,6 +140,7 @@ platforms:
           location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
           version: $OO_LOCAL{version}
           url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          repository: '*Using full RepoURL*'
       index/oneops.1.Index:
         cms:
           index_name: cms
