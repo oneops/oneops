@@ -29,6 +29,10 @@ class SessionsController < Devise::SessionsController
     session[:browser_timezone] = browser_timezone.to_i if browser_timezone.present?
   end
 
+  def after_sign_in_path_for(resource_or_scope)
+    current_user.organization ? organization_path : root_path
+  end
+
 
   private
 
