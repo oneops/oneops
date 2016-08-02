@@ -7,12 +7,15 @@ platforms:
     pack: oneops/activemq:1
   adapter:
     pack: oneops/tomcat:1
+  opsdb:
+    pack: oneops/cassandra:1
   sensor:
     pack: oneops/tomcat:1
     links:
      - adapter
      - amq
      - opsmq
+     - opsdb
     variables:
         deploycontext: sensor
         ESPER-version: 4.4.0
