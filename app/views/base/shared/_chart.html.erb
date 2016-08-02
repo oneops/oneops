@@ -36,11 +36,12 @@
         }
 
         metrics = data.map(function (metric) {
+          var dataPoints = metric['data'];
           return {
             name: metric['header']['metric'],
-            data: metric['data'].length ? metric['data'].map(function (d, i) {
-              return { x: timeRange[i], y: d };
-            }) : [{x: timeRange[0], y: 0}],
+            data: dataPoints.length ? timeRange.map(function (time, i) {
+              return { x: time, y: dataPoints[i] };
+            }) : [{x: timeRange[0], y: null}],
             color: palette.color()
           };
         });
@@ -86,9 +87,37 @@
 
         graphs.push(graph);
         graph.render();
+
+        if (localStorage) {
+          var disabledLinesKey = "oneops_monitor_chart_disabled_lines_" + "<%= chart_name %>";
+          var disabledLines = localStorage.getItem(disabledLinesKey);
+          if (disabledLines) {
+            console.log(disabledLines);
+            var item;
+            $j("#<%= chart_name %>_legend .label").toArray().forEach(function(e) {
+              item = $j(e);
+              if (disabledLines.indexOf(item.text()) >= 0) {
+                item.siblings(".action").click();
+              }
+            });
+          }
+
+          $j("#<%= chart_name %>_legend").find(".action, .label").click(function() {
+            setTimeout(function() {
+              var legend = $j("#<%= chart_name %>_legend"),
+                  disabledItems = legend.find(".line.disabled .label"),
+                  value = disabledItems.toArray()
+                      .map(function (e) {
+                             return $j(e).text();
+                           })
+                      .join("~~~");
+              localStorage.setItem(disabledLinesKey, value);
+            }, 100);
+          });
+        }
       }
       else {
-        $j(chart_div).html("<i></i>Failed to load chart data.");
+        $j(chart_div).html("<%= escape_javascript(falied_loading_indicator('Failed to load chart data.')) %>");
       }
     <% end %>
   };
