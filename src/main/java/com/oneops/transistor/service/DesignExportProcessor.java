@@ -12,6 +12,7 @@ import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
@@ -377,8 +378,15 @@ public class DesignExportProcessor {
 						throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, errorMsg);
 					}
 					CmsRfcCI fromComponent = components.get(ce.getName());
-					CmsRfcRelation LinksTo = trUtil.bootstrapRelationRfc(fromComponent.getCiId(), toComponent.getCiId(), DEPENDS_ON_RELATION, platformNsPath, designNsPath, null);
-					upsertRelRfc(LinksTo, fromComponent, toComponent, 0, userId);
+					if (fromComponent.getCiClassName().equals(toComponent.getCiClassName())) {
+						Map<String, CmsCIRelationAttribute> attrs = new HashMap<String, CmsCIRelationAttribute>();
+						CmsCIRelationAttribute attr = new CmsCIRelationAttribute();
+						attr.setAttributeName("source");
+						attr.setDjValue("user");
+						attrs.put(attr.getAttributeName(), attr);
+						CmsRfcRelation dependsOn = trUtil.bootstrapRelationRfcWithAttrs(fromComponent.getCiId(), toComponent.getCiId(), DEPENDS_ON_RELATION, platformNsPath, designNsPath, attrs);
+						upsertRelRfc(dependsOn, fromComponent, toComponent, 0, userId);
+					}
 				}
 			}
 		}
