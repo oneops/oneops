@@ -97,15 +97,6 @@ public class PackRefreshProcessor {
             throw new TransistorException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
         }
 
-        CmsRfcCI platformRfc = null;
-        List<CmsRfcCI> existingPlatform = cmRfcMrgProcessor.getDfDjCi(designPlatform.getNsPath(), "catalog.Platform", designPlatform.getCiName(), "dj");
-        if (existingPlatform.size()>0) {
-            platformRfc = existingPlatform.get(0);
-
-        }else{
-            throw new RuntimeException("Platform doesnt exist " + designPlatform.getNsPath());
-        }
-
         String mgmtTemplNsPath = "/public/" + designPlatform.getAttribute("source").getDfValue()
                 + "/packs/" + designPlatform.getAttribute("pack").getDfValue()
                 + "/" + designPlatform.getAttribute("version").getDfValue();
@@ -125,13 +116,18 @@ public class PackRefreshProcessor {
             existingCatalogPlatRels = getExistingCatalogPlatRels(designPlatform.getNsPath()+"/_design/" + designPlatform.getCiName());
         }
 
-        CmsRfcCI rfcCI = processPlatform(templatePlatform,designPlatform, platformRfc, existingCatalogPlatRels, userId);
+        processPlatform(templatePlatform,designPlatform, existingCatalogPlatRels, userId);
 
-
-        return rfcCI.getReleaseId();
+        //Check if there is an open release after the pack sync and return the corresponding release id
+        CmsRelease release = cmRfcMrgProcessor.getReleaseByNameSpace(designPlatform.getNsPath());
+        if (release != null && "open".equals(release.getReleaseState())) {
+            return release.getReleaseId();
+        } else {
+            return 0;
+        }
     }
 
-    private CmsRfcCI processPlatform(CmsCI templatePlatform, CmsCI designPlatform, CmsRfcCI platformRfc, Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels, String userId){
+    private void processPlatform(CmsCI templatePlatform, CmsCI designPlatform, Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels, String userId){
 
         String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
         String releaseNsPath = designPlatform.getNsPath();
@@ -166,7 +162,7 @@ public class PackRefreshProcessor {
         }
 
         //add call to processEdges
-        Map<Long, List<Long>> templateIdsMap = processEdges(edges, platformRfc, platNsPath, releaseNsPath, userId);
+        Map<Long, List<Long>> templateIdsMap = processEdges(edges , designPlatform, platNsPath, releaseNsPath, userId);
 
         Set<String> newRelIds = processPackInterRelations(templInternalRels, templateIdsMap, platNsPath , releaseNsPath, existingCatalogPlatRels, userId);
 
@@ -179,12 +175,11 @@ public class PackRefreshProcessor {
             }
         }
 
-        return platformRfc;
     }
 
 
 
-    private Map<Long, List<Long>> processEdges(Map<String, Edge> edges, CmsRfcCI platformRfc, String platformNsPath , String releaseNsPath , String userId) {
+    private Map<Long, List<Long>> processEdges(Map<String, Edge> edges , CmsCI designPlatform, String platformNsPath , String releaseNsPath , String userId) {
 
         Map<Long, List<Long>> templateIdsMap =  new HashMap();
 
@@ -220,8 +215,7 @@ public class PackRefreshProcessor {
 
                     CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,userRel, platformNsPath, releaseNsPath, null);
 
-                    if(platformRfc.getRfcId() > 0 ) leafRfcRelation.setFromRfcId(platformRfc.getRfcId());
-                    leafRfcRelation.setFromCiId(platformRfc.getCiId());
+                    leafRfcRelation.setFromCiId(designPlatform.getCiId());
 
                     if(leafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(leafRfc.getRfcId());
                     leafRfcRelation.setToCiId(leafRfc.getCiId());
@@ -250,11 +244,11 @@ public class PackRefreshProcessor {
                     templateIdsMap.put(edge.templateRel.getToCi().getCiId(), catalogCiIds);
 
                     CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,null, platformNsPath, releaseNsPath, null);
-                    if(platformRfc.getRfcId() > 0) {
-                        leafRfcRelation.setFromRfcId(platformRfc.getRfcId());
-                    }
+//                    if(platformRfc.getRfcId() > 0) {
+//                        leafRfcRelation.setFromRfcId(platformRfc.getRfcId());
+//                    }
 
-                    leafRfcRelation.setFromCiId(platformRfc.getCiId());
+                    leafRfcRelation.setFromCiId(designPlatform.getCiId());
                     if (newLeafRfc.getRfcId() > 0 ) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
                     leafRfcRelation.setToCiId(newLeafRfc.getCiId());
                     setCiRelationId(leafRfcRelation);
