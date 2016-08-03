@@ -115,7 +115,7 @@
     </bean>
     
 
-    <bean id="perfDataAccessor" class="com.oneops.ops.dao.PerfDataAccessor" init-method="init">
+    <bean id="perfDataAccessor" class="com.oneops.ops.dao.PerfDataAccessor" init-method="initSync">
     	<property name="clusterBootstrap" ref="daqCluster" />    
         <property name="clusterName" value="PerfAndLogCluster"/>
         <property name="keyspaceName" value="mdb"/>
