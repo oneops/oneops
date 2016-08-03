@@ -121,36 +121,42 @@ public class CiOpsProcessor {
 		for (long manifestId : manifestIds) {
 			cntr++;
 			List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-			if (bomIds.size() == 0) {
-				trDao.removeRealizedAsRow(manifestId);
-				opsCiStateDao.resetComponentCountsToZero(manifestId);
-
-				continue;
-			}
-			Map<String,Long> counters = new HashMap<String,Long>();
-			counters.put("total", new Long(bomIds.size()));
-			Map<Long,String> manifestStates = getCisStates(bomIds);
-			for (String state : manifestStates.values()) {
-				if (counters.containsKey(state)) {
-					counters.put(state, counters.get(state) + 1);
-				} else {
-					counters.put(state, 1L);
-				}
-			}
-			opsCiStateDao.setComponentsStates(manifestId, counters);
+			resetManifestStates(manifestId, bomIds);
 			if (cntr % 5000 == 0) {
 				logger.info("Processed " + cntr + " components");
 			}
 		}
 	}	
 	
+	private void resetManifestStates(Long manifestId, List<Long> bomIds) {
+		if (bomIds.size() == 0) {
+			trDao.removeRealizedAsRow(manifestId);
+			opsCiStateDao.resetComponentCountsToZero(manifestId);
+			return;
+		}
+		Map<String,Long> counters = new HashMap<String,Long>();
+		counters.put("total", new Long(bomIds.size()));
+		Map<Long,String> manifestStates = getCisStates(bomIds);
+		for (String state : manifestStates.values()) {
+			if (counters.containsKey(state)) {
+				counters.put(state, counters.get(state) + 1);
+			} else {
+				counters.put(state, 1L);
+			}
+		}
+		opsCiStateDao.setComponentsStates(manifestId, counters);
+	}
+	
 	public int removeManifestMap(long ciId, Long manifestId) {
 		int remainingBoms = trDao.removeManifestMap(ciId, manifestId);
 		if (remainingBoms >0) {
-			resetManifestStates(Arrays.asList(manifestId));
+			List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+			resetManifestStates(manifestId, bomIds);
+			remainingBoms = bomIds.size();
 		} else {
 			opsCiStateDao.resetComponentCountsToZero(manifestId);
 		}
+		logger.info("Removed manifestMap for manifestId = " + manifestId + ", remainingBoms = " + remainingBoms);
 		return remainingBoms;
 	}
 	
