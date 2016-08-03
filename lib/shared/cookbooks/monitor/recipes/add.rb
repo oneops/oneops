@@ -19,6 +19,12 @@
 # gens nagios config using WatchedBy payload and reloads/starts nagios and perf-agent
 #
 cloud_name = node.workorder.cloud.ciName
+
+Chef::Log.info("******OS_PLATFORM #{node.platform}***********")
+if node.platform =~ /windows/
+     return
+end
+
 cloud_service = nil
 
 if !node.workorder.services["monitoring"].nil? &&
