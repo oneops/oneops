@@ -22,13 +22,16 @@
                              :filter_by => %w(ciName ciClassName nsPath),
                              :compact   => false}) do |builder, ci| %>
       <% builder.attributes %(ciName="#{ci.ciName}" ciClassName="#{ci.ciClassName}" nsPath="#{ci.nsPath}") %>
-      <% builder.target link_to('', path_to_ci!(ci)) %>
       <% attr_name = params[:attr_name] %>
+      <% builder.top do %>
+        <span class="topname"><%= link_to(ci.ciName, path_to_ci!(ci)) %></span>
+      <% end %>
       <% builder.middle do %>
         <% if attr_name.present? %>
           <dl class="dl-horizontal">
-            <% a = ci.meta.md_attribute(attr_name) %>
-            <dt title="<%= a.description %>"><%= a.description %></dt>
+            <% a = ci.meta.md_attribute(attr_name)
+               desc = a ? a.description : attr_name %>
+            <dt title="<%= desc %>"><%= desc %></dt>
             <dd><%= ci.ciAttributes.attributes[attr_name] %></dd>
           </dl>
         <% else %>

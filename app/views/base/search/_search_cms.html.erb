@@ -143,7 +143,7 @@
               data:     {
                 ns_path:       nsPath,
                 package:       pkg,
-                class_name:    className && (pkg + "." + className),
+                class_name:    className && ((pkg ? pkg + "." : "") + className),
                 attr_name:     attrName,
                 attr_operator: attrOperatior,
                 attr_value:    attrValue,

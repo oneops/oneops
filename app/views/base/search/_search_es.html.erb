@@ -87,19 +87,25 @@
 
     var pkg = filters['package'],
         className = filters['class-name'];
-    if (className && pkg) {
-      searchFilterSection.find("input.class-name[type=text]").val(pkg + '.' + className);
+    if (className) {
+      searchFilterSection.find("input.class-name[type=text]").val((pkg ? pkg + '.' : '') + className);
     }
 
-    var attrName = filters['attr-name'],
-        attrValue = filters['attr-value'],
-        attrOperator = filters['attr-operator'],
-        query = '';
+    var query = filters['query'];
 
-    if (attrName) {
-      query += 'ciAttributes.' + attrName + ":" + (attrValue || "<VALUE>");
+    if (!query) {
+      query = '';
+      var attrName = filters['attr-name'],
+          attrValue = filters['attr-value'],
+          attrOperator = filters['attr-operator'];
       if (attrOperator == 'neq') {
         query = 'NOT ' + query;
+      }
+      if (attrName) {
+        query += 'ciAttributes.' + attrName + ":" + (attrValue || "<VALUE>");
+      }
+      else if(attrValue) {
+        query += attrValue;
       }
     }
 
