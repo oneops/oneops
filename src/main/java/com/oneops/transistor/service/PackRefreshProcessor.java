@@ -186,7 +186,7 @@ public class PackRefreshProcessor {
         for (CmsCIRelation localVarPackRel : localVarPackRels) {
             CmsCI packVar = localVarPackRel.getFromCi();
             CmsRfcCI designVarRfc = trUtil.mergeCis(null, packVar, "catalog", platNsPath, releaseNsPath);
-            setCiId(designVarRfc);
+            setCiId(designVarRfc,null);
             designVarRfc.setCreatedBy(userId);
             designVarRfc.setUpdatedBy(userId);
             designVarRfc = cmRfcMrgProcessor.upsertCiRfc(designVarRfc, userId);
@@ -218,11 +218,11 @@ public class PackRefreshProcessor {
                     CmsRfcCI newLeafRfc = null;
                     CmsRfcCI leafRfc = mergeCis(templLeafCi , userRel.getToCi(), "catalog", platformNsPath, releaseNsPath);
 
-                    if (templLeafCi == null || "pending_delete".equals(templLeafCi.getCiState())) {
+                    if (templLeafCi == null || "pending_deletion".equals(templLeafCi.getCiState())) {
                         leafRfc.setRfcAction("delete");
                     }
 
-                    setCiId(leafRfc);
+                    setCiId(leafRfc,userRel.getToCi());
                     leafRfc.setCreatedBy(userId);
                     leafRfc.setUpdatedBy(userId);
                     if("delete".equals(leafRfc.getRfcAction())){
@@ -262,7 +262,7 @@ public class PackRefreshProcessor {
                         "1..*".equalsIgnoreCase(cardinality)) {
                     List<Long> catalogCiIds = new ArrayList<Long>();
                     CmsRfcCI leafRfc = mergeCis(edge.templateRel.getToCi(), null, "catalog", platformNsPath, releaseNsPath);
-                    setCiId(leafRfc);
+                    setCiId(leafRfc,null);
                     leafRfc.setCreatedBy(userId);
                     leafRfc.setUpdatedBy(userId);
                     CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
@@ -355,12 +355,20 @@ public class PackRefreshProcessor {
         return newRfc;
     }
 
-    private void setCiId(CmsRfcCI rfc) {
-        List<CmsCI> existingCis = null;
-        existingCis = cmProcessor.getCiBy3(rfc.getNsPath(), rfc.getCiClassName(), rfc.getCiName());
+    private void setCiId(CmsRfcCI rfc, CmsCI userCi) {
+        CmsCI ci = null;
+        if(userCi != null){
+            ci = userCi;
+        }
+        else{
+            List<CmsCI> existingCis = null;
+            existingCis = cmProcessor.getCiBy3(rfc.getNsPath(), rfc.getCiClassName(), rfc.getCiName());
+            if (existingCis.size()>0) {
+                ci = existingCis.get(0);
+            }
+        }
 
-        if (existingCis.size()>0) {
-            CmsCI ci = existingCis.get(0);
+        if(ci != null) {
             rfc.setCiId(ci.getCiId());
             for (String attrName : ci.getAttributes().keySet()) {
                 CmsCIAttribute existingAttr = ci.getAttribute(attrName);
@@ -391,7 +399,7 @@ public class PackRefreshProcessor {
 
         boolean needUpdate = false;
 
-        if (baseRel == null || (baseRel.getToCi() != null && "pending_delete".equals(baseRel.getToCi().getCiState()))){
+        if (baseRel == null || (baseRel.getToCi() != null && "pending_deletion".equals(baseRel.getToCi().getCiState()))){
             rfcRel.setRfcAction("delete");
             needUpdate = true;
             return needUpdate;
