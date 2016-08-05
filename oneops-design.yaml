@@ -20,7 +20,9 @@ platforms:
     components:
       ruby/oneops.1.Ruby:
         ruby:
-          install_type: repository
+          install_type: rvm
+          version: 2.0.0-p576
+          binary: '*binary location url*'
 
       library/oneops.1.Library:
         library:
@@ -40,6 +42,8 @@ platforms:
           restart: |-
             bash "circuit install" do
               code <<-EOA
+                source /usr/local/rvm/scripts/rvm
+                rvm use default
                 gem install $OO_LOCAL{install-path}/oneops-admin-artifact/current/oneops/dist/oneops-admin-1.0.0.gem --no-ri --no-rdoc
                 cd $OO_LOCAL{install-path}
                 rm -fr circuit
@@ -50,9 +54,9 @@ platforms:
             end
 
         circuit-oneops-1-model:
-          url: $OO_LOCAL{circuit-distbase}/circuit-oneops-1-$OO_LOCAL{circuit-oneops-1-version}.tar.gz
+          url: $OO_LOCAL{circuit-distbase}/$OO_LOCAL{circuit-oneops-1-version}/circuit-oneops-1-$OO_LOCAL{circuit-oneops-1-version}.tar.gz
           repository: '*Using full RepoURL*'
-          location: $OO_LOCAL{circuit-distbase}/circuit-oneops-1-$OO_LOCAL{circuit-oneops-1-version}.tar.gz
+          location: $OO_LOCAL{circuit-distbase}/$OO_LOCAL{circuit-oneops-1-version}/circuit-oneops-1-$OO_LOCAL{circuit-oneops-1-version}.tar.gz
           version: $OO_LOCAL{circuit-oneops-1-version}
           install_dir: $OO_LOCAL{install-path}/circuit-oneops-1
           as_user: root
@@ -61,6 +65,8 @@ platforms:
           restart: |-
             bash "circuit install" do
               code <<-EOA
+                source /usr/local/rvm/scripts/rvm
+                rvm use default
                 cd $OO_LOCAL{install-path}/circuit-oneops-1/current
                 circuit install
               EOA
