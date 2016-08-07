@@ -25,6 +25,7 @@ import com.oneops.ops.dao.OpsEventDao;
 import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsCloseEvent;
 import com.oneops.ops.events.OpsEvent;
+import com.oneops.sensor.domain.DelayedPerfEvent;
 import com.oneops.sensor.domain.SensorStatement;
 import com.oneops.sensor.domain.ThresholdStatements;
 import com.oneops.sensor.events.BasicEvent;
@@ -70,6 +71,7 @@ public class Sensor {
     public static final String ROW_COUNT = "com.oneops.sensor.events.batchsize";
     public static final int READ_ROWCOUNT = Integer.valueOf(getProperty(ROW_COUNT, "1000"));
 
+
     private final Gson gson = new Gson();
     private final Map<Long, Map<String, ThresholdStatements>> loadedThresholds = new HashMap<>();
 
@@ -82,6 +84,8 @@ public class Sensor {
     private StmtBuilder stmtBuilder;
     private CiOpsProcessor coProcessor;
     private Map<String, UpdateListener> listeners;
+    private int maxHeartbeatSeedEventDelay = 600;
+    private int heartbeatRandomDelay = 30;
 
 
     /**
@@ -155,6 +159,7 @@ public class Sensor {
 
         Configuration cfg = new Configuration();
         cfg.addEventType("PerfEvent", PerfEvent.class.getName());
+        cfg.addEventType("DelayedPerfEvent", DelayedPerfEvent.class.getName());
         cfg.addEventType("OpsEvent", OpsEvent.class.getName());
         cfg.addEventType("OpsCloseEvent", OpsCloseEvent.class.getName());
         cfg.addEventType("ChannelDownEvent", ChannelDownEvent.class.getName());
@@ -199,6 +204,7 @@ public class Sensor {
         addStatementToEngine("opsEventReset", STMT_RESET, "CloseEventListener");
         addStatementToEngine("opsHeartbeatReset", STMT_RESET_HEARTBEAT, "CloseEventListener");
         addStatementToEngine("opsHeartbeatReTrigger", STMT_RETRIGGER_HEARTBEAT, "OpsEventListener");
+        addStatementToEngine("opsDelayPerfEvent", STMT_DELAY_PERF_EVENT, null);
     }
 
     /**
@@ -313,13 +319,24 @@ public class Sensor {
             ThresholdStatements trStmt = loadedThresholds.containsKey(manifestId) ? loadedThresholds.get(manifestId).get(source) : null;
             if (trStmt == null) {
                 //load stmts
+            	boolean isHeartBeat = monitor.getCiAttributes().get(HEARTBEAT).equals("true");
+            	String hbDuration = monitor.getCiAttributes().get(DURATION);
                 persistAndaddToEngine(ciId,
                         manifestId,
                         source,
                         checksum,
                         thresholdsJson,
-                        monitor.getCiAttributes().get(HEARTBEAT).equals("true"),
-                        monitor.getCiAttributes().get(DURATION));
+                        isHeartBeat,
+                        hbDuration);
+                
+              //create a seed event if this is a new heartbeat monitor 
+                if (isHeartBeat) {
+                	int durationInSec = Integer.parseInt(hbDuration) * 60;
+                	int delay = durationInSec - 60;
+                	delay = delay < maxHeartbeatSeedEventDelay ? delay : maxHeartbeatSeedEventDelay;
+                	logger.info("creating seed event for ciId " + ciId + ", source " +  source + ", with delay : " + delay);
+                	insertFakeEventWithDelay(ciId, manifestId, source, delay);
+                }
             } else if (trStmt.getChecksum() != checksum || monitor.getCiAttributes().get(HEARTBEAT).equals("true") != trStmt.isHeartbeat()) {
                 // if checksum is different we assume there was an monitor update
                 // we need to remove old stmts and insert new ones
@@ -530,6 +547,20 @@ public class Sensor {
         logger.debug("Sent PerfEvent to esper :" + gson.toJson(event));
         this.epService.getEPRuntime().sendEvent(event);
     }
+    
+    public void insertFakeEventWithDelay(long ciId, long manifestId, String source, int delay) {
+        // Lets insert fake events so we start tracking the missing hearbeats
+        DelayedPerfEvent delayedEvent = new DelayedPerfEvent();
+        PerfEvent event = new PerfEvent();
+        event.setCiId(ciId);
+        event.setManifestId(manifestId);
+        event.setSource(source);
+        event.setTimestamp(System.currentTimeMillis());
+        delayedEvent.setPerfEvent(event);
+        delayedEvent.setDelay(delay);
+        logger.debug("Sent DelayedPerfEvent to esper :" + gson.toJson(delayedEvent));
+        this.epService.getEPRuntime().sendEvent(delayedEvent);
+    }
 
 
     /**
@@ -730,6 +761,7 @@ public class Sensor {
     private void loadAllStatements() throws InterruptedException {
 
         initDefaultStatements();
+        Random random = new Random();
 
         // Bifurcate ops events stream into heartbeat and metric.
         ConnectableObservable<OpsEvent> openEvents = getAllOpenEvents().publish();
@@ -782,7 +814,8 @@ public class Sensor {
             } else {
                 // If there is no open heartbeat event lets insert fake perf event to seed hb threshold.
                 logger.info("Seeding PerfEvent(ciId = " + fe.ciId + ", manifestId = " + fe.manifestId + ", source = " + fe.source + ")");
-                insertFakeEvent(fe.ciId, fe.manifestId, fe.source);
+                int delay = random.nextInt(heartbeatRandomDelay);
+                insertFakeEventWithDelay(fe.ciId, fe.manifestId, fe.source, delay);
             }
 
         });
@@ -900,4 +933,12 @@ public class Sensor {
         long manifestId;
         String source;
     }
+
+	public void setMaxHeartbeatSeedEventDelay(int maxHeartbeatSeedEventDelay) {
+		this.maxHeartbeatSeedEventDelay = maxHeartbeatSeedEventDelay;
+	}
+
+	public void setHeartbeatRandomDelay(int heartbeatRandomDelay) {
+		this.heartbeatRandomDelay = heartbeatRandomDelay;
+	}
 }
