@@ -160,6 +160,26 @@ class Operations::PlatformsController < Base::PlatformsController
     end
   end
 
+  def autocomply
+    if params[:status] == 'enable'
+      @platform.ciAttributes.autocomply = 'true'
+    elsif params[:status] == 'disable'
+      @platform.ciAttributes.autocomply = 'false'
+    end
+    @platform.attrOwner.autocomply = 'manifest'
+
+    ok = execute(@platform, :save)
+
+    respond_to do |format|
+      format.js do
+        load_platform_detail
+        flash[:error] = 'Failed to update autocomply!' unless ok
+      end
+
+      format.json { render_json_ci_response(ok, @platform) }
+    end
+  end
+
 
   private
 

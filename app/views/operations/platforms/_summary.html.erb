@@ -48,6 +48,9 @@
                :instance_count => @instances.size,
                :ops_states     => @ops_states,
                :bom_release    => @bom_release %>
+    <li id="status_autocomply" class="status-marker">
+      <%= render 'status_autocomply' %>
+    </li>
     <li id="status_autorepair" class="status-marker">
       <%= render 'status_autorepair' %>
     </li>

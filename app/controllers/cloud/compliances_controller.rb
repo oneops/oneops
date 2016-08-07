@@ -1,9 +1,13 @@
 class Cloud::CompliancesController < ApplicationController
   before_filter :find_cloud_and_compliance
   before_filter :authorize_write, :only => [:new, :create, :update, :destroy]
+  before_filter :validate_compliance_class, :only => [:new, :create]
 
   def index
-    load_compliances
+    @compliances = Cms::Relation.all(:params => {:ciId         => @cloud.ciId,
+                                                 :direction    => 'from',
+                                                 :relationName => 'base.CompliesWith'}).map(&:toCi)
+    load_compliance_classes
     respond_to do |format|
       format.js { render :action => :index }
       format.json { render :json => @compliances }
@@ -15,13 +19,10 @@ class Cloud::CompliancesController < ApplicationController
   end
 
   def new
-    compliance_class = validate_compliance_class
-    return unless compliance_class
-
     ci_hash               = params[:cms_ci].presence || {}
-    ci_hash[:ciClassName] = compliance_class
+    ci_hash[:ciClassName] = @compliance_class
     ci_hash[:nsPath]      = cloud_ns_path(@cloud)
-    @compliance           = Cms::Ci.build(:nsPath => cloud_ns_path(@cloud), :ciClassName => compliance_class)
+    @compliance           = Cms::Ci.build(:nsPath => cloud_ns_path(@cloud), :ciClassName => @compliance_class)
 
     respond_to do |format|
       format.js
@@ -30,8 +31,6 @@ class Cloud::CompliancesController < ApplicationController
   end
 
   def create
-    return unless validate_compliance_class
-
     @compliance = Cms::Ci.build(params[:cms_ci].merge(:nsPath => cloud_ns_path(@cloud)))
     relation    = Cms::Relation.build(:relationName => 'base.CompliesWith',
                                       :fromCiId     => @cloud.ciId,
@@ -77,7 +76,7 @@ class Cloud::CompliancesController < ApplicationController
   end
 
   def available
-    load_compliances
+    load_compliance_classes
     render :json => @available_compliance_classes.map(&:className)
   end
 
@@ -94,35 +93,23 @@ class Cloud::CompliancesController < ApplicationController
     unauthorized unless @cloud && has_cloud_compliance?(@cloud.ciId)
   end
 
-  def load_compliances
-    @compliances = Cms::Relation.all(:params => {:ciId         => @cloud.ciId,
-                                                 :direction    => 'from',
-                                                 :relationName => 'base.CompliesWith'}).map(&:toCi)
-
-    existing = @compliances.to_map(&:ciClassName)
-    @all_compliance_classes ||= Cms::CiMd.all(:params => {:package => 'cloud.compliance'})
-    @available_compliance_classes = @all_compliance_classes.reject { |c| existing[c.className] }
+  def load_compliance_classes
+    @available_compliance_classes = Cms::CiMd.all(:params => {:package => 'cloud.compliance'})
   end
 
   def validate_compliance_class
-    load_compliances
+    load_compliance_classes
 
-    error            = nil
-    result = nil
-    if @available_compliance_classes.blank?
-      error = 'All compliance types already added.'
-    else
+    if @available_compliance_classes.present?
       compliance_class = params[:compliance_class] || (params[:cms_ci] && params[:cms_ci][:ciClassName])
-      result = compliance_class if compliance_class.present? && @available_compliance_classes.find { |c| c.className == compliance_class }
+      @compliance_class = compliance_class if compliance_class.present? && @available_compliance_classes.find { |c| c.className == compliance_class }
     end
 
-    if result.blank?
+    if @compliance_class.blank?
       respond_to do |format|
         format.js
-        format.json { render_json_ci_response(false, true, [error || 'Invalid compliance class.']) }
+        format.json { render_json_ci_response(false, true, ['Invalid compliance class.']) }
       end
     end
-
-    return result
   end
 end
