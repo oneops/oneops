@@ -28,7 +28,6 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
-import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.md.domain.CmsClazz;
 import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
@@ -40,12 +39,7 @@ import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
 
 
 public class PackRefreshProcessor {
@@ -58,7 +52,6 @@ public class PackRefreshProcessor {
     private CmsRfcProcessor rfcProcessor;
     private CmsMdProcessor mdProcessor;
     private CmsDJValidator djValidator;
-    private CmsRfcUtil rfcUtil;
     private TransUtil trUtil;
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
@@ -67,10 +60,6 @@ public class PackRefreshProcessor {
 
     public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
         this.rfcProcessor = rfcProcessor;
-    }
-
-    public void setRfcUtil(CmsRfcUtil rfcUtil){
-        this.rfcUtil = rfcUtil;
     }
 
     public void setTrUtil(TransUtil trUtil) {
@@ -136,7 +125,7 @@ public class PackRefreshProcessor {
         List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
         List<CmsCIRelation> designRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
 
-        List<CmsCIRelation> existingDependsOnRels = cmProcessor.getCIRelationsNaked(platNsPath, "catalog.DependsOn", null, null, null);
+        List<CmsCIRelation> existingDependsOnRels =  new ArrayList<>(existingCatalogPlatRels.get("catalog.DependsOn").values());
 
         List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
         Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -215,7 +204,6 @@ public class PackRefreshProcessor {
                 List<Long> catalogCiIds = new ArrayList<Long>();
                 CmsCI templLeafCi = (edge.templateRel != null) ? edge.templateRel.getToCi() : null;
                 for (CmsCIRelation userRel : edge.userRels) {
-                    CmsRfcCI newLeafRfc = null;
                     CmsRfcCI leafRfc = mergeCis(templLeafCi , userRel.getToCi(), "catalog", platformNsPath, releaseNsPath);
 
                     if (templLeafCi == null || "pending_deletion".equals(templLeafCi.getCiState())) {
@@ -231,7 +219,7 @@ public class PackRefreshProcessor {
                         continue;
                     }
 
-                    newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
+                    CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
 
                     if(newLeafRfc != null){
                         logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
@@ -244,7 +232,7 @@ public class PackRefreshProcessor {
 
                     leafRfcRelation.setFromCiId(designPlatform.getCiId());
 
-                    if(leafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(leafRfc.getRfcId());
+                    if(newLeafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
                     leafRfcRelation.setToCiId(leafRfc.getCiId());
 
                     leafRfcRelation.setCreatedBy(userId);
@@ -399,7 +387,7 @@ public class PackRefreshProcessor {
 
         boolean needUpdate = false;
 
-        if (baseRel == null || (baseRel.getToCi() != null && "pending_deletion".equals(baseRel.getToCi().getCiState()))){
+        if (baseRel == null ){
             rfcRel.setRfcAction("delete");
             needUpdate = true;
             return needUpdate;
