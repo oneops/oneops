@@ -4,7 +4,14 @@
     <div class="input-append">
       <% if fixed_keys %>
         <%= hidden_field_tag("#{attribute_name}_key", key, :class => 'hash_key') %>
-        <span class="add-on hash_key"><b><%= key %></b></span>
+        <span class="add-on hash_key">
+          <% desc = fixed_keys.is_a?(Hash) && fixed_keys[key] %>
+          <% if desc.blank? %>
+            <b><%= key %></b>
+          <% else %>
+            <%= link_to(key, '#', :rel => 'tooltip', :title => desc) %>
+          <% end %>
+        </span>
         <span class="add-on"><b>=</b></span>
       <% else %>
         <%= text_field_tag("#{attribute_name}_key", key,
