@@ -1,1 +1,1 @@
-include_recipe "monitor::add"
+include_recipe "security::add"
