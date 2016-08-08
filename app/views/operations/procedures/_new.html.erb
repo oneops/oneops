@@ -28,10 +28,16 @@
             <div class="name">Configuration</div>
             <%= label_tag :arglist, 'Arguments', :class => 'control-label' %>
             <div class="controls ciAttributes">
+              <% fixed_keys = true
+                 arg_md = @procedure.argMd
+                 if arg_md.present?
+                   fixed_keys = arg_md.values.to_map_with_value {|a| [a['name'], a['description']]}
+                 end
+              %>
               <%= render 'cms/cis/hash_attribute',
                          :attribute_name  => 'arglist',
                          :attribute_value => arglist,
-                         :fixed_keys      => true,
+                         :fixed_keys      => fixed_keys,
                          :builder         => f %>
             </div>
           </div>
@@ -96,5 +102,9 @@
     return true;
   };
 
-  setTimeout(function() {$j("#overlay")[0].scrollIntoView();}, 100);
+  setTimeout(function() {
+    var overlay = $j("#overlay")
+    overlay.find('a[rel=tooltip]').tooltip();
+    overlay[0].scrollIntoView();
+  }, 100);
 </script>

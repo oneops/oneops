@@ -248,6 +248,7 @@ class Operations::ProceduresController < ApplicationController
         m[arg['name']] = arg['defaultValue']
         m
       end
+      @procedure.argMd = arguments
       @procedure.arglist = arglist.to_json
     end
   end

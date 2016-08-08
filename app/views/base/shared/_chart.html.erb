@@ -92,11 +92,10 @@
           var disabledLinesKey = "oneops_monitor_chart_disabled_lines_" + "<%= chart_name %>";
           var disabledLines = localStorage.getItem(disabledLinesKey);
           if (disabledLines) {
-            console.log(disabledLines);
             var item;
             $j("#<%= chart_name %>_legend .label").toArray().forEach(function(e) {
               item = $j(e);
-              if (disabledLines.indexOf(item.text()) >= 0) {
+              if (disabledLines.indexOf("~~~" + item.text() + "~~~") >= 0) {
                 item.siblings(".action").click();
               }
             });
@@ -106,11 +105,11 @@
             setTimeout(function() {
               var legend = $j("#<%= chart_name %>_legend"),
                   disabledItems = legend.find(".line.disabled .label"),
-                  value = disabledItems.toArray()
+                  value = "~~~" + disabledItems.toArray()
                       .map(function (e) {
                              return $j(e).text();
                            })
-                      .join("~~~");
+                      .join("~~~") + "~~~";
               localStorage.setItem(disabledLinesKey, value);
             }, 100);
           });
