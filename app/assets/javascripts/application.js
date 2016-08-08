@@ -26,7 +26,8 @@
 //= require jquery.pretty-text-diff
 //= require clipboard
 
-var LOCAL_STORAGE_KEY_PREFIX = "oneops_display_";
+var LOCAL_STORAGE_KEY_PREFIX = "oneops_display_",
+    AFTER_SIGNIN_ANCHOR_KEY = LOCAL_STORAGE_KEY_PREFIX + "_after_signin_anchor";
 
 // this allows jquery to be coexist with prototype without any conflicts.
 // The only difference is all jquery functions should be called with $j instead of $,
@@ -89,6 +90,26 @@ $j(document).ajaxError(function(a, jqxhr, info, error) {
   console.log(jqxhr);
   console.log(info);
   console.log(error);
+});
+
+$j(function() {
+  if (localStorage) {
+    var anchor = location.hash;
+    if (location.pathname == "/users/sign_in") {
+      if (anchor) {
+        localStorage.setItem(AFTER_SIGNIN_ANCHOR_KEY, anchor);
+      }
+    }
+    else {
+      var last_anchor = localStorage.getItem(AFTER_SIGNIN_ANCHOR_KEY);
+      if (last_anchor) {
+        localStorage.setItem(AFTER_SIGNIN_ANCHOR_KEY, "");
+        if (!anchor) {
+          location.hash = last_anchor;
+        }
+      }
+    }
+  }
 });
 
 window.disable_edit = function(container_id) {
