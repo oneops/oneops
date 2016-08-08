@@ -41,7 +41,12 @@ import org.apache.log4j.Logger;
 
 import java.util.*;
 
-
+/**
+ * Processor class to sync the design components with the latest pack changes
+ *
+ * @author ranand
+ *
+ */
 public class PackRefreshProcessor {
 
     private static final String OPEN_RELEASE_ERROR_MSG = "Design has open release. Please commit/discard before pack refresh.";
@@ -220,16 +225,11 @@ public class PackRefreshProcessor {
                     }
 
                     CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
+                    logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
+                    catalogCiIds.add(newLeafRfc.getCiId());
 
-                    if(newLeafRfc != null){
-                        logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
-                        catalogCiIds.add(newLeafRfc.getCiId());
-                    }else{
-                        catalogCiIds.add(leafRfc.getCiId());
-                    }
 
                     CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, platformNsPath, releaseNsPath, null);
-
                     leafRfcRelation.setFromCiId(designPlatform.getCiId());
 
                     if(newLeafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
