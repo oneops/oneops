@@ -73,6 +73,7 @@ public class Sensor {
 
 
     private final Gson gson = new Gson();
+    private final Random random = new Random();
     private final Map<Long, Map<String, ThresholdStatements>> loadedThresholds = new HashMap<>();
 
     private int instanceId;
@@ -84,7 +85,7 @@ public class Sensor {
     private StmtBuilder stmtBuilder;
     private CiOpsProcessor coProcessor;
     private Map<String, UpdateListener> listeners;
-    private int maxHeartbeatSeedEventDelay = 600;
+    private int minHeartbeatSeedDelay = 300;
     private int heartbeatRandomDelay = 30;
 
 
@@ -332,8 +333,7 @@ public class Sensor {
               //create a seed event if this is a new heartbeat monitor 
                 if (isHeartBeat) {
                 	int durationInSec = Integer.parseInt(hbDuration) * 60;
-                	int delay = durationInSec - 60;
-                	delay = delay < maxHeartbeatSeedEventDelay ? delay : maxHeartbeatSeedEventDelay;
+                	int delay = minHeartbeatSeedDelay + random.nextInt(durationInSec);
                 	logger.info("creating seed event for ciId " + ciId + ", source " +  source + ", with delay : " + delay);
                 	insertFakeEventWithDelay(ciId, manifestId, source, delay);
                 }
@@ -761,7 +761,6 @@ public class Sensor {
     private void loadAllStatements() throws InterruptedException {
 
         initDefaultStatements();
-        Random random = new Random();
 
         // Bifurcate ops events stream into heartbeat and metric.
         ConnectableObservable<OpsEvent> openEvents = getAllOpenEvents().publish();
@@ -934,8 +933,8 @@ public class Sensor {
         String source;
     }
 
-	public void setMaxHeartbeatSeedEventDelay(int maxHeartbeatSeedEventDelay) {
-		this.maxHeartbeatSeedEventDelay = maxHeartbeatSeedEventDelay;
+	public void setMinHeartbeatSeedDelay(int maxHeartbeatSeedEventDelay) {
+		this.minHeartbeatSeedDelay = maxHeartbeatSeedEventDelay;
 	}
 
 	public void setHeartbeatRandomDelay(int heartbeatRandomDelay) {
