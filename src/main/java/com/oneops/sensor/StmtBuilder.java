@@ -44,6 +44,7 @@ public class StmtBuilder {
     public final static String STMT_RESET_HEARTBEAT = "insert into OpsCloseEvent select trigger.ciId as ciId, trigger.manifestId as manifestId, trigger.name as name, trigger.source as source, reset.timestamp as timestamp, 'close' as state, trigger as openEvent from pattern [every trigger=OpsEvent(state = 'open' and type = 'heartbeat') -> reset=PerfEvent(ciId = trigger.ciId and source = trigger.source)]";
     public final static String STMT_RETRIGGER_HEARTBEAT = "insert into OpsEvent select hbtrigger.ciId as ciId,  hbtrigger.manifestId as manifestId,hbtrigger.channel as channel, hbtrigger.timestamp as timestamp, hbtrigger.state as state, 'heartbeat' as type, hbtrigger.source as source, hbtrigger.name as name, hbtrigger.ciState as ciState  from pattern [every hbtrigger=OpsEvent(state = 'open' and type = 'heartbeat') -> (timer:interval(15 min) and not PerfEvent(ciId = hbtrigger.ciId and source = hbtrigger.source))]";
     public final static String STMT_TRIGGER_CHANNELDOWN = "insert into ChannelDownEvent select lastEvent.channel as channel from pattern [(every lastEvent=PerfEvent()) -> (timer:interval(" + CHANNEL_DOWN_INTERVAL + " sec) and not PerfEvent(channel = lastEvent.channel))]";
+    public final static String STMT_DELAY_PERF_EVENT = "insert into PerfEvent select delayedEvent.perfEvent from pattern [(every delayedEvent=DelayedPerfEvent -> timer:interval(delayedEvent.delay sec))]";
 
     private final Gson gson = new Gson();
 

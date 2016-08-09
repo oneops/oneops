@@ -169,6 +169,8 @@
             </map>
         </property>
         <property name="stmtBuilder" ref="stmtBuilder"/>
+        <property name="minHeartbeatSeedDelay" value="${MIN_HB_SEED_DELAY_IN_SEC:300}"/>
+        <property name="heartbeatRandomDelay" value="${MAX_HB_RANDOM_DELAY_IN_SEC:30}"/>
     </bean>
 
     <bean id="sensorTools" class="com.oneops.sensor.util.SensorTools">
