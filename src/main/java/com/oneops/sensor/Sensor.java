@@ -933,8 +933,8 @@ public class Sensor {
         String source;
     }
 
-	public void setMinHeartbeatSeedDelay(int maxHeartbeatSeedEventDelay) {
-		this.minHeartbeatSeedDelay = maxHeartbeatSeedEventDelay;
+	public void setMinHeartbeatSeedDelay(int minHeartbeatSeedDelay) {
+		this.minHeartbeatSeedDelay = minHeartbeatSeedDelay;
 	}
 
 	public void setHeartbeatRandomDelay(int heartbeatRandomDelay) {
