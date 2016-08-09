@@ -7,21 +7,21 @@ maintainer_email "support@oneops.com"
 license          "Copyright OneOps, All rights reserved."
 
 grouping 'default',
-  :access => "global",
+  :access => 'global',
   :packages => [ 'base' ]
 
 grouping 'catalog',
-  :access => "global",
+  :access => 'global',
   :packages => [ 'mgmt.catalog', 'catalog' ]
 
 grouping 'manifest',
-  :access => "global",
+  :access => 'global',
   :packages => [ 'mgmt.manifest', 'manifest' ]
-  
-  
+
+
 attribute 'description',
-  :description => "Description",
-  :default => "",
+  :description => 'Description',
+  :default => '',
   :format => {
     :help => 'Description',
     :category => '1.Global',
@@ -29,36 +29,36 @@ attribute 'description',
   }
 
 attribute 'source',
-  :description => "Pack Source",
-  :default => "",
+  :description => 'Pack Source',
+  :default => '',
   :format => {
     :help => 'Pack source name',
     :category => '2.Platform Pack',
     :order => 1
   }
-  
+
 attribute 'pack',
-  :description => "Pack Name",
-  :default => "",
+  :description => 'Pack Name',
+  :default => '',
   :format => {
     :help => 'Pack name',
     :category => '2.Platform Pack',
     :order => 2
   }
-  
+
 attribute 'version',
-  :description => "Pack Version",
-  :default => "",
+  :description => 'Pack Version',
+  :default => '',
   :format => {
     :help => 'Pack version',
     :category => '2.Platform Pack',
     :order => 3
   }
 
-  
+
 # support for version upgrades
 attribute 'major_version',
-  :description => "Version",
+  :description => 'Version',
   :default => '1',
   :format => {
     :help => 'Major version of the platform should only be increased if you are doing a full <em>upgrade</em> and replacing all component instances',
@@ -68,7 +68,7 @@ attribute 'major_version',
 
 attribute 'is_active',
   :grouping => 'manifest',
-  :description => "Active Version",
+  :description => 'Active Version',
   :default => 'false',
   :format => {
     :help => 'Active version of the platform indicates which platform version instance is active and owns the DNS entrypoint name',
@@ -79,7 +79,7 @@ attribute 'is_active',
 # environment overrides
 attribute 'availability',
   :grouping => 'manifest',
-  :description => "Availability Mode",
+  :description => 'Availability Mode',
   :default => 'default',
   :format => {
     :help => 'Custom availability for this platform (Note: default option is to inherit availability mode from the environment)',
@@ -112,10 +112,10 @@ attribute 'replace_after_repairs',
   }
 
 attribute 'autorepair',
-  :description => "Auto Repair",
+  :description => 'Auto Repair',
   :grouping => 'manifest',
-  :required => "required",
-  :default => "true",
+  :required => 'required',
+  :default => 'true',
   :format => {
     :category => '4.Availability',
     :order => 4,
@@ -125,10 +125,10 @@ attribute 'autorepair',
   }
 
 attribute 'autoscale',
-  :description => "Auto Scale",
+  :description => 'Auto Scale',
   :grouping => 'manifest',
-  :required => "required",
-  :default => "false",
+  :required => 'required',
+  :default => 'false',
   :format => {
     :category => '4.Availability',
     :order => 5,
@@ -139,10 +139,10 @@ attribute 'autoscale',
   }
 
 attribute 'autoreplace',
-  :description => "Auto Replace",
+  :description => 'Auto Replace',
   :grouping => 'manifest',
-  :required => "required",
-  :default => "true",
+  :required => 'required',
+  :default => 'true',
   :format => {
     :category => '4.Availability',
     :order => 6,
@@ -152,4 +152,15 @@ attribute 'autoreplace',
     :form => { 'field' => 'checkbox' }
   }
 
-
+attribute 'autocomply',
+  :description => 'Auto Compliance',
+  :grouping => 'manifest',
+  :required => 'required',
+  :default => 'false',
+  :format => {
+    :category => '4.Availability',
+    :order => 7,
+    :filter => {'all' => {'visible' => 'false'}},
+    :help => 'Automatically apply compliance requirements during deployment for instances in clouds that have any compliances configured.',
+    :form => { 'field' => 'checkbox' }
+  }
