@@ -143,29 +143,38 @@ class Transition::PlatformsController < Base::PlatformsController
 
   def cloud_configuration
     @cloud.relationAttributes.attributes.merge!(params[:attributes])
-    ok = execute(@cloud, :save)
+    ok = check_primary_cloud
+    ok &&= execute(@cloud, :save)
 
     respond_to do |format|
-      format.js   { flash[:error] = "Failed to change cloud configuration for #{@cloud.toCi.ciName}." unless ok }
+      format.js do
+        error = @cloud.errors.present?
+        if error
+          load_clouds
+          flash[:error] = @cloud.errors.full_messages.join(' ')
+        end
+      end
+
       format.json { render_json_ci_response(ok, @cloud) }
     end
   end
 
   def cloud_priority
-    old_priority = @cloud.relationAttributes.priority
     @cloud.relationAttributes.priority = params[:priority]
-    ok = Transistor.update_platform_cloud(@platform.ciId, @cloud)
-
-    unless ok
-      @cloud.relationAttributes.priority = old_priority
-      message = "Failed to change cloud priority for #{@cloud.toCi.ciName}."
-      @platform.errors.add(:base, message)
-      flash[:error] = message
+    ok = check_primary_cloud
+    if ok
+      ok = Transistor.update_platform_cloud(@platform.ciId, @cloud)
+      @cloud.errors.add(:base, "Failed to change cloud priority for #{@cloud.toCi.ciName}.") unless ok
     end
 
     respond_to do |format|
       format.js do
-        load_clouds
+        error = @cloud.errors.present?
+        if error
+          load_clouds
+          flash[:error] = @cloud.errors.full_messages.join(' ')
+        end
+
         render :action => :cloud_configuration
       end
 
@@ -210,5 +219,18 @@ class Transition::PlatformsController < Base::PlatformsController
                                               :targetClassName => 'account.Cloud',
                                               :direction       => 'from',
                                               :includeToCi     => true}).sort_by {|o| o.toCi.ciName}
+  end
+
+  def check_primary_cloud
+    ok = @clouds.find do |c|
+      c.relationAttributes.adminstatus != 'offline' &&
+        c.relationAttributes.priority == '1' &&
+        (c.rfcId == 0 || c.relationAttributes.adminstatus == 'active')
+    end
+    unless ok
+      message = 'This change will remove all primary clouds for this platform.'
+      @cloud.errors.add(:base, message)
+    end
+    return ok
   end
 end
