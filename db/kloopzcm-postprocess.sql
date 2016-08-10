@@ -1,4 +1,4 @@
-CREATE SEQUENCE kloopzcm.md_pk_seq
+﻿CREATE SEQUENCE kloopzcm.md_pk_seq
    INCREMENT 1
    START 1000;
 ALTER TABLE kloopzcm.md_pk_seq OWNER TO kloopzcm;
@@ -123,6 +123,10 @@ CREATE UNIQUE INDEX dj_release_state_idx
 
 CREATE UNIQUE INDEX md_class_attr_name_idx
    ON md_class_attributes (class_id ASC NULLS LAST, attribute_name ASC NULLS LAST);
+
+CREATE INDEX cm_ops_proc_ciid_nm_created
+  ON cm_ops_procedures (ci_id , proc_name, created );
+   
    
 insert into md_classes (class_id, class_name, short_class_name, access_level, is_namespace, description)
 values (100, 'Ci','Ci','global', false,'This is basic super class, all classes will extend this one');
