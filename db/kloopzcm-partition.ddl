@@ -1,4 +1,4 @@
-﻿
+
 
 CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )

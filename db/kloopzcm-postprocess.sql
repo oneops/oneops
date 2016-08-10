@@ -1,4 +1,4 @@
-﻿CREATE SEQUENCE kloopzcm.md_pk_seq
+CREATE SEQUENCE kloopzcm.md_pk_seq
    INCREMENT 1
    START 1000;
 ALTER TABLE kloopzcm.md_pk_seq OWNER TO kloopzcm;

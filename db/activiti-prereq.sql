@@ -1,4 +1,4 @@
-﻿--DROP ROLE activiti;
+--DROP ROLE activiti;
 
 CREATE ROLE activiti LOGIN
 ENCRYPTED PASSWORD 'md529396e43ae92947c301a806c535bb7b9'
