@@ -41,12 +41,19 @@ import com.oneops.cms.domain.CmsWorkOrderBase;
 import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.es.offerings.percolator.OfferingsMatcher;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.expression.*;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -66,6 +73,7 @@ public class CmsWoProvider {
 	private CmsRfcUtil rfcUtil;
 	private CollectionProcessor colProcessor;
 	private Gson gson = new Gson();
+	private ExpressionParser exprParser = new SpelExpressionParser();
 	private CmsUtil cmsUtil;
 	private OfferingsMatcher offeringMatcher;
 	
@@ -77,6 +85,7 @@ public class CmsWoProvider {
 	private static final String SERVICED_BY_PAYLOAD_NAME = "ServicedBy";
 	private static final String REQUIRES_COMPUTES_PAYLOAD_NAME = "RequiresComputes";
 	private static final String OFFERING = "offerings";
+	private static final String COMPLIES_WITH_PAYLOAD_NAME = "CompliesWith";
 	private static final boolean OFFERING_ENABLED = "true".equals(System.getProperty("controller.offerings.on", "true"));
 	/**
 	 * Sets the cms util.
@@ -241,6 +250,8 @@ public class CmsWoProvider {
 				String actionPayLoad = ao.getPayLoadDef();
 				processPayLoadDef(ao, actionPayLoad);
     		}
+
+    		ao.putPayLoadEntry(COMPLIES_WITH_PAYLOAD_NAME, getMatchingCloudCompliance(ao));
         }
         return aorders;
     }
@@ -382,7 +393,10 @@ public class CmsWoProvider {
 		}
 		
 		workOrder.putPayLoadEntry(OFFERING , offerings);
-		
+
+		//add matching compliance objects
+		workOrder.putPayLoadEntry(COMPLIES_WITH_PAYLOAD_NAME, getMatchingCloudCompliance(workOrder));
+
 		return workOrder;
 	}
 	
@@ -438,6 +452,84 @@ public class CmsWoProvider {
 		return lowestOffering;
 	}
 
+	private List<CmsRfcCI> getMatchingCloudCompliance(CmsWorkOrder wo) {
+
+		CmsCI platformCi = wo.getBox();
+		CmsCIAttribute autoComplyAttr = platformCi.getAttribute("autocomply");
+		if ((autoComplyAttr == null) || !(new Boolean(autoComplyAttr.getDfValue()))) {
+			return null;
+		}
+
+		List<CmsRfcCI> list = new ArrayList<CmsRfcCI>();
+		List<CmsCIRelation> complianceRelations = getComplianceRelations(wo);
+		complianceRelations.stream()
+			.map(complianceRel -> complianceRel.getToCi())
+			.filter(complianceCi -> isComplianceEnabled(complianceCi))
+			.forEach(complianceCi -> {
+				if (evaluateExpression(complianceCi, wo)) {
+					CmsRfcCI compliance = rfcUtil.mergeRfcAndCi(null, complianceCi, "df");
+					list.add(compliance);
+				}
+			});
+		return list;
+	}
+
+	private List<CmsCI> getMatchingCloudCompliance(CmsActionOrder ao) {
+
+		List<CmsCI> list = new ArrayList<CmsCI>();
+		List<CmsCIRelation> complianceRelations = getComplianceRelations(ao);
+		complianceRelations.stream()
+			.map(complianceRel -> complianceRel.getToCi())
+			.filter(complianceCi -> isComplianceEnabled(complianceCi))
+			.forEach(complianceCi -> {
+				if (evaluateExpression(complianceCi, ao)) {
+					list.add(complianceCi);
+				}
+			});
+
+		return list;
+	}
+
+	private EvaluationContext getEvaluationContext(CmsWorkOrderBase woBase) {
+		StandardEvaluationContext context = new StandardEvaluationContext();
+		if (woBase instanceof CmsWorkOrder) {
+			CmsRfcCISimple rfcSimple = cmsUtil.custRfcCI2RfcCISimple(((CmsWorkOrder)woBase).getRfcCi());
+			context.setRootObject(rfcSimple);
+		} else if (woBase instanceof CmsActionOrder) {
+			CmsCISimple ciSimple = cmsUtil.custCI2CISimple(((CmsActionOrder)woBase).getCi(), "df", true);
+			context.setRootObject(ciSimple);
+		}
+		return context;
+	}
+
+	private boolean evaluateExpression(CmsCI complianceCi, CmsWorkOrderBase wo) {
+		try {
+			String filter = complianceCi.getAttribute("filter").getDjValue();
+			if (StringUtils.isNotBlank(filter)) {
+				//parse the filter expression and check if it matches this ci/rfc
+				Expression expr = exprParser.parseExpression(filter);
+				EvaluationContext context = getEvaluationContext(wo);
+				boolean match = expr.getValue(context, Boolean.class);
+				return match;
+			}
+			return false;
+		} catch (ParseException e) {
+			logger.error("Error in evaluating expression for " + complianceCi.getCiId(), e);
+			throw new DJException(CmsError.DJ_EXPR_EVAL_ERROR, "Error evaluating compliance expression");
+		} catch (EvaluationException e) {
+			logger.error("Error in evaluating expression for " + complianceCi.getCiId(), e);
+			throw new DJException(CmsError.DJ_EXPR_EVAL_ERROR, "Error evaluating compliance expression");
+		}
+	}
+
+	private List<CmsCIRelation> getComplianceRelations(CmsWorkOrderBase wo) {
+		List<CmsCIRelation> relations = cmProcessor.getFromCIRelations(wo.getCloud().getCiId(), "base.CompliesWith", null);
+		return relations;
+	}
+
+	private boolean isComplianceEnabled(CmsCI compliance) {
+		return Boolean.TRUE.toString().equals(compliance.getAttribute("enabled").getDjValue());
+	}
 
     private void processPayLoadDef(CmsWorkOrderBase wo, CmsCI templateCi, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
 
@@ -789,4 +881,5 @@ public class CmsWoProvider {
 	public void setOfferingMatcher(OfferingsMatcher offeringMatcher) {
 		this.offeringMatcher = offeringMatcher;
 	}
+
 }
