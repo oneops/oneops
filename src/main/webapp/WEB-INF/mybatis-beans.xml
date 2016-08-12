@@ -203,6 +203,14 @@
 	    <property name="opsMapper" ref="opsMapper" />
 	    <property name="colProcessor" ref="colProcessor" />
 	    <property name="offeringMatcher" ref="offeringMatcher" />
+		<property name="expressionEvaluator" ref="expressionEvaluator" />
 	</bean>
+	
+	<bean id="expressionEvaluator" class="com.oneops.controller.cms.ExpressionEvaluator">
+		<property name="cmsUtil" ref="cmsUtil" />
+		<property name="exprParser" ref="exprParser" />
+	</bean>
+	
+	<bean id="exprParser" class="org.springframework.expression.spel.standard.SpelExpressionParser" />
     
 </beans>
