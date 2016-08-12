@@ -34,6 +34,15 @@ public class OpsProcedureFlow extends BasicLinkDefinition implements Serializabl
 
 	private List<OpsProcedureFlow> flow = new ArrayList<OpsProcedureFlow>();
 	private List<OpsFlowAction> actions = new ArrayList<OpsFlowAction>();
+	private String nsPath;
+
+	public String getNsPath() {
+		return nsPath;
+	}
+
+	public void setNsPath(String nsPath) {
+		this.nsPath = nsPath;
+	}
 
 	/**
 	 * Gets the exec strategy.

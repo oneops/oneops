@@ -19,7 +19,9 @@ package com.oneops.cms.cm.ops.service;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 
@@ -175,7 +177,20 @@ public class OpsProcedureProcessor {
 	
 	private List<CmsOpsAction> processBranch(long anchorCiId, OpsProcedureFlow flow, int offset) {
 		List<CmsCIRelation> links = null;
-		if (flow.getDirection().equalsIgnoreCase("from")) {
+		Set<Long> ciIds = new HashSet<Long>();
+		//process optional nspath and target class name
+		if (flow.getNsPath() != null && flow.getNsPath().trim().length() > 0) {
+			CmsCI anchorCi = cmProcessor.getCiById(anchorCiId);
+			if (anchorCi == null) {
+				throw new OpsException(CmsError.CMS_NO_CI_WITH_GIVEN_ID_ERROR,
+                        "There is no CI with ciId - " + anchorCiId);
+			}
+			
+			List<CmsCI> cis = cmProcessor.getCiBy3Naked(anchorCi.getNsPath() + flow.getNsPath(), flow.getTargetClassName(), null);
+			for (CmsCI ci : cis) {
+				ciIds.add(ci.getCiId());
+			}
+		} else if (flow.getDirection().equalsIgnoreCase("from")) {
 			if (flow.getTargetIds() != null && flow.getTargetIds().size()>0) {
 				links = cmProcessor.getFromCIRelationsByToCiIdsNaked(anchorCiId, flow.getRelationName(), flow.getRelationShortName(), flow.getTargetIds());
 			} else {
@@ -190,15 +205,21 @@ public class OpsProcedureProcessor {
 		}
 		
 		List<CmsOpsAction> actions = new ArrayList<CmsOpsAction>();
-		int innerLoopStep = 0;
-		for (CmsCIRelation rel : links) {
-			long ciId = 0;
-			if (flow.getDirection().equalsIgnoreCase("from")) {
-				ciId = rel.getToCiId();  
-			} else {
-				ciId = rel.getFromCiId();
+		if (links != null) {
+			for (CmsCIRelation rel : links) {
+				long ciId = 0;
+				if (flow.getDirection().equalsIgnoreCase("from")) {
+					ciId = rel.getToCiId();  
+				} else {
+					ciId = rel.getFromCiId();
+				}
+				ciIds.add(ciId);
 			}
-			
+		}
+		
+		int innerLoopStep = 0;
+
+		for (long ciId : ciIds) {
 			if (flow.getFlow().size()>0) {
 				for (OpsFlowAction actionDef : flow.getActions()) {
 					int execOrder = actionDef.getStepNumber() + offset + innerLoopStep;
@@ -457,6 +478,9 @@ public class OpsProcedureProcessor {
 	private boolean isActiveDeploymentExistsForCi(long ciId){
     	CmsCI ci = cmProcessor.getCiByIdNaked(ciId);
     	int bomIndex = ci.getNsPath().lastIndexOf("/bom/");
+    	if (bomIndex == -1) {
+    		return false;
+    	}
     	String dpmtNsPath = ci.getNsPath().substring(0, bomIndex + 4);
     	return opsMapper.isActiveDeploymentExistForNsPath(dpmtNsPath);
     }
