@@ -59,6 +59,25 @@
                   :url      => edit_assembly_design_platform_path(@assembly, @platform) do %>
 <% end %>
 
+<% if false %>
+<%= section_panel 'Pack',
+                  :width    => 'double',
+                  :position => 'left' do %>
+  <p>
+    This platform can be updated with latest changes from the pack.
+    By pulling the pack all "unlocked" attributes will be updated with pack default values. Additionally,
+    new required components, variables and attachments will be added.  All resulting changes
+    will create a new design release and you will have a chance to review the changes before comitting the
+    release.
+  </p>
+  <% if @release && @release.releaseState == 'open'%>
+    <%= link_to('Pull Pack', nil, :class => 'btn btn-info disabled') %>
+  <% else %>
+    <%= link_to('Pull Pack', pack_refresh_assembly_design_platform_path(@assembly, @platform), :method => :put, :class => 'btn btn-info') %>
+  <% end %>
+<% end %>
+<% end %>
+
 <div id="page_nav_diagram">
   <%= section_panel 'Diagram',
                     :width    => 'double',

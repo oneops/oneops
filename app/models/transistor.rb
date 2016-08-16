@@ -56,6 +56,15 @@ class Transistor < ActiveResource::Base
     return id
   end
 
+  def self.pack_refresh(platform_id)
+    begin
+      return JSON.parse(put("platforms/#{platform_id}/pack_refresh", {}).body)['releaseId']
+    rescue Exception => e
+      message = handle_exception(e, "Failed to peform pack refresh for platform '#{platform_id}'")
+      return nil, message
+    end
+  end
+
   def self.pull_design(environent_id, platform_availability = {})
     begin
       return JSON.parse(put("environments/#{environent_id}", {}, platform_availability.to_json).body)['releaseId']
