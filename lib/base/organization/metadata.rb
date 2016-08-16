@@ -41,3 +41,13 @@ attribute 'owner',
             :order    => 3,
             :pattern  => '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$'
           }
+
+attribute 'tags',
+          :description => 'Miscelaneous Tags',
+          :data_type   => 'hash',
+          :default     => '{}',
+          :format      => {
+            :help     => 'Various option key/value pairs to tag organization.',
+            :category => '1.Information',
+            :order    => 4
+          }

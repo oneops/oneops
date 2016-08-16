@@ -30,6 +30,7 @@ attribute 'value',
             :pattern  => '\S(.*\S)?',
             :order    => 2,
             :help     => 'Enter the variable value. You can reference this variable in component attribute values as $OO_LOCAL{varname}',
+            :form     => {:field => 'textarea'},
             :filter   => {'all' => {'visible' => 'secure:neq:true', 'editable' => 'secure:neq:true'}}
           }
 
