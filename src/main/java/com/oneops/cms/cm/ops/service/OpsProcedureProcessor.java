@@ -186,7 +186,7 @@ public class OpsProcedureProcessor {
                         "There is no CI with ciId - " + anchorCiId);
 			}
 			
-			List<CmsCI> cis = cmProcessor.getCiBy3Naked(anchorCi.getNsPath() + flow.getNsPath(), flow.getTargetClassName(), null);
+			List<CmsCI> cis = cmProcessor.getCiBy3Naked(anchorCi.getNsPath() + "/" + flow.getNsPath(), flow.getTargetClassName(), null);
 			for (CmsCI ci : cis) {
 				ciIds.add(ci.getCiId());
 			}
