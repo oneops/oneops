@@ -167,6 +167,9 @@ public class DeploymentNotifier {
 
     private String buildNotificationPrefix(String nsPath) {
         String[] parts = nsPath.split("/");
+        if (parts.length == 0) {
+        	return "";
+        }
         String prefix = "Assembly: " + parts[2] + "; ";
         if (parts.length > 3) {
             prefix += "Environment: " + parts[3] + "; ";
