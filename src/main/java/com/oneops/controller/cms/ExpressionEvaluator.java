@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *
+ *   Copyright 2015 Walmart, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ *******************************************************************************/
 package com.oneops.controller.cms;
 
 import org.apache.commons.lang.StringUtils;
@@ -20,6 +37,17 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 
+/**
+ * This class is used to evaluate expression filter. The expression to be evaluated should follow 
+ * the <a href="http://docs.spring.io/spring/docs/current/spring-framework-reference/html/expressions.html">SPEL</a> (Spring Expression Language) syntax.
+ *
+ * <p> The expression is evaluated against {@link com.oneops.cms.dj.domain.CmsRfcCI CmsRfcCI} for work orders and 
+ * {@link com.oneops.cms.cm.domain.CmsCI CmsCI} for action orders.
+ *
+ * <p> Example:
+ * <pre>ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Compute' and ciAttributes['size'] == 'M'</pre>
+ *
+ */
 public class ExpressionEvaluator {
 	
 	private Logger logger = Logger.getLogger(this.getClass());

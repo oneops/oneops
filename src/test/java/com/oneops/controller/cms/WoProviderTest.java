@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *
+ *   Copyright 2015 Walmart, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ *******************************************************************************/
 package com.oneops.controller.cms;
 
 import java.io.InputStream;
@@ -34,9 +51,13 @@ public class WoProviderTest {
 	
 	private CmsCmProcessor cmProcessor;
 	private CmsWoProvider woProvider;
-	
+
 	private Gson gson = new Gson();
-	
+
+	private static final String EXPR_WO = "(ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Os')";
+
+	private static final String EXPR_AO = "(ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Compute' and ciAttributes['ostype'] == 'centos-7.0')";
+
 	@BeforeClass
 	public void setUp() throws JMSException{
 		context = new ClassPathXmlApplicationContext("**/test-wo-context.xml");
@@ -48,9 +69,8 @@ public class WoProviderTest {
 	public void testWoComplianceObject() {
 		CmsWorkOrder wo = getTestWorkOrder();
 		List<CmsCIRelation> list = new ArrayList<>();
-		String expr = "(ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Os')";
 		String version = "1.0";
-		list.add(createComplianceRelForExpr(expr, "true", version));
+		list.add(createComplianceRelForExpr(EXPR_WO, "true", version));
 		
 		when(cmProcessor.getFromCIRelations(eq(wo.getCloud().getCiId()), anyString(), anyString())).thenReturn(list);
 		List<CmsRfcCI> complList = woProvider.getMatchingCloudCompliance(wo);
@@ -58,7 +78,7 @@ public class WoProviderTest {
 		Assert.assertEquals(complList.size(), 1);
 		CmsRfcAttribute filterAttr = complList.get(0).getAttribute(ExpressionEvaluator.ATTR_NAME_FILTER);
 		Assert.assertNotNull(filterAttr);
-		Assert.assertEquals(filterAttr.getNewValue(), expr);
+		Assert.assertEquals(filterAttr.getNewValue(), EXPR_WO);
 		CmsRfcAttribute versionAttr = complList.get(0).getAttribute("version");
 		Assert.assertNotNull(versionAttr);
 		Assert.assertEquals(versionAttr.getNewValue(), version);
@@ -68,9 +88,8 @@ public class WoProviderTest {
 	public void testAoComplianceObject() {
 		CmsActionOrder ao = getTestActionOrder();
 		List<CmsCIRelation> list = new ArrayList<>();
-		String expr = "(ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Compute' and ciAttributes['ostype'] == 'centos-7.0')";
 		String version = "1.0";
-		list.add(createComplianceRelForExpr(expr, "true", version));
+		list.add(createComplianceRelForExpr(EXPR_AO, "true", version));
 		
 		when(cmProcessor.getFromCIRelations(eq(ao.getCloud().getCiId()), anyString(), anyString())).thenReturn(list);
 		List<CmsCI> complList = woProvider.getMatchingCloudCompliance(ao);
@@ -78,7 +97,7 @@ public class WoProviderTest {
 		Assert.assertEquals(complList.size(), 1);
 		CmsCIAttribute filterAttr = complList.get(0).getAttribute(ExpressionEvaluator.ATTR_NAME_FILTER);
 		Assert.assertNotNull(filterAttr);
-		Assert.assertEquals(filterAttr.getDfValue(), expr);
+		Assert.assertEquals(filterAttr.getDfValue(), EXPR_AO);
 		CmsCIAttribute versionAttr = complList.get(0).getAttribute("version");
 		Assert.assertNotNull(versionAttr);
 		Assert.assertEquals(versionAttr.getDfValue(), version);

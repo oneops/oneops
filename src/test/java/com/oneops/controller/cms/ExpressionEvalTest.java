@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *
+ *   Copyright 2015 Walmart, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ *******************************************************************************/
 package com.oneops.controller.cms;
 
 import org.springframework.expression.spel.standard.SpelExpressionParser;
@@ -16,6 +33,16 @@ import com.oneops.cms.util.CmsUtil;
 
 public class ExpressionEvalTest {
 
+	private static final String EXPR_WO = "(ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Compute' and ciAttributes['size'] == 'M' "
+			+ "and ciAttributes['ostype'].trim() == 'CentOS 6.5')";
+
+	private static final String EXPR_AO = "(ciClassName matches 'bom.*\\.Compute' and ciAttributes['size'] == 'M' "
+			+ "and ciAttributes['ostype'].trim() == 'CentOS 6.5')";
+
+	private static final String EXPR_INVALID = "className == 'bom.Os'";
+
+	private static final String EXPR_WRONG_SYNTAX = "ciClassName == 'bom.Os";
+
 	ExpressionEvaluator expressionEvaluator;
 	
 	@BeforeClass
@@ -28,8 +55,7 @@ public class ExpressionEvalTest {
 	@Test
 	public void testExpressionOnWo() {
 		
-		CmsCI complianceCi = createComplianceCIForExpr("(ciClassName matches 'bom(\\..*\\.[0-9]+)?\\.Compute' and ciAttributes['size'] == 'M' "
-				+ "and ciAttributes['ostype'].trim() == 'CentOS 6.5')");
+		CmsCI complianceCi = createComplianceCIForExpr(EXPR_WO);
 		
 		CmsRfcCI rfcCi = new CmsRfcCI();
 		rfcCi.setCiClassName("bom.Compute");
@@ -85,7 +111,7 @@ public class ExpressionEvalTest {
 		wo.setRfcCi(rfcCi);
 		
 		//invalid expression: missing ' in the end, should fail on parsing
-		CmsCI complianceCi = createComplianceCIForExpr("ciClassName == 'bom.Os");
+		CmsCI complianceCi = createComplianceCIForExpr(EXPR_WRONG_SYNTAX);
 		expressionEvaluator.isExpressionMatching(complianceCi, wo);
 	}
 	
@@ -99,15 +125,14 @@ public class ExpressionEvalTest {
 		wo.setRfcCi(rfcCi);
 		
 		//invalid expression: no field className in CmsRfcCI bean, should fail in evaluation
-		CmsCI complianceCi = createComplianceCIForExpr("className == 'bom.Os'");
+		CmsCI complianceCi = createComplianceCIForExpr(EXPR_INVALID);
 		expressionEvaluator.isExpressionMatching(complianceCi, wo);
 	}
 	
 	@Test
 	public void testExpressionOnAo() {
 		
-		CmsCI complianceCi = createComplianceCIForExpr("(ciClassName matches 'bom.*\\.Compute' and ciAttributes['size'] == 'M' "
-				+ "and ciAttributes['ostype'].trim() == 'CentOS 6.5')");
+		CmsCI complianceCi = createComplianceCIForExpr(EXPR_AO);
 		
 		CmsCI ci = new CmsCI();
 		ci.setCiClassName("bom.Compute");

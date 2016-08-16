@@ -456,7 +456,7 @@ public class CmsWoProvider {
 	List<CmsRfcCI> getMatchingCloudCompliance(CmsWorkOrder wo) {
 		CmsCI platformCi = wo.getBox();
 		CmsCIAttribute autoComplyAttr = platformCi.getAttribute(CmsConstants.ATTR_NAME_AUTO_COMPLY);
-		if (!Boolean.parseBoolean(autoComplyAttr.getDfValue())) {
+		if (!Boolean.valueOf(autoComplyAttr.getDfValue())) {
 			return Collections.emptyList();
 		}
 
@@ -486,7 +486,7 @@ public class CmsWoProvider {
 
 	private boolean isComplianceEnabled(CmsCI compliance) {
 		CmsCIAttribute attribute = compliance.getAttribute(CmsConstants.ATTR_NAME_ENABLED);
-		return ((attribute != null) && Boolean.parseBoolean(attribute.getDjValue()));
+		return ((attribute != null) && Boolean.valueOf(attribute.getDjValue()));
 	}
 
     private void processPayLoadDef(CmsWorkOrderBase wo, CmsCI templateCi, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
