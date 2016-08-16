@@ -29,6 +29,7 @@ attribute 'value',
             :pattern  => '\S(.*\S)?',
             :order    => 2,
             :help     => 'Enter the variable value',
+            :form     => {:field => 'textarea'},
             :filter   => {'all' => {'visible' => 'secure:neq:true', 'editable' => 'secure:neq:true'}}
           }
 
