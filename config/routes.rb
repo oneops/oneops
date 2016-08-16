@@ -275,7 +275,8 @@ Display::Application.routes.draw do
           get  'diagram',         :on => :member
           get  'component_types', :on => :member
           get  'diff',            :on => :member
-          get 'history',          :on => :member
+          get  'history',         :on => :member
+          put  'pack_refresh',    :on => :member
 
           resources :variables, :controller => 'local_variables' do
             put 'lock',    :on => :collection

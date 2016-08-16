@@ -19,6 +19,12 @@ class Design::PlatformsController < Base::PlatformsController
     render :json => @platforms
   end
 
+  def show
+    @release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly)) if request.format.html?
+    super
+  end
+
+
   def new
     @platform = Cms::DjCi.build({:nsPath      => assembly_ns_path(@assembly),
                                  :ciClassName => 'catalog.Platform'},
@@ -204,6 +210,19 @@ class Design::PlatformsController < Base::PlatformsController
     respond_to do |format|
       format.js
       format.json {render :json => @diff}
+    end
+  end
+
+  def pack_refresh
+    ok, message = Transistor.pack_refresh(@platform.ciId)
+
+    respond_to do |format|
+      format.html do
+        flash[:error] = message unless ok
+        redirect_to :action => :show
+      end
+
+      format.json {render_json_ci_response(ok, @platform, ok ? nil : [message])}
     end
   end
 
