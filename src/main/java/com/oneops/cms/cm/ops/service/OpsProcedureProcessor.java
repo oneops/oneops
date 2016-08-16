@@ -185,8 +185,10 @@ public class OpsProcedureProcessor {
 				throw new OpsException(CmsError.CMS_NO_CI_WITH_GIVEN_ID_ERROR,
                         "There is no CI with ciId - " + anchorCiId);
 			}
+			String anchorCiNsPath = anchorCi.getNsPath();
+			String fullNsPath = anchorCiNsPath.endsWith("/") ? anchorCiNsPath + flow.getNsPath() : anchorCiNsPath + "/" + flow.getNsPath();
 			
-			List<CmsCI> cis = cmProcessor.getCiBy3Naked(anchorCi.getNsPath() + "/" + flow.getNsPath(), flow.getTargetClassName(), null);
+			List<CmsCI> cis = cmProcessor.getCiBy3Naked(fullNsPath, flow.getTargetClassName(), null);
 			for (CmsCI ci : cis) {
 				ciIds.add(ci.getCiId());
 			}
