@@ -127,9 +127,15 @@ platforms:
       run-user: display
       ldap-config:
 
-      asset-url:
+      cms-site: http://cmsapi:8080/
+      transistor-site: http://transistor:8080/
       metrics-site: http://daq:8080/
-      session-inactivity-timeout: '30'
+      events-site: http://sensor:8080/
+      notifications-site: http://antenna:8080/
+      search-site: http://search:9200/
+      log-site: http://eslogs:9200/
+
+      asset-url:
 
       feedback-url:
       help-url:
@@ -138,6 +144,8 @@ platforms:
       report-problem-url:
       support-chat-url:
       terms-of-service-url: http://www.oneops.com/legal/terms
+
+      session-inactivity-timeout: '30'
 
       support-auth: oneops
       support-email: support@oneops.com
@@ -265,7 +273,7 @@ platforms:
             end
 
             execute 'set user permissions for passenger' do
-              command "chown -R #{display_user}:#{display_user} config.ru log tmp"
+              command "chown -R #{display_user}:#{display_user} config.ru config/environment.rb log tmp"
               cwd "#{base_dir}"
             end
 
@@ -323,7 +331,15 @@ platforms:
             SetEnv OO_HOSTNAME "$OO_LOCAL{hostname}"
             SetEnv SMTP_HOSTNAME "$OO_CLOUD{smtp}"
             SetEnv SENSOR_HEALTH_PATH "components/states"
+
+            SetEnv CMS_SITE "$OO_LOCAL{cms-site}"
+            SetEnv TRANSISTOR_SITE "$OO_LOCAL{transistor-site}"
+            SetEnv EVENTS_SITE "$OO_LOCAL{events-site}"
+            SetEnv NOTIFICATION_SITE "$OO_LOCAL{notifications-site}"
             SetEnv METRICS_SITE "$OO_LOCAL{metrics-site}"
+            SetEnv SEARCH_SITE "$OO_LOCAL{search-site}"
+            SetEnv LOG_SITE "$OO_LOCAL{log-site}"
+
             SetEnv POLICY_MANAGEMENT "true"
             SetEnv CHECK_POLICY_COMPLIANCE "true"
 

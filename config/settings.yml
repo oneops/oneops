@@ -16,25 +16,21 @@ defaults: &defaults
   # Authentication types currently supported are database|ldap
   authentication: database
 
-  # Omniauth configuration
-  # omniauth:
-    # github:
-      # key: <%= ENV['GITHUB_KEY'] %>
-      # secret: <%= ENV['GITHUB_SECRET'] %>
-      # host: <%= ENV['GITHUB_HOST'] || 'github.com' %>
-  #   twitter:
-  #     key: <%= ENV['TWITTER_KEY'] %>
-  #     secret: <%= ENV['TWITTER_SECRET'] %>
-  #   linkedin:
-  #     key: <%= ENV['LINKEDIN_KEY'] %>
-  #     secret: <%= ENV['LINKEDIN_SECRET'] %>
-  #   google:
-  #     key: <%= ENV['GOOGLE_KEY'] %>
-  #     secret: <%= ENV['GOOGLE_SECRET'] %>
-
-  # Set fixed organization name.
-  # Only valid with authentication type 'ldap'.
-  # ldap_organization: oneops
+#   Omniauth configuration
+#   omniauth:
+#     github:
+#       key: <%= ENV['GITHUB_KEY'] %>
+#       secret: <%= ENV['GITHUB_SECRET'] %>
+#       host: <%= ENV['GITHUB_HOST'] || 'github.com' %>
+#     twitter:
+#       key: <%= ENV['TWITTER_KEY'] %>
+#       secret: <%= ENV['TWITTER_SECRET'] %>
+#     linkedin:
+#       key: <%= ENV['LINKEDIN_KEY'] %>
+#       secret: <%= ENV['LINKEDIN_SECRET'] %>
+#     google:
+#       key: <%= ENV['GOOGLE_KEY'] %>
+#       secret: <%= ENV['GOOGLE_SECRET'] %>
 
   # Controls the self-registration vs. invitation only registrations.
   # Only valid with authentication type 'database'.
@@ -57,6 +53,7 @@ defaults: &defaults
 
   # Backend services
   cms_site: <%= ENV['CMS_SITE'] || 'http://cmsapi:8080/' %>
+  transistor_site: <%= ENV['TRANSISTOR_SITE'] || ENV['CMS_SITE'] || 'http://cmsapi:8080/' %>
   metrics_site: <%= ENV['METRICS_SITE'] || 'http://cmsapi:8080/' %>
   events_site: <%= ENV['EVENTS_SITE'] || 'http://sensor:8080/' %>
   notifications_site: <%= ENV['NOTIFICATION_SITE'] || 'http://antenna:8080/' %>
@@ -75,10 +72,10 @@ defaults: &defaults
 
   # Use 'daq' to fetch logs from DAQ (old way).
   # Use 'es' to fetch logs from Elastic Search (new way).
-  log_data_source: <%= ENV['LOG_DATA_SOURCE'] || 'daq' %>
+  log_data_source: <%= ENV['LOG_DATA_SOURCE'] || 'es' %>
 
-  policy_management: <%= ENV['POLICY_MANAGEMENT'] || 'false' %>
-  check_policy_compliance: <%= ENV['CHECK_POLICY_COMPLIANCE'] || 'false' %>
+  policy_management: <%= ENV['POLICY_MANAGEMENT'] || 'true' %>
+  check_policy_compliance: <%= ENV['CHECK_POLICY_COMPLIANCE'] || 'true' %>
 
   allow_cors: <%= ENV['ALLOW_CORS'] || 'true' %>
   session_inactivity_timeout: <%= ENV['SESSION_INACTIVITY_TIMEOUT'] || 30 %>
@@ -87,33 +84,23 @@ defaults: &defaults
 
 development: &development
   <<: *defaults
-  authentication: database
-  omniauth:
-    twitter:
-      key: <%= ENV['TWITTER_KEY'] %>
-      secret: <%= ENV['TWITTER_SECRET'] %>
-    linkedin:
-      key: <%= ENV['LINKEDIN_KEY'] %>
-      secret: <%= ENV['LINKEDIN_SECRET'] %>
-    github:
-      key: <%= ENV['GITHUB_KEY'] %>
-      secret: <%= ENV['GITHUB_SECRET'] %>
-      host: <%= ENV['GITHUB_HOST'] || 'github.com' %>
-  policy_management: true
 
 production: &production
   <<: *defaults
+  mail_perform_deliveries: true
+
+  # overrides
   invitations: true
   confirmation: true
-  eula: true
-  mail_perform_deliveries: true
 
 enterprise: &enterprise
   <<: *defaults
+  mail_perform_deliveries: true
+
+  # overrides
   authentication: ldap
+
+  # additions
   ldap_domain: <%= ENV['LDAP_DOMAIN'] || nil %>
   ldap_email_attribute: <%= ENV['LDAP_EMAIL_ATTRIBUTE'] || 'mail' %>
   ldap_name_attribute: <%= ENV['LDAP_NAME_ATTRIBUTE'] || 'name' %>
-  confirmation: false
-  eula: true
-  mail_perform_deliveries: true

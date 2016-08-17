@@ -1,5 +1,5 @@
 class Transistor < ActiveResource::Base
-  self.site         = Settings.cms_site
+  self.site         = Settings.transistor_site
   self.prefix       = '/transistor/rest'
   self.timeout      = 600
   self.element_name = ''
