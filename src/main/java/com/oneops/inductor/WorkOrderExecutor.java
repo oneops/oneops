@@ -147,32 +147,12 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 		runList.add("recipe[" + appName + "::" + action + "]");
 
+		Map<String, List<CmsRfcCISimple>> payload = wo.getPayLoad();
+
 		// if remotely executed
 		if (isRemoteChefCall(wo)) {
 
-			// monitors, but only remote wo's
-			if (wo.getPayLoad().containsKey(WATCHED_BY)) {
-				if (action.equals(REMOTE)) {
-					runList.add("recipe[monitor::add]");
-				} else {
-					runList.add("recipe[monitor::" + action + "]");
-				}
-			}
-
-			// custom logging
-			if (wo.getPayLoad().containsKey(LOGGED_BY)) {
-				if (action.equals(REMOTE)) {
-					runList.add("recipe[log::add]");
-				} else {
-					runList.add("recipe[log::" + action + "]");
-				}
-			}
-
-			if (!(appName.equals(COMPUTE) && action.equals(REMOTE))) {
-				// only run attachments on remote calls
-				runList.add(0, "recipe[attachment::before_" + action + "]");
-				runList.add("recipe[attachment::after_" + action + "]");
-			}
+			addRunList4RemoteChefCall(payload, appName, action, runList);
 
 		} else if (!action.equals(ADD_FAIL_CLEAN)) {
 			// this is to call global monitoring service from the inductor host 
@@ -187,8 +167,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 		// default dns domain to oneops.me
 		CmsRfcCISimple env = null;
-		if (wo.getPayLoad().containsKey(ENVIRONMENT)) {
-			env = wo.getPayLoad().get(ENVIRONMENT).get(0);
+		if (payload.containsKey(ENVIRONMENT)) {
+			env = payload.get(ENVIRONMENT).get(0);
 		}
 
 		String cloudName = wo.getCloud().getCiName();
@@ -224,6 +204,50 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 			chefRequest.put("perf_collector_cert", config.getPerfCollectorCertContent());
 
 		return chefRequest;
+	}
+
+	private void addRunList4RemoteChefCall(Map<String, List<CmsRfcCISimple>> payload, String appName, String action, List<String> runList) {
+
+		boolean isRemoteAction = action.equals(REMOTE);
+
+		// monitors, but only remote wo's
+		if (payload.containsKey(WATCHED_BY)) {
+			if (isRemoteAction) {
+				runList.add("recipe[monitor::add]");
+			} else {
+				runList.add("recipe[monitor::" + action + "]");
+			}
+		}
+
+		// custom logging
+		if (payload.containsKey(LOGGED_BY)) {
+			if (isRemoteAction) {
+				runList.add("recipe[log::add]");
+			} else {
+				runList.add("recipe[log::" + action + "]");
+			}
+		}
+
+		if (!(appName.equals(COMPUTE) && isRemoteAction)) {
+			// only run attachments on remote calls
+			runList.add(0, "recipe[attachment::before_" + action + "]");
+			runList.add("recipe[attachment::after_" + action + "]");
+		}
+
+		if (payload.containsKey(EXTRA_RUN_LIST)) {
+			List<CmsRfcCISimple> extraRunListRfc = payload.get(EXTRA_RUN_LIST);
+			addExtraClassesToRunList(runList, extraRunListRfc, isRemoteAction ? ADD : action);
+		}
+	}
+
+	protected void addExtraClassesToRunList(List<String> runList, List<CmsRfcCISimple> extraRunListRfc, String action) {
+		extraRunListRfc.stream()
+				.map(rfcSimple -> rfcSimple.getCiClassName())
+				.distinct()
+				.map(className -> StringUtils.substringAfterLast(className, ".").toLowerCase())
+				.forEach(shortClass -> {
+					runList.add(RUN_LIST_PREFIX + shortClass + RUN_LIST_SEPARATOR + action + RUN_LIST_SUFFIX);
+				});
 	}
 
 	/**

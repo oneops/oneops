@@ -51,6 +51,10 @@ public abstract class AbstractOrderExecutor {
 
 	private static Logger logger = Logger.getLogger(AbstractOrderExecutor.class);
 
+	protected static final String RUN_LIST_SEPARATOR = "::";
+	protected static final String RUN_LIST_PREFIX = "recipe[";
+	protected static final String RUN_LIST_SUFFIX = "]";
+
 	final protected Gson gson = new Gson();
 	final protected Gson gsonPretty = new GsonBuilder().setPrettyPrinting().create();
 

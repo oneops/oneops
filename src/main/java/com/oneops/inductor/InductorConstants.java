@@ -33,6 +33,9 @@ public final class InductorConstants {
 	public static final String WATCHED_BY = "WatchedBy";
 	public static final String LOGGED_BY = "LoggedBy";
 
+	public static final String EXTRA_RUN_LIST = "ExtraRunList";
+
+
 	public static final String COMPLETE = "complete";
 	public static final String COMPUTE = "compute";
 	public static final String DOMAIN = "domain";
