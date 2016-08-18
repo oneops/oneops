@@ -18,10 +18,10 @@ platforms:
      - opsdb
     variables:
         deploycontext: sensor
-        ESPER-version: 4.4.0
-        ESPER-REPOSITORY: Spring-milestone-repository
+        esper-version: 4.4.0
+        esper-repository: Spring-milestone-repository
         notifypass: '::ENCRYPTED::'
-        ESPER-install-dir: /opt/oneops/artifact/esper
+        esper-install-dir: /opt/oneops/artifact/esper
         sensorpoolsize: 3
         version: sensor-$OO_GLOBAL{VERSION}
         ecv-user: $$OO_GLOBAL{ECV-USER}
@@ -163,6 +163,7 @@ platforms:
         daemon-tomcat:
           service_name: tomcat7
           use_script_status: 'true'
+          pattern: tomcat
           control_script_location: /etc/init.d/tomcat7
       artifact/oneops.1.Artifact:
         app:
@@ -171,7 +172,7 @@ platforms:
           restart: |
                 node.set["oneops"] = {
 
-                              :home => "/usr/local/oneops",
+                            :home => "/usr/local/oneops",
                             :install_dir => "/usr/local/oneops"
                           }
                           node.set["tomcat"] = {
@@ -192,7 +193,7 @@ platforms:
 
 
                           # war cleanup and deploy
-                          ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
+                          ["$OO_LOCAL{deploycontext}"].each do |war|
 
                             execute "#{war} war clean" do
                                command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
@@ -200,8 +201,19 @@ platforms:
                             execute "#{war} war deploy" do
                                command "cp #{node[:oneops][:home]}/dist/#{war}*.war #{node[:tomcat][:webapp_dir]}"
                             end
-
                           end
+
+                        #handle esper jars
+                        bash 'extract_esper_to_lib' do
+                          cwd #{node[:tomcat][:webapp_dir]}
+                          code <<-EOH
+                           mkdir -p #{node[:tomcat][:webapp_dir]}/$OO_LOCAL{deploycontext}
+                           cd #{node[:tomcat][:webapp_dir]}/$OO_LOCAL{deploycontext}/
+                           jar -xvf #{node[:tomcat][:webapp_dir]}/$OO_LOCAL{deploycontext}.war
+                          cp $OO_LOCAL{esper-install-dir}/releases/$OO_LOCAL{esper-version}/esper-$OO_LOCAL{esper-version}.jar #{node[:tomcat][:webapp_dir]}/$OO_LOCAL{deploycontext}/WEB-INF/lib/
+                           chown -R #{tomcat_user}:#{tomcat_user}  #{node[:tomcat][:webapp_dir]}/sensor
+                          EOH
+                        end
 
                           service "tomcat7" do
                             action :restart
@@ -243,12 +255,14 @@ platforms:
               content: ''
               run_on: on-demand
         esper-lib:
-          install_dir: $OO_LOCAL{ESPER-install-dir}
+          install_dir: $OO_LOCAL{esper-install-dir}
           as_user: tomcat
           as_group: tomcat
           location: com.espertech:esper:jar
-          repository: $OO_LOCAL{ESPER-REPOSITORY}
+          repository: $OO_LOCAL{esper-respository}
           url: $OO_CLOUD{nexus}
+          version: $OO_LOCAL{esper-version}
+          should_expand: 'false'
       keystore/oneops.1.Keystore:
         keystore:
           keystore_password: '::ENCRYPTED::'

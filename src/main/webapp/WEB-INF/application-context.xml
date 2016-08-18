@@ -79,13 +79,15 @@
     <bean id="opsEventPub" class="com.oneops.sensor.jms.OpsEventPublisher" init-method="init">
         <property name="connectionFactory" ref="mgmtJmsFactory"/>
     </bean>
-    
+
+        <!--Defaults to daq for backward compatibility-->
     <bean id="daqCluster" class="com.oneops.cassandra.ClusterBootstrap">
-        <property name="hostPort" value="daq:9160"/>
+        <property name="hostPort" value="${DAQ_DB_PORT:daq:9160}"/>
     </bean>    
 
+
     <bean id="opsdbCluster" class="com.oneops.cassandra.ClusterBootstrap">
-        <property name="hostPort" value="opsdb:9160"/>
+        <property name="hostPort" value="${OPS_DB_PORT:opsdb:9160}"/>
     </bean>
 
     <bean id="opsEventDao" class="com.oneops.ops.dao.OpsEventDao" init-method="init">
