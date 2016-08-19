@@ -182,7 +182,12 @@ class Chef
              # remove first slash in ns path
              remote_file = remote_file[1..-1]
              puts "doc: #{local_file} remote: #{remote_file}"
-             file = @remote_dir.files.create :key => remote_file, :body => content
+             obj = { :key => remote_file, :body => content }
+             if remote_file =~ /\.html/
+               obj['content_type'] = 'text/html'
+             end
+           
+             file = @remote_dir.files.create obj
            end
          end
          Dir.chdir initial_dir
