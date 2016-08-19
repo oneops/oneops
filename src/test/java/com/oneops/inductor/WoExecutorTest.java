@@ -39,14 +39,13 @@ public class WoExecutorTest {
 	
 	@Test
 	public void testExtraRunList4Wo() {
-		List<String> runList = new ArrayList<>();
 		List<String> classes = new ArrayList<>();
 		classes.add("cloud.compliance.Security");
 		classes.add("cloud.compliance.Security");
 		classes.add("cloud.compliance.Dummy");
 		classes.add("cloud.compliance.Dummy");
 
-		woExecutor.addExtraClassesToRunList(runList, getRfcCiForExtraRunList(classes), "add");
+		List<String> runList = woExecutor.getExtraRunListClasses(getRfcCiForExtraRunList(classes), "add");
 		Assert.assertFalse(runList.isEmpty());
 		Assert.assertEquals(2, runList.size());
 
@@ -58,9 +57,8 @@ public class WoExecutorTest {
 		Assert.assertTrue(runList.contains(dummyRecipe));
 		
 		classes = null;
-		runList.clear();
-		woExecutor.addExtraClassesToRunList(runList, getRfcCiForExtraRunList(classes), "add");
-		Assert.assertTrue(runList.isEmpty());
+		List<String> runList1 = woExecutor.getExtraRunListClasses(getRfcCiForExtraRunList(classes), "add");
+		Assert.assertTrue(runList1.isEmpty());
 	}
 	
 	private List<CmsRfcCISimple> getRfcCiForExtraRunList(List<String> classes) {

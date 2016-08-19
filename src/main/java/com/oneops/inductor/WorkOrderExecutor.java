@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 
 import static com.oneops.inductor.InductorConstants.*;
 
@@ -208,7 +209,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 	private void addRunList4RemoteChefCall(Map<String, List<CmsRfcCISimple>> payload, String appName, String action, List<String> runList) {
 
-		boolean isRemoteAction = action.equals(REMOTE);
+		boolean isRemoteAction = isRemoteAction(action);
 
 		// monitors, but only remote wo's
 		if (payload.containsKey(WATCHED_BY)) {
@@ -236,18 +237,28 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 		if (payload.containsKey(EXTRA_RUN_LIST)) {
 			List<CmsRfcCISimple> extraRunListRfc = payload.get(EXTRA_RUN_LIST);
-			addExtraClassesToRunList(runList, extraRunListRfc, isRemoteAction ? ADD : action);
+			List<String> list = getExtraRunListClasses(extraRunListRfc, isRemoteAction ? ADD : action);
+			runList.addAll(list);
 		}
 	}
 
-	protected void addExtraClassesToRunList(List<String> runList, List<CmsRfcCISimple> extraRunListRfc, String action) {
-		extraRunListRfc.stream()
+	private boolean isRemoteAction(String action) {
+		return REMOTE.equals(action);
+	}
+	
+	protected List<String> getExtraRunListClasses(List<CmsRfcCISimple> extraRunListRfc, String action) {
+		//get distinct class names as there could be multiple entries for same class name
+		return extraRunListRfc.stream()
 				.map(rfcSimple -> rfcSimple.getCiClassName())
 				.distinct()
-				.map(className -> StringUtils.substringAfterLast(className, ".").toLowerCase())
-				.forEach(shortClass -> {
-					runList.add(RUN_LIST_PREFIX + shortClass + RUN_LIST_SEPARATOR + action + RUN_LIST_SUFFIX);
-				});
+				.map(className -> RUN_LIST_PREFIX +
+						getShortenedClass(className) +
+						RUN_LIST_SEPARATOR + action + RUN_LIST_SUFFIX)
+				.collect(Collectors.toList());
+	}
+
+	private String getShortenedClass(String className) {
+		return StringUtils.substringAfterLast(className, ".").toLowerCase();
 	}
 
 	/**
