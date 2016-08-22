@@ -25,7 +25,15 @@ end.parse!
 impl = ARGV[0]
 json_context = ARGV[1]
 cookbook_path = ARGV[2] || ''
-ostype = ARGV[3]
+
+if File.file?("C:/cygwin64" + json_context)
+  wo_file = File.read("C:/cygwin64" + json_context)
+else File.file?(json_context)
+  wo_file = File.read(json_context)
+end
+wo_hash = JSON.parse(wo_file)
+puts "OS TYPE IS: #{wo_hash['workorder']['rfcCi']['ciAttributes']['ostype']}"
+ostype = wo_hash['workorder']['rfcCi']['ciAttributes']['ostype']
 
 if ostype =~ /windows/
  impl = "oo::chef-12.11.18"
@@ -46,25 +54,25 @@ def gen_gemfile_and_install (gems, dsl, ostype)
       end
     end
 
-pwd= system("pwd")
-puts pwd
+    pwd= system("pwd")
+    puts pwd
     File.open('Gemfile', 'w') {|f| f.write(gemfile_content) }
     method = "install"
     result = ""
-if ostype =~ /windows/
- `c:\opscode\chef\embedded\bin\gem list | Select-String -Pattern #{dsl}`
-else
-  `gem list | grep #{dsl}`
-end
-if $?.to_i == 0
+    if ostype =~ /windows/
+      `c:\opscode\chef\embedded\bin\gem list | Select-String -Pattern #{dsl}`
+    else
+      `gem list | grep #{dsl}`
+    end
+    if $?.to_i == 0
       method = "update"
     end
     cmd = ""
-if ostype =~ /windows/
-    cmd = "c:/opscode/chef/embedded/bin/bundle #{method}"
-else
-    cmd = "bundle #{method}"
-end
+    if ostype =~ /windows/
+      cmd = "c:/opscode/chef/embedded/bin/bundle #{method}"
+    else
+      cmd = "bundle #{method}"
+    end
     puts "running: #{cmd}"
     start_time = Time.now.to_i
     system cmd
@@ -109,76 +117,88 @@ when "chef"
     puts "current: #{current_version}, expected: #{version} - updating Gemfile"
     version_gems = [["chef",version]]
     if !gem_config["chef-#{version}"].nil?
-       version_gems += gem_config["chef-#{version}"]
+      version_gems += gem_config["chef-#{version}"]
     end
     gem_list = gem_config["common"] + version_gems
     gem_list.push(['chef', version])
-   if ostype !~ /windows/
-    gen_gemfile_and_install(gem_list, dsl, ostype)
-   else
-    start_time = Time.now.to_i
-    chef_install_cmd = "c:/programdata/chocolatey/choco.exe install -y --allow-downgrade chef-client"
-    result=system(chef_install_cmd)
-    duration = Time.now.to_i - start_time
-    puts "installed chef-client in #{duration} seconds"
-    gen_gemfile_and_install(gem_list,dsl,ostype)
-   end
-end
+    if ostype !~ /windows/
+      gen_gemfile_and_install(gem_list, dsl, ostype)
+    else
+      start_time = Time.now.to_i
+      chef_install_cmd = "c:/programdata/chocolatey/choco.exe install -y --allow-downgrade --allowEmptyChecksums chef-client"
+      result=system(chef_install_cmd)
+      duration = Time.now.to_i - start_time
+      puts "installed chef-client in #{duration} seconds"
+      gen_gemfile_and_install(gem_list,dsl,ostype)
+
+      # patch the bug in chef 12.11.18
+      # https://github.com/chef/chef/issues/5027
+      # fixed here https://github.com/chef/chef/blame/master/lib/chef/chef_fs/file_system/multiplexed_dir.rb#L44
+      # but the chef-client msi was built and uploaded to chocolatey before it was fixed, so we need to temporarily add this
+      # until we can get a new version of the msi uploaded to chocolatey.
+      puts "Patch the bug in chef client!!!"
+      puts "cp source to temp file"
+      cmd_cp_to_patch_chef_client_bug = "cp c:/opscode/chef/embedded/lib/ruby/gems/2.1.0/gems/chef-12.11.18-universal-mingw32/lib/chef/chef_fs/file_system/multiplexed_dir.rb /tmp/tmpfile"
+      puts "cp command is: #{cmd_cp_to_patch_chef_client_bug}"
+      system(cmd_cp_to_patch_chef_client_bug)
+
+      puts "run a substitute command and put the source back"
+      cmd_sed_to_patch_chef_client_bug = "sed -e 's/child_entry\.parent\.path_for_printing\}\") unless seen\[child\.name\]\.path_for_printing == child\.path_for_printing/child_entry\.parent\.path_for_printing\}\")/' /tmp/tmpfile > c:/opscode/chef/embedded/lib/ruby/gems/2.1.0/gems/chef-12.11.18-universal-mingw32/lib/chef/chef_fs/file_system/multiplexed_dir.rb"
+      puts "sed command is: #{cmd_sed_to_patch_chef_client_bug}"
+      system(cmd_sed_to_patch_chef_client_bug)
+    end
+  end
 
   # used to create specific chef config for cookbook_path and lockfile
   ci = json_context.split("/").last.gsub(".json","")
 
-if ostype !~ /windows/
+  if ostype !~ /windows/
     chef_config = "/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
   else
-    chef_config = "C:/cygwin64/home/admin/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
+    chef_config = "C:/cygwin64/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
     json_context = "C:/cygwin64" + json_context
   end
 
   # generate chef_config if doesn't exist
   if !File::exist?(chef_config)
-     cookbook_full_path = chef_config.gsub("/chef-#{ci}.rb","")
-     # when using alternate cookbooks include base cookbooks
-     if cookbook_path.empty?
+    cookbook_full_path = chef_config.gsub("/chef-#{ci}.rb","")
+    # when using alternate cookbooks include base cookbooks
+    if cookbook_path.empty?
      	config_content = 'cookbook_path "'+cookbook_full_path+"\"\n"
-     else
-	 if ostype !~ /windows/
-        	config_content = "cookbook_path [\"#{cookbook_full_path}\",\"/home/oneops/shared/cookbooks\"]\n"
-        else
-          config_content = "cookbook_path [\"#{cookbook_full_path}\",\"C:/cygwin64/home/admin/shared/cookbooks\"]\n"
-        end
-   end
-     log_level = "info"
-     config_content += "log_level :#{log_level}\n"
-     config_content += "formatter :#{formatter}\n"
-     config_content += "verify_api_cert true\n"
-     config_content += "file_cache_path \"/tmp\"\n"
-     config_content += "lockfile \"/tmp/#{ci}.lock\"\n"
+    else
+      if ostype !~ /windows/
+        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"/home/oneops/shared/cookbooks\"]\n"
+      else
+        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"C:/cygwin64/home/oneops/shared/cookbooks\"]\n"
+      end
+    end
+    log_level = "info"
+    config_content += "log_level :#{log_level}\n"
+    config_content += "formatter :#{formatter}\n"
+    config_content += "verify_api_cert true\n"
+    config_content += "file_cache_path \"/tmp\"\n"
+    config_content += "lockfile \"/tmp/#{ci}.lock\"\n"
 
-	 ['http','https','no'].each do |proxy|
-	   proxy_key = proxy + "_proxy"
-       if ENV[proxy_key]
-         config_content += "#{proxy_key} \""+ENV[proxy_key]+"\"\n"
-       end
-     end
+	  ['http','https','no'].each do |proxy|
+  	  proxy_key = proxy + "_proxy"
+      if ENV[proxy_key]
+        config_content += "#{proxy_key} \""+ENV[proxy_key]+"\"\n"
+      end
+    end
 
-     puts "chef_config: #{chef_config}"
-     File.open(chef_config, 'w') {|f| f.write(config_content) }
+    puts "chef_config: #{chef_config}"
+    File.open(chef_config, 'w') {|f| f.write(config_content) }
   end
 
- if ostype !~ /windows/
+  if ostype !~ /windows/
     bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
     cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   else
-    cmd = "c:/opscode/chef/bin/chef-solo.bat -l error -F #{formatter} -c #{chef_config} -j #{json_context}"
+    cmd = "c:/opscode/chef/bin/chef-solo.bat -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   end
+  puts "Running command: #{cmd}"
   ec = system(cmd)
-  if ec == -1
-   exit -1
-  else
-   exit ec
-  end
-
+  exit ec
 
 when "puppet"
   Dir.chdir "modules"
@@ -213,4 +233,3 @@ when "puppet"
     exit ec
   end
 end
-

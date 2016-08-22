@@ -25,7 +25,7 @@ begin
   ostype = node.workorder.payLoad.os[0].ciAttributes["ostype"]
 rescue
   begin
-    ostype = node.workorder.services["compute"][cloud_name][:ciAttributes]["ostype"]
+    ostype = node.workorder.rfcCi.ciAttributes['ostype']
   rescue
     ostype = node.platform
   end
