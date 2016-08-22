@@ -150,6 +150,7 @@ platforms:
            service_name: tomcat7
            use_script_status: 'true'
            control_script_location: /etc/init.d/tomcat7
+           pattern: tomcat
        artifact/oneops.1.Artifact:
          app:
            install_dir: /opt/oneops/artifact
@@ -178,7 +179,7 @@ platforms:
 
 
                            # war cleanup and deploy
-                           ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
+                           ["$OO_LOCAL{deploycontext}"].each do |war|
 
                              execute "#{war} war clean" do
                                 command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
