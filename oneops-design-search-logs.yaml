@@ -1,0 +1,73 @@
+---
+variables:
+
+platforms:
+    eslogs:
+        pack: oneops/es:1
+        components:
+          volume/oneops.1.Volume:
+            volume:
+              size: 100%FREE
+              mount_point: /data
+              fstype: ext4
+          elasticsearch/oneops.1.Es:
+            elasticsearch:
+              awareness_attribute: cloud
+              cluster_name: oneopslogs
+              install_dir: /usr/local
+              log_dir: /usr/local/var/log/elasticsearch
+              conf_dir: /usr/local/etc/elasticsearch
+              pid_file_path: /usr/local/var/run
+              version: 1.5.1
+              http_port: '9200'
+              data_dir: /data/elasticsearch
+          java/oneops.1.Java:
+            java:
+              version: '8'
+          logstash/oneops.1.Logstash:
+            logstash:
+              outputs:
+              - elasticsearch { host => "localhost" port => "9300" cluster => "oneopslogs”
+                protocol => "transport" }
+              inputs:
+              - lumberjack { port => 5000 ssl_certificate => "/opt/.certs/logstash.crt"
+                ssl_key => "/opt/.certs/logstash.key" type => "lumberjack" }
+              version: 1.5.3
+          file/oneops.1.File:
+            logstash-cert:
+              path: /opt/.certs/logstash.crt
+            logstash-key:
+              path: /opt/.certs/logstash.key
+          user/oneops.1.User:
+            ooadmin:
+              home_directory: /home/ooadmin
+              login_shell: /bin/bash
+              ulimit: '16384'
+              username: ooadmin
+          haproxy/oneops.1.Haproxy:
+            haproxy:
+              lbmethod: leastconn
+              retries: '3'
+              stats_socket_location: /var/lib/haproxy/stats
+              stats_web_port: '1936'
+              timeout_server: 1h
+              maxconn_defaults: '32000'
+              timeout_connect: 500s
+              options:
+              - dontlognull
+              - redispatch
+              lbmode: tcp
+              maxconn_server: '1500'
+              timeout_client: 5000s
+              enable_stats_socket: 'true'
+          job/oneops.1.Job:
+            log-cleanup:
+              hour: '1'
+              month: '*'
+              weekday: '*'
+              description: cron job to delete logs older than 1 days from /usr/local/var/log/elasticsearch/
+              cmd: /usr/bin/find /usr/local/var/log/elasticsearch/ -type f -mtime +1 -exec
+                rm {} \;
+              user: root
+              day: '*'
+              minute: '0'
