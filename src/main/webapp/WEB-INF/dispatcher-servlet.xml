@@ -6,7 +6,7 @@
 
 	<!-- import mybatis staff  -->
    	<import resource="mybatis-beans.xml"/>
-	<import resource="activiti-context.xml"/>
+	<!--<import resource="activiti-context.xml"/>-->
 
     <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
             <property name="useDefaultSuffixPattern" value="false" />

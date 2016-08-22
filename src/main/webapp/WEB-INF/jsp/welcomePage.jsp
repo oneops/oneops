@@ -10,8 +10,8 @@ Walmart Labs
 <br/>
 <a href="ci.do">Ci list</a>
 <br/>
-<a href="activiti/processList.do">Activiti Instance Monitor</a>
-<br/>
+<%--<a href="activiti/processList.do">Activiti Instance Monitor</a>
+<br/>--%>
 <a href="stuckdpmts.do">Stuck Deployments report</a>
 </body>
 </html>
