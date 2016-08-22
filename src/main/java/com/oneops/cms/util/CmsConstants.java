@@ -39,5 +39,10 @@ public final class CmsConstants {
 	
 	//starting to put some relation constants 
 	public static final String BASE_REALIZED_AS = "base.RealizedAs";
-
+	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
+	public static final String ATTR_VALUE_TYPE_DF = "df";
+	
+	public static final String ATTR_NAME_ENABLED = "enabled";
+	public static final String ATTR_NAME_AUTO_COMPLY = "autocomply";
+	
 }

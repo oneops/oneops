@@ -77,6 +77,7 @@ public interface CmsError {
     final static int DJ_NO_RFC_WITH_GIVEN_ID_ERROR = 2024;
     final static int DJ_OPEN_RELEASE_WRONG_TYPE_ERROR = 2025;
     final static int DJ_BAD_CI_NAME_ERROR = 2026;
+    final static int DJ_EXPR_EVAL_ERROR = 2027;
  
 
 
