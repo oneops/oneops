@@ -42,14 +42,22 @@ import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.es.offerings.percolator.OfferingsMatcher;
+
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 /**
  * The Class CmsWoProvider.
@@ -68,6 +76,7 @@ public class CmsWoProvider {
 	private Gson gson = new Gson();
 	private CmsUtil cmsUtil;
 	private OfferingsMatcher offeringMatcher;
+	private ExpressionEvaluator expressionEvaluator;
 	
 	private static final String CLOUDSERVICEPREFIX = "cloud.service";
 	private static final String MANAGED_VIA_PAYLOAD_NAME = "ManagedVia";
@@ -77,6 +86,7 @@ public class CmsWoProvider {
 	private static final String SERVICED_BY_PAYLOAD_NAME = "ServicedBy";
 	private static final String REQUIRES_COMPUTES_PAYLOAD_NAME = "RequiresComputes";
 	private static final String OFFERING = "offerings";
+	private static final String EXTRA_RUNLIST_PAYLOAD_NAME = "ExtraRunList";
 	private static final boolean OFFERING_ENABLED = "true".equals(System.getProperty("controller.offerings.on", "true"));
 	/**
 	 * Sets the cms util.
@@ -241,6 +251,8 @@ public class CmsWoProvider {
 				String actionPayLoad = ao.getPayLoadDef();
 				processPayLoadDef(ao, actionPayLoad);
     		}
+
+    		ao.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(ao));
         }
         return aorders;
     }
@@ -382,7 +394,10 @@ public class CmsWoProvider {
 		}
 		
 		workOrder.putPayLoadEntry(OFFERING , offerings);
-		
+
+		//add matching compliance objects
+		workOrder.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(workOrder));
+
 		return workOrder;
 	}
 	
@@ -438,6 +453,41 @@ public class CmsWoProvider {
 		return lowestOffering;
 	}
 
+	List<CmsRfcCI> getMatchingCloudCompliance(CmsWorkOrder wo) {
+		CmsCI platformCi = wo.getBox();
+		CmsCIAttribute autoComplyAttr = platformCi.getAttribute(CmsConstants.ATTR_NAME_AUTO_COMPLY);
+		if (!Boolean.valueOf(autoComplyAttr.getDfValue())) {
+			return Collections.emptyList();
+		}
+
+		List<CmsCIRelation> complianceRelations = getComplianceRelations(wo);
+		List<CmsRfcCI> list = complianceRelations.stream()
+			.map(complianceRel -> complianceRel.getToCi())
+			.filter(complianceCi -> (isComplianceEnabled(complianceCi)) && expressionEvaluator.isExpressionMatching(complianceCi, wo))
+			.map(complianceCi -> rfcUtil.mergeRfcAndCi(null, complianceCi, CmsConstants.ATTR_VALUE_TYPE_DF))
+			.collect(Collectors.toList());
+		return list;
+	}
+
+	List<CmsCI> getMatchingCloudCompliance(CmsActionOrder ao) {
+		List<CmsCIRelation> complianceRelations = getComplianceRelations(ao);
+		List<CmsCI> list = complianceRelations.stream()
+			.map(complianceRel -> complianceRel.getToCi())
+			.filter(complianceCi -> (isComplianceEnabled(complianceCi)) && expressionEvaluator.isExpressionMatching(complianceCi, ao))
+			.collect(Collectors.toList());
+
+		return list;
+	}
+
+	private List<CmsCIRelation> getComplianceRelations(CmsWorkOrderBase wo) {
+		List<CmsCIRelation> relations = cmProcessor.getFromCIRelations(wo.getCloud().getCiId(), CmsConstants.BASE_COMPLIES_WITH, null);
+		return relations;
+	}
+
+	private boolean isComplianceEnabled(CmsCI compliance) {
+		CmsCIAttribute attribute = compliance.getAttribute(CmsConstants.ATTR_NAME_ENABLED);
+		return ((attribute != null) && Boolean.valueOf(attribute.getDjValue()));
+	}
 
     private void processPayLoadDef(CmsWorkOrderBase wo, CmsCI templateCi, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
 
@@ -789,4 +839,9 @@ public class CmsWoProvider {
 	public void setOfferingMatcher(OfferingsMatcher offeringMatcher) {
 		this.offeringMatcher = offeringMatcher;
 	}
+
+	public void setExpressionEvaluator(ExpressionEvaluator expressionEvaluator) {
+		this.expressionEvaluator = expressionEvaluator;
+	}
+
 }
