@@ -125,7 +125,7 @@ CREATE UNIQUE INDEX md_class_attr_name_idx
    ON md_class_attributes (class_id ASC NULLS LAST, attribute_name ASC NULLS LAST);
 
 CREATE INDEX cm_ops_proc_ciid_nm_created
-  ON cm_ops_procedures (ci_id , proc_name, created );
+  ON cm_ops_procedures (ci_id , created );
    
    
 insert into md_classes (class_id, class_name, short_class_name, access_level, is_namespace, description)
