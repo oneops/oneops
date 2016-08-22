@@ -24,6 +24,7 @@ platforms:
         tomcatgclog: $OO_GLOBAL{TOMCATGCLOG}
         tomcat-access-log-format: $OO_GLOBAL{TOMCAT-ACCESS-LOG-FORMAT}
         domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
+        amquser: $OO_GLOBAL{AMQUSER}
         amqpass: $OO_GLOBAL{AMQPASS}
         cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
         cms-db-user: $OO_GLOBAL{CMS-DB-USER}
@@ -130,6 +131,7 @@ platforms:
              API_SECRET: $OO_LOCAL{api-secret}
              CMS_DES_PEM: $OO_LOCAL{cms-des-file-location}
              API_ACESS_CONTROL: permitAll
+             AMQ_USER: $OO_LOCAL{amquser}
              SEARCHMQ_USER: $OO_LOCAL{search-amq-user}
              SEARCHMQ_PASS: $OO_LOCAL{search-amq-pass}
              TRANSMITTER_ANTENNA_RETRY_DIR: $OO_LOCAL{antenna-retry-dir}
@@ -159,6 +161,7 @@ platforms:
            service_name: tomcat7
            use_script_status: 'true'
            control_script_location: /etc/init.d/tomcat7
+           pattern: tomcat
        artifact/oneops.1.Artifact:
          app:
            install_dir: /opt/oneops/artifact
@@ -172,11 +175,19 @@ platforms:
                            node.set["tomcat"] = {
                              :webapp_dir => "/opt/tomcat7/webapps"
                            }
-                           tomcat_user = "tomcat6"
-                           case node.platform
-                           when "redhat","centos","fedora"
-                             tomcat_user = "tomcat"
-                           end
+                           tomcat_user = "tomcat"
+
+                           retryDirs = ["$OO_LOCAL{search-retry-dir}"]
+
+                            retryDirs.each do |retryDir|
+                              directory retryDir do
+                                owner tomcat_user
+                                group tomcat_user
+                                mode 0755
+                                recursive true
+                                action :create
+                              end
+                            end
 
 
                            execute "rm -f /usr/local/oneops/dist"
