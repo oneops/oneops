@@ -22,6 +22,8 @@ platforms:
         compute:
           size: M
           ostype: centos-7.2
+          repo_list:
+           - 'yum -y localinstall https://download.postgresql.org/pub/repos/yum/9.2/redhat/rhel-7-x86_64/pgdg-centos94-9.2-2.noarch.rpm'
       postgresql/oneops.1.Postgresql:
         postgresql:
           version: 9.2
@@ -60,7 +62,7 @@ platforms:
           - 8161 8162 tcp 0.0.0.0/0
       compute/oneops.1.Compute:
         compute:
-          size: L
+          size: M
           ostype: centos-7.2
       certificate/oneops.1.Certificate:
         broker-cert:
@@ -72,34 +74,20 @@ platforms:
         broker-keystore:
           keystore_password: $OO_LOCAL{broker-cert-pass}
           keystore_filename: $OO_LOCAL{broker-cert-location}
-      topic/oneops.1.Topic:
-        topic-cms-all:
-          topicname: CMS.ALL
       queue/oneops.1.Queue:
         queue-search:
           queuename: search.stream
-      artifact/oneops.1.Artifact:
-        amq-artifact:
-          repository: Using full RepoURL
-          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
-          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
-          version: $OO_LOCAL{version}
-          install_dir: /opt/oneops/artifact
-          configure: |-
-            execute "cp /opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist/amqplugin-fat.jar /opt/activemq/lib/"
-          restart: |-
-            service "activemq" do
-              action :restart
-            end
+
       activemq/oneops.1.Activemq:
         activemq:
+          version: 5.11.1
           brokerauthenabled: 'true'
           maxmemory: '4096'
           adminconsolesecure: 'true'
           initmemory: '4096'
           adminconsolekeystorepassword: $OO_LOCAL{adminpass}
           brokerpassword: $OO_LOCAL{broker-cert-pass}
-          adminpassword: $OO_LOCAL{adminpass}
+          adminpassword: changeme
           environment:
             KLOOPZ_AMQ_PASS: $OO_LOCAL{amqpass}
           brokerusername: system
@@ -145,11 +133,11 @@ platforms:
                     </bean>
 
                     <bean id="postgres-ds" class="org.postgresql.ds.PGPoolingDataSource" destroy-method="close">
-                        <property name="serverName" value="searchdb.$OO_GLOBAL{DOMAIN}"/>
+                        <property name="serverName" value="searchmqdb.$OO_GLOBAL{DOMAIN}"/>
                         <property name="databaseName" value="searchmq"/>
                         <property name="portNumber" value="5432"/>
                         <property name="user" value="$OO_LOCAL{dbuser}"/>
-                        <property name="password" value="$OO_LOCAL{dbpassword}"/>
+                        <property name="password" value="$OO_LOCAL{dbpass}"/>
                         <property name="dataSourceName" value="postgres"/>
                         <property name="initialConnections" value="5"/>
                         <property name="maxConnections" value="30"/>
@@ -252,14 +240,6 @@ platforms:
                                                 </value>
                                                 <value>CREATE INDEX ACTIVEMQ_ACKS_XIDX ON ACTIVEMQ_ACKS (XID)</value>
 
-                                                <!--<value>CREATE TABLE ACTIVEMQ_LOCK
-                                                    (ID BIGINT NOT NULL,
-                                                    TIME BIGINT,
-                                                    BROKER_NAME VARCHAR(250), PRIMARY KEY (ID))
-                                                </value>
-
-                                                <value>INSERT INTO ACTIVEMQ_LOCK (ID) VALUES (1)</value> -->
-
                                             </list>
                                         </property>
                                     </statements>
@@ -298,8 +278,6 @@ platforms:
                         <transportConnectors>
                             <transportConnector name="openwire"      uri="tcp://0.0.0.0:61616"/>
                             <transportConnector name="openwire-ssl"  uri="ssl://0.0.0.0:61617"/>
-                            <!-- transportConnector name="nio" uri="nio://0.0.0.0:61616"/>
-                            <transportConnector name="nio+ssl" uri="nio+ssl://0.0.0.0:61617"/-->
                         </transportConnectors>
 
                         <!-- destroy the spring context on shutdown to stop jetty -->

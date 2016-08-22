@@ -4,8 +4,6 @@ variables:
 platforms:
 
   # links to
-  amq:
-    pack: oneops/activemq:1
 
   searchmq:
     pack: oneops/activemq:1
@@ -16,8 +14,10 @@ platforms:
     major_version: 1
     links:
     - searchmq
-    - amq
     variables:
+     distbase: $OO_GLOBAL{DISTBASE}
+     version: $OO_GLOBAL{VERSION}
+     install_dir: $OO_GLOBAL{INSTALL-DIR}
     components:
       secgroup/oneops.1.Secgroup:
         secgroup:
