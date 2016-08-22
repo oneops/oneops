@@ -46,7 +46,7 @@ platforms:
       broker-cert-location: /var/lib/certs/broker.ks
       broker-cert-pass: change*me
       adminpass: change*me
-      amqpass: change*me
+      amqpass: $OO_GLOBAL{AMQPASS}
       dbuser: amq
       dbpass: amq
     components:
@@ -60,6 +60,12 @@ platforms:
         compute:
           size: L
           ostype: centos-7.2
+      fqdn/oneops.1.Fqdn:
+        fqdn:
+          aliases:
+           - kloopzmq
+          ptr_source: platform
+          distribution: proximity
       certificate/oneops.1.Certificate:
         broker-cert:
           cacertkey:
@@ -251,19 +257,6 @@ platforms:
                         <property name="cms" ref="cmsClient"/>
                       </bean>
                     </plugins>
-
-                    <systemUsage>
-                      <memoryUsage>
-                        <memoryUsage percentOfJvmHeap="70"/>
-                      </memoryUsage>
-                      <storeUsage>
-                        <storeUsage limit="100 gb"/>
-                      </storeUsage>
-                      <tempUsage>
-                        <tempUsage limit="50 gb"/>
-                      </tempUsage>
-                    </systemUsage>
-
                     <transportConnectors>
                       <transportConnector name="nio" uri="nio://0.0.0.0:61616"/>
                       <transportConnector name="nio+ssl" uri="nio+ssl://0.0.0.0:61617"/>
