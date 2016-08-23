@@ -824,7 +824,6 @@ public class ManifestRfcBulkProcessor {
 	
 	private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String platNsPath, String envNsPath, CmsRfcCI manifestPlat, 
 			String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
-		//
 		Set<String> newRelsGoids = new HashSet<String>();
 		Map<Long,List<CmsCIRelation>> watchedByRels = new HashMap<Long, List<CmsCIRelation>>(); 
 		for (CmsCIRelation ciRel : internalRels) {
