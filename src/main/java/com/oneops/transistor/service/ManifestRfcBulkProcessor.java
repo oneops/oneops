@@ -69,6 +69,7 @@ public class ManifestRfcBulkProcessor {
 	private static final String MGMT_MANIFEST_WATCHEDBY = "mgmt.manifest.WatchedBy";
 	private static final String MANIFEST_WATCHEDBY = "manifest.WatchedBy";
 	private static final String MANIFEST_MONITOR = "manifest.Monitor";	
+	private static final String STATE_PENDING_DELETION = "pending_deletion";
 	
 	private static final Set<String> DUMMY_RELS = initSet(MANIFEST_WATCHEDBY);
 	
@@ -604,6 +605,20 @@ public class ManifestRfcBulkProcessor {
 		List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
 		Map<String, Edge> edges = new HashMap<String, Edge>();
 		for (CmsCIRelation templateRel:templateRels) {
+			CmsCI templatePlatformResource = templateRel.getToCi();
+			if (templatePlatformResource.getCiState().equalsIgnoreCase(STATE_PENDING_DELETION)) {
+				boolean resourcePendingDeletion = true;
+				for (CmsCIRelation userDesignRel:userRels) {
+					CmsCI userPlatformResource = userDesignRel.getToCi();
+					if (userPlatformResource.getCiClassName().replaceAll("catalog", "mgmt.manifest")
+							.equals(templatePlatformResource.getCiClassName())) {//the resource exists in design too
+						resourcePendingDeletion = false;//do not omit the resource because it has design ci too.
+					}
+				}
+				if (resourcePendingDeletion) {
+					continue;	
+				}
+			}
 			Edge edge = new Edge();
 			edge.templateRel = templateRel;
 			String key = trUtil.getLongShortClazzName(templatePlatform.getCiClassName()) + "-Requires-" + templateRel.getToCi().getCiName();
@@ -809,7 +824,7 @@ public class ManifestRfcBulkProcessor {
 	
 	private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String platNsPath, String envNsPath, CmsRfcCI manifestPlat, 
 			String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
-
+		//
 		Set<String> newRelsGoids = new HashSet<String>();
 		Map<Long,List<CmsCIRelation>> watchedByRels = new HashMap<Long, List<CmsCIRelation>>(); 
 		for (CmsCIRelation ciRel : internalRels) {

@@ -445,8 +445,11 @@ public class DesignRfcProcessor {
 		List<CmsCIRelation> requiresList = new ArrayList<CmsCIRelation>();
 		for (CmsCIRelation rel : tmplRequires) {
 			if (rel.getAttribute("constraint").getDfValue().matches("1..1|1..*")) {
-				rel.setToCi(cmProcessor.getCiById(rel.getToCiId()));
-				requiresList.add(rel);
+				CmsCI component = cmProcessor.getCiById(rel.getToCiId());
+				if (! component.getCiState().equalsIgnoreCase("pending_deletion")) {
+					rel.setToCi(component);
+					requiresList.add(rel);
+				}
 			}
 		}
 		
