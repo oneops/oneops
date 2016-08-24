@@ -23,8 +23,8 @@ platforms:
         antenna-retry-dir: /mnt/retry/controller/antenna/
         search-retry-dir: /mnt/retry/controller/search/
         activiti-db-host: activitidb
-        activiti-db-user:
-        activiti-db-pass: '::ENCRYPTED::'
+        activiti-db-user: $OO_GLOBAL{ACTIVITI-DB-USER}
+        activiti-db-pass: $OO_GLOBAL{ACTIVITI-DB-PASS}
         version: $OO_GLOBAL{VERSION}
         ecv-user: $$OO_GLOBAL{ECV-USER}
         ecv-secret: $OO_GLOBAL{ECV-SECRET}
