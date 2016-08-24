@@ -27,6 +27,8 @@ variables:
   AMQDBNAME: 'amqdb'
   AMQDBUSER: 'amqdb'
   AMQDBPASS: '::ENCRYPTED::'
+  ACTIVITI-DB-PASS: '::ENCRYPTED::'
+  ACTIVITI-DB-USER: 'activiti'
 platforms:
     cmsdb:
      pack: oneops/postgresql:1
