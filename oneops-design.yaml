@@ -86,7 +86,7 @@ platforms:
             '9200': GET /
       master-java/oneops.1.Java:
         master-java:
-          flavor: oracle
+          flavor: openjdk
           install_dir: /usr/lib/jvm
           jrejdk: jdk
           version: '8'
@@ -149,7 +149,7 @@ platforms:
 
                echo -n "Starting oneops search application: "
 
-               java -jar -Dindex.name=cms-all -Dnodes=localhost:9300 -Damq.pass=$OO_GLOBAL{AMQPASS} -DKLOOPZ_AMQ_HOST=searchmq $OO_LOCAL{INSTALLDIR}/current/oneops/dist/search.jar -Dsun.net.spi.nameservice.provider.1=dns,sun -Dsun.net.spi.nameservice.provider.2=default -Damq.connect_string="failover:(ssl://kloopzmq:61617?keepAlive=true)?initialReconnectDelay=1000&startupMaxReconnectAttempts=2&jms.prefetchPolicy.queuePrefetch=1" >> /opt/oneops/log/search.log 2>&1 &
+               java -jar -Dindex.name=cms-all -Dnodes=localhost:9300 -Damq.pass=$OO_GLOBAL{AMQPASS} -DKLOOPZ_AMQ_HOST=searchmq $OO_LOCAL{install_dir}/current/oneops/dist/search.jar -Dsun.net.spi.nameservice.provider.1=dns,sun -Dsun.net.spi.nameservice.provider.2=default -Damq.connect_string="failover:(ssl://kloopzmq:61617?keepAlive=true)?initialReconnectDelay=1000&startupMaxReconnectAttempts=2&jms.prefetchPolicy.queuePrefetch=1" >> /opt/oneops/log/search.log 2>&1 &
                echo "OK"
              }
 
