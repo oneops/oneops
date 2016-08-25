@@ -8,21 +8,24 @@ platforms:
     pack: oneops/postgresql:1
   transistor:
     pack: oneops/tomcat:1
+  searchdb:
+    pack: oneops/es:1
   controller:
     pack: oneops/tomcat:1
     links:
          - transistor
          - activitidb
          - amq
+         - searchdb
     variables:
         deploycontext: controller
         notifypass: '::ENCRYPTED::'
-        antenna-retry-dir: /mnt/retry/controller/antenna/antenna/
+        antenna-retry-dir: /mnt/retry/controller/antenna/
         search-retry-dir: /mnt/retry/controller/search/
         activiti-db-host: activitidb
-        activiti-db-user:
-        activiti-db-pass: '::ENCRYPTED::'
-        version: controller-$OO_GLOBAL{VERSION}
+        activiti-db-user: $OO_GLOBAL{ACTIVITI-DB-USER}
+        activiti-db-pass: $OO_GLOBAL{ACTIVITI-DB-PASS}
+        version: $OO_GLOBAL{VERSION}
         ecv-user: $$OO_GLOBAL{ECV-USER}
         ecv-secret: $OO_GLOBAL{ECV-SECRET}
         tomcatloglocation: $OO_GLOBAL{TOMCATLOGLOCATION}
@@ -32,12 +35,12 @@ platforms:
         domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
         amqpass: $OO_GLOBAL{AMQPASS}
         cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
-        cms-db-user: OO_GLOBAL{CMS-DB-USER}
-        cms-db-pass: OO_GLOBAL{CMS-DB-PASS}
-        api-user: OO_GLOBAL{API-USER}
-        api-secret: OO_GLOBAL{API-SECRET}
-        cms-des-file-location: OO_GLOBAL{CMS-DES-FILE-LOCATION}
-        cms-db-des-key: OO_GLOBAL{CMS-DB-DES-KEY}
+        cms-db-user: $OO_GLOBAL{CMS-DB-USER}
+        cms-db-pass: $OO_GLOBAL{CMS-DB-PASS}
+        api-user: $OO_GLOBAL{API-USER}
+        api-secret: $OO_GLOBAL{API-SECRET}
+        cms-des-file-location: $OO_GLOBAL{CMS-DES-FILE-LOCATION}
+        cms-db-des-key: $OO_GLOBAL{CMS-DB-DES-KEY}
         distbase: $OO_GLOBAL{DISTBASE}
         install-dir: $OO_GLOBAL{INSTALL-DIR}
         search-amq-user: $OO_GLOBAL{SEARCH-AMQ-USER}
@@ -90,7 +93,7 @@ platforms:
                           fi
                       }
                       check_ecv_status http://localhost:8080/$OO_LOCAL{deploycontext}/rest/ecv/status
-
+          java_options: -d64 -server -Xloggc:$OO_LOCAL{tomcatgclog}
           logfiles_path: $OO_LOCAL{tomcatloglocation}
           max_number_of_retries_for_post_startup_check: '2'
           ssl_port: '8443'
@@ -166,6 +169,7 @@ platforms:
           service_name: tomcat7
           use_script_status: 'true'
           control_script_location: /etc/init.d/tomcat7
+          pattern: tomcat
       artifact/oneops.1.Artifact:
         app:
           install_dir: /opt/oneops/artifact
@@ -179,13 +183,17 @@ platforms:
                                 node.set["tomcat"] = {
                                   :webapp_dir => "/opt/tomcat7/webapps"
                                 }
-                                tomcat_user = "tomcat6"
-                                case node.platform
-                                when "redhat","centos","fedora"
-                                  tomcat_user = "tomcat"
+                                tomcat_user = "tomcat"
+                                retryDirs = ["$OO_LOCAL{search-retry-dir}","$OO_LOCAL{antenna-retry-dir}"]
+                                retryDirs.each do |retryDir|
+                                  directory retryDir do
+                                    owner tomcat_user
+                                    group tomcat_user
+                                    mode 0755
+                                    recursive true
+                                    action :create
+                                  end
                                 end
-
-
                                 execute "rm -f /usr/local/oneops/dist"
 
                                 link "/usr/local/oneops/dist" do
@@ -194,7 +202,7 @@ platforms:
 
 
                                 # war cleanup and deploy
-                                ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
+                                ["$OO_LOCAL{deploycontext}"].each do |war|
 
                                   execute "#{war} war clean" do
                                      command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
@@ -212,10 +220,10 @@ platforms:
 
           should_expand: 'true'
           checksum: ''
-          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          location: $OO_LOCAL{distbase}/oneops-controller-$OO_LOCAL{version}.tar.gz
           repository: '*Using full RepoURL*'
           version: $OO_LOCAL{version}
-          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          url: $OO_LOCAL{distbase}/oneops-controller-$OO_LOCAL{version}.tar.gz
           username: not_required
           attachments:
             disableECV:
