@@ -3,159 +3,213 @@ variables:
 
 platforms:
 
-  # links to
+# links to
 
   searchmq:
     pack: oneops/activemq:1
 
-  # searchdb
   searchdb:
     pack: oneops/es:1
-    major_version: 1
     links:
-    - searchmq
+      - searchmq
     variables:
-     distbase: $OO_GLOBAL{DISTBASE}
-     version: $OO_GLOBAL{VERSION}
-     install_dir: $OO_GLOBAL{INSTALL-DIR}
+      version: search-$OO_GLOBAL{VERSION}
+      distbase: $OO_GLOBAL{DISTBASE}
+      install-dir: $OO_GLOBAL{INSTALL-DIR}
     components:
-      secgroup/oneops.1.Secgroup:
-        secgroup:
-          inbound:
-          - 9200 9400 tcp 0.0.0.0/0
-          - 5000 5000 tcp 0.0.0.0/0
-          - 22 22 tcp 0.0.0.0/0
-      compute/oneops.1.Compute:
-        compute:
-          size: L
-          ostype: centos-7.2
+      os/oneops.1.Os:
+        os:
+          additional_search_domains:
+          - $OO_GLOBAL{DOMAIN}
+      fqdn/oneops.1.Fqdn:
+        fqdn:
+          aliases:
+          - search
+          ptr_source: platform
+          full_aliases: ''
+          distribution: proximity
+          ttl: '60'
+          ptr_enabled: 'false'
+      lb/oneops.1.Lb:
+        lb:
+          listeners:
+          - http 9200 http 9200
+          - tcp 9300 tcp 9300
+          ecv_map:
+            '9200': GET /
+      java/oneops.1.Java:
+        java:
+          flavor: openjdk
+          install_dir: /usr/lib/jvm
+          jrejdk: jdk
+          sysdefault: 'true'
+          uversion: ''
+          version: '8'
+          binpath: ''
       elasticsearch/oneops.1.Es:
         elasticsearch:
-          cluster_name: oneops
-          shards: 4
-          replicas: 2
+          awareness_attribute: cloud
+          expected_nodes: ''
+          cluster_name: oneops-cluster
+          install_dir: /usr/local
+          memory: ''
+          mirrors: []
+          data: 'true'
+          replicas: '1'
           custom_config:
             http.cors.allow-origin: '"/.*/"'
             http.cors.enabled: 'true'
-          version: 1.5.0
-          cloud_rack_zone_map:
-      file/oneops.1.File:
-        logstash-cert:
-          path: /opt/.certs/logstash.crt
-          content: |-
-        logstash-key:
-          path: /opt/.certs/logstash.key
-          content: |-
-          depends:
-          - logstash-cert
+          version: 1.7.1
+          http_port: '9200'
+          cloud_rack_zone_map: {}
+          master: 'false'
+          log_dir: /usr/local/var/log/elasticsearch
+          shards: '5'
+          conf_dir: /usr/local/etc/elasticsearch
+          recover_after_time: ''
+          pid_file_path: /usr/local/var/run
+          recover_after_nodes: ''
+          data_dir: /data/elasticsearch
+      master-compute/oneops.1.Compute:
+        master-compute: {}
+      hostname/oneops.1.Fqdn:
+        hostname: {}
+      master-os/oneops.1.Os:
+        master-os:
+          additional_search_domains:
+          - $OO_GLOBAL{DOMAIN}
+      master-lb/oneops.1.Lb:
+        master-lb:
+          listeners:
+          - http 9200 http 9200
+          ecv_map:
+            '9200': GET /
+      master-java/oneops.1.Java:
+        master-java:
+          flavor: openjdk
+          install_dir: /usr/lib/jvm
+          jrejdk: jdk
+          version: '8'
+      master-elasticsearch/oneops.1.Es:
+        master-elasticsearch:
+          awareness_attribute: cloud
+          expected_nodes: ''
+          install_dir: /usr/local
+          cluster_name: oneops-cluster
+          memory: ''
+          data: 'false'
+          replicas: '1'
+          custom_config:
+            http.cors.allow-origin: '"/.*/"'
+            http.cors.enabled: 'true'
+          version: 1.7.1
+          http_port: '9200'
+          master: 'true'
+          log_dir: /usr/local/var/log/elasticsearch
+          shards: '5'
+          conf_dir: /usr/local/etc/elasticsearch
+          recover_after_time: ''
+          pid_file_path: /usr/local/var/run
+          recover_after_nodes: ''
+          data_dir: /data/elasticsearch
       daemon/oneops.1.Daemon:
         search:
           service_name: search
-          control_script_content: |-
-            #!/bin/bash
-            # Search
-            # chkconfig: 2345 90 10
-            # description: OneOps Search
+          pattern: 'search'
+          use_script_status: 'true'
+          control_script_content: |
+             #!/bin/bash
+             # Search
+             # chkconfig: 2345 90 10
+             # description: OneOps Search
 
-            # VERSION: $OO_GLOBAL{VERSION}
-            check_status() {
+             # VERSION: $OO_GLOBAL{VERSION}
+             check_status() {
 
-              s=`ps aux | grep '[s]earch.jar' | awk '{print $2}'`
+               s=`ps aux | grep '[s]earch.jar' | awk '{print $2}'`
 
-              if [ $s ] ; then
-                echo $s
-                return $s
-              fi
-              return 0
+               if [ $s ] ; then
+                 echo $s
+                 return $s
+               fi
+               return 0
 
-            }
+             }
 
-            start() {
+             start() {
 
-              check_status
+               check_status
 
-              pid=$?
+               pid=$?
 
-              if [ $pid -ne 0 ] ; then
-                echo "OneOps search application is already started"
-                exit 0
-              fi
+               if [ $pid -ne 0 ] ; then
+                 echo "OneOps search application is already started"
+                 exit 0
+               fi
 
-              echo -n "Starting oneops search application: "
+               echo -n "Starting oneops search application: "
 
-              java -jar -Dindex.name=cms-v5 -Dnodes=localhost:9300 -Damq.pass=$OO_GLOBAL{AMQPASS} $OO_LOCAL{INSTALLDIR}/current/oneops/dist/search.jar -Dsun.net.spi.nameservice.provider.1=dns,sun -Dsun.net.spi.nameservice.provider.2=default -Damq.connect_string="failover:(ssl://kloopzmq:61617?keepAlive=true)?initialReconnectDelay=1000&startupMaxReconnectAttempts=2&jms.prefetchPolicy.queuePrefetch=1" >> /opt/oneops/log/search.log 2>&1 &
-              echo "OK"
-            }
+               java -jar -Dcluster.name=oneops-cluster -Dindex.name=cms-all -Dnodes=localhost:9300 -Damq.pass=$OO_GLOBAL{AMQPASS} -DKLOOPZ_AMQ_HOST=searchmq $OO_LOCAL{install_dir}/current/oneops/dist/search.jar -Dsun.net.spi.nameservice.provider.1=dns,sun -Dsun.net.spi.nameservice.provider.2=default -Damq.connect_string="failover:(ssl://kloopzmq:61617?keepAlive=true)?initialReconnectDelay=1000&startupMaxReconnectAttempts=2&jms.prefetchPolicy.queuePrefetch=1" >> /opt/oneops/log/search.log 2>&1 &
+               echo "OK"
+             }
 
-            stop() {
+             stop() {
 
-              pid=`ps aux | grep '[s]earch.jar' | awk '{print $2}'`
+               pid=`ps aux | grep '[s]earch.jar' | awk '{print $2}'`
 
-              if [[ -z "$pid" ]] ; then
-                echo "OneOps Search Application is already stopped"
-                exit 0
-              fi
+               if [[ -z "$pid" ]] ; then
+                 echo "OneOps Search Application is already stopped"
+                 exit 0
+               fi
 
-              echo -n "Stopping oneops search application: "
-              kill -9 $pid &
-              echo "OK"
-            }
+               echo -n "Stopping oneops search application: "
+               kill -9 $pid &
+               echo "OK"
+             }
 
-            status() {
+             status() {
 
-              check_status
+               check_status
 
-              if [ $? -ne 0 ] ; then
-                echo "Oneops search is running.."
-              else
-                echo "Oneops search is stopped.."
-              fi
+               if [ $? -ne 0 ] ; then
+                 echo "Oneops search is running.."
+                 exit 0
+               else
+                 echo "Oneops search is stopped.."
+                 exit 1
+               fi
 
-            }
+             }
 
-            case "$1" in
-              start)
-                start
-                ;;
-              stop)
-                stop
-                ;;
-              status)
-                status
-                ;;
-              restart|reload)
-                stop
-                start
-                ;;
-              *)
-                echo "Usage: $0 {start|stop|restart|reload|status}"
-                exit 1
-            esac
+             case "$1" in
+               start)
+                 start
+                 ;;
+               stop)
+                 stop
+                 ;;
+               status)
+                 status
+                 ;;
+               restart|reload)
+                 stop
+                 start
+                 ;;
+               *)
+                 echo "Usage: $0 {start|stop|restart|reload|status}"
+                 exit 1
+             esac
 
-            exit 0
+             exit 0
+          secondary_down: 'false'
           control_script_location: /etc/init.d/search
       artifact/oneops.1.Artifact:
         search-artifact:
-          install_dir: /opt/oneops/search
+          install_dir: $OO_LOCAL{install-dir}
+          path: /nexus
+          as_user: root
+          as_group: root
           location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
-          version: $OO_LOCAL{version}
-          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
           repository: '*Using full RepoURL*'
-      index/oneops.1.Index:
-        cms:
-          index_name: cms
-        event:
-          index_name: event
-      logstash/oneops.1.Logstash:
-        logstash:
-          outputs:
-          - elasticsearch { host => "localhost" port => "9300" cluster => "oneops"
-            protocol => "transport" }
-          inputs:
-          - lumberjack { port => 5000 ssl_certificate => "/opt/.certs/logstash.crt"
-            ssl_key => "/opt/.certs/logstash.key" type => "lumberjack" }
-      job/oneops.1.Job:
-        cronjob:
-          hour: 1
-          description: cron job to delete logs older than 1 days from /usr/local/var/log/elasticsearch/
-          cmd: /usr/bin/find /usr/local/var/log/elasticsearch/ -type f -mtime +0 -exec rm {} \;
+          version: $OO_LOCAL{version}
+          url: $OO_LOCAL{distbase}/oneops-search-$OO_LOCAL{version}.tar.gz
