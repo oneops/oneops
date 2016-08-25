@@ -1022,10 +1022,12 @@ public class CmsUtil {
 							resolvedValue = cloudVars
 									.get(stripSymbolics(resolvedValue));
 						} else {
-							if (resolvedValue.contains(GLOBALVARPFX)) {
-								resolvedValue = resolveGlobalVar(cloudVars,
+							while (resolvedValue.contains(GLOBALVARPFX)) {
+								String varName = stripSymbolics(resolvedValue);
+								String varValue = resolveGlobalVar(cloudVars,
 										globalVars,
-										stripSymbolics(resolvedValue)); // lookup in Global Map; it may refer to Cloud in turn but handled there
+										varName); // lookup in Global Map; it may refer to Cloud in turn but handled there
+								resolvedValue = resolvedValue.replaceAll(GLOBALVARRPL + varName + "}", varValue);
 							}
 						}
 					}
