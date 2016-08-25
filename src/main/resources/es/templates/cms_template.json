@@ -1,0 +1,41 @@
+{
+    "order": 1,
+    "template": "cms-*",
+    "settings": {},
+    "mappings": {
+      "_default_": {
+        "dynamic_templates": [
+          {
+            "time_fields": {
+              "mapping": {
+                "type": "float"
+              },
+              "match_mapping_type": "string",
+              "match": "*Time"
+            }
+          },
+          {
+            "string_fields": {
+              "mapping": {
+                "index": "analyzed",
+                "omit_norms": true,
+                "type": "string",
+                "fields": {
+                  "keyword": {
+                    "ignore_above": 256,
+                    "index": "not_analyzed",
+                    "type": "string"
+                  }
+                }
+              },
+              "match_mapping_type": "string",
+              "match": "*"
+            }
+          }
+        ]
+      }
+    },
+    "aliases": {
+      "cms": {}
+    }
+  }
