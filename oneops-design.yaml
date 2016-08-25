@@ -15,11 +15,11 @@ platforms:
      - transistor
      - amq
      variables:
-        opamp-search-retry-dir: /mnt/retry/opamp/search/
-        opamp-antenna-retry-dir: /mnt/retry/opamp/antenna/
+        search-retry-dir: /mnt/retry/opamp/search/
+        antenna-retry-dir: /mnt/retry/opamp/antenna/
         deploycontext: opamp
         notifypass: '::ENCRYPTED::'
-        version: opamp-$OO_GLOBAL{VERSION}
+        version: $OO_GLOBAL{VERSION}
         notifypass: '::ENCRYPTED::'
         ecv-user: $OO_GLOBAL{ECV-USER}
         ecv-secret: $OO_GLOBAL{ECV-USER}
@@ -29,6 +29,7 @@ platforms:
         tomcat-access-log-format: $OO_GLOBAL{TOMCAT-ACCESS-LOG-FORMAT}
         domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
         amqpass: $OO_GLOBAL{AMQPASS}
+        amquser: $OO_GLOBAL{AMQUSER}
         cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
         cms-db-user: $OO_GLOBAL{CMS-DB-USER}
         cms-db-pass: $OO_GLOBAL{CMS-DB-PASS}
@@ -125,6 +126,7 @@ platforms:
              KLOOPZ_NOTIFY_URL: https://$OO_LOCAL{domain-alias}/notify
              KLOOPZ_NOTIFY_PASS: $OO_LOCAL{notifypass}
              KLOOPZ_AMQ_PASS: $OO_LOCAL{amqpass}
+             AMQ_USER: $OO_LOCAL{amquser}
              CMS_DB_HOST: $OO_LOCAL{cms-db-host}
              CMS_DB_USER: $OO_LOCAL{cms-db-user}
              CMS_DB_PASS: $OO_LOCAL{cms-db-pass}
@@ -161,6 +163,7 @@ platforms:
        daemon/oneops.1.Daemon:
          daemon-tomcat:
            service_name: tomcat7
+           pattern: tomcat
            use_script_status: 'true'
            control_script_location: /etc/init.d/tomcat7
        artifact/oneops.1.Artifact:
@@ -182,6 +185,16 @@ platforms:
                              tomcat_user = "tomcat"
                            end
 
+                            retryDirs = ["$OO_LOCAL{search-retry-dir}","$OO_LOCAL{antenna-retry-dir}"]
+                            retryDirs.each do |retryDir|
+                              directory retryDir do
+                                owner tomcat_user
+                                group tomcat_user
+                                mode 0755
+                                recursive true
+                                action :create
+                              end
+                            end
 
                            execute "rm -f /usr/local/oneops/dist"
 
@@ -209,10 +222,10 @@ platforms:
 
            should_expand: 'true'
            checksum: ''
-           location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+           location: $OO_LOCAL{distbase}/oneops-opamp-$OO_LOCAL{deploycontext}-$OO_LOCAL{version}.tar.gz
            repository: '*Using full RepoURL*'
            version: $OO_LOCAL{version}
-           url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+           url: $OO_LOCAL{distbase}/oneops-opamp-$OO_LOCAL{deploycontext}-$OO_LOCAL{version}.tar.gz
            username: not_required
            attachments:
              disableECV:
