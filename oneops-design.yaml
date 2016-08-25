@@ -14,7 +14,7 @@ platforms:
      variables:
         deploycontext: transistor
         notifypass: '::ENCRYPTED::'
-        version: transistor-$OO_GLOBAL{VERSION}
+        version: $OO_GLOBAL{VERSION}
         ecv-user: $$OO_GLOBAL{ECV-USER}
         ecv-secret: $OO_GLOBAL{ECV-SECRET}
         tomcatloglocation: $OO_GLOBAL{TOMCATLOGLOCATION}
@@ -197,10 +197,10 @@ platforms:
 
            should_expand: 'true'
            checksum: ''
-           location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+           location: $OO_LOCAL{distbase}/oneops-transistor-$OO_LOCAL{version}.tar.gz
            repository: '*Using full RepoURL*'
            version: $OO_LOCAL{version}
-           url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+           url: $OO_LOCAL{distbase}/oneops-transistor-$OO_LOCAL{version}.tar.gz
            username: not_required
            attachments:
              disableECV:
