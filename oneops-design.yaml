@@ -24,6 +24,11 @@ variables:
   SEARCH-AMQ-USER: '**changeme**'
   VERSION: 16.06.24-RC1
   BACKUP-HOST : '**changeme**'
+  AMQDBNAME: 'amqdb'
+  AMQDBUSER: 'amqdb'
+  AMQDBPASS: '::ENCRYPTED::'
+  ACTIVITI-DB-PASS: '::ENCRYPTED::'
+  ACTIVITI-DB-USER: 'activiti'
 platforms:
     cmsdb:
      pack: oneops/postgresql:1
@@ -33,10 +38,10 @@ platforms:
         - cmsdb
       variables:
         deploycontext: adapter
-        version: adapter-$OO_GLOBAL{VERSION}
+        version: $OO_GLOBAL{VERSION}
         notifypass: '::ENCRYPTED::'
-        ecv-user: $$OO_GLOBAL{ECV-USER}
-        ecv-secret: $$OO_GLOBAL{ECV-SECRET}
+        ecv-user: $OO_GLOBAL{ECV-USER}
+        ecv-secret: $OO_GLOBAL{ECV-SECRET}
         tomcatloglocation: $OO_GLOBAL{TOMCATLOGLOCATION}
         tomcatheapdumppath: $OO_GLOBAL{TOMCATHEAPDUMPPATH}
         tomcatgclog: $OO_GLOBAL{TOMCATGCLOG}
@@ -159,6 +164,7 @@ platforms:
           daemon-tomcat:
             service_name: tomcat7
             use_script_status: 'true'
+            pattern: tomcat
             control_script_location: /etc/init.d/tomcat7
         artifact/oneops.1.Artifact:
           app:
@@ -206,10 +212,10 @@ platforms:
 
             should_expand: 'true'
             checksum: ''
-            location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{deploycontext}-$OO_LOCAL{version}.tar.gz
+            location: $OO_LOCAL{distbase}/oneops-adapter-$OO_LOCAL{version}.tar.gz
             repository: '*Using full RepoURL*'
             version: $OO_LOCAL{version}
-            url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{deploycontext}-$OO_LOCAL{version}.tar.gz
+            url: $OO_LOCAL{distbase}/oneops-adapter-$OO_LOCAL{version}.tar.gz
             username: not_required
             attachments:
               disableECV:
