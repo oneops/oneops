@@ -5,6 +5,13 @@ platforms:
   opsdb:
     pack: oneops/cassandra:1
     components:
+    compute/oneops.1.Compute:
+            compute:
+              size: XL
+              hosts:
+                daq: 127.0.0.1
+              additional_search_domains:
+              - $OO_GLOBAL{DOMAIN}
     file/oneops.1.File:
     compact:
       path: /opt/oneops/cassandra_compact.sh
