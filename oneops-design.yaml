@@ -1,0 +1,147 @@
+---
+platforms:
+  gw:
+    pack: oneops/inductor:1
+    major_version: '1'
+    variables:
+      oneops-admin-version: 1.0.0
+      circuit-oneops-1-version: changeme
+      truststore-password: '::ENCRYPTED::'
+      truststore-location: $OO_LOCAL{inductor-dir}/inductor/lib/client.ts
+      domain: changeme
+    components:
+      compute/oneops.1.Compute:
+        compute:
+          size: M
+      volume/oneops.1.Volume:
+        volume:
+          mount_point: $OO_LOCAL{inductor-dir}/inductor
+      library/oneops.1.Library:
+        library:
+          packages:
+          - lsof
+          - gcc-c++
+      daemon/oneops.1.Daemon:
+        daemon:
+          pattern: inductor-
+          use_script_status: 'false'
+      oneops-admin-gem/oneops.1.Artifact:
+        oneops-admin-gem:
+          restart: |
+            execute "chmod +s /usr/sbin/lsof"
+
+            execute "yum -y remove chef"
+
+            execute "gem uninstall oneops-admin --version $OO_LOCAL{oneops-admin-version} -x" do
+              only_if "gem list oneops-admin -i -v $OO_LOCAL{oneops-admin-version} | grep true"
+            end
+
+            execute "gem install $OO_LOCAL{inductor-dir}/oneops-admin-artifact/current/oneops/dist/oneops-admin-$OO_LOCAL{oneops-admin-version}.gem --no-ri --no-rdoc"
+
+            execute "inductor create" do
+              cwd "$OO_LOCAL{inductor-dir}"
+            end
+
+            file "/etc/profile.d/inductor.sh" do
+              content "INDUCTOR_HOME=$OO_LOCAL{inductor-dir}/inductor\nexport PATH=$PATH:/usr/local/bin"
+            end
+
+            file "/opt/oneops/inductor_env.sh" do
+              content "INDUCTOR_HOME=$OO_LOCAL{inductor-dir}/inductor\nexport PATH=$PATH:/usr/local/bin"
+            end
+
+            execute "inductor install_initd" do
+              cwd "$OO_LOCAL{inductor-dir}/inductor"
+            end
+
+            execute "inductor restart" do
+              cwd "$OO_LOCAL{inductor-dir}/inductor"
+            end
+      circuit/oneops.1.Artifact:
+        circuit-oneops-1:
+          install_dir: $OO_LOCAL{inductor-dir}/circuit-oneops-1
+          password: '::ENCRYPTED::'
+          restart: |
+              link "$OO_LOCAL{inductor-dir}/inductor/circuit-oneops-1" do
+                to "$OO_LOCAL{inductor-dir}/circuit-oneops-1/current"
+              end
+          as_user: root
+          as_group: root
+          repository: oneops_releases
+          location: $OO_LOCAL{oneops-dist}/circuit-oneops-1-$OO_LOCAL{circuit-oneops-1-version}.tar.gz
+          version: $OO_LOCAL{circuit-oneops-1-version}
+          depends:
+          - oneops-admin-gem
+      file/oneops.1.File:
+        logstash-forwarder-config:
+          path: /opt/logstash-forwarder/logstash-forwarder.conf
+          content: |
+            {
+                "files": [
+                    {
+                        "paths": [
+                            "$OO_LOCAL{inductor-dir}/inductor/clouds-available/*/log/inductor.log"
+                        ]
+                    }
+                ],
+                "network": {
+                    "servers": [
+                        "proxy.$OO_LOCAL{domain}:35854"
+                    ],
+                    "ssl ca": "/etc/logstash/cert/logstash-forwarder.crt"
+                }
+            }
+      inductor/oneops.1.Inductor:
+        inductor:
+          maxlocal: '10'
+          authkey: $OO_CLOUD{AUTHKEY}
+          perf_collector_cert: |
+            -----BEGIN CERTIFICATE-----
+            -----END CERTIFICATE-----
+          max: '100'
+          mqhost: amq.$OO_LOCAL{domain}
+          logstash_hosts: eslogs.$OO_LOCAL{domain}:35854
+          cert: |
+            -----BEGIN CERTIFICATE-----
+            -----END CERTIFICATE-----
+          amq_truststore_location: $OO_LOCAL{truststore-location}
+          additional_java_args: -Djdk.tls.allowUnsafeServerCertChange=true -Dstub.clouds=stub-dfw2a,stub-dfw2b  -DstubResultCode=0 -Dstub.responseTimeInSeconds=1 -Dnetworkaddress.cache.ttl=0 -Dsun.net.inetaddr.ttl=0 -Dsun.net.spi.nameservice.provider.1=dns,sun
+          url: https://web.$OO_LOCAL{domain}
+          queue: $OO_CLOUD{QUEUE}
+          collector_domain: $OO_LOCAL{domain}
+          attachments:
+            ssl-certificate:
+              headers: ''
+              path: /tmp/client_cert.txt
+              basic_auth_user: ''
+              basic_auth_password: '::ENCRYPTED::'
+              exec_cmd: |
+                TRUSTSTORE_FILE=$OO_LOCAL{truststore-location}
+                if [ -e "$TRUSTSTORE_FILE" ]
+                then
+                  mv $OO_LOCAL{truststore-location} $OO_LOCAL{truststore-location}.old
+                else
+                  TRUSTSTORE_DIR=${TRUSTSTORE_FILE%/*}
+                  mkdir -p $TRUSTSTORE_DIR
+                fi
+
+                cd /tmp
+                keytool -import -trustcacerts -noprompt -file client_cert.txt -alias currentCA -storepass $OO_LOCAL{truststore-password} -keystore $OO_LOCAL{truststore-location}
+                exec_res=$?
+                echo 'successfully imported cert to truststore [$OO_LOCAL{truststore-location}]'
+
+                rm -f client_cert.txt
+              checksum: ''
+              source: ''
+              priority: '1'
+              content: |
+                 -----BEGIN CERTIFICATE-----
+                 -----END CERTIFICATE-----
+              run_on: before-add,before-replace,before-update
+      java/oneops.1.Java:
+        java: {}
+      user/oneops.1.User:
+        ooadmin:
+          authorized_keys:
+          description: /home/ooadmin
+          username: ooadmin
