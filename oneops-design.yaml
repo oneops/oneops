@@ -179,19 +179,13 @@ platforms:
                             node.set["tomcat"] = {
                               :webapp_dir => "/opt/tomcat7/webapps"
                             }
-                            tomcat_user = "tomcat6"
-                            case node.platform
-                            when "redhat","centos","fedora"
-                              tomcat_user = "tomcat"
-                            end
-
+                            tomcat_user = "tomcat"
 
                             execute "rm -f /usr/local/oneops/dist"
 
                             link "/usr/local/oneops/dist" do
                               to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
                             end
-
 
                             # war cleanup and deploy
                             ["$OO_LOCAL{deploycontext}"].each do |war|
@@ -202,8 +196,7 @@ platforms:
                               execute "#{war} war deploy" do
                                  command "cp #{node[:oneops][:home]}/dist/#{war}*.war #{node[:tomcat][:webapp_dir]}"
                               end
-
-                            end
+                           end
 
                             service "tomcat7" do
                               action :restart
