@@ -2,11 +2,215 @@
 variables:
 
 platforms:
-  daqws:
-    pack: oneops/tomcat:1
 
+  opsmq:
+     pack: oneops/activemq:1
+  daqdb:
+    pack: oneops/cassandra:1
+    description: Data Acquisition - Logstash and oneops.1.Cassandra for Perf data
+    links:
+    - opsmq
     variables:
-        deploycontext: antenna
+      distbase: $OO_GLOBAL{DISTBASE}
+      install-dir: $OO_GLOBAL{INSTALL-DIR}
+      version: $OO_GLOBAL{VERSION}
+    components:
+      file/oneops.1.File:
+        compact:
+          path: /opt/oneops/cassandra_compact.sh
+          exec_cmd: chmod +x /opt/oneops/cassandra_compact.sh
+          content: |
+              #!/bin/bash
+              INDEX=`hostname | cut -d '-' -f3`
+              TIMESTAMP=`date +"%y%m%d"`
+              LOG="/var/log/cassandra/compact-$TIMESTAMP.log"
+              SLEEP_TIME=$((($INDEX - 1) * 14400))
+              echo "sleep $SLEEP_TIME" > $LOG
+              sleep $SLEEP_TIME
+              df -k >>$LOG
+              date >>$LOG
+              time /opt/cassandra/bin/nodetool compact >>LOG 2>&1
+              date >>$LOG
+              df -k >>$LOG
+
+        daq-join-on-start:
+          path: /tmp/t
+          exec_cmd: echo "sleep 10; nodetool -h localhost join" > /etc/rc.local
+          content: na
+        logrotate:
+          path: /etc/logrotate.d/oneops-log
+          exec_cmd: 'mv /etc/cron.daily/logrotate /etc/cron.hourly/ ; rm -fr /etc/logrotate.d/oneops '
+          content: |
+            /opt/oneops/log/*.log
+            {
+              copytruncate
+              compress
+              size 10M
+              rotate 1
+              prerotate rm -fr /opt/oneops/log/*.gz
+              endscript
+            }
+        logstash-cert:
+          path: /opt/.certs/logstash.crt
+        logstash-key:
+          path: /opt/.certs/logstash.key
+      compute/oneops.1.Compute:
+        compute:
+          size: XL
+          hosts:
+            daq: 127.0.0.1
+          additional_search_domains:
+          - $OO_GLOBAL{DOMAIN}
+      volume/oneops.1.Volume:
+        volume:
+          size: 100%FREE
+          mount_point: /var/lib/cassandra
+          fstype: xfs
+      cassandra/oneops.1.Cassandra:
+        cassandra:
+          cluster: TestCluster
+          max_heap_size: default
+          seed_count: '1'
+          num_tokens: '256'
+          partitioner: org.apache.cassandra.dht.RandomPartitioner
+          version: '2.0'
+          heap_newsize: default
+          endpoint_snitch: org.apache.cassandra.locator.Propertyoneops.1.FileSnitch
+      user/oneops.1.User:
+        ooadmin:
+          home_directory_mode: '755'
+          home_directory: /home/ooadmin
+          description: ''
+          login_shell: /bin/bash
+          ulimit: '16384'
+          username: ooadmin
+      keyspace/oneops.1.Keyspace:
+        keyspace-mdb:
+          placement_strategy: NetworkTopologyStrategy
+          keyspace_name: mdb
+          replication_factor: '2'
+
+      secgroup/oneops.1.Secgroup:
+        secgroup: {}
+      java/oneops.1.Java:
+        java:
+          install_dir: /usr/lib/jvm
+          version: '8'
+      artifact/oneops.1.Artifact:
+        collector-artifact:
+          install_dir: /opt/oneops/artifact
+          password: '::ENCRYPTED::'
+          as_user: root
+          restart: |
+              execute "cp /opt/oneops/artifact/releases/$OO_GLOBAL{VERSION}/oneops/dist/daq-collector-1.0.0.jar /opt/oneops/artifact/releases/$OO_GLOBAL{VERSION}/oneops/dist/daq-1.0.0.jar"
+
+               service "logstash" do
+                  action [:enable,:restart]
+                  only_if { File.exists?('/etc/init.d/logstash') }
+               end
+
+              execute "chmod a+rx /etc/init.d/cassandra"
+              execute "cd /opt/oneops; jar xf /opt/oneops/artifact/releases/$OO_GLOBAL{VERSION}/oneops/dist/daq-1.0.0.jar logstash-custom-output-plugin.rb"
+               #End of restart
+          should_expand: 'true'
+          checksum: ''
+          location: $OO_LOCAL{distbase}/oneops-daq-$OO_LOCAL{version}.tar.gz
+          repository: '*Using full RepoURL*'
+          version: $OO_LOCAL{version}
+          url: $OO_LOCAL{distbase}/oneops-daq-$OO_LOCAL{version}.tar.gz
+          username: not_required
+      job/oneops.1.Job:
+        job:
+          hour: '14'
+          month: '*'
+          weekday: '5'
+          description: compact
+          cmd: /opt/oneops/cassandra_compact.sh
+          user: root
+          day: '*'
+          minute: '40'
+      daemon/oneops.1.Daemon:
+        daemon-cassandra:
+          service_name: cassandra
+          control_script_location: /etc/init.d/cassandra
+          pattern: cassandra
+        ntpd:
+          service_name: ntpd
+          use_script_status: 'true'
+          control_script_location: /etc/init.d/ntpd
+      logstash/oneops.1.Logstash:
+        logstash:
+          outputs:
+           - if "drop" not in [tags] {     oneopsdaq {codec => json }   }   if "metric" in [tags] { file {   message_format => "%{events.rate_1m}"  path=> "/var/run/logstash_metric"         }    }
+
+          inputs:
+           - 'lumberjack {     port => 4000 ssl_certificate => "/opt/.certs/logstash.crt"     ssl_key => "/opt/.certs/logstash.key"   } '
+          filters:
+           - throttle {     key => "%{host}"     after_count => 2500     period => 30     add_tag => "drop"   }  metrics { meter => "events" add_tag => "metric"   }
+          version: 1.5.3
+          attachments:
+            daq-env-variables:
+              headers: ''
+              path: /etc/default/logstash
+              basic_auth_user: ''
+              exec_cmd: ''
+              basic_auth_password: '::ENCRYPTED::'
+              checksum: ''
+              source: ''
+              priority: '1'
+              content: |
+                  export KLOOPZ_AMQ_PASS=amqsecret
+                  export UOPTS=-Dpoolsize=$OO_GLOBAL{SENSORPOOLSIZE}
+                  export UOPTS="$UOPTS -Doo.cassandra.client.active_clients=128"
+                  export UOPTS="$UOPTS -Doo.cassandra.client.timeout=5000"
+                  export UOPTS="$UOPTS -Doo.cassandra.client.auto_discovery=true"
+                  export LS_HEAP_SIZE=1000m
+                  export LS_JAVA_OPTS="$UOPTS"
+                  export LS_WORKER_THREADS=100
+              run_on: before-add,after-replace,before-update
+            logstash-oneops-output-plugin:
+              headers: ''
+              path: /opt/oneops/copy_ls_daq_output_plugin.sh
+              basic_auth_password: '::ENCRYPTED::'
+              basic_auth_user: ''
+              exec_cmd: "chmod +x /opt/oneops/copy_ls_daq_output_plugin.sh;
+                         /opt/oneops/copy_ls_daq_output_plugin.sh;"
+              checksum: ''
+              source: ''
+              priority: '1'
+              content: |
+                mkdir -p /opt/logstash/vendor/jar/oneopsdaq-1.0.0/lib;
+                mkdir -p /opt/logstash/lib/logstash/outputs;
+                cp /opt/oneops/logstash-custom-output-plugin.rb /opt/logstash/lib/logstash/outputs/oneopsdaq.rb ;
+                cp /opt/oneops/logstash-custom-output-plugin.rb /opt/logstash/vendor/bundle/jruby/1.9/gems/logstash-core-1.5.3-java/lib/logstash/outputs/oneopsdaq.rb
+                sudo service logstash restart;
+
+              run_on: after-add,after-replace,after-update
+      haproxy/oneops.1.Haproxy:
+        haproxy:
+          stats_socket_location: /var/lib/haproxy/stats
+          listeners:
+            '5000': '4000'
+          maxconn_defaults: '32000'
+          timeout_connect: 500s
+          timeout_client: 60s
+          maxconn_server: '1500'
+          lbmethod: roundrobin
+          retries: '3'
+          stats_web_port: '1936'
+          timeout_server: 60s
+          check_port : 4000
+          options:
+          - dontlognull
+          - redispatch
+          lbmode: tcp
+          enable_stats_socket: 'true'
+  daq:
+    pack: oneops/tomcat:1
+    links:
+     - daqdb
+    variables:
+        deploycontext: daq
         version: daq-api-$OO_GLOBAL{VERSION}
         notifypass: '::ENCRYPTED::'
         ecv-user: $$OO_GLOBAL{ECV-USER}
@@ -17,14 +221,14 @@ platforms:
         tomcat-access-log-format: $OO_GLOBAL{TOMCAT-ACCESS-LOG-FORMAT}
         domain-alias: $OO_GLOBAL{DOMAIN-ALIAS}
         cms-db-host: $OO_GLOBAL{CMS-DB-HOST}
-        cms-db-user: OO_GLOBAL{CMS-DB-USER}
-        cms-db-pass: OO_GLOBAL{CMS-DB-PASS}
-        api-user: OO_GLOBAL{API-USER}
-        api-secret: OO_GLOBAL{API-SECRET}
+        cms-db-user: $OO_GLOBAL{CMS-DB-USER}
+        cms-db-pass: $OO_GLOBAL{CMS-DB-PASS}
+        api-user: $OO_GLOBAL{API-USER}
+        api-secret: $OO_GLOBAL{API-SECRET}
         distbase: $OO_GLOBAL{DISTBASE}
         install-dir: $OO_GLOBAL{INSTALL-DIR}
-        cms-des-file-location: OO_GLOBAL{CMS-DES-FILE-LOCATION}
-        cms-db-des-key: OO_GLOBAL{CMS-DB-DES-KEY}
+        cms-des-file-location: $OO_GLOBAL{CMS-DES-FILE-LOCATION}
+        cms-db-des-key: $OO_GLOBAL{CMS-DB-DES-KEY}
     components:
       tomcat/oneops.1.Tomcat:
         tomcat:
@@ -118,8 +322,11 @@ platforms:
               path: /tmp/download_file
               headers: ''
               basic_auth_user: ''
-              exec_cmd: "CERT_FILE=$OO_LOCAL{cms-des-file-location}\r\nCERT_DIR=$OO_LOCAL{install-dir}/certs/\r\nmkdir
-                -p $CERT_DIR\r\necho $OO_LOCAL{cms-db-des-key}>$CERT_DIR/oo.key\r\n\r\n\r\n\r\n"
+              exec_cmd: |
+                CERT_FILE=$OO_LOCAL{cms-des-file-location}
+                CERT_DIR=$OO_LOCAL{install-dir}/certs/
+                mkdir -p $CERT_DIR
+                echo $OO_LOCAL{cms-db-des-key}>$CERT_DIR/oo.key
               basic_auth_password: '::ENCRYPTED::'
               checksum: ''
               source: ''
@@ -131,6 +338,7 @@ platforms:
           service_name: tomcat7
           use_script_status: 'true'
           control_script_location: /etc/init.d/tomcat7
+          pattern: tomcat
       artifact/oneops.1.Artifact:
         app:
           install_dir: /opt/oneops/artifact
@@ -144,12 +352,7 @@ platforms:
                           node.set["tomcat"] = {
                             :webapp_dir => "/opt/tomcat7/webapps"
                           }
-                          tomcat_user = "tomcat6"
-                          case node.platform
-                          when "redhat","centos","fedora"
-                            tomcat_user = "tomcat"
-                          end
-
+                          tomcat_user = "tomcat"
 
                           execute "rm -f /usr/local/oneops/dist"
 
@@ -157,9 +360,8 @@ platforms:
                             to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
                           end
 
-
                           # war cleanup and deploy
-                          ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
+                          ["$OO_LOCAL{deploycontext}"].each do |war|
 
                             execute "#{war} war clean" do
                                command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
@@ -177,10 +379,10 @@ platforms:
 
           should_expand: 'true'
           checksum: ''
-          location: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          location: $OO_LOCAL{distbase}/oneops-daq-api-1.0.0-$OO_LOCAL{version}.tar.gz
           repository: '*Using full RepoURL*'
           version: $OO_LOCAL{version}
-          url: $OO_LOCAL{distbase}/oneops-$OO_LOCAL{version}.tar.gz
+          url: $OO_LOCAL{distbase}/oneops-daq-api-1.0.0-$OO_LOCAL{version}.tar.gz
           username: not_required
           attachments:
             disableECV:
