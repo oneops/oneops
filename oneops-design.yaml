@@ -14,6 +14,7 @@ platforms:
       distbase: $OO_GLOBAL{DISTBASE}
       install-dir: $OO_GLOBAL{INSTALL-DIR}
       version: $OO_GLOBAL{VERSION}
+      sensorpoolsize: $OO_GLOBAL{SENSOR-POOL-SIZE}
     components:
       file/oneops.1.File:
         compact:
@@ -160,7 +161,7 @@ platforms:
               priority: '1'
               content: |
                   export KLOOPZ_AMQ_PASS=amqsecret
-                  export UOPTS=-Dpoolsize=$OO_GLOBAL{SENSORPOOLSIZE}
+                  export UOPTS=-Dpoolsize=$OO_LOCAL{sensorpoolsize}
                   export UOPTS="$UOPTS -Doo.cassandra.client.active_clients=128"
                   export UOPTS="$UOPTS -Doo.cassandra.client.timeout=5000"
                   export UOPTS="$UOPTS -Doo.cassandra.client.auto_discovery=true"
