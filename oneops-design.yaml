@@ -5,11 +5,14 @@ platforms:
     pack: oneops/activemq:1
   amq:
     pack: oneops/activemq:1
+  cmsdb:
+      pack: oneops/postgresql:1
   opsdb:
     pack: oneops/cassandra:1
   sensor:
     pack: oneops/tomcat:1
     links:
+     - cmsdb
      - amq
      - opsmq
      - opsdb
