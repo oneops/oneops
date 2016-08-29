@@ -4,13 +4,13 @@ variables:
 platforms:
    amq:
      pack: oneops/activemq:1
-   adapter:
-     pack: oneops/tomcat:1
+   cmsdb:
+       pack: oneops/postgresql:1
    antenna:
      pack: oneops/tomcat:1
      description: Responsible for persisting and sending  notifications
      links:
-     - adapter
+     - cmsdb
      - amq
      variables:
        deploycontext: antenna
@@ -229,6 +229,12 @@ platforms:
                priority: '1'
                content: ''
                run_on: on-demand
+       lb/oneops.1.Lb:
+         lb:
+          listeners:
+           - http 8080 http 8080
+          ecv_map:
+            '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
        keystore/oneops.1.Keystore:
          keystore:
            keystore_password: '::ENCRYPTED::'
