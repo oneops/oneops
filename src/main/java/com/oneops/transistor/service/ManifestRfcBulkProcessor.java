@@ -45,6 +45,7 @@ import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.domain.AttrQueryCondition;
@@ -69,7 +70,6 @@ public class ManifestRfcBulkProcessor {
 	private static final String MGMT_MANIFEST_WATCHEDBY = "mgmt.manifest.WatchedBy";
 	private static final String MANIFEST_WATCHEDBY = "manifest.WatchedBy";
 	private static final String MANIFEST_MONITOR = "manifest.Monitor";	
-	private static final String STATE_PENDING_DELETION = "pending_deletion";
 	
 	private static final Set<String> DUMMY_RELS = initSet(MANIFEST_WATCHEDBY);
 	
@@ -606,16 +606,18 @@ public class ManifestRfcBulkProcessor {
 		Map<String, Edge> edges = new HashMap<String, Edge>();
 		for (CmsCIRelation templateRel:templateRels) {
 			CmsCI templatePlatformResource = templateRel.getToCi();
-			if (templatePlatformResource.getCiState().equalsIgnoreCase(STATE_PENDING_DELETION)) {
-				boolean resourcePendingDeletion = true;
+			if (CmsConstants.CI_STATE_PENDING_DELETION.equals(templatePlatformResource.getCiState())) {
+				boolean templateResourcePendingDeletion = true;
 				for (CmsCIRelation userDesignRel:userRels) {
 					CmsCI userPlatformResource = userDesignRel.getToCi();
-					if (userPlatformResource.getCiClassName().replaceAll("catalog", "mgmt.manifest")
+					if (userPlatformResource.getCiClassName().replaceAll("catalog\\.", "mgmt.manifest.")
 							.equals(templatePlatformResource.getCiClassName())) {//the resource exists in design too
-						resourcePendingDeletion = false;//do not omit the resource because it has design ci too.
+						templateResourcePendingDeletion = false;//do not omit the resource because it has design ci too.
 					}
 				}
-				if (resourcePendingDeletion) {
+				if (templateResourcePendingDeletion) {
+					logger.info(templatePlatformResource.getCiName() + " template resource with ciId " 
+				+ templatePlatformResource.getCiId() +  " is marked for deletion");
 					continue;	
 				}
 			}
