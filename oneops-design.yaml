@@ -29,6 +29,8 @@ variables:
   AMQDBPASS: '::ENCRYPTED::'
   ACTIVITI-DB-PASS: '::ENCRYPTED::'
   ACTIVITI-DB-USER: 'activiti'
+  DAQ-DB: 'daqdb'
+  SENSOR-POOL-SIZE : '1'
 platforms:
     cmsdb:
      pack: oneops/postgresql:1
@@ -166,6 +168,17 @@ platforms:
             use_script_status: 'true'
             pattern: tomcat
             control_script_location: /etc/init.d/tomcat7
+        lb/oneops.1.Lb:
+         lb:
+          listeners:
+           - http 8080 http 8080
+          ecv_map:
+            '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
+        fqdn/oneops.1.Fqdn:
+         fqdn:
+          aliases:
+           - cmsapi
+
         artifact/oneops.1.Artifact:
           app:
             install_dir: /opt/oneops/artifact
@@ -179,19 +192,13 @@ platforms:
                             node.set["tomcat"] = {
                               :webapp_dir => "/opt/tomcat7/webapps"
                             }
-                            tomcat_user = "tomcat6"
-                            case node.platform
-                            when "redhat","centos","fedora"
-                              tomcat_user = "tomcat"
-                            end
-
+                            tomcat_user = "tomcat"
 
                             execute "rm -f /usr/local/oneops/dist"
 
                             link "/usr/local/oneops/dist" do
                               to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
                             end
-
 
                             # war cleanup and deploy
                             ["$OO_LOCAL{deploycontext}"].each do |war|
@@ -202,8 +209,7 @@ platforms:
                               execute "#{war} war deploy" do
                                  command "cp #{node[:oneops][:home]}/dist/#{war}*.war #{node[:tomcat][:webapp_dir]}"
                               end
-
-                            end
+                           end
 
                             service "tomcat7" do
                               action :restart
