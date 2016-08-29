@@ -64,7 +64,7 @@ platforms:
             oneops.url: https://$OO_LOCAL{domain-alias}
             oo.cassandra.client.active_clients: 10
             oo.cassandra.client.timeout: 5000
-
+            es.host: searchdb
           post_startup_command: |
                       #!/bin/sh
                       function check_ecv_status {
@@ -170,6 +170,14 @@ platforms:
           use_script_status: 'true'
           control_script_location: /etc/init.d/tomcat7
           pattern: tomcat
+
+      lb/oneops.1.Lb:
+        lb:
+          listeners:
+           - http 8080 http 8080
+          ecv_map:
+            '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
+
       artifact/oneops.1.Artifact:
         app:
           install_dir: /opt/oneops/artifact
