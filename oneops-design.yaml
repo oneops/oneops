@@ -2,14 +2,12 @@
 variables:
 
 platforms:
-   adapter:
-     pack: oneops/tomcat:1
-   transmitter:
-     pack: oneops/tomcat:1
-   transistor:
+  cmsdb:
+     pack: oneops/postgresql:1
+  transistor:
      pack: oneops/tomcat:1
      links:
-     - adapter
+     - cmsdb
      - transmitter
      variables:
         deploycontext: transistor
@@ -164,13 +162,7 @@ platforms:
                            node.set["tomcat"] = {
                              :webapp_dir => "/opt/tomcat7/webapps"
                            }
-                           tomcat_user = "tomcat6"
-                           case node.platform
-                           when "redhat","centos","fedora"
-                             tomcat_user = "tomcat"
-                           end
-
-
+                           tomcat_user = "tomcat"
                            execute "rm -f /usr/local/oneops/dist"
 
                            link "/usr/local/oneops/dist" do
@@ -239,3 +231,9 @@ platforms:
            home_directory: '/home/ooadmin'
            ulimit: '16384'
            username: ooadmin
+       lb/oneops.1.Lb:
+          lb:
+           listeners:
+             - http 8080 http 8080
+           ecv_map:
+            '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
