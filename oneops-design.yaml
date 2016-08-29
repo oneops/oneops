@@ -4,12 +4,12 @@ variables:
 platforms:
    amq:
      pack: oneops/activemq:1
-   adapter:
-     pack: oneops/tomcat:1
+   cmsdb:
+     pack: oneops/postgresql:1
    opamp:
      pack: oneops/tomcat:1
      links:
-     - adapter
+     - cmsdb
      - amq
      variables:
         search-retry-dir: /mnt/retry/opamp/search/
