@@ -6,14 +6,14 @@ platforms:
     pack: oneops/activemq:1
   activitidb:
     pack: oneops/postgresql:1
-  transistor:
-    pack: oneops/tomcat:1
+  cmsdb:
+    pack: oneops/postgresql:1
   searchdb:
     pack: oneops/es:1
   controller:
     pack: oneops/tomcat:1
     links:
-         - transistor
+         - cmsdb
          - activitidb
          - amq
          - searchdb
