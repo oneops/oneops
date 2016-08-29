@@ -30,6 +30,7 @@ variables:
   ACTIVITI-DB-PASS: '::ENCRYPTED::'
   ACTIVITI-DB-USER: 'activiti'
   DAQ-DB: 'daqdb'
+  SENSOR-POOL-SIZE : '1'
 platforms:
     cmsdb:
      pack: oneops/postgresql:1
