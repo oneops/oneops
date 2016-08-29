@@ -29,6 +29,7 @@ variables:
   AMQDBPASS: '::ENCRYPTED::'
   ACTIVITI-DB-PASS: '::ENCRYPTED::'
   ACTIVITI-DB-USER: 'activiti'
+  DAQ-DB: 'daqdb'
 platforms:
     cmsdb:
      pack: oneops/postgresql:1
@@ -166,6 +167,17 @@ platforms:
             use_script_status: 'true'
             pattern: tomcat
             control_script_location: /etc/init.d/tomcat7
+        lb/oneops.1.Lb:
+         lb:
+          listeners:
+           - http 8080 http 8080
+          ecv_map:
+            '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
+        fqdn/oneops.1.Fqdn:
+         fqdn:
+          aliases:
+           - cmsapi
+
         artifact/oneops.1.Artifact:
           app:
             install_dir: /opt/oneops/artifact
