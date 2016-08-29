@@ -4,15 +4,12 @@ variables:
 platforms:
    amq:
      pack: oneops/activemq:1
-   adapter:
-     pack: oneops/tomcat:1
-   transistor:
-     pack: oneops/tomcat:1
+   cmsdb:
+     pack: oneops/postgresql:1
    opamp:
      pack: oneops/tomcat:1
      links:
-     - adapter
-     - transistor
+     - cmsdb
      - amq
      variables:
         search-retry-dir: /mnt/retry/opamp/search/
@@ -172,19 +169,13 @@ platforms:
            password: '::ENCRYPTED::'
            restart: |
                  node.set["oneops"] = {
-
-                               :home => "/usr/local/oneops",
+                             :home => "/usr/local/oneops",
                              :install_dir => "/usr/local/oneops"
                            }
                            node.set["tomcat"] = {
                              :webapp_dir => "/opt/tomcat7/webapps"
                            }
-                           tomcat_user = "tomcat6"
-                           case node.platform
-                           when "redhat","centos","fedora"
-                             tomcat_user = "tomcat"
-                           end
-
+                           tomcat_user = "tomcat"
                             retryDirs = ["$OO_LOCAL{search-retry-dir}","$OO_LOCAL{antenna-retry-dir}"]
                             retryDirs.each do |retryDir|
                               directory retryDir do
@@ -197,12 +188,9 @@ platforms:
                             end
 
                            execute "rm -f /usr/local/oneops/dist"
-
                            link "/usr/local/oneops/dist" do
                              to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
                            end
-
-
                            # war cleanup and deploy
                            ["$OO_LOCAL{deploycontext}"].each do |war|
 
@@ -222,10 +210,10 @@ platforms:
 
            should_expand: 'true'
            checksum: ''
-           location: $OO_LOCAL{distbase}/oneops-opamp-$OO_LOCAL{deploycontext}-$OO_LOCAL{version}.tar.gz
+           location: $OO_LOCAL{distbase}/oneops-opamp-$OO_LOCAL{version}.tar.gz
            repository: '*Using full RepoURL*'
            version: $OO_LOCAL{version}
-           url: $OO_LOCAL{distbase}/oneops-opamp-$OO_LOCAL{deploycontext}-$OO_LOCAL{version}.tar.gz
+           url: $OO_LOCAL{distbase}/oneops-opamp-$OO_LOCAL{version}.tar.gz
            username: not_required
            attachments:
              disableECV:
@@ -258,6 +246,13 @@ platforms:
            keystore_filename: /var/lib/certs/keystore.jks
        certificate/oneops.1.Certificate:
          certificate: {}
+
+       lb/oneops.1.Lb:
+         lb:
+           listeners:
+            - http 8080 http 8080
+           ecv_map:
+            '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
        user/oneops.1.User:
          ooadmin:
            home_directory_mode: '755'
