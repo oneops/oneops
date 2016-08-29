@@ -4,13 +4,13 @@ variables:
 platforms:
    amq:
      pack: oneops/activemq:1
-   adapter:
-     pack: oneops/tomcat:1
+   cmsdb:
+     pack: oneops/postgresql:1
    transmitter:
      pack: oneops/tomcat:1
      links:
-     - adapter
      - amq
+     - cmsdb
      variables:
         antenna-retry-dir: /mnt/retry/transmitter/antenna/
         deploycontext: transmitter
@@ -168,8 +168,7 @@ platforms:
            password: '::ENCRYPTED::'
            restart: |
                  node.set["oneops"] = {
-
-                               :home => "/usr/local/oneops",
+                             :home => "/usr/local/oneops",
                              :install_dir => "/usr/local/oneops"
                            }
                            node.set["tomcat"] = {
@@ -189,17 +188,14 @@ platforms:
                               end
                             end
 
-
                            execute "rm -f /usr/local/oneops/dist"
 
                            link "/usr/local/oneops/dist" do
                              to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
                            end
 
-
                            # war cleanup and deploy
-                           ["$OO_LOCAL{deploycontext}", "cms-admin"].each do |war|
-
+                           ["$OO_LOCAL{deploycontext}"].each do |war|
                              execute "#{war} war clean" do
                                 command "rm -fr #{node[:tomcat][:webapp_dir]}/#{war}*"
                              end
@@ -258,3 +254,9 @@ platforms:
            home_directory: '/home/ooadmin'
            ulimit: '16384'
            username: ooadmin
+       lb/oneops.1.Lb:
+        lb:
+         listeners:
+          - http 8080 http 8080
+         ecv_map:
+          '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
