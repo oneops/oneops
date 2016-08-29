@@ -5,14 +5,11 @@ platforms:
     pack: oneops/activemq:1
   amq:
     pack: oneops/activemq:1
-  adapter:
-    pack: oneops/tomcat:1
   opsdb:
     pack: oneops/cassandra:1
   sensor:
     pack: oneops/tomcat:1
     links:
-     - adapter
      - amq
      - opsmq
      - opsdb
@@ -22,7 +19,7 @@ platforms:
         esper-repository: Spring-milestone-repository
         notifypass: '::ENCRYPTED::'
         esper-install-dir: /opt/oneops/artifact/esper
-        sensorpoolsize: 3
+        sensorpoolsize: $OO_GLOBAL{SENSOR-POOL-SIZE}
         version: $OO_GLOBAL{VERSION}
         ecv-user: $$OO_GLOBAL{ECV-USER}
         ecv-secret: $OO_GLOBAL{ECV-SECRET}
@@ -44,6 +41,7 @@ platforms:
         search-amq-user: $OO_GLOBAL{SEARCH-AMQ-USER}
         search-amq-pass: $OO_GLOBAL{SEARCH-AMQ-PASS}
         domain: $OO_GLOBAL{DOMAIN}
+        daq-db: $OO_GLOBAL{DAQ-DB}
     components:
       compute/oneops.1.Compute:
         compute:
@@ -142,6 +140,7 @@ platforms:
             API_ACESS_CONTROL: permitAll
             SEARCHMQ_USER: $OO_LOCAL{search-amq-user}
             SEARCHMQ_PASS: $OO_LOCAL{search-amq-pass}
+            DAQ_DB_PORT: $OO_LOCAL{daq-db}
           port: '8080'
           mem_max: 4096m
           tomcat_install_dir: /opt
@@ -178,19 +177,12 @@ platforms:
                           node.set["tomcat"] = {
                             :webapp_dir => "/opt/tomcat7/webapps"
                           }
-                          tomcat_user = "tomcat6"
-                          case node.platform
-                          when "redhat","centos","fedora"
-                            tomcat_user = "tomcat"
-                          end
-
-
+                          tomcat_user = "tomcat"
                           execute "rm -f /usr/local/oneops/dist"
 
                           link "/usr/local/oneops/dist" do
                             to "/opt/oneops/artifact/releases/$OO_LOCAL{version}/oneops/dist"
                           end
-
 
                           # war cleanup and deploy
                           ["$OO_LOCAL{deploycontext}"].each do |war|
@@ -275,3 +267,9 @@ platforms:
           home_directory: '/home/ooadmin'
           ulimit: '16384'
           username: ooadmin
+      lb/oneops.1.Lb:
+        lb:
+         listeners:
+          - http 8080 http 8080
+         ecv_map:
+          '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
