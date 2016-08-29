@@ -229,6 +229,7 @@ platforms:
         install-dir: $OO_GLOBAL{INSTALL-DIR}
         cms-des-file-location: $OO_GLOBAL{CMS-DES-FILE-LOCATION}
         cms-db-des-key: $OO_GLOBAL{CMS-DB-DES-KEY}
+        daq-db: $OO_GLOBAL{DAQ-DB}
     components:
       tomcat/oneops.1.Tomcat:
         tomcat:
@@ -313,6 +314,7 @@ platforms:
             API_USER: $OO_LOCAL{api-user}
             API_SECRET: $OO_LOCAL{api-secret}
             CMS_DES_PEM: $OO_LOCAL{cms-des-file-location}
+            DAQ_DB: $OO_LOCAL{daq-db}
           port: '8080'
           mem_max: 4096m
           tomcat_install_dir: /opt
@@ -353,6 +355,14 @@ platforms:
                             :webapp_dir => "/opt/tomcat7/webapps"
                           }
                           tomcat_user = "tomcat"
+                          daq_log = "/opt/oneops/log/daq.log"
+                          execute "mkdir -p #{File.dirname(daq_log)};chmod +wx #{File.dirname(daq_log)} ;"
+                          file "#{daq_log}" do
+                             owner tomcat_user
+                             group tomcat_user
+                             action :create
+                             not_if { File.file?(daq_log) }
+                           end
 
                           execute "rm -f /usr/local/oneops/dist"
 
@@ -409,6 +419,17 @@ platforms:
               priority: '1'
               content: ''
               run_on: on-demand
+      lb/oneops.1.Lb:
+       lb:
+        listeners:
+         - http 8080 http 8080
+        ecv_map:
+          '8080': GET /$OO_LOCAL{deploycontext}/rest/ecv/status
+
+      fqdn/oneops.1.Fqdn:
+       fqdn:
+        aliases:
+         - daqws
       keystore/oneops.1.Keystore:
         keystore:
           keystore_password: '::ENCRYPTED::'
