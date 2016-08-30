@@ -607,18 +607,14 @@ public class ManifestRfcBulkProcessor {
 		for (CmsCIRelation templateRel:templateRels) {
 			CmsCI templatePlatformResource = templateRel.getToCi();
 			if (CmsConstants.CI_STATE_PENDING_DELETION.equals(templatePlatformResource.getCiState())) {
-				boolean templateResourcePendingDeletion = true;
-				for (CmsCIRelation userDesignRel:userRels) {
-					CmsCI userPlatformResource = userDesignRel.getToCi();
-					if (userPlatformResource.getCiClassName().replaceAll("catalog\\.", "mgmt.manifest.")
-							.equals(templatePlatformResource.getCiClassName())) {//the resource exists in design too
-						templateResourcePendingDeletion = false;//do not omit the resource because it has design ci too.
-					}
-				}
-				if (templateResourcePendingDeletion) {
+				int index = templatePlatformResource.getNsPath().lastIndexOf("/");
+				String catalogPlatformNsPath = templatePlatformResource.getNsPath().substring(0, index);
+				List<CmsCI> catalogTemplateCis = cmProcessor.getCiBy3(catalogPlatformNsPath, 
+						templatePlatformResource.getCiClassName().replaceAll("mgmt\\.manifest\\.", "mgmt.catalog."), templatePlatformResource.getCiName());
+				if (catalogTemplateCis != null && catalogTemplateCis.size() == 0) {//It is "manifest-only" resource that is now pending for deletion 
 					logger.info(templatePlatformResource.getCiName() + " template resource with ciId " 
 				+ templatePlatformResource.getCiId() +  " is marked for deletion");
-					continue;	
+					continue;	//skip this rel because the resource is pending deletion
 				}
 			}
 			Edge edge = new Edge();
