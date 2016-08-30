@@ -25,24 +25,19 @@ impl = ARGV[0]
 json_context = ARGV[1]
 cookbook_path = ARGV[2] || ''
 
-if File.file?("C:/cygwin64" + json_context)
-  wo_file = File.read("C:/cygwin64" + json_context)
-else File.file?(json_context)
-  wo_file = File.read(json_context)
+puts "RUBY_PLATFORM IS: #{RUBY_PLATFORM}"
+case RUBY_PLATFORM
+when /mingw32/
+  ostype = 'windows'
+  puts 'Setting ostype to windows'
+when /linux/
+  ostype = 'linux'
+  puts 'Setting ostype to linux'
+else
+  puts 'leaving ostype as nil'
 end
-wo_hash = JSON.parse(wo_file)
-ostype = wo_hash['workorder']['rfcCi']['ciAttributes']['ostype']
-if ostype.nil?
-  # check for a DependsOn relationship with Os
-  if wo_hash['workorder']['payLoad'].has_key?('DependsOn')
-    os = wo_hash['workorder']['payLoad']['DependsOn'].select { |d| d['ciClassName'] =~ /Os/ }.first
-    if !os.nil?
-      ostype = os['ciAttributes']['ostype']
-    end
-  end
-end
+
 # if os type is still nil, will default to linux way of doing things.
-# not every wo will have the ostype in the rfcCi section
 puts "OS TYPE IS: #{ostype}"
 
 if ostype =~ /windows/
