@@ -92,7 +92,7 @@ class Operations::InstancesController < ApplicationController
             @deployment_info = Search::WorkOrder.state_info(@deployment) if @deployment
           end
 
-          @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => organization_ns_path,
+          @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => @environment ? environment_bom_ns_path(@environment) : assembly_ns_path(@assembly),
                                                                 :recursive => true,
                                                                 :actions   => true,
                                                                 :state     => 'active',

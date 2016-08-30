@@ -1,5 +1,5 @@
 class Transistor < ActiveResource::Base
-  self.site         = Settings.cms_site
+  self.site         = Settings.transistor_site
   self.prefix       = '/transistor/rest'
   self.timeout      = 600
   self.element_name = ''
@@ -192,16 +192,17 @@ class Transistor < ActiveResource::Base
 
   def self.handle_exception(exception, message)
     body = nil
-    error_message = ''
+    error_message = exception.message
     if exception.respond_to?(:response) && exception.response.body
       begin
         body = JSON.parse(exception.response.body)
         error_message = body['message']
         Rails.logger.warn "#{message}: #{"[#{body['code']} - #{error_message}]"}"
       rescue Exception => e
-        error_message = exception.message
-        Rails.logger.warn "#{message}: #{exception.message}"
+        Rails.logger.warn "#{message}: #{error_message}"
       end
+    else
+      Rails.logger.warn "#{message}: #{error_message}"
     end
     return error_message
   end
