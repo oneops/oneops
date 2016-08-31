@@ -21,16 +21,32 @@
 cloud_name = node.workorder.cloud.ciName
 
 ostype = ''
-Chef::Log.info("RUBY_PLATFORM IN MONITOR IS: #{RUBY_PLATFORM}")
-case RUBY_PLATFORM
-when /mingw32/
-  ostype = 'windows'
-  Chef::Log.info('Setting ostype to windows')
-when /linux/
-  ostype = 'linux'
-  Chef::Log.info('Setting ostype to linux')
-else
-  Chef::Log.info('leaving ostype as nil')
+begin
+  ostype = node.workorder.payLoad.os[0].ciAttributes["ostype"]
+rescue
+  begin
+    ostype = node.workorder.rfcCi.ciAttributes['ostype']
+  rescue
+    ostype = node.platform
+  end
+end
+
+if ostype.nil? || ostype.length == 0
+  # Using RUBY_PLATFORM is not the best here, because this recipe will run from the inductor
+  # and from the VM being created.  If it has to use this, you may not get thre results
+  # you want.
+  Chef::Log.info('OSTYPE IS STILL NOT SET, TRY TO USE RUBY_PLATFORM')
+  Chef::Log.info("RUBY_PLATFORM IN MONITOR IS: #{RUBY_PLATFORM}")
+  case RUBY_PLATFORM
+  when /mingw32/
+    ostype = 'windows'
+    Chef::Log.info('Setting ostype to windows')
+  when /linux/
+    ostype = 'linux'
+    Chef::Log.info('Setting ostype to linux')
+  else
+    Chef::Log.info('leaving ostype as nil')
+  end
 end
 
 Chef::Log.info("******OS_PLATFORM #{ostype}***********")
