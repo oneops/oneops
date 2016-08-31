@@ -26,9 +26,10 @@ attribute 'value',
           :default     => '',
           :format      => {
             :category => 'Value',
-            :pattern  => '[^\s]+.*[^\s]',
+            :pattern  => '\S(.*\S)?',
             :order    => 2,
             :help     => 'Enter the variable value',
+            :form     => {:field => 'textarea'},
             :filter   => {'all' => {'visible' => 'secure:neq:true', 'editable' => 'secure:neq:true'}}
           }
 
@@ -38,7 +39,7 @@ attribute 'encrypted_value',
           :default     => '',
           :format      => {
             :category => 'Value',
-            :pattern  => '[^\s]+.*[^\s]',
+            :pattern  => '\S(.*\S)?',
             :order    => 3,
             :help     => 'Enter the variable value. The provided value will be encrypted on save and stored securely.',
             :filter   => {'all' => {'visible' => 'secure:eq:true', 'editable' => 'secure:eq:true'}}
