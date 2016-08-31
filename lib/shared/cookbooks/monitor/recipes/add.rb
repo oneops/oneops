@@ -21,19 +21,21 @@
 cloud_name = node.workorder.cloud.ciName
 
 ostype = ''
-begin
-  ostype = node.workorder.payLoad.os[0].ciAttributes["ostype"]
-rescue
-  begin
-    ostype = node.workorder.rfcCi.ciAttributes['ostype']
-  rescue
-    ostype = node.platform
-  end
+puts "RUBY_PLATFORM IS: #{RUBY_PLATFORM}"
+case RUBY_PLATFORM
+  when /mingw32|windows/
+    ostype = 'windows'
+    puts 'Setting ostype to windows'
+  when /linux/
+    ostype = 'linux'
+    puts 'Setting ostype to linux'
+  else
+    puts 'leaving ostype as nil'
 end
 
-Chef::Log.info("******OS_PLATFORM #{ostype}***********")
+Chef::Log.info("*** OS_PLATFORM => #{ostype} ***")
 if ostype =~ /windows/
-     return
+  return
 end
 
 cloud_service = nil
