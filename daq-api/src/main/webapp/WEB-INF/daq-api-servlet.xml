@@ -15,7 +15,7 @@
 	<context:property-placeholder location="classpath:sink.properties" />
 
 	<bean id="daqCluster" class="com.oneops.cassandra.ClusterBootstrap">
-		<property name="hostPort" value="{DAQ_DB:daq}:9160"></property>
+		<property name="hostPort" value="${DAQ_DB:daq}:9160"></property>
 	</bean>
 
 	<bean name="perfDataAccessor" class ="com.oneops.ops.dao.PerfDataAccessor" init-method="init">
