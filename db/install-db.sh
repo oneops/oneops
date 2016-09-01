@@ -23,7 +23,7 @@ export PGPASSWORD=${2-kloopzcm}
 
 
 # create schema in the database
-$PSQL -h localhost -d kloopzdb -f kloopzcm-schema.sql
+$PSQL -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-schema.sql
 
 # create tables in the schema
 $PSQL  -h localhost -d kloopzdb -f kloopzcm-tables.ddl
