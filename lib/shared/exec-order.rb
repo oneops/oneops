@@ -27,7 +27,7 @@ cookbook_path = ARGV[2] || ''
 
 puts "RUBY_PLATFORM IS: #{RUBY_PLATFORM}"
 case RUBY_PLATFORM
-when /mingw32/
+when /mingw/
   ostype = 'windows'
   puts 'Setting ostype to windows'
 when /linux/
