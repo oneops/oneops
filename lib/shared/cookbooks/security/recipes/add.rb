@@ -40,7 +40,7 @@ end
 if (sec_list.nil? || sec_list.empty?)
   Chef::Log.info("No ExtraRunList available for security")
   if (!filter.nil? && !filter.empty?)
-    Chef::Log.warn("Name provided is not matching any available security compliance")
+    Chef::Application.fatal!("Names not matching any available security compliance #{filter}")
   end
   return
 end
@@ -81,14 +81,20 @@ sec_list.each do |security|
       Chef::Log.info("Executing script /tmp/#{script_file}")
       cmd = Mixlib::ShellOut.new("/tmp/#{script_file} #{curr_version} #{version}", :live_stream => Chef::Log::logger, :user => "root")
       cmd.run_command
+      cmd.error!
     end
   end
 
   if !filter.nil?
     filter.delete(name)
   end
-  appliedMap[name] = version
-
+  
+  if version.downcase == 'delete'
+    appliedMap[name] = '0'
+  else
+    appliedMap[name] = version
+  end
+  
 end
 
 if (!filter.nil? && !filter.empty?)
