@@ -473,7 +473,7 @@ public class CmsWoProvider {
 		List<CmsCIRelation> complianceRelations = getComplianceRelations(ao);
 		List<CmsCI> list = complianceRelations.stream()
 			.map(complianceRel -> complianceRel.getToCi())
-			.filter(complianceCi -> (isComplianceEnabled(complianceCi)) && expressionEvaluator.isExpressionMatching(complianceCi, ao))
+			.filter(complianceCi -> expressionEvaluator.isExpressionMatching(complianceCi, ao))
 			.collect(Collectors.toList());
 
 		return list;

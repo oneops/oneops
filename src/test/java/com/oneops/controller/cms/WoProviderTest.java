@@ -104,6 +104,19 @@ public class WoProviderTest {
 	}
 	
 	@Test
+	public void testAoWithComplianceDisabled() {
+		CmsActionOrder ao = getTestActionOrder();
+		List<CmsCIRelation> list = new ArrayList<>();
+		String version = "1.0";
+		list.add(createComplianceRelForExpr(EXPR_AO, "false", version));
+		
+		when(cmProcessor.getFromCIRelations(eq(ao.getCloud().getCiId()), anyString(), anyString())).thenReturn(list);
+		List<CmsCI> complList = woProvider.getMatchingCloudCompliance(ao);
+		Assert.assertNotNull(complList);
+		Assert.assertEquals(complList.size(), 1);
+	}
+	
+	@Test
 	public void testWoWithComplianceDisabed() {
 		CmsWorkOrder wo = getTestWorkOrder();
 		List<CmsCIRelation> list = new ArrayList<>();
