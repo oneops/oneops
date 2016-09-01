@@ -2,28 +2,32 @@
 
 export PSQL=psql
 
-# set kloopzcm pass
-export PGPASSWORD=kloopzcm
+# set PGUSER
+export PGUSER=${1-kloopzcm}
 
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-schema.sql
+# set kloopzcm pass
+export PGPASSWORD=${2-kloopzcm}
+
+
+$PSQL  -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-schema.sql
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo create schema failed && exit 1
 
 # create tables in the schema
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-tables.ddl
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-tables.ddl
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo create tables failed && exit 1
 
 # create partition tables in the schema
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-partition.ddl
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-partition.ddl
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo create partition tables failed && exit 1
 
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-postprocess.sql
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-postprocess.sql
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo post process failed && exit 1
 
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-functions.sql
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-functions.sql
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo functions failed && exit 1
 

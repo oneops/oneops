@@ -14,20 +14,25 @@ $PSQL -U postgres -h localhost -f kloopzcm-dropdb.sql
 $PSQL -U postgres -h localhost -f kloopzcm-prereq.sql
 
 
+
+# set PGUSER
+export PGUSER=${1-kloopzcm}
+
 # set kloopzcm pass
-export PGPASSWORD=kloopzcm
+export PGPASSWORD=${2-kloopzcm}
+
 
 # create schema in the database
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-schema.sql
+$PSQL -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-schema.sql
 
 # create tables in the schema
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-tables.ddl
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-tables.ddl
 
 # create partition tables in the schema
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-partition.ddl
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-partition.ddl
 
 # postprocess
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-postprocess.sql
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-postprocess.sql
 
 # postprocess
-$PSQL -U kloopzcm -h localhost -d kloopzdb -f kloopzcm-functions.sql
+$PSQL  -h localhost -d kloopzdb -f kloopzcm-functions.sql
