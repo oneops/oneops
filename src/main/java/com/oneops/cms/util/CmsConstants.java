@@ -45,4 +45,6 @@ public final class CmsConstants {
 	public static final String ATTR_NAME_ENABLED = "enabled";
 	public static final String ATTR_NAME_AUTO_COMPLY = "autocomply";
 	
+	public static final String CI_STATE_PENDING_DELETION = "pending_deletion";
+	
 }
