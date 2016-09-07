@@ -1,19 +1,19 @@
 /*******************************************************************************
- *
+ *  
  *   Copyright 2015 Walmart, Inc.
- *
+ *  
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *
+ *  
  *       http://www.apache.org/licenses/LICENSE-2.0
- *
+ *  
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *
+ *  
  *******************************************************************************/
 package com.oneops.cms.util;
 
@@ -62,7 +62,7 @@ public class CmsUtil {
 	public static final String VAR_SEC_ATTR_VALUE = "encrypted_value";
 	public static final String VAR_UNSEC_ATTR_VALUE = "value";
 
-
+	
 	//private static final String GLOBALVARREGEX = "\\$OO_GLOBAL";
     //private static Pattern globalVarPattern = Pattern.compile(GLOBALVARREGEX);
 	private static final String GLOBALVARPFX = "$OO_GLOBAL{";
@@ -80,19 +80,19 @@ public class CmsUtil {
 	private static final String CLOUDVARPFX = "$OO_CLOUD{";
 	private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
 	private static final String ATTR_PROP_OWNER = "owner";
-
+	
 	public static final String MASK = "##############";
 	public static final String WORK_ORDER_TYPE = "deploybom";
 	public static final String ACTION_ORDER_TYPE = "opsprocedure";
-
+	
 	public static final String DJ_ATTR = "dj";
 	public static final String DF_ATTR = "df";
-
+	
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcUtil rfcUtil;
-
+	
 	private static final Logger logger = Logger.getLogger(CmsUtil.class);
-
+	
 	/**
 	 * Sets the cm processor.
 	 *
@@ -138,7 +138,7 @@ public class CmsUtil {
         ci.setNsPath(ciSimple.getNsPath());
         ci.setCreatedBy(ciSimple.getCreatedBy());
         ci.setUpdatedBy(ciSimple.getUpdatedBy());
-
+        
         for(String attrSimpleName: ciSimple.getCiAttributes().keySet()){
         	CmsCIAttribute attr = new CmsCIAttribute();
         	attr.setAttributeName(attrSimpleName);
@@ -152,7 +152,7 @@ public class CmsUtil {
         	}
         	ci.addAttribute(attr);
         }
-
+        
 		if (ciSimple.getAttrProps() != null) {
 			for (String attrProp : ciSimple.getAttrProps().keySet()) {
 				if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
@@ -162,7 +162,7 @@ public class CmsUtil {
 				}
 			}
 		}
-
+        
         return ci;
 	}
 
@@ -175,11 +175,11 @@ public class CmsUtil {
 	 */
 	public CmsCISimple custCI2CISimple(CmsCI ci, String valueType) {
 		return custCI2CISimple(ci, valueType, false);
-	}
+	}	
 
 	public CmsCISimple custCI2CISimple(CmsCI ci, String valueType, boolean getEncrypted) {
 		return custCI2CISimple(ci, valueType, null, getEncrypted);
-	}
+	}	
 
 	public CmsCISimple custCI2CISimple(CmsCI ci, String valueType, String attrProps, boolean getEncrypted) {
 		if (attrProps != null) {
@@ -188,7 +188,7 @@ public class CmsUtil {
 			return custCI2CISimpleLocal(ci, valueType, null, getEncrypted);
 		}
 
-	}
+	}	
 	/**
 	 * Cust c i2 ci simple.
 	 *
@@ -216,7 +216,7 @@ public class CmsUtil {
 		ciSimple.setUpdatedBy(ci.getUpdatedBy());
 		ciSimple.setCreated(ci.getCreated());
 		ciSimple.setUpdated(ci.getUpdated());
-
+		
         for(CmsCIAttribute attr : ci.getAttributes().values()){
         	if ("dj".equalsIgnoreCase(valueType)) {
         		if (getEncrypted) {
@@ -227,11 +227,11 @@ public class CmsUtil {
         	} else {
         		if (getEncrypted) {
         			ciSimple.addCiAttribute(attr.getAttributeName(), attr.getDfValue());
-        		} else {
+        		} else {	
         			ciSimple.addCiAttribute(attr.getAttributeName(), checkEncrypt(attr.getDfValue()));
         		}
         	}
-
+        	
 			if (attrProps != null) {
 				for (String attrProp : attrProps) {
 					if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
@@ -240,7 +240,7 @@ public class CmsUtil {
 				}
 			}
         }
-
+        
         return ciSimple;
 	}
 
@@ -258,7 +258,7 @@ public class CmsUtil {
 			return null;
 		}
 		CmsCIRelationSimple relSimple = new CmsCIRelationSimple();
-
+		
 		relSimple.setCiRelationId(rel.getCiRelationId());
 		relSimple.setComments(rel.getComments());
 		relSimple.setCreated(rel.getCreated());
@@ -270,7 +270,7 @@ public class CmsUtil {
 		relSimple.setRelationState(rel.getRelationState());
 		relSimple.setUpdated(rel.getUpdated());
 		relSimple.setNsPath(rel.getNsPath());
-
+		
         for(CmsCIRelationAttribute attr : rel.getAttributes().values()){
         	if ("dj".equalsIgnoreCase(valueType)) {
         		relSimple.addRelationAttribute(attr.getAttributeName(), attr.getDjValue());
@@ -278,19 +278,19 @@ public class CmsUtil {
         		relSimple.addRelationAttribute(attr.getAttributeName(), attr.getDfValue());
         	}
         }
-
+        
         if (rel.getFromCi() != null) {
         	relSimple.setFromCi(custCI2CISimple(rel.getFromCi(), valueType, getEncrypted));
         }
-
+        
         if (rel.getToCi() != null) {
         	relSimple.setToCi(custCI2CISimple(rel.getToCi(), valueType, getEncrypted));
         }
-
-
+        
+        
         return relSimple;
 	}
-
+	
 	/**
 	 * Cust ci relation simple2 ci relation.
 	 *
@@ -303,9 +303,9 @@ public class CmsUtil {
 		if (relSimple == null) {
 			return null;
 		}
-
+		
 		CmsCIRelation rel = new CmsCIRelation();
-
+		
 		rel.setCiRelationId(relSimple.getCiRelationId());
 		rel.setComments(relSimple.getComments());
 		rel.setCreated(relSimple.getCreated());
@@ -319,8 +319,8 @@ public class CmsUtil {
 		rel.setNsPath(relSimple.getNsPath());
 		rel.setCreatedBy(relSimple.getCreatedBy());
 		rel.setUpdatedBy(relSimple.getUpdatedBy());
-
-
+		
+		
         for(String attrSimpleName: relSimple.getRelationAttributes().keySet()){
         	CmsCIRelationAttribute attr = new CmsCIRelationAttribute();
         	attr.setAttributeName(attrSimpleName);
@@ -334,18 +334,18 @@ public class CmsUtil {
         	}
         	rel.addAttribute(attr);
         }
-
+        
         if (relSimple.getFromCi() != null) {
         	rel.setFromCi(custCISimple2CI(relSimple.getFromCi(), valueType));
         }
-
+        
         if (relSimple.getToCi() != null) {
         	rel.setToCi(custCISimple2CI(relSimple.getToCi(), valueType));
         }
-
+        
         return rel;
 	}
-
+	
 	/**
 	 * Cust rfc ci simple2 rfc ci.
 	 *
@@ -353,13 +353,13 @@ public class CmsUtil {
 	 * @return the cms rfc ci
 	 */
 	public CmsRfcCI custRfcCISimple2RfcCI (CmsRfcCISimple rfcSimple) {
-
+		
 		if (rfcSimple == null) {
 			return null;
 		}
 
 		CmsRfcCI rfc = new CmsRfcCI();
-
+		
 		rfc.setRfcId(rfcSimple.getRfcId());
 		rfc.setReleaseId(rfcSimple.getReleaseId());
 		rfc.setCiId(rfcSimple.getCiId());
@@ -375,7 +375,7 @@ public class CmsUtil {
 		rfc.setReleaseType(rfcSimple.getReleaseType());
 		rfc.setComments(rfcSimple.getComments());
 		rfc.setIsActiveInRelease(rfcSimple.getIsActiveInRelease());
-
+		
 		rfc.setCreated(rfcSimple.getCreated());
 		rfc.setCreatedBy(rfcSimple.getCreatedBy());
 		rfc.setUpdated(rfcSimple.getUpdated());
@@ -385,8 +385,8 @@ public class CmsUtil {
 		rfc.setRfcCreatedBy(rfcSimple.getRfcCreatedBy());
 		rfc.setRfcUpdated(rfcSimple.getRfcUpdated());
 		rfc.setRfcUpdatedBy(rfcSimple.getRfcUpdatedBy());
-
-
+		
+		
 		for(String attrSimpleName: rfcSimple.getCiAttributes().keySet()){
         	CmsRfcAttribute attr = new CmsRfcAttribute();
         	attr.setAttributeName(attrSimpleName);
@@ -403,7 +403,7 @@ public class CmsUtil {
 				}
 			}
 		}
-
+		
         return rfc;
 	}
 
@@ -415,7 +415,7 @@ public class CmsUtil {
 	 */
 	public CmsRfcCISimple custRfcCI2RfcCISimple (CmsRfcCI rfc) {
 		return custRfcCI2RfcCISimpleLocal (rfc, null, false);
-	}
+	}	
 
 	/**
 	 * Cust rfc c i2 rfc ci simple.
@@ -441,16 +441,16 @@ public class CmsUtil {
 	 */
 	public CmsRfcCISimple custRfcCI2RfcCISimple (CmsRfcCI rfc, String[] attrProps) {
 		return custRfcCI2RfcCISimpleLocal(rfc, attrProps, false);
-	}
-
+	}	
+	
 	private CmsRfcCISimple custRfcCI2RfcCISimpleLocal (CmsRfcCI rfc, String[] attrProps, boolean getEncrepted) {
-
+		
 		if (rfc == null) {
 			return null;
 		}
 
 		CmsRfcCISimple rfcSimple = new CmsRfcCISimple();
-
+		
 		rfcSimple.setRfcId(rfc.getRfcId());
 		rfcSimple.setReleaseId(rfc.getReleaseId());
 		rfcSimple.setCiId(rfc.getCiId());
@@ -470,15 +470,15 @@ public class CmsUtil {
 		rfcSimple.setUpdated(rfc.getUpdated());
 		rfcSimple.setRfcCreated(rfc.getRfcCreated());
 		rfcSimple.setRfcUpdated(rfc.getRfcUpdated());
-
+		
 		rfcSimple.setCreatedBy(rfc.getCreatedBy());
 		rfcSimple.setUpdatedBy(rfc.getUpdatedBy());
-
+		
 		rfcSimple.setRfcCreatedBy(rfc.getRfcCreatedBy());
 		rfcSimple.setRfcUpdatedBy(rfc.getRfcUpdatedBy());
-
+		
 		for(CmsRfcAttribute attr : rfc.getAttributes().values()) {
-
+			
 			if (getEncrepted) {
 				rfcSimple.addCiAttribute(attr.getAttributeName(), attr.getNewValue());
 			} else {
@@ -487,7 +487,7 @@ public class CmsUtil {
 			if (attr.getOldValue() != null) {
 				if (getEncrepted) {
 					rfcSimple.addCiBaseAttribute(attr.getAttributeName(), attr.getOldValue());
-				} else {
+				} else {	
 					rfcSimple.addCiBaseAttribute(attr.getAttributeName(), checkEncrypt(attr.getOldValue()));
 				}
 			}
@@ -502,7 +502,7 @@ public class CmsUtil {
 		}
         return rfcSimple;
 	}
-
+	
 	/**
 	 * Cust rfc rel2 rfc rel simple.
 	 *
@@ -511,7 +511,7 @@ public class CmsUtil {
 	 */
 	public CmsRfcRelationSimple custRfcRel2RfcRelSimple (CmsRfcRelation relation) {
 		return custRfcRel2RfcRelSimpleLocal(relation, null);
-	}
+	}	
 
 	/**
 	 * Cust rfc rel2 rfc rel simple.
@@ -522,8 +522,8 @@ public class CmsUtil {
 	 */
 	public CmsRfcRelationSimple custRfcRel2RfcRelSimple (CmsRfcRelation relation, String[] attrProps) {
 		return custRfcRel2RfcRelSimpleLocal(relation, attrProps);
-	}
-
+	}	
+	
 	/**
 	 * Cust rfc rel2 rfc rel simple.
 	 *
@@ -537,17 +537,17 @@ public class CmsUtil {
 		} else {
 			return custRfcRel2RfcRelSimpleLocal(relation, null);
 		}
-	}
-
-
+	}	
+	
+	
 	private CmsRfcRelationSimple custRfcRel2RfcRelSimpleLocal (CmsRfcRelation relation, String[] attrProps) {
-
+		
 		if (relation == null) {
 			return null;
 		}
 
 		CmsRfcRelationSimple relationSimple = new CmsRfcRelationSimple();
-
+		
 		relationSimple.setRfcId(relation.getRfcId());
 		relationSimple.setReleaseId(relation.getReleaseId());
 		relationSimple.setFromCiId(relation.getFromCiId());
@@ -567,13 +567,13 @@ public class CmsUtil {
 		relationSimple.setCreatedBy(relation.getCreatedBy());
 		relationSimple.setUpdated(relation.getUpdated());
 		relationSimple.setUpdatedBy(relation.getUpdatedBy());
-
+		
 		relationSimple.setRfcCreated(relation.getRfcCreated());
 		relationSimple.setRfcCreatedBy(relation.getRfcCreatedBy());
 		relationSimple.setRfcUpdated(relation.getRfcUpdated());
 		relationSimple.setRfcUpdatedBy(relation.getRfcUpdatedBy());
-
-
+		
+		
 		for(CmsRfcAttribute attr : relation.getAttributes().values()) {
 			relationSimple.addRelationAttribute(attr.getAttributeName(), attr.getNewValue());
 			if (attr.getOldValue() != null) {
@@ -587,14 +587,14 @@ public class CmsUtil {
 				}
 			}
 		}
-
+		
 		if (relation.getToRfcCi() != null) {
 			relationSimple.setToCi(custRfcCI2RfcCISimple(relation.getToRfcCi()));
 		}
 		if (relation.getFromRfcCi() != null) {
 			relationSimple.setFromCi(custRfcCI2RfcCISimple(relation.getFromRfcCi()));
 		}
-
+		
         return relationSimple;
 	}
 
@@ -611,7 +611,7 @@ public class CmsUtil {
 		}
 
 		CmsRfcRelation relation = new CmsRfcRelation();
-
+		
 		relation.setRfcId(relationSimple.getRfcId());
 		relation.setReleaseId(relationSimple.getReleaseId());
 		relation.setFromCiId(relationSimple.getFromCiId());
@@ -631,20 +631,20 @@ public class CmsUtil {
 		relation.setUpdated(relationSimple.getUpdated());
 		relation.setCreatedBy(relationSimple.getCreatedBy());
 		relation.setUpdatedBy(relationSimple.getUpdatedBy());
-
+	
 		relation.setRfcCreated(relationSimple.getRfcCreated());
 		relation.setRfcUpdated(relationSimple.getRfcUpdated());
 		relation.setRfcCreatedBy(relationSimple.getRfcCreatedBy());
 		relation.setRfcUpdatedBy(relationSimple.getRfcUpdatedBy());
-
-
+		
+		
 		for(String attrSimpleName: relationSimple.getRelationAttributes().keySet()){
         	CmsRfcAttribute attr = new CmsRfcAttribute();
         	attr.setAttributeName(attrSimpleName);
         	attr.setNewValue(relationSimple.getRelationAttributes().get(attrSimpleName));
         	relation.addAttribute(attr);
         }
-
+		
 		if (relationSimple.getRelationAttrProps() != null) {
 			for (String attrProp : relationSimple.getRelationAttrProps().keySet()) {
 				if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
@@ -654,10 +654,10 @@ public class CmsUtil {
 				}
 			}
 		}
-
+		
         return relation;
 	}
-
+	
 	/**
 	 * Cust work order2 simple.
 	 *
@@ -675,7 +675,7 @@ public class CmsUtil {
 		wos.setRfcCi(custRfcCI2RfcCISimpleLocal(wo.getRfcCi(),null,true));
 		wos.setBox(custCI2CISimple(wo.getBox(), "df", true));
 		wos.setCloud(custCI2CISimple(wo.getCloud(), "df", true));
-
+		
 		if (wo.getServices() != null) {
 			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<String,Map<String, CmsCISimple>>();
 			for (Entry<String,Map<String, CmsCI>> serviceEntry : wo.getServices().entrySet()) {
@@ -686,7 +686,7 @@ public class CmsUtil {
 			}
 			wos.setServices(simpleServs);
 		}
-
+		
 		if (wo.getPayLoad() != null) {
 		for (String key : wo.getPayLoad().keySet()) {
 			for (CmsRfcCI rfc : wo.getPayLoad().get(key)) {
@@ -696,7 +696,7 @@ public class CmsUtil {
 		}
 		return wos;
 	}
-
+	
 	/**
 	 * Cust simple2 work order.
 	 *
@@ -711,15 +711,15 @@ public class CmsUtil {
 		wo.setCreated(wos.getCreated());
 		wo.setComments(wos.getComments());
 		wo.setRfcId(wos.getRfcId());
-
+		
 		if (wos.getRfcCi() != null) {
 			wo.setRfcCi(custRfcCISimple2RfcCI(wos.getRfcCi()));
 		}
-
+		
 		if (wos.getResultCi() != null) {
 			wo.setResultCi(custCISimple2CI(wos.getResultCi(), "df"));
 		}
-
+		
 		return wo;
 	}
 
@@ -746,7 +746,7 @@ public class CmsUtil {
         aos.setCloud(custCI2CISimple(ao.getCloud(), "df", true));
         //Auto-repair
         aos.setCreatedBy(ao.getCreatedBy());
-
+		
         if (ao.getServices() != null) {
 			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<String,Map<String, CmsCISimple>>();
 			for (Entry<String,Map<String, CmsCI>> serviceEntry : ao.getServices().entrySet()) {
@@ -757,8 +757,8 @@ public class CmsUtil {
 			}
 			aos.setServices(simpleServs);
 		}
-
-
+        
+        
         if (ao.getPayLoad() != null) {
         for (String key : ao.getPayLoad().keySet()) {
             for (CmsCI rfc : ao.getPayLoad().get(key)) {
@@ -849,13 +849,13 @@ public class CmsUtil {
 			return fullClazzName.replaceAll("base.|mgmt.catalog.|catalog.|mgmt.manifest.|manifest.|bom.|mgmt.|", "");
 		}
 	}
-
+	
 	/**
 	 * Update CmsCI so that any CmsCIAttribute that has a variable has the variable replaced
 	 * from the approp Cloud, Global, or Local var maps.
 	 * A Global variable can refer to a Cloud variable, eg
 	 * given Cloud variable X1=abc , and Global variable foo=$GLOBAL{X1} would result in foo getting
-	 * set to 'abc'.
+	 * set to 'abc'. 
 	 * And Local variables can refer to *either* Cloud or Global variables
 	 * @param ci the CmsCI which may have attributes that need variable resolution
 	 * @param cloudVars the cloud vars map
@@ -872,10 +872,10 @@ public class CmsUtil {
 			};
 			sb.append("] Cloud vars [").append(cloudVars).append("]");
 			sb.append("] Global vars [").append(globalVars).append("]");
-			sb.append("] Local vars [").append(localVars).append("]");
+			sb.append("] Local vars [").append(localVars).append("]");	
 			logger.info(sb.toString());
 		}
-
+     
 		String variableToResolve="";
 		String resolvedValue="";
     	for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
@@ -893,8 +893,8 @@ public class CmsUtil {
 									manifestAttr, variableToResolve,
 									CLOUDVARRPL);
 					}
-    			}
-
+    			} 
+    					
         		if (manifestAttr.getDjValue().contains(GLOBALVARPFX)){
         			List<String> varStructures = splitAttrValue(manifestAttr.getDjValue(),GLOBALVARPFX);
     				for (String varStructure : varStructures) {
@@ -904,7 +904,7 @@ public class CmsUtil {
     					checkAndSetAttrValue(ci, resolvedValue, manifestAttr, variableToResolve, GLOBALVARRPL);
     				}
         		}
-
+        		
            		if (manifestAttr.getDjValue().contains(LOCALVARPFX)){
            			List<String>  varStructures = splitAttrValue(manifestAttr.getDjValue(),LOCALVARPFX);
     				for (String varStructure : varStructures) {
@@ -928,17 +928,17 @@ public class CmsUtil {
 						}
 						checkAndSetAttrValue(ci, resolvedValue, manifestAttr, variableToResolve, LOCALVARRPL);
     				}
-           		}
-
+           		}	
+    			
     		}
     	}
-
+    	
 		if (logger.isDebugEnabled()) {
 			StringBuilder sb = new StringBuilder("Processing vars complete for Ci [")
 			.append(ci.getCiId()).append("] CmsCIAttributes [");
 			for (Entry<String, CmsCIAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":dj:").append(e.getValue().getDjValue());
-			}
+			}		
 			logger.info(sb.toString());
 		}
 	}
@@ -953,22 +953,22 @@ public class CmsUtil {
 			};
 			sb.append("] Cloud vars [").append(cloudVars).append("]");
 			sb.append("] Global vars [").append(globalVars).append("]");
-			sb.append("] Local vars [").append(localVars).append("]");
+			sb.append("] Local vars [").append(localVars).append("]");	
 			logger.info(sb.toString());
 		}
-
+     
     	for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
 
     		manifestAttr.setDjValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),manifestAttr.getAttributeName(),manifestAttr.getDjValue(),cloudVars,globalVars,localVars));
     		manifestAttr.setDfValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),manifestAttr.getAttributeName(),manifestAttr.getDfValue(),cloudVars,globalVars,localVars));
     	}
-
+    	
 		if (logger.isDebugEnabled()) {
 			StringBuilder sb = new StringBuilder("Processing vars complete for Ci [")
 			.append(ci.getCiId()).append("] CmsCIAttributes [");
 			for (Entry<String, CmsCIAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":dj:").append(e.getValue().getDjValue());
-			}
+			}		
 			logger.info(sb.toString());
 		}
 	}
@@ -1002,7 +1002,7 @@ public class CmsUtil {
 					attrValue = subVarValue(ciId, ciName, nsPath, attrName, attrValue, resolvedValue, variableToResolve, GLOBALVARRPL);
 				}
     		}
-
+    		
        		if (attrValue.contains(LOCALVARPFX)){
        			List<String>  varStructures = splitAttrValue(attrValue,LOCALVARPFX);
 				for (String varStructure : varStructures) {
@@ -1028,8 +1028,8 @@ public class CmsUtil {
 					}
 					attrValue = subVarValue(ciId, ciName, nsPath, attrName, attrValue, resolvedValue, variableToResolve, LOCALVARRPL);
 				}
-       		}
-
+       		}	
+			
 		}
 		return attrValue;
 	}
@@ -1040,7 +1040,7 @@ public class CmsUtil {
 	 * from the approp Cloud, Global, or Local var maps.
 	 * A Global variable can refer to a Cloud variable, eg
 	 * given Cloud variable X1=abc , and Global variable foo=$GLOBAL{X1} would result in foo getting
-	 * set to 'abc'.
+	 * set to 'abc'. 
 	 * And Local variables can refer to *either* Cloud or Global variables
 	 * @param ci the CmsRfcCI which may have attributes that need variable resolution
 	 * @param cloudVars the cloud vars map
@@ -1057,10 +1057,10 @@ public class CmsUtil {
 			};
 			sb.append("] Cloud vars [").append(cloudVars).append("]");
 			sb.append("] Global vars [").append(globalVars).append("]");
-			sb.append("] Local vars [").append(localVars).append("]");
+			sb.append("] Local vars [").append(localVars).append("]");	
 			logger.info(sb.toString());
 		}
-
+     
 		String variableToResolve="";
 		String resolvedValue="";
     	for (CmsRfcAttribute rfcAttr : ci.getAttributes().values()) {
@@ -1078,8 +1078,8 @@ public class CmsUtil {
 								rfcAttr, variableToResolve,
 								CLOUDVARRPL);
 					}
-    			}
-
+    			} 
+    					
         		if (rfcAttr.getNewValue().contains(GLOBALVARPFX)){
         			List<String> varStructures = splitAttrValue(rfcAttr.getNewValue(),GLOBALVARPFX);
     				for (String varStructure : varStructures) {
@@ -1089,7 +1089,7 @@ public class CmsUtil {
     					checkAndSetAttrValue(ci, resolvedValue, rfcAttr, variableToResolve, GLOBALVARRPL);
     				}
         		}
-
+        		
            		if (rfcAttr.getNewValue().contains(LOCALVARPFX)){
            			List<String>  varStructures = splitAttrValue(rfcAttr.getNewValue(),LOCALVARPFX);
     				for (String varStructure : varStructures) {
@@ -1113,17 +1113,17 @@ public class CmsUtil {
 						}
 						checkAndSetAttrValue(ci, resolvedValue, rfcAttr, variableToResolve, LOCALVARRPL);
     				}
-           		}
-
+           		}	
+    			
     		}
     	}
-
+    	
 		if (logger.isDebugEnabled()) {
 			StringBuilder sb = new StringBuilder("Processing vars complete for RfcCi [")
 			.append(ci.getCiId()).append("] CmsRfcAttribute [");
 			for (Entry<String, CmsRfcAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":new:").append(e.getValue().getNewValue());
-			}
+			}		
 			logger.info(sb.toString());
 		}
 	}
@@ -1138,10 +1138,10 @@ public class CmsUtil {
 			};
 			sb.append("] Cloud vars [").append(cloudVars).append("]");
 			sb.append("] Global vars [").append(globalVars).append("]");
-			sb.append("] Local vars [").append(localVars).append("]");
+			sb.append("] Local vars [").append(localVars).append("]");	
 			logger.info(sb.toString());
 		}
-
+     
     	for (CmsRfcAttribute rfcAttr : ci.getAttributes().values()) {
     		rfcAttr.setNewValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),rfcAttr.getAttributeName(),rfcAttr.getNewValue(),cloudVars,globalVars,localVars));
     		rfcAttr.setOldValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),rfcAttr.getAttributeName(),rfcAttr.getOldValue(),cloudVars,globalVars,localVars));
@@ -1151,15 +1151,15 @@ public class CmsUtil {
 			.append(ci.getCiId()).append("] CmsRfcAttribute [");
 			for (Entry<String, CmsRfcAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":new:").append(e.getValue().getNewValue());
-			}
+			}		
 			logger.info(sb.toString());
 		}
 	}
-
-
+	
+	
 	/**
 	 * Take a string wich has $OO.. type variable(s) and splits them into a list
-	 *ex input: "$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_LOCAL{extension}" input comes back out as
+	 *ex input: "$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_LOCAL{extension}" input comes back out as 
 	 * a list with the three....[$OO_LOCAL{groupId}, $OO_LOCAL{artifactId}, $OO_LOCAL{extension}]
 	 * @param inputString
 	 * @param prefix
@@ -1185,9 +1185,9 @@ public class CmsUtil {
 	/** sets the Attributes Dj and Df value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
 	private void checkAndSetAttrValue(CmsCI ci, String resolvedValue, CmsCIAttribute manifestAttr, String varName, String replPrefix) {
-
-		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("")
-				resolvedValue.contains(LOCALVARPFX) ||
+		
+		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("") 
+				resolvedValue.contains(LOCALVARPFX) ||   
 				resolvedValue.contains(GLOBALVARPFX)||
 				resolvedValue.contains(LOCALVARPFX) ) {//substituion did not happen: bad.
 			StringBuilder sb = new StringBuilder("error processVars CI-")
@@ -1198,16 +1198,16 @@ public class CmsUtil {
 			for (Entry<String, CmsCIAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":dj:").append(e.getValue().getDjValue());
 			}
-			logger.warn(sb.toString());
+			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
 					getErrorMessage(ci.getCiName(), ci.getNsPath(), manifestAttr.getAttributeName(), resolvedValue, varName, replPrefix));
 		}
-
+			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
 		StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
 		String resAfter = manifestAttr.getDjValue().replaceAll(pattToReplace.toString(), resolvedValue);
-
+		
 		manifestAttr.setDjValue(resAfter);
 		manifestAttr.setDfValue(resAfter);
 
@@ -1236,7 +1236,7 @@ public class CmsUtil {
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
 					getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix));
 		}
-
+			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
 		StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
 		String resAfter = attrValue.replaceAll(pattToReplace.toString(), Matcher.quoteReplacement(resolvedValue));
@@ -1289,9 +1289,9 @@ public class CmsUtil {
 	/** sets the Attributes old and new value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
 	private void checkAndSetAttrValue(CmsRfcCI ci, String resolvedValue, CmsRfcAttribute manifestAttr, String varName, String replPrefix) {
-
-		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("")
-				resolvedValue.contains(LOCALVARPFX) ||
+		
+		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("") 
+				resolvedValue.contains(LOCALVARPFX) ||   
 				resolvedValue.contains(GLOBALVARPFX)||
 				resolvedValue.contains(LOCALVARPFX) ) {//substituion did not happen: bad.
 			StringBuilder sb = new StringBuilder("error processVars CI-")
@@ -1302,16 +1302,16 @@ public class CmsUtil {
 			for (Entry<String, CmsRfcAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":new:").append(e.getValue().getNewValue());
 			}
-			logger.warn(sb.toString());
+			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
 					getErrorMessage(ci.getCiName(), ci.getReleaseNsPath(), manifestAttr.getAttributeName(), resolvedValue, varName, replPrefix));
 		}
-
+			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
 		StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
 		String resAfter = manifestAttr.getNewValue().replaceAll(pattToReplace.toString(), resolvedValue);
-
+		
 		manifestAttr.setOldValue(resAfter);
 		manifestAttr.setNewValue(resAfter);
 
@@ -1325,19 +1325,19 @@ public class CmsUtil {
 	 * is a reference to a variable in the Cloud Map, look it up in the clodVars Map and return the value */
 	private String resolveGlobalVar(Map<String, String> cloudVars, Map<String, String> globalVars, String variableToResolve) {
 		//resolving either in the form of - $OO_GLOBAL{xyz} or $OO_GLOBAL{$OO_CLOUD{jkl}}
-		//i.e    either a value, or a pointer to Cloud
+		//i.e    either a value, or a pointer to Cloud	
 		if(globalVars==null || variableToResolve==null){
 			return null;
 		}
 		String resolvedValue=globalVars.get(variableToResolve);
-
+		
 		if(resolvedValue!=null && resolvedValue.startsWith(CLOUDVARPFX) && cloudVars!=null){
 			resolvedValue=cloudVars.get(stripSymbolics(resolvedValue));
 		}
-
+		
 		return resolvedValue;
-	}
-
+	}	
+	
 	/** $OO_CLOUD{xyz} returned as xyz */
 	private String stripSymbolics(String variableReference) {
 		return variableReference.substring(variableReference.indexOf("{")+1, variableReference.indexOf("}"));
@@ -1356,16 +1356,16 @@ public class CmsUtil {
 		}
 	}
 
-
+	
 	/**
      * Masks the secured attributes in work-orders and action-orders
-     *
+     * 
      * @param cmsWoSimpleBase
      * @param type
      * @return
      */
 	public static CmsWorkOrderSimpleBase maskSecuredFields(CmsWorkOrderSimpleBase cmsWoSimpleBase,String type) {
-
+		
 		//service CIs
 		if (cmsWoSimpleBase.getServices() != null) {
 			for (Entry<String,Map<String, CmsCISimple>> serviceEntry : cmsWoSimpleBase.getServices().entrySet()) {
@@ -1374,25 +1374,25 @@ public class CmsUtil {
 				}
 			}
 		}
-
+		
 	    //result CI
 		if(cmsWoSimpleBase.getResultCi()!=null){
 			CmsCISimple resultCi = cmsWoSimpleBase.getResultCi();
 			maskSecure(resultCi);
 		}
-
+		
 		//cloud CI
 		if(cmsWoSimpleBase.getCloud()!=null){
 			CmsCISimple cloudCi = cmsWoSimpleBase.getCloud();
 			maskSecure(cloudCi);
 		}
-
+		
 		//box CI
 		if(cmsWoSimpleBase.getBox()!=null){
 			CmsCISimple boxCi = cmsWoSimpleBase.getBox();
 			maskSecure(boxCi);
 		}
-
+		
 		//work-order: pay-load and rfcCI
 		if(WORK_ORDER_TYPE.equals(type)){
 			CmsWorkOrderSimple cmsWo = (CmsWorkOrderSimple)cmsWoSimpleBase;
@@ -1403,13 +1403,13 @@ public class CmsUtil {
 					}
 				}
 			}
-
+			
 			if(cmsWo.getRfcCi() != null){
 				maskSecure(cmsWo.getRfcCi());
 			}
 		}
-
-
+		
+		
 		//action-order: pay-load and CI
 		if(ACTION_ORDER_TYPE.equals(type)){
 			CmsActionOrderSimple cmsAo = (CmsActionOrderSimple)cmsWoSimpleBase;
@@ -1420,19 +1420,19 @@ public class CmsUtil {
 					}
 				}
 			}
-
+			
 			if(cmsAo.getCi() != null){
 				maskSecure(cmsAo.getCi());
 			}
 		}
-
+		
 		return cmsWoSimpleBase;
 	}
-
-
+	
+	
 	/**
 	 * Masks the secured CI attributes
-	 *
+	 * 
 	 * @param ci
 	 */
 	private static void maskSecure(CmsCISimple ci) {
@@ -1444,12 +1444,12 @@ public class CmsUtil {
 				}
 			}
 			ci.getAttrProps().remove(CmsConstants.ENCRYPTED_ATTR_VALUE);
-		}
+		}		
 	}
-
+	
 	/**
 	 * Masks the secured RfcCI attributes
-	 *
+	 * 
 	 * @param rfcCI
 	 */
 	private static void maskSecure(CmsRfcCISimple rfcCI) {
@@ -1473,7 +1473,7 @@ public class CmsUtil {
 		var.addAttribute(valueAttr);
 		return var;
 	}
-
+	
 	public Map<String,String> getGlobalVars(CmsCI env) {
 		return getVarValuesMap(getGlobalVarsRfcs(env));
 		/*
@@ -1489,13 +1489,13 @@ public class CmsUtil {
 		return vars;
 		*/
 	}
-
+	
 	public List<CmsRfcCI> getGlobalVarsRfcs(CmsCI env) {
 		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
-		CmsRfcCI envNameVar = newRfcVar("env_name","manifest.Globalvar", env.getCiName());
+		CmsRfcCI envNameVar = newRfcVar("env_name","manifest.Globalvar", env.getCiName()); 
 		vars.add(envNameVar);
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(env.getCiId(), "manifest.ValueFor", null);
-
+		
 		for (CmsCIRelation varRel : varRels) {
 			vars.add(rfcUtil.mergeRfcAndCi(null, varRel.getFromCi(), DJ_ATTR));
 		}
@@ -1507,9 +1507,9 @@ public class CmsUtil {
 		/*
 		Map<String,String> vars = new HashMap<String,String>();
 		vars.put("platform_name", plat.getCiName());
-
+		
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(plat.getCiId(), "manifest.ValueFor", null);
-
+		
 		for (CmsCIRelation varRel : varRels) {
 			CmsCI globalVar = varRel.getFromCi();
 			vars.put(globalVar.getCiName(), globalVar.getAttribute("value").getDjValue());
@@ -1520,27 +1520,27 @@ public class CmsUtil {
 
 	public List<CmsRfcCI> getLocalVarsRfcs(CmsCI plat) {
 		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
-		CmsRfcCI platNameVar = newRfcVar("platform_name","manifest.Localvar", plat.getCiName());
+		CmsRfcCI platNameVar = newRfcVar("platform_name","manifest.Localvar", plat.getCiName()); 
 		vars.add(platNameVar);
-
+		
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(plat.getCiId(), "manifest.ValueFor", null);
-
+		
 		for (CmsCIRelation varRel : varRels) {
 			vars.add(rfcUtil.mergeRfcAndCi(null, varRel.getFromCi(), DJ_ATTR));
 		}
 		return vars;
 	}
-
-
+	
+	
 	public Map<String,String> getCloudVars(CmsCI cloud) {
-
+		
 		return getVarValuesMap(getCloudVarsRfcs(cloud));
 		/*
 		Map<String,String> vars = new HashMap<String,String>();
 		vars.put("cloud_name", cloud.getCiName());
-
+		
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(cloud.getCiId(), "account.ValueFor", null);
-
+		
 		for (CmsCIRelation varRel : varRels) {
 			CmsCI cloudVar = varRel.getFromCi();
 			vars.put(cloudVar.getCiName(), cloudVar.getAttribute("value").getDjValue());
@@ -1548,14 +1548,14 @@ public class CmsUtil {
 		return vars;
 		*/
 	}
-
+	
 	public List<CmsRfcCI> getCloudVarsRfcs(CmsCI cloud) {
 		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
-		CmsRfcCI cloudNameVar = newRfcVar("cloud_name","account.Cloudvar", cloud.getCiName());
+		CmsRfcCI cloudNameVar = newRfcVar("cloud_name","account.Cloudvar", cloud.getCiName()); 
 		vars.add(cloudNameVar);
-
+		
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(cloud.getCiId(), "account.ValueFor", null);
-
+		
 		for (CmsCIRelation varRel : varRels) {
 			vars.add(rfcUtil.mergeRfcAndCi(null, varRel.getFromCi(), DJ_ATTR));
 		}
@@ -1576,5 +1576,5 @@ public class CmsUtil {
     	return varsMap;
     }
 
-
+	
 }
