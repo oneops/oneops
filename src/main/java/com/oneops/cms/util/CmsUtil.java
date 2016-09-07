@@ -889,10 +889,10 @@ public class CmsUtil {
 						} else {
 							resolvedValue=null;
 						}
-                        checkAndSetAttrValue(ci, resolvedValue,
-                                manifestAttr, variableToResolve,
-                                CLOUDVARRPL);
-                    }
+							checkAndSetAttrValue(ci, resolvedValue,
+									manifestAttr, variableToResolve,
+									CLOUDVARRPL);
+					}
     			}
 
         		if (manifestAttr.getDjValue().contains(GLOBALVARPFX)){
@@ -1221,9 +1221,9 @@ public class CmsUtil {
 	/** sets the Attributes Dj and Df value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
 	private String subVarValue(long ciId, String ciName, String nsPath, String attrName, String attrValue, String resolvedValue, String varName, String replPrefix) {
-		
-		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("") 
-				resolvedValue.contains(LOCALVARPFX) ||   
+
+		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("")
+				resolvedValue.contains(LOCALVARPFX) ||
 				resolvedValue.contains(GLOBALVARPFX)||
 				resolvedValue.contains(LOCALVARPFX) ) {//substituion did not happen: bad.
 			StringBuilder sb = new StringBuilder("error processVars CI-")
@@ -1236,7 +1236,7 @@ public class CmsUtil {
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
 					getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix));
 		}
-			
+
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
 		StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
 		String resAfter = attrValue.replaceAll(pattToReplace.toString(), Matcher.quoteReplacement(resolvedValue));
@@ -1286,7 +1286,7 @@ public class CmsUtil {
     }
 
 
-    /** sets the Attributes old and new value, but ensures it is not an unresolved variable reference
+	/** sets the Attributes old and new value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
 	private void checkAndSetAttrValue(CmsRfcCI ci, String resolvedValue, CmsRfcAttribute manifestAttr, String varName, String replPrefix) {
 
@@ -1507,9 +1507,9 @@ public class CmsUtil {
 		/*
 		Map<String,String> vars = new HashMap<String,String>();
 		vars.put("platform_name", plat.getCiName());
-		
+
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(plat.getCiId(), "manifest.ValueFor", null);
-		
+
 		for (CmsCIRelation varRel : varRels) {
 			CmsCI globalVar = varRel.getFromCi();
 			vars.put(globalVar.getCiName(), globalVar.getAttribute("value").getDjValue());
@@ -1538,9 +1538,9 @@ public class CmsUtil {
 		/*
 		Map<String,String> vars = new HashMap<String,String>();
 		vars.put("cloud_name", cloud.getCiName());
-		
+
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(cloud.getCiId(), "account.ValueFor", null);
-		
+
 		for (CmsCIRelation varRel : varRels) {
 			CmsCI cloudVar = varRel.getFromCi();
 			vars.put(cloudVar.getCiName(), cloudVar.getAttribute("value").getDjValue());
