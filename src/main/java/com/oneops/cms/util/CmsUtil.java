@@ -1248,13 +1248,13 @@ public class CmsUtil {
 
 	protected String getErrorMessage(String ciName, String nsPath, String attrName, String resolvedValue, String varName, String prefix) {
 
-	    return String.format("CI %s[%s], attribute: %s is using invalid or missing %s variable <%s>!%s",
+	    return String.format("CI %s[%s], attribute: %s is using invalid or missing %s variable <%s>! Value=%s",
 				ciName,
 				truncateNS(nsPath),
 				attrName,
 				guessVariableType(prefix),
 				varName,
-				resolvedValue != null ? " Resolved value:" + resolvedValue : "");
+				resolvedValue);
 	}
 
     private String guessVariableType(String prefix) {
