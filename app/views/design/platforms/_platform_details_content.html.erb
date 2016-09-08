@@ -64,11 +64,14 @@
     <label class="control-label">To Platforms</label>
 
     <div class="controls">
-      <% @linkable_platform_map.each_pair do |p, linked| %>
-        <label class="checkbox inline">
-          <%= cb_id = "links_to_#{p.ciId}"
-              check_box_tag 'links_to[]', p.ciId, linked, :id => cb_id, :class => 'form-inline' %> <%= p.ciName %>
-        </label>
+      <% @linkable_platform_map.to_a.sort_by {|p, linked| "#{linked.blank?}|#{p.ciName}"}.each do |(p, linked)| %>
+        <%= render 'cms/cis/checkbox',
+                   :attribute_name  => 'links_to[]',
+                   :attribute_value => linked ? p.ciId : '',
+                   :unchecked_value => nil,
+                   :checked_value   => p.ciId,
+                   :label           => p.ciName %>
+        <br/>
       <% end %>
     </div>
   </div>
