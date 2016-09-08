@@ -27,7 +27,6 @@ import org.springframework.expression.ParseException;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.domain.CmsWorkOrderBase;
@@ -59,11 +58,7 @@ public class ExpressionEvaluator {
 
 	public boolean isExpressionMatching(CmsCI complianceCi, CmsWorkOrderBase wo) {
 		
-		CmsCIAttribute attr = complianceCi.getAttribute(ATTR_NAME_FILTER);
-		if (attr == null) {
-			return false;
-		}
-		String filter = attr.getDjValue();
+		String filter = complianceCi.getAttribute(ATTR_NAME_FILTER).getDjValue();
 		
 		try {
 			if (StringUtils.isNotBlank(filter)) {
