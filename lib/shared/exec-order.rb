@@ -66,7 +66,7 @@ def gen_gemfile_and_install (gems, dsl, ostype)
     method = "install"
     result = ""
     if ostype =~ /windows/
-      `c:/opscode/chef/embedded/bin/gem list | grep #{dsl}`
+      `c:\\opscode\\chef\\embedded\\bin\\gem list | grep #{dsl}`
     else
       `gem list | grep #{dsl}`
     end
@@ -94,7 +94,7 @@ def gen_gemfile_and_install (gems, dsl, ostype)
     puts "RUBYGEMS PROXY IS: #{rubygems_proxy}"
     if ostype =~ /windows/
       system("c:/opscode/chef/embedded/bin/gem source --add #{rubygems_proxy}")
-      sources = `c:/opscode/chef/embedded/bin/gem source | egrep -v "CURRENT SOURCES|#{rubygems_proxy}"`.split("\n")
+      sources = `c:\\opscode\\chef\\embedded\\bin\\gem source | egrep -v "CURRENT SOURCES|#{rubygems_proxy}"`.split("\n")
       sources.each do |source|
         system("c:/opscode/chef/embedded/bin/gem source --remove #{source}")
       end
@@ -122,37 +122,49 @@ when "chef"
   Dir.chdir "cookbooks"
 
   if ostype =~ /windows/
-    start_time = Time.now.to_i
-    ec = system("c:/programdata/chocolatey/choco.exe install -y --allow-downgrade --allowEmptyChecksums chef-client -version 12.11.18")
-    if !ec || ec.nil?
-      puts "choco install result #{$?}"
-      exit 1
-    end
-    duration = Time.now.to_i - start_time
-    puts "installed chef-client in #{duration} seconds"
 
-    # patch the bug in chef 12.11.18
-    # https://github.com/chef/chef/issues/5027
-    # fixed here https://github.com/chef/chef/blame/master/lib/chef/chef_fs/file_system/multiplexed_dir.rb#L44
-    # but the chef-client msi was built and uploaded to chocolatey before it was fixed, so we need to temporarily add this
-    # until we can get a new version of the msi uploaded to chocolatey.
-    puts "Patch the bug in chef client!!!"
-    puts "run a substitute command and put the source back"
-    puts "SED command is: sed -i '44s/unless.*//' c:/opscode/chef/embedded/lib/ruby/gems/2.1.0/gems/chef-12.11.18-universal-mingw32/lib/chef/chef_fs/file_system/multiplexed_dir.rb"
-    rc = system("sed -i '44s/unless.*//' c:/opscode/chef/embedded/lib/ruby/gems/2.1.0/gems/chef-12.11.18-universal-mingw32/lib/chef/chef_fs/file_system/multiplexed_dir.rb")
-    if !rc || rc.nil?
-      puts "SED command failed with #{$?}"
-      exit 1
+    should_install = true
+    # check to see if chef-client is installed or not.
+    ec = system("ls c:/opscode/chef/embedded/bin/chef-client")
+    if ec
+      should_install = false
+    end
+
+    if should_install
+      start_time = Time.now.to_i
+      ec = system("c:/programdata/chocolatey/choco.exe install -y --allow-downgrade --allowEmptyChecksums chef-client -version 12.11.18")
+      if !ec || ec.nil?
+        puts "choco install result #{$?}"
+        exit 1
+      end
+      duration = Time.now.to_i - start_time
+      puts "installed chef-client in #{duration} seconds"
+
+      # patch the bug in chef 12.11.18
+      # https://github.com/chef/chef/issues/5027
+      # fixed here https://github.com/chef/chef/blame/master/lib/chef/chef_fs/file_system/multiplexed_dir.rb#L44
+      # but the chef-client msi was built and uploaded to chocolatey before it was fixed, so we need to temporarily add this
+      # until we can get a new version of the msi uploaded to chocolatey.
+      puts "Patch the bug in chef client!!!"
+      puts "run a substitute command and put the source back"
+      puts "SED command is: sed -i '44s/unless.*//' c:/opscode/chef/embedded/lib/ruby/gems/2.1.0/gems/chef-12.11.18-universal-mingw32/lib/chef/chef_fs/file_system/multiplexed_dir.rb"
+      rc = system("sed -i '44s/unless.*//' c:/opscode/chef/embedded/lib/ruby/gems/2.1.0/gems/chef-12.11.18-universal-mingw32/lib/chef/chef_fs/file_system/multiplexed_dir.rb")
+      if !rc || rc.nil?
+        puts "SED command failed with #{$?}"
+        exit 1
+      else
+        puts "SED Command Success!, #{$?}"
+      end
+
+      puts "DONE PATCHING THE CHEF BUG"
     else
-      puts "SED Command Success!, #{$?}"
+      puts "Chef-client already installed, continuing with execution!!"
     end
-
-    puts "DONE PATCHING THE CHEF BUG"
   end
 
   # check version
   if ostype =~ /windows/
-    current_version = `c:/opscode/chef/embedded/bin/bundle list | grep chef`.to_s.chomp
+    current_version = `c:\\opscode\\chef\\embedded\\bin\\bundle list | grep chef`.to_s.chomp
   else
     current_version = `bundle list | grep chef`.to_s.chomp
   end
