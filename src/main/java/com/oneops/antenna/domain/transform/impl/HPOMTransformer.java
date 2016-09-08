@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.domain.transform.impl;
 
@@ -31,11 +31,10 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
  * Message transformer for HP Operations manager agents.
  *
  * @author <a href="mailto:sgopal1@walmartlabs.com">Suresh G</a>
- * @version 1.0
  */
 public class HPOMTransformer extends Transformer {
 
-	private static Logger logger = Logger.getLogger(HPOMTransformer.class);
+    private static Logger logger = Logger.getLogger(HPOMTransformer.class);
 
     /**
      * Transforms the notification message to HPOM webhook compliant object.
@@ -48,7 +47,7 @@ public class HPOMTransformer extends Transformer {
      */
     @Override
     protected NotificationMessage apply(NotificationMessage msg, Context ctx) {
-    	String nsPath = msg.getNsPath();
+        String nsPath = msg.getNsPath();
         String[] nsPathTokens = nsPath.split("/");
         String org = null;
         String assembly = null;
@@ -58,13 +57,13 @@ public class HPOMTransformer extends Transformer {
         String ciName = null;
         String threshold = "";
 
-        if (nsPathTokens != null && nsPathTokens.length > 5) {
+        if (nsPathTokens.length > 5) {
             org = nsPathTokens[1];
             assembly = nsPathTokens[2];
             env = nsPathTokens[3];
             platform = nsPathTokens[5];
         }
-        if (msg.getPayload() != null ) {
+        if (msg.getPayload() != null) {
             eventName = msg.getPayload().get("eventName");
             ciName = msg.getPayload().get("ciName");
             threshold = msg.getPayload().get("threshold");
@@ -104,25 +103,25 @@ public class HPOMTransformer extends Transformer {
         return hpomMsg;
     }
 
-	public String getComponentName(String ciName) {
-		
-		int index = StringUtils.lastOrdinalIndexOf(ciName, "-", 2);
-		if (! (index > 0)) {
-			return null;
-		}
-		return ciName.substring(0, index);
-	}
+    public String getComponentName(String ciName) {
 
-	private String getMsgGroup(String org, String assembly) {
-		String msgGroup = null;
-		String msgGroupSysProperty = System.getProperty("hpom.msg.group");
-		if (! StringUtils.isEmpty(msgGroupSysProperty)) {
-			msgGroup = msgGroupSysProperty;
-		} else {
-        	msgGroup = org + ":" + assembly;	
-		}
-		return msgGroup;
-	}
+        int index = StringUtils.lastOrdinalIndexOf(ciName, "-", 2);
+        if (!(index > 0)) {
+            return null;
+        }
+        return ciName.substring(0, index);
+    }
+
+    private String getMsgGroup(String org, String assembly) {
+        String msgGroup;
+        String msgGroupSysProperty = System.getProperty("hpom.msg.group");
+        if (!StringUtils.isEmpty(msgGroupSysProperty)) {
+            msgGroup = msgGroupSysProperty;
+        } else {
+            msgGroup = org + ":" + assembly;
+        }
+        return msgGroup;
+    }
 }
 
 /**
@@ -132,9 +131,9 @@ public class HPOMTransformer extends Transformer {
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 class HPOMMessage extends NotificationMessage {
 
-	private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-	private Level level;//CRITICAL
+    private Level level;//CRITICAL
 
     private String messageContent;
 

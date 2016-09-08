@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.jms;
 
@@ -21,12 +21,11 @@ package com.oneops.antenna.jms;
 import com.codahale.metrics.MetricRegistry;
 import com.google.gson.Gson;
 import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.jms.AntennaListener;
 import com.oneops.antenna.service.Dispatcher;
-
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.springframework.jms.listener.DefaultMessageListenerContainer;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -42,25 +41,27 @@ import static org.mockito.Mockito.when;
  */
 public class AntennaListenerTest {
 
-    @InjectMocks
-    private AntennaListener listener = new AntennaListener();
-
     @Spy
     private MetricRegistry metric = new MetricRegistry();
 
+    @InjectMocks
+    private AntennaListener listener = new AntennaListener(mock(Dispatcher.class), new Gson(), metric);
+
+    /**
+     * Set up the instance
+     */
     @BeforeClass
-    /** set up the instance */
     public void config() {
         System.setProperty("oneops.url", "http://oneops.prod.walmart.com");
         MockitoAnnotations.initMocks(this);
+        this.listener.setDmlc(mock(DefaultMessageListenerContainer.class));
         this.listener.init();
-        this.listener.setGson(new Gson());
-        this.listener.setDispatcher(mock(Dispatcher.class));
     }
 
-
+    /**
+     * Forces a bad JSON format message into on Message
+     */
     @Test
-    /** forces a bad JSON format message into on Message*/
     public void onBadMessage() {
         TextMessage mockMessage = mock(TextMessage.class);
 
@@ -73,10 +74,11 @@ public class AntennaListenerTest {
 
     }
 
-
+    /**
+     * sends an Object message instead of Text; should be ok
+     * it will get logged
+     */
     @Test
-    /** sends an Object message instead of Text; should be ok
-     * it will get logged */
     public void onObjectMessage() {
         ObjectMessage objectMessage = mock(ObjectMessage.class);
 
@@ -91,6 +93,4 @@ public class AntennaListenerTest {
             e.printStackTrace();
         }
     }
-
-
 }

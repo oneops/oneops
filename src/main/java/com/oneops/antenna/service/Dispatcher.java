@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.service;
 
@@ -36,6 +36,7 @@ import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * The Class Dispatcher.
@@ -44,110 +45,31 @@ public class Dispatcher {
 
     private static Logger logger = Logger.getLogger(Dispatcher.class);
 
-    private SubscriberService sbrService;
-    private NotificationSender eSender;
-    private NotificationSender snsSender;
-    private NotificationSender urlSender;
-    private NotificationSender xmppSender;
-    private CmsCmProcessor cmProcessor;
-    private CmsDpmtProcessor dpmtProcessor;
-    private OpsProcedureProcessor procProcessor;
-    private NotificationMessageDao nmDao;
-    private Gson gson;
+    private final Gson gson;
+    private final SubscriberService sbrService;
+    private final NotificationSender eSender;
+    private final NotificationSender snsSender;
+    private final NotificationSender urlSender;
+    private final NotificationSender xmppSender;
+    private final CmsCmProcessor cmProcessor;
+    private final CmsDpmtProcessor dpmtProcessor;
+    private final OpsProcedureProcessor procProcessor;
 
-    /**
-     * Sets the gson.
-     *
-     * @param gson the new gson
-     */
-    public void setGson(Gson gson) {
+    @Autowired
+    public Dispatcher(Gson gson, SubscriberService sbrService,
+                      NotificationSender eSender, NotificationSender snsSender,
+                      NotificationSender urlSender, NotificationSender xmppSender,
+                      CmsCmProcessor cmProcessor, CmsDpmtProcessor dpmtProcessor,
+                      OpsProcedureProcessor procProcessor) {
         this.gson = gson;
-    }
-
-    /**
-     * Sets the sns sender.
-     *
-     * @param snsSender the new sns sender
-     */
-    public void setSnsSender(NotificationSender snsSender) {
-        this.snsSender = snsSender;
-    }
-
-    /**
-     * Sets the url sender.
-     *
-     * @param urlSender the new url sender
-     */
-    public void setUrlSender(NotificationSender urlSender) {
-        this.urlSender = urlSender;
-    }
-
-    /**
-     * Sets the e sender.
-     *
-     * @param eSender the new e sender
-     */
-    public void seteSender(NotificationSender eSender) {
-        this.eSender = eSender;
-    }
-
-    /**
-     * @return the xmppSender
-     */
-    public NotificationSender getXmppSender() {
-        return xmppSender;
-    }
-
-    /**
-     * @param xmppSender the xmppSender to set
-     */
-    public void setXmppSender(NotificationSender xmppSender) {
-        this.xmppSender = xmppSender;
-    }
-
-    /**
-     * Sets the cm processor.
-     *
-     * @param cmProcessor the new cm processor
-     */
-    public void setCmProcessor(CmsCmProcessor cmProcessor) {
-        this.cmProcessor = cmProcessor;
-    }
-
-    /**
-     * Sets the dpmt processor.
-     *
-     * @param dpmtProcessor the new dpmt processor
-     */
-    public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
-        this.dpmtProcessor = dpmtProcessor;
-    }
-
-    /**
-     * Sets the proc processor.
-     *
-     * @param procProcessor the new proc processor
-     */
-    public void setProcProcessor(OpsProcedureProcessor procProcessor) {
-        this.procProcessor = procProcessor;
-    }
-
-    /**
-     * Sets the sbr service.
-     *
-     * @param sbrService the new sbr service
-     */
-    public void setSbrService(SubscriberService sbrService) {
         this.sbrService = sbrService;
-    }
-
-    /**
-     * Sets the nm dao.
-     *
-     * @param nmDao the new nm dao
-     */
-    public void setNmDao(NotificationMessageDao nmDao) {
-        this.nmDao = nmDao;
+        this.eSender = eSender;
+        this.snsSender = snsSender;
+        this.urlSender = urlSender;
+        this.xmppSender = xmppSender;
+        this.cmProcessor = cmProcessor;
+        this.dpmtProcessor = dpmtProcessor;
+        this.procProcessor = procProcessor;
     }
 
     /**
@@ -165,8 +87,6 @@ public class Dispatcher {
                 return;
             }
         }
-        // Persist the msg
-        nmDao.addNotificationMessage(msg);
 
         List<BasicSubscriber> subscribers = sbrService.getSubscribersForNs(msg.getNsPath());
         try {
@@ -200,7 +120,7 @@ public class Dispatcher {
      * @return nspath string
      */
     private String getNsPath(NotificationMessage msg) {
-        String nsPath = null;
+        String nsPath;
         switch (msg.getType()) {
             case ci:
                 nsPath = getNsPathForCi(msg.getCmsId());
@@ -267,7 +187,7 @@ public class Dispatcher {
     /**
      * Notification event dispatch methods.
      */
-    public static enum Method {
+    public enum Method {
 
         /**
          * Dispatching methods
@@ -284,7 +204,7 @@ public class Dispatcher {
          *
          * @param name
          */
-        private Method(String name) {
+        Method(String name) {
             this.name = name;
         }
 

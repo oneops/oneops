@@ -1,23 +1,24 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.cache;
 
 
+import com.google.common.cache.CacheLoader;
 import com.oneops.antenna.domain.*;
 import com.oneops.antenna.domain.filter.NotificationFilter;
 import com.oneops.antenna.domain.transform.Transformer;
@@ -26,12 +27,9 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
-
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import com.google.common.cache.CacheLoader;
 
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
@@ -43,7 +41,6 @@ import java.util.List;
  * or reference-based eviction depending on the Cache type).
  *
  * @author <a href="mailto:sgopal1@walmartlabs.com">Suresh G</a>
- * @version 1.0
  */
 @Component
 public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscriber>> {
@@ -56,21 +53,26 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
     /**
      * Cms CI processor
      */
-    @Autowired
-    private CmsCmProcessor cmProcessor;
+    private final CmsCmProcessor cmProcessor;
 
     /**
      * Crypto util
      */
-    @Qualifier("cmsCrypto")
-    @Autowired
-    private CmsCrypto cmsCrypto;
+    private final CmsCrypto cmsCrypto;
 
     /**
      * Default notification subscriber
      */
+    private final URLSubscriber defaultSystemSubscriber;
+
     @Autowired
-    private URLSubscriber defaultSystemSubscriber;
+    public SinkSubscriberLoader(URLSubscriber defaultSystemSubscriber,
+                                CmsCrypto cmsCrypto,
+                                CmsCmProcessor cmProcessor) {
+        this.defaultSystemSubscriber = defaultSystemSubscriber;
+        this.cmsCrypto = cmsCrypto;
+        this.cmProcessor = cmProcessor;
+    }
 
     @Override
     public List<BasicSubscriber> load(SinkKey key) {
@@ -79,7 +81,7 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
         // Get nspath from sinkkey
         String nsPath = key.getNsPath();
 
-        List<BasicSubscriber> subs = new ArrayList<BasicSubscriber>();
+        List<BasicSubscriber> subs = new ArrayList<>();
         // Add default system subscriber
         subs.add(defaultSystemSubscriber);
 
@@ -101,16 +103,22 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
                 decryptCI(sink);
                 BasicSubscriber sub = null;
 
-                if (sink.getCiClassName().equals("account.notification.sns.Sink")) {
-                    sub = buildSnsSub(sink);
-                } else if (sink.getCiClassName().equals("account.notification.url.Sink")) {
-                    sub = buildUrlSub(sink);
-                } else if (sink.getCiClassName().equals("account.notification.email.Sink")) {
-                    sub = buildEmailSub(sink);
-                } else if (sink.getCiClassName().equals("account.notification.jabber.Sink")) {
-                    sub = buildJabberSub(sink);
-                } else {
-                    logger.error("Couldn't build notification sink for " + sink.getCiClassName());
+                switch (sink.getCiClassName()) {
+                    case "account.notification.sns.Sink":
+                        sub = buildSnsSub(sink);
+                        break;
+                    case "account.notification.url.Sink":
+                        sub = buildUrlSub(sink);
+                        break;
+                    case "account.notification.email.Sink":
+                        sub = buildEmailSub(sink);
+                        break;
+                    case "account.notification.jabber.Sink":
+                        sub = buildJabberSub(sink);
+                        break;
+                    default:
+                        logger.error("Couldn't build notification sink for " + sink.getCiClassName());
+                        break;
                 }
                 if (sub != null) {
                     // Set the name
@@ -129,7 +137,6 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
                 logger.error("Can not get decrypt ci - " + sink.getCiId() + " " + sink.getCiName() + ";", e);
             }
         }
-
         return subs;
     }
 
@@ -196,7 +203,7 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
      * @return List of subscribers defined in the specific env CI
      */
     private List<CmsCI> getSubscribersForEnv(CmsCI env) {
-        List<CmsCI> subs = new ArrayList<CmsCI>();
+        List<CmsCI> subs = new ArrayList<>();
         List<CmsCIRelation> assemblys = cmProcessor.getToCIRelationsNaked(env.getCiId(),
                 "base.RealizedIn", "account.Assembly");
         if (assemblys.size() > 0) {
@@ -232,6 +239,5 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
             }
         }
     }
-
 
 }

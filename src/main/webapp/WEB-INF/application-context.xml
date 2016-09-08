@@ -57,16 +57,6 @@
 
     <bean id="gson" class="com.google.gson.Gson"/>
 
-    <bean id="opsdbCluster" class="com.oneops.cassandra.ClusterBootstrap">
-        <property name="hostPort" value="opsdb:9160"/>
-    </bean>
-
-    <bean id="nmDao" class="com.oneops.antenna.service.NotificationMessageDao" init-method="init">
-    	<property name="clusterBootstrap" ref="opsdbCluster" />
-        <property name="clusterName" value="antenna_cluster"/>
-        <property name="keyspaceName" value="notifications_ks"/>
-    </bean>
-
     <!--bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoOpenSSLImpl" init-method="init" /-->
     <bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoDES" init-method="init"/>
     <bean id="sbrService" class="com.oneops.antenna.subscriptions.SubscriberService"/>
@@ -85,35 +75,14 @@
         <property name="userName" value="${NOTIFICATION_SYSTEM_USER}"/>
         <property name="url" value="${KLOOPZ_NOTIFY_URL:http://api:3000/notify}"/>
         <property name="password" value="${KLOOPZ_NOTIFY_PASS}"/>
-
-
         <property name="timeout" value="5000"/>
     </bean>
 
-
-    <bean id="dispatcher" class="com.oneops.antenna.service.Dispatcher">
-        <property name="gson" ref="gson"/>
-        <property name="nmDao" ref="nmDao"/>
-        <property name="sbrService" ref="sbrService"/>
-        <property name="snsSender" ref="snsSender"/>
-        <property name="urlSender" ref="urlSender"/>
-        <property name="eSender" ref="eSender"/>
-        <property name="xmppSender" ref="xmppSender"/>
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="dpmtProcessor" ref="cmsDpmtProcessor"/>
-        <property name="procProcessor" ref="procProcessor"/>
-    </bean>
-
-
-    <bean id="antennaListener" class="com.oneops.antenna.jms.AntennaListener">
-        <property name="gson" ref="gson"/>
-        <property name="dispatcher" ref="dispatcher"/>
-
-    </bean>
+    <bean id="dispatcher" class="com.oneops.antenna.service.Dispatcher"/>
+    <bean id="antennaListener" class="com.oneops.antenna.jms.AntennaListener"/>
 
     <!-- and this is the message listener container -->
-    <bean id="antennaListenerContainer"
-          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+    <bean id="antennaListenerContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
         <property name="connectionFactory" ref="jmsFactory"/>
         <property name="maxConcurrentConsumers" value="${antenna.max_consumers:15}"/>
         <property name="concurrentConsumers" value="${antenna.max_consumers:15}"/>

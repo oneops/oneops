@@ -19,9 +19,8 @@ package com.oneops.antenna.senders.generic;
 
 import org.testng.annotations.Test;
 
-import com.oneops.antenna.senders.generic.ChatPresence;
-
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertFalse;
 
 
 public class ChatPresenceTest {
@@ -32,7 +31,6 @@ public class ChatPresenceTest {
     private static final String chatRoom = "b";
     private static final String chatUser = "c";
     private static final String chatPassword = "terces";
-
     private static final ChatPresence classCp1 = new ChatPresence(chatServer, chatPort, chatConference, chatRoom, chatUser, chatPassword);
 
 
