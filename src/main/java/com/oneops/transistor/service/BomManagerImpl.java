@@ -80,7 +80,7 @@ public class BomManagerImpl implements BomManager {
 	public long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		long releaseId = generateBom(envId, userId, excludePlats, desc, commit);
 		if (releaseId > 0) {
-			return submitDeployment(releaseId, userId);
+			return submitDeployment(releaseId, userId, desc);
 		} else {
 			return 0;
 		}
@@ -335,12 +335,15 @@ public class BomManagerImpl implements BomManager {
 	
 	
 	@Override
-	public long submitDeployment(long releaseId, String userId){
+	public long submitDeployment(long releaseId, String userId, String desc){
 		CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
 		CmsDeployment dpmt = new CmsDeployment();
 		dpmt.setNsPath(bomRelease.getNsPath());
 		dpmt.setReleaseId(bomRelease.getReleaseId());
 		dpmt.setCreatedBy(userId);
+		if (desc!=null) {
+			dpmt.setComments(desc);
+		}
 		CmsDeployment newDpmt = dpmtProcessor.deployRelease(dpmt); 
 		logger.info("created new deployment - " + newDpmt.getDeploymentId());
 		return newDpmt.getDeploymentId();

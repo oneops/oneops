@@ -7,3 +7,5 @@ transistor.iml
 .settings/
 /target
 ~
+.idea
+*.iml
