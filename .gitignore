@@ -19,3 +19,5 @@ Thumbs.db
 /.settings/
 /.project
 /src/main/java/META-INF
+.idea
+*.iml
