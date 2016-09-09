@@ -89,4 +89,6 @@ public interface CmsDjManager {
 	
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
 
+	long getRfcCiCountByNs(String nsPath);
+	long getRfcRelationCountByNs(String nsPath);
 }

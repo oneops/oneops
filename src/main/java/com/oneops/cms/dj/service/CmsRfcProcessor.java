@@ -302,7 +302,7 @@ public class CmsRfcProcessor {
 	 * Returns latest open release.
 	 * or creates one
 	 * @param nsPath the ns path
-	 * @param releaseState the release state
+	 * @param releaseType the release type
 	 * @return the latest release
 	 */
 	public long getOpenReleaseIdByNs(String nsPath, String releaseType, String createdBy) {
@@ -1409,11 +1409,7 @@ public class CmsRfcProcessor {
 	/**
 	 * Gets the open rfc relations by ns
 	 *
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
 	 * @param nsPath the ns path
-	 * @param fromClazzName the from clazz name
-	 * @param toClazzName the to clazz name
 	 * @return the open rfc relations ns like naked
 	 */
 	public List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath) {
@@ -1421,7 +1417,8 @@ public class CmsRfcProcessor {
 		populateRfcRelationAttributes(relList);
 		return relList;
 	}	
-	
+
+
 	/**
 	 * Gets the open rfc relations naked no attrs.
 	 *
@@ -1649,9 +1646,40 @@ public class CmsRfcProcessor {
 	 *
 	 * @param  nsPath, relName
 	 */
-	public long getRfcCount(long releaseId) {
-		return djMapper.countCiRfcByReleaseId(releaseId);
+	public long getRfcCount(long nsPath) {
+		return djMapper.countCiRfcByReleaseId(nsPath);
 	}
-    	
-	
+
+	/**
+	 * Get a count of open RFC CIs for a given namespace (not recursive).
+	 *
+	 * @param nsPath
+	 * @return number of open RFC CIs
+	 */
+	public long getRfcCiCountByNs(String nsPath)
+	{
+		return djMapper.countOpenRfcCisByNs(nsPath);
+	}
+
+	/**
+	 * Get a count of open RFC relations for a given namespace (not recursive).
+	 *
+	 * @param nsPath
+	 * @return number of open RFC relations
+	 */
+	public long getRfcRelationCountByNs(String nsPath)
+	{
+		return djMapper.countOpenRfcRelationsByNs(nsPath);
+	}
+
+	/**
+	 * Get a count of open RFCs (CIs + relations) for a given namespace (not recursive).
+	 *
+	 * @param nsPath
+	 * @return number of open RFCs
+	 */
+	public long getRfcCountByNs(String nsPath)
+	{
+		return djMapper.countOpenRfcCisByNs(nsPath) + djMapper.countOpenRfcRelationsByNs(nsPath);
+	}
 }
