@@ -45,6 +45,7 @@ import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.domain.AttrQueryCondition;
@@ -604,6 +605,18 @@ public class ManifestRfcBulkProcessor {
 		List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
 		Map<String, Edge> edges = new HashMap<String, Edge>();
 		for (CmsCIRelation templateRel:templateRels) {
+			CmsCI templatePlatformResource = templateRel.getToCi();
+			if (CmsConstants.CI_STATE_PENDING_DELETION.equals(templatePlatformResource.getCiState())) {
+				int index = templatePlatformResource.getNsPath().lastIndexOf("/");
+				String catalogPlatformNsPath = templatePlatformResource.getNsPath().substring(0, index);
+				List<CmsCI> catalogTemplateCis = cmProcessor.getCiBy3(catalogPlatformNsPath, 
+						templatePlatformResource.getCiClassName().replaceAll("mgmt\\.manifest\\.", "mgmt.catalog."), templatePlatformResource.getCiName());
+				if (catalogTemplateCis != null && catalogTemplateCis.size() == 0) {//It is "manifest-only" resource that is now pending for deletion 
+					logger.info(templatePlatformResource.getCiName() + " template resource with ciId " 
+				+ templatePlatformResource.getCiId() +  " is marked for deletion");
+					continue;	//skip this rel because the resource is pending deletion
+				}
+			}
 			Edge edge = new Edge();
 			edge.templateRel = templateRel;
 			String key = trUtil.getLongShortClazzName(templatePlatform.getCiClassName()) + "-Requires-" + templateRel.getToCi().getCiName();
@@ -809,7 +822,6 @@ public class ManifestRfcBulkProcessor {
 	
 	private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String platNsPath, String envNsPath, CmsRfcCI manifestPlat, 
 			String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
-
 		Set<String> newRelsGoids = new HashSet<String>();
 		Map<Long,List<CmsCIRelation>> watchedByRels = new HashMap<Long, List<CmsCIRelation>>(); 
 		for (CmsCIRelation ciRel : internalRels) {
