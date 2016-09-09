@@ -49,7 +49,7 @@ import java.util.*;
  */
 public class PackRefreshProcessor {
 
-    private static final String OPEN_RELEASE_ERROR_MSG = "Design has open release. Please commit/discard before pack refresh.";
+    private static final String OPEN_RELEASE_ERROR_MSG = "Platform already has changes in current release. Please commit/discard the changes before doing pack refresh.";
     static Logger logger = Logger.getLogger(PackRefreshProcessor.class);
 
     private CmsCmProcessor cmProcessor;
@@ -91,8 +91,7 @@ public class PackRefreshProcessor {
             throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, errMsg);
         }
 
-        List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(designPlatform.getNsPath(), "open");
-        if (openReleases.size()>0) {
+        if (rfcProcessor.getRfcCountByNs(designPlatform.getNsPath()) > 0) {
             throw new TransistorException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
         }
 
