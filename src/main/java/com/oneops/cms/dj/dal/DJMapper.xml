@@ -1353,6 +1353,25 @@
 		where release_id = #{value}
 	 </select>
 
+	<select id="countOpenRfcCisByNs" parameterType="string" useCache="false" resultType="long">
+		SELECT count(1)
+		  FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
+		 WHERE rci.release_id = r.release_id
+		   AND r.release_state_id = rs.release_state_id
+		   AND rs.state_name = 'open'
+		   AND rci.is_active_in_release = true
+		   AND rci.ns_id = ns.ns_id
+           AND ns.ns_path = #{value}
+	</select>
 
-
+	<select id="countOpenRfcRelationsByNs" parameterType="string" useCache="false" resultType="long">
+		SELECT count(1)
+          FROM dj_rfc_relation rfr, dj_releases r, dj_release_states rs, ns_namespaces ns
+         WHERE rfr.release_id = r.release_id
+           AND r.release_state_id = rs.release_state_id
+           AND rs.state_name = 'open'
+           AND rfr.is_active_in_release = true
+           AND rfr.ns_id = ns.ns_id
+           AND ns.ns_path = #{value}
+	 </select>
 </mapper>
