@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.domain.filter;
 
@@ -75,22 +75,22 @@ public class NotificationFilter implements MessageFilter {
      * Env Profiles to be used for message filtering based on type of env the notification is coming from
      */
     private String envProfilePattern;
-    
+
 
     @Override
     public boolean accept(NotificationMessage msg) {
-    	String envProfile = msg.getEnvironmentProfileName();
+        String envProfile = msg.getEnvironmentProfileName();
         // Filter ALL (ie, filtering == none) or that specific event type
         if (NotificationType.none == this.eventType || msg.getType() == this.eventType) {
             // Filter ALL (ie, filtering == none) or >= specific event severity
             if (msg.getSeverity().getLevel() >= this.eventSeverity.getLevel()) {
                 if (hasValidNSPath(msg.getNsPath())) {
-                	if (envProfile == null || envProfile.trim().equals("")
-                			|| envProfilePattern == null || envProfilePattern.trim().equals("")
-                			|| envProfile.matches(envProfilePattern.trim())) {
+                    if (envProfile == null || envProfile.trim().equals("")
+                            || envProfilePattern == null || envProfilePattern.trim().equals("")
+                            || envProfile.matches(envProfilePattern.trim())) {
                         // ToDo - add cloud and selector pattern check once it is finalized.
-                        return true;                		
-                	}
+                        return true;
+                    }
                 }
             }
         }
@@ -116,7 +116,7 @@ public class NotificationFilter implements MessageFilter {
      *
      * @param sink {@link CmsCI} sink CI
      * @return newly built NotificationFilter. <code>null</code> if the message
-     *         filter is not enabled or N/A.
+     * filter is not enabled or N/A.
      */
     public static NotificationFilter fromSinkCI(CmsCI sink) {
         // For backward compatibility, check if the filter attributes are present.
@@ -166,11 +166,11 @@ public class NotificationFilter implements MessageFilter {
 
 
     private NotificationFilter envProfilePattern(String envProfilePattern) {
-    	this.envProfilePattern = envProfilePattern;
-    	return this;
+        this.envProfilePattern = envProfilePattern;
+        return this;
     }
 
-	/**
+    /**
      * Checks whether the message nspath is a valid one for filtering.
      *
      * @param nsPath notification message nspath

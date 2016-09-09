@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.jms;
 
@@ -48,16 +48,26 @@ import static com.oneops.util.URLUtil.*;
 public class AntennaListener implements MessageListener {
 
     private static Logger logger = Logger.getLogger(AntennaListener.class);
-
-    @Autowired
     private DefaultMessageListenerContainer dmlc;
     private Dispatcher dispatcher;
     private Gson gson;
-    // Metrics
-    @Autowired
     private MetricRegistry metrics;
     private Meter msgs;
     private Timer msgTime;
+
+    @Autowired
+    public AntennaListener(Dispatcher dispatcher,
+                           Gson gson,
+                           MetricRegistry metrics) {
+        this.dispatcher = dispatcher;
+        this.gson = gson;
+        this.metrics = metrics;
+    }
+
+    @Autowired
+    public void setDmlc(DefaultMessageListenerContainer dmlc) {
+        this.dmlc = dmlc;
+    }
 
     /**
      * Post construct initialization
@@ -75,12 +85,7 @@ public class AntennaListener implements MessageListener {
     private void metricInit() {
         msgs = metrics.meter(name(ANTENNA, "msg.count"));
         msgTime = metrics.timer(name(ANTENNA, "msg.time"));
-        metrics.register(name(ANTENNA, "dmlc.active.consumers"), new Gauge<Integer>() {
-            @Override
-            public Integer getValue() {
-                return dmlc.getActiveConsumerCount();
-            }
-        });
+        metrics.register(name(ANTENNA, "dmlc.active.consumers"), (Gauge<Integer>) dmlc::getActiveConsumerCount);
     }
 
 
@@ -119,24 +124,6 @@ public class AntennaListener implements MessageListener {
         } finally {
             tc.stop();
         }
-    }
-
-    /**
-     * Sets the gson.
-     *
-     * @param gson the new gson
-     */
-    public void setGson(Gson gson) {
-        this.gson = gson;
-    }
-
-    /**
-     * Sets the dispatcher.
-     *
-     * @param dispatcher the new dispatcher
-     */
-    public void setDispatcher(Dispatcher dispatcher) {
-        this.dispatcher = dispatcher;
     }
 
     /**

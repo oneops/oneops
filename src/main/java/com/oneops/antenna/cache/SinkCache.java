@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.cache;
 
@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
  * A loading cache implementation for sink subscribers.
  *
  * @author <a href="mailto:sgopal1@walmartlabs.com">Suresh G</a>
- * @version 1.0
  */
 @Service
 @Qualifier("sinkCache")
@@ -58,19 +57,23 @@ public class SinkCache {
     /**
      * Sink subscriber removal listener
      */
-    @Autowired
-    private SinkRemovalListener removalListener;
+    private final SinkRemovalListener removalListener;
 
     /**
      * Cache loader
      */
-    @Autowired
-    private SinkSubscriberLoader cacheLoader;
+    private final SinkSubscriberLoader cacheLoader;
 
     /**
      * Loading Cache instance
      */
     private LoadingCache<SinkKey, List<BasicSubscriber>> cache;
+
+    @Autowired
+    public SinkCache(SinkRemovalListener removalListener, SinkSubscriberLoader cacheLoader) {
+        this.removalListener = removalListener;
+        this.cacheLoader = cacheLoader;
+    }
 
     /**
      * Initialize the cache
