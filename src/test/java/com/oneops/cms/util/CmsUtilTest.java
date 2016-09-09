@@ -18,27 +18,20 @@
 package com.oneops.cms.util;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import org.testng.annotations.*;
 import org.testng.log4testng.Logger;
 
 import static org.testng.Assert.*;
 
-import static org.mockito.Mockito.*;
-
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.util.CmsUtil;
 
 
 public class CmsUtilTest {
@@ -866,8 +859,8 @@ public class CmsUtilTest {
 
 	@Test
 	public void testErrorMessage(){
-		String errorMessage="CI tomcat, attribute: pre_shutdown_command has bad local var <DEPLOYCONTEXT> reference! value=null";
-		assertEquals(util.getErrorMessage("tomcat","pre_shutdown_command",null,"DEPLOYCONTEXT"),errorMessage);
+		String errorMessage="CI tomcat[/p1/1], attribute: pre_shutdown_command is using invalid or missing local variable <DEPLOYCONTEXT>! Value=null";
+		assertEquals(util.getErrorMessage("tomcat","/LOCAL2/A1/testEnv2/manifest/p1/1","pre_shutdown_command", null, "DEPLOYCONTEXT", "\\$OO_LOCAL\\{"),errorMessage);
 	}
 
 }

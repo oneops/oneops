@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
@@ -888,15 +889,9 @@ public class CmsUtil {
 						} else {
 							resolvedValue=null;
 						}
-						if (resolvedValue!=null) {
 							checkAndSetAttrValue(ci, resolvedValue,
 									manifestAttr, variableToResolve,
 									CLOUDVARRPL);
-						} else {
-							checkAndSetAttrValue(ci, null,
-									manifestAttr, variableToResolve,
-									CLOUDVARRPL);
-						}
 					}
     			} 
     					
@@ -964,8 +959,8 @@ public class CmsUtil {
      
     	for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
 
-    		manifestAttr.setDjValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),manifestAttr.getAttributeName(),manifestAttr.getDjValue(),cloudVars,globalVars,localVars));
-    		manifestAttr.setDfValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),manifestAttr.getAttributeName(),manifestAttr.getDfValue(),cloudVars,globalVars,localVars));
+    		manifestAttr.setDjValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),manifestAttr.getAttributeName(),manifestAttr.getDjValue(),cloudVars,globalVars,localVars));
+    		manifestAttr.setDfValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),manifestAttr.getAttributeName(),manifestAttr.getDfValue(),cloudVars,globalVars,localVars));
     	}
     	
 		if (logger.isDebugEnabled()) {
@@ -977,10 +972,10 @@ public class CmsUtil {
 			logger.info(sb.toString());
 		}
 	}
-	
-	
-	private String processAllVarsForString(long ciId, String ciName, String attrName, String unresolvedAttrValue, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
-		
+
+
+	private String processAllVarsForString(long ciId, String ciName, String nsPath, String attrName, String unresolvedAttrValue, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
+
 		String attrValue = unresolvedAttrValue;
 		String variableToResolve="";
 		String resolvedValue="";
@@ -994,17 +989,17 @@ public class CmsUtil {
 					} else {
 						resolvedValue=null;
 					}
-					attrValue = subVarValue(ciId, ciName, attrName, attrValue, resolvedValue, variableToResolve, CLOUDVARRPL);
+					attrValue = subVarValue(ciId, ciName, nsPath, attrName, attrValue, resolvedValue, variableToResolve, CLOUDVARRPL);
 				}
-			} 
-					
+			}
+
     		if (attrValue.contains(GLOBALVARPFX)){
     			List<String> varStructures = splitAttrValue(attrValue,GLOBALVARPFX);
 				for (String varStructure : varStructures) {
 					variableToResolve=stripSymbolics(varStructure);
 					//lookup in Global Map; may refer to Cloud in turn but handled there
 					resolvedValue = resolveGlobalVar(cloudVars, globalVars, variableToResolve);
-					attrValue = subVarValue(ciId, ciName, attrName, attrValue, resolvedValue, variableToResolve, GLOBALVARRPL);
+					attrValue = subVarValue(ciId, ciName, nsPath, attrName, attrValue, resolvedValue, variableToResolve, GLOBALVARRPL);
 				}
     		}
     		
@@ -1031,7 +1026,7 @@ public class CmsUtil {
 							}
 						}
 					}
-					attrValue = subVarValue(ciId, ciName, attrName, attrValue, resolvedValue, variableToResolve, LOCALVARRPL);
+					attrValue = subVarValue(ciId, ciName, nsPath, attrName, attrValue, resolvedValue, variableToResolve, LOCALVARRPL);
 				}
        		}	
 			
@@ -1079,15 +1074,9 @@ public class CmsUtil {
 						} else {
 							resolvedValue=null;
 						}
-						if (resolvedValue!=null) {
-							checkAndSetAttrValue(ci, resolvedValue,
-									rfcAttr, variableToResolve,
-									CLOUDVARRPL);
-						} else {
-							checkAndSetAttrValue(ci, null,
-									rfcAttr, variableToResolve,
-									CLOUDVARRPL);
-						}
+						checkAndSetAttrValue(ci, resolvedValue,
+								rfcAttr, variableToResolve,
+								CLOUDVARRPL);
 					}
     			} 
     					
@@ -1154,9 +1143,9 @@ public class CmsUtil {
 		}
      
     	for (CmsRfcAttribute rfcAttr : ci.getAttributes().values()) {
-    		rfcAttr.setNewValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),rfcAttr.getAttributeName(),rfcAttr.getNewValue(),cloudVars,globalVars,localVars));
-    		rfcAttr.setOldValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),rfcAttr.getAttributeName(),rfcAttr.getOldValue(),cloudVars,globalVars,localVars));
-    	}	
+    		rfcAttr.setNewValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),rfcAttr.getAttributeName(),rfcAttr.getNewValue(),cloudVars,globalVars,localVars));
+    		rfcAttr.setOldValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),rfcAttr.getAttributeName(),rfcAttr.getOldValue(),cloudVars,globalVars,localVars));
+    	}
 		if (logger.isDebugEnabled()) {
 			StringBuilder sb = new StringBuilder("Processing vars complete for RfcCi [")
 			.append(ci.getCiId()).append("] CmsRfcAttribute [");
@@ -1205,14 +1194,14 @@ public class CmsUtil {
 			.append(ci.getCiId())
 			.append(" the attribute- ")
 			.append(manifestAttr.getAttributeName())
-			.append(" is a bad local var reference! value [").append(resolvedValue).append("] Atts:");
+			.append(" is a bad ").append(guessVariableType(replPrefix)).append(" var reference! value [").append(resolvedValue).append("] Atts:");
 			for (Entry<String, CmsCIAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":dj:").append(e.getValue().getDjValue());
 			}
 			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-					getErrorMessage(ci.getCiName(), manifestAttr.getAttributeName(),resolvedValue,varName));
+					getErrorMessage(ci.getCiName(), ci.getNsPath(), manifestAttr.getAttributeName(), resolvedValue, varName, replPrefix));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1231,21 +1220,21 @@ public class CmsUtil {
 
 	/** sets the Attributes Dj and Df value, but ensures it is not an unresolved variable reference
 	 * runtime exceptions stem from here if that is the case*/
-	private String subVarValue(long ciId, String ciName, String attrName, String attrValue, String resolvedValue, String varName, String replPrefix) {
-		
-		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("") 
-				resolvedValue.contains(LOCALVARPFX) ||   
+	private String subVarValue(long ciId, String ciName, String nsPath, String attrName, String attrValue, String resolvedValue, String varName, String replPrefix) {
+
+		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("")
+				resolvedValue.contains(LOCALVARPFX) ||
 				resolvedValue.contains(GLOBALVARPFX)||
 				resolvedValue.contains(LOCALVARPFX) ) {//substituion did not happen: bad.
 			StringBuilder sb = new StringBuilder("error processVars CI-")
 			.append(ciName).append( " id-").append(ciId)
 			.append(" the attribute- ")
 			.append(attrName)
-			.append(" has a bad local var reference! value [").append(resolvedValue);
-			logger.warn(sb.toString());						
+			.append(" has a bad ").append(guessVariableType(replPrefix)).append(" var reference! value [").append(resolvedValue);
+			logger.warn(sb.toString());
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-					getErrorMessage(ciName, attrName, resolvedValue, varName));
+					getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1257,12 +1246,44 @@ public class CmsUtil {
 		return resAfter;
 	}
 
-	protected String getErrorMessage(String ciName, String attrName, String resolvedValue, String varName) {
-		return "CI " + ciName + ", attribute: "
-              + attrName
-              + " has bad local var <"+varName+ "> reference! value="+ resolvedValue;
+	protected String getErrorMessage(String ciName, String nsPath, String attrName, String resolvedValue, String varName, String prefix) {
+
+	    return String.format("CI %s[%s], attribute: %s is using invalid or missing %s variable <%s>! Value=%s",
+				ciName,
+				truncateNS(nsPath),
+				attrName,
+				guessVariableType(prefix),
+				varName,
+				resolvedValue);
 	}
 
+    private String guessVariableType(String prefix) {
+        String varType = "local";
+        if (prefix!=null){
+            switch (prefix) {
+                case CLOUDVARRPL:
+                    varType = "cloud";
+                    break;
+                case GLOBALVARRPL:
+                    varType = "global";
+                    break;
+                default:
+                    varType = "local";
+                    break;
+            }
+        }
+        return varType;
+    }
+
+    private String truncateNS(String nsPath) {
+        if (nsPath!=null) {
+            Matcher matcher = Pattern.compile("(/[^/]+){2}$").matcher(nsPath);
+            if (matcher.find()) {
+                return matcher.group();
+            }
+        }
+        return nsPath;
+    }
 
 
 	/** sets the Attributes old and new value, but ensures it is not an unresolved variable reference
@@ -1277,14 +1298,14 @@ public class CmsUtil {
 			.append(ci.getCiId())
 			.append(" the attribute- ")
 			.append(manifestAttr.getAttributeName())
-			.append(" is a bad local var reference! value [").append(resolvedValue).append("] Atts:");
+			.append(" is a bad ").append(guessVariableType(replPrefix)).append(" var reference! value [").append(resolvedValue).append("] Atts:");
 			for (Entry<String, CmsRfcAttribute> e : ci.getAttributes().entrySet()) {
 				sb.append(e.getKey()).append(":new:").append(e.getValue().getNewValue());
 			}
 			logger.warn(sb.toString());						
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
-					getErrorMessage(ci.getCiName(),  manifestAttr.getAttributeName(),resolvedValue,varName));
+					getErrorMessage(ci.getCiName(), ci.getReleaseNsPath(), manifestAttr.getAttributeName(), resolvedValue, varName, replPrefix));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
@@ -1413,7 +1434,6 @@ public class CmsUtil {
 	 * Masks the secured CI attributes
 	 * 
 	 * @param ci
-	 * @param attrName
 	 */
 	private static void maskSecure(CmsCISimple ci) {
 		if(ci.getAttrProps() !=null && ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
@@ -1431,7 +1451,6 @@ public class CmsUtil {
 	 * Masks the secured RfcCI attributes
 	 * 
 	 * @param rfcCI
-	 * @param attrName
 	 */
 	private static void maskSecure(CmsRfcCISimple rfcCI) {
 		if(rfcCI.getCiAttrProps()!=null && rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
