@@ -429,4 +429,18 @@ public class DjRestController extends AbstractRestController {
 		return "{\"ci\":" + djManager.getRfcCiCountByNs(nsPath) +
 			   ",\"relation\":" + djManager.getRfcRelationCountByNs(nsPath) + "}";
 	}
+
+    @RequestMapping(value = "/dj/simple/rfcs", method = RequestMethod.DELETE)
+    @ResponseBody
+    public String rmRfcs(
+            @RequestParam("nsPath") String nsPath,
+            @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+
+
+        scopeVerifier.verifyScope(scope, nsPath);
+
+        long deleted = djManager.rmRfcs(nsPath);
+        return "{\"deleted\":" + deleted + "}";
+    }
+
 }
