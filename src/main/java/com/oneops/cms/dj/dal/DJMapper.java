@@ -106,5 +106,6 @@ public interface DJMapper {
 	List<CmsRfcLink> getOpenRfcLinks(@Param("nsPath") String nsPath, @Param("relName") String relName);
 	
 	long countCiRfcByReleaseId(long releaseId);
-	
+	long countOpenRfcCisByNs(String nsPath);
+	long countOpenRfcRelationsByNs(String nsPath);
 }

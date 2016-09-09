@@ -60,10 +60,10 @@ public class CmsDjManagerImpl implements CmsDjManager {
 		this.dpmtProcessor = dpmtProcessor;
 	}
 	
-	/**
-	 * Sets the wo provider.
-	 *
-	 * @param woProvider the new wo provider
+//	/**
+//	 * Sets the wo provider.
+//	 *
+//	 * @param woProvider the new wo provider
 //	 */
 //	public void setWoProvider(CmsWoProvider woProvider) {
 //		this.woProvider = woProvider;
@@ -420,5 +420,14 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	public List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId) {
 		return rfcProcessor.getClosedRelationRfcCIByCiId(ciId);
 	}
-	
+
+	@Override
+	public long getRfcCiCountByNs(String nsPath) {
+		return rfcProcessor.getRfcCiCountByNs(nsPath);
+	}
+
+	@Override
+	public long getRfcRelationCountByNs(String nsPath) {
+		return rfcProcessor.getRfcRelationCountByNs(nsPath);
+	}
 }
