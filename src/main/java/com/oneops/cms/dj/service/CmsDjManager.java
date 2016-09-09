@@ -88,7 +88,8 @@ public interface CmsDjManager {
 	void completeWorkOrder(CmsWorkOrder wo);
 	
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
-
+    
+    long rmRfcs(String nsPath);
 	long getRfcCiCountByNs(String nsPath);
 	long getRfcRelationCountByNs(String nsPath);
 }
