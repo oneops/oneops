@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -72,7 +73,9 @@ public class BomRfcBulkProcessor {
     private static final String BOM_MANAGED_VIA_RELATION_NAME = "bom.ManagedVia";
     private static final int MAX_RECUSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "50"));
     private static final int MAX_NUM_OF_EDGES = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxEdges", "100000"));
-    private static final String CONVERGE_RELATION_ATTRIBUTE = "converge"; 
+    private static final String CONVERGE_RELATION_ATTRIBUTE = "converge";
+
+	private static final String CONVERGE_DIRECTION_RELATION_ATTRIBUTE = "converge_direction"; 
     
 	private CmsCmProcessor cmProcessor;
 	private CmsMdProcessor mdProcessor;
@@ -1393,7 +1396,10 @@ public class BomRfcBulkProcessor {
 			int edgeNumLocal = edgeNum;
 			//special case if the relation marked as converge
 			if (fromRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE) != null
-				&& Boolean.valueOf(fromRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())) {
+				&& Boolean.valueOf(fromRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())
+				&& (fromRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE) == null 
+						|| StringUtils.isEmpty(fromRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE).getDfValue())
+				|| "to".equals(fromRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE).getDfValue()))) {
 				edgeNumLocal = 1;
 				numEdges = 1;
 			}
@@ -1435,17 +1441,31 @@ public class BomRfcBulkProcessor {
 		}
 
 		for (CmsCIRelation toRel : mfstToRels) {
-			String key = String.valueOf(toRel.getFromCi().getCiId()) + "-" + edgeNum;
+			int edgeNumLocal = edgeNum;
+			
+			//special case if the relation marked as converge
+			if (toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE) != null
+				&& Boolean.valueOf(toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())
+				&& (toRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE) == null 
+						|| StringUtils.isEmpty(toRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE).getDfValue())
+						|| "from".equals(toRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE).getDfValue()))) {
+				edgeNumLocal = 1;
+			}
+			String key = String.valueOf(toRel.getFromCi().getCiId()) + "-" + edgeNumLocal;
+
 			if (!mfstIdEdge2nodeId.containsKey(key)) {
 				
 				mfstIdEdge2nodeId.put(key, new ArrayList<String>());
 
 				if (node.getExisitngToLinks(toRel.getFromCi().getCiId()).size() == 0 
 						|| ((toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE) != null 
-								&& Boolean.valueOf(toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())) 
+								&& Boolean.valueOf(toRel.getAttribute(CONVERGE_RELATION_ATTRIBUTE).getDfValue())
+								&& (toRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE) == null 
+								|| StringUtils.isEmpty(toRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE).getDfValue())
+								|| "to".equals(toRel.getAttribute(CONVERGE_DIRECTION_RELATION_ATTRIBUTE).getDfValue()))) 
 								&& node.getExisitngToLinks(toRel.getFromCi().getCiId() 
 								+ getName(toRel.getFromCi().getCiName(), binding.getToCiId(), edgeNum)) == null)) {
-					BomRfc newBom = bootstrapNewBom(toRel.getFromCi(), binding.getToCiId(), edgeNum);
+					BomRfc newBom = bootstrapNewBom(toRel.getFromCi(), binding.getToCiId(), edgeNumLocal);
 					BomLink link = new BomLink();
 					link.toNodeId = node.nodeId;
 					link.toMfstCiId = node.manifestCiId;
@@ -1454,8 +1474,8 @@ public class BomRfcBulkProcessor {
 					node.toLinks.add(link);
 					newBom.fromLinks.add(link);
 					newBoms.add(newBom);
-					mfstIdEdge2nodeId.get(String.valueOf(newBom.manifestCiId)+ "-" + edgeNum).add(newBom.nodeId);
-					newBoms.addAll(processNode(newBom, binding, mfstIdEdge2nodeId, manifestDependsOnRels, edgeNum, usePercent, recursionDepth + 1));
+					mfstIdEdge2nodeId.get(String.valueOf(newBom.manifestCiId)+ "-" + edgeNumLocal).add(newBom.nodeId);
+					newBoms.addAll(processNode(newBom, binding, mfstIdEdge2nodeId, manifestDependsOnRels, edgeNumLocal, usePercent, recursionDepth + 1));
 				}
 			} else {
 				for (String fromNodeId : mfstIdEdge2nodeId.get(key)) {
