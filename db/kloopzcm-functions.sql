@@ -2525,3 +2525,34 @@ $BODY$
   COST 100;
 ALTER FUNCTION dj_dpmt_approve(bigint, character varying, integer, text)
   OWNER TO kloopzcm;
+
+
+CREATE OR REPLACE FUNCTION dj_rm_rfcs(p_ns_path character varying)
+  RETURNS integer AS
+$BODY$
+DECLARE
+    l_loop_counter integer;
+    l_rel_rfc_id bigint;
+BEGIN
+    l_loop_counter = 0;
+    for l_rel_rfc_id in 
+	SELECT rfc_id
+	FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
+	WHERE rci.release_id = r.release_id
+	   AND r.release_state_id = rs.release_state_id
+	   AND rs.state_name = 'open'
+	   AND rci.is_active_in_release = true
+	   AND rci.ns_id = ns.ns_id
+	   AND ns.ns_path = p_ns_path
+    loop
+	perform dj_rm_rfc_ci(l_rel_rfc_id);
+	l_loop_counter:= l_loop_counter+1;
+    end loop;
+    return l_loop_counter;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION dj_rm_rfcs(character varying)
+  OWNER TO kloopzcm;
+
