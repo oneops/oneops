@@ -1380,7 +1380,7 @@ public class BomRfcBulkProcessor {
 			int numEdges = 0;
 			int percent = 100;
 			int current = Integer.valueOf(fromRel.getAttribute("current").getDfValue());
-			if (current >1 && binding.getAttributes().containsKey("pct_scale") && binding.getAttribute("pct_scale") != null) {
+			if (current >0 && binding.getAttributes().containsKey("pct_scale") && binding.getAttribute("pct_scale") != null) {
 				int pctScale = Integer.valueOf(binding.getAttribute("pct_scale").getDjValue());
 				current = (int)Math.ceil(current*(pctScale/100.0)) ;
 			}
