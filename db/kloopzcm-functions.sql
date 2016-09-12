@@ -160,6 +160,17 @@ ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, chara
 CREATE OR REPLACE FUNCTION cm_delete_ci(p_ci_id bigint, p_delete4real boolean, p_deleted_by character varying)
   RETURNS void AS
 $BODY$
+BEGIN
+   perform cm_delete_ci(p_ci_id, null, p_delete4real, p_deleted_by);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION cm_delete_ci(bigint, boolean, character varying) OWNER TO kloopzcm;
+
+CREATE OR REPLACE FUNCTION cm_delete_ci(p_ci_id bigint, p_last_rfc_id bigint, p_delete4real boolean, p_deleted_by character varying)
+  RETURNS void AS
+$BODY$
 DECLARE
     l_ci_name character varying;
     l_is_namespace boolean;
@@ -208,6 +219,7 @@ BEGIN
 	    else
 	        update cm_ci
 	        set ci_state_id = 200, --pending_delete
+			last_applied_rfc_id = coalesce(p_last_rfc_id, last_applied_rfc_id),
 	        	updated = now()
 	        where ci_id = p_ci_id;
 	    end if;
@@ -217,7 +229,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_delete_ci(bigint, boolean, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_delete_ci(bigint, bigint, boolean, character varying) OWNER TO kloopzcm;
 
 -- Function: cm_delete_relation(bigint, boolean)
 
@@ -681,7 +693,7 @@ BEGIN
 	end if;
 
 	if l_action = 'delete' then
-	   perform cm_delete_ci(l_rfc_ci.ci_id, p_delete4real, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));	
+	   perform cm_delete_ci(l_rfc_ci.ci_id, l_rfc_ci.rfc_id, p_delete4real, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));
 	end if;
 
     end loop;
