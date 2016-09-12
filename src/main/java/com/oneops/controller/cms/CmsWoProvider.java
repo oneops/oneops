@@ -681,7 +681,9 @@ public class CmsWoProvider {
 		for (CmsCIRelation rel : monitorList) {
 			cmsUtil.processAllVars(rel.getToCi(), cloudVars, globalVars, localVars);
 			CmsRfcCI monitor = rfcUtil.mergeRfcAndCi(null, rel.getToCi(), "dj");
-			monitors.add(monitor);
+			if (!CmsConstants.CI_STATE_PENDING_DELETION.equals(monitor.getCiState())) {
+				monitors.add(monitor);
+			}
 		}
 		return monitors;
 	}
