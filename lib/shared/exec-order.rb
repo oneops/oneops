@@ -122,15 +122,7 @@ when "chef"
   Dir.chdir "cookbooks"
 
   if ostype =~ /windows/
-
-    should_install = true
-    # check to see if chef-client is installed or not.
-    ec = system("ls c:/opscode/chef/embedded/bin/chef-client")
-    if ec
-      should_install = false
-    end
-
-    if should_install
+    if !File.exists?('c:/opscode/chef/embedded/bin/chef-client')
       start_time = Time.now.to_i
       ec = system("c:/programdata/chocolatey/choco.exe install -y --allow-downgrade --allowEmptyChecksums chef-client -version 12.11.18")
       if !ec || ec.nil?
