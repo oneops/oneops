@@ -18,6 +18,7 @@
 package com.oneops.cms.dj.dal;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.ibatis.annotations.Param;
@@ -108,4 +109,5 @@ public interface DJMapper {
 	long countCiRfcByReleaseId(long releaseId);
 	long countOpenRfcCisByNs(String nsPath);
 	long countOpenRfcRelationsByNs(String nsPath);
+    void rmRfcs(Map<String,Object> params);
 }

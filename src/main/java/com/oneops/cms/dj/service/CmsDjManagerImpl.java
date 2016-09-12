@@ -430,4 +430,9 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	public long getRfcRelationCountByNs(String nsPath) {
 		return rfcProcessor.getRfcRelationCountByNs(nsPath);
 	}
+    
+    @Override
+    public long rmRfcs(String nsPath) {
+        return rfcProcessor.rmRfcs(nsPath);
+    }
 }

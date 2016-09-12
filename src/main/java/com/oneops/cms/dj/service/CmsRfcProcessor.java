@@ -1682,4 +1682,26 @@ public class CmsRfcProcessor {
 	{
 		return djMapper.countOpenRfcCisByNs(nsPath) + djMapper.countOpenRfcRelationsByNs(nsPath);
 	}
+
+
+
+    /**
+     * Remove all rfcs and rfc relations for a given namespace  (not recursive).
+     * this is using map as a workaround to transfer "nsPath" parameter in as well 
+     * as "result" out (result contains stored procedure return value = number of rfcs deleted) 
+     * because MyBatis doesn't allow to map simple return types from a stored procedures
+     * 
+     *
+     * @param  nsPath
+     */
+    public long rmRfcs(String nsPath) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("nsPath", nsPath);
+        djMapper.rmRfcs(map);
+        try {
+            return Integer.parseInt(map.getOrDefault("result", "0").toString());
+        } catch (NumberFormatException e){
+            return 0;
+        }
+    }
 }

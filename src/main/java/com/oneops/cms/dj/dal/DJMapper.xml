@@ -1374,4 +1374,9 @@
            AND rfr.ns_id = ns.ns_id
            AND ns.ns_path = #{value}
 	 </select>
+    
+    <update id="rmRfcs" parameterType="map" statementType="CALLABLE">
+       {#{result,jdbcType=INTEGER,mode=OUT} = call dj_rm_rfcs(#{nsPath})}
+    </update>
+    
 </mapper>
