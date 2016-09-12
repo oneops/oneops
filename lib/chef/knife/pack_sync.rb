@@ -11,7 +11,6 @@ $:.unshift File.dirname(__FILE__)
 require 'pack'
 require 'bundler'
 
-
 ENV['BUNDLE_GEMFILE'] ||= File.dirname(__FILE__) + '/../../../Gemfile'
 require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
 
@@ -19,7 +18,6 @@ Bundler.setup(:default)
 
 require 'cms'
 require 'kramdown'
-
 
 class Chef
   class Knife
@@ -205,28 +203,8 @@ class Chef
 
         # default to the global knife version if not specified
         pack.version(config[:version].split(".").first) if pack.version.empty?
-        #puts "PACK: #{pack.to_yaml}"
-
-        if config[:reload]
-          if remove_pack_version(pack,comments)
-            ui.info( "Removed pack #{pack.name} version #{pack.version}")
-          else
-            ui.error( "Unable to remove namespace for pack #{pack.name} version #{pack.version}")
-            return false
-          end
-        end
 
         signature = Digest::MD5.hexdigest(pack.signature)
-        if check_pack_version(pack,signature)
-          return true
-        else
-          if remove_pack_version(pack,comments)
-            ui.info( "Removed pack #{pack.name} version #{pack.version}")
-          else
-            ui.error( "Unable to remove namespace for pack #{pack.name} version #{pack.version}")
-            return false
-          end
-        end
 
         if pack.ignore
           ui.info( "Ignoring pack #{pack.name} version #{pack.version}")
@@ -236,6 +214,10 @@ class Chef
         ui.info( "Uploading pack #{pack.name}")
         Log.debug(pack.to_yaml)
 
+        # First, check to see if anything from CMS need to
+        # flip to pending_deletion
+        fix_delta_cms(pack)
+
         # setup pack version namespace first
         pack_version = setup_pack_version(pack,comments,'')
         if pack_version.nil?
@@ -244,7 +226,7 @@ class Chef
         end
         # Upload design template
         design_resources = pack.design_resources
-	
+  
         Chef::Log.debug([pack.name.capitalize,'mgmt.catalog',design_resources,comments].to_yaml)
         ns = "#{source}/#{pack.name}/#{pack.version}"
         upload_template(ns,pack.name,'mgmt.catalog',pack,'_default',design_resources,comments)
@@ -274,6 +256,142 @@ class Chef
       end
 
       private
+
+      def parse_pack_relations(relations)
+        relsHash = Hash.new()
+        relations.each do |relation,relVal|
+          if !relsHash.key?(relVal["relation_name"])
+            relsHash[relVal['relation_name']] = [{"from_resource" => relVal["from_resource"], "to_resource" => relVal["to_resource"]}]
+          else
+            relsHash[relVal['relation_name']].push({"from_resource" => relVal["from_resource"], "to_resource" => relVal["to_resource"]})
+          end
+        end
+        relsHash
+      end
+
+      def fix_delta_cms(pack)
+        relArr = %w[DependsOn ManagedVia SecuredBy]
+        source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+        ciClassName = ['mgmt.catalog',pack.type.capitalize].join('.')
+        nsPath = "#{source}/#{pack.name}/#{pack.version}"
+
+        rels = parse_pack_relations(pack.relations)
+
+        # Search against CMS for all CI with matching namespace with classname mgmt.Mode
+        # stash all keys ciName into array for later usage.
+        cmsEnvs = Cms::Ci.all( :params => { :nsPath => nsPath, :ciClassName => 'mgmt.Mode' }).map(&:ciName)
+
+        # Enumerate through each environment
+        cmsEnvs.each do |env|
+          # Pull all relations from CMS for the current pack + environment
+          pack_cms = retrieve_relations_from_cms(pack,env)
+          relArr.each do |relName|
+            if pack_cms.key?(relName)
+              pack_cms[relName].each do |rel|
+                # Check if current pack doesn't have relation type
+                # if missing meaning pack relation type no longer
+                # existed in the pack, thus must have been removed
+                # from the pack
+
+                if rels.key?(relName)
+                  matched_relations = rels[relName].select do |hash|
+                    hash['from_resource'].eql?(rel.fromCi.ciName) && hash['to_resource'].eql?(rel.toCi.ciName)
+                  end
+
+                  if matched_relations.empty? && !rel.relationState.eql?('pending_deletion')
+                    rel.relationState = 'pending_deletion'
+
+                    if save(rel)
+                      ui.info("Successfuly updated relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+                    else
+                      ui.error("Failed to update relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+                    end
+                  else
+                    if rel.relationState.eql?('pending_deletion')
+                      rel.relationState = 'default'
+                      if save(rel)
+                        ui.info("Successfuly updated relationState to default for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+                      else
+                        ui.error("Failed to update relationState to default for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+                      end
+                    end
+                  end
+                else
+                  # There isn't any relations matched in the pack
+                  rel.relationState = 'pending_deletion'
+                  if save(rel)
+                    ui.info("Successfuly updated relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+                  else
+                    ui.error("Failed to update relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+                  end
+                end
+              end
+            end
+          end
+
+          ci_cms = retrieve_ci_from_cms(pack,env)
+        end
+      end
+
+      def retrieve_relations_from_cms(pack,env='_default')
+        source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+        nsPath = "#{source}/#{pack.name}/#{pack.version}/#{env}"
+
+        relation = Cms::Relation.all( 
+          :params => {
+            :nsPath => nsPath,
+            :direction => 'from',
+            :includeToCi => true,
+            :includeFromCi => true
+        })
+
+        relations = Hash.new
+
+        relation.each { |rel|
+          if !rel.relationName.eql?('{}')
+            relName = rel.relationName.split('.').last
+            if !relations.key?(relName)
+              #relations[relName] = [{"from_resource" => rel.fromCi.ciName, "to_resource" => rel.toCi.ciName, "fromCi" => rel.fromCi, "toCi" => rel.toCi}]
+              relations[relName] = [rel]
+            else
+              #relations[relName].push({"from_resource" => rel.fromCi.ciName, "to_resource" => rel.toCi.ciName, "fromCi" => rel.fromCi, "toCi" => rel.toCi})
+              relations[relName].push(rel)
+            end
+          end
+        }
+        relations
+      end
+
+      def retrieve_ci_from_cms(pack,env='_default')
+        source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+        nsPath = "#{source}/#{pack.name}/#{pack.version}/#{env}"
+
+        cms_resources = Cms::Ci.all( :params => { :nsPath => nsPath }).select do |hash|
+          hash.ciClassName.include?("mgmt.manifest.#{config[:register]}.#{pack.version}")
+        end
+
+        pack_resources = pack.resources.keys.sort!
+
+        cms_resources.each do |resource|
+          if !pack_resources.include?(resource.ciName) && !resource.ciState.eql?('pending_deletion')
+            resource.ciState = 'pending_deletion'
+            if save(resource)
+              ui.info("Successfuly updated ciState to pending_deletion for #{resource.ciName} for #{env}")
+            else
+              ui.error("Failed to update ciState to pending_deletion for #{resource.ciName} for #{env}")
+            end
+          else
+            if pack_resources.include?(resource.ciName) && resource.ciState.eql?('pending_deletion')
+              resource.ciState = 'default'
+              if save(resource)
+                ui.info("Successfuly updated ciState to default for #{resource.ciName} for #{env}")
+              else
+                ui.error("Failed to update ciState to default for #{resource.ciName} for #{env}")
+              end
+            end
+          end
+        end
+      end
 
       def check_pack_version(pack,signature)
         source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
@@ -423,7 +541,7 @@ class Chef
         #iterate over platform attributes and populate them with pack attributes from file
         platform.ciAttributes.attributes.each do |name, value|
           if pack.platform && pack.platform[:attributes] && pack.platform[:attributes].has_key?(name)
-     		platform.ciAttributes.send(name+'=', pack.platform[:attributes][name])
+        platform.ciAttributes.send(name+'=', pack.platform[:attributes][name])
            end
         end
 
@@ -433,7 +551,8 @@ class Chef
         platform.ciAttributes.pack = pack.name.capitalize
         platform.ciAttributes.version = pack.version
         
-	Chef::Log.debug("SERVICES: #{pack.services.inspect}")
+        Chef::Log.debug("SERVICES: #{pack.services.inspect}")
+        
         platform.ciAttributes.services = pack.services.to_json if platform.ciAttributes.respond_to?('services')
 
         Chef::Log.debug(platform.to_json)
@@ -448,6 +567,15 @@ class Chef
 
       def upload_template_children(nspath,platform,template_name,package,pack,env,resources,comments)
         children = Hash.new
+        relationName = 'mgmt.Requires'
+
+        relations = Cms::Relation.all( :params => {  :ciId => platform.id,
+                                                    :nsPath => nspath,
+                                                    :direction => 'from',
+                                                    :relationName => relationName,
+                                                    :includeToCi => true
+        })
+
         resources.each do |resource_name,resource|
           # make sure last / short class is capitalized
           if resource[:cookbook].include? "."
@@ -464,14 +592,9 @@ class Chef
           else
             ciClassName = [ package, ciClassName ].join('.')
           end
-          relationName = 'mgmt.Requires'
-          relation = Cms::Relation.all( :params => {  :ciId => platform.id,
-            :nsPath => nspath,
-            :direction => 'from',
-            :relationName => relationName,
-            :targetClassName => ciClassName,
-            :includeToCi => true
-          }).select { |r| r.toCi.ciName == resource_name }.first
+
+          relation = relations.select { |r| r.toCi.ciName == resource_name && r.toCi.ciClassName == ciClassName }.first
+
           if relation.nil?
             ui.info( "Creating resource #{resource_name} for #{template_name}")
             relation = build('Cms::Relation',   :relationName => relationName,
@@ -504,7 +627,7 @@ class Chef
           else
             ui.info("Updating resource #{resource_name} for template #{template_name}")
           end
-
+          
           Log.debug("PRE-ATTRIBUTE: " + relation.inspect)
 
           relation.comments = comments
@@ -947,9 +1070,9 @@ class Chef
           # procedure attributes
           relation.toCi.ciAttributes.attributes.each do |name,value|
             if procedure_attributes[name]
-		    if name == 'arguments' 
-			procedure_attributes[name] = procedure_attributes[name].to_json if (procedure_attributes[name].is_a?(Hash))
-		    end
+        if name == 'arguments' 
+      procedure_attributes[name] = procedure_attributes[name].to_json if (procedure_attributes[name].is_a?(Hash))
+        end
               relation.toCi.ciAttributes.send(name+'=',procedure_attributes[name])
             end
           end
