@@ -70,8 +70,7 @@ class Operations::ProceduresController < ApplicationController
                  :direction    => direction,
                  :targetIds    => @target_ids,
                  :actions      => [action]}
-        x = {:name => procedure_name, :flow => full_flow}
-        @procedure.definition = x.to_json
+        @procedure.definition = {:name => procedure_name, :flow => full_flow}.to_json
       else
         @procedure.definition = {:name => procedure_name, :flow => [], :actions => [action]}.to_json
       end
@@ -96,7 +95,7 @@ class Operations::ProceduresController < ApplicationController
         old_flow_json = old_last_node.to_json
         old_last_node = old_last_node['flow'].first while old_last_node['flow'].present?
         target_ids = old_last_node['targetIds']
-        actions = [{:isCritical => params[:critical]}.reverse_merge(old_last_node['actions'].first)]
+        actions = [{'isCritical' => params[:critical] == 'true'}.reverse_merge(old_last_node['actions'].first)]
         new_flow = []
         roll_at = 10 if roll_at < 1
         step_size = [0, (target_ids.size * roll_at / 100)].max
@@ -220,13 +219,21 @@ class Operations::ProceduresController < ApplicationController
   end
 
   def allow_access?(anchor_ci_id, read_only)
+    org_ci = @current_user.organization.ci
+    if org_ci.ciId == anchor_ci_id.to_i
+      @anchor_ci = org_ci
+      return is_admin?
+    end
+
     unless @anchor_ci
       begin
         @anchor_ci = Cms::Ci.find(anchor_ci_id)
       rescue Exception => e
       end
+      return false unless @anchor_ci
     end
-    return false unless @anchor_ci
+
+    return true if is_admin?
 
     root, org, assembly, other = @anchor_ci.nsPath.split('/')
     if assembly && !assembly.start_with?('_')
@@ -234,7 +241,7 @@ class Operations::ProceduresController < ApplicationController
     elsif @anchor_ci.ciClassName == 'account.Cloud'
       return has_cloud_services?(@anchor_ci.ciId) || has_cloud_support?(@anchor_ci.ciId)
     end
-    return is_admin?
+    return false
   end
 
   def build_arglist(arguments_json)

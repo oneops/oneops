@@ -1,14 +1,53 @@
 <%= section_panel 'Compute Report', :width => 'triple', :position => 'left',
-                  :id => 'org_report_section',
-                  :menu => [link_to('By Assembly', '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] == 'By Assembly'}", 'data-url' => compute_reports_path),
-                            link_to('By Cloud',    '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] != 'By Assembly'}", 'data-url' => compute_reports_path(:grouping => 'cloud'))] do %>
+                  :id                      => 'org_report_section',
+                  :menu                    => [link_to('By Assembly', '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] == 'By Assembly'}", 'data-url' => compute_reports_path),
+                                               link_to('By Cloud', '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] != 'By Assembly'}", 'data-url' => compute_reports_path(:grouping => 'cloud'))] do %>
+  <% admin = is_admin?
+     if @quota_ci_ids.present? && admin %>
+    <script>
+      <% org_ci = @current_user.organization.ci %>
+      window.refresh_compute_quotas = function () {
+        $j.ajax({
+          url:  "<%= operations_procedures_path %>",
+          type: 'POST',
+          data: {
+            cms_procedure: {
+              ciId:           "<%= org_ci.ciId %>",
+              procedureName:  "Refresh Qouta",
+              procedureState: "pending",
+              procedureCiId:  0,
+              definition:     Object.toJSON({
+                name: "Refresh Qouta",
+                flow: [{
+                  nsPath:          "<%= org_ci.ciName %>/_clouds",
+                  targetClassName: "account.Cloud",
+                  flow:            [{
+                    relationName: "base.Provides",
+                    direction:    "from",
+                    targetIds: <%= @quota_ci_ids.to_json %>,
+                    actions:      [{
+                      actionName: "status",
+                      stepNumber: 1,
+                      isCritical: true
+                    }]
+                  }]
+                }]
+              })
+            }
+          }
+        });
+      };
+    </script>
+  <% end %>
+
   <%= render('base/shared/graph_sunburst',
              :email      => true,
-             :table_view => true) %>
+             :table_view => true,
+             :links      => admin && [link_to_function(icon('refresh', 'Update quota'), 'refresh_compute_quotas()', :class => 'pull-right')]) %>
 <% end %>
 <script>
   var buttons = $j(".graph-grouping");
-  buttons.click(function(e) {
+  buttons.click(function (e) {
     var button = $j(e.target);
     if (button && !button.hasClass('active')) {
       buttons.removeClass('active');

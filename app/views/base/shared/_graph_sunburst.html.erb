@@ -1,10 +1,23 @@
 <% graph_id = "graph_#{random_dom_id}"
    show_labels = !(defined?(hide_labels) && hide_labels) %>
 <div id="<%= graph_id %>" class="graph-sunburst">
-  <% if defined?(email) && email %>
-    <%= render 'base/shared/email', :title => 'Email Report', :function => "emailSunburst_#{graph_id}" %>
-    <%= link_to_function raw(icon('envelope', 'Email')), "render_modal('email_modal')", :class => 'pull-right' %>
-  <% end %>
+  <div class="pull-right">
+    <table class="table borderless table-condensed">
+      <% if defined?(email) && email %>
+        <tr>
+          <td>
+            <%= render 'base/shared/email', :title => 'Email Report', :function => "emailSunburst_#{graph_id}" %>
+            <%= link_to_function raw(icon('envelope', 'Email')), "render_modal('email_modal')" %>
+          </td>
+        </tr>
+      <% end %>
+      <% if defined?(links) && links.present? %>
+        <% links.each do |l| %>
+          <tr><td><%= l %></td></tr>
+        <% end %>
+      <% end %>
+    </table>
+  </div>
   <% if defined?(table_view) && table_view %>
     <div class="btn-group pull-left view-selection" data-toggle="buttons-radio">
       <%= link_to_function(icon('bar-chart', ''), "sunburstToggleView_#{graph_id}('graph')", :class => 'btn btn-mini active') %>
