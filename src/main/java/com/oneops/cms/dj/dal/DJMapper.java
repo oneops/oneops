@@ -56,7 +56,7 @@ public interface DJMapper {
 	CmsRfcCI getOpenRfcCIByCiId(long ciId);
 	List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds);
 	List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,@Param("isActive") Boolean isActive,@Param("ciId") Long ciId);
-	List<CmsRfcCI> getOpenRfcCIByClazzAndName(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName);
+    List<CmsRfcCI> getRfcCIByClazzAndName(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName, @Param("isActive")Boolean isActive, @Param("state")String state);
 	List<CmsRfcCI> getOpenRfcCIByClazzAndNameLower(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName);
 	List<CmsRfcCI> getOpenRfcCIByNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazzName") String clazzName, @Param("ciName") String ciName);
 	List<CmsRfcCI> getOpenRfcCIByClazzAnd2Names(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName, @Param("altCiName") String altCiName);
@@ -74,7 +74,7 @@ public interface DJMapper {
 	CmsRfcRelation getOpenRfcRelationByCiRelId(long ciRelationId);
 	List<CmsRfcRelation> getRfcRelationByReleaseId(long releaseId);
 	List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId);
-	List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath);
+	List<CmsRfcRelation> getRfcRelationsByNs(@Param("nsPath") String nsPath, @Param("isActive")Boolean isActive, @Param("state")String state);
 	List<CmsRfcRelation> getRfcRelationBy4(@Param("releaseId") long releaseId,@Param("isActive") Boolean isActive,@Param("fromCiId") Long fromCiId, @Param("toCiId") Long toCiId);
 	List<CmsRfcRelation> getOpenRfcRelationBy2(@Param("fromCiId") Long fromCiId, @Param("toCiId") Long toCiId, @Param("relName") String relName,@Param("shortRelName") String shortRelName);
 	List<CmsRfcRelation> getOpenFromRfcRelationByTargetClass(@Param("fromCiId") long fromCiId, @Param("relName") String relName, @Param("shortRelName") String shortRelName, @Param("targetClassName") String targetClassName);

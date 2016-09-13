@@ -43,7 +43,11 @@
 	    {call cm_create_relation(#{ciRelationId}, #{nsId}, #{fromCiId}, #{relationId}, #{toCiId}, #{relationGoid}, #{comments}, #{relationStateId})}
 	 </insert> 
 
-	 <insert id="addRelationAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIRelationAttribute" statementType="CALLABLE">
+	<update id="updateRelation" parameterType="com.oneops.cms.cm.domain.CmsCIRelation" statementType="CALLABLE">
+		{call cm_update_rel(#{ciRelationId}, #{comments}, #{relationStateId}, null)}
+	</update>
+
+	<insert id="addRelationAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIRelationAttribute" statementType="CALLABLE">
 	    {call cm_add_ci_rel_attribute(#{ciRelationId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, false, #{ciRelationAttributeId,jdbcType=BIGINT, mode=OUT})}
 	 </insert> 
 

@@ -177,9 +177,17 @@ public class CmsDjManagerImpl implements CmsDjManager {
 		return rfcProcessor.getRfcCIBy3(releaseId, isActive, ciId);
 	}
 
-    /* (non-Javadoc)
-     * @see com.oneops.cms.dj.service.CmsDjManager#getClosedRfcCIByCiId(long)
-     */
+	/* (non-Javadoc)
+      * @see com.oneops.cms.dj.service.CmsDjManager#getRfcCIByNs(java.lang.String, java.lang.Boolean)
+      */ 
+     @Override
+     public List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive) {
+         return rfcProcessor.getRfcCIByNs(nsPath, isActive);
+     }
+ 
+     /* (non-Javadoc)
+      * @see com.oneops.cms.dj.service.CmsDjManager#getClosedRfcCIByCiId(long)
+      */
     @Override
     public List<CmsRfcCI> getClosedRfcCIByCiId(long ciId) {
         return rfcProcessor.getClosedRfcCIByCiId(ciId);
@@ -236,9 +244,15 @@ public class CmsDjManagerImpl implements CmsDjManager {
 		return rfcProcessor.getRfcRelationBy4(releaseId, isActive, fromCiId, toCiId);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.oneops.cms.dj.service.CmsDjManager#updateRfcRelation(com.oneops.cms.dj.domain.CmsRfcRelation)
-	 */
+
+    @Override
+    public List<CmsRfcRelation> getRfcRelationByNs(String nsPath, Boolean isActive) {
+        return rfcProcessor.getRfcRelationsByNs(nsPath, isActive, null);
+    }
+
+    /* (non-Javadoc)
+     * @see com.oneops.cms.dj.service.CmsDjManager#updateRfcRelation(com.oneops.cms.dj.domain.CmsRfcRelation)
+     */
 	@Override
 	public CmsRfcRelation updateRfcRelation(CmsRfcRelation rfcRelation) {
 		long newRfcId = rfcProcessor.updateRfcRelation(rfcRelation);
