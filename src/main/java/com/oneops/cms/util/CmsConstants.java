@@ -40,6 +40,8 @@ public final class CmsConstants {
 	//starting to put some relation constants 
 	public static final String BASE_REALIZED_AS = "base.RealizedAs";
 	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
+	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
+
 	public static final String ATTR_VALUE_TYPE_DF = "df";
 	
 	public static final String ATTR_NAME_ENABLED = "enabled";
@@ -47,4 +49,5 @@ public final class CmsConstants {
 	
 	public static final String CI_STATE_PENDING_DELETION = "pending_deletion";
 	
+	public static final String MONITOR_CLASS = "manifest.Monitor";
 }

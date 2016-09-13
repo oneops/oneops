@@ -110,4 +110,6 @@ public interface DJMapper {
 	long countOpenRfcCisByNs(String nsPath);
 	long countOpenRfcRelationsByNs(String nsPath);
     void rmRfcs(Map<String,Object> params);
+    long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId, @Param("relationName") String relationName,
+			@Param("shortRelName") String shortRelName, @Param("rfcId") long rfcId);
 }
