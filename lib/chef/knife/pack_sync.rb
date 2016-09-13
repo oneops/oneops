@@ -211,6 +211,11 @@ class Chef
           return true
         end
 
+        # If pack version is different but reload option is not set - bail
+        if !config[:reload] && !check_pack_version(pack,signature)
+          return true
+        end
+
         ui.info( "Uploading pack #{pack.name}")
         Log.debug(pack.to_yaml)
 
@@ -270,72 +275,73 @@ class Chef
       end
 
       def fix_delta_cms(pack)
-        relArr = %w[DependsOn ManagedVia SecuredBy]
+        relArr = %w[DependsOn ManagedVia SecuredBy Requires]
         source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
         ciClassName = ['mgmt.catalog',pack.type.capitalize].join('.')
         nsPath = "#{source}/#{pack.name}/#{pack.version}"
 
-        rels = parse_pack_relations(pack.relations)
+        #rels = parse_pack_relations(pack.relations)
 
         # Search against CMS for all CI with matching namespace with classname mgmt.Mode
         # stash all keys ciName into array for later usage.
-        cmsEnvs = Cms::Ci.all( :params => { :nsPath => nsPath, :ciClassName => 'mgmt.Mode' }).map(&:ciName)
+        cmsEnvs = Cms::Ci.all( :params => { :nsPath => nsPath, :ciClassName => 'mgmt.Mode' }).map(&:ciName).push('_default')
 
         # Enumerate through each environment
         cmsEnvs.each do |env|
+          # TODO - unable to change relationState further investigation needed
           # Pull all relations from CMS for the current pack + environment
-          pack_cms = retrieve_relations_from_cms(pack,env)
-          relArr.each do |relName|
-            if pack_cms.key?(relName)
-              pack_cms[relName].each do |rel|
-                # Check if current pack doesn't have relation type
-                # if missing meaning pack relation type no longer
-                # existed in the pack, thus must have been removed
-                # from the pack
-
-                if rels.key?(relName)
-                  matched_relations = rels[relName].select do |hash|
-                    hash['from_resource'].eql?(rel.fromCi.ciName) && hash['to_resource'].eql?(rel.toCi.ciName)
-                  end
-
-                  if matched_relations.empty? && !rel.relationState.eql?('pending_deletion')
-                    rel.relationState = 'pending_deletion'
-
-                    if save(rel)
-                      ui.info("Successfuly updated relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
-                    else
-                      ui.error("Failed to update relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
-                    end
-                  else
-                    if rel.relationState.eql?('pending_deletion')
-                      rel.relationState = 'default'
-                      if save(rel)
-                        ui.info("Successfuly updated relationState to default for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
-                      else
-                        ui.error("Failed to update relationState to default for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
-                      end
-                    end
-                  end
-                else
-                  # There isn't any relations matched in the pack
-                  rel.relationState = 'pending_deletion'
-                  if save(rel)
-                    ui.info("Successfuly updated relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
-                  else
-                    ui.error("Failed to update relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
-                  end
-                end
-              end
-            end
-          end
-
-          ci_cms = retrieve_ci_from_cms(pack,env)
+          #pack_cms = retrieve_relations_from_cms(pack,env)
+          # relArr.each do |relName|
+          #   if pack_cms.key?(relName)
+          #     pack_cms[relName].each do |rel|
+          #       # Check if current pack doesn't have relation type
+          #       # if missing meaning pack relation type no longer
+          #       # existed in the pack, thus must have been removed
+          #       # from the pack
+          #
+          #       if rels.key?(relName)
+          #         matched_relations = rels[relName].select do |hash|
+          #           hash['from_resource'].eql?(rel.fromCi.ciName) && hash['to_resource'].eql?(rel.toCi.ciName)
+          #         end
+          #
+          #         if matched_relations.empty? && !rel.relationState.eql?('pending_deletion')
+          #           rel.relationState = 'pending_deletion'
+          #
+          #           if save(rel)
+          #             ui.info("Successfuly updated relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+          #           else
+          #             ui.error("Failed to update relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+          #           end
+          #         else
+          #           if rel.relationState.eql?('pending_deletion')
+          #             rel.relationState = 'default'
+          #             if save(rel)
+          #               ui.info("Successfuly updated relationState to default for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+          #             else
+          #               ui.error("Failed to update relationState to default for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+          #             end
+          #           end
+          #         end
+          #       else
+          #         # There isn't any relations matched in the pack
+          #         rel.relationState = 'pending_deletion'
+          #         if save(rel)
+          #           ui.info("Successfuly updated relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+          #         else
+          #           ui.error("Failed to update relationState to pending_deletion for #{rel.relationName} from: #{rel.fromCi.ciName} to #{rel.toCi.ciName} for #{env}")
+          #         end
+          #       end
+          #     end
+          #   end
+          # end
+          fix_ci_from_cms(pack,env)
         end
       end
 
       def retrieve_relations_from_cms(pack,env='_default')
         source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
-        nsPath = "#{source}/#{pack.name}/#{pack.version}/#{env}"
+        scope = (env == '_default') ? '' : "/#{env}"
+        nsPath = "#{source}/#{pack.name}/#{pack.version}#{scope}"
 
         relation = Cms::Relation.all( 
           :params => {
@@ -362,9 +368,10 @@ class Chef
         relations
       end
 
-      def retrieve_ci_from_cms(pack,env='_default')
+      def fix_ci_from_cms(pack,env='_default')
         source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
-        nsPath = "#{source}/#{pack.name}/#{pack.version}/#{env}"
+        scope = (env == '_default') ? '' : "/#{env}"
+        nsPath = "#{source}/#{pack.name}/#{pack.version}#{scope}"
 
         cms_resources = Cms::Ci.all( :params => { :nsPath => nsPath }).select do |hash|
           hash.ciClassName.include?("mgmt.manifest.#{config[:register]}.#{pack.version}")
@@ -573,6 +580,7 @@ class Chef
                                                     :nsPath => nspath,
                                                     :direction => 'from',
                                                     :relationName => relationName,
+                                                    #:targetClassName => ciClassName,
                                                     :includeToCi => true
         })
 
@@ -896,18 +904,34 @@ class Chef
       end
 
       def upload_template_monitors(nspath,pack,resources,children,platform,env)
+
+        relations = Cms::Relation.all( :params => {
+                                                    :nsPath => nspath,
+                                                    :direction => 'from',
+                                                    :relationName => 'mgmt.manifest.WatchedBy',
+                                                    :targetClassName => 'mgmt.manifest.Monitor',
+                                                    :includeToCi => true
+        })
+
         resources.each do |resource_name,resource|
           next if resource[:monitors].nil?
           resource[:monitors].each do |monitor_name,monitor|
             relationName = 'mgmt.manifest.WatchedBy'
             ciClassName = 'mgmt.manifest.Monitor'
-            relation = Cms::Relation.all( :params => {  :ciId => children[resource_name],
-              :nsPath => nspath,
-              :direction => 'from',
-              :relationName => relationName,
-              :targetClassName => ciClassName,
-              :includeToCi => true
-            }).select { |r| r.toCi.ciName == monitor_name }.first
+            #relation = Cms::Relation.all( :params => {  :ciId => children[resource_name],
+            #  :nsPath => nspath,
+            #  :direction => 'from',
+            #  :relationName => relationName,
+            #  :targetClassName => ciClassName,
+            #  :includeToCi => true
+            #}).select { |r| r.toCi.ciName == monitor_name }.first
+
+            matched_relations = relations.select do |hash|
+              hash.fromCiId == children[resource_name]
+            end
+
+            relation = (matched_relations.empty?) ? nil : matched_relations.first
+
             if relation.nil?
               ui.info( "Creating monitor #{monitor_name} for #{resource_name}")
               relation = build('Cms::Relation',   :relationName => relationName,
