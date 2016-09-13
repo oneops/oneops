@@ -29,6 +29,7 @@ import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -41,9 +42,16 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 
+import static com.oneops.cms.util.CmsConstants.PRIMARY_CLOUD_STATUS;
+import static com.oneops.cms.util.CmsConstants.SECONDARY_CLOUD_STATUS;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
+
 public class BomManagerImpl implements BomManager {
 
-	static Logger logger = Logger.getLogger(BomManagerImpl.class);
+	static final Logger logger = Logger.getLogger(BomManagerImpl.class);
+	private final String ENTRY_POINT = "Fqdn";
 
     private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
@@ -51,7 +59,7 @@ public class BomManagerImpl implements BomManager {
 	private TransUtil trUtil;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
-	
+
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
 	}
@@ -176,7 +184,7 @@ public class BomManagerImpl implements BomManager {
 		}
 
 		Map<Integer, List<CmsCI>> platsToProcess = getOrderedPlatforms(platRels, disabledPlats);
-		
+
 		int maxOrder = 0;
 		for (Integer order : platsToProcess.keySet()) {
 			maxOrder = (order > maxOrder) ? order : maxOrder;
@@ -196,7 +204,8 @@ public class BomManagerImpl implements BomManager {
 					long platStartTime = System.currentTimeMillis();
 					//now we need to check if the cloud is active for this given platform
 					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
-					
+
+					check4Secondary(platformCloudRels, getNspath(bomNsPath, plat));
 					if (platformCloudRels.size() >0) {
 						
 						//Collections.sort(platformCloudRels,BINDING_COMPARATOR);
@@ -242,8 +251,61 @@ public class BomManagerImpl implements BomManager {
 		return startingExecOrder;
 	}
 
-	
-	
+	private String getNspath(String nsPath, CmsCI plat) {
+		if (plat.getCiClassName().equals("manifest.Iaas")) {
+			nsPath = nsPath + "/" + plat.getCiName();
+		} else {
+			nsPath = nsPath + "/" + plat.getCiName() + "/" + plat.getAttribute("major_version").getDjValue();
+		}
+		return nsPath;
+	}
+
+	protected void check4Secondary(List<CmsCIRelation> platformCloudRels, String nsPath) {
+		//get manifest clouds and priority; what is intended
+		Map<Long, Integer> intendedCloudpriority = platformCloudRels.stream()
+				.filter(this::isCloudActive)
+				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
+
+		//are there any secondary clouds for deployment
+		long numberOfSecondaryClouds = intendedCloudpriority.entrySet().stream().filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS))).count();
+		if (numberOfSecondaryClouds == 0) {
+			return;
+		}
+
+		String finalNsPath = nsPath;
+		//what is deployed currently.
+		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
+				.map(CmsCIRelationBasic::getToCiId)
+				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId, CmsConstants.DEPLOYED_TO, null, ENTRY_POINT, finalNsPath).stream())
+				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
+
+		existingCloudPriority.putAll(intendedCloudpriority);
+		long count = existingCloudPriority.entrySet().stream().filter(entry -> (entry.getValue().equals(CmsConstants.SECONDARY_CLOUD_STATUS))).count();
+		if (existingCloudPriority.size() == count) {
+			//throw transistor exception
+			String clouds = platformCloudRels.stream()
+					.filter(rel->!isCloudActive(rel))
+					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
+					.map(rel -> rel.getToCi().getCiName())
+					.collect(joining(","));
+			String message = String.format("The deployment for platform %s will mark all instances secondary. Please check clouds <%s> , ", nsPath, clouds);
+			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
+		}
+		return;
+	}
+
+	private boolean isCloudActive(CmsCIRelation platformCloudRel) {
+		return platformCloudRel.getAttribute("adminstatus") != null
+                && CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue());
+	}
+
+	private Integer getPriority(CmsCIRelation deployedTo) {
+		return deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);
+	}
+
+
+
+
 	public int generateBomForOfflineClouds(long envId, String userId, Set<Long> excludePlats, String manifestNs, String bomNsPath, Map<String,String> envVars, int startingExecOrder, String desc) {
 		
 		long globalStartTime = System.currentTimeMillis();

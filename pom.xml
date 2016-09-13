@@ -10,7 +10,6 @@
   
    <properties>
      <spring.version>4.1.5.RELEASE</spring.version>
-     <junit.version>4.7</junit.version>
      <jsch.version>0.1.49</jsch.version>
      <commons-dbcp.version>1.4</commons-dbcp.version>
      <jackson-mapper-asl.version>1.8.11</jackson-mapper-asl.version>
@@ -19,15 +18,11 @@
      <geronimo-servlet_3.0_spec.version>1.0</geronimo-servlet_3.0_spec.version>
      <cmsdal.version>1.0.4</cmsdal.version>
      <libs.version>1.0.0</libs.version>
+       <testng.version>6.9.10</testng.version>
+       <mockito-all.version>1.9.5</mockito-all.version>
    </properties>
   
   <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
    	<dependency>
    		<groupId>commons-dbcp</groupId>
    		<artifactId>commons-dbcp</artifactId>
@@ -86,6 +81,24 @@
       <artifactId>oo-commons</artifactId>
       <version>${libs.version}</version>
     </dependency>
+      <dependency>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-test</artifactId>
+          <version>${spring.version}</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.testng</groupId>
+          <artifactId>testng</artifactId>
+          <version>${testng.version}</version>
+          <scope>test</scope>
+      </dependency>
+      <dependency>
+          <groupId>org.mockito</groupId>
+          <artifactId>mockito-all</artifactId>
+          <version>${mockito-all.version}</version>
+          <scope>test</scope>
+      </dependency>
   </dependencies>
 
   <build>
