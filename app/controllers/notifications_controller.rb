@@ -2,10 +2,8 @@ class NotificationsController < ApplicationController
   before_filter :find_notification, :only => [:show, :edit, :update, :destroy]
 
   def index
-    @notifications = Cms::Relation.all(:params => {:ciId              => current_user.organization.ci.ciId,
-                                                   :relationShortName => 'ForwardsTo',
-                                                   :direction         => 'from',
-                                                   :nsPath            => organization_ns_path}).map(&:toCi)
+    load_notifications
+
     respond_to do |format|
       format.js { render :action => :index }
       format.json { render :json => @notifications }
@@ -36,19 +34,19 @@ class NotificationsController < ApplicationController
                                       :toCi         => @notification)
 
     ok = execute_nested(@notification, forwards_to, :save)
-    if ok
-      index
-    else
-      @notification_type = @notification.ciClassName
-
-      respond_to do |format|
-        format.js do
+    respond_to do |format|
+      format.js do
+        if ok
+          load_notifications
+          render :action => :index
+        else
+          @notification_type = @notification.ciClassName
           load_available_types
           render(:action => :new)
         end
-
-        format.json { render_json_ci_response(ok, @notification) }
       end
+
+      format.json { render_json_ci_response(ok, @notification) }
     end
   end
 
@@ -89,6 +87,13 @@ class NotificationsController < ApplicationController
 
 
   private
+
+  def load_notifications
+    @notifications = Cms::Relation.all(:params => {:ciId              => current_user.organization.ci.ciId,
+                                                   :relationShortName => 'ForwardsTo',
+                                                   :direction         => 'from',
+                                                   :nsPath            => organization_ns_path}).map(&:toCi)
+  end
 
   def find_notification
     @notification = Cms::Ci.find(params[:id])

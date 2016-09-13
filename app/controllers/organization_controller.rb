@@ -72,11 +72,16 @@ class OrganizationController < ApplicationController
 
   def procedures
     @procedures = Cms::Procedure.all(:params => {:nsPath    => organization_ns_path,
-                                                          :recursive => true,
-                                                          :actions   => true,
-                                                          :state     => 'active',
-                                                          :limit     => 10000})
-    unless is_admin? || has_org_scope?
+                                                 :recursive => true,
+                                                 :state     => 'active',
+                                                 :limit     => 100})
+    if is_admin? || has_org_scope?
+      # Add procedures that are ahchored on org CI.
+      @procedures += Cms::Procedure.all(:params => {:ciId  => @current_user.organization.ci.ciId,
+                                                    :state => 'active'})
+      @procedures += Cms::Procedure.all(:params => {:ciId  => @current_user.organization.ci.ciId,
+                                                    :state => 'pending'})
+    else
       @procedures = @procedures.select do |e|
         root, org, assembly = e.nsPath.split('/')
         current_user.has_operations?(assembly)
@@ -130,6 +135,23 @@ class OrganizationController < ApplicationController
   def lookup
     name = "%#{params[:name]}%"
     render :json => Organization.where('name ILIKE ?', name).limit(10).map {|o| "#{o.name} #{o.full_name if o.full_name.present?}"}
+  end
+
+  def reports
+    @quota_ci_ids = Cms::Relation.all(:params => {:nsPath            => clouds_ns_path,
+                                                  :relationShortName => 'Provides',
+                                                  :fromClassName     => 'account.Cloud',
+                                                  :recursive         => true,
+                                                  :attr              => 'service:eq:compute',
+                                                  :includeFromCi     => true,
+                                                  :includeToCi       => true}).inject([]) do |a, r|
+      attributes = r.toCi.ciAttributes
+      a << r.toCiId if r.fromCi.ciAttributes.adminstatus == 'active' &&
+        (attributes.respond_to?(:max_instances) ||
+          attributes.respond_to?(:max_cores) ||
+          attributes.respond_to?(:max_ram))
+      a
+    end
   end
 
 

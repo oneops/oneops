@@ -22,10 +22,8 @@ class Organization::EnvironmentsController < Base::EnvironmentsController
   end
 
   def show
-    if @environment
-      load_consumes_relations
-      @environment.clouds = @clouds.inject({}) {|m, c| m[c.toCiId] = c.relationAttributes.attributes; m}
-    end
+    load_clouds
+    @environment.clouds = @clouds.inject({}) {|m, c| m[c.toCiId] = c.relationAttributes.attributes; m}
     render_json_ci_response(true, @environment)
   end
 
