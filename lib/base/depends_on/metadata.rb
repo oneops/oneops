@@ -27,7 +27,14 @@ attribute 'converge',
   :required => "optional",
   :default => "false",
   :format => ""
-  
+
+attribute 'converge_direction',
+  :grouping => 'manifest',
+  :description => "Converge Direction",
+  :required => "optional",
+  :default => "",
+  :format => ""
+
 attribute 'step_up',
   :grouping => 'manifest',
   :description => "Scale Up Step",
