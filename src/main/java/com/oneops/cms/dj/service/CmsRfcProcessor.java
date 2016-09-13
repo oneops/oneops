@@ -839,7 +839,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by clazz and name
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByClazzAndName(String nsPath, String clazzName, String ciName) {
-		List<CmsRfcCI> rfcList = djMapper.getOpenRfcCIByClazzAndName(nsPath, clazzName, ciName);
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIByClazzAndName(nsPath, clazzName, ciName,  true, "open");
 		populateRfcCIAttributes(rfcList);
 		return rfcList;
 	}
@@ -896,7 +896,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by clazz and name no attrs
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByClazzAndNameNoAttrs(String nsPath, String clazzName, String ciName) {
-		return djMapper.getOpenRfcCIByClazzAndName(nsPath, clazzName, ciName);
+		return djMapper.getRfcCIByClazzAndName(nsPath, clazzName, ciName,  true, "open");
 	}
 	
 	/**
@@ -926,6 +926,15 @@ public class CmsRfcProcessor {
 		populateRfcCIAttributes(rfcList);
 		return rfcList;
 	}
+
+    /**
+     * Gets the active (default if isActive missing) or inactive rfc ci by ns path.
+     * @param nsPath the ns path
+     * @param isActive    is active              
+     */               
+    public List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive) {
+        return djMapper.getRfcCIByClazzAndName(nsPath, null, null, isActive, null);
+    }
 
 	
 	/**
@@ -1404,20 +1413,32 @@ public class CmsRfcProcessor {
 		List<CmsRfcRelation> relList = getOpenRfcRelationsNsLikeNakedNoAttrs(relationName, shortRelName, nsPath,fromClazzName, toClazzName);
 		populateRfcRelationAttributes(relList);
 		return relList;
-	}	
-	
-	/**
-	 * Gets the open rfc relations by ns
+	}
+
+    /**
+     * Gets the open rfc relations by ns
+     *
+     * @param nsPath the ns path
+     * @return the open rfc relations ns like naked
+     */
+    public List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath) {
+        return getRfcRelationsByNs(nsPath, true, "open");
+    }
+
+
+    /**
+	 * Gets the rfc relations by ns
 	 *
 	 * @param nsPath the ns path
-	 * @return the open rfc relations ns like naked
+     * @param isActive is_active_in_release
+     * @param state                
+	 * @return the rfc relations with matching nsPath 
 	 */
-	public List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath) {
-		List<CmsRfcRelation> relList = djMapper.getOpenRfcRelationsByNs(nsPath);
+	public List<CmsRfcRelation> getRfcRelationsByNs(String nsPath, Boolean isActive, String state) {
+		List<CmsRfcRelation> relList = djMapper.getRfcRelationsByNs(nsPath, isActive, state);
 		populateRfcRelationAttributes(relList);
 		return relList;
-	}	
-
+	}
 
 	/**
 	 * Gets the open rfc relations naked no attrs.

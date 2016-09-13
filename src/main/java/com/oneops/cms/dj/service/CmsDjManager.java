@@ -50,6 +50,7 @@ public interface CmsDjManager {
 	long rmRfcCiFromRelease(long rfcId);
 	List<CmsRfcCI> getRfcCIBy3(long releaseId, Boolean isActive, Long ciId);
     List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
+	List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive);
     CmsRfcCI getRollUpRfc(long ciId, long rfcId);
 
     CmsRfcRelation createRfcRelation(CmsRfcRelation rel);
@@ -59,7 +60,8 @@ public interface CmsDjManager {
 	List<CmsRfcRelation> getRfcRelationByReleaseId(long releaseId);
 	List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId);
 	List<CmsRfcRelation> getRfcRelationBy3(long releaseId,Boolean isActive,Long fromCiId, Long toCiId);
-
+    List<CmsRfcRelation> getRfcRelationByNs(String nsPath, Boolean isActive);
+    
 	CmsDeployment deployRelease(long releaseId);
 	CmsDeployment createDeployment(CmsDeployment dpmt);
 	CmsDeployment getDeployment(long dpmtId);

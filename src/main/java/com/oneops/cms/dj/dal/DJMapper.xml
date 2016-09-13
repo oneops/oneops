@@ -304,7 +304,8 @@
           and rci.action_id = a.action_id
 	 </select>
 
-	 <select id="getOpenRfcCIByClazzAndName" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+
+	 <select id="getRfcCIByClazzAndName" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
 		SELECT 
 			rci.rfc_id as rfcId, 
 			rci.release_id as releaseId, 
@@ -336,8 +337,8 @@
           and (#{clazzName}::varchar is null or cl.class_name = #{clazzName})
           and rci.release_id = r.release_id
 		  and r.release_state_id = rs.release_state_id
-		  and rs.state_name = 'open'
-          and rci.is_active_in_release = true
+		  and (#{state}::varchar is null or rs.state_name = #{state})
+          and (#{isActive}::boolean is null or rci.is_active_in_release = #{isActive})
           and rci.ns_id = ns.ns_id
           and ns.ns_path = #{nsPath}
           and rci.class_id = cl.class_id
@@ -1004,7 +1005,7 @@
           and rfr.ns_id = ns.ns_id
 	 </select>
 
-	 <select id="getOpenRfcRelationsByNs" parameterType="string" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+	 <select id="getRfcRelationsByNs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
 		SELECT rfr.rfc_id as rfcId, 
 			   rfr.release_id as releaseId, 
 			   rfr.ns_id as nsId,
@@ -1034,12 +1035,12 @@
         FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns
         where rfr.release_id = r.release_id
           and r.release_state_id = rs.release_state_id
-          and rs.state_name = 'open'
-          and rfr.is_active_in_release = true
+          and (#{state}::varchar is null or rs.state_name = #{state})
+          and (#{isActive}::boolean is null or rfr.is_active_in_release = #{isActive})
           and rfr.relation_id = rel.relation_id
           and rfr.action_id = a.action_id
           and rfr.ns_id = ns.ns_id
-          and ns.ns_path = #{value}   
+          and ns.ns_path = #{nsPath}   
 	 </select>
 
 
