@@ -505,6 +505,66 @@ public class CmsUtilTest {
 
 	}
 
+	@Test(priority = 105)
+	/** test local var which in turn references both cloud and global variables  */
+	public void processLocalVarUsingBothCloudGlobal() {
+		//Variables for cloud, global, and locals
+		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		cloudVars.put("common", "cl1");
+		cloudVars.put("store", "st1");
+
+		Map<String, String> globalVars = new HashMap<String, String>(3);
+		globalVars.put("common", "gl1");
+		globalVars.put("version", "1.0");
+		globalVars.put("cldstr", "$OO_CLOUD{store}");
+		globalVars.put("dir", "up");
+
+		Map<String, String> localVars = new HashMap<String, String>(3);
+		//combination of cloud and global variables
+		localVars.put("common", "lc1-$OO_GLOBAL{common}-ver-$OO_CLOUD{common}-1-$OO_CLOUD{store}-v1-$OO_CLOUD{common}-$OO_GLOBAL{version}.SNAPSHOT");
+		//references global variable which in turn uses cloud variable
+		localVars.put("store-name", "commons-$OO_GLOBAL{cldstr}-$OO_CLOUD{common}-$OO_GLOBAL{dir}");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("processLocalVarUsingBothCloudGlobal");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+
+		CmsCIAttribute attr1 = new CmsCIAttribute();
+		attr1.setDjValue("$OO_LOCAL{common}");
+		String attr1Name = "attr1";
+		attributes.put(attr1Name, attr1);
+
+		CmsCIAttribute attr2 = new CmsCIAttribute();
+		attr2.setDjValue("$OO_LOCAL{store-name}");
+		String attr2Name = "attr2";
+		attributes.put(attr2Name, attr2);
+
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = new CmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals(attr1Name)) {
+				assertEquals(djAfter, "lc1-gl1-ver-cl1-1-st1-v1-cl1-1.0.SNAPSHOT");
+			}
+			else if (djKey.equals(attr2Name)) {
+				assertEquals(djAfter, "commons-st1-cl1-up");
+			}
+		}
+
+	}
+
 	@Test(priority = 111)
 	/** test a composite var , one of each layer*/
 	public void processLocalVarMixed() {
