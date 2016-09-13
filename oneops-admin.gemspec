@@ -43,6 +43,7 @@ Gem::Specification.new do |s|
   s.add_dependency "azure", '= 0.6.4'
   s.add_dependency "fog-vsphere", '= 0.7.0'
   s.add_dependency "crack", '= 0.4.3'
+  s.add_dependency "rack", '= 1.6.4'
 
   s.add_dependency "rake", '= 10.1.1'
 
