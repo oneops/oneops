@@ -1013,17 +1013,18 @@ public class CmsUtil {
 						resolvedValue=null;
 					}
 					if (resolvedValue!=null) {
-						if (resolvedValue.contains(CLOUDVARPFX)) {// ez lookup in Cloud Map
-							resolvedValue = cloudVars
-									.get(stripSymbolics(resolvedValue));
-						} else {
-							while (resolvedValue.contains(GLOBALVARPFX)) {
-								String varName = stripSymbolics(resolvedValue);
-								String varValue = resolveGlobalVar(cloudVars,
-										globalVars,
-										varName); // lookup in Global Map; it may refer to Cloud in turn but handled there
-								resolvedValue = resolvedValue.replaceAll(GLOBALVARRPL + varName + "}", varValue);
-							}
+						while (resolvedValue.contains(CLOUDVARPFX)) {// ez lookup in Cloud Map
+							String varName = stripSymbolicsWithPrefix(resolvedValue, CLOUDVARPFX);
+							String varValue = cloudVars.get(varName);
+							resolvedValue = resolvedValue.replaceAll(CLOUDVARRPL + varName + "}", varValue);
+						}
+
+						while (resolvedValue.contains(GLOBALVARPFX)) {
+							String varName = stripSymbolicsWithPrefix(resolvedValue, GLOBALVARPFX);
+							String varValue = resolveGlobalVar(cloudVars,
+									globalVars,
+									varName); // lookup in Global Map; it may refer to Cloud in turn but handled there
+							resolvedValue = resolvedValue.replaceAll(GLOBALVARRPL + varName + "}", varValue);
 						}
 					}
 					attrValue = subVarValue(ciId, ciName, nsPath, attrName, attrValue, resolvedValue, variableToResolve, LOCALVARRPL);
@@ -1341,6 +1342,11 @@ public class CmsUtil {
 	/** $OO_CLOUD{xyz} returned as xyz */
 	private String stripSymbolics(String variableReference) {
 		return variableReference.substring(variableReference.indexOf("{")+1, variableReference.indexOf("}"));
+	}
+
+	private String stripSymbolicsWithPrefix(String variableReference, String prefix) {
+		int startIndex = variableReference.indexOf(prefix) + prefix.length();
+		return variableReference.substring(startIndex, variableReference.indexOf("}", startIndex));
 	}
 
 	/*
