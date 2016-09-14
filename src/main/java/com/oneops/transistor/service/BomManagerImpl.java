@@ -436,11 +436,7 @@ public class BomManagerImpl implements BomManager {
 		for (CmsCIRelation rel : dLinkesToRels) {
 			cmProcessor.deleteRelation(rel.getCiRelationId(),true);
 		}
-		//same thing need to happened for monitors
-		for (CmsCI monitor : cmProcessor.getCiByNsLikeByStateNaked(manifestNsPath, "manifest.Monitor", "pending_deletion")) {
-			cmProcessor.deleteCI(monitor.getCiId(), true, userId);
-		}
-		
+
 		//if we have new manifest release - discard open bom release
 		if (manifestReleases.size()>0) {
 			List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
