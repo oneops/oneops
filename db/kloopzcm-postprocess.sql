@@ -1,37 +1,39 @@
+SET SCHEMA 'kloopzcm';
+
 CREATE SEQUENCE kloopzcm.md_pk_seq
    INCREMENT 1
    START 1000;
-ALTER TABLE kloopzcm.md_pk_seq OWNER TO kloopzcm;
+ALTER TABLE kloopzcm.md_pk_seq OWNER TO :user;
 COMMENT ON SEQUENCE kloopzcm.md_pk_seq IS 'metadata pk sequenece';
 
 CREATE SEQUENCE kloopzcm.cm_pk_seq
    INCREMENT 1
    START 1000;
-ALTER TABLE kloopzcm.cm_pk_seq OWNER TO kloopzcm;
+ALTER TABLE kloopzcm.cm_pk_seq OWNER TO :user;
 COMMENT ON SEQUENCE kloopzcm.cm_pk_seq IS 'cm pk sequenece';
 
 CREATE SEQUENCE kloopzcm.ns_pk_seq
    INCREMENT 1
    START 1000;
-ALTER TABLE kloopzcm.ns_pk_seq OWNER TO kloopzcm;
+ALTER TABLE kloopzcm.ns_pk_seq OWNER TO :user;
 COMMENT ON SEQUENCE kloopzcm.ns_pk_seq IS 'ns pk sequenece';
 
 CREATE SEQUENCE kloopzcm.dj_pk_seq
    INCREMENT 1
    START 1000;
-ALTER TABLE kloopzcm.dj_pk_seq OWNER TO kloopzcm;
+ALTER TABLE kloopzcm.dj_pk_seq OWNER TO :user;
 COMMENT ON SEQUENCE kloopzcm.dj_pk_seq IS 'dj pk sequenece';
 
 CREATE SEQUENCE kloopzcm.event_pk_seq
    INCREMENT 1
    START 1000;
-ALTER TABLE kloopzcm.event_pk_seq OWNER TO kloopzcm;
+ALTER TABLE kloopzcm.event_pk_seq OWNER TO :user;
 COMMENT ON SEQUENCE kloopzcm.event_pk_seq IS 'pk sequenece for events';
 
 CREATE SEQUENCE kloopzcm.log_pk_seq
    INCREMENT 1
    START 1000;
-ALTER TABLE kloopzcm.log_pk_seq OWNER TO kloopzcm;
+ALTER TABLE kloopzcm.log_pk_seq OWNER TO :user;
 COMMENT ON SEQUENCE kloopzcm.log_pk_seq IS 'pk sequenece for logs';
 
 ALTER TABLE kloopzcm.md_classes ADD COLUMN format TEXT;

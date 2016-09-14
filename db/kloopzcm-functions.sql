@@ -28,7 +28,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_add_ci_attribute(bigint, integer, text, text, character varying, character varying, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION cm_add_ci_attribute(bigint, integer, text, text, character varying, character varying, boolean) OWNER TO :user;
 
 
 -- Function: cm_add_ci_rel_attribute(bigint, integer, text, text, character varying, character varying)
@@ -61,7 +61,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_add_ci_rel_attribute(bigint, integer, text, text, character varying, character varying, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION cm_add_ci_rel_attribute(bigint, integer, text, text, character varying, character varying, boolean) OWNER TO :user;
 
 -- Function: cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, character varying)
 
@@ -76,7 +76,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, character varying) OWNER TO :user;
 
 
 -- Function: cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, bigint, character varying)
@@ -106,7 +106,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, bigint, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, bigint, character varying) OWNER TO :user;
 
 
 -- Function: cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer)
@@ -122,7 +122,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer) OWNER TO kloopzcm;
+ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer) OWNER TO :user;
 
 
 -- Function: cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer, bigint)
@@ -151,7 +151,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer, bigint) OWNER TO kloopzcm;
+ALTER FUNCTION cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer, bigint) OWNER TO :user;
 
 -- Function: (bigint, boolean)
 
@@ -217,7 +217,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_delete_ci(bigint, boolean, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_delete_ci(bigint, boolean, character varying) OWNER TO :user;
 
 -- Function: cm_delete_relation(bigint, boolean)
 
@@ -264,7 +264,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_delete_relation(bigint, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION cm_delete_relation(bigint, boolean) OWNER TO :user;
 
 
 -- Function: cm_update_ci(bigint, character varying, character varying, integer, character varying)
@@ -280,7 +280,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_update_ci(bigint, character varying, character varying, integer, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_update_ci(bigint, character varying, character varying, integer, character varying) OWNER TO :user;
 
 
 -- Function: cm_update_ci(bigint, character varying, character varying, integer, bigint, character varying)
@@ -322,7 +322,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_update_ci(bigint, character varying, character varying, integer, bigint, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_update_ci(bigint, character varying, character varying, integer, bigint, character varying) OWNER TO :user;
 
 
 -- Function: cm_update_rel(bigint, character varying, integer, bigint)
@@ -350,7 +350,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_update_rel(bigint, character varying, integer, bigint) OWNER TO kloopzcm;
+ALTER FUNCTION cm_update_rel(bigint, character varying, integer, bigint) OWNER TO :user;
 
 
 
@@ -394,7 +394,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_update_ci_attribute(bigint, text, text, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_update_ci_attribute(bigint, text, text, character varying, character varying) OWNER TO :user;
 
 -- Function: cm_update_rel_attribute(bigint, text, text, character varying, character varying)
 
@@ -436,7 +436,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_update_rel_attribute(bigint, text, text, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_update_rel_attribute(bigint, text, text, character varying, character varying) OWNER TO :user;
 
 -- Function: cm_vac_ns(bigint)
 
@@ -476,7 +476,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_vac_ns(bigint, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_vac_ns(bigint, character varying) OWNER TO :user;
 
 -- Function: dj_cancel_deployment(bigint, character varying, character varying, character varying)
 
@@ -523,7 +523,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_cancel_deployment(bigint, character varying, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 
 -- Function dj_create_release(bigint, bigint, bigint, character varying, character varying, bigint, character varying, character varying)
@@ -547,7 +547,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_create_release(bigint, bigint, bigint, character varying, character varying, bigint, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_create_release(bigint, bigint, bigint, character varying, character varying, bigint, character varying, character varying) OWNER TO :user;
 
 
 
@@ -597,7 +597,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_commit_release(bigint, boolean, integer, boolean, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_commit_release(bigint, boolean, integer, boolean, character varying, character varying) OWNER TO :user;
 
 -- Function: dj_commit_release_cis(bigint, boolean, integer, boolean)
 
@@ -690,7 +690,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_commit_release_cis(bigint, boolean, integer, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION dj_commit_release_cis(bigint, boolean, integer, boolean) OWNER TO :user;
 
 -- Function: dj_commit_release_relations(bigint, boolean, integer, boolean)
 
@@ -781,7 +781,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_commit_release_relations(bigint, boolean, integer, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION dj_commit_release_relations(bigint, boolean, integer, boolean) OWNER TO :user;
 
 -- Function: dj_update_release(bigint, bigint, character varying, integer, character varying, integer, character varying)
 
@@ -811,7 +811,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_update_release(bigint, bigint, character varying, integer, character varying, integer, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
   
 -- Function: dj_delete_release(bigint)
 -- DROP FUNCTION dj_delete_release(bigint);
@@ -832,7 +832,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_delete_release(bigint) OWNER TO kloopzcm;  
+ALTER FUNCTION dj_delete_release(bigint) OWNER TO :user;
 
 -- Function: dj_complete_deployment(bigint)
 
@@ -923,7 +923,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_complete_deployment(bigint)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: dj_create_rfc_ci(bigint, bigint, bigint, bigint, integer, character varying, character varying, integer, integer, bigint, character varying, character varying)
 
@@ -960,7 +960,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_create_rfc_ci(bigint, bigint, bigint, bigint, integer, character varying, character varying, integer, integer, bigint, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_create_rfc_ci(bigint, bigint, bigint, bigint, integer, character varying, character varying, integer, integer, bigint, character varying, character varying) OWNER TO :user;
 
 -- Function: dj_create_rfc_relation(bigint, bigint, bigint, bigint, bigint, bigint, integer, character varying, bigint, bigint, integer, integer, bigint, character varying, character varying)
 
@@ -984,7 +984,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_create_rfc_relation(bigint, bigint, bigint, bigint, bigint, bigint, integer, character varying, bigint, bigint, integer, integer, bigint, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_create_rfc_relation(bigint, bigint, bigint, bigint, bigint, bigint, integer, character varying, bigint, bigint, integer, integer, bigint, character varying, character varying) OWNER TO :user;
 
 -- Function: dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying)
 
@@ -1054,7 +1054,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: dj_promote_rfc_ci(bigint, boolean, integer, bigint)
 
@@ -1205,7 +1205,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_promote_rfc_ci(bigint, boolean, integer, bigint) OWNER TO kloopzcm;
+ALTER FUNCTION dj_promote_rfc_ci(bigint, boolean, integer, bigint) OWNER TO :user;
 
 -- Function: dj_promote_rfc_relations(bigint, boolean, integer)
 
@@ -1294,7 +1294,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_promote_rfc_relations(bigint, boolean, integer) OWNER TO kloopzcm;
+ALTER FUNCTION dj_promote_rfc_relations(bigint, boolean, integer) OWNER TO :user;
 
 
 -- Function: dj_retry_deployment(bigint, character varying, character varying, character varying)
@@ -1342,7 +1342,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_retry_deployment(bigint, character varying, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: dj_rm_rfc_ci(bigint)
 
@@ -1380,7 +1380,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_rm_rfc_ci(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION dj_rm_rfc_ci(bigint) OWNER TO :user;
 
 -- Function: dj_rm_rfc_rel(bigint)
 
@@ -1398,7 +1398,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_rm_rfc_rel(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION dj_rm_rfc_rel(bigint) OWNER TO :user;
 
 
 -- Function: dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying)
@@ -1455,7 +1455,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 
 -- Function: dj_upd_dpmt_record_state(bigint, character varying, character varying)
@@ -1495,7 +1495,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_upd_dpmt_record_state(bigint, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_upd_dpmt_record_state(bigint, character varying, character varying) OWNER TO :user;
 
 -- Function: dj_upsert_rfc_ci_attr(bigint, integer, text, character varying, character varying)
 
@@ -1534,7 +1534,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_upsert_rfc_ci_attr(bigint, integer, text, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: dj_upsert_rfc_rel_attr(bigint, integer, text, character varying, character varying)
 
@@ -1576,7 +1576,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_upsert_rfc_rel_attr(bigint, integer, text, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 
 -- Function: ns_create_namespace(character varying)
@@ -1596,7 +1596,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION ns_create_namespace(character varying) OWNER TO kloopzcm;
+ALTER FUNCTION ns_create_namespace(character varying) OWNER TO :user;
 
 -- Function: ns_delete_namespace(character varying)
 
@@ -1628,7 +1628,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION ns_delete_namespace(character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 
 CREATE OR REPLACE FUNCTION force_complete_dpmt(IN p_dpmt_id bigint)
@@ -1656,7 +1656,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION force_complete_dpmt(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION force_complete_dpmt(bigint) OWNER TO :user;
 
 -- Function: md_create_class(integer, character varying, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying))
 
@@ -1674,7 +1674,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_create_class(integer, character varying, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_create_class(integer, character varying, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying) OWNER TO :user;
 
 /**
  * Add md_class_attribute. This function is provided for backward compatibility with 'p_is_immutable' is set to False.
@@ -1696,7 +1696,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION md_add_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, character varying, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 /**
  * Add md_class_attributes.
@@ -1721,7 +1721,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION md_add_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, boolean, character varying, character varying, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
   
   
 -- Function: md_delete_class(integer, boolean)
@@ -1746,7 +1746,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_delete_class(integer, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION md_delete_class(integer, boolean) OWNER TO :user;
 
 /**
  * Delete md_class_attribute
@@ -1772,7 +1772,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_delete_class_attribute(integer, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION md_delete_class_attribute(integer, boolean) OWNER TO :user;
 
 -- Function: md_update_class(integer, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying))
 
@@ -1799,7 +1799,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_update_class(integer, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_update_class(integer, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying) OWNER TO :user;
 
 
 /**
@@ -1832,7 +1832,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_update_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, boolean, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_update_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, boolean, character varying, character varying, character varying) OWNER TO :user;
 
 -- Function: md_create_relation(integer, character varying, character varying, character varying)
 
@@ -1851,7 +1851,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_create_relation(integer, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_create_relation(integer, character varying, character varying, character varying) OWNER TO :user;
 
 -- Function: md_add_relation_attribute(integer, integer, character varying, character varying, boolean, character varying, character varying, character varying)
 
@@ -1871,7 +1871,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_add_relation_attribute(integer, character varying, character varying, boolean, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_add_relation_attribute(integer, character varying, character varying, boolean, character varying, character varying, character varying) OWNER TO :user;
 
 -- Function: md_delete_relation(integer, boolean)
 
@@ -1895,7 +1895,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_delete_relation(integer, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION md_delete_relation(integer, boolean) OWNER TO :user;
 
 -- Function: md_delete_relation_attribute(integer, boolean)
 
@@ -1917,7 +1917,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_delete_relation_attribute(integer, boolean) OWNER TO kloopzcm;
+ALTER FUNCTION md_delete_relation_attribute(integer, boolean) OWNER TO :user;
 
 -- Function: md_add_relation_target(integer, integer, integer, boolean, character varying, character varying)
 
@@ -1937,7 +1937,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_add_relation_target(integer, integer, integer, boolean, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_add_relation_target(integer, integer, integer, boolean, character varying, character varying) OWNER TO :user;
 
 -- Function: md_delete_relation_target(integer)
 
@@ -1955,7 +1955,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_delete_relation_target(integer) OWNER TO kloopzcm;
+ALTER FUNCTION md_delete_relation_target(integer) OWNER TO :user;
 
 -- Function: md_update_relation(integer, character varying, character varying, character varying)
 
@@ -1974,7 +1974,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_update_relation(integer, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_update_relation(integer, character varying, character varying, character varying) OWNER TO :user;
 
 -- Function: md_update_relation_attribute(integer, integer, character varying, character varying, boolean, character varying, character varying, character varying)
 
@@ -1995,7 +1995,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_update_relation_attribute(integer, integer, character varying, character varying, boolean, character varying, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION md_update_relation_attribute(integer, integer, character varying, character varying, boolean, character varying, character varying, character varying) OWNER TO :user;
 
 -- Function: md_add_class_action(integer, character varying, boolean, character varying, text)
 
@@ -2015,7 +2015,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_add_class_action(integer, character varying, boolean, character varying, text) OWNER TO kloopzcm;
+ALTER FUNCTION md_add_class_action(integer, character varying, boolean, character varying, text) OWNER TO :user;
 
 
 -- Function: md_update_class_action(integer, character varying, boolean, character varying)
@@ -2039,7 +2039,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION md_update_class_action(integer, character varying, boolean, character varying, text)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: md_delete_class_action(integer)
 
@@ -2057,7 +2057,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION md_delete_class_action(integer) OWNER TO kloopzcm;
+ALTER FUNCTION md_delete_class_action(integer) OWNER TO :user;
 
 -- Function: cm_create_ops_action(character varying, bigint, bigint, integer, integer, integer, text, text, text);
 -- DROP FUNCTION cm_create_ops_action(character varying, bigint, bigint, integer, integer, integer, text, text, text);
@@ -2081,7 +2081,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_create_ops_action(character varying, bigint, bigint, character varying, integer, boolean, text, text, text) OWNER TO kloopzcm;
+ALTER FUNCTION cm_create_ops_action(character varying, bigint, bigint, character varying, integer, boolean, text, text, text) OWNER TO :user;
 
 
 -- Function: cm_create_ops_procedure(bigint, character varying, bigint, character varying, text, character varying, text, bigint);
@@ -2110,7 +2110,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_create_ops_procedure(bigint, character varying, bigint, character varying, text, character varying, text, bigint) OWNER TO kloopzcm;
+ALTER FUNCTION cm_create_ops_procedure(bigint, character varying, bigint, character varying, text, character varying, text, bigint) OWNER TO :user;
 
 -- Function: cm_update_ops_procedure_state(bigint, character varying)
 
@@ -2151,7 +2151,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION cm_update_ops_procedure_state(bigint, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: cm_update_ops_action_state(bigint, character varying)
 
@@ -2177,7 +2177,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_update_ops_action_state(bigint, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION cm_update_ops_action_state(bigint, character varying) OWNER TO :user;
 
 -- Function: cm_is_ops_procedure_active_for_ci(bigint)
 
@@ -2201,7 +2201,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_is_ops_procedure_active_for_ci(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION cm_is_ops_procedure_active_for_ci(bigint) OWNER TO :user;
 
 -- Function: cm_is_opened_release_for_ci(bigint)
 
@@ -2221,7 +2221,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cm_is_opened_release_for_ci(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION cm_is_opened_release_for_ci(bigint) OWNER TO :user;
 
 
 -- Function: dj_create_release(bigint, bigint, bigint, character varying, character varying, integer, character varying, character varying, integer)
@@ -2250,7 +2250,7 @@ DECLARE
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_create_release(bigint, bigint, bigint, character varying, character varying, integer, character varying, character varying, integer) OWNER TO kloopzcm;
+ALTER FUNCTION dj_create_release(bigint, bigint, bigint, character varying, character varying, integer, character varying, character varying, integer) OWNER TO :user;
 
 
 -- Function: dj_brush_exec_order(bigint)
@@ -2287,7 +2287,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_brush_exec_order(bigint) OWNER TO kloopzcm;
+ALTER FUNCTION dj_brush_exec_order(bigint) OWNER TO :user;
 
 -- Function: cms_acquire_lock(character varying, character varying, integer)
 
@@ -2343,7 +2343,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION cms_acquire_lock(character varying, character varying, integer)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 -- Function: cms_set_var(character varying, text, character varying)
 
@@ -2377,7 +2377,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION cms_set_var(character varying, text, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
   
 -- Function: dj_reset_failed_records(bigint)
@@ -2401,7 +2401,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_reset_failed_records(bigint)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
 CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character varying, p_exec_order integer, p_comments character varying, p_updated_by character varying)
   RETURNS void AS
@@ -2423,7 +2423,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_update_rfc_ci(bigint, character varying, integer, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_update_rfc_ci(bigint, character varying, integer, character varying, character varying) OWNER TO :user;
 
 CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order integer, p_comments character varying, p_updated_by character varying)
   RETURNS void AS
@@ -2444,7 +2444,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_update_rfc_relation(bigint, integer, character varying, character varying) OWNER TO kloopzcm;
+ALTER FUNCTION dj_update_rfc_relation(bigint, integer, character varying, character varying) OWNER TO :user;
 
 
 -- Function: dj_create_dpmt_approval(bigint, bigint, text, integer)
@@ -2465,7 +2465,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_create_dpmt_approval(bigint, bigint, text, integer)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
   
 
  -- Function: dj_dpmt_upd_approvla_rec(bigint, character varying, integer, text, character varying)
@@ -2500,7 +2500,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_dpmt_upd_approvla_rec(bigint, character varying, integer, text, character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
  
   
 -- Function: dj_dpmt_approve(bigint, character varying, integer, text)
@@ -2524,7 +2524,7 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_dpmt_approve(bigint, character varying, integer, text)
-  OWNER TO kloopzcm;
+ OWNER TO :user;
 
 
 CREATE OR REPLACE FUNCTION dj_rm_rfcs(p_ns_path character varying)
@@ -2554,5 +2554,5 @@ $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
 ALTER FUNCTION dj_rm_rfcs(character varying)
-  OWNER TO kloopzcm;
+  OWNER TO :user;
 
