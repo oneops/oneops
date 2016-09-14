@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -250,13 +251,22 @@ public class CmRestController extends AbstractRestController {
 		cmManager.updateCiStateBulk(ciIds, newState, relName, direction, recursive != null, userId);
 		return "{\"updated\"}";	
 	}
-	
+
+
+    /**
+     * 
+     * @param ciId the Id of the ci for which the procedure needs to be found 
+     * @param states optional single or comma separated list of states procedure is in
+     * @param limit optional parameter to limit number of elements in the list. Defaults to 10 is missing.  
+     * @return list of CmsOpsProcedure
+     */
 	@RequestMapping(value="/cm/simple/cis/{ciId}/procedures", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CmsOpsProcedure> getgetOpsProcedureForCi(@PathVariable long ciId, 
-			@RequestParam(value="state", required = false) OpsProcedureState state,
+			@RequestParam(value="state", required = false) String states,
 			@RequestParam(value="limit", required = false) Integer limit) {
-		return opsManager.getCmsOpsProcedureForCi(ciId, state, null, limit);
+		List<OpsProcedureState> stateList = getOpsProcedureStateList(states);
+		return opsManager.getCmsOpsProcedureForCi(ciId, stateList, null, limit);
 	}
 
 
@@ -676,7 +686,16 @@ public class CmRestController extends AbstractRestController {
         return opsManager.getCmsOpsProcedure(procedureId,incd);
     }
 
-    /**
+	private List<OpsProcedureState> getOpsProcedureStateList(String state) {
+		List<OpsProcedureState> states = null;
+		if (state!=null && !state.isEmpty()) {
+			states = Arrays.stream(state.split(",")).map(OpsProcedureState::valueOf).collect(Collectors.toList());
+		} 
+		return states;
+	}
+
+
+	/**
      * Returns the list of <code>CmsOpsProcedure<code> for specified params passed
      * If ciId is passed ,then nsPath will be ignored in the search. 
      * If nsPath is passed, search for procedures will happen via CI.
@@ -684,7 +703,7 @@ public class CmRestController extends AbstractRestController {
      * @param ciId the Id of the ci for which the procedure needs to be found 
      * @param actionCiId the actionId of the step .
      * @param nsPath the nspath of the CI.(/assembly/org/)
-     * @param state the state in which the procedure is in. 
+     * @param states the state (or comma separated list of states) in which the procedure is in. 
      * @param limit the number of CmsOpsProcedure returned, defaults to 10.
      * @param procedureName procedure name
      * @param actions true will populate the actions used with recursive flag
@@ -697,25 +716,26 @@ public class CmRestController extends AbstractRestController {
     public List<CmsOpsProcedure> getOpsProcedureForCi(@RequestParam(value="ciId", required = false) Long ciId,
     												  @RequestParam(value="actionCiId", required = false) Long actionCiId,	
                                                       @RequestParam(value="nsPath", required = false)  String nsPath,
-                                                      @RequestParam(value="state", required = false)  OpsProcedureState state,
+                                                      @RequestParam(value="state", required = false)  String states,
                                                       @RequestParam(value="limit", required = false)  Integer limit,
                                                       @RequestParam(value="procedureName", required = false)  String procedureName,
                                                       @RequestParam(value="recursive", required = false)  Boolean recursive,
                                                       @RequestParam(value="actions", required = false)  Boolean actions
                                                       ){
     	long startingTime = System.currentTimeMillis();
+		List<OpsProcedureState> stateList = getOpsProcedureStateList(states);
     	List<CmsOpsProcedure> opsProcedures = Collections.<CmsOpsProcedure>emptyList();
     	if(ciId != null) {
-    		opsProcedures = opsManager.getCmsOpsProcedureForCi(ciId, state, procedureName, limit);
+    		opsProcedures = opsManager.getCmsOpsProcedureForCi(ciId, stateList, procedureName, limit);
         } else if(actionCiId != null) {
-        	opsProcedures =opsManager.getCmsOpsProcedureForCiByAction(actionCiId, state, procedureName, limit);
+        	opsProcedures =opsManager.getCmsOpsProcedureForCiByAction(actionCiId, stateList, procedureName, limit);
         	
 		} else if (nsPath != null) {
 			if (recursive != null && recursive) {
 				opsProcedures= opsManager.getCmsOpsProcedureForNamespaceLike(nsPath,
-						state, procedureName, limit,actions);
+						stateList, procedureName, limit,actions);
 			} else {
-				opsProcedures= opsManager.getCmsOpsProcedureForNamespace(nsPath, state,
+				opsProcedures= opsManager.getCmsOpsProcedureForNamespace(nsPath, stateList,
 						procedureName);
 			}
 
@@ -724,7 +744,7 @@ public class CmRestController extends AbstractRestController {
                                         "Parameter ciId or nsPath must present.");
         }
     	long timeTook = System.currentTimeMillis() - startingTime;
-    	logger.debug("Time taken to get opsproc for ciId:<"+ciId  +":actionCiId:"+actionCiId+":nsPath:"+nsPath+":state:"+state+":limit:"+limit+":procedureName:"+procedureName+":recursive:"+recursive+" > "+timeTook);
+    	logger.debug("Time taken to get opsproc for ciId:<"+ciId  +":actionCiId:"+actionCiId+":nsPath:"+nsPath+":state(s):"+stateList+":limit:"+limit+":procedureName:"+procedureName+":recursive:"+recursive+" > "+timeTook);
     	return opsProcedures;
     }
 
