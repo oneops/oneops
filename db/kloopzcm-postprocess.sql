@@ -1,3 +1,5 @@
+SET SCHEMA 'kloopzcm';
+
 CREATE SEQUENCE kloopzcm.md_pk_seq
    INCREMENT 1
    START 1000;
