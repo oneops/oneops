@@ -513,12 +513,12 @@ public class OpsProcedureProcessor {
      * Gets the cms ops procedures for ci.
      *
      * @param ciId the ci id
-     * @param state the state
+     * @param stateList the list of states
      * @param procedureName the procedure name
      * @return the cms ops procedures for ci
      */
-    public List<CmsOpsProcedure> getCmsOpsProceduresForCi(long ciId, OpsProcedureState state, String procedureName, Integer limit) {
-        List<CmsOpsProcedure> procedures = opsMapper.getProcedureForCi(ciId, state, procedureName, limit);
+    public List<CmsOpsProcedure> getCmsOpsProceduresForCi(long ciId, List<OpsProcedureState> stateList, String procedureName, Integer limit) {
+        List<CmsOpsProcedure> procedures = opsMapper.getProcedureForCi(ciId, stateList, procedureName, limit);
         for (CmsOpsProcedure procedure : procedures) {
         	procedure.setActions(getCmsOpsActions(procedure.getProcedureId()));
         }
@@ -529,12 +529,12 @@ public class OpsProcedureProcessor {
      * Gets the cms ops procedures for ci search proc actions (not the procedure anchor ci).
      *
      * @param ciId the ci id
-     * @param state the state
+     * @param stateList the list of states
      * @param procedureName the procedure name
      * @return the cms ops procedures for ci
      */
-    public List<CmsOpsProcedure> getCmsOpsProceduresForCiByAction(long ciId, OpsProcedureState state, String procedureName, Integer limit) {
-        List<CmsOpsProcedure> procedures = opsMapper.getProcedureForCiByAction(ciId, state, procedureName, limit);
+    public List<CmsOpsProcedure> getCmsOpsProceduresForCiByAction(long ciId, List<OpsProcedureState> stateList, String procedureName, Integer limit) {
+        List<CmsOpsProcedure> procedures = opsMapper.getProcedureForCiByAction(ciId, stateList, procedureName, limit);
         for (CmsOpsProcedure procedure : procedures) {
         	procedure.setActions(opsMapper.getCmsOpsActionsForCi(procedure.getProcedureId(), ciId));
         }
@@ -546,12 +546,12 @@ public class OpsProcedureProcessor {
      * Gets the cms ops procedures for namespace.
      *
      * @param nsPath the ns path
-     * @param state the state
+     * @param stateList the list of states
      * @param procedureName the procedure name
      * @return the cms ops procedures for namespace
      */
-    public List<CmsOpsProcedure> getCmsOpsProceduresForNamespace(String nsPath, OpsProcedureState state, String procedureName) {
-        List<CmsOpsProcedure> procedures = opsMapper.getProcedureForNamespace(nsPath, state, procedureName);
+    public List<CmsOpsProcedure> getCmsOpsProceduresForNamespace(String nsPath, List<OpsProcedureState> stateList, String procedureName) {
+        List<CmsOpsProcedure> procedures = opsMapper.getProcedureForNamespace(nsPath, stateList, procedureName);
         setCmsOpsProcedureActions(procedures);
         return procedures;
     }
@@ -573,11 +573,11 @@ public class OpsProcedureProcessor {
 
 	
 	public List<CmsOpsProcedure> getCmsOpsProcedureForNamespaceLike(
-			String nsPath, OpsProcedureState state, String procedureName,
+			String nsPath, List<OpsProcedureState> stateList, String procedureName,
 			Integer limit, Boolean actions) {
 		String nsLike = CmsUtil.likefyNsPath(nsPath);
 		List<CmsOpsProcedure> procedures = opsMapper
-				.getProcedureForNamespaceLike(nsPath, nsLike, state, procedureName,
+				.getProcedureForNamespaceLike(nsPath, nsLike, stateList, procedureName,
 						limit);
 		// populating the actions by default,
 		if (Boolean.TRUE.equals(actions)) {

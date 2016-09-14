@@ -44,23 +44,23 @@ public interface OpsMapper {
     CmsOpsAction getCmsOpsActionById(long actionId);
     List<CmsOpsAction> getCmsOpsActionsForCi(@Param("procedureId") long procedureId, @Param("ciId") long ciId);
     
-    List<CmsOpsProcedure> getProcedureForCi(@Param("ciId") long ciId, @Param("state") OpsProcedureState state,
+    List<CmsOpsProcedure> getProcedureForCi(@Param("ciId") long ciId, @Param("stateList") List<OpsProcedureState> stateList,
                                             @Param("name") String procedureName, @Param("limit") Integer limit);
 
-    List<CmsOpsProcedure> getProcedureForCiByAction(@Param("ciId") long ciId, @Param("state") OpsProcedureState state,
+    List<CmsOpsProcedure> getProcedureForCiByAction(@Param("ciId") long ciId, @Param("stateList") List<OpsProcedureState> stateList,
             @Param("name") String procedureName, @Param("limit") Integer limit);
     
-    List<CmsOpsProcedure> getProcedureForNamespace(@Param("nspath") String nsPath, @Param("state") OpsProcedureState state,
+    List<CmsOpsProcedure> getProcedureForNamespace(@Param("nspath") String nsPath, @Param("stateList") List<OpsProcedureState> stateList,
                                             @Param("name") String procedureName);
     /**
      * Returns the list of <code>CmsOpsProcedure<code> for specified params passed
-      @param nsPath the nspath of the CI.(/assembly/org/)
-     * @param state the state in which the procedure is in. 
+      @param ns the nspath of the CI.(/assembly/org/)
+     * @param stateList the list of states in which the procedure is in. 
      * @param limit the number of CmsOpsProcedure returned
      * @param procedureName procedure name
      * @return list of CmsOpsProcedure
      */
-    List<CmsOpsProcedure> getProcedureForNamespaceLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("state") OpsProcedureState state,
+    List<CmsOpsProcedure> getProcedureForNamespaceLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("stateList") List<OpsProcedureState> stateList,
             @Param("name") String procedureName,@Param("limit") Integer limit);
 
     List<CmsActionOrder> getActionOrders(@Param("procedureId") long procedureId, @Param("state") OpsProcedureState state, @Param("execOrder") Integer execOrder);

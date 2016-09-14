@@ -100,7 +100,9 @@
        where p.ci_id = #{ciId}
           and p.state_id = s.state_id
           and (#{name}::varchar is null or p.proc_name = #{name})
-          and (#{state}::varchar is null or s.state_name = #{state})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_id in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item.id}</foreach>)
+        </if>
        order by ops_proc_id desc
        limit coalesce(#{limit},10)   
     </select>
@@ -122,7 +124,9 @@
 	  and oa.ops_proc_id = p.ops_proc_id
           and p.state_id = s.state_id
           and (#{name}::varchar is null or p.proc_name = #{name})
-          and (#{state}::varchar is null or s.state_name = #{state})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_name in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item}</foreach>)
+        </if>
        order by p.ops_proc_id desc
        limit coalesce(#{limit},10)   
     </select>
@@ -147,7 +151,9 @@
           and c.ns_id = n.ns_id
           and n.ns_path = #{nspath}
           and (#{name}::varchar is null or p.proc_name = #{name})
-          and (#{state}::varchar is null or s.state_name = #{state})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_name in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item}</foreach>)
+        </if>
     </select>
     <select id="getProcedureForNamespaceLike" parameterType="map"  resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
        select
@@ -168,7 +174,9 @@
           and c.ns_id =  n.ns_id
           and (n.ns_path like #{nsLike} or n.ns_path = #{ns})
           and (#{name}::varchar is null or p.proc_name = #{name})
-          and (#{state}::varchar is null or s.state_name = #{state})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_name in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item}</foreach>)
+        </if>
           limit coalesce(#{limit},10)   
     </select>
 

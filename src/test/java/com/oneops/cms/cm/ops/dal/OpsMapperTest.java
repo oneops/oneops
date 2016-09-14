@@ -24,6 +24,7 @@ import com.oneops.cms.cm.ops.domain.*;
 import org.junit.*;
 
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.ibatis.io.Resources;
@@ -209,7 +210,7 @@ public class OpsMapperTest {
     @Test
     public void getProcedureForCiTest() throws Exception  {
         opsMapper.updateCmsOpsProcedureState(procedureId, OpsProcedureState.active);
-        List<CmsOpsProcedure> procs = opsMapper.getProcedureForCi(ciId, OpsProcedureState.active, procedureName, null);
+        List<CmsOpsProcedure> procs = opsMapper.getProcedureForCi(ciId, asList(OpsProcedureState.active), procedureName, null);
         Assert.assertNotNull("Retrieved procedure list is null", procs);
         Assert.assertEquals(procs.size(), 1);
         CmsOpsProcedure proc = procs.get(0);
@@ -231,7 +232,7 @@ public class OpsMapperTest {
     @Test
     public void getProcedureForNamespaceTest() throws Exception  {
         opsMapper.updateCmsOpsProcedureState(procedureId, OpsProcedureState.active);
-        List<CmsOpsProcedure> procs = opsMapper.getProcedureForNamespace(nsPath, OpsProcedureState.active, procedureName);
+        List<CmsOpsProcedure> procs = opsMapper.getProcedureForNamespace(nsPath, asList(OpsProcedureState.active), procedureName);
         Assert.assertNotNull("Retrieved procedure list is null", procs);
         Assert.assertEquals(procs.size(), 1);
         CmsOpsProcedure proc = procs.get(0);
@@ -244,6 +245,11 @@ public class OpsMapperTest {
         Assert.assertNotNull("Retrieved procedure is null", proc);
     }
 
+    public List<OpsProcedureState> asList(OpsProcedureState state){
+        List<OpsProcedureState> list = new ArrayList<>();
+        list.add(state);
+        return list;
+    }
 
     /**
      * Gets the procedure for namespace test.
@@ -254,7 +260,7 @@ public class OpsMapperTest {
     @Test
     public void getProcedureForNamespaceLikeTest() throws Exception  {
         opsMapper.updateCmsOpsProcedureState(procedureId, OpsProcedureState.active);
-        List<CmsOpsProcedure> procs = opsMapper.getProcedureForNamespaceLike(nsPath, nsPath, OpsProcedureState.active, procedureName,10);
+        List<CmsOpsProcedure> procs = opsMapper.getProcedureForNamespaceLike(nsPath, nsPath, asList(OpsProcedureState.active), procedureName,10);
         Assert.assertNotNull("Retrieved procedure list is null", procs);
         CmsOpsProcedure proc = procs.get(0);
         Assert.assertNotNull("Retrieved procedure is null", proc);
