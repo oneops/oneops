@@ -38,7 +38,7 @@ if ostype.nil? || ostype.length == 0
   Chef::Log.info('OSTYPE IS STILL NOT SET, TRY TO USE RUBY_PLATFORM')
   Chef::Log.info("RUBY_PLATFORM IN MONITOR IS: #{RUBY_PLATFORM}")
   case RUBY_PLATFORM
-  when /mingw32/
+  when /mingw/
     ostype = 'windows'
     Chef::Log.info('Setting ostype to windows')
   when /linux/

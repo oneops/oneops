@@ -27,7 +27,7 @@ attribute 'converge',
   :required => "optional",
   :default => "false",
   :format => ""
-  
+
 attribute 'step_up',
   :grouping => 'manifest',
   :description => "Scale Up Step",
