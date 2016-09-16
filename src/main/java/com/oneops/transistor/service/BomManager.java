@@ -26,7 +26,7 @@ public interface BomManager {
 	long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
 	long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
 
-	long submitDeployment(long releaseId, String userId);
+	long submitDeployment(long releaseId, String userId, String desc);
 
 	void check4openDeployment(String nsPath);
 }

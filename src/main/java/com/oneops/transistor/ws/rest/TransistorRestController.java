@@ -17,29 +17,6 @@
  *******************************************************************************/
 package com.oneops.transistor.ws.rest;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -56,12 +33,16 @@ import com.oneops.transistor.domain.IaasRequest;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
-import com.oneops.transistor.service.BomAsyncProcessor;
-import com.oneops.transistor.service.BomEnvManager;
-import com.oneops.transistor.service.DesignManager;
-import com.oneops.transistor.service.IaasManager;
-import com.oneops.transistor.service.ManifestAsyncProcessor;
-import com.oneops.transistor.service.ManifestManager;
+import com.oneops.transistor.service.*;
+import org.apache.log4j.Logger;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.*;
 
 
 
@@ -748,6 +729,23 @@ public class TransistorRestController extends AbstractRestController {
 			//for whatever reason spring would not forward the exceptioon to the handler unless thrown from within controller
 			throw te;
 		}
+	}
+
+
+	@RequestMapping(value="platforms/{platId}/pack_refresh", method = RequestMethod.PUT)
+	@ResponseBody
+	public Map<String,Long> packSyncPlatform(
+			@PathVariable long platId,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+
+		long releaseId = dManager.refreshPack(platId ,userId ,scope);
+
+		Map<String,Long> result = new HashMap<String,Long>(1);
+		result.put("releaseId", releaseId);
+		return result;
 	}
 	
 	

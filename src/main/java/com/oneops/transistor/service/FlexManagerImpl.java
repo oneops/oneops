@@ -97,7 +97,7 @@ public class FlexManagerImpl implements FlexManager {
 		rfcProcessor.commitRelease(manifestReleaseId, true, null,false,userId, "Flex relation changed by oneops-flex system");
 		CmsCI manPlat = getManifestPlatform(flexRel);
 		long bomReleaseId = processBomRelease(envId, manPlat, manifestReleaseId, userId);
-		bomManager.submitDeployment(bomReleaseId, userId);
+		bomManager.submitDeployment(bomReleaseId, userId, null);
 		return bomReleaseId;
 	}
 
