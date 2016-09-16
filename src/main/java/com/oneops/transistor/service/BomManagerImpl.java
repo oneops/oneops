@@ -48,6 +48,7 @@ import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
 import static com.oneops.cms.util.CmsConstants.PRIMARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsConstants.SECONDARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_MISSING_ENTRY_POINT;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
@@ -275,8 +276,9 @@ public class BomManagerImpl implements BomManager {
 		//what is deployed currently.
 		String entryPoint = getEntryPoint(platform);
 		if(entryPoint == null ){
-			logger.info(String.format("No entry points found for %s for ci %s" ,nsPath,platform.getCiId() ));
-		}
+            throw new TransistorException(TRANSISTOR_MISSING_ENTRY_POINT,String.format( "There was no entry point relation ci for % s and ci %s ",nsPath,platform.getCiId()));
+
+        }
 
 		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
 				.map(CmsCIRelationBasic::getToCiId)
@@ -292,7 +294,8 @@ public class BomManagerImpl implements BomManager {
 					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
 					.map(rel -> rel.getToCi().getCiName())
 					.collect(joining(","));
-			String message = String.format("The deployment for platform %s will mark all instances secondary. Please check clouds <%s> , they are in ignored and primary state.  ", nsPath, clouds);
+
+            String message = String.format("The deployment will result in no instances in primary clouds for platform %s. Primary clouds <%s>  are not in active state for this platform.  ", nsPath, clouds);
 			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
 		return;
