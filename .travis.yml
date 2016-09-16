@@ -1,13 +1,10 @@
 before_install: 
-  - cd $TRAVIS_BUILD_DIR/..
-  - rm -rf cmsdal/
-  - git clone https://github.com/$TRAVIS_REPO_SLUG/../cmsdal cmsdal
-  - cd cmsdal 
+  - git clone https://github.com/$TRAVIS_REPO_SLUG/../cmsdal $TRAVIS_REPO_SLUG/../cmsdal
+  - cd $TRAVIS_REPO_SLUG/../cmsdal 
   - mvn clean install -Dmaven.test.skip=true
-  - cd $TRAVIS_BUILD_DIR/..
-  - rm -rf oo-commons/
-  - git clone https://github.com/$TRAVIS_REPO_SLUG/../oo-commons oo-commons
-  - cd oo-commons
+  - cd ../..
+  - git clone https://github.com/$TRAVIS_REPO_SLUG/../oo-commons $TRAVIS_REPO_SLUG/../oo-commons
+  - cd $TRAVIS_REPO_SLUG/../oo-commons
   - mvn clean install -Dmaven.test.skip=true
 sudo: false
 language: java
