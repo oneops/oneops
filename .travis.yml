@@ -1,9 +1,10 @@
 before_install: 
-  - git clone https://github.com/$TRAVIS_REPO_SLUG/../cmsdal $TRAVIS_REPO_SLUG/../cmsdal
+  - env
+  - git clone https://github.com/okornev/cmsdal.git $TRAVIS_REPO_SLUG/../cmsdal
   - cd $TRAVIS_REPO_SLUG/../cmsdal 
   - mvn clean install -Dmaven.test.skip=true
   - cd ../..
-  - git clone https://github.com/$TRAVIS_REPO_SLUG/../oo-commons $TRAVIS_REPO_SLUG/../oo-commons
+  - git clone https://github.com/okornev/oo-commons.git $TRAVIS_REPO_SLUG/../oo-commons
   - cd $TRAVIS_REPO_SLUG/../oo-commons
   - mvn clean install -Dmaven.test.skip=true
 sudo: false
