@@ -124,6 +124,20 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
+           <plugin>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-maven-plugin</artifactId>
+                <version>9.2.11.v20150529</version>
+                <configuration>
+                    <scanIntervalSeconds>10</scanIntervalSeconds>
+                    <webApp>
+                        <contextPath>/cms-admin</contextPath>
+                    </webApp>
+                    <httpConnector>
+                        <port>8888</port>
+                    </httpConnector>
+                </configuration>
+           </plugin>
         </plugins>
   </build>
 </project>
