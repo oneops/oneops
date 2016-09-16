@@ -239,8 +239,8 @@ public class BadStateProcessor {
 				return false;
 			}
 			
-			List<CmsOpsProcedure> opsProcedures = opsManager.getCmsOpsProcedureForCi(ciId, OpsProcedureState.complete, "ci_repair", repairRetries);
-			opsProcedures.addAll(opsManager.getCmsOpsProcedureForCi(ciId, OpsProcedureState.failed, "ci_repair", repairRetries));
+			List<CmsOpsProcedure> opsProcedures = opsManager.getCmsOpsProcedureForCi(ciId, Collections.singletonList(OpsProcedureState.complete), "ci_repair", repairRetries);
+			opsProcedures.addAll(opsManager.getCmsOpsProcedureForCi(ciId, Collections.singletonList(OpsProcedureState.failed), "ci_repair", repairRetries));
 			// this list is already ordered by procedureId descending
 			int totalRepairs = 0;
 			if (opsProcedures != null && opsProcedures.size() >= repairRetries) {
@@ -316,7 +316,8 @@ public class BadStateProcessor {
 
 
 			Map<String, String> request = new HashMap<String, String>();
-			request.put("description", "Auto-Replace by OneOps");
+			request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
+			
 			
 			CmsCI platformOfBomCi = envProcessor.getPlatform4Bom(ciId);
 			List<CmsCI> platformsOfEnv =  envProcessor.getPlatformsForEnv(env.getCiId());
