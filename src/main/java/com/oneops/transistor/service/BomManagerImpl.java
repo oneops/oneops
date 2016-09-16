@@ -23,8 +23,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.StringJoiner;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
@@ -42,6 +44,7 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 
+import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
 import static com.oneops.cms.util.CmsConstants.PRIMARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsConstants.SECONDARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
@@ -51,9 +54,8 @@ import static java.util.stream.Collectors.toMap;
 public class BomManagerImpl implements BomManager {
 
 	static final Logger logger = Logger.getLogger(BomManagerImpl.class);
-	private final String ENTRY_POINT = "Fqdn";
 
-    private CmsCmProcessor cmProcessor;
+	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private BomRfcBulkProcessor bomRfcProcessor;
 	private TransUtil trUtil;
@@ -205,7 +207,7 @@ public class BomManagerImpl implements BomManager {
 					//now we need to check if the cloud is active for this given platform
 					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
 
-					check4Secondary(platformCloudRels, getNspath(bomNsPath, plat));
+					check4Secondary(plat,platformCloudRels, getNspath(bomNsPath, plat));
 					if (platformCloudRels.size() >0) {
 						
 						//Collections.sort(platformCloudRels,BINDING_COMPARATOR);
@@ -252,15 +254,12 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	private String getNspath(String nsPath, CmsCI plat) {
-		if (plat.getCiClassName().equals("manifest.Iaas")) {
-			nsPath = nsPath + "/" + plat.getCiName();
-		} else {
-			nsPath = nsPath + "/" + plat.getCiName() + "/" + plat.getAttribute("major_version").getDjValue();
-		}
-		return nsPath;
+		StringJoiner nSjoiner = new StringJoiner("/");
+        nSjoiner.add(nsPath).add(plat.getCiName()).add(plat.getAttribute("major_version").getDjValue());
+		return nSjoiner.toString();
 	}
 
-	protected void check4Secondary(List<CmsCIRelation> platformCloudRels, String nsPath) {
+	protected void check4Secondary(CmsCI platform, List<CmsCIRelation> platformCloudRels, String nsPath) {
 		//get manifest clouds and priority; what is intended
 		Map<Long, Integer> intendedCloudpriority = platformCloudRels.stream()
 				.filter(this::isCloudActive)
@@ -274,9 +273,14 @@ public class BomManagerImpl implements BomManager {
 
 		String finalNsPath = nsPath;
 		//what is deployed currently.
+		String entryPoint = getEntryPoint(platform);
+		if(entryPoint == null ){
+			logger.info(String.format("No entry points found for %s for ci %s" ,nsPath,platform.getCiId() ));
+		}
+
 		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
 				.map(CmsCIRelationBasic::getToCiId)
-				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId, CmsConstants.DEPLOYED_TO, null, ENTRY_POINT, finalNsPath).stream())
+				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId, CmsConstants.DEPLOYED_TO, null, entryPoint, finalNsPath).stream())
 				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
 
 		existingCloudPriority.putAll(intendedCloudpriority);
@@ -288,10 +292,16 @@ public class BomManagerImpl implements BomManager {
 					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
 					.map(rel -> rel.getToCi().getCiName())
 					.collect(joining(","));
-			String message = String.format("The deployment for platform %s will mark all instances secondary. Please check clouds <%s> , ", nsPath, clouds);
+			String message = String.format("The deployment for platform %s will mark all instances secondary. Please check clouds <%s> , they are in ignored and primary state.  ", nsPath, clouds);
 			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
 		return;
+	}
+
+	private String getEntryPoint(CmsCI platform) {
+		List<CmsCIRelation> entryPoints = cmProcessor.getFromCIRelations(platform.getCiId(), null, ENTRYPOINT, null);
+		Optional<CmsCIRelation> entryPoint = entryPoints.stream().findFirst();
+        return entryPoint.isPresent() ? trUtil.getShortClazzName(entryPoint.get().getToCi().getCiClassName()): null;
 	}
 
 	private boolean isCloudActive(CmsCIRelation platformCloudRel) {
