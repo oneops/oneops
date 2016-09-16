@@ -1,12 +1,12 @@
 before_install: 
   - cd $TRAVIS_BUILD_DIR/..
   - rm -rf cmsdal/
-  - git clone git@github.com:$TRAVIS_REPO_SLUG/../cmsdal.git
+  - git clone https://github.com/$TRAVIS_REPO_SLUG/../cmsdal.git
   - cd cmsdal 
   - mvn clean install -Dmaven.test.skip=true
   - cd $TRAVIS_BUILD_DIR/..
   - rm -rf oo-commons/
-  - git clone git@github.com:$TRAVIS_REPO_SLUG/../oo-commons.git
+  - git clone https://github.com/$TRAVIS_REPO_SLUG/../oo-commons.git
   - cd oo-commons
   - mvn clean install -Dmaven.test.skip=true
 sudo: false
