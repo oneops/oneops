@@ -316,7 +316,8 @@ public class BadStateProcessor {
 
 
 			Map<String, String> request = new HashMap<String, String>();
-			request.put("description", "Auto-Replace by OneOps");
+			request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
+			
 			
 			CmsCI platformOfBomCi = envProcessor.getPlatform4Bom(ciId);
 			List<CmsCI> platformsOfEnv =  envProcessor.getPlatformsForEnv(env.getCiId());
