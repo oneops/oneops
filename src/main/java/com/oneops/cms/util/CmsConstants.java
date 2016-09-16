@@ -42,6 +42,8 @@ public final class CmsConstants {
 	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
 	public static final String DEPLOYED_TO = "base.DeployedTo";
 
+	public static final String ENTRYPOINT = "Entrypoint";
+
 	public static final String ATTR_VALUE_TYPE_DF = "df";
 	
 	public static final String ATTR_NAME_ENABLED = "enabled";
