@@ -17,25 +17,28 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
-import static org.elasticsearch.index.query.QueryBuilders.queryString;
-
-import java.util.Date;
-import java.util.List;
-
-import org.apache.commons.httpclient.util.DateUtil;
-import org.apache.log4j.Logger;
-import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
-import org.springframework.data.elasticsearch.core.query.SearchQuery;
-
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.search.domain.CmsDeploymentSearch;
 import com.oneops.search.util.SearchConstants;
 import com.oneops.search.util.SearchUtil;
+import org.apache.commons.httpclient.util.DateUtil;
+import org.apache.log4j.Logger;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Client;
+import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
+import org.springframework.data.elasticsearch.core.query.SearchQuery;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+
+import static org.elasticsearch.index.query.QueryBuilders.queryString;
 
 public class DpmtMessageProcessor {
 
 	private static Logger logger = Logger.getLogger(DpmtMessageProcessor.class);
+	private Client client;
 	private ElasticsearchTemplate template;
 	
 	
@@ -154,10 +157,13 @@ public class DpmtMessageProcessor {
         .build();
 		
 		List<CmsDeploymentSearch> esDeploymentList = template.queryForList(searchQuery, CmsDeploymentSearch.class);
+		if(esDeploymentList.size() > 1){
+           cleanOldDeployment(esDeploymentList.get(0).getDeploymentId());
+		}
 		return !esDeploymentList.isEmpty()?esDeploymentList.get(0):null;
 	}
-	
-	
+
+
 	/**
 	 * Update the total time taken by the deployment before it reaches a terminal state
 	 * 
@@ -172,6 +178,31 @@ public class DpmtMessageProcessor {
 	private boolean isFinalState(String state){
 		return SearchConstants.DPMT_STATE_COMPLETE.equalsIgnoreCase(state) || SearchConstants.DPMT_STATE_CANCELED.equalsIgnoreCase(state);
 	}
+
+
+	/**
+	 * Handles the edge case condition where deployments can spawn to multiple weeks.
+	   Cleans duplicate deployments from deployment indices as cms indices are created weekly.
+	 * @param deploymentId
+     */
+	private void cleanOldDeployment(Long deploymentId){
+
+		SearchResponse response = client.prepareSearch("cms")
+				.setTypes("deployment")
+				.setQuery(queryString(String.valueOf(deploymentId)).field("deploymentId"))
+				.execute()
+				.actionGet();
+
+		//Skip the latest week deployment id and deletes all others
+		Arrays.stream(response.getHits().getHits())
+				.sorted((hit1 , hit2) -> (hit1.getIndex().compareTo(hit2.getIndex()))* -1)
+				.skip(1).forEach(hit -> {
+			template.delete(hit.getIndex(),"deployment",hit.getId());
+			logger.info("Deleted duplicate deployment " + hit.getId() + " in index " + hit.getIndex());
+		});
+
+
+	}
 	
 
 	public ElasticsearchTemplate getTemplate() {
@@ -180,5 +211,13 @@ public class DpmtMessageProcessor {
 
 	public void setTemplate(ElasticsearchTemplate template) {
 		this.template = template;
+	}
+
+	public Client getClient() {
+		return client;
+	}
+
+	public void setClient(Client client) {
+		this.client = client;
 	}
 }
