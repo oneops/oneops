@@ -1582,6 +1582,26 @@ public class CmsCmProcessor {
 		
 		CmsCIRelation existingRel = getRelationById(relation.getCiRelationId()); 
 
+		if (relation.getRelationState() != null && !relation.getRelationState().equals(existingRel.getRelationState())) {
+			Integer relStateId = ciMapper.getCiStateId(relation.getRelationState());
+			if (relStateId == null) {
+				throw new CIValidationException(CmsError.VALIDATION_COMMON_ERROR, "There is no such ci state defined - " + relation.getRelationState());
+			}
+			relation.setRelationStateId(relStateId);
+		} else if (relation.getRelationState() == null && relation.getRelationStateId() == 0
+				&& existingRel.getRelationStateId() > 0) {
+			logger.info("incoming update request rel :"+relation.getRelationId()+ " for state id= " + relation.getRelationStateId()
+					+ " existing ci state id = " + existingRel.getRelationStateId());
+			relation.setRelationStateId(existingRel.getRelationStateId());
+		} else if (relation.getRelationStateId() == 0) {
+			relation.setRelationStateId(100);
+		}
+
+        if (relation.getRelationStateId()!=existingRel.getRelationStateId() || (relation.getComments()!=null && !relation.getComments().equals(existingRel.getComments()))){
+            ciMapper.updateRelation(relation);
+        }
+
+
 		for(CmsCIRelationAttribute updAttr : relation.getAttributes().values()){
 			updAttr.setCiRelationId(relation.getCiRelationId());
 			
