@@ -233,18 +233,20 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="releaseId", required = false) Long releaseId,  
 			@RequestParam(value="isActive", required = false) Boolean isActive, 
 			@RequestParam(value="ciId", required = false) Long ciId,
+			@RequestParam(value="nsPath", required = false) String nsPath,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<CmsRfcCISimple>();
 		List<CmsRfcCI> rfcList = null;
+		if (isActive == null) {
+			isActive = true;
+		}
 		if (releaseId != null) {
-			if (isActive == null) {
-				isActive = true;
-			}
 			rfcList = djManager.getRfcCIBy3(releaseId, isActive, ciId);
-			
 		} else if (ciId != null) {
 			rfcList = djManager.getClosedRfcCIByCiId(ciId);
+		} else if (nsPath!=null){
+			rfcList = djManager.getRfcCIByNs(nsPath, isActive);
 		}
 		
 		if (rfcList != null) {
@@ -347,19 +349,22 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="fromCiId", required = false) Long fromCiId,
 			@RequestParam(value="toCiId", required = false) Long toCiId,
 			@RequestParam(value="ciId", required = false) Long ciId,
+            @RequestParam(value="nsPath", required = false) String nsPath, 
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<CmsRfcRelationSimple>();
 		List<CmsRfcRelation> relList = null;
-		
+
+        if (isActive == null) {
+            isActive = true;
+        }
 		if (releaseId != null) {
-			if (isActive == null) {
-				isActive = true;
-			}
 			relList = djManager.getRfcRelationBy3(releaseId, isActive, fromCiId, toCiId);
 		} else if (ciId != null){
 			relList = djManager.getClosedRfcRelationByCiId(ciId);
-		}
+		} else if (nsPath!=null){
+            relList = djManager.getRfcRelationByNs(nsPath, isActive);
+        }
 		
 		if (relList != null) {
 			for (CmsRfcRelation rel : relList) {
@@ -429,4 +434,18 @@ public class DjRestController extends AbstractRestController {
 		return "{\"ci\":" + djManager.getRfcCiCountByNs(nsPath) +
 			   ",\"relation\":" + djManager.getRfcRelationCountByNs(nsPath) + "}";
 	}
+
+    @RequestMapping(value = "/dj/simple/rfcs", method = RequestMethod.DELETE)
+    @ResponseBody
+    public String rmRfcs(
+            @RequestParam("nsPath") String nsPath,
+            @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+
+
+        scopeVerifier.verifyScope(scope, nsPath);
+
+        long deleted = djManager.rmRfcs(nsPath);
+        return "{\"deleted\":" + deleted + "}";
+    }
+
 }
