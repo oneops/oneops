@@ -23,12 +23,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.StringJoiner;
 import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
+import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -41,17 +44,25 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 
+import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
+import static com.oneops.cms.util.CmsConstants.PRIMARY_CLOUD_STATUS;
+import static com.oneops.cms.util.CmsConstants.SECONDARY_CLOUD_STATUS;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_MISSING_ENTRY_POINT;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
+
 public class BomManagerImpl implements BomManager {
 
-	static Logger logger = Logger.getLogger(BomManagerImpl.class);
+	static final Logger logger = Logger.getLogger(BomManagerImpl.class);
 
-    private CmsCmProcessor cmProcessor;
+	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private BomRfcBulkProcessor bomRfcProcessor;
 	private TransUtil trUtil;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
-	
+
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
 	}
@@ -176,7 +187,7 @@ public class BomManagerImpl implements BomManager {
 		}
 
 		Map<Integer, List<CmsCI>> platsToProcess = getOrderedPlatforms(platRels, disabledPlats);
-		
+
 		int maxOrder = 0;
 		for (Integer order : platsToProcess.keySet()) {
 			maxOrder = (order > maxOrder) ? order : maxOrder;
@@ -196,7 +207,8 @@ public class BomManagerImpl implements BomManager {
 					long platStartTime = System.currentTimeMillis();
 					//now we need to check if the cloud is active for this given platform
 					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
-					
+
+					check4Secondary(plat,platformCloudRels, getNspath(bomNsPath, plat));
 					if (platformCloudRels.size() >0) {
 						
 						//Collections.sort(platformCloudRels,BINDING_COMPARATOR);
@@ -242,8 +254,71 @@ public class BomManagerImpl implements BomManager {
 		return startingExecOrder;
 	}
 
-	
-	
+	private String getNspath(String nsPath, CmsCI plat) {
+		StringJoiner nSjoiner = new StringJoiner("/");
+        nSjoiner.add(nsPath).add(plat.getCiName()).add(plat.getAttribute("major_version").getDjValue());
+		return nSjoiner.toString();
+	}
+
+	protected void check4Secondary(CmsCI platform, List<CmsCIRelation> platformCloudRels, String nsPath) {
+		//get manifest clouds and priority; what is intended
+		Map<Long, Integer> intendedCloudpriority = platformCloudRels.stream()
+				.filter(this::isCloudActive)
+				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
+
+		//are there any secondary clouds for deployment
+		long numberOfSecondaryClouds = intendedCloudpriority.entrySet().stream().filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS))).count();
+		if (numberOfSecondaryClouds == 0) {
+			return;
+		}
+
+		String finalNsPath = nsPath;
+		//what is deployed currently.
+		String entryPoint = getEntryPoint(platform);
+		if(entryPoint == null ){
+            throw new TransistorException(TRANSISTOR_MISSING_ENTRY_POINT,String.format( "There was no entry point relation ci for % s and ci %s ",nsPath,platform.getCiId()));
+
+        }
+
+		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
+				.map(CmsCIRelationBasic::getToCiId)
+				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId, CmsConstants.DEPLOYED_TO, null, entryPoint, finalNsPath).stream())
+				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
+
+		existingCloudPriority.putAll(intendedCloudpriority);
+		long count = existingCloudPriority.entrySet().stream().filter(entry -> (entry.getValue().equals(CmsConstants.SECONDARY_CLOUD_STATUS))).count();
+		if (existingCloudPriority.size() == count) {
+			//throw transistor exception
+			String clouds = platformCloudRels.stream()
+					.filter(rel->!isCloudActive(rel))
+					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
+					.map(rel -> rel.getToCi().getCiName())
+					.collect(joining(","));
+
+            String message = String.format("The deployment will result in no instances in primary clouds for platform %s. Primary clouds <%s>  are not in active state for this platform.  ", nsPath, clouds);
+			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
+		}
+		return;
+	}
+
+	private String getEntryPoint(CmsCI platform) {
+		List<CmsCIRelation> entryPoints = cmProcessor.getFromCIRelations(platform.getCiId(), null, ENTRYPOINT, null);
+		Optional<CmsCIRelation> entryPoint = entryPoints.stream().findFirst();
+        return entryPoint.isPresent() ? trUtil.getShortClazzName(entryPoint.get().getToCi().getCiClassName()): null;
+	}
+
+	private boolean isCloudActive(CmsCIRelation platformCloudRel) {
+		return platformCloudRel.getAttribute("adminstatus") != null
+                && CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue());
+	}
+
+	private Integer getPriority(CmsCIRelation deployedTo) {
+		return deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);
+	}
+
+
+
+
 	public int generateBomForOfflineClouds(long envId, String userId, Set<Long> excludePlats, String manifestNs, String bomNsPath, Map<String,String> envVars, int startingExecOrder, String desc) {
 		
 		long globalStartTime = System.currentTimeMillis();
@@ -436,11 +511,7 @@ public class BomManagerImpl implements BomManager {
 		for (CmsCIRelation rel : dLinkesToRels) {
 			cmProcessor.deleteRelation(rel.getCiRelationId(),true);
 		}
-		//same thing need to happened for monitors
-		for (CmsCI monitor : cmProcessor.getCiByNsLikeByStateNaked(manifestNsPath, "manifest.Monitor", "pending_deletion")) {
-			cmProcessor.deleteCI(monitor.getCiId(), true, userId);
-		}
-		
+
 		//if we have new manifest release - discard open bom release
 		if (manifestReleases.size()>0) {
 			List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
