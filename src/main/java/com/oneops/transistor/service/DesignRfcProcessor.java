@@ -83,10 +83,10 @@ public class DesignRfcProcessor {
 
 		String nsPrefix = "/public/" + designPlatform.getAttribute("source").getNewValue()
 				+ "/packs/" + designPlatform.getAttribute("pack").getNewValue();
-		List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", null);
-		if (versions.size()==1){
-			designPlatform.getAttribute("pack_digest").setNewValue(versions.get(0).getAttribute("commit").getDfValue());
-		}
+        List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", designPlatform.getAttribute("version").getNewValue());
+        for (CmsCI version : versions) {
+            designPlatform.getAttribute("pack_digest").setNewValue(version.getAttribute("commit").getDfValue());
+        }
 
 
 		String mgmtTemplNsPath = nsPrefix
@@ -126,7 +126,7 @@ public class DesignRfcProcessor {
 
 	public long deletePlatform(long designPlatformId, String userId, String scope) {
 
-		CmsRfcCI designPlatform = cmRfcMrgProcessor.getCiById(designPlatformId, null);
+		CmsCI designPlatform = cmProcessor.getCiById(designPlatformId);
 		if (designPlatform == null) {
 			logger.error("There is no platform with id = " + designPlatformId);
 			return 0;
@@ -140,9 +140,9 @@ public class DesignRfcProcessor {
 			cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(component.getCiId(), userId, 0);
 		}
 		
-		cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
+		CmsRfcCI platDeleteRfc = cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
 		
-		return designPlatform.getCiId();
+		return platDeleteRfc.getCiId();
 	}
 
 	
