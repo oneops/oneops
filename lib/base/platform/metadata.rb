@@ -55,6 +55,17 @@ attribute 'version',
     :order => 3
   }
 
+attribute 'pack_digest',
+  :description => 'Current pack digest',
+  :default => '',
+  :format => {
+    :help => 'Current pack digest',
+    :filter => {'all' => {'visible' => 'false'}},
+    :category => '2.Platform Pack',
+    :order => 4
+  }
+
+
 
 # support for version upgrades
 attribute 'major_version',
