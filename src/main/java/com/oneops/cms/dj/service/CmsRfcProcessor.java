@@ -1725,4 +1725,11 @@ public class CmsRfcProcessor {
             return 0;
         }
     }
+
+    /**
+	 * get count of all Ci which have the given relation from the given ci id and not updated by the rfcId
+	 */
+	public long getCiCountNotUpdatedByRfc(long fromId, String relationName, String shortRelName, long rfcId) {
+		return djMapper.countCiNotUpdatedByRfc(fromId, relationName, shortRelName, rfcId);
+	}
 }
