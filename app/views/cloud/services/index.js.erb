@@ -1,2 +1,2 @@
-var section = $j("#cloud_services_list");
+var section = $j("#<%= @zone ? 'zone_services_list' : 'cloud_services_list' %>");
 section.html("<%= escape_javascript(render('service_list')) %>");

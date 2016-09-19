@@ -1,10 +1,15 @@
 <%= organization_page_header('clouds') %>
 
-<%= breadcrumb [{:label => 'clouds', :link => clouds_path},
-                {:icon  => ci_image_url(@cloud),
-                 :label => @cloud.ciName,
-                 :kind  => 'Cloud',
-                 :link  => edit_cloud_path(@cloud)}] %>
+<%= crumbs = [{:label => 'clouds', :link => clouds_path},
+                    {:icon  => ci_image_url(@cloud),
+                     :label => @cloud.ciName,
+                     :kind  => 'Cloud',
+                     :link  => edit_cloud_path(@cloud)}]
+    crumbs << {:icon  => ci_image_url(@zone),
+               :label => @zone.ciName,
+               :kind  => 'Zone',
+               :link  => path_to_ci(@zone)} if @zone
+    breadcrumb crumbs %>
 
 <%= page_title :page_icon => ci_image_url(@service),
                :page_kind => 'Service',

@@ -67,7 +67,7 @@ class Cloud::CompliancesController < ApplicationController
 
     respond_to do |format|
       format.js do
-        flash[:error] = 'Failed to delete service.' unless ok
+        flash[:error] = 'Failed to delete compliance.' unless ok
         index
       end
 

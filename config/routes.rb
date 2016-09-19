@@ -169,6 +169,10 @@ Display::Application.routes.draw do
         put :update_teams
       end
 
+      resources :zones, :controller => 'cloud/zones' do
+        resources :services, :controller => 'cloud/services'
+      end
+
       resources :services, :controller => 'cloud/services' do
         get :available, :on => :collection
         get :diff, :on => :collection

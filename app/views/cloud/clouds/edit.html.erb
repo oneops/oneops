@@ -5,8 +5,8 @@
 <%= page_info 'Edit cloud configuration' %>
 
 <%= items = [{:label => 'configuration', :template => 'configuration', :selected => true},
-             {:label => 'teams',      :url => teams_cloud_path(@cloud)},
              {:label => 'variables',  :url => cloud_variables_path(@cloud)},
+             {:label => 'zones',      :url => cloud_zones_path(@cloud)},
              {:label => 'compliance', :url => cloud_compliances_path(@cloud)},
              {:label => 'support',    :url => cloud_supports_path(@cloud)},
              {:label => 'diff',       :url => diff_cloud_services_path(@cloud, :changes_only => params[:changes_only])}]
