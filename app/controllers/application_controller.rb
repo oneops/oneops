@@ -206,6 +206,10 @@ class ApplicationController < ActionController::Base
     "#{organization_ns_path}/_clouds/#{cloud.ciName}"
   end
 
+  def cloud_zone_ns_path(zone)
+    "#{zone.nsPath}/#{zone.ciName}"
+  end
+
   def cloud_service_ns_path(service)
     "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}"
   end
@@ -385,11 +389,16 @@ class ApplicationController < ActionController::Base
   end
 
   def locate_cloud_service_template(service)
-    Cms::Ci.first(:params => {:nsPath      => '/public/',
-                              :recursive   => true,
-                              :ciClassName => "mgmt.#{service.ciClassName}",
-                              :ciName      => service.ciName})
+    service_class_name = service.ciClassName
+    if service_class_name.start_with?('cloud.zone.service')
+      Cms::Ci.build(:ciClassName => service_class_name)
+    else
+      Cms::Ci.first(:params => {:nsPath      => '/public/',
+                                :recursive   => true,
+                                :ciClassName => "mgmt.#{service_class_name}",
+                                :ciName      => service.ciName})
 
+    end
   end
 
   def calculate_ci_diff(ci, base_ci)
@@ -847,12 +856,25 @@ class ApplicationController < ActionController::Base
     name       = ci.ciName
     ci_id      = ci.ciId
     if ns_path.include?('/_clouds')
-      root, org, _clouds, cloud, service_class, service_name = ns_path.split('/')
+      root, org, _clouds, cloud, zone_or_service_class, service_name = ns_path.split('/')
       if cloud.present?
         if class_name == 'account.Cloudvar'
           return edit_cloud_path(:org_name  => org,
                                  :id        => cloud,
                                  :anchor    => "variables/list_item/#{ci_id}")
+        elsif class_name == 'cloud.Zone'
+          return edit_cloud_path(:org_name => org,
+                                 :id       => cloud,
+                                 :anchor   => "zones/list_item/#{ci_id}")
+        elsif class_name.start_with?('cloud.service.')
+          return edit_cloud_service_path(:org_name => org,
+                                         :cloud_id  => cloud,
+                                         :id       => ci_id)
+        elsif class_name.start_with?('cloud.zone.service.')
+          return edit_cloud_service_path(:org_name => org,
+                                         :cloud_id => cloud,
+                                         :zone_id  => zone_or_service_class,
+                                         :id       => ci_id)
         elsif class_name.start_with?('cloud.compliance.')
           return edit_cloud_path(:org_name => org,
                                  :id       => cloud,
@@ -1031,8 +1053,12 @@ class ApplicationController < ActionController::Base
 
   def path_to_ns(ns_path)
     if ns_path.include?('/_clouds')
-      root, org, _clouds, cloud = ns_path.split('/')
-      if cloud.present?
+      root, org, _clouds, cloud, zone = ns_path.split('/')
+      if zone.present?
+        return edit_cloud_path(:org_name => org,
+                               :id       => cloud,
+                               :anchor   => 'zones')
+      elsif cloud.present?
         return edit_cloud_path(:org_name => org, :id => cloud)
       else
         return clouds_path(:org_name => org)

@@ -4,8 +4,7 @@
 
 <%= section_panel 'Services',
                   :width    => 'single',
-                  :position => 'right',
-                  :menu     => has_cloud_services?(@cloud.ciId) ? [:display => icon('plus', 'Add'), :link => new_cloud_service_path(@cloud)] : nil do %>
+                  :position => 'right' do %>
   <div id="cloud_services_list"><%= loading_indicator %></div>
   <script type="text/javascript">
     <%= remote_function(:url => cloud_services_path(@cloud), :method => :get) %>
@@ -15,3 +14,10 @@
 <%= section_panel 'Status', :id => 'cloud_status', :width => 'double', :position => 'left' do %>
   <%= render 'status' %>
 <% end %>
+
+<div id="team_list">
+  <%= loading_indicator %>
+  <script>
+    <%= remote_function(:url => teams_cloud_path(@cloud), :method => :get) %>
+  </script>
+</div>

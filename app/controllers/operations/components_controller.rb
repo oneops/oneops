@@ -52,9 +52,14 @@ class Operations::ComponentsController < Base::ComponentsController
                                                :start   => start_time,
                                                :end     => end_time,
                                                :step    => step,
-                                               :metrics => metrics} })
+                                               :metrics => metrics}})
 
-    render :json => data
+    respond_to do |format|
+      format.html
+      format.js
+      format.json {render :json => data}
+    end
+
   end
 
 

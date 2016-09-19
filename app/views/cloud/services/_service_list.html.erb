@@ -1,18 +1,21 @@
 <% provides_map = @services.to_map(&:toCiId)
    allow_mods = has_cloud_services?(@cloud.ciId) %>
-<%= ci_list(@services.map(&:toCi), :new_link => allow_mods ? link_to(icon('plus', 'Add Service...'), new_cloud_service_path(@cloud)) : nil) do |builder, service| %>
-  <% edit_url = edit_cloud_service_path(@cloud, service) %>
+<%= ci_list(@services.map(&:toCi),
+            :new_link => allow_mods &&
+                         @service_classes.present? &&
+                         link_to(icon('plus', 'Add Service...'),
+                                 @zone ? new_cloud_zone_service_path(@cloud, @zone) : new_cloud_service_path(@cloud))) do |builder, service| %>
+  <% edit_url = @zone ? edit_cloud_zone_service_path(@cloud, @zone, service) : edit_cloud_service_path(@cloud, service) %>
   <% builder.target link_to('', edit_url) %>
   <% builder.icon ci_image_url(service) %>
   <% builder.top do %>
-  	<span class="topname"><%= service.ciName %></span>
-  	<span class="topdesc"><%= provides_map[service.ciId].relationAttributes.attributes['service'] %></span>
+    <span class="topname"><%= service.ciName %></span>
+    <span class="topdesc"><%= provides_map[service.ciId].relationAttributes.attributes['service'] %></span>
   <% end %>
   <% builder.middle do %>
     <%= render 'cms/cis/important', :ci => service %>
   <% end %>
   <% builder.menu do |ci| %>
-    <%= link_to icon('edit', ' Edit'), edit_cloud_service_path(@cloud, ci) %>
-    <%= link_to icon('trash',' Remove'), cloud_service_path(@cloud, ci), :method => :delete, :remote => true, :data => { :confirm => 'Confirm delete?' } if allow_mods %>
+    <%= link_to icon('trash', ' Remove'), @zone ? cloud_zone_service_path(@cloud, @zone, ci) : cloud_service_path(@cloud, ci), :method => :delete, :remote => true, :data => {:confirm => 'Confirm delete?'} if allow_mods %>
   <% end %>
 <% end %>

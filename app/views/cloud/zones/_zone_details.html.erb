@@ -1,0 +1,19 @@
+<%= section_panel 'Zone Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource   => @zone,
+              :content    => 'cms/cis/ci',
+              :read_only  => !has_cloud_services?(@cloud.ciId),
+              :cancel_url => cloud_zones_path(@cloud),
+              :form_url   => @zone.new_record? ? cloud_zones_path(@cloud) : cloud_zone_path(@cloud, @zone)}) %>
+<% end %>
+
+<% if @zone.persisted? %>
+  <%= section_panel 'Zone Services',
+                    :width    => 'double',
+                    :position => 'right' do %>
+    <div id="zone_services_list"><%= loading_indicator %></div>
+    <script type="text/javascript">
+      <%= remote_function(:url => cloud_zone_services_path(@cloud, @zone), :method => :get) %>
+    </script>
+  <% end %>
+<% end %>

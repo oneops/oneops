@@ -8,7 +8,7 @@
      add_link     = teams_to_add.present? && link_to_function(icon('plus', 'Add Teams...'), '$j("#teams_modal").modal("show")')
    end %>
 <%= section_panel 'Teams',
-                  :width => 'triple',
+                  :width => 'double',
                   :menu => (add_link ? [{:display => icon('plus', 'Add Team'), :link => add_link}] : nil) do %>
   <%= list(@teams,
            :new_link => add_link,
@@ -19,7 +19,9 @@
     <% builder.top do %>
       <%= team.name %>
       <span class="topdesc"><%= team_list_permission_marking(team) %></span>
-      <%= link_to('remove', update_teams_cloud_path(@cloud, 'remove' => [team.id]), :method => :put, :remote => true, :class => 'btn btn-mini btn-danger pull-right') if manages_access %>
+    <% end %>
+    <% builder.menu do %>
+      <%= link_to(icon('trash', 'Remove'), update_teams_cloud_path(@cloud, 'remove' => [team.id]), :method => :put, :remote => true) if manages_access %>
     <% end %>
   <% end %>
 <% end %>

@@ -19,7 +19,11 @@ class Base::EnvironmentsController < ApplicationController
                                                      :recursive         => true})
     @deloyed_to_rels.each do |rel|
       slash, org, assembly, env, bom, plat_name, plat_ver                  = rel.nsPath.split('/')
-      @platform_clouds["#{plat_name}/#{plat_ver}"][rel.toCiId][:instances] += 1
+      begin
+        @platform_clouds["#{plat_name}/#{plat_ver}"][rel.toCiId][:instances] += 1
+      rescue
+        Rails.logger.warn "No consumes relation found for platform #{"#{plat_name}/#{plat_ver}"} BUT deployedTo exisits: #{rel.comments} "
+      end
     end
   end
 end
