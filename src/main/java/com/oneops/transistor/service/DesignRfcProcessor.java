@@ -37,6 +37,7 @@ import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.TransistorException;
 
@@ -445,8 +446,11 @@ public class DesignRfcProcessor {
 		List<CmsCIRelation> requiresList = new ArrayList<CmsCIRelation>();
 		for (CmsCIRelation rel : tmplRequires) {
 			if (rel.getAttribute("constraint").getDfValue().matches("1..1|1..*")) {
-				rel.setToCi(cmProcessor.getCiById(rel.getToCiId()));
-				requiresList.add(rel);
+				CmsCI component = cmProcessor.getCiById(rel.getToCiId());
+				if (! CmsConstants.CI_STATE_PENDING_DELETION.equals(component.getCiState())) {
+					rel.setToCi(component);
+					requiresList.add(rel);
+				}
 			}
 		}
 		
