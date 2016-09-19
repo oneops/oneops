@@ -288,9 +288,7 @@ class Chef
         cms_rels = Cms::Relation.all(:params => {:nsPath        => "#{Chef::Config[:nspath]}/#{config[:register]}/packs/#{pack.name}/#{pack.version}#{scope}",
                                                  :includeToCi   => true,
                                                  :includeFromCi => true})
-
         pack_rels = pack.relations
-
         targetRelations = []
 
         cms_rels.each do |r|
@@ -298,22 +296,19 @@ class Chef
           fromCiName = r.fromCi.ciName
           toCiName = r.toCi.ciName
           relationShort = r.relationName.split('.').last
-
-          key = "#{fromCiName}:#{relationShort}:#{toCiName}"
+          key = "#{fromCiName}::#{relationShort.scan(/[A-Z][a-z]+/).join('_').downcase}::#{toCiName}"
           exists_in_pack = pack_rels.include?(key)
           # Search through resource to determine if relation exists or not
           unless exists_in_pack
             case relationShort
               when 'Payload'
                 exists_in_pack = pack.resources[fromCiName].include?('payloads') &&
-                  pack.resources[fromCiName]['payloads'].include?(toCiName)
-              end
+                    pack.resources[fromCiName]['payloads'].include?(toCiName)
               when 'WatchedBy'
-                if pack.resources[fromCiName].include?('monitors')
-                  exists_in_pack = pack.resources[fromCiName]['monitors'].include?(toCiName) ? true : false
-                end
+                exists_in_pack = pack.resources[fromCiName].include?('monitors') &&
+                    pack.resources[fromCiName]['monitors'].include?(toCiName)
               when 'Requires'
-                exists_in_pack =  pack.resources[fromCiName] && pack.resources[toCiName]
+                exists_in_pack = pack.resources[fromCiName] && pack.resources[toCiName]
               when 'Entrypoint'
                 if pack.entrypoints.include?(toCiName)
                   exists_in_pack = true
@@ -322,7 +317,6 @@ class Chef
                 end
             end
           end
-
 
           if exists_in_pack
             targetRelations.push(toCiName) if !targetRelations.include?(toCiName)
@@ -335,11 +329,11 @@ class Chef
           end
 
           if new_state
-            r.ciState = new_state
+            r.relationState = new_state
             if save(r)
-              ui.info("Successfuly updated ciRelationState to #{new_state} for #{r.ciName} for #{env}")
+              ui.info("Successfuly updated ciRelationState to #{new_state} #{r.relationName} #{r.fromCi.ciName} <-> #{r.toCi.ciName} for #{env}")
             else
-              ui.error("Failed to update ciRelationState to #{new_state} for #{r.ciName} for #{env}")
+              ui.error("Failed to update ciRelationState to #{new_state} #{r.relationName} #{r.fromCi.ciName} <-> #{r.toCi.ciName} for #{env}")
             end
           end
         end
@@ -474,7 +468,7 @@ class Chef
       if platform
         children = upload_template_children(nspath,platform,template_name,package,pack,env,resources,comments)
         upload_template_relations(nspath,platform,template_name,package,pack,env,resources,comments,children)
-        upload_template_depends_on(nspath,pack,resources,children, env)
+        upload_template_depends_on(nspath,pack,resources,children,env)
         upload_template_managed_via(nspath,pack,resources,children)
         upload_template_serviced_bys(nspath,pack,resources,children,platform,env)
         upload_template_entrypoint(nspath,pack,resources,children,platform,env)
@@ -664,7 +658,7 @@ class Chef
       end
     end
 
-    def upload_template_depends_on(nspath,pack,resources,children, env)
+    def upload_template_depends_on(nspath,pack,resources,children,env)
       relationName = "mgmt.#{(env == '_default') ? 'catalog' : 'manifest'}.DependsOn"
       depends_on_list = Cms::Relation.all(:params => {:nsPath       => nspath,
                                                       :relationName => relationName})
