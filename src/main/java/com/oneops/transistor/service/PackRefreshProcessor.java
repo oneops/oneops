@@ -169,7 +169,21 @@ public class PackRefreshProcessor {
         }
 
         processLocalVars(templatePlatform,designPlatform, platNsPath, releaseNsPath, userId);
+        
+        updatePackDigest(designPlatform, userId);
 
+    }
+
+    private void updatePackDigest(CmsCI designPlatform, String userId) {
+        String nsPrefix = "/public/" + designPlatform.getAttribute("source").getDfValue()
+                + "/packs/" + designPlatform.getAttribute("pack").getDfValue();
+        List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", designPlatform.getAttribute("version").getDfValue());
+        for (CmsCI version: versions) {
+            String digest = version.getAttribute("commit").getDfValue();
+            CmsRfcCI plat = trUtil.cloneRfc(cmRfcMrgProcessor.getCiById(designPlatform.getCiId(), "dj"));
+            plat.getAttribute("pack_digest").setNewValue(digest);
+            cmRfcMrgProcessor.upsertCiRfc(plat, userId);
+        }
     }
 
     private void processLocalVars(CmsCI templatePlatform,CmsCI designPlatform, String platNsPath, String releaseNsPath, String userId) {
