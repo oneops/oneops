@@ -200,6 +200,7 @@ class Chef
         end
 
         pack = packs_loader.load_from("packs", file)
+        pack.name.downcase!
 
         # default to the global knife version if not specified
         pack.version(config[:version].split(".").first) if pack.version.empty?
