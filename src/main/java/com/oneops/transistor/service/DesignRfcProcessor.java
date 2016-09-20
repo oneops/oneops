@@ -126,7 +126,7 @@ public class DesignRfcProcessor {
 
 	public long deletePlatform(long designPlatformId, String userId, String scope) {
 
-		CmsCI designPlatform = cmProcessor.getCiById(designPlatformId);
+		CmsRfcCI designPlatform = cmRfcMrgProcessor.getCiById(designPlatformId, null);
 		if (designPlatform == null) {
 			logger.error("There is no platform with id = " + designPlatformId);
 			return 0;
@@ -139,10 +139,8 @@ public class DesignRfcProcessor {
 		for (CmsRfcCI component : platComponents) {
 			cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(component.getCiId(), userId, 0);
 		}
-		
-		CmsRfcCI platDeleteRfc = cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
-		
-		return platDeleteRfc.getCiId();
+		cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
+		return designPlatform.getCiId();
 	}
 
 	
