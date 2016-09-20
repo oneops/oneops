@@ -1,7 +1,7 @@
 <%= section_panel(defined?(title) == 'local-variable' ? title : 'Procedures', :width => 'single', :position => 'left') do %>
-  <%= list(@procedures, :toolbar => {:sort_by => [%w(Name procedureName), %w(Created created)], :filter_by => %w(procedureName)}) do |builder, procedure| %>
+  <%= list(@procedures, :toolbar => {:sort_by => [%w(Name procedureName), %w(Created created), %w(State procedureState)], :filter_by => %w(procedureName procedureState)}) do |builder, procedure| %>
     <% builder.itemid procedure.procedureId %>
-    <% builder.attributes raw(%(procedureName="#{procedure.procedureName}" created="#{procedure.created}")) %>
+    <% builder.attributes raw(%(procedureName="#{procedure.procedureName}" created="#{procedure.created}" procedureState="#{procedure.procedureState}")) %>
     <% builder.target link_to('', operations_procedure_path(procedure), :remote => true) %>
     <% builder.top do %>
       <span class="topname"><%= procedure.procedureName %></span>

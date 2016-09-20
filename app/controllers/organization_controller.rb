@@ -73,14 +73,13 @@ class OrganizationController < ApplicationController
   def procedures
     @procedures = Cms::Procedure.all(:params => {:nsPath    => organization_ns_path,
                                                  :recursive => true,
-                                                 :state     => 'active',
-                                                 :limit     => 100})
+                                                 :state     => 'active,pending,failed',
+                                                 :limit     => 1000})
     if is_admin? || has_org_scope?
       # Add procedures that are ahchored on org CI.
       @procedures += Cms::Procedure.all(:params => {:ciId  => @current_user.organization.ci.ciId,
-                                                    :state => 'active'})
-      @procedures += Cms::Procedure.all(:params => {:ciId  => @current_user.organization.ci.ciId,
-                                                    :state => 'pending'})
+                                                    :state => 'active,pending',
+                                                    :limit => 100})
     else
       @procedures = @procedures.select do |e|
         root, org, assembly = e.nsPath.split('/')

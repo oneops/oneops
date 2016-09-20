@@ -95,7 +95,7 @@ class Operations::InstancesController < ApplicationController
           @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => @environment ? environment_bom_ns_path(@environment) : assembly_ns_path(@assembly),
                                                                 :recursive => true,
                                                                 :actions   => true,
-                                                                :state     => 'active',
+                                                                :state     => 'active,pending',
                                                                 :limit     => 1000}).inject({}) do |m, p|
             p.actions.each {|a| m[a.ciId] = p}
             m
@@ -142,7 +142,8 @@ class Operations::InstancesController < ApplicationController
         @bom_release = Cms::Release.find(release)
         @release     = Cms::Release.find(@bom_release.parentReleaseId)
 
-        @history_procedures = Cms::Procedure.all(:params => {:actionCiId => @instance.ciId})
+        @history_procedures = Cms::Procedure.all(:params => {:actionCiId => @instance.ciId,
+                                                             :limit      => 100})
         @procedures         = @history_procedures.select {|p| p.ciId == @instance.ciId}
 
         @range = params[:range] || 'hour'

@@ -79,3 +79,13 @@ class Cms::Base < ActiveResource::Base
     "#{time}#{'Z' unless time.end_with?('Z')}"
   end
 end
+
+#  This override is needed to skip active resource stripping the first level hash if it has only one value.
+# This was causing problems for some custom GET REST calls (i.e Relation.count) which return a json with only one entry.
+module ActiveResource
+  module Formats
+    def self.remove_root(data)
+      data
+    end
+  end
+end

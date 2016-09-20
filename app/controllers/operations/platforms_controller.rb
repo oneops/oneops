@@ -36,7 +36,7 @@ class Operations::PlatformsController < Base::PlatformsController
         @bom_release   = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
         @ops_states    = Operations::Sensor.states(@instances)
         @procedure_cis = get_platform_procedures(@platform)
-        @procedures    = Cms::Procedure.all(:params => {:ciId => @platform.ciId})
+        @procedures    = Cms::Procedure.all(:params => {:ciId => @platform.ciId, :limit => 100})
 
         @policy_compliance = Cms::Ci.violates_policies(@requires.map(&:toCi), false, true) if Settings.check_policy_compliance
       end

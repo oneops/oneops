@@ -7,7 +7,7 @@ class Operations::ProceduresController < ApplicationController
     anchor_ci_id = params[:ciId]
     return unauthorized unless allow_access?(anchor_ci_id, true)
 
-    @procedures = Cms::Procedure.all(:params => {:ciId => anchor_ci_id})
+    @procedures = Cms::Procedure.all(:params => {:ciId => anchor_ci_id, :limit => 100})
 
     respond_to do |format|
       format.js
