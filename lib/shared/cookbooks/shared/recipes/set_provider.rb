@@ -79,6 +79,13 @@ when /vagrant/
 
 when /virtualbox/
   provider = 'virtualbox'
+
+when /vsphere/
+  provider = Fog::Compute.new(:provider => 'vsphere',
+   :vsphere_server => cloud[:endpoint],
+   :vsphere_username => cloud[:username],
+   :vsphere_password=> cloud[:password],
+   :vsphere_expected_pubkey_hash => cloud[:vsphere_pubkey])
 end
 
 #
