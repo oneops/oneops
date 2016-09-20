@@ -3,7 +3,10 @@ class Operations::ComponentsController < Base::ComponentsController
 
   def show
     respond_to do |format|
-      format.html { @procedures = Cms::Procedure.all(:params => {:ciId => @component.ciId}) }
+      format.html do
+        @procedures = Cms::Procedure.all(:params => {:ciId  => @component.ciId,
+                                                     :limit => 100})
+      end
       format.json {render_json_ci_response(true, @component)}
     end
   end

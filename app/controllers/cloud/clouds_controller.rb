@@ -128,8 +128,8 @@ class Cloud::CloudsController < ApplicationController
     @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => organization_ns_path,
                                                           :recursive => true,
                                                           :actions   => true,
-                                                          :state     => 'active',
-                                                          :limit     => 10000}).inject({}) do |m, p|
+                                                          :state     => 'active,pending',
+                                                          :limit     => 1000}).inject({}) do |m, p|
       p.actions.each {|a| m[a.ciId] = p}
       m
     end
@@ -141,7 +141,7 @@ class Cloud::CloudsController < ApplicationController
   end
 
   def procedures
-    @procedures = Cms::Procedure.all(:params => {:ciId => @cloud.ciId})
+    @procedures = Cms::Procedure.all(:params => {:ciId => @cloud.ciId, :limit => 100})
 
     respond_to do |format|
       format.js
