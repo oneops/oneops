@@ -66,10 +66,9 @@ class Cloud::ServicesController < ApplicationController
 
   def create
     service_type = nil
-    @service = Cms::Ci.build(params[:cms_ci].merge(:nsPath => cloud_ns_path(@cloud)))
-
     if @zone
-      ok                  = true
+      ok = true
+      @service = Cms::Ci.build(params[:cms_ci].merge(:nsPath => cloud_zone_ns_path(@zone)))
       @zone_service_class = @service.ciClassName
       cloud_service_rel   = Cms::Relation.first(:params => {:ciId              => @cloud.ciId,
                                                             :direction         => 'from',
@@ -102,6 +101,7 @@ class Cloud::ServicesController < ApplicationController
         @service = relation.toCi if ok
       end
     else
+      @service = Cms::Ci.build(params[:cms_ci].merge(:nsPath => cloud_ns_path(@cloud)))
       @mgmt_ci_id  = params[:mgmtCiId].to_i
       mgmt_ci      = Cms::Ci.find(@mgmt_ci_id)
       if @mgmt_ci_id > 0

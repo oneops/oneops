@@ -67,6 +67,7 @@ class AssembliesController < ApplicationController
 
         @environments.each { |e| e.clouds = consumes_rels[e.ciId] || [] }
         @catalog = Cms::Release.latest(:nsPath => assembly_ns_path)
+        @instance_count = instance_by_cloud_count.values.sum
       end
 
       format.json { render(:json => @assembly, :status => @assembly ? :ok : :not_found) }
@@ -159,13 +160,10 @@ class AssembliesController < ApplicationController
   end
 
   def destroy
-    count = Cms::Relation.count(:nsPath            => assembly_ns_path(@assembly),
-                                :recursive         => true,
-                                :relationShortName => 'DeployedTo',
-                                :direction         => 'to',
-                                :groupBy           => 'ciId')
+    count = instance_by_cloud_count
     cloud_count = count.size
     instance_count = count.values.sum
+
     ok = instance_count == 0
 
     if ok
@@ -306,5 +304,13 @@ class AssembliesController < ApplicationController
   def load_catalog_templates
     @catalog_designs = Cms::Ci.all(:params => {:nsPath => catalog_designs_ns_path,         :ciClassName => 'account.Design'}) +
                          Cms::Ci.all(:params => {:nsPath => private_catalog_designs_ns_path, :ciClassName => 'account.Design'})
+  end
+
+  def instance_by_cloud_count
+    Cms::Relation.count(:nsPath            => assembly_ns_path(@assembly),
+                        :recursive         => true,
+                        :relationShortName => 'DeployedTo',
+                        :direction         => 'to',
+                        :groupBy           => 'ciId')
   end
 end
