@@ -119,7 +119,7 @@ class Chef
         config[:version] ||='1.0.0'
         ui.info("Processing metadata for #{cookbook} from #{file}")
         md = Chef::Cookbook::Metadata.new
-        md.name(cookbook)
+        md.name(cookbook.capitalize)
         md.from_file(file)
         Chef::Log.debug(md.to_yaml)
         
