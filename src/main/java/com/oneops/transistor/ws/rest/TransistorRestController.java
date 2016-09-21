@@ -712,7 +712,54 @@ public class TransistorRestController extends AbstractRestController {
 		return result;
 	}
 
-	@RequestMapping(value="/flex", method = RequestMethod.GET)
+
+    /**
+     * /platforms/{platformId}/rfcs, GET
+     * /platforms/{platformId}/rfcs/commit/discard PUT
+     * @param platId
+     * @param userId
+     * @return
+     */
+    @RequestMapping(method=RequestMethod.GET, value="platforms/{platId}/rfcs")
+    @ResponseBody
+    public List<CmsRfcCI> getPlatformRfcs(
+            @PathVariable long platId,
+            @RequestHeader(value="X-Cms-User", required = false)  String userId) {
+        if (userId == null) userId = "oneops-system";
+        
+
+        return manifestManager.getPlatformRfcs(platId, userId);
+    }
+
+    @RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/rfcs/discard")
+    @ResponseBody
+    public Map<String,Long> discardPlatformRfcs(
+            @PathVariable long platId,
+            @RequestHeader(value="X-Cms-User", required = false)  String userId) {
+        long releaseId = manifestManager.discardRelease(platId, userId);
+
+        Map<String,Long> result = new HashMap<>(1);
+        result.put("releaseId", releaseId);
+        return result;
+    }
+
+    @RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/rfcs/commit")
+    @ResponseBody
+    public Map<String,Long> commitPlatformRfcs(
+            @PathVariable long platId,
+			@RequestParam(value="desc", required = false) String desc,
+            @RequestHeader(value="X-Cms-User", required = false)  String userId) {
+        long releaseId = manifestManager.commitReleaseForPlatform(platId, desc, userId);
+
+        Map<String,Long> result = new HashMap<>(1);
+        result.put("releaseId", releaseId);
+        return result;
+    }
+    
+    
+
+
+    @RequestMapping(value="/flex", method = RequestMethod.GET)
 	@ResponseBody
 	public Long processFlex(
 			@RequestParam(value="envId", required = true) long envId,
