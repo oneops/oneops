@@ -2403,7 +2403,8 @@ $BODY$
 ALTER FUNCTION dj_reset_failed_records(bigint)
   OWNER TO kloopzcm;
 
-CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character varying, p_exec_order integer, p_comments character varying, p_updated_by character varying)
+ 
+CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character varying, p_exec_order integer, p_comments character varying, p_updated_by character varying, p_release_id bigint)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -2411,7 +2412,8 @@ BEGIN
 
    update dj_rfc_ci
    	    set ci_name = coalesce(p_ci_name, ci_name),
-       	        execution_order = coalesce(p_exec_order, execution_order),
+       	  execution_order = coalesce(p_exec_order, execution_order),
+       	  release_id = COALESCE(p_release_id, release_id),
 	        comments = coalesce(p_comments, comments),
 	        updated_by = coalesce(p_updated_by, updated_by),
 	        updated = now()
@@ -2423,9 +2425,23 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION dj_update_rfc_ci(bigint, character varying, integer, character varying, character varying, bigint) OWNER TO kloopzcm;
+
+
+CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character varying, p_exec_order integer, p_comments character varying, p_updated_by character varying)
+  RETURNS void AS
+$BODY$
+DECLARE
+BEGIN
+   perform dj_update_rfc_ci(p_rfc_id, p_ci_name, p_exec_order, p_comments, p_update_by, null);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;    
 ALTER FUNCTION dj_update_rfc_ci(bigint, character varying, integer, character varying, character varying) OWNER TO kloopzcm;
 
-CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order integer, p_comments character varying, p_updated_by character varying)
+
+CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order integer, p_comments character varying, p_updated_by character varying, p_release_id bigint)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -2433,6 +2449,7 @@ BEGIN
 
     update dj_rfc_relation
     set execution_order = coalesce(p_exec_order,execution_order),
+        release_id = coalesce(p_release_id, release_id),
         comments = coalesce(p_comments,comments),
         updated_by = coalesce(p_updated_by, updated_by),
         updated = now()
@@ -2440,6 +2457,19 @@ BEGIN
 
     INSERT INTO cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
          VALUES (nextval('event_pk_seq'), p_rfc_id, 'rfc_relation' , 200);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION dj_update_rfc_relation(bigint, integer, character varying, character varying, bigint) OWNER TO kloopzcm;
+
+
+CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order integer, p_comments character varying, p_updated_by character varying)
+  RETURNS void AS
+$BODY$
+DECLARE
+BEGIN
+    perform dj_update_rfc_relation(p_rfc_id, p_exec_order, p_comments, p_updated_by, null);
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
