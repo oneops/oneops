@@ -17,28 +17,13 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAction;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcLink;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsManager;
@@ -46,6 +31,15 @@ import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * The Class CmsRfcProcessor.
@@ -54,6 +48,8 @@ public class CmsRfcProcessor {
 	static Logger logger = Logger.getLogger(CmsRfcProcessor.class);
 
 	private static final String RFCNAMEREGEX = "[a-zA-Z0-9\\-]*";
+    private static final String OPEN = "open";
+    private static final String PENDING = "pending";
     private static Pattern rfcNamePattern = Pattern.compile(RFCNAMEREGEX);	
     private static final int CHUNK_SIZE = 100;
 	private DJMapper djMapper;
@@ -1725,4 +1721,71 @@ public class CmsRfcProcessor {
             return 0;
         }
     }
+
+
+
+    public long commitReleaseForPlatform(CmsRfcCI platformRfc, String platformNs, String desc, String userId) {
+		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
+		CmsRelease newRelease = cloneRelease(release);
+
+        long platformCiId = platformRfc.getCiId();
+		long platformRfcId = platformRfc.getRfcId();
+
+		long releaseId = release.getReleaseId();
+		List<CmsRfcCI> releaseRfcs = djMapper.getRfcCIBy3(releaseId, true, null);
+        releaseRfcs.stream()
+                .filter(rfc ->!platformNs.equals(rfc.getNsPath())  // doesn't match platform NS
+                        && platformCiId != rfc.getCiId()    // and not an RFC for this platform CI 
+                        && platformRfcId != rfc.getRfcId()  // and not a platform RFC
+                )
+                .forEach(rfc -> {
+					touchNewRelease(newRelease);
+                    rfc.setReleaseId(newRelease.getReleaseId());
+                    djMapper.updateRfcCI(rfc);
+                });
+
+        List<CmsRfcRelation> releaseRelations = djMapper.getRfcRelationBy3(releaseId, true, null);
+        releaseRelations.stream()
+                .filter(relation ->!platformNs.equals(relation.getNsPath())    // doesn't match platform NS
+                        && platformCiId != relation.getToCiId()			    // and not a to link to this platform CI
+                        && (platformRfcId != relation.getToRfcId()))  // and not a to link to this platform RFC
+                .forEach(relation -> {
+					touchNewRelease(newRelease);
+                    relation.setReleaseId(newRelease.getReleaseId());
+                    djMapper.updateRfcRelation(relation);
+                });
+        
+		commitRelease(releaseId, true, null, true, userId, desc);
+		
+		if (newRelease.getReleaseId()!=0) { // set new release state to open only if it was created because some rfcs/rels were moved
+			newRelease.setReleaseStateId(djMapper.getReleaseStateId(OPEN));
+			djMapper.updateRelease(newRelease);
+		}
+        return releaseId;
+    }
+
+	private CmsRelease cloneRelease(CmsRelease openRelease) {
+		CmsRelease newRelease = new CmsRelease();
+		BeanUtils.copyProperties(openRelease, newRelease);
+		newRelease.setReleaseId(0);
+		return newRelease;
+	}
+
+	private CmsRelease getCurrentOpenRelease(String ns) {
+		List<CmsRelease> releaseList = djMapper.getReleaseBy3(ns, null, "open");
+		if (releaseList.isEmpty()) {
+			String err = "Platform release doesn't exist or is not open.";
+			logger.error(err);
+			throw new DJException(CmsError.DJ_RFC_RELEASE_NOT_OPEN_ERROR, err);
+		}
+		return releaseList.get(0);
+	}
+
+	private void touchNewRelease(CmsRelease newRelease) {
+		if (newRelease.getReleaseId()==0) {
+			newRelease.setReleaseId(djMapper.getNextDjId());
+			newRelease.setReleaseStateId(djMapper.getReleaseStateId(PENDING));
+			djMapper.createRelease(newRelease);
+		}
+	}
 }
