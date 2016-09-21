@@ -27,6 +27,8 @@ public class ProcessResult {
 	private HashMap<String, String> resultMap = new HashMap<String, String>();
 	private HashMap<String, String> faultMap = new HashMap<String, String>();
 	private HashMap<String, String> tagMap = new HashMap<String, String>();
+	private HashMap<String, String> additionInfoMap = new HashMap<String, String>();
+
 	private String lastError = "";
 
 	public String getLastError() {
@@ -99,6 +101,14 @@ public class ProcessResult {
 
 	public void setTagMap(HashMap<String, String> tagMap) {
 		this.tagMap = tagMap;
+	}
+
+	public HashMap<String, String> getAdditionInfoMap() {
+		return additionInfoMap;
+	}
+
+	public void setAdditionInfoMap(HashMap<String, String> additionInfoMap) {
+		this.additionInfoMap = additionInfoMap;
 	}
 
 }
