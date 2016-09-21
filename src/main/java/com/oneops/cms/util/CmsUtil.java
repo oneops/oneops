@@ -19,6 +19,7 @@ package com.oneops.cms.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -679,7 +680,7 @@ public class CmsUtil {
 		if (wo.getServices() != null) {
 			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<String,Map<String, CmsCISimple>>();
 			for (Entry<String,Map<String, CmsCI>> serviceEntry : wo.getServices().entrySet()) {
-				simpleServs.put(serviceEntry.getKey(), new HashMap<String,CmsCISimple>());
+				simpleServs.put(serviceEntry.getKey(), new LinkedHashMap<String,CmsCISimple>());
 				for (Entry<String,CmsCI> cloudEntry : serviceEntry.getValue().entrySet()) {
 					simpleServs.get(serviceEntry.getKey()).put(cloudEntry.getKey(), custCI2CISimple(cloudEntry.getValue(),"df",true));
 				}
@@ -719,7 +720,7 @@ public class CmsUtil {
 		if (wos.getResultCi() != null) {
 			wo.setResultCi(custCISimple2CI(wos.getResultCi(), "df"));
 		}
-		
+		wo.setAdditionalInfo(wos.getAdditionalInfo());
 		return wo;
 	}
 
@@ -1581,6 +1582,5 @@ public class CmsUtil {
     	}
     	return varsMap;
     }
-
 	
 }

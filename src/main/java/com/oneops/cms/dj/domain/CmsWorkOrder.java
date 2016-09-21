@@ -37,6 +37,7 @@ public class CmsWorkOrder extends CmsDpmtRecord implements CmsWorkOrderBase {
 	private CmsCI box;
 	private Map<String, List<CmsRfcCI>> payLoad;
 	private Map<String,Map<String, CmsCI>> services;
+	private Map<String, String> additionalInfo;
 	
 	/**
 	 * Gets the cloud.
@@ -175,5 +176,13 @@ public class CmsWorkOrder extends CmsDpmtRecord implements CmsWorkOrderBase {
 	 */
 	public void setRfcCi(CmsRfcCI rfcCi) {
 		this.rfcCi = rfcCi;
+	}
+
+	public Map<String, String> getAdditionalInfo() {
+		return additionalInfo;
+	}
+
+	public void setAdditionalInfo(Map<String, String> additionalInfo) {
+		this.additionalInfo = additionalInfo;
 	}
 }
