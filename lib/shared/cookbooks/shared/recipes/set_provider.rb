@@ -68,6 +68,17 @@ when /rackspace/
   })
   node.set["network_provider"] = network_provider
 
+when /aliyun/
+  require 'fog/aliyun'
+  provider = Fog::Compute.new({
+    :provider => 'aliyun',
+    :aliyun_region_id => cloud[:region],
+    :aliyun_zone_id => '', # "aliyun_zone_id" is not a required parameter
+    :aliyun_url => cloud[:url],
+    :aliyun_accesskey_id => cloud[:key],
+    :aliyun_accesskey_secret => cloud[:secret]
+  })
+
 when /azure/
   provider = 'azure'
 
