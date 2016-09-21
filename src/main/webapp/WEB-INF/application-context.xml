@@ -35,6 +35,7 @@
 		<property name="djValidator" ref="cmsDjValidator" />
         <property name="trUtil" ref="trUtil" />
         <property name="rfcUtil" ref="rfcUtil" />
+		<property name="cloudUtil" ref="cloudUtil" />
     </bean>
     
 
@@ -69,6 +70,7 @@
         <property name="executorService" ref="manifestExecutor" />
 		<!--15 mins-->
 		<property name="timeoutInMilliSeconds" value="${MANIFEST_MAX_TIME_LIMIT_IN_MILLIS:  #{ T(Integer).valueOf(15*60*1000) } }" />
+		<property name="cloudUtil" ref="cloudUtil" ></property>
     </bean>
 
 	<bean id="dManager" class="com.oneops.transistor.service.DesignManagerImpl">
@@ -155,6 +157,10 @@
 		<property name="djValidator" ref="cmsDjValidator" />
 		<property name="trUtil" ref="trUtil" />
 	</bean>
+	<bean id="cloudUtil" class="com.oneops.transistor.util.CloudUtil">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+	</bean>
 
-  </beans>
+</beans>
      
