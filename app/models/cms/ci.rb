@@ -73,7 +73,7 @@ class Cms::Ci < Cms::Base
   end
 
   def self.count(ns_path, recursive = false)
-    self.get(:count, {:nsPath => ns_path, :recursive => recursive})
+    self.get(:count, {:nsPath => ns_path, :recursive => recursive})['count']
   end
 
   def self.list(ids)
