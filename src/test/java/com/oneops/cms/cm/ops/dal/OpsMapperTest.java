@@ -40,7 +40,7 @@ public class OpsMapperTest {
 	private static SqlSession session; 
 
     private long procedureId = 1;
-    private long ciId = 1002;
+    private long ciId = 1001;
     private String nsPath = "/public";
     private String procedureName = "test 1";
 
