@@ -1380,4 +1380,17 @@
        {#{result,jdbcType=INTEGER,mode=OUT} = call dj_rm_rfcs(#{nsPath})}
     </update>
     
+    <select id="countCiNotUpdatedByRfc" parameterType="map" useCache="false" resultType="long">
+		select count(cir.to_ci_id)
+		from cm_ci_relations cir, md_relations mdr, cm_ci_relation_attributes attr, md_relation_attributes mdra
+		where cir.from_ci_id = #{fromCiId}
+			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
+			and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
+			and cir.relation_id = mdr.relation_id
+			and attr.ci_relation_id = cir.ci_relation_id
+			and mdra.attribute_name = 'last_manifest_rfc'
+			and attr.attribute_id = mdra.attribute_id
+			and attr.dj_attribute_value::bigint &lt; #{rfcId}
+	</select>
+
 </mapper>

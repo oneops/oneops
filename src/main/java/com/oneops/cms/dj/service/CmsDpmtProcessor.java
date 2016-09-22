@@ -22,8 +22,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
@@ -38,6 +40,7 @@ import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
@@ -438,6 +441,9 @@ public class CmsDpmtProcessor {
 		List<CmsCI> platforms = cmProcessor.getCiBy3NsLike(manifestRelease.getNsPath(), MANIFEST_PLATFORM_CLASS, null);
 		for (CmsCI plat : platforms) {
 			boolean vacuumAllowed = true;
+			List<CmsCI> monitorCiList = new ArrayList<CmsCI>();
+			Set<Long> monitors4DeletedComponents = new HashSet<Long>();
+
 			List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelationsNaked(plat.getCiId(), "base.Consumes", "account.Cloud");
 			for (CmsCIRelation platformCloudRel : platformCloudRels) {
 				if (platformCloudRel.getAttribute("adminstatus") != null
@@ -451,10 +457,22 @@ public class CmsDpmtProcessor {
 				} else {
 					List<CmsCI> componentsToDelet = cmProcessor.getCiByNsLikeByStateNaked(plat.getNsPath(), null, "pending_deletion");
 					for (CmsCI component : componentsToDelet) {
-						List<CmsCIRelation> realizedAsRels = cmProcessor.getFromCIRelationsNakedNoAttrs(component.getCiId(), "base.RealizedAs", null, null);
+						long ciId = component.getCiId();
+						if (CmsConstants.MONITOR_CLASS.equals(component.getCiClassName())) {
+							monitorCiList.add(component);
+							continue;
+						}
+
+						List<CmsCIRelation> realizedAsRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, "base.RealizedAs", null, null);
 						if (realizedAsRels.size() > 0) {
 							vacuumAllowed = false;
 							break;
+						}
+
+						List<CmsCIRelation> monitorRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, CmsConstants.MANIFEST_WATCHED_BY,
+								null, CmsConstants.MONITOR_CLASS);
+						if (monitorRels.size() > 0) {
+							monitors4DeletedComponents.addAll(monitorRels.stream().map(relation -> relation.getToCiId()).collect(Collectors.toList()));
 						}
 					}
 					if (!vacuumAllowed) {
@@ -463,7 +481,19 @@ public class CmsDpmtProcessor {
 				}
 			}
 			if (vacuumAllowed) {
-				nsMapper.vacuumNamespace(plat.getNsId(), dpmt.getCreatedBy());
+
+				//if there are monitors to be deleted, then make sure it satisfies one of these two
+				// 1. the monitors have corresponding parent CIs that are also marked pending_deletion, these would be in monitors4DeletedComponents
+				// 2. all the bom CIs for this manifest are updated for this manifest release
+				monitorCiList.removeIf(monitor -> monitors4DeletedComponents.contains(monitor.getCiId()));
+				List<CmsCI> monitorsEligible4Del = getMonitorsEligible4Del(bomRelease, monitorCiList);
+
+				if (monitorsEligible4Del.size() == monitorCiList.size()) {
+					nsMapper.vacuumNamespace(plat.getNsId(), dpmt.getCreatedBy());
+				}
+				else {
+					monitorsEligible4Del.stream().forEach(monitor -> cmProcessor.deleteCI(monitor.getCiId(), dpmt.getCreatedBy()));
+				}
 			}
 		}
 		
@@ -483,6 +513,43 @@ public class CmsDpmtProcessor {
 				cmProcessor.deleteCI(globalVar.getCiId(), true, userId);
 			}
 		}
+	}
+
+	private List<CmsCI> getMonitorsEligible4Del(CmsRelease bomRelease, List<CmsCI> monitorCiList) {
+
+		List<CmsCI> monitorsEligible4Del = new ArrayList<CmsCI>();
+		if (!monitorCiList.isEmpty()) {
+			monitorsEligible4Del.addAll(monitorCiList.stream().
+					filter(monitor -> {
+						long monitorRfcId = monitor.getLastAppliedRfcId();
+						logger.info("monitor ci : " + monitor.getCiId() + ", last applied rfc id : " + monitorRfcId);
+						List<CmsCIRelation> parentRelation = cmProcessor.getToCIRelationsNakedNoAttrs(monitor.getCiId(),
+								CmsConstants.MANIFEST_WATCHED_BY, null, null);
+						if (parentRelation.size() > 0) {
+							long baseRfcId = monitorRfcId;
+							long parentCiId = parentRelation.get(0).getFromCiId();
+
+							//get the parent ci rfcId from the same release and use that to compare with bom instances
+							CmsRfcCI monitorRfc = rfcProcessor.getRfcCIById(monitorRfcId);
+							List<CmsRfcCI> parentRfcs = rfcProcessor.getRfcCIBy3(monitorRfc.getReleaseId(), true, parentCiId);
+							if (!parentRfcs.isEmpty()) {
+								baseRfcId = parentRfcs.get(0).getRfcId();
+								logger.info("component ci rfc id : " + baseRfcId);
+							}
+
+							//get count of boms that are not updated by this manifest rfc
+							long count = rfcProcessor.getCiCountNotUpdatedByRfc(parentCiId, CmsConstants.BASE_REALIZED_AS, null, baseRfcId);
+							logger.info("ci not deployed count " + count);
+							if (count > 0) {
+								//there are some bom CIs that are not deployed, so this monitor cannot be removed
+								return false;
+							}
+						}
+						return true;
+					}).
+					collect(Collectors.toList()));
+		}
+		return monitorsEligible4Del;
 	}
 
 

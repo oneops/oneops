@@ -85,7 +85,7 @@ public class CIMapperTest {
      */
     @Test
 	public void createAndGetCITest() throws Exception{
-        int nsId = 1000;
+        int nsId = 100;
         int ciStateId = 100;
         String goId = "ci-go-id";
         String comments = "ci comments test";
@@ -247,7 +247,7 @@ public class CIMapperTest {
      */
     @Test
 	public void createAndGetRelationTest() throws Exception{
-        int nsId = 1000;
+        int nsId = 100;
         int relationId = 2016;
         int ciStateId = 100;
         int fromci = 11784;
