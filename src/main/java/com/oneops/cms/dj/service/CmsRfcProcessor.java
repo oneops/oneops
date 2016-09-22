@@ -1760,8 +1760,8 @@ public class CmsRfcProcessor {
 		List<CmsRfcRelation> releaseRelations = djMapper.getRfcRelationBy3(releaseId, true, null);
 		releaseRelations.stream()
 				.filter(relation ->!platformNs.equals(relation.getNsPath())    // doesn't match platform NS
-						&& (relation.getToCiId()!=null || platformCiId != relation.getToCiId())  // and not a to link to this platform CI
-						&& (relation.getToRfcId()!=null || platformRfcId != relation.getToRfcId()))  // and not a to link to this platform RFC
+						&& (relation.getToCiId()==null || platformCiId != relation.getToCiId())  // and not a to link to this platform CI
+						&& (relation.getToRfcId()==null || platformRfcId != relation.getToRfcId()))  // and not a to link to this platform RFC
 				.forEach(relation -> {
 					touchNewRelease(newRelease);
 					relation.setReleaseId(newRelease.getReleaseId());
