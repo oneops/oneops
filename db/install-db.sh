@@ -32,7 +32,7 @@ $PSQL  -h localhost -d kloopzdb -f kloopzcm-tables.ddl
 $PSQL  -h localhost -d kloopzdb -f kloopzcm-partition.ddl
 
 # postprocess
-$PSQL  -h localhost -d kloopzdb -f kloopzcm-postprocess.sql
+$PSQL  -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-postprocess.sql
 
 # postprocess
-$PSQL  -h localhost -d kloopzdb -f kloopzcm-functions.sql
+$PSQL  -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-functions.sql
