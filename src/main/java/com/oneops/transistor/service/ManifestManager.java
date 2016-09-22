@@ -35,7 +35,7 @@ public interface ManifestManager {
 
     List<CmsRfcCI> getPlatformRfcs(long platId, String userId);
     
-    long discardRelease(long platId, String userId);
+    long discardReleaseForPlatform(long platId, String userId);
     
     long commitReleaseForPlatform(long platId, String desc, String userId);
 

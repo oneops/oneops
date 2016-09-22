@@ -214,7 +214,7 @@ public class ManifestManagerImpl implements ManifestManager {
 	}
 
 	@Override
-	public long discardRelease(long platId, String userId) {
+	public long discardReleaseForPlatform(long platId, String userId) {
 		CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
 		if (platformRfc.getIsActiveInRelease()){
 			rfcProcessor.rmRfcCiFromRelease(platformRfc.getRfcId());

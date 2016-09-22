@@ -736,7 +736,7 @@ public class TransistorRestController extends AbstractRestController {
     public Map<String,Long> discardPlatformRfcs(
             @PathVariable long platId,
             @RequestHeader(value="X-Cms-User", required = false)  String userId) {
-        long releaseId = manifestManager.discardRelease(platId, userId);
+        long releaseId = manifestManager.discardReleaseForPlatform(platId, userId);
 
         Map<String,Long> result = new HashMap<>(1);
         result.put("releaseId", releaseId);
