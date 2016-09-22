@@ -1227,19 +1227,20 @@ public class CmsUtil {
 				resolvedValue.contains(LOCALVARPFX) ||
 				resolvedValue.contains(GLOBALVARPFX)||
 				resolvedValue.contains(LOCALVARPFX) ) {//substituion did not happen: bad.
-            String sb = "error processVars CI-" +
-                    ciName + " id-" + ciId +
-                    " the attribute- " +
-                    attrName +
-                    " has a bad " + guessVariableType(replPrefix) + " var reference! value [" + resolvedValue;
-            logger.warn(sb);
+			StringBuilder sb = new StringBuilder("error processVars CI-")
+			.append(ciName).append( " id-").append(ciId)
+			.append(" the attribute- ")
+			.append(attrName)
+			.append(" has a bad ").append(guessVariableType(replPrefix)).append(" var reference! value [").append(resolvedValue);
+			logger.warn(sb.toString());
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
 					getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
-        String resAfter = attrValue.replaceAll(replPrefix + varName + "\\}", Matcher.quoteReplacement(resolvedValue));
+		StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
+		String resAfter = attrValue.replaceAll(pattToReplace.toString(), Matcher.quoteReplacement(resolvedValue));
 		if(logger.isDebugEnabled()){
 			logger.debug("Resolved value set to :"+resAfter+ " in Ci "+ciName);
 		}
@@ -1247,11 +1248,11 @@ public class CmsUtil {
 	}
 
 	protected String getErrorMessage(String ciName, String nsPath, String attrName, String resolvedValue, String varName, String prefix) {
-	    return String.format("CI %s[%s], attribute: %s [%s] is using invalid or missing %s variable <%s>! Value=%s",
+
+	    return String.format("CI %s[%s], attribute: %s is using invalid or missing %s variable <%s>! Value=%s",
 				ciName,
 				truncateNS(nsPath),
 				attrName,
-                cmProcessor.getAttributeDescription(nsPath, ciName, attrName),
 				guessVariableType(prefix),
 				varName,
 				resolvedValue);
