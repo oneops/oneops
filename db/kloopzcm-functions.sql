@@ -2416,7 +2416,7 @@ ALTER FUNCTION dj_reset_failed_records(bigint)
   OWNER TO :user;
 
 
-CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character varying, p_exec_order integer, p_comments character varying, p_updated_by character varying, p_revision_id)
+CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character varying, p_exec_order integer, p_comments character varying, p_updated_by character varying, p_release_id bigint)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -2424,7 +2424,7 @@ BEGIN
 
    update dj_rfc_ci
    	    set ci_name = coalesce(p_ci_name, ci_name),
-   	      revision_id = coalesce(p_revision_id, revision_id),
+   	      release_id = coalesce(p_release_id, release_id),
        	  execution_order = coalesce(p_exec_order, execution_order),
 	        comments = coalesce(p_comments, comments),
 	        updated_by = coalesce(p_updated_by, updated_by),
@@ -2445,7 +2445,7 @@ CREATE OR REPLACE FUNCTION dj_update_rfc_ci(p_rfc_id bigint, p_ci_name character
 $BODY$
 DECLARE
 BEGIN
-  perform dj_update_rfc_ci(p_rfc_id, p_ci_name, p_exec_order, p_comments, p_updated_by, null) 
+  perform dj_update_rfc_ci(p_rfc_id, p_ci_name, p_exec_order, p_comments, p_updated_by, null); 
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
@@ -2453,7 +2453,7 @@ $BODY$
 ALTER FUNCTION dj_update_rfc_ci(bigint, character varying, integer, character varying, character varying) OWNER TO :user;
 
 
-CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order integer, p_comments character varying, p_updated_by character varying, p_revision_id bigint)
+CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order integer, p_comments character varying, p_updated_by character varying, p_release_id bigint)
   RETURNS void AS
 $BODY$
 DECLARE
@@ -2461,7 +2461,7 @@ BEGIN
 
     update dj_rfc_relation
     set execution_order = coalesce(p_exec_order,execution_order),
-        revision_id = coalesce(p_revision_id, revision_id),
+        release_id = coalesce(p_release_id, release_id),
         comments = coalesce(p_comments,comments),
         updated_by = coalesce(p_updated_by, updated_by),
         updated = now()
@@ -2482,7 +2482,7 @@ CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order 
 $BODY$
 DECLARE
 BEGIN
-    perform dj_update_rfc_ci(p_rfc_id, p_ci_name, p_exec_order, p_comments, p_update_by, null);
+    perform dj_update_rfc_relation(p_rfc_id, p_exec_order, p_comments, p_update_by, null);
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
