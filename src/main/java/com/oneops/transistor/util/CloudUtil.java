@@ -62,7 +62,7 @@ public class CloudUtil {
                 .filter(this::needServices)
                 .flatMap(this::getServices)
                 .collect(toSet());
-        Map<String, TreeSet<String>> cloudsMissingServices = missingCloudServices(manifestPlatformId, requiredServices);
+        Map<String, TreeSet<String>> cloudsMissingServices = getMissingCloudServices(manifestPlatformId, requiredServices);
         if (!cloudsMissingServices.isEmpty()) {
             // <{c1=[s1]}> mess
             String message = String.format("All services <%s> required for platform (%s) are not configured for clouds.Please contact your org. admin ."
@@ -78,7 +78,7 @@ public class CloudUtil {
     }
 
 
-    private Map<String, TreeSet<String>> missingCloudServices(long manifestPlatCiId, Set<String> requiredServices) {
+    private Map<String, TreeSet<String>> getMissingCloudServices(long manifestPlatCiId, Set<String> requiredServices) {
         Map<String, TreeSet<String>> missingCloud2Services = new TreeMap<>();
         //get clouds
         List<CmsRfcRelation> cloudRelations = cmRfcMrgProcessor.getFromCIRelations(manifestPlatCiId,
@@ -106,11 +106,11 @@ public class CloudUtil {
     }
 
     public Set<String> getMissingServices(long manifestPlatformId){
-        Set<String> requiredServices = servicesForPlatform(manifestPlatformId);
-        return missingCloudServices(manifestPlatformId,requiredServices).keySet();
+        Set<String> requiredServices = getServicesForPlatform(manifestPlatformId);
+        return getMissingCloudServices(manifestPlatformId,requiredServices).keySet();
     }
 
-    private Set<String> servicesForPlatform(long manifestPlatformId) {
+    private Set<String> getServicesForPlatform(long manifestPlatformId) {
         List<CmsRfcRelation> rfcRelations = cmRfcMrgProcessor.getFromCIRelationsNaked(manifestPlatformId, MANIFEST_REQUIRES, null, null);
         return rfcRelations.stream()
                 .filter(this::needServices)
