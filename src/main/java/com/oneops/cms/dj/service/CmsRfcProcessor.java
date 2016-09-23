@@ -1737,7 +1737,8 @@ public class CmsRfcProcessor {
 	}
 
 
-	public long commitReleaseForPlatform(CmsRfcCI platformRfc, String platformNs, String desc, String userId) {
+	public long commitReleaseForPlatform(CmsRfcCI platformRfc, String desc, String userId) {
+		String platformNs = platformRfc.getNsPath()+"/_design/"+platformRfc.getCiName();
 		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
 		CmsRelease newRelease = cloneRelease(release);
 
