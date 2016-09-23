@@ -30,6 +30,7 @@ import com.oneops.transistor.domain.ManifestRfcContainer;
 import com.oneops.transistor.domain.ManifestRfcRelationTriplet;
 import com.oneops.transistor.domain.ManifestRootRfcContainer;
 import com.oneops.transistor.exceptions.TransistorException;
+import com.oneops.transistor.util.CloudUtil;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -43,8 +44,10 @@ public class ManifestManagerImpl implements ManifestManager {
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
 	private ManifestRfcBulkProcessor manifestRfcProcessor;
 	private TransUtil trUtil;
+	private CloudUtil cloudUtil;
 	private ExecutorService executorService;
 	private int timeoutInMilliSeconds;
+
 
 	private final static String BASE_REALIZED_IN = "base.RealizedIn";
 	private final static String MANIFEST_PLATFORM = "manifest.Platform";
@@ -173,7 +176,7 @@ public class ManifestManagerImpl implements ManifestManager {
 				processPlatformRfcs(touple.manifestPlatformRfcs,userId);
 				
 				CmsRfcCI manifestPlatformRfc = touple.manifestPlatformRfcs.getManifestPlatformRfc();
-				Set<String> missingSrvs = manifestRfcProcessor.getMissingServices(manifestPlatformRfc.getCiId());
+				Set<String> missingSrvs = cloudUtil.getMissingServices(manifestPlatformRfc.getCiId());
 				if (missingSrvs.size() > 0) {
 					logger.info(">>>>> Not all services available for platform: " + manifestPlatformRfc.getCiName() + ", the missing services: " + missingSrvs.toString());
 					disablePlatform(manifestPlatformRfc.getCiId(), userId);
@@ -470,7 +473,7 @@ public class ManifestManagerImpl implements ManifestManager {
 				CmsRfcCI platform = compOfRel.getToRfcCi();
 				String platNs = platform.getNsPath();
 				manifestRfcProcessor.processClouds(env, platform, platNs, nsPath, userId, null, null,null);
-				Set<String> missingSrvs = manifestRfcProcessor.getMissingServices(platform.getCiId());
+				Set<String> missingSrvs = cloudUtil.getMissingServices(platform.getCiId());
 				if (missingSrvs.size() > 0) {
 					logger.info(">>>>> Not all services available for platform: " + platform.getCiName() + ", the missing services: " + missingSrvs.toString());
 					manifestRfcProcessor.disablePlatform(platform.getCiId(), userId);
@@ -577,5 +580,9 @@ public class ManifestManagerImpl implements ManifestManager {
 			this.manifestPlatformRfcs = manifestPlatformRfcs;
 		}
 		
+	}
+
+	public void setCloudUtil(CloudUtil cloudUtil) {
+		this.cloudUtil=cloudUtil;
 	}
 }

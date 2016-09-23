@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.oneops.transistor.util.CloudUtil;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -54,6 +55,7 @@ import com.oneops.transistor.domain.ManifestRootRfcContainer;
 import com.oneops.transistor.domain.ManifestRfcRelationTriplet;
 import com.oneops.transistor.exceptions.TransistorException;
 
+
 public class ManifestRfcBulkProcessor {
 
 	static Logger logger = Logger.getLogger(ManifestRfcBulkProcessor.class);
@@ -66,13 +68,14 @@ public class ManifestRfcBulkProcessor {
 	private CmsRfcUtil rfcUtil;
 	//private ExpEvaluator expEval;
 	private TransUtil trUtil;
+	private CloudUtil cloudUtil;
 	
 	private static final String MGMT_MANIFEST_WATCHEDBY = "mgmt.manifest.WatchedBy";
 	private static final String MANIFEST_WATCHEDBY = "manifest.WatchedBy";
 	private static final String MANIFEST_MONITOR = "manifest.Monitor";	
 	
 	private static final Set<String> DUMMY_RELS = initSet(MANIFEST_WATCHEDBY);
-	
+
 	private static Set<String> initSet(String... strings) {
         HashSet<String> set = new HashSet<String>();
 
@@ -109,6 +112,10 @@ public class ManifestRfcBulkProcessor {
 	public void setRfcUtil(CmsRfcUtil rfcUtil) {
 		this.rfcUtil = rfcUtil;
 	}
+
+    public void setCloudUtil(CloudUtil cloudUtil) {
+        this.cloudUtil = cloudUtil;
+    }
 
 	public void processDeletedPlatforms(Collection<CmsRfcCI> mfstPlats, CmsCI env, String nsPath, String userId) {
 		Set<String> newPlats = new HashSet<String>();
@@ -261,7 +268,7 @@ public class ManifestRfcBulkProcessor {
 			existingManifestCIs = getExistingCis(manifestPlat.getNsPath());
 			existingManifestPlatRels = getExistingManifestPlatRels(manifestPlat.getNsPath());
 		}
-		
+
 		//process designPlatform templatePlatform
 		boolean setActive = shouldSetActive(nsPath + "/" + designPlatform.getCiName(), designPlatform.getCiName());
 		CmsRfcCI manifestPlatRfc = processTouple(templatePlatform, designPlatform, manifestPlat, platNsPath, nsPath, env, userId, setActive, 
@@ -303,63 +310,20 @@ public class ManifestRfcBulkProcessor {
 	
 	public long enablePlatform(long platformCiId, String userId) {
 		long releaseId = 0;
-		Set<String> missingServices = getMissingServices(platformCiId);
-		if (missingServices.size() == 0) {
-			List<CmsRfcRelation> composedOfRels = cmRfcMrgProcessor.getToCIRelationsNaked(platformCiId, "manifest.ComposedOf", null, "manifest.Environment");
-			for (CmsRfcRelation composedOfRel : composedOfRels ) {
-				CmsRfcRelation newRfc = trUtil.cloneRfcRelation(composedOfRel);
-				newRfc.getAttribute("enabled").setNewValue("true");
-				newRfc.getAttribute("enabled").setOwner("manifest");
-				CmsRfcRelation rfc = cmRfcMrgProcessor.upsertRelationRfc(newRfc, userId);
-				releaseId = rfc.getReleaseId();
-			}
-		} else {
-			String error = ">>>>> Not all services available for platform: " + platformCiId + ", the missing services:" + missingServices.toString();
-			logger.error(error);
-			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION, error);
+		cloudUtil.check4missingServices(platformCiId);
+		List<CmsRfcRelation> composedOfRels = cmRfcMrgProcessor.getToCIRelationsNaked(platformCiId, "manifest.ComposedOf", null, "manifest.Environment");
+		for (CmsRfcRelation composedOfRel : composedOfRels) {
+			CmsRfcRelation newRfc = trUtil.cloneRfcRelation(composedOfRel);
+			newRfc.getAttribute("enabled").setNewValue("true");
+			newRfc.getAttribute("enabled").setOwner("manifest");
+			CmsRfcRelation rfc = cmRfcMrgProcessor.upsertRelationRfc(newRfc, userId);
+			releaseId = rfc.getReleaseId();
 		}
-		
+
 		return releaseId;
 	}
 
-	
-	public Set<String> getMissingServices(long manifestPlatCiId) {
-		List<CmsRfcRelation> requiresList = cmRfcMrgProcessor.getFromCIRelationsNaked(manifestPlatCiId, "manifest.Requires", null, null);
-		Set<String> requiredServices = new HashSet<String>();
-		for (CmsRfcRelation requires : requiresList) {
-			CmsRfcAttribute servicesAttr = requires.getAttribute("services");
-			if (servicesAttr != null && servicesAttr.getNewValue() != null && servicesAttr.getNewValue().length() > 0) {
-				String[] ciRequiredServices = servicesAttr.getNewValue().split(",");
-				for (String service : ciRequiredServices) {
-					//* means optional service
-					if (!service.startsWith("*")) {
-						if (!requiredServices.contains(service)) {
-							requiredServices.add(service);
-						}
-					}
-				}		
-			}
-		}
-		
-		Set<String> provideServices = new HashSet<String>();
-		List<CmsRfcRelation> cloudRels = cmRfcMrgProcessor.getFromCIRelations(manifestPlatCiId, "base.Consumes", "account.Cloud", "dj");
-		for (CmsRfcRelation cloudRel : cloudRels) {
-			List<CmsCIRelation> cloudServiceRels = cmProcessor.getFromCIRelationsNaked(cloudRel.getToCiId(),  "base.Provides", null);
-			for (CmsCIRelation serviceRel : cloudServiceRels) {
-				CmsCIRelationAttribute serviceAttr = serviceRel.getAttribute("service");
-				if (serviceAttr != null && serviceAttr.getDjValue() != null) {
-					provideServices.add(serviceAttr.getDjValue());
-				}
-			}
-		}
-		logger.info("Platform " + manifestPlatCiId + " requires:" + requiredServices.toString());
-		logger.info("Available services: " + provideServices.toString());
-		for (String availableService : provideServices) {
-			requiredServices.remove(availableService);
-		}
-		
-		return requiredServices;
-	}
+
 	
 	public void processClouds(CmsCI env, CmsRfcCI manifestPlatRfc, String platNsPath, String releasePath, String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
 		List<CmsCIRelation> envCloudRels = cmProcessor.getFromCIRelationsNaked(env.getCiId(), "base.Consumes", "account.Cloud");
@@ -1543,8 +1507,11 @@ public class ManifestRfcBulkProcessor {
 			return null;
 		}
 	}
-	
-	
+
+
+
+
+
 	private class Edge {
 		CmsCIRelation templateRel;
 		List<CmsCIRelation> userRels = new ArrayList<CmsCIRelation>(); 
