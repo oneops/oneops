@@ -151,6 +151,8 @@ insert into cm_ci_state (ci_state_id, state_name) values (500, 'manifest_locked'
 insert into dj_release_states (release_state_id, state_name) values (100,'open');
 insert into dj_release_states (release_state_id, state_name) values (200,'closed');
 insert into dj_release_states (release_state_id, state_name) values (300,'canceled');
+insert into dj_release_states (release_state_id, state_name) values (10,'pending');
+
 
 insert into cms_event_type (event_type_id, event_type) values (100,'insert');
 insert into cms_event_type (event_type_id, event_type) values (200,'update');
