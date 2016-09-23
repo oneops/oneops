@@ -17,29 +17,18 @@
  *******************************************************************************/
 package com.oneops.cms.md.service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import com.oneops.cms.exceptions.MDException;
 import com.oneops.cms.md.dal.ClazzMapper;
 import com.oneops.cms.md.dal.RelationMapper;
-import com.oneops.cms.md.domain.CmsClazz;
-import com.oneops.cms.md.domain.CmsClazzAction;
-import com.oneops.cms.md.domain.CmsClazzAttribute;
-import com.oneops.cms.md.domain.CmsClazzRelation;
-import com.oneops.cms.md.domain.CmsRelation;
-import com.oneops.cms.md.domain.CmsRelationAttribute;
+import com.oneops.cms.md.domain.*;
 import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsMdValidator;
 import com.oneops.cms.util.CmsUtil;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.*;
 
 /**
  * The Class CmsMdProcessor.
@@ -75,6 +64,17 @@ public class CmsMdProcessor {
 		this.cacheEnabled = cacheEnabled;
 	}
 
+    /**
+     * Retrives attribute
+     * @param ciClassId ciClassId
+     * @param attrName attribute name
+     * @return description
+     */
+    public CmsClazzAttribute getAttribute(int ciClassId, String attrName) {
+        List<CmsClazzAttribute> attributes = getClazz(ciClassId).getMdAttributes();
+        Optional<CmsClazzAttribute> attributeOptional = attributes.stream().filter(attr -> attr.getAttributeName().equals(attrName)).findFirst();
+        return attributeOptional.isPresent() ? attributeOptional.get() : new CmsClazzAttribute();
+    }
 
 	/**
 	 * Sets the md validator.
