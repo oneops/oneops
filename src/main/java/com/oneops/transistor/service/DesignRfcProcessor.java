@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.oneops.cms.dj.service.CmsRfcProcessor;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -49,9 +50,14 @@ public class DesignRfcProcessor {
 	private TransUtil trUtil;
 	private CmsCmProcessor cmProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
+    private CmsRfcProcessor rfcProcessor;
 
 
-	public void setTrUtil(TransUtil trUtil) {
+    public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
+        this.rfcProcessor = rfcProcessor;
+    }
+
+    public void setTrUtil(TransUtil trUtil) {
 		this.trUtil = trUtil;
 	}
 	
@@ -126,7 +132,7 @@ public class DesignRfcProcessor {
 
 	public long deletePlatform(long designPlatformId, String userId, String scope) {
 
-		CmsCI designPlatform = cmProcessor.getCiById(designPlatformId);
+		CmsRfcCI designPlatform = cmRfcMrgProcessor.getCiById(designPlatformId, null);
 		if (designPlatform == null) {
 			logger.error("There is no platform with id = " + designPlatformId);
 			return 0;
@@ -139,10 +145,8 @@ public class DesignRfcProcessor {
 		for (CmsRfcCI component : platComponents) {
 			cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(component.getCiId(), userId, 0);
 		}
-		
-		CmsRfcCI platDeleteRfc = cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
-		
-		return platDeleteRfc.getCiId();
+		cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
+		return designPlatform.getCiId();
 	}
 
 	
@@ -546,4 +550,29 @@ public class DesignRfcProcessor {
 		return newRfc;
 	}
 
+
+    private static String getPlatformNs(CmsRfcCI platform) {
+        return platform.getNsPath()+"/_design/"+platform.getCiName();
+    }
+
+
+    public List<CmsRfcCI> getPlatformRfcs(long platId) {
+        String nsPath = getPlatformNs(cmRfcMrgProcessor.getCiById(platId));
+        return rfcProcessor.getOpenRfcCIByClazzAndNameNoAttrs(nsPath, null, null);
+    }
+
+    public long discardReleaseForPlatform(long platId) {
+        CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
+        rfcProcessor.rmRfcs(getPlatformNs(platformRfc));
+        if (platformRfc.getIsActiveInRelease()){
+            rfcProcessor.rmRfcCiFromRelease(platformRfc.getRfcId());
+        }
+        return platId;
+    }
+
+
+    public long commitReleaseForPlatform(long platId, String desc, String userId) {
+        CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
+        return rfcProcessor.commitReleaseForPlatform(platformRfc, desc, userId);
+    }
 }
