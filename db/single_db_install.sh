@@ -23,11 +23,11 @@ $PSQL  -h localhost -d kloopzdb -f kloopzcm-partition.ddl
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo create partition tables failed && exit 1
 
-$PSQL  -h localhost -d kloopzdb -f kloopzcm-postprocess.sql
+$PSQL  -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-postprocess.sql
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo post process failed && exit 1
 
-$PSQL  -h localhost -d kloopzdb -f kloopzcm-functions.sql
+$PSQL  -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-functions.sql
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo functions failed && exit 1
 

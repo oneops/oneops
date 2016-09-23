@@ -601,7 +601,11 @@ CREATE INDEX cm_ops_proc_state_id_idx
 
 CREATE INDEX cm_ops_proc_ciid_nm_created
  ON kloopzcm.cm_ops_procedures
- ( ci_id, proc_name, created );
+ ( ci_id, created );
+
+CREATE INDEX cm_ops_procedures_ci_proc_idx
+ ON kloopzcm.cm_ops_procedures
+ ( ops_proc_id, ci_id );
 
 CREATE TABLE kloopzcm.cm_ops_actions (
                 ops_action_id BIGINT NOT NULL,
