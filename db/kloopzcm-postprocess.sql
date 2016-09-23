@@ -127,9 +127,12 @@ CREATE UNIQUE INDEX md_class_attr_name_idx
    ON md_class_attributes (class_id ASC NULLS LAST, attribute_name ASC NULLS LAST);
 
 CREATE INDEX cm_ops_proc_ciid_nm_created
-  ON cm_ops_procedures (ci_id , proc_name, created );
+  ON cm_ops_procedures (ci_id , created );
    
-   
+CREATE  INDEX concurrently cm_ops_procedures_ci_proc_idx
+ ON kloopzcm.cm_ops_procedures
+ ( ops_proc_id, ci_id );
+  
 insert into md_classes (class_id, class_name, short_class_name, access_level, is_namespace, description)
 values (100, 'Ci','Ci','global', false,'This is basic super class, all classes will extend this one');
 
