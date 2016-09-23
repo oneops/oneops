@@ -728,7 +728,7 @@ public class TransistorRestController extends AbstractRestController {
         if (userId == null) userId = "oneops-system";
         
 
-        return manifestManager.getPlatformRfcs(platId, userId);
+        return dManager.getPlatformRfcs(platId, userId);
     }
 
     @RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/rfcs/discard")
@@ -736,7 +736,7 @@ public class TransistorRestController extends AbstractRestController {
     public Map<String,Long> discardPlatformRfcs(
             @PathVariable long platId,
             @RequestHeader(value="X-Cms-User", required = false)  String userId) {
-        long releaseId = manifestManager.discardReleaseForPlatform(platId, userId);
+        long releaseId = dManager.discardReleaseForPlatform(platId, userId);
 
         Map<String,Long> result = new HashMap<>(1);
         result.put("releaseId", releaseId);
@@ -749,7 +749,7 @@ public class TransistorRestController extends AbstractRestController {
             @PathVariable long platId,
 			@RequestParam(value="desc", required = false) String desc,
             @RequestHeader(value="X-Cms-User", required = false)  String userId) {
-        long releaseId = manifestManager.commitReleaseForPlatform(platId, desc, userId);
+        long releaseId = dManager.commitReleaseForPlatform(platId, desc, userId);
 
         Map<String,Long> result = new HashMap<>(1);
         result.put("releaseId", releaseId);

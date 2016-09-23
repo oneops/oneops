@@ -22,6 +22,8 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 
+import java.util.List;
+
 public class DesignManagerImpl implements DesignManager {
 
 	private DesignRfcProcessor designRfcProcessor;
@@ -105,4 +107,19 @@ public class DesignManagerImpl implements DesignManager {
 	public long refreshPack(long platformId, String userId, String scope) {
 		return packRefreshProcessor.refreshPack(platformId, userId, scope);
 	}
+
+	@Override
+	public List<CmsRfcCI> getPlatformRfcs(long platId, String userId) {
+		return designRfcProcessor.getPlatformRfcs(platId);
+	}
+
+
+	@Override
+	public long discardReleaseForPlatform(long platId, String userId) {
+		return designRfcProcessor.discardReleaseForPlatform(platId);
+	}
+
+	@Override
+	public long commitReleaseForPlatform(long platId, String desc, String userId) {
+		return designRfcProcessor.commitReleaseForPlatform(platId, desc, userId);	}
 }

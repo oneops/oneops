@@ -16,7 +16,6 @@
 package com.oneops.transistor.service;
 
 import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,12 +31,6 @@ public interface ManifestManager {
     long disablePlatform(long platId, String userId);
 
     long enablePlatform(long platId, String userId);
-
-    List<CmsRfcCI> getPlatformRfcs(long platId, String userId);
-    
-    long discardReleaseForPlatform(long platId, String userId);
-    
-    long commitReleaseForPlatform(long platId, String desc, String userId);
 
     void updateCloudAdminStatus(long cloudId, long envId, String adminstatus, String userId);
 

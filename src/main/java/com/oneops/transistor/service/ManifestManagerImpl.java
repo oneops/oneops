@@ -203,32 +203,6 @@ public class ManifestManagerImpl implements ManifestManager {
 		return envReleaseId;
 	}
 
-	@Override
-	public List<CmsRfcCI> getPlatformRfcs(long platId, String userId) {
-		String nsPath = getPlatformNs(cmRfcMrgProcessor.getCiById(platId));
-		return rfcProcessor.getOpenRfcCIByClazzAndNameNoAttrs(nsPath, null, null);
-	}
-
-	private static String getPlatformNs(CmsRfcCI platform) {
-		return platform.getNsPath()+"/_design/"+platform.getCiName();
-	}
-
-	@Override
-	public long discardReleaseForPlatform(long platId, String userId) {
-		CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
-		if (platformRfc.getIsActiveInRelease()){
-			rfcProcessor.rmRfcCiFromRelease(platformRfc.getRfcId());
-		}
-		rfcProcessor.rmRfcs(getPlatformNs(platformRfc));
-		return platId;
-	}
-
-	@Override
-	public long commitReleaseForPlatform(long platId, String desc, String userId) {
-		CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
-		return rfcProcessor.commitReleaseForPlatform(platformRfc, getPlatformNs(platformRfc), desc, userId);
-	}
-
 
 	/**
 	 * 
