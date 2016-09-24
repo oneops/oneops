@@ -650,7 +650,6 @@ public class ManifestRfcBulkProcessor {
 				if (!(deletedCiIds.contains(existingDpOn.getFromCiId()) ||  deletedCiIds.contains(existingDpOn.getToCiId()))) {
 					logger.info("Deleting an existing relation: " + existingDpOn.getRelationGoid());
 					platformRfcs.getRfcDeleteRelationList().add(existingDpOn);
-
 				}
 			}
 		}
@@ -1504,7 +1503,6 @@ public class ManifestRfcBulkProcessor {
 		if (DUMMY_RELS.contains(rel.getRelationName())) needUpdate = true;
 		
 		if(needUpdate){
-
 			return rel;
 		}
 		else{
