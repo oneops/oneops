@@ -684,11 +684,13 @@ public class ManifestRfcBulkProcessor {
 		for (CmsRfcRelation existingDpOn : existingDependsOnRels) {
 			if (!newRels.contains(existingDpOn.getRelationGoid())) {
 				if (!(deletedCiIds.contains(existingDpOn.getFromCiId()) ||  deletedCiIds.contains(existingDpOn.getToCiId()))) {
+					logger.info("Deleting an existing relation: " + existingDpOn.getRelationGoid());
 					platformRfcs.getRfcDeleteRelationList().add(existingDpOn);
+
 				}
 			}
 		}
-		
+
 		processEntryPoint(templatePlatform, manifestPlatform, mrgResult.templateIdsMap, mrgResult.rfcMap, platNsPath, envNsPath, userId, existingManifestCIs, existingManifestPlatRels,platformRfcs);
 		//TODO change this to use env attribute
 		return manifestPlatform;
@@ -845,6 +847,7 @@ public class ManifestRfcBulkProcessor {
 							setCiRelationId(rfcRelation);
 							rfcRelation.setCreatedBy(userId);
 							rfcRelation.setUpdatedBy(userId);
+							rfcRelation.setRelationGoid(fromManifestRfcCiId + "-" + rfcRelation.getRelationId()+"-" + toManifestRfcCiId);
 							
 							CmsCIRelation existingCIRel = existingManifestPlatRels.get(rfcRelation.getRelationName())!=null?
 									existingManifestPlatRels.get(rfcRelation.getRelationName()).get(rfcRelation.getFromCiId() + ":" + rfcRelation.getToCiId()):null;
@@ -1537,6 +1540,7 @@ public class ManifestRfcBulkProcessor {
 		if (DUMMY_RELS.contains(rel.getRelationName())) needUpdate = true;
 		
 		if(needUpdate){
+
 			return rel;
 		}
 		else{
