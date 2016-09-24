@@ -27,6 +27,15 @@ class Operations::Sensor < ActiveResource::Base
     end
   end
 
+  def self.events(instance_id)
+    begin
+      get("events/#{instance_id}")[instance_id.to_s]
+    rescue Exception => e
+      Rails.logger.warn("Failed to retrieve ops events for instance #{instance_id}: #{e}")
+      return nil
+    end
+  end
+
   def self.custom_method_collection_url(method_name, options = {})
     super.gsub(/.#{self.format.extension}/, '')
   end

@@ -114,7 +114,7 @@ class Operations::InstancesController < ApplicationController
 
   def show
     @ops_state  = Operations::Sensor.states([@instance])[@instance.ciId]
-    @ops_events = Operations::Events.for_instance(@instance.ciId)
+    @ops_events = Operations::Sensor.events(@instance.ciId)
 
     @from_relations = Cms::DjRelation.all(:params => {:ciId        => @instance.ciId,
                                                       :direction   => 'from',

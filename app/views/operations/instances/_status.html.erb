@@ -95,11 +95,12 @@
                 <li>
                   <%= icon('exclamation-triangle') %>
                   <% threshold_map = monitor_threshold_map[monitor_name]
-                     monitor       = threshold_map && threshold_map[e.name]
-                     full_name     = "#{monitor ? "#{monitor.ciAttributes.description}" : monitor_name}:#{e.name}" %>
+                     event_name = e['name']
+                     monitor       = threshold_map && threshold_map[event_name]
+                     full_name     = "#{monitor ? "#{monitor.ciAttributes.description}" : monitor_name}:#{event_name}" %>
                   <strong><%= monitor ? link_to(full_name, "#monitors/list_item/#{monitor.ciId}") : full_name %></strong>
-                  reporting <strong><%= e.state %></strong>
-                  since <strong><%= time_ago_in_words(Time.at(e.timestamp / 1000)) %></strong>
+                  reporting <strong><%= e['state'] %></strong>
+                  since <strong><%= time_ago_in_words(Time.at(e['timestamp'] / 1000)) %></strong>
                 </li>
               <% end %>
             <% end %>

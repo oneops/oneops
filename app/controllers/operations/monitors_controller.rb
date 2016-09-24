@@ -34,17 +34,18 @@ class Operations::MonitorsController < Base::MonitorsController
     end
 
     @events = {}
-    events_by_monitor = Operations::Events.for_instance(@instance.ciId)
+    events_by_monitor = Operations::Sensor.events(@instance.ciId)
     if events_by_monitor.present?
       monitor_threshold_map = self.class.threshold_monitor_map(@monitors)
       events_by_monitor.each_pair do |monitor_name, events|
         events.each do |event|
           threshold_map = monitor_threshold_map[monitor_name]
-          monitor = threshold_map && threshold_map[event.name]
+          monitor = threshold_map && threshold_map[event['name']]
           if monitor
+            state = event['state']
             @events[monitor.ciId] ||= {}
-            @events[monitor.ciId][event.state] ||= []
-            @events[monitor.ciId][event.state] << event
+            @events[monitor.ciId][state] ||= []
+            @events[monitor.ciId][state] << event
           end
         end
       end
