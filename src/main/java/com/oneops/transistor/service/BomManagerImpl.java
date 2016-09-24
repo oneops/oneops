@@ -49,6 +49,7 @@ import static com.oneops.cms.util.CmsConstants.PRIMARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsConstants.SECONDARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
 import static com.oneops.cms.util.CmsError.TRANSISTOR_MISSING_ENTRY_POINT;
+import static java.lang.System.getProperty;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
@@ -62,6 +63,9 @@ public class BomManagerImpl implements BomManager {
 	private TransUtil trUtil;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
+
+	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
+
 
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
@@ -208,7 +212,12 @@ public class BomManagerImpl implements BomManager {
 					//now we need to check if the cloud is active for this given platform
 					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
 
-					check4Secondary(plat,platformCloudRels, getNspath(bomNsPath, plat));
+
+					if(checkSecondary){
+						check4Secondary(plat,platformCloudRels, getNspath(bomNsPath, plat));
+					}else {
+						logger.info("check secondary configured :"+ checkSecondary);
+					}
 					if (platformCloudRels.size() >0) {
 						
 						//Collections.sort(platformCloudRels,BINDING_COMPARATOR);
@@ -264,8 +273,7 @@ public class BomManagerImpl implements BomManager {
 		//get manifest clouds and priority; what is intended
 		Map<Long, Integer> intendedCloudpriority = platformCloudRels.stream()
 				.filter(this::isCloudActive)
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
-
+				.collect(toMap(CmsCIRelationBasic::getToCiId,this::getPriority,(i,j)->i));
 		//are there any secondary clouds for deployment
 		long numberOfSecondaryClouds = intendedCloudpriority.entrySet().stream().filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS))).count();
 		if (numberOfSecondaryClouds == 0) {
@@ -283,7 +291,9 @@ public class BomManagerImpl implements BomManager {
 		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
 				.map(CmsCIRelationBasic::getToCiId)
 				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId, CmsConstants.DEPLOYED_TO, null, entryPoint, finalNsPath).stream())
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority));
+				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> {
+					return Math.max(i,j);
+				}));
 
 		existingCloudPriority.putAll(intendedCloudpriority);
 		long count = existingCloudPriority.entrySet().stream().filter(entry -> (entry.getValue().equals(CmsConstants.SECONDARY_CLOUD_STATUS))).count();
