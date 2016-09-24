@@ -31,6 +31,7 @@ import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.exceptions.CIValidationException;
+import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import org.apache.log4j.Logger;
@@ -956,11 +957,16 @@ public class CmsUtil {
             logger.info(sb.toString());
         }
 
-        for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
 
-            manifestAttr.setDjValue(processAllVarsForString(ci.getCiId(), ci.getCiName(), ci.getNsPath(), manifestAttr.getAttributeName(), manifestAttr.getDjValue(), cloudVars, globalVars, localVars));
-            manifestAttr.setDfValue(processAllVarsForString(ci.getCiId(), ci.getCiName(), ci.getNsPath(), manifestAttr.getAttributeName(), manifestAttr.getDfValue(), cloudVars, globalVars, localVars));
+        ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
+        for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
+            ec.invokeChecked(()->
+            {
+                manifestAttr.setDjValue(processAllVarsForString(ci.getCiId(), ci.getCiName(), ci.getNsPath(), manifestAttr.getAttributeName(), manifestAttr.getDjValue(), cloudVars, globalVars, localVars));
+                manifestAttr.setDfValue(processAllVarsForString(ci.getCiId(), ci.getCiName(), ci.getNsPath(), manifestAttr.getAttributeName(), manifestAttr.getDfValue(), cloudVars, globalVars, localVars));
+            });
         }
+        ec.rethrowExceptionIfNeeded();
 
         if (logger.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Processing vars complete for Ci [")
@@ -1261,14 +1267,13 @@ public class CmsUtil {
             // also tests do not inject cmProcessor, so description lookup will throw NPE
         }
 
-        return String.format("CI %s[%s], attribute: %s [%s] is using invalid or missing %s variable <%s>! Value=%s",
+        return String.format("%s@%s attribute '%s' [%s] is using invalid or missing %s variable '%s'",
                 ciName,
                 truncateNS(nsPath),
-                attrName,
                 attributeDescription,
+                attrName,
                 guessVariableType(prefix),
-                varName,
-                resolvedValue);
+                varName);
     }
 
     private String guessVariableType(String prefix) {
@@ -1293,7 +1298,7 @@ public class CmsUtil {
         if (nsPath != null) {
             Matcher matcher = Pattern.compile("(/[^/]+){2}$").matcher(nsPath);
             if (matcher.find()) {
-                return matcher.group();
+                return matcher.group().substring(1);
             }
         }
         return nsPath;

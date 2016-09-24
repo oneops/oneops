@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.cms.exceptions;
 
+import com.oneops.cms.util.CmsError;
+
 /**
  * The Class CIValidationException.
  */
@@ -33,5 +35,10 @@ public class CIValidationException extends CmsBaseException {
 	public CIValidationException(int errorCode, String errMsg) {
 		super(errorCode, errMsg);
 	}
-	
+
+	public static ExceptionConsolidator consolidator(int errorCode){
+		return new ExceptionConsolidator(CIValidationException.class, errorCode);
+	}
+
+
 }
