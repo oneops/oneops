@@ -1267,7 +1267,7 @@ public class CmsUtil {
             // also tests do not inject cmProcessor, so description lookup will throw NPE
         }
 
-        return String.format("%s@%s attribute '%s' [%s] is using invalid or missing %s variable '%s'",
+        return String.format("%s@%s attribute '%s' [%s] references unknown %s variable '%s'",
                 ciName,
                 truncateNS(nsPath),
                 attributeDescription,

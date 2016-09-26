@@ -38,7 +38,7 @@ public class ExceptionConsolidator {
     public void rethrowExceptionIfNeeded(){
         if (!errors.isEmpty()){
             try {
-                throw exception.getDeclaredConstructor(Integer.TYPE, String.class).newInstance(errorCode, StringUtils.join(errors, ",\n"));
+                throw exception.getDeclaredConstructor(Integer.TYPE, String.class).newInstance(errorCode, StringUtils.join(errors, ";\n"));
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new RuntimeException(errors.toString());
             }
