@@ -47,7 +47,6 @@ public final class CmsConstants {
 	public static final String DEPLOYED_TO = "base.DeployedTo";
 	public static final String BASE_PROVIDES = "base.Provides";
 	public static final String BASE_PLACED_IN = "base.PlacedIn";
-	public static final String BASE_PROVIDES = "base.Provides" ;
 	public static final String BASE_CONSUMES = "base.Consumes";
 	//manifest
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
