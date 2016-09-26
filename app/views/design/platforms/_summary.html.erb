@@ -13,7 +13,7 @@
         <span class="label label-count"><%= norfc %></span>
       <% end %>
       <% if has_design %>
-        <% if group[:cardinality].max > group_items.size %>
+        <% if !group[:obsolete] && group[:cardinality].max > group_items.size %>
           <%= link_to(content_tag(:button, icon('plus'), :class => 'btn btn-mini'), new_assembly_design_platform_component_path(@assembly, @platform, :template_name => group[:template_name]), :disable_with => 'wait...') %>
         <% else %>
           <%= content_tag(:button, content_tag(:i, '', :class => 'fa fa-ban transparent'), :class => 'btn btn-mini disabled') %>

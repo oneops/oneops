@@ -919,7 +919,7 @@ module ApplicationHelper
                      :target => "_parent",
                      :URL    => url,
                      :label  => label,
-                     :color  => to_color(ci.rfcAction))
+                     :color  => rfc_action_to_color(ci.rfcAction))
 
       Cms::DjRelation.all(:params => {:ciId => node.toCiId, :relationShortName => 'DependsOn', :direction => 'from'}).each do |edge|
         if edge.relationAttributes.flex == 'true'

@@ -132,7 +132,10 @@ class Design::PlatformsController < Base::PlatformsController
     result = get_platform_requires_relation_temlates(@platform).inject({}) do |m, r|
       template_name    = r.toCi.ciName.split('::').last
       cardinality      = r.relationAttributes.constraint.gsub('*', '999').split('..')
-      m[template_name] = {:min => cardinality.first.to_i, :max => cardinality.last.to_i, :current => exising_map[template_name] || 0}
+      existing_count = exising_map[template_name] || 0
+      m[template_name] = {:min => cardinality.first.to_i,
+                          :max => cardinality.last.to_i,
+                          :current => existing_count} unless r.toCi.ciState == 'pending_deletion' && existing_count == 0
       m
     end
 

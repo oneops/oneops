@@ -2,7 +2,7 @@ class Design::ComponentsController < Base::ComponentsController
   def new
     find_template
     @component = Cms::DjCi.build({:nsPath      => design_platform_ns_path(@assembly, @platform),
-                                  :ciClassName => component_class_name(),
+                                  :ciClassName => component_class_name,
                                   :ciName      => @template_name},
                                  {:owner => {}})
 
@@ -27,27 +27,36 @@ class Design::ComponentsController < Base::ComponentsController
 
   def create
     find_template
-
     ns_path    = design_platform_ns_path(@assembly, @platform)
     attrs      = params[:cms_dj_ci].merge(:nsPath => ns_path, :ciClassName => component_class_name)
     attr_props = attrs.delete(:ciAttrProps)
     @component = Cms::DjCi.build(attrs, attr_props)
-    relation   = Cms::DjRelation.build(:relationName => 'base.Requires',
+
+    if @template.blank?
+      @component.errors.add(:base, "Unknown component type '#{@template_name}'.")
+    elsif @template.ciState == 'pending_deletion'
+      @component.errors.add(:base, "Component type '#{@template_name}' is obsolete.")
+    else
+      build_linkable_component_sibling_map(@component)
+      if @component_siblings.size >= @cardinality.max
+        @component.errors.add(:base, "Not allowed to add more '#{@template_name}' components.")
+      end
+    end
+
+    ok = @component.errors.blank?
+    if ok
+      relation = Cms::DjRelation.build(:relationName => 'base.Requires',
                                        :nsPath       => ns_path,
                                        :fromCiId     => @platform.ciId,
                                        :toCi         => @component)
-    relation.relationAttributes = @template.requires.relationAttributes.attributes.merge(:template => @template_name).slice(*relation.meta.attributes[:mdAttributes].map(&:attributeName)).reject {|k, v| v.blank?}
+      relation.relationAttributes = @template.requires.relationAttributes.attributes.
+        merge(:template => @template_name).
+        slice(*relation.meta.attributes[:mdAttributes].map(&:attributeName)).
+        reject {|k, v| v.blank?}
 
-    build_linkable_component_sibling_map(@component)
-    ok = @component_siblings.size < @cardinality.max
-    unless ok
-      message = "Not allowed to add more '#{@template_name}' components."
-      @component.errors.add(:base, message)
-      flash[:error] = message
+      ok = execute_nested(@component, relation, :save)
+      @component = relation.toCi if ok
     end
-
-    ok = execute_nested(@component, relation, :save) if ok
-    @component = relation.toCi if ok
 
     if ok
       # Make sure all "DependsOn" relations are present (according to platform template) since we added a new sibling.
