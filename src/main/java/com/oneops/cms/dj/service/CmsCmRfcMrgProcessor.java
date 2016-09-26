@@ -484,14 +484,26 @@ public class CmsCmRfcMrgProcessor {
 		
 		return newRfc;
 	}
-	
+
+
 	/**
 	 * Gets the ci by id.
 	 *
 	 * @param ciId the ci id
-	 * @param cmAttrValue the cm attr value
 	 * @return the ci by id
 	 */
+	public CmsRfcCI getCiById(long ciId) {
+		return getCiById(ciId, null);
+	}
+
+
+		/**
+         * Gets the ci by id.
+         *
+         * @param ciId the ci id
+         * @param cmAttrValue the cm attr value
+         * @return the ci by id
+         */
 	public CmsRfcCI getCiById(long ciId, String cmAttrValue) {
 		CmsCI ci = cmProcessor.getCiById(ciId);
 		CmsRfcCI rfcCi = rfcProcessor.getOpenRfcCIByCiId(ciId);
@@ -502,7 +514,7 @@ public class CmsCmRfcMrgProcessor {
 	/**
 	 * Gets the cis by List id.
 	 *
-	 * @param ciId the ci id
+	 * @param ciIds the ci id
 	 * @param cmAttrValue the cm attr value
 	 * @return the ci by id
 	 */
