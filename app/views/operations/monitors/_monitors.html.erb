@@ -19,7 +19,7 @@
                      'data-html'      => true,
                      'data-title'     => 'Threshold Events',
                      'data-trigger'   => 'click',
-                     'data-content'   => ee.inject('') {|c, e| c + "<div><strong>#{e.name}</strong> #{time_ago_in_words(Time.at(e.timestamp / 1000))}</div>"},
+                     'data-content'   => ee.inject('') {|c, e| c + "<div><strong>#{e['name']}</strong> #{time_ago_in_words(Time.at(e['timestamp'] / 1000))}</div>"},
                      'data-placement' => 'right') %>
         <% end %>
       <% end %>

@@ -141,7 +141,7 @@ class Base::ComponentsController < ApplicationController
     find_params = {:ciId              => platform_template.ciId,
                    :direction         => 'from',
                    :relationShortName => 'Requires'}
-    requires = Cms::Relation.all(:params => find_params).detect { |r| r.toCi.ciName == @template_name }
+    requires = Cms::Relation.all(:params => find_params).find {|r| r.toCi.ciName == @template_name}
     unless requires
       @template = nil
       return

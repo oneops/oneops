@@ -39,7 +39,7 @@ class ApplicationController < ActionController::Base
                 :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
-                :graphvis_sub_ci_remote_images, :packs_info
+                :graphvis_sub_ci_remote_images, :packs_info, :design_platform_ns_path
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -257,7 +257,14 @@ class ApplicationController < ActionController::Base
   end
 
   def platform_pack_ns_path(platform)
-    platform.ciClassName.end_with?('catalog.Platform') ? platform_pack_design_ns_path(platform) : platform_pack_transition_ns_path(platform)
+    ci_class_name = platform.ciClassName
+    if ci_class_name.start_with?('mgmt.')
+      platform.nsPath
+    elsif ci_class_name.end_with?('catalog.Platform')
+      platform_pack_design_ns_path(platform)
+    else
+      platform_pack_transition_ns_path(platform)
+    end
   end
 
   def pack_transition_ns_path(source, pack, version, availability)
@@ -606,7 +613,7 @@ class ApplicationController < ActionController::Base
     flash.discard
   end
 
-  def to_color(action = '')
+  def rfc_action_to_color(action = '')
     case action
       when 'add'
         '#468847'
@@ -617,39 +624,11 @@ class ApplicationController < ActionController::Base
       when 'delete'
         '#B94A48'
       else
-        '#999999'
+        '#777777'
     end
   end
 
   def platforms_diagram(platforms, links_to, path, size = nil)
-    nodes = Array.new
-    edges = Array.new
-
-
-    platform_index = platforms.index_by{ |p| p.toCi.ciId }
-    platform_group = platforms.group_by{ |p| p.toCi.ciName }
-
-    platform_group.each do |platform, versions|
-      active = versions.find { |v| v.toCi.ciAttributes.attributes.has_key?(:is_active) && v.toCi.ciAttributes.is_active == 'false' } || versions.first
-      platform_ci_attrs = active.toCi.ciAttributes
-      nodes << {:id       => active.toCiId.to_s,
-                :name     => platform,
-                :target   => '_parent',
-                :icon     => GRAPHVIZ_IMG_STUB,
-                :tooltip  => "#{platform_ci_attrs.source}/#{platform_ci_attrs.pack}/#{platform_ci_attrs.version}",
-                :url      => "#{path}/platforms/#{active.toCi.ciId}",
-                :footer   => "version #{active.toCi.ciAttributes.major_version}",
-                :color    => active.toCi.respond_to?('rfcAction') ? to_color(active.toCi.rfcAction) : 'gray',
-                :versions => versions}
-    end
-
-    links_to.each { |edge| edges << {:from  => platform_index[edge.fromCiId].toCiId.to_s,
-                                     :to    => platform_index[edge.toCiId].toCiId.to_s,
-                                     :color => edge.respond_to?('rfcAction') ? to_color(edge.rfcAction) : 'gray'} }
-    return _diagram(nodes, edges, size)
-  end
-
-  def _diagram(nodes, edges, size)
     graph = GraphViz::new(:G)
     graph[:truecolor   => true,
           :rankdir     => 'TB',
@@ -667,25 +646,31 @@ class ApplicationController < ActionController::Base
                 :fixedsize => true,
                 :width     => '2.50',
                 :height    => '0.66',
-                :shape     => 'ractangle',
-                :style     => 'rounded'}]
+                :style     => 'rounded,filled'}]
 
-    nodes.each do |node|
-      label = "<<table border='0' cellspacing='2' fixedsize='true' width='175' height='48'>"
-      label << "<tr><td fixedsize='true' rowspan='#{node[:versions].count + 1}' cellpadding='4' width='40' height='40' align='center'>"
-      label << "<img scale='both' src='#{node[:icon]}'></img></td>"
-      label << "<td align='left' cellpadding='0'><font point-size='12'><b>#{node[:name].size > 18 ? "#{node[:name][0..16]}..." : node[:name]}</b></font></td></tr>"
-      label << "<tr><td align='left' cellpadding='0'><font point-size='10'>#{node[:footer]}</font></td></tr>"
+    platforms.group_by { |p| p.toCi.ciName }.each do |name, versions|
+      active_rel = versions.find { |v| v.toCi.ciAttributes.try(:is_active) == 'true' } || versions.first
+      active = active_rel.toCi
+      attrs  = active.ciAttributes
+      label  = "<<table border='0' cellspacing='2' fixedsize='true' width='175' height='48'>"
+      label << "<tr><td fixedsize='true' rowspan='#{versions.size + 1}' cellpadding='4' width='40' height='40' align='center'>"
+      label << "<img scale='both' src='#{GRAPHVIZ_IMG_STUB}'></img></td>"
+      label << "<td align='left' cellpadding='0'><font point-size='12'><b>#{name.truncate(18)}</b></font></td></tr>"
+      label << "<tr><td align='left' cellpadding='0'><font point-size='10'>version #{"#{attrs.major_version}"}</font></td></tr>"
       label << "</table>>"
-      graph.add_node(node[:id],
-                      :target  => node[:target],
-                      :URL     => node[:url],
-                      :tooltip => node[:tooltip],
-                      :label   => label,
-                      :color   => node[:color])
+      graph.add_node(active.ciId.to_s,
+                     :target    => '_parent',
+                     :URL       => "#{path}/platforms/#{active.ciId}",
+                     :tooltip   => "#{attrs.source}/#{attrs.pack}/#{attrs.version}",
+                     :label     => label,
+                     :shape     => "#{'double' if active.ciAttributes.try(:availability) == 'redundant'}octagon",
+                     :color     => rfc_action_to_color(active.try(:rfcAction)),
+                     :fillcolor => active_rel.relationAttributes.try(:enabled) == 'false' ? '#FFDDDD' : 'white')
     end
 
-    edges.each { |edge| graph.add_edges(edge[:from], edge[:to], :color => edge[:color]) }
+    links_to.each { |r| graph.add_edges(r.fromCiId.to_s,
+                                        r.toCiId.to_s,
+                                        :color => rfc_action_to_color(r.try(:rfcAction))) }
 
     return graph
   end

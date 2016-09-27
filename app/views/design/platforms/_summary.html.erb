@@ -13,7 +13,7 @@
         <span class="label label-count"><%= norfc %></span>
       <% end %>
       <% if has_design %>
-        <% if group[:cardinality].max > group_items.size %>
+        <% if !group[:obsolete] && group[:cardinality].max > group_items.size %>
           <%= link_to(content_tag(:button, icon('plus'), :class => 'btn btn-mini'), new_assembly_design_platform_component_path(@assembly, @platform, :template_name => group[:template_name]), :disable_with => 'wait...') %>
         <% else %>
           <%= content_tag(:button, content_tag(:i, '', :class => 'fa fa-ban transparent'), :class => 'btn btn-mini disabled') %>
@@ -59,23 +59,10 @@
                   :url      => edit_assembly_design_platform_path(@assembly, @platform) do %>
 <% end %>
 
-<% if false %>
-<%= section_panel 'Pack',
-                  :width    => 'double',
-                  :position => 'left' do %>
-  <p>
-    This platform can be updated with latest changes from the pack.
-    By pulling the pack all "unlocked" attributes will be updated with pack default values. Additionally,
-    new required components, variables and attachments will be added.  All resulting changes
-    will create a new design release and you will have a chance to review the changes before comitting the
-    release.
-  </p>
-  <% if @release && @release.releaseState == 'open'%>
-    <%= link_to('Pull Pack', nil, :class => 'btn btn-info disabled') %>
-  <% else %>
-    <%= link_to('Pull Pack', pack_refresh_assembly_design_platform_path(@assembly, @platform), :method => :put, :class => 'btn btn-info') %>
+<% if @pack_version %>
+  <%= section_panel 'Pack', :width => 'double', :position => 'left' do %>
+    <%= render 'pack' %>
   <% end %>
-<% end %>
 <% end %>
 
 <div id="page_nav_diagram">

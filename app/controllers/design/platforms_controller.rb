@@ -20,7 +20,14 @@ class Design::PlatformsController < Base::PlatformsController
   end
 
   def show
-    @release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly)) if request.format.html?
+    if request.format.html?
+      @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
+                                                   :ciClassName => 'mgmt.Version',
+                                                   :ciName      => @platform.ciAttributes.version})
+      @rfc_counts      = Cms::Rfc.count(design_platform_ns_path(@assembly, @platform))
+      @platform_detail = Cms::CiDetail.find(@platform.ciId)
+    end
+
     super
   end
 
@@ -132,7 +139,10 @@ class Design::PlatformsController < Base::PlatformsController
     result = get_platform_requires_relation_temlates(@platform).inject({}) do |m, r|
       template_name    = r.toCi.ciName.split('::').last
       cardinality      = r.relationAttributes.constraint.gsub('*', '999').split('..')
-      m[template_name] = {:min => cardinality.first.to_i, :max => cardinality.last.to_i, :current => exising_map[template_name] || 0}
+      existing_count = exising_map[template_name] || 0
+      m[template_name] = {:min => cardinality.first.to_i,
+                          :max => cardinality.last.to_i,
+                          :current => existing_count} unless r.toCi.ciState == 'pending_deletion' && existing_count == 0
       m
     end
 
@@ -214,7 +224,12 @@ class Design::PlatformsController < Base::PlatformsController
   end
 
   def pack_refresh
-    ok, message = Transistor.pack_refresh(@platform.ciId)
+    if Cms::Rfc.count(design_platform_ns_path(@assembly, @platform)).values.sum > 0
+      ok = false
+      message = 'Pack pull is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull '
+    else
+      ok, message = Transistor.pack_refresh(@platform.ciId)
+    end
 
     respond_to do |format|
       format.html do
