@@ -96,6 +96,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 		}
 		long startTime = System.currentTimeMillis();
 		if (config.isCloudStubbed(wo)) {
+			String fileName = config.getDataDir() + "/" + wo.getDpmtRecordId() + ".json";
+			writeChefRequest(wo, fileName);
 			processStubbedCloud(wo);
 			logger.info("completing wo without doing anything because cloud is stubbed");
 		} else {
@@ -1333,6 +1335,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 		// put tags from result / recipe OutputHandler
 		wo.getSearchTags().putAll(result.getTagMap());
+		wo.getAdditionalInfo().putAll(result.getAdditionInfoMap());
 
 	}
 

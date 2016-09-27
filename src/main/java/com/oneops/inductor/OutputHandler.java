@@ -36,6 +36,9 @@ public class OutputHandler implements ExecuteStreamHandler {
 	private static String FAULT_KEY = "***FAULT:";
 	private static String TAG_KEY = "***TAG:";
 	private static String RESULTJSON_KEY = "***RESULTJSON:";
+
+	private static String ADDITIONAL_INFO_KEY = "***ADDITIONAL_INFO:";
+
 	private ProcessResult result;
 
 	final private Gson gson = new Gson();
@@ -125,7 +128,18 @@ public class OutputHandler implements ExecuteStreamHandler {
 									+ val);
 
 					}
-					
+
+					keyIndex = line.indexOf(ADDITIONAL_INFO_KEY);
+					if (keyIndex > -1) {
+						int firstEquals = line.indexOf("=", keyIndex);
+						if (firstEquals > -1) {
+							String key = line.substring(keyIndex + ADDITIONAL_INFO_KEY.length(), firstEquals).trim();
+							String value = line.substring(firstEquals + 1);
+							logger.info(ADDITIONAL_INFO_KEY + " key: " + key + ", value: " + value);
+							result.getAdditionInfoMap().put(key, value);
+						}
+					}
+
 					// set last error to use if faults are empty
 					keyIndex = line.indexOf("ERROR:");
 					if (keyIndex > -1) {
