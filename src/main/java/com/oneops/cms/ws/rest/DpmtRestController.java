@@ -23,6 +23,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -146,6 +148,24 @@ public class DpmtRestController extends AbstractRestController {
 			e.printStackTrace();
 			throw e;
 		}	
+	}
+
+	@RequestMapping(method=RequestMethod.GET, value="/dj/simple/deployments/records/{dpmtRecordId}")
+	@ResponseBody
+	public CmsDpmtRecord updateDpmtRecord(@PathVariable long dpmtRecordId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
+		try {
+			CmsDpmtRecord dpmtRecord = djManager.getDpmtRecord(dpmtRecordId);
+			if (scope != null) {
+				CmsDeployment dpmt = djManager.getDeployment(dpmtRecord.getDeploymentId());
+				scopeVerifier.verifyScope(scope, dpmt);
+			}
+			return dpmtRecord;
+		} catch (CmsBaseException e) {
+			logger.error("CmsBaseException in get dpmt record", e);
+			e.printStackTrace();
+			throw e;
+		}
 	}
 	
 	@RequestMapping(method=RequestMethod.GET, value="/dj/simple/deployments/{dpmtId}/records/{dpmtRecordId}")
@@ -292,7 +312,22 @@ public class DpmtRestController extends AbstractRestController {
 		}
 	}
 	
-	
+
+	@RequestMapping(value="/dj/simple/deployments/{dpmtId}/cis/list", method = RequestMethod.POST)
+	@ResponseBody
+	public List<CmsDpmtRecord> getDpmtRecordCis(
+			@PathVariable long dpmtId,
+			@RequestParam (value="ids") String idString,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (scope != null) {
+			CmsDeployment dpmt = djManager.getDeployment(dpmtId);
+			scopeVerifier.verifyScope(scope, dpmt);
+		}
+		List<Long> ids = Stream.of(idString.split(",")).map(Long::parseLong).collect(Collectors.toList());
+		return djManager.getDpmtRecordCis(dpmtId, ids);
+	}	
+		
 	@RequestMapping(value="/dj/simple/deployments/{dpmtId}/cis", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CmsDpmtRecord> getDpmtRecordCis(
@@ -305,7 +340,7 @@ public class DpmtRestController extends AbstractRestController {
 			CmsDeployment dpmt = djManager.getDeployment(dpmtId);
 			scopeVerifier.verifyScope(scope, dpmt);
 		}
-		if (state == null) {
+		if (state == null && execOrder==null) {
 			return djManager.getDpmtRecordCis(dpmtId);
 		} else {
 			return djManager.getDpmtRecordCis(dpmtId, state, execOrder);
