@@ -722,6 +722,7 @@ public class CmsUtil {
 		if (wos.getResultCi() != null) {
 			wo.setResultCi(custCISimple2CI(wos.getResultCi(), "df"));
 		}
+
 		wo.setAdditionalInfo(wos.getAdditionalInfo());
 		return wo;
 	}
