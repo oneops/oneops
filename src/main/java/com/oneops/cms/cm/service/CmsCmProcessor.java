@@ -1958,7 +1958,16 @@ public class CmsCmProcessor {
 		}
 		return names;
 	}
-	
+
+	public String getAttributeDescription(String nsPath, String ciName, String attrName) {
+        List<CmsCI> list =getCiBy3(nsPath, null, ciName);
+        if (!list.isEmpty()) {
+            CmsCI cmsCi = list.get(0);
+            return mdProcessor.getAttribute(cmsCi.getCiClassId(), attrName).getDescription();
+        }
+		return null;
+	}
+
 	private class CiClassNames {
 		String className = null;
 		String shortClassName = null;

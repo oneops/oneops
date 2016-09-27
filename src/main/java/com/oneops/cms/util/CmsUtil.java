@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -42,6 +43,7 @@ import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.exceptions.CIValidationException;
+import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCIRelationSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
@@ -958,11 +960,16 @@ public class CmsUtil {
 			logger.info(sb.toString());
 		}
      
-    	for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
 
+        ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
+    	for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
+            ec.invokeChecked(()->
+            {
     		manifestAttr.setDjValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),manifestAttr.getAttributeName(),manifestAttr.getDjValue(),cloudVars,globalVars,localVars));
     		manifestAttr.setDfValue(processAllVarsForString(ci.getCiId(),ci.getCiName(),ci.getNsPath(),manifestAttr.getAttributeName(),manifestAttr.getDfValue(),cloudVars,globalVars,localVars));
+            });
     	}
+        ec.rethrowExceptionIfNeeded();
     	
 		if (logger.isDebugEnabled()) {
 			StringBuilder sb = new StringBuilder("Processing vars complete for Ci [")
@@ -1228,20 +1235,19 @@ public class CmsUtil {
 				resolvedValue.contains(LOCALVARPFX) ||
 				resolvedValue.contains(GLOBALVARPFX)||
 				resolvedValue.contains(LOCALVARPFX) ) {//substituion did not happen: bad.
-			StringBuilder sb = new StringBuilder("error processVars CI-")
-			.append(ciName).append( " id-").append(ciId)
-			.append(" the attribute- ")
-			.append(attrName)
-			.append(" has a bad ").append(guessVariableType(replPrefix)).append(" var reference! value [").append(resolvedValue);
-			logger.warn(sb.toString());
+            String sb = "error processVars CI-" +
+                    ciName + " id-" + ciId +
+                    " the attribute- " +
+                    attrName +
+                    " has a bad " + guessVariableType(replPrefix) + " var reference! value [" + resolvedValue;
+            logger.warn(sb);
 			throw new CIValidationException(
 					CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
 					getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix));
 		}
 			
 		//prefix.$OO_LOCAL{x}.suffix in Dj to-> prefix.RR.suffix
-		StringBuilder pattToReplace = new StringBuilder(replPrefix).append(varName).append("\\}");
-		String resAfter = attrValue.replaceAll(pattToReplace.toString(), Matcher.quoteReplacement(resolvedValue));
+        String resAfter = attrValue.replaceAll(replPrefix + varName + "\\}", Matcher.quoteReplacement(resolvedValue));
 		if(logger.isDebugEnabled()){
 			logger.debug("Resolved value set to :"+resAfter+ " in Ci "+ciName);
 		}
@@ -1249,14 +1255,21 @@ public class CmsUtil {
 	}
 
 	protected String getErrorMessage(String ciName, String nsPath, String attrName, String resolvedValue, String varName, String prefix) {
+        String attributeDescription = "";
+        try {
+            attributeDescription = cmProcessor.getAttributeDescription(nsPath, ciName, attrName);
+        } catch (Exception ignore) {  
+            // ignore all errors while retrieving description from meta, it should never fail and affect error message generation.
+            // also tests do not inject cmProcessor, so description lookup will throw NPE
+        }
 
-	    return String.format("CI %s[%s], attribute: %s is using invalid or missing %s variable <%s>! Value=%s",
+        return String.format("%s@%s attribute '%s' [%s] references unknown %s variable '%s'",
 				ciName,
 				truncateNS(nsPath),
+                attributeDescription,
 				attrName,
 				guessVariableType(prefix),
-				varName,
-				resolvedValue);
+                varName);
 	}
 
     private String guessVariableType(String prefix) {
@@ -1281,7 +1294,7 @@ public class CmsUtil {
         if (nsPath!=null) {
             Matcher matcher = Pattern.compile("(/[^/]+){2}$").matcher(nsPath);
             if (matcher.find()) {
-                return matcher.group();
+                return matcher.group().substring(1);
             }
         }
         return nsPath;
