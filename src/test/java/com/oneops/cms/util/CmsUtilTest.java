@@ -919,7 +919,7 @@ public class CmsUtilTest {
 
 	@Test
 	public void testErrorMessage(){
-		String errorMessage="CI tomcat[/p1/1], attribute: pre_shutdown_command is using invalid or missing local variable <DEPLOYCONTEXT>! Value=null";
+		String errorMessage="tomcat@p1/1 attribute '' [pre_shutdown_command] references unknown local variable 'DEPLOYCONTEXT'";
 		assertEquals(util.getErrorMessage("tomcat","/LOCAL2/A1/testEnv2/manifest/p1/1","pre_shutdown_command", null, "DEPLOYCONTEXT", "\\$OO_LOCAL\\{"),errorMessage);
 	}
 
