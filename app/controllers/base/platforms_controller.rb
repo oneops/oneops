@@ -160,7 +160,7 @@ class Base::PlatformsController < ApplicationController
           else
             graph.add_edge(edge.fromCiId.to_s, edge.toCiId.to_s,
                            :color => rfc_action_to_color(requires.rfcAction),
-                           :style => edge.relationAttributes.source == 'user' ? 'dashed' : 'solid')
+                           :style => edge.relationAttributes.attributes['source'] == 'user' ? 'dashed' : 'solid')
           end
         end
       end
