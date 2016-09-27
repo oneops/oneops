@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -561,6 +562,7 @@ public class CmsWoProvider {
 		
 		Map<String,Map<String, CmsCI>> services = new HashMap<String,Map<String, CmsCI>>();
 		List<CmsRfcRelation> realizedAsRels = cmrfcProcessor.getToCIRelationsNaked(ciId, "base.RealizedAs", null, null);
+		List<CmsCI> zones = cmProcessor.getCiBy3NsLike(getCloudNsPath(cloud), CmsConstants.ZONE_CLASS, null);
 		
 		if (realizedAsRels.size()>0) {
 			CmsRfcRelation realizedRel = realizedAsRels.get(0);
@@ -584,14 +586,16 @@ public class CmsWoProvider {
 						attrCondition.setAvalue(requredService);
 						attrCondition.setCondition("eq");
 						attrsQuery.add(attrCondition);
-						List<CmsCIRelation> cloudServiceRels =  cmProcessor.getFromCIRelationsByAttrs(cloud.getCiId(), "base.Provides", null, null, attrsQuery );
-						if (cloudServiceRels.size()>0) {
-							CmsCI cloudService = cloudServiceRels.get(0).getToCi();
-							if (!services.containsKey(requredService)) {
-								services.put(requredService, new HashMap<String, CmsCI>());
-							}
-							services.get(requredService).put(cloud.getCiName(), cloudService);
-						}
+
+						//get cloud level service
+                        List<CmsCIRelation> cloudServiceRels = getServiceRelations(cloud, attrsQuery);
+                        addToServices(services, requredService, cloud.getCiName(), cloudServiceRels);
+
+                        //get zone level service
+                        for (CmsCI zone : zones) {
+                        	List<CmsCIRelation> zoneServiceRels = getServiceRelations(zone, attrsQuery);
+                        	addToServices(services, requredService, cloud.getCiName() + "/" + zone.getCiName(), zoneServiceRels);
+                        }
 					}
 				}
 			} else {
@@ -606,8 +610,25 @@ public class CmsWoProvider {
 		return services;
 	}
 	
+	private String getCloudNsPath(CmsCI cloud) {
+        return cloud.getNsPath() + "/" + cloud.getCiName();
+	}
+
+	private List<CmsCIRelation> getServiceRelations(CmsCI ci, List<AttrQueryCondition> attrsQuery) {
+		List<CmsCIRelation> serviceRels =  cmProcessor.getFromCIRelationsByAttrs(ci.getCiId(), CmsConstants.BASE_PROVIDES, null, null, attrsQuery );
+		return serviceRels;
+	}
 	
-	
+	private void addToServices(Map<String,Map<String, CmsCI>> services, String requredService, String ciName, List<CmsCIRelation> serviceRels) {
+		if (serviceRels.size()>0) {
+			CmsCI serviceCi = serviceRels.get(0).getToCi();
+			if (!services.containsKey(requredService)) {
+				services.put(requredService, new LinkedHashMap<String, CmsCI>());
+			}
+			services.get(requredService).put(ciName, serviceCi);
+		}
+	}
+
 	private CmsCI getBox(long ciId) {
 		
 		CmsCI box = null;
