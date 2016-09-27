@@ -17,6 +17,18 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.log4j.Logger;
+
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -32,17 +44,13 @@ import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.ExceptionConsolidator;
-import com.oneops.cms.simple.domain.*;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsCIRelationSimple;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.domain.AttrQueryCondition;
-import org.apache.log4j.Logger;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * The Class CmsUtil.
@@ -674,7 +682,7 @@ public class CmsUtil {
 		if (wo.getServices() != null) {
 			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<String,Map<String, CmsCISimple>>();
 			for (Entry<String,Map<String, CmsCI>> serviceEntry : wo.getServices().entrySet()) {
-				simpleServs.put(serviceEntry.getKey(), new HashMap<String,CmsCISimple>());
+				simpleServs.put(serviceEntry.getKey(), new LinkedHashMap<String,CmsCISimple>());
 				for (Entry<String,CmsCI> cloudEntry : serviceEntry.getValue().entrySet()) {
 					simpleServs.get(serviceEntry.getKey()).put(cloudEntry.getKey(), custCI2CISimple(cloudEntry.getValue(),"df",true));
 				}
@@ -714,7 +722,8 @@ public class CmsUtil {
 		if (wos.getResultCi() != null) {
 			wo.setResultCi(custCISimple2CI(wos.getResultCi(), "df"));
 		}
-		
+
+		wo.setAdditionalInfo(wos.getAdditionalInfo());
 		return wo;
 	}
 
@@ -1587,6 +1596,5 @@ public class CmsUtil {
     	}
     	return varsMap;
     }
-
 	
 }
