@@ -309,10 +309,10 @@ class Chef
           unless exists_in_pack
             case relationShort
               when 'Payload'
-                exists_in_pack = pack.resources[fromCiName].include?('payloads') &&
+                exists_in_pack = pack.resources[fromCiName] && pack.resources[fromCiName].include?('payloads') &&
                     pack.resources[fromCiName]['payloads'].include?(toCiName)
               when 'WatchedBy'
-                exists_in_pack = pack.resources[fromCiName].include?('monitors') &&
+                exists_in_pack = pack.resources[fromCiName] && pack.resources[fromCiName].include?('monitors') &&
                     pack.resources[fromCiName]['monitors'].include?(toCiName)
               when 'Requires'
                 exists_in_pack = pack.resources[fromCiName] && pack.resources[toCiName]
