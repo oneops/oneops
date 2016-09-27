@@ -78,6 +78,7 @@ public interface CmsDjManager {
 	List<CmsDeployment> findDeploymentByReleaseId(long releaseId, String state, boolean latest);
 	List<CmsDpmtRecord> getDpmtRecords(long dpmtId);
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId);
+	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, List<Long> Ids);
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, String state, Integer execOrder);
 	List<CmsDpmtRecord> getDpmtRecordRelations(long dpmtId);
 	List<CmsDpmtRecord> getDeploymentRecordByCiId(long ciId, String state);
