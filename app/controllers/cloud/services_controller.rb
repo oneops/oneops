@@ -181,7 +181,14 @@ class Cloud::ServicesController < ApplicationController
 
   def edit
     respond_to do |format|
-      format.html
+      format.html do
+        unless @zone
+          @zone_services = Cms::Ci.all(:params => {:nsPath      => cloud_ns_path(@cloud),
+                                                   :recursive   => true,
+                                                   :ciClassName => "cloud.zone.#{@service.ciClassName.split('.', 2).last}"})
+        end
+      end
+
       format.json { render_json_ci_response(true, @service) }
     end
   end
@@ -229,10 +236,17 @@ class Cloud::ServicesController < ApplicationController
 
   def diff
     changes_only = params[:changes_only] != 'false'
-
-    @diff = Cms::Relation.all(:params => {:nsPath            => cloud_ns_path(@cloud),
-                                          :recursive         => true,
-                                          :relationShortName => 'Provides'}).inject([]) do |m, r|
+    # We have a problem with Provides relation for cloud services being stored in the wrong namespace -
+    # one level higher ("/org/_orgs") instead of in the cloud namespace.  Therefore, we need to do 2 queries
+    # below to capture all Provides relations from the cloud and its zones.
+    # TODO  Fix the namespace.
+    provides_rels = Cms::Relation.all(:params => {:ciId              => @cloud.ciId,
+                                                  :direction         => 'from',
+                                                  :relationShortName => 'Provides'}) +
+                    Cms::Relation.all(:params => {:nsPath            => cloud_ns_path(@cloud),
+                                                  :recursive         => true,
+                                                  :relationShortName => 'Provides'})
+    @diff = provides_rels.inject([]) do |m, r|
       service  = r.toCi
       template = locate_cloud_service_template(service)
       diff     = calculate_ci_diff(service, template)
