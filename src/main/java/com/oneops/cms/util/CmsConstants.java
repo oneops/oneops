@@ -22,7 +22,9 @@ public final class CmsConstants {
 	//Cloud active state
 	public static final String CLOUD_STATE_ACTIVE = "active";
 	public static final String CLOUD_STATE_OFFLINE = "offline";
-	
+
+	public static final String CI_STATE_PENDING_DELETION = "pending_deletion";
+
 	public static final String SECURED_ATTRIBUTE = "IS_SECURED";
 	public static final String ENCRYPTED_ATTR_VALUE = "ENC_VALUE";
 	
@@ -38,19 +40,31 @@ public final class CmsConstants {
 	public static final String SEARCH_TS_PATTERN =  "yyyy-MM-dd'T'HH:mm:ss.SSS";
 	
 	//starting to put some relation constants 
+	public static final String ENTRYPOINT = "Entrypoint";
+	//base relations
 	public static final String BASE_REALIZED_AS = "base.RealizedAs";
 	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
 	public static final String DEPLOYED_TO = "base.DeployedTo";
+	public static final String BASE_PROVIDES = "base.Provides" ;
+	public static final String BASE_CONSUMES = "base.Consumes";
+	//manifest
+	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
+	public static final String MANIFEST_REQUIRES = "manifest.Requires";
 
-	public static final String ENTRYPOINT = "Entrypoint";
 
+
+	//attributes
 	public static final String ATTR_VALUE_TYPE_DF = "df";
-	
 	public static final String ATTR_NAME_ENABLED = "enabled";
 	public static final String ATTR_NAME_AUTO_COMPLY = "autocomply";
-	
-	public static final String CI_STATE_PENDING_DELETION = "pending_deletion";
-
 	public static final int SECONDARY_CLOUD_STATUS = 2;
 	public static final int PRIMARY_CLOUD_STATUS = 1;
+
+	//class-names
+	//account
+	public static final String ACCOUNT_CLOUD_CLASS = "account.Cloud";
+	//manifest
+	public static final String MONITOR_CLASS = "manifest.Monitor";
+
+
 }
