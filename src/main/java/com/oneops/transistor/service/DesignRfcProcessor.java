@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.oneops.cms.dj.service.CmsRfcProcessor;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -49,9 +50,14 @@ public class DesignRfcProcessor {
 	private TransUtil trUtil;
 	private CmsCmProcessor cmProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
+    private CmsRfcProcessor rfcProcessor;
 
 
-	public void setTrUtil(TransUtil trUtil) {
+    public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
+        this.rfcProcessor = rfcProcessor;
+    }
+
+    public void setTrUtil(TransUtil trUtil) {
 		this.trUtil = trUtil;
 	}
 	
@@ -74,23 +80,23 @@ public class DesignRfcProcessor {
 		designPlatform.setNsPath(assembly.getNsPath() + "/" + assembly.getCiName());
 		
 		trUtil.verifyScope(designPlatform, scope);
+		
+		throwExceptionIfAlreadyExists(designPlatform);
 
-		List<CmsRfcCI> existingPlat = cmRfcMrgProcessor.getDfDjCiNakedLower(designPlatform.getNsPath(), designPlatform.getCiClassName(), designPlatform.getCiName(), null);
-		
-		if (existingPlat.size()>0) {
-			CmsRfcCI existingCi = existingPlat.get(0);
-            String errMsg = "the ci of this ns/class/ci-name already exists " + existingCi.getNsPath() + ';' + existingCi.getCiClassName() + ';' + existingCi.getCiName();
-            logger.error(errMsg);
-            throw new TransistorException(CmsError.CMS_CI_OF_NS_CLASS_NAME_ALREADY_EXIST_ERROR, errMsg);
-        }
-		
 		String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
 		trUtil.cleanAndCreatePlatformNS(platNsPath);
-		
-		
-		String mgmtTemplNsPath = "/public/" + designPlatform.getAttribute("source").getNewValue() 
-								+ "/packs/" + designPlatform.getAttribute("pack").getNewValue()
-								+ "/" + designPlatform.getAttribute("version").getNewValue();
+
+
+		String nsPrefix = "/public/" + designPlatform.getAttribute("source").getNewValue()
+				+ "/packs/" + designPlatform.getAttribute("pack").getNewValue();
+        List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", designPlatform.getAttribute("version").getNewValue());
+        for (CmsCI version : versions) {
+            designPlatform.getAttribute("pack_digest").setNewValue(version.getAttribute("commit").getDfValue());
+        }
+
+
+		String mgmtTemplNsPath = nsPrefix
+				+ "/" + designPlatform.getAttribute("version").getNewValue();
 		
 		List<CmsCI> templatePlatforms = cmProcessor.getCiBy3(mgmtTemplNsPath, "mgmt.catalog.Platform", null);
 		if (templatePlatforms.size()==0) {
@@ -114,9 +120,19 @@ public class DesignRfcProcessor {
 		return designPlatformRfc;
 	}
 
+	private void throwExceptionIfAlreadyExists(CmsRfcCI designPlatform) {
+		List<CmsRfcCI> existingPlat = cmRfcMrgProcessor.getDfDjCiNakedLower(designPlatform.getNsPath(), designPlatform.getCiClassName(), designPlatform.getCiName(), null);
+        if (existingPlat.size()>0) {
+			CmsRfcCI existingCi = existingPlat.get(0);
+            String errMsg = "the ci of this ns/class/ci-name already exists " + existingCi.getNsPath() + ';' + existingCi.getCiClassName() + ';' + existingCi.getCiName();
+            logger.error(errMsg);
+            throw new TransistorException(CmsError.CMS_CI_OF_NS_CLASS_NAME_ALREADY_EXIST_ERROR, errMsg);
+        }
+	}
+
 	public long deletePlatform(long designPlatformId, String userId, String scope) {
 
-		CmsCI designPlatform = cmProcessor.getCiById(designPlatformId);
+		CmsRfcCI designPlatform = cmRfcMrgProcessor.getCiById(designPlatformId, null);
 		if (designPlatform == null) {
 			logger.error("There is no platform with id = " + designPlatformId);
 			return 0;
@@ -129,10 +145,8 @@ public class DesignRfcProcessor {
 		for (CmsRfcCI component : platComponents) {
 			cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(component.getCiId(), userId, 0);
 		}
-		
-		CmsRfcCI platDeleteRfc = cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
-		
-		return platDeleteRfc.getCiId();
+		cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(designPlatformId, userId, 0);
+		return designPlatform.getCiId();
 	}
 
 	
@@ -189,14 +203,8 @@ public class DesignRfcProcessor {
 		}
 		trUtil.verifyScope(designPlatform, scope);
 		
-		List<CmsRfcCI> existingPlat = cmRfcMrgProcessor.getDfDjCiNakedLower(designPlatform.getNsPath(), designPlatform.getCiClassName(), designPlatform.getCiName(), null);
 		
-		if (existingPlat.size()>0) {
-			CmsRfcCI existingCi = existingPlat.get(0);
-            String errMsg = "the ci of this ns/class/ci-name already exists " + existingCi.getNsPath() + ';' + existingCi.getCiClassName() + ';' + existingCi.getCiName();
-            logger.error(errMsg);
-            throw new TransistorException(CmsError.CMS_CI_OF_NS_CLASS_NAME_ALREADY_EXIST_ERROR, errMsg);
-        }
+		throwExceptionIfAlreadyExists(designPlatform);
 
 		
 		String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
@@ -542,4 +550,29 @@ public class DesignRfcProcessor {
 		return newRfc;
 	}
 
+
+    private static String getPlatformNs(CmsRfcCI platform) {
+        return platform.getNsPath()+"/_design/"+platform.getCiName();
+    }
+
+
+    public List<CmsRfcCI> getPlatformRfcs(long platId) {
+        String nsPath = getPlatformNs(cmRfcMrgProcessor.getCiById(platId));
+        return rfcProcessor.getOpenRfcCIByClazzAndNameNoAttrs(nsPath, null, null);
+    }
+
+    public long discardReleaseForPlatform(long platId) {
+        CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
+        rfcProcessor.rmRfcs(getPlatformNs(platformRfc));
+        if (platformRfc.getIsActiveInRelease()){
+            rfcProcessor.rmRfcCiFromRelease(platformRfc.getRfcId());
+        }
+        return platId;
+    }
+
+
+    public long commitReleaseForPlatform(long platId, String desc, String userId) {
+        CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
+        return rfcProcessor.commitReleaseForPlatform(platformRfc, desc, userId);
+    }
 }
