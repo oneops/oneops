@@ -5,7 +5,6 @@
                   :menu  => new_url && [{:display => icon('plus', 'Add Zone'), :link => new_url, :remote => true}]) do %>
   <%= ci_list(@zones, :new_link => new_url && link_to(icon('plus', 'Add Zone...'), new_url, :remote => true)) do |builder, target| %>
     <% builder.target link_to('', edit_cloud_zone_path(@cloud, target), :remote => true) %>
-    <% builder.icon :none %>
     <% description = target.ciAttributes.description %>
     <% builder.middle description if description.present? %>
     <% if write_access %>

@@ -3,27 +3,44 @@
 <% end %>
 
 <% if has_cloud_services?(@cloud.ciId) %>
-  <%= section_panel 'Actions', :id => 'overview_action_section', :width => 'single', :position => 'right' do %>
-    <%= list_simple(@service.meta.actions, :toolbar => false) do |item, action| %>
-      <% item.target do %>
-        <%= procedure_params = {:ciId              => @cloud.ciId,
-                                :direction         => 'from',
-                                :relationName      => 'base.Provides',
-                                :actionCiIds       => [@service.ciId],
-                                :procedureCiId     => 0,
-                                :procedureState    => 'active',
-                                :actionCiClassName => @service.ciClassName,
-                                :actionName        => action.actionName}
-            link_to('', new_operations_procedure_path(procedure_params), :remote => true) %>
-      <% end %>
+  <% actions = @service.meta.actions %>
+  <% if actions.present? %>
+    <%= section_panel 'Actions', :id => 'overview_action_section', :width => 'single', :position => 'right' do %>
+      <%= list_simple(actions, :toolbar => false) do |item, action| %>
+        <% item.target do %>
+          <%= procedure_params = {:ciId              => @cloud.ciId,
+                                  :direction         => 'from',
+                                  :relationName      => 'base.Provides',
+                                  :actionCiIds       => [@service.ciId],
+                                  :procedureCiId     => 0,
+                                  :procedureState    => 'active',
+                                  :actionCiClassName => @service.ciClassName,
+                                  :actionName        => action.actionName}
+              link_to('', new_operations_procedure_path(procedure_params), :remote => true) %>
+        <% end %>
 
-      <% item.simple do %>
-        <%= highlight(action.actionName) %>
+        <% item.simple do %>
+          <%= highlight(action.actionName) %>
+          <br/>
+          <%= action.description %>
+        <% end %>
         <br/>
-        <%= action.description %>
+        <% item.itemid action.actionId %>
       <% end %>
-      <br/>
-      <% item.itemid action.actionId %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @zone_services.present? %>
+  <%= section_panel 'Zone Services', :width => 'single', :position => 'right' do %>
+    <%= ci_list @zone_services do |builder, target| %>
+      <% zone = target.nsPath.split('/')[4] %>
+      <% builder.target link_to('', edit_cloud_zone_service_path(@cloud, zone, target)) %>
+      <% builder.icon ci_class_image_url('cloud.Zone') %>
+      <% builder.top do %>
+        <span class="topname"><%= zone %></span>
+      <% end %>
+      <% builder.bottom :none %>
     <% end %>
   <% end %>
 <% end %>

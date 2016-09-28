@@ -21,11 +21,13 @@ class Design::PlatformsController < Base::PlatformsController
 
   def show
     if request.format.html?
-      @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
-                                                   :ciClassName => 'mgmt.Version',
-                                                   :ciName      => @platform.ciAttributes.version})
-      @rfc_counts      = Cms::Rfc.count(design_platform_ns_path(@assembly, @platform))
-      @platform_detail = Cms::CiDetail.find(@platform.ciId)
+      unless @platform.rfcAction == 'add'
+        @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
+                                                     :ciClassName => 'mgmt.Version',
+                                                     :ciName      => @platform.ciAttributes.version})
+        @rfc_counts      = Cms::Rfc.count(design_platform_ns_path(@assembly, @platform))
+        @platform_detail = Cms::CiDetail.find(@platform.ciId)
+      end
     end
 
     super
