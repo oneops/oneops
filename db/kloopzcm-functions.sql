@@ -2482,7 +2482,7 @@ CREATE OR REPLACE FUNCTION dj_update_rfc_relation(p_rfc_id bigint, p_exec_order 
 $BODY$
 DECLARE
 BEGIN
-    perform dj_update_rfc_relation(p_rfc_id, p_exec_order, p_comments, p_update_by, null);
+    perform dj_update_rfc_relation(p_rfc_id, p_exec_order, p_comments, p_updated_by, null);
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
