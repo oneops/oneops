@@ -127,6 +127,7 @@
     </bean>
     
     <bean id="dpmtProcessor" class="com.oneops.search.msg.processor.DpmtMessageProcessor">
+        <property name="client" ref="client"/>
     	<property name="template" ref="elasticsearchTemplate" />
     </bean>
     
