@@ -23,6 +23,7 @@ import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 
 import java.util.List;
+import java.util.Map;
 
 public class DesignManagerImpl implements DesignManager {
 
@@ -109,7 +110,7 @@ public class DesignManagerImpl implements DesignManager {
 	}
 
 	@Override
-	public List<CmsRfcCI> getPlatformRfcs(long platId, String userId) {
+	public Map<String, List<?>> getPlatformRfcs(long platId, String userId) {
 		return designRfcProcessor.getPlatformRfcs(platId);
 	}
 

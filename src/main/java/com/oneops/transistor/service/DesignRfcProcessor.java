@@ -556,9 +556,12 @@ public class DesignRfcProcessor {
     }
 
 
-    public List<CmsRfcCI> getPlatformRfcs(long platId) {
+    public Map<String, List<?>> getPlatformRfcs(long platId) {
         String nsPath = getPlatformNs(cmRfcMrgProcessor.getCiById(platId));
-        return rfcProcessor.getOpenRfcCIByClazzAndNameNoAttrs(nsPath, null, null);
+		Map<String, List<?>> map = new HashMap<>();
+		map.put("relations", rfcProcessor.getOpenRfcRelationsByNs(nsPath));
+		map.put("rfcs", rfcProcessor.getOpenRfcCIByClazzAndNameNoAttrs(nsPath, null, null));
+        return map;
     }
 
     public long discardReleaseForPlatform(long platId) {

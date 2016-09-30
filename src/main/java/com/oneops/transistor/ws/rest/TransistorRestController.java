@@ -722,7 +722,7 @@ public class TransistorRestController extends AbstractRestController {
      */
     @RequestMapping(method=RequestMethod.GET, value="platforms/{platId}/rfcs")
     @ResponseBody
-    public List<CmsRfcCI> getPlatformRfcs(
+    public Map<String, List<?>> getPlatformRfcs(
             @PathVariable long platId,
             @RequestHeader(value="X-Cms-User", required = false)  String userId) {
         if (userId == null) userId = "oneops-system";
