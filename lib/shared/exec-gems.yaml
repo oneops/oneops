@@ -24,6 +24,9 @@ common:
       - rack
       - 1.6.4
     -
+      - fog-profitbricks
+      - 0.0.5
+    -
       - fog-aliyun
       - 0.1.0
 
