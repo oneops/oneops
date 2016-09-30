@@ -141,6 +141,41 @@ public class BomManagerImplTest {
         impl.check4Secondary(platform, platformCloudRels, nsPath);
     }
 
+    @Test(expectedExceptions = {})
+    public void noEntryPoint() throws Exception {
+        CmsCmProcessor cmProcessor =mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
+        String[] inactivePrimaryclouds = {"c1", "c2"};
+        String[] secondaryClouds = {"c3", "c4"};
+        List<CmsCIRelation> platformCloudRels = Stream.of(inactivePrimaryclouds)
+                .map(s -> (createInactivePrimaryCloud(s)))
+                .collect(toList());
+        List<CmsCIRelation> secondaryCloudRels = Stream.of(secondaryClouds)
+                .map(s -> (createSecondaryCloud(s)))
+                .collect(toList());
+        platformCloudRels.addAll(secondaryCloudRels);
+        //returns all secondary clouds deployed
+        doAnswer(new Answer<List<CmsCIRelation>>() {
+            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
+                return Stream.of(clouds[((Long)invocation.getArguments()[0]).intValue()])
+                        .map(s -> (createSecondaryDeployedCloud(s)))
+                        .collect(toList());
+            }
+        }).when(cmProcessor).getToCIRelationsByNs(anyLong(),eq(DEPLOYED_TO),anyString(),eq("Fqdn"),anyString());
+        String nsPath = "/test/a1/bom/1";
+
+        //returns valid entry point
+        doAnswer(new Answer<List<CmsCIRelation>>() {
+            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
+                return Collections.EMPTY_LIST;
+            }
+        }).when(cmProcessor).getFromCIRelations(anyLong(), anyString(), eq("Entrypoint"), anyString());
+
+        CmsCI platform = ci("myPlat",1234);
+        //will allow to proceed
+        impl.check4Secondary(platform, platformCloudRels, nsPath);
+    }
+
     private CmsCIRelation relation(CmsCI toCi,String relationName ) {
         CmsCIRelation rel = new CmsCIRelation();
         rel.setToCi(toCi);
