@@ -284,9 +284,10 @@ public class BomManagerImpl implements BomManager {
 		//what is deployed currently.
 		String entryPoint = getEntryPoint(platform);
 		if(entryPoint == null ){
-            throw new TransistorException(TRANSISTOR_MISSING_ENTRY_POINT,String.format( "There was no entry point relation ci for % s and ci %s ",nsPath,platform.getCiId()));
-
-        }
+			//for platforms which dont have entry points, like schema.
+			logger.info("Skipping secondary check , as entry point is absent for this " +nsPath +" platform ciId " +platform.getCiId());
+			return;
+		}
 
 		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
 				.map(CmsCIRelationBasic::getToCiId)
