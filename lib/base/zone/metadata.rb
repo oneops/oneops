@@ -9,7 +9,7 @@ license 'Copyright OneOps, All rights reserved.'
 grouping 'default',
          :access    => 'global',
          :namespace => true,
-         :packages  => %w(base cloud)
+         :packages  => %w(base cloud account.provider)
 
 attribute 'description',
           :description => 'Description',
