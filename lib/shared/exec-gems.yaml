@@ -23,6 +23,9 @@ common:
     -
       - rack
       - 1.6.4
+    -
+      - fog-profitbricks
+      - 0.0.5
 
 chef-10.16.6:
     # workaround for chef install dependency issues
