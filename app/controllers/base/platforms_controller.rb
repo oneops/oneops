@@ -56,15 +56,44 @@ class Base::PlatformsController < ApplicationController
 
   def diagram
     begin
+      ns_path = if @environment
+                  transition_platform_ns_path(@environment, @platform)
+                elsif @design
+                  catalog_design_platform_ns_path(@design, @platform)
+                elsif @assembly
+                  design_platform_ns_path(@assembly, @platform)
+                else
+                  @platform.nsPath
+                end
+
+      templates     = get_platform_requires_relation_temlates(@platform)
+      rels          = Cms::DjRelation.all(:params => {:nsPath => ns_path, :includeToCi => true})
+      depends_rels  = []
+      requires_rels = []
+      cluster_map   = {}
+      rels.each do |r|
+        short_name = r.relationName.split('.').last
+        if short_name == 'DependsOn'
+          depends_rels << r
+        elsif short_name == 'Requires'
+          requires_rels << r
+        elsif short_name == 'ManagedVia'
+          cluster_map[r.fromCiId] = r.toCi
+          cluster_map[r.toCiId] = r.toCi
+        end
+      end
+
+      graph_options = {:truecolor => true,
+                       :rankdir   => 'TB',
+                       :center    => true,
+                       :ratio     => 'fill',
+                       :size      => '9,6',
+                       :bgcolor   => 'transparent',
+                       :compound  => true}
+
       graph = GraphViz::new('G')
-      graph_options = {
-            :truecolor  => true,
-            :rankdir    => 'TB',
-            :center     => true,
-            :ratio      => 'fill',
-            :size       => params[:size] || '9,6',
-            :bgcolor    => 'transparent'}
       graph[graph_options.merge(params.slice(*graph_options.keys))]
+
       graph.node[:fontsize  => 8,
                  :fontname  => 'ArialMT',
                  :fontcolor => 'black',
@@ -80,26 +109,18 @@ class Base::PlatformsController < ApplicationController
                  :fontcolor => 'black',
                  :color     => 'gray']
 
+      clusters = cluster_map.values.uniq.to_map_with_value do |c|
+        [c, graph.add_graph("cluster_#{c.ciId}",
+                            :clusterrank => 'local',
+                            :label => "managed via #{c.ciName}",
+                            :style => 'solid,rounded')]
+      end
+      clusters[nil] = graph
 
-      ns_path = if @environment
-                  transition_platform_ns_path(@environment, @platform)
-                elsif @design
-                  catalog_design_platform_ns_path(@design, @platform)
-                elsif @assembly
-                  design_platform_ns_path(@assembly, @platform)
-                else
-                  @platform.nsPath
-                end
-      depends_rels = Cms::DjRelation.all(:params => {:nsPath => ns_path, :relationShortName => 'DependsOn'})
-
-      templates = get_platform_requires_relation_temlates(@platform)
-      components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
-                                                   :relationShortName => 'Requires',
-                                                   :direction         => 'from',
-                                                   :includeToCi       => true})
-      components.each do |requires|
+      urls = {}
+      requires_rels.each do |requires|
         ci       = requires.toCi
-        template = templates.find { |t| t.toCi.ciName == requires.relationAttributes.template }
+        template = templates.find {|t| t.toCi.ciName == requires.relationAttributes.template}
         if @assembly
           if @environment
             url = edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, ci)
@@ -111,6 +132,8 @@ class Base::PlatformsController < ApplicationController
         else
           url = catalog_pack_platform_component_path(:platform_id => @platform, :id => ci)
         end
+        urls[ci.ciId] = url
+
         img   = "<img scale='both' src='#{GRAPHVIZ_IMG_STUB}'/>"
         label = "<<table border='0' cellspacing='2' fixedsize='true' width='180' height='48'>"
         label << "<tr><td fixedsize='true' rowspan='2' cellpadding='4' width='40' height='40' align='center'>#{img}</td>"
@@ -119,55 +142,56 @@ class Base::PlatformsController < ApplicationController
 
         optional = requires.relationAttributes.constraint.start_with?('0..')
         obsolete = template && template.toCi.ciState == 'pending_deletion'
-        graph.add_node(requires.toCiId.to_s,
+        g = clusters[cluster_map[requires.toCiId]]
+
+        g.add_node(requires.toCiId.to_s,
                        :id        => requires.toCiId.to_s,
-                       :target    => "_parent",
+                       :target    => '_parent',
                        :tooltip   => ci.ciClassName,
                        :URL       => url,
                        :label     => label,
-                       :shape     => optional ? 'ellipse' : nil,
+                       # :shape     => optional ? 'ellipse' : nil,
                        :style     => "bold,rounded#{',dashed' if optional}#{',filled' if obsolete}",
                        :fillcolor => obsolete ? '#FFDDDD' : nil,
                        :color     => rfc_action_to_color(ci.rfcAction))
+      end
 
-        depends_rels.select { |rel| rel.fromCiId == requires.toCiId }.each do |edge|
-          if edge.relationAttributes.flex == 'true'
-            edgelabel = "<<table border='0' cellspacing='1'><tr><td border='1' colspan='2'><font point-size='12'>Scale</font></td></tr>"
-            edgelabel << "<tr><td align='left'>Minimum</td><td>#{edge.relationAttributes.min}</td></tr>"
-            edgelabel << "<tr><td align='left' bgcolor='#D9EDF7'>Current</td><td bgcolor='#D9EDF7'>#{edge.relationAttributes.current}</td></tr>"
-            edgelabel << "<tr><td align='left'>Maximum</td><td>#{edge.relationAttributes.max}</td></tr>"
-            edgelabel << "</table>>"
-            graph.add_edge(edge.fromCiId.to_s, edge.toCiId.to_s,
-                           :labeltarget   => "_parent",
-                           :labelURL      => "#{url}",
-                           :minlen        => 1,
-                           :penwidth      => 1,
-                           :color         => rfc_action_to_color(requires.rfcAction),
-                           :labeldistance => 3.0,
-                           :arrowhead     => 'crow',
-                           :label         => edgelabel)
-          elsif edge.relationAttributes.converge == 'true'
-            edgelabel = "<<table border='0' cellspacing='1'><tr><td border='1' colspan='2'><font point-size='12'>Converge</font></td></tr></table>>"
-            graph.add_edge(edge.fromCiId.to_s, edge.toCiId.to_s,
-                           :labeltarget   => "_parent",
-                           :labelURL      => url,
-                           :minlen        => 1,
-                           :penwidth      => 1,
-                           :color         => rfc_action_to_color(requires.rfcAction),
-                           :labeldistance => 3.0,
-                           :arrowhead     => 'odiamond',
-                           :label         => edgelabel)
-          else
-            graph.add_edge(edge.fromCiId.to_s, edge.toCiId.to_s,
-                           :color => rfc_action_to_color(requires.rfcAction),
-                           :style => edge.relationAttributes.attributes['source'] == 'user' ? 'dashed' : 'solid')
-          end
+      depends_rels.each do |rel|
+        if rel.relationAttributes.flex == 'true'
+          edgelabel = "<<table border='0' cellspacing='1'><tr><td border='1' colspan='2'><font point-size='12'>Scale</font></td></tr>"
+          edgelabel << "<tr><td align='left'>Minimum</td><td>#{rel.relationAttributes.min}</td></tr>"
+          edgelabel << "<tr><td align='left' bgcolor='#D9EDF7'>Current</td><td bgcolor='#D9EDF7'>#{rel.relationAttributes.current}</td></tr>"
+          edgelabel << "<tr><td align='left'>Maximum</td><td>#{rel.relationAttributes.max}</td></tr>"
+          edgelabel << "</table>>"
+          graph.add_edge(rel.fromCiId.to_s, rel.toCiId.to_s,
+                         :labeltarget   => '_parent',
+                         :labelURL      => urls[rel.fromCiId],
+                         :minlen        => 1,
+                         :penwidth      => 1,
+                         :color         => rfc_action_to_color(rel.rfcAction),
+                         :labeldistance => 3.0,
+                         :arrowhead     => 'crow',
+                         :label         => edgelabel)
+        elsif rel.relationAttributes.converge == 'true'
+          edgelabel = "<<table border='0' cellspacing='1'><tr><td border='1' colspan='2'><font point-size='12'>Converge</font></td></tr></table>>"
+          graph.add_edge(rel.fromCiId.to_s, rel.toCiId.to_s,
+                         :labeltarget   => '_parent',
+                         :minlen        => 1,
+                         :penwidth      => 1,
+                         :color         => rfc_action_to_color(rel.rfcAction),
+                         :labeldistance => 3.0,
+                         :arrowhead     => 'odiamond',
+                         :label         => edgelabel)
+        else
+          graph.add_edge(rel.fromCiId.to_s, rel.toCiId.to_s,
+                         :color => rfc_action_to_color(rel.rfcAction),
+                         :style => rel.relationAttributes.attributes['source'] == 'user' ? 'dashed' : 'solid')
         end
       end
       @diagram = graphvis_sub_ci_remote_images(graph.output(:svg => String))
-    rescue Exception => e
-      Rails.logger.warn "Failed to generate platform diagram: #{e}"
-      @diagram = nil
+    # rescue Exception => e
+    #   Rails.logger.warn "Failed to generate platform diagram: #{e}"
+    #   @diagram = nil
     end
 
     respond_to do |format|
