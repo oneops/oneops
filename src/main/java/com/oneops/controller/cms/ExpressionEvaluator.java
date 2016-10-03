@@ -70,7 +70,7 @@ public class ExpressionEvaluator {
 				Expression expr = exprParser.parseExpression(filter);
 				EvaluationContext context = getEvaluationContext(wo);
 				//parse the filter expression and check if it matches this ci/rfc
-				boolean match = expr.getValue(context, Boolean.class);
+				Boolean match = expr.getValue(context, Boolean.class);
 				if (logger.isDebugEnabled()) {
 					logger.debug("Expression " + filter + " provided by compliance ci " + complianceCi.getCiId() + " not matched for ci " + getCiName(wo));	
 				}
