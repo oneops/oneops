@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.oneops.cms.dj.domain.CmsDjBase;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
@@ -447,5 +448,19 @@ public class DjRestController extends AbstractRestController {
         long deleted = djManager.rmRfcs(nsPath);
         return "{\"deleted\":" + deleted + "}";
     }
+
+    @RequestMapping(value="/dj/simple/timeline", method=RequestMethod.GET)
+	@ResponseBody
+	public List<CmsDjBase> getDjTimeLine(
+			@RequestParam(value = "nsPath", required = true) String nsPath,
+			@RequestParam(value = "filter", required = false) String filter,
+			@RequestParam(value = "releaseOffset", required = false) Long releaseOffset,
+			@RequestParam(value = "dpmtOffset", required = false) Long dpmtOffset,
+			@RequestParam(value = "limit", required = false) Integer limit,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
+
+		scopeVerifier.verifyScope(scope, nsPath);
+		return djManager.getDjTimeLine(nsPath, filter, releaseOffset, dpmtOffset, limit);
+	}
 
 }
