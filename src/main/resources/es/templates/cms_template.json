@@ -6,6 +6,22 @@
       "_default_": {
         "dynamic_templates": [
           {
+            "cost_rate_field": {
+              "mapping": {
+                "index": "analyzed",
+                "omit_norms": true,
+                "type": "string",
+                "fields": {
+                  "number": {
+                    "type": "float"
+                  }
+                }
+              },
+              "match_mapping_type": "string",
+              "match": "cost_rate"
+            }
+          },
+          {
             "time_fields": {
               "mapping": {
                 "type": "float"
@@ -30,6 +46,15 @@
               },
               "match_mapping_type": "string",
               "match": "*"
+            }
+          },
+          {
+            "offering_field": {
+              "mapping": {
+                "type": "nested"
+              },
+              "match_mapping_type": "object",
+              "match": "offerings"
             }
           }
         ]
