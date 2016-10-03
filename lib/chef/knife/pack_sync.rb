@@ -200,6 +200,7 @@ class Chef
 
       def upload_template_from_file(file,comments)
         source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+        puts "source: #{source}"
 
         unless ensure_path_exists(source)
           return false

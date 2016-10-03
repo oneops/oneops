@@ -1,3 +1,5 @@
+#coding: utf-8
+
 require 'chef/knife'
 require 'chef/exceptions'
 require 'fog'
@@ -5,6 +7,7 @@ require 'rubygems'
 require 'kramdown'
 require 'bundler'
 require 'cms'
+require 'excon'
 
 ENV['BUNDLE_GEMFILE'] ||= File.dirname(__FILE__) + '/../../../Gemfile'
 require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
@@ -119,8 +122,8 @@ class Chef
         config[:version] ||='1.0.0'
         ui.info("Processing metadata for #{cookbook} from #{file}")
         md = Chef::Cookbook::Metadata.new
-        md.name(cookbook.capitalize)
         md.from_file(file)
+        md.name.capitalize!
         Chef::Log.debug(md.to_yaml)
         
         # sync_class and sync_relation return boolean
@@ -160,7 +163,7 @@ class Chef
         # must sync the base class first
         md.groupings.each do |group_name,group_properties|
           group_properties[:packages].select {|v| v == 'base'}.each do |package_name|
-           find_class = findname(package_name, md.name)
+           find_class = findname(package_name, md.name, md)
            existing_class = find('Cms::CiMd',find_class)
             if existing_class.nil?
               ui.info("Creating class #{find_class}")
@@ -178,7 +181,7 @@ class Chef
         end
         md.groupings.each do |group_name,group_properties|
           group_properties[:packages].reject {|v| v == 'base'}.each do |package_name|
-          find_class = findname(package_name, md.name)
+          find_class = findname(package_name, md.name, md)
             existing_class = find('Cms::CiMd',find_class)
             if existing_class.nil?
               ui.info("Creating class #{find_class}")
@@ -244,7 +247,7 @@ class Chef
       def generate_class(existing_class,md,package,group)
         props = md.groupings[group]
         cms_class = existing_class || Cms::CiMd.new()
-        full_name = generatename(md.name)
+        full_name = generatename(md.name,md)
 
         #full_name = Chef::Config[:admin] ? md.name : [ config[:register],config[:version].split(".").first, md.name ].join('.')
         cms_class.impl = props[:impl] || Chef::Config[:default_impl]  
@@ -296,7 +299,7 @@ class Chef
 
       def generate_relation(existing_relation,md,package,group)      
         cms_relation = existing_relation || Cms::RelationMd.new()
-        full_name = generatename(md.name)
+        full_name = generatename(md.name,md)
         #full_name = Chef::Config[:admin] ? md.name : [ config[:register],config[:version].split(".").first, md.name ].join('.')
         props = md.groupings[group]
         
@@ -409,9 +412,56 @@ class Chef
         
         return conn        
       end
+
+      def download_component(class_prefix, download_url, cookbook_path)
+        base_dir = Dir.getwd
+        puts "downloading #{class_prefix} to #{cookbook_path} from #{download_url}"
+        component_dir = cookbook_path + '/' + class_prefix
+        begin
+          Dir.mkdir(component_dir)
+        rescue Errno::EEXIST => e
+          puts "already exists: #{component_dir}"
+        end
+        Dir.chdir(component_dir)
+        cmd = "wget -r -m --no-parent #{download_url}"
+        puts "running #{cmd} from #{component_dir}"
+        `#{cmd}`
+        wget_dirs = []
+        while !Dir.entries('.').include?('metadata.rb')
+          dirs = Dir.entries('.').select {|entry| File.directory? File.join('.',entry) and !(entry =='.' || entry == '..') }
+          puts "dirs: #{dirs.inspect}"
+          wget_dirs += dirs
+          Dir.chdir(dirs.first) 
+        end
+        Dir.chdir(base_dir + '/' + component_dir)
+        puts "wget dirs: #{wget_dirs.inspect}"
+        dir = wget_dirs.join("/")
+        `mv #{dir}/* . ; rm -fr #{wget_dirs} `
+        
+
+        Dir.chdir base_dir
+      end
       
       def run
+        # go thru packs and download
         config[:cookbook_path] ||= Chef::Config[:cookbook_path]
+        config[:pack_path] ||= Chef::Config[:pack_path]
+        config[:pack_path].each do |dir|
+          pack_file_pattern = "#{dir}/*.rb"
+          files = Dir.glob(pack_file_pattern)
+          files.each do |file|
+            File.open(file, "r") do |f|
+              f.each_line do |line|
+                next unless line =~ /cookbook\s+=>\s+"(.*?)"/
+                parts = $1.split("::")
+                if parts.size > 1
+                  download_component(parts.first,parts.last, config[:cookbook_path].first )
+                end
+              end
+            end
+          end
+        end
+            
         if config[:all]
           cl = Chef::CookbookLoader.new(config[:cookbook_path])
           cl.load_cookbooks
@@ -477,24 +527,26 @@ class Chef
         object ? object : false
       end
       
-      def findname(package_name, classname)
+      def findname(package_name, classname, md=nil)
        if Chef::Config[:admin]
           [package_name, classname].join('.') 
        else
           if Chef::Config[:useversion] 
-            [package_name, config[:register], config[:version].split(".").first, classname].join('.') 
+            maintainer = md.maintainer.downcase
+            [package_name, maintainer, md.version.split(".").first, classname].join('.') 
           else 
            [package_name, config[:register], classname].join('.')
           end
        end
       end 
       
-      def generatename(name)
+      def generatename(name,md=nil)
        if Chef::Config[:admin]
           name
        else
           if Chef::Config[:useversion] 
-            [config[:register], config[:version].split(".").first, name].join('.') 
+            maintainer = md.maintainer.downcase
+            [maintainer, md.version.split(".").first, name].join('.') 
           else 
            [config[:register], name].join('.')
           end
