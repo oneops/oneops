@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import com.oneops.cms.exceptions.CIValidationException;
+import com.oneops.cms.exceptions.ExceptionConsolidator;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -241,9 +243,11 @@ public class BomRfcBulkProcessor {
 	}
 
 	private void processVars(List<BomRfc> boms, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
+        ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
 		for (BomRfc bom : boms) {
-			trUtil.processAllVars(bom.mfstCi, cloudVars, globalVars, localVars);
-		}	
+			ec.invokeChecked(()-> trUtil.processAllVars(bom.mfstCi, cloudVars, globalVars, localVars));
+		}
+		ec.rethrowExceptionIfNeeded();
 	}
 	
 	private int findObsolete(List<BomRfc> newBoms, CmsCIRelation bindingRel, String nsPath, int startingExecOrder, Map<String, CmsCI> existingCIs,String userId,  boolean global) {

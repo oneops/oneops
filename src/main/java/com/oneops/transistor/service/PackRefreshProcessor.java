@@ -169,7 +169,21 @@ public class PackRefreshProcessor {
         }
 
         processLocalVars(templatePlatform,designPlatform, platNsPath, releaseNsPath, userId);
+        
+        updatePackDigest(designPlatform, userId);
 
+    }
+
+    private void updatePackDigest(CmsCI designPlatform, String userId) {
+        String nsPrefix = "/public/" + designPlatform.getAttribute("source").getDfValue()
+                + "/packs/" + designPlatform.getAttribute("pack").getDfValue();
+        List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", designPlatform.getAttribute("version").getDfValue());
+        for (CmsCI version: versions) {
+            String digest = version.getAttribute("commit").getDfValue();
+            CmsRfcCI plat = trUtil.cloneRfc(cmRfcMrgProcessor.getCiById(designPlatform.getCiId(), "dj"));
+            plat.getAttribute("pack_digest").setNewValue(digest);
+            cmRfcMrgProcessor.upsertCiRfc(plat, userId);
+        }
     }
 
     private void processLocalVars(CmsCI templatePlatform,CmsCI designPlatform, String platNsPath, String releaseNsPath, String userId) {
@@ -237,36 +251,38 @@ public class PackRefreshProcessor {
                     leafRfcRelation.setCreatedBy(userId);
                     leafRfcRelation.setUpdatedBy(userId);
                     CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, userId);
-                    logger.debug("Cretated new relation rfc - " + newLeafRfcRelation.getRfcId());
+                    logger.debug("Created new relation rfc - " + newLeafRfcRelation.getRfcId());
 
                     if (templLeafCi != null)  templateIdsMap.put(templLeafCi.getCiId(), catalogCiIds);
 
                 }
 
             } else {
-                String cardinality = edge.templateRel.getAttribute("constraint").getDfValue();
-                if ("1..1".equalsIgnoreCase(cardinality) ||
-                        "1..*".equalsIgnoreCase(cardinality)) {
-                    List<Long> catalogCiIds = new ArrayList<Long>();
-                    CmsRfcCI leafRfc = mergeCis(edge.templateRel.getToCi(), null, "catalog", platformNsPath, releaseNsPath);
-                    setCiId(leafRfc,null);
-                    leafRfc.setCreatedBy(userId);
-                    leafRfc.setUpdatedBy(userId);
-                    CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
-                    catalogCiIds.add(newLeafRfc.getCiId());
-                    logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
-                    templateIdsMap.put(edge.templateRel.getToCi().getCiId(), catalogCiIds);
+                CmsCI templateCi = edge.templateRel.getToCi();
+                if (!"pending_deletion".equals(templateCi.getCiState())) {
+                    String cardinality = edge.templateRel.getAttribute("constraint").getDfValue();
+                    if (cardinality != null && cardinality.startsWith("1..")) {
+                        List<Long> catalogCiIds = new ArrayList<>();
+                        CmsRfcCI leafRfc = mergeCis(templateCi, null, "catalog", platformNsPath, releaseNsPath);
+                        setCiId(leafRfc, null);
+                        leafRfc.setCreatedBy(userId);
+                        leafRfc.setUpdatedBy(userId);
+                        CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
+                        catalogCiIds.add(newLeafRfc.getCiId());
+                        logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
+                        templateIdsMap.put(templateCi.getCiId(), catalogCiIds);
 
-                    CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, platformNsPath, releaseNsPath, null);
+                        CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, platformNsPath, releaseNsPath, null);
 
-                    leafRfcRelation.setFromCiId(designPlatform.getCiId());
-                    if (newLeafRfc.getRfcId() > 0 ) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
-                    leafRfcRelation.setToCiId(newLeafRfc.getCiId());
-                    setCiRelationId(leafRfcRelation);
-                    leafRfcRelation.setCreatedBy(userId);
-                    leafRfcRelation.setUpdatedBy(userId);
-                    CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, userId);
-                    logger.debug("Created new relation rfc - " + newLeafRfcRelation.getRfcId());
+                        leafRfcRelation.setFromCiId(designPlatform.getCiId());
+                        if (newLeafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
+                        leafRfcRelation.setToCiId(newLeafRfc.getCiId());
+                        setCiRelationId(leafRfcRelation);
+                        leafRfcRelation.setCreatedBy(userId);
+                        leafRfcRelation.setUpdatedBy(userId);
+                        CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, userId);
+                        logger.debug("Created new relation rfc - " + newLeafRfcRelation.getRfcId());
+                    }
                 }
             }
         }

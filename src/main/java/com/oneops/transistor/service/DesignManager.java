@@ -24,11 +24,17 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 
+import java.util.List;
+import java.util.Map;
+
 @Transactional
 public interface DesignManager {
 	public long generatePlatform(CmsRfcCI platRfc, long assemblyId, String userId, String scope);
 	public long deletePlatform(long platformId, String userId, String scope);
 	public long clonePlatform(CmsRfcCI platRfc, Long targetAssemblyId, long sourcePlatId, String userId, String scope);
+	public Map<String, List<?>> getPlatformRfcs(long platId, String userId);
+	public long discardReleaseForPlatform(long platId, String userId);
+	public long commitReleaseForPlatform(long platId, String desc, String userId);
 	public long cloneAssembly(CmsCI assemblyCI, long sourceAssemblyId, String userId, String scope);
 	public long saveAssemblyAsCatalog(CmsCI catalogCI, long sourceAssemblyId, String userId, String scope);
 	public CatalogExport exportCatalog(long catalogCIid, String scope);
