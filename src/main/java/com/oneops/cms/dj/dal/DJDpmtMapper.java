@@ -23,6 +23,7 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDjDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -77,4 +78,6 @@ public interface DJDpmtMapper {
 	
 	List<CmsDpmtApproval> getDpmtApprovals(long deploymentId);
 	CmsDpmtApproval getDpmtApproval(long approvalId);
+	List<CmsDjDeployment> getDeploymentsByFilter(@Param("envNsLike") String envNsLike, @Param("ciFilter") String ciFilter,
+			@Param("classFilter") String classFilter, @Param("bomNsLike") String bomNsLike, @Param("offset") Long offset, @Param("limit") Integer limit);
 }

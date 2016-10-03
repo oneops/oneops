@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -39,6 +40,7 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDjDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -873,5 +875,16 @@ public class CmsDpmtProcessor {
         }
         return null;
     }
+
+	public List<CmsDjDeployment> getDeploymentsByFilter(String envNsPath, String filter, Long offset, Integer limit) {
+		String nsLike = CmsUtil.likefyNsPathWithFilter(envNsPath, "bom", null);
+		String bomNsLike = null;
+		String classFilter = null;
+		if (!StringUtils.isBlank(filter)) {
+			bomNsLike = CmsUtil.likefyNsPathWithFilter(envNsPath, "bom", filter);
+			classFilter = "bom." + filter;	
+		}
+		return dpmtMapper.getDeploymentsByFilter(nsLike, filter, classFilter, bomNsLike, offset, limit);
+	}
 
 }

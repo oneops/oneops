@@ -23,12 +23,14 @@ import java.util.Set;
 
 import org.apache.ibatis.annotations.Param;
 
+import com.oneops.cms.dj.domain.CmsDjRelease;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcLink;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.util.ReleaseQueryParam;
 
 /**
  * The Interface DJMapper.
@@ -112,4 +114,5 @@ public interface DJMapper {
     void rmRfcs(Map<String,Object> params);
     long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId, @Param("relationName") String relationName,
 			@Param("shortRelName") String shortRelName, @Param("rfcId") long rfcId);
+	List<CmsDjRelease> getReleaseByFilter(ReleaseQueryParam queryParam);
 }

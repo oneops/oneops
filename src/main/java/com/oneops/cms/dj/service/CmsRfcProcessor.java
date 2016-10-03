@@ -24,7 +24,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
@@ -32,6 +34,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
+import com.oneops.cms.dj.domain.CmsDjRelease;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAction;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
@@ -46,7 +49,7 @@ import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
-import org.springframework.beans.BeanUtils;
+import com.oneops.cms.util.ReleaseQueryParam;
 
 /**
  * The Class CmsRfcProcessor.
@@ -1801,5 +1804,20 @@ public class CmsRfcProcessor {
 			newRelease.setReleaseStateId(djMapper.getReleaseStateId(PENDING));
 			djMapper.createRelease(newRelease);
 		}
+	}
+
+	public List<CmsDjRelease> getReleaseByFilter(String envNsPath, String filter, Long offset, Long endRelId, List<Long> releaseIds) {
+		String nsLike = CmsUtil.likefyNsPathWithFilter(envNsPath, "manifest", null);
+		String manifestNsLike = null;
+		String classFilter = null;
+
+		if (!StringUtils.isBlank(filter)) {
+			manifestNsLike = CmsUtil.likefyNsPathWithFilter(envNsPath, "manifest", filter);
+			classFilter = "manifest." + filter;
+		}
+		ReleaseQueryParam releaseParam = new ReleaseQueryParam(nsLike, filter, classFilter, manifestNsLike, offset);
+		releaseParam.setReleaseList(releaseIds);
+		releaseParam.setEndRelId(endRelId);
+		return djMapper.getReleaseByFilter(releaseParam);
 	}
 }

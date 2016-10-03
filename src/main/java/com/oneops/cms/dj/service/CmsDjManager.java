@@ -23,6 +23,7 @@ import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDjBase;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -94,4 +95,5 @@ public interface CmsDjManager {
     long rmRfcs(String nsPath);
 	long getRfcCiCountByNs(String nsPath);
 	long getRfcRelationCountByNs(String nsPath);
+	List<CmsDjBase> getDjTimeLine(String nsPath, String filter, Long releaseOffset, Long dpmtOffset, Integer limit);
 }

@@ -17,12 +17,19 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDjBase;
+import com.oneops.cms.dj.domain.CmsDjDeployment;
+import com.oneops.cms.dj.domain.CmsDjRelease;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -449,4 +456,22 @@ public class CmsDjManagerImpl implements CmsDjManager {
     public long rmRfcs(String nsPath) {
         return rfcProcessor.rmRfcs(nsPath);
     }
+
+	@Override
+	public List<CmsDjBase> getDjTimeLine(String nsPath, String filter, Long releaseOffset, Long dpmtOffset, Integer limit) {
+		List<CmsDjBase> list = null;
+		String wildcardFilter = StringUtils.isBlank(filter) ? null : "%" + filter + "%";
+		List<CmsDjDeployment> deployments = dpmtProcessor.getDeploymentsByFilter(nsPath, wildcardFilter, dpmtOffset, limit);
+		List<Long> reqdReleaseIds = Collections.emptyList();
+		Long endRelId = null;
+		if (deployments != null && !deployments.isEmpty()) {
+			reqdReleaseIds = deployments.stream().map(CmsDjDeployment::getParentReleaseId).collect(Collectors.toList());
+			endRelId = reqdReleaseIds.get(reqdReleaseIds.size()-1);
+		}
+		List<CmsDjRelease> manifestReleases = rfcProcessor.getReleaseByFilter(nsPath, wildcardFilter, releaseOffset, endRelId, reqdReleaseIds);
+		list = Stream.concat(deployments.stream(), manifestReleases.stream()).
+			sorted((s1, s2) -> s2.getCreated().compareTo(s1.getCreated())).
+			collect(Collectors.toList());
+		return list;
+	}
 }
