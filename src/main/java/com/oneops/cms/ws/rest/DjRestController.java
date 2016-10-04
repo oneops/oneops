@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.oneops.cms.dj.domain.CmsDjBase;
+import com.oneops.cms.dj.domain.TimelineBase;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
@@ -453,7 +453,7 @@ public class DjRestController extends AbstractRestController {
 
     @RequestMapping(value="/dj/simple/timeline", method=RequestMethod.GET)
 	@ResponseBody
-	public List<CmsDjBase> getDjTimeLine(
+	public List<TimelineBase> getDjTimeLine(
 			@RequestParam(value = "nsPath", required = true) String nsPath,
 			@RequestParam(value = "filter", required = false) String filter,
 			@RequestParam(value = "type", required = false) String type,
