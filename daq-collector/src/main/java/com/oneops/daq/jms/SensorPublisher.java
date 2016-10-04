@@ -30,8 +30,8 @@ import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.pool.PooledConnectionFactory;
 import org.apache.log4j.Logger;
+import org.springframework.jms.JmsException;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
 
 import javax.jms.*;
 import java.io.IOException;
@@ -50,12 +50,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SensorPublisher {
 	private static final Logger logger = Logger.getLogger(SensorPublisher.class);
 	
-	private long timeToLive;
     private String user = ActiveMQConnection.DEFAULT_USER;
     private String password = ActiveMQConnection.DEFAULT_PASSWORD;
     private String url = ActiveMQConnection.DEFAULT_BROKER_URL + "?connectionTimeout=1000";
     private String queueBase = "perf-in-q";
-    private ConcurrentHashMap<Long,Long> manifestCache = new ConcurrentHashMap<Long,Long>();
+    private ConcurrentHashMap<Long,Long> manifestCache = new ConcurrentHashMap<>();
     
     private final AtomicLong eventCounter = new AtomicLong();
     private final AtomicLong missingManifestCounter = new AtomicLong();
@@ -74,20 +73,22 @@ public class SensorPublisher {
           }
     };    
     
-    private static int thresholdTTL = Integer.parseInt(System.getProperty("threshold_cache_ttl", "15"));     
+    private static int thresholdTTL = Integer.parseInt(System.getProperty("threshold_cache_ttl", "15"));
+	private static String mqConnectionTimeout = System.getProperty("mqTimeout", "1000");  // timeout message send after 1 second
+	private static String mqConnectionStartupRetries = System.getProperty("mqStartupRetries", "5");  // only reconnect 5 times on startup (to avoid publisher being stuck if MQ is down on startup
+	private static int mqConnectionThreshold = Integer.parseInt(System.getProperty("mqRetryTimeout", "10000"));  // discard all the published messages for mqRetryTimeout milliseconds before attempting to send message again   
+    private long lastFailureTimestamp = -1;
     
-    private LoadingCache<String, Threshold> thresholdCache = CacheBuilder.newBuilder()
+	private LoadingCache<String, Threshold> thresholdCache = CacheBuilder.newBuilder()
     	       .refreshAfterWrite(thresholdTTL, TimeUnit.MINUTES)
     	       .build(loader);
-    
-    
-    private boolean persistent = false;
 	// -Dpoolsize=n
     private static int poolsize = Integer.parseInt(System.getProperty("poolsize", "1")); 
     
     private JmsTemplate[] producers = new JmsTemplate[poolsize];
     
     private ThresholdsDao thresholdsDao = null;
+
 
 	/**
 	 * Sets the threshold dao.
@@ -101,12 +102,7 @@ public class SensorPublisher {
     private void showParameters() {
     	logger.info("Connecting to URL: " + url);
     	logger.info("Base queue name : " + queueBase);
-    	logger.info("Using " + (persistent ? "persistent" : "non-persistent") + " messages");
     	logger.info("poolsize : " + poolsize);
-
-        if (timeToLive != 0) {
-        	logger.info("Messages time to live " + timeToLive + " ms");
-        }
     }
 
     /**
@@ -137,8 +133,10 @@ public class SensorPublisher {
 		connectStringGenerator.setTransport("failover");
 		connectStringGenerator.setDnsResolve(true);
 		connectStringGenerator.setKeepAlive(true);
-		HashMap<String,String> transportOptions = new HashMap<String,String>();
+		HashMap<String,String> transportOptions = new HashMap<>();
 		transportOptions.put("initialReconnectDelay", "1000");
+		transportOptions.put("startupMaxReconnectAttempts", mqConnectionStartupRetries);
+		transportOptions.put("timeout", mqConnectionTimeout);
 		transportOptions.put("useExponentialBackOff", "false");
 		connectStringGenerator.setTransportOptions(transportOptions);
 		url = connectStringGenerator.build();		
@@ -147,22 +145,18 @@ public class SensorPublisher {
 
 		// Create the connection.
 		ActiveMQConnectionFactory amqConnectionFactory = new ActiveMQConnectionFactory(user, password, url);
-		((ActiveMQConnectionFactory)amqConnectionFactory).setUseAsyncSend(true);
-        		
+		amqConnectionFactory.setUseAsyncSend(true);
 		PooledConnectionFactory pooledConnectionFactory = new PooledConnectionFactory(amqConnectionFactory);
 		pooledConnectionFactory.setMaxConnections(4);
 		pooledConnectionFactory.setIdleTimeout(10000);
 				
 		for (int i=0;  i < poolsize; i++) {
-			
 			JmsTemplate producerTemplate = new JmsTemplate(pooledConnectionFactory);
 			producerTemplate.setSessionTransacted(false);
-			
 			int shard = i + 1;
 			Destination perfin = new org.apache.activemq.command.ActiveMQQueue(queueBase +"-"+shard);
 			producerTemplate.setDefaultDestination(perfin);
 			producerTemplate.setDeliveryPersistent(false);
-
 			producers[i] = producerTemplate;			
 		}
 		
@@ -223,20 +217,28 @@ public class SensorPublisher {
      * @throws JMSException the jMS exception
      */
     public void publishMessage(final BasicEvent event) throws JMSException {
-    	int shard = (int) (event.getManifestId() % poolsize);
-    	producers[shard].send(new MessageCreator() {
-    		                public Message createMessage(Session session) throws JMSException {
-    		                	ObjectMessage message = session.createObjectMessage(event);
-    		                	message.setJMSDeliveryMode(DeliveryMode.NON_PERSISTENT);
-    		                	message.setLongProperty("ciId", event.getCiId());
-    		                	message.setLongProperty("manifestId", event.getManifestId());
-    		                	message.setStringProperty("source", event.getSource());
-    		                	logger.debug("Published: ciId:" + event.getCiId() + "; source:" + event.getSource());
-    		                	return message;
-    		                }
-    		            });
-    	
-    }
+
+		if (System.currentTimeMillis() > lastFailureTimestamp) {
+			int shard = (int) (event.getManifestId() % poolsize);
+			try {
+				producers[shard].send(session -> {
+                    ObjectMessage message = session.createObjectMessage(event);
+                    message.setJMSDeliveryMode(DeliveryMode.NON_PERSISTENT);
+                    message.setLongProperty("ciId", event.getCiId());
+                    message.setLongProperty("manifestId", event.getManifestId());
+                    message.setStringProperty("source", event.getSource());
+					if (logger.isDebugEnabled()) {
+						logger.debug("Published: ciId:" + event.getCiId() + "; source:" + event.getSource());
+					}
+                    return message;
+                });
+				lastFailureTimestamp = -1;
+			} catch (JmsException exception) {
+				logger.debug("There was an error sending a message. Discarding messages for " + mqConnectionThreshold + " ms");
+				lastFailureTimestamp = System.currentTimeMillis() + mqConnectionThreshold;
+			}
+		}
+	}
   
     
     /**
@@ -256,6 +258,4 @@ public class SensorPublisher {
     	}
     	producers = null;
     }
- 
-    
 }
