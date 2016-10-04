@@ -45,6 +45,8 @@ import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 import com.oneops.cms.ws.exceptions.CmsSecurityException;
 import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 
@@ -454,13 +456,17 @@ public class DjRestController extends AbstractRestController {
 	public List<CmsDjBase> getDjTimeLine(
 			@RequestParam(value = "nsPath", required = true) String nsPath,
 			@RequestParam(value = "filter", required = false) String filter,
+			@RequestParam(value = "type", required = false) String type,
+			@RequestParam(value = "limit", required = false) Integer limit,
+			@RequestParam(value = "sort", required = false) String sort,
 			@RequestParam(value = "releaseOffset", required = false) Long releaseOffset,
 			@RequestParam(value = "dpmtOffset", required = false) Long dpmtOffset,
-			@RequestParam(value = "limit", required = false) Integer limit,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
 
 		scopeVerifier.verifyScope(scope, nsPath);
-		return djManager.getDjTimeLine(nsPath, filter, releaseOffset, dpmtOffset, limit);
+		QueryOrder queryOrder = QueryOrder.queryOrder(sort);
+		TimelineQueryParam queryParam = new TimelineQueryParam(nsPath, filter, type, queryOrder, releaseOffset, dpmtOffset, limit);
+		return djManager.getDjTimeLine(queryParam);
 	}
 
 }
