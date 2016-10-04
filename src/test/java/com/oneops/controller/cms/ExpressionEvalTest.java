@@ -152,6 +152,42 @@ public class ExpressionEvalTest {
 		Assert.assertFalse(expressionEvaluator.isExpressionMatching(complianceCi, ao));
 	}
 	
+	@Test
+	public void testExpressionWithoutFilterAttr() {
+		CmsRfcCI rfcCi = new CmsRfcCI();
+		rfcCi.setCiClassName("bom.Compute");
+		rfcCi.setCiName("compute-453222");
+		rfcCi.addAttribute(createRfcAttribute("size", "M", null));
+		CmsWorkOrder wo = new CmsWorkOrder();
+		wo.setRfcCi(rfcCi);
+
+		CmsCI complianceCi = new CmsCI();
+		complianceCi.setCiClassName("base.Compliance");
+		try {
+			Assert.assertFalse(expressionEvaluator.isExpressionMatching(complianceCi, wo));
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+
+	@Test
+	public void testExpressionDifferentClass() {
+		CmsRfcCI rfcCi = new CmsRfcCI();
+		rfcCi.setCiClassName("bom.Compute");
+		rfcCi.setCiName("compute-453222");
+		rfcCi.addAttribute(createRfcAttribute("size", "M", null));
+		CmsWorkOrder wo = new CmsWorkOrder();
+		wo.setRfcCi(rfcCi);
+
+		CmsCI complianceCi = new CmsCI();
+		complianceCi.setCiClassName("base.PCI");
+		try {
+			Assert.assertFalse(expressionEvaluator.isExpressionMatching(complianceCi, wo));
+		} catch (Exception e) {
+			Assert.fail(e.getMessage());
+		}
+	}
+
 	private CmsRfcAttribute createRfcAttribute(String name, String newValue, String oldValue) {
 		CmsRfcAttribute rfcAttribute = new CmsRfcAttribute();
 		rfcAttribute.setAttributeName(name);

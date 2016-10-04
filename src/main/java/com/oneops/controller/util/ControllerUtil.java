@@ -33,6 +33,7 @@ public class ControllerUtil {
         		strippedWo.setResultCi(wo.getResultCi());
         	}
         }
+        strippedWo.setAdditionalInfo(wo.getAdditionalInfo());
         return strippedWo;
     }
 
