@@ -27,9 +27,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsDjBase;
-import com.oneops.cms.dj.domain.CmsDjDeployment;
-import com.oneops.cms.dj.domain.CmsDjRelease;
+import com.oneops.cms.dj.domain.TimelineBase;
+import com.oneops.cms.dj.domain.TimelineDeployment;
+import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -39,6 +39,8 @@ import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsDjManagerImpl.
@@ -458,20 +460,50 @@ public class CmsDjManagerImpl implements CmsDjManager {
     }
 
 	@Override
-	public List<CmsDjBase> getDjTimeLine(String nsPath, String filter, Long releaseOffset, Long dpmtOffset, Integer limit) {
-		List<CmsDjBase> list = null;
-		String wildcardFilter = StringUtils.isBlank(filter) ? null : "%" + filter + "%";
-		List<CmsDjDeployment> deployments = dpmtProcessor.getDeploymentsByFilter(nsPath, wildcardFilter, dpmtOffset, limit);
-		List<Long> reqdReleaseIds = Collections.emptyList();
-		Long endRelId = null;
-		if (deployments != null && !deployments.isEmpty()) {
-			reqdReleaseIds = deployments.stream().map(CmsDjDeployment::getParentReleaseId).collect(Collectors.toList());
-			endRelId = reqdReleaseIds.get(reqdReleaseIds.size()-1);
+	public List<TimelineBase> getDjTimeLine(TimelineQueryParam queryParam) {
+		String wildcardFilter = StringUtils.isBlank(queryParam.getFilter()) ? null : "%" + queryParam.getFilter() + "%";
+		queryParam.setWildcardFilter(wildcardFilter);
+
+		boolean onlyRelease = "release".equalsIgnoreCase(queryParam.getType());
+		boolean onlyDpmt = "deployment".equalsIgnoreCase(queryParam.getType());
+
+		List<TimelineDeployment> deployments = null;
+		if (!onlyRelease) {
+			deployments = dpmtProcessor.getDeploymentsByFilter(queryParam);
 		}
-		List<CmsDjRelease> manifestReleases = rfcProcessor.getReleaseByFilter(nsPath, wildcardFilter, releaseOffset, endRelId, reqdReleaseIds);
-		list = Stream.concat(deployments.stream(), manifestReleases.stream()).
-			sorted((s1, s2) -> s2.getCreated().compareTo(s1.getCreated())).
-			collect(Collectors.toList());
-		return list;
+		else {
+			deployments = Collections.emptyList();
+		}
+
+		List<TimelineRelease> manifestReleases = null;
+		if (!onlyDpmt) {
+			List<Long> reqdReleaseIds = Collections.emptyList();
+			Long endRelId = null;
+			if (deployments != null && !deployments.isEmpty()) {
+				reqdReleaseIds = deployments.stream().map(TimelineDeployment::getParentReleaseId).collect(Collectors.toList());
+				endRelId = reqdReleaseIds.get(reqdReleaseIds.size()-1);
+			}
+			queryParam.setEndRelId(endRelId);
+			queryParam.setReleaseList(reqdReleaseIds);
+			manifestReleases = rfcProcessor.getReleaseByFilter(queryParam);
+		}
+		else {
+			manifestReleases = Collections.emptyList();
+		}
+
+		return combineResults(deployments, manifestReleases, queryParam.getOrder());
+	}
+
+	private List<TimelineBase> combineResults(List<TimelineDeployment> deployments, List<TimelineRelease> manifestReleases, QueryOrder order) {
+		return Stream.concat(deployments.stream(), manifestReleases.stream()).
+				sorted((s1, s2) -> {
+					if (order.equals(QueryOrder.ASC)) {
+						return s1.getCreated().compareTo(s2.getCreated());
+					}
+					else {
+						return s2.getCreated().compareTo(s1.getCreated());
+					}
+				}).
+				collect(Collectors.toList());
 	}
 }

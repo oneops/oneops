@@ -1393,7 +1393,7 @@
 			and attr.dj_attribute_value::bigint &lt; #{rfcId}
 	</select>
 
-	 <select id="getReleaseByFilter" parameterType="com.oneops.cms.util.ReleaseQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDjRelease">
+	 <select id="getReleaseByFilter" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineRelease">
 		select r.release_id as releaseId,
 			r.ns_id as nsId,
 			r.parent_release_id as parentReleaseId,
@@ -1413,18 +1413,21 @@
 				select distinct rfc.release_id
 				from dj_rfc_ci rfc, md_classes md, ns_namespaces ns
 				where rfc.ns_id = ns.ns_id
-				  and ns.ns_path like #{envNsLike}
+				  and ns.ns_path like #{manifestNsLike}
 				  and rfc.class_id = md.class_id
 				  and (
-				    (#{ciFilter}::varchar is null or rfc.ci_name like #{ciFilter})
+				    (#{wildcardFilter}::varchar is null or rfc.ci_name like #{wildcardFilter})
 				    or
-				    (#{classFilter}::varchar is null or lower(md.class_name) like lower(#{classFilter}))
+				    (#{manifestClassFilter}::varchar is null or lower(md.class_name) like lower(#{manifestClassFilter}))
 				    or
-				    (#{manifestNsLike}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{manifestNsLike}))
+				    (#{manifestNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{manifestNsLikeWithFilter}))
 				  )
-				  and (#{offset}::bigint is null or rfc.release_id &lt; #{offset})
-				  and (#{endRelId}::bigint is null or rfc.release_id >= #{endRelId})
-				  order by rfc.release_id  desc
+				  and (#{releaseOffset}::bigint is null or rfc.release_id ${order.aboveOperator} #{releaseOffset})
+				  and (#{endRelId}::bigint is null or rfc.release_id ${order.belowOperator}= #{endRelId})
+				  order by rfc.release_id ${order.sort}
+				  <if test="endRelId == null">
+				    limit coalesce(#{limit},10)
+				  </if>
 		  )
 		  and r.ns_id = ns.ns_id
 		  and r.release_state_id = rs.release_state_id

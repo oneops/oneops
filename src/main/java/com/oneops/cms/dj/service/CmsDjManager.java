@@ -23,7 +23,7 @@ import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsDjBase;
+import com.oneops.cms.dj.domain.TimelineBase;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -31,6 +31,7 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Interface CmsDjManager.
@@ -95,5 +96,5 @@ public interface CmsDjManager {
     long rmRfcs(String nsPath);
 	long getRfcCiCountByNs(String nsPath);
 	long getRfcRelationCountByNs(String nsPath);
-	List<CmsDjBase> getDjTimeLine(String nsPath, String filter, Long releaseOffset, Long dpmtOffset, Integer limit);
+	List<TimelineBase> getDjTimeLine(TimelineQueryParam queryParam);
 }
