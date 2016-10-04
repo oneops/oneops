@@ -39,6 +39,7 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSim
 	public Map<String, List<CmsRfcCISimple>> payLoad;
 	public Map<String,Map<String, CmsCISimple>> services;
 	public Map<String,String> searchTags = new HashMap<String,String>();
+	public Map<String,String> additionalInfo = new HashMap<String,String>();
 	
 	
 	/**
@@ -180,5 +181,13 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSim
 	 */
 	public void setSearchTags(Map<String, String> searchTags) {
 		this.searchTags = searchTags;
+	}
+
+	public Map<String, String> getAdditionalInfo() {
+		return additionalInfo;
+	}
+
+	public void setAdditionalInfo(Map<String, String> additionalInfo) {
+		this.additionalInfo = additionalInfo;
 	}
 }
