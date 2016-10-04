@@ -73,7 +73,7 @@ public class BadStateProcessorTest {
 
         bad.setCoProcessor(copMock);
         CiChangeStateEvent ciChangeStateEvent = new CiChangeStateEvent();
-        bad.submitRepairProcedure(ciChangeStateEvent);
+        bad.submitRepairProcedure(ciChangeStateEvent, false);
 
     }
 

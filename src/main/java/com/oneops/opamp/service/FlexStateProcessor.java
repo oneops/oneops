@@ -160,7 +160,7 @@ public class FlexStateProcessor {
 	
 	private void growPool(CiChangeStateEvent event, CmsCI env, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
-		if (! envProcessor.isOpenRelease4Env(env)) {
+		if (envProcessor.isOpenRelease4Env(env)) {
 			//first lets get manifest compute so we can get flex relation
 			long manifestCompId = findManifestComputeId(ciId);
 			if (manifestCompId > 0) {
@@ -209,7 +209,7 @@ public class FlexStateProcessor {
 	private void shrinkPool(CiChangeStateEvent event, CmsCI env, boolean isNewState, long originalEventTimestamp) throws OpampException{
 		long ciId = event.getCiId();
 		//String state = "underutilized";
-		if (! envProcessor.isOpenRelease4Env(env)) {
+		if (envProcessor.isOpenRelease4Env(env)) {
 			//first lets get manifest compute so we can get flex relation
 			long manifestCompId = findManifestComputeId(ciId);
 			

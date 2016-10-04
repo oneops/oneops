@@ -49,6 +49,8 @@ public class EnvPropsProcessor {
 
 	private static final String HEARTBEAT_ALARMS_SUSPENDED = "HEARTBEAT_ALARMS_SUSPENDED";
 
+	private static final String EXPONENTIAL_REPAIR_DELAY_VAR = "EXPONENTIAL_REPAIR_DELAY";
+	
 	/**
 	 * Sets the cm processor.
 	 *
@@ -163,17 +165,31 @@ public class EnvPropsProcessor {
 	 * @param ciId the ci id
 	 * @return the cms ci
 	 */
-	public CmsCI isAutoReplaceEnbaled4bom(long ciId) {
-		CmsCI platform = getPlatform4Bom(ciId);
+	public CmsCI isAutoReplaceEnbaled4bom(CmsCI platform) {
 		if (platform == null) {
-			logger.error("can not get platform for ciid " + ciId);
+			logger.error("Platform is null, can not get auto-replace flag ");
 			return null;
 		}
+		
 		CmsCIAttribute ciAttrib = platform.getAttribute("autoreplace");
 		if (ciAttrib == null || ! "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
 			return null;
 		}
-		return getEnv4Bom(ciId);
+		return getEnv4Platform(platform);
+	}
+
+	private CmsCI getEnv4Platform(CmsCI platform) {
+		if (platform == null) {
+			logger.error("platform is null, can not get environment for it");
+			return null;
+		}
+
+		List<CmsCIRelation> envRels = cmProcessor.getToCIRelations(platform.getCiId(), "manifest.ComposedOf",null, "manifest.Environment");
+		
+		if (envRels.size()>0) {
+			return envRels.get(0).getFromCi(); 
+		}
+		return null;
 	}
 
 	/**
@@ -378,5 +394,28 @@ public class EnvPropsProcessor {
 		}
 		return false;
 	}
+
+	public boolean repairDelayEnabled(CmsCI platform) {
+		if (platform == null) {
+			logger.error("Platform is null, can not get auto-repair delay flag ");
+			return false;
+		}
+		
+		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair_exponential_delay");
+		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue()) && globalRepairDelayEnabled()) {
+			return true;
+		}
+		return false;
+	}
 	
+	public boolean globalRepairDelayEnabled(){
+		CmsVar repairDelay = cmProcessor.getCmSimpleVar(EXPONENTIAL_REPAIR_DELAY_VAR);
+		if(repairDelay != null){
+			if(Boolean.FALSE.toString().equalsIgnoreCase(repairDelay.getValue())){
+				logger.warn("Exponential delay of auto-repair procedures is disabled globally !");
+				return false;
+			}
+		}
+		return true;
+	}
 }
