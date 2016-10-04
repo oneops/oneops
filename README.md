@@ -42,6 +42,14 @@ For starting up search refer [search-configuration][]
 for quick setup refer [setup][] 
 
 
+Load Elastic search templates 
+curl -d @./cms_template.json -X PUT http://localhost:9200/_template/cms_template
+curl -d @./event_template.json -X PUT http://localhost:9200/_template/event_template
+curl -d @./cost_template.json -X PUT http://localhost:9200/_template/cost_template
+
+Percolator mapping:
+curl -d @./percolator_mapping.json -X PUT http://localhost:9200/cms-all/.percolator/_mapping
+
 ## license
 the project is released under version 2.0 of the [apache license](http://www.apache.org/licenses/license-2.0).
 
