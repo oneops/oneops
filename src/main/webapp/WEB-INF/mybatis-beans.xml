@@ -106,6 +106,7 @@
 
     <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">
         <property name="cmProcessor" ref="cmsCmProcessor"/>
+        <property name="cmsCrypto" ref="cmsCrypto"/>
     </bean>
 
     <bean id="cmsDpmtProcessor" class="com.oneops.cms.dj.service.CmsDpmtProcessor">
