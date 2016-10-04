@@ -17,21 +17,19 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
-import static org.elasticsearch.index.query.QueryBuilders.queryString;
-
-import java.util.Date;
-import java.util.List;
-
-import org.apache.commons.httpclient.util.DateUtil;
+import com.oneops.cms.cm.ops.domain.OpsProcedureState;
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.search.domain.CmsOpsProcedureSearch;
 import org.apache.log4j.Logger;
 import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 
-import com.oneops.cms.cm.ops.domain.OpsProcedureState;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.search.domain.CmsOpsProcedureSearch;
-import com.oneops.search.util.SearchUtil;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+
+import static org.elasticsearch.index.query.QueryBuilders.queryString;
 
 public class OpsProcMessageProcessor {
 
@@ -49,21 +47,24 @@ public class OpsProcMessageProcessor {
 		CmsOpsProcedureSearch esProcedure = null;
 		try {
 			esProcedure = fetchprocedureRecord(procedure.getProcedureId());
-			
+
+			SimpleDateFormat simpleDateFormat = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
 			if(isFinalState(procedure.getProcedureState().getName())){
 				
 				if(esProcedure!=null && OpsProcedureState.canceled.getName().equalsIgnoreCase(procedure.getProcedureState().getName())) {
 					if(OpsProcedureState.failed.getName().equalsIgnoreCase(esProcedure.getProcedureState().getName())){
-						esProcedure.setFailedEndTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+						esProcedure.setFailedEndTS(simpleDateFormat.format(new Date()));
+
 						double failedDuration = esProcedure.getFailedDuration() +
-								(((SearchUtil.getTimefromDate(esProcedure.getFailedEndTS())) - (SearchUtil.getTimefromDate(esProcedure.getFailedStartTS())))/1000.0); 
+								((((Long) simpleDateFormat.parse(esProcedure.getFailedEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esProcedure.getFailedStartTS()).getTime()))/1000.0); 
 						esProcedure.setFailedDuration(Math.round(failedDuration * 1000.0)/1000.0);
 					}
 				}else if(esProcedure!=null && OpsProcedureState.complete.getName().equalsIgnoreCase(procedure.getProcedureState().getName())){
 					if(OpsProcedureState.active.getName().equalsIgnoreCase(esProcedure.getProcedureState().getName())){
-						esProcedure.setActiveEndTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+						esProcedure.setActiveEndTS(simpleDateFormat.format(new Date()));
+
 						double activeDuration = esProcedure.getActiveDuration() +
-								(((SearchUtil.getTimefromDate((esProcedure.getActiveEndTS()))) - (SearchUtil.getTimefromDate(esProcedure.getActiveStartTS()))) / 1000.0);
+								((((Long) simpleDateFormat.parse((esProcedure.getActiveEndTS())).getTime()) - ((Long) simpleDateFormat.parse(esProcedure.getActiveStartTS()).getTime())) / 1000.0);
 						esProcedure.setActiveDuration(Math.round(activeDuration * 1000.0)/1000.0);
 					}
 				}
@@ -73,27 +74,29 @@ public class OpsProcMessageProcessor {
 			else if(OpsProcedureState.active.getName().equalsIgnoreCase(procedure.getProcedureState().getName())){
 
 				if(esProcedure!=null){ 
-					esProcedure.setActiveStartTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+					esProcedure.setActiveStartTS(simpleDateFormat.format(new Date()));
 					if(OpsProcedureState.failed.getName().equalsIgnoreCase(esProcedure.getProcedureState().getName())){
 						esProcedure.setRetryCount(esProcedure.getRetryCount()+1);
-						esProcedure.setFailedEndTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+						esProcedure.setFailedEndTS(simpleDateFormat.format(new Date()));
+
 						double failedDuration = esProcedure.getFailedDuration() +
-								(((SearchUtil.getTimefromDate(esProcedure.getFailedEndTS())) - (SearchUtil.getTimefromDate(esProcedure.getFailedStartTS())))/1000.0);
+								((((Long) simpleDateFormat.parse(esProcedure.getFailedEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esProcedure.getFailedStartTS()).getTime()))/1000.0);
 						esProcedure.setFailedDuration(Math.round(failedDuration * 1000.0)/1000.0);
 						esProcedure.setProcedureState(procedure.getProcedureState());
 					}
 				}
 				else{
-					procedure.setActiveStartTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+					procedure.setActiveStartTS(simpleDateFormat.format(new Date()));
 				}
 			}
 			else if(OpsProcedureState.failed.getName().equalsIgnoreCase(procedure.getProcedureState().getName())){
 				esProcedure.setFailureCnt(esProcedure.getFailureCnt() + 1);
-				esProcedure.setFailedStartTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+				esProcedure.setFailedStartTS(simpleDateFormat.format(new Date()));
 				if(OpsProcedureState.active.getName().equalsIgnoreCase(esProcedure.getProcedureState().getName())){
-					esProcedure.setActiveEndTS(DateUtil.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+					esProcedure.setActiveEndTS(simpleDateFormat.format(new Date()));
+
 					double activeDuration = esProcedure.getActiveDuration() +
-							(((SearchUtil.getTimefromDate((esProcedure.getActiveEndTS()))) - (SearchUtil.getTimefromDate(esProcedure.getActiveStartTS()))) / 1000.0);
+							((((Long) simpleDateFormat.parse((esProcedure.getActiveEndTS())).getTime()) - ((Long) simpleDateFormat.parse(esProcedure.getActiveStartTS()).getTime())) / 1000.0);
 					esProcedure.setActiveDuration(Math.round(activeDuration * 1000.0)/1000.0);
 				}
 				esProcedure.setProcedureState(procedure.getProcedureState());
@@ -107,9 +110,9 @@ public class OpsProcMessageProcessor {
 	
 	
 	private CmsOpsProcedureSearch fetchprocedureRecord(long procedureId) {
-		SearchQuery searchQuery = new NativeSearchQueryBuilder()
-        .withTypes("opsprocedure").withQuery(queryString(String.valueOf(procedureId)).field("procedureId"))
-        .build();
+		SearchQuery searchQuery = new NativeSearchQueryBuilder()  // todo: index name
+				.withTypes("opsprocedure").withQuery(queryString(String.valueOf(procedureId)).field("procedureId"))
+				.build();
 		
 		List<CmsOpsProcedureSearch> esProcedureList = template.queryForList(searchQuery, CmsOpsProcedureSearch.class);
 		return !esProcedureList.isEmpty()?esProcedureList.get(0):null;

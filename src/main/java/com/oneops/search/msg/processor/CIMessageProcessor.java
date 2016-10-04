@@ -17,13 +17,18 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
-import static org.elasticsearch.index.query.QueryBuilders.queryString;
-
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.commons.httpclient.util.DateUtil;
+import com.google.gson.Gson;
+import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.search.domain.CmsCISearch;
+import com.oneops.search.domain.CmsDeploymentPlan;
+import com.oneops.search.domain.CmsNotificationSearch;
+import com.oneops.search.domain.CmsReleaseSearch;
+import com.oneops.search.msg.index.Indexer;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.log4j.Logger;
@@ -38,21 +43,17 @@ import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 
-import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.search.domain.CmsCISearch;
-import com.oneops.search.domain.CmsDeploymentPlan;
-import com.oneops.search.domain.CmsNotificationSearch;
-import com.oneops.search.domain.CmsReleaseSearch;
-import com.oneops.search.msg.index.Indexer;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.List;
+
+import static org.elasticsearch.index.query.QueryBuilders.queryString;
 
 public class CIMessageProcessor {
-
+	public static final String CMS_ALL = "cms-all";
+	private SimpleDateFormat dt = new SimpleDateFormat( "yyyy-'w'ww" );
 	private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
 	private ElasticsearchTemplate template;
 	private DozerBeanMapper mapper;
@@ -60,12 +61,12 @@ public class CIMessageProcessor {
 	private Client client;
 	private final int RETRY_COUNT = 5 ;
 	private static final long TIME_TO_WAIT = 5000 ;
+	private static final int LOOKBACK_WEEKS = 3;
 	
 	
 	/**
 	 * 
 	 * @param ci
-	 * @param indexer
 	 * @param searchGson
 	 * @return
 	 */
@@ -117,10 +118,8 @@ public class CIMessageProcessor {
 
 	/**
 	 * 
-	 * @param msg
 	 * @param indexer
 	 * @param searchGson
-	 * @param isCi
 	 * @return
 	 */
 	public void processDeploymentPlanMsg(CmsCI ci, Indexer indexer, Gson searchGson){
@@ -160,14 +159,16 @@ public class CIMessageProcessor {
 	
 	private CmsRelease fetchReleaseRecord(String nsPath,Date ts,int genTime) throws InterruptedException {
 		Thread.sleep(3000);//Wait for latest 'bom' release
+		SimpleDateFormat simpleDateFormat = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
 		SearchQuery latestRelease = new NativeSearchQueryBuilder()
-        .withTypes("release").withFilter(
-        		FilterBuilders.andFilter(
-        				FilterBuilders.queryFilter(QueryBuilders.termQuery("nsPath.keyword", nsPath)),
-        				FilterBuilders.queryFilter(QueryBuilders.rangeQuery("created").
-        		from(DateUtil.formatDate(DateUtils.addMinutes(ts, -(genTime + 10)), CmsConstants.SEARCH_TS_PATTERN)).
-        		to(DateUtil.formatDate(ts, CmsConstants.SEARCH_TS_PATTERN))))).
-        		withSort(SortBuilders.fieldSort("created").order(SortOrder.DESC)).build();
+				.withIndices(CMS_ALL)
+				.withTypes("release").withFilter(
+						FilterBuilders.andFilter(
+								FilterBuilders.queryFilter(QueryBuilders.termQuery("nsPath.keyword", nsPath)),
+								FilterBuilders.queryFilter(QueryBuilders.rangeQuery("created").
+										from(simpleDateFormat.format(DateUtils.addMinutes(ts, -(genTime + 10)))).
+										to(simpleDateFormat.format(ts))))).
+						withSort(SortBuilders.fieldSort("created").order(SortOrder.DESC)).build();
 		
 		List<CmsReleaseSearch> ciList = template.queryForList(latestRelease, CmsReleaseSearch.class);
 		if(!ciList.isEmpty()){
@@ -180,15 +181,14 @@ public class CIMessageProcessor {
 	
 	
 	private CmsCISearch fetchCIRecord(String id){
-		
-		SearchQuery searchQuery = new NativeSearchQueryBuilder()
-        .withTypes("ci").withQuery(queryString(id).field("ciId"))
-        .build();
+
+		SearchQuery searchQuery = new NativeSearchQueryBuilder() 
+				.withIndices(CMS_ALL)
+				.withTypes("ci").withQuery(queryString(id).field("ciId"))
+				.build();
 		
 		List<CmsCISearch> ciList = template.queryForList(searchQuery, CmsCISearch.class);
-		CmsCISearch ciSearch = !ciList.isEmpty()?ciList.get(0):null;
-		
-		return ciSearch;
+		return !ciList.isEmpty()?ciList.get(0):null;
 	}
 	
 	
@@ -199,27 +199,32 @@ public class CIMessageProcessor {
 	 */
 	private CmsWorkOrderSimple fetchWoForCi(long ciId) {
 		CmsWorkOrderSimple wos = null;
-		
-		for (int i=0; i<RETRY_COUNT; i++) {
-			try {
-				SearchResponse response = client.prepareSearch("cms")
-		        .setTypes("workorder")
-		           .setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
-		           .addSort("searchTags.responseDequeTS", SortOrder.DESC)
-		           .setSize(1)
-		        .execute()
-		        .actionGet();
-				
-				String cmsWo = (response.getHits().getHits().length > 0)?response.getHits().getHits()[0].getSourceAsString():null;
-				if(cmsWo != null){ 
-					wos = gson.fromJson(cmsWo,CmsWorkOrderSimple.class);
-					logger.info("WO found for ci id " + ciId + " in retry count " + i);
-					break;
-				}else {
-					Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
+		GregorianCalendar calendar = new GregorianCalendar();
+		calendar.setTime(new Date());
+		for (int week=0;week<LOOKBACK_WEEKS;week++) {
+			calendar.add(Calendar.WEEK_OF_YEAR, -week);
+			for (int i = 0; i < RETRY_COUNT; i++) {
+				try {
+					SearchResponse response = client.prepareSearch("cms")
+							.setIndices("cms" + "-" + dt.format(calendar.getTime()))
+							.setTypes("workorder")
+							.setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
+							.addSort("searchTags.responseDequeTS", SortOrder.DESC)
+							.setSize(1)
+							.execute()
+							.actionGet();
+
+					String cmsWo = (response.getHits().getHits().length > 0) ? response.getHits().getHits()[0].getSourceAsString() : null;
+					if (cmsWo != null) {
+						wos = gson.fromJson(cmsWo, CmsWorkOrderSimple.class);
+						logger.info("WO found for ci id " + ciId + " in retry count " + i);
+						break;
+					} else {
+						Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
+					}
+				} catch (Exception e) {
+					logger.error("Error in retrieving WO for ci " + ciId);
 				}
-			} catch (Exception e) {
-				logger.error("Error in retrieving WO for ci " + ciId);
 			}
 		}
 		return wos;
