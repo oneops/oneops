@@ -16,6 +16,7 @@
  *******************************************************************************/
 package com.oneops.controller.jms;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,7 +34,6 @@ import org.activiti.engine.ActivitiException;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.util.IndentPrinter;
-import org.apache.http.client.utils.DateUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -222,18 +222,18 @@ public class InductorListener implements MessageListener {
      * @param wo
      */
     private void setWoTimeStamps(CmsWorkOrderSimpleBase wo) {
-    	String responseDequeTs = DateUtils.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN);
+		SimpleDateFormat format = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
+		String responseDequeTs = format.format(new Date());
     	wo.getSearchTags().put(CmsConstants.RESPONSE_DEQUE_TS,responseDequeTs);
 		
     	String closeTime,totalTime;
 		try {
 
-			closeTime = String.valueOf((DateUtils.parseDate(responseDequeTs,new String[]{CmsConstants.SEARCH_TS_PATTERN}).getTime() -
-					DateUtils.parseDate(wo.getSearchTags().get(CmsConstants.RESPONSE_ENQUE_TS),new String[]{CmsConstants.SEARCH_TS_PATTERN}).getTime())/1000.0);
+			closeTime = String.valueOf((format.parse(responseDequeTs).getTime() -
+					format.parse(wo.getSearchTags().get(CmsConstants.RESPONSE_ENQUE_TS)).getTime())/1000.0);
 			wo.getSearchTags().put(CmsConstants.CLOSE_TIME, closeTime);
-			totalTime = String.valueOf((DateUtils.parseDate(responseDequeTs,new String[]{CmsConstants.SEARCH_TS_PATTERN}).getTime() -
-					DateUtils.parseDate(wo.getSearchTags().get(CmsConstants.REQUEST_ENQUE_TS),
-							new String[]{CmsConstants.SEARCH_TS_PATTERN}).getTime())/1000.0);
+			totalTime = String.valueOf((format.parse(responseDequeTs).getTime() -
+					format.parse(wo.getSearchTags().get(CmsConstants.REQUEST_ENQUE_TS)).getTime())/1000.0);
 			wo.getSearchTags().put(CmsConstants.TOTAL_TIME, totalTime);
 		} catch (Exception e) {
 			logger.error("Exception occured while parsing date "+e);
