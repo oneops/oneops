@@ -60,28 +60,28 @@ public class DpmtMessageProcessor {
 						esDeployment.setPausedEndTS(simpleDateFormat.format(new Date()));
 
 						double pausedDuration = esDeployment.getPausedDuration() +
-								((((Long) simpleDateFormat.parse(esDeployment.getPausedEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getPausedStartTS()).getTime()))/1000.0);
+								((( simpleDateFormat.parse(esDeployment.getPausedEndTS()).getTime()) - simpleDateFormat.parse(esDeployment.getPausedStartTS()).getTime())/1000.0);
 						esDeployment.setPausedDuration(Math.round(pausedDuration * 1000.0) / 1000.0);
 						
 					}else if(SearchConstants.DPMT_STATE_PENDING.equalsIgnoreCase(esDeployment.getDeploymentState())){
 						esDeployment.setPendingEndTS(simpleDateFormat.format(new Date()));
 
 						double pendingDuration = esDeployment.getPendingDuration() +
-								((((Long) simpleDateFormat.parse(esDeployment.getPendingEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getPendingStartTS()).getTime()))/1000.0);
+								((simpleDateFormat.parse(esDeployment.getPendingEndTS()).getTime() - ( simpleDateFormat.parse(esDeployment.getPendingStartTS()).getTime()))/1000.0);
 						esDeployment.setPendingDuration(Math.round(pendingDuration * 1000.0) / 1000.0);
 					}
 					else if(SearchConstants.DPMT_STATE_FAILED.equalsIgnoreCase(esDeployment.getDeploymentState())){
 						esDeployment.setFailedEndTS(simpleDateFormat.format(new Date()));
 
 						double failedDuration = esDeployment.getFailedDuration() +
-								((((Long) simpleDateFormat.parse(esDeployment.getFailedEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getFailedStartTS()).getTime()))/1000.0);
+								((simpleDateFormat.parse(esDeployment.getFailedEndTS()).getTime() - ( simpleDateFormat.parse(esDeployment.getFailedStartTS()).getTime()))/1000.0);
 						esDeployment.setFailedDuration(Math.round(failedDuration * 1000.0) / 1000.0);
 					}
 					}else if(esDeployment!=null && SearchConstants.DPMT_STATE_COMPLETE.equalsIgnoreCase(deployment.getDeploymentState())){
 						esDeployment.setActiveEndTS(simpleDateFormat.format(new Date()));
 
 					double activeDuration = esDeployment.getActiveDuration() +
-								((((Long) simpleDateFormat.parse(esDeployment.getActiveEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getActiveStartTS()).getTime())) / 1000.0);
+								((( simpleDateFormat.parse(esDeployment.getActiveEndTS()).getTime()) - simpleDateFormat.parse(esDeployment.getActiveStartTS()).getTime()) / 1000.0);
 						esDeployment.setActiveDuration(Math.round(activeDuration * 1000.0) / 1000.0);
 					}
 					esDeployment.setDeploymentState(deployment.getDeploymentState());
@@ -96,7 +96,7 @@ public class DpmtMessageProcessor {
 						esDeployment.setFailedEndTS(simpleDateFormat.format(new Date()));
 
 						double failedDuration = esDeployment.getFailedDuration() +
-								((((Long) simpleDateFormat.parse(esDeployment.getFailedEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getFailedStartTS()).getTime()))/1000.0);
+								((( simpleDateFormat.parse(esDeployment.getFailedEndTS()).getTime()) - simpleDateFormat.parse(esDeployment.getFailedStartTS()).getTime())/1000.0);
 						esDeployment.setFailedDuration(Math.round(failedDuration * 1000.0) / 1000.0);
 						esDeployment.setDeploymentState(deployment.getDeploymentState());
 					}
@@ -104,7 +104,7 @@ public class DpmtMessageProcessor {
 						esDeployment.setPausedEndTS(simpleDateFormat.format(new Date()));
 
 						double pausedDuration = esDeployment.getPausedDuration() + 
-								((((Long) simpleDateFormat.parse(esDeployment.getPausedEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getPausedStartTS()).getTime()))/1000.0);
+								((( simpleDateFormat.parse(esDeployment.getPausedEndTS()).getTime()) - ( simpleDateFormat.parse(esDeployment.getPausedStartTS()).getTime()))/1000.0);
 						esDeployment.setPausedDuration(Math.round(pausedDuration * 1000.0) / 1000.0);
 						esDeployment.setDeploymentState(deployment.getDeploymentState());
 					}
@@ -112,7 +112,7 @@ public class DpmtMessageProcessor {
 						esDeployment.setPendingEndTS(simpleDateFormat.format(new Date()));
 
 						double pendingDuration = esDeployment.getPendingDuration() + 
-								((((Long) simpleDateFormat.parse(esDeployment.getPendingEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getPendingStartTS()).getTime()))/1000.0);
+								((( simpleDateFormat.parse(esDeployment.getPendingEndTS()).getTime()) - ( simpleDateFormat.parse(esDeployment.getPendingStartTS()).getTime()))/1000.0);
 						esDeployment.setPendingDuration(Math.round(pendingDuration * 1000.0) / 1000.0);
 						esDeployment.setDeploymentState(deployment.getDeploymentState());
 					}
@@ -134,7 +134,7 @@ public class DpmtMessageProcessor {
 					esDeployment.setActiveEndTS(simpleDateFormat.format(new Date()));
 
 					double activeDuration = esDeployment.getActiveDuration() +
-							((((Long) simpleDateFormat.parse(esDeployment.getActiveEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getActiveStartTS()).getTime())) / 1000.0);
+							((( simpleDateFormat.parse(esDeployment.getActiveEndTS()).getTime()) - ( simpleDateFormat.parse(esDeployment.getActiveStartTS()).getTime())) / 1000.0);
 					esDeployment.setActiveDuration(Math.round(activeDuration * 1000.0) / 1000.0);
 				}
 				esDeployment.setDeploymentState(deployment.getDeploymentState());
@@ -147,7 +147,7 @@ public class DpmtMessageProcessor {
 					esDeployment.setActiveEndTS(simpleDateFormat.format(new Date()));
 
 					double activeDuration = esDeployment.getActiveDuration() +
-							((((Long) simpleDateFormat.parse(esDeployment.getActiveEndTS()).getTime()) - ((Long) simpleDateFormat.parse(esDeployment.getActiveStartTS()).getTime())) / 1000.0);
+							((( simpleDateFormat.parse(esDeployment.getActiveEndTS()).getTime()) - simpleDateFormat.parse(esDeployment.getActiveStartTS()).getTime()) / 1000.0);
 					esDeployment.setActiveDuration(Math.round(activeDuration * 1000.0) / 1000.0);
 				}
 				esDeployment.setDeploymentState(deployment.getDeploymentState());
