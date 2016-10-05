@@ -203,7 +203,8 @@ public class CIMessageProcessor {
 		calendar.setTime(new Date());
 		for (int week=0;week<LOOKBACK_WEEKS;week++) {
 			calendar.add(Calendar.WEEK_OF_YEAR, -week);
-			for (int i = 0; i < RETRY_COUNT; i++) {
+			int counter = 0;
+			do {
 				try {
 					SearchResponse response = client.prepareSearch("cms")
 							.setIndices("cms" + "-" + dt.format(calendar.getTime()))
@@ -217,7 +218,7 @@ public class CIMessageProcessor {
 					String cmsWo = (response.getHits().getHits().length > 0) ? response.getHits().getHits()[0].getSourceAsString() : null;
 					if (cmsWo != null) {
 						wos = gson.fromJson(cmsWo, CmsWorkOrderSimple.class);
-						logger.info("WO found for ci id " + ciId + " in retry count " + i);
+						logger.info("WO found for ci id " + ciId + " on retry #" + counter);
 						break;
 					} else {
 						Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
@@ -225,7 +226,7 @@ public class CIMessageProcessor {
 				} catch (Exception e) {
 					logger.error("Error in retrieving WO for ci " + ciId);
 				}
-			}
+			} while (week == 0 && ++counter < RETRY_COUNT);  // only retry for current week.  
 		}
 		return wos;
 	}
