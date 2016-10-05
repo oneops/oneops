@@ -39,7 +39,7 @@ public class OfferingsMatcher {
     }
 
     List<CmsCI> getEligbleOfferings(CmsRfcCISimple cmsRfcCISimple, String offeringNS) {
-        List<CmsCI> ids = new ArrayList<>(); 
+        List<CmsCI> offerings = new ArrayList<>(); 
         List<CmsCI> list = cmManager.getCiBy3(offeringNS, "cloud.Offering", null);
         for (CmsCI ci: list){
             CmsCIAttribute criteriaAttribute = ci.getAttribute("criteria");
@@ -55,10 +55,10 @@ public class OfferingsMatcher {
             context.setRootObject(cmsRfcCISimple);
             boolean match = expression.getValue(context, Boolean.class);
             if (match){
-                ids.add(ci);
+                offerings.add(ci);
             }
         }
-        return ids;
+        return offerings;
     }
 
     public static void main(String[] args) {
