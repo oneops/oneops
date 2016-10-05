@@ -203,7 +203,7 @@ public class CIMessageProcessor {
 		calendar.setTime(new Date());
 		for (int week=0;week<LOOKBACK_WEEKS;week++) {
 			calendar.add(Calendar.WEEK_OF_YEAR, -week);
-			for (int i = 0; i < RETRY_COUNT; i++) {
+			for (int i = 0; i < RETRY_COUNT && week==0; i++) {
 				try {
 					SearchResponse response = client.prepareSearch("cms")
 							.setIndices("cms" + "-" + dt.format(calendar.getTime()))
