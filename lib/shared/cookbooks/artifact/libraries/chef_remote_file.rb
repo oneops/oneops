@@ -6,26 +6,26 @@ require 'net/https'
 
 
 class Chef
-	class Provider
-		class RemoteFile < Chef::Provider::File
+  class Provider
+    class RemoteFile < Chef::Provider::File
 
-			include Chef::Mixin::EnforceOwnershipAndPermissions
+      include Chef::Mixin::EnforceOwnershipAndPermissions
 
-			def action_create
-				Chef::Log.debug("#{@new_resource} checking for changes")
+      def action_create
+        Chef::Log.debug("#{@new_resource} checking for changes")
 
-				if current_resource_matches_target_checksum?
+        if current_resource_matches_target_checksum?
           Chef::Log.debug("#{@new_resource} checksum matches target checksum (#{@new_resource.checksum}) - not updating")
         else
           sources = @new_resource.source
           source = sources.shift
 
           begin
-						rest = Chef::REST.new(source, nil, nil, http_client_opts(source))
+            rest = Chef::REST.new(source, nil, nil, http_client_opts(source))
             raw_file = rest.streaming_request(rest.create_url(source),{},@new_resource.name)
-					rescue SocketError, Errno::ECONNREFUSED, Timeout::Error, Net::HTTPFatalError => e
-						Chef::Log.debug("#{@new_resource} cannot be downloaded from #{source}")
-						if source = sources.shift
+          rescue SocketError, Errno::ECONNREFUSED, Timeout::Error, Net::HTTPFatalError => e
+            Chef::Log.debug("#{@new_resource} cannot be downloaded from #{source}")
+            if source = sources.shift
               Chef::Log.debug("#{@new_resource} trying to download from another mirror")
               retry
             else
@@ -53,7 +53,7 @@ class Chef
         end
         set_all_access_controls
         update_new_file_state
-			end
-		end
-	end
+      end
+    end
+  end
 end
