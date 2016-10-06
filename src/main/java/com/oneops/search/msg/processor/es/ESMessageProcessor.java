@@ -35,13 +35,13 @@ import com.oneops.search.domain.CmsOpsProcedureSearch;
 import com.oneops.search.msg.index.Indexer;
 import com.oneops.search.msg.index.impl.ESIndexer;
 import com.oneops.search.msg.processor.*;
-import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 import org.dozer.DozerBeanMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -142,7 +142,7 @@ public class ESMessageProcessor implements MessageProcessor {
 				NotificationMessage notification = gson.fromJson(message, NotificationMessage.class);
 				CmsNotificationSearch notificationSearch = mapper.map(notification,CmsNotificationSearch.class);
 				notificationSearch.setPayload(notification.getPayload());
-				String notificationTS = DateUtil.formatDate(new Date(notification.getTimestamp()), CmsConstants.SEARCH_TS_PATTERN);
+				String notificationTS = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN).format(new Date(notification.getTimestamp()));
 				notificationSearch.setTs(notificationTS);
 				if("ops".equals(notification.getSource())){
 					ciMessageProcessor.processNotificationMsg(notificationSearch,indexer,searchGson);
