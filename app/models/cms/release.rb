@@ -26,11 +26,11 @@ class Cms::Release < Cms::Base
   end
 
   def self.latest(options = {})
-    Cms::Release.all( :params => { :latest => "true" }.merge(options) ).first
+    Cms::Release.all( :params => {:latest => 'true'}.merge(options) ).first
   end
 
   def self.search(options)
-    data = Search::Base.search('/cms/release', options)
+    data = Search::Base.search('/cms-all/release', options)
     return nil unless data
 
     result = data.map { |r| new(r, true) }
@@ -39,7 +39,7 @@ class Cms::Release < Cms::Base
   end
 
   def self.search_latest_by_ns(ns_path, options = {})
-    Search::Base.search_latest_by_ns('/cms/release', ns_path, options).map {|r| new(r, true)}
+    Search::Base.search_latest_by_ns('/cms-all/release', ns_path, options).map {|r| new(r, true)}
   end
 
   def to_param
