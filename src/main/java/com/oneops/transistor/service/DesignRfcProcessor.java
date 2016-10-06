@@ -556,11 +556,14 @@ public class DesignRfcProcessor {
     }
 
 
-    public Map<String, List<?>> getPlatformRfcs(long platId) {
-        String nsPath = getPlatformNs(cmRfcMrgProcessor.getCiById(platId));
+    public Map<String, List<?>> getPlatformRfcs(long platId, String scope) {
+		CmsRfcCI platform = cmRfcMrgProcessor.getCiById(platId);
+		trUtil.verifyScope(platform, scope);
+
+		String nsPath = getPlatformNs(platform);
 		Map<String, List<?>> map = new HashMap<>();
 		map.put("relations", rfcProcessor.getOpenRfcRelationsByNs(nsPath));
-		map.put("rfcs", rfcProcessor.getOpenRfcCIByClazzAndNameNoAttrs(nsPath, null, null));
+		map.put("cis", rfcProcessor.getOpenRfcCIByClazzAndName(nsPath, null, null));
         return map;
     }
 
