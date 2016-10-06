@@ -20,6 +20,7 @@ package com.oneops.transistor.ws.rest;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.exceptions.DJException;
@@ -43,7 +44,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.*;
-
+import java.util.stream.Collectors;
 
 
 @Controller
@@ -724,11 +725,15 @@ public class TransistorRestController extends AbstractRestController {
     @ResponseBody
     public Map<String, List<?>> getPlatformRfcs(
             @PathVariable long platId,
-            @RequestHeader(value="X-Cms-User", required = false)  String userId) {
-        if (userId == null) userId = "oneops-system";
-        
+            @RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
-        return dManager.getPlatformRfcs(platId, userId);
+        if (userId == null) userId = "oneops-system";
+
+		Map<String, List<?>> rfcs = dManager.getPlatformRfcs(platId, userId, scope);
+		rfcs.put("cis", rfcs.get("cis").stream().map(rfc -> util.custRfcCI2RfcCISimple((CmsRfcCI) rfc)).collect(Collectors.toList()));
+		rfcs.put("relations", rfcs.get("relations").stream().map(rfc -> util.custRfcRel2RfcRelSimple((CmsRfcRelation) rfc)).collect(Collectors.toList()));
+		return rfcs;
     }
 
     @RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/rfcs/discard")
@@ -773,7 +778,7 @@ public class TransistorRestController extends AbstractRestController {
 			return 0L;
 		} catch (CmsBaseException te) {
 			logger.error(te);
-			//for whatever reason spring would not forward the exceptioon to the handler unless thrown from within controller
+			//for whatever reason spring would not forward the exception to the handler unless thrown from within controller
 			throw te;
 		}
 	}
