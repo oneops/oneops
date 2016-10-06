@@ -1,0 +1,50 @@
+<% rfcs = @rfcs ? @rfcs.values.flatten : []
+   change_count = rfcs.size %>
+<% if change_count > 0 %>
+  <div class="marker"><%= status_marker('release', "#{change_count} #{'change'.pluralize(change_count)}", action_to_label(@platform.rfcAction.presence || 'update')) %></div>
+  <div class="description">
+    <ul class="status-items">
+      <li>
+        <%= icon('star', ' ', 'fa-fw') %>There are <strong><%= "#{change_count} #{'change'.pluralize(change_count)}" %></strong>
+        pending for this platform in the open release <%= link_to(@release.releaseId, path_to_release(@release)) %>
+        created <strong><%= time_ago_in_words(@release.created_timestamp) %></strong>
+      </li>
+      <li>
+        <% latest_rfc = rfcs.inject(rfcs.first) {|l, r| r.rfcUpdated > l.rfcUpdated ? r : l}
+           latest_user = latest_rfc.rfcUpdatedBy || latest_rfc.rfcCreatedBy %>
+        <%= icon('clock-o', ' ', 'fa-fw') %>Last change in this platform was
+        <strong><%= time_ago_in_words(latest_rfc.rfc_updated_timestamp) %></strong>
+        <%= raw(" by <strong>#{latest_user}</strong>") if latest_user %>
+      </li>
+    </ul>
+    <ul class="status-actions">
+      <li>
+        <%= link_to('Review',
+                    assembly_design_platform_path(@assembly, @platform, :anchor => 'release'),
+                    :class => 'btn btn-primary') %>
+      </li>
+      <%= render 'release_controls' if has_design?(@assembly.ciId)%>
+    </ul>
+  </div>
+<% else %>
+  <div class="marker"><%= status_marker('release', 'no changes') %></div>
+  <div class="description">
+    <ul class="status-items">
+      <% if @release.releaseState == 'open' %>
+        <li>
+          <%= icon('star', ' ', 'fa-fw') %><strong>No changes</strong> for this platform
+          in the open release <%= link_to(@release.releaseId, path_to_release(@release)) %>
+          created <strong><%= time_ago_in_words(@release.created_timestamp) %></strong>
+        </li>
+      <% else %>
+        <li>
+          <%= icon('star', ' ', 'fa-fw') %>There are <strong>no changes</strong> for this platform
+        </li>
+      <% end %>
+      <li>
+        <%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), assembly_design_path(@assembly, :anchor => 'releases')) %>
+        history of design releases
+      </li>
+    </ul>
+  </div>
+<% end %>

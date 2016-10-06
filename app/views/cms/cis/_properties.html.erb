@@ -22,9 +22,9 @@
         <dd><%= time_ago_in_words(ci.updated_timestamp) %><%= raw(" by #{ci.updatedBy}") if ci.updatedBy %></dd>
       <% end %>
     <% end %>
-    <% if ci.is_a?(Cms::DjCi) && controller.action_methods.include?('history') %>
+    <% if ci.is_a?(Cms::DjCi)&& controller.action_methods.include?('history') && ci.rfcAction != 'add'  %>
       <dt>History</dt>
-      <dd><%= link_to('View history of committed changes', url_for(:action => :history)) %></dd>
+      <dd><%= link_to('View history of committed changes', url_for(:action => :history, :id => ci)) %></dd>
     <% end %>
     <% if Settings.check_policy_compliance %>
       <dt>Policy Compliance</dt>

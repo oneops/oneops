@@ -1,59 +1,6 @@
 class Base::PlatformsController < ApplicationController
   include ::RfcHistory
 
-  def show
-    respond_to do |format|
-      format.html do
-        scope = @platform.ciClassName.split('.')[-2]
-        group_map = get_platform_requires_relation_temlates(@platform).inject({}) do |map, r|
-          template_ci = r.toCi
-          template_name    = template_ci.ciName.split('::').last
-          short_class_name = template_ci.ciClassName.split('.')[2..-1].join('.')
-          cardinality      = r.relationAttributes.constraint.gsub('*', '999')
-          group_id = "#{template_name}_#{@platform.ciId}"
-          map.update(group_id => {:id            => group_id,
-                                  :template_name => template_name,
-                                  :class_name    => "#{scope}.#{short_class_name}",
-                                  :cardinality   => Range.new(*cardinality.split('..').map(&:to_i)),
-                                  :obsolete      => template_ci.ciState == 'pending_deletion',
-                                  :items         => []})
-        end
-
-        pack_ns_path = platform_pack_ns_path(@platform)
-
-        components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
-                                                     :direction         => 'from',
-                                                     :relationShortName => 'Requires',
-                                                     :includeToCi       => true,
-                                                     :attrProps         => 'owner'}).map do |r|
-          group_id = "#{r.relationAttributes.template}_#{@platform.ciId}"
-          component = r.toCi
-          component.add_policy_locations(pack_ns_path)
-          group_map[group_id][:items] << component
-          component
-        end
-
-        group_map.reject! { |k, v| v[:items].blank? } if @environment
-
-        @component_groups = group_map.values
-                              .reject {|g| g[:obsolete] && g[:items].blank?}
-                              .sort { |g1, g2| g1[:template_name] <=> g2[:template_name] }
-
-        @policy_compliance = Cms::Ci.violates_policies(components, false, true) if Settings.check_policy_compliance
-
-        render(:action => :show)
-      end
-
-      format.json do
-        @platform.links_to = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
-                                                             :direction         => 'from',
-                                                             :relationShortName => 'LinksTo',
-                                                             :includeToCi       => true}).map { |r| r.toCi.ciName } if @platform
-        render_json_ci_response(true, @platform)
-      end
-    end
-  end
-
   def diagram
     begin
       ns_path = if @environment
@@ -113,7 +60,9 @@ class Base::PlatformsController < ApplicationController
         [c, graph.add_graph("cluster_#{c.ciId}",
                             :clusterrank => 'local',
                             :label => "managed via #{c.ciName}",
-                            :style => 'solid,rounded')]
+                            :fillcolor => 'whitesmoke',
+                            :color => 'lightgray',
+                            :style => 'solid,rounded,filled')]
       end
       clusters[nil] = graph
 
@@ -152,7 +101,7 @@ class Base::PlatformsController < ApplicationController
                        :label     => label,
                        # :shape     => optional ? 'ellipse' : nil,
                        :style     => "bold,rounded#{',dashed' if optional}#{',filled' if obsolete}",
-                       :fillcolor => obsolete ? '#FFDDDD' : nil,
+                       :fillcolor => obsolete ? '#FFDDDD' : 'transparent',
                        :color     => rfc_action_to_color(ci.rfcAction))
       end
 
@@ -219,5 +168,39 @@ class Base::PlatformsController < ApplicationController
                                   :relationShortName => 'Requires',
                                   :includeToCi       => true,
                                   :getEncrypted      => true})
+  end
+
+  def build_component_groups
+    group_map = get_platform_requires_relation_temlates(@platform).inject({}) do |map, r|
+      template_ci      = r.toCi
+      template_name    = template_ci.ciName.split('::').last
+      short_class_name = template_ci.ciClassName.split('.')[2..-1].join('.')
+      cardinality      = r.relationAttributes.constraint.gsub('*', '999')
+      group_id         = "#{template_name}_#{@platform.ciId}"
+      map.update(group_id => {:id            => group_id,
+                              :template_name => template_name,
+                              :class_name    => "catalog.#{short_class_name}",
+                              :cardinality   => Range.new(*cardinality.split('..').map(&:to_i)),
+                              :obsolete      => template_ci.ciState == 'pending_deletion',
+                              :items         => []})
+    end
+
+    pack_ns_path = platform_pack_ns_path(@platform)
+
+    @components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                  :direction         => 'from',
+                                                  :relationShortName => 'Requires',
+                                                  :includeToCi       => true,
+                                                  :attrProps         => 'owner'}).map do |r|
+      group_id  = "#{r.relationAttributes.template}_#{@platform.ciId}"
+      component = r.toCi
+      component.add_policy_locations(pack_ns_path) if Settings.check_policy_compliance
+      group_map[group_id][:items] << component
+      component
+    end
+
+    @component_groups = group_map.values
+                          .reject {|g| g[:obsolete] && g[:items].blank?}
+                          .sort { |g1, g2| g1[:template_name] <=> g2[:template_name] }
   end
 end

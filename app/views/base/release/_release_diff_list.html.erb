@@ -13,11 +13,11 @@
        rfc_cis_map["#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"] || rfc_cis_map["#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"]
      end %>
   <%= list(rfc_cis + rfc_relations_with_no_rfc_cis,
-              :class => 'release-diff',
-              :toolbar => {:list_name => 'release_rfc_list',
-                           :sort_by   => [%w(Class rfcClass), %w(Name rfcName), %w(Namespace namespace), %w(Created created)],
-                           :filter_by => %w(rfcClass rfcName namespace diffAttributes),
-                           :compact   => true}) do |builder, target| %>
+           :class   => 'release-diff',
+           :toolbar => {:list_name => 'release_rfc_list',
+                        :sort_by   => [%w(Class rfcClass), %w(Name rfcName), %w(Namespace namespace), %w(Created created)],
+                        :filter_by => %w(rfcClass rfcName namespace diffAttributes),
+                        :compact   => true}) do |builder, target| %>
     <% ci = target.is_a?(Cms::RfcCi)
        rfc_id = target.rfcId
        diff_attrs = ci ? target.ciAttributes.attributes : target.relationAttributes.attributes
@@ -40,7 +40,6 @@
     <% end %>
     <% if ci %>
       <% builder.icon ci_image_url(target) %>
-    <% else %>
     <% end %>
     <% builder.menu :none %>
     <% builder.top do %>

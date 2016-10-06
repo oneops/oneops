@@ -10,6 +10,26 @@ class Catalog::PlatformsController < Base::PlatformsController
     render :json => @platforms
   end
 
+  def show
+    respond_to do |format|
+      format.html do
+        build_component_groups
+        @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if @design && Settings.check_policy_compliance
+      end
+
+      format.json do
+        if @design && @platform
+          @platform.links_to = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                               :direction         => 'from',
+                                                               :relationShortName => 'LinksTo',
+                                                               :includeToCi       => true}).map { |r| r.toCi.ciName }
+        end
+        render_json_ci_response(true, @platform)
+      end
+    end
+  end
+
+
   private
 
   def find_parent
