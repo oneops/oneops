@@ -91,7 +91,8 @@ public class PackRefreshProcessor {
             throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, errMsg);
         }
 
-        if (rfcProcessor.getRfcCountByNs(designPlatform.getNsPath()) > 0) {
+        String designPlatformNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
+        if (rfcProcessor.getRfcCountByNs(designPlatformNsPath) > 0) {
             throw new TransistorException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
         }
 
@@ -108,9 +109,9 @@ public class PackRefreshProcessor {
         }
         CmsCI templatePlatform = templatePlatforms.get(0);
 
-        Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels = getExistingCatalogPlatRels(designPlatform.getNsPath()+"/_design/" + designPlatform.getCiName());
+        Map<String, Map<String, CmsCIRelation>> existingCatalogPlatRels = getExistingCatalogPlatRels(designPlatformNsPath);
 
-        processPlatform(templatePlatform,designPlatform, existingCatalogPlatRels, userId);
+        processPlatform(templatePlatform, designPlatform, existingCatalogPlatRels, userId, designPlatformNsPath);
 
         //Check if there is an open release after the pack sync and return the corresponding release id
         CmsRelease release = cmRfcMrgProcessor.getReleaseByNameSpace(designPlatform.getNsPath());
@@ -121,9 +122,8 @@ public class PackRefreshProcessor {
         }
     }
 
-    private void processPlatform(CmsCI templatePlatform, CmsCI designPlatform, Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels, String userId){
+    private void processPlatform(CmsCI templatePlatform, CmsCI designPlatform, Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels, String userId, String designPlatformNsPath){
 
-        String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
         String releaseNsPath = designPlatform.getNsPath();
 
         List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
@@ -156,9 +156,9 @@ public class PackRefreshProcessor {
         }
 
         //add call to processEdges
-        Map<Long, List<Long>> templateIdsMap = processEdges(edges , designPlatform, platNsPath, releaseNsPath, userId);
+        Map<Long, List<Long>> templateIdsMap = processEdges(edges , designPlatform, designPlatformNsPath, releaseNsPath, userId);
 
-        Set<String> newRelIds = processPackInterRelations(templInternalRels, templateIdsMap, platNsPath , releaseNsPath, existingCatalogPlatRels, userId);
+        Set<String> newRelIds = processPackInterRelations(templInternalRels, templateIdsMap, designPlatformNsPath , releaseNsPath, existingCatalogPlatRels, userId);
 
         for (CmsCIRelation existingDpOn : existingDependsOnRels) {
             String source = existingDpOn.getAttributes().get("source") != null ? existingDpOn.getAttribute("source").getDfValue(): "";
@@ -168,7 +168,7 @@ public class PackRefreshProcessor {
             }
         }
 
-        processLocalVars(templatePlatform,designPlatform, platNsPath, releaseNsPath, userId);
+        processLocalVars(templatePlatform,designPlatform, designPlatformNsPath, releaseNsPath, userId);
         
         updatePackDigest(designPlatform, userId);
 

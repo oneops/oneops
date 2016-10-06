@@ -110,8 +110,8 @@ public class DesignManagerImpl implements DesignManager {
 	}
 
 	@Override
-	public Map<String, List<?>> getPlatformRfcs(long platId, String userId) {
-		return designRfcProcessor.getPlatformRfcs(platId);
+	public Map<String, List<?>> getPlatformRfcs(long platId, String userId, String scope) {
+		return designRfcProcessor.getPlatformRfcs(platId, scope);
 	}
 
 

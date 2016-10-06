@@ -32,7 +32,7 @@ public interface DesignManager {
 	public long generatePlatform(CmsRfcCI platRfc, long assemblyId, String userId, String scope);
 	public long deletePlatform(long platformId, String userId, String scope);
 	public long clonePlatform(CmsRfcCI platRfc, Long targetAssemblyId, long sourcePlatId, String userId, String scope);
-	public Map<String, List<?>> getPlatformRfcs(long platId, String userId);
+	public Map<String, List<?>> getPlatformRfcs(long platId, String userId, String scope);
 	public long discardReleaseForPlatform(long platId, String userId);
 	public long commitReleaseForPlatform(long platId, String desc, String userId);
 	public long cloneAssembly(CmsCI assemblyCI, long sourceAssemblyId, String userId, String scope);
