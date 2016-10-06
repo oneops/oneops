@@ -214,26 +214,26 @@ public class CIMessageProcessor {
 		}
 		
 		for (int i=0; i<RETRY_COUNT; i++) {
-				try {
-					response = client.prepareSearch("cms")
-							.setTypes("workorder")
-							.setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
-							.addSort("searchTags.responseDequeTS", SortOrder.DESC)
-							.setSize(1)
-							.execute()
-							.actionGet();
-
-					String cmsWo = (response.getHits().getHits().length > 0) ? response.getHits().getHits()[0].getSourceAsString() : null;
-					if (cmsWo != null) {
-						wos = gson.fromJson(cmsWo, CmsWorkOrderSimple.class);
+			try {
+				response = client.prepareSearch("cms")
+		        .setTypes("workorder")
+		           .setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
+		           .addSort("searchTags.responseDequeTS", SortOrder.DESC)
+		           .setSize(1)
+		        .execute()
+		        .actionGet();
+				
+				String cmsWo = (response.getHits().getHits().length > 0)?response.getHits().getHits()[0].getSourceAsString():null;
+				if(cmsWo != null){ 
+					wos = gson.fromJson(cmsWo,CmsWorkOrderSimple.class);
 					logger.info("WO found for ci id " + ciId + " in retry count " + i);
-						break;
-					} else {
-						Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
-					}
-				} catch (Exception e) {
-					logger.error("Error in retrieving WO for ci " + ciId);
+					break;
+				}else {
+					Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
 				}
+			} catch (Exception e) {
+				logger.error("Error in retrieving WO for ci " + ciId);
+			}
 		}
 		return wos;
 	}
