@@ -199,15 +199,23 @@ public class CIMessageProcessor {
 	 */
 	private CmsWorkOrderSimple fetchWoForCi(long ciId) {
 		CmsWorkOrderSimple wos = null;
-		GregorianCalendar calendar = new GregorianCalendar();
-		calendar.setTime(new Date());
-		for (int week=0;week<LOOKBACK_WEEKS;week++) {
-			calendar.add(Calendar.WEEK_OF_YEAR, -week);
-			int counter = 0;
-			do {
+
+		SearchResponse response = client.prepareSearch("cms")
+				.setIndices("cms" + "-" + dt.format(new Date()))
+				.setTypes("workorder")
+				.setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
+				.addSort("searchTags.responseDequeTS", SortOrder.DESC)
+				.setSize(1)
+				.execute()
+				.actionGet();
+		if (response.getHits().getHits().length > 0) {
+			wos = gson.fromJson(response.getHits().getHits()[0].getSourceAsString(), CmsWorkOrderSimple.class);
+			return wos;
+		}
+		
+		for (int i=0; i<RETRY_COUNT; i++) {
 				try {
-					SearchResponse response = client.prepareSearch("cms")
-							.setIndices("cms" + "-" + dt.format(calendar.getTime()))
+					response = client.prepareSearch("cms")
 							.setTypes("workorder")
 							.setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
 							.addSort("searchTags.responseDequeTS", SortOrder.DESC)
@@ -218,7 +226,7 @@ public class CIMessageProcessor {
 					String cmsWo = (response.getHits().getHits().length > 0) ? response.getHits().getHits()[0].getSourceAsString() : null;
 					if (cmsWo != null) {
 						wos = gson.fromJson(cmsWo, CmsWorkOrderSimple.class);
-						logger.info("WO found for ci id " + ciId + " on retry #" + counter);
+					logger.info("WO found for ci id " + ciId + " in retry count " + i);
 						break;
 					} else {
 						Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
@@ -226,7 +234,6 @@ public class CIMessageProcessor {
 				} catch (Exception e) {
 					logger.error("Error in retrieving WO for ci " + ciId);
 				}
-			} while (week == 0 && ++counter < RETRY_COUNT);  // only retry for current week.  
 		}
 		return wos;
 	}
