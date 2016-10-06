@@ -234,7 +234,7 @@ public class SensorPublisher {
                 });
 				lastFailureTimestamp = -1;
 			} catch (JmsException exception) {
-				logger.debug("There was an error sending a message. Discarding messages for " + mqConnectionThreshold + " ms");
+				logger.warn("There was an error sending a message. Discarding messages for " + mqConnectionThreshold + " ms");
 				lastFailureTimestamp = System.currentTimeMillis() + mqConnectionThreshold;
 			}
 		}
