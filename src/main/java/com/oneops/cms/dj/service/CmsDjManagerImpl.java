@@ -354,6 +354,15 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	}
 
 	/* (non-Javadoc)
+	 * @see com.oneops.cms.dj.service.CmsDjManager#getDpmtRecordCis(List<Long>)
+	 */
+	@Override
+	public List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, List<Long> list) {
+		return dpmtProcessor.getDeploymentRecordCis(dpmtId, list);
+	}
+
+
+	/* (non-Javadoc)
 	 * @see com.oneops.cms.dj.service.CmsDjManager#getDpmtRecordRelations(long)
 	 */
 	@Override

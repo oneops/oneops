@@ -58,7 +58,8 @@ public interface DJDpmtMapper {
 	
 	List<CmsDpmtRecord> getDeploymentRecords(long deploymentId);	
 	CmsDpmtRecord getDeploymentRecord(long dpmtRfcId);
-	List<CmsDpmtRecord> getDeploymentRecordCis(long deploymentId);	
+	List<CmsDpmtRecord> getDeploymentRecordCis(long deploymentId);
+	List<CmsDpmtRecord> getDeploymentRecordCisByListOfIds(@Param("value")long deploymentId, @Param("list") List<Long> list);
 	List<CmsDpmtRecord> getDeploymentRecordRelations(long deploymentId);
 	List<CmsDpmtRecord> getDeploymentRecordsByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	long getDeploymentRecordsCountByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);

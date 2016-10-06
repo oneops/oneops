@@ -822,6 +822,16 @@ public class CmsDpmtProcessor {
 	/**
 	 * Gets the deployment record cis.
 	 *
+	 * @param list of dpt record ids
+	 * @return the deployment record cis
+	 */
+	public List<CmsDpmtRecord> getDeploymentRecordCis(long dpmtId, List<Long> list) {
+		return dpmtMapper.getDeploymentRecordCisByListOfIds(dpmtId, list);
+	}
+
+	/**
+	 * Gets the deployment record cis.
+	 *
 	 * @param ciId the ciId
 	 * @return the deployment record cis
 	 */
