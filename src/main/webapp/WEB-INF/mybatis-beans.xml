@@ -186,11 +186,9 @@
     
     <elasticsearch:transport-client id="client" cluster-nodes="${es.host:search}:9300" cluster-name="oneops" client-transport-ping-timeout="5s"/>
 		
-	<bean id="offeringMatcher" class="com.oneops.es.offerings.percolator.OfferingsMatcher">
-		<property name="client" ref="client" />
-		<property name="indexName" value="${es.offerings.index.name:cms-all}"/>
-		<property name="indexType" value="${es.offerings.index.type:ci}"/>
-		<property name="clientTimeout" value="${es.client.timeout:5}"/>
+	<bean id="offeringMatcher" class="com.oneops.controller.cms.OfferingsMatcher">
+		<property name="cmManager" ref="cmsCmManager"/>
+        <property name="exprParser" ref="exprParser"/>
 	</bean>
     
     <bean id="cmsWoProvider" class="com.oneops.controller.cms.CmsWoProvider">

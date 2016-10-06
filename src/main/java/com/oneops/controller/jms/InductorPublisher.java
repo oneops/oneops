@@ -16,6 +16,7 @@
  *******************************************************************************/
 package com.oneops.controller.jms;
 
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +33,6 @@ import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.util.IndentPrinter;
-import org.apache.http.client.utils.DateUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -55,7 +55,7 @@ public class InductorPublisher {
     private Connection connection = null;
     private Session session = null; 
     final private Gson gson = new Gson();
-    private Object lock = new Object();
+    private final Object lock = new Object();
 
     private ActiveMQConnectionFactory connFactory;
     private WoPublisher woPublisher;
@@ -101,14 +101,13 @@ public class InductorPublisher {
     /**
      * Publish message.
      *
-     * @param exec the exec
      * @param waitTaskName the wait task name
      * @param woType the wo type
      * @throws JMSException the jMS exception
      */
     public void publishMessage(String processId, String execId, CmsWorkOrderSimpleBase wo, String waitTaskName, String woType) throws JMSException {
-    	wo.getSearchTags().put(CmsConstants.REQUEST_ENQUE_TS, 
-    			DateUtils.formatDate(new Date(), CmsConstants.SEARCH_TS_PATTERN));
+		SimpleDateFormat format=  new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
+    	wo.getSearchTags().put(CmsConstants.REQUEST_ENQUE_TS, format.format(new Date()));
     	
     	synchronized(lock) {
 	    	TextMessage message = session.createTextMessage(gson.toJson(wo));
@@ -116,7 +115,7 @@ public class InductorPublisher {
 	    	message.setJMSCorrelationID(corelationId);
 	    	message.setStringProperty("task_id", corelationId);
 	    	message.setStringProperty("type", woType);
-	    	String queueName = null;
+	    	String queueName;
 	    	if ("true".equals(System.getProperty(USE_SHARED_FLAG))) {
 	    		queueName = SHARED_QUEUE;
 	    	} else {
@@ -185,7 +184,7 @@ public class InductorPublisher {
     
     /**
 	 * 
-	 * @param woPublisher
+	 * @param woPublisher setter
 	 */
 	public void setWoPublisher(WoPublisher woPublisher) {
 		this.woPublisher = woPublisher;

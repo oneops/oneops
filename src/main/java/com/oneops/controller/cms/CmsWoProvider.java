@@ -46,7 +46,6 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
-import com.oneops.es.offerings.percolator.OfferingsMatcher;
 
 import org.apache.log4j.Logger;
 
@@ -403,54 +402,38 @@ public class CmsWoProvider {
 
 		return workOrder;
 	}
-	
-	
+
+
+
 	private List<CmsRfcCI> getRequiredOfferings(CmsWorkOrder workOrder) {
-		
+
 		List<CmsRfcCI> reqOfferings = new ArrayList<CmsRfcCI>();
 		if (OFFERING_ENABLED) {
 			for(Entry<String, Map<String, CmsCI>> serviceEntry : workOrder.getServices().entrySet()){
-	           for(CmsCI serviceCI:serviceEntry.getValue().values()){
-	        	   String offeringNS = serviceCI.getNsPath()+"/"+serviceCI.getCiClassName()+"/"+serviceCI.getCiName();
-	        	   if(cmProcessor.getCountFromCIRelationsByNS(serviceCI.getCiId(), "base.Offers", null, null, offeringNS, false) > 0){
-	        		  List<String> offeringIds = offeringMatcher.getEligbleOfferings(cmsUtil.custRfcCI2RfcCISimple(workOrder.getRfcCi()), offeringNS);
-	        		  if(!offeringIds.isEmpty()){
-	      				CmsRfcCI offeringRfc = rfcUtil.mergeRfcAndCi(null,getLowestCostOffering(offeringIds) ,"df");
-	      				CmsRfcAttribute serviceTypeAttr = new CmsRfcAttribute();
-	        			serviceTypeAttr.setAttributeName("service_type");
-	        			serviceTypeAttr.setNewValue(serviceEntry.getKey());
-	        			offeringRfc.addAttribute(serviceTypeAttr);
-	      				reqOfferings.add(offeringRfc);
-	      			}
-	        	   }
-	           }
+				for(CmsCI serviceCI:serviceEntry.getValue().values()){
+					String offeringNS = serviceCI.getNsPath()+"/"+serviceCI.getCiClassName()+"/"+serviceCI.getCiName();
+					List<CmsCI> offerings = offeringMatcher.getEligbleOfferings(cmsUtil.custRfcCI2RfcCISimple(workOrder.getRfcCi()), offeringNS);
+					if (!offerings.isEmpty()) {
+						CmsRfcCI offeringRfc = rfcUtil.mergeRfcAndCi(null, getLowestCostOffering(offerings), "df");
+						CmsRfcAttribute serviceTypeAttr = new CmsRfcAttribute();
+						serviceTypeAttr.setAttributeName("service_type");
+						serviceTypeAttr.setNewValue(serviceEntry.getKey());
+						offeringRfc.addAttribute(serviceTypeAttr);
+						reqOfferings.add(offeringRfc);
+					}
+				}
 			}
 		}
 		return reqOfferings;
 	}
 
-	private CmsCI getLowestCostOffering(List<String> offeringIds) {
-		
-		if(offeringIds.size() == 1){
-			return cmProcessor.getCiById(Long.valueOf(offeringIds.get(0)));
-		}
-		
+	private CmsCI getLowestCostOffering(List<CmsCI> offerings) {
 		CmsCI lowestOffering = null;
-		for(String offId:offeringIds){
-			CmsCI offering = cmProcessor.getCiById(Long.valueOf(offId));
-			if (offering != null) {
-				if(lowestOffering == null){
-					lowestOffering = offering;
-					continue;
-				}else{
-					Double costValue = Double.valueOf(offering.getAttribute("cost_rate").getDfValue());
-					if(costValue < Double.valueOf(lowestOffering.getAttribute("cost_rate").getDfValue())){
-						lowestOffering = offering;
-					}
-				}
-			}
-			else {
-				logger.warn("offering not found, offId : " + offId);
+		for (CmsCI offering : offerings) {
+			if (lowestOffering == null) {
+				lowestOffering = offering;
+			} else if (Double.valueOf(offering.getAttribute("cost_rate").getDfValue()) < Double.valueOf(lowestOffering.getAttribute("cost_rate").getDfValue())) {
+				lowestOffering = offering;
 			}
 		}
 		return lowestOffering;

@@ -37,7 +37,7 @@
 	</bean>
 	
 	<bean id="offeringMatcher" class="org.mockito.Mockito" factory-method="mock">
-		<constructor-arg value="com.oneops.es.offerings.percolator.OfferingsMatcher" />
+		<constructor-arg value="com.oneops.controller.cms.OfferingsMatcher" />
 	</bean>
 
 	<bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">
