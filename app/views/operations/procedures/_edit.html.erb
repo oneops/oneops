@@ -75,7 +75,7 @@
     }
     Effect.SlideUp('overlay', { duration:0.3 });
     setHashParam('list_item', null);
-    window.location.reload(true);
+    window.location.replace(window.location.href.split("#")[0]);
   };
 
   window.onkeydown =  function(e) {

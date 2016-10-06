@@ -11,5 +11,8 @@
                                 'data-toggle' => 'button',
                                 :class        => "btn btn-mini #{'active' if changes_only}")] %>
 <%= section_panel 'Differencies with Pack', :width => 'triple', :menu => menu do %>
-  <%= render 'base/shared/ci_diff_list', :cis => @diff, :changes_only => changes_only %>
+  <%= render 'base/shared/ci_diff_list',
+             :cis          => @diff,
+             :owner        => 'design',
+             :changes_only => changes_only %>
 <% end %>

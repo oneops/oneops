@@ -1,0 +1,67 @@
+<% open_changes = @rfcs.values.map(&:size).sum > 0 || @platform.rfcAction.present?
+   pack_digest = @pack_version.ciAttributes.commit
+   plat_digest = @platform.ciAttributes.pack_digest
+   latest = pack_digest == plat_digest || (plat_digest.blank? && @platform.created > @pack_version.updated)
+   last_pack_pull_info = @platform_detail.attributes[:attributes].pack_digest %>
+<div class="marker"><%= latest ? status_marker('pack', 'latest', 'label') : status_marker('pack', 'pull', 'label-info') %></div>
+<div class="description">
+  <ul class="status-items">
+    <% if latest %>
+      <li>
+        <%= icon('magnet', '', 'fa-fw') %> Up to date with latest pack version
+      </li>
+    <% else %>
+      <li>
+        <%= icon('magnet', '', 'fa-fw') %> New pack version
+        <strong><%= platform_pack_link(@platform, "#{pack_digest[0..4]}...") %></strong>
+        available since <strong><%= time_ago_in_words(@pack_version.updated_timestamp) %></strong>
+      </li>
+    <% end %>
+
+      <li>
+        <%= icon('clock-o', '', 'fa-fw') %>
+        <% if last_pack_pull_info  && last_pack_pull_info.updated %>
+          Last pack pull committed <strong><%= time_ago_in_words(Time.at(last_pack_pull_info.updated/ 1000)) %></strong>
+        <% else %>
+          Platform created <strong><%= time_ago_in_words(Time.at(@platform.created_timestamp)) %></strong>
+        <% end %>
+      </li>
+
+    <li>
+      <%= icon('info-circle', '', 'fa-fw') %>
+      <% if open_changes %>
+        Design pull is <b>disabled</b> until current platform changes are committed or discarded
+      <% else %>
+        This platform can be <b>updated</b> with latest changes from the pack.
+        <div class="alert alert-info">
+          By pulling the pack all <em>unlocked</em> attributes will be updated with pack default values.
+          Additionally, new required components, variables and attachments will be added.<br/>
+          <strong>
+            All resulting changes will be added to design release and you will have a chance to review the
+            changes before comitting them.
+          </strong>
+        </div>
+      <% end %>
+    </li>
+  </ul>
+  <% if has_design?(@assembly.ciId) %>
+    <ul class="status-actions">
+      <li>
+        <% if open_changes %>
+          <% if latest %>
+            <%= button('Pull Pack', nil, 'info disabled') %>
+          <% else %>
+            <%= button('Force Pull', nil, 'inverse disabled') %>
+          <% end %>
+        <% else %>
+          <%= link_confirm_busy(latest ? button('Force Pull', nil, 'inverse') : button('Pull Pack', nil, 'info'),
+                                :url     => pack_refresh_assembly_design_platform_path(@assembly, @platform),
+                                :method  => :put,
+                                :remote => false,
+                                :confirm => 'Pull latest pack changes?',
+                                :busy    => 'Pulling latest pack changes ...') %>
+        <% end %>
+      </li>
+    </ul>
+  <% end %>
+</div>

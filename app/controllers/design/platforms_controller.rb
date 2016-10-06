@@ -20,17 +20,35 @@ class Design::PlatformsController < Base::PlatformsController
   end
 
   def show
-    if request.format.html?
-      unless @platform.rfcAction == 'add'
-        @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
-                                                     :ciClassName => 'mgmt.Version',
-                                                     :ciName      => @platform.ciAttributes.version})
-        @rfc_counts      = Cms::Rfc.count(design_platform_ns_path(@assembly, @platform))
-        @platform_detail = Cms::CiDetail.find(@platform.ciId)
+    respond_to do |format|
+      format.html do
+        build_component_groups
+        build_linkable_platform_map
+
+        @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
+
+        @release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly))
+        @rfcs = Transistor.design_platform_rfcs(@platform.ciId) if @release.releaseState == 'open'
+
+
+        unless @platform.rfcAction == 'add'
+          @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
+                                                       :ciClassName => 'mgmt.Version',
+                                                       :ciName      => @platform.ciAttributes.version})
+          @platform_detail = Cms::CiDetail.find(@platform.ciId)
+        end
+
+        render(:action => :show)
+      end
+
+      format.json do
+        @platform.links_to = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                             :direction         => 'from',
+                                                             :relationShortName => 'LinksTo',
+                                                             :includeToCi       => true}).map { |r| r.toCi.ciName } if @platform
+        render_json_ci_response(true, @platform)
       end
     end
-
-    super
   end
 
 
@@ -80,7 +98,6 @@ class Design::PlatformsController < Base::PlatformsController
 
   def edit
     respond_to do |format|
-      format.js   { build_linkable_platform_map }
       format.json { render_json_ci_response(true, @platform) }
     end
   end
@@ -167,13 +184,15 @@ class Design::PlatformsController < Base::PlatformsController
 
     @diff = clazz.all(:params => {:ciId              => @platform.ciId,
                                   :direction         => 'from',
-                                  :relationShortName => 'Requires'}).inject([]) do |m, r|
+                                  :relationShortName => 'Requires',
+                                  :attrProps         => 'owner'}).inject([]) do |m, r|
       component      = r.toCi
       pack_component = pack_components[r.relationAttributes.template]
       component_diff = calculate_ci_diff(component, pack_component)
       # The last condition below is to ensure that we include current component as diff when it is not required by
       # the pack (lower bound of cardinality constraint is zero) even it did not override any defaults when added by user.
       if !changes_only || component_diff.present? || r.relationAttributes.constraint.split('..').first.to_i == 0
+        Rails.logger.info "+++++ #{component.to_yaml}"
         component.diffCi = pack_component
         component.diffAttributes = component_diff
         m << component
@@ -189,10 +208,12 @@ class Design::PlatformsController < Base::PlatformsController
       m[r.fromCi.ciName] = r.fromCi
       m
     end
-    clazz.all(:params => {:nsPath            => design_platform_ns_path(@assembly, @platform),
+    clazz.all(:params => {:ciId              => @platform.ciId,
+                          :direction         => 'to',
                           :relationShortName => 'ValueFor',
                           :includeFromCi     => true,
-                          :includeToCi       => true}).inject(@diff) do |m, r|
+                          :includeToCi       => false,
+                          :attrProps         => 'owner'}).inject(@diff) do |m, r|
       variable      = r.fromCi
       pack_variable = pack_variables[variable.ciName]
       variable_diff = calculate_ci_diff(variable, pack_variable)
@@ -207,11 +228,12 @@ class Design::PlatformsController < Base::PlatformsController
 
     end
 
-    # There are not attachments in the pack so all attachments are added to diff.
+    # There are no attachments in the pack so all attachments are added to diff.
     clazz.all(:params => {:nsPath            => design_platform_ns_path(@assembly, @platform),
                           :relationShortName => 'EscortedBy',
                           :includeFromCi     => true,
-                          :includeToCi       => true}).inject(@diff) do |m, r|
+                          :includeToCi       => true,
+                          :attrProps         => 'owner'}).inject(@diff) do |m, r|
       attachment = r.toCi
       set_component(attachment, r.fromCi)
       attachment.diffCi         = nil
@@ -225,10 +247,26 @@ class Design::PlatformsController < Base::PlatformsController
     end
   end
 
+  def commit
+    ok, @error = Transistor.commit_design_platform_rfcs(@platform.ciId, params[:desc])
+    respond_to do |format|
+      format.js
+      format.json {render_json_ci_response(ok, @platform, ok ? nil : [@error])}
+    end
+  end
+
+  def discard
+    ok, @error = Transistor.discard_design_platform_rfcs(@platform.ciId)
+    respond_to do |format|
+      format.js {render :action => :commit}
+      format.json {render_json_ci_response(ok, @platform, ok ? nil : [@error])}
+    end
+  end
+
   def pack_refresh
     if Cms::Rfc.count(design_platform_ns_path(@assembly, @platform)).values.sum > 0
       ok = false
-      message = 'Pack pull is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull '
+      message = 'Pull Pack is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull '
     else
       ok, message = Transistor.pack_refresh(@platform.ciId)
     end
@@ -256,18 +294,25 @@ class Design::PlatformsController < Base::PlatformsController
     if @platform.new_record?
       linkable_platform_map = find_all_platforms.inject({}) { |m, p| m[p] = false; m }
     else
-      all_platforms = find_all_platforms
+      platform_ci_id = @platform.ciId
+      platforms = find_all_platforms.to_map(&:ciId)
 
       links_to_relations = Cms::DjRelation.all(:params => {:nsPath        => @platform.nsPath,
                                                            :fromClassName => 'catalog.Platform',
                                                            :toClassName   => 'catalog.Platform',
                                                            :relationName  => 'catalog.LinksTo'})
+      @links_from = []
+      @links_to   = []
+      links_to_relations.each do |r|
+        @links_from << platforms[r.fromCiId] if r.toCiId == platform_ci_id
+        @links_to << platforms[r.toCiId] if r.fromCiId == platform_ci_id
+      end
 
-      linked_platform_ids = find_linked_platform_ids(links_to_relations, @platform.ciId)
-      linked_platform_ids << @platform.ciId
+      linked_platform_ids = find_linked_platform_ids(links_to_relations, platform_ci_id)
+      linked_platform_ids << platform_ci_id
       linked_platform_ids.uniq!
-      linkable_platform_map = all_platforms.reject {|p| linked_platform_ids.include?(p.ciId) }.inject({}) do |m, p|
-        m[p] = links_to_relations.detect {|r| r.fromCiId == @platform.ciId && r.toCiId == p.ciId}
+      linkable_platform_map = platforms.values.reject {|p| linked_platform_ids.include?(p.ciId) }.inject({}) do |m, p|
+        m[p] = links_to_relations.find {|r| r.fromCiId == platform_ci_id && r.toCiId == p.ciId}
         m
       end
     end

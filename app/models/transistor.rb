@@ -56,11 +56,41 @@ class Transistor < ActiveResource::Base
     return id
   end
 
+  def self.design_platform_rfcs(platform_id)
+    begin
+      rfcs = get("platforms/#{platform_id}/rfcs", {})
+      rfcs['cis'] = rfcs['cis'].map {|rfc| Cms::RfcCi.new(rfc, true)}
+      rfcs['relations'] = rfcs['relations'].map {|rfc| Cms::RfcRelation.new(rfc, true)}
+      return rfcs
+    rescue Exception => e
+      message = handle_exception(e, "Failed to fetch platform RFCs in design for '#{platform_id}'.")
+      return nil, message
+    end
+  end
+
+  def self.commit_design_platform_rfcs(platform_id, desc = '')
+    begin
+      return JSON.parse(put("platforms/#{platform_id}/rfcs/commit", {}, {:desc => desc}.to_json).body)['releaseId']
+    rescue Exception => e
+      message = handle_exception(e, "Failed to commit platform RFCs in design for '#{platform_id}'.")
+      return nil, message
+    end
+  end
+
+  def self.discard_design_platform_rfcs(platform_id)
+    begin
+      return JSON.parse(put("platforms/#{platform_id}/rfcs/discard", {}).body)['releaseId']
+    rescue Exception => e
+      message = handle_exception(e, "Failed to discard platform RFCs in design for '#{platform_id}'.")
+      return nil, message
+    end
+  end
+
   def self.pack_refresh(platform_id)
     begin
       return JSON.parse(put("platforms/#{platform_id}/pack_refresh", {}).body)['releaseId']
     rescue Exception => e
-      message = handle_exception(e, "Failed to peform pack refresh for platform '#{platform_id}'")
+      message = handle_exception(e, "Failed to peform pack refresh for platform '#{platform_id}'.")
       return nil, message
     end
   end

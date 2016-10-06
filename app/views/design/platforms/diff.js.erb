@@ -3,5 +3,6 @@ replace_state("<%= assembly_design_platform_path(@assembly,
                                                  @platform,
                                                  :committed    => params[:committed],
                                                  :changes_only => params[:changes_only],
+                                                 :owner        => 'design',
                                                  :anchor       => 'diff') %>");
 hide_modal();

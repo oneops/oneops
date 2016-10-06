@@ -281,6 +281,8 @@ Display::Application.routes.draw do
           get  'diff',            :on => :member
           get  'history',         :on => :member
           put  'pack_refresh',    :on => :member
+          post 'commit',          :on => :member
+          post 'discard',         :on => :member
 
           resources :variables, :controller => 'local_variables' do
             put 'lock',    :on => :collection

@@ -52,17 +52,13 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Configuration',
-                  :width    => 'double',
-                  :position => 'left',
-                  :id       => 'platform_configuration',
-                  :url      => edit_assembly_design_platform_path(@assembly, @platform) do %>
-<% end %>
-
-<% if @pack_version %>
-  <%= section_panel 'Pack', :width => 'double', :position => 'left' do %>
-    <%= render 'pack' %>
-  <% end %>
+<%= section_panel 'Status', :width => 'double', :position => 'left' do %>
+  <ul class="status">
+    <li class="status-marker"><%= render 'status_release' %></li>
+    <% if @pack_version %>
+      <li class="status-marker"><%= render 'status_pack' %></li>
+    <% end %>
+  </ul>
 <% end %>
 
 <div id="page_nav_diagram">
