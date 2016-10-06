@@ -165,31 +165,17 @@ public class EnvPropsProcessor {
 	 * @param ciId the ci id
 	 * @return the cms ci
 	 */
-	public CmsCI isAutoReplaceEnbaled4bom(CmsCI platform) {
+	public boolean isAutoReplaceEnbaled(CmsCI platform) {
 		if (platform == null) {
 			logger.error("Platform is null, can not get auto-replace flag ");
-			return null;
+			return false;
 		}
 		
 		CmsCIAttribute ciAttrib = platform.getAttribute("autoreplace");
 		if (ciAttrib == null || ! "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
-			return null;
+			return false;
 		}
-		return getEnv4Platform(platform);
-	}
-
-	private CmsCI getEnv4Platform(CmsCI platform) {
-		if (platform == null) {
-			logger.error("platform is null, can not get environment for it");
-			return null;
-		}
-
-		List<CmsCIRelation> envRels = cmProcessor.getToCIRelations(platform.getCiId(), "manifest.ComposedOf",null, "manifest.Environment");
-		
-		if (envRels.size()>0) {
-			return envRels.get(0).getFromCi(); 
-		}
-		return null;
+		return true;
 	}
 
 	/**
@@ -262,15 +248,14 @@ public class EnvPropsProcessor {
 	}
 
 	public boolean isOpenRelease4Env(CmsCI env) {
-		String envNS = env.getNsPath() + "/" + env.getCiName();
-		
-		List<CmsRelease> manReleases = rfcProcessor.getLatestRelease(envNS + "/manifest", null);
+		String envNsPath = env.getNsPath() + "/" + env.getCiName();		
+		List<CmsRelease> manReleases = rfcProcessor.getLatestRelease(envNsPath + "/manifest", null);
 		if (manReleases.size() >0 ) {
 			if ("open".equals(manReleases.get(0).getReleaseState())) {
 				return true;	
 			}
 		}
-		String bomNs = envNS + "/bom";
+		String bomNs = envNsPath + "/bom";
 		List<CmsRelease> bomReleases = rfcProcessor.getLatestRelease(bomNs, null);
 
 		if (bomReleases.size() >0 ) {
@@ -279,21 +264,35 @@ public class EnvPropsProcessor {
 			} else if ((System.currentTimeMillis() - bomReleases.get(0).getUpdated().getTime()) < COOLOFF_PREIOD_4_RELEASE) {
 				return true;
 			} else {
-				List<CmsRelease> latestClosedManifestReleases = rfcProcessor.getLatestRelease(envNS + "/manifest", "closed");
+				List<CmsRelease> latestClosedManifestReleases = rfcProcessor.getLatestRelease(envNsPath + "/manifest", "closed");
 				if (latestClosedManifestReleases.size() == 0) {
-					logger.info("Env " + envNS + " has no committed release.");
+					logger.info("Env " + envNsPath + " has no committed release.");
 					return true;
 				}
 				if (bomReleases.get(0).getParentReleaseId() != latestClosedManifestReleases.get(0).getReleaseId()) {
 					//latest bom release is closed (deployed) and it's parent manifest release id is the same as latest manifest release id
 					//This means there are changes which are committed but not deployed yet by the user.
-					logger.info("Env namespace " + envNS + " has changes which are committed but not deployed.");
+					logger.info("Env namespace " + envNsPath + " has changes which are committed but not deployed.");
 					return true;
 				}
 			}
 		}
 		
 		return false;
+	}
+
+	public CmsCI getEnv4Platform(CmsCI platform) {
+		if (platform == null) {
+			logger.error("platform is null, can not get environment for it");
+			return null;
+		}
+
+		List<CmsCIRelation> envRels = cmProcessor.getToCIRelations(platform.getCiId(), "manifest.ComposedOf",null, "manifest.Environment");
+		
+		if (envRels.size()>0) {
+			return envRels.get(0).getFromCi(); 
+		}
+		return null;
 	}
 
 	public boolean isFirstAfterBomReleaseClosed(CmsCI env, long eventTimestamp, long coolOff) {
@@ -401,7 +400,7 @@ public class EnvPropsProcessor {
 			return false;
 		}
 		
-		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair_exponential_delay");
+		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair_exponential_backoff");
 		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue()) && globalRepairDelayEnabled()) {
 			return true;
 		}

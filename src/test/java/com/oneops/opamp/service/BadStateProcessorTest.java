@@ -19,6 +19,9 @@ package com.oneops.opamp.service;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import org.testng.annotations.Test;
@@ -38,6 +41,8 @@ import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
+
+import junit.framework.Assert;
 
 public class BadStateProcessorTest {
 
@@ -73,7 +78,7 @@ public class BadStateProcessorTest {
 
         bad.setCoProcessor(copMock);
         CiChangeStateEvent ciChangeStateEvent = new CiChangeStateEvent();
-        bad.submitRepairProcedure(ciChangeStateEvent, false);
+        bad.submitRepairProcedure(ciChangeStateEvent, false, 1);
 
     }
 
@@ -174,5 +179,16 @@ public class BadStateProcessorTest {
 		bsp.processUnhealthyState(changeEvent);
 	}
 	
-
+	@Test
+	public void testExponentialDelayFunction() throws Exception {
+		int coolOff = 15 * 60 * 1000;
+		int exponentialFactor = 2;
+		int repairRetriesCount = 6;
+		Calendar calendar = new GregorianCalendar(2016, 9, 5);
+		
+		long nextTime = BadStateProcessor.getNextRepairTime(calendar.getTimeInMillis(), coolOff, exponentialFactor, repairRetriesCount);
+		
+		System.out.println(" For startTime " + calendar.getTime() + " next time : " + new Date(nextTime));
+		org.junit.Assert.assertEquals(1475708400000L, nextTime);
+	}
 }

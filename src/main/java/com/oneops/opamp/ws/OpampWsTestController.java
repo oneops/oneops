@@ -73,7 +73,7 @@ public class OpampWsTestController {
 		opsEvent.setCiId(ciId);
 		logger.info("TESTING>>>>> ciId" + ciId);
 		CiChangeStateEvent event = new CiChangeStateEvent();
-		bsProcessor.submitRepairProcedure(event, false);
+		bsProcessor.submitRepairProcedure(event, false, 1);
 		return null;
 	}	
 
