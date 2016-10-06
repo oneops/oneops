@@ -135,15 +135,15 @@ attribute 'autorepair',
     :form => { 'field' => 'checkbox' }
   }
 
-attribute 'autorepair_exponential_delay',
-  :description => 'Auto Repair Exponential Delay Enabled',
+attribute 'autorepair_exponential_backoff',
+  :description => 'Enable Auto Repair Exponential Interval',
   :grouping => 'manifest',
   :required => 'required',
   :default => 'true',
   :format => {
     :category => '4.Availability',
     :order => 5,
-    :help => 'Delay auto repair action gradually if a component does not recover on first few auto-repairs',
+    :help => 'Exponentially increase auto repair interval if a component does not recover on first few auto-repairs',
     :form => { 'field' => 'checkbox' }
   }
 
