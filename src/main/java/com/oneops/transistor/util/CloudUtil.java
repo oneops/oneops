@@ -23,6 +23,7 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.transistor.exceptions.TransistorException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -128,9 +129,23 @@ public class CloudUtil {
         CmsCIRelationAttribute serviceAttr = rel.getAttribute("service");
         return serviceAttr != null && serviceAttr.getDjValue() != null;
     }
+
     private boolean needServices(CmsRfcRelation rfc) {
         CmsRfcAttribute servicesAttr = rfc.getAttribute("services");
-        return servicesAttr != null && servicesAttr.getNewValue() != null && StringUtils.isNotBlank(servicesAttr.getNewValue() );
+        return servicesAttr != null && servicesAttr.getNewValue() != null && StringUtils.isNotBlank(servicesAttr.getNewValue());
+    }
+
+    public boolean isCloudActive(CmsCIRelation platformCloudRel) {
+        return checkCloudStatus(platformCloudRel, CmsConstants.CLOUD_STATE_ACTIVE);
+    }
+
+    public boolean isCloudOffline(CmsCIRelation platformCloudRel) {
+        return checkCloudStatus(platformCloudRel, CmsConstants.CLOUD_STATE_OFFLINE);
+    }
+
+    private boolean checkCloudStatus(CmsCIRelation platformCloudRel, String cloudState) {
+        return platformCloudRel.getAttribute("adminstatus") != null
+                && cloudState.equals(platformCloudRel.getAttribute("adminstatus").getDjValue());
     }
 
 
