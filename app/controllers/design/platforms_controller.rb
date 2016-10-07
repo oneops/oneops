@@ -28,7 +28,7 @@ class Design::PlatformsController < Base::PlatformsController
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
 
         @release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly))
-        @rfcs = Transistor.design_platform_rfcs(@platform.ciId) if @release.releaseState == 'open'
+        @rfcs = @release.releaseState == 'open' ? Transistor.design_platform_rfcs(@platform.ciId) : {}
 
 
         unless @platform.rfcAction == 'add'

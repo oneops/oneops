@@ -28,18 +28,21 @@
       </li>
 
     <li>
-      <%= icon('info-circle', '', 'fa-fw') %>
       <% if open_changes %>
-        Design pull is <b>disabled</b> until current platform changes are committed or discarded
+        <%= icon('info-circle', '', 'fa-fw') %> Design pull is <b>disabled</b> until current platform changes are committed or discarded
       <% else %>
-        This platform can be <b>updated</b> with latest changes from the pack.
+        <% unless latest %>
+          <%= icon('info-circle', '', 'fa-fw') %> This platform can be <b>updated</b> with latest changes from the pack.
+        <% end %>
         <div class="alert alert-info">
-          By pulling the pack all <em>unlocked</em> attributes will be updated with pack default values.
+          <small>
+          By pulling the pack all <strong><em>unlocked</em></strong> attributes will be updated with pack default values.
           Additionally, new required components, variables and attachments will be added.<br/>
           <strong>
             All resulting changes will be added to design release and you will have a chance to review the
             changes before comitting them.
           </strong>
+          </small>
         </div>
       <% end %>
     </li>
@@ -49,9 +52,9 @@
       <li>
         <% if open_changes %>
           <% if latest %>
-            <%= button('Pull Pack', nil, 'info disabled') %>
-          <% else %>
             <%= button('Force Pull', nil, 'inverse disabled') %>
+          <% else %>
+            <%= button('Pull Pack', nil, 'info disabled') %>
           <% end %>
         <% else %>
           <%= link_confirm_busy(latest ? button('Force Pull', nil, 'inverse') : button('Pull Pack', nil, 'info'),
