@@ -44,6 +44,9 @@ public class ChannelState {
 	public boolean isUp() {
 		return isUp;
 	}
+	public boolean isDown() {
+		return !isUp;
+	}
 	public void setUp(boolean isUp) {
 		this.isUp = isUp;
 	}
