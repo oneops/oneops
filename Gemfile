@@ -42,7 +42,10 @@ gem 'swagger-ui_rails', '0.1.7'
 # Turbolinks makes following links in your web application faster. Read more: https://github.com/rails/turbolinks
 #gem 'turbolinks'
 
-gem 'activeresource-persistent', :require => 'active_resource/persistent'
+# This gem is a dependency for 'activeresource-persistent' but have to explicitly reference it to lock down the version.
+
+gem 'net-http-persistent', '2.9.4'
+gem 'activeresource-persistent', '0.2.0', :require => 'active_resource/persistent'
 
 # environment specific gems
 group :development do
@@ -54,10 +57,6 @@ group :shared do
   gem 'awesome_print', :platforms => :mingw
 end
 
-group :production do
-  gem 'therubyracer', :platforms => :ruby
-end
-
-group :enterprise do
+group :production, :enterprise do
   gem 'therubyracer', :platforms => :ruby
 end
