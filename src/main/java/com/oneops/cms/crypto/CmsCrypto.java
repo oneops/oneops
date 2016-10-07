@@ -27,9 +27,22 @@ public interface CmsCrypto {
 	String encrypt(String instr) throws GeneralSecurityException, IOException;
 	String decrypt(String instr) throws GeneralSecurityException;
 	String decryptVars(String instr) throws GeneralSecurityException;
-	static final String ENC_PREFIX = "::ENCRYPTED::";
-	static final String ENC_DUMMY = "--ENCRYPTED--";
-	static final String ENC_VAR_PREFIX = "::VAR-ENCRYPTED::";
-	static final String ENC_VAR_SUFFIX = "::VAR-END::";
+	String ENC_PREFIX = "::ENCRYPTED::";
+	String ENC_DUMMY = "--ENCRYPTED--";
+	String ENC_VAR_PREFIX = "::VAR-ENCRYPTED::";
+	String ENC_VAR_SUFFIX = "::VAR-END::";
+
+	default boolean isEncrypted(String instr){
+		return check(instr, ENC_PREFIX);
+	}
+	default boolean isVarEncrypted(String instr){
+		return check(instr, ENC_VAR_PREFIX);
+	}
+
+	default boolean check(String instr, String checkStr) {
+		if (instr==null) return  false;
+		return instr.startsWith(checkStr);
+	}
+
 
 }
