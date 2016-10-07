@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.opamp.service;
 
@@ -60,18 +60,20 @@ import com.oneops.ops.events.OpsBaseEvent;
  */
 public class BadStateProcessor {
 
-    private static final int DEFAULT_MIN_REPAIRS_BEFORE_REPLACE = 9999999;
+	private static final int DEFAULT_MIN_REPAIRS_BEFORE_REPLACE = 9999999;
 	private static final int DEFAULT_UNHEALTHY_TIME_BEFORE_REPLACE = 9999999;
-    protected static final String X_CMS_USER = "X-Cms-User";
-    protected static final String ONEOPS_AUTO_REPLACE_USER_PROP_NAME = "oneops-auto-replace-user";
-    protected static final String ONEOPS_AUTOREPLACE_USER = System.getProperty(ONEOPS_AUTO_REPLACE_USER_PROP_NAME,"oneops-autoreplace");
+	protected static final String X_CMS_USER = "X-Cms-User";
+	protected static final String ONEOPS_AUTO_REPLACE_USER_PROP_NAME = "oneops-auto-replace-user";
+	protected static final String ONEOPS_AUTOREPLACE_USER = System.getProperty(ONEOPS_AUTO_REPLACE_USER_PROP_NAME,"oneops-autoreplace");
 	private static final String CI_OPS_STATE_UNHEALTHY = "unhealthy";
 	private static final long START_EXPONENTIAL_DELAY_AFTER_PROCEDURES = 4;
 	private static final int EXPONENTIAL_DELAY_FACTOR = 2;
-	private static final int MAX_DAYS_REPAIR = 7;
+	//Max Days limit of 11 makes the final repair attempt timing close to the limit of days (11 in this case) for the common cool-off of 15 mins1476110700000 
+	public static final int MAX_DAYS_REPAIR = 11; 
+	private static final int DEFAULT_COOLOFF_PERIOD_MILLIS = 15 * 60 * 1000; //default to 15 mins
 
-    private static Logger logger = Logger.getLogger(BadStateProcessor.class);
-	
+	private static Logger logger = Logger.getLogger(BadStateProcessor.class);
+
 	private CmsCmProcessor cmProcessor;
 	private EnvPropsProcessor envProcessor;
 	private CiOpsProcessor coProcessor;
@@ -79,7 +81,7 @@ public class BadStateProcessor {
 	private OpsManager opsManager;
 	private OpsProcedureProcessor opsProcProcessor;
 	private RestTemplate restTemplate;
-    private String transistorUrl;
+	private String transistorUrl;
 	private Notifications notifier;
 	private Set<Long> postponedRepairCi = Collections.synchronizedSet(new HashSet<Long>());
 	private EventUtil eventUtil;
@@ -92,7 +94,7 @@ public class BadStateProcessor {
 	public void setOpsProcProcessor(OpsProcedureProcessor opsProcProcessor) {
 		this.opsProcProcessor = opsProcProcessor;
 	}
-	
+
 	/**
 	 * Sets the co processor.
 	 *
@@ -147,11 +149,11 @@ public class BadStateProcessor {
 
 	public RestTemplate getRestTemplate() {
 
-        return restTemplate;
+		return restTemplate;
 	}
 
 
-    public void setRestTemplate(RestTemplate restTemplate) {
+	public void setRestTemplate(RestTemplate restTemplate) {
 		this.restTemplate = restTemplate;
 	}
 
@@ -167,9 +169,8 @@ public class BadStateProcessor {
 	/**
 	 * Process unhealthy state.
 	 *
-	 * @param ciId the ci id
-	 * @param event 
-	 * @throws OpampException 
+	 * @param event
+	 * @throws OpampException
 	 */
 	public void processUnhealthyState(CiChangeStateEvent event) throws OpampException {
 		long ciId = event.getCiId();
@@ -197,61 +198,51 @@ public class BadStateProcessor {
 
 		}
 	}
-	
+
 	private void repairBad(CiChangeStateEvent event) throws OpampException {
 		long ciId = event.getCiId();
 		if (isDependsOnGood(ciId)) {
 			CmsCI platform = envProcessor.getPlatform4Bom(ciId);
-			
+
 			if (platform == null) {
 				logger.error("can not get platform for ciid " + ciId);
 				return;
 			}
 
 			long unhealthyStartTime = getUnhealthyStartTime(ciId);
-			boolean timeToAutoReplace = false;
-			
+
 			List<OpsProcedureState> procedureFinishedStates = new ArrayList<OpsProcedureState>();
 			procedureFinishedStates.add(OpsProcedureState.complete);
 			procedureFinishedStates.add(OpsProcedureState.failed);
 			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair", new Date(unhealthyStartTime));
 
 			boolean autoReplaceEnabled = envProcessor.isAutoReplaceEnbaled(platform);
-			
-			if (autoReplaceEnabled && unhealthyStartTime > 0) {
-				timeToAutoReplace = timeToAutoReplace(ciId, platform, unhealthyStartTime, proceduresCount);
-			}
-			
-			if (autoReplaceEnabled && timeToAutoReplace) {
+
+			if (autoReplaceEnabled && timeToAutoReplace(ciId, platform, unhealthyStartTime, proceduresCount)) {
 				CmsCI env = envProcessor.getEnv4Platform(platform);
 				if (envProcessor.isOpenRelease4Env(env)) {
-					logger.info("There is an open release or undeployed changes for the env => " 
-				+   env.getNsPath() + "/" + env.getCiName()+ ". Can not auto-replace.");	
+					logger.info("There is an open release or undeployed changes for the env => "
+							+   env.getNsPath() + "/" + env.getCiName()+ ". Can not auto-replace.");
 					notifier.sendPostponedReplaceNotification(event);
-					submitRepairProcedure(event, envProcessor.repairDelayEnabled(platform), proceduresCount);
+					submitRepairProcedure(event, envProcessor.repairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
 				} else {
 					logger.info("ciId: [" + ciId + "] is being auto-replaced");
 					notifier.sendReplaceNotification(event);
 					replace(ciId, env);
 				}
 			} else {
-				//we are clear to create repair procedure
-				if (! autoReplaceEnabled) { //auto-replace is disabled for this platform
-					submitRepairProcedure(event, envProcessor.repairDelayEnabled(platform), proceduresCount);	
-				} else {
-					submitRepairProcedure(event, false, proceduresCount);
-				}
+				submitRepairProcedure(event, !autoReplaceEnabled && envProcessor.repairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
 			}
 		} else {
-				notifier.sendDependsOnUnhealthyNotification(event);
+			notifier.sendDependsOnUnhealthyNotification(event);
 		}
 	}
 
-	private boolean timeToAutoReplace(long ciId, CmsCI platform, long unhealthyStartTime, long proceduresCount) {		
+	private boolean timeToAutoReplace(long ciId, CmsCI platform, long unhealthyStartTime, long proceduresCount) {
 		if (unhealthyStartTime == 0) {
 			logger.info("ci id " + ciId + " does not have any open unhealthy event. It will not be replaced");
 			return false;
-		} 
+		}
 
 		int repairRetries = getMinNumberOfRepairs(platform);
 		int replaceAfterMins = getReplaceAfterMins(platform);
@@ -259,15 +250,11 @@ public class BadStateProcessor {
 		if (platform != null) {
 			if ((System.currentTimeMillis() - unhealthyStartTime) < (replaceAfterMins * 60 * 1000L)) {
 				//unhealthy for not long enough yet
-				logger.info("ci " + ciId + " is unhealthy but for less than " + replaceAfterMins 
+				logger.info("ci " + ciId + " is unhealthy but for less than " + replaceAfterMins
 						+ " minutes. Not triggering replace. Platform => " + platform.getNsPath());
 				return false;
 			}
-			
-			List<OpsProcedureState> procedureFinishedStates = new ArrayList<OpsProcedureState>();
-			procedureFinishedStates.add(OpsProcedureState.complete);
-			procedureFinishedStates.add(OpsProcedureState.failed);
-			
+
 			if (proceduresCount >= repairRetries) {
 				return true;
 			}
@@ -296,8 +283,8 @@ public class BadStateProcessor {
 
 	private int getReplaceAfterMins(CmsCI platform) {
 		if (platform != null) {
-			CmsCIAttribute attribute = platform.getAttribute("replace_after_repairs");			
-			attribute = platform.getAttribute("replace_after_minutes");			
+			CmsCIAttribute attribute = platform.getAttribute("replace_after_repairs");
+			attribute = platform.getAttribute("replace_after_minutes");
 			if (attribute != null) {
 				String value = attribute.getDfValue();
 				if (value != null && value.trim().length() > 0) {
@@ -310,7 +297,7 @@ public class BadStateProcessor {
 
 	private int getMinNumberOfRepairs(CmsCI platform) {
 		if (platform != null) {
-			CmsCIAttribute attribute = platform.getAttribute("replace_after_repairs");			
+			CmsCIAttribute attribute = platform.getAttribute("replace_after_repairs");
 			if (attribute != null) {
 				String value = attribute.getDfValue();
 				if (value != null && value.trim().length() > 0) {
@@ -326,7 +313,7 @@ public class BadStateProcessor {
 			// first mark the ci state as "replace"
 			cmManager.updateCiState(ciId, "replace", "bom.ManagedVia", "to",
 					false, ONEOPS_AUTOREPLACE_USER);
-            logger.info("marked the ciId [" + ciId + "] for replace using headers using user"+ONEOPS_AUTOREPLACE_USER);
+			logger.info("marked the ciId [" + ciId + "] for replace using headers using user"+ONEOPS_AUTOREPLACE_USER);
 			// now submit the deployment
 			Map<String, String> params = new HashMap<String, String>();
 			params.put("envId", String.valueOf(env.getCiId()));
@@ -335,27 +322,27 @@ public class BadStateProcessor {
 
 			Map<String, String> request = new HashMap<String, String>();
 			request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
-			
-			
+
+
 			CmsCI platformOfBomCi = envProcessor.getPlatform4Bom(ciId);
 			List<CmsCI> platformsOfEnv =  envProcessor.getPlatformsForEnv(env.getCiId());
 			if (platformsOfEnv.size() > 1) {
 				StringBuffer excludePlatforms = new StringBuffer();
 				for (CmsCI platform : platformsOfEnv) {
 					if (platform.getCiId() != platformOfBomCi.getCiId()) {
-						if (excludePlatforms.length() > 0) excludePlatforms.append(","); 
+						if (excludePlatforms.length() > 0) excludePlatforms.append(",");
 						excludePlatforms.append(platform.getCiId());
 					}
 				}
-				request.put("exclude", excludePlatforms.toString());				
+				request.put("exclude", excludePlatforms.toString());
 			}
-            //TODO move it to the bean
-            HttpHeaders headers = new HttpHeaders();
-            headers.set(X_CMS_USER, ONEOPS_AUTOREPLACE_USER);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            HttpEntity<Map<String, String>> requestWitHeaders = new HttpEntity<Map<String,String>>(request, headers);
+			//TODO move it to the bean
+			HttpHeaders headers = new HttpHeaders();
+			headers.set(X_CMS_USER, ONEOPS_AUTOREPLACE_USER);
+			headers.setContentType(MediaType.APPLICATION_JSON);
+			HttpEntity<Map<String, String>> requestWitHeaders = new HttpEntity<Map<String,String>>(request, headers);
 
-            @SuppressWarnings("unchecked")
+			@SuppressWarnings("unchecked")
 			Map<String, Integer> response = restTemplate
 					.postForObject(
 							transistorUrl + "environments/" + env.getCiId()
@@ -384,15 +371,14 @@ public class BadStateProcessor {
 	/**
 	 * Process good state.
 	 *
-	 * @param ciId the ci id
-	 * @param event 
+	 * @param event
 	 */
 	public void processGoodState( CiChangeStateEvent event) {
 		notifier.sendOpsEventNotification(event);
 	}
-	
+
 	private boolean isDependsOnGood(long ciId) {
-		
+
 		List<CmsCIRelation> dependsOnRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, null, "DependsOn",null);
 		if (dependsOnRels.size()==0) {
 			return true;
@@ -408,10 +394,10 @@ public class BadStateProcessor {
 		}
 		return false;
 	}
-	
+
 	/*
 	private List<Long> getBadDependents(long ciId) {
-		
+
 		List<CmsCIRelation> dependsOnRels = cmProcessor.getToCIRelationsNakedNoAttrs(ciId, null, "DependsOn",null);
 		List<Long> badDependents = new ArrayList<Long>();
 		if (dependsOnRels.size() >0) {
@@ -423,65 +409,50 @@ public class BadStateProcessor {
 					badDependents.addAll(getBadDependents(rel.getFromCiId()));
 				}
 			}
-		}	
+		}
 		return badDependents;
 	}
 	*/
-	
+
 	/**
 	 * Submit repair procedure.
-	 * @param exponentialDelay 
-	 * @param proceduresCount 
-	 *
-	 * @param ciId the ci id
-	 * @param opsEvent 
-	 * @param shouldSendOpsNotification 
-	 * @throws OpampException 
+	 * @param event
+	 * @param exponentialDelay
+	 * @param repairRetriesCount
+	 * @throws OpampException
 	 */
-	public void submitRepairProcedure(CiChangeStateEvent event, boolean exponentialDelay, long repairRetriesCount) throws OpampException {
-		long ciId = event.getCiId(); 
-		
-		long unhealthyStartTime = getUnhealthyStartTime(ciId);
-		Map<String, String> payloadEntries = new HashMap<String, String>();
+	public void submitRepairProcedure(CiChangeStateEvent event, boolean exponentialDelay, long unhealthyStartTime, long repairRetriesCount) throws OpampException {
+		long ciId = event.getCiId();
+
+		logger.info("CiId " + ciId +  " Unhealthy start time for the open unhealthy event in millisecond : "
+				+ unhealthyStartTime + ". Total repairs executed in this state: " + repairRetriesCount);
 		if (unhealthyStartTime != 0) {
-			List<OpsProcedureState> procedureFinishedStates = new ArrayList<OpsProcedureState>();
-			procedureFinishedStates.add(OpsProcedureState.complete);
-			procedureFinishedStates.add(OpsProcedureState.failed);
+			long currentTimeMillis = System.currentTimeMillis();
+			long unhealthySinceMillis = (currentTimeMillis - unhealthyStartTime);
+			long repairRetriesMaxDaysMillis = MAX_DAYS_REPAIR * 24 * 60 * 60 * 1000;
 
-			payloadEntries.put("repeatCount", String.valueOf(repairRetriesCount));
+			if (exponentialDelay && repairRetriesCount >= START_EXPONENTIAL_DELAY_AFTER_PROCEDURES) { //add exponential delay after initial regular interval
+				if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since 7 days
+					logger.info("CI " + ciId + " unhealthy since " + MAX_DAYS_REPAIR + " days - not doing auto-repair");
+					return;
+				}
 
-			if (repairRetriesCount > 0) {
-				logger.info("CiId " + ciId +  " Unhealthy start time for the open unhealthy event in millisecond : " 
-			+ unhealthyStartTime + ". Total repairs executed in this state: " + repairRetriesCount);
-				long currentTimeMillis = System.currentTimeMillis();
-				long unhealthySinceMillis = (currentTimeMillis - unhealthyStartTime);
-				
-				if (exponentialDelay && repairRetriesCount >= START_EXPONENTIAL_DELAY_AFTER_PROCEDURES //add exponential delay after 1 hour
-						&& ! (repairRetriesCount > 13 && unhealthySinceMillis < MAX_DAYS_REPAIR * 24 * 60 * 60 * 1000)) {//recent unhealthy before exponential feature added
-					long repairRetriesMaxDaysMillis = MAX_DAYS_REPAIR * 24 * 60 * 60 * 1000;
-					
-					if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since 7 days
-						logger.info("CI " + ciId + " unhealthy since " + MAX_DAYS_REPAIR + " days - not doing auto-repair");
-						return;
-					}
+				int exponentialFactor = EXPONENTIAL_DELAY_FACTOR;
+				OpsBaseEvent opsEvent = eventUtil.getGson().fromJson(event.getPayLoad(), OpsBaseEvent.class);
+				int coolOffPeriodMillis = DEFAULT_COOLOFF_PERIOD_MILLIS;
+				if (opsEvent.getCoolOff() > 0) {
+					coolOffPeriodMillis = opsEvent.getCoolOff() * 60 * 1000;
+				}
 
-					int exponentialFactor = EXPONENTIAL_DELAY_FACTOR;
-					OpsBaseEvent opsEvent = eventUtil.getGson().fromJson(event.getPayLoad(), OpsBaseEvent.class);
-					int coolOffPeriodMillis = 15 * 60 * 1000;//default to 15 mins
-					if (opsEvent.getCoolOff() > 0) {
-						coolOffPeriodMillis = opsEvent.getCoolOff() * 60 * 1000;
-					}
-					
-					long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * START_EXPONENTIAL_DELAY_AFTER_PROCEDURES);
-					
-					long nextRepairTime = getNextRepairTime(delayStartTime, coolOffPeriodMillis, exponentialFactor, 
-							repairRetriesCount - START_EXPONENTIAL_DELAY_AFTER_PROCEDURES);
-					
-					if (System.currentTimeMillis() < nextRepairTime) {
-						//next exponential delay is not yet complete
-						logger.info("Exponential back-off - Skipping the auto-repair till " + new Date(nextRepairTime));
-						return;
-					}
+				long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * START_EXPONENTIAL_DELAY_AFTER_PROCEDURES);
+
+				long nextRepairTime = getNextRepairTime(delayStartTime, coolOffPeriodMillis, exponentialFactor,
+						repairRetriesCount - START_EXPONENTIAL_DELAY_AFTER_PROCEDURES, repairRetriesMaxDaysMillis);
+
+				if (currentTimeMillis < nextRepairTime) {
+					//next exponential delay is not yet complete
+					logger.info("Exponential back-off - Skipping the auto-repair till " + new Date(nextRepairTime));
+					return;
 				}
 			}
 		}
@@ -496,30 +467,33 @@ public class BadStateProcessor {
 		procDef.setActions(actions);
 		procDef.setName("ci_repair");
 		procDef.setFlow(new ArrayList<OpsProcedureFlow>());
-		
+
 		CmsOpsProcedure procRequest = new CmsOpsProcedure();
 		procRequest.setCiId(ciId);
 		procRequest.setCreatedBy("oneops-autorepair");
 		procRequest.setProcedureState(OpsProcedureState.active);
-		
+
 		if(isRepairAlreadyPostponed(ciId)) {
 			String ciOpsState = coProcessor.getCIstate(ciId);
 			if (!CI_OPS_STATE_UNHEALTHY.equalsIgnoreCase(ciOpsState)) {
-			    logger.info( "CmsCi id - " + ciId + " already good." );
-			    postponedRepairCi.remove(ciId);
-			    return;
+				logger.info( "CmsCi id - " + ciId + " already good." );
+				postponedRepairCi.remove(ciId);
+				return;
 			}
 		}
+		Map<String, String> payloadEntries = new HashMap<>();
+		payloadEntries.put("repeatCount", String.valueOf(repairRetriesCount));
+
 		procRequest.setArglist(String.valueOf(repairRetriesCount));
 		try {
 			CmsOpsProcedure submittedProc = opsProcProcessor.processProcedureRequest(procRequest, procDef);
 			//Inc
 			if (repairRetriesCount >= 1) {
-				 notifier.sendRepairCriticalNotification(event, payloadEntries);
+				notifier.sendRepairCriticalNotification(event, payloadEntries);
 			}else if(eventUtil.shouldNotify(event)){
-			   notifier.sendRepairNotification(event, payloadEntries);
-			}	
-		    postponedRepairCi.remove(ciId);
+				notifier.sendRepairNotification(event, payloadEntries);
+			}
+			postponedRepairCi.remove(ciId);
 			logger.info("Submitted Repair procedure request for ci - " + ciId + "; procedure id = " + submittedProc.getProcedureId());
 		} catch(OpsException e) {
 			postponedRepairCi.add(ciId);
@@ -531,8 +505,9 @@ public class BadStateProcessor {
 		}
 	}
 
-	public static long getNextRepairTime(long delayStartTime, int coolOffPeriod, int exponentialFactor, long repairRetriesCountSinceDelay) {
-		return (long) (delayStartTime + (coolOffPeriod * (Math.pow(exponentialFactor, (repairRetriesCountSinceDelay+1) - 1))));
+	public static long getNextRepairTime(long delayStartTime, int coolOffPeriod, int exponentialFactor, long repairRetriesCountSinceDelay, long repairRetriesMaxPeriod) {
+		long max = Math.min(repairRetriesCountSinceDelay + 1, (long) (Math.log(1 + repairRetriesMaxPeriod  / coolOffPeriod) / Math.log(2)));
+		return (long) (delayStartTime + (coolOffPeriod * (Math.pow(exponentialFactor, max) - 1)));
 	}
 
 	private boolean isRepairAlreadyPostponed(long ciId) {
