@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -39,6 +40,7 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -51,6 +53,7 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.ListUtils;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsDpmtProcessor.
@@ -883,5 +886,16 @@ public class CmsDpmtProcessor {
         }
         return null;
     }
+
+	public List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam) {
+		String envNsPath = queryParam.getEnvNs();
+		String filter = queryParam.getWildcardFilter();
+		queryParam.setBomNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
+		if (!StringUtils.isBlank(filter)) {
+			queryParam.setBomNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, filter));
+			queryParam.setBomClassFilter(CmsConstants.BOM + "." + filter);
+		}
+		return dpmtMapper.getDeploymentsByFilter(queryParam);
+	}
 
 }

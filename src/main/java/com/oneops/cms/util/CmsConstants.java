@@ -68,4 +68,7 @@ public final class CmsConstants {
 	public static final String ZONE_CLASS = "cloud.Zone";
 	public static final String CLOUD_CLASS = "account.Cloud";
 
+	public static final String BOM = "bom";
+	public static final String MANIFEST = "manifest";
+
 }
