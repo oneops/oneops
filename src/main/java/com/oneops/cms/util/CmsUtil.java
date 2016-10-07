@@ -27,6 +27,7 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -1377,7 +1378,32 @@ public class CmsUtil {
 		}
 	}
 
-	
+	public static String likefyNsPathWithFilter(String envNs, String type, String filter) {
+		String resultNs = envNs;
+		if (StringUtils.isNotBlank(type)) {
+			resultNs = appendToNs(resultNs, type);
+		}
+
+		if (StringUtils.isBlank(filter)) {
+			resultNs = likefyNsPath(resultNs);
+		}
+		else {
+			resultNs = appendToNs(resultNs, filter);
+			resultNs = resultNs.replace("_","\\_");
+		}
+
+		return resultNs;
+	}
+
+	private static String appendToNs(String nsPath, String suffix) {
+		if (nsPath.endsWith("/")) {
+			return nsPath + suffix;
+		}
+		else {
+			return nsPath + "/" + suffix;
+		}
+	}
+
 	/**
      * Masks the secured attributes in work-orders and action-orders
      * 

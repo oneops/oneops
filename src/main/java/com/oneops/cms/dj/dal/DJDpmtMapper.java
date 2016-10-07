@@ -23,11 +23,13 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Interface DJDpmtMapper.
@@ -78,4 +80,5 @@ public interface DJDpmtMapper {
 	
 	List<CmsDpmtApproval> getDpmtApprovals(long deploymentId);
 	CmsDpmtApproval getDpmtApproval(long approvalId);
+	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
 }
