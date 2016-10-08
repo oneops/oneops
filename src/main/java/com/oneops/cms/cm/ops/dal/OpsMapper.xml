@@ -267,24 +267,16 @@
           order by a.exec_order
     </select>
 
-    <select id="getProceduresForCiFromTime" parameterType="map" resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
-       select
-           p.ops_proc_id as procedureId,
-           p.ci_id as ciId,
-           p.proc_name as procedureName,
-           p.arglist as arglist,
-           p.state_id as procedureStateId,
-           s.state_name as procedureState,
-           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
-		   p.created_by as createdBy,
-		   p.created,
-           p.updated
+    <select id="getCmsOpsProceduresCountForCiFromTime" parameterType="map" resultType="long">
+       select count(*)           
        from cm_ops_procedures p, cm_ops_proc_state s
        where p.ci_id = #{ciId}
           and (#{name}::varchar is null or p.proc_name = #{name})
           and p.state_id = s.state_id
           and p.created >= #{timestamp}
-       order by ops_proc_id desc
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+           and (s.state_id in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item.id}</foreach>)
+        </if>
     </select>
 
 </mapper>

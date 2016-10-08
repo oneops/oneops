@@ -693,8 +693,8 @@ public class OpsProcedureProcessor {
         return procedure;
     }
 
-	public List<CmsOpsProcedure> getCmsOpsProceduresForCiFromTime(long ciId,
-			String procedureName, Date timestamp) {
-		return opsMapper.getProceduresForCiFromTime(ciId, procedureName, timestamp);
+	public long getCmsOpsProceduresCountForCiFromTime(long ciId,
+			List<OpsProcedureState> stateList, String procedureName, Date timestamp) {
+		return opsMapper.getCmsOpsProceduresCountForCiFromTime(ciId, stateList, procedureName, timestamp);
 	}
 }
