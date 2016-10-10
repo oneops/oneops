@@ -29,6 +29,8 @@ import java.util.SortedMap;
 import java.util.StringJoiner;
 import java.util.TreeMap;
 
+import com.oneops.transistor.util.CloudUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCIRelationBasic;
@@ -63,9 +65,13 @@ public class BomManagerImpl implements BomManager {
 	private TransUtil trUtil;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
+	private CloudUtil cloudUtil;
 
 	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
 
+	public void setCloudUtil(CloudUtil cloudUtil) {
+		this.cloudUtil = cloudUtil;
+	}
 
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
@@ -272,7 +278,7 @@ public class BomManagerImpl implements BomManager {
 	protected void check4Secondary(CmsCI platform, List<CmsCIRelation> platformCloudRels, String nsPath) {
 		//get manifest clouds and priority; what is intended
 		Map<Long, Integer> intendedCloudpriority = platformCloudRels.stream()
-				.filter(this::isCloudActive)
+				.filter(cloudUtil::isCloudActive)
 				.collect(toMap(CmsCIRelationBasic::getToCiId,this::getPriority,(i,j)->i));
 		//are there any secondary clouds for deployment
 		long numberOfSecondaryClouds = intendedCloudpriority.entrySet().stream().filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS))).count();
@@ -296,17 +302,37 @@ public class BomManagerImpl implements BomManager {
 					return Math.max(i,j);
 				}));
 
-		existingCloudPriority.putAll(intendedCloudpriority);
-		long count = existingCloudPriority.entrySet().stream().filter(entry -> (entry.getValue().equals(CmsConstants.SECONDARY_CLOUD_STATUS))).count();
-		if (existingCloudPriority.size() == count) {
+		HashMap<Long, Integer> computedCloudPriority = new HashMap<>(existingCloudPriority);
+		computedCloudPriority.putAll(intendedCloudpriority);
+
+		//Now, take  all offline clouds from
+		Map<Long, Integer> offlineClouds = platformCloudRels.stream()
+				.filter(cloudUtil::isCloudOffline)
+				.collect(toMap(CmsCIRelationBasic::getToCiId,this::getPriority,(i,j)->i));
+		if(!offlineClouds.isEmpty()){
+			offlineClouds.forEach((k,v)->{
+				if(computedCloudPriority.containsKey(k)){
+					computedCloudPriority.remove(k);
+				}
+			});
+		}
+
+		long count = computedCloudPriority.entrySet().stream().filter(entry -> (entry.getValue().equals(CmsConstants.SECONDARY_CLOUD_STATUS))).count();
+		if (computedCloudPriority.size() == count) {
 			//throw transistor exception
+			String message="";
 			String clouds = platformCloudRels.stream()
-					.filter(rel->!isCloudActive(rel))
+					.filter(rel->!cloudUtil.isCloudActive(rel))
 					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
 					.map(rel -> rel.getToCi().getCiName())
 					.collect(joining(","));
 
-            String message = String.format("The deployment will result in no instances in primary clouds for platform %s. Primary clouds <%s>  are not in active state for this platform.  ", nsPath, clouds);
+			if(StringUtils.isNotEmpty(clouds)) {
+				message = String.format("The deployment will result in no instances in primary clouds for platform %s. Primary clouds <%s>  are not in active state for this platform.  ", nsPath, clouds);
+			}else {
+				message = String.format("The deployment will result in no instances in primary clouds for platform %s. Please check the cloud priority of the clouds. .  ", nsPath);
+			}
+
 			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
 		return;
@@ -318,10 +344,6 @@ public class BomManagerImpl implements BomManager {
         return entryPoint.isPresent() ? trUtil.getShortClazzName(entryPoint.get().getToCi().getCiClassName()): null;
 	}
 
-	private boolean isCloudActive(CmsCIRelation platformCloudRel) {
-		return platformCloudRel.getAttribute("adminstatus") != null
-                && CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue());
-	}
 
 	private Integer getPriority(CmsCIRelation deployedTo) {
 		return deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);

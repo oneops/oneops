@@ -105,7 +105,8 @@
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
 		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
-		 <property name="cmsUtil" ref="cmsUtil" />
+		<property name="cmsUtil" ref="cmsUtil" />
+		<property name="cloudUtil" ref="cloudUtil" />
     </bean>
 
 	<bean id="flexManager" class="com.oneops.transistor.service.FlexManagerImpl">
