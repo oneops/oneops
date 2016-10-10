@@ -310,7 +310,15 @@ public class PackRefreshProcessor {
                             CmsRfcRelation newRfcRelation = null;
                             CmsCIRelation existingCIRel = existingCatalogPlatRels.get(rfcRelation.getRelationName())!=null?
                                     existingCatalogPlatRels.get(rfcRelation.getRelationName()).get(rfcRelation.getFromCiId() + ":" + rfcRelation.getToCiId()):null;
-                            if(needUpdateRfcRelation(rfcRelation, existingCIRel)){
+                            if ("delete".equals(rfcRelation.getRfcAction())){
+                                if (existingCIRel!=null) {
+                                    cmRfcMrgProcessor.requestRelationDelete(rfcRelation.getRelationId(), userId);
+                                    logger.info("removing relation id = " + rfcRelation.getRelationName()+"#"+rfcRelation.getFromRfcId()+"->"+rfcRelation.getToRfcId());
+                                } else {
+                                    logger.info("Relation removed from the pack, but is not a part of the platform. Won't do anything");
+                                }
+
+                            } else if(needUpdateRfcRelation(rfcRelation, existingCIRel)){
                                 newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcRelation, userId);
                                 logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
                                 newRelsGoids.add(newRfcRelation.getRelationGoid());
@@ -351,6 +359,9 @@ public class PackRefreshProcessor {
                 newRfc.addAttribute(rfcAttr);
             }
             relAttrs.put(relAttr.getAttributeName(), relAttr);
+        }
+        if ("pending_deletion".equals(mgmtCiRelation.getRelationState())){
+            newRfc.setRfcAction("delete");
         }
 
         trUtil.applyRelationToRfc(newRfc, mgmtCiRelation, relAttrs, true, null);
@@ -404,8 +415,7 @@ public class PackRefreshProcessor {
 
         if (baseRel == null ){
             rfcRel.setRfcAction("delete");
-            needUpdate = true;
-            return needUpdate;
+            return true;
         }
 
 
