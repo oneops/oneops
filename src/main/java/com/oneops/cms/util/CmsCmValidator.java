@@ -253,10 +253,7 @@ public class CmsCmValidator {
 						}	
 					}
 				}
-			} catch (GeneralSecurityException e) {
-				encResult.setValidated(false);
-				encResult.addErrorMsg(CAN_NOT_ENCRYPT_ATTRIBUTE + attr.getAttributeName() + " " + e.getMessage());
-			} catch (IOException e) {
+			} catch (GeneralSecurityException | IOException e) {
 				encResult.setValidated(false);
 				encResult.addErrorMsg(CAN_NOT_ENCRYPT_ATTRIBUTE + attr.getAttributeName() + " " + e.getMessage());
 			}
@@ -317,22 +314,21 @@ public class CmsCmValidator {
 					if (attr.getDfValue() != null ) {
 						if (attr.getDfValue().equalsIgnoreCase(CmsCrypto.ENC_DUMMY)) {
 							noUpdateAttrs.add(attr.getAttributeName());
-						} else if (!attr.getDfValue().startsWith(CmsCrypto.ENC_PREFIX)) {
-							attr.setDfValue(cmsCrypto.encrypt(attr.getDfValue()));
+						} else if (attr.getDfValue().startsWith(CmsCrypto.ENC_PREFIX) ) {
+							if(!attr.getDfValue().startsWith(CmsCrypto.ENC_VAR_PREFIX))
+								attr.setDfValue(cmsCrypto.encrypt(attr.getDfValue()));
 						}
 					}
 					if (attr.getDjValue() != null) {
 						if (attr.getDjValue().equalsIgnoreCase(CmsCrypto.ENC_DUMMY)) {
 							noUpdateAttrs.add(attr.getAttributeName());
 						} else if (!attr.getDjValue().startsWith(CmsCrypto.ENC_PREFIX)) {
-							attr.setDjValue(cmsCrypto.encrypt(attr.getDjValue()));
+							if(!attr.getDfValue().startsWith(CmsCrypto.ENC_VAR_PREFIX))
+								attr.setDjValue(cmsCrypto.encrypt(attr.getDjValue()));
 						}
 					}
 				}
-			} catch (GeneralSecurityException e) {
-				encResult.setValidated(false);
-				encResult.addErrorMsg(CAN_NOT_ENCRYPT_ATTRIBUTE + attr.getAttributeName() + " " + e.getMessage());
-			} catch (IOException e) {
+			} catch (GeneralSecurityException | IOException   e) {
 				encResult.setValidated(false);
 				encResult.addErrorMsg(CAN_NOT_ENCRYPT_ATTRIBUTE + attr.getAttributeName() + " " + e.getMessage());
 			}
