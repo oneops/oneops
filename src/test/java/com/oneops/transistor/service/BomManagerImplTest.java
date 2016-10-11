@@ -23,6 +23,7 @@ import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
+import com.oneops.transistor.util.CloudUtil;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.annotations.BeforeClass;
@@ -94,14 +95,15 @@ public class BomManagerImplTest {
         impl.check4Secondary(mock(CmsCI.class), platformCloudRels, nsPath);
     }
 
+
     private BomManagerImpl getInstance(CmsCmProcessor cmProcessor) {
         BomManagerImpl impl = mock(BomManagerImpl.class, CALLS_REAL_METHODS);
-        impl.setCmProcessor(cmProcessor);
         impl.setCmProcessor(cmProcessor);
         TransUtil transUtil = new TransUtil();
         CmsUtil util = new CmsUtil();
         transUtil.setCmsUtil(util);
         impl.setTrUtil(transUtil);
+        impl.setCloudUtil(new CloudUtil());
         return impl;
     }
 
@@ -140,6 +142,49 @@ public class BomManagerImplTest {
         //should not allow
         impl.check4Secondary(platform, platformCloudRels, nsPath);
     }
+
+    @Test(expectedExceptions = {TransistorException.class},expectedExceptionsMessageRegExp=".* <c1,c2>.*")
+    public void primaryOfflineDeployingSecondaryMakingAllSec() throws Exception {
+        CmsCmProcessor cmProcessor = mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
+        String[] offlinePrimaryClouds = {"c1", "c2"};
+        String[] secondaryClouds = {"c3", "c4"};
+        List<CmsCIRelation> platformCloudRels = Stream.of(offlinePrimaryClouds)
+                .map(s -> (createOfflinePrimaryCloud(s)))
+                .collect(toList());
+
+        List<CmsCIRelation> secondaryCloudRels = Stream.of(secondaryClouds)
+                .map(s -> (createSecondaryCloud(s)))
+                .collect(toList());
+
+        platformCloudRels.addAll(secondaryCloudRels);
+        //returns all secondary clouds deployed
+        doAnswer(new Answer<List<CmsCIRelation>>() {
+            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
+                int index = ((Long) invocation.getArguments()[0]).intValue();
+                //index less than 1 , make primary Deployed
+                return Stream.of(clouds[index])
+                        .map(s -> (createPrimaryDeployedCloud(s)))
+                        .collect(toList());
+
+            }
+        }).when(cmProcessor).getToCIRelationsByNs(anyLong(), eq(DEPLOYED_TO), anyString(), eq("Fqdn"), anyString());
+        String nsPath = "/test/a1/bom/1";
+
+        //returns valid entry point
+        doAnswer(new Answer<List<CmsCIRelation>>() {
+            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
+                return Stream.of(relation(ci("manifest.Fqdn", "c1", 1234), "Entrypoint"))
+                        .collect(toList());
+            }
+        }).when(cmProcessor).getFromCIRelations(anyLong(), anyString(), eq("Entrypoint"), anyString());
+
+        CmsCI platform = ci("myPlat", 1234);
+        //should not allow
+        impl.check4Secondary(platform, platformCloudRels, nsPath);
+    }
+
+
 
     @Test(expectedExceptions = {})
     public void noEntryPoint() throws Exception {
@@ -188,6 +233,7 @@ public class BomManagerImplTest {
     @Test(expectedExceptions = {})
     public void allPrimaryCloudsOnManifest() throws Exception {
         BomManagerImpl impl = mock(BomManagerImpl.class, CALLS_REAL_METHODS);
+        impl.setCloudUtil(new CloudUtil());
         List<CmsCIRelation> platformCloudRels = Stream.of(clouds)
                 .map(s -> (createPrimaryCloud(s)))
                 .collect(toList());
@@ -220,8 +266,12 @@ public class BomManagerImplTest {
         ).collect(toMap((e) -> e.getKey(), (e) -> e.getValue()))));
     }
 
-    private CmsCIRelation createInactivePrimaryCloud(String c4) {
-        return getCmsCIRelation(c4, "base.Consumes", relAtrributes("inactive", "1"));
+    private CmsCIRelation createInactivePrimaryCloud(String cloud) {
+        return getCmsCIRelation(cloud, "base.Consumes", relAtrributes("inactive", "1"));
+    }
+    private CmsCIRelation createOfflinePrimaryCloud(String cloud) {
+        return getCmsCIRelation(cloud, "base.Consumes", relAtrributes("offline", "1"));
+
     }
     private CmsCIRelation createPrimaryCloud(String c4) {
         return getCmsCIRelation(c4, "base.Consumes", relAtrributes("active", "1"));
