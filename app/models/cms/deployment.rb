@@ -48,8 +48,10 @@ class Cms::Deployment < Cms::Base
     deploymentId.to_s
   end
 
-  def rfc_cis
-    @rfc_cis ||= Cms::DeploymentCi.all( :params => { :deploymentId => self.deploymentId })
+  def rfc_cis(exec_order = nil)
+    opts = {:deploymentId => self.deploymentId}
+    opts[:execorder] = exec_order if exec_order
+    @rfc_cis ||= Cms::DeploymentCi.all(:params => opts)
   end
 
   def rfc_relations

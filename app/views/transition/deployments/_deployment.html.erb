@@ -17,7 +17,7 @@
     </div>
     <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>
     <% if deployment_persisted %>
-      <div class="close" onclick="refresh_deployment_status()"><%= icon('refresh', '', 'fa-lg') %></div>
+      <div class="close" onclick="refresh_deployment_status(true)"><%= icon('refresh', '', 'fa-lg') %></div>
     <% elsif !@deployment %>
       <div class="close" onclick="refresh_compile_status()"><%= icon('refresh', '', 'fa-lg') %></div>
     <% end %>
@@ -119,15 +119,15 @@
                           </div>
                           <ul id="<%= component_dom_id %>" class="rfc hide">
                           <% cloud_rfcs.each do |rfc| %>
-                            <li class="rfc">
+                              <% state = nil
+                                 if @deployment.persisted?
+                                   info  = @deployment_rfc_cis_info[rfc.rfcId]
+                                   state = (info ? info[:state] : nil) || 'complete'
+                                 end %>
+                            <li class="rfc" id="overlay_bom_rfc_<%= rfc.rfcId %>" data-rfc-exec-order="<%= exec_order %>">
                               <div class="accordion-group">
                                 <div class="accordion-heading">
                                   <div class="accordion-toggle" onclick="$j('#rfc_details_<%= rfc.rfcId %>').toggle(300)">
-                                    <% state = nil
-                                       if @deployment.persisted?
-                                         info  = @deployment_rfc_cis_info[rfc.rfcId]
-                                         state = (info ? info[:state] : nil) || 'complete'
-                                       end %>
                                     <% ops_state_alert = ops_state_alerts[rfc.rfcId] %>
                                     <%= rfc_header(rfc, :state => state, :deployment_state => @deployment && @deployment.deploymentState) %>
                                   </div>
@@ -252,14 +252,19 @@
   <% elsif !@deployment.new_record? %>
     window.deployment_state = "<%= @deployment.deploymentState %>";
 
-    window.refresh_deployment_status = function() {
-      var rfcIds = $j.map($j("div[id^='log_']:visible"), function(el) {
-        return el.id.replace("log_", "rfcs[]=");
-      }).join("&");
-      var params = 'current_state=' + window.deployment_state + '&' + rfcIds;
-      <%= remote_function(:url    => status_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
-                          :method => :post,
-                          :with   => 'params') %>
+    window.refresh_deployment_status = function(allSteps) {
+      $j.ajax({
+        url:  "<%= status_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
+        type: "POST",
+        data: {
+          current_state: window.deployment_state,
+          exec_order:    allSteps ? -1 : (refresh_deployment_status.active_step || -1),
+          rfcs:          $j.map($j("div[id^='log_']:visible"),
+                                function (el) {
+                                  return el.id.replace("log_", "");
+                                })
+        }
+      });
     };
 
     window.settle_pending_approvals = function (link, state, disable_message, expiration) {
@@ -277,7 +282,7 @@
       }
     };
 
-    refresh_deployment_status();
+    refresh_deployment_status(true);
   <% end %>
 
   var timer = null;
@@ -335,10 +340,18 @@
     deploymentStateEl[0].className = "highlight " + deployment_state.toLowerCase();
 
     var problems = [];
+
+    refresh_deployment_status.active_step = (refresh_deployment_status.active_step || 0) + 1;
+
     $H(deployment_info).keys().each(function (rfcId) {
       var info     = deployment_info[rfcId];
       var rfcState = info['state'];
-      $j("#rfc_details_" + rfcId).parent().find(".rfc-state").html(rfcStateIconMap[rfcState]);
+      var rfcLi = $j("li#overlay_bom_rfc_" + rfcId);
+
+      rfcLi.find(".rfc-state").html(rfcStateIconMap[rfcState]);
+      if (!['complete', 'failed', 'canceled'].include((rfcState))) {
+        refresh_deployment_status.active_step = Math.min(refresh_deployment_status.active_step || 99999, parseInt(rfcLi.attr('data-rfc-exec-order')));
+      }
 
       var commentsDiv = $j("#comments_" + rfcId);
       var rfcComments = info['comments'];
@@ -350,7 +363,7 @@
           problems.push(rfcComments);
         }
         else {
-          commentsDiv.html('<%= escape_javascript(icon('info-circle', '', 'fa-lg')) %>&nbsp;&nbsp;')
+          commentsDiv.html('<%= escape_javascript(icon('info-circle', '', 'fa-lg')) %>&nbsp;&nbsp;');
           commentsDiv.toggleClass("alert-info",   !rfcFailed);
         }
         commentsDiv.append(rfcComments || '');
