@@ -28,7 +28,6 @@ import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
-import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.util.CmsUtil;
 
 public class ExpressionEvalTest {
@@ -101,7 +100,7 @@ public class ExpressionEvalTest {
 		
 	}
 	
-	@Test(expectedExceptions = { DJException.class })
+	@Test
 	public void testWrongSyntax() {
 		CmsRfcCI rfcCi = new CmsRfcCI();
 		rfcCi.setCiClassName("bom.Compute");
@@ -110,12 +109,13 @@ public class ExpressionEvalTest {
 		CmsWorkOrder wo = new CmsWorkOrder();
 		wo.setRfcCi(rfcCi);
 		
-		//invalid expression: missing ' in the end, should fail on parsing
+		//invalid expression: missing ' in the end, should return false
 		CmsCI complianceCi = createComplianceCIForExpr(EXPR_WRONG_SYNTAX);
-		expressionEvaluator.isExpressionMatching(complianceCi, wo);
+		boolean result = expressionEvaluator.isExpressionMatching(complianceCi, wo);
+		Assert.assertFalse(result);
 	}
 	
-	@Test(expectedExceptions = { DJException.class })
+	@Test
 	public void testInvalidExpression() {
 		CmsRfcCI rfcCi = new CmsRfcCI();
 		rfcCi.setCiClassName("bom.Compute");
@@ -124,9 +124,10 @@ public class ExpressionEvalTest {
 		CmsWorkOrder wo = new CmsWorkOrder();
 		wo.setRfcCi(rfcCi);
 		
-		//invalid expression: no field className in CmsRfcCI bean, should fail in evaluation
+		//invalid expression: no field className in CmsRfcCI bean, should return false
 		CmsCI complianceCi = createComplianceCIForExpr(EXPR_INVALID);
-		expressionEvaluator.isExpressionMatching(complianceCi, wo);
+		boolean result = expressionEvaluator.isExpressionMatching(complianceCi, wo);
+		Assert.assertFalse(result);
 	}
 	
 	@Test
