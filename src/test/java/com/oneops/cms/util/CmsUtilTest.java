@@ -82,13 +82,13 @@ public class CmsUtilTest {
 	}
 
 
-	private void dumpCmsCIAttributes(CmsCI ci) {
+	protected void dumpCmsCIAttributes(CmsCI ci) {
 		for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
 			System.out.println("~Ci_Dj :" + manifestAttr.getDjValue());
 		}
 	}
 
-	private void dumpMaps(Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
+	protected void dumpMaps(Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
 		System.out.println("~CLOUDVARS  " + cloudVars);
 		System.out.println("~GLOBALVARS " + globalVars);
 		System.out.println("~LOCALVARS  " + localVars);
@@ -172,7 +172,7 @@ public class CmsUtilTest {
 		}
 	}
 
-	private CmsUtil getCmsUtil() {
+	protected CmsUtil getCmsUtil() {
 		CmsUtil util = new CmsUtil();
 		CmsCrypto crypto = mock(CmsCrypto.class);
 		try {
@@ -1110,6 +1110,647 @@ public class CmsUtilTest {
 		}
 	return crypto;
 	}
+
+
+	//	• Local variable refers to another local variable
+
+	@Test
+	public void localVarRefersAnotherLVar() {
+		Map<String, String> localVars = new HashMap<String, String>(3);
+		localVars.put("lv1", "localVar1");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("$OO_LOCAL{lv2}");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, null, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, null, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "localVar1");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersAnotherLVarWithPrefix() {
+		Map<String, String> localVars = new HashMap<String, String>(3);
+		localVars.put("lv1", "localVar1");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv2}");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, null, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, null, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix localVar1");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersAnotherLVarWithSuffix() {
+		Map<String, String> localVars = new HashMap<String, String>(3);
+		localVars.put("lv1", "localVar1");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("$OO_LOCAL{lv2}Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, null, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, null, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "localVar1Suffix");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersAnotherLVarWithPrefixSuffix() {
+		Map<String, String> localVars = new HashMap<String, String>(3);
+		localVars.put("lv1", "localVar1");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, null, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, null, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "PrefixlocalVar1Suffix");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersAnotherGVarWithPrefixSuffix() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "PrefixglobalVar1Suffix");
+			}
+
+		}
+
+	}
+	@Test
+	public void localVarRefersAnotherGVarWithPrefix() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix$OO_LOCAL{lv2}");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "PrefixglobalVar1");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersAnotherCVarWithPrefix() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_CLOUD{cv1}");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix$OO_LOCAL{lv2}");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "PrefixcloudVar1");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersAnotherCVarWithSuffixPrefix() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_CLOUD{cv1}");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv2} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix cloudVar1 Suffix");
+			}
+
+		}
+
+	}
+
+
+
+	@Test
+	public void localVarRefersToGV() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix globalVar1 Suffix");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersToGVPrefix() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv1}");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix globalVar1");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersToGVSuffix() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "globalVar1");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("$OO_LOCAL{lv1} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "globalVar1 Suffix");
+			}
+
+		}
+
+	}
+
+
+
+	//Local Variable refers to Global Var indirection
+
+	@Test
+	public void localVarRefersToGV2() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "$OO_GLOBAL{gv2}");
+		globalVars.put("gv2", "globalVar2");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix globalVar2 Suffix");
+			}
+
+		}
+
+	}
+
+
+	//Local Variable refers to Global -Cloud Var indirection
+
+	@Test
+	public void localVarRefersToGVCV() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "$OO_CLOUD{cv1}");
+		globalVars.put("gv2", "globalVar2");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix cloudVar1 Suffix");
+			}
+
+		}
+
+	}
+
+
+	@Test
+	public void localVarRefersToCV() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_CLOUD{cv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "$OO_CLOUD{cv1}");
+		globalVars.put("gv2", "globalVar2");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix cloudVar1 Suffix");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersToCV2() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_CLOUD{cv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "$OO_CLOUD{cv1}");
+		globalVars.put("gv2", "globalVar2");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "$OO_CLOUD{cv2}");
+		cloudVars.put("cv2", "cloudVar2");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "Prefix cloudVar2 Suffix");
+			}
+
+		}
+
+	}
+
+	@Test
+	public void localVarRefersMixed() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "$OO_CLOUD{cv1}");
+		Map<String, String> globalVars = new HashMap<>(3);
+		globalVars.put("gv1", "$OO_CLOUD{cv1}");
+		globalVars.put("gv2", "globalVar2");
+
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "$OO_CLOUD{cv2}");
+		cloudVars.put("cv2", "cloudVar2");
+
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherGVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("$OO_LOCAL{lv1}/$OO_GLOBAL{gv1}/$OO_CLOUD{cv2}");
+		//cloudVar2 cloudVar2 cloudVar2
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "cloudVar2/cloudVar2/cloudVar2");
+			}
+
+		}
+
+	}
+
 
 
 
