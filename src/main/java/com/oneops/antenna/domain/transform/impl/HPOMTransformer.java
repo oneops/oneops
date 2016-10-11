@@ -56,6 +56,7 @@ public class HPOMTransformer extends Transformer {
         String eventName = null;
         String ciName = null;
         String threshold = "";
+        int totalAlertPercentage = 0; // this count is for both unhealthy and notify
 
         if (nsPathTokens.length > 5) {
             org = nsPathTokens[1];
@@ -67,6 +68,31 @@ public class HPOMTransformer extends Transformer {
             eventName = msg.getPayload().get("eventName");
             ciName = msg.getPayload().get("ciName");
             threshold = msg.getPayload().get("threshold");
+            String totalInstances = msg.getPayload().get("total");
+            String unhealthyInstances = msg.getPayload().get("unhealthy");
+            String notifyInstances = msg.getPayload().get("notify");
+            
+            int totalCount = 0;
+            int unhealthyCount = 0;
+            int notifyCount = 0;
+            
+            if (StringUtils.isNotEmpty(totalInstances)) {
+            	totalCount = Integer.valueOf(totalInstances.trim());
+            }
+
+            if (StringUtils.isNotEmpty(unhealthyInstances)) {
+            	unhealthyCount = Integer.valueOf(unhealthyInstances.trim());
+            }
+
+            if (StringUtils.isNotEmpty(notifyInstances)) {
+            	notifyCount = Integer.valueOf(notifyInstances.trim());
+            }
+            
+            int totalAlerting = unhealthyCount + notifyCount;
+            
+            if (totalCount > 0) {
+            	totalAlertPercentage = (100 * totalAlerting)/totalCount;
+            }
         }
 
         String msgGroup = getMsgGroup(org, assembly);
@@ -90,7 +116,7 @@ public class HPOMTransformer extends Transformer {
         logger.info("hpom message text content: " + text);
         HPOMMessage hpomMsg = new HPOMMessage()
                 .setLevel(HPOMMessage.Level.from(msg.getSeverity()))
-                .setMessageContent(text + " OneOps-Operations: " + getInstanceRedirectUrl(msg))
+                .setMessageContent(text + " OneOps-Operations: " + getInstanceRedirectUrl(msg) + " TotalAlertPercentage: " + totalAlertPercentage)
                 .setCategory(msg.getType().getName())
                 .setNode(ciName)
                 .setSenderSystem("antenna.oneops.prod.walmart.com")
