@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta content='text/html; charset=UTF-8' http-equiv='Content-Type'/>
+  <%= javascript_include_tag 'jquery' %>
   <style type="text/css" media="screen">
     ol.log {
       font-size: 14px;
@@ -19,6 +20,10 @@
       color: black;
     }
 
+    ol.log li.selected {
+      background: #f8e8c8;
+    }
+
     ol.log span.info {
       color: green;
     }
@@ -31,6 +36,9 @@
       color: red;
     }
   </style>
+  <script>
+    var $j = jQuery.noConflict();
+  </script>
 </head>
 <body>
   <%= yield %>
