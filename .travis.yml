@@ -1,3 +1,13 @@
-before_script: 
-- cd ${WORKSPACE};rm -rf cmsdal/;git clone git@github.com:oneops/cmsdal.git;cd cmsdal;mvn clean install -Dmaven.test.skip=true;cd ${WORKSPACE};rm -rf oo-commons/;git clone git@github.com:oneops/oo-commons.git;cd oo-commons;mvn clean install -Dmaven.test.skip=true
+before_install: 
+  - TRAVIS_USERNAME=`echo $TRAVIS_REPO_SLUG | sed 's/\/.*//'`
+  - git clone https://github.com/$TRAVIS_USERNAME/cmsdal.git $TRAVIS_USERNAME/cmsdal
+  - cd $TRAVIS_USERNAME/cmsdal 
+  - mvn clean install -Dmaven.test.skip=true
+  - cd ../..
+  - git clone https://github.com/$TRAVIS_USERNAME/oo-commons.git $TRAVIS_USERNAME/oo-commons
+  - cd $TRAVIS_USERNAME/oo-commons
+  - mvn clean install -Dmaven.test.skip=true
+  - cd ../..
 sudo: false
+language: java
+jdk: oraclejdk8
