@@ -19,6 +19,9 @@ package com.oneops.opamp.service;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import org.testng.annotations.Test;
@@ -38,6 +41,8 @@ import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
+
+import junit.framework.Assert;
 
 public class BadStateProcessorTest {
 
@@ -73,8 +78,8 @@ public class BadStateProcessorTest {
 
         bad.setCoProcessor(copMock);
         CiChangeStateEvent ciChangeStateEvent = new CiChangeStateEvent();
-        bad.submitRepairProcedure(ciChangeStateEvent);
-
+        long unhealthyStartTime = System.currentTimeMillis() - 1 * 60 *60 * 1000;
+        bad.submitRepairProcedure(ciChangeStateEvent, false, unhealthyStartTime, 1);
     }
 
 	@Test
@@ -174,5 +179,28 @@ public class BadStateProcessorTest {
 		bsp.processUnhealthyState(changeEvent);
 	}
 	
+	@Test
+	public void testExponentialDelayFunction() throws Exception {
+		int coolOff = 15 * 60 * 1000;
+		int exponentialFactor = 2;
+		int repairRetriesCountSinceDelay = 6;
+		int maxDaysRepair = 11;
+		Calendar calendar_Oct05_0000_2016 = new GregorianCalendar(2016, 9, 5);
+		long maxRepairRetryPeriod = maxDaysRepair * 24 * 60 * 60 * 1000; 
+		
+		long nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, repairRetriesCountSinceDelay, maxRepairRetryPeriod);
+		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
+		Calendar calendar_Oct06_074500_2016 = new GregorianCalendar(2016, 9, 6, 7, 45, 0);//Oct 06 07:45:00 2016
+		org.junit.Assert.assertEquals(calendar_Oct06_074500_2016.getTimeInMillis(), nextTime);
 
+		nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, 10, maxRepairRetryPeriod);
+		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
+		Calendar calendar_Oct15_154500_2016 = new GregorianCalendar(2016, 9, 15, 15, 45, 0);//Oct 15 15:45:00 2016
+		org.junit.Assert.assertEquals(calendar_Oct15_154500_2016.getTimeInMillis(), nextTime);
+
+		nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, 25, maxRepairRetryPeriod);
+		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
+		org.junit.Assert.assertEquals(calendar_Oct15_154500_2016.getTimeInMillis(), nextTime);
+
+	}
 }
