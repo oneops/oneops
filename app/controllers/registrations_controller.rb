@@ -30,11 +30,17 @@ class RegistrationsController < Devise::RegistrationsController
       invitation.destroy if invitation
     end
 
-    if ok
-      session[:omniauth] = nil unless resource.new_record?
-      flash.now[:notice] = "Signed up successfully."
-    else
-      flash.now[:error] = "Failed to sign up."
+    respond_to do |format|
+      format.html do
+        if ok
+          session[:omniauth] = nil unless resource.new_record?
+          flash.now[:notice] = "Signed up successfully."
+        else
+          flash.now[:error] = "Failed to sign up."
+        end
+      end
+
+      format.json { render_json_ci_response(ok, resource)}
     end
   end
 

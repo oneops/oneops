@@ -91,7 +91,7 @@
           load_state_history
           load_approvals
         end
-        load_time_stats
+        load_time_stats if @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
 
         render :action => :status
       end
@@ -288,7 +288,9 @@
   end
 
   def load_deployment_states
-    @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis.inject({}) do |states, rfc|
+    step = params[:exec_order]
+    step &&= step.to_i
+    @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis(step && step >= 0 ? step : nil).inject({}) do |states, rfc|
       states[rfc.rfcId] = {:state => rfc.dpmtRecordState, :comments => rfc.comments}
       states
     end
