@@ -90,8 +90,8 @@ public class DesignManagerImpl implements DesignManager {
 	}
 
 	@Override
-	public DesignExportSimple exportDesign(long assemblyId) {
-		return designExpProcessor.exportDesign(assemblyId);
+	public DesignExportSimple exportDesign(long assemblyId, Long[] platformIds, String scope) {
+		return designExpProcessor.exportDesign(assemblyId, platformIds, scope);
 	}
 
 	@Override

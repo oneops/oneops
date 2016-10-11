@@ -95,34 +95,44 @@ public class DesignExportProcessor {
 		this.cmProcessor = cmProcessor;
 	}
 
-	public DesignExportSimple exportDesign(long assemblyId) {
+	public DesignExportSimple exportDesign(long assemblyId, Long[] platformIds, String scope) {
 		CmsCI assembly = cmProcessor.getCiById(assemblyId);
 		if (assembly == null) {
 			throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ASSEMBLY_ID_ERROR_MSG + assemblyId);
 		}
-		
+
+		trUtil.verifyScope(assembly, scope);
+
 		DesignExportSimple des = new DesignExportSimple();
-		//check open design release?
-		
-		//get the global vars
-		List<CmsCIRelation> globalVarRels = cmProcessor.getToCIRelations(assemblyId, GLOBAL_VAR_RELATION, GLOBAL_VAR_CLASS);
-		
-		for (CmsCIRelation gvRel : globalVarRels) {
-			String[] var = checkVar4Export(gvRel.getFromCi(), false);
-			if (var != null) {
-				des.addVariable(var[0],var[1]);
+
+		if (platformIds == null || platformIds.length == 0) {
+
+			//get the global vars
+			List<CmsCIRelation> globalVarRels = cmProcessor.getToCIRelations(assemblyId, GLOBAL_VAR_RELATION, GLOBAL_VAR_CLASS);
+
+			for (CmsCIRelation gvRel : globalVarRels) {
+				String[] var = checkVar4Export(gvRel.getFromCi(), false);
+				if (var != null) {
+					des.addVariable(var[0],var[1]);
+				}
 			}
 		}
-		
+
 		//do platforms
-		addPlatformsToExport(assemblyId, des);
+		addPlatformsToExport(assemblyId, platformIds, des);
 		
 		return des;
 	}
 	
-	private void addPlatformsToExport(long assemblyId, DesignExportSimple des) {
-		List<CmsCIRelation> composedOfs = cmProcessor.getFromCIRelations(assemblyId, COMPOSED_OF_RELATION, DESIGN_PLATFORM_CLASS);
-		
+	private void addPlatformsToExport(long assemblyId, Long[] platformIds, DesignExportSimple des) {
+		List<CmsCIRelation> composedOfs;
+		if (platformIds == null || platformIds.length == 0) {
+			composedOfs = cmProcessor.getFromCIRelations(assemblyId, COMPOSED_OF_RELATION, DESIGN_PLATFORM_CLASS);
+		}
+		else {
+			composedOfs = cmProcessor.getFromCIRelationsByToCiIds(assemblyId, COMPOSED_OF_RELATION, null, Arrays.asList(platformIds));
+		}
+
 		for (CmsCIRelation composedOf : composedOfs) {
 			CmsCI platform = composedOf.getToCi();
 			
