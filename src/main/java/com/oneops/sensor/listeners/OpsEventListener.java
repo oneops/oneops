@@ -17,29 +17,36 @@
  *******************************************************************************/
 package com.oneops.sensor.listeners;
 
+import java.io.IOException;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang.math.NumberUtils;
+import org.apache.log4j.Logger;
+
 import com.espertech.esper.client.EventBean;
 import com.espertech.esper.client.UpdateListener;
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.ops.*;
+import com.oneops.ops.CiOpsProcessor;
+import com.oneops.ops.PerfData;
+import com.oneops.ops.PerfDataRequest;
+import com.oneops.ops.PerfDatasource;
+import com.oneops.ops.PerfHeader;
 import com.oneops.ops.dao.OpsEventDao;
 import com.oneops.ops.dao.PerfDataAccessor;
 import com.oneops.ops.dao.PerfHeaderDao;
 import com.oneops.ops.events.CiChangeStateEvent;
+import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsEvent;
 import com.oneops.ops.events.Status;
 import com.oneops.sensor.jms.OpsEventPublisher;
 import com.oneops.sensor.util.EventConverter;
+import com.oneops.sensor.util.EventContext;
 import com.oneops.sensor.util.SensorHeartBeat;
-import org.apache.commons.lang.math.NumberUtils;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
 
 /**
  * The listener interface for receiving opsEvent events.
@@ -222,8 +229,6 @@ public class OpsEventListener implements UpdateListener {
                 }
             }
 
-            String oldCiState = coProcessor.getCIstate(event.getCiId());
-
             //we need to alter current time since we can get multi events fired at the same milisec - this will affect cassandra persistence that is based on the timestamp
             long threadId = Thread.currentThread().getId();
             long reminder = (threadId % 100) + (timeShifter * 100);
@@ -233,36 +238,67 @@ public class OpsEventListener implements UpdateListener {
                 logger.warn(" Shifting time by more than reasonable for :" + event.getCiId() + ": " + event.getSource() + "timestamp : " + timestamp + " reminder: " + reminder);
             }
             event.setTimestamp(timestamp);
-            boolean isNew = opsEventDao.addOpenEventForCi(event.getCiId(), event.getName(), event.getTimestamp(), event.getCiState());
-            //set the status whether its new or existing status in base event based on whether already an open event exists for this
-            //ci and eventName (monitor-threshold eg<montitorName>:definitionName. p1-compute-postfixprocess:PostfixProcessLow\\).
-            if (isNew) {
-                event.setStatus(Status.NEW);
-            } else {
-                event.setStatus(Status.EXISTING);
-            }
-
-
-            String payload = gson.toJson(EventConverter.convert(event));
-            logger.debug(payload);
-            opsEventDao.persistOpsEvent(event.getCiId(), event.getName(), event.getTimestamp(), payload);
-
-            String newCiState = coProcessor.getCIstate(event.getCiId());
-            CiChangeStateEvent ciEvent = new CiChangeStateEvent();
-            ciEvent.setCiId(event.getCiId());
-            ciEvent.setNewState(newCiState);
-            ciEvent.setOldState(oldCiState);
-            //TODO change ciEvent to have notify state ?
-            ciEvent.setPayLoad(payload);
-            ciEvent.setTimestamp(System.currentTimeMillis());
-
-            if (!newCiState.equals(oldCiState)) {
-                coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp());
-            }
-            opsEventPub.publishCiStateMessage(ciEvent);
+            EventContext eventContext = new EventContext(event);
+            handleEvent(eventContext);
             timeShifter++;
         }
+    }
 
+    private void handleEvent(EventContext eventContext) {
+        OpsEvent event = (OpsEvent)eventContext.getEvent();
+        lookupManifestStates(eventContext);
+        boolean isNew = opsEventDao.addOpenEventForCi(event.getCiId(), event.getName(), event.getTimestamp(), event.getCiState());
+        //set the status whether its new or existing status in base event based on whether already an open event exists for this
+        //ci and eventName (monitor-threshold eg<montitorName>:definitionName. p1-compute-postfixprocess:PostfixProcessLow\\).
+        if (isNew) {
+            event.setStatus(Status.NEW);
+        } else {
+            event.setStatus(Status.EXISTING);
+        }
+
+        String payload = gson.toJson(EventConverter.convert(event));
+        logger.debug(payload);
+        opsEventDao.persistOpsEvent(event.getCiId(), event.getName(), event.getTimestamp(), payload);
+
+        CiChangeStateEvent ciEvent = new CiChangeStateEvent();
+        ciEvent.setCiId(event.getCiId());
+        ciEvent.setNewState(eventContext.getNewState());
+        ciEvent.setOldState(eventContext.getOldState());
+        //TODO change ciEvent to have notify state ?
+        ciEvent.setPayLoad(payload);
+        ciEvent.setTimestamp(System.currentTimeMillis());
+
+        if (eventContext.isStateChanged()) {
+            logger.info("state changed ci -> " + event.getCiId() + ", old state : " + eventContext.getOldState() + ", new state : " + eventContext.getNewState());
+            coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp(), eventContext.getManifestStates());
+        }
+        opsEventPub.publishCiStateMessage(ciEvent);
+    }
+
+    private void lookupManifestStates(EventContext eventContext) {
+        OpsEvent event = (OpsEvent)eventContext.getEvent();
+        List<CiOpenEvent> openEvents = opsEventDao.getCiOpenEvents(event.getCiId());
+        String oldState = coProcessor.getState(openEvents);
+        eventContext.setOldState(oldState);
+        openEvents.add(constructOpenEvent(event));
+        String newState = coProcessor.getState(openEvents);
+        eventContext.setNewState(newState);
+        Map<Long,String> states = null;
+        if (!oldState.equals(newState)) {
+            eventContext.setStateChanged(true);
+            states = coProcessor.getManifestStates(event.getManifestId());
+            //change the state of current event ciId
+            states.put(event.getCiId(), newState);
+            eventContext.setManifestStates(states);
+        }
+    }
+
+    private CiOpenEvent constructOpenEvent(OpsEvent event) {
+        CiOpenEvent openEvent = new CiOpenEvent();
+        openEvent.setName(event.getName());
+        openEvent.setState(event.getCiState());
+        openEvent.setTimestamp(event.getTimestamp());
+        return openEvent;
     }
 
     private PerfDataRequest createPerfDataRequest(OpsEvent event, PerfHeader ph) {
