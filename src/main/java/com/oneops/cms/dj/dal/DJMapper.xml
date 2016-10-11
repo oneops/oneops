@@ -1393,4 +1393,66 @@
 			and attr.dj_attribute_value::bigint &lt; #{rfcId}
 	</select>
 
+	 <select id="getReleaseByFilter" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineRelease">
+		select r.release_id as releaseId,
+			r.ns_id as nsId,
+			r.parent_release_id as parentReleaseId,
+			ns.ns_path as nsPath,
+			r.release_name as releaseName,
+			r.created_by as createdBy,
+			r.commited_by as commitedBy,
+			r.release_state_id as releaseStateId,
+			rs.state_name as releaseState,
+			r.release_type as releaseType,
+			r.description,
+			r.revision,
+			r.created,
+			r.updated
+		from dj_releases r, ns_namespaces ns, dj_release_states rs
+		where r.release_id in (
+				select distinct rfc.release_id
+				from dj_rfc_ci rfc, md_classes md, ns_namespaces ns
+				where rfc.ns_id = ns.ns_id
+				  and ns.ns_path like #{manifestNsLike}
+				  and rfc.class_id = md.class_id
+				  and (
+				    (#{wildcardFilter}::varchar is null or rfc.ci_name like #{wildcardFilter})
+				    or
+				    (#{manifestClassFilter}::varchar is null or lower(md.class_name) like lower(#{manifestClassFilter}))
+				    or
+				    (#{manifestNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{manifestNsLikeWithFilter}))
+				  )
+				  and (#{releaseOffset}::bigint is null or rfc.release_id ${order.aboveOperator} #{releaseOffset})
+				  and (#{endRelId}::bigint is null or rfc.release_id ${order.belowOperator}= #{endRelId})
+				  order by rfc.release_id ${order.sort}
+				  <if test="endRelId == null">
+				    limit coalesce(#{limit},10)
+				  </if>
+		  )
+		  and r.ns_id = ns.ns_id
+		  and r.release_state_id = rs.release_state_id
+		  <if test="releaseList != null &amp;&amp; !releaseList.isEmpty()">
+		     union
+		     select r.release_id as releaseId,
+			   r.ns_id as nsId,
+			   r.parent_release_id as parentReleaseId,
+			   ns.ns_path as nsPath,
+			   r.release_name as releaseName,
+			   r.created_by as createdBy,
+			   r.commited_by as commitedBy,
+			   r.release_state_id as releaseStateId,
+			   rs.state_name as releaseState,
+			   r.release_type as releaseType,
+			   r.description,
+			   r.revision,
+			   r.created,
+			   r.updated
+		    from dj_releases r, ns_namespaces ns, dj_release_states rs
+		    where r.release_id in
+		      <foreach item="item" index="index" collection="releaseList" open="(" close=")" separator=", ">#{item}</foreach>
+		      and r.ns_id = ns.ns_id
+		      and r.release_state_id = rs.release_state_id
+		  </if>
+	 </select>
+
 </mapper>

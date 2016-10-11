@@ -64,7 +64,7 @@ public interface OpsMapper {
             @Param("name") String procedureName,@Param("limit") Integer limit);
 
     List<CmsActionOrder> getActionOrders(@Param("procedureId") long procedureId, @Param("state") OpsProcedureState state, @Param("execOrder") Integer execOrder);
-	List<CmsOpsProcedure> getProceduresForCiFromTime(@Param("ciId") long ciId,
-            @Param("name") String procedureName, @Param("timestamp") Date timestamp);
+	long getCmsOpsProceduresCountForCiFromTime(@Param("ciId") long ciId,
+			@Param("stateList") List<OpsProcedureState> stateList, @Param("name") String procedureName, @Param("timestamp") Date timestamp);
 
 }

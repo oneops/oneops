@@ -208,9 +208,9 @@ public class OpsManagerImpl implements OpsManager {
 	}
 
 	@Override
-	public List<CmsOpsProcedure> getCmsOpsProceduresForCiFromTime(long ciId,
+	public long  getCmsOpsProceduresCountForCiFromTime(long ciId, List<OpsProcedureState> stateList,
 			String procedureName, Date timestamp) {
-		return procProcessor.getCmsOpsProceduresForCiFromTime(ciId, procedureName, timestamp);
+		return procProcessor.getCmsOpsProceduresCountForCiFromTime(ciId, stateList, procedureName, timestamp);
 	}	
 
 }

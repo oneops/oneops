@@ -24,7 +24,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
@@ -32,6 +34,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
+import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAction;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
@@ -43,10 +46,11 @@ import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsManager;
 import com.oneops.cms.util.CIValidationResult;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
-import org.springframework.beans.BeanUtils;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsRfcProcessor.
@@ -1801,5 +1805,16 @@ public class CmsRfcProcessor {
 			newRelease.setReleaseStateId(djMapper.getReleaseStateId(PENDING));
 			djMapper.createRelease(newRelease);
 		}
+	}
+
+	public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
+		String envNsPath = queryParam.getEnvNs();
+		String filter = queryParam.getWildcardFilter();
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, null));
+		if (!StringUtils.isBlank(filter)) {
+			queryParam.setManifestNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, filter));
+			queryParam.setManifestClassFilter(CmsConstants.MANIFEST + "." + filter);
+		}
+		return djMapper.getReleaseByFilter(queryParam);
 	}
 }

@@ -45,12 +45,12 @@ public final class CmsConstants {
 	public static final String BASE_REALIZED_AS = "base.RealizedAs";
 	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
 	public static final String DEPLOYED_TO = "base.DeployedTo";
-	public static final String BASE_PROVIDES = "base.Provides" ;
+	public static final String BASE_PROVIDES = "base.Provides";
+	public static final String BASE_PLACED_IN = "base.PlacedIn";
 	public static final String BASE_CONSUMES = "base.Consumes";
 	//manifest
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
-
 
 
 	//attributes
@@ -65,6 +65,10 @@ public final class CmsConstants {
 	public static final String ACCOUNT_CLOUD_CLASS = "account.Cloud";
 	//manifest
 	public static final String MONITOR_CLASS = "manifest.Monitor";
+	public static final String ZONE_CLASS = "cloud.Zone";
+	public static final String CLOUD_CLASS = "account.Cloud";
 
+	public static final String BOM = "bom";
+	public static final String MANIFEST = "manifest";
 
 }

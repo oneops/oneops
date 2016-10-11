@@ -38,7 +38,7 @@ public interface OpsManager {
     List<CmsOpsProcedure> getCmsOpsProcedureForCi(long ciId, List<OpsProcedureState> stateList, String procedureName, Integer limit);
     List<CmsOpsProcedure> getCmsOpsProcedureForCiByAction(long ciId, List<OpsProcedureState> stateList, String procedureName, Integer limit);
     List<CmsOpsProcedure> getCmsOpsProcedureForNamespace(String nsPath, List<OpsProcedureState> stateList, String procedureName);
-    List<CmsOpsProcedure> getCmsOpsProceduresForCiFromTime(long ciId, String procedureName, Date timestamp);
+    long getCmsOpsProceduresCountForCiFromTime(long ciId, List<OpsProcedureState> stateList, String procedureName, Date timestamp);
    
 
 	

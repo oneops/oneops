@@ -17,7 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.crypto;
 
-import com.oneops.cms.crypto.CmsCryptoDES;
 import com.oneops.cms.exceptions.CmsException;
 
 import org.apache.commons.lang3.StringUtils;

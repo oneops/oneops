@@ -1,11 +1,10 @@
 package com.oneops.cms.exceptions;
 
-import com.oneops.cms.util.CmsError;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Utility class to consolidate validation exception messages for UI
@@ -13,19 +12,19 @@ import java.util.List;
 public class ExceptionConsolidator {
     private final Class<? extends CmsBaseException> exception;
     private final int errorCode;
-    private List<String> errors; 
-    
-    
+    private Set<String> errors;
+
+
     public ExceptionConsolidator(Class<? extends CmsBaseException> exception, int errorCode) {
         this.errorCode = errorCode;
         this.exception = exception;
-        errors = new ArrayList<>();
+        errors = new HashSet<>();
     }
 
     public void invokeChecked(Runnable r) {
         try {
             r.run();
-        } catch (Exception e){
+        } catch (Exception e) {
             if (exception.isInstance(e)) {
                 errors.add(e.getMessage());
             } else {
@@ -33,10 +32,10 @@ public class ExceptionConsolidator {
             }
         }
     }
-    
-    
-    public void rethrowExceptionIfNeeded(){
-        if (!errors.isEmpty()){
+
+
+    public void rethrowExceptionIfNeeded() {
+        if (!errors.isEmpty()) {
             try {
                 throw exception.getDeclaredConstructor(Integer.TYPE, String.class).newInstance(errorCode, StringUtils.join(errors, ";\n"));
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {

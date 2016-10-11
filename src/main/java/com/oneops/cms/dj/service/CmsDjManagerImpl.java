@@ -17,12 +17,19 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.TimelineBase;
+import com.oneops.cms.dj.domain.TimelineDeployment;
+import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -32,6 +39,8 @@ import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsDjManagerImpl.
@@ -354,6 +363,15 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	}
 
 	/* (non-Javadoc)
+	 * @see com.oneops.cms.dj.service.CmsDjManager#getDpmtRecordCis(List<Long>)
+	 */
+	@Override
+	public List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, List<Long> list) {
+		return dpmtProcessor.getDeploymentRecordCis(dpmtId, list);
+	}
+
+
+	/* (non-Javadoc)
 	 * @see com.oneops.cms.dj.service.CmsDjManager#getDpmtRecordRelations(long)
 	 */
 	@Override
@@ -449,4 +467,52 @@ public class CmsDjManagerImpl implements CmsDjManager {
     public long rmRfcs(String nsPath) {
         return rfcProcessor.rmRfcs(nsPath);
     }
+
+	@Override
+	public List<TimelineBase> getDjTimeLine(TimelineQueryParam queryParam) {
+		String wildcardFilter = StringUtils.isBlank(queryParam.getFilter()) ? null : "%" + queryParam.getFilter() + "%";
+		queryParam.setWildcardFilter(wildcardFilter);
+
+		boolean onlyRelease = "release".equalsIgnoreCase(queryParam.getType());
+		boolean onlyDpmt = "deployment".equalsIgnoreCase(queryParam.getType());
+
+		List<TimelineDeployment> deployments = null;
+		if (!onlyRelease) {
+			deployments = dpmtProcessor.getDeploymentsByFilter(queryParam);
+		}
+		else {
+			deployments = Collections.emptyList();
+		}
+
+		List<TimelineRelease> manifestReleases = null;
+		if (!onlyDpmt) {
+			List<Long> reqdReleaseIds = Collections.emptyList();
+			Long endRelId = null;
+			if (deployments != null && !deployments.isEmpty()) {
+				reqdReleaseIds = deployments.stream().map(TimelineDeployment::getParentReleaseId).collect(Collectors.toList());
+				endRelId = reqdReleaseIds.get(reqdReleaseIds.size()-1);
+			}
+			queryParam.setEndRelId(endRelId);
+			queryParam.setReleaseList(reqdReleaseIds);
+			manifestReleases = rfcProcessor.getReleaseByFilter(queryParam);
+		}
+		else {
+			manifestReleases = Collections.emptyList();
+		}
+
+		return combineResults(deployments, manifestReleases, queryParam.getOrder());
+	}
+
+	private List<TimelineBase> combineResults(List<TimelineDeployment> deployments, List<TimelineRelease> manifestReleases, QueryOrder order) {
+		return Stream.concat(deployments.stream(), manifestReleases.stream()).
+				sorted((s1, s2) -> {
+					if (order.equals(QueryOrder.ASC)) {
+						return s1.getCreated().compareTo(s2.getCreated());
+					}
+					else {
+						return s2.getCreated().compareTo(s1.getCreated());
+					}
+				}).
+				collect(Collectors.toList());
+	}
 }
