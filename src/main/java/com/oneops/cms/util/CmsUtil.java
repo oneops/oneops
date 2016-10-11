@@ -973,6 +973,9 @@ public class CmsUtil {
                 while (isGlobalVar(resolvedValue)) {
                     resolvedValue = performGlobalResolution(variableContext, resolvedValue);
                 }
+                while (isLocalVar(resolvedValue)) {
+                    resolvedValue = performLocalResolution(variableContext, resolvedValue);
+                }
                 attrValue = subVarValue(variableContext, attrValue, resolvedValue, variableToResolve, localvarrpl);
             } else {
                 check4ValidVariable(variableContext, null, variableToResolve, localvarrpl);
@@ -980,6 +983,8 @@ public class CmsUtil {
         }
         return attrValue;
     }
+
+
 
 	private boolean isLocalVar(String attrValue) {
 		return attrValue.contains(LOCALVARPFX);
@@ -998,11 +1003,24 @@ public class CmsUtil {
 		return getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
 	}
 
+
 	private String performGlobalResolution(VariableContext variableContext, String resolvedValue) {
 		resolvedValue = getResolved(variableContext, resolvedValue, GLOBALVARPFX, GLOBALVARRPL);
 		if (isCloudVar(resolvedValue))
 			return getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
 		return resolvedValue;
+	}
+
+	private String performLocalResolution(VariableContext variableContext, String resolvedValue) {
+		resolvedValue= getResolved(variableContext, resolvedValue, LOCALVARPFX, LOCALVARRPL);
+		if(isCloudVar(resolvedValue)){
+			return getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
+		}
+		if(isGlobalVar(resolvedValue)){
+			return getResolved(variableContext, resolvedValue, GLOBALVARPFX, GLOBALVARRPL);
+		}
+		return resolvedValue;
+
 	}
 
 	private String getResolved(VariableContext variableContext, String resolvedValue, String prefix, String regex) {
