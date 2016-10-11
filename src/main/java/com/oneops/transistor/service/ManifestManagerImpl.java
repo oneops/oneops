@@ -330,9 +330,9 @@ public class ManifestManagerImpl implements ManifestManager {
 		}
 		
 		for(CmsRfcRelation delRelation:manifestPlatformRfcs.getRfcDeleteRelationList()){
-			if (delRelation.getCiRelationId() >0) {
-				cmProcessor.deleteRelation(delRelation.getCiRelationId());
-			}
+//			if (delRelation.getCiRelationId() >0) {
+//				cmProcessor.deleteRelation(delRelation.getCiRelationId());
+//			} 
 			cmRfcMrgProcessor.requestRelationDelete(delRelation.getCiRelationId(), userId);
 		}
 		long  t2= System.currentTimeMillis();
