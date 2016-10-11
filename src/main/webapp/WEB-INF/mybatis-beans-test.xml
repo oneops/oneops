@@ -126,7 +126,7 @@
 
 	<bean id="expEval" class="com.oneops.transistor.util.ExpEvaluator"/>
 
-	<bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcProcessor">
+	<bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcBulkProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="mdProcessor" ref="cmsMdProcessor" />
