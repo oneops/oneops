@@ -400,7 +400,7 @@ public class DesignRfcProcessor {
 	private void processTmplInternalRels(Map<Long,Long> tmpl2design, long releaseId, String platNsPath, String releaseNsPath, String userId) {
 		List<CmsCIRelation> tmplIntenralRels = getInternalTmplRelations(tmpl2design.keySet());
 		for (CmsCIRelation tmplIntenralRel : tmplIntenralRels) {
-			if (tmpl2design.containsKey(tmplIntenralRel.getToCiId())) {
+			if (tmpl2design.containsKey(tmplIntenralRel.getToCiId()) && !CmsConstants.CI_STATE_PENDING_DELETION.equals(tmplIntenralRel.getRelationState())) {
 				CmsRfcRelation designInternalRel = popRfcRelFromTemplate(tmplIntenralRel, "catalog", platNsPath, releaseNsPath);
 				
 				designInternalRel.setFromCiId(tmpl2design.get(tmplIntenralRel.getFromCiId()));
