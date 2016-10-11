@@ -18,7 +18,6 @@
 package com.oneops.ops;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +102,7 @@ public class CiOpsProcessor {
 		return opsCiStateDao.getCiStateHistory(ciId, startTime, endTime, count);
 	}	
 	
-	private String getState(List<CiOpenEvent> openEvents) {
+	public String getState(List<CiOpenEvent> openEvents) {
 		List<String> eventStates = new ArrayList<String>();
 		for (CiOpenEvent event : openEvents) {
 			eventStates.add(event.getState());
@@ -121,14 +120,14 @@ public class CiOpsProcessor {
 		for (long manifestId : manifestIds) {
 			cntr++;
 			List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-			resetManifestStates(manifestId, bomIds);
+			resetManifestStates(manifestId, bomIds, null);
 			if (cntr % 5000 == 0) {
 				logger.info("Processed " + cntr + " components");
 			}
 		}
 	}	
 	
-	private void resetManifestStates(Long manifestId, List<Long> bomIds) {
+	private void resetManifestStates(Long manifestId, List<Long> bomIds, Map<Long,String> manifestStates) {
 		if (bomIds.size() == 0) {
 			trDao.removeRealizedAsRow(manifestId);
 			opsCiStateDao.resetComponentCountsToZero(manifestId);
@@ -136,7 +135,9 @@ public class CiOpsProcessor {
 		}
 		Map<String,Long> counters = new HashMap<String,Long>();
 		counters.put("total", new Long(bomIds.size()));
-		Map<Long,String> manifestStates = getCisStates(bomIds);
+		if (manifestStates == null) {
+			manifestStates = getCisStates(bomIds);
+		}
 		for (String state : manifestStates.values()) {
 			if (counters.containsKey(state)) {
 				counters.put(state, counters.get(state) + 1);
@@ -151,7 +152,7 @@ public class CiOpsProcessor {
 		int remainingBoms = trDao.removeManifestMap(ciId, manifestId);
 		if (remainingBoms >0) {
 			List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-			resetManifestStates(manifestId, bomIds);
+			resetManifestStates(manifestId, bomIds, null);
 			remainingBoms = bomIds.size();
 		} else {
 			opsCiStateDao.resetComponentCountsToZero(manifestId);
@@ -164,6 +165,11 @@ public class CiOpsProcessor {
 		return trDao.getManifestId(ciId) != null;
 	}
 	
+	public Map<Long,String> getManifestStates(long manifestId) {
+		List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+		return getCisStates(bomIds);
+	}
+
     /**
      * Persist the ci to cassandra.
      *
@@ -171,9 +177,10 @@ public class CiOpsProcessor {
      * @param chStateEvent
      * @param timestamp
      */
-    public void persistCiStateChange(long ciId, long manifestId, CiChangeStateEvent chStateEvent, long timestamp) {
+    public void persistCiStateChange(long ciId, long manifestId, CiChangeStateEvent chStateEvent, long timestamp, Map<Long,String> manifestStates) {
     	opsCiStateDao.persistCiStateChange(ciId, manifestId, chStateEvent, timestamp);
-    	resetManifestStates(Arrays.asList(manifestId));
+    	List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+    	resetManifestStates(manifestId, bomIds, manifestStates);
     }
     
 }
