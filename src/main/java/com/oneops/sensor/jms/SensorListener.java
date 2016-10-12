@@ -17,21 +17,18 @@
  *******************************************************************************/
 package com.oneops.sensor.jms;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import com.google.gson.Gson;
+import com.oneops.sensor.Sensor;
+import com.oneops.sensor.events.BasicEvent;
+import com.oneops.sensor.util.SensorHeartBeat;
+import org.apache.log4j.Logger;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.ObjectMessage;
-
-import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.oneops.sensor.Sensor;
-import com.oneops.sensor.events.BasicEvent;
-import com.oneops.sensor.util.SensorHeartBeat;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The listener interface for receiving sensor events.
@@ -50,7 +47,7 @@ public class SensorListener implements MessageListener {
 
     private Sensor sensor;
     private SensorHeartBeat sensorHeartBeat;
-    private Set<Long> cisToLog = Collections.synchronizedSet(new HashSet<Long>()); 
+    private Set<Long> cisToLog = ConcurrentHashMap.newKeySet();
     private Gson gson = new Gson();
 	/**
 	 * Sets the sensor.
