@@ -32,7 +32,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class MainScheduler {
 
-	static Logger logger = Logger.getLogger(MainScheduler.class);
+	private static Logger logger = Logger.getLogger(MainScheduler.class);
 
 	private boolean isRunning = false;
 	private long lastRun;
@@ -47,12 +47,8 @@ public class MainScheduler {
 	
 	
 	public void startTheJob() {
-        final Runnable controllerEventsBatchProcessor = new Runnable() {
-                public void run() { publishControllerPendingEvents(); }
-            };
-        final Runnable ciEventsBatchProcessor = new Runnable() {
-            public void run() { publishCIPendingEvents(); }
-        };    
+        final Runnable controllerEventsBatchProcessor = this::publishControllerPendingEvents;
+        final Runnable ciEventsBatchProcessor = this::publishCIPendingEvents;    
         jobHandle = controllerEventScheduler.scheduleWithFixedDelay(controllerEventsBatchProcessor, 0, 3, SECONDS);
         ciEventsJobHandle = ciEventScheduler.scheduleWithFixedDelay(ciEventsBatchProcessor, 0, 3, SECONDS);
     }
@@ -142,9 +138,8 @@ public class MainScheduler {
 	
 	public PubStatus getStatus() {
 		PubStatus stat = new PubStatus();
-		int backLog = controllerEventReader.getQueueBacklog();
-		stat.setQueueBacklog(backLog);
-		stat.setCiEventsQueueBacklog(ciEventReader.getCiEventsQueueBacklog());
+		stat.setQueueBacklog(controllerEventReader.getQueueBacklog());
+		stat.setCiEventsQueueBacklog(ciEventReader.getQueueBacklog());
 		stat.setRunning(isRunning);
 		Date dateLastRun = new Date(lastRun);
 		stat.setLastRun(dateLastRun);

@@ -93,14 +93,15 @@
 		<property name="connFactory" ref="amqFactory" />
 		<property name="searchPublisher" ref="searchPublisher" />
    	</bean>
-   	
-	<bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init" destroy-method="cleanup">
+	
+	<bean id="parentEvenReader" class="com.oneops.cms.transmitter.BaseEventReader" abstract="true">
 		<property name="sessionFactory" ref="sqlSessionFactory" />
-    </bean>
-    
-    <bean id="ciEventReader" class="com.oneops.cms.transmitter.CIEventReader" init-method="init" destroy-method="cleanup">
-    	<property name="sessionFactory" ref="sqlSessionFactory" />
-    </bean>
+		<property name="varCacheTTLInSeconds" value="${VAR_CACHE_TTL:30}"/>
+		<property name="varCacheMaxSize" value="${VAR_CACHE_SIZE:10}"/>
+	</bean>
+   	
+	<bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init" destroy-method="cleanup" parent="parentEvenReader"/>
+    <bean id="ciEventReader" class="com.oneops.cms.transmitter.CIEventReader" init-method="init" destroy-method="cleanup" parent="parentEvenReader"/>
 
 	<bean id="propertyConfigurer"
 	class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
