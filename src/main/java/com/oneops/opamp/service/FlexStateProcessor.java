@@ -17,22 +17,20 @@
  *******************************************************************************/
 package com.oneops.opamp.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
-import com.oneops.ops.events.OpsBaseEvent;
+import org.apache.log4j.Logger;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /** FlexStateProcessor
  */
@@ -48,7 +46,6 @@ public class FlexStateProcessor {
     private String transistorUrl;
     public static final String CI_STATE_OVERUTILIZED = "overutilized";
     public static final String CI_STATE_UNDERUTILIZED = "underutilized";
-	//private Set<Long> postponedCis = Collections.synchronizedSet(new HashSet<Long>());
 	
 	/**
 	 * Sets the cm processor.
@@ -133,7 +130,9 @@ public class FlexStateProcessor {
 	/**
 	 * Process underutilized.
 	 *
-	 * @param ciId the ci id
+	 * @param event
+	 * @param isNewState
+	 * @param originalEventTimestamp
 	 * @throws OpampException the opamp exception
 	 */
 	public void processUnderutilized(CiChangeStateEvent event, boolean isNewState, long originalEventTimestamp) throws OpampException{
