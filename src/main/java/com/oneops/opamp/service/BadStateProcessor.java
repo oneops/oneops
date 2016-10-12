@@ -55,11 +55,7 @@ public class BadStateProcessor {
 	protected static final String ONEOPS_AUTO_REPLACE_USER_PROP_NAME = "oneops-auto-replace-user";
 	protected static final String ONEOPS_AUTOREPLACE_USER = System.getProperty(ONEOPS_AUTO_REPLACE_USER_PROP_NAME,"oneops-autoreplace");
 	private static final String CI_OPS_STATE_UNHEALTHY = "unhealthy";
-	private static final long START_EXPONENTIAL_DELAY_AFTER_PROCEDURES = 4;
-	private static final int EXPONENTIAL_DELAY_FACTOR = 2;
-	//Max Days limit of 11 makes the final repair attempt timing close to the limit of days (11 in this case) for the common cool-off of 15 mins1476110700000 
-	public static final int MAX_DAYS_REPAIR = 11; 
-	private static final int DEFAULT_COOLOFF_PERIOD_MILLIS = 15 * 60 * 1000; //default to 15 mins
+	private static final int DEFAULT_COOLOFF_PERIOD_MILLIS = 15 * 60 * 1000; //default to 15 mins	
 
 	private static Logger logger = Logger.getLogger(BadStateProcessor.class);
 
@@ -74,6 +70,12 @@ public class BadStateProcessor {
 	private Notifications notifier;
 	private EventUtil eventUtil;
 	private Set<Long> postponedRepairCi = ConcurrentHashMap.newKeySet();
+
+	//below variables are initialized through spring xml
+	private int startExponentialDelayAfterProcedures = 4;
+	private double exponentialBackoffFactor = 2;
+	//Max Days limit of 11 makes the final repair attempt timing close to the limit of days (11 in this case) for the common cool-off of 15 mins1476110700000 
+	private int maxDaysRepair = 11; 
 
 	/**
 	 * Sets the ops proc processor.
@@ -417,25 +419,24 @@ public class BadStateProcessor {
 		if (unhealthyStartTime != 0) {
 			long currentTimeMillis = System.currentTimeMillis();
 			long unhealthySinceMillis = (currentTimeMillis - unhealthyStartTime);
-			long repairRetriesMaxDaysMillis = MAX_DAYS_REPAIR * 24 * 60 * 60 * 1000;
+			long repairRetriesMaxDaysMillis = maxDaysRepair * 24 * 60 * 60 * 1000;
 
-			if (exponentialDelay && repairRetriesCount >= START_EXPONENTIAL_DELAY_AFTER_PROCEDURES) { //add exponential delay after initial regular interval
+			if (exponentialDelay && repairRetriesCount >= startExponentialDelayAfterProcedures) { //add exponential delay after initial regular interval
 				if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since 7 days
-					logger.info("CI " + ciId + " unhealthy since " + MAX_DAYS_REPAIR + " days - not doing auto-repair");
+					logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
 					return;
 				}
 
-				int exponentialFactor = EXPONENTIAL_DELAY_FACTOR;
 				OpsBaseEvent opsEvent = eventUtil.getGson().fromJson(event.getPayLoad(), OpsBaseEvent.class);
 				int coolOffPeriodMillis = DEFAULT_COOLOFF_PERIOD_MILLIS;
 				if (opsEvent.getCoolOff() > 0) {
 					coolOffPeriodMillis = opsEvent.getCoolOff() * 60 * 1000;
 				}
 
-				long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * START_EXPONENTIAL_DELAY_AFTER_PROCEDURES);
+				long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * startExponentialDelayAfterProcedures);
 
-				long nextRepairTime = getNextRepairTime(delayStartTime, coolOffPeriodMillis, exponentialFactor,
-						repairRetriesCount - START_EXPONENTIAL_DELAY_AFTER_PROCEDURES, repairRetriesMaxDaysMillis);
+				long nextRepairTime = getNextRepairTime(delayStartTime, coolOffPeriodMillis, exponentialBackoffFactor,
+						repairRetriesCount - startExponentialDelayAfterProcedures, repairRetriesMaxDaysMillis);
 
 				if (currentTimeMillis < nextRepairTime) {
 					//next exponential delay is not yet complete
@@ -493,7 +494,7 @@ public class BadStateProcessor {
 		}
 	}
 
-	public static long getNextRepairTime(long delayStartTime, int coolOffPeriod, int exponentialFactor, long repairRetriesCountSinceDelay, long repairRetriesMaxPeriod) {
+	public static long getNextRepairTime(long delayStartTime, int coolOffPeriod, double exponentialFactor, long repairRetriesCountSinceDelay, long repairRetriesMaxPeriod) {
 		long max = Math.min(repairRetriesCountSinceDelay + 1, (long) (Math.log(1 + repairRetriesMaxPeriod  / coolOffPeriod) / Math.log(2)));
 		return (long) (delayStartTime + (coolOffPeriod * (Math.pow(exponentialFactor, max) - 1)));
 	}
@@ -508,5 +509,29 @@ public class BadStateProcessor {
 
 	public void setEventUtil(EventUtil eventUtil) {
 		this.eventUtil = eventUtil;
+	}
+
+	public int getStartExponentialDelayAfterProcedures() {
+		return startExponentialDelayAfterProcedures;
+	}
+
+	public void setStartExponentialDelayAfterProcedures(int startExponentialDelayAfterProcedures) {
+		this.startExponentialDelayAfterProcedures = startExponentialDelayAfterProcedures;
+	}
+
+	public double getExponentialBackoffFactor() {
+		return exponentialBackoffFactor;
+	}
+
+	public void setExponentialBackoffFactor(double exponentialBackoffFactor) {
+		this.exponentialBackoffFactor = exponentialBackoffFactor;
+	}
+
+	public int getMaxDaysRepair() {
+		return maxDaysRepair;
+	}
+
+	public void setMaxDaysRepair(int maxDaysRepair) {
+		this.maxDaysRepair = maxDaysRepair;
 	}
 }

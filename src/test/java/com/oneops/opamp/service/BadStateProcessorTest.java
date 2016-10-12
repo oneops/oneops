@@ -184,8 +184,9 @@ public class BadStateProcessorTest {
 		int coolOff = 15 * 60 * 1000;
 		int exponentialFactor = 2;
 		int repairRetriesCountSinceDelay = 6;
+		int maxDaysRepair = 11;
 		Calendar calendar_Oct05_0000_2016 = new GregorianCalendar(2016, 9, 5);
-		long maxRepairRetryPeriod = BadStateProcessor.MAX_DAYS_REPAIR * 24 * 60 * 60 * 1000; 
+		long maxRepairRetryPeriod = maxDaysRepair * 24 * 60 * 60 * 1000; 
 		
 		long nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, repairRetriesCountSinceDelay, maxRepairRetryPeriod);
 		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
