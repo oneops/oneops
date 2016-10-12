@@ -17,22 +17,20 @@
  *******************************************************************************/
 package com.oneops.opamp.service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.log4j.Logger;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
-import com.oneops.ops.events.OpsBaseEvent;
+import org.apache.log4j.Logger;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /** FlexStateProcessor
  */
@@ -113,8 +111,8 @@ public class FlexStateProcessor {
 	public void processOverutilized(CiChangeStateEvent event, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
 		if (CI_STATE_OVERUTILIZED.equals(coProcessor.getCIstate(ciId))) {
-			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
-			if (env != null) {
+			CmsCI env;
+			if (envProcessor.isAutoscaleEnabled(ciId) && (env = envProcessor.getEnv4Bom(ciId)) != null) {
 				if (envProcessor.isCloudActive4Bom(ciId)) {
 					growPool(event, env, isNewState);
 				} else {
@@ -125,7 +123,6 @@ public class FlexStateProcessor {
 			}
 		} else {
 			// ci is already healthy
-			//postponedCis.remove(ciId);
 			logger.info("Ci is good now - " + ciId);
 		}
 	}
@@ -133,15 +130,14 @@ public class FlexStateProcessor {
 	/**
 	 * Process underutilized.
 	 *
-	 * @param ciId the ci id
 	 * @throws OpampException the opamp exception
 	 */
 	public void processUnderutilized(CiChangeStateEvent event, boolean isNewState, long originalEventTimestamp) throws OpampException{
 		long ciId = event.getCiId();
 		//check if it still needs resize
 		if ("underutilized".equals(coProcessor.getCIstate(ciId))) {
-			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
-			if (env != null) {
+			CmsCI env;
+			if (envProcessor.isAutoscaleEnabled(ciId) && (env = envProcessor.getEnv4Bom(ciId))!=null){
 				if (envProcessor.isCloudActive4Bom(ciId)) {
 					shrinkPool(event, env, isNewState, originalEventTimestamp);
 				} else {
@@ -150,9 +146,9 @@ public class FlexStateProcessor {
 			} else {
 				notifier.sendFlexNotificationNoRepair(event, "underutilized");
 			}
+			
 		} else {
 			// ci is already healthy
-			//postponedCis.remove(ciId);
 			logger.info("Ci is good now - " + ciId);
 		}
 	}

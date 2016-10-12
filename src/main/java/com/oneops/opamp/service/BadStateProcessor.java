@@ -181,7 +181,7 @@ public class BadStateProcessor {
 			logger.info("CmsCi id - " + ciId + " already good.");
 			return;
 		}
-		if (envProcessor.isAutorepairEnbaled4bom(ciId) != null) {
+		if (envProcessor.isAutorepairEnabled(ciId)) {
 			List<CmsCIRelation> deployedToRels = envProcessor.fetchDeployedToRelations(ciId);
 			if(envProcessor.isOpAmpSuspendedForCloud(deployedToRels)){
 				return;
@@ -218,7 +218,7 @@ public class BadStateProcessor {
 			procedureFinishedStates.add(OpsProcedureState.failed);
 			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair", new Date(unhealthyStartTime));
 
-			boolean autoReplaceEnabled = envProcessor.isAutoReplaceEnbaled(platform);
+			boolean autoReplaceEnabled = envProcessor.isAutoReplaceEnabled(platform);
 
 			if (autoReplaceEnabled && timeToAutoReplace(ciId, platform, unhealthyStartTime, proceduresCount)) {
 				CmsCI env = envProcessor.getEnv4Platform(platform);

@@ -73,9 +73,11 @@
 		<property name="oeDao" ref="opsEventDao" />
 	</bean>
 
-	<bean id="envProcessor" class="com.oneops.opamp.service.EnvPropsProcessor">
+	<bean id="envProcessor" class="com.oneops.opamp.service.CachedEnvPropsProcessor">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="maxSize" value="${VAR_CACHE_SIZE:10}"/>
+		<property name="ttlInSeconds" value="${VAR_CACHE_TTL:30}"/>
 	</bean>
 
 	<bean id="gson" class="com.google.gson.Gson" />
