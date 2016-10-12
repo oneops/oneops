@@ -137,7 +137,9 @@ public class CloseEventListener implements UpdateListener {
         ciEvent.setOldState(eventContext.getOldState());
         ciEvent.setPayLoad(eventContext.getPayload());
         if (eventContext.isStateChanged()) {
-            logger.info("state changed ci -> " + event.getCiId() + ", old state : " + eventContext.getOldState() + ", new state : " + eventContext.getNewState());
+            if (logger.isDebugEnabled()) {
+                logger.debug("state changed ci -> " + event.getCiId() + ", old state : " + eventContext.getOldState() + ", new state : " + eventContext.getNewState());
+            }
             coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp(), eventContext.getManifestStates());
         }
         opsEventPub.publishCiStateMessage(ciEvent);
