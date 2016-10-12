@@ -648,24 +648,24 @@ class ApplicationController < ActionController::Base
                 :height    => '0.66',
                 :style     => 'rounded,filled'}]
 
-    platforms.group_by { |p| p.toCi.ciName }.each do |name, versions|
-      active_rel = versions.find { |v| v.toCi.ciAttributes.try(:is_active) == 'true' } || versions.first
-      active = active_rel.toCi
-      attrs  = active.ciAttributes
-      label  = "<<table border='0' cellspacing='2' fixedsize='true' width='175' height='48'>"
-      label << "<tr><td fixedsize='true' rowspan='#{versions.size + 1}' cellpadding='4' width='40' height='40' align='center'>"
+    platforms.each do |r|
+      platform = r.toCi
+      attrs  = platform.ciAttributes
+      label  = "<<table border='0' cellspacing='2' fixedsize='true' width='175' height='44'>"
+      label << "<tr><td fixedsize='true' rowspan='2' cellpadding='4' width='40' height='36' align='center'>"
       label << "<img scale='both' src='#{GRAPHVIZ_IMG_STUB}'></img></td>"
-      label << "<td align='left' cellpadding='0'><font point-size='12'><b>#{name.truncate(18)}</b></font></td></tr>"
+      label << "<td align='left' cellpadding='0'><font point-size='12'><b>#{platform.ciName.truncate(18)}</b></font></td></tr>"
       label << "<tr><td align='left' cellpadding='0'><font point-size='10'>version #{"#{attrs.major_version}"}</font></td></tr>"
       label << "</table>>"
-      graph.add_node(active.ciId.to_s,
+
+      graph.add_node(platform.ciId.to_s,
                      :target    => '_parent',
-                     :URL       => "#{path}/platforms/#{active.ciId}",
+                     :URL       => "#{path}/platforms/#{platform.ciId}",
                      :tooltip   => "#{attrs.source}/#{attrs.pack}/#{attrs.version}",
                      :label     => label,
-                     :shape     => "#{'double' if active.ciAttributes.try(:availability) == 'redundant'}octagon",
-                     :color     => rfc_action_to_color(active.try(:rfcAction)),
-                     :fillcolor => active_rel.relationAttributes.try(:enabled) == 'false' ? '#FFDDDD' : 'white')
+                     :shape     => "#{'double' if platform.ciAttributes.try(:availability) == 'redundant'}octagon",
+                     :color     => rfc_action_to_color(platform.try(:rfcAction)),
+                     :fillcolor => platform.ciAttributes.try(:is_active) == 'false' ? '#CCCCCC' : r.relationAttributes.try(:enabled) == 'false' ? '#FFDDDD' : 'white')
     end
 
     links_to.each { |r| graph.add_edges(r.fromCiId.to_s,

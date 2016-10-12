@@ -63,34 +63,22 @@
 
     respond_to do |format|
       format.js do
-        rfcs = params[:rfcs] || []
-        if rfcs.blank?
-          @deployment.log_data = {}
-        else
-          deployment_cis = @deployment.rfc_cis.inject({}) {|m, deployment_ci| m[deployment_ci.rfcId] = deployment_ci; m}
-          ids = rfcs.inject([]) do |a, rfc_id|
-            deployment_ci = deployment_cis[rfc_id.to_i]
-            a << deployment_ci.dpmtRecordId if deployment_ci && deployment_ci.dpmtRecordState != 'pending'
-            a
-          end
-
-          log_data = get_log_data(ids).inject({}) do |m, log|
-            m[log['id'].to_i] = log['logData']
-            m
-          end
-
-          @deployment.log_data = rfcs.inject({}) do |m, rfc_id|
-            deployment_ci = deployment_cis[rfc_id.to_i]
-            m[rfc_id] = deployment_ci && deployment_ci.dpmtRecordState != 'pending' ? (log_data[deployment_ci.dpmtRecordId] || []) : []
-            m
-          end
-        end
+        @deployment.log_data = {}
 
         current_state  = params[:current_state]
         if current_state == 'pending' || current_state != @deployment.deploymentState
           load_state_history
           load_approvals
         end
+
+        record_ids = params[:deployment_record_ids]
+        if record_ids.present?
+          @deployment.log_data = get_log_data(record_ids.map(&:to_i)).inject({}) do |m, log|
+            m[log['id'].to_i] = log['logData']
+            m
+          end
+        end
+
         load_time_stats if @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
 
         render :action => :status

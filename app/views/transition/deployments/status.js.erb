@@ -14,8 +14,8 @@
 
 refresh_status_results("<%= @deployment.deploymentState %>", <%= raw(@deployment_rfc_cis_info.to_json) %>);
 
-<% @deployment.log_data.each_pair do |rfc_id, log| %>
-  var rfcLogDiv = $j("#log_<%= rfc_id %>");
+<% @deployment.log_data.each_pair do |record_id, log| %>
+  var rfcLogDiv = $j("div[deployment-record-id=<%= record_id %>]");
   var logUl = rfcLogDiv.find(".log-body ul.log");
   <% if log.present? %>
     logUl.html("<%= escape_javascript(render('cms/log_content', :log => log)) %>");

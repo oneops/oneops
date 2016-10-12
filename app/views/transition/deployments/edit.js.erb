@@ -1,4 +1,6 @@
-<% if (@deployment && @deployment.deploymentState != 'complete' && @platforms.present?) || @environment.ciState == 'locked' %>
+<% if (@deployment && @deployment.deploymentState != 'complete' && @platforms.present?) ||
+       @environment.ciState == 'locked'  ||
+       @environment.comments.present? %>
   var overlay = $j("#overlay");
   var visible = overlay.is(":visible");
   if (visible) {
