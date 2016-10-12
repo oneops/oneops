@@ -226,14 +226,14 @@ public class BadStateProcessor {
 					logger.info("There is an open release or undeployed changes for the env => "
 							+   env.getNsPath() + "/" + env.getCiName()+ ". Can not auto-replace.");
 					notifier.sendPostponedReplaceNotification(event);
-					submitRepairProcedure(event, envProcessor.repairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
+					submitRepairProcedure(event, envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
 				} else {
 					logger.info("ciId: [" + ciId + "] is being auto-replaced");
 					notifier.sendReplaceNotification(event);
 					replace(ciId, env);
 				}
 			} else {
-				submitRepairProcedure(event, !autoReplaceEnabled && envProcessor.repairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
+				submitRepairProcedure(event, !autoReplaceEnabled && envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
 			}
 		} else {
 			notifier.sendDependsOnUnhealthyNotification(event);

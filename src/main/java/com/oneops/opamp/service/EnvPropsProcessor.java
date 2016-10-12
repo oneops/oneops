@@ -300,11 +300,11 @@ public class EnvPropsProcessor {
 		return cmProcessor.getFromCIRelations(ciId, "base.DeployedTo",null, "account.Cloud");
 	}
 
-    public boolean heartbeatAlarmsSuspended() {
+    public boolean isHeartbeatAlarmSuspended() {
         return getBooleanVariable(HEARTBEAT_ALARMS_SUSPENDED);
     }
 
-    public boolean repairDelayEnabled(CmsCI platform) {
+    public boolean isRepairDelayEnabled(CmsCI platform) {
         if (platform == null) {
             logger.error("Platform is null, can not get auto-repair delay flag ");
             return false;
