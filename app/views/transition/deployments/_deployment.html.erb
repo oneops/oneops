@@ -1,4 +1,7 @@
-<% deployment_persisted = @deployment && !@deployment.new_record? %>
+<% deployment_persisted = @deployment && !@deployment.new_record?
+   deployment_cis = @deployment.rfc_cis.to_map(&:rfcId) if deployment_persisted
+   env_comments = @environment.comments
+   error_prefix = 'ERROR:BOM:' %>
 <div class="wf">
   <div class="header">
     <div class="instance">
@@ -102,7 +105,7 @@
                                 </tr>
                                 <tr class="status_summary">
                                   <td style="text-align:right">
-                                    <% if @deployment.persisted? %>
+                                    <% if deployment_persisted %>
                                       <% grouped_rfcs = cloud_rfcs.group_by do |rfc|
                                            info = @deployment_rfc_cis_info[rfc.rfcId]
                                            (info ? info[:state] : nil) || 'complete'
@@ -120,7 +123,7 @@
                           <ul id="<%= component_dom_id %>" class="rfc hide">
                           <% cloud_rfcs.each do |rfc| %>
                               <% state = nil
-                                 if @deployment.persisted?
+                                 if deployment_persisted
                                    info  = @deployment_rfc_cis_info[rfc.rfcId]
                                    state = (info ? info[:state] : nil) || 'complete'
                                  end %>
@@ -136,15 +139,15 @@
                                   <div class="accordion-inner">
                                     <ul class="nav nav-pills" style="margin-bottom: 5px">
                                       <li class="active"><a href="#attr_<%= rfc.rfcId %>" data-toggle="tab">Attributes</a></li>
-                                      <% if @deployment.persisted? %>
+                                      <% if deployment_persisted %>
                                         <li><a href="#log_<%= rfc.rfcId %>" data-toggle="tab">Log</a></li>
                                         <li id="time_stats_tab_<%= rfc.rfcId %>" style="display:none"><a href="#time_stats_<%= rfc.rfcId %>" data-toggle="tab">Stats</a></li>
                                       <% end %>
                                     </ul>
                                     <div class="tab-content">
                                       <div class="tab-pane active" id="attr_<%= rfc.rfcId %>"><%= rfc_attributes(rfc) %></div>
-                                      <% if @deployment.persisted? %>
-                                        <div id="log_<%= rfc.rfcId %>" class="tab-pane"></div>
+                                      <% if deployment_persisted %>
+                                        <div id="log_<%= rfc.rfcId %>" class="tab-pane" deployment-record-id="<%= deployment_cis[rfc.rfcId].dpmtRecordId %>"></div>
                                         <div id="time_stats_<%= rfc.rfcId %>" class="tab-pane"></div>
                                       <% end %>
                                     </div>
@@ -184,20 +187,14 @@
         Generating deployment plan. You can view deployment plan and start deployment after plan generation is done.
       </div>
       <div style="text-align: center; padding: 50px 0"><%= icon('refresh', '', 'fa-spin fa-4x') %></div>
-    <% else @environment.comments.present? %>
-      <div class="problems alert alert-danger"><%= @environment.comments %></div>
-      <div style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
+    <% else env_comments.present? && env_comments.start_with?(error_prefix) %>
+      <div class="problems alert alert-danger"><%= env_comments.sub(/^#{error_prefix}/, '') %></div>
+      <div class="text-error" style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
     <% end %>
   </div>
   <div class="controls">
     <% if !@deployment %>
       <%= render('bad_instances_alert', :count => bad_ops_state_count) if bad_ops_state_count > 0 %>
-      <table>
-        <tr id="controls_compile">
-          <td><button class="btn btn-danger disabled">Discard</button></td>
-          <td><button class="btn btn-success disabled">Deploy</button></td>
-        </tr>
-      </table>
     <% elsif @deployment.new_record? %>
       <%= render('bad_instances_alert', :count => bad_ops_state_count) if bad_ops_state_count > 0 %>
       <table>
@@ -237,19 +234,22 @@
     <% end %>
   </div>
   <div class="footer">
-  	Close will NOT cancel or interrupt the deployment.&nbsp;
+  	<% if @deployment %>
+  	  Close will NOT cancel or interrupt the deployment.&nbsp;
+  	<% end %>
+
   	<%= link_to_function 'Close', 'close_deployment_overlay()', :class => 'btn' %>
   </div>
 </div>
 
 <script type="text/javascript">
-  <% if !@deployment %>
+  <% if !@deployment && @environment.ciState == 'locked'%>
     window.refresh_compile_status = function() {
       <%= remote_function(:url    => compile_status_assembly_transition_environment_deployments_path(@assembly, @environment),
                           :method => :get) %>
     };
     refresh_compile_status();
-  <% elsif !@deployment.new_record? %>
+  <% elsif deployment_persisted %>
     window.deployment_state = "<%= @deployment.deploymentState %>";
 
     window.refresh_deployment_status = function(allSteps) {
@@ -257,12 +257,12 @@
         url:  "<%= status_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
         type: "POST",
         data: {
-          current_state: window.deployment_state,
-          exec_order:    allSteps ? -1 : (refresh_deployment_status.active_step || -1),
-          rfcs:          $j.map($j("div[id^='log_']:visible"),
-                                function (el) {
-                                  return el.id.replace("log_", "");
-                                })
+          current_state:         window.deployment_state,
+          exec_order:            allSteps ? -1 : (refresh_deployment_status.active_step || -1),
+          deployment_record_ids: $j.map($j("div[id^='log_']:visible"),
+                                        function (el) {
+                                          return el.getAttribute("deployment-record-id");
+                                        })
         }
       });
     };
