@@ -309,10 +309,10 @@ public class EnvPropsProcessor {
             logger.error("Platform is null, can not get auto-repair delay flag ");
             return false;
         }
-        return isAttributeEnabled(platform, "autorepair_exponential_backoff") && globalRepairDelayEnabled();
+        return isAttributeEnabled(platform, "autorepair_exponential_backoff") && isGlobalRepairDelayEnabled();
     }
 
-    public boolean globalRepairDelayEnabled() {
+    public boolean isGlobalRepairDelayEnabled() {
         if (!getBooleanVariable(EXPONENTIAL_REPAIR_DELAY_VAR)) {
             logger.warn("Exponential delay of auto-repair procedures is disabled globally !");
             return false;
