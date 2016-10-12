@@ -309,9 +309,7 @@ public class EnvPropsProcessor {
             logger.error("Platform is null, can not get auto-repair delay flag ");
             return false;
         }
-
-        CmsCIAttribute ciAttrib = platform.getAttribute("autorepair_exponential_backoff");
-        return ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue()) && globalRepairDelayEnabled();
+        return isAttributeEnabled(platform, "autorepair_exponential_backoff") && globalRepairDelayEnabled();
     }
 
     public boolean globalRepairDelayEnabled() {
