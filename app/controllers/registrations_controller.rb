@@ -30,17 +30,11 @@ class RegistrationsController < Devise::RegistrationsController
       invitation.destroy if invitation
     end
 
-    respond_to do |format|
-      format.html do
-        if ok
-          session[:omniauth] = nil unless resource.new_record?
-          flash.now[:notice] = "Signed up successfully."
-        else
-          flash.now[:error] = "Failed to sign up."
-        end
-      end
-
-      format.json { render_json_ci_response(ok, resource)}
+    if ok
+      session[:omniauth] = nil unless resource.new_record?
+      flash.now[:notice] = "Signed up successfully."
+    else
+      flash.now[:error] = "Failed to sign up."
     end
   end
 
@@ -62,7 +56,7 @@ class RegistrationsController < Devise::RegistrationsController
     # login = "%#{params[:login]}%"
     # render :json => User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
     login = params[:login].to_s.strip
-    hits = User.where('username = ?', login).limit(1).map { |u| "#{u.username} #{u.name if u.name.present?}" }
+    hits  = User.where('username = ?', login).limit(1).map { |u| "#{u.username} #{u.name if u.name.present?}" }
     render :json => hits
   end
 
@@ -77,7 +71,7 @@ class RegistrationsController < Devise::RegistrationsController
     end
     if action_name == 'new'
       resource.organization = Organization.new
-      resource.email = params[:email]
+      resource.email        = params[:email]
     elsif action_name == 'create'
       resource.organization = Organization.create(organization)
     end

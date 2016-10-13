@@ -34,7 +34,6 @@
     <% end %>
     <% builder.status do %>
     	<% if database_auth %>
-    	  <%= marker('confirmed',      'label-warning')   unless user.confirmation_token.blank? %>
       	<%= marker('unconfirmed',    'label-warning')   if user.confirmation_token? %>
       	<%= marker('locked',         'label-important') if user.locked_at? %>
       	<%= marker('password reset', 'label-important') if user.reset_password_token? %>
