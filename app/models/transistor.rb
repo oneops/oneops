@@ -5,9 +5,9 @@ class Transistor < ActiveResource::Base
   self.element_name = ''
   self.include_format_in_path = false
 
-  def self.export_design(assembly)
+  def self.export_design(assembly, platform_ids = nil)
     begin
-      return get("assemblies/#{assembly.ciId}/export")
+      return get("assemblies/#{assembly.ciId}/export#{"?#{platform_ids.map {|i| "platformIds=#{i}"}.join('&')}" if platform_ids.present?}")
     rescue Exception => e
       return nil, handle_exception(e, 'Failed to export design:')
     end

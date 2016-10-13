@@ -1,14 +1,27 @@
 <%= assembly_page_header(@assembly, 'design') %>
 <%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)}] %>
 
+<% extract = capture do %>
+  <a class="btn btn-small dropdown-toggle" data-toggle="dropdown" href="#">
+    <%= icon('download', 'Extract') %> <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu">
+    <li><%= link_to('to YAML', extract_assembly_design_path(@assembly, :platform_id => @platform.ciId, :format => :yaml), :target => '_blank') %></li>
+    <li><%= link_to('to JSON', extract_assembly_design_path(@assembly, :platform_id => @platform.ciId, :format => :json), :target => '_blank') %></li>
+  </ul>
+<% end %>
+<% page_options = [extract]
+   if current_user.has_design?(@assembly.ciId)
+     page_options << link_to(icon('files-o', ' Copy'), new_clone_assembly_design_platform_path(@assembly, @platform), :remote => true, :class => 'btn btn-small')
+     page_options << link_to(icon('trash', ' Delete', 'danger'), assembly_design_platform_path(@assembly, @platform), :method => :delete, :class => 'btn btn-small btn-danger', :data => {:confirm => 'Confirm delete?'})
+   end %>
+
 <%= page_title :page_icon     => platform_image_url(@platform),
                :page_kind     => "#{@platform.ciAttributes.pack.capitalize} Platform",
                :page_label    => @platform.ciName,
                :doc_link      => platform_pack_link(@platform) +
                                  platform_doc_link(@platform, icon('book'), :anchor => 'design'),
-               :page_options  => current_user.has_design?(@assembly.ciId) &&
-                                 [link_to(icon('files-o', ' Copy'), new_clone_assembly_design_platform_path(@assembly, @platform), :remote => true, :class => 'btn btn-small'),
-                                  link_to(icon('trash', ' Delete', 'danger'), assembly_design_platform_path(@assembly, @platform), :method => :delete, :class => 'btn btn-small btn-danger', :data => {:confirm => 'Confirm delete?'})],
+               :page_options  => page_options,
                :page_sublabel => "created by #{@platform.createdBy}" %>
 
 <%= page_info "Managed by platform pack #{highlight(@platform.ciAttributes.pack)} #{highlight(@platform.ciAttributes.version)} provided by source #{highlight(@platform.ciAttributes.source)}" %>
