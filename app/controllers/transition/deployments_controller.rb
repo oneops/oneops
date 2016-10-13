@@ -59,7 +59,9 @@
   end
 
   def status
-    load_deployment_states
+    @step = params[:exec_order].to_i
+    @step = nil unless @step > 0
+    load_deployment_states(@step)
 
     respond_to do |format|
       format.js do
@@ -79,7 +81,7 @@
           end
         end
 
-        load_time_stats if @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
+        load_time_stats if @step.nil? || @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
 
         render :action => :status
       end
@@ -275,10 +277,8 @@
     @environment = locate_environment(env_id, @assembly)
   end
 
-  def load_deployment_states
-    step = params[:exec_order]
-    step &&= step.to_i
-    @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis(step && step >= 0 ? step : nil).inject({}) do |states, rfc|
+  def load_deployment_states(step = nil)
+    @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis(step).inject({}) do |states, rfc|
       states[rfc.rfcId] = {:state => rfc.dpmtRecordState, :comments => rfc.comments}
       states
     end

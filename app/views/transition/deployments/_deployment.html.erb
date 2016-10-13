@@ -258,7 +258,7 @@
         type: "POST",
         data: {
           current_state:         window.deployment_state,
-          exec_order:            allSteps ? -1 : (refresh_deployment_status.active_step || -1),
+          exec_order:            allSteps ? null : (refresh_deployment_status.active_step || -1),
           deployment_record_ids: $j.map($j("div[id^='log_']:visible"),
                                         function (el) {
                                           return el.getAttribute("deployment-record-id");
@@ -283,14 +283,6 @@
     };
 
     refresh_deployment_status(true);
-  <% end %>
-
-  var timer = null;
-  <% if @deployment && (@deployment.deploymentState == 'pending' ||
-                        @deployment.deploymentState == 'active' ||
-                        @deployment.deploymentState == 'paused' ||
-                        @deployment.deploymentState == 'pausing') %>
-    timer = setInterval(refresh_deployment_status, 5000);
   <% end %>
 
   <% if deployment_persisted %>
@@ -330,10 +322,6 @@
     $j("#controls_pausing").hide();
     $j("#controls_pending").hide();
     $j("#controls_" + deployment_state).show();
-
-    if (deployment_state != 'active' && deployment_state != 'paused' && deployment_state != 'pausing' && deployment_state != 'pending') {
-      stop_deployment_polling();
-    }
 
     var deploymentStateEl = $j("#deployment_state");
     deploymentStateEl.html(deployment_state.toUpperCase());
@@ -399,14 +387,8 @@
     });
   };
 
-  window.stop_deployment_polling = function() {
-    if (typeof(timer) != "undefined") {
-      clearInterval(timer);
-    }
-  };
-
   window.close_deployment_overlay = function () {
-    stop_deployment_polling();
+    delete window.refresh_status_results;
     window.location.replace(window.location.href.split("#")[0]);
     Effect.SlideUp('overlay', {duration: 0.3});
   };
