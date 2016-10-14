@@ -49,3 +49,8 @@
     <% end %>
   </div>
 <% end %>
+<script>
+  $j('.teams :checkbox').on('change', function () {
+    $j('input[type="submit"]').prop('disabled', !$j('.teams :checkbox:checked').length);
+  }).change();
+</script>
