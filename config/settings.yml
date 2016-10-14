@@ -82,6 +82,8 @@ defaults: &defaults
 
   show_cost: <%= ENV['SHOW_COST'] || 'false' %>
 
+  allow_create_orgs: <%= ENV['ALLOW_CREATE_ORGS'] || 'true' %>
+
 development: &development
   <<: *defaults
 
@@ -99,6 +101,8 @@ enterprise: &enterprise
 
   # overrides
   authentication: ldap
+
+  allow_create_orgs: <%= ENV['ALLOW_CREATE_ORGS'] || 'false' %>
 
   # additions
   ldap_domain: <%= ENV['LDAP_DOMAIN'] || nil %>

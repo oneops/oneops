@@ -26,14 +26,16 @@
     <% end %>
   <% end %>
 <% end %>
-<%= section_panel 'New Organization', :width => 'single' do %>
-  <span class="help-block">
-    <p class="text-info">
-      <%= icon('info-circle') %>
-      Before creating a new organization first consider joining an existing organization. You can search organizatons
-      to view public profile and to request access.
-    </p>
-    <%= link_to(icon('plus', 'New Organization'), new_account_organization_path, :remote => true, :class => 'btn btn-small') %>
-  </span>
+<% if Settings.allow_create_orgs %>
+  <%= section_panel 'New Organization', :width => 'single' do %>
+    <span class="help-block">
+      <p class="text-info">
+        <%= icon('info-circle') %>
+        Before creating a new organization first consider joining an existing organization. You can search organizatons
+        to view public profile and to request access.
+      </p>
+      <%= link_to(icon('plus', 'New Organization'), new_account_organization_path, :remote => true, :class => 'btn btn-small') %>
+    </span>
+  <% end %>
+  <div id="new_organization_modal" class="modal hide"></div>
 <% end %>
-<div id="new_organization_modal" class="modal hide"></div>
