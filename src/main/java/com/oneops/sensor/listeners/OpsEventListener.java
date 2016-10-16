@@ -40,12 +40,12 @@ import com.oneops.ops.dao.OpsEventDao;
 import com.oneops.ops.dao.PerfDataAccessor;
 import com.oneops.ops.dao.PerfHeaderDao;
 import com.oneops.ops.events.CiChangeStateEvent;
-import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsEvent;
 import com.oneops.ops.events.Status;
+import com.oneops.sensor.CiStateProcessor;
 import com.oneops.sensor.jms.OpsEventPublisher;
-import com.oneops.sensor.util.EventConverter;
 import com.oneops.sensor.util.EventContext;
+import com.oneops.sensor.util.EventConverter;
 import com.oneops.sensor.util.SensorHeartBeat;
 
 /**
@@ -75,6 +75,7 @@ public class OpsEventListener implements UpdateListener {
     private SensorHeartBeat sensorHeartBeat;
     private PerfHeaderDao phDao;
     private CmsCmProcessor cmProcessor;
+    private CiStateProcessor ciStateProcessor;
     private long hbChannelUpTimeout = 90;
 
     public void init() {
@@ -246,13 +247,17 @@ public class OpsEventListener implements UpdateListener {
 
     private void handleEvent(EventContext eventContext) {
         OpsEvent event = (OpsEvent)eventContext.getEvent();
-        lookupManifestStates(eventContext);
+        ciStateProcessor.updateState4OpenEvent(eventContext);
         boolean isNew = opsEventDao.addOpenEventForCi(event.getCiId(), event.getName(), event.getTimestamp(), event.getCiState());
+        if (logger.isDebugEnabled()) {
+        	logger.debug("persisted open event ->" + event.getCiId() + " name : " + event.getName() + " state : " + event.getState() + " isNew " + isNew);
+        }
         //set the status whether its new or existing status in base event based on whether already an open event exists for this
         //ci and eventName (monitor-threshold eg<montitorName>:definitionName. p1-compute-postfixprocess:PostfixProcessLow\\).
         if (isNew) {
             event.setStatus(Status.NEW);
         } else {
+        	eventContext.emptyStateCounterDelta();
             event.setStatus(Status.EXISTING);
         }
 
@@ -272,35 +277,9 @@ public class OpsEventListener implements UpdateListener {
             if (logger.isDebugEnabled()) {
                 logger.debug("state changed ci -> " + event.getCiId() + ", old state : " + eventContext.getOldState() + ", new state : " + eventContext.getNewState());
             }
-            coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp(), eventContext.getManifestStates());
+            coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp(), eventContext.getStateCounterDelta());
         }
         opsEventPub.publishCiStateMessage(ciEvent);
-    }
-
-    private void lookupManifestStates(EventContext eventContext) {
-        OpsEvent event = (OpsEvent)eventContext.getEvent();
-        List<CiOpenEvent> openEvents = opsEventDao.getCiOpenEvents(event.getCiId());
-        String oldState = coProcessor.getState(openEvents);
-        eventContext.setOldState(oldState);
-        openEvents.add(constructOpenEvent(event));
-        String newState = coProcessor.getState(openEvents);
-        eventContext.setNewState(newState);
-        Map<Long,String> states = null;
-        if (!oldState.equals(newState)) {
-            eventContext.setStateChanged(true);
-            states = coProcessor.getManifestStates(event.getManifestId());
-            //change the state of current event ciId
-            states.put(event.getCiId(), newState);
-            eventContext.setManifestStates(states);
-        }
-    }
-
-    private CiOpenEvent constructOpenEvent(OpsEvent event) {
-        CiOpenEvent openEvent = new CiOpenEvent();
-        openEvent.setName(event.getName());
-        openEvent.setState(event.getCiState());
-        openEvent.setTimestamp(event.getTimestamp());
-        return openEvent;
     }
 
     private PerfDataRequest createPerfDataRequest(OpsEvent event, PerfHeader ph) {
@@ -350,5 +329,9 @@ public class OpsEventListener implements UpdateListener {
         }
 
     }
+
+	public void setCiStateProcessor(CiStateProcessor ciStateProcessor) {
+		this.ciStateProcessor = ciStateProcessor;
+	}
 
 }

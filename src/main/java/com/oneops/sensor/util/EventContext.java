@@ -17,19 +17,28 @@
  *******************************************************************************/
 package com.oneops.sensor.util;
 
+import java.util.List;
 import java.util.Map;
 
+import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsBaseEvent;
 
 public class EventContext {
 
 	private OpsBaseEvent event;
 	private boolean isStateChanged;
-	private Map<Long, String> manifestStates;
+	private Map<String, Long> stateCounterDelta;
+	private List<CiOpenEvent> openEvents;
 	private String oldState;
 	private String newState;
 	private String payload;
-	
+
+	public void emptyStateCounterDelta() {
+		if (stateCounterDelta != null) {
+			stateCounterDelta.clear();
+		}
+	}
+
 	public EventContext(OpsBaseEvent event) {
 		this.event = event;
 	}
@@ -50,12 +59,12 @@ public class EventContext {
 		this.isStateChanged = isStateChanged;
 	}
 
-	public Map<Long, String> getManifestStates() {
-		return manifestStates;
+	public Map<String, Long> getStateCounterDelta() {
+		return stateCounterDelta;
 	}
 
-	public void setManifestStates(Map<Long, String> manifestStates) {
-		this.manifestStates = manifestStates;
+	public void setStateCounterDelta(Map<String, Long> manifestStates) {
+		this.stateCounterDelta = manifestStates;
 	}
 
 	public String getOldState() {
@@ -80,6 +89,14 @@ public class EventContext {
 
 	public void setPayload(String payload) {
 		this.payload = payload;
+	}
+
+	public List<CiOpenEvent> getOpenEvents() {
+		return openEvents;
+	}
+
+	public void setOpenEvents(List<CiOpenEvent> openEvents) {
+		this.openEvents = openEvents;
 	}
 	
 }

@@ -17,9 +17,6 @@
  *******************************************************************************/
 package com.oneops.sensor.listeners;
 
-import java.util.List;
-import java.util.Map;
-
 import org.apache.log4j.Logger;
 
 import com.espertech.esper.client.EventBean;
@@ -28,9 +25,9 @@ import com.google.gson.Gson;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.dao.OpsEventDao;
 import com.oneops.ops.events.CiChangeStateEvent;
-import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsCloseEvent;
 import com.oneops.ops.events.OpsEvent;
+import com.oneops.sensor.CiStateProcessor;
 import com.oneops.sensor.domain.OpenEvent;
 import com.oneops.sensor.jms.OpsEventPublisher;
 import com.oneops.sensor.util.EventContext;
@@ -54,6 +51,7 @@ public class CloseEventListener implements UpdateListener {
     private OpsEventDao opsEventDao;
     private Gson gson = new Gson();
     private CiOpsProcessor coProcessor;
+    private CiStateProcessor ciStateProcessor;
     private OpsEventPublisher opsEventPub;
     private boolean orphanEventEnabled = true;
 
@@ -129,8 +127,11 @@ public class CloseEventListener implements UpdateListener {
 
     private void handleEvent(EventContext eventContext) {
         OpsCloseEvent event = (OpsCloseEvent) eventContext.getEvent();
-        lookupManifestStates(eventContext);
+        ciStateProcessor.updateState4CloseEvent(eventContext);
         opsEventDao.removeOpenEventForCi(event.getCiId(), event.getName());
+        if (logger.isDebugEnabled()) {
+        	logger.debug("removed open event ci: " + event.getCiId() + " name : " + event.getName() + " state : " + event.getState());
+        }
         CiChangeStateEvent ciEvent = new CiChangeStateEvent();
         ciEvent.setCiId(event.getCiId());
         ciEvent.setNewState(eventContext.getNewState());
@@ -140,31 +141,17 @@ public class CloseEventListener implements UpdateListener {
             if (logger.isDebugEnabled()) {
                 logger.debug("state changed ci -> " + event.getCiId() + ", old state : " + eventContext.getOldState() + ", new state : " + eventContext.getNewState());
             }
-            coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp(), eventContext.getManifestStates());
+            coProcessor.persistCiStateChange(event.getCiId(), event.getManifestId(), ciEvent, event.getTimestamp(), eventContext.getStateCounterDelta());
         }
         opsEventPub.publishCiStateMessage(ciEvent);
-    }
-
-    private void lookupManifestStates(EventContext eventContext) {
-        OpsCloseEvent event = (OpsCloseEvent)eventContext.getEvent();
-        List<CiOpenEvent> openEvents = opsEventDao.getCiOpenEvents(event.getCiId());
-        String oldState = coProcessor.getState(openEvents);
-        eventContext.setOldState(oldState);
-        openEvents.removeIf(openEvent -> event.getName().equals(openEvent.getName()));
-        String newState = coProcessor.getState(openEvents);
-        eventContext.setNewState(newState);
-        Map<Long,String> states = null;
-        if (!oldState.equals(newState)) {
-            eventContext.setStateChanged(true);
-            states = coProcessor.getManifestStates(event.getManifestId());
-            //change the state of current event ciId
-            states.put(event.getCiId(), newState);
-            eventContext.setManifestStates(states);
-        }
-    }
+    }   
 
 	public void setOrphanEventEnabled(boolean orphanEventEnabled) {
 		this.orphanEventEnabled = orphanEventEnabled;
+	}
+
+	public void setCiStateProcessor(CiStateProcessor ciStateProcessor) {
+		this.ciStateProcessor = ciStateProcessor;
 	}
 
 }
