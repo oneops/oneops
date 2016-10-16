@@ -133,6 +133,11 @@ public class CiOpsProcessor {
 			opsCiStateDao.resetComponentCountsToZero(manifestId);
 			return;
 		}
+		Map<String,Long> counters = getStateCounterMap(bomIds, manifestStates);
+		opsCiStateDao.setComponentsStates(manifestId, counters);
+	}
+
+	private Map<String,Long> getStateCounterMap(List<Long> bomIds, Map<Long,String> manifestStates) {
 		Map<String,Long> counters = new HashMap<String,Long>();
 		counters.put("total", new Long(bomIds.size()));
 		if (manifestStates == null) {
@@ -145,7 +150,16 @@ public class CiOpsProcessor {
 				counters.put(state, 1L);
 			}
 		}
-		opsCiStateDao.setComponentsStates(manifestId, counters);
+		return counters;
+	}
+
+	public void resetManifestStateCounters(Long manifestId, List<Long> bomIds, Map<String, Long> stateCounterDelta) {
+		if (bomIds.size() == 0) {
+			trDao.removeRealizedAsRow(manifestId);
+			opsCiStateDao.resetComponentCountsToZero(manifestId);
+			return;
+		}
+		opsCiStateDao.changeComponentsStateCounter(manifestId, stateCounterDelta);
 	}
 	
 	public int removeManifestMap(long ciId, Long manifestId) {
@@ -161,13 +175,18 @@ public class CiOpsProcessor {
 		return remainingBoms;
 	}
 	
-	public boolean isCiActive(long ciId) {
-		return trDao.getManifestId(ciId) != null;
+	public int removeManifestMap4CiRemoval(long ciId, Long manifestId) {
+		trDao.removeManifestMap(ciId, manifestId);
+		List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+		if (bomIds.size() == 0) {
+			trDao.removeRealizedAsRow(manifestId);
+		}
+		logger.info("Removed manifestMap for manifestId = " + manifestId + ", remainingBoms = " + bomIds.size());
+		return bomIds.size();
 	}
 	
-	public Map<Long,String> getManifestStates(long manifestId) {
-		List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-		return getCisStates(bomIds);
+	public boolean isCiActive(long ciId) {
+		return trDao.getManifestId(ciId) != null;
 	}
 
     /**
@@ -177,10 +196,12 @@ public class CiOpsProcessor {
      * @param chStateEvent
      * @param timestamp
      */
-    public void persistCiStateChange(long ciId, long manifestId, CiChangeStateEvent chStateEvent, long timestamp, Map<Long,String> manifestStates) {
+    public void persistCiStateChange(long ciId, long manifestId, CiChangeStateEvent chStateEvent, long timestamp, Map<String, Long> manifestStates) {
     	opsCiStateDao.persistCiStateChange(ciId, manifestId, chStateEvent, timestamp);
-    	List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-    	resetManifestStates(manifestId, bomIds, manifestStates);
+        if (manifestStates != null && !manifestStates.isEmpty()) {
+            List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+            resetManifestStateCounters(manifestId, bomIds, manifestStates);
+        }
     }
     
 }
