@@ -240,7 +240,7 @@ public class CmsCmRfcMrgProcessor {
      * @return the cms rfc ci
      */
     public CmsRfcCI requestCiDelete(long ciId, String userId) {
-        return requestCiDeleteCascade(ciId, userId, null, null, 0);
+        return requestCiDeleteCascade(ciId, userId, null, 0);
     }
 
     /**
@@ -252,24 +252,19 @@ public class CmsCmRfcMrgProcessor {
      * @return the cms rfc ci
      */
     public CmsRfcCI requestCiDelete(long ciId, String userId, int execOrder) {
-        return requestCiDeleteCascade(ciId, userId, null, null, execOrder);
+        return requestCiDeleteCascade(ciId, userId, null, execOrder);
     }
 
     /**
      * Delete the ci with given {@code ciId} by traversing all the relations recursively.
      *
-     * @param ciId           ciId to delete
-     * @param userId         user performing delete action
-     * @param targets        class relation target map to be deleted for he current iteration.
-     * @param classRelations all cms class relation target map.
-     * @param execOrder      execute order.
+     * @param ciId      ciId to delete
+     * @param userId    user performing delete action
+     * @param targets   class relation target map to be deleted for he current iteration.
+     * @param execOrder execute order.
      * @return rfc for the {@code ciId} to be deleted.
      */
-    private CmsRfcCI requestCiDeleteCascade(long ciId,
-                                            String userId,
-                                            Map<String, CmsClazzRelation> targets,
-                                            Map<Integer, List<CmsClazzRelation>> classRelations,
-                                            int execOrder) {
+    private CmsRfcCI requestCiDeleteCascade(long ciId, String userId, Map<String, CmsClazzRelation> targets, int execOrder) {
 
         CmsCI ci = cmProcessor.getCiById(ciId);
         CmsRfcCI rfcCi = rfcProcessor.getOpenRfcCIByCiId(ciId);
@@ -291,11 +286,7 @@ public class CmsCmRfcMrgProcessor {
                 String key = fromClazz + rel.getRelationName() + rel.getToRfcCi().getCiClassName();
 
                 if (!targets.containsKey(key)) {
-                    if (classRelations == null) {
-                        // Cache all the targets once for later reuse.
-                        classRelations = mdProcessor.getAllTargets();
-                    }
-                    for (CmsClazzRelation target : classRelations.get(rel.getRelationId())) {
+                    for (CmsClazzRelation target : mdProcessor.getTargets(rel.getRelationId())) {
                         String targetFromClazz = target.getFromClassName().equals("Component") ? fromClazz : target.getFromClassName();
                         String targetToClazz = target.getToClassName().equals("Component") ? rel.getToRfcCi().getCiClassName() : target.getToClassName();
                         String newKey = targetFromClazz + target.getRelationName() + targetToClazz;
@@ -306,7 +297,7 @@ public class CmsCmRfcMrgProcessor {
                     }
                 }
                 if (targets.get(key).getIsStrong()) {
-                    requestCiDeleteCascade(rel.getToRfcCi().getCiId(), userId, targets, classRelations, execOrder);
+                    requestCiDeleteCascade(rel.getToRfcCi().getCiId(), userId, targets, execOrder);
                 }
             }
 
@@ -352,14 +343,10 @@ public class CmsCmRfcMrgProcessor {
     }
 
     public CmsRfcCI requestCiDeleteCascadeNoRelsRfcs(long ciId, String userId, int execOrder) {
-        return requestCiDeleteCascadeNoRelsRfcs(ciId, userId, null, null, execOrder);
+        return requestCiDeleteCascadeNoRelsRfcs(ciId, userId, null, execOrder);
     }
 
-    public CmsRfcCI requestCiDeleteCascadeNoRelsRfcs(long ciId,
-                                                     String userId,
-                                                     Map<String, CmsClazzRelation> targets,
-                                                     Map<Integer, List<CmsClazzRelation>> classRelations,
-                                                     int execOrder) {
+    public CmsRfcCI requestCiDeleteCascadeNoRelsRfcs(long ciId, String userId, Map<String, CmsClazzRelation> targets, int execOrder) {
         CmsCI ci = cmProcessor.getCiById(ciId);
         CmsRfcCI rfcCi = rfcProcessor.getOpenRfcCIByCiId(ciId);
         if (ci == null && rfcCi == null) return null;
@@ -378,11 +365,7 @@ public class CmsCmRfcMrgProcessor {
                 if (targets == null) targets = new HashMap<>();
                 String key = fromClazz + rel.getRelationName() + rel.getToRfcCi().getCiClassName();
                 if (!targets.containsKey(key)) {
-                    if (classRelations == null) {
-                        // Cache all the targets once for later reuse.
-                        classRelations = mdProcessor.getAllTargets();
-                    }
-                    for (CmsClazzRelation target : classRelations.get(rel.getRelationId())) {
+                    for (CmsClazzRelation target : mdProcessor.getTargets(rel.getRelationId())) {
                         String targetFromClazz = target.getFromClassName().equals("Component") ? fromClazz : target.getFromClassName();
                         String targetToClazz = target.getToClassName().equals("Component") ? rel.getToRfcCi().getCiClassName() : target.getToClassName();
                         String newKey = targetFromClazz + target.getRelationName() + targetToClazz;
@@ -393,7 +376,7 @@ public class CmsCmRfcMrgProcessor {
                     }
                 }
                 if (targets.get(key).getIsStrong()) {
-                    requestCiDeleteCascadeNoRelsRfcs(rel.getToRfcCi().getCiId(), userId, targets, classRelations, execOrder);
+                    requestCiDeleteCascadeNoRelsRfcs(rel.getToRfcCi().getCiId(), userId, targets, execOrder);
                 }
             }
         }

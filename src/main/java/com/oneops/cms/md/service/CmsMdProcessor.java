@@ -28,6 +28,7 @@ import com.oneops.cms.util.CmsUtil;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.PostConstruct;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -52,10 +53,21 @@ public class CmsMdProcessor {
     final private Map<Integer, CmsClazz> mdClazzCacheById = new ConcurrentHashMap<>();
     final private Map<String, CmsRelation> mdRelationCache = new ConcurrentHashMap<>();
     final private Map<Integer, CmsRelation> mdRelationCacheById = new ConcurrentHashMap<>();
-
+    final private Map<Integer, List<CmsClazzRelation>> clazzRelCache = new ConcurrentHashMap<>();
 
     static {
         logger.warn(">>> Initializing CmsMdProcessor");
+    }
+
+    /**
+     * Initializes md processor cache(s).
+     */
+    @PostConstruct
+    public void initCache() {
+        if (cacheEnabled) {
+            logger.info("Populating class relation target cache...");
+            clazzRelCache.putAll(getAllTargets());
+        }
     }
 
     public boolean isCacheEnabled() {
@@ -418,6 +430,10 @@ public class CmsMdProcessor {
      * @return the targets
      */
     public List<CmsClazzRelation> getTargets(int relationId) {
+        if (cacheEnabled) {
+            // Fallback to relationMapper if not exists in cache.
+            return clazzRelCache.computeIfAbsent(relationId, (r) -> relationMapper.getTargets(r));
+        }
         return relationMapper.getTargets(relationId);
     }
 
@@ -801,6 +817,9 @@ public class CmsMdProcessor {
         this.mdClazzCacheById.clear();
         this.mdRelationCache.clear();
         this.mdRelationCacheById.clear();
+        // Clear and init cache.
+        this.clazzRelCache.clear();
+        initCache();
     }
 
 }
