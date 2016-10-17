@@ -1,5 +1,5 @@
 class Search::WorkOrder < Search::Base
-  self.prefix       = '/cms/workorder/_search'
+  self.prefix       = '/cms-2*/workorder/_search'
   self.element_name = ''
 
   def self.time_stats(deployment)
