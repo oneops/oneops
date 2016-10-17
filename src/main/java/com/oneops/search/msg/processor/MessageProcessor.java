@@ -17,27 +17,26 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.oneops.cms.util.CmsConstants;
+
 /**
  * 
  * @author ranand
  *
  */
 public interface MessageProcessor {
+	final Gson GSON = new Gson();
+	final Gson GSON_ES = new GsonBuilder().setDateFormat(CmsConstants.SEARCH_TS_PATTERN).create();
 	
 	/**
 	 * 
-	 * @param msg
+	 * @param message
 	 * @param msgType
 	 * @param msgId
 	 */
-	public void processMessage(String msg,String msgType,String msgId);
+	public void processMessage(String message,String msgType,String msgId);
 	
-	/**
-	 * 
-	 * @param msg
-	 * @param msgType
-	 * @param msgId
-	 */
-	public void deleteMessage(String msgType,String msgId);
 
 }

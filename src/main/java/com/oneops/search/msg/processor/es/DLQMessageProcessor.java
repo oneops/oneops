@@ -1,29 +1,31 @@
+package com.oneops.search.msg.processor.es;
+
+import com.oneops.search.msg.index.Indexer;
+import com.oneops.search.msg.processor.MessageProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+
 /*******************************************************************************
- *  
- *   Copyright 2015 Walmart, Inc.
- *  
+ *
+ *   Copyright 2016 Walmart, Inc.
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
-package com.oneops.search.util;
-
-public class SearchConstants {
-
-	public static final String DPMT_STATE_ACTIVE = "active";
-	public static final String DPMT_STATE_CANCELED = "canceled";
-	public static final String DPMT_STATE_FAILED = "failed";
-	public static final String DPMT_STATE_PAUSED = "paused";
-	public static final String DPMT_STATE_PENDING = "pending";
-	public static final String DPMT_STATE_COMPLETE = "complete";
-	public static final String DPMT_RECORD_STATE_INPROGRESS = "inprogress";
+public class DLQMessageProcessor implements MessageProcessor{
+    @Autowired
+    private Indexer indexer;
+    @Override
+    public void processMessage(String message, String msgType, String msgId) {
+        indexer.index(msgId, "dlq", message);
+    }
 }

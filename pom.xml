@@ -95,7 +95,6 @@
 	  <skipTests>true</skipTests>
 	  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	  <libs.version>1.0.0</libs.version>
-	  <dozer.version>5.3.2</dozer.version>
 	  <commons-httpclient.version>3.1</commons-httpclient.version>
 	  <cmsdal.version>1.0.4</cmsdal.version>
 	  <spring-data-elasticsearch.version>1.0.4.RELEASE</spring-data-elasticsearch.version>
@@ -201,11 +200,6 @@
         <version>${commons-httpclient.version}</version>
     </dependency>
 	<dependency>
-		<groupId>net.sf.dozer</groupId>
-		<artifactId>dozer</artifactId>
-		<version>${dozer.version}</version>
-	</dependency>
-	<dependency>
 		<groupId>com.oneops</groupId>
 		<artifactId>oo-commons</artifactId>
 		<version>${libs.version}</version>
@@ -213,11 +207,6 @@
 	<dependency>
 		<groupId>org.apache.lucene</groupId>
 		<artifactId>lucene-core</artifactId>
-		<version>4.10.4</version>
-	</dependency>
-	<dependency>
-		<groupId>org.apache.lucene</groupId>
-		<artifactId>lucene-analyzers-common</artifactId>
 		<version>4.10.4</version>
 	</dependency>
 	<dependency>
