@@ -27,6 +27,7 @@ import com.oneops.util.AMQConnectorURI;
 import com.oneops.util.DNSUtil;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.log4j.Logger;
+import org.springframework.jms.JmsException;
 import org.springframework.transaction.TransactionException;
 
 import javax.jms.Session;
@@ -52,18 +53,22 @@ public class InstanceManager {
 	private static final String OPSMQ_PASS_ENV_VAR = "KLOOPZ_AMQ_PASS";
 
 	
-	private Logger logger = Logger.getLogger(this.getClass());
+	private final Logger logger = Logger.getLogger(this.getClass());
 	private CmsUtilManager utilManager;
-	private List<SensorListenerContainer> sensorListenerContainers = new ArrayList<SensorListenerContainer>();
+	private List<SensorListenerContainer> sensorListenerContainers = new ArrayList<>();
 	private SensorMonListenerContainer monListenerContainer;
 	private Sensor sensor;
 	private int instanceId = 0;
 	private int poolSize = 1;
+	private boolean shouldLogStats;
+	private int numLockRefreshesToLogStats = 10;
+	private int currentRefresh=0;
 	private String processId;
 	private AMQConnectorURI opsMQURI;
 	private SensorListener sensorListener;
 	private OrphanEventHandler orphanEventHandler;
-	
+	private SensorHeartBeat sensorHeartBeat;
+
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 	private ScheduledFuture<?> jobLockRefreshHandle = null;
 
@@ -84,26 +89,21 @@ public class InstanceManager {
 	}
 
 	private void startTheLockRefresh() {
-        final Runnable lockRefresher = new Runnable() {
-                public void run() { refreshLock(); }
-            };
-            jobLockRefreshHandle = scheduler.scheduleWithFixedDelay(lockRefresher, 0, LOCK_REFRESH_SEC, SECONDS);
-    }
+		final Runnable lockRefresher = () -> refreshLock();
+		jobLockRefreshHandle = scheduler.scheduleWithFixedDelay(lockRefresher, 0, LOCK_REFRESH_SEC, SECONDS);
+	}
 
 	private void lockRetry() {
-        final Runnable lockAqcuirer = new Runnable() {
-                public void run() { 
-                	while (!acquireLock()) {
-                		try {
-                			logger.info("Could not aquire lock, will sleep for " + LOCK_RETRY_SLEEP_MSEC + " ms and try again.");
-							Thread.sleep(LOCK_RETRY_SLEEP_MSEC);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-                	}
+        final Runnable lockAqcuirer = () -> {
+            while (!acquireLock()) {
+                try {
+                    logger.info("Could not acquire lock, will sleep for " + LOCK_RETRY_SLEEP_MSEC + " ms and try again.");
+                    Thread.sleep(LOCK_RETRY_SLEEP_MSEC);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            };
+            }
+        };
         Thread t = new Thread(lockAqcuirer);
         t.start();
     }
@@ -114,22 +114,39 @@ public class InstanceManager {
 
 	public void init() {
 		this.processId = UUID.randomUUID().toString();
-		
-		logger.info("Sensor started with generated processId " + this.processId);
-		
+
 		String poolSizeParam = System.getProperty("com.oneops.sensor.PoolSize");
 		if (poolSizeParam == null) {
 			this.poolSize = 1;
 		} else {
 			this.poolSize = Integer.valueOf(poolSizeParam);
 		}
-		logger.info("Sensor pool size is set to " + this.poolSize);
-		
+        logger.info("Sensor started with processId :" + this.processId +" poolSize :"+ poolSize+" logStats:" +shouldLogStats);
+
 		if (!acquireLock()) {
 			lockRetry();
 		}
 	}
-	
+
+
+	public void setSensorHeartBeat(SensorHeartBeat sensorHeartBeat) {
+		this.sensorHeartBeat = sensorHeartBeat;
+	}
+
+	public boolean shouldLogStats() {
+		return shouldLogStats;
+	}
+
+	public void setShouldLogStats(boolean shouldLogStats) {
+		this.shouldLogStats = shouldLogStats;
+	}
+
+	private enum State {
+		WaitingForLock,Initializing, Initalized
+	}
+    private State state = State.WaitingForLock;
+
+
 	private boolean acquireLock() {
 		try {
 			for (int i = 1; i <= this.poolSize; i++) {
@@ -138,14 +155,17 @@ public class InstanceManager {
 					logger.info(">>>>>>>Sensor process " + this.processId + " will be running as #" + i);
 					startTheLockRefresh();
 					try {
+						this.state = State.Initializing;
 						sensor.init(instanceId, poolSize);
 						initJmsListeners(instanceId, poolSize);
 						orphanEventHandler.start();
 					} catch (Exception e) {
 						cleanup();
 						throw new RuntimeException(e);
+					}finally {
+						this.state=State.WaitingForLock;
 					}
-					//startTheLockRefresh();
+					this.state = State.Initalized;
 					return true;
 				}
 			}
@@ -161,7 +181,7 @@ public class InstanceManager {
 		String host = System.getProperty(OPSMQ_HOST_PARAM, "opsmq");
 
 		for (String opsmqHost : DNSUtil.resolve(host)) {
-			// need to make initial connect assync since it will block the execution if the first broker is down
+			// need to make initial connect async since it will block the execution if the first broker is down
 			OpsMqConnector omqConnect = new OpsMqConnector(opsmqHost, poolSize, instanseId);
             Thread t = new Thread(omqConnect);
             t.start();
@@ -191,7 +211,7 @@ public class InstanceManager {
         	logger.info("OPSMQ>>>>>>>>>>>Connected to :" + this.host);
 
         }
-    };
+    }
 
 	
 	private SensorListenerContainer buildOpsMQListenerContainer(String host) {
@@ -218,38 +238,73 @@ public class InstanceManager {
 		return listenerContainer;
 		
 	}
-	
+
 	private void refreshLock() {
 		try {
 			if (!utilManager.refreshLock(LOCK_NAME_PREFIX+this.instanceId, this.processId)) {
 				cleanAndReinit();
+			} else {
+				currentRefresh++;
+				//get esper stats
+				if (sensor != null && sensor.getEpService() != null) {
+					if (shouldLogStats && numLockRefreshesToLogStats != 0 && (currentRefresh % numLockRefreshesToLogStats == 0)) {
+						long numEventsEvaluated = -1;
+						if (sensor.getEpService().getEPRuntime() != null)
+							numEventsEvaluated = sensor.getEpService().getEPRuntime().getNumEventsEvaluated();
+						long numChannelsDown = sensorHeartBeat.getNumChannelsDown();
+						long totalChannels = sensorHeartBeat.getTotalChannels();
+						String msg = String.format("Sensor(%s) state:%s  channel status( chDown:%s : TotalCh %s) ;eventsProcessed %s ", instanceId,this.state.toString(), numChannelsDown, totalChannels, numEventsEvaluated);
+						logger.info(msg);
+						currentRefresh = 1;
+					}
+
+				}
+
 			}
+
 		} catch (Exception e) {
 			logger.error("Exception in refreshLock", e);
 			cleanAndReinit();
 		}
 	}
-	
+
+
+
 	private void cleanAndReinit() {
-		logger.error(">>>>>>>>>This Sensor instance lost the lock, will shutdown processing and re-init!");
-		for (SensorListenerContainer listenerContainer : sensorListenerContainers) {
-			listenerContainer.stop();
-			listenerContainer.shutdown();
-		}
-		monListenerContainer.stop();
-		monListenerContainer.shutdown();
+
+        logger.error(">>>>>>>>>This Sensor instance lost the lock, will shutdown processing and re-init!");
+		closeSensorListener();
+		closeMonitorListeners();
 		sensor.stop();
 		jobLockRefreshHandle.cancel(true);
 		init();
 	}
-	
-	public void cleanup() {
-		for (SensorListenerContainer listenerContainer : sensorListenerContainers) {
-			listenerContainer.stop();
-			listenerContainer.shutdown();
+
+	private void closeMonitorListeners() {
+		try {
+			monListenerContainer.stop();
+			monListenerContainer.shutdown();
+		} catch (JmsException e) {
+			logger.error("There was an exception in stopping the activemq listeners ",e);
+			throw e;
 		}
-		monListenerContainer.stop();
-		monListenerContainer.shutdown();
+	}
+
+	private void closeSensorListener() {
+		try {
+			for (SensorListenerContainer listenerContainer : sensorListenerContainers) {
+				listenerContainer.stop();
+				listenerContainer.shutdown();
+			}
+		} catch (JmsException e) {
+			logger.error("There was an exception i stopping the opsmq listeners ",e);
+			throw e;
+		}
+	}
+
+	public void cleanup() {
+		closeSensorListener();
+		closeMonitorListeners();
 		jobLockRefreshHandle.cancel(true);
 		sensor.stop();
 		utilManager.releaseLock(LOCK_NAME_PREFIX+this.instanceId, this.processId);
@@ -267,8 +322,19 @@ public class InstanceManager {
 		return processId;
 	}
 
+
+	public int getNumLockRefreshesToLogStats() {
+		return numLockRefreshesToLogStats;
+	}
+
+	public void setNumLockRefreshesToLogStats(int numLockRefreshesToLogStats) {
+		this.numLockRefreshesToLogStats = numLockRefreshesToLogStats;
+	}
+
 	public void setOrphanEventHandler(OrphanEventHandler orphanEventHandler) {
 		this.orphanEventHandler = orphanEventHandler;
 	}
+
+
 
 }
