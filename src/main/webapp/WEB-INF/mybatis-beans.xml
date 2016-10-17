@@ -75,11 +75,11 @@
     </bean>
     
    	<bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
-    
-	<bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
-        <property name="clazzMapper" ref="clazzMapper" />
-        <property name="relationMapper" ref="relationMapper" />
-        <property name="cacheEnabled" value="true" />
+
+    <bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
+        <property name="clazzMapper" ref="clazzMapper"/>
+        <property name="relationMapper" ref="relationMapper"/>
+        <property name="cacheEnabled" value="true"/>
     </bean>
 	
 	<bean id="cmsMdManager" class="com.oneops.cms.md.service.CmsMdManagerImpl">
