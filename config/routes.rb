@@ -241,6 +241,7 @@ Display::Application.routes.draw do
 
     resources :deployments, :controller => 'transition/deployments', :only => :none do
       get 'time_stats', :on => :member
+      get 'progress', :on => :member
     end
 
     resources :assemblies do

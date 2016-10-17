@@ -1,5 +1,5 @@
 class Search::Notification < Search::Base
-  self.prefix       = '/cms/notification/_search'
+  self.prefix       = '/cms-2*/notification/_search'
   self.element_name = ''
 
   def self.find_by_ci_id(ci_id, options)

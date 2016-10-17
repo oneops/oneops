@@ -1,0 +1,2 @@
+$j("#deployment_progresss_<%= @deployment.deploymentId %>").parent()
+    .html("<%= escape_javascript(render('base/shared/deployment_progress', :deployment => @deployment, :expand => true)) %>");

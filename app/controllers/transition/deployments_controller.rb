@@ -1,6 +1,6 @@
   class Transition::DeploymentsController < ApplicationController
-  before_filter :find_assembly_and_environment, :except => [:log_data, :time_stats]
-  before_filter :find_deployment, :only => [:status, :show, :edit, :update, :time_stats]
+  before_filter :find_assembly_and_environment, :except => [:log_data, :time_stats, :progress]
+  before_filter :find_deployment, :only => [:status, :show, :edit, :update, :time_stats, :progress]
 
   def index
     if @environment || @assembly
@@ -59,7 +59,9 @@
   end
 
   def status
-    load_deployment_states
+    @step = params[:exec_order].to_i
+    @step = nil unless @step > 0
+    load_deployment_states(@step)
 
     respond_to do |format|
       format.js do
@@ -79,7 +81,7 @@
           end
         end
 
-        load_time_stats if @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
+        load_time_stats if @step.nil? || @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
 
         render :action => :status
       end
@@ -247,6 +249,12 @@
     render :json => @time_stats
   end
 
+  def progress
+    respond_to do |format|
+      format.js
+      format.json { render_json_ci_response(@deployment.present?, @deployment) }
+    end
+  end
 
   protected
 
@@ -275,11 +283,9 @@
     @environment = locate_environment(env_id, @assembly)
   end
 
-  def load_deployment_states
-    step = params[:exec_order]
-    step &&= step.to_i
-    @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis(step && step >= 0 ? step : nil).inject({}) do |states, rfc|
-      states[rfc.rfcId] = {:state => rfc.dpmtRecordState, :comments => rfc.comments}
+  def load_deployment_states(step = nil)
+    @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis(step).inject({}) do |states, rfc|
+      states[rfc.rfcId] = {:recordId => rfc.dpmtRecordId, :state => rfc.dpmtRecordState, :comments => rfc.comments}
       states
     end
   end

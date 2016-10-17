@@ -19,13 +19,15 @@ class DesignController < ApplicationController
   end
 
   def extract
+    collapse = params[:collapse]
+    collapse = false if collapse == 'false'
     respond_to do |format|
       format.json do
-        render :json => export_design(params[:collapse])
+        render :json => export_design(collapse, params[:platform_id])
       end
 
       format.yaml do
-        render :text => export_design(params[:collapse]).to_yaml, :content_type => 'text/data_string'
+        render :text => export_design(collapse, params[:platform_id]).to_yaml, :content_type => 'text/data_string'
       end
     end
   end
@@ -128,9 +130,8 @@ class DesignController < ApplicationController
     end
   end
 
-  def export_design(collapse = false)
-    design = Transistor.export_design(@assembly)
-    # return design
+  def export_design(collapse, platform_id = nil)
+    design = Transistor.export_design(@assembly, platform_id && [platform_id])
 
     result = {}
 

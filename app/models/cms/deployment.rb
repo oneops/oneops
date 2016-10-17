@@ -32,7 +32,7 @@ class Cms::Deployment < Cms::Base
   end
 
   def self.search(options)
-    data = Search::Base.search('/cms/deployment', options)
+    data = Search::Base.search('/cms-2*/deployment', options)
     return nil unless data
 
     result = data.map { |r| new(r, true) }
@@ -41,7 +41,7 @@ class Cms::Deployment < Cms::Base
   end
 
   def self.search_latest_by_ns(ns_path, options = {})
-    Search::Base.search_latest_by_ns('/cms/deployment', ns_path, options).map {|r| new(r, true)}
+    Search::Base.search_latest_by_ns('/cms-2*/deployment', ns_path, options).map {|r| new(r, true)}
   end
 
   def to_param

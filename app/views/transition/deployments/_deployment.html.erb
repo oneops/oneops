@@ -1,5 +1,4 @@
 <% deployment_persisted = @deployment && !@deployment.new_record?
-   deployment_cis = @deployment.rfc_cis.to_map(&:rfcId) if deployment_persisted
    env_comments = @environment.comments
    error_prefix = 'ERROR:BOM:' %>
 <div class="wf">
@@ -135,25 +134,34 @@
                                     <%= rfc_header(rfc, :state => state, :deployment_state => @deployment && @deployment.deploymentState) %>
                                   </div>
                                 </div>
+                                <% deployment_record = deployment_persisted && @deployment_rfc_cis_info[rfc.rfcId] %>
+                                <% if deployment_persisted %>
+                                  <% if deployment_record %>
+                                    <div id="comments_<%= rfc.rfcId %>" class="alert hide"></div>
+                                  <% else %>
+                                    <div id="comments_<%= rfc.rfcId %>" class="alert alert-info">
+                                      This work-order successfully completed in prior deployment.
+                                    </div>
+                                  <% end %>
+                                <% end %>
                                 <div id="rfc_details_<%= rfc.rfcId %>" class="hide">
                                   <div class="accordion-inner">
                                     <ul class="nav nav-pills" style="margin-bottom: 5px">
                                       <li class="active"><a href="#attr_<%= rfc.rfcId %>" data-toggle="tab">Attributes</a></li>
-                                      <% if deployment_persisted %>
-                                        <li><a href="#log_<%= rfc.rfcId %>" data-toggle="tab">Log</a></li>
+                                      <% if deployment_record %>
+                                        <li id="log_tab_<%= rfc.rfcId %>" style="display:none"><a href="#log_<%= rfc.rfcId %>" data-toggle="tab">Log</a></li>
                                         <li id="time_stats_tab_<%= rfc.rfcId %>" style="display:none"><a href="#time_stats_<%= rfc.rfcId %>" data-toggle="tab">Stats</a></li>
                                       <% end %>
                                     </ul>
                                     <div class="tab-content">
                                       <div class="tab-pane active" id="attr_<%= rfc.rfcId %>"><%= rfc_attributes(rfc) %></div>
-                                      <% if deployment_persisted %>
-                                        <div id="log_<%= rfc.rfcId %>" class="tab-pane" deployment-record-id="<%= deployment_cis[rfc.rfcId].dpmtRecordId %>"></div>
+                                      <% if deployment_record %>
+                                        <div id="log_<%= rfc.rfcId %>" class="tab-pane" deployment-record-id="<%= deployment_record[:recordId] %>"></div>
                                         <div id="time_stats_<%= rfc.rfcId %>" class="tab-pane"></div>
                                       <% end %>
                                     </div>
                                   </div>
                                 </div>
-                                <div id="comments_<%= rfc.rfcId %>" class="alert hide"></div>
                                 <% if ops_state_alert %>
                                   <% bad_ops_state_count += 1 %>
                                   <div class="text-error well well-small">
@@ -202,7 +210,7 @@
           <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
           <td><%= render 'transition/deployments/action',
                          :action => 'deploy',
-                         :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work order')} relying on instance(s) in bad state." %></td>
+                         :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %></td>
         </tr>
       </table>
     <% else %>
@@ -258,7 +266,7 @@
         type: "POST",
         data: {
           current_state:         window.deployment_state,
-          exec_order:            allSteps ? -1 : (refresh_deployment_status.active_step || -1),
+          exec_order:            allSteps ? null : (refresh_deployment_status.active_step || -1),
           deployment_record_ids: $j.map($j("div[id^='log_']:visible"),
                                         function (el) {
                                           return el.getAttribute("deployment-record-id");
@@ -283,14 +291,6 @@
     };
 
     refresh_deployment_status(true);
-  <% end %>
-
-  var timer = null;
-  <% if @deployment && (@deployment.deploymentState == 'pending' ||
-                        @deployment.deploymentState == 'active' ||
-                        @deployment.deploymentState == 'paused' ||
-                        @deployment.deploymentState == 'pausing') %>
-    timer = setInterval(refresh_deployment_status, 5000);
   <% end %>
 
   <% if deployment_persisted %>
@@ -331,10 +331,6 @@
     $j("#controls_pending").hide();
     $j("#controls_" + deployment_state).show();
 
-    if (deployment_state != 'active' && deployment_state != 'paused' && deployment_state != 'pausing' && deployment_state != 'pending') {
-      stop_deployment_polling();
-    }
-
     var deploymentStateEl = $j("#deployment_state");
     deploymentStateEl.html(deployment_state.toUpperCase());
     deploymentStateEl[0].className = "highlight " + deployment_state.toLowerCase();
@@ -353,6 +349,10 @@
         refresh_deployment_status.active_step = Math.min(refresh_deployment_status.active_step || 99999, parseInt(rfcLi.attr('data-rfc-exec-order')));
       }
 
+      if (!['pending', 'canceled'].include((rfcState))) {
+        $j("#log_tab_" + rfcId).show()
+      }
+
       var commentsDiv = $j("#comments_" + rfcId);
       var rfcComments = info['comments'];
       if (rfcComments) {
@@ -363,7 +363,7 @@
           problems.push(rfcComments);
         }
         else {
-          commentsDiv.html('<%= escape_javascript(icon('info-circle', '', 'fa-lg')) %>&nbsp;&nbsp;');
+          commentsDiv.html('');
           commentsDiv.toggleClass("alert-info",   !rfcFailed);
         }
         commentsDiv.append(rfcComments || '');
@@ -376,7 +376,7 @@
 
     var problemsDiv = $j(".wf .main .problems");
     if (problems.length) {
-      problemsDiv.html(problems.join("<br>")).show();
+      problemsDiv.html(problems.uniq().join("<br>")).show();
     }
     else {
       problemsDiv.hide();
@@ -399,14 +399,8 @@
     });
   };
 
-  window.stop_deployment_polling = function() {
-    if (typeof(timer) != "undefined") {
-      clearInterval(timer);
-    }
-  };
-
   window.close_deployment_overlay = function () {
-    stop_deployment_polling();
+    delete window.refresh_status_results;
     window.location.replace(window.location.href.split("#")[0]);
     Effect.SlideUp('overlay', {duration: 0.3});
   };
