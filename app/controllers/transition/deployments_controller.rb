@@ -1,6 +1,6 @@
   class Transition::DeploymentsController < ApplicationController
-  before_filter :find_assembly_and_environment, :except => [:log_data, :time_stats]
-  before_filter :find_deployment, :only => [:status, :show, :edit, :update, :time_stats]
+  before_filter :find_assembly_and_environment, :except => [:log_data, :time_stats, :progress]
+  before_filter :find_deployment, :only => [:status, :show, :edit, :update, :time_stats, :progress]
 
   def index
     if @environment || @assembly
@@ -249,6 +249,12 @@
     render :json => @time_stats
   end
 
+  def progress
+    respond_to do |format|
+      format.js
+      format.json { render_json_ci_response(@deployment.present?, @deployment) }
+    end
+  end
 
   protected
 
@@ -279,7 +285,7 @@
 
   def load_deployment_states(step = nil)
     @deployment_rfc_cis_info = @deployment.new_record? ? {} : @deployment.rfc_cis(step).inject({}) do |states, rfc|
-      states[rfc.rfcId] = {:state => rfc.dpmtRecordState, :comments => rfc.comments}
+      states[rfc.rfcId] = {:recordId => rfc.dpmtRecordId, :state => rfc.dpmtRecordState, :comments => rfc.comments}
       states
     end
   end

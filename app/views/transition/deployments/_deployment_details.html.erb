@@ -35,6 +35,15 @@
           <% if @deployment.ops.present? %>
             <li><%= icon('exclamation-triangle') %> <%= @deployment.ops %></li>
           <% end %>
+          <% if Rails.env.shared? || Rails.env.development? %>
+            <li>
+              <%= link_busy(button('View Deployment', nil, 'primary'),
+                            :url    => edit_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                            :method => :get,
+                            :busy   => 'Retrieving deployment plan...') %>
+            </li>
+          <% end %>
+
         </ul>
       </div>
     <li>

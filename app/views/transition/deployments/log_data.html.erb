@@ -5,6 +5,7 @@
     <%= @rfc.nsPath %>
   </h4>
 <% end %>
+<% retry_class = '' %>
 <ol class="log">
   <% @log_data.each_with_index do |e, index| %>
     <% message = e['message'].gsub(/^.*cmd out:/, '')
@@ -16,8 +17,14 @@
          class_name = 'info'
        else
          class_name = ''
-       end %>
-    <li id="L<%= index + 1 %>" onclick="log_line_selected(this, event)"> <span class="<%= class_name %>"><%= message %></span></li>
+       end
+       if message == 'retry #: 1'
+         retry_class = 'retry-1'
+       elsif message == 'retry #: 2'
+         retry_class = 'retry-2'
+       end
+    %>
+    <li id="L<%= index + 1 %>" class="<%= retry_class %>" onclick="log_line_selected(this, event)"> <span class="<%= class_name %>"><%= message %></span></li>
   <% end %>
 </ol>
 
