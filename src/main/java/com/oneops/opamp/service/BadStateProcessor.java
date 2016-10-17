@@ -495,7 +495,7 @@ public class BadStateProcessor {
 	}
 
 	public static long getNextRepairTime(long delayStartTime, int coolOffPeriod, double exponentialFactor, long repairRetriesCountSinceDelay, long repairRetriesMaxPeriod) {
-		long max = Math.min(repairRetriesCountSinceDelay + 1, (long) (Math.log(1 + repairRetriesMaxPeriod  / coolOffPeriod) / Math.log(2)));
+		long max = Math.min(repairRetriesCountSinceDelay + 1, (long) Math.ceil((Math.log(1 + repairRetriesMaxPeriod  / coolOffPeriod) / Math.log(exponentialFactor))));
 		return (long) (delayStartTime + (coolOffPeriod * (Math.pow(exponentialFactor, max) - 1)));
 	}
 
