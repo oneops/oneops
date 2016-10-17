@@ -179,7 +179,7 @@ public class ManifestManagerImpl implements ManifestManager {
 				Set<String> missingSrvs = cloudUtil.getMissingServices(manifestPlatformRfc.getCiId());
 				if (missingSrvs.size() > 0) {
 					logger.info(">>>>> Not all services available for platform: " + manifestPlatformRfc.getCiName() + ", the missing services: " + missingSrvs.toString());
-					disablePlatform(manifestPlatformRfc.getCiId(), userId);
+					disablePlatforms(Collections.singleton(manifestPlatformRfc.getCiId()), userId);
 				}
 				logger.info("New release id = " + manifestPlatformRfc.getReleaseId());
 				logger.info("Done working on platform " + manifestPlatformRfc.getNsPath());
@@ -425,14 +425,23 @@ public class ManifestManagerImpl implements ManifestManager {
 
 
 	@Override
-	public long disablePlatform(long platId, String userId) {
-		return manifestRfcProcessor.disablePlatform(platId, userId);
+	public long disablePlatforms(Set<Long> platformIds, String userId) {
+		long releaseId = 0;
+		for (long manifestPlatformId : platformIds) {
+			releaseId = manifestRfcProcessor.disablePlatform(manifestPlatformId, userId);
+		}
+		return releaseId;
 	}
 
 
 	@Override
-	public long enablePlatform(long platId, String userId) {
-		return manifestRfcProcessor.enablePlatform(platId, userId);
+	public long enablePlatforms(Set<Long> platformIds, String userId) {
+		long releaseId = 0;
+		cloudUtil.check4missingServices(platformIds);
+		for (long manifestPlatformId : platformIds) {
+			releaseId = manifestRfcProcessor.enablePlatform(manifestPlatformId, userId);
+		}
+		return releaseId;
 	}
 
 
