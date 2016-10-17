@@ -18,7 +18,6 @@
 package com.oneops.ops;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,7 +102,7 @@ public class CiOpsProcessor {
 		return opsCiStateDao.getCiStateHistory(ciId, startTime, endTime, count);
 	}	
 	
-	private String getState(List<CiOpenEvent> openEvents) {
+	public String getState(List<CiOpenEvent> openEvents) {
 		List<String> eventStates = new ArrayList<String>();
 		for (CiOpenEvent event : openEvents) {
 			eventStates.add(event.getState());
@@ -121,22 +120,29 @@ public class CiOpsProcessor {
 		for (long manifestId : manifestIds) {
 			cntr++;
 			List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-			resetManifestStates(manifestId, bomIds);
+			resetManifestStates(manifestId, bomIds, null);
 			if (cntr % 5000 == 0) {
 				logger.info("Processed " + cntr + " components");
 			}
 		}
 	}	
 	
-	private void resetManifestStates(Long manifestId, List<Long> bomIds) {
+	private void resetManifestStates(Long manifestId, List<Long> bomIds, Map<Long,String> manifestStates) {
 		if (bomIds.size() == 0) {
 			trDao.removeRealizedAsRow(manifestId);
 			opsCiStateDao.resetComponentCountsToZero(manifestId);
 			return;
 		}
+		Map<String,Long> counters = getStateCounterMap(bomIds, manifestStates);
+		opsCiStateDao.setComponentsStates(manifestId, counters);
+	}
+
+	private Map<String,Long> getStateCounterMap(List<Long> bomIds, Map<Long,String> manifestStates) {
 		Map<String,Long> counters = new HashMap<String,Long>();
 		counters.put("total", new Long(bomIds.size()));
-		Map<Long,String> manifestStates = getCisStates(bomIds);
+		if (manifestStates == null) {
+			manifestStates = getCisStates(bomIds);
+		}
 		for (String state : manifestStates.values()) {
 			if (counters.containsKey(state)) {
 				counters.put(state, counters.get(state) + 1);
@@ -144,14 +150,23 @@ public class CiOpsProcessor {
 				counters.put(state, 1L);
 			}
 		}
-		opsCiStateDao.setComponentsStates(manifestId, counters);
+		return counters;
+	}
+
+	public void resetManifestStateCounters(Long manifestId, List<Long> bomIds, Map<String, Long> stateCounterDelta) {
+		if (bomIds.size() == 0) {
+			trDao.removeRealizedAsRow(manifestId);
+			opsCiStateDao.resetComponentCountsToZero(manifestId);
+			return;
+		}
+		opsCiStateDao.changeComponentsStateCounter(manifestId, stateCounterDelta);
 	}
 	
 	public int removeManifestMap(long ciId, Long manifestId) {
 		int remainingBoms = trDao.removeManifestMap(ciId, manifestId);
 		if (remainingBoms >0) {
 			List<Long> bomIds = trDao.getManifestCiIds(manifestId);
-			resetManifestStates(manifestId, bomIds);
+			resetManifestStates(manifestId, bomIds, null);
 			remainingBoms = bomIds.size();
 		} else {
 			opsCiStateDao.resetComponentCountsToZero(manifestId);
@@ -160,10 +175,20 @@ public class CiOpsProcessor {
 		return remainingBoms;
 	}
 	
+	public int removeManifestMap4CiRemoval(long ciId, Long manifestId) {
+		trDao.removeManifestMap(ciId, manifestId);
+		List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+		if (bomIds.size() == 0) {
+			trDao.removeRealizedAsRow(manifestId);
+		}
+		logger.info("Removed manifestMap for manifestId = " + manifestId + ", remainingBoms = " + bomIds.size());
+		return bomIds.size();
+	}
+	
 	public boolean isCiActive(long ciId) {
 		return trDao.getManifestId(ciId) != null;
 	}
-	
+
     /**
      * Persist the ci to cassandra.
      *
@@ -171,9 +196,12 @@ public class CiOpsProcessor {
      * @param chStateEvent
      * @param timestamp
      */
-    public void persistCiStateChange(long ciId, long manifestId, CiChangeStateEvent chStateEvent, long timestamp) {
+    public void persistCiStateChange(long ciId, long manifestId, CiChangeStateEvent chStateEvent, long timestamp, Map<String, Long> manifestStates) {
     	opsCiStateDao.persistCiStateChange(ciId, manifestId, chStateEvent, timestamp);
-    	resetManifestStates(Arrays.asList(manifestId));
+        if (manifestStates != null && !manifestStates.isEmpty()) {
+            List<Long> bomIds = trDao.getManifestCiIds(manifestId);
+            resetManifestStateCounters(manifestId, bomIds, manifestStates);
+        }
     }
     
 }

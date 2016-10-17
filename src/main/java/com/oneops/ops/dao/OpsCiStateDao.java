@@ -224,6 +224,15 @@ public class OpsCiStateDao {
     	setTimestampOnComonentState(manifestId);
     }	
 
+    public void changeComponentsStateCounter(Long manifestId, Map<String, Long> stateDelta) {
+    	stateDelta.entrySet().stream().forEach(entry -> {
+    		Long delta = entry.getValue();
+    		if (delta != 0) {
+    			incComponentsStateCounter(manifestId, entry.getKey(), delta);
+    		}
+    	});
+    }
+
     public void resetComponentCountsToZero(Long manifestId) {
     	Map<Long,Map<String,Long>> existingStatesMap = getComponentStates(Arrays.asList(manifestId));
 		Map<String,Long> existingStates = existingStatesMap.get(manifestId);
