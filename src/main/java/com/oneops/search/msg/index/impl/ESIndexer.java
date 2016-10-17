@@ -72,7 +72,7 @@ public class ESIndexer implements Indexer{
 	 */
 	private String getIndex(String type) {
 		String index;
-		if(!("ci".equals(type) || "release".equals(type) || "relation".equals(type))){
+		if(!("ci".equals(type) || "relation".equals(type))){
 			 index = "cms" + "-" + dt.format(new Date());
 		}
 		else{
