@@ -1,6 +1,10 @@
+package com.oneops.search.msg.processor.ci;
+
+import com.oneops.cms.simple.domain.CmsCISimple;
+
 /*******************************************************************************
  *
- *   Copyright 2015 Walmart, Inc.
+ *   Copyright 2016 Walmart, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,29 +19,6 @@
  *   limitations under the License.
  *
  *******************************************************************************/
-package com.oneops.search.msg.index;
-
-import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
-
-public interface Indexer {
-
-    /**
-     * @param id
-     * @param type
-     * @param message
-     */
-    void index(String id, String type, String message);
-
-
-    /**
-     * @param type
-     * @param message
-     */
-    void indexEvent(String type, String message);
-
-    String getIndexName();
-
-    String getIndexByType(String type);
-
-    ElasticsearchTemplate getTemplate();
+public interface CISImpleProcessor {
+    void process(CmsCISimple ci);
 }

@@ -19,9 +19,7 @@
                            http://www.springframework.org/schema/data/elasticsearch/spring-elasticsearch-1.0.xsd">
 
 	<context:annotation-config />
-<!--	<context:property-placeholder location="classpath*:wolistener.properties" />
- 	<context:property-placeholder location="classpath*:es/elasticsearch.properties" order="2" />
- -->	
+
 	<bean id="propertyPlaceholderConfigurer"
         class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="ignoreResourceNotFound" value="true"/>
@@ -35,14 +33,6 @@
         </property>
     </bean>
     
-    <bean id="mapper" class="org.dozer.DozerBeanMapper">
-		<property name="mappingFiles">
-			<list>
-				<value>dozer-mapper.xml</value>
-			</list>
-		</property>
-	</bean>
-
 	<amq:queue id="inbound" physicalName="${amq.in_queue}" />
     <amq:queue id="dlq" physicalName="ActiveMQ.DLQ" />
 	
@@ -77,8 +67,13 @@
     </bean>
 	
 	<bean id="messageListener" class="com.oneops.search.listener.SearchListener">
-		<property name="msgProcessor" ref="esWoProcessor"/>
+		<property name="msgProcessor" ref="esMessageProcessor"/>
 	</bean>
+    <bean id="dlqMessageListener" class="com.oneops.search.listener.SearchListener">
+        <property name="msgProcessor">
+            <bean class="com.oneops.search.msg.processor.es.DLQMessageProcessor"/>
+        </property>
+    </bean>
 
 	<!-- listener container -->
 	<bean id="listenerContainer"
@@ -98,22 +93,16 @@
         <property name="maxConcurrentConsumers" value="${search.maxConsumers:2}" />
         <property name="concurrentConsumers" value="${search.maxConsumers:2}" />
         <property name="destination" ref="dlq" />
-        <property name="messageListener" ref="messageListener" />
+        <property name="messageListener" ref="dlqMessageListener" />
         <!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
         <property name="sessionAcknowledgeMode" value="2"/>
     </bean>
-	
-	<bean id="esWoProcessor" class="com.oneops.search.msg.processor.es.ESMessageProcessor">
-		<property name="mapper" ref="mapper" />
-		<property name="indexer" ref="indexer" />
-		<property name="dpmtProcessor" ref="dpmtProcessor" />
-		<property name="opsProcProcessor" ref="opsProcProcessor" />
-		<property name="ciMessageProcessor" ref="ciMessageProcessor" />
-		<property name="nsMessageProcessor" ref="nsMessageProcessor" />
-		<property name="relationMsgProcessor" ref="relationMsgProcessor" />
-		<property name="policyMessageProcessor" ref="policyMessageProcessor" />
-		<property name="offeringMessageProcessor" ref="offeringMessageProcessor"/>
-	</bean>
+
+    <context:component-scan base-package="com.oneops.search" />
+
+
+    
+	<bean id="esMessageProcessor" class="com.oneops.search.msg.processor.es.ESMessageProcessor"/>
 	
 	<elasticsearch:transport-client id="client" cluster-nodes="${nodes}" cluster-name="${cluster.name}" client-transport-ping-timeout="15s"/>
 
@@ -126,40 +115,7 @@
     	<property name="template" ref="elasticsearchTemplate"/>
     </bean>
     
-    <bean id="dpmtProcessor" class="com.oneops.search.msg.processor.DpmtMessageProcessor">
-        <property name="client" ref="client"/>
-    	<property name="template" ref="elasticsearchTemplate" />
-    </bean>
-    
-    <bean id="opsProcProcessor" class="com.oneops.search.msg.processor.OpsProcMessageProcessor">
-    	<property name="template" ref="elasticsearchTemplate" />
-    </bean>
-    
-    <bean id="ciMessageProcessor" class="com.oneops.search.msg.processor.CIMessageProcessor">
-    	<property name="template" ref="elasticsearchTemplate" />
-    	<property name="mapper" ref="mapper" />
-    	<property name="client" ref="client"/>
-    </bean>
 
-	<bean id="nsMessageProcessor" class="com.oneops.search.msg.processor.NSMessageProcessor">
-    	<property name="client" ref="client"/>
-    	<property name="relationMsgProcessor" ref="relationMsgProcessor" />
-    </bean>    
-    
-    <bean id="relationMsgProcessor" class="com.oneops.search.msg.processor.RelationMsgProcessor">
-    	<property name="client" ref="client"/>
-    </bean>
-    
-    <bean id="policyMessageProcessor" class="com.oneops.search.msg.processor.PolicyMessageProcessor">
-    	<property name="indexName" value="${index.name}" />
-    	<property name="client" ref="client"/>
-    </bean>
-    
-    <bean id="offeringMessageProcessor" class="com.oneops.search.msg.processor.OfferingsMessageProcessor">
-    	<property name="indexName" value="${index.name}" />
-    	<property name="client" ref="client"/>
-    </bean>
-    
     <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil" />
 	
 </beans>

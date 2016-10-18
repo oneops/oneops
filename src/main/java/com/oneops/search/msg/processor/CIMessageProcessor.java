@@ -17,250 +17,105 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
-import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.cms.util.CmsConstants;
+import com.oneops.cms.util.CmsUtil;
 import com.oneops.search.domain.CmsCISearch;
-import com.oneops.search.domain.CmsDeploymentPlan;
-import com.oneops.search.domain.CmsNotificationSearch;
-import com.oneops.search.domain.CmsReleaseSearch;
 import com.oneops.search.msg.index.Indexer;
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang.time.DateUtils;
+import com.oneops.search.msg.processor.ci.DeploymentPlanProcessor;
+import com.oneops.search.msg.processor.ci.PolicyProcessor;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.dozer.DozerBeanMapper;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.FilterBuilders;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
-import org.springframework.data.elasticsearch.core.ElasticsearchTemplate;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
-import org.springframework.data.elasticsearch.core.query.SearchQuery;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
+import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
-import static org.elasticsearch.index.query.QueryBuilders.queryString;
-
-public class CIMessageProcessor {
-	public static final String CMS_ALL = "cms-all";
-	private SimpleDateFormat dt = new SimpleDateFormat( "yyyy-'w'ww" );
+@Service
+public class CIMessageProcessor implements MessageProcessor {
 	private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
-	private ElasticsearchTemplate template;
-	private DozerBeanMapper mapper;
-	private Gson gson = new Gson();
-	private Client client;
-	private final int RETRY_COUNT = 5 ;
+	private static final String SUCCESS_PREFIX = "SUCCESS:";
+	private static final int RETRY_COUNT = 5 ;
 	private static final long TIME_TO_WAIT = 5000 ;
-	private static final int LOOKBACK_WEEKS = 3;
-	
-	
+
+
+	@Autowired
+	private Client client;
+	@Autowired
+	private Indexer indexer;
+	@Autowired
+	private PolicyProcessor policyProcessor;
+	@Autowired
+	private DeploymentPlanProcessor deploymentPlanProcessor;
+	@Autowired
+	private RelationMessageProcessor relationMessageProcessor;
+	@Autowired
+	private CmsUtil cmsUtil;
+
+
+	@Override
+	public void processMessage(String message, String msgType, String msgId) {
+		CmsCI ci = GSON.fromJson(message, CmsCI.class);
+		CmsCISimple simpleCI = cmsUtil.custCI2CISimple(ci, "df");
+		indexer.indexEvent("ci", GSON_ES.toJson(simpleCI));
+		//For plan generation metrics
+		if ("manifest.Environment".equals(ci.getCiClassName()) && StringUtils.isNotEmpty(ci.getComments()) && ci.getComments().startsWith(SUCCESS_PREFIX)) {
+			deploymentPlanProcessor.process(simpleCI);
+		} else if ("account.Policy".equals(ci.getCiClassName()) || "mgmt.manifest.Policy".equals(ci.getCiClassName())) {
+			policyProcessor.process(simpleCI);
+		}
+		//add wo to all bom cis
+		if (ci.getCiClassName().startsWith("bom")) {
+			message = this.process(simpleCI);
+		} else {
+			message = GSON_ES.toJson(simpleCI);
+		}
+		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
+		relationMessageProcessor.processRelationForCi(message);
+	}
+
+
 	/**
-	 * 
 	 * @param ci
-	 * @param searchGson
 	 * @return
 	 */
-	public String processCIMsg(CmsCISimple ci, Gson searchGson) {
-		CmsCISearch ciSearch = mapper.map(ci, CmsCISearch.class);
-		CmsWorkOrderSimple wo = fetchWoForCi(ciSearch.getCiId());
-		if(wo != null){
-			ciSearch.setWorkorder(wo);
-		}else{
-			logger.info("WO not found for ci " + ci.getCiId() + " of type " + ci.getCiClassName());
-		}
-		NotificationMessage opsNotification = ciSearch.getOps();
-		if(opsNotification != null){
-			ciSearch.setOps(opsNotification);
-		}
-		return searchGson.toJson(ciSearch);
-		}
-	
-	
-	/**
-	 * Update ops notifications to CIs
-	 * @param notificationMsg
-	 * @param indexer
-	 * @param searchGson
-	 */
-	public void processNotificationMsg(CmsNotificationSearch notificationMsg,Indexer indexer,Gson searchGson){
-			String id = String.valueOf(notificationMsg.getCmsId());
-			CmsCISearch ciSearch = fetchCIRecord(id);
-			
-			if(ciSearch != null){
-				if("bom.Compute".equals(ciSearch.getCiClassName())){
-					String hypervisor = ciSearch.getCiAttributes().get("hypervisor");
-					if(hypervisor != null){
-						notificationMsg.setHypervisor(hypervisor);
-					}
-				}
-				
-				ciSearch.setOps(notificationMsg);
-				indexer.index(id, "ci", searchGson.toJson(ciSearch));
-				logger.info("updated ops notification for ci id::" + id);
-			}
-			else{
-				logger.warn("ci record not found for id::" + id);
-			}
-	}
-	
-	
-
-
-	/**
-	 * 
-	 * @param indexer
-	 * @param searchGson
-	 * @return
-	 */
-	public void processDeploymentPlanMsg(CmsCI ci, Indexer indexer, Gson searchGson){
-		CmsDeploymentPlan deploymentPlan = null;
-		
-		try {
-			int genTime = extractTimeTaken(ci.getComments()).intValue();
-			CmsRelease release = fetchReleaseRecord(ci.getNsPath()+"/"+ci.getCiName()+"/bom",
-					ci.getUpdated(),genTime);
-			if(release!=null){
-				deploymentPlan = new CmsDeploymentPlan();
-				deploymentPlan.setPlanGenerationTime(genTime);
-				deploymentPlan.setCreatedBy(ci.getCreatedBy());
-				deploymentPlan.setCiId(ci.getCiId());
-				deploymentPlan.setCreated(release.getCreated());
-				deploymentPlan.setCreatedBy(release.getCreatedBy());
-				deploymentPlan.setCiClassName(ci.getCiClassName());
-				deploymentPlan.setReleaseName(release.getReleaseName());
-				deploymentPlan.setReleaseId(release.getReleaseId());
-				deploymentPlan.setId(String.valueOf(ci.getCiId()) + String.valueOf(release.getReleaseId()));
-				deploymentPlan.setCiRfcCount(release.getCiRfcCount());
-				deploymentPlan.setCommitedBy(release.getCommitedBy());
-				deploymentPlan.setNsId(release.getNsId());
-				deploymentPlan.setNsPath(release.getNsPath());
-				indexer.index(deploymentPlan.getId(),"plan", searchGson.toJson(deploymentPlan));
-			}
-		} catch (Exception e) {
-			logger.error("Exception in processing deployment message: " + ExceptionUtils.getMessage(e));
-		}
-	}
-	
-	private static Double extractTimeTaken(String comments) {
-		String timeTaken = comments.substring("SUCCESS:Generation time taken: ".length(), comments.indexOf(" seconds.")).trim();
-		double planGentime = Double.parseDouble(timeTaken);
-		return planGentime == 0 ? 1 : planGentime;
-	}
-	
-	private CmsRelease fetchReleaseRecord(String nsPath,Date ts,int genTime) throws InterruptedException {
-		Thread.sleep(3000);//Wait for latest 'bom' release
-		SimpleDateFormat simpleDateFormat = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
-		SearchQuery latestRelease = new NativeSearchQueryBuilder()
-				.withIndices(CMS_ALL)
-				.withTypes("release").withFilter(
-						FilterBuilders.andFilter(
-								FilterBuilders.queryFilter(QueryBuilders.termQuery("nsPath.keyword", nsPath)),
-								FilterBuilders.queryFilter(QueryBuilders.rangeQuery("created").
-										from(simpleDateFormat.format(DateUtils.addMinutes(ts, -(genTime + 10)))).
-										to(simpleDateFormat.format(ts))))).
-						withSort(SortBuilders.fieldSort("created").order(SortOrder.DESC)).build();
-		
-		List<CmsReleaseSearch> ciList = template.queryForList(latestRelease, CmsReleaseSearch.class);
-		if(!ciList.isEmpty()){
-			return ciList.get(0);
-		}
-		else{
-			throw new RuntimeException("Cant find bom release for deployment plan generation event");
-		}
-	}
-	
-	
-	private CmsCISearch fetchCIRecord(String id){
-
-		SearchQuery searchQuery = new NativeSearchQueryBuilder() 
-				.withIndices(CMS_ALL)
-				.withTypes("ci").withQuery(queryString(id).field("ciId"))
-				.build();
-		
-		List<CmsCISearch> ciList = template.queryForList(searchQuery, CmsCISearch.class);
-		return !ciList.isEmpty()?ciList.get(0):null;
-	}
-	
-	
-	/**
-	 * Fetch work-order for the given ciId
-	 * @param ciId
-	 * @return
-	 */
-	private CmsWorkOrderSimple fetchWoForCi(long ciId) {
+	private String process(CmsCISimple ci) {
+		CmsCISearch ciSearch = new CmsCISearch();
+		BeanUtils.copyProperties(ci, ciSearch);
+		long ciId = ciSearch.getCiId();
 		CmsWorkOrderSimple wos = null;
-
-		SearchResponse response = client.prepareSearch("cms")
-				.setIndices("cms" + "-" + dt.format(new Date()))
-				.setTypes("workorder")
-				.setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
-				.addSort("searchTags.responseDequeTS", SortOrder.DESC)
-				.setSize(1)
-				.execute()
-				.actionGet();
-		if (response.getHits().getHits().length > 0) {
-			wos = gson.fromJson(response.getHits().getHits()[0].getSourceAsString(), CmsWorkOrderSimple.class);
-			return wos;
-		}
-		
-		for (int i=0; i<RETRY_COUNT; i++) {
+		for (int i = 0; i < RETRY_COUNT; i++) {
 			try {
-				response = client.prepareSearch("cms")
-		        .setTypes("workorder")
-		           .setQuery(queryString(String.valueOf(ciId)).field("rfcCi.ciId"))
-		           .addSort("searchTags.responseDequeTS", SortOrder.DESC)
-		           .setSize(1)
-		        .execute()
-		        .actionGet();
-				
-				String cmsWo = (response.getHits().getHits().length > 0)?response.getHits().getHits()[0].getSourceAsString():null;
-				if(cmsWo != null){ 
-					wos = gson.fromJson(cmsWo,CmsWorkOrderSimple.class);
-					logger.info("WO found for ci id " + ciId + " in retry count " + i);
+				SearchResponse response = client.prepareSearch("cms-2*")
+						.setTypes("workorder")
+						.setQuery(queryStringQuery(String.valueOf(ciId)).field("rfcCi.ciId"))
+						.addSort("searchTags.responseDequeTS", SortOrder.DESC)
+						.setSize(1)
+						.execute()
+						.actionGet();
+
+				if (response.getHits().getHits().length > 0) {
+					String cmsWo = response.getHits().getHits()[0].getSourceAsString();
+					wos = GSON.fromJson(cmsWo, CmsWorkOrderSimple.class);
+					logger.info("WO found for ci id " + ciId + " on retry " + i);
+					ciSearch.setWorkorder(wos);
 					break;
-				}else {
+				} else {
 					Thread.sleep(TIME_TO_WAIT); //wait for TIME_TO_WAIT ms and retry
 				}
 			} catch (Exception e) {
 				logger.error("Error in retrieving WO for ci " + ciId);
+				e.printStackTrace();
 			}
 		}
-		return wos;
+		if (wos == null) {
+			logger.info("WO not found for ci " + ci.getCiId() + " of type " + ci.getCiClassName());
+		}
+		return GSON_ES.toJson(ciSearch);
 	}
-
-
-	public ElasticsearchTemplate getTemplate() {
-		return template;
-	}
-
-	public void setTemplate(ElasticsearchTemplate template) {
-		this.template = template;
-	}
-
-
-	public DozerBeanMapper getMapper() {
-		return mapper;
-	}
-
-
-	public void setMapper(DozerBeanMapper mapper) {
-		this.mapper = mapper;
-	}
-
-
-	public void setClient(Client client) {
-		this.client = client;
-	}
-
-
 }

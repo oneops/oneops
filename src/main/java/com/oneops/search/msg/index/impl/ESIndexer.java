@@ -36,49 +36,28 @@ public class ESIndexer implements Indexer{
 
 	@Override
 	public void index(String id, String type, String message) {
-		if(id == null){
-			index(type , message);
-		}
-		else {
-		String index = getIndex(type);
-		IndexQuery query = new IndexQueryBuilder().withIndexName(index).withId(String.valueOf(id)).withType(type).withSource(message).build();
-		String docId = template.index(query);
-		logger.info("Indexed message id  " + docId + " of type " + type);
+		index(id, type, getIndexByType(type), message);
+	}
+
+	public String getIndexByType(String type) {
+		if (("ci".equals(type) || "relation".equals(type))) {
+			return indexName;
+		} else {
+			return "cms" + "-" + dt.format(new Date());
 		}
 	}
-	
-	
-	@Override
-	public void index(String type, String message) {
-		String index = getIndex(type);
-		IndexQuery query = new IndexQueryBuilder().withIndexName(index).withType(type).withSource(message).build();
+
+	private void index(String id, String type, String index, String message){
+		IndexQueryBuilder indexQueryBuilder = new IndexQueryBuilder().withIndexName(index);
+		if (id != null) indexQueryBuilder.withId(String.valueOf(id));
+		IndexQuery query = indexQueryBuilder.withType(type).withSource(message).build();
 		String docId = template.index(query);
-		logger.info("Indexed message id  " + docId + " of type " + type);
-		
+		logger.info("Indexed message id  " + docId + " of type " + type+ " index:"+ index);
 	}
-	
-	@Override
+
+
 	public void indexEvent(String type,String message){
-		String index = "event" + "-" + dt.format(new Date());
-		IndexQuery query = new IndexQueryBuilder().withIndexName(index).withType(type).withSource(message).build();
-		String docId = template.index(query);
-		logger.info("Indexed event message with id  " + docId + " of type " + type);
-	}
-	
-	/**
-	 * Get daily index name
-	 * @param type
-	 * @return
-	 */
-	private String getIndex(String type) {
-		String index;
-		if(!("ci".equals(type) || "relation".equals(type))){
-			 index = "cms" + "-" + dt.format(new Date());
-		}
-		else{
-			index = indexName;
-		}
-		return index;
+		index(null, type, "event" + "-" + dt.format(new Date()), message);
 	}
 
 	public String getIndexName() {

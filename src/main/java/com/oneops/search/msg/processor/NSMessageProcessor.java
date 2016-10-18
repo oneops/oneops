@@ -27,38 +27,41 @@ import org.elasticsearch.search.SearchHit;
 
 import com.oneops.search.msg.index.Indexer;
 import com.oneops.search.msg.index.impl.ESIndexer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+
+@Service
 public class NSMessageProcessor {
 	
 	private static Logger logger = Logger.getLogger(NSMessageProcessor.class);
-	RelationMsgProcessor relationMsgProcessor;
+	@Autowired
+	private RelationMessageProcessor relationMessageProcessor;
+	@Autowired
 	private Client client;
+	@Autowired
+	private Indexer indexer;
 	
 	/**
 	 * 
 	 * @param nsId
-	 * @param indexer
 	 */
-	public void processNSDeleteMsg(String nsId,Indexer indexer){
-		
+	public void processNSDeleteMsg(String nsId){
 		logger.info("Processing ns delete event for nsId " + nsId);
 		//Fetch and delete CIs for given nsId
-		fetchAndDeleteRecords("ci", nsId, indexer);
+		fetchAndDeleteRecords("ci", nsId);
 		//Fetch and delete releases for given nsId
-		fetchAndDeleteRecords("release", nsId, indexer);
-		
+		fetchAndDeleteRecords("release", nsId);
 	}
 
 	/**
 	 * 
 	 * @param type
 	 * @param nsId
-	 * @param indexer
 	 */
-	private void fetchAndDeleteRecords(String type, String nsId, Indexer indexer) {
-		ESIndexer esIndexer = ((ESIndexer)indexer);
-		
-		SearchResponse scrollResp = client.prepareSearch(esIndexer.getIndexName())
+	private void fetchAndDeleteRecords(String type, String nsId) {
+		String index = indexer.getIndexByType(type);
+		SearchResponse scrollResp = client.prepareSearch(index)
                 .setSearchType(SearchType.SCAN)
                 .setTypes(type)
                 .setScroll(new TimeValue(60000))
@@ -66,12 +69,11 @@ public class NSMessageProcessor {
                 .setSize(100).execute().actionGet(); //100 hits per shard will be returned for each scroll
         //Scroll until no hits are returned
         while (true) {
-
         	for (SearchHit hit : scrollResp.getHits()){
-        		esIndexer.getTemplate().delete(esIndexer.getIndexName(), type, String.valueOf(hit.getId()));
+        		indexer.getTemplate().delete(index, type, String.valueOf(hit.getId()));
     			logger.info("Deleted message with id::"+ hit.getId() +" and type::"+type+" from ES for nsId " + nsId);
     			if("ci".equals(type)){
-    				relationMsgProcessor.processRelationDeleteMsg(hit.getId(), esIndexer);
+    				relationMessageProcessor.processRelationDeleteMsg(hit.getId());
     			}
         	}
 			
@@ -81,19 +83,6 @@ public class NSMessageProcessor {
                 break;
             }
         }
-		
-	}
-
-	public void setClient(Client client) {
-		this.client = client;
-	}
-
-	public RelationMsgProcessor getRelationMsgProcessor() {
-		return relationMsgProcessor;
-	}
-
-	public void setRelationMsgProcessor(RelationMsgProcessor relationMsgProcessor) {
-		this.relationMsgProcessor = relationMsgProcessor;
 	}
 
 }
