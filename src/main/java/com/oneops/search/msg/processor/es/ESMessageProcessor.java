@@ -31,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * @author ranand
  */
-public class ESMessageProcessor extends DLQMessageProcessor implements MessageProcessor {
+public class ESMessageProcessor implements MessageProcessor {
 
     private static Logger logger = Logger.getLogger(ESMessageProcessor.class);
 
