@@ -25,10 +25,12 @@ import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.transistor.exceptions.TransistorException;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,29 +53,62 @@ public class CloudUtil {
     private CmsCmProcessor cmProcessor;
 
     /**
-     * This checks the cloud is configured with all services which are required for deployment of platform .
-     *
-     * @param manifestPlatformId the id of platform for which services need to be found
-     * @throws TransistorException if missing services are found.
-     */
-    public void check4missingServices(long manifestPlatformId) {
-        //get all required components of platforms
-        List<CmsRfcRelation> requiredRelations = cmRfcMrgProcessor.getFromCIRelationsNaked(manifestPlatformId, MANIFEST_REQUIRES, null, null);
-        Set<String> requiredServices = requiredRelations.stream()
-                .filter(this::needServices)
-                .flatMap(this::getServices)
-                .collect(toSet());
-        Map<String, TreeSet<String>> cloudsMissingServices = getMissingCloudServices(manifestPlatformId, requiredServices);
-        if (!cloudsMissingServices.isEmpty()) {
-            // <{c1=[s1]}> mess
-            String message = String.format("All services <%s> required for platform (%s) are not configured for clouds.Please contact your org. admin ."
-                            , cloudsMissingServices.toString(),
-                    withoutManifest(requiredRelations.get(0).getNsPath()));
-            throw new TransistorException(TRANSISTOR_MISSING_CLOUD_SERVICES, message);
+     * This will check if all required services are configured for clouds in
+     * which platform needs to be deployed.
+     * @param platformIds to check if all services required for the platform are configured
+     * @throws TransistorException if not all services are configured in clouds.
+     * */
+    public void check4missingServices(Set<Long> platformIds) {
+        Set<String> errors = new HashSet<>(platformIds.size());
+        Map<String, Set<String>> cloudServices = new HashMap<>();
+        for (long manifestPlatformId : platformIds) {
+            List<CmsRfcRelation> requiredRelations = getRequired(manifestPlatformId);
+            Set<String> requiredServices = getRequiredServices(requiredRelations);
+            List<CmsRfcRelation> cloudRelations = getCloudsForPlatform(manifestPlatformId);
+            Map<String, TreeSet<String>> cloudsMissingServices = new HashMap<>();
+            cloudRelations
+                    .forEach(cloudRelation -> {
+                        String cloud = cloudRelation.getToRfcCi().getCiName();
+                        //have not seen the cloud before
+                        if (!cloudServices.containsKey(cloud)) {
+                            cloudServices.put(cloud, getCloudServices(cloudRelation));
+                        }
+                        //check if service is configured
+                        cloudsMissingServices.putAll(getMissingCloudServices(cloud, cloudServices.get(cloud), requiredServices));
+                    });
+
+            if (!cloudsMissingServices.isEmpty()) {
+                // <{c1=[s1]}>
+                final String nsPath = requiredRelations.get(0).getNsPath();
+                String message = getErrorMessage(cloudsMissingServices, nsPath);
+                errors.add(message);
+                //throw new TransistorException(TRANSISTOR_MISSING_CLOUD_SERVICES, message);
+            }
+        }
+        if (!errors.isEmpty()) {
+            throw new TransistorException(TRANSISTOR_MISSING_CLOUD_SERVICES, StringUtils.join(errors, ";\n"));
         }
     }
 
-    private String withoutManifest(String nsPath) {
+
+    private String getErrorMessage(Map<String, TreeSet<String>> cloudsMissingServices, String nsPath) {
+        return String.format("All services <%s> required for platform (%s) are not configured for clouds.Please contact your org. admin ."
+                        , cloudsMissingServices.toString(),
+                getNSWithoutManifest(nsPath));
+    }
+
+    private Set<String> getRequiredServices(List<CmsRfcRelation> requiredRelations) {
+        return requiredRelations.stream()
+                .filter(this::needServices)
+                .flatMap(this::getServices)
+                .collect(toSet());
+    }
+
+    private List<CmsRfcRelation> getRequired(long manifestPlatformId) {
+        return cmRfcMrgProcessor.getFromCIRelationsNaked(manifestPlatformId, MANIFEST_REQUIRES, null, null);
+    }
+
+    private String getNSWithoutManifest(String nsPath) {
         if(nsPath ==null ) return null;
         return nsPath.replaceAll("manifest/","");
     }
@@ -82,21 +117,15 @@ public class CloudUtil {
     private Map<String, TreeSet<String>> getMissingCloudServices(long manifestPlatCiId, Set<String> requiredServices) {
         Map<String, TreeSet<String>> missingCloud2Services = new TreeMap<>();
         //get clouds
-        List<CmsRfcRelation> cloudRelations = cmRfcMrgProcessor.getFromCIRelations(manifestPlatCiId,
-                BASE_CONSUMES, ACCOUNT_CLOUD_CLASS, "dj");
+        List<CmsRfcRelation> cloudRelations = getCloudsForPlatform(manifestPlatCiId);
         // get services for all clouds
         cloudRelations
-                .forEach(rel -> {
-                    Set<String> cloudServices = cmProcessor.getFromCIRelationsNaked(rel.getToCiId(), BASE_PROVIDES, null)
-                            .stream()
-                            .filter(this::isService)
-                            .map(cmsCIRelation -> cmsCIRelation.getAttribute("service").getDjValue())
-                            .collect(Collectors.toSet());
-                    String cloud = rel.getToRfcCi().getCiName();
-
+                .forEach(cloudRelation -> {
+                    Set<String> cloudServices = getCloudServices(cloudRelation);
+                    String cloud = cloudRelation.getToRfcCi().getCiName();
                     //check if service is configured
-                    requiredServices.stream().
-                            filter(s -> !cloudServices.contains(s))
+                    requiredServices.stream()
+                            .filter(s -> !cloudServices.contains(s))
                             .forEach(s -> missingCloud2Services
                                     .computeIfAbsent(cloud, k -> new TreeSet<>())
                                     .add(s));
@@ -106,17 +135,39 @@ public class CloudUtil {
         return missingCloud2Services;
     }
 
+    private Map<String, TreeSet<String>> getMissingCloudServices(String cloud, Set<String> cloudServices, Set<String> requiredServices) {
+        Map<String, TreeSet<String>> missingCloud2Services = new TreeMap<>();
+        requiredServices.stream()
+                .filter(s -> !cloudServices.contains(s))
+                .forEach(s -> missingCloud2Services
+                        .computeIfAbsent(cloud, k -> new TreeSet<>())
+                        .add(s));
+        logger.debug("cloud: " + cloud + " required services:: " + requiredServices.toString() + " missingServices " + missingCloud2Services.keySet());
+
+        return missingCloud2Services;
+    }
+
+    private Set<String> getCloudServices(CmsRfcRelation rel) {
+        return cmProcessor.getFromCIRelationsNaked(rel.getToCiId(), BASE_PROVIDES, null)
+                                .stream()
+                                .filter(this::isService)
+                                .map(cmsCIRelation -> cmsCIRelation.getAttribute("service").getDjValue())
+                                .collect(Collectors.toSet());
+    }
+
+    private List<CmsRfcRelation> getCloudsForPlatform(long manifestPlatCiId) {
+        return cmRfcMrgProcessor.getFromCIRelations(manifestPlatCiId,
+                    BASE_CONSUMES, ACCOUNT_CLOUD_CLASS, "dj");
+    }
+
     public Set<String> getMissingServices(long manifestPlatformId){
         Set<String> requiredServices = getServicesForPlatform(manifestPlatformId);
         return getMissingCloudServices(manifestPlatformId,requiredServices).keySet();
     }
 
     private Set<String> getServicesForPlatform(long manifestPlatformId) {
-        List<CmsRfcRelation> rfcRelations = cmRfcMrgProcessor.getFromCIRelationsNaked(manifestPlatformId, MANIFEST_REQUIRES, null, null);
-        return rfcRelations.stream()
-                .filter(this::needServices)
-                .flatMap(this::getServices)
-                .collect(toSet());
+        List<CmsRfcRelation> rfcRelations = getRequired(manifestPlatformId);
+        return getRequiredServices(rfcRelations);
     }
 
     private Stream<String> getServices(CmsRfcRelation cmsRfcRelation) {
@@ -144,8 +195,8 @@ public class CloudUtil {
     }
 
     private boolean checkCloudStatus(CmsCIRelation platformCloudRel, String cloudState) {
-        return platformCloudRel.getAttribute("adminstatus") != null
-                && cloudState.equals(platformCloudRel.getAttribute("adminstatus").getDjValue());
+        return platformCloudRel.getAttribute(ATTR_NAME_ADMINSTATUS) != null
+                && cloudState.equals(platformCloudRel.getAttribute(ATTR_NAME_ADMINSTATUS).getDjValue());
     }
 
 

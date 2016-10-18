@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Transactional
 public interface ManifestManager {
@@ -28,9 +29,9 @@ public interface ManifestManager {
 
     long activatePlatform(long platId, String userId);
 
-    long disablePlatform(long platId, String userId);
+    long disablePlatforms(Set<Long> platId, String userId);
 
-    long enablePlatform(long platId, String userId);
+    long enablePlatforms(Set<Long> platId, String userId);
 
     void updateCloudAdminStatus(long cloudId, long envId, String adminstatus, String userId);
 

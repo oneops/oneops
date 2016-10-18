@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.transistor.ws.rest;
 
@@ -50,15 +50,16 @@ import java.util.stream.Collectors;
 @Controller
 public class TransistorRestController extends AbstractRestController {
 
-	static Logger logger = Logger.getLogger(TransistorRestController.class);
-	
+	private static final Logger logger = Logger.getLogger(TransistorRestController.class);
+	private static final String RELEASE_ID = "releaseId";
+
 	private ManifestManager manifestManager;
 	private BomEnvManager envManager;
 	private IaasManager iaasManager;
 	private DesignManager dManager;
 	private BomAsyncProcessor baProcessor;
 	private ManifestAsyncProcessor maProcessor;
-	private CmsUtil util = new CmsUtil();
+	private CmsUtil util;
 
 	public void setMaProcessor(ManifestAsyncProcessor maProcessor) {
 		this.maProcessor = maProcessor;
@@ -83,7 +84,12 @@ public class TransistorRestController extends AbstractRestController {
 	public void setdManager(DesignManager dManager) {
 		this.dManager = dManager;
 	}
-	
+
+	public void setUtil(CmsUtil util) {
+		this.util = util;
+	}
+
+
 	@ExceptionHandler(TransistorException.class)
 	@ResponseBody
 	public void handleExceptions(TransistorException e, HttpServletResponse response) throws IOException {
@@ -126,7 +132,7 @@ public class TransistorRestController extends AbstractRestController {
 		CmsRfcCI platRfc = util.custRfcCISimple2RfcCI(platRfcSimple);
 		try {
 			long platformCiId = dManager.generatePlatform(platRfc, assemblyId, userId, scope);  
-			Map<String,Long> result = new HashMap<String,Long>(1); 
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("platformCiId", platformCiId);
 	
 			long tookTime = System.currentTimeMillis() - startTime;
@@ -159,7 +165,7 @@ public class TransistorRestController extends AbstractRestController {
 			
 			long platformCiId = dManager.deletePlatform(platformId, userId, scope);  
 			
-			Map<String,Long> result = new HashMap<String,Long>(1); 
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("platformCiId", platformCiId);
 	
 			long tookTime = System.currentTimeMillis() - startTime;
@@ -191,7 +197,7 @@ public class TransistorRestController extends AbstractRestController {
 			
 			long platformId = dManager.clonePlatform(platRfc, null, fromPlatformId, userId, scope);  
 			
-			Map<String,Long> result = new HashMap<String,Long>(1); 
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("platformCiId", platformId);
 	
 			long tookTime = System.currentTimeMillis() - startTime;
@@ -238,7 +244,7 @@ public class TransistorRestController extends AbstractRestController {
 				throw new TransistorException(CmsError.TRANSISTOR_BAD_CLASS_NAME, "Bad class name");
 			}
 			
-			Map<String,Long> result = new HashMap<String,Long>(1); 
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("resultCiId", resultCiId);
 	
 			long tookTime = System.currentTimeMillis() - startTime;
@@ -307,7 +313,7 @@ public class TransistorRestController extends AbstractRestController {
 		
 		dManager.importDesign(assemblyId, userId, scope, designExport);
 		
-		Map<String, String> result = new HashMap<String,String>(1); 
+		Map<String, String> result = new HashMap<>(1);
 		result.put("result", "success");
 		return result;
 	}
@@ -328,7 +334,7 @@ public class TransistorRestController extends AbstractRestController {
 			//long releaseId = manifestManager.generateEnvManifest(envId, userId, platModes);
 			long releaseId = maProcessor.generateEnvManifest(envId, userId, platModes);
 			
-			Map<String,String> result = new HashMap<String,String>(); 
+			Map<String,String> result = new HashMap<>();
 			result.put("releaseId", String.valueOf(releaseId));
 	
 			long tookTime = System.currentTimeMillis() - startTime;
@@ -338,7 +344,7 @@ public class TransistorRestController extends AbstractRestController {
 		} catch (TransistorException te) {
 			if (te.getErrorCode() == CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE) {
 				response.setStatus( HttpServletResponse.SC_BAD_REQUEST);
-				Map<String, String> result = new HashMap<String,String>(1); 
+				Map<String, String> result = new HashMap<>(1);
 				result.put("releaseId", "0");
 				result.put("message", te.getMessage());
 				return result;
@@ -363,14 +369,14 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 			String desc = params.get("description");
-			Set<Long> excludePlats = parseExcludePlatsStr(params.get("exclude"));
+			Set<Long> excludePlats = toSet(params.get("exclude"));
 			boolean commit = true;//Default: Go ahead with the commit.
 			if (params.get("commit") != null && ! Boolean.valueOf(params.get("commit"))) {
 				commit = false;
 			}
 			baProcessor.compileEnv(envId, userId, excludePlats, desc, false, commit);
 			long exitCode = 0;
-			Map<String,Long> result = new HashMap<String,Long>(1);
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("exit_code", exitCode);
 			return result;
 		} catch (CmsBaseException te) {
@@ -390,7 +396,7 @@ public class TransistorRestController extends AbstractRestController {
 			if (userId == null) userId = "oneops-system";
 			baProcessor.compileEnv(envId, userId, null, "", false, true);
 			long exitCode = 0;
-			Map<String,Long> result = new HashMap<String,Long>(1);
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("exit_code", exitCode);
 			return result;
 		} catch (CmsBaseException te) {
@@ -408,11 +414,8 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
-
 			long releaseId = envManager.discardEnvBom(envId);
-			Map<String,Long> result = new HashMap<String,Long>(1);
-			result.put("releaseId", releaseId);
-			return result;
+			return toReleaseMap(releaseId);
 		} catch (CmsBaseException te) {
 			logger.error(te);
 			te.printStackTrace();
@@ -433,7 +436,7 @@ public class TransistorRestController extends AbstractRestController {
 			}
 
 			long releaseId = envManager.discardEnvManifest(envId, userId);
-			Map<String,Long> result = new HashMap<String,Long>(1);
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("releaseId", releaseId);
 			return result;
 		} catch (CmsBaseException te) {
@@ -453,7 +456,7 @@ public class TransistorRestController extends AbstractRestController {
 			if (userId == null) userId = "oneops-system";
 			
 			long releaseId = envManager.discardEnvBom(envId);
-			Map<String,Long> result = new HashMap<String,Long>(1);
+			Map<String,Long> result = new HashMap<>(1);
 			result.put("releaseId", releaseId);
 			return result;
 		} catch (CmsBaseException te) {
@@ -476,7 +479,7 @@ public class TransistorRestController extends AbstractRestController {
 	
 			baProcessor.resetEnv(envId);
 			
-			Map<String, String> result = new HashMap<String, String>(1);
+			Map<String, String> result = new HashMap<>(1);
 			result.put("environment state", "default");
 			return result;
 		} catch (CmsBaseException te) {
@@ -500,10 +503,10 @@ public class TransistorRestController extends AbstractRestController {
 	
 			long startTime = System.currentTimeMillis(); 
 	
-			Map<String,Long> result = new HashMap<String,Long>(1); 
+			Map<String,Long> result = new HashMap<>(1);
 	
 			//long dpmtId = bomManager.generateAndDeployBom(envId, userId, descMap.get("description"));
-			Set<Long> excludePlats = parseExcludePlatsStr(paramMap.get("exclude"));
+			Set<Long> excludePlats = toSet(paramMap.get("exclude"));
 			boolean commit = true;//Default: Go ahead with the commit.
 			if (paramMap.get("commit") != null && ! Boolean.valueOf(paramMap.get("commit"))) {
 				commit = false;
@@ -534,7 +537,7 @@ public class TransistorRestController extends AbstractRestController {
 
 		long startTime = System.currentTimeMillis(); 
 
-		Map<String,Long> result = new HashMap<String,Long>(1); 
+		Map<String,Long> result = new HashMap<>(1);
 
 		envManager.cleanEnvBom(envId);
 		result.put("cleanEnvId", envId);
@@ -556,7 +559,7 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 	
-			Map<String,String> result = new HashMap<String,String>(1); 
+			Map<String,String> result = new HashMap<>(1);
 	
 			manifestManager.updateCloudAdminStatus(cloudId, envId, adminstatus, userId);
 			result.put("result", "updated");
@@ -578,7 +581,7 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 	
-			Map<String,String> result = new HashMap<String,String>(1); 
+			Map<String,String> result = new HashMap<>(1);
 			String adminstatus = adminstatusMap.get("adminstatus");
 			manifestManager.updateCloudAdminStatus(cloudId, envId, adminstatus, userId);
 			result.put("result", "updated");
@@ -601,12 +604,12 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 	
-			List<CmsCIRelation> rels = new ArrayList<CmsCIRelation>();
+			List<CmsCIRelation> rels = new ArrayList<>();
 			for (CmsCIRelationSimple cloudRel : cloudRels) {
 				rels.add(util.custCIRelationSimple2CIRelation(cloudRel, null));		
 			}		
 			long releaseId = manifestManager.updateEnvClouds(envId, rels, userId);
-			Map<String,Long> result = new HashMap<String,Long>();
+			Map<String,Long> result = new HashMap<>();
 			result.put("releaseId", releaseId);
 			return result;
 		} catch (CmsBaseException te) {
@@ -625,7 +628,7 @@ public class TransistorRestController extends AbstractRestController {
 		
 		long releaseId = manifestManager.activatePlatform(platId, userId);
 
-		Map<String,Long> result = new HashMap<String,Long>(1); 
+		Map<String,Long> result = new HashMap<>(1);
 		result.put("releaseId", releaseId);
 		return result;
 	}
@@ -639,66 +642,88 @@ public class TransistorRestController extends AbstractRestController {
 		
 		manifestManager.updatePlatformCloud(util.custRfcRelSimple2RfcRel(cloudRel), userId);
 
-		Map<String,String> result = new HashMap<String,String>(1); 
+		Map<String,String> result = new HashMap<>(1);
 		result.put("result", "success");
 		return result;
 	}
-	
+
+	@RequestMapping(value="platforms/disable", method = RequestMethod.PUT)
+	@ResponseBody
+	public Map<String,Long> disablePlatforms(
+			@RequestBody Map<String,String> params,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId){
+		Set<Long> platformsToEnable = toSet(params.get("platforms"));
+		if(platformsToEnable.isEmpty()){
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION,"Missing required parameter for disabling platforms");
+
+		}
+		long releaseId = manifestManager.disablePlatforms(platformsToEnable, userId);
+		return toReleaseMap(releaseId);
+	}
 	
 	@RequestMapping(value="platforms/{platId}/disable", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String,Long> disablePlatformGet(
 			@PathVariable long platId,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId){
-		
-		long releaseId = manifestManager.disablePlatform(platId, userId);
-
-		Map<String,Long> result = new HashMap<String,Long>(1); 
-		result.put("releaseId", releaseId);
-		return result;
+		return disablePlatform(platId,userId);
 	}
-	
+
+	@RequestMapping(value="platforms/{platId}/disable", method = RequestMethod.PUT)
+	@ResponseBody
+	public Map<String,Long> disablePlatformPut(
+			@PathVariable long platId,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId){
+		return disablePlatform(platId,userId);
+	}
+
+	private Map<String, Long> disablePlatform(long platId, String userId) {
+		long releaseId = manifestManager.disablePlatforms(Collections.singleton(platId), userId);
+		return toReleaseMap(releaseId);
+	}
+
+
+
+	private Map<String, Long> enablePlatform(long platId, String userId) {
+		long releaseId = manifestManager.enablePlatforms(Collections.singleton(platId), userId);
+		return toReleaseMap(releaseId);
+	}
+
 	@RequestMapping(value="platforms/{platId}/enable", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String,Long> enablePlatformGet(
 			@PathVariable long platId,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId){
-		
-		long releaseId = manifestManager.enablePlatform(platId, userId);
-
-		Map<String,Long> result = new HashMap<String,Long>(1); 
-		result.put("releaseId", releaseId);
-		return result;
+		return enablePlatform(platId, userId);
 	}
 
-	@RequestMapping(value="platforms/{platId}/disable", method = RequestMethod.PUT)
-	@ResponseBody
-	public Map<String,Long> disablePlatform(
-			@PathVariable long platId,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId){
-		
-		long releaseId = manifestManager.disablePlatform(platId, userId);
-
-		Map<String,Long> result = new HashMap<String,Long>(1); 
-		result.put("releaseId", releaseId);
-		return result;
-	}
-	
 	@RequestMapping(value="platforms/{platId}/enable", method = RequestMethod.PUT)
 	@ResponseBody
 	public Map<String,Long> enablePlatformPut(
 			@PathVariable long platId,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId){
-		
-		long releaseId = manifestManager.enablePlatform(platId, userId);
-
-		Map<String,Long> result = new HashMap<String,Long>(1); 
-		result.put("releaseId", releaseId);
-		return result;
+		return enablePlatform(platId, userId);
 	}
-	
-	
-	
+
+
+
+	@RequestMapping(value="platforms/enable", method = RequestMethod.PUT)
+	@ResponseBody
+	public Map<String,Long> enablePlatforms(
+			@RequestBody Map<String,String> params,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId){
+		Set<Long> platformsToEnable = toSet(params.get("platforms"));
+		if(platformsToEnable.isEmpty()) {
+			throw new TransistorException(CmsError.TRANSISTOR_EXCEPTION,"Missing required parameter for enabling platforms");
+		}
+		long releaseId = manifestManager.enablePlatforms(platformsToEnable, userId);
+		return toReleaseMap(releaseId);
+	}
+
+
+
+
+
 	@RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/iaas")
 	@ResponseBody
 	public Map<String,Long> upsertIaas(
@@ -707,9 +732,8 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId) {	
 
 		if (userId == null) userId = "oneops-system";
-
 		long iaasId = iaasManager.processPlatformIaas(iaasRequest, platId, userId);
-		Map<String,Long> result = new HashMap<String,Long>(1);
+		Map<String,Long> result = new HashMap<>(1);
 		result.put("iaasPlatId", iaasId);
 		return result;
 	}
@@ -743,10 +767,7 @@ public class TransistorRestController extends AbstractRestController {
             @PathVariable long platId,
             @RequestHeader(value="X-Cms-User", required = false)  String userId) {
         long releaseId = dManager.discardReleaseForPlatform(platId, userId);
-
-        Map<String,Long> result = new HashMap<>(1);
-        result.put("releaseId", releaseId);
-        return result;
+		return toReleaseMap(releaseId);
     }
 
     @RequestMapping(method=RequestMethod.PUT, value="platforms/{platId}/rfcs/commit")
@@ -756,10 +777,7 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestParam(value="desc", required = false) String desc,
             @RequestHeader(value="X-Cms-User", required = false)  String userId) {
         long releaseId = dManager.commitReleaseForPlatform(platId, desc, userId);
-
-        Map<String,Long> result = new HashMap<>(1);
-        result.put("releaseId", releaseId);
-        return result;
+		return toReleaseMap(releaseId);
     }
     
     
@@ -793,24 +811,25 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
 		if (userId == null) userId = "oneops-system";
-
 		long releaseId = dManager.refreshPack(platId ,userId ,scope);
-
-		Map<String,Long> result = new HashMap<String,Long>(1);
-		result.put("releaseId", releaseId);
-		return result;
+		return toReleaseMap(releaseId);
 	}
 	
 	
-	private Set<Long> parseExcludePlatsStr(String excludePlatsStr) {
-		Set<Long> excludePlats = null;
-		if (excludePlatsStr != null && excludePlatsStr.length() > 0) {
-			excludePlats = new HashSet<Long>();
-			for (String platIdStr : excludePlatsStr.split(",")) {
-				excludePlats.add(Long.valueOf(platIdStr));
+	private Set<Long> toSet(String longString) {
+		Set<Long> longs = null;
+		if (longString != null && longString.length() > 0) {
+			longs = new HashSet<>();
+			for (String platIdStr : longString.split(",")) {
+				longs.add(Long.valueOf(platIdStr));
 			}
 		}
-		return excludePlats;
+		return longs;
+	}
+
+
+	private Map<String,Long> toReleaseMap(long releaseId) {
+		return Collections.singletonMap(RELEASE_ID,releaseId);
 	}
 
 }

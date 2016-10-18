@@ -311,7 +311,6 @@ public class ManifestRfcBulkProcessor {
 	
 	public long enablePlatform(long platformCiId, String userId) {
 		long releaseId = 0;
-		cloudUtil.check4missingServices(platformCiId);
 		List<CmsRfcRelation> composedOfRels = cmRfcMrgProcessor.getToCIRelationsNaked(platformCiId, "manifest.ComposedOf", null, "manifest.Environment");
 		for (CmsRfcRelation composedOfRel : composedOfRels) {
 			CmsRfcRelation newRfc = trUtil.cloneRfcRelation(composedOfRel);
@@ -320,7 +319,6 @@ public class ManifestRfcBulkProcessor {
 			CmsRfcRelation rfc = cmRfcMrgProcessor.upsertRelationRfc(newRfc, userId);
 			releaseId = rfc.getReleaseId();
 		}
-
 		return releaseId;
 	}
 
