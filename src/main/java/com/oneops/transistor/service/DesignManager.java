@@ -39,8 +39,8 @@ public interface DesignManager {
 	public long saveAssemblyAsCatalog(CmsCI catalogCI, long sourceAssemblyId, String userId, String scope);
 	public CatalogExport exportCatalog(long catalogCIid, String scope);
 	public long importCatalog(CatalogExport catExp, String userId, String scope);
-	public DesignExportSimple exportDesign(long assemblyId);
-	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des); 
+	public DesignExportSimple exportDesign(long assemblyId, Long[] platformIds, String scope);
+	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des);
 	public void updateOwner(long assemblyId);
     public long refreshPack(long platformId, String userId, String scope);
 	

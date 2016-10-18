@@ -25,9 +25,8 @@ import com.oneops.transistor.exceptions.TransistorException;
 import org.apache.log4j.Logger;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Transactional
 public class EnvSemaphore {
@@ -41,8 +40,7 @@ public class EnvSemaphore {
 	protected static final String SUCCESS_PREFIX = "SUCCESS:";
 	protected static final String COMPILE_INTERRUPTED = "Environment compilation was interrupted, please recompile!";
 	private static final Logger logger = Logger.getLogger(EnvSemaphore.class);
-
-	private Set<Long> envUnderProcess = Collections.synchronizedSet(new HashSet<Long>());
+	private Set<Long> envUnderProcess = ConcurrentHashMap.newKeySet();
 
 	protected CmsCmManager cmManager;
 	private CmsUtilProcessor cmUtilProcessor;
