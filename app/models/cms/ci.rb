@@ -224,6 +224,7 @@ class Cms::Ci < Cms::Base
         value = ciAttributes.send(a.attributeName)
         if value.present?
           pattern = a.options.is_a?(Hash) && a.options.has_key?(:pattern) && a.options[:pattern]
+          pattern = "(#{a.options[:pattern]})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present?
           data_type = a.dataType
           if data_type == 'hash' || data_type == 'array'
             begin
@@ -302,6 +303,8 @@ class Cms::Ci < Cms::Base
   end
 
   def check_pattern(pattern, value)
+    pattern = "^" + pattern unless pattern.start_with?("^")
+    pattern = pattern + "$" unless pattern.ends_with?("$")
     pattern.is_a?(Array) ? (pattern.any? {|e| value == (e.is_a?(Array) ? e.last : e)}) : value =~ /#{pattern}/
   end
 
