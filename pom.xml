@@ -64,11 +64,8 @@
         <gson.version>1.7.1</gson.version>
         <cglib.version>3.1</cglib.version>
         <jackson-databind.version>2.3.2</jackson-databind.version>
-        <elasticsearch-test.version>1.1.0</elasticsearch-test.version>
         <commons-codec.version>1.9</commons-codec.version>
-        <elasticsearch.version>1.1.1</elasticsearch.version>
         <!--Bumping spring-data to release version compatible with es 1.1.1 -->
-        <spring-data-elasticsearch.version>1.0.4.RELEASE</spring-data-elasticsearch.version>
         <rxjava.version>1.0.14</rxjava.version>
         <awaitility.version>1.7.0</awaitility.version>
     </properties>
@@ -213,12 +210,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.tlrx</groupId>
-            <artifactId>elasticsearch-test</artifactId>
-            <version>${elasticsearch-test.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
             <version>${commons-codec.version}</version>
@@ -236,16 +227,6 @@
             <version>${org.springframework.security.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.elasticsearch</groupId>
-            <artifactId>elasticsearch</artifactId>
-            <version>${elasticsearch.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-elasticsearch</artifactId>
-            <version>${spring-data-elasticsearch.version}</version>
-        </dependency>
 
 
     </dependencies>
