@@ -17,26 +17,25 @@
  *******************************************************************************/
 package com.oneops.util;
 
-import static com.jayway.awaitility.Awaitility.await;
+import junit.framework.Assert;
+import org.apache.activemq.broker.BrokerService;
+import org.apache.commons.lang.ArrayUtils;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.activemq.broker.BrokerService;
-import org.apache.commons.lang.ArrayUtils;
-import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.testng.annotations.*;
-
-import com.google.common.io.Files;
-
-import junit.framework.Assert;
+import static com.jayway.awaitility.Awaitility.await;
+import static java.nio.file.FileVisitResult.CONTINUE;
 
 public class SearchSenderTest {
 
@@ -182,13 +181,25 @@ public class SearchSenderTest {
 			}
 		}
 		return true;
-
 	}
 
 	private void emptyRetryDir() {
-		File folder = new File(retryDir);
+		Path directory = Paths.get(retryDir);
 		try {
-			Files.deleteDirectoryContents(folder);
+			Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+					Files.delete(file);
+					return CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+					Files.delete(dir);
+					return CONTINUE;
+				}
+			});
+			Files.createDirectories(directory);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
