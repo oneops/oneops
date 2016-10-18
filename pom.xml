@@ -26,7 +26,6 @@
         <cmsdal.version>1.0.4</cmsdal.version>
         <libs.version>1.0.0</libs.version>
         <com.springsource.javax.jms.version>1.1.0</com.springsource.javax.jms.version>
-        <guava.version>16.0.1</guava.version>
         <aws-java-sdk.version>1.10.27</aws-java-sdk.version>
         <commons-lang.version>2.6</commons-lang.version>
         <httpclient.version>4.5</httpclient.version>
@@ -129,11 +128,6 @@
                     <groupId>org.apache.cassandra</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
