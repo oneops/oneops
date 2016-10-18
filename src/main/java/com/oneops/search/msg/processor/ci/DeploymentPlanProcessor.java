@@ -94,7 +94,7 @@ public class DeploymentPlanProcessor implements CISImpleProcessor{
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
         Thread.sleep(3000);
         SearchQuery latestRelease = new NativeSearchQueryBuilder()
-                .withIndices("cms-2*")
+                .withIndices("cms-*")
                 .withTypes("release").withFilter(
                         FilterBuilders.andFilter(
                                 FilterBuilders.queryFilter(QueryBuilders.termQuery("nsPath.keyword", nsPath)),
