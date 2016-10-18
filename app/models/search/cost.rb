@@ -185,10 +185,10 @@ class Search::Cost < Search::Base
     }
 
     begin
-      # data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)
+      # data = JSON.parse(post('/cost/ci/_search', {}, search_params.to_json).body)
       # return data
 
-      data  = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      data  = JSON.parse(post('/cost/ci/_search', {}, search_params.to_json).body)['aggregations']
       total = data['total']['value']
       if total > 0
         unit = data['unit']['buckets'][0]
