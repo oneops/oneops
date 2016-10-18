@@ -42,11 +42,7 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.opamp.exceptions.OpampException;
-import com.oneops.opamp.service.EnvPropsProcessor;
-import com.oneops.opamp.service.FlexStateProcessor;
-import com.oneops.opamp.service.Notifications;
 import com.oneops.ops.CiOpsProcessor;
-import com.oneops.ops.events.OpsBaseEvent;
 
 
 public class FlexStateProcessorTest {
@@ -83,14 +79,13 @@ public class FlexStateProcessorTest {
 		cmsCIWithAutocFeatures.setNsPath("/mock/ns/path/abc");
 		cmsCIWithAutocFeatures.setCiId(21);
 		cmsCIWithAutocFeatures.setCiClassName("bom.Compute");
-		
-		when(envProcessorMock.isAutorepairEnbaled4bom(ID_WITH_AUTO_REPAIR)).thenReturn(cmsCIWithAutocFeatures);
-		when(envProcessorMock.isAutorepairEnbaled4bom(ID_WITHOUT_AUTO_REPAIR)).thenReturn(null);
-		when(envProcessorMock.isAutorepairEnbaled4bom(ID_NOT_FOUND)).thenReturn(null);
 
-		when(envProcessorMock.isAutoScalingEnbaled4bom(ID_WITH_AUTO_SCALING)).thenReturn(cmsCIWithAutocFeatures);
-		when(envProcessorMock.isAutoScalingEnbaled4bom(ID_WITHOUT_AUTO_SCALING)).thenReturn(null);
-		when(envProcessorMock.isAutoScalingEnbaled4bom(ID_NOT_FOUND)).thenReturn(null);
+		when(envProcessorMock.isAutorepairEnabled(ID_WITH_AUTO_REPAIR)).thenReturn(true);
+		when(envProcessorMock.isAutorepairEnabled(ID_WITHOUT_AUTO_REPAIR)).thenReturn(false);
+		when(envProcessorMock.getEnv4Bom(ID_NOT_FOUND)).thenReturn(null);
+
+        when(envProcessorMock.isAutoscaleEnabled(ID_WITH_AUTO_SCALING)).thenReturn(true);
+        when(envProcessorMock.isAutoscaleEnabled(ID_WITHOUT_AUTO_SCALING)).thenReturn(false);
 
 		
 		List<CmsRelease> emptyReleaseList = new ArrayList<CmsRelease>();

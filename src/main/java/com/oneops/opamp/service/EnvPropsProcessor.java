@@ -17,11 +17,6 @@
  *******************************************************************************/
 package com.oneops.opamp.service;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -30,6 +25,10 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.domain.CmsVar;
+import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * provides lookups ,and info about enable
@@ -43,12 +42,8 @@ public class EnvPropsProcessor {
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private static final long COOLOFF_PREIOD_4_RELEASE = 180000;
-	private static final String OPAMP_STATUS = "IS_OPAMP_SUSPENDED";
-
-	private static final String AUTO_REPLACE_STATUS_VAR = "IS_AUTO_REPLACE_SUSPENDED";
-
+	private static final String OPAMP_SUSPENDED = "IS_OPAMP_SUSPENDED";
 	private static final String HEARTBEAT_ALARMS_SUSPENDED = "HEARTBEAT_ALARMS_SUSPENDED";
-
 	private static final String EXPONENTIAL_REPAIR_DELAY_VAR = "EXPONENTIAL_REPAIR_DELAY";
 	
 	/**
@@ -59,10 +54,7 @@ public class EnvPropsProcessor {
 	public void setCmProcessor(CmsCmProcessor cmProcessor) {
 		this.cmProcessor = cmProcessor;
 	}
-
-    public CmsRfcProcessor getRfcProcessor() {
-		return rfcProcessor;
-	}
+    
 
 	public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
 		this.rfcProcessor = rfcProcessor;
@@ -118,64 +110,26 @@ public class EnvPropsProcessor {
 		return null;
 	}
 
-	/**
-	 * Checks if is autorepair enbaled4bom.
-	 *
-	 * @param ciId the ci id
-	 * @return the cms ci
-	 */
-	public CmsCI isAutorepairEnbaled4bom(long ciId) {
-		CmsCI platform = getPlatform4Bom(ciId);
-		if (platform == null) {
-			logger.error("can not get platform for ciid " + ciId);
-			return null;
-		}
-		
-		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair");
-		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue())){
-			return getEnv4Bom(ciId);
-		} 
-		return null;
+	public boolean isAutorepairEnabled(long ciId) {
+		return isAttributeEnabled(ciId, "autorepair");
 	}
 
-	/**
-	 * Checks if is auto scaling enbaled4bom.
-	 *
-	 * @param ciId the ci id
-	 * @return the cms ci
-	 */
-	public CmsCI isAutoScalingEnbaled4bom(long ciId) {
-		
-		CmsCI platform = getPlatform4Bom(ciId);
-		if (platform == null) {
-			logger.error("can not get platform for ciid " + ciId);
-			return null;
-		}
-		
-		CmsCIAttribute ciAttrib = platform.getAttribute("autoscale");
-		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
-			return getEnv4Bom(ciId);
-		}
-		return null;
-	}
-	
-	/**
-	 * Checks if is auto scaling enbaled4bom.
-	 *
-	 * @param ciId the ci id
-	 * @return the cms ci
-	 */
-	public boolean isAutoReplaceEnbaled(CmsCI platform) {
-		if (platform == null) {
-			logger.error("Platform is null, can not get auto-replace flag ");
-			return false;
-		}
-		
-		CmsCIAttribute ciAttrib = platform.getAttribute("autoreplace");
-		if (ciAttrib == null || ! "true".equalsIgnoreCase(ciAttrib.getDfValue())) {
-			return false;
-		}
-		return true;
+	private boolean isAttributeEnabled(long ciId, String attributeName) {
+        CmsCI platform = getPlatform4Bom(ciId);
+        if (platform == null) {
+            logger.error("can not get platform for ciid "+ ciId);
+            return false;
+        }
+        return isAttributeEnabled(platform, attributeName);
+    }
+
+    private boolean isAttributeEnabled(CmsCI platform, String attributeName) {
+        CmsCIAttribute ciAttrib = platform.getAttribute(attributeName);
+        return ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue());
+    }
+
+	public boolean isAutoscaleEnabled(long ciId) {
+		return isAttributeEnabled(ciId, "autoscale");
 	}
 
 	/**
@@ -185,35 +139,11 @@ public class EnvPropsProcessor {
 	 * @return true is the cloud is in active state
 	 */
 	public boolean isCloudActive4Bom(long ciId) {
-		
 		List<CmsCIRelation> deployedToRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, "base.DeployedTo",null, "account.Cloud");
-		
-		if (deployedToRels.size()>0) {
-			CmsCIRelation ciRelation = deployedToRels.get(0);
-				long cloudId = ciRelation.getToCiId();
-				List<CmsCIRelation> manifestCiRels = cmProcessor.getToCIRelationsNakedNoAttrs(ciId, "base.RealizedAs",null, null);
-				if (manifestCiRels.size() > 0) {
-				long manifestCiId = manifestCiRels.get(0).getFromCiId();
-				List<CmsCIRelation> manifestPlatRels = cmProcessor.getToCIRelationsNakedNoAttrs(manifestCiId, "manifest.Requires",null, "manifest.Platform");
-				if (manifestPlatRels.size()>0) {
-					long platId = manifestPlatRels.get(0).getFromCiId();
-	
-					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromToCIRelationsNaked(platId, "base.Consumes", cloudId);
-					if (platformCloudRels.size() >0) {
-						CmsCIRelation platformCloudRel = platformCloudRels.get(0);
-						if (platformCloudRel.getAttribute("adminstatus") == null
-							|| CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue())) {
-							return true;
-						}
-					}
-				}
-		    }
-		}
-	
-		return false;
+		return isCloudActive4Bom(ciId, deployedToRels);
 	}
-	
-	/**
+
+    /**
 	 * Check if the ci cloud is in active state.
 	 *
 	 * @param ciId the ci id
@@ -234,20 +164,19 @@ public class EnvPropsProcessor {
 
 					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromToCIRelationsNaked(platId, "base.Consumes", cloudId);
 					if (platformCloudRels.size() >0) {
-						CmsCIRelation platformCloudRel = platformCloudRels.get(0);
-						if (platformCloudRel.getAttribute("adminstatus") == null
-							|| CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue())) {
-							return true;
-						}
-					}
+                        if (isAdminStatusActive(platformCloudRels.get(0))) return true;
+                    }
 				}
 		    }
 		}
-	
 		return false;
 	}
 
-	public boolean isOpenRelease4Env(CmsCI env) {
+    public boolean isAdminStatusActive(CmsCIRelation platformCloudRel) {
+        return platformCloudRel.getAttribute("adminstatus") == null || CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue());
+    }
+
+    public boolean isOpenRelease4Env(CmsCI env) {
 		String envNsPath = env.getNsPath() + "/" + env.getCiName();		
 		List<CmsRelease> manReleases = rfcProcessor.getLatestRelease(envNsPath + "/manifest", null);
 		if (manReleases.size() >0 ) {
@@ -313,10 +242,8 @@ public class EnvPropsProcessor {
 	
 	
 	public List<CmsCI> getPlatformsForEnv(long ciId) {
-		List<CmsCI> platforms = new ArrayList<CmsCI>();
-		
-		List<CmsCIRelation> envToPlatformsRels = cmProcessor.getFromCIRelations(ciId, 
-				"manifest.ComposedOf",null, "manifest.Platform");
+		List<CmsCI> platforms = new ArrayList<>();
+		List<CmsCIRelation> envToPlatformsRels = cmProcessor.getFromCIRelations(ciId, "manifest.ComposedOf",null, "manifest.Platform");
 		if (envToPlatformsRels != null) {
 			for (CmsCIRelation rel : envToPlatformsRels) {
 				platforms.add(rel.getToCi());
@@ -332,12 +259,9 @@ public class EnvPropsProcessor {
 	 * @return
 	 */
 	public boolean isOpAmpSuspended(){
-		CmsVar repairStatus = cmProcessor.getCmSimpleVar(OPAMP_STATUS);
-		if(repairStatus != null){
-			if(Boolean.TRUE.toString().equals(repairStatus.getValue())){
-				logger.warn("OpAmp is suspended temporarily. All notifications and auto-repair/auto-replace actions are suspended.");
-				return true;
-			}
+		if (getBooleanVariable(OPAMP_SUSPENDED)) {
+			logger.warn("OpAmp is suspended temporarily. All notifications and auto-repair/auto-replace actions are suspended.");
+			return true;
 		}
 		return false;
 	}
@@ -348,31 +272,23 @@ public class EnvPropsProcessor {
 	 * @param deployedToRels list of deployedTo relations
 	 * @return
 	 */
-	public boolean isOpAmpSuspendedForCloud(List<CmsCIRelation> deployedToRels){
-		if (deployedToRels.size()>0) {
+	public boolean isOpAmpSuspendedForCloud(List<CmsCIRelation> deployedToRels) {
+		if (deployedToRels.size() > 0) {
 			CmsCIRelation ciRelation = deployedToRels.get(0);
 			String cloudCiName = ciRelation.getToCi().getCiName();
 			long ciId = ciRelation.getFromCiId();
-			String opampCloudFlag = OPAMP_STATUS + "_CLOUD_" + cloudCiName.toUpperCase();
-			CmsVar repairStatus = cmProcessor.getCmSimpleVar(opampCloudFlag);
-			if(repairStatus != null){
-				if(Boolean.TRUE.toString().equals(repairStatus.getValue())){
-					logger.warn("OpAmp is suspended temporarily for cloud " + cloudCiName + ", ciId:"+ ciId +". All notifications and auto-repair/auto-replace actions are suspended.");
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	
-	public boolean autoReplaceSuspended() {
-		CmsVar replaceStatus = cmProcessor.getCmSimpleVar(AUTO_REPLACE_STATUS_VAR);
-		if(replaceStatus != null){
-			if(Boolean.TRUE.toString().equals(replaceStatus.getValue())){
+			String opampCloudFlag = OPAMP_SUSPENDED + "_CLOUD_" + cloudCiName.toUpperCase();
+			if (getBooleanVariable(opampCloudFlag)) {
+				logger.warn("OpAmp is suspended temporarily for cloud " + cloudCiName + ", ciId:" + ciId + ". All notifications and auto-repair/auto-replace actions are suspended.");
 				return true;
 			}
 		}
 		return false;
+	}
+
+	public boolean getBooleanVariable(String cloudCiName) {
+		CmsVar repairStatus = cmProcessor.getCmSimpleVar(cloudCiName);
+		return repairStatus != null && Boolean.TRUE.toString().equals(repairStatus.getValue());
 	}
 
 	/**
@@ -384,37 +300,27 @@ public class EnvPropsProcessor {
 		return cmProcessor.getFromCIRelations(ciId, "base.DeployedTo",null, "account.Cloud");
 	}
 
-	public boolean heartbeatAlarmsSuspended() {
-		CmsVar heartbeatAlarmsFlag = cmProcessor.getCmSimpleVar(HEARTBEAT_ALARMS_SUSPENDED);
-		if(heartbeatAlarmsFlag != null){
-			if(Boolean.TRUE.toString().equals(heartbeatAlarmsFlag.getValue())){
-				return true;
-			}
-		}
-		return false;
-	}
+    public boolean isHeartbeatAlarmSuspended() {
+        return getBooleanVariable(HEARTBEAT_ALARMS_SUSPENDED);
+    }
 
-	public boolean repairDelayEnabled(CmsCI platform) {
-		if (platform == null) {
-			logger.error("Platform is null, can not get auto-repair delay flag ");
-			return false;
-		}
-		
-		CmsCIAttribute ciAttrib = platform.getAttribute("autorepair_exponential_backoff");
-		if (ciAttrib != null && "true".equalsIgnoreCase(ciAttrib.getDfValue()) && globalRepairDelayEnabled()) {
-			return true;
-		}
-		return false;
-	}
-	
-	public boolean globalRepairDelayEnabled(){
-		CmsVar repairDelay = cmProcessor.getCmSimpleVar(EXPONENTIAL_REPAIR_DELAY_VAR);
-		if(repairDelay != null){
-			if(Boolean.FALSE.toString().equalsIgnoreCase(repairDelay.getValue())){
-				logger.warn("Exponential delay of auto-repair procedures is disabled globally !");
-				return false;
-			}
-		}
-		return true;
-	}
+    public boolean isRepairDelayEnabled(CmsCI platform) {
+        if (platform == null) {
+            logger.error("Platform is null, can not get auto-repair delay flag ");
+            return false;
+        }
+        return isAttributeEnabled(platform, "autorepair_exponential_backoff") && isGlobalRepairDelayEnabled();
+    }
+
+    public boolean isGlobalRepairDelayEnabled() {
+        if (!getBooleanVariable(EXPONENTIAL_REPAIR_DELAY_VAR)) {
+            logger.warn("Exponential delay of auto-repair procedures is disabled globally !");
+            return false;
+        }
+        return true;
+    }
+
+    public boolean isAutoReplaceEnabled(CmsCI platform) {
+        return isAttributeEnabled(platform, "autoreplace");
+    }
 }

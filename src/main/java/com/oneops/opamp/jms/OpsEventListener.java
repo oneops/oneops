@@ -148,7 +148,7 @@ public class OpsEventListener implements MessageListener {
 					    }else if ("unhealthy".equals(event.getNewState())) {
 					    	if (opsEvent != null && opsEvent.getType() != null 
 					    			&& "heartbeat".equals(opsEvent.getType())
-					    			&& envProcessor.heartbeatAlarmsSuspended()) {
+					    			&& envProcessor.isHeartbeatAlarmSuspended()) {
 					    		logger.warn("Heartbeat alarms suppressed. "
 					    				+ "No notifications/auto-repair/auto-replace will be performed for missing heartbeats");
 					    	} else{

@@ -32,7 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** FlexStateProcessor
+/**
+ * FlexStateProcessor
  */
 public class FlexStateProcessor {
 
@@ -110,8 +111,8 @@ public class FlexStateProcessor {
 	public void processOverutilized(CiChangeStateEvent event, boolean isNewState) throws OpampException{
 		long ciId = event.getCiId();
 		if (CI_STATE_OVERUTILIZED.equals(coProcessor.getCIstate(ciId))) {
-			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
-			if (env != null) {
+			CmsCI env;
+			if (envProcessor.isAutoscaleEnabled(ciId) && (env = envProcessor.getEnv4Bom(ciId)) != null) {
 				if (envProcessor.isCloudActive4Bom(ciId)) {
 					growPool(event, env, isNewState);
 				} else {
@@ -122,7 +123,6 @@ public class FlexStateProcessor {
 			}
 		} else {
 			// ci is already healthy
-			//postponedCis.remove(ciId);
 			logger.info("Ci is good now - " + ciId);
 		}
 	}
@@ -130,17 +130,14 @@ public class FlexStateProcessor {
 	/**
 	 * Process underutilized.
 	 *
-	 * @param event
-	 * @param isNewState
-	 * @param originalEventTimestamp
 	 * @throws OpampException the opamp exception
 	 */
 	public void processUnderutilized(CiChangeStateEvent event, boolean isNewState, long originalEventTimestamp) throws OpampException{
 		long ciId = event.getCiId();
 		//check if it still needs resize
 		if ("underutilized".equals(coProcessor.getCIstate(ciId))) {
-			CmsCI env = envProcessor.isAutoScalingEnbaled4bom(ciId); 
-			if (env != null) {
+			CmsCI env;
+			if (envProcessor.isAutoscaleEnabled(ciId) && (env = envProcessor.getEnv4Bom(ciId))!=null){
 				if (envProcessor.isCloudActive4Bom(ciId)) {
 					shrinkPool(event, env, isNewState, originalEventTimestamp);
 				} else {
@@ -149,9 +146,9 @@ public class FlexStateProcessor {
 			} else {
 				notifier.sendFlexNotificationNoRepair(event, "underutilized");
 			}
+			
 		} else {
 			// ci is already healthy
-			//postponedCis.remove(ciId);
 			logger.info("Ci is good now - " + ciId);
 		}
 	}
@@ -289,7 +286,7 @@ public class FlexStateProcessor {
 	
 	private boolean isAnyPoolMemberOverUtil(long manifestId) {
 		List<CmsCIRelation> bomRels = cmProcessor.getFromCIRelationsNaked(manifestId, "base.RealizedAs", null);
-		List<Long> bomCiIds = new ArrayList<Long>();
+		List<Long> bomCiIds = new ArrayList<>();
 		for (CmsCIRelation rel : bomRels) {
 			bomCiIds.add(rel.getToCiId());
 		}
@@ -307,7 +304,7 @@ public class FlexStateProcessor {
 	private void processFlexRelation(CmsCIRelation flexRel, CmsCI env, int step, boolean scaleUp) throws OpampException {
 		try {
 			//now we need to call transistor and create deployment;
-			Map<String,String> params = new HashMap<String,String>();
+			Map<String,String> params = new HashMap<>();
 			params.put("envId", String.valueOf(env.getCiId()));
 			params.put("relId", String.valueOf(flexRel.getCiRelationId()));
 			params.put("step", String.valueOf(step));

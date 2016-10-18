@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -34,15 +35,10 @@ import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.exceptions.OpsException;
 import com.oneops.opamp.exceptions.OpampException;
-import com.oneops.opamp.service.BadStateProcessor;
-import com.oneops.opamp.service.EnvPropsProcessor;
-import com.oneops.opamp.service.Notifications;
 import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
-
-import junit.framework.Assert;
 
 public class BadStateProcessorTest {
 
@@ -79,7 +75,8 @@ public class BadStateProcessorTest {
         bad.setCoProcessor(copMock);
         CiChangeStateEvent ciChangeStateEvent = new CiChangeStateEvent();
         long unhealthyStartTime = System.currentTimeMillis() - 1 * 60 *60 * 1000;
-        bad.submitRepairProcedure(ciChangeStateEvent, false, unhealthyStartTime, 1);
+        long coolOffPeriodMillis = 15 * 60 * 1000;
+        bad.submitRepairProcedure(ciChangeStateEvent, false, unhealthyStartTime, 1, coolOffPeriodMillis);
     }
 
 	@Test
@@ -93,8 +90,8 @@ public class BadStateProcessorTest {
 		
 		EnvPropsProcessor envProcessorMock= mock(EnvPropsProcessor.class);
 		CmsCI cmsCI = new CmsCI();
-		
-		when(envProcessorMock.isAutorepairEnbaled4bom(aCid)).thenReturn(cmsCI);
+
+        when(envProcessorMock.isAutorepairEnabled(aCid)).thenReturn(true);
 		bsp.setEnvProcessor(envProcessorMock);
 		
 		CmsCmProcessor cmProcessor = mock(CmsCmProcessor.class);
@@ -131,7 +128,7 @@ public class BadStateProcessorTest {
 		bsp.setCoProcessor(copMock);
 		
 		EnvPropsProcessor envProcessorMock= mock(EnvPropsProcessor.class);
-		when(envProcessorMock.isAutorepairEnbaled4bom(aCid)).thenReturn(null);
+        when(envProcessorMock.isAutorepairEnabled(aCid)).thenReturn(false);
 		bsp.setEnvProcessor(envProcessorMock);
 		//autoRepair is not enabled, and so....here
 		CiChangeStateEvent changeEvent = new CiChangeStateEvent();
@@ -160,7 +157,7 @@ public class BadStateProcessorTest {
 		when(cmsCmProcessorMock.getFromCIRelationsNakedNoAttrs(aCid,null, "DependsOn",null)).thenReturn(singleRel);
 //			
 		EnvPropsProcessor envProcessorYesMock= mock(EnvPropsProcessor.class);
-		when(envProcessorYesMock.isAutorepairEnbaled4bom(aCid)).thenReturn(new CmsCI());
+        when(envProcessorYesMock.isAutorepairEnabled(aCid)).thenReturn(true);
 
 		CiOpsProcessor coProcessor = mock(CiOpsProcessor.class);
 		when(coProcessor.getCIstate(anyLong())).thenReturn("actually-bad"); 
@@ -191,16 +188,16 @@ public class BadStateProcessorTest {
 		long nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, repairRetriesCountSinceDelay, maxRepairRetryPeriod);
 		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
 		Calendar calendar_Oct06_074500_2016 = new GregorianCalendar(2016, 9, 6, 7, 45, 0);//Oct 06 07:45:00 2016
-		org.junit.Assert.assertEquals(calendar_Oct06_074500_2016.getTimeInMillis(), nextTime);
+		Assert.assertEquals(calendar_Oct06_074500_2016.getTimeInMillis(), nextTime);
 
 		nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, 10, maxRepairRetryPeriod);
 		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
-		Calendar calendar_Oct15_154500_2016 = new GregorianCalendar(2016, 9, 15, 15, 45, 0);//Oct 15 15:45:00 2016
-		org.junit.Assert.assertEquals(calendar_Oct15_154500_2016.getTimeInMillis(), nextTime);
+		Calendar calendar_Oct26_074500_2016 = new GregorianCalendar(2016, 9, 26, 07, 45, 0);//Oct 26 07:45:00 2016
+		Assert.assertEquals(calendar_Oct26_074500_2016.getTimeInMillis(), nextTime);
 
-		nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, 25, maxRepairRetryPeriod);
+		nextTime = BadStateProcessor.getNextRepairTime(calendar_Oct05_0000_2016.getTimeInMillis(), coolOff, exponentialFactor, 40, maxRepairRetryPeriod);
 		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
-		org.junit.Assert.assertEquals(calendar_Oct15_154500_2016.getTimeInMillis(), nextTime);
+		Assert.assertEquals(calendar_Oct26_074500_2016.getTimeInMillis(), nextTime);
 
 	}
 }
