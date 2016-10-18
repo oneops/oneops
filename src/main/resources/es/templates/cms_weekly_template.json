@@ -1,0 +1,7 @@
+{
+    "order": 2,
+    "template": "cms-*-w*",
+    "aliases": {
+      "cms-weekly": {}
+    }
+}
