@@ -218,22 +218,35 @@ public class BadStateProcessor {
 			procedureFinishedStates.add(OpsProcedureState.failed);
 			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair", new Date(unhealthyStartTime));
 
-			boolean autoReplaceEnabled = envProcessor.isAutoReplaceEnabled(platform);
+			boolean isAutoReplaceEnabled = envProcessor.isAutoReplaceEnabled(platform);
 
-			if (autoReplaceEnabled && timeToAutoReplace(ciId, platform, unhealthyStartTime, proceduresCount)) {
+			OpsBaseEvent opsEvent = eventUtil.getGson().fromJson(event.getPayLoad(), OpsBaseEvent.class);
+			int coolOffPeriodMillis = DEFAULT_COOLOFF_PERIOD_MILLIS;
+			if (opsEvent.getCoolOff() > 0) {
+				coolOffPeriodMillis = opsEvent.getCoolOff() * 60 * 1000;
+			}
+
+			if (isAutoReplaceEnabled) {//Check if auto-replace config is insanely long
+				int replaceAfterMins = getReplaceAfterMins(platform);
+				int replaceAfterRepairs = getMinNumberOfRepairs(platform);
+				isAutoReplaceEnabled = (replaceAfterMins < maxDaysRepair * 24 * 60) 
+						&& (replaceAfterRepairs < (maxDaysRepair * 24 * 60 * 1000)/coolOffPeriodMillis);
+			}
+			
+			if (isAutoReplaceEnabled && timeToAutoReplace(ciId, platform, unhealthyStartTime, proceduresCount)) {
 				CmsCI env = envProcessor.getEnv4Platform(platform);
 				if (envProcessor.isOpenRelease4Env(env)) {
 					logger.info("There is an open release or undeployed changes for the env => "
 							+   env.getNsPath() + "/" + env.getCiName()+ ". Can not auto-replace.");
 					notifier.sendPostponedReplaceNotification(event);
-					submitRepairProcedure(event, envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
+					submitRepairProcedure(event, envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount, coolOffPeriodMillis) ;
 				} else {
 					logger.info("ciId: [" + ciId + "] is being auto-replaced");
 					notifier.sendReplaceNotification(event);
 					replace(ciId, env);
 				}
 			} else {
-				submitRepairProcedure(event, !autoReplaceEnabled && envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
+				submitRepairProcedure(event, ! isAutoReplaceEnabled && envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount, coolOffPeriodMillis);
 			}
 		} else {
 			notifier.sendDependsOnUnhealthyNotification(event);
@@ -423,7 +436,7 @@ public class BadStateProcessor {
 	 * @param repairRetriesCount
 	 * @throws OpampException
 	 */
-	public void submitRepairProcedure(CiChangeStateEvent event, boolean exponentialDelay, long unhealthyStartTime, long repairRetriesCount) throws OpampException {
+	public void submitRepairProcedure(CiChangeStateEvent event, boolean exponentialDelay, long unhealthyStartTime, long repairRetriesCount, long coolOffPeriodMillis) throws OpampException {
 		long ciId = event.getCiId();
 
 		logger.info("CiId " + ciId +  " Unhealthy start time for the open unhealthy event in millisecond : "
@@ -437,12 +450,6 @@ public class BadStateProcessor {
 				if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since 7 days
 					logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
 					return;
-				}
-
-				OpsBaseEvent opsEvent = eventUtil.getGson().fromJson(event.getPayLoad(), OpsBaseEvent.class);
-				int coolOffPeriodMillis = DEFAULT_COOLOFF_PERIOD_MILLIS;
-				if (opsEvent.getCoolOff() > 0) {
-					coolOffPeriodMillis = opsEvent.getCoolOff() * 60 * 1000;
 				}
 
 				long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * startExponentialDelayAfterProcedures);
@@ -506,7 +513,7 @@ public class BadStateProcessor {
 		}
 	}
 
-	public static long getNextRepairTime(long delayStartTime, int coolOffPeriod, double exponentialFactor, long repairRetriesCountSinceDelay, long repairRetriesMaxPeriod) {
+	public static long getNextRepairTime(long delayStartTime, long coolOffPeriod, double exponentialFactor, long repairRetriesCountSinceDelay, long repairRetriesMaxPeriod) {
 		long max = Math.min(repairRetriesCountSinceDelay + 1, (long) Math.ceil((Math.log(1 + repairRetriesMaxPeriod  / coolOffPeriod) / Math.log(exponentialFactor))));
 		return (long) (delayStartTime + (coolOffPeriod * (Math.pow(exponentialFactor, max) - 1)));
 	}
