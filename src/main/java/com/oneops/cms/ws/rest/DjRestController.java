@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.oneops.cms.dj.domain.TimelineBase;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
@@ -44,6 +45,8 @@ import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 import com.oneops.cms.ws.exceptions.CmsSecurityException;
 import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 
@@ -447,5 +450,23 @@ public class DjRestController extends AbstractRestController {
         long deleted = djManager.rmRfcs(nsPath);
         return "{\"deleted\":" + deleted + "}";
     }
+
+    @RequestMapping(value="/dj/simple/timeline", method=RequestMethod.GET)
+	@ResponseBody
+	public List<TimelineBase> getDjTimeLine(
+			@RequestParam(value = "nsPath", required = true) String nsPath,
+			@RequestParam(value = "filter", required = false) String filter,
+			@RequestParam(value = "type", required = false) String type,
+			@RequestParam(value = "limit", required = false) Integer limit,
+			@RequestParam(value = "sort", required = false) String sort,
+			@RequestParam(value = "releaseOffset", required = false) Long releaseOffset,
+			@RequestParam(value = "dpmtOffset", required = false) Long dpmtOffset,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
+
+		scopeVerifier.verifyScope(scope, nsPath);
+		QueryOrder queryOrder = QueryOrder.queryOrder(sort);
+		TimelineQueryParam queryParam = new TimelineQueryParam(nsPath, filter, type, queryOrder, releaseOffset, dpmtOffset, limit);
+		return djManager.getDjTimeLine(queryParam);
+	}
 
 }

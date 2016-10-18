@@ -17,20 +17,18 @@
  *******************************************************************************/
 package com.oneops.cms.ws.rest;
 
-import java.io.IOException;
-import java.util.List;
-
-import javax.servlet.http.HttpServletResponse;
-
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.MDException;
 import com.oneops.cms.md.domain.CmsClazz;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.service.CmsMdManager;
 import com.oneops.cms.util.CmsError;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
 
 
 @Controller
@@ -200,12 +198,12 @@ public class MdRestController extends AbstractRestController {
 	public String getAllRelations(@RequestParam("flush") String flush){
 		if (flush != null) {
 			mdManager.flushCache();
+			mdManager.invalidateCache();
 	        return "{\"deleted\"}";
 		}
 		return "";
 	}
 
-	
 	@RequestMapping(value="/strtest/{str}", method = RequestMethod.GET)
 	@ResponseBody
 	public String get(@PathVariable String str){
