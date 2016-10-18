@@ -34,15 +34,10 @@ import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.exceptions.OpsException;
 import com.oneops.opamp.exceptions.OpampException;
-import com.oneops.opamp.service.BadStateProcessor;
-import com.oneops.opamp.service.EnvPropsProcessor;
-import com.oneops.opamp.service.Notifications;
 import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
-
-import junit.framework.Assert;
 
 public class BadStateProcessorTest {
 
@@ -93,8 +88,8 @@ public class BadStateProcessorTest {
 		
 		EnvPropsProcessor envProcessorMock= mock(EnvPropsProcessor.class);
 		CmsCI cmsCI = new CmsCI();
-		
-		when(envProcessorMock.isAutorepairEnbaled4bom(aCid)).thenReturn(cmsCI);
+
+        when(envProcessorMock.isAutorepairEnabled(aCid)).thenReturn(true);
 		bsp.setEnvProcessor(envProcessorMock);
 		
 		CmsCmProcessor cmProcessor = mock(CmsCmProcessor.class);
@@ -131,7 +126,7 @@ public class BadStateProcessorTest {
 		bsp.setCoProcessor(copMock);
 		
 		EnvPropsProcessor envProcessorMock= mock(EnvPropsProcessor.class);
-		when(envProcessorMock.isAutorepairEnbaled4bom(aCid)).thenReturn(null);
+        when(envProcessorMock.isAutorepairEnabled(aCid)).thenReturn(false);
 		bsp.setEnvProcessor(envProcessorMock);
 		//autoRepair is not enabled, and so....here
 		CiChangeStateEvent changeEvent = new CiChangeStateEvent();
@@ -160,7 +155,7 @@ public class BadStateProcessorTest {
 		when(cmsCmProcessorMock.getFromCIRelationsNakedNoAttrs(aCid,null, "DependsOn",null)).thenReturn(singleRel);
 //			
 		EnvPropsProcessor envProcessorYesMock= mock(EnvPropsProcessor.class);
-		when(envProcessorYesMock.isAutorepairEnbaled4bom(aCid)).thenReturn(new CmsCI());
+        when(envProcessorYesMock.isAutorepairEnabled(aCid)).thenReturn(true);
 
 		CiOpsProcessor coProcessor = mock(CiOpsProcessor.class);
 		when(coProcessor.getCIstate(anyLong())).thenReturn("actually-bad"); 

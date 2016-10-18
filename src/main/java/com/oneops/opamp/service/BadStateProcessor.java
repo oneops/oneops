@@ -181,7 +181,7 @@ public class BadStateProcessor {
 			logger.info("CmsCi id - " + ciId + " already good.");
 			return;
 		}
-		if (envProcessor.isAutorepairEnbaled4bom(ciId) != null) {
+		if (envProcessor.isAutorepairEnabled(ciId)) {
 			List<CmsCIRelation> deployedToRels = envProcessor.fetchDeployedToRelations(ciId);
 			if(envProcessor.isOpAmpSuspendedForCloud(deployedToRels)){
 				return;
@@ -218,7 +218,7 @@ public class BadStateProcessor {
 			procedureFinishedStates.add(OpsProcedureState.failed);
 			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair", new Date(unhealthyStartTime));
 
-			boolean autoReplaceEnabled = envProcessor.isAutoReplaceEnbaled(platform);
+			boolean autoReplaceEnabled = envProcessor.isAutoReplaceEnabled(platform);
 
 			if (autoReplaceEnabled && timeToAutoReplace(ciId, platform, unhealthyStartTime, proceduresCount)) {
 				CmsCI env = envProcessor.getEnv4Platform(platform);
@@ -226,14 +226,14 @@ public class BadStateProcessor {
 					logger.info("There is an open release or undeployed changes for the env => "
 							+   env.getNsPath() + "/" + env.getCiName()+ ". Can not auto-replace.");
 					notifier.sendPostponedReplaceNotification(event);
-					submitRepairProcedure(event, envProcessor.repairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
+					submitRepairProcedure(event, envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
 				} else {
 					logger.info("ciId: [" + ciId + "] is being auto-replaced");
 					notifier.sendReplaceNotification(event);
 					replace(ciId, env);
 				}
 			} else {
-				submitRepairProcedure(event, !autoReplaceEnabled && envProcessor.repairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
+				submitRepairProcedure(event, !autoReplaceEnabled && envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount);
 			}
 		} else {
 			notifier.sendDependsOnUnhealthyNotification(event);

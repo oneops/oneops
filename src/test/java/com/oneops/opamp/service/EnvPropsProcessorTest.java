@@ -36,7 +36,6 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.opamp.service.EnvPropsProcessor;
 
 /**
  * Testing class for EnvPropsProcessor
@@ -118,7 +117,7 @@ public class EnvPropsProcessorTest {
 
 		envPropsProcessor.setCmProcessor(cmProcessorMockRepairs);
 
-		CmsCI ciA = envPropsProcessor.isAutorepairEnbaled4bom(ID_WITH_AUTO_REPAIR);
+		CmsCI ciA = envPropsProcessor.isAutorepairEnabled(ID_WITH_AUTO_REPAIR) ? envPropsProcessor.getEnv4Bom(ID_WITH_AUTO_REPAIR) : null;
 		assertNotNull(ciA);
 		assertEquals("true",ciA.getAttribute("autorepair").getDfValue());
 			
@@ -131,7 +130,7 @@ public class EnvPropsProcessorTest {
 
 		envPropsProcessor.setCmProcessor(cmProcessorMockScales);
 
-		CmsCI ciB = envPropsProcessor.isAutoScalingEnbaled4bom(ID_WITH_AUTO_SCALING);
+        CmsCI ciB = envPropsProcessor.isAutoscaleEnabled(ID_WITH_AUTO_SCALING) ? envPropsProcessor.getEnv4Bom(ID_WITH_AUTO_SCALING) : null;
 		assertNotNull(ciB);
 		LOGGER.warn("AUTO*SCALE ATT " +ciB.getAttribute("autoscale").getDfValue());
 		
@@ -144,16 +143,16 @@ public class EnvPropsProcessorTest {
 
 		envPropsProcessor.setCmProcessor(cmProcessorMockRepairs);
 
-		CmsCI ciC = envPropsProcessor.isAutorepairEnbaled4bom(ID_WITHOUT_AUTO_REPAIR);
+		CmsCI ciC = envPropsProcessor.isAutorepairEnabled(ID_WITHOUT_AUTO_REPAIR) ? envPropsProcessor.getEnv4Bom(ID_WITHOUT_AUTO_REPAIR) : null;
 		assertNull(ciC);
-		
-		CmsCI ciD = envPropsProcessor.isAutoScalingEnbaled4bom(ID_WITHOUT_AUTO_SCALING);
+
+        CmsCI ciD = envPropsProcessor.isAutoscaleEnabled(ID_WITHOUT_AUTO_SCALING) ? envPropsProcessor.getEnv4Bom(ID_WITHOUT_AUTO_SCALING) : null;
 		assertNull(ciD);
 
-		CmsCI ci1 =  envPropsProcessor.isAutorepairEnbaled4bom(ID_NOT_FOUND);
+		CmsCI ci1 = envPropsProcessor.isAutorepairEnabled(ID_NOT_FOUND) ? envPropsProcessor.getEnv4Bom(ID_NOT_FOUND) : null;
 		assertNull(ci1);
 
-		CmsCI ci2 = envPropsProcessor.isAutoScalingEnbaled4bom(ID_NOT_FOUND);
+        CmsCI ci2 = envPropsProcessor.isAutoscaleEnabled(ID_NOT_FOUND) ? envPropsProcessor.getEnv4Bom(ID_NOT_FOUND) : null;
 		assertNull(ci2);
 		
 	}
