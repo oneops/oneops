@@ -116,6 +116,25 @@
 			and clr.to_class_id = tocl.class_id
 	 </select>
 
+	<select id="getAllTargets" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId,
+				fromcl.class_name as fromClassName,
+				clr.relation_id as relationId,
+				r.relation_name as relationName,
+				clr.to_class_id as toClassId,
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong,
+				clr.link_type as linkType,
+				clr.description,
+				r.created
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.from_class_id = fromcl.class_id
+			and clr.relation_id = r.relation_id
+			and clr.to_class_id = tocl.class_id
+	</select>
+
+
 	<!--select id="_getTargetsStrict" parameterType="map" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
 		select  clr.link_id as linkId,
 				clr.from_class_id as fromClassId, 

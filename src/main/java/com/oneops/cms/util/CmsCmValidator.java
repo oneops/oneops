@@ -314,7 +314,7 @@ public class CmsCmValidator {
 					if (attr.getDfValue() != null ) {
 						if (attr.getDfValue().equalsIgnoreCase(CmsCrypto.ENC_DUMMY)) {
 							noUpdateAttrs.add(attr.getAttributeName());
-						} else if (attr.getDfValue().startsWith(CmsCrypto.ENC_PREFIX) ) {
+						} else if (!attr.getDfValue().startsWith(CmsCrypto.ENC_PREFIX) ) {
 							if(!attr.getDfValue().startsWith(CmsCrypto.ENC_VAR_PREFIX))
 								attr.setDfValue(cmsCrypto.encrypt(attr.getDfValue()));
 						}

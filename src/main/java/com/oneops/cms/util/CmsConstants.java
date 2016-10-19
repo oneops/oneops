@@ -59,6 +59,7 @@ public final class CmsConstants {
 	public static final String ATTR_NAME_AUTO_COMPLY = "autocomply";
 	public static final int SECONDARY_CLOUD_STATUS = 2;
 	public static final int PRIMARY_CLOUD_STATUS = 1;
+	public static final String ATTR_NAME_ADMINSTATUS = "adminstatus";
 
 	//class-names
 	//account
@@ -70,5 +71,6 @@ public final class CmsConstants {
 
 	public static final String BOM = "bom";
 	public static final String MANIFEST = "manifest";
+
 
 }
