@@ -148,12 +148,13 @@ EOH
       `echo "object_store_local_root '#{display_store}'" >> .chef/knife.rb`
       `mkdir -p #{display_store}`
     end
-    
+
     model()
+    sleep(md_cache_ttl)
     register()
     packs()
     clouds()
-    puts "Installed repository!"
+    puts 'Installed repository!'
   end
 
   desc "register", "Register source"
@@ -207,6 +208,16 @@ EOH
 
   
   no_commands do
+
+    # Metadata cache TTL in seconds. Used to sleep before
+    # doing pack sync to clear the adapter metadata cache.
+    # Default value is 5 seconds. The default value can be
+    # overridden by "export MD_CACHE_VAR_TTL=<TTL in sec>".
+    #
+    def md_cache_ttl
+      (ENV['MD_CACHE_VAR_TTL'] || 5).to_i
+    end
+
     def syncmodelclasses(path=nil, path_val=nil)
       pathVal = "cd #{path} " if !path.nil?
       cmd = "#{pathVal} knife model sync -a #{path_val}"
