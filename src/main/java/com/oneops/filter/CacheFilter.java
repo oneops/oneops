@@ -38,45 +38,47 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 public abstract class CacheFilter implements Filter {
 
     private long lastUpdatedTs;
+    private boolean cacheEnabled;
     private CmsCmManager cmManager;
-    private final LoadingCache<String, Long> cache;
+    private LoadingCache<String, Long> varCache;
     private static final String MD_CACHE_STATUS_VAR = "MD_UPDATE_TIMESTAMP";
     protected final Logger logger = Logger.getLogger(this.getClass());
 
     /**
-     * Initialize the cache.
+     * Initialize the cache filter.
      *
-     * @param ttl       cache ttl
-     * @param cacheSize maximum cache size.
-     * @param cmMgr     {@link CmsCmManager}
+     * @param cacheEnabled set to true of md caching is enabled.
+     * @param ttl          cache ttl
+     * @param cacheSize    maximum cache size.
+     * @param cmMgr        {@link CmsCmManager}
      */
-    public CacheFilter(long ttl, long cacheSize, CmsCmManager cmMgr) {
-        this.lastUpdatedTs = 0;
+    public CacheFilter(boolean cacheEnabled, long ttl, long cacheSize, CmsCmManager cmMgr) {
+        this.cacheEnabled = cacheEnabled;
         this.cmManager = cmMgr;
+        this.lastUpdatedTs = 0;
 
-        logger.info("Creating cache with TTL: " + ttl + "sec and cacheSize: " + cacheSize);
-        this.cache = CacheBuilder.newBuilder()
-                .maximumSize(cacheSize)
-                .expireAfterWrite(ttl, SECONDS)
-                .initialCapacity(1)
-                .build(new CacheLoader<String, Long>() {
-                    @Override
-                    public Long load(String key) throws Exception {
-                        CmsVar cacheStatus = cmManager.getCmSimpleVar(key);
-                        if (cacheStatus != null) {
-                            return parseLong(cacheStatus.getValue());
+        // Initialize the var cache if it's enabled.
+        if (cacheEnabled) {
+            logger.info("Creating var cache with TTL: " + ttl + "sec and cacheSize: " + cacheSize);
+            this.varCache = CacheBuilder.newBuilder()
+                    .maximumSize(cacheSize)
+                    .expireAfterWrite(ttl, SECONDS)
+                    .initialCapacity(1)
+                    .build(new CacheLoader<String, Long>() {
+                        @Override
+                        public Long load(String key) throws Exception {
+                            CmsVar cacheStatus = cmManager.getCmSimpleVar(key);
+                            if (cacheStatus != null) {
+                                return parseLong(cacheStatus.getValue());
+                            }
+                            return 0L;
                         }
-                        return 0L;
-                    }
-                });
+                    });
+        } else {
+            logger.warn("Filter/MdCache cache is disabled.");
+        }
     }
 
-    /**
-     * Calls for any cache status update when executing this filter.
-     *
-     * @param varName cache status variable name.
-     */
-    public abstract void onUpdate(String varName);
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -85,10 +87,12 @@ public abstract class CacheFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        long updateTs = cache.getUnchecked(MD_CACHE_STATUS_VAR);
-        if (updateTs > lastUpdatedTs) {
-            lastUpdatedTs = updateTs;
-            onUpdate(MD_CACHE_STATUS_VAR);
+        if (cacheEnabled && varCache != null) {
+            long updateTs = varCache.getUnchecked(MD_CACHE_STATUS_VAR);
+            if (updateTs > lastUpdatedTs) {
+                lastUpdatedTs = updateTs;
+                onUpdate(MD_CACHE_STATUS_VAR);
+            }
         }
         chain.doFilter(request, response);
     }
@@ -97,4 +101,12 @@ public abstract class CacheFilter implements Filter {
     public void destroy() {
         logger.info("Shutting down the cache filter.");
     }
+
+    /**
+     * Calls for any var cache status update when executing this filter.
+     *
+     * @param varName cache status variable name.
+     */
+    public abstract void onUpdate(String varName);
+
 }
