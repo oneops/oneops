@@ -26,10 +26,9 @@
 		<cmsdal.version>1.0.4</cmsdal.version>
 		<testng.version>6.1.1</testng.version>
 		<mockito-all.version>1.8.4</mockito-all.version>
-		<guava.version>16.0.1</guava.version>
+		<guava.version>19.0</guava.version>
 	</properties>
-  
-  
+
 	<dependencies>
 	    <dependency>
 	      <groupId>junit</groupId>
@@ -146,7 +145,6 @@
 			<version>${cmsdal.version}</version>
 			<optional>false</optional>
 		</dependency>
-
 		<dependency>
 			<groupId>com.oneops</groupId>
 			<artifactId>oo-commons</artifactId>
@@ -164,7 +162,6 @@
 			<version>${mockito-all.version}</version>
 			<scope>test</scope>
 		</dependency>
-       
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>

@@ -17,30 +17,10 @@
  *******************************************************************************/
 package com.oneops.opamp.service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
-import com.oneops.cms.cm.ops.domain.OpsFlowAction;
-import com.oneops.cms.cm.ops.domain.OpsProcedureDefinition;
-import com.oneops.cms.cm.ops.domain.OpsProcedureFlow;
-import com.oneops.cms.cm.ops.domain.OpsProcedureState;
+import com.oneops.cms.cm.ops.domain.*;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmManager;
@@ -53,6 +33,15 @@ import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsBaseEvent;
+import org.apache.log4j.Logger;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Class with behavior for unhealthy and repair
@@ -79,8 +68,8 @@ public class BadStateProcessor {
 	private RestTemplate restTemplate;
 	private String transistorUrl;
 	private Notifications notifier;
-	private Set<Long> postponedRepairCi = Collections.synchronizedSet(new HashSet<Long>());
 	private EventUtil eventUtil;
+	private Set<Long> postponedRepairCi = ConcurrentHashMap.newKeySet();
 
 	//below variables are initialized through spring xml
 	private int startExponentialDelayAfterProcedures = 4;
@@ -213,7 +202,7 @@ public class BadStateProcessor {
 
 			long unhealthyStartTime = getUnhealthyStartTime(ciId);
 
-			List<OpsProcedureState> procedureFinishedStates = new ArrayList<OpsProcedureState>();
+			List<OpsProcedureState> procedureFinishedStates = new ArrayList<>();
 			procedureFinishedStates.add(OpsProcedureState.complete);
 			procedureFinishedStates.add(OpsProcedureState.failed);
 			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair", new Date(unhealthyStartTime));
@@ -278,7 +267,7 @@ public class BadStateProcessor {
 	}
 
 	private long getUnhealthyStartTime(long ciId) {
-		ArrayList<Long> param = new ArrayList<Long>();
+		ArrayList<Long> param = new ArrayList<>();
 		param.add(ciId);
 		Map<Long, List<CiOpenEvent>> openEvents = coProcessor.getCisOpenEvents(param);
 		if (openEvents == null || openEvents.get(ciId) == null) {
@@ -298,8 +287,7 @@ public class BadStateProcessor {
 
 	private int getReplaceAfterMins(CmsCI platform) {
 		if (platform != null) {
-			CmsCIAttribute attribute = platform.getAttribute("replace_after_repairs");
-			attribute = platform.getAttribute("replace_after_minutes");
+			CmsCIAttribute attribute = platform.getAttribute("replace_after_minutes");
 			if (attribute != null) {
 				String value = attribute.getDfValue();
 				if (value != null && value.trim().length() > 0) {
@@ -330,19 +318,19 @@ public class BadStateProcessor {
 					false, ONEOPS_AUTOREPLACE_USER);
 			logger.info("marked the ciId [" + ciId + "] for replace using headers using user"+ONEOPS_AUTOREPLACE_USER);
 			// now submit the deployment
-			Map<String, String> params = new HashMap<String, String>();
+			Map<String, String> params = new HashMap<>();
 			params.put("envId", String.valueOf(env.getCiId()));
 
 
 
-			Map<String, String> request = new HashMap<String, String>();
+			Map<String, String> request = new HashMap<>();
 			request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
 
 
 			CmsCI platformOfBomCi = envProcessor.getPlatform4Bom(ciId);
 			List<CmsCI> platformsOfEnv =  envProcessor.getPlatformsForEnv(env.getCiId());
 			if (platformsOfEnv.size() > 1) {
-				StringBuffer excludePlatforms = new StringBuffer();
+				StringBuilder excludePlatforms = new StringBuilder();
 				for (CmsCI platform : platformsOfEnv) {
 					if (platform.getCiId() != platformOfBomCi.getCiId()) {
 						if (excludePlatforms.length() > 0) excludePlatforms.append(",");
@@ -355,7 +343,7 @@ public class BadStateProcessor {
 			HttpHeaders headers = new HttpHeaders();
 			headers.set(X_CMS_USER, ONEOPS_AUTOREPLACE_USER);
 			headers.setContentType(MediaType.APPLICATION_JSON);
-			HttpEntity<Map<String, String>> requestWitHeaders = new HttpEntity<Map<String,String>>(request, headers);
+			HttpEntity<Map<String, String>> requestWitHeaders = new HttpEntity<>(request, headers);
 
 			@SuppressWarnings("unchecked")
 			Map<String, Integer> response = restTemplate
@@ -470,11 +458,11 @@ public class BadStateProcessor {
 		actionDef.setActionName("repair");
 		actionDef.setIsCritical(true);
 		actionDef.setStepNumber(1);
-		List<OpsFlowAction> actions = new ArrayList<OpsFlowAction>();
+		List<OpsFlowAction> actions = new ArrayList<>();
 		actions.add(actionDef);
 		procDef.setActions(actions);
 		procDef.setName("ci_repair");
-		procDef.setFlow(new ArrayList<OpsProcedureFlow>());
+		procDef.setFlow(new ArrayList<>());
 
 		CmsOpsProcedure procRequest = new CmsOpsProcedure();
 		procRequest.setCiId(ciId);
