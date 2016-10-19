@@ -31,8 +31,8 @@ public class AdapterCacheFilter extends CacheFilter {
 
     private CmsMdManager mdManager;
 
-    public AdapterCacheFilter(long ttl, long cacheSize, CmsCmManager cmManager, CmsMdManager mdManager) {
-        super(ttl, cacheSize, cmManager);
+    public AdapterCacheFilter(boolean cacheEnabled, long ttl, long cacheSize, CmsCmManager cmManager, CmsMdManager mdManager) {
+        super(cacheEnabled, ttl, cacheSize, cmManager);
         this.mdManager = mdManager;
     }
 
@@ -41,4 +41,5 @@ public class AdapterCacheFilter extends CacheFilter {
         mdManager.invalidateCache();
         logger.info("Adapter metadata cache invalidated.");
     }
+
 }

@@ -95,10 +95,11 @@
     </bean>
 
     <bean id="mdCacheFilter" class="com.oneops.cms.ws.rest.filter.AdapterCacheFilter">
-        <constructor-arg name="ttl" value="${VAR_CACHE_TTL:30}"/>
-        <constructor-arg name="cacheSize" value="${VAR_CACHE_SIZE:10}"/>
+        <constructor-arg name="ttl" value="${MD_CACHE_VAR_TTL:3}"/>
+        <constructor-arg name="cacheSize" value="${MD_CACHE_VAR_SIZE:10}"/>
         <constructor-arg name="mdManager" ref="cmsMdManager"/>
         <constructor-arg name="cmManager" ref="cmsCmManager"/>
+        <constructor-arg name="cacheEnabled" value="${MD_CACHE_ENABLED:true}"/>
     </bean>
 
 </beans>
