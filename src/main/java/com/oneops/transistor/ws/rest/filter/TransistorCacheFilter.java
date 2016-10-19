@@ -31,8 +31,8 @@ public class TransistorCacheFilter extends CacheFilter {
 
     private CmsMdManager mdManager;
 
-    public TransistorCacheFilter(long ttl, long cacheSize, CmsCmManager cmManager, CmsMdManager mdManager) {
-        super(ttl, cacheSize, cmManager);
+    public TransistorCacheFilter(boolean cacheEnabled, long ttl, long cacheSize, CmsCmManager cmManager, CmsMdManager mdManager) {
+        super(cacheEnabled, ttl, cacheSize, cmManager);
         this.mdManager = mdManager;
     }
 

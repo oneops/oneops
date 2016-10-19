@@ -74,7 +74,7 @@
     <bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
         <property name="clazzMapper" ref="clazzMapper"/>
         <property name="relationMapper" ref="relationMapper"/>
-        <property name="cacheEnabled" value="true"/>
+        <property name="cacheEnabled" value="${MD_CACHE_ENABLED:true}"/>
     </bean>
 	
 	<bean id="cmsMdManager" class="com.oneops.cms.md.service.CmsMdManagerImpl">
