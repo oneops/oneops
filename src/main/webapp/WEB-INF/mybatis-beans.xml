@@ -89,10 +89,11 @@
         <property name="mdManager" ref="cmsMdManager" />
     </bean>
 
-	<bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
-        <property name="clazzMapper" ref="clazzMapper" />
-        <property name="relationMapper" ref="relationMapper" />
-        <property name="mdValidator" ref="cmsMdValidator" />
+    <bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
+        <property name="clazzMapper" ref="clazzMapper"/>
+        <property name="relationMapper" ref="relationMapper"/>
+        <property name="mdValidator" ref="cmsMdValidator"/>
+        <property name="cacheEnabled" value="true"/>
     </bean>
 	
 	<bean id="cmsMdManager" class="com.oneops.cms.md.service.CmsMdManagerImpl">
