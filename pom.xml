@@ -9,7 +9,6 @@
     <name>${project.artifactId}</name>
     <description>DAQ</description>
     <properties>
-        <guava.version>18.0</guava.version>
         <gson.version>1.7.1</gson.version>
         <hector-core.version>0.8.0-3</hector-core.version>
         <jee.javax-servlet-api.version>2.5</jee.javax-servlet-api.version>
@@ -57,11 +56,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
             <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
