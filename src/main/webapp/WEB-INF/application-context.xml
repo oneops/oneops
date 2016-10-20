@@ -141,6 +141,7 @@
         <property name="sensorHeartBeat" ref="sensorHeartBeat"/>
         <property name="phDao" ref="perfHeaderDao"/>
         <property name="cmProcessor" ref="cmsCmProcessor"/>
+        <property name="ciStateProcessor" ref="ciStateProcessor"/>
     </bean>
 
     <bean id="closeEventListener" class="com.oneops.sensor.listeners.CloseEventListener">
@@ -148,6 +149,7 @@
         <property name="coProcessor" ref="coProcessor"/>
         <property name="opsEventPub" ref="opsEventPub"/>
         <property name="orphanEventEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:true}"/>
+        <property name="ciStateProcessor" ref="ciStateProcessor"/>
         <!--property name="opsCiStateDao" ref="opsCiStateDao"/-->
     </bean>
 
@@ -171,6 +173,7 @@
             </map>
         </property>
         <property name="stmtBuilder" ref="stmtBuilder"/>
+        <property name="ciStateProcessor" ref="ciStateProcessor"/>
         <property name="minHeartbeatSeedDelay" value="${MIN_HB_SEED_DELAY_IN_SEC:300}"/>
         <property name="heartbeatRandomDelay" value="${MAX_HB_RANDOM_DELAY_IN_SEC:30}"/>
     </bean>
@@ -212,6 +215,10 @@
         <property name="sensorListener" ref="sensorListener"/>
         <property name="monListenerContainer" ref="monListenerContainer"/>
         <property name="orphanEventHandler" ref="orphanEventHandler"/>
+        <property name="sensorHeartBeat" ref="sensorHeartBeat"/>
+        <property name="shouldLogStats" value="${sensor.logStats:false}"/>
+        <property name="numLockRefreshesToLogStats" value="${sensor.numLockRefreshesToLogStats:10}"/>
+
     </bean>
 
 	<bean id="orphanEventHandler" class="com.oneops.sensor.OrphanEventHandler" destroy-method="cleanup">
@@ -220,6 +227,13 @@
         <property name="initialDelay" value="${ORPHAN_HANDLER_INIT_DELAY:15}"/>
         <property name="delay" value="${ORPHAN_HANDLER_DELAY:10}"/>
         <property name="orphanHandlerEnabled" value="${IS_ORPHAN_HANDLER_ENABLED:true}"/>
+    </bean>
+    
+    <bean id="ciStateProcessor" class="com.oneops.sensor.CiStateProcessor">
+        <property name="opsEventDao" ref="opsEventDao"/>
+        <property name="coProcessor" ref="coProcessor"/>
+        <property name="tsDao" ref="tsDao"/>
+        <property name="opsCiStateDao" ref="opsCiStateDao"/>
     </bean>
 
 </beans>
