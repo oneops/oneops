@@ -8,16 +8,14 @@ import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
-import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 import junit.framework.Assert;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.annotations.Test;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.oneops.cms.util.CmsConstants.ACCOUNT_CLOUD_CLASS;
@@ -64,7 +62,7 @@ public class CloudUtilTest {
             }
         }).when(cmRfcMrgProcessor).getFromCIRelationsNaked(anyLong(), eq("base.Consumes"), eq("account.CloudUtil"), eq("dj"));
 
-        cl.check4missingServices(1);
+        cl.check4missingServices(Collections.singleton(1l));
     }
 
     @Test(expectedExceptions = {TransistorException.class})
@@ -100,7 +98,8 @@ public class CloudUtilTest {
             }
         }).when(cmRfcMrgProcessor).getFromCIRelations(anyLong(), eq(BASE_CONSUMES), eq(ACCOUNT_CLOUD_CLASS), eq("dj"));
         try {
-            cl.check4missingServices(1);
+            Set<Long> platforms = Arrays.asList(1l, 2l).stream().collect(Collectors.toSet());
+            cl.check4missingServices(platforms);
         } catch (TransistorException e) {
             Assert.assertTrue(e.getMessage().contains("s2, s3"));
             throw e;
