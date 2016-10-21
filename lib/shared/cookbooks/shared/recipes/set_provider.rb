@@ -68,6 +68,14 @@ when /rackspace/
   })
   node.set["network_provider"] = network_provider
 
+when /softlayer/
+  require 'fog/softlayer'
+  provider = Fog::Compute.new({
+    :provider => 'softlayer',
+    :softlayer_username => cloud[:username],
+    :softlayer_api_key => cloud[:apikey]
+  })
+  
 when /aliyun/
   require 'fog/aliyun'
   provider = Fog::Compute.new({
