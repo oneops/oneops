@@ -27,7 +27,7 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
     
     _source = a[:ciAttributes][:source]
     
-    if _source.empty?
+    if _source.nil? || _source.empty?
       
       _content = a[:ciAttributes][:content]
       
@@ -74,11 +74,10 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
 
     if a[:ciAttributes].has_key?("exec_cmd")
       _exec_cmd = a[:ciAttributes][:exec_cmd].gsub(/\r\n?/,"\n")
-      ruby_block "executing bash -c '#{_exec_cmd}' command for after-#{node.workorder.rfcCi.rfcAction} #{a[:ciName]} attachment" do
-        block do
-          Chef::Resource::RubyBlock.send(:include, Chef::Mixin::ShellOut)
-          shell_out!("bash -c '#{_exec_cmd}'", :live_stream => Chef::Log::logger)
-        end
+      bash "execute after-#{node.workorder.rfcCi.rfcAction} #{a[:ciName]} attachment" do
+        code <<-EOH
+          #{_exec_cmd}
+        EOH
         not_if { _exec_cmd.empty? }
       end
     end

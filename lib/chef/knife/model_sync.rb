@@ -86,7 +86,12 @@ class Chef
              end
 
              puts "doc: #{local_file} remote: #{remote_file}"
-             file = @remote_dir.files.create :key => remote_file, :body => content             
+             obj = { :key => remote_file, :body => content }
+             if remote_file =~ /\.html/
+               obj['content_type'] = 'text/html'
+             end
+             
+             file = @remote_dir.files.create obj
              
              # components can be services, sinks, relays too
              if image_groupings.size > 0
@@ -114,7 +119,7 @@ class Chef
         config[:version] ||='1.0.0'
         ui.info("Processing metadata for #{cookbook} from #{file}")
         md = Chef::Cookbook::Metadata.new
-        md.name(cookbook)
+        md.name(cookbook.capitalize)
         md.from_file(file)
         Chef::Log.debug(md.to_yaml)
         

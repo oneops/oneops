@@ -17,7 +17,7 @@ attribute 'secure',
             :category => 'Value',
             :order    => 1,
             :tip      => 'NOTE: Make sure to always re-enter the variable value when changing this attribute.',
-            :help     => 'Secure varialble values are encrypted on save and stored in encrypted format.',
+            :help     => 'Secure variable values are encrypted on save and stored in encrypted format.',
             :form     => {:field => 'checkbox'}
           }
 
@@ -26,8 +26,10 @@ attribute 'value',
           :default     => '',
           :format      => {
             :category => 'Value',
+            :pattern  => '\S(.*\S)?',
             :order    => 2,
             :help     => 'Enter the variable value',
+            :form     => {:field => 'textarea'},
             :filter   => {'all' => {'visible' => 'secure:neq:true', 'editable' => 'secure:neq:true'}}
           }
 
@@ -37,6 +39,7 @@ attribute 'encrypted_value',
           :default     => '',
           :format      => {
             :category => 'Value',
+            :pattern  => '\S(.*\S)?',
             :order    => 3,
             :help     => 'Enter the variable value. The provided value will be encrypted on save and stored securely.',
             :filter   => {'all' => {'visible' => 'secure:eq:true', 'editable' => 'secure:eq:true'}}

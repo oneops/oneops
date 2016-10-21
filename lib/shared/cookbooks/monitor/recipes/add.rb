@@ -19,16 +19,51 @@
 # gens nagios config using WatchedBy payload and reloads/starts nagios and perf-agent
 #
 cloud_name = node.workorder.cloud.ciName
+
+ostype = ''
+begin
+  ostype = node.workorder.payLoad.os[0].ciAttributes["ostype"]
+rescue
+  begin
+    ostype = node.workorder.rfcCi.ciAttributes['ostype']
+  rescue
+    ostype = node.platform
+  end
+end
+
+if ostype.nil? || ostype.length == 0
+  # Using RUBY_PLATFORM is not the best here, because this recipe will run from the inductor
+  # and from the VM being created.  If it has to use this, you may not get thre results
+  # you want.
+  Chef::Log.info('OSTYPE IS STILL NOT SET, TRY TO USE RUBY_PLATFORM')
+  Chef::Log.info("RUBY_PLATFORM IN MONITOR IS: #{RUBY_PLATFORM}")
+  case RUBY_PLATFORM
+  when /mingw/
+    ostype = 'windows'
+    Chef::Log.info('Setting ostype to windows')
+  when /linux/
+    ostype = 'linux'
+    Chef::Log.info('Setting ostype to linux')
+  else
+    Chef::Log.info('leaving ostype as nil')
+  end
+end
+
+Chef::Log.info("*** OS_PLATFORM => #{ostype} ***")
+if ostype =~ /windows/
+  return
+end
+
 cloud_service = nil
 
 if !node.workorder.services["monitoring"].nil? &&
    !node.workorder.services["monitoring"][cloud_name].nil?
-  
+
   cloud_service = node.workorder.services["monitoring"][cloud_name]
 end
 
 # skip if no managed via without monitoring cloud service
-if cloud_service.nil? && (!node.workorder.payLoad.has_key?("ManagedVia") && 
+if cloud_service.nil? && (!node.workorder.payLoad.has_key?("ManagedVia") &&
   !node.workorder.rfcCi.ciClassName.include?("Compute") )
 
   Chef::Log.info("no monitoring service provided, no managed via, nor compute. ")
@@ -47,7 +82,7 @@ end
 if !node.workorder.payLoad.has_key?("WatchedBy")
   Chef::Log.info("no WatchedBy - skipping monitor::add")
   return
-end  
+end
 
 if node.workorder.payLoad[:Environment][0][:ciAttributes][:monitoring] == "false"
 
@@ -55,7 +90,7 @@ if node.workorder.payLoad[:Environment][0][:ciAttributes][:monitoring] == "false
   execute "mkdir -p /opt/nagios/libexec"
 
   Chef::Log.info("monitoring disabled for the env")
-  return  
+  return
 end
 
 is_new_compute = false
@@ -118,40 +153,40 @@ if node.workorder.payLoad.has_key?("WatchedBy")
     config = ""
     config_map = {}
     metrics = JSON.parse(monitor["ciAttributes"]["metrics"])
-    metrics.each_pair do |k,v|      
+    metrics.each_pair do |k,v|
       dstype = "gauge"
       if v.has_key?("dstype")
         dstype = v["dstype"].downcase
       end
-      config += "#{k}-dstype=#{dstype}\n"            
+      config += "#{k}-dstype=#{dstype}\n"
     end
-    
+
     if monitor["ciAttributes"].has_key?("sample_interval")
-      config += "interval="+ monitor["ciAttributes"]["sample_interval"]      
+      config += "interval="+ monitor["ciAttributes"]["sample_interval"]
     else
       config += "interval=60"
     end
-    
+
     metric_config_dir = "#{perf_dir}/#{node.workorder.rfcCi.ciId}-#{monitor['ciName']}"
     `mkdir -p #{metric_config_dir}`
     metric_config_file = "#{metric_config_dir}/config"
     # write simple dstype file
     File.open(metric_config_file, 'w') { |file| file.write(config) }
-      
+
   end
 
 end
-  
+
 
 ruby_block 'setup nagios' do
   block do
     $conf_d = "#{node.nagios_conf_dir}/conf.d"
 
     def delete_monitor_ciid(ci_id)
-       Chef::Log.info("Delete all the files for the monitor cid= service_#{ci_id}")       
+       Chef::Log.info("Delete all the files for the monitor cid= service_#{ci_id}")
        `rm -rf #{$conf_d}/service_#{ci_id}* `
     end
-    
+
     def set_service(monitor)
       ci_id = node.workorder.rfcCi.ciId
       cmd_options = Mash.new(JSON.parse(monitor[:ciAttributes][:cmd_options]))
@@ -163,7 +198,7 @@ ruby_block 'setup nagios' do
       if(monitor[:ciAttributes][:enable] == 'false')
          enableAttr = 0
       end
-          
+
       template = 'define service{\n'
       template += '  use                 generic-service\n'
       template += '  host_name           :::ci_id:::\n'
@@ -172,24 +207,24 @@ ruby_block 'setup nagios' do
       template += '  check_command       :::cmd:::\n'
       template += '  register            :::enableAttr:::\n' # 1: enable the monitor 0:disable the monitor
       if monitor["ciAttributes"].has_key?("sample_interval")
-        template += '  normal_check_interval '+ monitor["ciAttributes"]["sample_interval"]+"\n"     
-      end      
+        template += '  normal_check_interval '+ monitor["ciAttributes"]["sample_interval"]+"\n"
+      end
       template += get_additional_attributes(monitor,'service')
       template += '}\n\n'
-    
+
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
-    
+
       # sub wo variables
       new_block.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       final_block = eval( '"' + new_block + '"' )
-    
+
       Chef::Log.info("adding: #{final_block}")
-      service_file = $conf_d + "/service_" + monitor_name + ".cfg"    
+      service_file = $conf_d + "/service_" + monitor_name + ".cfg"
       ::File.open(service_file, 'w') {|f| f.write(final_block) }
       return 1
     end
-    
+
     def get_additional_attributes(monitor, attr_type)
       attrs = ""
       monitor.each do |key, value|
@@ -201,11 +236,11 @@ ruby_block 'setup nagios' do
       end
       return attrs
     end
-    
+
     def set_host(monitor)
       ci_id = node.workorder.rfcCi.ciId
-      cloud_ci_id = node.workorder.cloud.ciId    
-    
+      cloud_ci_id = node.workorder.cloud.ciId
+
       template = 'define host{\n'
       template += '  use       generic-host\n'
       template += '  host_name :::ci_id:::\n'
@@ -213,52 +248,52 @@ ruby_block 'setup nagios' do
       template += '  address   127.0.0.1\n'
       template += get_additional_attributes(monitor,'host')
       template += '}\n\n'
-    
+
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
       Chef::Log.info('adding: '+new_block)
-      host_file = $conf_d + "/host_" + ci_id.to_s + ".cfg"    
+      host_file = $conf_d + "/host_" + ci_id.to_s + ".cfg"
       ::File.open(host_file, 'w') {|f| f.write(new_block) }
       return 1
     end
-    
+
     def set_hostgroup(monitor)
       ci_id = node.workorder.rfcCi.ciId
       ci_name = node.workorder.rfcCi.ciName
-    
+
       template = 'define hostgroup{\n'
       template += '  hostgroup_name :::ci_name:::\n'
       template += '  alias          local\n'
       template += '  members        :::ci_id:::\n'
       template += get_additional_attributes(monitor,'hostgroup')
       template += '}\n\n'
-    
+
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
       Chef::Log.info('adding: '+new_block)
-      hostgroup_file = $conf_d + "/hostgroup_" + ci_name + ".cfg"    
+      hostgroup_file = $conf_d + "/hostgroup_" + ci_name + ".cfg"
       ::File.open(hostgroup_file, 'w') {|f| f.write(new_block) }
       return 1
     end
-    
+
     def set_command(monitor)
       command_name = monitor[:ciAttributes][:cmd].split("!")[0]
       command_line = monitor[:ciAttributes][:cmd_line]
-    
+
       template = 'define command{\n'
       template += '  command_name :::command_name:::\n'
       template += '  command_line :::command_line:::\n'
       template += get_additional_attributes(monitor,'command')
       template += '}\n\n'
-    
+
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
       Chef::Log.info('adding: '+new_block )
-      command_file = $conf_d + "/command_" + command_name + ".cfg"          
+      command_file = $conf_d + "/command_" + command_name + ".cfg"
       ::File.open(command_file, 'w') {|f| f.write(new_block) }
       return 1
     end
-    
+
     def process_monitor(monitor)
       Chef::Log.info("--- add monitor #{monitor['ciAttributes']['name']} ---")
       changes = 0
@@ -269,7 +304,7 @@ ruby_block 'setup nagios' do
       #changes += set_hostgroup(monitor)
       return changes
     end
-    
+
     ########################
     ########################
 
@@ -279,22 +314,22 @@ ruby_block 'setup nagios' do
     ci_id = node.workorder.rfcCi.ciId
     delete_monitor_ciid(ci_id)
 
-    nagios_service = "nagios"      
+    nagios_service = "nagios"
     if node.platform == "ubuntu"
       nagios_service = "nagios3"
     end
 
     # gets a list of monitors
-    monitors = node.workorder.payLoad[:WatchedBy]    
+    monitors = node.workorder.payLoad[:WatchedBy]
     monitors.each do |monitor|
       name = monitor[:ciAttributes][:name]
       changes += process_monitor(monitor)
     end
-    
+
     if File.directory?("/var/log/nagios")
       result = `rm -fr /var/log/nagios ; ln -sf /var/log/nagios3 /var/log/nagios`
-    end    
-        
+    end
+
     if is_new_compute
 
       # sync and restart
@@ -302,8 +337,8 @@ ruby_block 'setup nagios' do
       cmd = node.rsync_cmd.gsub("SOURCE",conf_dir).gsub("DEST","/tmp").gsub("IP",node.ip)
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
-      result.error! 
-      
+      result.error!
+
       # setup dirs used in nagios config
       dirs = ["/var/run/nagios3","/opt/nagios/libexec","/var/lib/nagios3/spool/checkresults"]
       dirs += ["/var/log/nagios3","/var/lib/nagios3/rw","/opt/oneops/perf"]
@@ -311,40 +346,40 @@ ruby_block 'setup nagios' do
             "sudo chown -R nagios:nagios /var/lib/nagios3 /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf" + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
-      result.error! 
-      
+      result.error!
+
       # copy default plugins
       nagios_plugins = node.circuit_dir+"/shared/cookbooks/monitor/files/default/*"
       cmd = node.rsync_cmd.gsub("SOURCE",nagios_plugins).gsub("DEST","~/nagios_libexec/").gsub("IP",node.ip)
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
-      result.error!   
+      result.error!
 
       cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /opt/nagios/libexec/" + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
-      result.error! 
-      
-      
+      result.error!
+
+
       # copy config and restart nagios
       cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/; sudo cp -r #{conf_dir}/perf /opt/oneops/; " +
             "sudo ln -sf /etc/nagios /etc/nagios3; sudo chmod +x /opt/nagios/libexec/* " + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
-      result.error! 
-      
+      result.error!
+
       `rm -fr #{conf_dir}`
-      
+
     else
       # standard way
       # for flume agent use in connecting to collectors
       mgmt_domain = node.mgmt_domain
       `echo #{mgmt_domain} > /opt/oneops/mgmt_domain`
-      
+
       cloud = node.workorder.cloud.ciName
       Chef::Log.info("setting /opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
       `echo #{cloud} > /opt/oneops/cloud`
-      
+
       env = node.workorder.payLoad[:Environment][0]
       has_monitoring = true
       Chef::Log.debug("env: "+env.inspect)
@@ -354,14 +389,14 @@ ruby_block 'setup nagios' do
           has_monitoring = false
         end
       end
-      
+
       Chef::Log.info("total of #{changes} changes")
       `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
       # restart nagios & forwarder
       `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
-      
+
     end
-    
+
   end
 end
 
@@ -369,8 +404,8 @@ end
 if is_new_compute
   include_recipe "compute::ssh_key_file_rm"
 else
-  
-  nagios_service = "nagios"      
+
+  nagios_service = "nagios"
   if node.platform == "ubuntu"
     nagios_service = "nagios3"
   end
@@ -378,19 +413,19 @@ else
 
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?("monitoring") &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == "true"
-  
+
     service nagios_service do
         supports [ :restart, :enable ]
         action [ :restart, :enable ]
     end
-    
+
     service_path = "/usr/sbin"
     case node.platform
     when "redhat", "centos", "fedora", "suse"
         service_path = "/sbin"
     end
     execute "#{service_path}/service #{nagios_service} restart"
-  
+
   else
     service nagios_service do
       action [ :stop, :disable ]
@@ -398,7 +433,7 @@ else
     service "perf-agent" do
       action [ :stop, :disable ]
     end
-    
+
   end
-  
+
 end
