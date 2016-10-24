@@ -35,10 +35,11 @@ import org.apache.log4j.Logger;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class ManifestManagerImpl implements ManifestManager {
 
-	static final Logger logger = Logger.getLogger(ManifestManagerImpl.class);
+	private static final Logger logger = Logger.getLogger(ManifestManagerImpl.class);
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
@@ -97,117 +98,133 @@ public class ManifestManagerImpl implements ManifestManager {
 
 	@Override
 	public long generateEnvManifest(long envId, String userId, Map<String, String> platModes) {
-		long t1 = System.currentTimeMillis();
-		String oldThreadName = Thread.currentThread().getName();
-		Thread.currentThread().setName(getProcessingThreadName(oldThreadName,envId));
-		List<CmsCIRelation> assemblyRels = cmProcessor.getToCIRelations(envId, BASE_REALIZED_IN,null, ACCOUNT_ASSEMBLY);
-		CmsCI assembly = null;
-		if (assemblyRels.size()>0) {
-			assembly = assemblyRels.get(0).getFromCi();
-		} else {
-			String error = "Can not get assembly for envId = " + envId;
-			logger.error(error);
-			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_GET_ASSEMBLY, error);
-		}
+        long t1 = System.currentTimeMillis();
+        String oldThreadName = Thread.currentThread().getName();
+        Thread.currentThread().setName(getProcessingThreadName(oldThreadName, envId));
+        List<CmsCIRelation> assemblyRels = cmProcessor.getToCIRelations(envId, BASE_REALIZED_IN, null, ACCOUNT_ASSEMBLY);
+        CmsCI assembly = getAssembly(envId, assemblyRels);
+        CmsCI env = getEnv(envId);
+        String nsPath = getManifestNsPath(env);
+        //check for openRelease
+        check4OpenRelease(env, nsPath);
 
-		CmsCI env = getEnv(envId);
-		
-		String nsPath = env.getNsPath() + "/" + env.getCiName() + "/manifest";
+        Long nsId = trUtil.verifyAndCreateNS(nsPath);
+        logger.info("Created nsId " + nsId);
 
-		if (hasOpenManifestRelease(nsPath)) {
-			String message = "This environment has an open release. It needs to be discarded or committed before the design pull: " 
-					+ env.getNsPath() + "/" + env.getCiName();
-			logger.info(message);
-			throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, message);
-		}
-		Long nsId = trUtil.verifyAndCreateNS(nsPath);
-		logger.info("Created nsId " + nsId);
-		//Long releaseId = createManifestRelease(nsPath,userId);
+        List<CmsCIRelation> designPlatRels = cmProcessor.getFromCIRelations(assembly.getCiId(), null, "ComposedOf", CATALOG_PLATFORM);
 
-		List<CmsCIRelation> designPlatRels = cmProcessor.getFromCIRelations(assembly.getCiId(), null,"ComposedOf", CATALOG_PLATFORM);
-		
-		//we need to reset all pending deletions cis just in case there was one added back
-		cmProcessor.resetDeletionsByNs(nsPath);
-		
-		// check for edge case scenario when there is new design platform with the same name as old one but different pack
-		long releaseId = checkPlatformPackCompliance(designPlatRels, env, nsPath, userId);
-		if (releaseId > 0) {
-			//stop any processing and return new release id
-			return releaseId;
-		}
-		
-		final CountDownLatch latch = new CountDownLatch(designPlatRels.size());
-		List<Future<DesignCIManifestRfcTouple>> submittedFutureTasks = new ArrayList<Future<DesignCIManifestRfcTouple>>();
-		
-		Map<Long, CmsRfcCI> design2manifestPlatMap = new HashMap<Long, CmsRfcCI>();
-		for (CmsCIRelation platRelation : designPlatRels) {
-			String availMode = null;
-			if (platModes != null) {
-				availMode = platModes.get(String.valueOf(platRelation.getToCiId()));
-				if (availMode != null && availMode.length()==0) {
-					availMode="default";
-				}
-			}
-			
-			Future<DesignCIManifestRfcTouple> future = executorService.submit(new ManifestRfcProcessorTask(env, nsPath, userId, availMode, latch, platRelation));
-			submittedFutureTasks.add(future);
-		}
-		
-		boolean allPlatsProcessed = false;
+        //we need to reset all pending deletions cis just in case there was one added back
+        cmProcessor.resetDeletionsByNs(nsPath);
+
+        // check for edge case scenario when there is new design platform with the same name as old one but different pack
+        long releaseId = checkPlatformPackCompliance(designPlatRels, env, nsPath, userId);
+        if (releaseId > 0) {
+            //stop any processing and return new release id
+            return releaseId;
+        }
+
+        final CountDownLatch latch = new CountDownLatch(designPlatRels.size());
+        List<Future<DesignCIManifestRfcTouple>> submittedFutureTasks = new ArrayList<>();
+
+        for (CmsCIRelation platRelation : designPlatRels) {
+            String availMode = getPlatformAvailabiltyMode(platModes, platRelation);
+            Future<DesignCIManifestRfcTouple> future = executorService.submit(new ManifestRfcProcessorTask(env, nsPath, userId, availMode, latch, platRelation));
+            submittedFutureTasks.add(future);
+        }
+
+        boolean allPlatsProcessed;
         try {
-        	 // latch.await(); //wait till all platform processing threads return
-	        	allPlatsProcessed = latch.await(timeoutInMilliSeconds, TimeUnit.MILLISECONDS); //wait for all platform processing threads to finish with timeout of 10 mins
-	            if (!allPlatsProcessed) {
-	                logger.error("All platforms not processed within timeout duration of "+ timeoutInMilliSeconds);
-	                throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Failed to pull latest design for all platform within timeout duration of "+ timeoutInMilliSeconds +" millis");
-	            }
-		} catch (InterruptedException ie) {
+            allPlatsProcessed = latch.await(timeoutInMilliSeconds, TimeUnit.MILLISECONDS); //wait for all platform processing threads to finish with timeout of 10 mins
+            if (!allPlatsProcessed) {
+                logger.error("All platforms not processed within timeout duration of " + timeoutInMilliSeconds);
+                throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Failed to pull latest design for all platform within timeout duration of " + timeoutInMilliSeconds + " millis");
+            }
+        } catch (InterruptedException ie) {
             for (Future<DesignCIManifestRfcTouple> job : submittedFutureTasks) {
                 job.cancel(true);
             }
             throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Design pull process interrupted. ");
         }
-
-        for (Future<DesignCIManifestRfcTouple> task : submittedFutureTasks){
-        	
-        	DesignCIManifestRfcTouple touple;
-			try {
-				touple = task.get();
-				processPlatformRfcs(touple.manifestPlatformRfcs,userId);
-				
-				CmsRfcCI manifestPlatformRfc = touple.manifestPlatformRfcs.getManifestPlatformRfc();
-				Set<String> missingSrvs = cloudUtil.getMissingServices(manifestPlatformRfc.getCiId());
-				if (missingSrvs.size() > 0) {
-					logger.info(">>>>> Not all services available for platform: " + manifestPlatformRfc.getCiName() + ", the missing services: " + missingSrvs.toString());
-					disablePlatforms(Collections.singleton(manifestPlatformRfc.getCiId()), userId);
-				}
-				logger.info("New release id = " + manifestPlatformRfc.getReleaseId());
-				logger.info("Done working on platform " + manifestPlatformRfc.getNsPath());
-				
-				design2manifestPlatMap.put(touple.designPlatCI, manifestPlatformRfc);
-			} catch (Exception e) {
-				logger.error("Error in pulling latest design for all platforms ",e);
-				throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Error in pulling latest design for all platforms ");
-			}
-        	
+        Map<Long, CmsRfcCI> design2manifestPlatMap = new HashMap<>();
+        for (Future<DesignCIManifestRfcTouple> task : submittedFutureTasks) {
+            DesignCIManifestRfcTouple touple;
+            try {
+                touple = task.get();
+                processPlatformRfcs(touple.manifestPlatformRfcs, userId);
+                CmsRfcCI manifestPlatformRfc = touple.manifestPlatformRfcs.getManifestPlatformRfc();
+                logger.info("Finished working on =" + manifestPlatformRfc.getNsPath() + " release id = " + manifestPlatformRfc.getReleaseId());
+                design2manifestPlatMap.put(touple.designPlatCI, manifestPlatformRfc);
+            } catch (Exception e) {
+                logger.error("Error in pulling latest design for all platforms ", e);
+                throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Error in pulling latest design for all platforms ");
+            }
         }
 
+        check4MissingServices(design2manifestPlatMap);
+
         //now we need to process linkedTo relations
-		manifestRfcProcessor.processLinkedTo(design2manifestPlatMap, nsPath, userId);
-		
-		//now lets delete old existing plats that do not exists in new manifest
-		manifestRfcProcessor.processDeletedPlatforms(design2manifestPlatMap.values(), env, nsPath, userId);
-		
-		//process global variables from design
-		manifestRfcProcessor.processGlobalVars(assembly.getCiId(), env, nsPath, userId);
-		long t2 = System.currentTimeMillis();
-		long envReleaseId = populateParentRelease(env, nsPath);
-		logger.info("Pull design for  "+ nsPath+" completed in  "+(t2-t1) +" millis (releaseId " +envReleaseId +")");
-		return envReleaseId;
+        manifestRfcProcessor.processLinkedTo(design2manifestPlatMap, nsPath, userId);
+
+        //now lets delete old existing plats that do not exists in new manifest
+        manifestRfcProcessor.processDeletedPlatforms(design2manifestPlatMap.values(), env, nsPath, userId);
+
+        //process global variables from design
+        manifestRfcProcessor.processGlobalVars(assembly.getCiId(), env, nsPath, userId);
+        long t2 = System.currentTimeMillis();
+        long envReleaseId = populateParentRelease(env, nsPath);
+        logger.info("Pull design for  " + nsPath + " completed in  " + (t2 - t1) + " millis (releaseId " + envReleaseId + ")");
+        return envReleaseId;
+    }
+
+    /**
+     *
+     * @param design2manifestPlatMap  design manifest platform map.
+     */
+    private void check4MissingServices(Map<Long, CmsRfcCI> design2manifestPlatMap) throws TransistorException{
+        //get CiIds to be checked for missing services
+        Set<Long> manifestPlatformIds = design2manifestPlatMap.entrySet().stream().map(t -> t.getValue().getCiId()).collect(Collectors.toSet());
+        cloudUtil.check4missingServices(manifestPlatformIds);
+    }
+
+    private String getManifestNsPath(CmsCI env) {
+        return env.getNsPath() + "/" + env.getCiName() + "/manifest";
+    }
+
+    private void check4OpenRelease(CmsCI env, String nsPath) {
+        if (hasOpenManifestRelease(nsPath)) {
+            String message = "This environment has an open release. It needs to be discarded or committed before the design pull: "
+                    + env.getNsPath() + "/" + env.getCiName();
+            logger.info(message);
+            throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, message);
+        }
+    }
+
+	private CmsCI getAssembly(long envId, List<CmsCIRelation> assemblyRels) {
+		CmsCI assembly = null;
+		if (assemblyRels.size() > 0) {
+			assembly = assemblyRels.get(0).getFromCi();
+		}
+		if (assembly == null) {
+			String error = "Can not get assembly for envId = " + envId;
+			logger.error(error);
+			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_GET_ASSEMBLY, error);
+		}
+		return assembly;
 	}
 
+    private String getPlatformAvailabiltyMode(Map<String, String> platModes, CmsCIRelation platRelation) {
+        String availMode = null;
+        if (platModes != null) {
+            availMode = platModes.get(String.valueOf(platRelation.getToCiId()));
+            if (availMode != null && availMode.length()==0) {
+                availMode="default";
+            }
+        }
+        return availMode;
+    }
 
-	/**
+
+    /**
 	 * 
 	 * @param manifestPlatformRfcs
 	 * @param userId
@@ -270,9 +287,7 @@ public class ManifestManagerImpl implements ManifestManager {
 			rfcProcessor.createRfcRelationNoCheck(rfcRelation, userId);
 		}
 		
-		
-		
-		
+
 		/**Handle Requires relations ***/
 		for(ManifestRootRfcContainer rfcRelTouple:manifestPlatformRfcs.getRfcRelToupleList()){
 			CmsRfcCI newRfc;
@@ -344,10 +359,8 @@ public class ManifestManagerImpl implements ManifestManager {
 		Map<String,String> manifestPlatPacks = new HashMap<String,String>(manifestPlatRels.size());
 		for (CmsCIRelation manifestRel : manifestPlatRels) {
 			CmsCI plat = manifestRel.getToCi();
-			String key = plat.getCiName() + ":" + plat.getAttribute("major_version").getDjValue();
-			String value = plat.getAttribute("source").getDjValue() + 
-					 ":" + plat.getAttribute("pack").getDjValue() +
-					 ":" + plat.getAttribute("version").getDjValue();
+			String key = getPlatNameAndVersion(plat);
+			String value = getSourcePackVersion(plat);
 			manifestPlatPacks.put(key, value);
 		}
 		
@@ -355,10 +368,8 @@ public class ManifestManagerImpl implements ManifestManager {
 		
 		for (CmsCIRelation designRel : designPlatRels) {
 			CmsCI dPlat = designRel.getToCi();
-			String key = dPlat.getCiName() + ":" + dPlat.getAttribute("major_version").getDjValue();
-			String value = dPlat.getAttribute("source").getDjValue() + 
-					 ":" + dPlat.getAttribute("pack").getDjValue() +
-					 ":" + dPlat.getAttribute("version").getDjValue();
+			String key = getPlatNameAndVersion(dPlat);
+			String value = getSourcePackVersion(dPlat);
 			if (manifestPlatPacks.containsKey(key) && !value.equals(manifestPlatPacks.get(key))) {
 				String platNsPath = nsPath + "/" + dPlat.getCiName() + "/" + dPlat.getAttribute("major_version").getDfValue();
 				List<CmsRfcCI> mPlats = cmRfcMrgProcessor.getDfDjCi(platNsPath, MANIFEST_PLATFORM, dPlat.getCiName(), "dj");
@@ -370,8 +381,18 @@ public class ManifestManagerImpl implements ManifestManager {
 		}
 		return newReleaseId;
 	}
-	
-	private boolean hasOpenManifestRelease(String nsPath) {
+
+    private String getPlatNameAndVersion(CmsCI plat) {
+        return plat.getCiName() + ":" + plat.getAttribute("major_version").getDjValue();
+    }
+
+    private String getSourcePackVersion(CmsCI plat) {
+        return plat.getAttribute("source").getDjValue() +
+                 ":" + plat.getAttribute("pack").getDjValue() +
+                 ":" + plat.getAttribute("version").getDjValue();
+    }
+
+    private boolean hasOpenManifestRelease(String nsPath) {
 		List<CmsRelease> manReleases = rfcProcessor.getLatestRelease(nsPath, null);
 		if (manReleases.size() >0 ) {
 			if ("open".equals(manReleases.get(0).getReleaseState())) {
@@ -473,7 +494,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		
 		if (needUpdate) {
 			CmsCI env = getEnv(envId);
-			String nsPath = env.getNsPath() + "/" + env.getCiName() + "/manifest";
+			String nsPath = getManifestNsPath(env);
 			List<CmsRfcRelation> compOfRels = cmRfcMrgProcessor.getFromCIRelations(envId, MANIFEST_COMPOSED_OF, MANIFEST_PLATFORM, "dj");
 			for (CmsRfcRelation compOfRel : compOfRels) {
 				CmsRfcCI platform = compOfRel.getToRfcCi();
@@ -497,7 +518,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		//looks like we need to delete some clouds
 		//first lets see if we have any open releases
 		CmsCI env = getEnv(envId);
-		String manifestNsPath = env.getNsPath() + "/" + env.getCiName() + "/manifest";
+		String manifestNsPath = getManifestNsPath(env);
 		String bomNsPath = env.getNsPath() + "/" + env.getCiName() + "/bom";
 		List<CmsRelease> manifestOpenReleases = rfcProcessor.getReleaseBy3(manifestNsPath, null, RELEASE_STATE_OPEN);
 		if (manifestOpenReleases.size()>0) {
