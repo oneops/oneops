@@ -1,5 +1,6 @@
 require 'net/http'
 require 'tempfile'
+require 'uri'
 
 class Chef
   class REST
@@ -22,7 +23,7 @@ class Chef
       else
         # server support range request
         parts_details = calculate_parts(content_length, num_chunk_max, chunk_minimum)
-        local_tmp = fetch(URI(remote_url), local_path, parts_details)
+        local_tmp = fetch(remote_url, local_path, parts_details)
       end
       local_tmp
     end
@@ -51,7 +52,7 @@ class Chef
           req.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
 
-        req.start do |http|
+        req.start { |http|
           url_path = !url.query.nil? ? "#{url.path}?#{url.query}" : url.path
           headers = http.head(url_path)
           headers_h = headers.to_hash
@@ -60,7 +61,7 @@ class Chef
             headers_h = probe_url(URI(new_url[0]))
             headers_h["location"] = new_url
           end
-        end
+        }
       end
       headers_h
     end
@@ -110,13 +111,13 @@ class Chef
       Chef::Log.info("Fetching in #{parts.length} parts")
       Chef::Log.debug("Part details: #{pp parts.inspect}")
       # todo.. resume mode
-      install_gem_output = `gem install parallel` #install parallel gem
+      install_gem_output = `gem install parallel -v 1.3.3` #install parallel gem
       require 'parallel'
 
       download_start = Time.now
       Chef::Log.info("Fetching start at #{download_start}")
 
-      Parallel.map(parts, in_threads => 5) do |part|
+      Parallel.map(parts, :in_threads => 5) do |part|
         part_file = "#{local_path}.#{part['slot']}.tmp"
         download_file(part, full_path, part_file)
       end
@@ -201,6 +202,8 @@ class Chef
       else
         http = Net::HTTP.new(uri.host,uri.port)
         req = Net::HTTP::Get.new(uri.request_uri)
+        Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
+        req.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
         if ssl
           req.use_ssl = true
           req.verify_mode = OpenSSL::SSL::VERIFY_NONE
