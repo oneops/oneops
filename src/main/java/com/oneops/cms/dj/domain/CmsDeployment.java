@@ -18,7 +18,15 @@
 package com.oneops.cms.dj.domain;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * The Class CmsDeployment.
@@ -38,6 +46,10 @@ public class CmsDeployment implements Serializable{
 	private String description;
 	private String comments;
 	private String ops;
+
+	private String autoPauseExecOrdersVal;
+	private Set<Integer> autoPauseExecOrders;
+
 	private Date created;
 	private Date updated;
 
@@ -253,6 +265,26 @@ public class CmsDeployment implements Serializable{
 
 	public void setOps(String ops) {
 		this.ops = ops;
+	}
+
+	public void setAutoPauseExecOrdersVal(String autoPauseExecOrdersVal) {
+		this.autoPauseExecOrdersVal = autoPauseExecOrdersVal;
+		if (StringUtils.isNotBlank(autoPauseExecOrdersVal)) {
+			autoPauseExecOrders = Arrays.stream(autoPauseExecOrdersVal.split(",")).map(val -> Integer.parseInt(val.trim())).collect(Collectors.toSet());
+		}
+	}
+
+	public Set<Integer> getAutoPauseExecOrders() {
+		return autoPauseExecOrders;
+	}
+
+	public void setAutoPauseExecOrders(Set<Integer> autoPauseExecOrders) {
+		this.autoPauseExecOrders = autoPauseExecOrders;
+	}
+
+	@JsonIgnore
+	public String getAutoPauseExecOrdersVal() {
+		return autoPauseExecOrdersVal;
 	}
 	
 }

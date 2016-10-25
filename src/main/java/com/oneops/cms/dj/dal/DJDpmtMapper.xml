@@ -7,7 +7,7 @@
  	 <!--cache/-->
 
 	 <insert id="createDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
-	    {call dj_deploy_release(#{releaseId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{deploymentId,jdbcType=BIGINT, mode=OUT})}
+	    {call dj_deploy_release(#{releaseId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{autoPauseExecOrdersVal}, #{deploymentId,jdbcType=BIGINT, mode=OUT})}
 	 </insert> 
 		
 	 <insert id="createDpmtApproval" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
@@ -60,8 +60,9 @@
 			   (select max(execution_order) from dj_rfc_ci rci, dj_deployment_rfc drfc
 			    where drfc.deployment_id = d.deployment_id
 			      and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
+			   d.auto_pause_exec_orders as autoPauseExecOrdersVal,
 			   d.created,
-			   d.updated 
+			   d.updated
 		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
 		where d.deployment_id = #{value}
 		and d.ns_id = ns.ns_id

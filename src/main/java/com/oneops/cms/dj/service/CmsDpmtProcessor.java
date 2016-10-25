@@ -139,6 +139,7 @@ public class CmsDpmtProcessor {
 			}
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
 		if (ONEOPS_AUTOREPLACE_USER.equals(dpmt.getCreatedBy()))  {
 			dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
 			dpmtMapper.createDeployment(dpmt);
@@ -172,6 +173,13 @@ public class CmsDpmtProcessor {
 		}
 	}
 	
+	private void updateAutoDeployExecOrders(CmsDeployment dpmt) {
+		Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
+		if (autoPauseExecOrders != null && !autoPauseExecOrders.isEmpty()) {
+			dpmt.setAutoPauseExecOrdersVal(StringUtils.join(autoPauseExecOrders, ","));
+		}
+	}
+
 	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
 		
 		List<CmsDpmtApproval> result = new ArrayList<CmsDpmtApproval>();
