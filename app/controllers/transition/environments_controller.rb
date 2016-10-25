@@ -285,11 +285,11 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
   end
 
   def enable
-    toggle_enabled('true')
+    toggle_enabled(true)
   end
 
   def disable
-    toggle_enabled('false')
+    toggle_enabled(false)
   end
 
   def diagram
@@ -505,21 +505,16 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
   end
 
   def toggle_enabled(enabled)
-    @platforms      = load_platforms
-    platform_ci_ids = params[:platformCiIds] || @platforms.map { |p| p.toCiId.to_s }
-    result          = []
-    @platforms.each do |p|
-      if platform_ci_ids.include?(p.toCiId.to_s)
-        p.relationAttributes.enabled = enabled.to_s
-        p.attributes.delete(:toCi)
-        execute(p, :save)
-        result << p
-      end
-    end
+    platform_ci_ids = params[:platformCiIds] || load_platforms(&:toCiId)
+    ok, message = Transistor.toggle_platforms(platform_ci_ids, enabled)
 
     respond_to do |format|
-      format.js {render :action => :enable}
-      format.json {render :json => result}
+      format.js do
+        flash[:error] = message unless ok
+        render :action => :enable
+      end
+
+      format.json { render_json_ci_response(ok, @environment, [message]) }
     end
   end
 
