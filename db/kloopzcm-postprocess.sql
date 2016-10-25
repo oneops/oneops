@@ -40,6 +40,7 @@ ALTER TABLE kloopzcm.md_classes ADD COLUMN format TEXT;
 
 ALTER TABLE kloopzcm.dj_deployment ADD COLUMN comments text;
 ALTER TABLE kloopzcm.dj_deployment ADD COLUMN ops text;
+ALTER TABLE kloopzcm.dj_deployment ADD COLUMN auto_pause_exec_orders VARCHAR(200);
 
 ALTER TABLE kloopzcm.dj_deployment_rfc ADD COLUMN ops text;
 
