@@ -208,7 +208,7 @@ class Chef
         Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
         req.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
         if ssl
-          htpp.use_ssl = true
+          http.use_ssl = true
           http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
 
