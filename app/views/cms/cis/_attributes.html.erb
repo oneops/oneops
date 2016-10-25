@@ -30,6 +30,7 @@
                              :read_only => read_only && !ci.ciClassName.start_with?('catalog.') %>
               <% end %>
               <% pattern         = a.options[:pattern]
+                 pattern         = "(#{pattern})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present?
                  required        = a.isMandatory ? true : nil
                  attribute_value = ci_attributes.send(a.attributeName)
                  data_type       = a.dataType
