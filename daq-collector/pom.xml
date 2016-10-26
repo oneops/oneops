@@ -16,23 +16,14 @@
     <properties>
         <logback.version>0.9.15</logback.version>
         <activemq.version>5.11.1</activemq.version>
-        <snakeyaml.version>1.8</snakeyaml.version>
         <com.springsource.javax.jms.version>1.1.0</com.springsource.javax.jms.version>
         <visualization-datasource.version>1.0.2</visualization-datasource.version>
     </properties>
     <dependencies>
-
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>daq-common</artifactId>
             <version>${project.version}</version>
-
-        </dependency>
-
-        <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>${snakeyaml.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
@@ -116,27 +107,16 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
-			<createDependencyReducedPom>false</createDependencyReducedPom>
-
-                            <filters>
-                                                         
-                                <filter>
-                                                                 
-                                    <artifact>*:*</artifact>
-                                                                 
-                                    <excludes>
-                                                                         
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>                       
+                                <filter>                             
+                                    <artifact>*:*</artifact>                           
+                                    <excludes>                              
                                         <exclude>META-INF/*.SF</exclude>
-                                                                         
-                                        <exclude>META-INF/*.DSA</exclude>
-                                                                         
-                                        <exclude>META-INF/*.RSA</exclude>
-                                                                             
-                                                                     
-                                    </excludes>
-                                                             
+                                        <exclude>META-INF/*.DSA</exclude>   
+                                        <exclude>META-INF/*.RSA</exclude>                           
+                                    </excludes>   
                                 </filter>
-                                                     
                             </filters>
                             <transformers>
                                 <transformer
@@ -152,24 +132,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-           <!-- <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.4</version>
-                <executions>
-                    <execution>
-                        <id>create-tarball</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <descriptor>src/main/resources/assembly.xml</descriptor>
-                </configuration>
-            </plugin> -->
-
         </plugins>
     </build>
 </project>
