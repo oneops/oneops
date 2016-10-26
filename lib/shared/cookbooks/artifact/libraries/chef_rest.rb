@@ -1,4 +1,7 @@
 require 'net/http'
+if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+  require 'net/https'
+end
 require 'tempfile'
 require 'uri'
 
@@ -89,8 +92,8 @@ class Chef
         http = Net::HTTP.new(url_uri.host,url_uri.port)
         req = Net::HTTP::Get.new(url_uri.request_uri)
         if ssl
-          req.use_ssl = true
-          req.verify_mode = OpenSSL::SSL::VERIFY_NONE
+          http.use_ssl = true
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
 
         http.request req do |response|
@@ -205,8 +208,8 @@ class Chef
         Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
         req.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
         if ssl
-          req.use_ssl = true
-          req.verify_mode = OpenSSL::SSL::VERIFY_NONE
+          http.use_ssl = true
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
 
         http.request req do |response|
