@@ -1,44 +1,46 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.senders.generic;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
+import com.google.gson.Gson;
 import com.oneops.antenna.domain.BasicSubscriber;
 import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.antenna.domain.URLSubscriber;
 import com.oneops.antenna.senders.NotificationSender;
-
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
-
+import org.springframework.http.HttpHeaders;
 import javax.annotation.PostConstruct;
+import java.io.IOException;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.oneops.metrics.OneOpsMetrics.ANTENNA;
-import static org.springframework.http.HttpStatus.OK;
 
 /**
  * Http message dispatcher. This is basically used to send
@@ -47,6 +49,7 @@ import static org.springframework.http.HttpStatus.OK;
 public class HTTPMsgService implements NotificationSender {
 
     private static Logger logger = Logger.getLogger(HTTPMsgService.class);
+    private final Gson gson = new Gson();
 
     // Metrics
     @Autowired
@@ -74,48 +77,39 @@ public class HTTPMsgService implements NotificationSender {
      */
     @Override
     public boolean postMessage(NotificationMessage msg, BasicSubscriber sub) {
+        URLSubscriber urlSub = (URLSubscriber) sub;
+        boolean isHpom = urlSub.hasHpomXfmr();
 
-        boolean isHpom = false;
-        try {
-            URLSubscriber urlSub = (URLSubscriber) sub;
-            isHpom = urlSub.hasHpomXfmr();
+        CloseableHttpClient httpClient = HttpClients.createDefault();
 
-            DefaultHttpClient httpClient = new DefaultHttpClient();
-            if (urlSub.getUserName() != null) {
-                BasicCredentialsProvider cp = new BasicCredentialsProvider();
-                cp.setCredentials(AuthScope.ANY,
-                        new UsernamePasswordCredentials(urlSub.getUserName(),
-                                urlSub.getPassword()));
-                httpClient.setCredentialsProvider(cp);
-            }
+        HttpPost req = new HttpPost(urlSub.getUrl());
+        req.setEntity(new StringEntity(gson.toJson(msg), ContentType.APPLICATION_JSON));
 
-            HttpComponentsClientHttpRequestFactory rf = new HttpComponentsClientHttpRequestFactory(httpClient);
-            rf.setReadTimeout(2000);
-            if (urlSub.getTimeout() > 0) {
-                rf.setConnectTimeout(urlSub.getTimeout());
-            } else {
-                rf.setConnectTimeout(2000);
-            }
+        int timeout = urlSub.getTimeout();
+        req.setConfig(RequestConfig.custom().setSocketTimeout(timeout > 0 ? timeout : 2000).build());
+        String userName = urlSub.getUserName();
+        if (userName != null) {
+            String auth = userName + ":" + urlSub.getPassword();
+            req.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(Base64.encodeBase64(auth.getBytes())));
+        }
 
-            RestTemplate restTemplate = new RestTemplate(rf);
-            ResponseEntity<String> res = restTemplate.postForEntity(urlSub.getUrl(), msg, String.class);
-            if (res.getStatusCode() == OK) {
+        try (CloseableHttpResponse res = httpClient.execute(req)) {
+            if (res.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                 countOK(isHpom);
                 return true;
             } else {
                 logger.warn(isHpom ? "HPOM" : "HTTP" + " message post response code: "
-                        + res.getStatusCode()
+                        + res.getStatusLine().getStatusCode()
                         + " for URL sink: "
                         + urlSub.getName());
             }
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             logger.error(isHpom ? "HPOM" : "HTTP" + " message post failed." + ex.getMessage());
         }
 
         countErr(isHpom);
         return false;
     }
-
 
     /**
      * Metrics counters for successful http and hpom messages.
@@ -125,8 +119,11 @@ public class HTTPMsgService implements NotificationSender {
      * @param isHpom {@code true} if the sink has HPOM transformer configured.
      */
     private void countOK(boolean isHpom) {
-        if (!isHpom) http.mark();
-        else hpom.mark();
+        if (isHpom) {
+            hpom.mark();
+        } else {
+            http.mark();
+        }
     }
 
     /**
@@ -135,7 +132,10 @@ public class HTTPMsgService implements NotificationSender {
      * @param isHpom {@code true} if the sink has HPOM transformer configured.
      */
     private void countErr(boolean isHpom) {
-        if (!isHpom) httpErr.mark();
-        else hpomErr.mark();
+        if (isHpom) {
+            hpomErr.mark();
+        } else {
+            httpErr.mark();
+        }
     }
 }
