@@ -19,7 +19,8 @@
 <% watched_map = current_user.watches.where(:ci_class_name => 'manifest.Environment').inject({}) {|m, a| m[a.ci_id] = true; m} %>
 <%= ci_list(@environments,
             :new_link => new_link,
-            :menu     => [{:id => 'watch',   :label => icon('eye',  'Watch',  'fa-fw'), :url => watch_path, :method => :post, :param_name => 'ciIds'},
+            :menu     => [{:id => 'pull_design', :label => icon('magnet', 'Pull', 'fa-fw'), :url => pull_assembly_transition_path, :method => :post, :param_name => 'ciIds'},
+                          {:id => 'watch', :label => icon('eye',  'Watch',  'fa-fw'), :url => watch_path, :method => :post, :param_name => 'ciIds'},
                           {:id => 'unwatch', :label => icon('eye-slash', 'Ignore', 'fa-fw'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}],
             :toolbar  => {:list_name => 'transition_environments',
                           :sort_by   => [%w(Name ciName), %w(Profile profile), %w(Created created), %w(Watching watch)],
@@ -54,6 +55,8 @@
     <%= marker(profile, 'label-info') if profile.present? %>
     <% if target.manifest && target.manifest.parentReleaseId != @catalog.releaseId %>
       <%= status_marker('design', 'pull', 'label-info') %>
+    <% elsif target.ciState == 'manifest_locked' %>
+      <%= status_marker('design', 'pulling', 'label-info') %>
     <% else %>
       <%= status_marker('design', 'latest', 'label') %>
     <% end %>

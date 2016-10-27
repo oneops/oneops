@@ -23,6 +23,8 @@
     </div>
   <% end %>
 <% end %>
-<%= section_panel 'Environments', :id => 'environment_list', :width => 'triple', :position => 'left', :menu => [new_button] do %>
-  <%= render 'environment_list' %>
+<%= section_panel 'Environments', :width => 'triple', :position => 'left', :menu => [new_button] do %>
+  <div id="environment_list">
+    <%= render 'environment_list' %>
+  </div>
 <% end %>
