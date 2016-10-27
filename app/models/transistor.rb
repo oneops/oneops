@@ -180,6 +180,18 @@ class Transistor < ActiveResource::Base
     return id
   end
 
+  def self.toggle_platforms(platform_ids, enable)
+    action = enable ? 'enable' : 'disable'
+    payload = { platforms: platform_ids.join(",") }
+    begin
+      release_id = JSON.parse(put("platforms/#{action}", {}, payload.to_json ).body)['releaseId']
+    rescue Exception => e
+      message = handle_exception e, "Failed to #{enable} platforms #{payload[:platforms]}"
+      return nil, message
+    end
+    return release_id
+  end
+
   def self.toggle_platform(platform, enable)
     id = nil
     platform_id = platform.ciId
