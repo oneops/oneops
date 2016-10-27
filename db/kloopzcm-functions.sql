@@ -2424,7 +2424,7 @@ BEGIN
 
    update dj_rfc_ci
    	    set ci_name = coalesce(p_ci_name, ci_name),
-   	      release_id = coalesce(p_release_id, release_id),
+   	      release_id = coalesce(NULLIF(p_release_id, 0), release_id),
        	  execution_order = coalesce(p_exec_order, execution_order),
 	        comments = coalesce(p_comments, comments),
 	        updated_by = coalesce(p_updated_by, updated_by),
