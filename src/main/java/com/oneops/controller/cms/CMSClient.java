@@ -19,6 +19,7 @@ package com.oneops.controller.cms;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -438,12 +439,13 @@ public class CMSClient {
      * @param exec the exec
      */
     public void incExecOrder(DelegateExecution exec) {
-        Integer execOrder = (Integer) exec.getVariable(EXEC_ORDER) + 1;
+        Integer newExecOrder = (Integer) exec.getVariable(EXEC_ORDER) + 1;
         CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
         Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
-        if (autoPauseExecOrders != null && autoPauseExecOrders.contains(execOrder)) {
-            logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + execOrder);
+        if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
+            logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
             dpmt.setDeploymentState(PAUSED);
+            dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
             try {
                 djManager.updateDeployment(dpmt);
             } catch (CmsBaseException e) {
@@ -451,7 +453,7 @@ public class CMSClient {
                 throw e;
             }
         }
-        exec.setVariable(EXEC_ORDER, execOrder);
+        exec.setVariable(EXEC_ORDER, newExecOrder);
     }
 
     /**
