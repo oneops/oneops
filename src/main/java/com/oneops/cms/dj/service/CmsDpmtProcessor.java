@@ -175,8 +175,8 @@ public class CmsDpmtProcessor {
 	
 	private void updateAutoDeployExecOrders(CmsDeployment dpmt) {
 		Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
-		if (autoPauseExecOrders != null && !autoPauseExecOrders.isEmpty()) {
-			dpmt.setAutoPauseExecOrdersVal(StringUtils.join(autoPauseExecOrders, ","));
+		if (autoPauseExecOrders != null) {
+			dpmt.setAutoPauseExecOrdersVal(StringUtils.join(autoPauseExecOrders, ","), false);
 		}
 	}
 
@@ -363,6 +363,8 @@ public class CmsDpmtProcessor {
 			dpmt.setDeploymentState(null);
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
+
 		if (DPMT_STATE_CANCELED.equalsIgnoreCase(dpmt.getDeploymentState())) {
 			if (dpmtMapper.getDeploymentRecordsCountByState(dpmt.getDeploymentId(), DPMT_RECORD_STATE_INPROGRESS, null) > 0) {
 				String errMsg = "The deployment still have active work orders!"; 

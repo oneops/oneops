@@ -20,7 +20,6 @@ package com.oneops.cms.dj.domain;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -268,9 +267,15 @@ public class CmsDeployment implements Serializable{
 	}
 
 	public void setAutoPauseExecOrdersVal(String autoPauseExecOrdersVal) {
+		setAutoPauseExecOrdersVal(autoPauseExecOrdersVal, true);
+	}
+
+	public void setAutoPauseExecOrdersVal(String autoPauseExecOrdersVal, boolean updateCollection) {
 		this.autoPauseExecOrdersVal = autoPauseExecOrdersVal;
-		if (StringUtils.isNotBlank(autoPauseExecOrdersVal)) {
-			autoPauseExecOrders = Arrays.stream(autoPauseExecOrdersVal.split(",")).map(val -> Integer.parseInt(val.trim())).collect(Collectors.toSet());
+		if (updateCollection) {
+			if (StringUtils.isNotBlank(autoPauseExecOrdersVal)) {
+				autoPauseExecOrders = Arrays.stream(autoPauseExecOrdersVal.split(",")).map(val -> Integer.parseInt(val.trim())).collect(Collectors.toSet());
+			}
 		}
 	}
 
