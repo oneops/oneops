@@ -1432,6 +1432,19 @@ ALTER FUNCTION dj_rm_rfc_rel(bigint) OWNER TO :user;
 CREATE OR REPLACE FUNCTION dj_upd_deployment(p_deployment_id bigint, p_state character varying, p_updated_by character varying, p_desc character varying, p_comments character varying, p_process_id character varying)
   RETURNS void AS
 $BODY$
+BEGIN
+        perform dj_upd_deployment(p_deployment_id, p_state, p_updated_by, p_desc, p_comments, p_process_id, null);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying)
+  OWNER TO :user;
+
+CREATE OR REPLACE FUNCTION dj_upd_deployment(p_deployment_id bigint, p_state character varying, p_updated_by character varying, p_desc character varying, p_comments character varying, p_process_id character varying, p_auto_pause_exec_orders character varying)
+  RETURNS void AS
+$BODY$
 DECLARE
  l_state_id integer;
  l_old_state integer;
@@ -1460,6 +1473,7 @@ BEGIN
 	    description = coalesce(p_desc, description),
 	    comments = coalesce(p_comments, comments),
 	    process_id = coalesce(p_process_id, process_id),
+            auto_pause_exec_orders = coalesce(p_auto_pause_exec_orders, auto_pause_exec_orders),
 	    updated = now()
     where deployment_id = p_deployment_id
     returning description, comments, ops into  l_desc, l_comments, l_ops;	
@@ -1478,7 +1492,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying)
+ALTER FUNCTION dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying, character varying)
   OWNER TO :user;
 
 
