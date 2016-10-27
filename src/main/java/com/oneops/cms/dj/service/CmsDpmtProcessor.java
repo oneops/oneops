@@ -19,8 +19,8 @@ package com.oneops.cms.dj.service;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -174,8 +175,8 @@ public class CmsDpmtProcessor {
 	
 	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
 		
-		List<CmsDpmtApproval> result = new ArrayList<CmsDpmtApproval>();
-		ListUtils<Long> lu = new ListUtils<Long>();
+		List<CmsDpmtApproval> result = new ArrayList<>();
+		ListUtils<Long> lu = new ListUtils<>();
 		try {
 			Map<Long, List<CmsDpmtApproval>> approvalMap = lu.toMapOfList(approvals, "deploymentId");
 			for (Map.Entry<Long, List<CmsDpmtApproval>> dpmtApprovals : approvalMap.entrySet()) {
@@ -207,13 +208,7 @@ public class CmsDpmtProcessor {
 				updateDeployment(dpmt);
 			}
 			return result;
-		} catch (NoSuchMethodException e) {
-			e.printStackTrace();
-			throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
-		} catch (InvocationTargetException e) {
-			e.printStackTrace();
-			throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
-		} catch (IllegalAccessException e) {
+		} catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
 			e.printStackTrace();
 			throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
 		}
@@ -228,16 +223,16 @@ public class CmsDpmtProcessor {
 		
 		List<CmsDpmtApproval> approvals = dpmtMapper.getDpmtApprovals(dpmt.getDeploymentId());
 		//convert to map
-		Map<Long,List<CmsDpmtApproval>> approvalMap = new HashMap<Long,List<CmsDpmtApproval>>();
+		Map<Long,List<CmsDpmtApproval>> approvalMap = new HashMap<>();
 		for (CmsDpmtApproval approval : approvals) {
 			if (!approvalMap.containsKey(approval.getGovernCiId())) {
-				approvalMap.put(approval.getGovernCiId(), new ArrayList<CmsDpmtApproval>());
+				approvalMap.put(approval.getGovernCiId(), new ArrayList<>());
 			}
 			approvalMap.get(approval.getGovernCiId()).add(approval);
 		}
 		
 		
-		List<CmsCI> governCIs = new ArrayList<CmsCI>();
+		List<CmsCI> governCIs = new ArrayList<>();
 		for (long cloudId : cloudIds) {
 			for (CmsCIRelation supportRel : cmProcessor.getFromCIRelations(cloudId, "base.SupportedBy", null)) {
 				governCIs.add(supportRel.getToCi());
@@ -281,20 +276,17 @@ public class CmsDpmtProcessor {
 		if (approvals.size() == 0) {
 			return null;
 		} else {
-			Collections.sort(approvals, new Comparator<CmsDpmtApproval>() {
-		        public int compare(CmsDpmtApproval a1, CmsDpmtApproval a2) {
-		            //Sorts by 'ApprovalId' property desc
-		            return (int)(a2.getApprovalId()-a1.getApprovalId());
-		        }
-		    });
+			Collections.sort(approvals, (a1, a2) -> {
+                //Sorts by 'ApprovalId' property desc
+                return (int) (a2.getApprovalId() - a1.getApprovalId());
+            });
 			return approvals.get(0);
 		}
 	}
 
 	private boolean needApprovalForNewDpmt(CmsDeployment dpmt) {
-		boolean needApproval = false;
 		List<Long> cloudIds = dpmtMapper.getToCiIdsForReleasePending(dpmt.getReleaseId(), "base.DeployedTo");
-		List<CmsCI> governCIs = new ArrayList<CmsCI>();
+		List<CmsCI> governCIs = new ArrayList<>();
 		for (long cloudId : cloudIds) {
 			for (CmsCIRelation supportRel : cmProcessor.getFromCIRelations(cloudId, "base.SupportedBy", null)) {
 				governCIs.add(supportRel.getToCi());
@@ -314,7 +306,7 @@ public class CmsDpmtProcessor {
 					return true; //this domt need approval
 			}
 		}
-		return needApproval;
+		return false;
 	}
 	
 	
@@ -326,19 +318,6 @@ public class CmsDpmtProcessor {
 		approval.setGovernCiJson(gson.toJson(governCi));
 		dpmtMapper.createDpmtApproval(approval);
 		logger.info("Created approval for dpmtId = " + dpmtId + " : " + approval.getGovernCiJson());
-	}
-	
-	
-	@SuppressWarnings("unused")
-	private boolean _envNeedApproval(CmsDeployment dpmt) {
-		CmsCI env = cmProcessor.getEnvByNS(dpmt.getNsPath());
-		if (env.getAttribute("approve") != null 
-				&& env.getAttribute("approve").getDjValue() != null 
-				&& env.getAttribute("approve").getDjValue().equalsIgnoreCase("true")){
-			return true;
-		} else {
-			return false;
-		}
 	}
 	
 	/**
@@ -449,8 +428,8 @@ public class CmsDpmtProcessor {
 		List<CmsCI> platforms = cmProcessor.getCiBy3NsLike(manifestRelease.getNsPath(), MANIFEST_PLATFORM_CLASS, null);
 		for (CmsCI plat : platforms) {
 			boolean vacuumAllowed = true;
-			List<CmsCI> monitorCiList = new ArrayList<CmsCI>();
-			Set<Long> monitors4DeletedComponents = new HashSet<Long>();
+			List<CmsCI> monitorCiList = new ArrayList<>();
+			Set<Long> monitors4DeletedComponents = new HashSet<>();
 
 			List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelationsNaked(plat.getCiId(), "base.Consumes", "account.Cloud");
 			for (CmsCIRelation platformCloudRel : platformCloudRels) {
@@ -480,7 +459,7 @@ public class CmsDpmtProcessor {
 						List<CmsCIRelation> monitorRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, CmsConstants.MANIFEST_WATCHED_BY,
 								null, CmsConstants.MONITOR_CLASS);
 						if (monitorRels.size() > 0) {
-							monitors4DeletedComponents.addAll(monitorRels.stream().map(relation -> relation.getToCiId()).collect(Collectors.toList()));
+							monitors4DeletedComponents.addAll(monitorRels.stream().map(CmsCIRelationBasic::getToCiId).collect(Collectors.toList()));
 						}
 					}
 					if (!vacuumAllowed) {
@@ -494,13 +473,13 @@ public class CmsDpmtProcessor {
 				// 1. the monitors have corresponding parent CIs that are also marked pending_deletion, these would be in monitors4DeletedComponents
 				// 2. all the bom CIs for this manifest are updated for this manifest release
 				monitorCiList.removeIf(monitor -> monitors4DeletedComponents.contains(monitor.getCiId()));
-				List<CmsCI> monitorsEligible4Del = getMonitorsEligible4Del(bomRelease, monitorCiList);
+				List<CmsCI> monitorsEligible4Del = getMonitorsEligible4Del(monitorCiList);
 
 				if (monitorsEligible4Del.size() == monitorCiList.size()) {
 					nsMapper.vacuumNamespace(plat.getNsId(), dpmt.getCreatedBy());
 				}
 				else {
-					monitorsEligible4Del.stream().forEach(monitor -> cmProcessor.deleteCI(monitor.getCiId(), dpmt.getCreatedBy()));
+					monitorsEligible4Del.forEach(monitor -> cmProcessor.deleteCI(monitor.getCiId(), dpmt.getCreatedBy()));
 				}
 			}
 		}
@@ -523,9 +502,9 @@ public class CmsDpmtProcessor {
 		}
 	}
 
-	private List<CmsCI> getMonitorsEligible4Del(CmsRelease bomRelease, List<CmsCI> monitorCiList) {
+	private List<CmsCI> getMonitorsEligible4Del(List<CmsCI> monitorCiList) {
 
-		List<CmsCI> monitorsEligible4Del = new ArrayList<CmsCI>();
+		List<CmsCI> monitorsEligible4Del = new ArrayList<>();
 		if (!monitorCiList.isEmpty()) {
 			monitorsEligible4Del.addAll(monitorCiList.stream().
 					filter(monitor -> {
@@ -591,7 +570,7 @@ public class CmsDpmtProcessor {
 		Map<String, String> additionalInfo = wo.getAdditionalInfo();
 		if (additionalInfo != null && !additionalInfo.isEmpty()) {
 
-			additionalInfo.entrySet().stream().forEach(entry -> {
+			additionalInfo.entrySet().forEach(entry -> {
 				String key = entry.getKey();
 				if (ZONES_SELECTED.equalsIgnoreCase(key)) {
 					processSelectedZones(wo, entry);
@@ -737,7 +716,7 @@ public class CmsDpmtProcessor {
 	 * @return the map
 	 */
 	public Map<String, Long> countDeploymentGroupBy(String nsPath, String state) {
-		Map<String, Long> result = new HashMap<String, Long>();
+		Map<String, Long> result = new HashMap<>();
 		String nsLike = CmsUtil.likefyNsPath(nsPath);
 		List<Map<String,Object>> stats = dpmtMapper.countDeploymentGroupByNs(nsPath, nsLike, state);
 		for (Map<String,Object> row : stats) {
@@ -852,6 +831,17 @@ public class CmsDpmtProcessor {
 		return dpmtMapper.getDeploymentRecordsByState(dpmtId, state, execOrder);
 	}
 	
+	/**
+	 * Gets the deployment record cis updated after a given timestamp.
+	 *
+	 * @param dpmtId the dpmt id
+	 * @param timestamp udpated timestamp
+	 * @return the deployment record cis
+	 */
+	public List<CmsDpmtRecord> getDeploymentRecordsUpdatedAfter(long dpmtId, Date timestamp) {
+		return dpmtMapper.getDeploymentRecordsUpdatedAfter(dpmtId, timestamp);
+	}
+
 	/**
 	 * Gets the deployment record relations.
 	 *
