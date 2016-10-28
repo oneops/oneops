@@ -132,8 +132,20 @@
     	<property name="rfcUtil" ref="rfcUtil" />
         <property name="cmsCrypto" ref="cmsCrypto"/>
     </bean>
+    
+    <bean id="snapshotManager" class="com.oneops.cms.snapshot.service.SnapshotManagerImpl">
+        <property name="exportProcessor" ref="exportProcessor"/>
+        <property name="importProcessor" ref="importProcessor"/>
+    </bean>
 
-	<bean id="cmsRfcProcessor" class="com.oneops.cms.dj.service.CmsRfcProcessor">
+    <bean id="exportProcessor" class="com.oneops.cms.snapshot.service.SnapshotExportProcessor">
+        <property name="cmProcessor" ref="cmsCmProcessor"/>
+    </bean>
+    <bean id="importProcessor" class="com.oneops.cms.snapshot.service.SnapshotImportProcessor">
+    </bean>
+
+
+    <bean id="cmsRfcProcessor" class="com.oneops.cms.dj.service.CmsRfcProcessor">
 		<property name="djMapper" ref="djMapper" />
         <property name="djValidator" ref="cmsDjValidator" />
         <property name="nsManager" ref="cmsNsManager" />
