@@ -82,7 +82,6 @@ public class CloudUtil {
                 final String nsPath = requiredRelations.get(0).getNsPath();
                 String message = getErrorMessage(cloudsMissingServices, nsPath);
                 errors.add(message);
-                //throw new TransistorException(TRANSISTOR_MISSING_CLOUD_SERVICES, message);
             }
         }
         if (!errors.isEmpty()) {
