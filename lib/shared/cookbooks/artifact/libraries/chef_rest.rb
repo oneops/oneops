@@ -72,8 +72,13 @@ class Chef
     def download_file_single(remote_file, local_file)
       Chef::Log.debug("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
-      url_uri = URI(remote_file)
 
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+        url_uri = URI.parse(remote_file.to_s)
+      else
+        url_uri = URI(remote_file)
+      end
+      
       ssl = url_uri.scheme == "https" ? true : false
 
       if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
