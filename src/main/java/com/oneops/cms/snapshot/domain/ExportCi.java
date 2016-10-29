@@ -4,9 +4,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /*******************************************************************************
  *
@@ -28,6 +26,8 @@ import java.util.Map;
 public class ExportCi extends ExportBaseEntity {
     private long id;
     private String name;
+    private String comments; 
+    private List<ExportRelation> links = new ArrayList<>();
     
     public ExportCi() {
     }
@@ -45,6 +45,10 @@ public class ExportCi extends ExportBaseEntity {
         attributes.put(attr.getAttributeName(), attr.getDfValue());
         addOwner(attr.getOwner(), attr.getAttributeName());
     }
+    
+    public void addRelation(ExportRelation relations){
+        links.add(relations);
+    }
 
     public long getId() {
         return id;
@@ -60,5 +64,21 @@ public class ExportCi extends ExportBaseEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
+
+    public List<ExportRelation> getLinks() {
+        return links;
+    }
+
+    public void setLinks(List<ExportRelation> links) {
+        this.links = links;
     }
 }

@@ -25,7 +25,6 @@ import java.util.Map;
 public class ExportBaseEntity {
     protected Map<String, String> attributes = new HashMap<>();
     private String type;
-    private String comments;
     private Map<String, List<String>> owners = new HashMap<>();
 
     protected void addOwner(String owner, String name) {
@@ -45,14 +44,6 @@ public class ExportBaseEntity {
 
     public void setType(String type) {
         this.type = type;
-    }
-
-    public String getComments() {
-        return comments;
-    }
-
-    public void setComments(String comments) {
-        this.comments = comments;
     }
 
     public Map<String, String> getAttributes() {

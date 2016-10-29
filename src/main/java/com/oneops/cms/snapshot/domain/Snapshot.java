@@ -2,6 +2,7 @@ package com.oneops.cms.snapshot.domain;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /*******************************************************************************
@@ -26,7 +27,8 @@ public class Snapshot {
     private String name;
     private String namespace;
     private String tag;
-    private Map<String, NamespaceContent> contentMap = new HashMap<>();
+    private Map<String, List<ExportCi>> components = new HashMap<>();
+    private Map<Long, ExportCi> ciMap= new HashMap<>();
 
     public long getId() {
         return id;
@@ -41,21 +43,23 @@ public class Snapshot {
     }
     
     public void addExportCi(String namespace, ExportCi exportCi){
-        getNamespaceContent(namespace).getCis().add(exportCi);
-    }
-
-    public void addExportRelations(String namespace, ExportRelations exportRelations) {
-        getNamespaceContent(namespace).getRelations().add(exportRelations);
-    }
-
-    private NamespaceContent getNamespaceContent(String namespace) {
-        NamespaceContent content = contentMap.get(namespace);
-        if (content==null){
-            content = new NamespaceContent();
-            contentMap.put(namespace, content);
+        ciMap.put(exportCi.getId(), exportCi);
+        List<ExportCi> list = components.get(namespace);
+        if (list==null){
+            list = new ArrayList<>();
+            components.put(namespace, list);
         }
-        return content;
+        list.add(exportCi);
     }
+
+    public void addExportRelations(long from, ExportRelation exportRelation) {
+        ExportCi exportCi = ciMap.get(from);
+        if (exportCi!=null) {
+            exportCi.addRelation(exportRelation);
+        }
+    }
+
+  
 
     public void setName(String name) {
         this.name = name;
@@ -77,13 +81,11 @@ public class Snapshot {
         this.tag = tag;
     }
 
-    public Map<String, NamespaceContent> getContentMap() {
-        return contentMap;
+    public Map<String, List<ExportCi>> getComponents() {
+        return components;
     }
 
-    public void setContentMap(Map<String, NamespaceContent> contentMap) {
-        this.contentMap = contentMap;
+    public void setComponents(Map<String, List<ExportCi>> components) {
+        this.components = components;
     }
-
-   
 }

@@ -1,7 +1,13 @@
 package com.oneops.cms.snapshot.domain;
 
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /*******************************************************************************
  *
@@ -20,23 +26,30 @@ import java.util.List;
  *   limitations under the License.
  *
  *******************************************************************************/
-public class NamespaceContent {
-    private List<ExportCi> cis = new ArrayList<>();
-    private List<ExportRelations> relations = new ArrayList<>();
+public class ExportRelation extends ExportBaseEntity {
+    private Long to;
 
-    public List<ExportCi> getCis() {
-        return cis;
+
+    public ExportRelation() {
     }
 
-    public void setCis(List<ExportCi> cis) {
-        this.cis = cis;
+    public ExportRelation(CmsCIRelation rel) {
+        this.setTo(rel.getToCiId());
+        this.setType(rel.getRelationName());
+        rel.getAttributes().values().forEach(this::addAttribute);
     }
 
-    public List<ExportRelations> getRelations() {
-        return relations;
+    private void addAttribute(CmsCIRelationAttribute attr) {
+        attributes.put(attr.getAttributeName(), attr.getDfValue());
+        addOwner(attr.getOwner(), attr.getAttributeName());
     }
 
-    public void setRelations(List<ExportRelations> relations) {
-        this.relations = relations;
+    public Long getTo() {
+        return to;
     }
+
+    public void setTo(Long to) {
+        this.to = to;
+    }
+
 }

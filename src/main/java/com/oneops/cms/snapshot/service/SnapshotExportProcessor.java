@@ -3,12 +3,9 @@ package com.oneops.cms.snapshot.service;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
-import com.oneops.cms.exceptions.OpsException;
 import com.oneops.cms.snapshot.domain.ExportCi;
-import com.oneops.cms.snapshot.domain.ExportRelations;
+import com.oneops.cms.snapshot.domain.ExportRelation;
 import com.oneops.cms.snapshot.domain.Snapshot;
-import com.oneops.cms.util.CmsError;
 
 import java.util.List;
 
@@ -58,7 +55,7 @@ public class SnapshotExportProcessor {
         
         List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNaked(ns, null, null, null,null);
         for (CmsCIRelation rel: relations) {
-            snapshot.addExportRelations(rel.getNsPath(), new ExportRelations(rel));
+            snapshot.addExportRelations(rel.getFromCiId(), new ExportRelation(rel));
         }
         return snapshot;
     }
