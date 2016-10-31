@@ -67,10 +67,6 @@
         	<property name="mdManager" ref="cmsMdManager" />
     	</bean>
 	
-		<bean id="snapshotRestController" class="com.oneops.cms.ws.rest.SnapshotRestController">
-			<property name="snapshotManager" ref="snapshotManager" />
-		</bean>
-		    
 	  	<bean id="cmRestController" class="com.oneops.cms.ws.rest.CmRestController">
         	<property name="cmManager" ref="cmsCmManager" />
         	<property name="opsManager" ref="opsManager" />
