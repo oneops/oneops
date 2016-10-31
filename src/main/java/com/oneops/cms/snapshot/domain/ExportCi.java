@@ -46,7 +46,7 @@ public class ExportCi extends ExportBaseEntity {
         addOwner(attr.getOwner(), attr.getAttributeName());
     }
     
-    public void addRelation(ExportRelation relations){
+    void addRelation(ExportRelation relations){
         links.add(relations);
     }
 

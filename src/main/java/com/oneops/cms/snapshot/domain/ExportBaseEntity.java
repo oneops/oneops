@@ -22,13 +22,13 @@ import java.util.Map;
  *   limitations under the License.
  *
  *******************************************************************************/
-public class ExportBaseEntity {
-    protected Map<String, String> attributes = new HashMap<>();
+class ExportBaseEntity {
     private String type;
+    protected Map<String, String> attributes = new HashMap<>();
     private Map<String, List<String>> owners = new HashMap<>();
 
-    protected void addOwner(String owner, String name) {
-        if (owner != null) {
+    void addOwner(String owner, String name) {
+        if (owner != null && !owner.isEmpty()) {
             List<String> ownerList = owners.get(owner);
             if (ownerList == null) {
                 ownerList = new ArrayList<>();
