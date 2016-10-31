@@ -10,7 +10,7 @@
 . /etc/rc.d/init.d/functions
  
 PROG_DIR='/usr/local/bin'
-PROG="$PROG_DIR/logstash-forwarder"
+PROG="$PROG_DIR/logstash-forwarder -spool-size 100 -log-to-syslog"
 NAME='logstash-forwarder'
 CONFIG="/etc/customlogs/logstash-forwarder/$NAME.conf"
 LOCKFILE="/var/lock/subsys/$NAME"
