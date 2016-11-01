@@ -68,6 +68,25 @@ when /rackspace/
   })
   node.set["network_provider"] = network_provider
 
+when /softlayer/
+  require 'fog/softlayer'
+  provider = Fog::Compute.new({
+    :provider => 'softlayer',
+    :softlayer_username => cloud[:username],
+    :softlayer_api_key => cloud[:apikey]
+  })
+  
+when /aliyun/
+  require 'fog/aliyun'
+  provider = Fog::Compute.new({
+    :provider => 'aliyun',
+    :aliyun_region_id => cloud[:region],
+    :aliyun_zone_id => '', # "aliyun_zone_id" is not a required parameter
+    :aliyun_url => cloud[:url],
+    :aliyun_accesskey_id => cloud[:key],
+    :aliyun_accesskey_secret => cloud[:secret]
+  })
+
 when /azure/
   provider = 'azure'
 
@@ -79,6 +98,13 @@ when /vagrant/
 
 when /virtualbox/
   provider = 'virtualbox'
+
+when /vsphere/
+  provider = Fog::Compute.new(:provider => 'vsphere',
+   :vsphere_server => cloud[:endpoint],
+   :vsphere_username => cloud[:username],
+   :vsphere_password=> cloud[:password],
+   :vsphere_expected_pubkey_hash => cloud[:vsphere_pubkey])
 end
 
 #
