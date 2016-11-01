@@ -13,22 +13,14 @@
     <artifactId>daq-common</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <snakeyaml.version>1.8</snakeyaml.version>
         <activemq.version>5.11.1</activemq.version>
     </properties>
     <dependencies>
-
-    <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-beans</artifactId>
-        <version>${spring.version}</version>
-    </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
-            <version>${snakeyaml.version}</version>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>${spring.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-pool</artifactId>
