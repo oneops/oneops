@@ -82,7 +82,7 @@ public class OpampWsController {
     @RequestMapping(value = "/cache/stats", method = RequestMethod.GET)
     @ResponseBody
     public Map<String, Object> getCacheStats() {
-        Map<String, Object> stat = new LinkedHashMap<String, Object>(5);
+        Map<String, Object> stat = new LinkedHashMap<>(5);
         stat.put("status", "ok");
         stat.put("maxSize", cache.getMaxSize());
         stat.put("currentSize", cache.instance().size());
@@ -105,7 +105,7 @@ public class OpampWsController {
     @RequestMapping(value = "/cache/clear", method = RequestMethod.DELETE)
     @ResponseBody
     public Map<String, Object> clearCache() {
-        Map<String, Object> stat = new LinkedHashMap<String, Object>(2);
+        Map<String, Object> stat = new LinkedHashMap<>(2);
         // Get the size before invalidating it.
         long size = cache.instance().size();
         cache.instance().invalidateAll();
@@ -127,21 +127,21 @@ public class OpampWsController {
         // Do a cache maintenance first before getting the size
         cache.instance().cleanUp();
         long size = cache.instance().size();
-        Map<String, Object> stat = new LinkedHashMap<String, Object>(3);
+        Map<String, Object> stat = new LinkedHashMap<>(3);
         if (size > 100) {
             stat.put("status", "Too many cache entries (size=" + size + ")");
-            return new ResponseEntity<Map<String, Object>>(stat, HttpStatus.REQUEST_ENTITY_TOO_LARGE);
+            return new ResponseEntity<>(stat, HttpStatus.PAYLOAD_TOO_LARGE);
         }
         stat.put("status", "ok");
         stat.put("size", size);
 
         Map<String, String> map = cache.instance().asMap();
-        Map<String, Object> entries = new HashMap<String, Object>(map.size());
+        Map<String, Object> entries = new HashMap<>(map.size());
         for (String key : map.keySet()) {
-            entries.put(key, map.get(key).toString());
+            entries.put(key, map.get(key));
         }
         stat.put("entries", entries);
-        return new ResponseEntity<Map<String, Object>>(stat, HttpStatus.OK);
+        return new ResponseEntity<>(stat, HttpStatus.OK);
     }
 
     /**
@@ -156,17 +156,17 @@ public class OpampWsController {
     @ResponseBody
     public ResponseEntity<Map<String, Object>> getCacheEntry(
             @RequestParam(value = "key", required = true) String key) {
-        Map<String, Object> stat = new LinkedHashMap<String, Object>(2);
+        Map<String, Object> stat = new LinkedHashMap<>(2);
         String entry;
         try {
             entry = cache.instance().get(key);
         } catch (ExecutionException e) {
             stat.put("status", e.getMessage());
-            return new ResponseEntity<Map<String, Object>>(stat, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(stat, HttpStatus.NOT_FOUND);
         }
         stat.put("status", "ok");
-        stat.put("entry", entry.toString());
-        return new ResponseEntity<Map<String, Object>>(stat, HttpStatus.OK);
+        stat.put("entry", entry);
+        return new ResponseEntity<>(stat, HttpStatus.OK);
     }
 
     /**
@@ -177,13 +177,12 @@ public class OpampWsController {
      */
     @RequestMapping(value = "/cache/entry", method = RequestMethod.DELETE)
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteCacheEntry(
-            @RequestParam(value = "key", required = true) String key) {
-        Map<String, Object> stat = new LinkedHashMap<String, Object>(2);
+    public ResponseEntity<Map<String, Object>> deleteCacheEntry(@RequestParam(value = "key", required = true) String key) {
+        Map<String, Object> stat = new LinkedHashMap<>(2);
         cache.instance().invalidate(key);
         stat.put("status", "ok");
         stat.put("entry", key);
-        return new ResponseEntity<Map<String, Object>>(stat, HttpStatus.OK);
+        return new ResponseEntity<>(stat, HttpStatus.OK);
     }
 
 	
