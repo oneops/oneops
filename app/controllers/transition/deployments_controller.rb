@@ -59,9 +59,12 @@
   end
 
   def status
-    @step = params[:exec_order].to_i
-    @step = nil unless @step > 0
-    load_deployment_states(@step)
+    step = nil
+    if @deployment.deploymentState != 'complete' && @deployment.deploymentState != 'failed'
+      step = params[:exec_order].to_i
+      step = nil unless step > 0
+    end
+    load_deployment_states(step)
 
     respond_to do |format|
       format.js do
@@ -81,7 +84,7 @@
           end
         end
 
-        load_time_stats if @step.nil? || @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
+        load_time_stats if step.nil? || @deployment_rfc_cis_info.values.all? {|i| i[:state] == 'complete' || i[:state] == 'failed' || i[:state] == 'canceled'}
 
         render :action => :status
       end
