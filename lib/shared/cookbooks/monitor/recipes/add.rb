@@ -18,6 +18,8 @@
 
 # gens nagios config using WatchedBy payload and reloads/starts nagios and perf-agent
 #
+require 'fileutils'
+
 cloud_name = node.workorder.cloud.ciName
 
 ostype = ''
@@ -50,9 +52,9 @@ if ostype.nil? || ostype.length == 0
 end
 
 Chef::Log.info("*** OS_PLATFORM => #{ostype} ***")
-if ostype =~ /windows/
-  return
-end
+# if ostype =~ /windows/
+#   return
+# end
 
 cloud_service = nil
 
@@ -86,7 +88,6 @@ end
 
 if node.workorder.payLoad[:Environment][0][:ciAttributes][:monitoring] == "false"
 
-  # some component add nagios plugins and config in these dirs (ex postgresql)
   execute "mkdir -p /opt/nagios/libexec"
 
   Chef::Log.info("monitoring disabled for the env")
@@ -100,14 +101,21 @@ else
   include_recipe "monitor::install_nagios"
 end
 
+Chef::Log.info("IS NEW COMPUTE: #{is_new_compute}")
 
-conf_dir = "/etc/nagios"
-perf_dir = "/opt/oneops/perf"
+if ostype =~ /windows/
+  conf_dir = "c:/cygwin64/etc/nagios"
+  perf_dir = "c:/cygwin64/opt/oneops/perf"
+else
+  conf_dir = "/etc/nagios"
+  perf_dir = "/opt/oneops/perf"
+end
 if is_new_compute
   puuid = (0..32).to_a.map{|a| rand(32).to_s(32)}.join
   conf_dir = "/tmp/#{puuid}"
   perf_dir = conf_dir + "/perf"
-  execute "mkdir -p #{conf_dir}/conf.d"
+  # execute "mkdir -p #{conf_dir}/conf.d"
+  FileUtils::mkdir_p "#{conf_dir}/conf.d"
 end
 
 node.set["nagios_conf_dir"] = conf_dir
@@ -115,36 +123,43 @@ node.set["perf_conf_dir"] = perf_dir
 
 template "#{conf_dir}/nagios.cfg" do
     source "nagios.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/generic-service.cfg" do
     source "generic-service.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/generic-host.cfg" do
     source "generic-host.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
 template "#{conf_dir}/resource.cfg" do
     source "resource.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/contacts.cfg" do
     source "contacts.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/timeperiods.cfg" do
     source "timeperiods.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/command_perf_process.cfg" do
     source "perf_process_command.cfg.erb"
+    cookbook "monitor"
     mode 0644
 end
 
@@ -168,7 +183,8 @@ if node.workorder.payLoad.has_key?("WatchedBy")
     end
 
     metric_config_dir = "#{perf_dir}/#{node.workorder.rfcCi.ciId}-#{monitor['ciName']}"
-    `mkdir -p #{metric_config_dir}`
+    # `mkdir -p #{metric_config_dir}`
+    FileUtils::mkdir_p "#{metric_config_dir}"
     metric_config_file = "#{metric_config_dir}/config"
     # write simple dstype file
     File.open(metric_config_file, 'w') { |file| file.write(config) }
@@ -326,8 +342,14 @@ ruby_block 'setup nagios' do
       changes += process_monitor(monitor)
     end
 
-    if File.directory?("/var/log/nagios")
-      result = `rm -fr /var/log/nagios ; ln -sf /var/log/nagios3 /var/log/nagios`
+    if ostype =~ /windows/
+      if File.directory?("/cygdrive/c/cygwin64/var/log/nagios")
+        result = `rm -fr /cygdrive/c/cygwin64/var/log/nagios ; ln -sf /cygdrive/c/cygwin64/var/log/nagios3 /cygdrive/c/cygwin64/var/log/nagios`
+      end
+    else
+      if File.directory?("/var/log/nagios")
+        result = `rm -fr /var/log/nagios ; ln -sf /var/log/nagios3 /var/log/nagios`
+      end
     end
 
     if is_new_compute
@@ -340,10 +362,17 @@ ruby_block 'setup nagios' do
       result.error!
 
       # setup dirs used in nagios config
-      dirs = ["/var/run/nagios3","/opt/nagios/libexec","/var/lib/nagios3/spool/checkresults"]
-      dirs += ["/var/log/nagios3","/var/lib/nagios3/rw","/opt/oneops/perf"]
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"'+ "sudo mkdir -p "+dirs.join(" ")+";" +
+      if ostype =~ /windows/
+        dirs = ["/cygdrive/c/cygwin64/var/run/nagios3","/cygdrive/c/cygwin64/opt/nagios/libexec","/cygdrive/c/cygwin64/var/lib/nagios3/spool/checkresults"]
+        dirs += ["/cygdrive/c/cygwin64/var/log/nagios3","/cygdrive/c/cygwin64/var/lib/nagios3/rw","/cygdrive/c/cygwin64/opt/oneops/perf"]
+        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"'+ "sudo mkdir -p "+dirs.join(" ") + '"' #+";" +
+            #"sudo chown -R nagios /cygdrive/c/cygwin64/var/lib/nagios3 /cygdrive/c/cygwin64/var/run/nagios3 /cygdrive/c/cygwin64/var/log/nagios3 /cygdrive/c/cygwin64/opt/oneops/perf" + '"'
+      else
+        dirs = ["/var/run/nagios3","/opt/nagios/libexec","/var/lib/nagios3/spool/checkresults"]
+        dirs += ["/var/log/nagios3","/var/lib/nagios3/rw","/opt/oneops/perf"]
+        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"'+ "sudo mkdir -p "+dirs.join(" ")+";" +
             "sudo chown -R nagios:nagios /var/lib/nagios3 /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf" + '"'
+      end
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
@@ -355,18 +384,37 @@ ruby_block 'setup nagios' do
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /opt/nagios/libexec/" + '"'
+      if ostype =~ /windows/
+        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /cygdrive/c/cygwin64/opt/nagios/libexec/" + '"'
+      else
+        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /opt/nagios/libexec/" + '"'
+      end
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-
-      # copy config and restart nagios
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/; sudo cp -r #{conf_dir}/perf /opt/oneops/; " +
+      if ostype =~ /windows/
+        # copy config and restart nagios
+        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /cygdrive/c/cygwin64/etc/nagios/; sudo cp -r #{conf_dir}/perf /cygdrive/c/cygwin64/opt/oneops/; " +
+            "sudo ln -sf /cygdrive/c/cygwin64/etc/nagios /cygdrive/c/cygwin64/etc/nagios3; sudo chmod +x /cygdrive/c/cygwin64/opt/nagios/libexec/* " + '"'
+      else
+        # copy config and restart nagios
+        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/; sudo cp -r #{conf_dir}/perf /opt/oneops/; " +
             "sudo ln -sf /etc/nagios /etc/nagios3; sudo chmod +x /opt/nagios/libexec/* " + '"'
+      end
+
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
+
+      # copy nagios initd file if windows
+      if ostype =~ /windows/
+        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo cp -r /cygdrive/c/cygwin64/opt/nagios/libexec/nagios_initd /cygdrive/c/cygwin64/etc/rc.d/init.d/nagios' + '"'
+
+        result = shell_out(cmd)
+        Chef::Log.info("#{cmd} returned: #{result.stdout}")
+        result.error!
+      end
 
       `rm -fr #{conf_dir}`
 
@@ -374,11 +422,20 @@ ruby_block 'setup nagios' do
       # standard way
       # for flume agent use in connecting to collectors
       mgmt_domain = node.mgmt_domain
-      `echo #{mgmt_domain} > /opt/oneops/mgmt_domain`
+      if ostype =~ /windows/
+        `echo #{mgmt_domain} > /cygdrive/c/cygwin64/opt/oneops/mgmt_domain`
+      else
+        `echo #{mgmt_domain} > /opt/oneops/mgmt_domain`
+      end
 
       cloud = node.workorder.cloud.ciName
-      Chef::Log.info("setting /opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
-      `echo #{cloud} > /opt/oneops/cloud`
+      if ostype =~ /windows/
+        Chef::Log.info("setting /cygdrive/c/cygwin64/opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
+        `echo #{cloud} > /cygdrive/c/cygwin64/opt/oneops/cloud`
+      else
+        Chef::Log.info("setting /opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
+        `echo #{cloud} > /opt/oneops/cloud`
+      end
 
       env = node.workorder.payLoad[:Environment][0]
       has_monitoring = true
@@ -391,9 +448,15 @@ ruby_block 'setup nagios' do
       end
 
       Chef::Log.info("total of #{changes} changes")
-      `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
-      # restart nagios & forwarder
-      `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
+      if ostype =~ /windows/
+        # `chown -R nagios /cygdrive/c/cygwin64/etc/nagios /cygdrive/c/cygwin64/opt/oneops/perf`
+        # restart nagios & forwarder
+        # `c:/cygwin64/etc/rc.d/init.d/nagios restart && c:/etc/init.d/perf-agent restart`
+      else
+        `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
+        # restart nagios & forwarder
+        `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
+      end
 
     end
 
@@ -414,24 +477,33 @@ else
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?("monitoring") &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == "true"
 
-    service nagios_service do
+    if node.platform =~ /windows/
+      # execute "cygrunsrv --stop #{nagios_service}"
+      # execute "cygrunsrv --start #{nagios_service}"
+    else
+      service nagios_service do
         supports [ :restart, :enable ]
         action [ :restart, :enable ]
-    end
+      end
 
-    service_path = "/usr/sbin"
-    case node.platform
-    when "redhat", "centos", "fedora", "suse"
-        service_path = "/sbin"
+      service_path = "/usr/sbin"
+      case node.platform
+        when "redhat", "centos", "fedora", "suse"
+          service_path = "/sbin"
+      end
+      execute "#{service_path}/service #{nagios_service} restart"
     end
-    execute "#{service_path}/service #{nagios_service} restart"
 
   else
-    service nagios_service do
-      action [ :stop, :disable ]
-    end
-    service "perf-agent" do
-      action [ :stop, :disable ]
+    if node.platform =~ /windows/
+      # execute "cygrunsrv --stop #{nagios_service}"
+    else
+      service nagios_service do
+        action [ :stop, :disable ]
+      end
+      service "perf-agent" do
+        action [ :stop, :disable ]
+      end
     end
 
   end
