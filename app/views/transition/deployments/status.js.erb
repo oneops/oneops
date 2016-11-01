@@ -14,11 +14,6 @@
 
 if (window.refresh_status_results) {
   refresh_status_results("<%= @deployment.deploymentState %>", <%= raw(@deployment_rfc_cis_info.to_json) %>);
-  <% if %w(pending active pausing paused).include?(@deployment.deploymentState) %>
-    setTimeout(refresh_deployment_status, 5000);
-  <% elsif @step %>
-    refresh_deployment_status(true);
-  <% end %>
 }
 
 <% @deployment.log_data.each_pair do |record_id, log| %>

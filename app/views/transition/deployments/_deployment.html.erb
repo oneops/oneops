@@ -261,12 +261,33 @@
     window.deployment_state = "<%= @deployment.deploymentState %>";
 
     window.refresh_deployment_status = function(allSteps) {
+      var step = null;
+      if (!allSteps) {
+        try {
+          var finalStates = ['complete', 'failed', 'canceled'];
+          step = $j(".wf .main .rfc-state i").toArray()
+              .reduce(function (s, el) {
+                        var stateIcon = $j(el);
+                        var state = stateIcon.attr("alt");
+                        if (state && !finalStates.include((state))) {
+                          var rfcStep = parseInt(stateIcon.parents(".rfc").attr('data-rfc-exec-order'));
+                          return (rfcStep > 0 && s) ? Math.min(s, parseInt(rfcStep)) : (s || rfcStep);
+                        }
+                        return s;
+                      }, null);
+        }
+        catch (e) {
+          console.log("Faield to deduce current deployment step.");
+          console.log(e);
+        }
+      }
+
       $j.ajax({
         url:  "<%= status_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
         type: "POST",
         data: {
           current_state:         window.deployment_state,
-          exec_order:            allSteps ? null : (refresh_deployment_status.active_step || -1),
+          exec_order:            step,
           deployment_record_ids: $j.map($j("div[id^='log_']:visible"),
                                         function (el) {
                                           return el.getAttribute("deployment-record-id");
@@ -291,9 +312,11 @@
     };
 
     refresh_deployment_status(true);
-  <% end %>
+    var statusPollingStates = ['active', 'pending', 'pausing', 'paused'];
+    if (statusPollingStates.indexOf("<%= @deployment.deploymentState %>") >= 0) {
+      var timer = setInterval(refresh_deployment_status, 5000);
+    }
 
-  <% if deployment_persisted %>
     $j('a[href^="#log_"]').on('shown', function (e) {
       refresh_deployment_status();
       var logTab = $j(/#log_\d+$/.exec(e.target.href)[0]);
@@ -322,6 +345,10 @@
   setTimeout(overlay_scroll_into_view, 100);
 
   window.refresh_status_results = function (deployment_state, deployment_info) {
+    if (statusPollingStates.indexOf(deployment_state) < 0) {
+      stop_deployment_polling();
+    }
+
     window.deployment_state = deployment_state;
 
     $j("#controls_active").hide();
@@ -337,20 +364,14 @@
 
     var problems = [];
 
-    refresh_deployment_status.active_step = (refresh_deployment_status.active_step || 0) + 1;
-
-    $H(deployment_info).keys().each(function (rfcId) {
-      var info     = deployment_info[rfcId];
+    $j.each(deployment_info, function (rfcId, info) {
       var rfcState = info['state'];
       var rfcLi = $j("li#overlay_bom_rfc_" + rfcId);
 
       rfcLi.find(".rfc-state").html(rfcStateIconMap[rfcState]);
-      if (!['complete', 'failed', 'canceled'].include((rfcState))) {
-        refresh_deployment_status.active_step = Math.min(refresh_deployment_status.active_step || 99999, parseInt(rfcLi.attr('data-rfc-exec-order')));
-      }
 
       if (!['pending', 'canceled'].include((rfcState))) {
-        $j("#log_tab_" + rfcId).show()
+        $j("#log_tab_" + rfcId).show();
       }
 
       var commentsDiv = $j("#comments_" + rfcId);
@@ -392,17 +413,24 @@
       });
 
       var counts = [];
-      $H(status_counts).each(function (pair) {
-        counts.push(rfcStateIconMap[pair.key] + ' ' + pair.value);
+      $j.each(status_counts, function (status, count) {
+        counts.push(rfcStateIconMap[status] + " " + count);
       });
       component_li.down("tr.status_summary td").update(counts.join(" | "));
     });
   };
 
+  window.stop_deployment_polling = function() {
+    if (typeof(timer) != "undefined") {
+      clearInterval(timer);
+    }
+  };
+
   window.close_deployment_overlay = function () {
-    delete window.refresh_status_results;
+    stop_deployment_polling();
     window.location.replace(window.location.href.split("#")[0]);
     Effect.SlideUp('overlay', {duration: 0.3});
+    unblock('container');
   };
 
   window.onkeydown =  function(e) {
