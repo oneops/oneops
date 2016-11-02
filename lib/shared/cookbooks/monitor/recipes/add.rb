@@ -52,9 +52,6 @@ if ostype.nil? || ostype.length == 0
 end
 
 Chef::Log.info("*** OS_PLATFORM => #{ostype} ***")
-# if ostype =~ /windows/
-#   return
-# end
 
 cloud_service = nil
 
@@ -103,18 +100,22 @@ end
 
 Chef::Log.info("IS NEW COMPUTE: #{is_new_compute}")
 
+dir_prefix = ''
 if ostype =~ /windows/
-  conf_dir = "c:/cygwin64/etc/nagios"
-  perf_dir = "c:/cygwin64/opt/oneops/perf"
-else
-  conf_dir = "/etc/nagios"
-  perf_dir = "/opt/oneops/perf"
+  dir_prefix = 'c:/cygwin64'
 end
+
+# if ostype =~ /windows/
+#   conf_dir = "c:/cygwin64/etc/nagios"
+#   perf_dir = "c:/cygwin64/opt/oneops/perf"
+# else
+  conf_dir = "#{dir_prefix}/etc/nagios"
+  perf_dir = "#{dir_prefix}/opt/oneops/perf"
+# end
 if is_new_compute
   puuid = (0..32).to_a.map{|a| rand(32).to_s(32)}.join
   conf_dir = "/tmp/#{puuid}"
   perf_dir = conf_dir + "/perf"
-  # execute "mkdir -p #{conf_dir}/conf.d"
   FileUtils::mkdir_p "#{conf_dir}/conf.d"
 end
 
@@ -342,14 +343,8 @@ ruby_block 'setup nagios' do
       changes += process_monitor(monitor)
     end
 
-    if ostype =~ /windows/
-      if File.directory?("/cygdrive/c/cygwin64/var/log/nagios")
-        result = `rm -fr /cygdrive/c/cygwin64/var/log/nagios ; ln -sf /cygdrive/c/cygwin64/var/log/nagios3 /cygdrive/c/cygwin64/var/log/nagios`
-      end
-    else
-      if File.directory?("/var/log/nagios")
-        result = `rm -fr /var/log/nagios ; ln -sf /var/log/nagios3 /var/log/nagios`
-      end
+    if File.directory?("#{dir_prefix}/var/log/nagios")
+      result = `rm -fr #{dir_prefix}/var/log/nagios ; ln -sf #{dir_prefix}/var/log/nagios3 #{dir_prefix}/var/log/nagios`
     end
 
     if is_new_compute
@@ -361,15 +356,13 @@ ruby_block 'setup nagios' do
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      # setup dirs used in nagios config
+      dirs = ["#{dir_prefix}/var/run/nagios3","#{dir_prefix}/opt/nagios/libexec","#{dir_prefix}/var/lib/nagios3/spool/checkresults"]
+      dirs += ["#{dir_prefix}/var/log/nagios3","#{dir_prefix}/var/lib/nagios3/rw","#{dir_prefix}/opt/oneops/perf"]
+      # not going to chown for windows
       if ostype =~ /windows/
-        dirs = ["/cygdrive/c/cygwin64/var/run/nagios3","/cygdrive/c/cygwin64/opt/nagios/libexec","/cygdrive/c/cygwin64/var/lib/nagios3/spool/checkresults"]
-        dirs += ["/cygdrive/c/cygwin64/var/log/nagios3","/cygdrive/c/cygwin64/var/lib/nagios3/rw","/cygdrive/c/cygwin64/opt/oneops/perf"]
         cmd = node.ssh_cmd.gsub("IP",node.ip) + '"'+ "sudo mkdir -p "+dirs.join(" ") + '"' #+";" +
-            #"sudo chown -R nagios /cygdrive/c/cygwin64/var/lib/nagios3 /cygdrive/c/cygwin64/var/run/nagios3 /cygdrive/c/cygwin64/var/log/nagios3 /cygdrive/c/cygwin64/opt/oneops/perf" + '"'
+        #"sudo chown -R nagios /cygdrive/c/cygwin64/var/lib/nagios3 /cygdrive/c/cygwin64/var/run/nagios3 /cygdrive/c/cygwin64/var/log/nagios3 /cygdrive/c/cygwin64/opt/oneops/perf" + '"'
       else
-        dirs = ["/var/run/nagios3","/opt/nagios/libexec","/var/lib/nagios3/spool/checkresults"]
-        dirs += ["/var/log/nagios3","/var/lib/nagios3/rw","/opt/oneops/perf"]
         cmd = node.ssh_cmd.gsub("IP",node.ip) + '"'+ "sudo mkdir -p "+dirs.join(" ")+";" +
             "sudo chown -R nagios:nagios /var/lib/nagios3 /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf" + '"'
       end
@@ -384,33 +377,21 @@ ruby_block 'setup nagios' do
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      if ostype =~ /windows/
-        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /cygdrive/c/cygwin64/opt/nagios/libexec/" + '"'
-      else
-        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /opt/nagios/libexec/" + '"'
-      end
+      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* #{dir_prefix}/opt/nagios/libexec/" + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      if ostype =~ /windows/
-        # copy config and restart nagios
-        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /cygdrive/c/cygwin64/etc/nagios/; sudo cp -r #{conf_dir}/perf /cygdrive/c/cygwin64/opt/oneops/; " +
-            "sudo ln -sf /cygdrive/c/cygwin64/etc/nagios /cygdrive/c/cygwin64/etc/nagios3; sudo chmod +x /cygdrive/c/cygwin64/opt/nagios/libexec/* " + '"'
-      else
-        # copy config and restart nagios
-        cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/; sudo cp -r #{conf_dir}/perf /opt/oneops/; " +
-            "sudo ln -sf /etc/nagios /etc/nagios3; sudo chmod +x /opt/nagios/libexec/* " + '"'
-      end
-
+      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* #{dir_prefix}/etc/nagios/; sudo cp -r #{conf_dir}/perf #{dir_prefix}/opt/oneops/; " +
+          "sudo ln -sf #{dir_prefix}/etc/nagios #{dir_prefix}/etc/nagios3; sudo chmod +x #{dir_prefix}/opt/nagios/libexec/* " + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
       # copy nagios initd file if windows
+      # this is an additional file to copy in for windows for the nagios config.
       if ostype =~ /windows/
-        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo cp -r /cygdrive/c/cygwin64/opt/nagios/libexec/nagios_initd /cygdrive/c/cygwin64/etc/rc.d/init.d/nagios' + '"'
-
+        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + "sudo cp -r #{dir_prefix}/opt/nagios/libexec/nagios_initd #{dir_prefix}/etc/rc.d/init.d/nagios" + '"'
         result = shell_out(cmd)
         Chef::Log.info("#{cmd} returned: #{result.stdout}")
         result.error!

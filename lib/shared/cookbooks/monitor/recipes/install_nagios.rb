@@ -1,3 +1,5 @@
+require 'fileutils'
+
 Chef::Log.info("PLATFORM IS: #{node.platform}")
 
 if node.platform !~ /windows/
@@ -62,8 +64,6 @@ when "redhat","centos","fedora","suse"
    returns [0,1]
   end
 when "windows"
-    # execute 'choco install nagios-core-setup'
-    Chef::Log.info('WINDOWS!!!!!  Need to download the package, compile and install')
 
     # get nexus url from OO_CLOUD_VARS
     cloud_vars = node.workorder.payLoad.OO_CLOUD_VARS
@@ -115,51 +115,47 @@ else
 
 end
 
+dir_prefix = ''
 if node.platform =~ /windows/
-  execute "rm -fr /cygdrive/c/cygwin64/etc/nagios3"
+  dir_prefix = 'c:/cygwin64'
+end
 
-  execute "ln -s /cygdrive/c/cygwin64/etc/nagios /cygdrive/c/cygwin64/etc/nagios3"
+execute "rm -fr #{dir_prefix}/etc/nagios3"
 
-  execute "mkdir -p /cygdrive/c/cygwin64/opt/nagios /cygdrive/c/cygwin64/var/cache/nagios3 /cygdrive/c/cygwin64/var/log/nagios3/archives /cygdrive/c/cygwin64/var/run/nagios3 /cygdrive/c/cygwin64/var/run/nagios /cygdrive/c/cygwin64/var/lib/nagios3/rw /cygdrive/c/cygwin64/var/log/nagios3/rw /cygdrive/c/cygwin64/var/lib/nagios3/spool/checkresults"
-  # execute "chown nagios /cygdrive/c/cygwin64/var/run/nagios3"
-  # execute "chown nagios /cygdrive/c/cygwin64/var/run/nagios"
-  # execute "chown nagios /cygdrive/c/cygwin64/var/cache/nagios3"
-  # execute "chown -R nagios /cygdrive/c/cygwin64/var/lib/nagios3"
-  # execute "chown -R nagios /cygdrive/c/cygwin64/var/log/nagios3"
+execute "ln -s #{dir_prefix}/etc/nagios #{dir_prefix}/etc/nagios3"
 
-  execute "mkdir -p c:/cygwin64/etc/logrotate.d/nagios"
-  # execute "chown nagios c:/cygwin64/etc/logrotate.d/nagios"
+FileUtils::mkdir_p "#{dir_prefix}/opt/nagios"
+FileUtils::mkdir_p "#{dir_prefix}/var/cache/nagios3"
+FileUtils::mkdir_p "#{dir_prefix}/var/log/nagios3/archives"
+FileUtils::mkdir_p "#{dir_prefix}/var/log/nagios3/rw"
+FileUtils::mkdir_p "#{dir_prefix}/var/run/nagios3"
+FileUtils::mkdir_p "#{dir_prefix}/var/run/nagios"
+FileUtils::mkdir_p "#{dir_prefix}/var/lib/nagios3/rw"
+FileUtils::mkdir_p "#{dir_prefix}/var/lib/nagios3/spool/checkresults"
+FileUtils::mkdir_p "#{dir_prefix}/etc/logrotate.d/nagios"
 
-  # remove bad symlink from old monitor::add
-  execute "rm -f /cygdrive/c/cygwin64/opt/nagios/libexec/plugins"
-  execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* /cygdrive/c/cygwin64/opt/nagios/libexec/"
-  execute "chmod +x /cygdrive/c/cygwin64/opt/nagios/libexec/*"
-
-  template "c:/cygwin64/etc/logrotate.d/nagios/logrotate.erb" do
-    source "logrotate.erb"
-    cookbook "monitor"
-    mode 0644
-  end
-else
-  execute "rm -fr /etc/nagios3"
-
-  link "/etc/nagios3" do
-    to "/etc/nagios"
-  end
-
-  execute "mkdir -p /opt/nagios /var/cache/nagios3 /var/log/nagios3/archives /var/run/nagios3 /var/run/nagios /var/lib/nagios3/rw /var/log/nagios3/rw /var/lib/nagios3/spool/checkresults"
+# for windows we won't change owners
+if node.platform !~ /windows/
   execute "chown nagios:nagios /var/run/nagios3"
   execute "chown nagios:nagios /var/run/nagios"
   execute "chown nagios:nagios /var/cache/nagios3"
   execute "chown -R nagios:nagios /var/lib/nagios3"
   execute "chown -R nagios:nagios /var/log/nagios3"
+end
 
-  # remove bad symlink from old monitor::add
-  execute "rm -f /opt/nagios/libexec/plugins"
-  execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* /opt/nagios/libexec/"
-  execute "chmod +x /opt/nagios/libexec/*"
+# remove bad symlink from old monitor::add
+execute "rm -f #{dir_prefix}/opt/nagios/libexec/plugins"
+execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* #{dir_prefix}/opt/nagios/libexec/"
+execute "chmod +x #{dir_prefix}/opt/nagios/libexec/*"
 
-  template "/etc/logrotate.d/nagios" do
+if node.platform =~ /windows/
+  template "#{dir_prefix}/etc/logrotate.d/nagios/logrotate.erb" do
+    source "logrotate.erb"
+    cookbook "monitor"
+    mode 0644
+  end
+else
+  template "#{dir_prefix}/etc/logrotate.d/nagios" do
     source "logrotate.erb"
     owner "root"
     group "root"
