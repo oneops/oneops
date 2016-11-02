@@ -120,9 +120,11 @@ if node.platform =~ /windows/
   dir_prefix = 'c:/cygwin64'
 end
 
-execute "rm -fr #{dir_prefix}/etc/nagios3"
+# execute "rm -fr #{dir_prefix}/etc/nagios3"
+FileUtils::rm_rf("#{dir_prefix}/etc/nagios3")
 
-execute "ln -s #{dir_prefix}/etc/nagios #{dir_prefix}/etc/nagios3"
+# execute "ln -s #{dir_prefix}/etc/nagios #{dir_prefix}/etc/nagios3"
+FileUtils::ln_sf("#{dir_prefix}/etc/nagio3", "#{dir_prefix}/etc/nagios")
 
 FileUtils::mkdir_p "#{dir_prefix}/opt/nagios"
 FileUtils::mkdir_p "#{dir_prefix}/var/cache/nagios3"
@@ -144,9 +146,12 @@ if node.platform !~ /windows/
 end
 
 # remove bad symlink from old monitor::add
-execute "rm -f #{dir_prefix}/opt/nagios/libexec/plugins"
-execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* #{dir_prefix}/opt/nagios/libexec/"
-execute "chmod +x #{dir_prefix}/opt/nagios/libexec/*"
+# execute "rm -f #{dir_prefix}/opt/nagios/libexec/plugins"
+FileUtils::rm_f("#{dir_prefix}/opt/nagios/libexec/plugins")
+# execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* #{dir_prefix}/opt/nagios/libexec/"
+FileUtils::cp('/home/oneops/shared/cookbooks/monitor/files/default/*', "#{dir_prefix}/opt/nagios/libexec/")
+# execute "chmod +x #{dir_prefix}/opt/nagios/libexec/*"
+FileUtils::chmod('+x', "#{dir_prefix}/opt/nagios/libexec/*")
 
 if node.platform =~ /windows/
   template "#{dir_prefix}/etc/logrotate.d/nagios/logrotate.erb" do
