@@ -103,6 +103,8 @@ else
   include_recipe 'monitor::install_nagios'
 end
 
+Chef::Log.info("Is new compute: #{is_new_compute}")
+
 conf_dir = "#{dir_prefix}/etc/nagios"
 perf_dir = "#{dir_prefix}/opt/oneops/perf"
 if is_new_compute
@@ -336,9 +338,7 @@ ruby_block 'setup nagios' do
     end
 
     if File.directory?("#{dir_prefix}/var/log/nagios")
-      # result = `rm -fr #{dir_prefix}/var/log/nagios ; ln -sf #{dir_prefix}/var/log/nagios3 #{dir_prefix}/var/log/nagios`
-      FileUtils::rm_rf("#{dir_prefix}/var/log/nagios")
-      FileUtils::ln_sf("#{dir_prefix}/var/log/nagios", "#{dir_prefix}/var/log/nagios3")
+      result = `rm -fr #{dir_prefix}/var/log/nagios ; ln -sf #{dir_prefix}/var/log/nagios3 #{dir_prefix}/var/log/nagios`
     end
 
     if is_new_compute
@@ -354,8 +354,7 @@ ruby_block 'setup nagios' do
       dirs += ["#{dir_prefix}/var/log/nagios3","#{dir_prefix}/var/lib/nagios3/rw","#{dir_prefix}/opt/oneops/perf"]
       # not going to chown for windows
       if ostype =~ /windows/
-        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ') + '"' #+";" +
-        #"sudo chown -R nagios /cygdrive/c/cygwin64/var/lib/nagios3 /cygdrive/c/cygwin64/var/run/nagios3 /cygdrive/c/cygwin64/var/log/nagios3 /cygdrive/c/cygwin64/opt/oneops/perf" + '"'
+        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ') + '"'
       else
         cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
          'sudo chown -R nagios:nagios /var/lib/nagios3 /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
@@ -397,20 +396,10 @@ ruby_block 'setup nagios' do
       # standard way
       # for flume agent use in connecting to collectors
       mgmt_domain = node.mgmt_domain
-      if ostype =~ /windows/
-        `echo #{mgmt_domain} > /cygdrive/c/cygwin64/opt/oneops/mgmt_domain`
-      else
-        `echo #{mgmt_domain} > /opt/oneops/mgmt_domain`
-      end
+      `echo #{mgmt_domain} > #{dir_prefix}/opt/oneops/mgmt_domain`
 
       cloud = node.workorder.cloud.ciName
-      if ostype =~ /windows/
-        Chef::Log.info("setting /cygdrive/c/cygwin64/opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
-        `echo #{cloud} > /cygdrive/c/cygwin64/opt/oneops/cloud`
-      else
-        Chef::Log.info("setting /opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
-        `echo #{cloud} > /opt/oneops/cloud`
-      end
+      `echo #{cloud} > #{dir_prefix}/opt/oneops/cloud`
 
       env = node.workorder.payLoad[:Environment][0]
       has_monitoring = true
@@ -423,10 +412,10 @@ ruby_block 'setup nagios' do
       end
 
       Chef::Log.info("total of #{changes} changes")
+      # path to initd is diff for windows
       if ostype =~ /windows/
-        # `chown -R nagios /cygdrive/c/cygwin64/etc/nagios /cygdrive/c/cygwin64/opt/oneops/perf`
         # restart nagios & forwarder
-        # `c:/cygwin64/etc/rc.d/init.d/nagios restart && c:/etc/init.d/perf-agent restart`
+        # `c:/cygwin64/etc/rc.d/init.d/nagios restart && c:/cygwin64/etc/init.d/perf-agent restart`
       else
         `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
         # restart nagios & forwarder

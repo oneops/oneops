@@ -221,10 +221,12 @@ when "chef"
   end
   puts cmd
   ec = system cmd
-  
-  if $?.to_i != 0
+
+  # system doesn't return the code from $?, it returns true or false.
+  # so we need to check it in that way
+  if !ec || ec.nil?
     puts "CHEF SOLO failed, #{$?}"
-    exit $?.to_i 
+    exit 1
   end
 
 when "puppet"
