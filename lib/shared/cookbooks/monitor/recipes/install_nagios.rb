@@ -65,17 +65,20 @@ when "redhat","centos","fedora","suse"
   end
 when "windows"
 
-    # get nexus url from OO_CLOUD_VARS
-    cloud_vars = node.workorder.payLoad.OO_CLOUD_VARS
-    nexus_url = ''
-    cloud_vars.each do |var|
-      if var[:ciName] == 'nexus'
-        nexus_url = var[:ciAttributes][:value]
-      end
+    cloud_name = node[:workorder][:cloud][:ciName]
+    services = node[:workorder][:services]
+    if services.has_key?(:mirror)
+      nagios_for_win = JSON.parse(node[:workorder][:services][:mirror][cloud_name][:ciAttributes][:mirrors])['nagios-windows']
+    else
+      msg = 'Mirror service required for OS!!!'
+      puts"***FAULT:FATAL=#{msg}"
+      e=Exception.new("#{msg}")
+      e.set_backtrace('')
+      raise e
     end
 
-    if nexus_url.nil? || nexus_url.size == 0
-      msg = 'Could not find nexus url in OO Cloud Vars!!'
+    if nagios_for_win.nil? || nagios_for_win.size == 0
+      msg = 'Could not find nexus url in mirror service!!'
       puts"***FAULT:FATAL=#{msg}"
       e=Exception.new("#{msg}")
       e.set_backtrace('')
@@ -83,9 +86,14 @@ when "windows"
     end
 
     # download tar from Nexus
-    execute "wget -P /cygdrive/c/cygwin64 #{nexus_url}/nexus/content/repositories/thirdparty/nagios/nagios/3.5.1/nagios-3.5.1.tar.gz"
+    execute "wget -P c:/cygwin64 #{nagios_for_win}"
+
+    # get the filename from the mirror url
+    file_array = nagios_for_win.split('/')
+    file_name = file_array.last
+    Chef::Log.info("Nagios Filename is: #{file_name}")
     # un tar it in /cygdrive/c/cygwin64/opt/nagios/
-    execute 'tar xzf /cygdrive/c/cygwin64/nagios-3.5.1.tar.gz -C /cygdrive/c/cygwin64/opt'
+    execute "tar xzf /cygdrive/c/cygwin64/#{file_name} -C /cygdrive/c/cygwin64/opt"
 
     # check to make sure it isn't already there
     `cygrunsrv --list | grep nagios`

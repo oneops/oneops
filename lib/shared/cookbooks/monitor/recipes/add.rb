@@ -188,7 +188,6 @@ if node.workorder.payLoad.has_key?('WatchedBy')
 
 end
 
-
 ruby_block 'setup nagios' do
   block do
     $conf_d = "#{node.nagios_conf_dir}/conf.d"
