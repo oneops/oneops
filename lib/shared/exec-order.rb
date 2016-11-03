@@ -220,11 +220,10 @@ when "chef"
     cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   end
   puts cmd
-  ec = system cmd
-  
-  if $?.to_i != 0
+  system cmd
+  if $?.exitstatus != 0
     puts "CHEF SOLO failed, #{$?}"
-    exit $?.to_i 
+    exit $?.exitstatus
   end
 
 when "puppet"
