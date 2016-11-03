@@ -54,7 +54,7 @@ public abstract class BaseEventReader {
         this.sqlsf = sf;
         varCache = CacheBuilder.newBuilder()
                 .maximumSize(varCacheMaxSize)
-                .expireAfterAccess(varCacheTTLInSeconds, TimeUnit.SECONDS)
+                .expireAfterWrite(varCacheTTLInSeconds, TimeUnit.SECONDS)
                 .build(
                         new CacheLoader<String, Boolean>() {
                             public Boolean load(String key) {
