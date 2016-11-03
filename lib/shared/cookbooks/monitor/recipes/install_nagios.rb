@@ -139,7 +139,7 @@ FileUtils::mkdir_p "#{dir_prefix}/var/run/nagios3"
 FileUtils::mkdir_p "#{dir_prefix}/var/run/nagios"
 FileUtils::mkdir_p "#{dir_prefix}/var/lib/nagios3/rw"
 FileUtils::mkdir_p "#{dir_prefix}/var/lib/nagios3/spool/checkresults"
-FileUtils::mkdir_p "#{dir_prefix}/etc/logrotate.d/nagios"
+FileUtils::mkdir_p "#{dir_prefix}/etc/logrotate.d"
 
 # for windows we won't change owners
 if node.platform !~ /windows/
@@ -156,7 +156,7 @@ execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* #{dir_prefix}/
 execute "chmod +x #{dir_prefix}/opt/nagios/libexec/*"
 
 if node.platform =~ /windows/
-  template "#{dir_prefix}/etc/logrotate.d/nagios/logrotate.erb" do
+  template "#{dir_prefix}/etc/logrotate.d/nagios" do
     source "logrotate.erb"
     cookbook "monitor"
     mode 0644

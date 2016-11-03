@@ -220,13 +220,10 @@ when "chef"
     cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   end
   puts cmd
-  ec = system cmd
-
-  # system doesn't return the code from $?, it returns true or false.
-  # so we need to check it in that way
-  if !ec || ec.nil?
+  system cmd
+  if $?.exitstatus != 0
     puts "CHEF SOLO failed, #{$?}"
-    exit 1
+    exit $?.exitstatus
   end
 
 when "puppet"
