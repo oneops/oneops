@@ -85,6 +85,17 @@
         <property name="nsMapper" ref="nsMapper" />
     </bean>
 
+    <bean id="snapshotManager" class="com.oneops.transistor.service.SnapshotManagerImpl">
+        <property name="snapshotProcessor" ref="snapshotProcessor"/>
+    </bean>
+
+    <bean id="snapshotProcessor" class="com.oneops.transistor.service.SnapshotProcessor">
+        <property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
+        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
+        <property name="cmProcessor" ref="cmsCmProcessor"/>
+    </bean>
+  
+
     <!--bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoOpenSSLImpl" init-method="init" /-->
     <bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoDES" init-method="init" />
 

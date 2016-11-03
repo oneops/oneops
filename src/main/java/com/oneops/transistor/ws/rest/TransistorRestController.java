@@ -35,6 +35,8 @@ import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 import com.oneops.transistor.service.*;
+import com.oneops.transistor.snapshot.domain.Snapshot;
+import com.oneops.transistor.service.SnapshotManager;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -60,6 +62,10 @@ public class TransistorRestController extends AbstractRestController {
 	private BomAsyncProcessor baProcessor;
 	private ManifestAsyncProcessor maProcessor;
 	private CmsUtil util;
+	private SnapshotManager snapshotManager;
+	
+	
+
 
 	public void setMaProcessor(ManifestAsyncProcessor maProcessor) {
 		this.maProcessor = maProcessor;
@@ -825,6 +831,36 @@ public class TransistorRestController extends AbstractRestController {
 			}
 		}
 		return longs;
+	}
+
+
+	
+
+	public void setSnapshotManager(SnapshotManager snapshotManager) {
+		this.snapshotManager = snapshotManager;
+	}
+
+	@RequestMapping(value = "/snapshot/export", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
+	@ResponseBody
+	public Snapshot exportSnapshot(@RequestParam(value = "ns") String[] namespaces,
+								   @RequestParam(value = "cn") String[] classNames,
+
+								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+
+		return snapshotManager.exportSnapshot(namespaces, classNames);
+	}
+
+
+	@RequestMapping(value = "/snapshot/import", method = RequestMethod.POST)
+	@ResponseBody
+	public Map<String, String> importSnapshot(
+			@RequestBody Snapshot snapshot,
+			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+
+		snapshotManager.importSnapshot(snapshot);
+		Map<String, String> result = new HashMap<>(1);
+		result.put("result", "success");
+		return result;
 	}
 
 
