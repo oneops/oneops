@@ -257,12 +257,8 @@ public class SnapshotProcessor {
         private long id;
         private Long rfcId;
 
-        public Long getRfcId() {
+        Long getRfcId() {
             return rfcId;
-        }
-
-        public void setRfcId(long rfcId) {
-            this.rfcId = rfcId;
         }
 
         RelationLink(long id, Long rfcId) {
@@ -271,14 +267,9 @@ public class SnapshotProcessor {
         }
 
 
-        public long getId() {
+        long getId() {
             return id;
         }
-
-        public void setId(long id) {
-            this.id = id;
-        }
-
     }
 
 }
