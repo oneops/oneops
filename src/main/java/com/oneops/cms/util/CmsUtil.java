@@ -984,65 +984,6 @@ public class CmsUtil {
         return attrValue;
     }
     
-    /**
-     * Resolves the Cloud, Global and Local variables completely and returns the resolved values
-     * 
-     * @param cloudVars
-     * @param globalVars
-     * @param localVars
-     * @return
-     */
-    public Map<String, Map<String, String>> resolveVariables(Map<String, String> cloudVars, 
-    		Map<String, String> globalVars, Map<String, String> localVars) {
-    	
-    	Map<String, String> resolvedCloudVars = new HashMap<String, String>(cloudVars);
-    	Map<String, String> resolvedGlobalVars = new HashMap<String, String>(globalVars);
-    	Map<String, String> resolvedLocalVars = new HashMap<String, String>(localVars);
-    	
-    	for (String name : cloudVars.keySet()) {
-        	VariableContext context = new VariableContext(0, null, null, cloudVars, globalVars, localVars);
-        	context.setUnresolvedAttrValue(cloudVars.get(name));
-        	String value = processAllVarsForString(context);
-        	value = decryptVar(name, value);
-        	resolvedCloudVars.put(name, value);
-    	}
-    	
-    	for (String name : globalVars.keySet()) {
-        	VariableContext context = new VariableContext(0, null, null, cloudVars, globalVars, localVars);
-        	context.setUnresolvedAttrValue(globalVars.get(name));
-        	String value = processAllVarsForString(context);
-        	value = decryptVar(name, value);
-        	resolvedGlobalVars.put(name, value);
-    	}
-    	
-    	for (String name : localVars.keySet()) {
-        	VariableContext context = new VariableContext(0, null, null, cloudVars, globalVars, localVars);
-        	context.setUnresolvedAttrValue(localVars.get(name));
-        	String value = processAllVarsForString(context);
-        	value = decryptVar(name, value);
-        	resolvedLocalVars.put(name, value);
-    	}
-
-    	Map<String, Map<String, String>> variables = new HashMap<>();
-    	variables.put(CLOUD_VARS_PAYLOAD_NAME, resolvedCloudVars);
-    	variables.put(GLOBAL_VARS_PAYLOAD_NAME, resolvedGlobalVars);
-    	variables.put(LOCAL_VARS_PAYLOAD_NAME, resolvedLocalVars);
-    	
-    	return variables;
-    }
-    
-    private String decryptVar(String name, String value) {
-		if (cmsCrypto.isVarEncrypted(value)) {
-			try {
-				return cmsCrypto.decryptVars(value);
-			} catch (GeneralSecurityException e) {
-				logger.error("Error in decrypting variable: " + name);
-				throw new CIValidationException("Error in decrypting Variable: " + name, e);
-			}
-		}
-		return value;
-	}
-
 	private boolean isLocalVar(String attrValue) {
 		return attrValue.contains(LOCALVARPFX);
 	}
@@ -1544,28 +1485,29 @@ public class CmsUtil {
 		localVarCis.addAll(getVarsCIs(platform, "manifest.ValueFor"));
 		Map<String, String> localVars = getVarCiValuesMap(localVarCis);
 		
-		Map<String, Map<String, String>> resolvedValues = resolveVariables(cloudVars, globalVars, localVars);
-		
-		//Now copy the fully resolved variable values into the CmsCI variable objects
-		
 		//Cloud vars
-		Map<String, String> resolvedCloudVars = resolvedValues.get(CLOUD_VARS_PAYLOAD_NAME);
+		VariableContext context = new VariableContext(0, null, null, cloudVars, globalVars, localVars);
+
 		for (CmsCI varCi : cloudVarCis) {
-			String value = resolvedCloudVars.get(varCi.getCiName());
+			String varName = varCi.getCiName();
+        	context.setUnresolvedAttrValue(cloudVars.get(varName));
+        	String value = processAllVarsForString(context);
 			varCi.getAttribute("value").setDfValue(value);
 		}
 		
 		//Global vars
-		Map<String, String> resolvedGlobalVars = resolvedValues.get(GLOBAL_VARS_PAYLOAD_NAME);
 		for (CmsCI varCi : globalVarCis) {
-			String value = resolvedGlobalVars.get(varCi.getCiName());
+			String varName = varCi.getCiName();
+        	context.setUnresolvedAttrValue(globalVars.get(varName));
+        	String value = processAllVarsForString(context);
 			varCi.getAttribute("value").setDfValue(value);
 		}
 
 		//Local vars
-		Map<String, String> resolvedLocalVars = resolvedValues.get(LOCAL_VARS_PAYLOAD_NAME);
 		for (CmsCI varCi : localVarCis) {
-			String value = resolvedLocalVars.get(varCi.getCiName());
+			String varName = varCi.getCiName();
+        	context.setUnresolvedAttrValue(localVars.get(varName));
+        	String value = processAllVarsForString(context);
 			varCi.getAttribute("value").setDfValue(value);
 		}
 

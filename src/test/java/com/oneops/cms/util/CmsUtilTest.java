@@ -1751,54 +1751,5 @@ public class CmsUtilTest {
 			}
 
 		}
-
-	}
-
-	@Test
-	public void testResolveVariables() {
-		Map<String, String> cloudVars = new HashMap<>();
-		Map<String, String> globalVars = new HashMap<>();
-		Map<String, String> localVars = new HashMap<>();
-		
-		cloudVars.put("cloud-1", "cloud-1-value");
-		cloudVars.put("cloud-2", "c2-value:$OO_CLOUD{cloud-1}");
-		cloudVars.put("cloud-3", "c-3-value:$OO_CLOUD{cloud-2}");
-		
-		globalVars.put("glob-1", "glob-1-value");
-		globalVars.put("glob-2", "glob2-value:$OO_CLOUD{cloud-3}");
-		globalVars.put("glob-3", "$OO_GLOBAL{glob-2}:suff");
-		
-		localVars.put("local-1", "local-1-value");
-		localVars.put("local-2", "local2-value:$OO_CLOUD{cloud-3}");
-		localVars.put("local-3", "$OO_GLOBAL{glob-3}:suff");
-		
-		Map<String, Map<String, String>> resolvedValues = getCmsUtil().resolveVariables(cloudVars, globalVars, localVars);
-		Map<String, Map<String, String>> expectedValues = new HashMap<>();
-		Map<String, String> cloudVarsExpectedValues = new HashMap<>();
-		cloudVarsExpectedValues.put("cloud-3", "c-3-value:c2-value:cloud-1-value");
-		cloudVarsExpectedValues.put("cloud-2", "c2-value:cloud-1-value");
-		cloudVarsExpectedValues.put("cloud-1", "cloud-1-value");
-		expectedValues.put(CmsUtil.CLOUD_VARS_PAYLOAD_NAME, cloudVarsExpectedValues);
-		
-		Map<String, String> globalVarsExpectedValues = new HashMap<>();
-		globalVarsExpectedValues.put("glob-3", "glob2-value:c-3-value:c2-value:cloud-1-value:suff");
-		globalVarsExpectedValues.put("glob-2", "glob2-value:c-3-value:c2-value:cloud-1-value");
-		globalVarsExpectedValues.put("glob-1", "glob-1-value");
-		expectedValues.put(CmsUtil.GLOBAL_VARS_PAYLOAD_NAME, globalVarsExpectedValues);
-
-		Map<String, String> localVarsExpectedValues = new HashMap<>();
-		localVarsExpectedValues.put("local-3", "glob2-value:c-3-value:c2-value:cloud-1-value:suff:suff");
-		localVarsExpectedValues.put("local-2", "local2-value:c-3-value:c2-value:cloud-1-value");
-		localVarsExpectedValues.put("local-1", "local-1-value");
-		
-		expectedValues.put(CmsUtil.LOCAL_VARS_PAYLOAD_NAME, localVarsExpectedValues);
-		
-		System.out.println(resolvedValues.get(CmsUtil.CLOUD_VARS_PAYLOAD_NAME));
-		System.out.println(resolvedValues.get(CmsUtil.GLOBAL_VARS_PAYLOAD_NAME));
-		System.out.println(resolvedValues.get(CmsUtil.LOCAL_VARS_PAYLOAD_NAME));
-
-		assertEquals(resolvedValues, expectedValues);
-
-	}
-	
+	}	
 }
