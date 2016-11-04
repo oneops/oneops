@@ -24,7 +24,7 @@ import java.util.Map;
 /**
  * The Class CmsRfcRelation.
  */
-public class CmsRfcRelation extends CmsRfcRelationBasic implements Serializable {
+public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContainer {
 
 	private static final long serialVersionUID = 1L;
 
