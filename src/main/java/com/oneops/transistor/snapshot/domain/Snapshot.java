@@ -35,4 +35,12 @@ public class Snapshot {
     public void add(Part part) {
         this.parts.add(part);
     }
+    
+    public Set<String> allNamespaces(){
+        Set<String> set = new HashSet<>();
+        for (Part part:parts){
+            set.addAll(part.getCis().keySet());
+        }
+        return set;
+    }
 }

@@ -22,7 +22,7 @@ import java.util.Map;
  *   limitations under the License.
  *
  *******************************************************************************/
-class BaseEntity {
+public class BaseEntity {
     private String type;
     protected Map<String, String> attributes = new HashMap<>();
     private Map<String, List<String>> owners = new HashMap<>();
