@@ -1257,10 +1257,13 @@ public class CmsUtilTest {
 	@Test
 	public void localVarRefersAnotherGVarWithPrefixSuffix() {
 		Map<String, String> localVars = new HashMap<>(3);
-		localVars.put("lv1", "$OO_GLOBAL{gv1}");
+		localVars.put("lv1", "$OO_GLOBAL{gv2}");
 		localVars.put("lv2", "$OO_LOCAL{lv1}");
 		Map<String, String> globalVars = new HashMap<>(3);
-		globalVars.put("gv1", "globalVar1");
+		globalVars.put("gv1", "globalVar1-$OO_CLOUD{cv1}");
+		globalVars.put("gv2", "$OO_GLOBAL{gv1}");
+		Map<String, String> cloudVars = new HashMap<>(3);
+		cloudVars.put("cv1", "cloudVar1");
 
 
 		CmsCI ci = new CmsCI();
@@ -1276,9 +1279,9 @@ public class CmsUtilTest {
 			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
 		}
 		CmsUtil util = getCmsUtil();
-		dumpMaps(null, globalVars, localVars);
+		dumpMaps(cloudVars, globalVars, localVars);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, null, globalVars, localVars);
+		util.processAllVars(ci, cloudVars, globalVars, localVars);
 		dumpCmsCIAttributes(ci);
 
 		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
@@ -1286,7 +1289,7 @@ public class CmsUtilTest {
 			String djAfter = a.getValue().getDjValue();
 			System.out.println("*after k>" + djKey + " v->" + djAfter);
 			if (djKey.equals("localVarRefersAnotherLVar")) {
-				assertEquals(djAfter, "PrefixglobalVar1Suffix");
+				assertEquals(djAfter, "PrefixglobalVar1-cloudVar1Suffix");
 			}
 
 		}
@@ -1751,8 +1754,51 @@ public class CmsUtilTest {
 
 	}
 
+	@Test
+	public void testResolveVariables() {
+		Map<String, String> cloudVars = new HashMap<>();
+		Map<String, String> globalVars = new HashMap<>();
+		Map<String, String> localVars = new HashMap<>();
+		
+		cloudVars.put("cloud-1", "cloud-1-value");
+		cloudVars.put("cloud-2", "c2-value:$OO_CLOUD{cloud-1}");
+		cloudVars.put("cloud-3", "c-3-value:$OO_CLOUD{cloud-2}");
+		
+		globalVars.put("glob-1", "glob-1-value");
+		globalVars.put("glob-2", "glob2-value:$OO_CLOUD{cloud-3}");
+		globalVars.put("glob-3", "$OO_GLOBAL{glob-2}:suff");
+		
+		localVars.put("local-1", "local-1-value");
+		localVars.put("local-2", "local2-value:$OO_CLOUD{cloud-3}");
+		localVars.put("local-3", "$OO_GLOBAL{glob-3}:suff");
+		
+		Map<String, Map<String, String>> resolvedValues = getCmsUtil().resolveVariables(cloudVars, globalVars, localVars);
+		Map<String, Map<String, String>> expectedValues = new HashMap<>();
+		Map<String, String> cloudVarsExpectedValues = new HashMap<>();
+		cloudVarsExpectedValues.put("cloud-3", "c-3-value:c2-value:cloud-1-value");
+		cloudVarsExpectedValues.put("cloud-2", "c2-value:cloud-1-value");
+		cloudVarsExpectedValues.put("cloud-1", "cloud-1-value");
+		expectedValues.put(CmsUtil.CLOUD_VARS_PAYLOAD_NAME, cloudVarsExpectedValues);
+		
+		Map<String, String> globalVarsExpectedValues = new HashMap<>();
+		globalVarsExpectedValues.put("glob-3", "glob2-value:c-3-value:c2-value:cloud-1-value:suff");
+		globalVarsExpectedValues.put("glob-2", "glob2-value:c-3-value:c2-value:cloud-1-value");
+		globalVarsExpectedValues.put("glob-1", "glob-1-value");
+		expectedValues.put(CmsUtil.GLOBAL_VARS_PAYLOAD_NAME, globalVarsExpectedValues);
 
+		Map<String, String> localVarsExpectedValues = new HashMap<>();
+		localVarsExpectedValues.put("local-3", "glob2-value:c-3-value:c2-value:cloud-1-value:suff:suff");
+		localVarsExpectedValues.put("local-2", "local2-value:c-3-value:c2-value:cloud-1-value");
+		localVarsExpectedValues.put("local-1", "local-1-value");
+		
+		expectedValues.put(CmsUtil.LOCAL_VARS_PAYLOAD_NAME, localVarsExpectedValues);
+		
+		System.out.println(resolvedValues.get(CmsUtil.CLOUD_VARS_PAYLOAD_NAME));
+		System.out.println(resolvedValues.get(CmsUtil.GLOBAL_VARS_PAYLOAD_NAME));
+		System.out.println(resolvedValues.get(CmsUtil.LOCAL_VARS_PAYLOAD_NAME));
 
+		assertEquals(resolvedValues, expectedValues);
 
-
+	}
+	
 }

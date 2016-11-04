@@ -34,6 +34,10 @@ public class CmsBaseException  extends RuntimeException implements CmsError {
     public CmsBaseException() {
     }
 
+    public CmsBaseException(String message, Throwable e) {
+    	super(message, e);
+    }
+
     /**
      * Instantiates a new cms base exception.
      *
@@ -62,4 +66,5 @@ public class CmsBaseException  extends RuntimeException implements CmsError {
     public int getErrorCode() {
         return error;
     }
+    
 }
