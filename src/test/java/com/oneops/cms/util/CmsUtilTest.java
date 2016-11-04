@@ -1257,13 +1257,10 @@ public class CmsUtilTest {
 	@Test
 	public void localVarRefersAnotherGVarWithPrefixSuffix() {
 		Map<String, String> localVars = new HashMap<>(3);
-		localVars.put("lv1", "$OO_GLOBAL{gv2}");
+		localVars.put("lv1", "$OO_GLOBAL{gv1}");
 		localVars.put("lv2", "$OO_LOCAL{lv1}");
 		Map<String, String> globalVars = new HashMap<>(3);
-		globalVars.put("gv1", "globalVar1-$OO_CLOUD{cv1}");
-		globalVars.put("gv2", "$OO_GLOBAL{gv1}");
-		Map<String, String> cloudVars = new HashMap<>(3);
-		cloudVars.put("cv1", "cloudVar1");
+		globalVars.put("gv1", "globalVar1");
 
 
 		CmsCI ci = new CmsCI();
@@ -1279,9 +1276,9 @@ public class CmsUtilTest {
 			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
 		}
 		CmsUtil util = getCmsUtil();
-		dumpMaps(cloudVars, globalVars, localVars);
+		dumpMaps(null, globalVars, localVars);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, cloudVars, globalVars, localVars);
+		util.processAllVars(ci, null, globalVars, localVars);
 		dumpCmsCIAttributes(ci);
 
 		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
@@ -1289,7 +1286,7 @@ public class CmsUtilTest {
 			String djAfter = a.getValue().getDjValue();
 			System.out.println("*after k>" + djKey + " v->" + djAfter);
 			if (djKey.equals("localVarRefersAnotherLVar")) {
-				assertEquals(djAfter, "PrefixglobalVar1-cloudVar1Suffix");
+				assertEquals(djAfter, "PrefixglobalVar1Suffix");
 			}
 
 		}
@@ -1751,5 +1748,11 @@ public class CmsUtilTest {
 			}
 
 		}
-	}	
+
+	}
+
+
+
+
+
 }
