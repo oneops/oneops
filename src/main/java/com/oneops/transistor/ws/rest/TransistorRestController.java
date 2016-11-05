@@ -844,10 +844,10 @@ public class TransistorRestController extends AbstractRestController {
 	@ResponseBody
 	public Snapshot exportSnapshot(@RequestParam(value = "ns") String[] namespaces,
 								   @RequestParam(value = "cn") String[] classNames,
-
+								   @RequestParam(value = "recursive") Boolean[] recursive, 
 								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 
-		return snapshotManager.exportSnapshot(namespaces, classNames);
+		return snapshotManager.exportSnapshot(namespaces, classNames, recursive);
 	}
 
 

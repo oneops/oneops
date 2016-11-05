@@ -32,7 +32,7 @@ public class SnapshotManagerImpl implements SnapshotManager {
     }
 
     @Override
-    public Snapshot exportSnapshot(String[] namespaces, String[] classNames) {
-        return snapshotProcessor.exportSnapshot(namespaces, classNames);
+    public Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive) {
+        return snapshotProcessor.exportSnapshot(namespaces, classNames, recursive);
     }
 }

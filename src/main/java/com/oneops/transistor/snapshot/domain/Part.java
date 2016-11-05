@@ -22,6 +22,7 @@ import java.util.*;
 public class Part {
     private String ns;
     private String className;
+    private boolean recursive;
     private Map<String, List<ExportCi>> cis= new TreeMap<>();
     private Map<Long, ExportCi> ciMap= new HashMap<>();
 
@@ -32,6 +33,14 @@ public class Part {
     public Part(String namespace, String clazzName) {
         this.ns = namespace;
         this.className = clazzName;
+    }
+
+    public boolean isRecursive() {
+        return recursive;
+    }
+
+    public void setRecursive(boolean recursive) {
+        this.recursive = recursive;
     }
 
     public String getNs() {

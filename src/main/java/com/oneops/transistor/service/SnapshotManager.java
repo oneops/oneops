@@ -26,5 +26,5 @@ import java.util.List;
 @Transactional
 public interface SnapshotManager {
     void importSnapshot(Snapshot snapshot);
-    Snapshot exportSnapshot(String[] namespaces, String[] classNames);
+    Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive);
 }

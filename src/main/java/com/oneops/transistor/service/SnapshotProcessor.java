@@ -36,29 +36,36 @@ import java.util.Map;
 public class SnapshotProcessor {
     private static final String SNAPSHOT_RESTORE = "restore";
     private static Logger logger = Logger.getLogger(SnapshotProcessor.class);
-
     private CmsCmProcessor cmProcessor;
     private CmsRfcProcessor rfcProcessor;
     private CmsCmRfcMrgProcessor rfcMrgProcessor;
-
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
     }
 
-    Snapshot exportSnapshot(String[] namespaces, String[] classNames) {
+    Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive) {
         Snapshot snapshot = new Snapshot();
         for (int i = 0; i < namespaces.length; i++) {
             String namespace = namespaces[i];
             String clazzName = classNames.length - 1 < i ? null : classNames[i];
-            List<CmsCI> cis = cmProcessor.getCiBy3NsLike(namespace, clazzName, null);
             Part part = new Part(namespace, clazzName);
-
+            part.setRecursive(recursive.length -1 < i? false: recursive[i]);
+            List<CmsCI> cis;
+            if (part.isRecursive()) {
+                cis = cmProcessor.getCiBy3NsLike(namespace, clazzName, null);
+            } else {
+                cis = cmProcessor.getCiBy3(namespace, clazzName, null);
+            }
             for (CmsCI ci : cis) {
                 part.addExportCi(ci.getNsPath(), new ExportCi(ci));
             }
-
-            List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, clazzName, null);
+            List<CmsCIRelation> relations;
+            if (part.isRecursive()) {
+                relations = cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, clazzName, null);
+            } else {
+                relations =cmProcessor.getCIRelationsNaked(namespace, null, null, clazzName, null); 
+            }
             for (CmsCIRelation rel : relations) {
                 part.addExportRelations(rel.getFromCiId(), new ExportRelation(rel));
             }
@@ -74,20 +81,28 @@ public class SnapshotProcessor {
                 throw new DesignExportException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, "There is an open release for namespace: " + ns + " please discard or commit first");
             }
         }
-
         Map<Long, RelationLink> relationLinks = new HashMap<>();
         snapshot.getParts().forEach((part) -> restoreCis(part, relationLinks));    // we need to restore relations first, before we attempt to restore relations
         snapshot.getParts().forEach((part) -> restoreRelations(part, relationLinks));
     }
 
     private void restoreRelations(Part part, Map<Long, RelationLink> relationLinks) {
-        List<CmsCIRelation> existingRelations = cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, part.getClassName(), null);
+        logger.info("processing part:"+part.getClassName()+"@"+part.getNs());
+        List<CmsCIRelation> existingRelations;
+        if (part.isRecursive()) {
+            existingRelations = cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, part.getClassName(), null);
+        } else {
+            existingRelations = cmProcessor.getCIRelationsNaked(part.getNs(), null, null, part.getClassName(), null);
+        }
         for (String actualNs : part.getCis().keySet()) {
             for (ExportCi eci : part.getCis().get(actualNs)) {
                 List<ExportRelation> exportRelations = eci.getRelations();
                 for (ExportRelation exportRelation : exportRelations) {
                     RelationLink fromLink = relationLinks.get(eci.getId());
                     RelationLink toLink = relationLinks.get(exportRelation.getTo());
+                    if (toLink==null){
+                        toLink = new RelationLink(exportRelation.getTo(), null); // external link
+                    }
                     CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
                     if (relation == null) { // relation doesn't exist
                         addRelation(actualNs, exportRelation, fromLink, toLink);
@@ -115,7 +130,6 @@ public class SnapshotProcessor {
         for (String key : snapshotAttributes.keySet()) {
             CmsCIRelationAttribute ciAttribute = existingAttributes.remove(key);
             String value = snapshotAttributes.get(key);
-
             if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
                 rel.addAttribute(createRfcAttribute(key, value, exportRelation.getOwner(key)));
             }
@@ -165,7 +179,7 @@ public class SnapshotProcessor {
 
 
     private static CmsCIRelation findMatchingRelation(String ns, RelationLink fromLink, RelationLink toLink, String type, List<CmsCIRelation> existingRelations) {
-        if (toLink == null || fromLink == null || toLink.getRfcId() == null || fromLink.getRfcId() == null)
+        if (toLink == null || fromLink == null || toLink.getRfcId() != null || fromLink.getRfcId() != null)
             return null; // no match because it's either relation to external entity that wasn't a part of this snapshot or RFC based for just added CIs 
         for (CmsCIRelation rel : existingRelations) {
             if (rel.getNsPath().equals(ns) && rel.getRelationName().equals(type) && rel.getFromCiId() == fromLink.getId() && rel.getToCiId() == toLink.getId()) {
@@ -176,7 +190,12 @@ public class SnapshotProcessor {
     }
 
     private void restoreCis(Part part, Map<Long, RelationLink> relationLinkMap) {
-        List<CmsCI> existingCis = cmProcessor.getCiBy3NsLike(part.getNs(), part.getClassName(), null);
+        List<CmsCI> existingCis;
+        if (part.isRecursive()) {
+            existingCis = cmProcessor.getCiBy3NsLike(part.getNs(), part.getClassName(), null);
+        } else {
+            existingCis = cmProcessor.getCiBy3(part.getNs(), part.getClassName(), null);
+        }
         for (String actualNs : part.getCis().keySet()) {
             for (ExportCi eci : part.getCis().get(actualNs)) {
                 CmsCI ci = findMatchingCi(actualNs, eci, existingCis);
@@ -226,7 +245,6 @@ public class SnapshotProcessor {
                 rfcCI.addAttribute(createRfcAttribute(key, value, eci.getOwner(key)));
             }
         }
-
         if (!rfcCI.getAttributes().isEmpty()) {
             logger.info("Updating:" + ci.getCiName() + "@" + ci.getNsPath());
             rfcMrgProcessor.upsertCiRfc(rfcCI, SNAPSHOT_RESTORE);
@@ -265,7 +283,6 @@ public class SnapshotProcessor {
             this.id = id;
             this.rfcId = rfcId;
         }
-
 
         long getId() {
             return id;
