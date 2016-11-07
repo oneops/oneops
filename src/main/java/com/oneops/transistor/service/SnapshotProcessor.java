@@ -87,7 +87,7 @@ public class SnapshotProcessor {
         } else {
             existingRelations = cmProcessor.getCIRelationsNaked(part.getNs(), null, null, part.getClassName(), null);
         }
-        for (String actualNs : part.getCis().keySet()) {
+        for (String actualNs : part.getRelations().keySet()) {
             for (ExportRelation exportRelation : part.getRelations().get(actualNs)) {
                 RelationLink fromLink = relationLinks.get(exportRelation.getFrom());
                 RelationLink toLink = relationLinks.get(exportRelation.getTo());
