@@ -3,9 +3,6 @@ package com.oneops.transistor.snapshot.domain;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /*******************************************************************************
  *
  *   Copyright 2016 Walmart, Inc.
@@ -26,9 +23,8 @@ import java.util.List;
 public class ExportCi extends BaseEntity {
     private long id;
     private String name;
-    private String comments; 
-    private List<ExportRelation> relations = new ArrayList<>();
-    
+    private String comments;
+
     public ExportCi() {
     }
 
@@ -37,17 +33,12 @@ public class ExportCi extends BaseEntity {
         name = ci.getCiName();
         setType(ci.getCiClassName());
         setComments(ci.getComments());
-        
         ci.getAttributes().values().forEach(this::addAttribute);
     }
 
     private void addAttribute(CmsCIAttribute attr) {
-        attributes.put(attr.getAttributeName(), attr.getDfValue());
+        getAttributes().put(attr.getAttributeName(), attr.getDfValue());
         addOwner(attr.getOwner(), attr.getAttributeName());
-    }
-    
-    void addRelation(ExportRelation relations){
-        this.relations.add(relations);
     }
 
     public long getId() {
@@ -74,11 +65,4 @@ public class ExportCi extends BaseEntity {
         this.comments = comments;
     }
 
-    public List<ExportRelation> getRelations() {
-        return relations;
-    }
-
-    public void setRelations(List<ExportRelation> relations) {
-        this.relations = relations;
-    }
 }

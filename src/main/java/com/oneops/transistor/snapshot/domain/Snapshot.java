@@ -19,7 +19,7 @@ import java.util.*;
  *   limitations under the License.
  *
  *******************************************************************************/
-public class Snapshot {
+public class Snapshot {                            
     private List<Part> parts = new ArrayList<>();// we need it sorted by NS for proper restore order
 
 
@@ -40,6 +40,7 @@ public class Snapshot {
         Set<String> set = new HashSet<>();
         for (Part part:parts){
             set.addAll(part.getCis().keySet());
+            set.addAll(part.getRelations().keySet());
         }
         return set;
     }

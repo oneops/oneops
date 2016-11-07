@@ -44,30 +44,23 @@ public class SnapshotProcessor {
         this.cmProcessor = cmProcessor;
     }
 
-    Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive) {
+    Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursiveArray) {
         Snapshot snapshot = new Snapshot();
         for (int i = 0; i < namespaces.length; i++) {
             String namespace = namespaces[i];
-            String clazzName = classNames.length - 1 < i ? null : classNames[i];
-            Part part = new Part(namespace, clazzName);
-            part.setRecursive(recursive.length -1 < i? false: recursive[i]);
-            List<CmsCI> cis;
-            if (part.isRecursive()) {
-                cis = cmProcessor.getCiBy3NsLike(namespace, clazzName, null);
-            } else {
-                cis = cmProcessor.getCiBy3(namespace, clazzName, null);
-            }
+            String className = classNames.length - 1 < i ? null : classNames[i];
+            Boolean recursive =recursiveArray.length - 1 < i ? false : recursiveArray[i]; 
+            
+            Part part = new Part(namespace, className);
+            part.setRecursive(recursive);
+            List<CmsCI> cis = recursive ? cmProcessor.getCiBy3NsLike(namespace, className, null) : cmProcessor.getCiBy3(namespace, className, null);
             for (CmsCI ci : cis) {
                 part.addExportCi(ci.getNsPath(), new ExportCi(ci));
             }
-            List<CmsCIRelation> relations;
-            if (part.isRecursive()) {
-                relations = cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, clazzName, null);
-            } else {
-                relations =cmProcessor.getCIRelationsNaked(namespace, null, null, clazzName, null); 
-            }
+
+            List<CmsCIRelation> relations = recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, className, null) : cmProcessor.getCIRelationsNaked(namespace, null, null, className, null);
             for (CmsCIRelation rel : relations) {
-                part.addExportRelations(rel.getFromCiId(), new ExportRelation(rel));
+                part.addExportRelation(rel.getNsPath(), new ExportRelation(rel));
             }
             snapshot.add(part);
         }
@@ -87,7 +80,7 @@ public class SnapshotProcessor {
     }
 
     private void restoreRelations(Part part, Map<Long, RelationLink> relationLinks) {
-        logger.info("processing part:"+part.getClassName()+"@"+part.getNs());
+        logger.info("processing part:" + part.getClassName() + "@" + part.getNs());
         List<CmsCIRelation> existingRelations;
         if (part.isRecursive()) {
             existingRelations = cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, part.getClassName(), null);
@@ -95,21 +88,18 @@ public class SnapshotProcessor {
             existingRelations = cmProcessor.getCIRelationsNaked(part.getNs(), null, null, part.getClassName(), null);
         }
         for (String actualNs : part.getCis().keySet()) {
-            for (ExportCi eci : part.getCis().get(actualNs)) {
-                List<ExportRelation> exportRelations = eci.getRelations();
-                for (ExportRelation exportRelation : exportRelations) {
-                    RelationLink fromLink = relationLinks.get(eci.getId());
-                    RelationLink toLink = relationLinks.get(exportRelation.getTo());
-                    if (toLink==null){
-                        toLink = new RelationLink(exportRelation.getTo(), null); // external link
-                    }
-                    CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
-                    if (relation == null) { // relation doesn't exist
-                        addRelation(actualNs, exportRelation, fromLink, toLink);
-                    } else {
-                        existingRelations.remove(relation); // we need to remove match
-                        updateRelation(exportRelation, relation);
-                    }
+            for (ExportRelation exportRelation : part.getRelations().get(actualNs)) {
+                RelationLink fromLink = relationLinks.get(exportRelation.getFrom());
+                RelationLink toLink = relationLinks.get(exportRelation.getTo());
+                if (toLink == null) {
+                    toLink = new RelationLink(exportRelation.getTo(), null); // external link
+                }
+                CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
+                if (relation == null) { // relation doesn't exist
+                    addRelation(actualNs, exportRelation, fromLink, toLink);
+                } else {
+                    existingRelations.remove(relation); // we need to remove match
+                    updateRelation(exportRelation, relation);
                 }
             }
         }

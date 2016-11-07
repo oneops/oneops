@@ -22,20 +22,29 @@ import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
  *******************************************************************************/
 public class ExportRelation extends BaseEntity {
     private Long to;
+    private Long from;
 
 
-    public ExportRelation() {
-    }
+    public ExportRelation(){}
 
     public ExportRelation(CmsCIRelation rel) {
         this.setTo(rel.getToCiId());
+        this.setFrom(rel.getFromCiId());
         this.setType(rel.getRelationName());
         rel.getAttributes().values().forEach(this::addAttribute);
     }
 
     private void addAttribute(CmsCIRelationAttribute attr) {
-        attributes.put(attr.getAttributeName(), attr.getDfValue());
+        getAttributes().put(attr.getAttributeName(), attr.getDfValue());
         addOwner(attr.getOwner(), attr.getAttributeName());
+    }
+
+    public Long getFrom() {
+        return from;
+    }
+
+    public void setFrom(Long from) {
+        this.from = from;
     }
 
     public Long getTo() {

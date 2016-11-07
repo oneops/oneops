@@ -24,7 +24,7 @@ import java.util.Map;
  *******************************************************************************/
 public class BaseEntity {
     private String type;
-    protected Map<String, String> attributes = new HashMap<>();
+    private Map<String, String> attributes = new HashMap<>();
     private Map<String, List<String>> owners = new HashMap<>();
 
     void addOwner(String owner, String name) {
