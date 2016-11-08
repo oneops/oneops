@@ -983,9 +983,7 @@ public class CmsUtil {
         }
         return attrValue;
     }
-
-
-
+    
 	private boolean isLocalVar(String attrValue) {
 		return attrValue.contains(LOCALVARPFX);
 	}
@@ -1010,7 +1008,7 @@ public class CmsUtil {
 			return getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
 		return resolvedValue;
 	}
-
+	
 	private String performLocalResolution(VariableContext variableContext, String resolvedValue) {
 		resolvedValue= getResolved(variableContext, resolvedValue, LOCALVARPFX, LOCALVARRPL);
 		if(isCloudVar(resolvedValue)){
@@ -1022,7 +1020,7 @@ public class CmsUtil {
 		return resolvedValue;
 
 	}
-
+	
 	private String getResolved(VariableContext variableContext, String resolvedValue, String prefix, String regex) {
 		String varName = stripSymbolicsWithPrefix(resolvedValue, prefix);
 		String varValue = variableContext.get(varName, prefix);
@@ -1123,7 +1121,7 @@ public class CmsUtil {
 		if (resolvedValue==null ||   		//fix, it is actually okay if resolvedValue equals("")
 				isLocalVar(resolvedValue) ||
 				isGlobalVar(resolvedValue) ||
-				isLocalVar(resolvedValue)) {//substituion did not happen: bad.
+				isLocalVar(resolvedValue)) {//substitution did not happen: bad.
             String sb = "error processVars CI-" +
                     ciName + " id-" + ciId +
                     " the attribute- " +
@@ -1366,7 +1364,28 @@ public class CmsUtil {
 		var.addAttribute(valueAttr);
 		return var;
 	}
-	
+
+	private List<CmsCI> getVarsCIs(CmsCI ci, String relationName) {
+		List<CmsCI> vars = new ArrayList<CmsCI>();
+		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(ci.getCiId(), relationName, null);
+
+		for (CmsCIRelation varRel : varRels) {
+			vars.add(varRel.getFromCi());
+		}
+		return vars;
+	}
+
+	private CmsCI newVarCi(String name, String className, String value) {
+		CmsCI var = new CmsCI();
+		var.setCiName(name);
+		var.setCiClassName(className);
+		CmsCIAttribute valueAttr = new CmsCIAttribute();
+		valueAttr.setAttributeName("value");
+		valueAttr.setDfValue(value);
+		var.addAttribute(valueAttr);
+		return var;
+	}
+
 	public Map<String,String> getGlobalVars(CmsCI env) {
 		return getVarValuesMap(getGlobalVarsRfcs(env));
 	}
@@ -1405,7 +1424,7 @@ public class CmsUtil {
 		
 		return getVarValuesMap(getCloudVarsRfcs(cloud));
 	}
-	
+
 	public List<CmsRfcCI> getCloudVarsRfcs(CmsCI cloud) {
 		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
 		CmsRfcCI cloudNameVar = newRfcVar("cloud_name","account.Cloudvar", cloud.getCiName()); 
@@ -1433,4 +1452,70 @@ public class CmsUtil {
     	return varsMap;
     }
 	
+    private Map<String, String> getVarCiValuesMap(List<CmsCI> vars) {
+    	Map<String,String> varsMap = new HashMap<String, String>();
+    	if (vars != null) {
+	    	for (CmsCI var : vars) {
+	    		if (var.getAttribute(VAR_SEC_ATTR_FLAG) != null &&"true".equals(var.getAttribute(VAR_SEC_ATTR_FLAG).getDfValue()))  {
+	    			varsMap.put(var.getCiName(), CmsCrypto.ENC_VAR_PREFIX + var.getAttribute(VAR_SEC_ATTR_VALUE).getDfValue().substring(CmsCrypto.ENC_PREFIX.length()) + CmsCrypto.ENC_VAR_SUFFIX);
+	    		} else {
+	    			varsMap.put(var.getCiName(), var.getAttribute(VAR_UNSEC_ATTR_VALUE).getDfValue());
+	    		}
+	    	}
+    	}
+    	return varsMap;
+    }
+
+	public Map<String, List<CmsCI>> getResolvedVariableCIs(CmsCI cloud, CmsCI env, CmsCI platform) {
+		List<CmsCI> cloudVarCis = new ArrayList<CmsCI>();
+		CmsCI cloudNameVar = newVarCi("cloud_name","account.Cloudvar", cloud.getCiName()); 
+		cloudVarCis.add(cloudNameVar);
+		cloudVarCis.addAll(getVarsCIs(cloud, "account.ValueFor"));
+		Map<String, String> cloudVars = getVarCiValuesMap(cloudVarCis);
+		
+		List<CmsCI> globalVarCis = new ArrayList<CmsCI>();
+		CmsCI envNameVar = newVarCi("env_name","manifest.Globalvar", env.getCiName()); 
+		globalVarCis.add(envNameVar);
+		globalVarCis.addAll(getVarsCIs(env, "manifest.ValueFor"));
+		Map<String, String> globalVars = getVarCiValuesMap(globalVarCis);
+		
+		List<CmsCI> localVarCis = new ArrayList<CmsCI>();
+		CmsCI platformNameVar = newVarCi("platform_name","manifest.Localvar", platform.getCiName()); 
+		localVarCis.add(platformNameVar);
+		localVarCis.addAll(getVarsCIs(platform, "manifest.ValueFor"));
+		Map<String, String> localVars = getVarCiValuesMap(localVarCis);
+		
+		//Cloud vars
+		VariableContext context = new VariableContext(0, null, null, cloudVars, globalVars, localVars);
+
+		for (CmsCI varCi : cloudVarCis) {
+			String varName = varCi.getCiName();
+        	context.setUnresolvedAttrValue(cloudVars.get(varName));
+        	String value = processAllVarsForString(context);
+			varCi.getAttribute("value").setDfValue(value);
+		}
+		
+		//Global vars
+		for (CmsCI varCi : globalVarCis) {
+			String varName = varCi.getCiName();
+        	context.setUnresolvedAttrValue(globalVars.get(varName));
+        	String value = processAllVarsForString(context);
+			varCi.getAttribute("value").setDfValue(value);
+		}
+
+		//Local vars
+		for (CmsCI varCi : localVarCis) {
+			String varName = varCi.getCiName();
+        	context.setUnresolvedAttrValue(localVars.get(varName));
+        	String value = processAllVarsForString(context);
+			varCi.getAttribute("value").setDfValue(value);
+		}
+
+		Map<String, List<CmsCI>> resolvedVariableCIs = new HashMap<>();
+		resolvedVariableCIs.put(CLOUD_VARS_PAYLOAD_NAME, cloudVarCis);
+		resolvedVariableCIs.put(GLOBAL_VARS_PAYLOAD_NAME, globalVarCis);
+		resolvedVariableCIs.put(LOCAL_VARS_PAYLOAD_NAME, localVarCis);
+		
+		return resolvedVariableCIs;
+	}
 }
