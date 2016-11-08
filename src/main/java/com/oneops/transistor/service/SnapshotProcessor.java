@@ -85,8 +85,10 @@ public class SnapshotProcessor {
         List<CmsCIRelation> existingRelations;
         if (part.isRecursive()) {
             existingRelations = cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, part.getClassName(), null);
+            addMissing(existingRelations, cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, null,part.getClassName()));
         } else {
             existingRelations = cmProcessor.getCIRelationsNaked(part.getNs(), null, null, part.getClassName(), null);
+            addMissing(existingRelations, cmProcessor.getCIRelationsNaked(part.getNs(), null, null, null, part.getClassName()));
         }
         for (String actualNs : part.getRelations().keySet()) {
             for (ExportRelation exportRelation : part.getRelations().get(actualNs)) {
@@ -94,6 +96,9 @@ public class SnapshotProcessor {
                 RelationLink toLink = relationLinks.get(exportRelation.getTo());
                 if (toLink == null) {
                     toLink = new RelationLink(exportRelation.getTo(), null); // external link
+                }
+                if (fromLink == null) {
+                    fromLink = new RelationLink(exportRelation.getFrom(), null); // external link
                 }
                 CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
                 if (relation == null) { // relation doesn't exist
@@ -105,8 +110,16 @@ public class SnapshotProcessor {
             }
         }
         for (CmsCIRelation relation : existingRelations) { // remove relations that aren't a part of the snapshot
-            logger.info("Removing relation:" + relation.getRelationName() + "@" + relation.getNsPath());
-            rfcMrgProcessor.requestRelationDelete(relation.getRelationId(), SNAPSHOT_RESTORE);
+            logger.info("Removing relation:" + relation.getRelationName() + "@" + relation.getNsPath()+" "+ relation.getFromCiId()+"->"+relation.getToCiId());
+            rfcMrgProcessor.requestRelationDelete(relation.getCiRelationId(), SNAPSHOT_RESTORE);
+        }
+    }
+
+    private void addMissing(List<CmsCIRelation> existingRelations, List<CmsCIRelation> relationsToCheck) {
+        for (CmsCIRelation relation: relationsToCheck){
+            if (findMatchingRelation(relation.getNsPath(), new RelationLink(relation.getFromCiId(),null),new RelationLink(relation.getToCiId(),null), relation.getRelationName(), existingRelations)==null){
+                existingRelations.add(relation);
+            }
         }
     }
 
@@ -156,7 +169,7 @@ public class SnapshotProcessor {
             rel.setToCiId(toLink.getId());
         }
         processAttributes(exportRelation, rel);
-        logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath());
+        logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath()+" "+ rel.getFromCiId()+"->"+rel.getToCiId());
         rfcMrgProcessor.upsertRelationRfc(rel, SNAPSHOT_RESTORE);
     }
 
@@ -176,8 +189,6 @@ public class SnapshotProcessor {
 
 
     private static CmsCIRelation findMatchingRelation(String ns, RelationLink fromLink, RelationLink toLink, String type, List<CmsCIRelation> existingRelations) {
-        if (toLink == null || fromLink == null || toLink.getRfcId() != null || fromLink.getRfcId() != null)
-            return null; // no match because it's either relation to external entity that wasn't a part of this snapshot or RFC based for just added CIs 
         for (CmsCIRelation rel : existingRelations) {
             if (rel.getNsPath().equals(ns) && rel.getRelationName().equals(type) && rel.getFromCiId() == fromLink.getId() && rel.getToCiId() == toLink.getId()) {
                 return rel;
