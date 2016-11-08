@@ -159,7 +159,7 @@ public class SnapshotProcessor {
         if (fromLink == null) {
             rel.setFromCiId(exportRelation.getFrom());
         } else {
-            rel.setFromRfcId(fromLink.getId());
+            rel.setFromRfcId(fromLink.getRfcId());
             rel.setFromCiId(fromLink.getId());
         }
         if (toLink == null) {
