@@ -834,7 +834,15 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
-	
+
+
+	@RequestMapping(value = "/snapshot/exportDesign", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
+	@ResponseBody
+	public Snapshot exportSnapshot(@RequestParam(value = "ns") String namespace,
+								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+
+		return exportSnapshot(new String[]{namespace, namespace, namespace+"/_design"}, new String[]{"catalog.Globalvar","catalog.Platform",null}, new Boolean[]{false, false, true}, scope);
+	}
 
 	public void setSnapshotManager(SnapshotManager snapshotManager) {
 		this.snapshotManager = snapshotManager;
@@ -846,7 +854,15 @@ public class TransistorRestController extends AbstractRestController {
 								   @RequestParam(value = "cn") String[] classNames,
 								   @RequestParam(value = "recursive") Boolean[] recursive, 
 								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
-
+		if (scope!=null) {
+			for (String ns : namespaces) {
+				if (!ns.startsWith(scope)) {
+					String error = "bad scope";
+					logger.error(error);
+					throw new TransistorException(CmsError.TRANSISTOR_BAD_SCOPE, error);
+				}
+			}
+		}
 		return snapshotManager.exportSnapshot(namespaces, classNames, recursive);
 	}
 
