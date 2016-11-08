@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.cms.util;
 
@@ -65,29 +65,28 @@ public class CmsUtil {
 	public static final String GLOBAL_VARS_PAYLOAD_NAME = "OO_GLOBAL_VARS";
 	public static final String LOCAL_VARS_PAYLOAD_NAME = "OO_LOCAL_VARS";
 
-	public static final String VAR_SEC_ATTR_FLAG = "secure";
-	public static final String VAR_SEC_ATTR_VALUE = "encrypted_value";
-	public static final String VAR_UNSEC_ATTR_VALUE = "value";
+	private static final String VAR_SEC_ATTR_FLAG = "secure";
+	private static final String VAR_SEC_ATTR_VALUE = "encrypted_value";
+	private static final String VAR_UNSEC_ATTR_VALUE = "value";
 
 
 	protected static final String GLOBALVARPFX = "$OO_GLOBAL{";
-	protected static final String GLOBALVARRPL = "\\$OO_GLOBAL\\{";
+	private static final String GLOBALVARRPL = "\\$OO_GLOBAL\\{";
 
 
 	protected static final String LOCALVARPFX = "$OO_LOCAL{";
-	protected static final String LOCALVARRPL = "\\$OO_LOCAL\\{";
+	private static final String LOCALVARRPL = "\\$OO_LOCAL\\{";
 
 
 	protected static final String CLOUDVARPFX = "$OO_CLOUD{";
-	protected static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
+	private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
 	private static final String ATTR_PROP_OWNER = "owner";
 
-	public static final String MASK = "##############";
+	private static final String MASK = "##############";
 	public static final String WORK_ORDER_TYPE = "deploybom";
 	public static final String ACTION_ORDER_TYPE = "opsprocedure";
 
-	public static final String DJ_ATTR = "dj";
-	public static final String DF_ATTR = "df";
+	private static final String DJ_ATTR = "dj";
 
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcUtil rfcUtil;
@@ -96,7 +95,6 @@ public class CmsUtil {
 
 
 	private CmsCrypto cmsCrypto;
-	private CmsMdProcessor mdProcessor;
 
 	private static final Logger logger = Logger.getLogger(CmsUtil.class);
 
@@ -122,9 +120,7 @@ public class CmsUtil {
 		this.rfcUtil = rfcUtil;
 	}
 
-	public CmsRfcUtil getRfcUtil() {
-		return rfcUtil;
-	}
+
 	/**
 	 * Cust ci simple2 ci.
 	 *
@@ -688,9 +684,9 @@ public class CmsUtil {
 		wos.setCloud(custCI2CISimple(wo.getCloud(), "df", true));
 
 		if (wo.getServices() != null) {
-			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<String,Map<String, CmsCISimple>>();
+			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<>();
 			for (Entry<String,Map<String, CmsCI>> serviceEntry : wo.getServices().entrySet()) {
-				simpleServs.put(serviceEntry.getKey(), new LinkedHashMap<String,CmsCISimple>());
+				simpleServs.put(serviceEntry.getKey(), new LinkedHashMap<>());
 				for (Entry<String,CmsCI> cloudEntry : serviceEntry.getValue().entrySet()) {
 					simpleServs.get(serviceEntry.getKey()).put(cloudEntry.getKey(), custCI2CISimple(cloudEntry.getValue(),"df",true));
 				}
@@ -760,9 +756,9 @@ public class CmsUtil {
         aos.setCreatedBy(ao.getCreatedBy());
 
         if (ao.getServices() != null) {
-			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<String,Map<String, CmsCISimple>>();
+			Map<String,Map<String, CmsCISimple>> simpleServs = new HashMap<>();
 			for (Entry<String,Map<String, CmsCI>> serviceEntry : ao.getServices().entrySet()) {
-				simpleServs.put(serviceEntry.getKey(), new HashMap<String,CmsCISimple>());
+				simpleServs.put(serviceEntry.getKey(), new HashMap<>());
 				for (Entry<String,CmsCI> cloudEntry : serviceEntry.getValue().entrySet()) {
 					simpleServs.get(serviceEntry.getKey()).put(cloudEntry.getKey(), custCI2CISimple(cloudEntry.getValue(),"df",true));
 				}
@@ -823,7 +819,7 @@ public class CmsUtil {
 	 * @return the list
 	 */
 	public List<AttrQueryCondition> parseConditions(String[] attrs) {
-		List<AttrQueryCondition> attrConds = new ArrayList<AttrQueryCondition>();
+		List<AttrQueryCondition> attrConds = new ArrayList<>();
 		for(String attrStr : attrs) {
 			String[] attrArray = attrStr.split(":");
 			AttrQueryCondition attrCondition = new AttrQueryCondition();
@@ -957,7 +953,7 @@ public class CmsUtil {
 
 
     private String resolve(VariableContext variableContext, String attrValue, String localvarpfx, String localvarrpl) {
-        String resolvedValue = "";
+        String resolvedValue;
         String variableToResolve;
         List<String> varStructures = splitAttrValue(attrValue, localvarpfx);
         for (String varStructure : varStructures) {
@@ -1006,18 +1002,18 @@ public class CmsUtil {
 
 	private String performGlobalResolution(VariableContext variableContext, String resolvedValue) {
 		resolvedValue = getResolved(variableContext, resolvedValue, GLOBALVARPFX, GLOBALVARRPL);
-		if (isCloudVar(resolvedValue))
-			return getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
+		while (isCloudVar(resolvedValue))
+			resolvedValue = getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
 		return resolvedValue;
 	}
 
 	private String performLocalResolution(VariableContext variableContext, String resolvedValue) {
 		resolvedValue= getResolved(variableContext, resolvedValue, LOCALVARPFX, LOCALVARRPL);
-		if(isCloudVar(resolvedValue)){
-			return getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
+		while(isGlobalVar(resolvedValue)){
+			resolvedValue = getResolved(variableContext, resolvedValue, GLOBALVARPFX, GLOBALVARRPL);
 		}
-		if(isGlobalVar(resolvedValue)){
-			return getResolved(variableContext, resolvedValue, GLOBALVARPFX, GLOBALVARRPL);
+		while(isCloudVar(resolvedValue)){
+			resolvedValue = getResolved(variableContext, resolvedValue, CLOUDVARPFX, CLOUDVARRPL);
 		}
 		return resolvedValue;
 
@@ -1073,14 +1069,14 @@ public class CmsUtil {
 	 * Take a string wich has $OO.. type variable(s) and splits them into a list
 	 *ex input: "$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_LOCAL{extension}" input comes back out as
 	 * a list with the three....[$OO_LOCAL{groupId}, $OO_LOCAL{artifactId}, $OO_LOCAL{extension}]
-	 * @param inputString
-	 * @param prefix
+	 * @param inputString the attribute which contains variable
+	 * @param prefix prefix to the attribute
 	 * @return essentially inputString tokenized by prefix as a List
 	 */
 	private List<String> splitAttrValue(String inputString, String prefix){
 	     int i =0;
 	     int loc=0;
-	     List<String> elements = new ArrayList<String>();
+	     List<String> elements = new ArrayList<>();
 	     while (i < inputString.length()){
 		     loc = inputString.indexOf( prefix, i);
 		     logger.debug("i="+i+"~~j is where "+ prefix+ " starts ~~j="+ loc);
@@ -1186,25 +1182,6 @@ public class CmsUtil {
 
 
 
-
-
-	/** take a variable name, look it up in the globalVars Map. If the value is a simple value return that. If the value
-	 * is a reference to a variable in the Cloud Map, look it up in the clodVars Map and return the value */
-	protected String resolveGlobalVar(Map<String, String> cloudVars, Map<String, String> globalVars, String variableToResolve) {
-		//resolving either in the form of - $OO_GLOBAL{xyz} or $OO_GLOBAL{$OO_CLOUD{jkl}}
-		//i.e    either a value, or a pointer to Cloud
-		if(globalVars==null || variableToResolve==null){
-			return null;
-		}
-		String resolvedValue=globalVars.get(variableToResolve);
-
-		while (resolvedValue!=null && resolvedValue.contains(CLOUDVARPFX) && cloudVars!=null){
-			resolvedValue=cloudVars.get(stripSymbolics(resolvedValue));
-		}
-
-		return resolvedValue;
-	}
-
 	/** $OO_CLOUD{xyz} returned as xyz */
 	private String stripSymbolics(String variableReference) {
 		return variableReference.substring(variableReference.indexOf("{")+1, variableReference.indexOf("}"));
@@ -1253,9 +1230,9 @@ public class CmsUtil {
 	/**
      * Masks the secured attributes in work-orders and action-orders
      * 
-     * @param cmsWoSimpleBase
-     * @param type
-     * @return
+     * @param cmsWoSimpleBase simple work order for which attributes need to be secured
+     * @param type of the workOrder or actionOrder
+     * @return secured workOrder.
      */
 	public static CmsWorkOrderSimpleBase maskSecuredFields(CmsWorkOrderSimpleBase cmsWoSimpleBase,String type) {
 		
@@ -1326,11 +1303,10 @@ public class CmsUtil {
 	/**
 	 * Masks the secured CI attributes
 	 * 
-	 * @param ci
+	 * @param ci the ci whose attributes need to be secured.
 	 */
 	private static void maskSecure(CmsCISimple ci) {
 		if(ci.getAttrProps() !=null && ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
-				//"true".equals(ci.getAttrProps().get(attrName).get(CmsConstants.SECURED_ATTRIBUTE))){
 			for (Entry<String,String> secAttr : ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
 				if ("true".equals(secAttr.getValue())) {
 					ci.getCiAttributes().put(secAttr.getKey(), MASK);
@@ -1343,11 +1319,10 @@ public class CmsUtil {
 	/**
 	 * Masks the secured RfcCI attributes
 	 * 
-	 * @param rfcCI
+	 * @param rfcCI rfcCI for which attributes need to be secured.
 	 */
 	private static void maskSecure(CmsRfcCISimple rfcCI) {
 		if(rfcCI.getCiAttrProps()!=null && rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
-				//"true".equals(rfcCI.getCiAttrProps().get(attrName).get(CmsConstants.SECURED_ATTRIBUTE))){
 			for (Entry<String,String> secAttr : rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
 				if ("true".equals(secAttr.getValue())) {
 					rfcCI.getCiAttributes().put(secAttr.getKey(), MASK);
@@ -1372,7 +1347,7 @@ public class CmsUtil {
 	}
 	
 	public List<CmsRfcCI> getGlobalVarsRfcs(CmsCI env) {
-		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
+		List<CmsRfcCI> vars = new ArrayList<>();
 		CmsRfcCI envNameVar = newRfcVar("env_name","manifest.Globalvar", env.getCiName()); 
 		vars.add(envNameVar);
 		List<CmsCIRelation> varRels = cmProcessor.getToCIRelations(env.getCiId(), "manifest.ValueFor", null);
@@ -1388,7 +1363,7 @@ public class CmsUtil {
 	}
 
 	public List<CmsRfcCI> getLocalVarsRfcs(CmsCI plat) {
-		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
+		List<CmsRfcCI> vars = new ArrayList<>();
 		CmsRfcCI platNameVar = newRfcVar("platform_name","manifest.Localvar", plat.getCiName()); 
 		vars.add(platNameVar);
 		
@@ -1407,7 +1382,7 @@ public class CmsUtil {
 	}
 	
 	public List<CmsRfcCI> getCloudVarsRfcs(CmsCI cloud) {
-		List<CmsRfcCI> vars = new ArrayList<CmsRfcCI>();
+		List<CmsRfcCI> vars = new ArrayList<>();
 		CmsRfcCI cloudNameVar = newRfcVar("cloud_name","account.Cloudvar", cloud.getCiName()); 
 		vars.add(cloudNameVar);
 		
@@ -1419,8 +1394,8 @@ public class CmsUtil {
 		return vars;
 	}
 
-    public Map<String,String> getVarValuesMap(List<CmsRfcCI> vars) {
-    	Map<String,String> varsMap = new HashMap<String, String>();
+    private Map<String,String> getVarValuesMap(List<CmsRfcCI> vars) {
+    	Map<String,String> varsMap = new HashMap<>();
     	if (vars != null) {
 	    	for (CmsRfcCI var : vars) {
 	    		if (var.getAttribute(VAR_SEC_ATTR_FLAG) != null &&"true".equals(var.getAttribute(VAR_SEC_ATTR_FLAG).getNewValue()))  {
