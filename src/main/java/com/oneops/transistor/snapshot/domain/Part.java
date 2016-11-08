@@ -24,7 +24,7 @@ public class Part {
     private String className;
     private boolean recursive;
     private Map<String, List<ExportCi>> cis= new TreeMap<>();
-    private Map<String, List<ExportRelation>> relations= new TreeMap<>();
+    private Map<String, Set<ExportRelation>> relations= new TreeMap<>();
 
 
     public Part() {
@@ -67,11 +67,11 @@ public class Part {
         this.cis = cis;
     }
 
-    public Map<String, List<ExportRelation>> getRelations() {
+    public Map<String, Set<ExportRelation>> getRelations() {
         return relations;
     }
 
-    public void setRelations(Map<String, List<ExportRelation>> relations) {
+    public void setRelations(Map<String, Set<ExportRelation>> relations) {
         this.relations = relations;
     }
 
@@ -85,11 +85,11 @@ public class Part {
     }
 
     public void addExportRelation(String actualNs, ExportRelation exportRelation){
-        List<ExportRelation> list = relations.get(actualNs);
-        if (list==null) {
-            list = new ArrayList<>();
-            relations.put(actualNs, list);
+        Set<ExportRelation> set = relations.get(actualNs);
+        if (set==null) {
+            set = new HashSet<>();
+            relations.put(actualNs, set);
         }
-        list.add(exportRelation);
+        set.add(exportRelation);
     }
 }

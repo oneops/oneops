@@ -49,8 +49,8 @@ public class SnapshotProcessor {
         for (int i = 0; i < namespaces.length; i++) {
             String namespace = namespaces[i];
             String className = classNames.length - 1 < i ? null : classNames[i];
-            Boolean recursive =recursiveArray.length - 1 < i ? false : recursiveArray[i]; 
-            
+            Boolean recursive = recursiveArray.length - 1 < i ? false : recursiveArray[i];
+
             Part part = new Part(namespace, className);
             part.setRecursive(recursive);
             List<CmsCI> cis = recursive ? cmProcessor.getCiBy3NsLike(namespace, className, null) : cmProcessor.getCiBy3(namespace, className, null);
@@ -59,6 +59,7 @@ public class SnapshotProcessor {
             }
 
             List<CmsCIRelation> relations = recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, className, null) : cmProcessor.getCIRelationsNaked(namespace, null, null, className, null);
+            relations.addAll(recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, null, className) : cmProcessor.getCIRelationsNaked(namespace, null, null, null, className));
             for (CmsCIRelation rel : relations) {
                 part.addExportRelation(rel.getNsPath(), new ExportRelation(rel));
             }
@@ -142,8 +143,12 @@ public class SnapshotProcessor {
         CmsRfcRelation rel = new CmsRfcRelation();
         rel.setNsPath(ns);
         rel.setRelationName(exportRelation.getType());
-        rel.setFromRfcId(fromLink.getId());
-        rel.setFromCiId(fromLink.getId());
+        if (fromLink == null) {
+            rel.setFromCiId(exportRelation.getFrom());
+        } else {
+            rel.setFromRfcId(fromLink.getId());
+            rel.setFromCiId(fromLink.getId());
+        }
         if (toLink == null) {
             rel.setToCiId(exportRelation.getTo());
         } else {
@@ -159,10 +164,12 @@ public class SnapshotProcessor {
         if (exportRelation.getAttributes() != null) {
             for (Map.Entry<String, String> attr : exportRelation.getAttributes().entrySet()) {
                 CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
-                rfcAttr.setAttributeName(attr.getKey());
-                rfcAttr.setNewValue(attr.getValue());
-                rfcAttr.setOwner(exportRelation.getOwner(attr.getKey()));
-                rel.addAttribute(rfcAttr);
+                if (attr.getValue() != null) {
+                    rfcAttr.setAttributeName(attr.getKey());
+                    rfcAttr.setNewValue(attr.getValue());
+                    rfcAttr.setOwner(exportRelation.getOwner(attr.getKey()));
+                    rel.addAttribute(rfcAttr);
+                }
             }
         }
     }

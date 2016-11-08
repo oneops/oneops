@@ -55,4 +55,22 @@ public class ExportRelation extends BaseEntity {
         this.to = to;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ExportRelation that = (ExportRelation) o;
+
+        return to.equals(that.to) && from.equals(that.from) && getType().equals(that.getType());
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = to.hashCode();
+        result = 31 * result + from.hashCode();
+        result = 31 * result + getType().hashCode();
+        return result;
+    }
 }
