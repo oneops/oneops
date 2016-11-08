@@ -40,7 +40,7 @@ public abstract class BaseEventReader {
     private static final long LOG_PUB_INACTIVE = 60000;
     private static final String CMS_PUB_STATUS = "IS_CMS_PUB_ACTIVE";
     private static final int PROCESS_TIMEOUT_SECONDS = 30;
-    Logger logger = Logger.getLogger(this.getClass());
+    protected final Logger logger = Logger.getLogger(this.getClass());
     private String processId;
     SqlSessionFactory sqlsf;
     private long eventTs;
@@ -73,7 +73,7 @@ public abstract class BaseEventReader {
 
     public void init() {
         this.processId = UUID.randomUUID().toString();
-        logger.info(">>>>>>>>>>>>>"+this.getClass().getSimpleName()+" process id = " + this.processId);
+        logger.info(">>>>>>>>>>>>>" + this.getClass().getSimpleName() + " process id = " + this.processId);
     }
 
     public void cleanup() {
@@ -89,12 +89,13 @@ public abstract class BaseEventReader {
             return getBacklog(session.getMapper(EventMapper.class));
         }
     }
+
     /**
      * Checks if CMSPublisher is active
      *
      * @return true if active
      */
-    public boolean isCmsPubActive() {
+    private boolean isCmsPubActive() {
         if (varCache.getUnchecked(CMS_PUB_STATUS)) {
             eventTs = 0; //reset timer
             return true;
@@ -110,11 +111,11 @@ public abstract class BaseEventReader {
     }
 
 
-    private boolean getBooleanVariableFromDB(String varName){
+    private boolean getBooleanVariableFromDB(String varName) {
         try (SqlSession session = sqlsf.openSession()) {
             UtilMapper utilMapper = session.getMapper(UtilMapper.class);
             CmsVar pubStatus = utilMapper.getCmSimpleVar(varName);
-            return pubStatus==null || Boolean.TRUE.toString().equals(pubStatus.getValue());
+            return pubStatus == null || Boolean.TRUE.toString().equals(pubStatus.getValue());
         }
     }
 
@@ -126,7 +127,7 @@ public abstract class BaseEventReader {
         }
     }
 
-    public abstract void removeEvent(long eventId, EventMapper eventMapper);
+    protected abstract void removeEvent(long eventId, EventMapper eventMapper);
 
     public List<CMSEvent> getEvents() {
 
@@ -179,11 +180,11 @@ public abstract class BaseEventReader {
 
     }
 
-    public abstract int getBacklog(EventMapper evenMapper);
+    protected abstract int getBacklog(EventMapper evenMapper);
 
-    public abstract List<CMSEventRecord> getEvents(EventMapper eventMapper);
+    protected abstract List<CMSEventRecord> getEvents(EventMapper eventMapper);
 
-    public abstract String getLockName();
+    protected abstract String getLockName();
 
     protected abstract CMSEvent populateEvent(CMSEventRecord record);
 }
