@@ -191,6 +191,7 @@ public class CmsWoProvider {
         CmsCI env = null;
         List<CmsCI> envs = null;
         Map<Long, CmsCI> manifestToTemplateMap = new HashMap<Long, CmsCI>();
+        
         for(CmsActionOrder ao: aorders) {
         	// this is a special case for the coud.Service usecase
         	if (ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX)) {
@@ -204,7 +205,19 @@ public class CmsWoProvider {
         	
         	//put Environment
         	ao.putPayLoadEntry("Environment",envs);
-    		//put proxy
+ 
+			//put all the variables in payload
+    		try {
+        		Map<String, List<CmsCI>> resolvedVariableCIs = cmsUtil.getResolvedVariableCIs(ao.getCloud(), env, ao.getBox());
+        		ao.getPayLoad().putAll(resolvedVariableCIs);
+    		} catch (Exception e) {
+    			logger.error("Error in generating action order while resolving variables for env: " 
+    		+ env.getNsPath() + "/" + env.getCiName() + ", action name: " + ao.getActionName() + ", for CiId: " + ao.getCiId());
+    			//do not throw again because action-procedures may not need variables.. and if they do, 
+    			//and the variable is not defined or badly encrypted, the recipe would fail anyway
+    		}
+    		
+        	//put proxy
     		ao.putPayLoadEntry("ManagedVia",getCIRelatives(ao.getCiId(),"bom.ManagedVia","from", null)); 
     		//put depends on
     		ao.putPayLoadEntry("DependsOn",getCIRelatives(ao.getCiId(),"bom.DependsOn","from", null));
@@ -220,7 +233,7 @@ public class CmsWoProvider {
     			Map<String, String> globalVars = cmsUtil.getGlobalVars(env);
     			Map<String, String> cloudVars = cmsUtil.getCloudVars(ao.getCloud());
     			Map<String, String> localVars = cmsUtil.getLocalVars(ao.getBox());
-    			
+
     			if (ao.getExtraInfo() != null) {
     				long attachmentId = Long.valueOf(ao.getExtraInfo());
     				attachment = cmProcessor.getCiById(attachmentId);
