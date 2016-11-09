@@ -139,6 +139,7 @@ public class CmsDpmtProcessor {
 			}
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
 		if (ONEOPS_AUTOREPLACE_USER.equals(dpmt.getCreatedBy()))  {
 			dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
 			dpmtMapper.createDeployment(dpmt);
@@ -172,6 +173,13 @@ public class CmsDpmtProcessor {
 		}
 	}
 	
+	private void updateAutoDeployExecOrders(CmsDeployment dpmt) {
+		Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
+		if (autoPauseExecOrders != null) {
+			dpmt.setAutoPauseExecOrdersVal(StringUtils.join(autoPauseExecOrders, ","), false);
+		}
+	}
+
 	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
 		
 		List<CmsDpmtApproval> result = new ArrayList<CmsDpmtApproval>();
@@ -355,6 +363,8 @@ public class CmsDpmtProcessor {
 			dpmt.setDeploymentState(null);
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
+
 		if (DPMT_STATE_CANCELED.equalsIgnoreCase(dpmt.getDeploymentState())) {
 			if (dpmtMapper.getDeploymentRecordsCountByState(dpmt.getDeploymentId(), DPMT_RECORD_STATE_INPROGRESS, null) > 0) {
 				String errMsg = "The deployment still have active work orders!"; 
