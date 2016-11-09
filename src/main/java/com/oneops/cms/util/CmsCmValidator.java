@@ -305,20 +305,20 @@ public class CmsCmValidator {
 	}
 
 	private void encryptUpdateCiAttrs(Map<String, CmsClazzAttribute> clazzAttrsMap, CmsCI ci, CIValidationResult encResult) {
-		
 		List <String> noUpdateAttrs = new ArrayList<String>();
-		
 		for (CmsCIAttribute attr : ci.getAttributes().values()) {
 			try {
 				if (clazzAttrsMap.get(attr.getAttributeName()).getIsEncrypted()) {
 					if (attr.getDfValue() != null ) {
 						if (attr.getDfValue().equalsIgnoreCase(CmsCrypto.ENC_DUMMY)) {
 							noUpdateAttrs.add(attr.getAttributeName());
+
 						} else if (!attr.getDfValue().startsWith(CmsCrypto.ENC_PREFIX) ) {
 							if(!attr.getDfValue().startsWith(CmsCrypto.ENC_VAR_PREFIX))
 								attr.setDfValue(cmsCrypto.encrypt(attr.getDfValue()));
 						}
 					}
+
 					if (attr.getDjValue() != null) {
 						if (attr.getDjValue().equalsIgnoreCase(CmsCrypto.ENC_DUMMY)) {
 							noUpdateAttrs.add(attr.getAttributeName());

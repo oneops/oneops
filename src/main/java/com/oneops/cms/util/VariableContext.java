@@ -17,8 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
-import org.apache.log4j.Logger;
-
 import java.util.Map;
 
 import static com.oneops.cms.util.CmsUtil.*;
@@ -30,15 +28,14 @@ public class VariableContext {
     private final long ciId;
     private final String ciName;
     private final String nsPath;
-    private  String attrName;
-    private  String unresolvedAttrValue;
     private final Map<String, String> cloudVars;
     private final Map<String, String> globalVars;
     private final Map<String, String> localVars;
+    private String attrName;
+    private String unresolvedAttrValue;
 
-    private static final Logger logger = Logger.getLogger(VariableContext.class);
 
-    public VariableContext(long ciId, String ciName, String nsPath,  Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
+    public VariableContext(long ciId, String ciName, String nsPath, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
         this.ciId = ciId;
         this.ciName = ciName;
         this.nsPath = nsPath;
@@ -46,7 +43,6 @@ public class VariableContext {
         this.globalVars = globalVars;
         this.localVars = localVars;
     }
-
 
 
     public long getCiId() {
@@ -65,8 +61,16 @@ public class VariableContext {
         return attrName;
     }
 
+    public void setAttrName(String attrName) {
+        this.attrName = attrName;
+    }
+
     public String getUnresolvedAttrValue() {
         return unresolvedAttrValue;
+    }
+
+    public void setUnresolvedAttrValue(String unresolvedAttrValue) {
+        this.unresolvedAttrValue = unresolvedAttrValue;
     }
 
     public Map<String, String> getCloudVars() {
@@ -81,45 +85,33 @@ public class VariableContext {
         return localVars;
     }
 
-
     public String getCloudVar(String variableToResolve) {
-        if (getCloudVars() != null )
-            return  getCloudVars().get(variableToResolve);
+        if (getCloudVars() != null)
+            return getCloudVars().get(variableToResolve);
         return null;
     }
 
     public String getGlobalVar(String variableToResolve) {
-        if (getGlobalVars() != null )
-            return  getGlobalVars().get(variableToResolve);
+        if (getGlobalVars() != null)
+            return getGlobalVars().get(variableToResolve);
         return null;
     }
+
     public String getLocalVar(String variableToResolve) {
-        if (getLocalVars() != null )
-            return  getLocalVars().get(variableToResolve);
+        if (getLocalVars() != null)
+            return getLocalVars().get(variableToResolve);
         return null;
-    }
-
-
-
-
-
-    public void setAttrName(String attrName) {
-        this.attrName = attrName;
-    }
-
-    public void setUnresolvedAttrValue(String unresolvedAttrValue) {
-        this.unresolvedAttrValue = unresolvedAttrValue;
     }
 
     public String get(String varName, String prefix) {
         String varValue = null;
-        if (prefix!=null){
+        if (prefix != null) {
             switch (prefix) {
                 case CLOUDVARPFX:
-                    varValue= getCloudVar(varName);
+                    varValue = getCloudVar(varName);
                     break;
                 case GLOBALVARPFX:
-                    varValue= getGlobalVar(varName);
+                    varValue = getGlobalVar(varName);
                     break;
                 case LOCALVARPFX:
                     varValue = getLocalVar(varName);
