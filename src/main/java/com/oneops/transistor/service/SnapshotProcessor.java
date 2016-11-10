@@ -48,8 +48,8 @@ public class SnapshotProcessor {
         Snapshot snapshot = new Snapshot();
         for (int i = 0; i < namespaces.length; i++) {
             String namespace = namespaces[i];
-            String className = classNames.length - 1 < i ? null : classNames[i];
-            Boolean recursive = recursiveArray.length - 1 < i ? false : recursiveArray[i];
+            String className = (classNames==null || classNames.length - 1 < i) ? null : classNames[i];
+            Boolean recursive = (recursiveArray==null || recursiveArray.length - 1 < i) ? false : recursiveArray[i];
 
             Part part = new Part(namespace, className);
             part.setRecursive(recursive);

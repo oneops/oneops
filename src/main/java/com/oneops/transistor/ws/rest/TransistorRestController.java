@@ -833,7 +833,13 @@ public class TransistorRestController extends AbstractRestController {
 		return longs;
 	}
 
+	@RequestMapping(value = "/snapshot/exportBom", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
+	@ResponseBody
+	public Snapshot exportBom(@RequestParam(value = "ns") String namespace,
+								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 
+		return exportSnapshot(new String[]{namespace}, new String[]{null}, new Boolean[]{true}, scope);
+	}
 
 
 	@RequestMapping(value = "/snapshot/exportDesign", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
@@ -851,8 +857,8 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value = "/snapshot/export", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
 	@ResponseBody
 	public Snapshot exportSnapshot(@RequestParam(value = "ns") String[] namespaces,
-								   @RequestParam(value = "cn") String[] classNames,
-								   @RequestParam(value = "recursive") Boolean[] recursive, 
+								   @RequestParam(value = "cn", required = false) String[] classNames,
+								   @RequestParam(value = "recursive", required = false) Boolean[] recursive, 
 								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 		if (scope!=null) {
 			for (String ns : namespaces) {
