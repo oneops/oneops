@@ -80,6 +80,7 @@
     	<property name="inductorPublisher" ref="inductorPublisher" />
     	<property name="wfController" ref="wfController" />
     	<property name="cmsClient" ref="cmsClient" />
+    	<property name="sensorClient" ref="sensorClient" />
     </bean>
 
 
