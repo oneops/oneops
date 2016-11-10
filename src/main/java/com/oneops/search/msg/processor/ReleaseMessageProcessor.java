@@ -53,7 +53,7 @@ public class ReleaseMessageProcessor implements MessageProcessor {
                 message = Request.Get(url).addHeader("Content-Type", "application/json").execute().returnContent().asString();
                 long releaseId = new JsonParser().parse(message).getAsJsonObject().get("release").getAsLong();
                 if (releaseId > release.getReleaseId()) {
-                    logger.warn("Snapshot is dirty, so discarding. Was expecting release:" + release.getReleaseId() + " snapshot is for:" + releaseId);
+                    logger.warn("Snapshot is dirty, so discarding. Was expecting release:" + release.getReleaseId() + " snapshot has rfcs from release:" + releaseId);
                 } else {
                     indexer.index(String.valueOf(release.getReleaseId()), "snapshot", message);
                     logger.info("Snapshot indexed for release ID: " + releaseId);
