@@ -56,15 +56,18 @@ public class SnapshotProcessor {
             List<CmsCI> cis = recursive ? cmProcessor.getCiBy3NsLike(namespace, className, null) : cmProcessor.getCiBy3(namespace, className, null);
             for (CmsCI ci : cis) {
                 part.addExportCi(ci.getNsPath(), new ExportCi(ci));
+                snapshot.updateLastAppliedRfc(ci.getLastAppliedRfcId());
             }
 
             List<CmsCIRelation> relations = recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, className, null) : cmProcessor.getCIRelationsNaked(namespace, null, null, className, null);
             relations.addAll(recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, null, className) : cmProcessor.getCIRelationsNaked(namespace, null, null, null, className));
             for (CmsCIRelation rel : relations) {
                 part.addExportRelation(rel.getNsPath(), new ExportRelation(rel));
+                snapshot.updateLastAppliedRfc(rel.getLastAppliedRfcId());
             }
             snapshot.add(part);
         }
+        snapshot.setRelease(rfcProcessor.getRfcCIById(snapshot.getLastAppliedRfc()).getReleaseId());
         return snapshot;
     }
 

@@ -21,7 +21,8 @@ import java.util.*;
  *******************************************************************************/
 public class Snapshot {                            
     private List<Part> parts = new ArrayList<>();// we need it sorted by NS for proper restore order
-
+    private long lastAppliedRfc = 0;
+    private long release;
 
 
     public List<Part> getParts() {
@@ -43,5 +44,27 @@ public class Snapshot {
             set.addAll(part.getRelations().keySet());
         }
         return set;
+    }
+
+    public void updateLastAppliedRfc(long lastAppliedRfcId) {
+        if (lastAppliedRfcId>this.lastAppliedRfc){
+            this.lastAppliedRfc = lastAppliedRfcId;
+        }
+    }
+
+    public long getLastAppliedRfc() {
+        return lastAppliedRfc;
+    }
+
+    public void setLastAppliedRfc(long lastAppliedRfc) {
+        this.lastAppliedRfc = lastAppliedRfc;
+    }
+
+    public void setRelease(long release) {
+        this.release = release;
+    }
+
+    public long getRelease() {
+        return release;
     }
 }
