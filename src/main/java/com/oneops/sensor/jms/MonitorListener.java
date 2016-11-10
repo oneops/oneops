@@ -34,6 +34,7 @@ import com.oneops.sensor.client.MonitorPublisher;
 import com.oneops.sensor.client.MonitorRequest;
 import com.oneops.sensor.exceptions.SensorException;
 import com.oneops.sensor.thresholds.ThresholdsDao;
+import com.oneops.sensor.util.ReplacedInstances;
 
 public class MonitorListener implements MessageListener {
 
@@ -42,6 +43,7 @@ public class MonitorListener implements MessageListener {
     private Gson gson = new Gson();
     private PerfHeaderDao phDao;
     private ThresholdsDao tsDao;
+    private ReplacedInstances replacedInstances;
 
     /**
 	 * Sets the ph dao.
@@ -86,7 +88,7 @@ public class MonitorListener implements MessageListener {
 		    	long manifestId = mr.getManifestId();
 		    	
 				if (MonitorPublisher.MONITOR_ACTION_UPDATE.equals(mr.getAction())) {
-
+					replacedInstances.remove(ciId);
 					if (tsDao.getManifestId(ciId) == null) {
 						//add manifest mapping regardless of the monitors
 						tsDao.addManifestMap(ciId, manifestId);
@@ -98,10 +100,13 @@ public class MonitorListener implements MessageListener {
 							phDao.createHeader(baseKey+monitor.getCiName(), monitor);
 						}
 						sensor.addCiThresholdsList(ciId, manifestId, mr.getMonitors());
-
 					}
+
 				} else if (MonitorPublisher.MONITOR_ACTION_DELETE.equals(mr.getAction())) {
 					sensor.removeCi(ciId, manifestId);
+				} else if (MonitorPublisher.MONITOR_ACTION_REPLACE_INSTANCE.equals(mr.getAction())) {
+					replacedInstances.add(ciId);
+					sensor.handleReplace(ciId, manifestId);
 				} else {
 					logger.error("Unknown action on msg:" + gson.toJson(msg));
 				}
@@ -120,6 +125,10 @@ public class MonitorListener implements MessageListener {
 			logger.error("Unable to persist thresholds/headers for " + gson.toJson(msg),e);
 			throw new RuntimeException(e);
 		}	
+	}
+
+	public void setReplacedInstances(ReplacedInstances replacedInstances) {
+		this.replacedInstances = replacedInstances;
 	}
 
 }

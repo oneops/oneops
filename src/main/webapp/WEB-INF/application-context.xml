@@ -142,6 +142,7 @@
         <property name="phDao" ref="perfHeaderDao"/>
         <property name="cmProcessor" ref="cmsCmProcessor"/>
         <property name="ciStateProcessor" ref="ciStateProcessor"/>
+        <property name="replacedInstances" ref="replacedInstances"/>
     </bean>
 
     <bean id="closeEventListener" class="com.oneops.sensor.listeners.CloseEventListener">
@@ -176,6 +177,7 @@
         <property name="ciStateProcessor" ref="ciStateProcessor"/>
         <property name="minHeartbeatSeedDelay" value="${MIN_HB_SEED_DELAY_IN_SEC:300}"/>
         <property name="heartbeatRandomDelay" value="${MAX_HB_RANDOM_DELAY_IN_SEC:30}"/>
+        <property name="replacedInstances" ref="replacedInstances"/>
     </bean>
 
     <bean id="sensorTools" class="com.oneops.sensor.util.SensorTools">
@@ -194,6 +196,7 @@
         <property name="sensor" ref="sensor"/>
         <property name="phDao" ref="perfHeaderDao"/>
         <property name="tsDao" ref="tsDao"/>
+        <property name="replacedInstances" ref="replacedInstances"/>
     </bean>
 
     <bean id="monListenerContainer" class="com.oneops.sensor.jms.SensorMonListenerContainer">
@@ -230,6 +233,10 @@
         <property name="coProcessor" ref="coProcessor"/>
         <property name="tsDao" ref="tsDao"/>
         <property name="opsCiStateDao" ref="opsCiStateDao"/>
+    </bean>
+
+    <bean id="replacedInstances" class="com.oneops.sensor.util.ReplacedInstances">
+    	<constructor-arg value="${REPLACED_INSTANCES_TTL_IN_MINS:15}"/>
     </bean>
 
 </beans>
