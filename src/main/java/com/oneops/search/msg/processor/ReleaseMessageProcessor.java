@@ -2,14 +2,10 @@ package com.oneops.search.msg.processor;
 
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.search.msg.index.Indexer;
+import org.apache.http.client.fluent.Request;
 import org.apache.log4j.Logger;
-import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.SearchHit;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /*******************************************************************************
@@ -32,10 +28,11 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class ReleaseMessageProcessor implements MessageProcessor {
+    private static Logger logger = Logger.getLogger(ReleaseMessageProcessor.class);
     @Autowired
     private Indexer indexer;
-
-
+    @Value("${snapshotURL}")
+    private String snapshotURL;
     private static final String RELEASE = "release";
 
     @Override
@@ -44,5 +41,14 @@ public class ReleaseMessageProcessor implements MessageProcessor {
         String releaseMsg = GSON_ES.toJson(release);
         indexer.indexEvent(RELEASE, releaseMsg);
         indexer.index(String.valueOf(release.getReleaseId()), RELEASE, releaseMsg);
+        try {
+            String url = snapshotURL + release.getNsPath();
+            logger.info("Retrieving snapshot for:" + url);
+            message = Request.Get(url).execute().returnContent().asString();
+            indexer.index(String.valueOf(release.getReleaseId()), "snapshot", message);
+            logger.info("Snapshot indexed");
+        } catch (Exception e) {
+            logger.error("Error while retrieving snapshot" + e.getMessage(), e);
+        }
     }
 }

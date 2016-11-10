@@ -49,9 +49,6 @@ public class ESMessageProcessor implements MessageProcessor {
     private ReleaseMessageProcessor releaseMessageProcessor;
     @Autowired
     private NotificationMessageProcessor notificationMessageProcessor;
-    @Autowired
-    private SnapshotMessageProcessor snapshotMessageProcessor;
-
 
     @Autowired
     private Indexer indexer;
@@ -92,9 +89,6 @@ public class ESMessageProcessor implements MessageProcessor {
                     break;
                 case "notification":
                     notificationMessageProcessor.processMessage(message, msgType, msgId);
-                    break;
-                case "snapshot":
-                    snapshotMessageProcessor.processMessage(message, msgType, msgId);
                     break;
                 default:
                     indexer.index(msgId, msgType, message);
