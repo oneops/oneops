@@ -56,7 +56,7 @@ public class ReleaseMessageProcessor implements MessageProcessor {
                     logger.warn("Snapshot is dirty, so discarding. Was expecting release:" + release.getReleaseId() + " snapshot has rfcs from release:" + releaseId);
                 } else {
                     indexer.index(String.valueOf(release.getReleaseId()), "snapshot", message);
-                    logger.info("Snapshot indexed for release ID: " + releaseId);
+                    logger.info("Snapshot indexed for release ID: " + release.getReleaseId());
                 }
             } else {
                 logger.info("Release is not closed. Won't do snapshot");
