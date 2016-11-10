@@ -21,8 +21,10 @@ import java.util.*;
  *******************************************************************************/
 public class Snapshot {                            
     private List<Part> parts = new ArrayList<>();// we need it sorted by NS for proper restore order
-    private long lastAppliedRfc = 0;
+    private long lastAppliedCiRfc = 0;
+    private long lastAppliedRelationRfc = 0;
     private long release;
+
 
 
     public List<Part> getParts() {
@@ -46,18 +48,19 @@ public class Snapshot {
         return set;
     }
 
-    public void updateLastAppliedRfc(long lastAppliedRfcId) {
-        if (lastAppliedRfcId>this.lastAppliedRfc){
-            this.lastAppliedRfc = lastAppliedRfcId;
+    public void updateLastAppliedCiRfc(long lastAppliedRfcId) {
+        if (lastAppliedRfcId>this.lastAppliedCiRfc){
+            this.lastAppliedCiRfc = lastAppliedRfcId;
         }
     }
 
-    public long getLastAppliedRfc() {
-        return lastAppliedRfc;
+
+    public long getLastAppliedCiRfc() {
+        return lastAppliedCiRfc;
     }
 
-    public void setLastAppliedRfc(long lastAppliedRfc) {
-        this.lastAppliedRfc = lastAppliedRfc;
+    public void setLastAppliedCiRfc(long lastAppliedCiRfc) {
+        this.lastAppliedCiRfc = lastAppliedCiRfc;
     }
 
     public void setRelease(long release) {
@@ -66,5 +69,19 @@ public class Snapshot {
 
     public long getRelease() {
         return release;
+    }
+
+    public void updateLastAppliedRelationRfc(long lastAppliedRelationRfc) {
+        if (lastAppliedRelationRfc>this.lastAppliedRelationRfc) {
+            this.lastAppliedRelationRfc = lastAppliedRelationRfc;
+        }
+    }
+
+    public long getLastAppliedRelationRfc() {
+        return lastAppliedRelationRfc;
+    }
+
+    public void setLastAppliedRelationRfc(long lastAppliedRelationRfc) {
+        this.lastAppliedRelationRfc = lastAppliedRelationRfc;
     }
 }

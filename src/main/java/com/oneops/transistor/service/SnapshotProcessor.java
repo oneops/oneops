@@ -48,26 +48,29 @@ public class SnapshotProcessor {
         Snapshot snapshot = new Snapshot();
         for (int i = 0; i < namespaces.length; i++) {
             String namespace = namespaces[i];
-            String className = (classNames==null || classNames.length - 1 < i) ? null : classNames[i];
-            Boolean recursive = (recursiveArray==null || recursiveArray.length - 1 < i) ? false : recursiveArray[i];
+            String className = (classNames == null || classNames.length - 1 < i) ? null : classNames[i];
+            Boolean recursive = (recursiveArray == null || recursiveArray.length - 1 < i) ? false : recursiveArray[i];
 
             Part part = new Part(namespace, className);
             part.setRecursive(recursive);
             List<CmsCI> cis = recursive ? cmProcessor.getCiBy3NsLike(namespace, className, null) : cmProcessor.getCiBy3(namespace, className, null);
             for (CmsCI ci : cis) {
                 part.addExportCi(ci.getNsPath(), new ExportCi(ci));
-                snapshot.updateLastAppliedRfc(ci.getLastAppliedRfcId());
+                snapshot.updateLastAppliedCiRfc(ci.getLastAppliedRfcId());
             }
 
             List<CmsCIRelation> relations = recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, className, null) : cmProcessor.getCIRelationsNaked(namespace, null, null, className, null);
             relations.addAll(recursive ? cmProcessor.getCIRelationsNsLikeNaked(namespace, null, null, null, className) : cmProcessor.getCIRelationsNaked(namespace, null, null, null, className));
             for (CmsCIRelation rel : relations) {
                 part.addExportRelation(rel.getNsPath(), new ExportRelation(rel));
-                snapshot.updateLastAppliedRfc(rel.getLastAppliedRfcId());
+                snapshot.updateLastAppliedRelationRfc(rel.getLastAppliedRfcId());
             }
             snapshot.add(part);
         }
-        snapshot.setRelease(rfcProcessor.getRfcCIById(snapshot.getLastAppliedRfc()).getReleaseId());
+
+        long releaseIdCi = rfcProcessor.getRfcCIById(snapshot.getLastAppliedCiRfc()).getReleaseId();
+        long releaseIdRel = rfcProcessor.getRfcRelationById(snapshot.getLastAppliedRelationRfc()).getReleaseId();
+        snapshot.setRelease(Math.max(releaseIdCi, releaseIdRel));
         return snapshot;
     }
 
@@ -88,7 +91,7 @@ public class SnapshotProcessor {
         List<CmsCIRelation> existingRelations;
         if (part.isRecursive()) {
             existingRelations = cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, part.getClassName(), null);
-            addMissing(existingRelations, cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, null,part.getClassName()));
+            addMissing(existingRelations, cmProcessor.getCIRelationsNsLikeNaked(part.getNs(), null, null, null, part.getClassName()));
         } else {
             existingRelations = cmProcessor.getCIRelationsNaked(part.getNs(), null, null, part.getClassName(), null);
             addMissing(existingRelations, cmProcessor.getCIRelationsNaked(part.getNs(), null, null, null, part.getClassName()));
@@ -113,14 +116,14 @@ public class SnapshotProcessor {
             }
         }
         for (CmsCIRelation relation : existingRelations) { // remove relations that aren't a part of the snapshot
-            logger.info("Removing relation:" + relation.getRelationName() + "@" + relation.getNsPath()+" "+ relation.getFromCiId()+"->"+relation.getToCiId());
+            logger.info("Removing relation:" + relation.getRelationName() + "@" + relation.getNsPath() + " " + relation.getFromCiId() + "->" + relation.getToCiId());
             rfcMrgProcessor.requestRelationDelete(relation.getCiRelationId(), SNAPSHOT_RESTORE);
         }
     }
 
     private void addMissing(List<CmsCIRelation> existingRelations, List<CmsCIRelation> relationsToCheck) {
-        for (CmsCIRelation relation: relationsToCheck){
-            if (findMatchingRelation(relation.getNsPath(), new RelationLink(relation.getFromCiId(),null),new RelationLink(relation.getToCiId(),null), relation.getRelationName(), existingRelations)==null){
+        for (CmsCIRelation relation : relationsToCheck) {
+            if (findMatchingRelation(relation.getNsPath(), new RelationLink(relation.getFromCiId(), null), new RelationLink(relation.getToCiId(), null), relation.getRelationName(), existingRelations) == null) {
                 existingRelations.add(relation);
             }
         }
@@ -172,7 +175,7 @@ public class SnapshotProcessor {
             rel.setToCiId(toLink.getId());
         }
         processAttributes(exportRelation, rel);
-        logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath()+" "+ rel.getFromCiId()+"->"+rel.getToCiId());
+        logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath() + " " + rel.getFromCiId() + "->" + rel.getToCiId());
         rfcMrgProcessor.upsertRelationRfc(rel, SNAPSHOT_RESTORE);
     }
 
