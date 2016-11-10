@@ -833,9 +833,9 @@ public class TransistorRestController extends AbstractRestController {
 		return longs;
 	}
 
-	@RequestMapping(value = "/snapshot/exportBom", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
+	@RequestMapping(value = "/snapshot/exportManifest", method = {RequestMethod.GET, RequestMethod.POST}, produces = "application/json")
 	@ResponseBody
-	public Snapshot exportBom(@RequestParam(value = "ns") String namespace,
+	public Snapshot exportManifest(@RequestParam(value = "ns") String namespace,
 								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 
 		return exportSnapshot(new String[]{namespace}, new String[]{null}, new Boolean[]{true}, scope);

@@ -67,11 +67,16 @@ public class SnapshotProcessor {
             }
             snapshot.add(part);
         }
-
-        long releaseIdCi = rfcProcessor.getRfcCIById(snapshot.getLastAppliedCiRfc()).getReleaseId();
-        long releaseIdRel = rfcProcessor.getRfcRelationById(snapshot.getLastAppliedRelationRfc()).getReleaseId();
-        snapshot.setRelease(Math.max(releaseIdCi, releaseIdRel));
+        snapshot.setRelease(calculateReleaseId(snapshot));
         return snapshot;
+    }
+
+    private long calculateReleaseId(Snapshot snapshot) {
+        CmsRfcCI rfcCIById = rfcProcessor.getRfcCIById(snapshot.getLastAppliedCiRfc());
+        CmsRfcRelation rfcRelationById = rfcProcessor.getRfcRelationById(snapshot.getLastAppliedRelationRfc());
+        long releaseIdCi = rfcCIById == null ? 0 : rfcCIById.getReleaseId();
+        long releaseIdRel = rfcRelationById == null ? 0 : rfcRelationById.getReleaseId();
+        return Math.max(releaseIdCi, releaseIdRel);
     }
 
     void importSnapshot(Snapshot snapshot) {
