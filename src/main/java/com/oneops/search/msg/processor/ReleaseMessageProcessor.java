@@ -50,10 +50,10 @@ public class ReleaseMessageProcessor implements MessageProcessor {
         indexer.index(String.valueOf(release.getReleaseId()), RELEASE, releaseMsg);
         try {
             if ("closed".equalsIgnoreCase(release.getReleaseState())) {
-                String url = designSnapshotURL + release.getNsPath();
-                if (release.getNsPath().endsWith("manifest") || release.getNsPath().endsWith("bom")){
-                    url = manifestSnapshotURL + release.getNsPath();
-                }
+                if (release.getNsPath().endsWith("bom")) return; // ignore bom release
+                
+                String url = (release.getNsPath().endsWith("manifest")?manifestSnapshotURL:designSnapshotURL) + release.getNsPath();  // set snapshot URL based on release type
+                
                 logger.info("Retrieving snapshot for:" + url + " expected release:" + release.getReleaseId());
                 message = Request.Get(url).addHeader("Content-Type", "application/json").execute().returnContent().asString();
                 long releaseId = new JsonParser().parse(message).getAsJsonObject().get("release").getAsLong();
