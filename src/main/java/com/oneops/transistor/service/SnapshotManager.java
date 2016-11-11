@@ -1,5 +1,6 @@
 package com.oneops.transistor.service;
 
+import com.oneops.cms.exceptions.DJException;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.List;
 
 @Transactional
 public interface SnapshotManager {
-    void importSnapshot(Snapshot snapshot);
+    @Transactional(noRollbackFor = DJException.class)
+    List<String> importSnapshot(Snapshot snapshot);
     Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive);
 }

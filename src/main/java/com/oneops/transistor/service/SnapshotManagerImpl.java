@@ -2,6 +2,8 @@ package com.oneops.transistor.service;
 
 import com.oneops.transistor.snapshot.domain.Snapshot;
 
+import java.util.List;
+
 /*******************************************************************************
  *
  *   Copyright 2016 Walmart, Inc.
@@ -27,8 +29,8 @@ public class SnapshotManagerImpl implements SnapshotManager {
     }
 
     @Override
-    public void importSnapshot(Snapshot snapshot) {
-        snapshotProcessor.importSnapshot(snapshot);
+    public List<String> importSnapshot(Snapshot snapshot) {
+        return snapshotProcessor.importSnapshot(snapshot);
     }
 
     @Override

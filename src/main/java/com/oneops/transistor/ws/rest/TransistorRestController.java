@@ -875,12 +875,11 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value = "/snapshot/import", method = RequestMethod.POST)
 	@ResponseBody
-	public Map<String, String> importSnapshot(
+	public Map<String, Object> importSnapshot(
 			@RequestBody Snapshot snapshot,
 			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
-
-		snapshotManager.importSnapshot(snapshot);
-		Map<String, String> result = new HashMap<>(1);
+		Map<String, Object> result = new HashMap<>(3);
+		result.put("errors", snapshotManager.importSnapshot(snapshot));
 		result.put("result", "success");
 		return result;
 	}

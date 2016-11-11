@@ -8,10 +8,12 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.exceptions.DJException;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.snapshot.domain.*;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +81,7 @@ public class SnapshotProcessor {
         return Math.max(releaseIdCi, releaseIdRel);
     }
 
-    void importSnapshot(Snapshot snapshot) {
+    List<String> importSnapshot(Snapshot snapshot) {
         for (String ns : snapshot.allNamespaces()) {  // there shouldn't be any "open" releases for snapshot namespaces
             List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(ns, "open");
             if (openReleases.size() > 0) {
@@ -87,11 +89,13 @@ public class SnapshotProcessor {
             }
         }
         Map<Long, RelationLink> relationLinks = new HashMap<>();
-        snapshot.getParts().forEach((part) -> restoreCis(part, relationLinks));    // we need to restore relations first, before we attempt to restore relations
-        snapshot.getParts().forEach((part) -> restoreRelations(part, relationLinks));
+        List<String> errors = new ArrayList<>();
+        snapshot.getParts().forEach((part) -> restoreCis(part, relationLinks, errors));    // we need to restore relations first, before we attempt to restore relations
+        snapshot.getParts().forEach((part) -> restoreRelations(part, relationLinks, errors));
+        return errors;
     }
 
-    private void restoreRelations(Part part, Map<Long, RelationLink> relationLinks) {
+    private void restoreRelations(Part part, Map<Long, RelationLink> relationLinks, List<String> errors) {
         logger.info("processing part:" + part.getClassName() + "@" + part.getNs());
         List<CmsCIRelation> existingRelations;
         if (part.isRecursive()) {
@@ -103,20 +107,25 @@ public class SnapshotProcessor {
         }
         for (String actualNs : part.getRelations().keySet()) {
             for (ExportRelation exportRelation : part.getRelations().get(actualNs)) {
-                RelationLink fromLink = relationLinks.get(exportRelation.getFrom());
-                RelationLink toLink = relationLinks.get(exportRelation.getTo());
-                if (toLink == null) {
-                    toLink = new RelationLink(exportRelation.getTo(), null); // external link
-                }
-                if (fromLink == null) {
-                    fromLink = new RelationLink(exportRelation.getFrom(), null); // external link
-                }
-                CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
-                if (relation == null) { // relation doesn't exist
-                    addRelation(actualNs, exportRelation, fromLink, toLink);
-                } else {
-                    existingRelations.remove(relation); // we need to remove match
-                    updateRelation(exportRelation, relation);
+                try {
+                    RelationLink fromLink = relationLinks.get(exportRelation.getFrom());
+                    RelationLink toLink = relationLinks.get(exportRelation.getTo());
+                    if (toLink == null) {
+                        toLink = new RelationLink(exportRelation.getTo(), null); // external link
+                    }
+                    if (fromLink == null) {
+                        fromLink = new RelationLink(exportRelation.getFrom(), null); // external link
+                    }
+                    CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
+                    if (relation == null) { // relation doesn't exist
+                        addRelation(actualNs, exportRelation, fromLink, toLink);
+                    } else {
+                        existingRelations.remove(relation); // we need to remove match
+                        updateRelation(exportRelation, relation);
+                    }
+                } catch (Exception e) {
+                    logger.warn(e.getMessage(), e);
+                    errors.add(e.getMessage());
                 }
             }
         }
@@ -208,7 +217,7 @@ public class SnapshotProcessor {
         return null;
     }
 
-    private void restoreCis(Part part, Map<Long, RelationLink> relationLinkMap) {
+    private void restoreCis(Part part, Map<Long, RelationLink> relationLinkMap, List<String> errors) {
         List<CmsCI> existingCis;
         if (part.isRecursive()) {
             existingCis = cmProcessor.getCiBy3NsLike(part.getNs(), part.getClassName(), null);
@@ -217,14 +226,19 @@ public class SnapshotProcessor {
         }
         for (String actualNs : part.getCis().keySet()) {
             for (ExportCi eci : part.getCis().get(actualNs)) {
-                CmsCI ci = findMatchingCi(actualNs, eci, existingCis);
-                if (ci == null) {
-                    CmsRfcCI rfcCi = addCi(actualNs, eci);
-                    relationLinkMap.put(eci.getId(), new RelationLink(rfcCi.getCiId(), rfcCi.getRfcId()));
-                } else {
-                    existingCis.remove(ci);
-                    updateCi(ci, eci);
-                    relationLinkMap.put(eci.getId(), new RelationLink(ci.getCiId(), null));
+                try {
+                    CmsCI ci = findMatchingCi(actualNs, eci, existingCis);
+                    if (ci == null) {
+                        CmsRfcCI rfcCi = addCi(actualNs, eci);
+                        relationLinkMap.put(eci.getId(), new RelationLink(rfcCi.getCiId(), rfcCi.getRfcId()));
+                    } else {
+                        existingCis.remove(ci);
+                        relationLinkMap.put(eci.getId(), new RelationLink(ci.getCiId(), null));
+                        updateCi(ci, eci);
+                    }
+                } catch (Exception e) {
+                    logger.warn(e.getMessage(), e);
+                    errors.add(e.getMessage());
                 }
             }
         }
