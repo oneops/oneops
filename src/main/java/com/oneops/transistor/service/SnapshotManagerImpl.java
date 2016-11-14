@@ -3,6 +3,7 @@ package com.oneops.transistor.service;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 
 import java.util.List;
+import java.util.Map;
 
 /*******************************************************************************
  *
@@ -31,6 +32,11 @@ public class SnapshotManagerImpl implements SnapshotManager {
     @Override
     public List<String> importSnapshot(Snapshot snapshot) {
         return snapshotProcessor.importSnapshot(snapshot);
+    }
+
+    @Override
+    public List<String> importSnapshotAndReplayTo(Snapshot snapshot, Long releaseId) {
+        return snapshotProcessor.importSnapshotAndReplayTo(snapshot, releaseId);
     }
 
     @Override

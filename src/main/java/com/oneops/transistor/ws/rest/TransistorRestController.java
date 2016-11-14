@@ -877,9 +877,10 @@ public class TransistorRestController extends AbstractRestController {
 	@ResponseBody
 	public Map<String, Object> importSnapshot(
 			@RequestBody Snapshot snapshot,
+			@RequestParam(value="release", required = false) Long releaseId, 
 			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 		Map<String, Object> result = new HashMap<>(3);
-		result.put("errors", snapshotManager.importSnapshot(snapshot));
+		result.put("errors", snapshotManager.importSnapshotAndReplayTo(snapshot, releaseId));
 		result.put("result", "success");
 		return result;
 	}

@@ -5,6 +5,7 @@ import com.oneops.transistor.snapshot.domain.Snapshot;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 /*******************************************************************************
  *
@@ -27,6 +28,7 @@ import java.util.List;
 @Transactional
 public interface SnapshotManager {
     @Transactional(noRollbackFor = DJException.class)
+    List<String> importSnapshotAndReplayTo(Snapshot snapshot, Long releaseId);
     List<String> importSnapshot(Snapshot snapshot);
     Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive);
 }
