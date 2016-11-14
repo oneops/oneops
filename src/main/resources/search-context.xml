@@ -28,7 +28,6 @@
         <property name="locations">
                 <list>
                 	<value>classpath:listener.properties</value>
-                    <value>classpath:search.properties</value>
                     <value>classpath:es/elasticsearch.properties</value>
                 </list>
         </property>
