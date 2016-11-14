@@ -177,7 +177,7 @@ public class DeploymentMessageProcessor implements MessageProcessor {
     private double calcDiff(String failedEndTS, String failedStartTS) {
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
         try {
-            return (simpleDateFormat.parse(failedEndTS).getTime()) - (simpleDateFormat.parse(failedStartTS).getTime()) / 1000.0;
+            return (simpleDateFormat.parse(failedEndTS).getTime() - simpleDateFormat.parse(failedStartTS).getTime()) / 1000.0;
         } catch (ParseException ignore) {
             return 0;
         }
