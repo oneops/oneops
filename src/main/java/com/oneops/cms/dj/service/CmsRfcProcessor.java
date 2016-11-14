@@ -1817,4 +1817,17 @@ public class CmsRfcProcessor {
 		}
 		return djMapper.getReleaseByFilter(queryParam);
 	}
+
+	public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	public List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
+		List<CmsRfcRelation> relList = djMapper.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+		populateRfcRelationAttributes(relList);
+		return relList;
+		
+	}
 }
