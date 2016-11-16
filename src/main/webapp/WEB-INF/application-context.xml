@@ -236,4 +236,10 @@
         <property name="opsCiStateDao" ref="opsCiStateDao"/>
     </bean>
 
+    <bean id="monitorRestorer" class="com.oneops.sensor.util.MonitorRestorer">
+        <property name="tsDao" ref="tsDao"/>
+        <property name="cmManager" ref="cmsCmManager"/>
+        <property name="cmProcessor" ref="cmsCmProcessor"/>
+    </bean>
+
 </beans>
