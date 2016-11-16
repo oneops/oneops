@@ -85,7 +85,7 @@ public class SensorPublisher {
         }
 
         boolean isExpired() {
-            return expiration < 0 || System.currentTimeMillis() > expiration;
+            return expiration > 0 && System.currentTimeMillis() > expiration;
         }
 
     }
