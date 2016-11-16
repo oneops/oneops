@@ -1,20 +1,22 @@
 package com.oneops.sensor.util;
 
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.service.CmsCmManager;
-import com.oneops.sensor.thresholds.Threshold;
-import com.oneops.sensor.thresholds.ThresholdsDao;
-import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import static com.oneops.sensor.StmtBuilder.THRESHOLDS_JSON_SIZE_FLOOR;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
-import static com.oneops.sensor.StmtBuilder.THRESHOLDS_JSON_SIZE_FLOOR;
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Service;
+
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.service.CmsCmManager;
+import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.sensor.thresholds.Threshold;
+import com.oneops.sensor.thresholds.ThresholdsDao;
 
 /*******************************************************************************
  *
@@ -35,50 +37,91 @@ import static com.oneops.sensor.StmtBuilder.THRESHOLDS_JSON_SIZE_FLOOR;
  *******************************************************************************/
 @Service
 public class MonitorRestorer {
-    private static final String HEARTBEAT = "heartbeat";
+	private static final String HEARTBEAT = "heartbeat";
     private static final String DURATION = "duration";
+    private static final String THRESHOLDS = "thresholds";
+    private static final String IS_ENABLED = "enable";
+    
+    
     private static Logger logger = Logger.getLogger(MonitorRestorer.class);
 
-    @Autowired
     private ThresholdsDao tsDao;
-    @Autowired
     private CmsCmManager cmManager;
+    private CmsCmProcessor cmProcessor;
 
+    public void setTsDao(ThresholdsDao tsDao) {
+		this.tsDao = tsDao;
+	}
+
+	public void setCmProcessor(CmsCmProcessor cmProcessor) {
+		this.cmProcessor = cmProcessor;
+	}
+
+
+	public void setCmManager(CmsCmManager cmManager) {
+		this.cmManager = cmManager;
+	}
 
     public void restore(boolean writeMode, Long manifestIdDefault) {
         List<CmsCIRelation> watchedBys;
+        long counter = 0;
+        long restoredMonitors = 0;
         if (manifestIdDefault==null) {
-            watchedBys = cmManager.getCIRelationsNsLike("/", "manifest.WatchedBy", null, null, null);
+            watchedBys = cmProcessor.getCIRelationsNsLikeNakedNoAttrs("/", "manifest.WatchedBy", null, null, null);
         } else {
             watchedBys = cmManager.getFromCIRelations(manifestIdDefault, "manifest.WatchedBy", null);
         }
-        Map<Long, List<CmsCIRelation>> collect = watchedBys.stream().collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
-        for (Long manifestId : collect.keySet()) {
+        long startTime = System.currentTimeMillis();
+        Map<Long, List<CmsCIRelation>> monitors = watchedBys.stream().collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
+        for (Long manifestId : monitors.keySet()) {
+        	counter++;
             List<CmsCIRelation> realizedAsRels = cmManager.getFromCIRelations(manifestId, "base.RealizedAs", null);
             if (realizedAsRels.isEmpty()) continue;
+            Set<Long> cmsBomCiIds = realizedAsRels.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet());
+            restoreRealizedAsMapping(manifestId, cmsBomCiIds, writeMode);
+            boolean isFirstBom = true;
             for (CmsCIRelation relation : realizedAsRels) {
-                restoreMapping(manifestId, relation.getToCiId(), writeMode);
-                for (CmsCIRelation rel : collect.get(manifestId)) {
-                    restoreMonitor(manifestId, relation.getToCiId(), rel.getToCi(), writeMode);
-                }
+            	restoreManifestMapping(manifestId, relation.getToCiId(), writeMode);
+            	if (isFirstBom) {
+	                for (CmsCIRelation rel : monitors.get(manifestId)) {
+	                	if (rel.getToCi() == null) {
+	                		rel.setToCi(cmProcessor.getCiById(rel.getToCiId()));
+	                	}		
+	                    if (restoreMonitor(manifestId, relation.getToCiId(), rel.getToCi(), writeMode)) {
+	                    	restoredMonitors++;
+	                    }
+	                }
+            	}
+            	isFirstBom = false;
+            }
+            if (counter%100 == 0) {
+            	logger.info("Time to process " + counter + " - " + (System.currentTimeMillis() - startTime) + " ms!");
             }
         }
+        logger.info(">>>>>>>>>>> Monitor restored " + restoredMonitors + ";");
+    	logger.info(">>>>>>>>>>> Monitor restoration is done!!!" + counter + " - " + (System.currentTimeMillis() - startTime) + " ms!");
+
     }
 
 
-    private void restoreMonitor(Long manifestId, Long ciId, CmsCI monitor, boolean writeMode) {
-        boolean isHeartBeat = monitor.getAttributes().get(HEARTBEAT).getDfValue().equals("true");
-        String hbDuration = monitor.getAttributes().get(DURATION).getDfValue();
+    private boolean restoreMonitor(Long manifestId, Long ciId, CmsCI monitor, boolean writeMode) {
+    	
+    	if (!"true".equals(monitor.getAttributes().get(IS_ENABLED).getDjValue())) {
+    		return false;
+    	}
+    	
+        boolean isHeartBeat = "true".equals(monitor.getAttributes().get(HEARTBEAT).getDjValue());
+        String hbDuration = monitor.getAttributes().get(DURATION).getDjValue();
         String source = monitor.getCiName();
 
 
         long checksum = getChecksum(monitor);
 
 
-        String thresholdsJson = monitor.getAttributes().get("thresholds").getDfValue();
+        String thresholdsJson = monitor.getAttributes().get(THRESHOLDS).getDjValue();
 
         Threshold threshold = tsDao.getThreshold(manifestId, source);
-        if (threshold != null) {
+        if (threshold == null) {
             logger.info("RestoreMonitor###: threshold for manifestId:" + manifestId + " and source:" + source + " not found. Will add");
 
             if (thresholdsJson == null || thresholdsJson.length() <= THRESHOLDS_JSON_SIZE_FLOOR) {
@@ -87,15 +130,30 @@ public class MonitorRestorer {
             if (writeMode) {
                 tsDao.addCiThresholds(ciId, manifestId, source, checksum, thresholdsJson, isHeartBeat, hbDuration);
             }
+            return true;
+        }
+        return false;
+    }
+
+    private void restoreManifestMapping(Long manifestId, Long ciId, boolean writeMode) {
+        if (tsDao.getManifestId(ciId) == null) {
+            //add manifest mapping regardless of the monitors
+            logger.info("RestoreMonitor###: bom -> manifest mapping is missing for ciId: " + ciId + " for manifestId: " + manifestId);
+            if (writeMode) {
+                tsDao.addManifestMap(ciId, manifestId);
+            }
         }
     }
 
-    private void restoreMapping(Long manifestId, Long ciId, boolean writeMode) {
-        if (tsDao.getManifestId(ciId) == null) {
+    private void restoreRealizedAsMapping(Long manifestId, Set<Long> cmsBomCiIds, boolean writeMode) {
+    	Set<Long> opsdbBomCiId = tsDao.getManifestCiIds(manifestId).stream().collect(Collectors.toSet());
+    	for (Long bomCiId : cmsBomCiIds) {
             //add manifest mapping regardless of the monitors
-            logger.info("RestoreMonitor###: manifest mapping is missing for ciId:" + ciId);
-            if (writeMode) {
-                tsDao.addManifestMap(ciId, manifestId);
+            if (!opsdbBomCiId.contains(bomCiId)) {
+	    		logger.info("RestoreMonitor###: manifest -> bom mapping is missing for manifestId: " + manifestId + " for ciId: " + bomCiId);
+	            if (writeMode) {
+	                tsDao.addManifestMap(bomCiId, manifestId);
+	            }
             }
         }
     }

@@ -71,6 +71,7 @@
         <property name="tsDao" ref="tsDao"/>
         <property name="sensorTools" ref="sensorTools"/>
         <property name="sensorListener" ref="sensorListener"/>
+        <property name="restorer" ref="monitorRestorer"/>
     </bean>
 
 </beans>

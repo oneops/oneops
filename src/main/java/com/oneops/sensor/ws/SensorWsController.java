@@ -34,7 +34,6 @@ import com.oneops.sensor.util.SensorHeartBeat;
 import com.oneops.sensor.util.SensorTools;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -52,7 +51,7 @@ public class SensorWsController {
 
     //private static final long MILLIS_PER_SECOND = 1000L;
 
-    private static final int LENGTH_OF_TIMESTAMP_FOR_TWO_CENTURIES = 13;
+	private static final int LENGTH_OF_TIMESTAMP_FOR_TWO_CENTURIES = 13;
 
     private static final int EVNT_CNT_DFLT = 50;
 
@@ -65,7 +64,6 @@ public class SensorWsController {
     private SensorHeartBeat sensorHeartBeat;
     private SensorListener sensorListener;
     private SensorTools sensorTools;
-    @Autowired
     private MonitorRestorer restorer;
 
     public void setSensorListener(SensorListener sensorListener) {
@@ -79,6 +77,10 @@ public class SensorWsController {
     public void setSensorTools(SensorTools sensorTools) {
         this.sensorTools = sensorTools;
     }
+
+    public void setRestorer(MonitorRestorer restorer) {
+		this.restorer = restorer;
+	}
 
     /**
      * Sets the co processor.
@@ -190,7 +192,7 @@ public class SensorWsController {
     }
 
 
-    @RequestMapping(method = RequestMethod.POST, value = "/monitors/restore")
+    @RequestMapping(method = RequestMethod.GET, value = "/monitors/restore")
     @ResponseBody
     public String restoreMonitors(
             @RequestParam(value = "writeMode", required = false, defaultValue = "false") boolean writeMode,
