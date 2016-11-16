@@ -49,8 +49,9 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SensorPublisher {
 	private static final Logger logger = Logger.getLogger(SensorPublisher.class);
-	
-    private String user = ActiveMQConnection.DEFAULT_USER;
+	public static final int THREE_MINUTES = 3 * 60 * 1000;
+
+	private String user = ActiveMQConnection.DEFAULT_USER;
     private String password = ActiveMQConnection.DEFAULT_PASSWORD;
     private String url = ActiveMQConnection.DEFAULT_BROKER_URL + "?connectionTimeout=1000";
     private String queueBase = "perf-in-q";
@@ -59,21 +60,38 @@ public class SensorPublisher {
     private final AtomicLong eventCounter = new AtomicLong();
     private final AtomicLong missingManifestCounter = new AtomicLong();
     private final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+	
+	private static final Threshold NO_OP_THRESHOLD = new Threshold();
+	
+	private class ThresholdHolderWithExpiration{
+		private Threshold threshold;
+		private long timestamp;
 
-    private static final Threshold NO_OP_THRESHOLD = new Threshold();
+		ThresholdHolderWithExpiration(Threshold threshold) {
+			this.threshold = threshold;
+			this.timestamp = System.currentTimeMillis();
+		}
 
+		Threshold getThreshold() {
+			return threshold;
+		}
 
-    private CacheLoader<String, Threshold> loader = new CacheLoader<String, Threshold>() {
+		long getTimestamp() {
+			return timestamp;
+		}
+	}
+
+    private CacheLoader<String, ThresholdHolderWithExpiration> loader = new CacheLoader<String, ThresholdHolderWithExpiration>() {
         @Override
-        public Threshold load(String key) throws Exception {
+        public ThresholdHolderWithExpiration load(String key) throws Exception {
             String[] keyParts = key.split(":");
             Long manifestId = Long.parseLong(keyParts[0]);
             Threshold threshold = thresholdsDao.getThreshold(manifestId, keyParts[1]);
             logger.debug("loading: " + manifestId.toString() + " " + keyParts[1]);
             if (threshold==null || (threshold.getThresholdJson().equals("n") && !threshold.isHeartbeat())){
-                return NO_OP_THRESHOLD;
+				threshold = NO_OP_THRESHOLD;
             }
-            return threshold;
+            return new ThresholdHolderWithExpiration(threshold);
         }
     };
     
@@ -83,7 +101,7 @@ public class SensorPublisher {
 	private static int mqConnectionThreshold = Integer.parseInt(System.getProperty("mqRetryTimeout", "10000"));  // discard all the published messages for mqRetryTimeout milliseconds before attempting to send message again   
     private long lastFailureTimestamp = -1;
     
-	private LoadingCache<String, Threshold> thresholdCache = CacheBuilder.newBuilder()
+	private LoadingCache<String, ThresholdHolderWithExpiration> thresholdCache = CacheBuilder.newBuilder()
     	       .refreshAfterWrite(thresholdTTL, TimeUnit.MINUTES)
     	       .build(loader);
 	// -Dpoolsize=n
@@ -198,8 +216,12 @@ public class SensorPublisher {
         
     	String key = manifestId.toString()+":"+event.getSource();
     	try {
-    		Threshold tr = thresholdCache.get(key);
+    		ThresholdHolderWithExpiration holder = thresholdCache.get(key);
+			Threshold tr= holder.getThreshold();
             if (tr == NO_OP_THRESHOLD){
+				if (holder.getTimestamp()+THREE_MINUTES<System.currentTimeMillis()) {
+					thresholdCache.refresh(key);
+				}
                 return;
             }
     		logger.debug("Threshold: "+tr.getSource() + " "+ tr.getThresholdJson());    	
