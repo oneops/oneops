@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SensorPublisher {
     private static final Logger logger = Logger.getLogger(SensorPublisher.class);
-    private static final int THREE_MINUTES = 3 * 60 * 1000;
+    private static final int MINUTE = 60 * 1000;
 
     private String user = ActiveMQConnection.DEFAULT_USER;
     private String password = ActiveMQConnection.DEFAULT_PASSWORD;
@@ -90,6 +90,9 @@ public class SensorPublisher {
 
     }
 
+
+    private static int ttlForNoThresholdCache = Integer.parseInt(System.getProperty("no_threshold_cache_ttl", "2"));
+    
     private CacheLoader<String, ThresholdHolderWithExpiration> loader = new CacheLoader<String, ThresholdHolderWithExpiration>() {
         @Override
         public ThresholdHolderWithExpiration load(String key) throws Exception {
@@ -98,7 +101,7 @@ public class SensorPublisher {
             Threshold threshold = thresholdsDao.getThreshold(manifestId, keyParts[1]);
             logger.debug("loading: " + manifestId.toString() + " " + keyParts[1]);
             if (threshold == null || (threshold.getThresholdJson().equals("n") && !threshold.isHeartbeat())) {
-                return new ThresholdHolderWithExpiration(NO_OP_THRESHOLD, THREE_MINUTES);
+                return new ThresholdHolderWithExpiration(NO_OP_THRESHOLD, ttlForNoThresholdCache*MINUTE);
             }
             return new ThresholdHolderWithExpiration(threshold);
         }
