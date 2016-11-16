@@ -219,8 +219,8 @@ public class SensorPublisher {
     		ThresholdHolderWithExpiration holder = thresholdCache.get(key);
 			Threshold tr= holder.getThreshold();
             if (tr == NO_OP_THRESHOLD){
-				if (holder.getTimestamp()+THREE_MINUTES<System.currentTimeMillis()) {
-					thresholdCache.refresh(key);
+				if (System.currentTimeMillis()- holder.getTimestamp()>THREE_MINUTES) {
+					thresholdCache.refresh(key);  // should we load it here???
 				}
                 return;
             }
