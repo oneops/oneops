@@ -58,20 +58,24 @@ public class SensorPublisher {
     
     private final AtomicLong eventCounter = new AtomicLong();
     private final AtomicLong missingManifestCounter = new AtomicLong();
-    private final AtomicLong missingThresholdCounter = new AtomicLong();
+    private final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+
+    private static final Threshold NO_OP_THRESHOLD = new Threshold();
+
 
     private CacheLoader<String, Threshold> loader = new CacheLoader<String, Threshold>() {
-    	@Override
+        @Override
         public Threshold load(String key) throws Exception {
             String[] keyParts = key.split(":");
             Long manifestId = Long.parseLong(keyParts[0]);
             Threshold threshold = thresholdsDao.getThreshold(manifestId, keyParts[1]);
-            logger.debug("loading: "+ manifestId.toString() +" "+ keyParts[1]);
-            if (threshold.getThresholdJson().equals("n") && !threshold.isHeartbeat())
-            	throw new NullThresholdException();
+            logger.debug("loading: " + manifestId.toString() + " " + keyParts[1]);
+            if (threshold==null || (threshold.getThresholdJson().equals("n") && !threshold.isHeartbeat())){
+                return NO_OP_THRESHOLD;
+            }
             return threshold;
-          }
-    };    
+        }
+    };
     
     private static int thresholdTTL = Integer.parseInt(System.getProperty("threshold_cache_ttl", "15"));
 	private static String mqConnectionTimeout = System.getProperty("mqTimeout", "1000");  // timeout message send after 1 second
@@ -173,10 +177,10 @@ public class SensorPublisher {
 	@SuppressWarnings("unused")
 	public void enrichAndPublish(PerfEvent event) throws JMSException {
 		
-		if (eventCounter.incrementAndGet() % 100 == 0)
+		if (eventCounter.incrementAndGet() % 1000 == 0)
 			logger.info("Publish event count: "+eventCounter.get() +
 				" manifest miss: "+missingManifestCounter.get()+
-				" threshold miss: "+missingThresholdCounter.get());		
+				" failed threshold load count: "+ failedThresholdLoadCounter.get());		
 				
     	Long manifestId;    	
     	if (manifestCache.containsKey(event.getCiId())) 
@@ -188,21 +192,22 @@ public class SensorPublisher {
     	}
     	if (manifestId == null) {
     		long missCount = missingManifestCounter.incrementAndGet();
-    		logger.info("no publishMessage - manifestId==null for ciId: "+event.getCiId());
+    		logger.warn("Failed to map ciId: "+event.getCiId()+ " to manifestId. Please fix");
     		return;
     	}
-    	logger.debug("manifestId: "+manifestId.toString());
         
     	String key = manifestId.toString()+":"+event.getSource();
     	try {
     		Threshold tr = thresholdCache.get(key);
-    		logger.debug("treshold: "+tr.getSource() + " "+ tr.getThresholdJson());    	
+            if (tr == NO_OP_THRESHOLD){
+                return;
+            }
+    		logger.debug("Threshold: "+tr.getSource() + " "+ tr.getThresholdJson());    	
     		event.setManifestId(manifestId);
     		event.setChecksum(tr.getCrc());  				
-    	} 
-    	catch (Exception e) {
-    		logger.debug("no publishMessage - threshold==null for key:" + manifestId + "::" + event.getSource());
-    		long missCount = missingThresholdCounter.incrementAndGet();
+    	} catch (Exception e) {
+    		logger.warn("Failed threshold load:" + manifestId + "::" + event.getSource(), e);
+    		long missCount = failedThresholdLoadCounter.incrementAndGet();
     		return;
     	} 
 	    publishMessage(event);	
