@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /*******************************************************************************
  *
@@ -91,12 +92,24 @@ public class SnapshotProcessor {
         return errors;
     }
 
-    List<String> replay(Long fromReleaseId, Long toReleaseId, String nsPath, Map<Long, RelationLink> oldToNewCiIdsMap) {
-        List<String> errors = new ArrayList<>();
+    List<String> replay(long fromReleaseId, long toReleaseId, String nsPath) {
+        return replay(fromReleaseId, toReleaseId, nsPath, new HashMap<>());
+    }
 
+    private List<String> replay(Long fromReleaseId, Long toReleaseId, String nsPath, Map<Long, RelationLink> oldToNewCiIdsMap) {
+        List<String> errors = new ArrayList<>();
         List<CmsRfcCI> cis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
         List<CmsRfcRelation> rels = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+        Map<Long, List<CmsRfcRelation>> collect = rels.stream().collect(Collectors.groupingBy(CmsRfcRelationBasic::getReleaseId));
+        long currentReleaseId = 0;
         for (CmsRfcCI ci : cis) {
+            if (currentReleaseId == 0) {
+                currentReleaseId = ci.getReleaseId();
+            }
+            if (currentReleaseId != ci.getReleaseId()) {
+                restoreReleaseRelations(oldToNewCiIdsMap, errors, collect.get(currentReleaseId));
+                currentReleaseId = ci.getReleaseId();
+            }
             CmsRfcCI clonedCi = TransUtil.cloneRfc(ci);
             clonedCi.setRfcId(0);
             clonedCi.setReleaseId(0);
@@ -106,6 +119,10 @@ public class SnapshotProcessor {
                 clonedCi.setCiId(0);
                 clonedCi = upsertCiAndCollectErrors(clonedCi, errors);
                 oldToNewCiIdsMap.put(oldId, new RelationLink(clonedCi.getCiId(), clonedCi.getRfcId()));
+            } else if ("delete".equalsIgnoreCase(clonedCi.getRfcAction())) {
+                if (oldToNewCiIdsMap.containsKey(clonedCi.getCiId())) {
+                    rfcProcessor.rmRfcCiFromRelease(getSafeValue(oldToNewCiIdsMap.get(clonedCi.getCiId()).getRfcId()));
+                }
             } else {
                 if (oldToNewCiIdsMap.containsKey(clonedCi.getCiId())) {
                     clonedCi.setRfcId(getSafeValue(oldToNewCiIdsMap.get(clonedCi.getCiId()).getRfcId()));
@@ -113,8 +130,14 @@ public class SnapshotProcessor {
                 }
                 upsertCiAndCollectErrors(clonedCi, errors);
             }
+            
         }
+        restoreReleaseRelations(oldToNewCiIdsMap, errors, collect.get(currentReleaseId));
+        return errors;
+    }
 
+    private void restoreReleaseRelations(Map<Long, RelationLink> oldToNewCiIdsMap, List<String> errors, List<CmsRfcRelation> rels) {
+        if (rels == null) return;
         for (CmsRfcRelation rel : rels) {
             CmsRfcRelation clonedRelation = TransUtil.cloneRfcRelation(rel);
             clonedRelation.setRfcId(0);
@@ -132,23 +155,24 @@ public class SnapshotProcessor {
             try {
                 rfcMrgProcessor.upsertRelationRfc(clonedRelation, SNAPSHOT_RESTORE);
             } catch (Exception e) {
-                logger.warn(e.getMessage());
-                errors.add(e.getMessage());
+                String message = "Relation restore failure:" + e.getMessage();
+                logger.warn(message);
+                errors.add(message);
             }
         }
-        return errors;
     }
 
     private long getSafeValue(Long rfcId) {
-        return rfcId==null?0:rfcId;
+        return rfcId == null ? 0 : rfcId;
     }
 
     private CmsRfcCI upsertCiAndCollectErrors(CmsRfcCI clonedCi, List<String> errors) {
         try {
             clonedCi = rfcMrgProcessor.upsertCiRfc(clonedCi, SNAPSHOT_RESTORE);
         } catch (Exception e) {
-            logger.warn(e.getMessage());
-            errors.add(e.getMessage());
+            String message = "RFC CI restore failure:" + e.getMessage();
+            logger.warn(message);
+            errors.add(message);
         }
         return clonedCi;
     }

@@ -38,7 +38,7 @@ public class SnapshotManagerImpl implements SnapshotManager {
 
     @Override
     public List<String> replay(long fromReleaseId, long toReleaseId, String nsPath) {
-        return snapshotProcessor.replay(fromReleaseId, toReleaseId, nsPath, new HashMap<>());
+        return snapshotProcessor.replay(fromReleaseId, toReleaseId, nsPath);
     }
 
     @Override
