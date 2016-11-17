@@ -30,5 +30,7 @@ public interface SnapshotManager {
     @Transactional(noRollbackFor = DJException.class)
     List<String> importSnapshotAndReplayTo(Snapshot snapshot, Long releaseId);
     List<String> importSnapshot(Snapshot snapshot);
+
+    List<String> replay(long fromReleaseId, long toReleaseId, String nsPath);
     Snapshot exportSnapshot(String[] namespaces, String[] classNames, Boolean[] recursive);
 }

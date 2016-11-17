@@ -184,7 +184,7 @@ public class TransUtil {
 		return newRfc;
 	}
 
-	public CmsRfcCI cloneRfc(CmsRfcCI rfcCi) {
+	public static CmsRfcCI cloneRfc(CmsRfcCI rfcCi) {
 		
 		CmsRfcCI newRfc = new CmsRfcCI();
 		
@@ -281,7 +281,7 @@ public class TransUtil {
 	    return newRfc;
 	}
 
-	public CmsRfcRelation cloneRfcRelation(CmsRfcRelation baseRfc) {
+	public static CmsRfcRelation cloneRfcRelation(CmsRfcRelation baseRfc) {
 
 		CmsRfcRelation newRfc = new CmsRfcRelation();
 		

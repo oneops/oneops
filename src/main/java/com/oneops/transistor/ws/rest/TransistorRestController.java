@@ -886,6 +886,19 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
+	@RequestMapping(value = "/snapshot/replay", method = RequestMethod.POST)
+	@ResponseBody
+	public Map<String, Object> replay(@RequestParam(value="fromRelease", required = true) Long fromReleaseId,
+			@RequestParam(value="toRelease", required = true) Long toReleaseId,
+			@RequestParam(value ="nsPath", required = true) String nsPath,
+			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+		Map<String, Object> result = new HashMap<>(3);
+		result.put("errors", snapshotManager.replay(fromReleaseId, toReleaseId, nsPath));
+		result.put("result", "success");
+		return result;
+	}
+
+
 	private Map<String,Long> toReleaseMap(long releaseId) {
 		return Collections.singletonMap(RELEASE_ID,releaseId);
 	}
