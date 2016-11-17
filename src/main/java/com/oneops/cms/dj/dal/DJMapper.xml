@@ -1492,6 +1492,7 @@
           and ns.ns_path = #{nsPath}
           and rci.class_id = cl.class_id
           and rci.action_id = a.action_id
+          order by rci.release_id, rci.rfc_id
 	</select>
 
 	<select id="getRfcRelationsAppliedBetweenTwoReleases" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
@@ -1531,5 +1532,6 @@
 		and rfr.action_id = a.action_id
 		and r.ns_id = ns.ns_id
         and ns.ns_path = #{nsPath}
+        order by rfr.release_id, rfr.rfc_id
 	</select>
 </mapper>
