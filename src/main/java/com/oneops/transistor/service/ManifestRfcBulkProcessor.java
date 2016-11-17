@@ -272,8 +272,17 @@ public class ManifestRfcBulkProcessor {
 
 		//process designPlatform templatePlatform
 		boolean setActive = shouldSetActive(nsPath + "/" + designPlatform.getCiName(), designPlatform.getCiName());
-		CmsRfcCI manifestPlatRfc = processTouple(templatePlatform, designPlatform, manifestPlat, platNsPath, nsPath, env, userId, setActive, 
-				manifestAvailMode, existingManifestCIs, existingManifestPlatRels, platformRfcs);
+		
+		DesignPullContext context = new DesignPullContext();
+		context.userId = userId;
+		context.env = env;
+		context.platNsPath = platNsPath;
+		context.envNsPath = nsPath;
+		context.availMode = manifestAvailMode;
+		context.existingManifestCIs = existingManifestCIs;
+		context.existingManifestPlatRels = existingManifestPlatRels;
+		
+		CmsRfcCI manifestPlatRfc = processTouple(templatePlatform, designPlatform, manifestPlat, setActive, context, platformRfcs);
 
 		CmsRfcRelation compOfRel = cmRfcMrgProcessor.getExisitngRelationRfcMerged(env.getCiId(), "manifest.ComposedOf", manifestPlatRfc.getCiId(), null);
 		//if (existingEnv2Platrels.size() == 0) {
@@ -546,24 +555,28 @@ public class ManifestRfcBulkProcessor {
 			cmRfcMrgProcessor.upsertRelationRfc(envToPlatRel, userId);
 		}
 		
-		MergeResult mrgResult = procesEdges(edges, iaasRfc, iaasNsPath, nsPath, templIaas.getCiName(), userId, null, null, null);
+		DesignPullContext context = new DesignPullContext();
+		context.platNsPath = iaasNsPath;
+		context.envNsPath = nsPath;
+		context.userId = userId;
+		MergeResult mrgResult = procesEdges(edges, iaasRfc, templIaas.getCiName(), context, null);
 		
-		processPlatformInterRelations(templInternalRels, mrgResult.templateIdsMap, mrgResult.rfcMap, iaasNsPath, nsPath, userId, null, null, null);
+		processPlatformInterRelations(templInternalRels, mrgResult.templateIdsMap, mrgResult.rfcMap, context, null);
 		
-		processEntryPoint(templIaas, iaasRfc, mrgResult.templateIdsMap, mrgResult.rfcMap , iaasNsPath, nsPath, userId, null, null, null);
+		processEntryPoint(templIaas, iaasRfc, mrgResult.templateIdsMap, mrgResult.rfcMap , context, null);
 		
 		return iaasRfc;
 	}
 	
 	
 	
-	private CmsRfcCI processTouple(CmsCI templatePlatform, CmsCI designPlatform, CmsRfcCI existingManifestPlat, String platNsPath, String envNsPath, CmsCI env, String userId, boolean setActive, 
-			String availMode, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
+	private CmsRfcCI processTouple(CmsCI templatePlatform, CmsCI designPlatform, CmsRfcCI existingManifestPlat, boolean setActive, 
+			DesignPullContext context, ManifestRfcContainer platformRfcs) {
 		
 		List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
 		List<CmsCIRelation> userRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
 		
-		List<CmsRfcRelation> existingDependsOnRels = cmRfcMrgProcessor.getDfDjRelations("manifest.DependsOn", null, platNsPath, null, null, null);
+		List<CmsRfcRelation> existingDependsOnRels = cmRfcMrgProcessor.getDfDjRelations("manifest.DependsOn", null, context.platNsPath, null, null, null);
 		
 		List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
 		Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -617,33 +630,33 @@ public class ManifestRfcBulkProcessor {
 		
 		CmsRfcCI manifestPlatform = null;
 		if (existingManifestPlat == null) {
-			CmsRfcCI rootRfc = trUtil.mergeCis(templatePlatform,designPlatform, "manifest", platNsPath, envNsPath);
+			CmsRfcCI rootRfc = trUtil.mergeCis(templatePlatform,designPlatform, "manifest", context.platNsPath, context.envNsPath);
 			//setCiId(rootRfc, templatePlatform.getCiName());
 	        if (setActive) {
 	        	rootRfc.getAttribute("is_active").setNewValue("true");
 	        	rootRfc.getAttribute("is_active").setOwner("manifest");
 	        }
-	    	rootRfc.getAttribute("availability").setNewValue(availMode);
+	    	rootRfc.getAttribute("availability").setNewValue(context.availMode);
 	        
 			setCiId(rootRfc, rootRfc.getCiName());
 			
 			populateTemplateLookup(rootRfc, templatePlatform.getCiName());
-	        rootRfc.setCreatedBy(userId);
-	        rootRfc.setUpdatedBy(userId);
+	        rootRfc.setCreatedBy(context.userId);
+	        rootRfc.setUpdatedBy(context.userId);
 			manifestPlatform = rootRfc;//cmRfcMrgProcessor.upsertCiRfc(rootRfc, userId);
 			platformRfcs.getRootRfcRelTouple().setRfcCI(needUpdateRfc(rootRfc, null));
 		} else {
 			manifestPlatform = existingManifestPlat;
 		}
 		
-		MergeResult mrgResult = procesEdges(edges, manifestPlatform, platNsPath, envNsPath, designPlatform.getCiName(), userId, existingManifestCIs, existingManifestPlatRels, platformRfcs);
+		MergeResult mrgResult = procesEdges(edges, manifestPlatform, designPlatform.getCiName(), context, platformRfcs);
 		
-		Set<Long> deletedCiIds = procesPlatformDeletions(manifestPlatform, mrgResult.templateIdsMap, userId);
+		Set<Long> deletedCiIds = procesPlatformDeletions(manifestPlatform, mrgResult.templateIdsMap, context.userId);
 		platformRfcs.getDeleteCiIdList().addAll(deletedCiIds);
 		
-		Set<String> newRels = processPackInterRelations(templInternalRels, mrgResult.templateIdsMap, mrgResult.rfcMap, platNsPath, envNsPath, manifestPlatform, userId,existingManifestCIs, existingManifestPlatRels, platformRfcs);
-		newRels.addAll(processPlatformInterRelations(designInternalRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap,  platNsPath, envNsPath, userId,existingManifestCIs, existingManifestPlatRels,platformRfcs));
-		processEscortRelations(designEscortRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap, platNsPath, envNsPath, userId, existingManifestCIs, existingManifestPlatRels, platformRfcs);
+		Set<String> newRels = processPackInterRelations(templInternalRels, mrgResult.templateIdsMap, mrgResult.rfcMap, manifestPlatform, context, platformRfcs);
+		newRels.addAll(processPlatformInterRelations(designInternalRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap, context,platformRfcs));
+		processEscortRelations(designEscortRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap, context, platformRfcs);
 		
 		for (CmsRfcRelation existingDpOn : existingDependsOnRels) {
 			if (!newRels.contains(existingDpOn.getRelationGoid())) {
@@ -654,78 +667,21 @@ public class ManifestRfcBulkProcessor {
 			}
 		}
 
-		processEntryPoint(templatePlatform, manifestPlatform, mrgResult.templateIdsMap, mrgResult.rfcMap, platNsPath, envNsPath, userId, existingManifestCIs, existingManifestPlatRels,platformRfcs);
+		processEntryPoint(templatePlatform, manifestPlatform, mrgResult.templateIdsMap, mrgResult.rfcMap, context, platformRfcs);
 		//TODO change this to use env attribute
 		return manifestPlatform;
 	}
 	
 	private Set<String> processPlatformInterRelations(List<CmsCIRelation> internalRels,
-			Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcDesignMap, String platNsPath, String envNsPath, String userId,
-			Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
+		Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcDesignMap, 
+		DesignPullContext context, ManifestRfcContainer platformRfcs) {
+	
+		Set<String> newRelsGoids = new HashSet<String>();
 		
-			Set<String> newRelsGoids = new HashSet<String>();
-			
-			for (CmsCIRelation ciRel : internalRels) {
-				Long fromCiId = ciRel.getFromCiId();
-				Long toCiId = ciRel.getToCiId();
-				if (ciIdsMap.containsKey(fromCiId)){
-					for (Long fromRfcCiId : ciIdsMap.get(fromCiId)) {
-						if (ciIdsMap.containsKey(toCiId)) {
-							for (Long toRfcCiId : ciIdsMap.get(toCiId)) {
-								CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-								rfcRelation.setFromCiId(fromRfcCiId);
-								rfcRelation.setToCiId(toRfcCiId);
-								setCiRelationId(rfcRelation);
-								rfcRelation.setCreatedBy(userId);
-								rfcRelation.setUpdatedBy(userId);
-								
-								
-								CmsCIRelation existingCIRel = existingManifestPlatRels.get(rfcRelation.getRelationName())!=null?
-										existingManifestPlatRels.get(rfcRelation.getRelationName()).get(rfcRelation.getFromCiId() + ":" + rfcRelation.getToCiId()):null;
-								CmsRfcRelation newRfcRelation = needUpdateRfcRel(rfcRelation, existingCIRel);		
-								if(newRfcRelation != null){
-									platformRfcs.getRfcRelationList().add(newRfcRelation);
-									logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
-								}else{
-									newRfcRelation = rfcUtil.mergeRfcRelAndCiRel(null , existingCIRel, "df");
-								}
-								newRelsGoids.add(newRfcRelation.getRelationGoid());
-							}
-						} 
-					}
-				}
-				
-				if (newRfcDesignMap.containsKey(fromCiId)){
-					for (CmsRfcCI fromRfcCi : newRfcDesignMap.get(fromCiId)) {
-						if(newRfcDesignMap.containsKey(toCiId)) {
-							for (CmsRfcCI toRfcCi : newRfcDesignMap.get(toCiId)) {
-								CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-								rfcRelation.setCreatedBy(userId);
-								rfcRelation.setUpdatedBy(userId);
-								
-								ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
-								manifestRfcRelTriplet.setFromRfcCI(fromRfcCi);
-								manifestRfcRelTriplet.setToRfcCI(toRfcCi);
-								manifestRfcRelTriplet.setRfcRelation(rfcRelation);
-								platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
-							}
-						}else if(ciIdsMap.containsKey(toCiId)){
-							for (Long toRfcCiId : ciIdsMap.get(toCiId)) {
-								CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-								ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
-								manifestRfcRelTriplet.setFromRfcCI(fromRfcCi);
-								rfcRelation.setToCiId(toRfcCiId);
-								rfcRelation.setCreatedBy(userId);
-								rfcRelation.setUpdatedBy(userId);
-								manifestRfcRelTriplet.setRfcRelation(rfcRelation);
-								platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
-							}
-						}
-					}
-				}
-			}
-			return newRelsGoids;
-		
+		for (CmsCIRelation ciRel : internalRels) {
+			processRelations(ciRel, ciIdsMap, newRfcDesignMap, context, platformRfcs, newRelsGoids);
+		}
+		return newRelsGoids;
 	}
 
 	private Set<Long> procesPlatformDeletions(CmsRfcCI manifestPlatform, Map<Long, List<Long>> newIdsMap, String userId) {
@@ -746,19 +702,19 @@ public class ManifestRfcBulkProcessor {
 		return deletedCiIds;
 	}
 	
-	private void processEntryPoint(CmsCI templatePlatform, CmsRfcCI manifestPlatform, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String nsPath, String envNsPath, String userId, 
-			Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels,ManifestRfcContainer platformRfcs) {
+	private void processEntryPoint(CmsCI templatePlatform, CmsRfcCI manifestPlatform, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, 
+			DesignPullContext context, ManifestRfcContainer platformRfcs) {
 		List<CmsCIRelation> entryPointRels = cmProcessor.getFromCIRelationsNaked(templatePlatform.getCiId(), "mgmt.Entrypoint", null);
 		for (CmsCIRelation entryPointRel : entryPointRels) {
 			long entryPointTemplateCiId = entryPointRel.getToCiId();
 			 if (ciIdsMap.containsKey(entryPointTemplateCiId)){
 				for (Long manifestCiId : ciIdsMap.get(entryPointTemplateCiId)) {
-					CmsRfcRelation manifestEntryPointRel = bootstrapRelationRfc(manifestPlatform.getCiId(),manifestCiId.longValue(), "manifest.Entrypoint", nsPath, envNsPath);
-					manifestEntryPointRel.setCreatedBy(userId);
-					manifestEntryPointRel.setUpdatedBy(userId);
+					CmsRfcRelation manifestEntryPointRel = bootstrapRelationRfc(manifestPlatform.getCiId(),manifestCiId.longValue(), "manifest.Entrypoint", context.platNsPath, context.envNsPath);
+					manifestEntryPointRel.setCreatedBy(context.userId);
+					manifestEntryPointRel.setUpdatedBy(context.userId);
 					
-					CmsCIRelation existingCIRel = existingManifestPlatRels.get(manifestEntryPointRel.getRelationName())!=null?
-							existingManifestPlatRels.get(manifestEntryPointRel.getRelationName()).get(manifestEntryPointRel.getFromCiId() + ":" + manifestEntryPointRel.getToCiId()):null;
+					CmsCIRelation existingCIRel = context.existingManifestPlatRels.get(manifestEntryPointRel.getRelationName())!=null?
+							context.existingManifestPlatRels.get(manifestEntryPointRel.getRelationName()).get(manifestEntryPointRel.getFromCiId() + ":" + manifestEntryPointRel.getToCiId()):null;
 					CmsRfcRelation newRfcRel = needUpdateRfcRel(manifestEntryPointRel, existingCIRel);		
 					if(newRfcRel != null){
 						    platformRfcs.getRfcRelationList().add(newRfcRel);
@@ -769,9 +725,9 @@ public class ManifestRfcBulkProcessor {
 			 }
 			else if(newRfcsMap.containsKey(entryPointTemplateCiId)){
 				for (CmsRfcCI manifestRfcCI : newRfcsMap.get(entryPointTemplateCiId)) {
-					CmsRfcRelation manifestEntryPointRel = bootstrapRelationRfc(0 , 0 , "manifest.Entrypoint", nsPath, envNsPath);
-					manifestEntryPointRel.setCreatedBy(userId);
-					manifestEntryPointRel.setUpdatedBy(userId);
+					CmsRfcRelation manifestEntryPointRel = bootstrapRelationRfc(0 , 0 , "manifest.Entrypoint", context.platNsPath, context.envNsPath);
+					manifestEntryPointRel.setCreatedBy(context.userId);
+					manifestEntryPointRel.setUpdatedBy(context.userId);
 					
 					ManifestRfcRelationTriplet entryPointRfcRel = new ManifestRfcRelationTriplet();
 					//entryPointRfcRel.setFromRfcCI(platformRfcs.getRootRfcRelTouple().getRfcCI());
@@ -785,13 +741,11 @@ public class ManifestRfcBulkProcessor {
 	}
 
 	
-	private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String platNsPath, String envNsPath, CmsRfcCI manifestPlat, 
-			String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
+	private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, 
+			CmsRfcCI manifestPlat, DesignPullContext context, ManifestRfcContainer platformRfcs) {
 		Set<String> newRelsGoids = new HashSet<String>();
 		Map<Long,List<CmsCIRelation>> watchedByRels = new HashMap<Long, List<CmsCIRelation>>(); 
 		for (CmsCIRelation ciRel : internalRels) {
-			Long fromPackCiId = ciRel.getFromCiId();
-			Long toPackCiId = ciRel.getToCiId();
 			
 			if (ciRel.getRelationName().equals(MGMT_MANIFEST_WATCHEDBY)) { //this is special case for monitors
 				if (!watchedByRels.containsKey(ciRel.getFromCiId())) {
@@ -799,62 +753,7 @@ public class ManifestRfcBulkProcessor {
 				}
 				watchedByRels.get(ciRel.getFromCiId()).add(ciRel);
 			}
-			
-			if (ciIdsMap.containsKey(fromPackCiId)){
-				for (Long fromManifestRfcCiId : ciIdsMap.get(fromPackCiId)) {
-					if (ciIdsMap.containsKey(toPackCiId)) {
-						for (Long toManifestRfcCiId : ciIdsMap.get(toPackCiId)) {
-							CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-							rfcRelation.setFromCiId(fromManifestRfcCiId);
-							rfcRelation.setToCiId(toManifestRfcCiId);
-							setCiRelationId(rfcRelation);
-							rfcRelation.setCreatedBy(userId);
-							rfcRelation.setUpdatedBy(userId);
-							rfcRelation.setRelationGoid(fromManifestRfcCiId + "-" + rfcRelation.getRelationId()+"-" + toManifestRfcCiId);
-							
-							CmsCIRelation existingCIRel = existingManifestPlatRels.get(rfcRelation.getRelationName())!=null?
-									existingManifestPlatRels.get(rfcRelation.getRelationName()).get(rfcRelation.getFromCiId() + ":" + rfcRelation.getToCiId()):null;
-						    CmsRfcRelation newRfcRelation = needUpdateRfcRel(rfcRelation, existingCIRel);
-							if(newRfcRelation != null){
-								platformRfcs.getRfcRelationList().add(newRfcRelation);
-								logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
-							}else{
-								newRfcRelation = rfcUtil.mergeRfcRelAndCiRel(null , existingCIRel, "df");
-							}
-							newRelsGoids.add(newRfcRelation.getRelationGoid());
-						}
-					}
-				}
-			}
-			if(newRfcsMap.containsKey(fromPackCiId)){
-				for (CmsRfcCI fromManifestRfc  : newRfcsMap.get(fromPackCiId)) {
-					if (newRfcsMap.containsKey(toPackCiId)) {
-						for (CmsRfcCI toManifestRfc : newRfcsMap.get(toPackCiId)) {
-							CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-							ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
-							manifestRfcRelTriplet.setFromRfcCI(fromManifestRfc);
-							manifestRfcRelTriplet.setToRfcCI(toManifestRfc);
-							//setCiRelationId(rfcRelation);
-							rfcRelation.setCreatedBy(userId);
-							rfcRelation.setUpdatedBy(userId);
-							manifestRfcRelTriplet.setRfcRelation(rfcRelation);
-							platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
-						}
-					}else if(ciIdsMap.containsKey(toPackCiId)){
-						for (Long toManifestCiId : ciIdsMap.get(toPackCiId)) {
-							CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-							ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
-							manifestRfcRelTriplet.setFromRfcCI(fromManifestRfc);
-							rfcRelation.setToCiId(toManifestCiId);
-							//setCiRelationId(rfcRelation);
-							rfcRelation.setCreatedBy(userId);
-							rfcRelation.setUpdatedBy(userId);
-							manifestRfcRelTriplet.setRfcRelation(rfcRelation);
-							platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
-						}
-					}
-				}	
-			}
+			processRelations(ciRel, ciIdsMap, newRfcsMap, context, platformRfcs, newRelsGoids);
 		}
 		
 		//now lets process the monitors
@@ -875,7 +774,7 @@ public class ManifestRfcBulkProcessor {
 						if(manifestCiId == 0){
 							 manifestRfc = cmRfcMrgProcessor.getCiById(newMonRel.getFromCiId(), "df");
 						}else {
-							CmsCI ci = existingManifestCIs.get(manifestCiId);
+							CmsCI ci = context.existingManifestCIs.get(manifestCiId);
 							if(ci != null){
 								manifestRfc = rfcUtil.mergeRfcAndCi(null,ci, "df");
 							}else {
@@ -888,13 +787,13 @@ public class ManifestRfcBulkProcessor {
 						//if there is an existing monitor - don't override it - skip
 						if (!oldManifestMons.containsKey(monCiName)) {
 							
-							CmsRfcCI monRfc = trUtil.mergeCis(newMonRel.getToCi(), null, "manifest", platNsPath, envNsPath);
+							CmsRfcCI monRfc = trUtil.mergeCis(newMonRel.getToCi(), null, "manifest", context.platNsPath, context.envNsPath);
 							monRfc.setCiName(monCiName);
 							setCiId(monRfc, monCiName);
-							monRfc.setCreatedBy(userId);
-							monRfc.setUpdatedBy(userId);
+							monRfc.setCreatedBy(context.userId);
+							monRfc.setUpdatedBy(context.userId);
 							
-							CmsCI existingCI = existingManifestCIs.get(monRfc.getCiId());
+							CmsCI existingCI = context.existingManifestCIs.get(monRfc.getCiId());
 							CmsRfcCI newMonRfc = needUpdateRfc(monRfc, existingCI);
 							if(newMonRfc != null){
 								//platformRfcs.getRfcList().add(newMonRfc);
@@ -902,21 +801,15 @@ public class ManifestRfcBulkProcessor {
 								newMonRfc = rfcUtil.mergeRfcAndCi(monRfc, existingCI, "df");
 							}
 
-							CmsRfcRelation rfcWatchRelation = mergeRelations(newMonRel,null,platNsPath, envNsPath);
+							CmsRfcRelation rfcWatchRelation = newManfestRfcRelation(newMonRel, context.platNsPath, context.envNsPath, context.userId);
 							rfcWatchRelation.setFromCiId(manifestCiId);
 							rfcWatchRelation.setToCiId(newMonRfc.getCiId());
 							setCiRelationId(rfcWatchRelation);
-							rfcWatchRelation.setCreatedBy(userId);
-							rfcWatchRelation.setUpdatedBy(userId);
 							
 							if(existingCI == null){
-								ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
-								manifestRfcRelTriplet.setFromRfcCI(manifestRfc);
-								manifestRfcRelTriplet.setToRfcCI(newMonRfc);
-								manifestRfcRelTriplet.setRfcRelation(rfcWatchRelation);
-								platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
+								addManifestRfcRelTriplet(rfcWatchRelation, manifestRfc, newMonRfc, platformRfcs);
 							}else{
-								CmsRfcRelation newRfcRelation = needUpdateRfcRel(rfcWatchRelation, existingManifestPlatRels.get(rfcWatchRelation.getRelationName()).get(rfcWatchRelation.getFromCiId() + ":" + rfcWatchRelation.getToCiId()));
+								CmsRfcRelation newRfcRelation = needUpdateRfcRel(rfcWatchRelation, context.existingManifestPlatRels.get(rfcWatchRelation.getRelationName()).get(rfcWatchRelation.getFromCiId() + ":" + rfcWatchRelation.getToCiId()));
 								if(newRfcRelation != null){
 									platformRfcs.getRfcRelationList().add(newRfcRelation);
 									logger.debug("new watchedby relation rfc id = " + newRfcRelation.getRfcId());
@@ -931,7 +824,7 @@ public class ManifestRfcBulkProcessor {
 					for (CmsRfcCI oldMon : oldManifestMons.values()) {
 						//remove monitor if it is not custom (user created)
 						if (oldMon.getAttribute("custom") == null || oldMon.getAttribute("custom").getNewValue().equalsIgnoreCase("false")) {
-							cmRfcMrgProcessor.requestCiDelete(oldMon.getCiId(), userId);
+							cmRfcMrgProcessor.requestCiDelete(oldMon.getCiId(), context.userId);
 						}
 					}
 				}	
@@ -943,7 +836,7 @@ public class ManifestRfcBulkProcessor {
 					for (CmsRfcRelation oldMonRel : oldMonRels ) {
 						//remove monitor if it is not custom (user created)
 						if (oldMonRel.getToRfcCi().getAttribute("custom") == null || oldMonRel.getToRfcCi().getAttribute("custom").getNewValue().equalsIgnoreCase("false")) {
-							cmRfcMrgProcessor.requestCiDelete(oldMonRel.getToCiId(), userId);
+							cmRfcMrgProcessor.requestCiDelete(oldMonRel.getToCiId(), context.userId);
 						}
 
 					}
@@ -955,31 +848,96 @@ public class ManifestRfcBulkProcessor {
 		for (Long packCiId : newRfcsMap.keySet()) {
 			if (watchedByRels.containsKey(packCiId)) {
 				for (CmsRfcCI manifestRfc : newRfcsMap.get(packCiId)) {
-			
 					for (CmsCIRelation newMonRel : watchedByRels.get(packCiId)) {
-					String monCiName = manifestPlat.getCiName() + "-" + manifestRfc.getCiName() + "-" + newMonRel.getToCi().getCiName();
-					CmsRfcCI monRfc = trUtil.mergeCis(newMonRel.getToCi(), null, "manifest", platNsPath, envNsPath);
-					monRfc.setCiName(monCiName);
-					setCiId(monRfc, monCiName);
-					monRfc.setCreatedBy(userId);
-					monRfc.setUpdatedBy(userId);
-					
-					CmsRfcRelation rfcWatchRelation = mergeRelations(newMonRel,null,platNsPath, envNsPath);
-					ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
-					manifestRfcRelTriplet.setFromRfcCI(manifestRfc);
-					manifestRfcRelTriplet.setToRfcCI(monRfc);
-					rfcWatchRelation.setCreatedBy(userId);
-					rfcWatchRelation.setUpdatedBy(userId);
-					manifestRfcRelTriplet.setRfcRelation(rfcWatchRelation);
-					platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
-				}
+						String monCiName = manifestPlat.getCiName() + "-" + manifestRfc.getCiName() + "-" + newMonRel.getToCi().getCiName();
+						CmsRfcCI monRfc = trUtil.mergeCis(newMonRel.getToCi(), null, "manifest", context.platNsPath, context.envNsPath);
+						monRfc.setCiName(monCiName);
+						setCiId(monRfc, monCiName);
+						monRfc.setCreatedBy(context.userId);
+						monRfc.setUpdatedBy(context.userId);
+						
+						CmsRfcRelation rfcWatchRelation = newManfestRfcRelation(newMonRel, context.platNsPath, context.envNsPath, context.userId);
+						addManifestRfcRelTriplet(rfcWatchRelation, manifestRfc, monRfc, platformRfcs);
+					}
 			}
 		  }
 		}
 		
 		return newRelsGoids;
 	}
-	
+
+
+	private void processRelations(CmsCIRelation ciRel, Map<Long, List<Long>> ciIdsMap,  Map<Long, List<CmsRfcCI>> newRfcsMap, 
+			DesignPullContext context, ManifestRfcContainer platformRfcs, Set<String> newRelsGoids) {
+		Long fromCiId = ciRel.getFromCiId();
+		Long toCiId = ciRel.getToCiId();
+		if (ciIdsMap.containsKey(fromCiId)){
+			for (Long fromManifestRfcCiId : ciIdsMap.get(fromCiId)) {
+				if (ciIdsMap.containsKey(toCiId)) {
+					for (Long toManifestRfcCiId : ciIdsMap.get(toCiId)) {
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						rfcRelation.setFromCiId(fromManifestRfcCiId);
+						rfcRelation.setToCiId(toManifestRfcCiId);
+						setCiRelationId(rfcRelation);
+						rfcRelation.setRelationGoid(fromManifestRfcCiId + "-" + rfcRelation.getRelationId()+"-" + toManifestRfcCiId);
+
+						CmsCIRelation existingCIRel = context.existingManifestPlatRels.get(rfcRelation.getRelationName())!=null?
+								context.existingManifestPlatRels.get(rfcRelation.getRelationName()).get(rfcRelation.getFromCiId() + ":" + rfcRelation.getToCiId()):null;
+					    CmsRfcRelation newRfcRelation = needUpdateRfcRel(rfcRelation, existingCIRel);
+						if(newRfcRelation != null){
+							platformRfcs.getRfcRelationList().add(newRfcRelation);
+							logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
+						}else{
+							newRfcRelation = rfcUtil.mergeRfcRelAndCiRel(null , existingCIRel, "df");
+						}
+						newRelsGoids.add(newRfcRelation.getRelationGoid());
+					}
+				}
+				if (newRfcsMap.containsKey(toCiId)) {
+					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						rfcRelation.setFromCiId(fromManifestRfcCiId);
+						addManifestRfcRelTriplet(rfcRelation, null, toManifestRfc, platformRfcs);
+					}
+				}
+			}
+		}
+		if (newRfcsMap.containsKey(fromCiId)){
+			for (CmsRfcCI fromManifestRfc  : newRfcsMap.get(fromCiId)) {
+				if (newRfcsMap.containsKey(toCiId)) {
+					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						addManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc, platformRfcs);
+					}
+				}
+				if (ciIdsMap.containsKey(toCiId)){
+					for (Long toManifestCiId : ciIdsMap.get(toCiId)) {
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						rfcRelation.setToCiId(toManifestCiId);
+						addManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null, platformRfcs);
+					}
+				}
+			}
+		}
+	}
+
+
+	private CmsRfcRelation newManfestRfcRelation(CmsCIRelation ciRel, String platNsPath, String envNsPath, String userId) {
+		CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
+		rfcRelation.setCreatedBy(userId);
+		rfcRelation.setUpdatedBy(userId);
+		return rfcRelation;
+	}
+
+	private void addManifestRfcRelTriplet(CmsRfcRelation rfcRelation, CmsRfcCI fromManifestRfc, CmsRfcCI toManifestRfc, ManifestRfcContainer platformRfcs) {
+		ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
+		manifestRfcRelTriplet.setRfcRelation(rfcRelation);
+		manifestRfcRelTriplet.setFromRfcCI(fromManifestRfc);
+		manifestRfcRelTriplet.setToRfcCI(toManifestRfc);
+		platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
+	}
+
+
 /*	
 	private CmsCI getOldPlatMonitor(CmsRfcCI newPlat, String monCiName) {
 		int platMajVersion = Integer.valueOf(newPlat.getAttribute("major_version").getNewValue()).intValue(); 
@@ -995,11 +953,11 @@ public class ManifestRfcBulkProcessor {
 	}
 */
 	
-	private void processEscortRelations(List<CmsCIRelation> designEscortRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, String platNsPath, String envNsPath, String userId, 
-			Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
+	private void processEscortRelations(List<CmsCIRelation> designEscortRels, Map<Long, List<Long>> ciIdsMap, Map<Long, List<CmsRfcCI>> newRfcsMap, 
+			DesignPullContext context, ManifestRfcContainer platformRfcs) {
 
 		Set<Long> existingAttachments = new HashSet<Long>();
-		for (CmsRfcRelation existingAttachmentRel : cmRfcMrgProcessor.getDfDjRelations("manifest.EscortedBy", null, platNsPath, null, null, null)) {
+		for (CmsRfcRelation existingAttachmentRel : cmRfcMrgProcessor.getDfDjRelations("manifest.EscortedBy", null, context.platNsPath, null, null, null)) {
 			existingAttachments.add(existingAttachmentRel.getToCiId());
 		}
 	
@@ -1009,12 +967,12 @@ public class ManifestRfcBulkProcessor {
 			if (ciIdsMap.containsKey(fromCiId)){
 				for (Long manifestRfcCiId : ciIdsMap.get(fromCiId)) {
 					
-					CmsRfcCI attachRfc = trUtil.mergeCis(null, escortRel.getToCi(), "manifest", platNsPath, envNsPath);
+					CmsRfcCI attachRfc = trUtil.mergeCis(null, escortRel.getToCi(), "manifest", context.platNsPath, context.envNsPath);
 					setCiId(attachRfc);
-					attachRfc.setCreatedBy(userId);
-					attachRfc.setUpdatedBy(userId);
+					attachRfc.setCreatedBy(context.userId);
+					attachRfc.setUpdatedBy(context.userId);
 					
-					CmsCI existingCI = existingManifestCIs.get(attachRfc.getCiId());
+					CmsCI existingCI = context.existingManifestCIs.get(attachRfc.getCiId());
 					CmsRfcCI manifestAttachfRfc = needUpdateRfc(attachRfc, existingCI);
 					if(existingCI != null &&manifestAttachfRfc != null){
 						platformRfcs.getRfcList().add(manifestAttachfRfc);
@@ -1024,7 +982,7 @@ public class ManifestRfcBulkProcessor {
 					}
 					
 					existingAttachments.remove(manifestAttachfRfc.getCiId());
-					CmsRfcRelation escortRfcRelation = mergeRelations(escortRel, null, platNsPath, envNsPath);
+					CmsRfcRelation escortRfcRelation = mergeRelations(escortRel, null, context.platNsPath, context.envNsPath);
 					CmsRfcCI manifestFromRfc = cmRfcMrgProcessor.getCiById(manifestRfcCiId, "df"); 
 					
 					if (manifestFromRfc.getRfcId() > 0) escortRfcRelation.setFromRfcId(manifestFromRfc.getRfcId());
@@ -1034,10 +992,10 @@ public class ManifestRfcBulkProcessor {
 					escortRfcRelation.setToCiId(manifestAttachfRfc.getCiId());
 					
 					setCiRelationId(escortRfcRelation);
-					escortRfcRelation.setCreatedBy(userId);
-					escortRfcRelation.setUpdatedBy(userId);
+					escortRfcRelation.setCreatedBy(context.userId);
+					escortRfcRelation.setUpdatedBy(context.userId);
 					
-					if(existingManifestPlatRels.get(escortRfcRelation.getRelationName()) == null || (existingManifestPlatRels.get(escortRfcRelation.getRelationName()).
+					if(context.existingManifestPlatRels.get(escortRfcRelation.getRelationName()) == null || (context.existingManifestPlatRels.get(escortRfcRelation.getRelationName()).
 								get(escortRfcRelation.getFromCiId() + ":" + escortRfcRelation.getToCiId()) == null)){
 						
 						ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
@@ -1047,7 +1005,7 @@ public class ManifestRfcBulkProcessor {
 						platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
 						logger.debug("new attach relation rfc id = " + escortRfcRelation.getRfcId());
 					}else{
-						CmsRfcRelation rfcRelation = needUpdateRfcRel(escortRfcRelation, existingManifestPlatRels.get(escortRfcRelation.getRelationName()).
+						CmsRfcRelation rfcRelation = needUpdateRfcRel(escortRfcRelation, context.existingManifestPlatRels.get(escortRfcRelation.getRelationName()).
 								get(escortRfcRelation.getFromCiId() + ":" + escortRfcRelation.getToCiId()));
 						if(rfcRelation != null){
 							platformRfcs.getRfcRelationList().add(rfcRelation);
@@ -1057,7 +1015,7 @@ public class ManifestRfcBulkProcessor {
 					
 					
 					if (manifestFromRfc.getRfcId() == 0 && manifestAttachfRfc.getRfcId() > 0) {
-						cmRfcMrgProcessor.createDummyUpdateRfc(manifestFromRfc.getCiId(), null, 0, userId);
+						cmRfcMrgProcessor.createDummyUpdateRfc(manifestFromRfc.getCiId(), null, 0, context.userId);
 					}
 				}
 			}
@@ -1066,11 +1024,11 @@ public class ManifestRfcBulkProcessor {
 			if(newRfcsMap.containsKey(fromCiId)){
 				for (CmsRfcCI manifestRfcCI : newRfcsMap.get(fromCiId)) {
 					
-					CmsRfcCI attachRfc = trUtil.mergeCis(null, escortRel.getToCi(), "manifest", platNsPath, envNsPath);
+					CmsRfcCI attachRfc = trUtil.mergeCis(null, escortRel.getToCi(), "manifest", context.platNsPath, context.envNsPath);
 					setCiId(attachRfc);
-					attachRfc.setCreatedBy(userId);
-					attachRfc.setUpdatedBy(userId);
-					CmsRfcRelation escortRfcRelation = mergeRelations(escortRel, null, platNsPath, envNsPath);
+					attachRfc.setCreatedBy(context.userId);
+					attachRfc.setUpdatedBy(context.userId);
+					CmsRfcRelation escortRfcRelation = mergeRelations(escortRel, null, context.platNsPath, context.envNsPath);
 					
 					ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
 					manifestRfcRelTriplet.setFromRfcCI(manifestRfcCI);
@@ -1084,15 +1042,15 @@ public class ManifestRfcBulkProcessor {
 		//remove deleted attachements
 		for (Long deleteAttachCiId : existingAttachments) {
 			//need to remove ci here since there is no mob objects for attachement
-			cmProcessor.deleteCI(deleteAttachCiId, true, userId);
+			cmProcessor.deleteCI(deleteAttachCiId, true, context.userId);
 			//and now remove the rfc if any
-			cmRfcMrgProcessor.requestCiDelete(deleteAttachCiId, userId);
+			cmRfcMrgProcessor.requestCiDelete(deleteAttachCiId, context.userId);
 		}
 	}
 	
 	
-	private MergeResult procesEdges(Map<String, Edge> edges, CmsRfcCI newRootRfc, String plstNsPath, String envNsPath, String designPlatName, 
-			String userId, Map<Long, CmsCI> existingManifestCIs, Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels, ManifestRfcContainer platformRfcs) {
+	private MergeResult procesEdges(Map<String, Edge> edges, CmsRfcCI newRootRfc, String designPlatName, 
+			DesignPullContext context, ManifestRfcContainer platformRfcs) {
 		
 		MergeResult mrgMaps = new MergeResult();
 		
@@ -1107,12 +1065,12 @@ public class ManifestRfcBulkProcessor {
 				List<Long> manifestCiIds = new ArrayList<Long>();
 				List<CmsRfcCI> newManifestRfcs = new ArrayList<>();
 				for (CmsCIRelation userRel : edge.userRels) {
-					CmsRfcCI leafRfc = trUtil.mergeCis(templLeafCi, userRel.getToCi(), "manifest", plstNsPath, envNsPath);
+					CmsRfcCI leafRfc = trUtil.mergeCis(templLeafCi, userRel.getToCi(), "manifest", context.platNsPath, context.envNsPath);
 					setCiId(leafRfc);
-					leafRfc.setCreatedBy(userId);
-					leafRfc.setUpdatedBy(userId);
+					leafRfc.setCreatedBy(context.userId);
+					leafRfc.setUpdatedBy(context.userId);
 					
-					CmsCI existingCI = existingManifestCIs.get(leafRfc.getCiId());
+					CmsCI existingCI = context.existingManifestCIs.get(leafRfc.getCiId());
 					CmsRfcCI newLeafRfc = needUpdateRfc(leafRfc, existingCI);
 					if(newLeafRfc != null){
 						platformRfcs.getRfcList().add(newLeafRfc);
@@ -1126,7 +1084,7 @@ public class ManifestRfcBulkProcessor {
 						newManifestRfcs.add(newLeafRfc);
 					}
 					
-					CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,userRel, plstNsPath, envNsPath);
+					CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,userRel, context.platNsPath, context.envNsPath);
 					if (newRootRfc.getRfcId() > 0) leafRfcRelation.setFromRfcId(newRootRfc.getRfcId());
 					leafRfcRelation.setFromCiId(newRootRfc.getCiId());
 					
@@ -1134,16 +1092,16 @@ public class ManifestRfcBulkProcessor {
 					leafRfcRelation.setToCiId(newLeafRfc.getCiId());
 					
 					setCiRelationId(leafRfcRelation);
-					leafRfcRelation.setCreatedBy(userId);
-					leafRfcRelation.setUpdatedBy(userId);
+					leafRfcRelation.setCreatedBy(context.userId);
+					leafRfcRelation.setUpdatedBy(context.userId);
 					
 					
 					CmsCIRelation baseExistingRel = null;
-					if(existingManifestPlatRels.get(leafRfcRelation.getRelationName()) == null){
+					if(context.existingManifestPlatRels.get(leafRfcRelation.getRelationName()) == null){
 						leafRfcRelation.setRfcAction("add");
 						platformRfcs.getRfcRelationList().add(leafRfcRelation);
 					}else{
-						baseExistingRel = existingManifestPlatRels.get(leafRfcRelation.getRelationName()).
+						baseExistingRel = context.existingManifestPlatRels.get(leafRfcRelation.getRelationName()).
 								get(leafRfcRelation.getFromCiId() + ":" + leafRfcRelation.getToCiId());
 						CmsRfcRelation rfcRelation = needUpdateRfcRel(leafRfcRelation, baseExistingRel);
 						if(rfcRelation != null){
@@ -1187,15 +1145,15 @@ public class ManifestRfcBulkProcessor {
 						"1..*".equalsIgnoreCase(cardinality)) {
 						List<Long> manifestCiIds = new ArrayList<Long>();
 						List<CmsRfcCI> newManifestRfcs = new ArrayList<>();
-						CmsRfcCI leafRfc = trUtil.mergeCis(edge.templateRel.getToCi(), null, "manifest", plstNsPath, envNsPath);
+						CmsRfcCI leafRfc = trUtil.mergeCis(edge.templateRel.getToCi(), null, "manifest", context.platNsPath, context.envNsPath);
 						//leafRfc.setCiName(designPlatName + "-" + leafRfc.getCiName());
 						setCiId(leafRfc);
-						leafRfc.setCreatedBy(userId);
-						leafRfc.setUpdatedBy(userId);
+						leafRfc.setCreatedBy(context.userId);
+						leafRfc.setUpdatedBy(context.userId);
 						//hack here for keypairs
 						processSshKeys(leafRfc);
 						
-						CmsCI existingCI = existingManifestCIs.get(leafRfc.getCiId());
+						CmsCI existingCI = context.existingManifestCIs.get(leafRfc.getCiId());
 						CmsRfcCI newLeafRfc = needUpdateRfc(leafRfc, existingCI);
 						if(newLeafRfc != null){
 							platformRfcs.getRfcList().add(newLeafRfc);
@@ -1209,22 +1167,22 @@ public class ManifestRfcBulkProcessor {
 							newManifestRfcs.add(newLeafRfc);
 						}
 						
-						CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,null, plstNsPath, envNsPath);
+						CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel,null, context.platNsPath, context.envNsPath);
 						if (newRootRfc.getRfcId()>0) leafRfcRelation.setFromRfcId(newRootRfc.getRfcId());
 						leafRfcRelation.setFromCiId(newRootRfc.getCiId());
 						if(newLeafRfc != null){
 							if (newLeafRfc.getRfcId() > 0 ) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
 							leafRfcRelation.setToCiId(newLeafRfc.getCiId());
 							setCiRelationId(leafRfcRelation);
-							leafRfcRelation.setCreatedBy(userId);
-							leafRfcRelation.setUpdatedBy(userId);
+							leafRfcRelation.setCreatedBy(context.userId);
+							leafRfcRelation.setUpdatedBy(context.userId);
 						}
 						
 						CmsCIRelation baseExistingRel = null;
-						if(existingManifestPlatRels.get(leafRfcRelation.getRelationName()) == null){
+						if(context.existingManifestPlatRels.get(leafRfcRelation.getRelationName()) == null){
 							platformRfcs.getRfcRelationList().add(leafRfcRelation);
 						}else{
-							baseExistingRel = existingManifestPlatRels.get(leafRfcRelation.getRelationName()).
+							baseExistingRel = context.existingManifestPlatRels.get(leafRfcRelation.getRelationName()).
 									get(leafRfcRelation.getFromCiId() + ":" + leafRfcRelation.getToCiId());
 							CmsRfcRelation rfcRelation = needUpdateRfcRel(leafRfcRelation, baseExistingRel);
 							if(rfcRelation != null){
@@ -1524,6 +1482,16 @@ public class ManifestRfcBulkProcessor {
 		Map<Long, List<Long>> designIdsMap = new HashMap<Long, List<Long>>();
 		Map<Long, List<CmsRfcCI>> rfcMap = new HashMap<>();
 		Map<Long, List<CmsRfcCI>> rfcDesignMap = new HashMap<>();
+	}
+
+	private class DesignPullContext {
+		String userId;
+		String envNsPath;
+		String platNsPath;
+		CmsCI env;
+		String availMode;
+		Map<Long, CmsCI> existingManifestCIs;
+		Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels;
 	}
 
 }
