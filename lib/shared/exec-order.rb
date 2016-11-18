@@ -39,7 +39,7 @@ if ostype =~ /windows/
   impl = "oo::chef-12.11.18"
 end
 
-def gen_gemfile_and_install (gems, dsl, ostype)
+def gen_gemfile_and_install (gems, dsl, ostype, log_level)
 
     rubygems_proxy = ENV['rubygems_proxy']
     gemfile_content = "source 'https://rubygems.org'\n"
@@ -166,7 +166,7 @@ when "chef"
     end
     gem_list = gem_config["common"] + version_gems
     gem_list.push(['chef', version])
-    gen_gemfile_and_install(gem_list, dsl, ostype)
+    gen_gemfile_and_install(gem_list, dsl, ostype, log_level)
   end
 
   # used to create specific chef config for cookbook_path and lockfile
@@ -237,7 +237,7 @@ when "puppet"
     puts "updating Gemfile and running bundle install."
     gem_list = gem_config["common"] + gem_config["puppet"]
     gem_list.push(['puppet', version])
-    gen_gemfile_and_install(gem_list,dsl)
+    gen_gemfile_and_install(gem_list,dsl,ostype,log_level)
   end
 
   # run puppet apply for each item in the run_list

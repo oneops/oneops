@@ -94,15 +94,14 @@ when "windows"
     Chef::Log.info("Nagios Filename is: #{file_name}")
     # un tar it in /cygdrive/c/cygwin64/opt/nagios/
     execute "tar xzf /cygdrive/c/cygwin64/#{file_name} -C /cygdrive/c/cygwin64/opt"
-
-    # check to make sure it isn't already there
-    `cygrunsrv --list | grep nagios`
-    if $? != 0  # service not installed, install it.
-      execute 'cygrunsrv --install nagios -d "Nagios" -p /cygdrive/c/cygwin64/opt/nagios/bin/nagios.exe'
+    execute "chmod +x /opt/nagios/bin/*"
+	
+    #Install service for windows  
+    powershell_script 'Install nagios service' do
+      code "C:/Cygwin64/bin/cygrunsrv.exe -I nagios -d Nagios -p /opt/nagios/bin/nagios.exe -a /etc/nagios/nagios.cfg"
+      not_if {::Win32::Service.exists?("nagios")}
     end
-
-    #execute 'cygrunsrv --start nagios'
-
+	
 else
   nagios_service = "nagios3"
   package "nagios3-core" do
@@ -123,50 +122,67 @@ else
 
 end
 
+
 dir_prefix = ''
+root_user = 'root'
+root_group = 'root'
 if node.platform =~ /windows/
   dir_prefix = 'c:/cygwin64'
+  root_user = 'oneops'
+  root_group = 'Administrators'
+  
+  #configure directory permissions Windows way, plus make sure child folders will inherit rights from parents
+  ['/var/lib/nagios3','/var/log/nagios3'].each do |dir_name1|
+    directory dir_name1 do
+      rights :full_control, 'oneops'
+      rights :full_control, 'Administrators'
+	  rights :modify, 'SYSTEM', :applies_to_children => true
+	  inherits true
+    end
+  end
+
 end
 
-execute "rm -fr #{dir_prefix}/etc/nagios3"
-execute "ln -s #{dir_prefix}/etc/nagios #{dir_prefix}/etc/nagios3"
+#Create necessary directories
+dirs = ['/var/lib/nagios3/spool/checkresults','/var/lib/nagios3/rw','/var/log/nagios3/archives','/var/log/nagios3/rw']
+dirs += ['/var/cache/nagios3', '/var/run/nagios3', '/var/run/nagios', 'etc/logrotate.d']
+dirs.each do |dir_name2|
+  directory dir_name2 do
+    recursive true
+  end
+end
 
-FileUtils::mkdir_p "#{dir_prefix}/opt/nagios"
-FileUtils::mkdir_p "#{dir_prefix}/var/cache/nagios3"
-FileUtils::mkdir_p "#{dir_prefix}/var/log/nagios3/archives"
-FileUtils::mkdir_p "#{dir_prefix}/var/log/nagios3/rw"
-FileUtils::mkdir_p "#{dir_prefix}/var/run/nagios3"
-FileUtils::mkdir_p "#{dir_prefix}/var/run/nagios"
-FileUtils::mkdir_p "#{dir_prefix}/var/lib/nagios3/rw"
-FileUtils::mkdir_p "#{dir_prefix}/var/lib/nagios3/spool/checkresults"
-FileUtils::mkdir_p "#{dir_prefix}/etc/logrotate.d"
+#Create symlinks
+link "#{dir_prefix}/etc/nagios3" do
+  to "#{dir_prefix}/etc/nagios"
+end
+
+directory '/var/log/nagios' do
+  action :delete
+  recursive true
+  only_if{::File.directory?('/var/log/nagios')}
+end
+
+link "#{dir_prefix}/var/log/nagios" do
+  to "#{dir_prefix}/var/log/nagios3"
+end
+
 
 # for windows we won't change owners
 if node.platform !~ /windows/
-  execute "chown nagios:nagios /var/run/nagios3"
-  execute "chown nagios:nagios /var/run/nagios"
-  execute "chown nagios:nagios /var/cache/nagios3"
-  execute "chown -R nagios:nagios /var/lib/nagios3"
-  execute "chown -R nagios:nagios /var/log/nagios3"
+  FileUtils::mkdir_p "/opt/nagios"
+  execute "chown nagios:nagios /var/run/nagios3 /var/run/nagios /var/cache/nagios3"
+  execute "chown -R nagios:nagios /var/lib/nagios3 /var/log/nagios3"
 end
 
 # remove bad symlink from old monitor::add
-execute "rm -f #{dir_prefix}/opt/nagios/libexec/plugins"
-execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* #{dir_prefix}/opt/nagios/libexec/"
-execute "chmod +x #{dir_prefix}/opt/nagios/libexec/*"
+execute "rm -f /opt/nagios/libexec/plugins"
+execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* /opt/nagios/libexec/"
+execute "chmod +x /opt/nagios/libexec/*"
 
-if node.platform =~ /windows/
-  template "#{dir_prefix}/etc/logrotate.d/nagios" do
-    source "logrotate.erb"
-    cookbook "monitor"
-    mode 0644
-  end
-else
-  template "#{dir_prefix}/etc/logrotate.d/nagios" do
-    source "logrotate.erb"
-    owner "root"
-    group "root"
-    mode 0644
-  end
+template "/etc/logrotate.d/nagios" do
+  source "logrotate.erb"
+  owner root_user
+  group root_group
+  mode 0644
 end
-

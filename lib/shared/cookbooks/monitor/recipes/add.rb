@@ -336,10 +336,6 @@ ruby_block 'setup nagios' do
       changes += process_monitor(monitor)
     end
 
-    if File.directory?("#{dir_prefix}/var/log/nagios")
-      result = `rm -fr #{dir_prefix}/var/log/nagios ; ln -sf #{dir_prefix}/var/log/nagios3 #{dir_prefix}/var/log/nagios`
-    end
-
     if is_new_compute
 
       # sync and restart
@@ -349,14 +345,15 @@ ruby_block 'setup nagios' do
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      dirs = ["#{dir_prefix}/var/run/nagios3","#{dir_prefix}/opt/nagios/libexec","#{dir_prefix}/var/lib/nagios3/spool/checkresults"]
-      dirs += ["#{dir_prefix}/var/log/nagios3","#{dir_prefix}/var/lib/nagios3/rw","#{dir_prefix}/opt/oneops/perf"]
+      dirs = ["#{dir_prefix}/var/run/nagios3","#{dir_prefix}/opt/nagios/libexec"]
+      dirs += ["#{dir_prefix}/var/log/nagios3","#{dir_prefix}/opt/oneops/perf"]
       # not going to chown for windows
       if ostype =~ /windows/
-        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ') + '"'
-      else
         cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
-         'sudo chown -R nagios:nagios /var/lib/nagios3 /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
+         'sudo chown -R oneops:Administrators /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
+	  else
+        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
+         'sudo chown -R nagios:nagios /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
       end
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
@@ -375,19 +372,10 @@ ruby_block 'setup nagios' do
       result.error!
 
       cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + "sudo cp -r #{conf_dir}/* #{dir_prefix}/etc/nagios/; sudo cp -r #{conf_dir}/perf #{dir_prefix}/opt/oneops/; " +
-          "sudo ln -sf #{dir_prefix}/etc/nagios #{dir_prefix}/etc/nagios3; sudo chmod +x #{dir_prefix}/opt/nagios/libexec/* " + '"'
+          "sudo chmod +x #{dir_prefix}/opt/nagios/libexec/* " + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
-
-      # copy nagios initd file if windows
-      # this is an additional file to copy in for windows for the nagios config.
-      if ostype =~ /windows/
-        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + "sudo cp -r #{dir_prefix}/opt/nagios/libexec/nagios_initd #{dir_prefix}/etc/rc.d/init.d/nagios" + '"'
-        result = shell_out(cmd)
-        Chef::Log.info("#{cmd} returned: #{result.stdout}")
-        result.error!
-      end
 
       `rm -fr #{conf_dir}`
 
@@ -413,7 +401,8 @@ ruby_block 'setup nagios' do
       Chef::Log.info("total of #{changes} changes")
       # path to initd is diff for windows
       if ostype =~ /windows/
-        # restart nagios & forwarder
+        `chown -R oneops:Administrators /etc/nagios /opt/oneops/perf`
+		# restart nagios & forwarder
         # `c:/cygwin64/etc/rc.d/init.d/nagios restart && c:/cygwin64/etc/init.d/perf-agent restart`
       else
         `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
@@ -430,6 +419,28 @@ end
 if is_new_compute
   include_recipe 'compute::ssh_key_file_rm'
 else
+  if ostype =~ /windows/
+    perf_dir = '/opt/oneops/perf'
+	    
+    #grant permissions to all subfolders and files to SYSTEM
+    directory perf_dir do
+      rights :modify, 'SYSTEM'
+      rights :full_control, 'oneops'
+      rights :full_control, 'Administrators'
+      inherits false
+      action :create
+    end
+  
+    ps_code = "
+    $Path = '#{perf_dir}'
+    $acl = Get-Acl $Path
+    $Objects = Get-ChildItem -Path $Path -Recurse | % { $_.FullName }
+    ForEach ($Object in $Objects)  {Set-Acl -Path $Object -AclObject $acl }"
+
+    powershell_script 'Assign Permissions' do
+      code ps_code
+    end
+  end
 
   nagios_service = 'nagios'
   if node.platform == 'ubuntu'
@@ -439,33 +450,24 @@ else
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
-    if node.platform =~ /windows/
-      # execute "cygrunsrv --stop #{nagios_service}"
-      # execute "cygrunsrv --start #{nagios_service}"
-    else
-      service nagios_service do
-        supports [ :restart, :enable ]
-        action [ :restart, :enable ]
-      end
-
-      service_path = '/usr/sbin'
-      case node.platform
-        when 'redhat', 'centos', 'fedora', 'suse'
-          service_path = '/sbin'
-      end
-      execute "#{service_path}/service #{nagios_service} restart"
+    service nagios_service do
+      supports [ :restart, :enable ]
+      action [ :restart, :enable ]
     end
 
+    service_path = '/usr/sbin'
+    case node.platform
+      when 'redhat', 'centos', 'fedora', 'suse'
+        service_path = '/sbin'
+    end
+    execute "#{service_path}/service #{nagios_service} restart"
+
   else
-    if node.platform =~ /windows/
-      # execute "cygrunsrv --stop #{nagios_service}"
-    else
-      service nagios_service do
-        action [ :stop, :disable ]
-      end
-      service 'perf-agent' do
-        action [ :stop, :disable ]
-      end
+    service nagios_service do
+      action [ :stop, :disable ]
+    end
+    service 'perf-agent' do
+      action [ :stop, :disable ]
     end
 
   end
