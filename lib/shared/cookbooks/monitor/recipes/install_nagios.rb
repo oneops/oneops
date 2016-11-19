@@ -141,6 +141,12 @@ if node.platform =~ /windows/
     end
   end
 
+  #mount /opt on MinGW so perl scripts from /opt/nagios/libexec can be executed using mingw.perl
+  file "C:/tools/DevKit2/etc/fstab" do
+    action :create
+	content "c:/opt /opt"
+	only_if{File.directory?("C:/tools/DevKit2/etc")}
+  end
 end
 
 #Create necessary directories

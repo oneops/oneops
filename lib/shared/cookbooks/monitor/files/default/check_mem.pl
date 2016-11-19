@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 
 # Heavily based on the script from:
 # check_mem.pl Copyright (C) 2000 Dan Larsson <dl@tyfon.net>
@@ -25,6 +25,7 @@
 # OTHER DEALINGS IN THE SOFTWARE.
 
 # Tell Perl what we need to use
+use warnings;
 use strict;
 use Getopt::Std;
 
@@ -130,7 +131,7 @@ sub get_memory_info {
         die "Unable to find uname in /usr/bin or /bin!\n";
     }
     print "uname returns $uname" if ($opt_v);
-    if ( $uname =~ /Linux/ ) {
+    if ( $uname =~ /Linux/ ){
         my @meminfo = `/bin/cat /proc/meminfo`;
         foreach (@meminfo) {
             chomp;
@@ -149,6 +150,21 @@ sub get_memory_info {
         }
         $used_memory_kb = $total_memory_kb - $free_memory_kb;
     }
+	
+    elsif (( $uname =~ /CYGWIN/ ) || ( $uname =~ /MINGW/ )){
+        #Cygwin or MinGW on Windows
+		my @meminfo = `vmstat -s`;
+        foreach (@meminfo) {
+            chomp;
+            if (/^\s+(\d+) K (total|free|used) memory/) {
+                my $counter_name = $2;
+                if ($counter_name eq 'free') { $free_memory_kb = $1; }
+                elsif ($counter_name eq 'total') { $total_memory_kb = $1; }
+				elsif ($counter_name eq 'used') { $used_memory_kb = $1; }
+            }
+        }
+    }	
+
     elsif ( $uname =~ /FreeBSD/ ) {
       # The FreeBSD case. 2013-03-19 www.claudiokuenzler.com
       # free mem = Inactive*Page Size + Cache*Page Size + Free*Page Size

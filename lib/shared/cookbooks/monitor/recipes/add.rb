@@ -455,13 +455,6 @@ else
       action [ :restart, :enable ]
     end
 
-    service_path = '/usr/sbin'
-    case node.platform
-      when 'redhat', 'centos', 'fedora', 'suse'
-        service_path = '/sbin'
-    end
-    execute "#{service_path}/service #{nagios_service} restart"
-
   else
     service nagios_service do
       action [ :stop, :disable ]
