@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /*******************************************************************************
  *
@@ -41,6 +40,11 @@ public class SnapshotProcessor {
     private CmsCmProcessor cmProcessor;
     private CmsRfcProcessor rfcProcessor;
     private CmsCmRfcMrgProcessor rfcMrgProcessor;
+    private ReplayProcessor replayProcessor;
+
+    public void setReplayProcessor(ReplayProcessor replayProcessor) {
+        this.replayProcessor = replayProcessor;
+    }
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
@@ -87,95 +91,11 @@ public class SnapshotProcessor {
         List<String> errors = importSnapshot(snapshot, oldToNewCiIdsMap);
         if (releaseId != null && releaseId > snapshot.getRelease()) {
             CmsRelease release = rfcProcessor.getReleaseById(snapshot.getRelease());
-            errors.addAll(replay(snapshot.getRelease(), releaseId, release.getNsPath(), oldToNewCiIdsMap));
+            errors.addAll(replayProcessor.replay(snapshot.getRelease(), releaseId, release.getNsPath(), oldToNewCiIdsMap));
         }
         return errors;
     }
 
-    List<String> replay(long fromReleaseId, long toReleaseId, String nsPath) {
-        return replay(fromReleaseId, toReleaseId, nsPath, new HashMap<>());
-    }
-
-    private List<String> replay(Long fromReleaseId, Long toReleaseId, String nsPath, Map<Long, RelationLink> oldToNewCiIdsMap) {
-        List<String> errors = new ArrayList<>();
-        List<CmsRfcCI> cis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
-        List<CmsRfcRelation> rels = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
-        Map<Long, List<CmsRfcRelation>> collect = rels.stream().collect(Collectors.groupingBy(CmsRfcRelationBasic::getReleaseId));
-        long currentReleaseId = 0;
-        for (CmsRfcCI ci : cis) {
-            if (currentReleaseId == 0) {
-                currentReleaseId = ci.getReleaseId();
-            }
-            if (currentReleaseId != ci.getReleaseId()) {
-                restoreReleaseRelations(oldToNewCiIdsMap, errors, collect.get(currentReleaseId));
-                currentReleaseId = ci.getReleaseId();
-            }
-            CmsRfcCI clonedCi = TransUtil.cloneRfc(ci);
-            clonedCi.setRfcId(0);
-            clonedCi.setReleaseId(0);
-            clonedCi.setIsActiveInRelease(false);
-            if ("add".equalsIgnoreCase(clonedCi.getRfcAction())) {
-                long oldId = clonedCi.getCiId();
-                clonedCi.setCiId(0);
-                clonedCi = upsertCiAndCollectErrors(clonedCi, errors);
-                oldToNewCiIdsMap.put(oldId, new RelationLink(clonedCi.getCiId(), clonedCi.getRfcId()));
-            } else if ("delete".equalsIgnoreCase(clonedCi.getRfcAction())) {
-                if (oldToNewCiIdsMap.containsKey(clonedCi.getCiId())) {
-                    rfcProcessor.rmRfcCiFromRelease(getSafeValue(oldToNewCiIdsMap.get(clonedCi.getCiId()).getRfcId()));
-                }
-            } else {
-                if (oldToNewCiIdsMap.containsKey(clonedCi.getCiId())) {
-                    clonedCi.setRfcId(getSafeValue(oldToNewCiIdsMap.get(clonedCi.getCiId()).getRfcId()));
-                    clonedCi.setCiId(oldToNewCiIdsMap.get(clonedCi.getCiId()).getId());
-                }
-                upsertCiAndCollectErrors(clonedCi, errors);
-            }
-            
-        }
-        restoreReleaseRelations(oldToNewCiIdsMap, errors, collect.get(currentReleaseId));
-        return errors;
-    }
-
-    private void restoreReleaseRelations(Map<Long, RelationLink> oldToNewCiIdsMap, List<String> errors, List<CmsRfcRelation> rels) {
-        if (rels == null) return;
-        for (CmsRfcRelation rel : rels) {
-            CmsRfcRelation clonedRelation = TransUtil.cloneRfcRelation(rel);
-            clonedRelation.setRfcId(0);
-            clonedRelation.setCiRelationId(0);
-            clonedRelation.setReleaseId(0);
-            clonedRelation.setIsActiveInRelease(false);
-            if (oldToNewCiIdsMap.containsKey(clonedRelation.getFromCiId())) {
-                clonedRelation.setFromRfcId(getSafeValue(oldToNewCiIdsMap.get(clonedRelation.getFromCiId()).getRfcId()));
-                clonedRelation.setFromCiId(oldToNewCiIdsMap.get(clonedRelation.getFromCiId()).getId());
-            }
-            if (oldToNewCiIdsMap.containsKey(clonedRelation.getToCiId())) {
-                clonedRelation.setToRfcId(getSafeValue(oldToNewCiIdsMap.get(clonedRelation.getToCiId()).getRfcId()));
-                clonedRelation.setToCiId(oldToNewCiIdsMap.get(clonedRelation.getToCiId()).getId());
-            }
-            try {
-                rfcMrgProcessor.upsertRelationRfc(clonedRelation, SNAPSHOT_RESTORE);
-            } catch (Exception e) {
-                String message = "Relation restore failure:" + e.getMessage();
-                logger.warn(message);
-                errors.add(message);
-            }
-        }
-    }
-
-    private long getSafeValue(Long rfcId) {
-        return rfcId == null ? 0 : rfcId;
-    }
-
-    private CmsRfcCI upsertCiAndCollectErrors(CmsRfcCI clonedCi, List<String> errors) {
-        try {
-            clonedCi = rfcMrgProcessor.upsertCiRfc(clonedCi, SNAPSHOT_RESTORE);
-        } catch (Exception e) {
-            String message = "RFC CI restore failure:" + e.getMessage();
-            logger.warn(message);
-            errors.add(message);
-        }
-        return clonedCi;
-    }
 
     List<String> importSnapshot(Snapshot snapshot) {
         return importSnapshot(snapshot, new HashMap<>());
@@ -210,10 +130,10 @@ public class SnapshotProcessor {
                     RelationLink fromLink = linkMap.get(exportRelation.getFrom());
                     RelationLink toLink = linkMap.get(exportRelation.getTo());
                     if (toLink == null) {
-                        toLink = new RelationLink(exportRelation.getTo(), null); // external link
+                        toLink = new RelationLink(exportRelation.getTo(), null); // external to link
                     }
                     if (fromLink == null) {
-                        fromLink = new RelationLink(exportRelation.getFrom(), null); // external link
+                        fromLink = new RelationLink(exportRelation.getFrom(), null); // external from link
                     }
                     CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
                     if (relation == null) { // relation doesn't exist
@@ -395,25 +315,6 @@ public class SnapshotProcessor {
     }
 
 
-    private class RelationLink {
-        private long id;
-        private Long rfcId;
-
-        Long getRfcId() {
-            return rfcId;
-        }
-
-        RelationLink(long id, Long rfcId) {
-            this.id = id;
-            this.rfcId = rfcId;
-        }
-
-        long getId() {
-            return id;
-        }
-    }
-
-
     public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
         this.rfcProcessor = rfcProcessor;
     }
@@ -422,4 +323,25 @@ public class SnapshotProcessor {
         this.rfcMrgProcessor = rfcMrgProcessor;
     }
 
+    List<String> replay(long fromReleaseId, long toReleaseId, String nsPath) {
+        return replayProcessor.replay(fromReleaseId, toReleaseId, nsPath);
+    }
+}
+
+class RelationLink {
+    private long id;
+    private Long rfcId;
+
+    Long getRfcId() {
+        return rfcId;
+    }
+
+    RelationLink(long id, Long rfcId) {
+        this.id = id;
+        this.rfcId = rfcId;
+    }
+
+    long getId() {
+        return id;
+    }
 }
