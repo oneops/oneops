@@ -1,5 +1,7 @@
 package com.oneops.transistor.service;
 
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.CmsRfcRelationBasic;
@@ -38,6 +40,7 @@ public class ReplayProcessor {
     private static final String DELETE = "delete";
     private CmsRfcProcessor rfcProcessor;
     private CmsCmRfcMrgProcessor rfcMrgProcessor;
+    private CmsCmProcessor cmProcessor;
 
     public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
         this.rfcProcessor = rfcProcessor;
@@ -47,6 +50,9 @@ public class ReplayProcessor {
         this.rfcMrgProcessor = rfcMrgProcessor;
     }
 
+    public void setCmProcessor(CmsCmProcessor cmProcessor) {
+        this.cmProcessor = cmProcessor;
+    }
 
     List<String> replay(Long fromReleaseId, Long toReleaseId, String nsPath, Map<Long, RelationLink> idMap) {
         List<String> errors = new ArrayList<>();
@@ -66,96 +72,81 @@ public class ReplayProcessor {
     }
 
 
-    /**
-     * 1. Add -> Clear ciId and replay 
-     * 2. Update for -> 
-     *     2.1 existing CI - simple replay
-     *     2.2 newly added RFC - update RFC
-     * 3. Delete for ->
-     *     3.1. existing CI - simple replay
-     *     3.2. newly added RFC  - delete RFC
-     */
-    private void restoreCi(Map<Long, RelationLink> idMap, List<String> errors, CmsRfcCI ci) {
-        CmsRfcCI clone = TransUtil.cloneRfc(ci);
-        clone.setRfcId(0);
-        clone.setReleaseId(0);
-        long oldCiId = clone.getCiId();
-        if (ADD.equalsIgnoreCase(clone.getRfcAction())) {
-            List<CmsRfcCI> list = rfcProcessor.getOpenRfcCIByClazzAndName(clone.getNsPath(), clone.getCiClassName(), clone.getCiName());
-            if (list.size()>0){ // check special case, existing CI, pending RFC delete. We just need to remove pending delete
-                CmsRfcCI cmsRfcCI = list.get(0);
-                if (DELETE.equalsIgnoreCase(cmsRfcCI.getRfcAction())){
-                    rfcProcessor.rmRfcCiFromRelease(cmsRfcCI.getRfcId());
-                    return;
-                }
+    private void restoreCi(Map<Long, RelationLink> idMap, List<String> errors, CmsRfcCI rfcToReplay) {
+        CmsCI existingCi = getCmsCI(rfcToReplay);
+        if (ADD.equalsIgnoreCase(rfcToReplay.getRfcAction()) && existingCi != null) { 
+            CmsRfcCI existingRfc = getCmsRfcCI(rfcToReplay);
+            if (existingRfc != null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())) { // special case get rid of existing RFC delete
+                rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
             }
-            clone.setCiId(0);
         }
-        if (idMap.containsKey(oldCiId)) {
-            RelationLink relationLink = idMap.get(oldCiId);
-            if (DELETE.equalsIgnoreCase(clone.getRfcAction())) {  // special case delete for RFC added during replay or snapshot restore
-                rfcProcessor.rmRfcCiFromRelease(relationLink.getRfcId());   
-                return;
-            }
-            clone.setRfcId(getSafeValue(relationLink.getRfcId()));
-            clone.setCiId(relationLink.getId());
-        }
-        
-        clone = upsertAndCollectErrors(clone, errors);
-        if (oldCiId!= clone.getCiId()) {
-            idMap.put(oldCiId, new RelationLink(clone.getCiId(), clone.getRfcId()));
-        }
-    }
-
-    private CmsRfcCI upsertAndCollectErrors(CmsRfcCI clone, List<String> errors) {
+        long oldCiId = rfcToReplay.getCiId();
+        rfcToReplay.setReleaseId(0);
+        rfcToReplay.setRfcId(0);
+        rfcToReplay.setCiId(existingCi == null ? 0 : existingCi.getCiId());
         try {
-            clone = rfcMrgProcessor.upsertCiRfc(clone, REPLAY);
+            logger.info(rfcToReplay.getRfcAction() + ":" + rfcToReplay.getCiName() + "@" + rfcToReplay.getNsPath());
+            rfcToReplay = rfcMrgProcessor.upsertCiRfc(rfcToReplay, REPLAY);
+            if (oldCiId != rfcToReplay.getCiId()) {
+                idMap.put(oldCiId, new RelationLink(rfcToReplay.getCiId(), rfcToReplay.getRfcId()));
+            }
         } catch (Exception e) {
             String message = "RFC CI restore failure:" + e.getMessage();
             logger.warn(message, e);
             errors.add(message);
         }
-        return clone;
     }
+
+    private CmsCI getCmsCI(CmsRfcCI clone) {
+        CmsCI existingCi = null;
+        List<CmsCI> list = cmProcessor.getCiBy3(clone.getNsPath(), clone.getCiClassName(), clone.getCiName());
+        if (list != null && list.size() > 0) {
+            existingCi = list.get(0);
+        }
+        return existingCi;
+    }
+
+    private CmsRfcCI getCmsRfcCI(CmsRfcCI clone) {
+        List<CmsRfcCI> list = rfcProcessor.getOpenRfcCIByClazzAndName(clone.getNsPath(), clone.getCiClassName(), clone.getCiName());
+        CmsRfcCI cmsRfcCI = null;
+        if (list != null && list.size() > 0) {
+            cmsRfcCI = list.get(0);
+        }
+        return cmsRfcCI;
+    }
+
 
     private void restoreReleaseRelations(Map<Long, RelationLink> idMap, List<String> errors, List<CmsRfcRelation> rels) {
         if (rels == null) return;
-        for (CmsRfcRelation rel : rels) {
-            CmsRfcRelation clone = TransUtil.cloneRfcRelation(rel);
-            clone.setRfcId(0);
-            clone.setCiRelationId(0);
-            clone.setReleaseId(0);
-            Long fromCiId = clone.getFromCiId();
+        for (CmsRfcRelation relation : rels) {
+            relation.setRfcId(0);
+            relation.setCiRelationId(0);
+            relation.setReleaseId(0);
+            Long fromCiId = relation.getFromCiId();
             if (idMap.containsKey(fromCiId)) {
-                clone.setFromRfcId(getSafeValue(idMap.get(fromCiId).getRfcId(), clone.getFromRfcId()));
-                clone.setFromCiId(idMap.get(fromCiId).getId());
+                relation.setFromCiId(idMap.get(fromCiId).getId());
             }
-            Long toCiId = clone.getToCiId();
+            Long toCiId = relation.getToCiId();
             if (idMap.containsKey(toCiId)) {
-                clone.setToRfcId(getSafeValue(idMap.get(toCiId).getRfcId(), clone.getToRfcId()));
-                clone.setToCiId(idMap.get(toCiId).getId());
+                relation.setToCiId(idMap.get(toCiId).getId());
             }
-            upsertAndCollectErrors(clone, errors);
+            if (ADD.equalsIgnoreCase(relation.getRfcAction())){
+                CmsRfcRelation existingRfc = rfcMrgProcessor.getExisitngRelationRfcMerged(relation.getFromCiId(), relation.getRelationName(), relation.getToCiId(), "df");
+                if (existingRfc!=null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())){ // special case get rid of RFC delete
+                    rfcProcessor.rmRfcRelationFromRelease(existingRfc.getRfcId());
+                }
+            }
+            try {
+                logger.info(relation.getRfcAction()+" relation:"+relation.getRelationName()+"@"+relation.getNsPath());
+                rfcMrgProcessor.upsertRelationRfc(relation, REPLAY);
+            } catch (Exception e) {
+                String message = "Relation restore failure:" + e.getMessage();
+                logger.warn(message);
+                errors.add(message);
+            }
         }
     }
 
-    private Long getSafeValue(Long rfcId, Long defaultValue) {
-        return rfcId==null?defaultValue:rfcId;
-    }
-
-    private void upsertAndCollectErrors(CmsRfcRelation clonedRelation, List<String> errors) {
-        try {
-            rfcMrgProcessor.upsertRelationRfc(clonedRelation, REPLAY);
-        } catch (Exception e) {
-            String message = "Relation restore failure:" + e.getMessage();
-            logger.warn(message);
-            errors.add(message);
-        }
-    }
-
-    private long getSafeValue(Long rfcId) {
-        return rfcId == null ? 0 : rfcId;
-    }
 
     List<String> replay(long fromReleaseId, long toReleaseId, String nsPath) {
         return replay(fromReleaseId, toReleaseId, nsPath, new HashMap<>());

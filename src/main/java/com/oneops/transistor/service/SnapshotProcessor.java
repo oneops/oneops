@@ -155,11 +155,7 @@ public class SnapshotProcessor {
     }
 
     private void addMissing(List<CmsCIRelation> existingRelations, List<CmsCIRelation> relationsToCheck) {
-        for (CmsCIRelation relation : relationsToCheck) {
-            if (findMatchingRelation(relation.getNsPath(), new RelationLink(relation.getFromCiId(), null), new RelationLink(relation.getToCiId(), null), relation.getRelationName(), existingRelations) == null) {
-                existingRelations.add(relation);
-            }
-        }
+        relationsToCheck.stream().filter(relation -> findMatchingRelation(relation.getNsPath(), new RelationLink(relation.getFromCiId(), null), new RelationLink(relation.getToCiId(), null), relation.getRelationName(), existingRelations) == null).forEach(existingRelations::add);
     }
 
     private void updateRelation(ExportRelation exportRelation, CmsCIRelation relation) {
@@ -209,7 +205,7 @@ public class SnapshotProcessor {
         }
         processAttributes(exportRelation, rel);
         logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath() + " " + rel.getFromCiId() + "->" + rel.getToCiId());
-        rfcMrgProcessor.upsertRelationRfc(rel, SNAPSHOT_RESTORE);
+        rfcMrgProcessor.upsertRfcRelationNoCheck(rel, SNAPSHOT_RESTORE, null);
     }
 
     private void processAttributes(BaseEntity exportRelation, CmsRfcContainer rel) {
@@ -299,7 +295,7 @@ public class SnapshotProcessor {
         }
         if (!rfcCI.getAttributes().isEmpty()) {
             logger.info("Updating:" + ci.getCiName() + "@" + ci.getNsPath());
-            rfcMrgProcessor.upsertCiRfc(rfcCI, SNAPSHOT_RESTORE);
+            rfcMrgProcessor.upsertRfcCINoChecks(rfcCI, SNAPSHOT_RESTORE, null);
 
         }
     }

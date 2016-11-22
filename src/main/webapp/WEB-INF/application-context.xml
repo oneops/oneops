@@ -179,6 +179,7 @@
 	<bean id="replayProcessor" class="com.oneops.transistor.service.ReplayProcessor">
 		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
 		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
+		<property name="cmProcessor" ref="cmsCmProcessor"/>
 	</bean>
 
 </beans>
