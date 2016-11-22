@@ -47,7 +47,7 @@ public class ReleaseMessageProcessor implements MessageProcessor {
         indexSnapshot(release);
     }
 
-    public void indexSnapshot(CmsRelease release) {
+    private void indexSnapshot(CmsRelease release) {
         try {
             if (!"closed".equalsIgnoreCase(release.getReleaseState())) {
                 logger.info("Release is not closed. Won't do snapshot");
