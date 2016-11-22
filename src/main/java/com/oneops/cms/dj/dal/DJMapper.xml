@@ -1462,7 +1462,7 @@
 			rci.release_id as releaseId, 
 			rci.ci_id as ciId, 
 			rci.ns_id as nsId,
-			ns.ns_path as nsPath, 
+			ns1.ns_path as nsPath,  
 			rci.class_id as ciClassId,
 			cl.class_name as ciClassName, 
 			cl.impl as impl,
@@ -1483,15 +1483,18 @@
 		    rci.updated as rfcUpdated,
 		    rci.created,
 		    rci.updated
-        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns1
         where r.release_id &gt; #{fromReleaseId} 
           AND r.release_id &lt;= #{toReleaseId}
           and rci.release_id = r.release_id
           and rci.is_active_in_release = 'true'
+          and rci.ns_id = ns1.ns_id
           and r.ns_id = ns.ns_id
           and ns.ns_path = #{nsPath}
           and rci.class_id = cl.class_id
           and rci.action_id = a.action_id
+          and r.release_state_id = rs.release_state_id
+		  and rs.state_name ='closed'
           order by rci.release_id, rci.rfc_id
 	</select>
 
@@ -1499,7 +1502,7 @@
 		SELECT rfr.rfc_id as rfcId,
 		rfr.release_id as releaseId,
 		rfr.ns_id as nsId,
-		ns.ns_path as nsPath,
+		ns1.ns_path as nsPath,
 		rfr.ci_relation_id as ciRelationId,
 		rfr.from_rfc_id as fromRfcId,
 		rfr.from_ci_id as fromCiId,
@@ -1523,15 +1526,18 @@
 		rfr.comments,
 		rfr.created,
 		rfr.updated
-		FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r
+		FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r, dj_release_states rs, ns_namespaces ns1
 		where r.release_id &gt; #{fromReleaseId} 
         AND r.release_id &lt;= #{toReleaseId}
 		and rfr.release_id = r.release_id
 		and rfr.is_active_in_release = 'true'
 		and rfr.relation_id = rel.relation_id
 		and rfr.action_id = a.action_id
+		and rfr.ns_id = ns1.ns_id
 		and r.ns_id = ns.ns_id
         and ns.ns_path = #{nsPath}
+		and r.release_state_id = rs.release_state_id
+		and rs.state_name ='closed'
         order by rfr.release_id, rfr.rfc_id
 	</select>
 </mapper>
