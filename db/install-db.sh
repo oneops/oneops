@@ -1,12 +1,25 @@
 #!/bin/sh
 
 # change PSQL if needed
-export PSQL=/Library/PostgreSQL/9.2/bin/psql
-
-
+INSTALLED_PSQL=`which psql`
+echo "INSTATTED PSQL IS : " $INSTALLED_PSQL
+if test -n "$INSTALLED_PSQL"; then
+    export PSQL=$INSTALLED_PSQL
+else
+    export PSQL=/Library/PostgreSQL/9.2/bin/psql
+fi
+echo "Psql set to " $PSQL
 # set postgres pass
-export PGPASSWORD=postgres
+read -p "Are you using default password postgres? " -n 1 -r
 
+if [[ $REPLY =~ ^[Nn]$ ]]
+then
+echo " Please enter database password "
+read pgpassword
+export PGPASSWORD=$pgpassword
+else
+export PGPASSWORD=postgres
+fi
 # drop database first
 $PSQL -U postgres -h localhost -f kloopzcm-dropdb.sql
 
