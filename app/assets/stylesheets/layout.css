@@ -3019,6 +3019,29 @@ div.rfc-list img, div.action-list img {
   float: right;
 }
 
+.wf .autopause input[type=checkbox] { display:none; }
+.wf input[type=checkbox] + label:before { font-family: FontAwesome; }
+
+.wf .autopause input[type=checkbox] + label:before
+{
+  color: green;
+  content: "\f04b";
+}
+
+.wf .autopause input[type=checkbox]:checked + label:before
+{
+  color: orange;
+  content: "\f04c";
+}
+
+.wf .autopause i.fa-play {
+  color: green;
+}
+
+.wf .autopause .disabled {
+  opacity: .5;
+}
+
 .relationProperties, .rfcProperties {
   display: none;
 }
