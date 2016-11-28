@@ -60,6 +60,8 @@ public final class CmsConstants {
 	public static final int SECONDARY_CLOUD_STATUS = 2;
 	public static final int PRIMARY_CLOUD_STATUS = 1;
 	public static final String ATTR_NAME_ADMINSTATUS = "adminstatus";
+	public static final String ATTR_RUN_ON = "run_on";
+	public static final String ATTR_RUN_ON_ACTION = "run_on_action";
 
 	//class-names
 	//account
@@ -73,4 +75,11 @@ public final class CmsConstants {
 	public static final String MANIFEST = "manifest";
 
 
+    public static final String CLOUDSERVICEPREFIX = "cloud.service";
+	public static final String MANAGED_VIA = "ManagedVia";
+	public static final String DEPENDS_ON = "DependsOn";
+	public static final String SECURED_BY = "SecuredBy";
+	public static final String SERVICED_BY = "ServicedBy";
+
+	public static final String ESCORTED_BY = "EscortedBy";
 }

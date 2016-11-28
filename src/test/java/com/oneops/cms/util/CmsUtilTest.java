@@ -18,10 +18,7 @@
 package com.oneops.cms.util;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 import com.oneops.cms.crypto.CmsCrypto;
@@ -751,7 +748,7 @@ public class CmsUtilTest {
 		CmsUtil util = getCmsUtil();
 		dumpMaps(null, null, null);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, null, null, null);//this time all map empty
+		util.processAllVars(ci, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP);//this time all map empty
 		CmsCrypto crypto = mock(CmsCrypto.class);
 		try {
 			doAnswer(new Answer<String>() {
@@ -788,7 +785,7 @@ public class CmsUtilTest {
 		CmsUtil util = getCmsUtil();
 		dumpMaps(null, null, null);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, null, null, null);
+		util.processAllVars(ci, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP);
 		dumpCmsCIAttributes(ci);
 	}
 
@@ -865,7 +862,7 @@ public class CmsUtilTest {
 		CmsUtil util = getCmsUtil();
 		dumpMaps(null, null, null);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, null, null, null);
+		util.processAllVars(ci, Collections.EMPTY_MAP, Collections.EMPTY_MAP, Collections.EMPTY_MAP);
 		dumpCmsCIAttributes(ci);
 
 	}

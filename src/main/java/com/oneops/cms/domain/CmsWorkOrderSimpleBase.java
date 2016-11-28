@@ -17,14 +17,17 @@
  *******************************************************************************/
 package com.oneops.cms.domain;
 
-import java.util.Map;
-
 import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.List;
+import java.util.Map;
 
 /**
  * The Interface CmsWorkOrderSimpleBase.
  */
-public interface CmsWorkOrderSimpleBase {
+public interface CmsWorkOrderSimpleBase<T> {
 
 	CmsCISimple getBox();
 
@@ -46,4 +49,68 @@ public interface CmsWorkOrderSimpleBase {
 	
 	void setSearchTags(Map<String, String> searchTags);
 
+    default void putSearchTag(String tagName, String value){
+        getSearchTags().put(tagName,value);
+    }
+
+    String getAction();
+	String getNsPath();
+	String getClassName();
+	long getCiId();
+	String getCiName();
+
+	/**
+	 * Gets the pay load.
+	 *
+	 * @return the pay load
+	 */
+	 Map<String, List<T>> getPayLoad();
+
+	/**
+	 * Gets the pay load.
+	 *
+	 * @return the pay load
+	 */
+	List<T> getPayLoadEntry(String payloadKey);
+
+	/**
+	 * Gets the pay load.
+	 *
+	 * @return the pay load
+	 */
+	T getPayLoadEntryAt(String payloadKey,int indx);
+
+	default boolean isPayLoadEntryPresent(String entry) {
+		boolean isPresent = false;
+		if (getPayLoad() != null) {
+			if (((getPayLoadEntry(entry) != null && getPayLoadEntry(entry).size() > 0))) {
+				isPresent = true;
+			}
+		}
+		return isPresent;
+	}
+
+	default  boolean isPayloadEntryEqual(String payloadEntry, String attributeName, String valueToBeCompared) {
+		if(StringUtils.isEmpty(valueToBeCompared)) return false;
+		return valueToBeCompared.equals(getPayLoadAttribute( payloadEntry, attributeName));
+	}
+
+	default  boolean isAttributePresentInPayload(String payloadEntry, String atttributeName) {
+		final T entry = getPayLoadEntryAt(payloadEntry, 0);
+		if (entry instanceof CmsCISimple) {
+			return ((CmsCISimple) entry).getCiAttributes().containsKey(atttributeName);
+
+		} else if (entry instanceof CmsRfcCISimple) {
+			return ((CmsRfcCISimple) entry).getCiAttributes().containsKey(atttributeName);
+		}
+		throw new IllegalArgumentException("Can not find the attribute ");
+	}
+
+	String getPayLoadAttribute(String payloadEntry, String attributeName);
+
+
+
+	Map<String, String> getCiAttributes();
+
+    void putPayLoadEntry(String payloadEntry, List<T> rfcCiForExtraRunList);
 }

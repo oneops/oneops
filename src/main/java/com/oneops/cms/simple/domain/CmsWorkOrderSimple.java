@@ -18,18 +18,18 @@
 package com.oneops.cms.simple.domain;
 
 
+import com.oneops.cms.dj.domain.CmsDpmtRecord;
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
-
 /**
  * The Class CmsWorkOrderSimple.
  */
-public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSimpleBase{
+public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSimpleBase<CmsRfcCISimple> {
 	private static final long serialVersionUID = 1L;
 
 	public CmsRfcCISimple rfcCi;
@@ -96,15 +96,7 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSim
 		this.box = box;
 	}
 
-	/**
-	 * Gets the pay load.
-	 *
-	 * @return the pay load
-	 */
-	public Map<String, List<CmsRfcCISimple>> getPayLoad() {
-		return payLoad;
-	}
-	
+
 	/**
 	 * Sets the pay load.
 	 *
@@ -189,5 +181,86 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSim
 
 	public void setAdditionalInfo(Map<String, String> additionalInfo) {
 		this.additionalInfo = additionalInfo;
+	}
+
+	/**
+	 * Gets the pay load.
+	 *
+	 * @return the pay load
+	 */
+	public Map<String, List<CmsRfcCISimple>> getPayLoad() {
+		return payLoad;
+	}
+
+	@Override
+	public List<CmsRfcCISimple> getPayLoadEntry(String payloadKey) {
+		return getPayLoad().get(payloadKey);
+	}
+
+	/**
+	 * returns null
+	 * @param payloadKey
+	 * @param indx
+	 * @return
+	 */
+
+	@Override
+	public CmsRfcCISimple getPayLoadEntryAt(String payloadKey, int indx) {
+		if(isPayLoadEntryPresent(payloadKey)) {
+			return getPayLoad().get(payloadKey).get(indx);
+		}
+		return  null;
+	}
+
+	/**
+	 * returns null , in case the attribute value can
+	 * @param payloadEntry
+	 * @param attributeName
+	 * @return
+	 */
+	@Override
+	public String getPayLoadAttribute(String payloadEntry, String attributeName) {
+		if(getPayLoadEntryAt(payloadEntry,0)!=null){
+			return getPayLoadEntryAt(payloadEntry,0).getCiAttributes().get(attributeName);
+		}
+		return null;
+	}
+
+	@Override
+	public String getAction() {
+		return getRfcCi().getRfcAction();
+	}
+
+	@Override
+	public String getNsPath() {
+		return getRfcCi().getNsPath();
+	}
+
+	@Override
+	public String getClassName() {
+		return getRfcCi().getCiClassName();
+	}
+
+	@Override
+	public long getCiId() {
+		return getRfcCi().getCiId();
+	}
+
+	@Override
+	public String getCiName() {
+		return getRfcCi().getCiName();
+	}
+
+	@Override
+	public Map<String, String> getCiAttributes() {
+		return getRfcCi().getCiAttributes();
+	}
+
+	@Override
+	public void putPayLoadEntry(String payloadEntry, List<CmsRfcCISimple> rfcCISimples) {
+		if (this.payLoad == null) {
+			this.payLoad = new HashMap<>();
+		}
+		this.payLoad.put(payloadEntry, rfcCISimples);
 	}
 }

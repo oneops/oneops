@@ -111,7 +111,7 @@ public class CmsUtil {
      * @param type            of the workOrder or actionOrder
      * @return secured workOrder.
      */
-    public static CmsWorkOrderSimpleBase maskSecuredFields(CmsWorkOrderSimpleBase cmsWoSimpleBase, String type) {
+    public static <T> CmsWorkOrderSimpleBase maskSecuredFields(CmsWorkOrderSimpleBase<T> cmsWoSimpleBase, String type) {
 
         //service CIs
         if (cmsWoSimpleBase.getServices() != null) {
@@ -966,8 +966,11 @@ public class CmsUtil {
         }
     }
 
-    public void processAllVars(CmsCI ci, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
+    public void processAllVars(CmsCI ci,CmsCI env , CmsCI cloud, CmsCI plat) {
+        processAllVars(ci, getCloudVars(cloud), getGlobalVars(env), getLocalVars(plat));
+    }
 
+    public void processAllVars(CmsCI ci, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
         if (logger.isDebugEnabled()) {
             StringBuilder sb = new StringBuilder("Processing vars for Ci [")
                     .append(ci.getCiId()).append("] CmsCIAttributes [");
@@ -1414,7 +1417,26 @@ public class CmsUtil {
     	return varsMap;
     }
 
-	public Map<String, List<CmsCI>> getResolvedVariableCIs(CmsCI cloud, CmsCI env, CmsCI platform) {
+    /**
+     * Returns a map of OO_CLOUD_VARS,OO_GLOBAL_VARS,LOCAL_VARS_PAYLOAD_NAME
+     "OO_GLOBAL_VARS": [
+     {
+     "nsId": 0,
+     "ciAttributes": {
+     "value": "r1"
+     },
+     "attrProps": {},
+     "ciId": 0,
+     "ciName": "env_name",
+     "ciClassName": "manifest.Globalvar",
+     "lastAppliedRfcId": 0
+     },
+     * @param cloud for which cloud vars need to be resolved
+     * @param env for which global vars need to be resolved
+     * @param platform for which local vars need to be resolved
+     * @return
+     */
+    public Map<String, List<CmsCI>> getResolvedVariableCIs(CmsCI cloud, CmsCI env, CmsCI platform) {
         List<CmsCI> cloudVarCis = new ArrayList<>();
         CmsCI cloudNameVar = newVarCi("cloud_name", "account.Cloudvar", cloud.getCiName());
         cloudVarCis.add(cloudNameVar);
