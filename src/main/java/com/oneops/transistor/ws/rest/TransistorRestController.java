@@ -838,7 +838,9 @@ public class TransistorRestController extends AbstractRestController {
 	public Snapshot exportManifest(@RequestParam(value = "ns") String namespace,
 								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 
-		return exportSnapshot(new String[]{namespace}, new String[]{null}, new Boolean[]{true}, scope);
+		Snapshot snapshot = exportSnapshot(new String[]{namespace}, new String[]{null}, new Boolean[]{true}, scope);
+		snapshot.setNamespace(namespace);
+		return snapshot;
 	}
 
 
@@ -847,7 +849,9 @@ public class TransistorRestController extends AbstractRestController {
 	public Snapshot exportSnapshot(@RequestParam(value = "ns") String namespace,
 								   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 
-		return exportSnapshot(new String[]{namespace, namespace, namespace+"/_design"}, new String[]{"catalog.Globalvar","catalog.Platform",null}, new Boolean[]{false, false, true}, scope);
+		Snapshot snapshot = exportSnapshot(new String[]{namespace, namespace, namespace + "/_design"}, new String[]{"catalog.Globalvar", "catalog.Platform", null}, new Boolean[]{false, false, true}, scope);
+		snapshot.setNamespace(namespace);
+		return snapshot;
 	}
 
 	public void setSnapshotManager(SnapshotManager snapshotManager) {

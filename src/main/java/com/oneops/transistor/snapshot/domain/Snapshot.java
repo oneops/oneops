@@ -24,7 +24,7 @@ public class Snapshot {
     private long lastAppliedCiRfc = 0;
     private long lastAppliedRelationRfc = 0;
     private long release;
-
+    private String namespace;
 
 
     public List<Part> getParts() {
@@ -83,5 +83,13 @@ public class Snapshot {
 
     public void setLastAppliedRelationRfc(long lastAppliedRelationRfc) {
         this.lastAppliedRelationRfc = lastAppliedRelationRfc;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    public String getNamespace() {
+        return namespace;
     }
 }
