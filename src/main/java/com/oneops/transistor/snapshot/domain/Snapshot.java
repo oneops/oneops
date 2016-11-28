@@ -25,7 +25,15 @@ public class Snapshot {
     private long lastAppliedRelationRfc = 0;
     private long release;
     private String namespace;
+    private long timestamp = System.currentTimeMillis();
 
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
 
     public List<Part> getParts() {
         return parts;
