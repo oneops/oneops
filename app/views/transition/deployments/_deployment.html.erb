@@ -52,6 +52,18 @@
               <div class="stage">
                 <span>step</span>
                 <strong><%= exec_order %></strong>
+                <% unless exec_order == 1 %>
+                  <% if deployment_state == 'new' %>
+                    <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => false %>
+                  <% elsif deployment_state == 'active' || deployment_state == 'paused' %>
+                    <% exec_order_paused = @deployment.attributes["autoPauseExecOrders"].try(:include?, (exec_order)) ? true : false %>
+                    <% rfcs_states = order_rfcs.map{|rfcs| @deployment_rfc_cis_info.try(:[], rfcs.rfcId).try(:[], :state)} %>
+                    <% exec_order_enabled = rfcs_states.all?{|rfcs_state| rfcs_state == 'pending'} %>
+                    <% if exec_order_enabled %>
+                      <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => exec_order_paused %>
+                    <% end %>
+                  <% end %>
+                <% end %>
                 <div class="duration"></div>
               </div>
               <ul class="manifest">
@@ -282,6 +294,10 @@
         }
       }
 
+      if (step) {
+        disable_autopause(step);
+      }
+
       $j.ajax({
         url:  "<%= status_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
         type: "POST",
@@ -294,6 +310,11 @@
                                         })
         }
       });
+    };
+
+    window.disable_autopause = function(step) {
+      $j("#autopause_" + step).remove();
+      $j('label[for="autopause_'+ step.id +'"]').hide();
     };
 
     window.settle_pending_approvals = function (link, state, disable_message, expiration) {
@@ -341,6 +362,32 @@
   window.overlay_scroll_into_view = function() {
     $j("#overlay")[0].scrollIntoView();
   };
+
+  <% if deployment_persisted %>
+    $j('.autopause :checkbox').change(function () {
+      var payload = {};
+      payload["cms_deployment[releaseId]"] = <%= @deployment.releaseId %>;
+      payload["cms_deployment[autoPauseExecOrders][]"] = [];
+      $j('.autopause input:checkbox:checked').each(function() {
+        payload["cms_deployment[autoPauseExecOrders][]"].push(this.value);
+      });
+      if (payload["cms_deployment[autoPauseExecOrders][]"].length == 0) {
+        payload["cms_deployment[autoPauseExecOrders][]"] = "";
+      }
+      $j.ajax({
+        url:  "<%= assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
+        traditional: true,
+        type: "PUT",
+        data: payload
+      });
+    });
+  <% else %>
+    $j("#new_cms_deployment").submit(function() {
+      $j('.autopause input:checkbox:checked').each(function() {
+        $j("#new_cms_deployment").append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value +" />");
+      });
+    });
+  <% end %>
 
   setTimeout(overlay_scroll_into_view, 100);
 

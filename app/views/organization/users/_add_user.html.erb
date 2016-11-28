@@ -34,5 +34,9 @@
     return item.split(' ')[0];
   };
 
+  $j('.teams :checkbox').on('change', function () {
+    $j('input[type="submit"]').prop('disabled', !$j('.teams :checkbox:checked').length);
+  }).change();
+
   $j('input#username').typeahead({source: userLookupFn, updater: updaterFn});
 </script>

@@ -64,9 +64,11 @@ class Organization::UsersController < ApplicationController
             team = current_user.organization.teams.where('teams.id' => id).first
             team.users << user if team
           end
+          user.update_attribute(:organization_id, current_user.organization_id) if user.organization_id.blank?
+          flash[:notice] = "Successfully added user #{username} to organization '#{current_user.organization.name}'."
+        else
+          flash[:error] = "Must select a team."
         end
-        user.update_attribute(:organization_id, current_user.organization_id) if user.organization_id.blank?
-        flash[:notice] = "Successfully added user #{username} to organization '#{current_user.organization.name}'."
       end
     else
       flash[:error] = "Unknown user: #{username}"

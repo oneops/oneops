@@ -312,7 +312,9 @@ Display::Application.routes.draw do
       end
 
       # Transition.
-      resource :transition, :controller => 'transition', :only => [:show]
+      resource :transition, :controller => 'transition', :only => [:show, :pull] do
+        post 'pull'
+      end
 
       namespace :transition do
         resources :environments do

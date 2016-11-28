@@ -16,7 +16,8 @@ Display::Application.configure do
   # Don't care if the mailer can't send
   config.action_mailer.raise_delivery_errors = false
   config.action_mailer.perform_deliveries = false
-  config.action_mailer.delivery_method = :ses
+  config.action_mailer.delivery_method = Settings.mail_delivery_method.to_sym
+  config.action_mailer.smtp_settings = { :address => Settings.smtp_address, :enable_starttls_auto => false }
   config.action_mailer.default_url_options = { :host => 'localhost:3000' }
 
   # Expands the lines which load the assets
