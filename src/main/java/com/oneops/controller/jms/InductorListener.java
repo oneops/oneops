@@ -221,7 +221,7 @@ public class InductorListener implements MessageListener {
      * 
      * @param wo
      */
-    private void setWoTimeStamps(CmsWorkOrderSimpleBase wo) {
+    private <T> void  setWoTimeStamps(CmsWorkOrderSimpleBase<T> wo) {
 		SimpleDateFormat format = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
 		String responseDequeTs = format.format(new Date());
     	wo.getSearchTags().put(CmsConstants.RESPONSE_DEQUE_TS,responseDequeTs);

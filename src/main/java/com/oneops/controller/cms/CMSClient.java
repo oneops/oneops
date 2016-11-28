@@ -84,7 +84,6 @@ public class CMSClient {
     public static final String FAILED = "failed";
     public static final String PAUSED = "paused";
     private static final String DPMT = "dpmt";
-    protected static final String CLOUDSERVICEPREFIX = "cloud.service";
 
     private RestTemplate restTemplate;
     @SuppressWarnings("unused")
@@ -440,17 +439,19 @@ public class CMSClient {
      */
     public void incExecOrder(DelegateExecution exec) {
         Integer newExecOrder = (Integer) exec.getVariable(EXEC_ORDER) + 1;
-        CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
-        Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
-        if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
-            logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
-            dpmt.setDeploymentState(PAUSED);
-            dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
-            try {
-                djManager.updateDeployment(dpmt);
-            } catch (CmsBaseException e) {
-                logger.error("CmsBaseException in incExecOrder", e);
-                throw e;
+        if (exec.hasVariable(DPMT)) {
+            CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
+            Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
+            if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
+                logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
+                dpmt.setDeploymentState(PAUSED);
+                dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
+                try {
+                    djManager.updateDeployment(dpmt);
+                } catch (CmsBaseException e) {
+                    logger.error("CmsBaseException in incExecOrder", e);
+                    throw e;
+                }
             }
         }
         exec.setVariable(EXEC_ORDER, newExecOrder);
