@@ -80,7 +80,6 @@ public class InductorTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		i.onMessage(m);
 
 	}
 
@@ -106,7 +105,7 @@ public class InductorTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		i.onMessage(m);
+
 	}
 	
 	@Test

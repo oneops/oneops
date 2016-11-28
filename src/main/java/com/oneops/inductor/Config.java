@@ -521,11 +521,10 @@ public class Config {
 	/**
      * Checks if the cloud for given wo has been configured as shutdown
      *
-     * @param logKey log key
      * @param bwo    work order
      * @return <code>true</code> if the wo cloud has configured as shutdown, else return <code>false</code>
      */
-    public boolean hasCloudShutdownFor(String logKey, CmsWorkOrderSimpleBase bwo) {
+    public boolean hasCloudShutdownFor(CmsWorkOrderSimpleBase bwo) {
         if (!clouds.isEmpty()) {
             // Proceed only if it's not null
             if (bwo != null) {
@@ -560,7 +559,7 @@ public class Config {
 				cloudName = getCloud(bwo, cloudName);
 				if(StringUtils.isEmpty(cloudName)){
 					stubbedMode = false;
-				}else	if (stubbedCloudsList.contains(cloudName.toLowerCase())) {
+				}else if (stubbedCloudsList.contains(cloudName.toLowerCase())) {
 					stubbedMode = true;
 				}
 			}

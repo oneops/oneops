@@ -61,6 +61,8 @@
     <bean id="messageListener" class="com.oneops.inductor.Listener" init-method="init" scope="prototype">
         <property name="messagePublisher" ref="messagePublisher"/>
         <property name="config" ref="config"/>
+		<property name="workOrderExecutor" ref="workOrderExecutor"/>
+		<property name="actionOrderExecutor" ref="actionOrderExecutor"/>
     </bean>
 
     <!-- and this is the message listener container -->
@@ -71,8 +73,26 @@
 		<property name="concurrentConsumers" value="${max_consumers:10}" />
 		<property name="destination" ref="inbound" />
 		<property name="messageListener" ref="messageListener" />
-		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
 		<property name="sessionAcknowledgeMode" value="2"/>
+	</bean>
+
+	<bean id="workOrderExecutor" class="com.oneops.inductor.WorkOrderExecutor">
+		<constructor-arg index="0" ref="config"/>
+		<constructor-arg index="1" ref="semaphore"/>
+		<property name="processRunner" ref="processRunner"/>
+	</bean>
+
+	<bean id="actionOrderExecutor" class="com.oneops.inductor.ActionOrderExecutor" >
+		<constructor-arg index="0" ref="config"/>
+		<constructor-arg index="1" ref="semaphore"/>
+		<property name="processRunner" ref="processRunner"/>
+	</bean>
+
+	<bean id="semaphore" class="java.util.concurrent.Semaphore">
+		<constructor-arg value="#{config.localMaxConsumers}"/>
+	</bean>
+	<bean id="processRunner" class="com.oneops.inductor.ProcessRunner">
+		<constructor-arg ref="config"/>
 	</bean>
 
 </beans>
