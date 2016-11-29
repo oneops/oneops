@@ -6,7 +6,7 @@
 *.iml
 .settings/
 /target
-.oneops
+.oneops*
 ~
 .idea
 *.iml
