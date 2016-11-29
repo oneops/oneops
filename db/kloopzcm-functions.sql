@@ -2625,3 +2625,42 @@ $BODY$
 ALTER FUNCTION dj_rm_rfcs(character varying)
   OWNER TO :user;
 
+
+
+-- Function: dj_create_alt_namespace(bigint, character varying, bigint)
+
+-- DROP FUNCTION dj_create_alt_namespace(bigint, character varying, bigint);
+
+CREATE OR REPLACE FUNCTION dj_create_alt_namespace( p_ns_id bigint, p_tag character varying, p_rfc_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+    insert into dj_ns_opt (rfc_id, ns_id, created, tag) values (p_rfc_id, p_ns_id, now(), p_tag);    
+    return p_ns_id;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION dj_create_alt_namespace(bigint, character varying, bigint) OWNER TO :user;
+
+
+
+
+-- Function: cm_create_alt_namespace(bigint, character varying, bigint)
+
+-- DROP FUNCTION cm_create_alt_namespace(bigint, character varying, bigint);
+
+CREATE OR REPLACE FUNCTION cm_create_alt_namespace( p_ns_id bigint, p_tag character varying, p_ci_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+    insert into cm_ns_opt (ci_id, ns_id, created, tag) values (p_ci_id, p_ns_id, now(), p_tag);    
+    return p_ns_id;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION cm_create_alt_namespace(bigint, character varying, bigint) OWNER TO :user;
+

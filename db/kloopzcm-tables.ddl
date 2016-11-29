@@ -450,6 +450,7 @@ CREATE INDEX dj_rfc_ci_ciid_idx
 CREATE TABLE kloopzcm.dj_ns_opt (
                 rfc_id BIGINT NOT NULL,
                 ns_id BIGINT NOT NULL,
+                tag VARCHAR(64) NOT NULL,
                 created TIMESTAMP NOT NULL,
                 CONSTRAINT dj_ns_opt_pk PRIMARY KEY (rfc_id, ns_id)
 );
@@ -458,6 +459,10 @@ CREATE TABLE kloopzcm.dj_ns_opt (
 CREATE INDEX dj_ns_opt_ns_id_idx
  ON kloopzcm.dj_ns_opt
  ( ns_id );
+
+CREATE INDEX dj_ns_opt_tag_idx
+ ON kloopzcm.dj_ns_opt
+ ( tag );
 
 CREATE TABLE kloopzcm.dj_rfc_relation (
                 rfc_id BIGINT NOT NULL,
@@ -577,6 +582,10 @@ CREATE TABLE kloopzcm.cm_ns_opt (
 CREATE INDEX cm_ns_opt_ns_id_idx
  ON kloopzcm.cm_ns_opt
  ( ns_id );
+
+CREATE INDEX cm_ns_opt_tag_idx
+ ON kloopzcm.cm_ns_opt
+ ( tag );
 
 CREATE TABLE kloopzcm.cm_ops_procedures (
                 ops_proc_id BIGINT NOT NULL,
