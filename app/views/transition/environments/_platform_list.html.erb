@@ -2,8 +2,8 @@
    ci_relation_map = @platforms.to_map(&:toCiId) %>
 <%= ci_list(@platforms.map(&:toCi),
             :menu => has_transition &&
-                     [{:id => 'enable',  :label => 'Enable',  :url => enable_assembly_transition_environment_path(@assembly, @environment),  :method => :put, :param_name => 'platformCiIds'},
-                      {:id => 'disable', :label => 'Disable', :url => disable_assembly_transition_environment_path(@assembly, @environment), :method => :put, :param_name => 'platformCiIds'}],
+                     [{:id => 'enable',  :label => 'Enable', :function => 'enable_transition_assembly', :param_name => 'platformCiIds'},
+                      {:id => 'disable',  :label => 'Disable', :function => 'disable_transition_assembly', :param_name => 'platformCiIds'}],
             :toolbar => {:sort_by   => [%w(Name ciName), %w(Created created), %w(Status status)],
                          :filter_by => %w(ciName status)}) do |builder, target| %>
   <% relation   = ci_relation_map[target.ciId]
@@ -41,11 +41,12 @@
       <% end %>
       <% unless rfc_action == 'delete' %>
         <%= caption = enabled ? 'Disable' : 'Enable'
-            link_to enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
-                    toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
-                    :title        => caption,
-                    :disable_with => 'wait...',
-                    :remote       => true %>
+            link_busy enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
+              { :url          => toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                :class        => 'toggle-platform',
+                :title        => caption,
+                :disable_with => 'wait...',
+                :remote       => true } %>
       <% end %>
     <% end %>
   <% end %>
@@ -55,3 +56,26 @@
   <% end %>
   <% builder.middle target.ciAttributes.description %>
 <% end %>
+
+<script>
+  window.enable_transition_assembly = function(actionId, platformCiIds) {
+      window.platform_ids = $j.map(platformCiIds, function(i) {return "platformCiIds[]=" + i;}).join("&");
+      render_modal("enable_transition_assembly", "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                                                 {  :modal_id => "enable_transition_assembly",
+                                                                    :url => enable_assembly_transition_environment_path,
+          :method => :put,
+          :confirm => 'Enable?',
+          :body    => "Enable assemblies?",
+          :with    => "window.platform_ids" })) %>");
+  }
+  window.disable_transition_assembly = function(actionId, platformCiIds) {
+      window.platform_ids = $j.map(platformCiIds, function(i) {return "platformCiIds[]=" + i;}).join("&");
+      render_modal("disable_transition_assembly", "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                                                 {  :modal_id => "disable_transition_assembly",
+                                                                    :url => disable_assembly_transition_environment_path,
+          :method => :put,
+          :confirm => 'Disable?',
+          :body    => "Disable assemblies?",
+          :with    => "window.platform_ids" })) %>");
+  }
+</script>
