@@ -13,7 +13,7 @@
         <spring.version>4.1.5.RELEASE</spring.version>
         <junit.version>4.7</junit.version>
         <activemq.version>5.11.1</activemq.version>
-        <postgresql.version>9.0-801.jdbc4</postgresql.version>
+        <postgresql.version>9.4.1212</postgresql.version>
         <gson.version>1.6</gson.version>
         <slf4j-api.version>1.6.1</slf4j-api.version>
         <slf4j-simple.version>1.6.1</slf4j-simple.version>
@@ -42,7 +42,7 @@
             <version>${spring.version}</version>
         </dependency>
         <dependency>
-            <groupId>postgresql</groupId>
+            <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
         </dependency>
