@@ -11,7 +11,7 @@
 
     <bean id="oneopsCMSDS" class="org.apache.commons.dbcp.BasicDataSource">
         <property name="driverClassName" value="org.postgresql.Driver"/>
-        <property name="url" value="jdbc:postgresql://${CMS_DB_HOST}/kloopzdb?autoReconnect=true"/>
+        <property name="url" value="jdbc:postgresql://${CMS_DB_HOST}/kloopzdb?autoReconnect=true&amp;ApplicationName=antenna-${ONEOPS_COMPUTE_CI_ID:0}"/>
         <property name="username" value="${CMS_DB_USER}"/>
         <property name="password" value="${CMS_DB_PASS}"/>
         <property name="maxActive" value="10"/>
