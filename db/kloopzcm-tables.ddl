@@ -568,6 +568,7 @@ CREATE INDEX cm_ci_cl_idx
 CREATE TABLE kloopzcm.cm_ns_opt (
                 ci_id BIGINT NOT NULL,
                 ns_id BIGINT NOT NULL,
+                tag VARCHAR(64) NOT NULL,
                 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 CONSTRAINT cm_ns_opt_pk PRIMARY KEY (ci_id, ns_id)
 );
