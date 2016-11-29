@@ -10,7 +10,7 @@
 
   <bean id="dataSourceActiviti" class="org.springframework.jdbc.datasource.SimpleDriverDataSource">
     <property name="driverClass" value="org.postgresql.Driver" />
-    <property name="url" value="jdbc:postgresql://${ACTIVITI_DB_HOST}/activitidb?autoReconnect=true" />
+    <property name="url" value="jdbc:postgresql://${ACTIVITI_DB_HOST}/activitidb?autoReconnect=true&amp;ApplicationName=cmsadmin-${ONEOPS_COMPUTE_CI_ID:0}" />
     <property name="username" value="${ACTIVITI_DB_USER}" />
     <property name="password" value="${ACTIVITI_DB_PASS}" />
   </bean>

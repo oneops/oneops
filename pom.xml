@@ -16,7 +16,7 @@
       <activiti-spring.version>5.13</activiti-spring.version>
       <log4j.version>1.2.16</log4j.version>
       <commons-dbcp.version>1.4</commons-dbcp.version>
-      <postgresql.version>9.0-801.jdbc4</postgresql.version>
+      <postgresql.version>9.4.1212</postgresql.version>
       <jstl-impl.version>1.2</jstl-impl.version>
       <cmsdal.version>1.0.4</cmsdal.version>
   </properties>
@@ -79,7 +79,7 @@
         <version>${spring.version}</version>
     </dependency>
   	<dependency>
-  		<groupId>postgresql</groupId>
+  		<groupId>org.postgresql</groupId>
   		<artifactId>postgresql</artifactId>
   		<version>${postgresql.version}</version>
   	</dependency>
