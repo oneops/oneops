@@ -13,7 +13,6 @@
      <jsch.version>0.1.49</jsch.version>
      <commons-dbcp.version>1.4</commons-dbcp.version>
      <jackson-mapper-asl.version>1.8.11</jackson-mapper-asl.version>
-     <postgresql.version>9.0-801.jdbc4</postgresql.version>
      <xstream.version>1.4.8</xstream.version>
      <geronimo-servlet_3.0_spec.version>1.0</geronimo-servlet_3.0_spec.version>
      <cmsdal.version>1.0.4</cmsdal.version>
@@ -44,11 +43,7 @@
         <artifactId>spring-webmvc</artifactId>
         <version>${spring.version}</version>
     </dependency>
-    <dependency>
-    	<groupId>postgresql</groupId>
-    	<artifactId>postgresql</artifactId>
-    	<version>${postgresql.version}</version>
-    </dependency>
+
     <dependency>
     	<groupId>com.thoughtworks.xstream</groupId>
     	<artifactId>xstream</artifactId>
