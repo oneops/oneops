@@ -5,10 +5,8 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.search.msg.index.Indexer;
 import org.apache.http.client.fluent.Request;
 import org.apache.log4j.Logger;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +16,6 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 
 import static org.elasticsearch.index.query.QueryBuilders.boolQuery;
-import static org.elasticsearch.index.query.QueryBuilders.disMaxQuery;
 
 /*******************************************************************************
  *
@@ -66,8 +63,8 @@ public class ReleaseMessageProcessor implements MessageProcessor {
     }
 
     private void indexSnapshot(CmsRelease release) {
-      
-        
+
+
         try {
             if (!"closed".equalsIgnoreCase(release.getReleaseState())) {
                 logger.info("Release is not closed. Won't do snapshot");
@@ -82,17 +79,17 @@ public class ReleaseMessageProcessor implements MessageProcessor {
             long hits = client.prepareSearch("cms-201*")
                     .setSearchType(SearchType.COUNT)
                     .setTypes(SNAPSHOT)
-                    .setQuery( boolQuery()
+                    .setQuery(boolQuery()
                             .must(QueryBuilders.rangeQuery("timestamp").from(snapshotTimestamp))
                             .must(QueryBuilders.termQuery("namespace.keyword", release.getNsPath()))
                     )
                     .execute().actionGet().getHits().getTotalHits();
-            logger.info("hits:"+ hits);
-            if (hits>0) {
+            logger.info("hits:" + hits);
+            if (hits > 0) {
                 logger.info("there was a snapshot done recently, so won'd do another one. ");
                 return;
             }
-            
+
             String url = (release.getNsPath().endsWith("manifest") ? manifestSnapshotURL : designSnapshotURL) + release.getNsPath();  // set snapshot URL based on release type
             logger.info("Retrieving snapshot for:" + url + " expected release:" + release.getReleaseId());
             String message = Request.Get(url).addHeader("Content-Type", "application/json").execute().returnContent().asString();
@@ -107,6 +104,6 @@ public class ReleaseMessageProcessor implements MessageProcessor {
         } catch (Exception e) {
             logger.error("Error while retrieving snapshot" + e.getMessage(), e);
         }
-        
+
     }
 }
