@@ -7,7 +7,7 @@
  	 <!--cache/-->
 
 	 <insert id="createDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
-	    {call dj_deploy_release(#{releaseId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{deploymentId,jdbcType=BIGINT, mode=OUT})}
+	    {call dj_deploy_release(#{releaseId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{autoPauseExecOrdersVal}, #{deploymentId,jdbcType=BIGINT, mode=OUT})}
 	 </insert> 
 		
 	 <insert id="createDpmtApproval" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
@@ -31,7 +31,7 @@
 	 </update> 
 
 	 <update id="updDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
-	    {call dj_upd_deployment(#{deploymentId}, #{deploymentState}, #{updatedBy}, #{description}, #{comments}, #{processId})}
+	    {call dj_upd_deployment(#{deploymentId}, #{deploymentState}, #{updatedBy}, #{description}, #{comments}, #{processId}, #{autoPauseExecOrdersVal})}
 	 </update> 
 
 	 <update id="updDpmtRecordState" parameterType="com.oneops.cms.dj.domain.CmsDpmtRecord" statementType="CALLABLE">
@@ -60,8 +60,9 @@
 			   (select max(execution_order) from dj_rfc_ci rci, dj_deployment_rfc drfc
 			    where drfc.deployment_id = d.deployment_id
 			      and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
+			   d.auto_pause_exec_orders as autoPauseExecOrdersVal,
 			   d.created,
-			   d.updated 
+			   d.updated
 		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
 		where d.deployment_id = #{value}
 		and d.ns_id = ns.ns_id
@@ -557,6 +558,30 @@
 		where a.approval_id = #{value}
 		  and a.state_id = ast.state_id
   	 </select>
+
+	<select id="getDeploymentsByNsPath" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineDeployment">
+		select d.deployment_id as deploymentId,
+			d.release_id as releaseId,
+			ns.ns_path as nsPath,
+			ds.state_name as deploymentState,
+			d.process_id as processId,
+			d.created_by as createdBy,
+			d.updated_by as updatedBy,
+			d.description,
+			d.comments,
+			d.ops,
+			rel.parent_release_id as parentReleaseId,
+			d.created,
+			d.updated
+		from dj_deployment d, dj_releases rel, ns_namespaces ns, dj_deployment_states ds
+		where d.ns_id = ns.ns_id
+		  and ns.ns_path like #{bomNsLike}
+		  and d.release_id = rel.release_id
+		  and d.state_id = ds.state_id
+		  and (#{dpmtOffset}::bigint is null or d.deployment_id ${order.aboveOperator} #{dpmtOffset})
+		order by d.deployment_id ${order.sort}
+		limit coalesce(#{limit},10)
+	</select>
 
 	 <select id="getDeploymentsByFilter" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineDeployment">
 		select d.deployment_id as deploymentId,

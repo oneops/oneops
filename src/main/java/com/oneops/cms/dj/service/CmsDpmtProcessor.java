@@ -140,6 +140,7 @@ public class CmsDpmtProcessor {
 			}
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
 		if (ONEOPS_AUTOREPLACE_USER.equals(dpmt.getCreatedBy()))  {
 			dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
 			dpmtMapper.createDeployment(dpmt);
@@ -173,6 +174,13 @@ public class CmsDpmtProcessor {
 		}
 	}
 	
+	private void updateAutoDeployExecOrders(CmsDeployment dpmt) {
+		Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
+		if (autoPauseExecOrders != null) {
+			dpmt.setAutoPauseExecOrdersVal(StringUtils.join(autoPauseExecOrders, ","), false);
+		}
+	}
+
 	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
 		
 		List<CmsDpmtApproval> result = new ArrayList<>();
@@ -334,6 +342,8 @@ public class CmsDpmtProcessor {
 			dpmt.setDeploymentState(null);
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
+
 		if (DPMT_STATE_CANCELED.equalsIgnoreCase(dpmt.getDeploymentState())) {
 			if (dpmtMapper.getDeploymentRecordsCountByState(dpmt.getDeploymentId(), DPMT_RECORD_STATE_INPROGRESS, null) > 0) {
 				String errMsg = "The deployment still have active work orders!"; 
@@ -880,12 +890,22 @@ public class CmsDpmtProcessor {
 	public List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam) {
 		String envNsPath = queryParam.getEnvNs();
 		String filter = queryParam.getWildcardFilter();
-		queryParam.setBomNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
+		List<TimelineDeployment> deployments = null;
 		if (!StringUtils.isBlank(filter)) {
+			queryParam.setBomNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
 			queryParam.setBomNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, filter));
 			queryParam.setBomClassFilter(CmsConstants.BOM + "." + filter);
+			deployments = dpmtMapper.getDeploymentsByFilter(queryParam);
 		}
-		return dpmtMapper.getDeploymentsByFilter(queryParam);
+		else {
+			deployments = getDeployments4NsPathLike(queryParam);
+		}
+		return deployments;
+	}
+
+	private List<TimelineDeployment> getDeployments4NsPathLike(TimelineQueryParam queryParam) {
+		queryParam.setBomNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.BOM));
+		return dpmtMapper.getDeploymentsByNsPath(queryParam);
 	}
 
 }
