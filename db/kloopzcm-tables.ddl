@@ -155,6 +155,7 @@ CREATE TABLE kloopzcm.dj_deployment (
                 description TEXT,
                 comments TEXT,
                 ops TEXT,
+                auto_pause_exec_orders VARCHAR(200),
                 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 CONSTRAINT dj_deployment_pk PRIMARY KEY (deployment_id)
@@ -567,6 +568,7 @@ CREATE INDEX cm_ci_cl_idx
 CREATE TABLE kloopzcm.cm_ns_opt (
                 ci_id BIGINT NOT NULL,
                 ns_id BIGINT NOT NULL,
+                tag VARCHAR(64) NOT NULL,
                 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 CONSTRAINT cm_ns_opt_pk PRIMARY KEY (ci_id, ns_id)
 );
