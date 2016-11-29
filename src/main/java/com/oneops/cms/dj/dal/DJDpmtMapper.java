@@ -81,4 +81,5 @@ public interface DJDpmtMapper {
 	List<CmsDpmtApproval> getDpmtApprovals(long deploymentId);
 	CmsDpmtApproval getDpmtApproval(long approvalId);
 	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
+	List<TimelineDeployment> getDeploymentsByNsPath(TimelineQueryParam queryParam);
 }

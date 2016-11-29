@@ -73,36 +73,54 @@ public class CmsUtil {
     private CmsCrypto cmsCrypto;
 
     public static String likefyNsPath(String queryParam) {
-        if (queryParam.endsWith("/")) {
-            return queryParam.replace("_", "\\_") + "%";
-        } else {
-            return queryParam.replace("_", "\\_") + "/%";
-        }
-    }
+		if (queryParam.endsWith("/")) {
+			return queryParam.replace("_","\\_") + "%";
+		} else {
+			return queryParam.replace("_","\\_") + "/%";
+		}
+	}
 
-    public static String likefyNsPathWithFilter(String envNs, String type, String filter) {
-        String resultNs = envNs;
-        if (StringUtils.isNotBlank(type)) {
-            resultNs = appendToNs(resultNs, type);
-        }
+	public static String likefyNsPathWithoutEndingSlash(String queryParam) {
+		if (queryParam.endsWith("/") && queryParam.length() > 1) {
+			return queryParam.substring(0, queryParam.length()-1).replace("_","\\_") + "%";
+		} else {
+			return queryParam.replace("_","\\_") + "%";
+		}
+	}
 
-        if (StringUtils.isBlank(filter)) {
-            resultNs = likefyNsPath(resultNs);
-        } else {
-            resultNs = appendToNs(resultNs, filter);
-            resultNs = resultNs.replace("_", "\\_");
-        }
+	public static String likefyNsPathWithFilter(String envNs, String type, String filter) {
+		String resultNs = envNs;
+		if (StringUtils.isNotBlank(type)) {
+			resultNs = appendToNs(resultNs, type);
+		}
 
-        return resultNs;
-    }
+		if (StringUtils.isBlank(filter)) {
+			resultNs = likefyNsPath(resultNs);
+		}
+		else {
+			resultNs = appendToNs(resultNs, filter);
+			resultNs = resultNs.replace("_","\\_");
+		}
 
-    private static String appendToNs(String nsPath, String suffix) {
-        if (nsPath.endsWith("/")) {
-            return nsPath + suffix;
-        } else {
-            return nsPath + "/" + suffix;
-        }
-    }
+		return resultNs;
+	}
+
+	public static String likefyNsPathWithTypeNoEndingSlash(String envNs, String type) {
+		String resultNs = envNs;
+		if (StringUtils.isNotBlank(type)) {
+			resultNs = appendToNs(resultNs, type);
+		}
+		return likefyNsPathWithoutEndingSlash(resultNs);
+	}
+
+	private static String appendToNs(String nsPath, String suffix) {
+		if (nsPath.endsWith("/")) {
+			return nsPath + suffix;
+		}
+		else {
+			return nsPath + "/" + suffix;
+		}
+	}
 
     /**
      * Masks the secured attributes in work-orders and action-orders
