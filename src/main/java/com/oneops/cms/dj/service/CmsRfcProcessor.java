@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -50,6 +51,7 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.QueryOrder;
 import com.oneops.cms.util.TimelineQueryParam;
 
 /**
@@ -1808,13 +1810,42 @@ public class CmsRfcProcessor {
 	}
 
 	public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
-		String envNsPath = queryParam.getEnvNs();
 		String filter = queryParam.getWildcardFilter();
-		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, null));
+		List<TimelineRelease> releases = null;
 		if (!StringUtils.isBlank(filter)) {
-			queryParam.setManifestNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, filter));
-			queryParam.setManifestClassFilter(CmsConstants.MANIFEST + "." + filter);
+			releases = getReleaseByFilterInternal(queryParam);
 		}
-		return djMapper.getReleaseByFilter(queryParam);
+		else {
+			releases = getReleaseByNsPath(queryParam);
+		}
+		return releases;
+	}
+
+	private List<TimelineRelease> getReleaseByFilterInternal(TimelineQueryParam queryParam) {
+		List<TimelineRelease> releases = null;
+		String filter = queryParam.getWildcardFilter();
+		String envNsPath = queryParam.getEnvNs();
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, null));
+		queryParam.setManifestNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, filter));
+		queryParam.setManifestClassFilter(CmsConstants.MANIFEST + "." + filter);
+		releases = djMapper.getReleaseByFilter(queryParam);
+		Long endRelId = null;
+		if (QueryOrder.ASC.equals(queryParam.getOrder())) {
+			endRelId = releases.stream().map(TimelineRelease::getReleaseId).max(Long::compare).orElse(null);
+		}
+		else {
+			endRelId = releases.stream().map(TimelineRelease::getReleaseId).min(Long::compare).orElse(null);
+		}
+		queryParam.setEndRelId(endRelId);
+		queryParam.setExcludeReleaseList(releases.stream().map(TimelineRelease::getReleaseId).collect(Collectors.toList()));
+
+		List<TimelineRelease> releasesWithOnlyRelations = djMapper.getReleaseWithOnlyRelationsByFilter(queryParam);
+		releases.addAll(releasesWithOnlyRelations);
+		return releases;
+	}
+
+	private List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.MANIFEST));
+		return djMapper.getReleaseByNsPath(queryParam);
 	}
 }

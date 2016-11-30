@@ -38,6 +38,8 @@ public class TimelineQueryParam {
 	private Long endRelId;
 	private List<Long> releaseList;
 	
+	private List<Long> excludeReleaseList;
+	
 	private QueryOrder order;
 	private Integer limit;
 
@@ -177,6 +179,14 @@ public class TimelineQueryParam {
 
 	public void setBomNsLikeWithFilter(String bomNsFilter) {
 		this.bomNsLikeWithFilter = bomNsFilter;
+	}
+
+	public List<Long> getExcludeReleaseList() {
+		return excludeReleaseList;
+	}
+
+	public void setExcludeReleaseList(List<Long> exclusionReleaseList) {
+		this.excludeReleaseList = exclusionReleaseList;
 	}
 
 }

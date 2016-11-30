@@ -181,17 +181,22 @@ public class CmsMdProcessor {
 
 
     /**
-     * Gets the clazz.
+     * Gets the clazz by classId
      *
      * @param clazzId        the clazz id
      * @param includeActions the eager
      * @return the clazz
      */
     public CmsClazz getClazz(int clazzId, boolean includeActions) {
-        if (cacheEnabled && mdClazzCacheById.containsKey(clazzId) && !includeActions) {
-            return mdClazzCacheById.get(clazzId);
+        CmsClazz clazz;
+        if (cacheEnabled && !includeActions) {
+            clazz = mdClazzCacheById.get(clazzId);
+            if (clazz != null) {
+                return clazz;
+            }
         }
-        CmsClazz clazz = clazzMapper.getClazzById(clazzId);
+
+        clazz = clazzMapper.getClazzById(clazzId);
         if (clazz == null) return null;
         List<CmsClazzAttribute> attrs = getAllClazzAttrs(clazz, false);
         Collections.sort(attrs, attrComparator);
@@ -211,17 +216,22 @@ public class CmsMdProcessor {
 
 
     /**
-     * Gets the clazz.
+     * Gets the clazz by name.
      *
      * @param clazzName      the clazz name
      * @param includeActions the eager
      * @return the clazz
      */
     public CmsClazz getClazz(String clazzName, boolean includeActions) {
-        if (cacheEnabled && mdClazzCache.containsKey(clazzName) && !includeActions) {
-            return mdClazzCache.get(clazzName);
+        CmsClazz clazz;
+        if (cacheEnabled && !includeActions) {
+            clazz = mdClazzCache.get(clazzName);
+            if (clazz != null) {
+                return clazz;
+            }
         }
-        CmsClazz clazz = clazzMapper.getClazz(clazzName);
+
+        clazz = clazzMapper.getClazz(clazzName);
         if (clazz == null) {
             logger.error("Can't find class definition for " + clazzName);
             return null;
@@ -379,45 +389,55 @@ public class CmsMdProcessor {
 
 
     /**
-     * Gets the relation.
+     * Gets the relation by name.
      *
      * @param relationName the relation name
      * @return the relation
      */
     public CmsRelation getRelation(String relationName) {
-        if (cacheEnabled && mdRelationCache.containsKey(relationName)) {
-            return mdRelationCache.get(relationName);
+        CmsRelation relation;
+        if (cacheEnabled) {
+            relation = mdRelationCache.get(relationName);
+            if (relation != null) {
+                return relation;
+            }
         }
 
-        CmsRelation relation = relationMapper.getRelation(relationName);
+        relation = relationMapper.getRelation(relationName);
+        // Skip cache if relation is null.
         if (relation != null) {
             relation.setMdAttributes(relationMapper.getRelationAttrs(relation.getRelationId()));
-        }
-        if (cacheEnabled) {
-            mdRelationCache.put(relationName, relation);
-            mdRelationCacheById.put(relation.getRelationId(), relation);
+            if (cacheEnabled) {
+                mdRelationCache.put(relationName, relation);
+                mdRelationCacheById.put(relation.getRelationId(), relation);
+            }
         }
         return relation;
     }
 
     /**
-     * Gets the relation.
+     * Gets the relation by ID
      *
      * @param relationId the relation id
      * @return the relation
      */
     public CmsRelation getRelation(long relationId) {
-        if (cacheEnabled && mdRelationCacheById.containsKey(relationId)) {
-            return mdRelationCacheById.get(relationId);
+        CmsRelation relation;
+        if (cacheEnabled) {
+            relation = mdRelationCacheById.get(relationId);
+            if (relation != null) {
+                return relation;
+            }
         }
-        CmsRelation relation = relationMapper.getRelationById(relationId);
+
+        relation = relationMapper.getRelationById(relationId);
+        // Skip cache if relation is null.
         if (relation != null) {
             relation.setMdAttributes(relationMapper.getRelationAttrs(relation.getRelationId()));
-            //relation.setTargets(relationMapper.getTargets(relation.getRelationId()));
-        }
-        if (cacheEnabled) {
-            mdRelationCacheById.put(relation.getRelationId(), relation);
-            mdRelationCache.put(relation.getRelationName(), relation);
+            if (cacheEnabled) {
+                mdRelationCacheById.put(relation.getRelationId(), relation);
+                mdRelationCache.put(relation.getRelationName(), relation);
+            }
         }
         return relation;
     }
