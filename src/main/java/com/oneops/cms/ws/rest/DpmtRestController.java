@@ -306,7 +306,7 @@ public class DpmtRestController extends AbstractRestController {
 			return djManager.countDeploymentGroupByNsPath(nsPath, state);
 		} else{
 	 		long count =  djManager.countDeployments(nsPath, state, recursive);
-	 		Map<String, Long> result = new HashMap<String,Long>();
+	 		Map<String, Long> result = new HashMap<>();
 	 		result.put("Total", count);
 	 		return result;
 		}
@@ -444,7 +444,7 @@ public class DpmtRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
 			@RequestHeader(value="X-Cms-User", required = true)  String userId){
 		
-		List<CmsDpmtApproval> toApprove = new ArrayList<CmsDpmtApproval>();
+		List<CmsDpmtApproval> toApprove = new ArrayList<>();
 		for (CmsDpmtApproval approval : approvals) {
 			approval.setUpdatedBy(userId);
 			toApprove.add(approval);

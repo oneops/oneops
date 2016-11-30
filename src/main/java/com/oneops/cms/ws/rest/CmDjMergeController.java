@@ -115,7 +115,7 @@ public class CmDjMergeController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcCI> rfcList = djManager.getClosedRfcCIByCiId(ciId);
-		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<CmsRfcCISimple>();
+		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<>();
 		for (CmsRfcCI rfc : rfcList) {
 			scopeVerifier.verifyScope(scope, rfc);
 			rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc));
@@ -146,7 +146,7 @@ public class CmDjMergeController extends AbstractRestController {
 			@RequestParam(value="attr", required = false)  String[] attrs,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		List<CmsRfcCI> rfcList = null;
+		List<CmsRfcCI> rfcList;
 		
 		if (attrs != null) {
 			List<AttrQueryCondition> attrConds = cmsUtil.parseConditions(attrs); 
@@ -158,7 +158,7 @@ public class CmDjMergeController extends AbstractRestController {
 				rfcList = cmdjManager.getDfDjCi(nsPath, clazzName, ciName, valueType);
 			}
 		}
-		List<CmsRfcCISimple> rfcListSimple = new ArrayList<CmsRfcCISimple>();
+		List<CmsRfcCISimple> rfcListSimple = new ArrayList<>();
 		for (CmsRfcCI rfcCi : rfcList) {
 			scopeVerifier.verifyScope(scope, rfcCi);
 			CmsRfcCISimple rfcSimple = cmsUtil.custRfcCI2RfcCISimple(rfcCi, attrProps);
@@ -261,7 +261,7 @@ public class CmDjMergeController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 
-		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<CmsRfcRelationSimple>();
+		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<>();
 		boolean incFromCi = includeFromCi == null ? false : includeFromCi;
 		boolean incToCi = includeToCi == null ? false : includeToCi;
 		List<AttrQueryCondition> attrConds = null;
@@ -271,7 +271,7 @@ public class CmDjMergeController extends AbstractRestController {
 		
 		if (ciId != null) {
 			if ("from".equalsIgnoreCase(direction)) {
-				List<CmsRfcRelation> relList = null;
+				List<CmsRfcRelation> relList;
 				if (attrConds != null) {
 					relList = cmdjManager.getFromCIRelations(ciId, relationName, shortRelationName, targetClazz, valueType, attrConds);
 				} else {
@@ -284,7 +284,7 @@ public class CmDjMergeController extends AbstractRestController {
 					relSimpleList.add(relSimple);
 				}
 			} else {
-				List<CmsRfcRelation> relList = null;
+				List<CmsRfcRelation> relList;
 				if (attrConds != null) {
 					relList = cmdjManager.getToCIRelations(ciId, relationName, shortRelationName, targetClazz, valueType, attrConds);
 				} else {
@@ -298,7 +298,7 @@ public class CmDjMergeController extends AbstractRestController {
 				}
 			}
 		} else if (nsPath != null){
-			List<CmsRfcRelation> relList = null;
+			List<CmsRfcRelation> relList;
 			if (recursive != null && recursive) {
 				relList = cmdjManager.getDfDjRelationsNsLikeWithCIs(relationName, shortRelationName, nsPath, fromClazz, targetClazz, valueType, incFromCi, incToCi, attrConds);
 			} else {

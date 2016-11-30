@@ -56,7 +56,7 @@ public class MdRestController extends AbstractRestController {
 			@PathVariable int clazzId,
 			@RequestParam(value="eager", required = false) Boolean eager) {
 		
-		CmsClazz clazz = null;
+		CmsClazz clazz;
 		
 		if (eager == null) {
 			clazz = mdManager.getClazz(clazzId);
@@ -76,7 +76,7 @@ public class MdRestController extends AbstractRestController {
 	@ResponseBody
 	public List<CmsClazz> getClasses(
 			@RequestParam(value="package", required = false) String packagePrefix){
-		List<CmsClazz> result = null;
+		List<CmsClazz> result;
 		if (packagePrefix == null) {
 			result = mdManager.getClazzes();
 		} else {
@@ -94,7 +94,7 @@ public class MdRestController extends AbstractRestController {
 	public CmsClazz getClassByName(@PathVariable String clazzName,
 			                       @RequestParam(value="includeActions", required = false) Boolean includeActions){
 		
-		CmsClazz clazz = null;
+		CmsClazz clazz;
 		
 		if (includeActions != null && includeActions) { 
 			clazz = mdManager.getClazz(clazzName, includeActions);
@@ -125,8 +125,7 @@ public class MdRestController extends AbstractRestController {
     @ResponseBody
     public CmsClazz updateClass(@PathVariable String clazzName, @RequestBody CmsClazz clazz) {
         logger.debug(clazz.getClassName());
-        CmsClazz updatedClazz = mdManager.updateClazz(clazz);
-        return updatedClazz;
+		return mdManager.updateClazz(clazz);
 
     }
 
@@ -156,8 +155,7 @@ public class MdRestController extends AbstractRestController {
     @ResponseBody
     public CmsRelation updateRelation( @PathVariable String relationName, @RequestBody CmsRelation relation) {
         logger.debug(relation.getRelationName());
-        CmsRelation updatedRelation = mdManager.updateRelation(relation);
-        return updatedRelation;
+		return mdManager.updateRelation(relation);
 
     }
     

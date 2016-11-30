@@ -30,8 +30,8 @@ import java.io.IOException;
 
 public abstract class AbstractRestController {
 
-	protected  Logger logger = Logger.getLogger(this.getClass());
-	private Gson gson = new Gson();
+	final Logger logger = Logger.getLogger(this.getClass());
+	private final Gson gson = new Gson();
 	
 	protected void sendError(HttpServletResponse response, int code, CmsError ex) throws IOException {
 		ErrorResponse error = new ErrorResponse(code, ex);
