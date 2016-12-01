@@ -801,13 +801,13 @@ public class ManifestRfcBulkProcessor {
 								newMonRfc = rfcUtil.mergeRfcAndCi(monRfc, existingCI, "df");
 							}
 
-							CmsRfcRelation rfcWatchRelation = newManfestRfcRelation(newMonRel, context.platNsPath, context.envNsPath, context.userId);
+							CmsRfcRelation rfcWatchRelation = newManfestRfcRelation(newMonRel, context);
 							rfcWatchRelation.setFromCiId(manifestCiId);
 							rfcWatchRelation.setToCiId(newMonRfc.getCiId());
 							setCiRelationId(rfcWatchRelation);
 							
 							if(existingCI == null){
-								addManifestRfcRelTriplet(rfcWatchRelation, manifestRfc, newMonRfc, platformRfcs);
+								platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcWatchRelation, manifestRfc, newMonRfc));
 							}else{
 								CmsRfcRelation newRfcRelation = needUpdateRfcRel(rfcWatchRelation, context.existingManifestPlatRels.get(rfcWatchRelation.getRelationName()).get(rfcWatchRelation.getFromCiId() + ":" + rfcWatchRelation.getToCiId()));
 								if(newRfcRelation != null){
@@ -856,8 +856,8 @@ public class ManifestRfcBulkProcessor {
 						monRfc.setCreatedBy(context.userId);
 						monRfc.setUpdatedBy(context.userId);
 						
-						CmsRfcRelation rfcWatchRelation = newManfestRfcRelation(newMonRel, context.platNsPath, context.envNsPath, context.userId);
-						addManifestRfcRelTriplet(rfcWatchRelation, manifestRfc, monRfc, platformRfcs);
+						CmsRfcRelation rfcWatchRelation = newManfestRfcRelation(newMonRel, context);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcWatchRelation, manifestRfc, monRfc));
 					}
 			}
 		  }
@@ -875,7 +875,7 @@ public class ManifestRfcBulkProcessor {
 			for (Long fromManifestRfcCiId : ciIdsMap.get(fromCiId)) {
 				if (ciIdsMap.containsKey(toCiId)) {
 					for (Long toManifestRfcCiId : ciIdsMap.get(toCiId)) {
-						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context);
 						rfcRelation.setFromCiId(fromManifestRfcCiId);
 						rfcRelation.setToCiId(toManifestRfcCiId);
 						setCiRelationId(rfcRelation);
@@ -895,9 +895,9 @@ public class ManifestRfcBulkProcessor {
 				}
 				if (newRfcsMap.containsKey(toCiId)) {
 					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
-						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context);
 						rfcRelation.setFromCiId(fromManifestRfcCiId);
-						addManifestRfcRelTriplet(rfcRelation, null, toManifestRfc, platformRfcs);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcRelation, null, toManifestRfc));
 					}
 				}
 			}
@@ -906,15 +906,15 @@ public class ManifestRfcBulkProcessor {
 			for (CmsRfcCI fromManifestRfc  : newRfcsMap.get(fromCiId)) {
 				if (newRfcsMap.containsKey(toCiId)) {
 					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
-						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
-						addManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc, platformRfcs);
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc));
 					}
 				}
 				if (ciIdsMap.containsKey(toCiId)){
 					for (Long toManifestCiId : ciIdsMap.get(toCiId)) {
-						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context.platNsPath, context.envNsPath, context.userId);
+						CmsRfcRelation rfcRelation = newManfestRfcRelation(ciRel, context);
 						rfcRelation.setToCiId(toManifestCiId);
-						addManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null, platformRfcs);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null));
 					}
 				}
 			}
@@ -922,19 +922,19 @@ public class ManifestRfcBulkProcessor {
 	}
 
 
-	private CmsRfcRelation newManfestRfcRelation(CmsCIRelation ciRel, String platNsPath, String envNsPath, String userId) {
-		CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,platNsPath, envNsPath);
-		rfcRelation.setCreatedBy(userId);
-		rfcRelation.setUpdatedBy(userId);
+	private CmsRfcRelation newManfestRfcRelation(CmsCIRelation ciRel, DesignPullContext context) {
+		CmsRfcRelation rfcRelation = mergeRelations(ciRel,null,context.platNsPath, context.envNsPath);
+		rfcRelation.setCreatedBy(context.userId);
+		rfcRelation.setUpdatedBy(context.userId);
 		return rfcRelation;
 	}
 
-	private void addManifestRfcRelTriplet(CmsRfcRelation rfcRelation, CmsRfcCI fromManifestRfc, CmsRfcCI toManifestRfc, ManifestRfcContainer platformRfcs) {
+	private ManifestRfcRelationTriplet newManifestRfcRelTriplet(CmsRfcRelation rfcRelation, CmsRfcCI fromManifestRfc, CmsRfcCI toManifestRfc) {
 		ManifestRfcRelationTriplet manifestRfcRelTriplet = new ManifestRfcRelationTriplet();
 		manifestRfcRelTriplet.setRfcRelation(rfcRelation);
 		manifestRfcRelTriplet.setFromRfcCI(fromManifestRfc);
 		manifestRfcRelTriplet.setToRfcCI(toManifestRfc);
-		platformRfcs.getRfcRelTripletList().add(manifestRfcRelTriplet);
+		return manifestRfcRelTriplet;
 	}
 
 
