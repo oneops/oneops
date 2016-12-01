@@ -925,7 +925,6 @@ public class Sensor {
                     insertFakeEvent(ciId, manifestId, entry.getKey());
                     });
         }
-        replacedInstances.add(ciId);
     }
 
     private class FakeEvent {
