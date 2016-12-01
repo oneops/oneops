@@ -27,12 +27,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class SensorHeartBeat {
 	
-	private ConcurrentHashMap<String, ChannelState> heartBeat = new ConcurrentHashMap<String, ChannelState>();
+	private ConcurrentHashMap<String, ChannelState> heartBeat = new ConcurrentHashMap<>();
 	
 	/**
 	 * Time stamp it.
 	 *
-	 * @param hbName the hb name
+	 * @param channel the channel name
 	 */
 	public void timeStampIt(String channel) {
 		if (heartBeat.containsKey(channel)) {
@@ -52,18 +52,24 @@ public class SensorHeartBeat {
 	}
 	
 	public Map<String, ChannelState> getChannelsStatus() {
-		Map<String, ChannelState> result = new HashMap<String, ChannelState>();
+		Map<String, ChannelState> result = new HashMap<>();
 		for (Entry<String, ChannelState> entry : heartBeat.entrySet()) {
 			result.put(entry.getKey(), entry.getValue());
 		}
 		return result;
 	}
 
+	public long getNumChannelsDown() {
+		return heartBeat.entrySet().stream().filter(e->e.getValue().isDown()).count();
+	}
+	public long getTotalChannels() {
+		return heartBeat.size();
+	}
 	/**
 	 * Gets the latest hear beat time.
 	 *
-	 * @param hbName the hb name
-	 * @return the latest hear beat time
+	 * @param channel for which latest heart beat needs to be found.
+	 * @return the latest heart beat time
 	 */
 	public long getLatestHearBeatTime(String channel) {
 		if (heartBeat.containsKey(channel)) {
@@ -76,7 +82,7 @@ public class SensorHeartBeat {
 	/**
 	 * Gets the time since channel is up.
 	 *
-	 * @param hbName the hb name
+	 * @param channel the hb name
 	 * @return the time since channel is up
 	 */
 	public long getUpSince(String channel) {
@@ -90,7 +96,7 @@ public class SensorHeartBeat {
 	/**
 	 * Gets the time since channel is up.
 	 *
-	 * @param hbName the hb name
+	 * @param channel the channel name
 	 * @return the time since channel is up
 	 */
 	public long getDownSince(String channel) {
