@@ -114,7 +114,7 @@ public abstract class AbstractOrderExecutor {
             // good validation logic.
             UUID fromStringUUID = UUID.fromString(uuid);
             String toStringUUID = fromStringUUID.toString();
-            return toStringUUID.equals(uuid);
+            return toStringUUID.equalsIgnoreCase(uuid);
         } catch (IllegalArgumentException e) {
             return false;
         }
@@ -672,16 +672,6 @@ public abstract class AbstractOrderExecutor {
         }
         throw newKeyNotFoundException(wo);
     }
-
-    //String key = wo.getPayLoad().get(InductorConstants.SERVICED_BY)
-    //        .get(0).getCiAttributes()
-    //       .get(InductorConstants.PRIVATE_KEY);
-
-    /*
-    wo.getPayLoad().get(InductorConstants.SERVICED_BY).get(0)
-                .getCiAttributes()
-                .containsKey(InductorConstants.PRIVATE_KEY)
-                */
 
 
     private void checkIfEmpty(CmsWorkOrderSimpleBase wo, String key) throws KeyNotFoundException {
