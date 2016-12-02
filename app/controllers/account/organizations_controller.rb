@@ -154,7 +154,7 @@ class Account::OrganizationsController < ApplicationController
     team = @organization.teams.where(:name => Team::ADMINS).first
     if team.users.count > 1 || (team.users.first.id != current_user.id)
       ActiveRecord::Base.transaction do
-        @organization.teams.each {|t| t.users.delete(user)}
+        @organization.teams.each {|t| t.users.delete(@current_user)}
         current_user.update_attribute(:organization_id, current_user.organizations.count > 0 ? current_user.organizations.first.id : nil) if current_user.organization_id == @organization.id
       end
       return true
