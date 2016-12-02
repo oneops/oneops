@@ -3,7 +3,8 @@
 <%= section_panel 'Users', :width => 'triple', :menu => menu do %>
   <%= list(@users,
            :new_link => (is_admin? ? link_to(icon('plus', 'Add User...'), new_organization_user_path, :remote => true) : nil),
-           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Sign In Time', 'sign_in_time'], ['Sign In Count', 'sign_in_count']],
+           :menu     => [{:id => 'remove_user', :label => icon('trash', 'Remove', 'fa-fw'), :function => 'confirm_remove', :param_name => 'userIds'}],
+           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Last Sign In', 'last_sign_in_at_for_current_org'], ['Sign In Count', 'sign_in_count']],
                         :filter_by => %w(email team)}) do |builder, user| %>
     <% builder.itemid user.id %>
     <% teams = @user_teams[user.id] || [] %>
@@ -18,8 +19,8 @@
     	<% if user.confirmation_token? %>
     		confirmation email sent <%= time_ago_in_words(user.confirmation_sent_at) %>
     	<% end %>
-    	<% if user.current_sign_in_at %>
-    		sign in <%= time_ago_in_words(user.current_sign_in_at) %> from <%= user.current_sign_in_ip %> -
+    	<% if user.last_sign_in_at_for_current_org %>
+    		sign in <%= time_ago_in_words(user.last_sign_in_at_for_current_org) %> -
     		sign in count <strong><%= user.sign_in_count %></strong>
     	<% end %>
       <% if teams.present? %>
@@ -53,3 +54,16 @@
 <% end %>
 <div id="reset_password_modal" class="modal hide"></div>
 <div id="organization_user_modal" class="modal hide"></div>
+<script>
+  window.confirm_remove = function(actionId, user_ids) {
+      var data = { user_ids: user_ids };
+      window.bulk_remove_user_ids = $j.map(user_ids, function(i) {return "ids[]=" + i;}).join("&");
+      render_modal("confirm_busy", "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                                                 {  :modal_id => "confirm_busy",
+                                                                    :url => remove_organization_users_path,
+          :method => :delete,
+          :confirm => 'Remove?',
+          :body    => "Confirm remove selected users?",
+          :with    => "window.bulk_remove_user_ids" })) %>");
+  }
+</script>

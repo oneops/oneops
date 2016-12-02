@@ -39,6 +39,7 @@ class Account::ProfileController < ApplicationController
   def change_organization
     org = current_user.organizations.find(params[:org_id])
     current_user.update_attribute(:organization_id, org.id) if org
+    current_user.team_users.joins(:team).where("teams.organization_id" => org.id).update_all(last_sign_in_at: DateTime.now)
     respond_to do |format|
       format.html {redirect_to organization_path}
 

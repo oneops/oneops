@@ -1,7 +1,8 @@
 class User < ActiveRecord::Base
   has_many :authentications, :dependent => :destroy
   belongs_to :organization
-  has_and_belongs_to_many :teams
+  has_many :team_users
+  has_many :teams, through: :team_users
   has_many :teams_via_groups, -> {uniq}, :class_name => 'Team', :through => :groups, :source => :teams
   # has_and_belongs_to_many :current_org_teams, -> {where(['teams.organization_id == users.organization_id'])}, :class_name => 'Team'
   has_and_belongs_to_many :watches,   :class_name => 'CiProxy', :join_table => 'user_watches'
@@ -81,6 +82,7 @@ class User < ActiveRecord::Base
 
   def change_organization(org)
     self.organization = org
+    team_users.joins(:team).where("teams.organization_id" => org.id).update_all(last_sign_in_at: DateTime.now)
     save
   end
 
@@ -269,6 +271,14 @@ class User < ActiveRecord::Base
     cloud_permissions(cloud_id) & Team::CLOUD_SUPPORT > 0
   end
 
+  def last_sign_in_at_for_org(org_id)
+    team_users.joins(:team).where("teams.organization_id" => org_id)
+      .order(:last_sign_in_at).last.try(:last_sign_in_at)
+  end
+
+  def last_sign_in_at_for_current_org
+    last_sign_in_at_for_org(organization_id)
+  end
 
   protected
 
