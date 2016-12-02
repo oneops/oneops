@@ -212,6 +212,12 @@
 		  <groupId>org.springframework.retry</groupId>
 		  <artifactId>spring-retry</artifactId>
 		  <version>${spring-retry.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>4.1.5.RELEASE</version>
+            <scope>test</scope>
 	  </dependency>
   </dependencies>
 
