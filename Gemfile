@@ -26,7 +26,7 @@ gem 'settingslogic', '2.0.9'
 gem 'silencer', '0.6.0'
 
 gem 'jquery-rails', '~> 2.2.1'
-gem 'jquery-ui-rails'
+gem 'jquery-ui-rails', '5.0.5'
 gem 'prototype-rails'
 gem 'd3-rails', '~> 3.5'
 gem 'rickshaw-rails', '1.5.0'
