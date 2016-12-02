@@ -26,6 +26,8 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.CmsRfcCI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -294,6 +296,8 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="attr", required = false)  String[] attrs,
 			@RequestParam(value="ids", required = false)  String ids,
 			@RequestParam(value="value", required = false)  String valueType,
+			@RequestParam(value="altNs", required = false)  String altNs,
+			@RequestParam(value="tag", required = false)  String tag,
 			@RequestParam(value="recursive", required = false)  Boolean recursive,
 			@RequestParam(value="getEncrypted", required = false) String getEncrypted,
 			@RequestParam(value="attrProps", required = false) String attrProps,
@@ -318,7 +322,9 @@ public class CmRestController extends AbstractRestController {
 		} else {
 		
 			List<CmsCI> ciList = null;
-			if (recursive != null && recursive) {
+			if (altNs!=null || tag!=null){
+				ciList = cmManager.getCmCIByAltNsAndTag(altNs, tag);
+			} else if (recursive != null && recursive) {
 				ciList = cmManager.getCiBy3NsLike(nsPath, clazzName, ciName);
 			} else {	
 				ciList = cmManager.getCiBy3(nsPath, clazzName, ciName);
@@ -825,6 +831,48 @@ public class CmRestController extends AbstractRestController {
 	public CmsVar getCmSimpleVar(@PathVariable String varName){
 		return cmManager.getCmSimpleVar(varName);
 	}
-	
-    
+
+
+	@RequestMapping(method = RequestMethod.PUT, value = "/cm/simple/ci/{ciId}/altNs")
+	@ResponseBody
+	public void tagRfc(@PathVariable long ciId,
+					   @RequestParam(value = "tag", required = false) String tag,
+					   @RequestParam(value = "altNsPath", required = false) String altNsPath,
+					   @RequestParam(value = "altNsId", required = false) Long altNsId,
+					   @RequestHeader(value = "X-Cms-User", required = false) String userId,
+					   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+		CmsCI ci = cmManager.getCiById(ciId);
+		scopeVerifier.verifyScope(scope, ci);
+		CmsAltNs cmsAltNs = new CmsAltNs();
+		cmsAltNs.setNsPath(altNsPath);
+		if (altNsId != null) {
+			cmsAltNs.setNsId(altNsId);
+		}
+		cmsAltNs.setTag(tag);
+		cmManager.createAltNs(cmsAltNs, ci);
+	}
+
+
+	@RequestMapping(method = RequestMethod.GET, value = "/cm/simple/ci/{ciId}/altNs")
+	@ResponseBody
+	public List<CmsAltNs> getCiTags(@PathVariable long ciId,
+									@RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+		CmsCI baseCi = cmManager.getCiById(ciId);
+		scopeVerifier.verifyScope(scope, baseCi);
+		return  cmManager.getAltNsBy(ciId);
+	}
+
+	@RequestMapping(method = RequestMethod.DELETE, value = "/cm/simple/ci/{ciId}/ns/{nsId}/altNs")
+	@ResponseBody
+	public String getCiTags(@PathVariable long ciId, @PathVariable long nsId, 
+									@RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+		CmsCI baseCi = cmManager.getCiById(ciId);
+		scopeVerifier.verifyScope(scope, baseCi);
+		cmManager.deleteAltNs(ciId, nsId);
+		return  "";
+	}
+
+
 }
