@@ -196,3 +196,34 @@ insert into dj_approval_states (state_id, state_name) values (100,'pending');
 insert into dj_approval_states (state_id, state_name) values (200,'approved');
 insert into dj_approval_states (state_id, state_name) values (300,'rejected');
 insert into dj_approval_states (state_id, state_name) values (400,'expired');
+
+
+ALTER TABLE kloopzcm.cm_ns_opt ADD COLUMN tag_id bigint;
+
+ALTER TABLE kloopzcm.cm_ns_opt ADD CONSTRAINT ns_opt_tag_cm_ns_opt_fk
+FOREIGN KEY (tag_id)
+REFERENCES kloopzcm.ns_opt_tag (tag_id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;
+
+
+ALTER TABLE kloopzcm.dj_ns_opt ADD COLUMN tag_id bigint;
+
+ALTER TABLE kloopzcm.dj_ns_opt ADD CONSTRAINT ns_opt_tag_dj_ns_opt_fk
+FOREIGN KEY (tag_id)
+REFERENCES kloopzcm.ns_opt_tag (tag_id)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION
+NOT DEFERRABLE;
+
+
+
+CREATE UNIQUE INDEX ns_opt_tag_idx
+ ON kloopzcm.ns_opt_tag
+ ( tag );
+
+
+insert into ns_opt_tag (tag_id, tag) values (1, 'InitialTag');
+
+
