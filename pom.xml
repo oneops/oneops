@@ -14,7 +14,7 @@
         <spring.version>4.1.5.RELEASE</spring.version>
         <junit.version>4.7</junit.version>
         <log4j.version>1.2.16</log4j.version>
-        <postgresql.version>9.4.1212</postgresql.version>
+        <postgresql.version>9.3-1104-jdbc4</postgresql.version>
         <gson.version>1.6</gson.version>
         <mybatis.version>3.2.5</mybatis.version>
         <mybatis-spring.version>1.2.2</mybatis-spring.version>
