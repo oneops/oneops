@@ -14,7 +14,7 @@
         <spring.version>4.1.5.RELEASE</spring.version>
         <junit.version>4.7</junit.version>
         <log4j.version>1.2.16</log4j.version>
-        <postgresql.version>9.0-801.jdbc4</postgresql.version>
+        <postgresql.version>9.3-1104-jdbc4</postgresql.version>
         <gson.version>1.6</gson.version>
         <mybatis.version>3.2.5</mybatis.version>
         <mybatis-spring.version>1.2.2</mybatis-spring.version>
@@ -24,6 +24,7 @@
         <mockito-all.version>1.8.4</mockito-all.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <commons-lang3.version>3.4</commons-lang3.version>
+        <jackson-databind.version>2.3.2</jackson-databind.version>
     </properties>
 
     <build>
@@ -92,12 +93,13 @@
             <artifactId>log4j</artifactId>
             <version>${log4j.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>postgresql</groupId>
+            <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
-            <optional>false</optional>
         </dependency>
+
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
@@ -168,6 +170,11 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson-databind.version}</version>
         </dependency>
     </dependencies>
 

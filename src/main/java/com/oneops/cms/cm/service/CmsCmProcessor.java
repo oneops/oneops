@@ -18,6 +18,7 @@
 package com.oneops.cms.cm.service;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
@@ -65,6 +67,8 @@ public class CmsCmProcessor {
 	private CmsNsManager nsManager;
 	private CmsMdProcessor mdProcessor;
 	private QueryConditionMapper qcm = new QueryConditionMapper();
+	private Gson gson = new Gson();
+
 	
 	/**
 	 * Sets the md processor.
@@ -1582,6 +1586,26 @@ public class CmsCmProcessor {
 		
 		CmsCIRelation existingRel = getRelationById(relation.getCiRelationId()); 
 
+		if (relation.getRelationState() != null && !relation.getRelationState().equals(existingRel.getRelationState())) {
+			Integer relStateId = ciMapper.getCiStateId(relation.getRelationState());
+			if (relStateId == null) {
+				throw new CIValidationException(CmsError.VALIDATION_COMMON_ERROR, "There is no such ci state defined - " + relation.getRelationState());
+			}
+			relation.setRelationStateId(relStateId);
+		} else if (relation.getRelationState() == null && relation.getRelationStateId() == 0
+				&& existingRel.getRelationStateId() > 0) {
+			logger.info("incoming update request rel :"+relation.getRelationId()+ " for state id= " + relation.getRelationStateId()
+					+ " existing ci state id = " + existingRel.getRelationStateId());
+			relation.setRelationStateId(existingRel.getRelationStateId());
+		} else if (relation.getRelationStateId() == 0) {
+			relation.setRelationStateId(100);
+		}
+
+        if (relation.getRelationStateId()!=existingRel.getRelationStateId() || (relation.getComments()!=null && !relation.getComments().equals(existingRel.getComments()))){
+            ciMapper.updateRelation(relation);
+        }
+
+
 		for(CmsCIRelationAttribute updAttr : relation.getAttributes().values()){
 			updAttr.setCiRelationId(relation.getCiRelationId());
 			
@@ -1934,10 +1958,57 @@ public class CmsCmProcessor {
 		}
 		return names;
 	}
-	
+
+	public String getAttributeDescription(String nsPath, String ciName, String attrName) {
+        List<CmsCI> list =getCiBy3(nsPath, null, ciName);
+        if (!list.isEmpty()) {
+            CmsCI cmsCi = list.get(0);
+            return mdProcessor.getAttribute(cmsCi.getCiClassId(), attrName).getDescription();
+        }
+		return null;
+	}
+
 	private class CiClassNames {
 		String className = null;
 		String shortClassName = null;
 	}
 	
+	private String generateRelComments(String fromCiName, String fromCiClass, String toCiName, String toCiClass) {
+		Map<String, String> strMap = new HashMap<String, String>();
+		strMap.put("fromCiName", fromCiName);
+		strMap.put("fromCiClass", fromCiClass);
+		strMap.put("toCiName", toCiName);
+		strMap.put("toCiClass", toCiClass);
+		return gson.toJson(strMap);
+	}
+
+	public CmsCIRelation bootstrapRelation(CmsCI fromCi, CmsCI toCi, String relName, String nsPath, String createdBy, Date created) {
+		CmsCIRelation newRel = new CmsCIRelation();
+		newRel.setNsPath(nsPath);
+
+		CmsRelation targetRelation = mdProcessor.getRelation(relName);
+
+		newRel.setRelationId(targetRelation.getRelationId());
+		newRel.setRelationName(targetRelation.getRelationName());
+
+		//bootstrap the default values from Class definition
+		for (CmsRelationAttribute mdRelAttr : targetRelation.getMdAttributes()) {
+			if (mdRelAttr.getDefaultValue() != null) {
+				CmsCIRelationAttribute relAttr = new CmsCIRelationAttribute();
+				relAttr.setAttributeId(mdRelAttr.getAttributeId());
+				relAttr.setAttributeName(mdRelAttr.getAttributeName());
+				relAttr.setDfValue(mdRelAttr.getDefaultValue());
+				relAttr.setDjValue(mdRelAttr.getDefaultValue());
+				newRel.addAttribute(relAttr);
+			}
+		}
+
+	    newRel.setFromCiId(fromCi.getCiId());
+	    newRel.setToCiId(toCi.getCiId());
+	    newRel.setComments(generateRelComments(fromCi.getCiName(), fromCi.getCiClassName(), toCi.getCiName(), toCi.getCiClassName()));
+	    newRel.setCreated(created);
+	    newRel.setCreatedBy(createdBy);
+		return newRel;
+	}
+
 }

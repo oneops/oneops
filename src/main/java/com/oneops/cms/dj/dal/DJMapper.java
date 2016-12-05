@@ -18,16 +18,19 @@
 package com.oneops.cms.dj.dal;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.ibatis.annotations.Param;
 
+import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcLink;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Interface DJMapper.
@@ -55,7 +58,7 @@ public interface DJMapper {
 	CmsRfcCI getOpenRfcCIByCiId(long ciId);
 	List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds);
 	List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,@Param("isActive") Boolean isActive,@Param("ciId") Long ciId);
-	List<CmsRfcCI> getOpenRfcCIByClazzAndName(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName);
+    List<CmsRfcCI> getRfcCIByClazzAndName(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName, @Param("isActive")Boolean isActive, @Param("state")String state);
 	List<CmsRfcCI> getOpenRfcCIByClazzAndNameLower(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName);
 	List<CmsRfcCI> getOpenRfcCIByNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazzName") String clazzName, @Param("ciName") String ciName);
 	List<CmsRfcCI> getOpenRfcCIByClazzAnd2Names(@Param("nsPath") String nsPath, @Param("clazzName") String clazzName, @Param("ciName") String ciName, @Param("altCiName") String altCiName);
@@ -73,7 +76,7 @@ public interface DJMapper {
 	CmsRfcRelation getOpenRfcRelationByCiRelId(long ciRelationId);
 	List<CmsRfcRelation> getRfcRelationByReleaseId(long releaseId);
 	List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId);
-	List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath);
+	List<CmsRfcRelation> getRfcRelationsByNs(@Param("nsPath") String nsPath, @Param("isActive")Boolean isActive, @Param("state")String state);
 	List<CmsRfcRelation> getRfcRelationBy4(@Param("releaseId") long releaseId,@Param("isActive") Boolean isActive,@Param("fromCiId") Long fromCiId, @Param("toCiId") Long toCiId);
 	List<CmsRfcRelation> getOpenRfcRelationBy2(@Param("fromCiId") Long fromCiId, @Param("toCiId") Long toCiId, @Param("relName") String relName,@Param("shortRelName") String shortRelName);
 	List<CmsRfcRelation> getOpenFromRfcRelationByTargetClass(@Param("fromCiId") long fromCiId, @Param("relName") String relName, @Param("shortRelName") String shortRelName, @Param("targetClassName") String targetClassName);
@@ -106,5 +109,12 @@ public interface DJMapper {
 	List<CmsRfcLink> getOpenRfcLinks(@Param("nsPath") String nsPath, @Param("relName") String relName);
 	
 	long countCiRfcByReleaseId(long releaseId);
-	
+	long countOpenRfcCisByNs(String nsPath);
+	long countOpenRfcRelationsByNs(String nsPath);
+    void rmRfcs(Map<String,Object> params);
+    long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId, @Param("relationName") String relationName,
+			@Param("shortRelName") String shortRelName, @Param("rfcId") long rfcId);
+	List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam);
+	List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam);
+	List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam);
 }

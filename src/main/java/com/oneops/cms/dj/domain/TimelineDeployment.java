@@ -15,34 +15,20 @@
  *   limitations under the License.
  *  
  *******************************************************************************/
-package com.oneops.cms.exceptions;
+package com.oneops.cms.dj.domain;
 
-/**
- * The Class CIValidationException.
- */
-public class CIValidationException extends CmsBaseException {
+public class TimelineDeployment extends CmsDeployment implements TimelineBase {
 
-	private static final long serialVersionUID = -8243238521173364982L;
+	private static final long serialVersionUID = 1L;
+	
+	private long parentReleaseId;
 
-	/**
-	 * Instantiates a new cI validation exception.
-	 *
-	 * @param errorCode the error code
-	 * @param errMsg the err msg
-	 */
-	public CIValidationException(int errorCode, String errMsg) {
-		super(errorCode, errMsg);
+	public long getParentReleaseId() {
+		return parentReleaseId;
 	}
 
-    public CIValidationException(String message, Throwable e) {
-    	super(message, e);
-    }
-
-    public CIValidationException(String message) {
-    	super(message);
-    }
-
-    public static ExceptionConsolidator consolidator(int errorCode){
-		return new ExceptionConsolidator(CIValidationException.class, errorCode);
+	public void setParentReleaseId(long parentReleaseId) {
+		this.parentReleaseId = parentReleaseId;
 	}
+
 }

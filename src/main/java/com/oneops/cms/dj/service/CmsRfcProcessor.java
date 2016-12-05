@@ -23,8 +23,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
@@ -32,6 +35,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
+import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAction;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
@@ -43,9 +47,12 @@ import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsManager;
 import com.oneops.cms.util.CIValidationResult;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.QueryOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsRfcProcessor.
@@ -54,6 +61,8 @@ public class CmsRfcProcessor {
 	static Logger logger = Logger.getLogger(CmsRfcProcessor.class);
 
 	private static final String RFCNAMEREGEX = "[a-zA-Z0-9\\-]*";
+	private static final String OPEN = "open";
+	private static final String PENDING = "pending";
     private static Pattern rfcNamePattern = Pattern.compile(RFCNAMEREGEX);	
     private static final int CHUNK_SIZE = 100;
 	private DJMapper djMapper;
@@ -302,7 +311,7 @@ public class CmsRfcProcessor {
 	 * Returns latest open release.
 	 * or creates one
 	 * @param nsPath the ns path
-	 * @param releaseState the release state
+	 * @param releaseType the release type
 	 * @return the latest release
 	 */
 	public long getOpenReleaseIdByNs(String nsPath, String releaseType, String createdBy) {
@@ -839,7 +848,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by clazz and name
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByClazzAndName(String nsPath, String clazzName, String ciName) {
-		List<CmsRfcCI> rfcList = djMapper.getOpenRfcCIByClazzAndName(nsPath, clazzName, ciName);
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIByClazzAndName(nsPath, clazzName, ciName,  true, "open");
 		populateRfcCIAttributes(rfcList);
 		return rfcList;
 	}
@@ -896,7 +905,7 @@ public class CmsRfcProcessor {
 	 * @return the open rfc ci by clazz and name no attrs
 	 */
 	public List<CmsRfcCI> getOpenRfcCIByClazzAndNameNoAttrs(String nsPath, String clazzName, String ciName) {
-		return djMapper.getOpenRfcCIByClazzAndName(nsPath, clazzName, ciName);
+		return djMapper.getRfcCIByClazzAndName(nsPath, clazzName, ciName,  true, "open");
 	}
 	
 	/**
@@ -926,6 +935,15 @@ public class CmsRfcProcessor {
 		populateRfcCIAttributes(rfcList);
 		return rfcList;
 	}
+
+    /**
+     * Gets the active (default if isActive missing) or inactive rfc ci by ns path.
+     * @param nsPath the ns path
+     * @param isActive    is active              
+     */               
+    public List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive) {
+        return djMapper.getRfcCIByClazzAndName(nsPath, null, null, isActive, null);
+    }
 
 	
 	/**
@@ -1404,24 +1422,33 @@ public class CmsRfcProcessor {
 		List<CmsRfcRelation> relList = getOpenRfcRelationsNsLikeNakedNoAttrs(relationName, shortRelName, nsPath,fromClazzName, toClazzName);
 		populateRfcRelationAttributes(relList);
 		return relList;
-	}	
-	
-	/**
-	 * Gets the open rfc relations by ns
+	}
+
+    /**
+     * Gets the open rfc relations by ns
+     *
+     * @param nsPath the ns path
+     * @return the open rfc relations ns like naked
+     */
+    public List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath) {
+        return getRfcRelationsByNs(nsPath, true, "open");
+    }
+
+
+    /**
+	 * Gets the rfc relations by ns
 	 *
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
 	 * @param nsPath the ns path
-	 * @param fromClazzName the from clazz name
-	 * @param toClazzName the to clazz name
-	 * @return the open rfc relations ns like naked
+     * @param isActive is_active_in_release
+     * @param state                
+	 * @return the rfc relations with matching nsPath 
 	 */
-	public List<CmsRfcRelation> getOpenRfcRelationsByNs(String nsPath) {
-		List<CmsRfcRelation> relList = djMapper.getOpenRfcRelationsByNs(nsPath);
+	public List<CmsRfcRelation> getRfcRelationsByNs(String nsPath, Boolean isActive, String state) {
+		List<CmsRfcRelation> relList = djMapper.getRfcRelationsByNs(nsPath, isActive, state);
 		populateRfcRelationAttributes(relList);
 		return relList;
-	}	
-	
+	}
+
 	/**
 	 * Gets the open rfc relations naked no attrs.
 	 *
@@ -1649,9 +1676,176 @@ public class CmsRfcProcessor {
 	 *
 	 * @param  nsPath, relName
 	 */
-	public long getRfcCount(long releaseId) {
-		return djMapper.countCiRfcByReleaseId(releaseId);
+	public long getRfcCount(long nsPath) {
+		return djMapper.countCiRfcByReleaseId(nsPath);
 	}
-    	
-	
+
+	/**
+	 * Get a count of open RFC CIs for a given namespace (not recursive).
+	 *
+	 * @param nsPath
+	 * @return number of open RFC CIs
+	 */
+	public long getRfcCiCountByNs(String nsPath)
+	{
+		return djMapper.countOpenRfcCisByNs(nsPath);
+	}
+
+	/**
+	 * Get a count of open RFC relations for a given namespace (not recursive).
+	 *
+	 * @param nsPath
+	 * @return number of open RFC relations
+	 */
+	public long getRfcRelationCountByNs(String nsPath)
+	{
+		return djMapper.countOpenRfcRelationsByNs(nsPath);
+	}
+
+	/**
+	 * Get a count of open RFCs (CIs + relations) for a given namespace (not recursive).
+	 *
+	 * @param nsPath
+	 * @return number of open RFCs
+	 */
+	public long getRfcCountByNs(String nsPath)
+	{
+		return djMapper.countOpenRfcCisByNs(nsPath) + djMapper.countOpenRfcRelationsByNs(nsPath);
+	}
+
+
+
+    /**
+     * Remove all rfcs and rfc relations for a given namespace  (not recursive).
+     * this is using map as a workaround to transfer "nsPath" parameter in as well 
+     * as "result" out (result contains stored procedure return value = number of rfcs deleted) 
+     * because MyBatis doesn't allow to map simple return types from a stored procedures
+     * 
+     *
+     * @param  nsPath
+     */
+    public long rmRfcs(String nsPath) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("nsPath", nsPath);
+        djMapper.rmRfcs(map);
+        try {
+            return Integer.parseInt(map.getOrDefault("result", "0").toString());
+        } catch (NumberFormatException e){
+            return 0;
+        }
+    }
+
+    /**
+	 * get count of all Ci which have the given relation from the given ci id and not updated by the rfcId
+	 */
+	public long getCiCountNotUpdatedByRfc(long fromId, String relationName, String shortRelName, long rfcId) {
+		return djMapper.countCiNotUpdatedByRfc(fromId, relationName, shortRelName, rfcId);
+	}
+
+
+	public long commitReleaseForPlatform(CmsRfcCI platformRfc, String desc, String userId) {
+		String platformNs = platformRfc.getNsPath()+"/_design/"+platformRfc.getCiName();
+		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
+		CmsRelease newRelease = cloneRelease(release);
+
+		long platformCiId = platformRfc.getCiId();
+		long platformRfcId = platformRfc.getRfcId();
+
+		long releaseId = release.getReleaseId();
+		List<CmsRfcCI> releaseRfcs = djMapper.getRfcCIBy3(releaseId, true, null);
+		releaseRfcs.stream()
+				.filter(rfc ->!platformNs.equals(rfc.getNsPath())  // doesn't match platform NS
+						&& platformCiId != rfc.getCiId()    // and not an RFC for this platform CI 
+						&& platformRfcId != rfc.getRfcId()  // and not a platform RFC
+				)
+				.forEach(rfc -> {
+					touchNewRelease(newRelease);
+					rfc.setReleaseId(newRelease.getReleaseId());
+					djMapper.updateRfcCI(rfc);
+				});
+
+		List<CmsRfcRelation> releaseRelations = djMapper.getRfcRelationBy3(releaseId, true, null);
+		releaseRelations.stream()
+				.filter(relation ->!platformNs.equals(relation.getNsPath())    // doesn't match platform NS
+						&& (relation.getToCiId()==null || platformCiId != relation.getToCiId())  // and not a to link to this platform CI
+						&& (relation.getToRfcId()==null || platformRfcId != relation.getToRfcId()))  // and not a to link to this platform RFC
+				.forEach(relation -> {
+					touchNewRelease(newRelease);
+					relation.setReleaseId(newRelease.getReleaseId());
+					djMapper.updateRfcRelation(relation);
+				});
+
+		commitRelease(releaseId, true, null, true, userId, desc);
+
+		if (newRelease.getReleaseId()!=0) { // set new release state to open only if it was created because some rfcs/rels were moved
+			newRelease.setReleaseStateId(djMapper.getReleaseStateId(OPEN));
+			djMapper.updateRelease(newRelease);
+		}
+		return releaseId;
+	}
+
+	private CmsRelease cloneRelease(CmsRelease openRelease) {
+		CmsRelease newRelease = new CmsRelease();
+		BeanUtils.copyProperties(openRelease, newRelease);
+		newRelease.setReleaseId(0);
+		return newRelease;
+	}
+
+	private CmsRelease getCurrentOpenRelease(String ns) {
+		List<CmsRelease> releaseList = djMapper.getReleaseBy3(ns, null, "open");
+		if (releaseList.isEmpty()) {
+			String err = "Platform release doesn't exist or is not open.";
+			logger.error(err);
+			throw new DJException(CmsError.DJ_RFC_RELEASE_NOT_OPEN_ERROR, err);
+		}
+		return releaseList.get(0);
+	}
+
+	private void touchNewRelease(CmsRelease newRelease) {
+		if (newRelease.getReleaseId()==0) {
+			newRelease.setReleaseId(djMapper.getNextDjId());
+			newRelease.setReleaseStateId(djMapper.getReleaseStateId(PENDING));
+			djMapper.createRelease(newRelease);
+		}
+	}
+
+	public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
+		String filter = queryParam.getWildcardFilter();
+		List<TimelineRelease> releases = null;
+		if (!StringUtils.isBlank(filter)) {
+			releases = getReleaseByFilterInternal(queryParam);
+		}
+		else {
+			releases = getReleaseByNsPath(queryParam);
+		}
+		return releases;
+	}
+
+	private List<TimelineRelease> getReleaseByFilterInternal(TimelineQueryParam queryParam) {
+		List<TimelineRelease> releases = null;
+		String filter = queryParam.getWildcardFilter();
+		String envNsPath = queryParam.getEnvNs();
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, null));
+		queryParam.setManifestNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, filter));
+		queryParam.setManifestClassFilter(CmsConstants.MANIFEST + "." + filter);
+		releases = djMapper.getReleaseByFilter(queryParam);
+		Long endRelId = null;
+		if (QueryOrder.ASC.equals(queryParam.getOrder())) {
+			endRelId = releases.stream().map(TimelineRelease::getReleaseId).max(Long::compare).orElse(null);
+		}
+		else {
+			endRelId = releases.stream().map(TimelineRelease::getReleaseId).min(Long::compare).orElse(null);
+		}
+		queryParam.setEndRelId(endRelId);
+		queryParam.setExcludeReleaseList(releases.stream().map(TimelineRelease::getReleaseId).collect(Collectors.toList()));
+
+		List<TimelineRelease> releasesWithOnlyRelations = djMapper.getReleaseWithOnlyRelationsByFilter(queryParam);
+		releases.addAll(releasesWithOnlyRelations);
+		return releases;
+	}
+
+	private List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.MANIFEST));
+		return djMapper.getReleaseByNsPath(queryParam);
+	}
 }

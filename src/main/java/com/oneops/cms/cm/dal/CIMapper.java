@@ -44,6 +44,7 @@ public interface CIMapper {
 	void updateCIAttribute(CmsCIAttribute attr);
 
 	void createRelation(CmsCIRelation rel);
+	void updateRelation(CmsCIRelation rel);
 	void addRelationAttribute(CmsCIRelationAttribute attr);
     void addRelationAttributeAndPublish(CmsCIRelationAttribute attr);
 	void deleteRelation(@Param("ciRelationId") long ciId, @Param("delete4real") boolean delete4real);

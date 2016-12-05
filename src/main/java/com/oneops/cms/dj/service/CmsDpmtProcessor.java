@@ -22,10 +22,16 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -34,10 +40,12 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
@@ -45,6 +53,7 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.ListUtils;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Class CmsDpmtProcessor.
@@ -78,6 +87,8 @@ public class CmsDpmtProcessor {
 	private static final String MANIFEST_PLATFORM_CLASS = "manifest.Platform";
 	private static final String ONEOPS_AUTOREPLACE_USER = "oneops-autoreplace";
 	private static final int BOM_RELASE_NSPATH_LENGTH = 5;
+
+	private static final String ZONES_SELECTED = "ZONES_SELECTED";
 
 	/**
 	 * Sets the cm processor.
@@ -128,6 +139,7 @@ public class CmsDpmtProcessor {
 			}
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
 		if (ONEOPS_AUTOREPLACE_USER.equals(dpmt.getCreatedBy()))  {
 			dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
 			dpmtMapper.createDeployment(dpmt);
@@ -161,6 +173,13 @@ public class CmsDpmtProcessor {
 		}
 	}
 	
+	private void updateAutoDeployExecOrders(CmsDeployment dpmt) {
+		Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
+		if (autoPauseExecOrders != null) {
+			dpmt.setAutoPauseExecOrdersVal(StringUtils.join(autoPauseExecOrders, ","), false);
+		}
+	}
+
 	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
 		
 		List<CmsDpmtApproval> result = new ArrayList<CmsDpmtApproval>();
@@ -344,6 +363,8 @@ public class CmsDpmtProcessor {
 			dpmt.setDeploymentState(null);
 		}
 		
+		updateAutoDeployExecOrders(dpmt);
+
 		if (DPMT_STATE_CANCELED.equalsIgnoreCase(dpmt.getDeploymentState())) {
 			if (dpmtMapper.getDeploymentRecordsCountByState(dpmt.getDeploymentId(), DPMT_RECORD_STATE_INPROGRESS, null) > 0) {
 				String errMsg = "The deployment still have active work orders!"; 
@@ -438,6 +459,9 @@ public class CmsDpmtProcessor {
 		List<CmsCI> platforms = cmProcessor.getCiBy3NsLike(manifestRelease.getNsPath(), MANIFEST_PLATFORM_CLASS, null);
 		for (CmsCI plat : platforms) {
 			boolean vacuumAllowed = true;
+			List<CmsCI> monitorCiList = new ArrayList<CmsCI>();
+			Set<Long> monitors4DeletedComponents = new HashSet<Long>();
+
 			List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelationsNaked(plat.getCiId(), "base.Consumes", "account.Cloud");
 			for (CmsCIRelation platformCloudRel : platformCloudRels) {
 				if (platformCloudRel.getAttribute("adminstatus") != null
@@ -451,10 +475,22 @@ public class CmsDpmtProcessor {
 				} else {
 					List<CmsCI> componentsToDelet = cmProcessor.getCiByNsLikeByStateNaked(plat.getNsPath(), null, "pending_deletion");
 					for (CmsCI component : componentsToDelet) {
-						List<CmsCIRelation> realizedAsRels = cmProcessor.getFromCIRelationsNakedNoAttrs(component.getCiId(), "base.RealizedAs", null, null);
+						long ciId = component.getCiId();
+						if (CmsConstants.MONITOR_CLASS.equals(component.getCiClassName())) {
+							monitorCiList.add(component);
+							continue;
+						}
+
+						List<CmsCIRelation> realizedAsRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, "base.RealizedAs", null, null);
 						if (realizedAsRels.size() > 0) {
 							vacuumAllowed = false;
 							break;
+						}
+
+						List<CmsCIRelation> monitorRels = cmProcessor.getFromCIRelationsNakedNoAttrs(ciId, CmsConstants.MANIFEST_WATCHED_BY,
+								null, CmsConstants.MONITOR_CLASS);
+						if (monitorRels.size() > 0) {
+							monitors4DeletedComponents.addAll(monitorRels.stream().map(relation -> relation.getToCiId()).collect(Collectors.toList()));
 						}
 					}
 					if (!vacuumAllowed) {
@@ -463,7 +499,19 @@ public class CmsDpmtProcessor {
 				}
 			}
 			if (vacuumAllowed) {
-				nsMapper.vacuumNamespace(plat.getNsId(), dpmt.getCreatedBy());
+
+				//if there are monitors to be deleted, then make sure it satisfies one of these two
+				// 1. the monitors have corresponding parent CIs that are also marked pending_deletion, these would be in monitors4DeletedComponents
+				// 2. all the bom CIs for this manifest are updated for this manifest release
+				monitorCiList.removeIf(monitor -> monitors4DeletedComponents.contains(monitor.getCiId()));
+				List<CmsCI> monitorsEligible4Del = getMonitorsEligible4Del(bomRelease, monitorCiList);
+
+				if (monitorsEligible4Del.size() == monitorCiList.size()) {
+					nsMapper.vacuumNamespace(plat.getNsId(), dpmt.getCreatedBy());
+				}
+				else {
+					monitorsEligible4Del.stream().forEach(monitor -> cmProcessor.deleteCI(monitor.getCiId(), dpmt.getCreatedBy()));
+				}
 			}
 		}
 		
@@ -483,6 +531,43 @@ public class CmsDpmtProcessor {
 				cmProcessor.deleteCI(globalVar.getCiId(), true, userId);
 			}
 		}
+	}
+
+	private List<CmsCI> getMonitorsEligible4Del(CmsRelease bomRelease, List<CmsCI> monitorCiList) {
+
+		List<CmsCI> monitorsEligible4Del = new ArrayList<CmsCI>();
+		if (!monitorCiList.isEmpty()) {
+			monitorsEligible4Del.addAll(monitorCiList.stream().
+					filter(monitor -> {
+						long monitorRfcId = monitor.getLastAppliedRfcId();
+						logger.info("monitor ci : " + monitor.getCiId() + ", last applied rfc id : " + monitorRfcId);
+						List<CmsCIRelation> parentRelation = cmProcessor.getToCIRelationsNakedNoAttrs(monitor.getCiId(),
+								CmsConstants.MANIFEST_WATCHED_BY, null, null);
+						if (parentRelation.size() > 0) {
+							long baseRfcId = monitorRfcId;
+							long parentCiId = parentRelation.get(0).getFromCiId();
+
+							//get the parent ci rfcId from the same release and use that to compare with bom instances
+							CmsRfcCI monitorRfc = rfcProcessor.getRfcCIById(monitorRfcId);
+							List<CmsRfcCI> parentRfcs = rfcProcessor.getRfcCIBy3(monitorRfc.getReleaseId(), true, parentCiId);
+							if (!parentRfcs.isEmpty()) {
+								baseRfcId = parentRfcs.get(0).getRfcId();
+								logger.info("component ci rfc id : " + baseRfcId);
+							}
+
+							//get count of boms that are not updated by this manifest rfc
+							long count = rfcProcessor.getCiCountNotUpdatedByRfc(parentCiId, CmsConstants.BASE_REALIZED_AS, null, baseRfcId);
+							logger.info("ci not deployed count " + count);
+							if (count > 0) {
+								//there are some bom CIs that are not deployed, so this monitor cannot be removed
+								return false;
+							}
+						}
+						return true;
+					}).
+					collect(Collectors.toList()));
+		}
+		return monitorsEligible4Del;
 	}
 
 
@@ -509,8 +594,88 @@ public class CmsDpmtProcessor {
 			cmProcessor.updateCI(wo.getResultCi());
 		}
 		//return dpmtMapper.getDeploymentRecord(wo.getDpmtRecordId());
+		processAdditionalInfo(wo);
 	}
-	
+
+	private void processAdditionalInfo(CmsWorkOrder wo) {
+		Map<String, String> additionalInfo = wo.getAdditionalInfo();
+		if (additionalInfo != null && !additionalInfo.isEmpty()) {
+
+			additionalInfo.entrySet().stream().forEach(entry -> {
+				String key = entry.getKey();
+				if (ZONES_SELECTED.equalsIgnoreCase(key)) {
+					processSelectedZones(wo, entry);
+				}
+			});
+		}
+	}
+
+	private void processSelectedZones(CmsWorkOrder wo, Entry<String, String> entry) {
+		List<CmsCIRelation> existingRelations = cmProcessor.getFromCIRelations(wo.getResultCi().getCiId(), 
+				CmsConstants.BASE_PLACED_IN, CmsConstants.ZONE_CLASS);
+		Map<String, CmsCIRelation> relationsMap  = existingRelations.stream().
+				collect(Collectors.toMap(relation -> relation.getToCi().getCiName(), Function.identity()));
+		String values = entry.getValue();
+		if (values != null) {
+			String[] zones = values.split(",");
+			logger.info("selected zones for this ciId [" + wo.getResultCi().getCiId() + "] : " + values);
+			logger.info("existing zones : " + relationsMap.keySet());
+
+			Set<String> selectedZones = Collections.emptySet();
+			if (zones.length > 0) {
+				selectedZones = Stream.of(zones).map(String::trim).collect(Collectors.toSet());
+				createPlacedInRelations(selectedZones, relationsMap, wo);
+			}
+			removeOldRelations(selectedZones, relationsMap);
+		}
+	}
+
+	private void createPlacedInRelations(Set<String> zones, Map<String, CmsCIRelation> relationsMap, CmsWorkOrder wo) {
+		List<CmsCIRelation> deployedToRels = cmProcessor.getFromCIRelations(wo.getResultCi().getCiId(), CmsConstants.DEPLOYED_TO, CmsConstants.CLOUD_CLASS);
+		if (deployedToRels != null && !deployedToRels.isEmpty()) {
+
+			zones.stream().
+				filter(zone -> (zone.length() > 0 && !(relationsMap.containsKey(zone)))).
+				forEach(zone -> {
+					if (logger.isDebugEnabled()) {
+						logger.debug("creating base.PlacedIn relation to zone : " + zone);
+					}
+					CmsCI cloudCi = deployedToRels.get(0).getToCi();
+					String zoneNs = formZoneNsPath(cloudCi.getNsPath(), cloudCi.getCiName());
+					List<CmsCI> cis = cmProcessor.getCiBy3(zoneNs, CmsConstants.ZONE_CLASS, zone);
+					if (cis == null || cis.isEmpty()) {
+						logger.error("zone ci not found " + zone + ", nsPath : " + zoneNs);
+					}
+					else {
+						CmsCI zoneCi = cis.get(0);
+						CmsCI resultCi = wo.getResultCi();
+						CmsRfcCI rfcCi = wo.getRfcCi();
+						resultCi.setCiName(rfcCi.getCiName());
+						resultCi.setCiClassName(rfcCi.getCiClassName());
+						CmsCIRelation placedInRel = cmProcessor.bootstrapRelation(resultCi, zoneCi, CmsConstants.BASE_PLACED_IN, rfcCi.getNsPath(),
+								rfcCi.getCreatedBy(), rfcCi.getCreated());
+						cmProcessor.createRelation(placedInRel);
+					}
+			});
+		}
+		else {
+			logger.error("no base.DeployedTo relation found for ci " + wo.getResultCi().getCiId());
+		}
+	}
+
+	private void removeOldRelations(Set<String> zones, Map<String, CmsCIRelation> relationsMap) {
+		relationsMap.entrySet().stream().filter(entry -> !zones.contains(entry.getKey())).forEach(entry -> {
+			if (logger.isDebugEnabled()) {
+				logger.debug("removing base.PlacedIn relation to zone : " + entry.getKey());
+			}
+			cmProcessor.deleteRelation(entry.getValue().getCiRelationId(), true);
+		});
+	}
+
+	private String formZoneNsPath(String cloudNsPath, String cloudName) {
+		return cloudNsPath + "/" + cloudName;
+	}
+
 	/**
 	 * Gets the deployment.
 	 *
@@ -670,6 +835,16 @@ public class CmsDpmtProcessor {
 	/**
 	 * Gets the deployment record cis.
 	 *
+	 * @param list of dpt record ids
+	 * @return the deployment record cis
+	 */
+	public List<CmsDpmtRecord> getDeploymentRecordCis(long dpmtId, List<Long> list) {
+		return dpmtMapper.getDeploymentRecordCisByListOfIds(dpmtId, list);
+	}
+
+	/**
+	 * Gets the deployment record cis.
+	 *
 	 * @param ciId the ciId
 	 * @return the deployment record cis
 	 */
@@ -721,5 +896,26 @@ public class CmsDpmtProcessor {
         }
         return null;
     }
+
+	public List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam) {
+		String envNsPath = queryParam.getEnvNs();
+		String filter = queryParam.getWildcardFilter();
+		List<TimelineDeployment> deployments = null;
+		if (!StringUtils.isBlank(filter)) {
+			queryParam.setBomNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
+			queryParam.setBomNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, filter));
+			queryParam.setBomClassFilter(CmsConstants.BOM + "." + filter);
+			deployments = dpmtMapper.getDeploymentsByFilter(queryParam);
+		}
+		else {
+			deployments = getDeployments4NsPathLike(queryParam);
+		}
+		return deployments;
+	}
+
+	private List<TimelineDeployment> getDeployments4NsPathLike(TimelineQueryParam queryParam) {
+		queryParam.setBomNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.BOM));
+		return dpmtMapper.getDeploymentsByNsPath(queryParam);
+	}
 
 }

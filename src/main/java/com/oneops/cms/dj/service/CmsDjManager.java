@@ -23,6 +23,7 @@ import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.TimelineBase;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
@@ -30,6 +31,7 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Interface CmsDjManager.
@@ -50,6 +52,7 @@ public interface CmsDjManager {
 	long rmRfcCiFromRelease(long rfcId);
 	List<CmsRfcCI> getRfcCIBy3(long releaseId, Boolean isActive, Long ciId);
     List<CmsRfcCI> getClosedRfcCIByCiId(long ciId);
+	List<CmsRfcCI> getRfcCIByNs(String nsPath, Boolean isActive);
     CmsRfcCI getRollUpRfc(long ciId, long rfcId);
 
     CmsRfcRelation createRfcRelation(CmsRfcRelation rel);
@@ -59,7 +62,8 @@ public interface CmsDjManager {
 	List<CmsRfcRelation> getRfcRelationByReleaseId(long releaseId);
 	List<CmsRfcRelation> getClosedRfcRelationByCiId(long ciId);
 	List<CmsRfcRelation> getRfcRelationBy3(long releaseId,Boolean isActive,Long fromCiId, Long toCiId);
-
+    List<CmsRfcRelation> getRfcRelationByNs(String nsPath, Boolean isActive);
+    
 	CmsDeployment deployRelease(long releaseId);
 	CmsDeployment createDeployment(CmsDeployment dpmt);
 	CmsDeployment getDeployment(long dpmtId);
@@ -76,6 +80,7 @@ public interface CmsDjManager {
 	List<CmsDeployment> findDeploymentByReleaseId(long releaseId, String state, boolean latest);
 	List<CmsDpmtRecord> getDpmtRecords(long dpmtId);
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId);
+	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, List<Long> Ids);
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, String state, Integer execOrder);
 	List<CmsDpmtRecord> getDpmtRecordRelations(long dpmtId);
 	List<CmsDpmtRecord> getDeploymentRecordByCiId(long ciId, String state);
@@ -88,5 +93,9 @@ public interface CmsDjManager {
 	void completeWorkOrder(CmsWorkOrder wo);
 	
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
-
+    
+    long rmRfcs(String nsPath);
+	long getRfcCiCountByNs(String nsPath);
+	long getRfcRelationCountByNs(String nsPath);
+	List<TimelineBase> getDjTimeLine(TimelineQueryParam queryParam);
 }

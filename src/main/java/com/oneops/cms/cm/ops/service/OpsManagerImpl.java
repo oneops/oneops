@@ -114,41 +114,41 @@ public class OpsManagerImpl implements OpsManager {
 	 * Gets the cms ops procedure for ci.
 	 *
 	 * @param ciId the ci id
-	 * @param state the state
+	 * @param stateList the list of states
 	 * @param procedureName the procedure name
 	 * @return the cms ops procedure for ci
 	 */
 	@Override
-	public List<CmsOpsProcedure> getCmsOpsProcedureForCi(long ciId, OpsProcedureState state, String procedureName, Integer limit) {
-		return procProcessor.getCmsOpsProceduresForCi(ciId, state, procedureName, limit);
+	public List<CmsOpsProcedure> getCmsOpsProcedureForCi(long ciId, List<OpsProcedureState> stateList, String procedureName, Integer limit) {
+		return procProcessor.getCmsOpsProceduresForCi(ciId, stateList, procedureName, limit);
 	}
 
 	/**
 	 * Gets the cms ops procedure for ci by proc action.
 	 *
 	 * @param ciId the ci id
-	 * @param state the state
+	 * @param stateList the list of states
 	 * @param procedureName the procedure name
 	 * @return the cms ops procedure for ci
 	 */
 	@Override
 	public List<CmsOpsProcedure> getCmsOpsProcedureForCiByAction(long ciId,
-			OpsProcedureState state, String procedureName, Integer limit) {
+																 List<OpsProcedureState> stateList, String procedureName, Integer limit) {
 		// TODO Auto-generated method stub
-		return procProcessor.getCmsOpsProceduresForCiByAction(ciId, state, procedureName, limit);
+		return procProcessor.getCmsOpsProceduresForCiByAction(ciId, stateList, procedureName, limit);
 	}
 
     /**
      * Gets the cms ops procedure for namespace.
      *
      * @param nsPath the ns path
-     * @param state the state
+     * @param stateList the list of states
      * @param procedureName the procedure name
      * @return the cms ops procedure for namespace
      */
     @Override
-    public List<CmsOpsProcedure> getCmsOpsProcedureForNamespace(String nsPath, OpsProcedureState state, String procedureName) {
-        return procProcessor.getCmsOpsProceduresForNamespace(nsPath, state, procedureName);
+    public List<CmsOpsProcedure> getCmsOpsProcedureForNamespace(String nsPath, List<OpsProcedureState> stateList, String procedureName) {
+        return procProcessor.getCmsOpsProceduresForNamespace(nsPath, stateList, procedureName);
     }
 
     /**
@@ -202,16 +202,15 @@ public class OpsManagerImpl implements OpsManager {
 	}
 
 	@Override
-	public List<CmsOpsProcedure> getCmsOpsProcedureForNamespaceLike(String nsPath,
-			OpsProcedureState state, String procedureName, Integer limit,Boolean actions){
+	public List<CmsOpsProcedure> getCmsOpsProcedureForNamespaceLike(String nsPath, List<OpsProcedureState> stateList, String procedureName, Integer limit,Boolean actions){
 		
-		return procProcessor.getCmsOpsProcedureForNamespaceLike(nsPath, state, procedureName,limit,actions);		
+		return procProcessor.getCmsOpsProcedureForNamespaceLike(nsPath, stateList, procedureName,limit,actions);		
 	}
 
 	@Override
-	public List<CmsOpsProcedure> getCmsOpsProceduresForCiFromTime(long ciId,
+	public long  getCmsOpsProceduresCountForCiFromTime(long ciId, List<OpsProcedureState> stateList,
 			String procedureName, Date timestamp) {
-		return procProcessor.getCmsOpsProceduresForCiFromTime(ciId, procedureName, timestamp);
+		return procProcessor.getCmsOpsProceduresCountForCiFromTime(ciId, stateList, procedureName, timestamp);
 	}	
 
 }

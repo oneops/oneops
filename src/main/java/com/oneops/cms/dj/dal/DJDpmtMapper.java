@@ -23,11 +23,13 @@ import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.util.TimelineQueryParam;
 
 /**
  * The Interface DJDpmtMapper.
@@ -58,7 +60,8 @@ public interface DJDpmtMapper {
 	
 	List<CmsDpmtRecord> getDeploymentRecords(long deploymentId);	
 	CmsDpmtRecord getDeploymentRecord(long dpmtRfcId);
-	List<CmsDpmtRecord> getDeploymentRecordCis(long deploymentId);	
+	List<CmsDpmtRecord> getDeploymentRecordCis(long deploymentId);
+	List<CmsDpmtRecord> getDeploymentRecordCisByListOfIds(@Param("value")long deploymentId, @Param("list") List<Long> list);
 	List<CmsDpmtRecord> getDeploymentRecordRelations(long deploymentId);
 	List<CmsDpmtRecord> getDeploymentRecordsByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	long getDeploymentRecordsCountByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
@@ -77,4 +80,6 @@ public interface DJDpmtMapper {
 	
 	List<CmsDpmtApproval> getDpmtApprovals(long deploymentId);
 	CmsDpmtApproval getDpmtApproval(long approvalId);
+	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
+	List<TimelineDeployment> getDeploymentsByNsPath(TimelineQueryParam queryParam);
 }
