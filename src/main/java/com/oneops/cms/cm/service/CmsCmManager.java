@@ -20,6 +20,8 @@ package com.oneops.cms.cm.service;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.CmsRfcCI;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -83,4 +85,9 @@ public interface CmsCmManager {
 	
 	void updateCmSimpleVar(String varName,String varValue,String updatedBy);
 	CmsVar getCmSimpleVar(String varName);
+
+    void createAltNs(CmsAltNs cmsAltNs, CmsCI ci);
+    void deleteAltNs(long nsId, long ciId);
+	List<CmsAltNs> getAltNsBy(long ciId);
+	List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag);
 }
