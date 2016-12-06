@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.dj.dal;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -64,6 +65,7 @@ public interface DJDpmtMapper {
 	List<CmsDpmtRecord> getDeploymentRecordCisByListOfIds(@Param("value")long deploymentId, @Param("list") List<Long> list);
 	List<CmsDpmtRecord> getDeploymentRecordRelations(long deploymentId);
 	List<CmsDpmtRecord> getDeploymentRecordsByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
+	List<CmsDpmtRecord> getDeploymentRecordsUpdatedAfter(@Param("deploymentId") long deploymentId, @Param("timestamp") Date timestamp);
 	long getDeploymentRecordsCountByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	List<CmsDpmtRecord> getDeploymentRecordsByCiId(@Param("ciId") long ciId, @Param("state") String state);
 	List<CmsWorkOrder> getWorkOrders(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
