@@ -21,10 +21,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.*;
 import org.apache.ibatis.annotations.Param;
 
+import com.oneops.cms.dj.domain.TimelineRelease;
+import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.domain.CmsRfcAttribute;
+import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
+import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsRfcLink;
+import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.util.TimelineQueryParam;
 
 /**
@@ -114,12 +119,4 @@ public interface DJMapper {
     List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath, @Param("fromReleaseId") Long fromReleaseId, @Param ("toReleaseId") Long toReleaseId);
 
 	List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath, @Param("fromReleaseId") Long fromReleaseId, @Param ("toReleaseId") Long toReleaseId);
-
-	void createAltNs(@Param("nsId")long nsId, @Param("tag")String tag, @Param("rfcId")long rfcId);
-	
-	long deleteAltNs(@Param("nsId")long nsId, @Param("rfcId")long rfcId);
-
-	List<CmsRfcCI> getRfcCIByAltNsAndTag(@Param("nsPath") String nsPath, @Param("tag") String tag, @Param("releaseId") Long releaseId, @Param("isActive") boolean isActive,@Param("ciId") Long ciId);
-
-	List<CmsAltNs> getAltNsBy(@Param("rfcId") long rfcCI);
 }
