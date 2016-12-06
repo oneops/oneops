@@ -60,7 +60,7 @@ public class CmsUtilTest {
 	private static final Logger logger = Logger.getLogger(CmsUtilTest.class);
 
 	public CmsUtilTest() {
-		this.ciAttributes = new HashMap<String, String>(3);
+		this.ciAttributes = new HashMap<>(3);
 		this.ciAttributes.put("A", "1");
 		this.ciAttributes.put("B", "2");
 		this.ciAttributes.put("Z", "26");
@@ -206,7 +206,7 @@ public class CmsUtilTest {
 		Map<String, String> cloudVars = getVariablesMap(cloudValues);
 		logger.info("cloud values have been set too: " + cloudVars);
 
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		for (String val : globalValues) {
 			globalVars.put(val,
 					"$OO_CLOUD{" + val + "CCC}" //is a reference to a cloud variable
@@ -217,7 +217,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(9876);
 		ci.setCiName("processGlobalValueWithCloudValueResolution");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(cloudValues.length * 3);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(cloudValues.length * 3);
 		///set up the ci with attributes which each need replacing...
 		int i = 0;
 		for (String cloudVariable : cloudValues) {//3 cloud vars
@@ -242,7 +242,7 @@ public class CmsUtilTest {
 		CmsUtil util = getCmsUtil();
 		dumpMaps(cloudVars, globalVars, null);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, cloudVars, globalVars, new HashMap<String, String>());
+		util.processAllVars(ci, cloudVars, globalVars, new HashMap<>());
 		dumpCmsCIAttributes(ci);
 
 		for (Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
@@ -272,7 +272,7 @@ public class CmsUtilTest {
 		Map<String, String> globalVars = getVariablesMap(globalValues);
 		System.out.println("globalVars values have been set to : " + globalVars);
 
-		Map<String, String> localVars = new LinkedHashMap<String, String>(2);
+		Map<String, String> localVars = new LinkedHashMap<>(2);
 		localVars.put("myLocalScalar", "abcdefg");
 
 		localVars.put("myLocalVariable",        //one local variable refers to global
@@ -283,7 +283,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(135791113);
 		ci.setCiName("processLocalValueWithGlobalValueResolution");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		///set up the ci with attributes which each need replacing...
 		int i = 0;
 
@@ -306,7 +306,7 @@ public class CmsUtilTest {
 		CmsUtil util = getCmsUtil();
 		dumpMaps(null, globalVars, localVars);
 		dumpCmsCIAttributes(ci);
-		util.processAllVars(ci, new HashMap<String, String>(), globalVars, localVars);
+		util.processAllVars(ci, new HashMap<>(), globalVars, localVars);
 		dumpCmsCIAttributes(ci);
 
 
@@ -341,22 +341,22 @@ public class CmsUtilTest {
 	 * while another (justX) is both in Cloud and Global variable  */
 	public void processLocalValueWithGlobalAndCloudValueResolution() {
 		//Variables for cloud, global, and locals
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("justX", "ca");
 		cloudVars.put("p2", "cb");
 
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("justX", "ga");
 		globalVars.put("p2", "$OO_CLOUD{p2}");
 
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("l1", "$OO_GLOBAL{p2}");//want 'ca'
 		localVars.put("p2", "$OO_GLOBAL{justX}");//want 'ga' not 'ca'
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(89);
 		ci.setCiName("processLocalValueWithGlobalAndCloudValueResolution");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_LOCAL{l1}");
 		attrL.setAttributeName("fo");
@@ -408,19 +408,19 @@ public class CmsUtilTest {
 	 * and the one we want is from the Cloud  */
 	public void processLocalVarChoiceGlobalVsCloud() {
 		//Variables for cloud, global, and locals
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("common", "duolc");
 
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("common", "labolg");
 
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("common", "lacol");
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("processLocalVarChoiceGlobalVsCloud");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		int i = 0;
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_CLOUD{common}");
@@ -452,13 +452,13 @@ public class CmsUtilTest {
 	@Test(priority = 95)
 	/** test local var where regex matches in middle not start */
 	public void processLocalVarMid() {
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("mylocal", "123456");
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(95);
 		ci.setCiName("processLocalVarMid");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		int i = 0;
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}");
@@ -489,13 +489,13 @@ public class CmsUtilTest {
 	@Test(priority = 98)
 	/** test local var where regex matches in middle not start */
 	public void processLocalVarDuo() {
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("mylocal", "123456");
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(98);
 		ci.setCiName("processLocalVarDuo");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		int i = 0;
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("/preamble/$OO_LOCAL{mylocal}/middle/$OO_LOCAL{mylocal}");
@@ -527,17 +527,17 @@ public class CmsUtilTest {
 	/** test local var which in turn references both cloud and global variables  */
 	public void processLocalVarUsingBothCloudGlobal() {
 		//Variables for cloud, global, and locals
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("common", "cl1");
 		cloudVars.put("store", "st1");
 
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("common", "gl1");
 		globalVars.put("version", "1.0");
 		globalVars.put("cldstr", "$OO_CLOUD{store}");
 		globalVars.put("dir", "up");
 
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		//combination of cloud and global variables
 		localVars.put("common", "lc1-$OO_GLOBAL{common}-ver-$OO_CLOUD{common}-1-$OO_CLOUD{store}-v1-$OO_CLOUD{common}-$OO_GLOBAL{version}.SNAPSHOT");
 		//references global variable which in turn uses cloud variable
@@ -546,7 +546,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("processLocalVarUsingBothCloudGlobal");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 
 		CmsCIAttribute attr1 = new CmsCIAttribute();
 		attr1.setDjValue("$OO_LOCAL{common}");
@@ -586,17 +586,17 @@ public class CmsUtilTest {
 	@Test(priority = 111)
 	/** test a composite var , one of each layer*/
 	public void processLocalVarMixed() {
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("myCloud", "987654");
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("myGlobal", "1212");
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("myLocal", "8989");
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(111);
 		ci.setCiName("processLocalVarMixed");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("/preamble/$OO_CLOUD{myCloud}/middle/$OO_GLOBAL{myGlobal}/sss/$OO_LOCAL{myLocal}");
 		String nameOfAttribute = "myMixedAttribute";
@@ -630,7 +630,7 @@ public class CmsUtilTest {
 	 * */
 	public void processLocalVarTrips() {
 
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("groupId", "esb");
 		localVars.put("artifactId", "service");
 		localVars.put("extension", "html");
@@ -638,7 +638,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(115);
 		ci.setCiName("processLocalVarTrips");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_LOCAL{extension}");
 		String nameOfAttribute = "myArtifactGav";
@@ -670,13 +670,13 @@ public class CmsUtilTest {
 	/** test variable that is not one of our OO_CLOUD/LOCAL/GLOBAL varieties */
 	public void processLocalVarNegativeSpelling()  {
 
-		Map<String, String> localVars = new HashMap<String, String>(1);
+		Map<String, String> localVars = new HashMap<>(1);
 		localVars.put("groupId", "barrrrrr");
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(122);
 		ci.setCiName("processLocalVarNegativeSpelling");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_NOOCAL{groupId}");//typo in place of $OO_LOCAL
 		String nameOfAttribute = "irrelevantname";
@@ -708,12 +708,12 @@ public class CmsUtilTest {
 	/** test variable that user did not set, it is exception 
 	 * bad reference */
 	public void processLocalVarNegativeMissingLocal() {
-		Map<String, String> localVars = new HashMap<String, String>(1);
+		Map<String, String> localVars = new HashMap<>(1);
 		localVars.put("aaaaaa", "ignore-me");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(130);
 		ci.setCiName("processLocalVarNegativeMissingLocal");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_LOCAL{this-is-not-resolved}");
 		String nameOfAttribute = "trouble";
@@ -738,7 +738,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(132);
 		ci.setCiName("processLocalVarNegativeMissingLocal2");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_LOCAL{this-is-not-resolved}");
 		String nameOfAttribute = "trouble";
@@ -775,7 +775,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(132);
 		ci.setCiName("processLocalVarNegativeMissingGlobal");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_GLOBAL{where-is-it}");
 		String nameOfAttribute = "nowhere";
@@ -796,12 +796,12 @@ public class CmsUtilTest {
 	/** test variable that user did not set, it is exception 
 	 * bad reference */
 	public void processLocalVarNegativeMissingGlobal2() {
-		Map<String, String> globalVars = new HashMap<String, String>(1);
+		Map<String, String> globalVars = new HashMap<>(1);
 		globalVars.put("cc", "ignore-distraction");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(132);
 		ci.setCiName("processLocalVarNegativeMissingGlobal2");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_GLOBAL{where?}");
 		String nameOfAttribute = "nowh---ere";
@@ -823,12 +823,12 @@ public class CmsUtilTest {
 	/** test variable that user did not set, it is exception
 	 * bad reference */
 	public void processLocalVarNegativeMissingCloud1() {
-		Map<String, String> cloudVars = new HashMap<String, String>(1);
+		Map<String, String> cloudVars = new HashMap<>(1);
 		cloudVars.put("bb", "ignore-bb");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(133);
 		ci.setCiName("processLocalVarNegativeMissingCloud1");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_CLOUD{not-cloudy}");
 		String nameOfAttribute = "sun";
@@ -852,7 +852,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(134);
 		ci.setCiName("processLocalVarNegativeMissingCloud");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_CLOUD{not-cloudy}");
 		String nameOfAttribute = "sun";
@@ -875,18 +875,18 @@ public class CmsUtilTest {
 	 * 	$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_LOCAL{extension}
 	 * */
 	public void processLocalVarDemo() {
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("version", "2.0");
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("version", "$OO_CLOUD{version}");
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("groupId", "esb");
 		localVars.put("artifactId", "service");
 
 		CmsCI ci = new CmsCI();
 		ci.setCiId(140);
 		ci.setCiName("processLocalVarDemo");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_LOCAL{groupId}:$OO_LOCAL{artifactId}:$OO_GLOBAL{version}");
 		String nameOfAttribute = "myArtifactGav";
@@ -917,12 +917,12 @@ public class CmsUtilTest {
 	/** test variable that user did not set, instead it is empty string ""
 	 * this is NOT a bad reference */
 	public void processLocalVarBlankValue() {
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("FOO", "");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(150);
 		ci.setCiName("processLocalVarBlankValue");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(1);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(1);
 		CmsCIAttribute attrL = new CmsCIAttribute();
 		attrL.setDjValue("$OO_CLOUD{FOO}");
 		String nameOfAttribute = "testingABlank";
@@ -958,13 +958,13 @@ public class CmsUtilTest {
 	 * Meaning the global var does not resolve both cloud and another global variable together.**/
 	 public void processGlobalVarUsingBothCloudGlobal() {
 		//Variables for cloud, global, and locals
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("common", "cl1");
 		cloudVars.put("store", "st1");
 		cloudVars.put("common", "glcloud");
 
 
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("common", "gl1");
 		globalVars.put("version", "1.0");
 		globalVars.put("cldstr", "$OO_CLOUD{store}");
@@ -973,7 +973,7 @@ public class CmsUtilTest {
 
 
 
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		//combination of cloud and global variables
 		localVars.put("common", "lc1-$OO_GLOBAL{common}-ver-$OO_CLOUD{common}-1-$OO_CLOUD{store}-v1-$OO_CLOUD{common}-$OO_GLOBAL{version}.SNAPSHOT");
 		//references global variable which in turn uses cloud variable
@@ -983,7 +983,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("processLocalVarUsingBothCloudGlobal");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 
 
 		CmsCIAttribute attr4 = new CmsCIAttribute();
@@ -1020,13 +1020,13 @@ public class CmsUtilTest {
 	@Test
 	public void testUsingVarsInEncryptedAttributes() {
 //Variables for cloud, global, and locals
-		Map<String, String> cloudVars = new HashMap<String, String>(3);
+		Map<String, String> cloudVars = new HashMap<>(3);
 		cloudVars.put("common", "cl1");
 		cloudVars.put("store", "st1");
 		cloudVars.put("common", "glcloud");
 
 
-		Map<String, String> globalVars = new HashMap<String, String>(3);
+		Map<String, String> globalVars = new HashMap<>(3);
 		globalVars.put("common", "gl1");
 		globalVars.put("version", "1.0");
 		globalVars.put("cldstr", "$OO_CLOUD{store}");
@@ -1035,7 +1035,7 @@ public class CmsUtilTest {
 
 
 
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		//combination of cloud and global variables
 		localVars.put("common", "lc1-$OO_GLOBAL{common}-ver-$OO_CLOUD{common}-1-$OO_CLOUD{store}-v1-$OO_CLOUD{common}-$OO_GLOBAL{version}.SNAPSHOT");
 		//references global variable which in turn uses cloud variable
@@ -1048,7 +1048,7 @@ public class CmsUtilTest {
 
 		ci.setCiId(90);
 		ci.setCiName("processLocalVarUsingBothCloudGlobal");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 
 
 		CmsCIAttribute attr4 = new CmsCIAttribute();
@@ -1116,13 +1116,13 @@ public class CmsUtilTest {
 
 	@Test
 	public void localVarRefersAnotherLVar() {
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("lv1", "localVar1");
 		localVars.put("lv2", "$OO_LOCAL{lv1}");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("$OO_LOCAL{lv2}");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1151,13 +1151,13 @@ public class CmsUtilTest {
 
 	@Test
 	public void localVarRefersAnotherLVarWithPrefix() {
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("lv1", "localVar1");
 		localVars.put("lv2", "$OO_LOCAL{lv1}");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv2}");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1186,13 +1186,13 @@ public class CmsUtilTest {
 
 	@Test
 	public void localVarRefersAnotherLVarWithSuffix() {
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("lv1", "localVar1");
 		localVars.put("lv2", "$OO_LOCAL{lv1}");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1221,13 +1221,13 @@ public class CmsUtilTest {
 
 	@Test
 	public void localVarRefersAnotherLVarWithPrefixSuffix() {
-		Map<String, String> localVars = new HashMap<String, String>(3);
+		Map<String, String> localVars = new HashMap<>(3);
 		localVars.put("lv1", "localVar1");
 		localVars.put("lv2", "$OO_LOCAL{lv1}");
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1266,7 +1266,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1304,7 +1304,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1345,7 +1345,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1386,7 +1386,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv2} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1428,7 +1428,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1468,7 +1468,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv1}");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1508,7 +1508,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("$OO_LOCAL{lv1} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1553,7 +1553,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1597,7 +1597,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1639,7 +1639,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1681,7 +1681,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix $OO_LOCAL{lv1} Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1723,7 +1723,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherGVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("$OO_LOCAL{lv1}/$OO_GLOBAL{gv1}/$OO_CLOUD{cv2}");
 		//cloudVar2 cloudVar2 cloudVar2
@@ -1764,7 +1764,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1793,7 +1793,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1822,7 +1822,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1851,7 +1851,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1880,7 +1880,7 @@ public class CmsUtilTest {
 		CmsCI ci = new CmsCI();
 		ci.setCiId(90);
 		ci.setCiName("localVarRefersAnotherLVar");
-		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<String, CmsCIAttribute>(2);
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
 		CmsCIAttribute attr4 = new CmsCIAttribute();
 		attr4.setDjValue("Prefix$OO_LOCAL{lv2}Suffix");
 		attributes.put("localVarRefersAnotherLVar", attr4);
@@ -1906,6 +1906,41 @@ public class CmsUtilTest {
 
 	}
 
+
+	@Test(expectedExceptions = {CIValidationException.class},expectedExceptionsMessageRegExp=".* variable syntax.*")
+	public void localVarRefersAnotherLVarInvalidSyntax() {
+		Map<String, String> localVars = new HashMap<>(3);
+		localVars.put("lv1", "localVar1");
+		localVars.put("lv2", "$OO_LOCAL{lv1}");
+		CmsCI ci = new CmsCI();
+		ci.setCiId(90);
+		ci.setCiName("localVarRefersAnotherLVar");
+		Map<String, CmsCIAttribute> attributes = new LinkedHashMap<>(2);
+		CmsCIAttribute attr4 = new CmsCIAttribute();
+		attr4.setDjValue("$OO_LOCAL{lv2");
+		attributes.put("localVarRefersAnotherLVar", attr4);
+		ci.setAttributes(attributes);
+		Map<String, CmsCIAttribute> attributesBefore = ci.getAttributes();
+		for (Map.Entry<String, CmsCIAttribute> e : attributesBefore.entrySet()) {
+			System.out.println("*- b4   |" + e.getKey() + "->" + e.getValue().getDjValue());
+		}
+		CmsUtil util = getCmsUtil();
+		dumpMaps(null, null, localVars);
+		dumpCmsCIAttributes(ci);
+		util.processAllVars(ci, null, null, localVars);
+		dumpCmsCIAttributes(ci);
+
+		for (Map.Entry<String, CmsCIAttribute> a : ci.getAttributes().entrySet()) {
+			String djKey = a.getKey();
+			String djAfter = a.getValue().getDjValue();
+			System.out.println("*after k>" + djKey + " v->" + djAfter);
+			if (djKey.equals("localVarRefersAnotherLVar")) {
+				assertEquals(djAfter, "localVar1");
+			}
+
+		}
+
+	}
 
 
 }
