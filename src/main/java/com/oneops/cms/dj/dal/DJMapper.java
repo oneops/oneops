@@ -115,8 +115,8 @@ public interface DJMapper {
     long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId, @Param("relationName") String relationName,
 			@Param("shortRelName") String shortRelName, @Param("rfcId") long rfcId);
 	List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam);
-
+	List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam);
+	List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam);
     List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath, @Param("fromReleaseId") Long fromReleaseId, @Param ("toReleaseId") Long toReleaseId);
-
 	List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath, @Param("fromReleaseId") Long fromReleaseId, @Param ("toReleaseId") Long toReleaseId);
 }
