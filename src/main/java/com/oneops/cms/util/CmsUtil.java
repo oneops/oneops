@@ -45,6 +45,8 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static com.oneops.cms.util.CmsError.*;
+
 /**
  * The Class CmsUtil.
  */
@@ -64,6 +66,7 @@ public class CmsUtil {
     private static final String GLOBALVARRPL = "\\$OO_GLOBAL\\{";
     private static final String LOCALVARRPL = "\\$OO_LOCAL\\{";
     private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
+    private static final String VARSUFFIX ="}";
     private static final String ATTR_PROP_OWNER = "owner";
     private static final String MASK = "##############";
     private static final String DJ_ATTR = "dj";
@@ -1005,7 +1008,7 @@ public class CmsUtil {
         //create varContext once
         VariableContext vContext = new VariableContext(ci.getCiId(), ci.getCiName(), ci.getNsPath(), cloudVars, globalVars, localVars);
 
-        ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
+        ExceptionConsolidator ec = CIValidationException.consolidator(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
         for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
             ec.invokeChecked(() ->
             {
@@ -1041,7 +1044,7 @@ public class CmsUtil {
             } catch (GeneralSecurityException e) {
                 logger.error("Error in decrypting attr: " + variableContext.getAttrName());
                 throw new CIValidationException(
-                        CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
+                        TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
                         getErrorMessage(variableContext.getCiName(), variableContext.getNsPath(), variableContext.getAttrName(), "", "", ""));
             }
             isEncrypted = true;
@@ -1066,7 +1069,7 @@ public class CmsUtil {
                     } catch (GeneralSecurityException | IOException e) {
                         logger.error("Error in encrypting the var " + variableContext.getAttrName(), e);
                         throw new CIValidationException(
-                                CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
+                                TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
                                 "Error in attribute value for  " + variableContext.getAttrName());
                     }
 
@@ -1084,7 +1087,16 @@ public class CmsUtil {
         String variableToResolve;
         List<String> varStructures = splitAttrValue(attrValue, localvarpfx);
         for (String varStructure : varStructures) {
+            if (isVarSuffixMissing(varStructure)) {
+                throw new CIValidationException(
+                        TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
+                        "Please check the variable syntax  :" + getErrorMessage(variableContext,
+                                attrValue,
+                                StringUtils.isEmpty(varStructure) ? attrValue : varStructure,
+                                localvarpfx));
+            }
             variableToResolve = stripSymbolics(varStructure);
+
             resolvedValue = variableContext.get(variableToResolve, localvarpfx);
             if (resolvedValue == null) {
                 check4ValidVariable(variableContext, null, variableToResolve, localvarrpl);
@@ -1151,15 +1163,31 @@ public class CmsUtil {
     }
 
     private String getVar(VariableContext variableContext, String resolvedValue, List<String> list, String varPfx, String varRPl) {
+
+        if (isVarSuffixMissing(resolvedValue)) {
+            throw new CIValidationException(
+                    TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
+                    "Please check the variable syntax  :" + getErrorMessage(variableContext,
+                            resolvedValue,
+                            resolvedValue,
+                            varPfx));
+        }
+
         String varName = stripSymbolicsWithPrefix(resolvedValue, varPfx);
         if (list.contains(varName)) {
-            throw new CIValidationException(
-                    CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF,
-                    "Please check Variable declaration, there is a cyclic reference :" + getErrorMessage(variableContext, resolvedValue, varName, varPfx));
+            throw new CIValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF,
+                    "Please check Variable declaration, there is a cyclic reference :" + getErrorMessage(variableContext,
+                            resolvedValue,
+                            varName,
+                            varPfx));
         }
         resolvedValue = getResolved(variableContext, resolvedValue, varPfx, varRPl);
         list.add(varName);
         return resolvedValue;
+    }
+
+    private boolean isVarSuffixMissing(String resolvedValue) {
+        return indexOfVarSuffix(resolvedValue, 0) == -1;
     }
 
     private String getErrorMessage(VariableContext variableContext, String resolvedValue, String varName, String varPfx) {
@@ -1231,6 +1259,7 @@ public class CmsUtil {
             }
         }
         return elements;
+
     }
 
     /**
@@ -1262,9 +1291,9 @@ public class CmsUtil {
                 isLocalVar(resolvedValue)) {//substituion did not happen: bad.
             String errorMessage = getErrorMessage(ciName, nsPath, attrName, resolvedValue, varName, replPrefix).toString();
             logger.warn(errorMessage);
-            throw new CIValidationException(
-                    CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
+            throw new CIValidationException(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
                     errorMessage);
+
         }
     }
 
@@ -1319,12 +1348,17 @@ public class CmsUtil {
      * $OO_CLOUD{xyz} returned as xyz
      */
     private String stripSymbolics(String variableReference) {
-        return variableReference.substring(variableReference.indexOf("{") + 1, variableReference.indexOf("}"));
+        return variableReference.substring(variableReference.indexOf("{") + 1, indexOfVarSuffix(variableReference,0));
+
     }
 
     private String stripSymbolicsWithPrefix(String variableReference, String prefix) {
         int startIndex = variableReference.indexOf(prefix) + prefix.length();
-        return variableReference.substring(startIndex, variableReference.indexOf("}", startIndex));
+        return variableReference.substring(startIndex, indexOfVarSuffix(variableReference,startIndex));
+    }
+
+    private int indexOfVarSuffix(String variableReference, int startIndex) {
+        return variableReference.indexOf(VARSUFFIX,startIndex);
     }
 
     private CmsRfcCI newRfcVar(String name, String className, String value) {
@@ -1422,7 +1456,7 @@ public class CmsUtil {
     }
 
     private Map<String, String> getVarCiValuesMap(List<CmsCI> vars) {
-    	Map<String,String> varsMap = new HashMap<String, String>();
+    	Map<String,String> varsMap = new HashMap<>();
     	if (vars != null) {
 	    	for (CmsCI var : vars) {
 	    		if (var.getAttribute(VAR_SEC_ATTR_FLAG) != null &&"true".equals(var.getAttribute(VAR_SEC_ATTR_FLAG).getDfValue()))  {
