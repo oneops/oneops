@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -82,6 +83,7 @@ public interface CmsDjManager {
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId);
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, List<Long> Ids);
 	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, String state, Integer execOrder);
+	List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, Date newerThanTimestamp);
 	List<CmsDpmtRecord> getDpmtRecordRelations(long dpmtId);
 	List<CmsDpmtRecord> getDeploymentRecordByCiId(long ciId, String state);
 	CmsDpmtRecord getDpmtRecord(long dpmtRecordId);

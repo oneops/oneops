@@ -319,6 +319,21 @@
   	     order by rci.execution_order
 	 </select>
 
+	 <select id="getDeploymentRecordsUpdatedAfter" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId,
+				dr.deployment_id as deploymentId,
+				dr.rfc_id as rfcId,
+				drs.state_name as dpmtRecordState,
+				dr.comments,
+				dr.created,
+				dr.updated
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+			 and dr.state_id = drs.state_id
+			 and dr.rfc_id = rci.rfc_id
+	  	     and dr.updated > #{timestamp}
+	 </select>
+
 	 <select id="getDeploymentRecordsCountByState" parameterType="map" useCache="false" resultType="long">
 		select  count(1) 
 		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci

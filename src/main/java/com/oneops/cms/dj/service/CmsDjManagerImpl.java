@@ -18,6 +18,7 @@
 package com.oneops.cms.dj.service;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -405,6 +406,11 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	}
 
 	@Override
+	public List<CmsDpmtRecord> getDpmtRecordCis(long dpmtId, Date newerThanTimestamp) {
+		return dpmtProcessor.getDeploymentRecordsUpdatedAfter(dpmtId, newerThanTimestamp);
+	}
+
+	@Override
 	public List<CmsDpmtRecord> getDeploymentRecordByCiId(long ciId, String state) {
 		return dpmtProcessor.getDeploymentRecordByCiId(ciId, state);
 	}
@@ -476,7 +482,7 @@ public class CmsDjManagerImpl implements CmsDjManager {
 		boolean onlyRelease = "release".equalsIgnoreCase(queryParam.getType());
 		boolean onlyDpmt = "deployment".equalsIgnoreCase(queryParam.getType());
 
-		List<TimelineDeployment> deployments = null;
+		List<TimelineDeployment> deployments;
 		if (!onlyRelease) {
 			deployments = dpmtProcessor.getDeploymentsByFilter(queryParam);
 		}
@@ -484,7 +490,7 @@ public class CmsDjManagerImpl implements CmsDjManager {
 			deployments = Collections.emptyList();
 		}
 
-		List<TimelineRelease> manifestReleases = null;
+		List<TimelineRelease> manifestReleases;
 		if (!onlyDpmt) {
 			List<Long> reqdReleaseIds = Collections.emptyList();
 			Long endRelId = null;

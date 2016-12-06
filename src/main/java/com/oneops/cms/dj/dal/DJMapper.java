@@ -117,4 +117,6 @@ public interface DJMapper {
 	List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam);
 	List<TimelineRelease> getReleaseWithOnlyRelationsByFilter(TimelineQueryParam queryParam);
 	List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam);
+    List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath, @Param("fromReleaseId") Long fromReleaseId, @Param ("toReleaseId") Long toReleaseId);
+	List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath, @Param("fromReleaseId") Long fromReleaseId, @Param ("toReleaseId") Long toReleaseId);
 }
