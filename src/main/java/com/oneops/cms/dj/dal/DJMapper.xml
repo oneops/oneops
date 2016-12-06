@@ -1455,76 +1455,152 @@
 		  </if>
 	 </select>
 
-	 <select id="getReleaseWithOnlyRelationsByFilter" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineRelease">
-	 	select r.release_id as releaseId,
-			r.ns_id as nsId,
-			r.parent_release_id as parentReleaseId,
-			ns.ns_path as nsPath,
-			r.release_name as releaseName,
-			r.created_by as createdBy,
-			r.commited_by as commitedBy,
-			r.release_state_id as releaseStateId,
-			rs.state_name as releaseState,
-			r.release_type as releaseType,
-			r.description,
-			r.revision,
-			r.created,
-			r.updated
-		from dj_releases r, ns_namespaces ns, dj_release_states rs
-		where r.release_id in (
-				select distinct rfc.release_id
-				from dj_rfc_relation rfc, cm_ci from_ci, md_classes from_md, cm_ci to_ci, md_classes to_md, ns_namespaces ns
-				where rfc.ns_id = ns.ns_id
-				  and ns.ns_path like #{manifestNsLike}
-				  and rfc.from_ci_id = from_ci.ci_id
-				  and from_ci.class_id = from_md.class_id
-				  and rfc.to_ci_id = to_ci.ci_id
-				  and to_ci.class_id = to_md.class_id
-				  <if test="excludeReleaseList != null &amp;&amp; !excludeReleaseList.isEmpty()">
-				    and rfc.release_id not in <foreach item="item" index="index" collection="excludeReleaseList" open="(" close=")" separator=", ">#{item}</foreach> 
-				  </if>
-				  and (
-				    (#{wildcardFilter}::varchar is null or from_ci.ci_name like #{wildcardFilter} or to_ci.ci_name like #{wildcardFilter})
-				    or
-				    (#{manifestClassFilter}::varchar is null or lower(from_md.class_name) like lower(#{manifestClassFilter}) or lower(to_md.class_name) like lower(#{manifestClassFilter}))
-				    or
-				    (#{manifestNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{manifestNsLikeWithFilter}))
-				  )
-				  and (#{releaseOffset}::bigint is null or rfc.release_id ${order.aboveOperator} #{releaseOffset})
-				  and (#{endRelId}::bigint is null or rfc.release_id ${order.belowOperator}= #{endRelId})
-				  order by rfc.release_id ${order.sort}
-				  <if test="endRelId == null">
-				    limit coalesce(#{limit},10)
-				  </if>
-		  )
-		  and r.ns_id = ns.ns_id
-		  and r.release_state_id = rs.release_state_id
-	 </select>
 
-	 <select id="getReleaseByNsPath" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineRelease">
-	 	select r.release_id as releaseId,
-			r.ns_id as nsId,
-			r.parent_release_id as parentReleaseId,
-			ns.ns_path as nsPath,
-			r.release_name as releaseName,
-			r.created_by as createdBy,
-			r.commited_by as commitedBy,
-			r.release_state_id as releaseStateId,
-			rs.state_name as releaseState,
-			r.release_type as releaseType,
-			r.description,
-			r.revision,
-			r.created,
-			r.updated
-		from dj_releases r, ns_namespaces ns, dj_release_states rs
-		where r.ns_id = ns.ns_id
-		  and ns.ns_path like #{manifestNsLike}
-		  and r.release_state_id = rs.release_state_id
-		  and (#{releaseOffset}::bigint is null or r.release_id ${order.aboveOperator} #{releaseOffset})
-		  and (#{endRelId}::bigint is null or r.release_id ${order.belowOperator}= #{endRelId})
-		order by r.release_id ${order.sort}
-		<if test="endRelId == null">
-		  limit coalesce(#{limit},10)
-		</if>
-	 </select>
+	<select id="getRfcCIsAppliedBetweenTwoReleases" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns1.ns_path as nsPath,  
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName, 
+			cl.impl as impl,
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    r.release_type as releaseType,
+		    rci.comments,
+		    rci.created_by as createdBy,
+		    rci.updated_by as updatedBy, 
+		    rci.created_by as rfcCreatedBy,
+		    rci.updated_by as rfcUpdatedBy, 
+		    rci.created as rfcCreated,
+		    rci.updated as rfcUpdated,
+		    rci.created,
+		    rci.updated
+        FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_release_states rs, ns_namespaces ns1
+        where r.release_id &gt; #{fromReleaseId} 
+          AND r.release_id &lt;= #{toReleaseId}
+          and rci.release_id = r.release_id
+          and rci.is_active_in_release = 'true'
+          and rci.ns_id = ns1.ns_id
+          and r.ns_id = ns.ns_id
+          and ns.ns_path = #{nsPath}
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+          and r.release_state_id = rs.release_state_id
+		  and rs.state_name ='closed'
+          order by rci.release_id, rci.rfc_id
+	</select>
+
+	<select id="getRfcRelationsAppliedBetweenTwoReleases" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
+		SELECT rfr.rfc_id as rfcId,
+		rfr.release_id as releaseId,
+		rfr.ns_id as nsId,
+		ns1.ns_path as nsPath,
+		rfr.ci_relation_id as ciRelationId,
+		rfr.from_rfc_id as fromRfcId,
+		rfr.from_ci_id as fromCiId,
+		rfr.relation_id as relationId,
+		rel.relation_name as relationName,
+		rfr.relation_goid as relationGoid,
+		rfr.to_ci_id as toCiId,
+		rfr.to_rfc_id as toRfcId,
+		rfr.action_id as rfcActionId,
+		a.action_name as rfcAction,
+		rfr.execution_order as execOrder,
+		rfr.created_by as createdBy,
+		rfr.updated_by as updatedBy,
+		rfr.created_by as rfcCreatedBy,
+		rfr.updated_by as rfcUpdatedBy,
+		rfr.created as rfcCreated,
+		rfr.updated as rfcUpdated,
+		rfr.is_active_in_release as isActiveInRelease,
+		rfr.last_rfc_id as lastAppliedRfcId,
+		r.release_type as releaseType,
+		rfr.comments,
+		rfr.created,
+		rfr.updated
+		FROM dj_rfc_relation rfr, md_relations rel, dj_rfc_ci_actions a, ns_namespaces ns, dj_releases r, dj_release_states rs, ns_namespaces ns1
+		where r.release_id &gt; #{fromReleaseId} 
+        AND r.release_id &lt;= #{toReleaseId}
+		and rfr.release_id = r.release_id
+		and rfr.is_active_in_release = 'true'
+		and rfr.relation_id = rel.relation_id
+		and rfr.action_id = a.action_id
+		and rfr.ns_id = ns1.ns_id
+		and r.ns_id = ns.ns_id
+        and ns.ns_path = #{nsPath}
+		and r.release_state_id = rs.release_state_id
+		and rs.state_name ='closed'
+        order by rfr.release_id, rfr.rfc_id
+	</select>
+
+	<insert id="createAltNs" parameterType="map" statementType="CALLABLE">
+		{call dj_create_alt_namespace(#{nsId}, #{tag}, #{rfcId})}
+	</insert>
+
+
+	<delete id="deleteAltNs" parameterType="long" statementType="CALLABLE">
+		{call dj_delete_alt_namespace(#{nsId}, #{rfcId})}
+	</delete>
+
+
+
+	<select id="getRfcCIByAltNsAndTag" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+		rci.rfc_id as rfcId,
+		rci.release_id as releaseId,
+		rci.ci_id as ciId,
+		rci.ns_id as nsId,
+		ns.ns_path as nsPath,
+		rci.class_id as ciClassId,
+		cl.class_name as ciClassName,
+		cl.impl as impl,
+		rci.ci_name as ciName,
+		rci.ci_goid as ciGoid,
+		rci.action_id as rfcActionId,
+		a.action_name as rfcAction,
+		rci.execution_order as execOrder,
+		rci.is_active_in_release as isActiveInRelease,
+		rci.last_rfc_id lastAppliedRfcId,
+		r.release_type as releaseType,
+		rci.comments,
+		rci.created_by as createdBy,
+		rci.updated_by as updatedBy,
+		rci.created_by as rfcCreatedBy,
+		rci.updated_by as rfcUpdatedBy,
+		rci.created as rfcCreated,
+		rci.updated as rfcUpdated,
+		rci.created,
+		rci.updated
+		FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_ns_opt dno, ns_namespaces ns1, ns_opt_tag nt
+		where rci.release_id = r.release_id
+		and (#{tag}::varchar is null or nt.tag = #{tag})
+		and (#{nsPath}::varchar is null or ns1.ns_path = #{nsPath})
+		and (#{isActive}::boolean is null or rci.is_active_in_release = #{isActive})
+		and (#{releaseId}::bigint is null or rci.release_id = #{releaseId})
+        and (#{ciId}::bigint is null or rci.ci_id = #{ciId})
+		and rci.ns_id = ns.ns_id
+		and rci.class_id = cl.class_id
+		and rci.action_id = a.action_id
+		and ns1.ns_id = dno.ns_id
+		and dno.rfc_id = rci.rfc_id
+		and dno.tag_id = nt.tag_id
+	</select>
+	
+	<select  id="getAltNsBy" parameterType="long" useCache="false" resultType="com.oneops.cms.cm.domain.CmsAltNs">
+		SELECT ns.ns_path as nsPath,
+		  nt.tag,
+		  ns.ns_id as nsId
+		FROM ns_namespaces ns, dj_ns_opt dno, ns_opt_tag nt
+		where ns.ns_id = dno.ns_id
+		and dno.tag_id = nt.tag_id
+		and dno.rfc_id = #{rfcId}
+	</select>
 </mapper>

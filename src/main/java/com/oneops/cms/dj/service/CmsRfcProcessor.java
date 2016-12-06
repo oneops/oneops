@@ -25,6 +25,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -35,14 +37,6 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
-import com.oneops.cms.dj.domain.TimelineRelease;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAction;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcLink;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsManager;
@@ -1847,5 +1841,46 @@ public class CmsRfcProcessor {
 	private List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
 		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.MANIFEST));
 		return djMapper.getReleaseByNsPath(queryParam);
+	}
+
+	public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	public List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
+		List<CmsRfcRelation> relList = djMapper.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+		populateRfcRelationAttributes(relList);
+		return relList;
+		
+	}
+
+	public void createAltNs(CmsAltNs cmsAltNs, CmsRfcCI rfcCi) {
+		
+		CmsNamespace ns = null;
+		if (cmsAltNs.getNsId() != 0) {
+			ns = nsManager.getNsById(cmsAltNs.getNsId());
+		} else {
+			ns = nsManager.getNs(cmsAltNs.getNsPath());
+		}
+		if (ns ==null){
+			ns = new CmsNamespace();
+			ns.setNsPath(cmsAltNs.getNsPath());
+			ns = nsManager.createNs(ns);
+		}
+		djMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), rfcCi.getRfcId());
+	}
+
+	public List<CmsAltNs> getAltNsBy(long rfcCI){
+		return djMapper.getAltNsBy(rfcCI);
+	}
+
+	public List<CmsRfcCI> getRfcCIByAltNsAndTag(String nsPath, String tag, Long releaseId, boolean active, Long ciId) {
+		return djMapper.getRfcCIByAltNsAndTag(nsPath, tag, releaseId, active, ciId);
+	}
+
+	public void deleteAltNs(long nsId, long rfcId) {
+		djMapper.deleteAltNs(nsId, rfcId);
 	}
 }

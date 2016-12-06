@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -502,4 +503,20 @@ public class CmsCmManagerImpl implements CmsCmManager {
 		return cmProcessor.getCmSimpleVar(varName);
 	}
 
+	@Override
+	public void deleteAltNs(long nsId, long ciId) {
+		cmProcessor.deleteAltNs(nsId, ciId);
+	}
+
+	public void createAltNs(CmsAltNs cmsAltNs, CmsCI ci) {
+		cmProcessor.createAltNs(cmsAltNs, ci);
+	}
+
+	public List<CmsAltNs> getAltNsBy(long ciId){
+		return cmProcessor.getAltNsBy(ciId);
+	}
+
+	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag){
+		return cmProcessor.getCmCIByAltNsAndTag(nsPath, tag);
+	}
 }
