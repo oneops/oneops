@@ -1066,7 +1066,7 @@ public class CmsUtil {
         String variableToResolve;
         List<String> varStructures = splitAttrValue(attrValue, localvarpfx);
         for (String varStructure : varStructures) {
-            if (hasValidVarSuffix(varStructure)) {
+            if (isVarSuffixMissing(varStructure)) {
                 throw new CIValidationException(
                         TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
                         "Please check the variable syntax  :" + getErrorMessage(variableContext,
@@ -1143,7 +1143,7 @@ public class CmsUtil {
 
     private String getVar(VariableContext variableContext, String resolvedValue, List<String> list, String varPfx, String varRPl) {
 
-        if (hasValidVarSuffix(resolvedValue)) {
+        if (isVarSuffixMissing(resolvedValue)) {
             throw new CIValidationException(
                     TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,
                     "Please check the variable syntax  :" + getErrorMessage(variableContext,
@@ -1165,7 +1165,7 @@ public class CmsUtil {
         return resolvedValue;
     }
 
-    private boolean hasValidVarSuffix(String resolvedValue) {
+    private boolean isVarSuffixMissing(String resolvedValue) {
         return indexOfVarSuffix(resolvedValue, 0) == -1;
     }
 
