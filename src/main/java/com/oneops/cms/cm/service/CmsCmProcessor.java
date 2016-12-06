@@ -25,12 +25,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.oneops.cms.cm.domain.*;
-import com.oneops.cms.dj.domain.CmsRfcCI;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.cm.domain.CmsLink;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.md.domain.CmsClazz;
@@ -2007,35 +2010,5 @@ public class CmsCmProcessor {
 	    newRel.setCreatedBy(createdBy);
 		return newRel;
 	}
-
-
-	public void createAltNs(CmsAltNs cmsAltNs, CmsCI ci) {
-
-		CmsNamespace ns = null;
-		if (cmsAltNs.getNsId() != 0) {
-			ns = nsManager.getNsById(cmsAltNs.getNsId());
-		} else {
-			ns = nsManager.getNs(cmsAltNs.getNsPath());
-		}
-		if (ns ==null){
-			ns = new CmsNamespace();
-			ns.setNsPath(cmsAltNs.getNsPath());
-			ns = nsManager.createNs(ns);
-		}
-		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ci.getCiId());
-	}
-
-	public List<CmsAltNs> getAltNsBy(long rfcCI){
-		return ciMapper.getAltNsBy(rfcCI);
-	}
-
-	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag) {
-		return ciMapper.getCmCIByAltNsAndTag(nsPath, tag);
-	}
-
-	public void deleteAltNs(long nsId, long ciId) {
-		ciMapper.deleteAltNs(nsId, ciId);
-	}
-
 
 }
