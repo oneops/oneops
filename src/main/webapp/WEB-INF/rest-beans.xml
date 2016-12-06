@@ -63,6 +63,7 @@
         <property name="baProcessor" ref="baProcessor"/>
         <property name="maProcessor" ref="maProcessor"/>
         <property name="util" ref="cmsUtil"/>
+        <property name="snapshotManager" ref="snapshotManager"/>
     </bean>
 
     <bean id="catalogRestController" class="com.oneops.transistor.ws.rest.CatalogRestController">

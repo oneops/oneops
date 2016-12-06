@@ -159,9 +159,27 @@
 		<property name="djValidator" ref="cmsDjValidator" />
 		<property name="trUtil" ref="trUtil" />
 	</bean>
+	
 	<bean id="cloudUtil" class="com.oneops.transistor.util.CloudUtil">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
+	</bean>
+
+	<bean id="snapshotManager" class="com.oneops.transistor.service.SnapshotManagerImpl">
+		<property name="snapshotProcessor" ref="snapshotProcessor"/>
+	</bean>
+
+	<bean id="snapshotProcessor" class="com.oneops.transistor.service.SnapshotProcessor">
+		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
+		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
+		<property name="cmProcessor" ref="cmsCmProcessor"/>
+		<property name="replayProcessor" ref="replayProcessor"/>
+	</bean>
+
+	<bean id="replayProcessor" class="com.oneops.transistor.service.ReplayProcessor">
+		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
+		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
+		<property name="cmProcessor" ref="cmsCmProcessor"/>
 	</bean>
 
 </beans>
