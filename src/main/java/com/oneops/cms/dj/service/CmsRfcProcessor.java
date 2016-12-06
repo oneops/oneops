@@ -1848,4 +1848,17 @@ public class CmsRfcProcessor {
 		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.MANIFEST));
 		return djMapper.getReleaseByNsPath(queryParam);
 	}
+
+	public List<CmsRfcCI> getRfcCIsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
+		List<CmsRfcCI> rfcList = djMapper.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+		populateRfcCIAttributes(rfcList);
+		return rfcList;
+	}
+
+	public List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(String nsPath, Long fromReleaseId, Long toReleaseId) {
+		List<CmsRfcRelation> relList = djMapper.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+		populateRfcRelationAttributes(relList);
+		return relList;
+		
+	}
 }

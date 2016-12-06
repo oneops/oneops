@@ -24,7 +24,7 @@ import java.util.Map;
 /**
  * The Class CmsRfcCI.
  */
-public class CmsRfcCI extends CmsRfcCIBasic  implements Serializable{
+public class CmsRfcCI extends CmsRfcCIBasic  implements CmsRfcContainer {
 
 	private static final long serialVersionUID = 1L;
 
@@ -32,7 +32,7 @@ public class CmsRfcCI extends CmsRfcCIBasic  implements Serializable{
 	private int ciClassId;
 	private int rfcActionId;
 	private String releaseNsPath;
-	private Map<String,CmsRfcAttribute> attributes = new HashMap<String,CmsRfcAttribute>();
+	private Map<String,CmsRfcAttribute> attributes = new HashMap<>();
 	
 	/**
 	 * Gets the release ns path.
@@ -121,7 +121,8 @@ public class CmsRfcCI extends CmsRfcCIBasic  implements Serializable{
 	 *
 	 * @param attributes the attributes
 	 */
-	public void setAttributes(Map<String,CmsRfcAttribute> attributes) {
+	@Override
+	public void setAttributes(Map<String, CmsRfcAttribute> attributes) {
 		this.attributes = attributes;
 	}
 	
@@ -130,6 +131,7 @@ public class CmsRfcCI extends CmsRfcCIBasic  implements Serializable{
 	 *
 	 * @return the attributes
 	 */
+	@Override
 	public Map<String,CmsRfcAttribute> getAttributes() {
 		return attributes;
 	}
@@ -139,6 +141,7 @@ public class CmsRfcCI extends CmsRfcCIBasic  implements Serializable{
 	 *
 	 * @param attribute the attribute
 	 */
+	@Override
 	public void addAttribute(CmsRfcAttribute attribute) {
 		this.attributes.put(attribute.getAttributeName(), attribute);
 	}
