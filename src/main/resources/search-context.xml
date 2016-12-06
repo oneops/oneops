@@ -27,8 +27,9 @@
         <property name="systemPropertiesMode" value="2"/>
         <property name="locations">
                 <list>
-                	 <value>classpath:listener.properties</value>	
-                     <value>classpath:es/elasticsearch.properties</value>
+                	<value>classpath:listener.properties</value>
+                    <value>classpath:search.properties</value>
+                    <value>classpath:es/elasticsearch.properties</value>
                 </list>
         </property>
     </bean>
@@ -99,8 +100,7 @@
     </bean>
 
     <context:component-scan base-package="com.oneops.search" />
-
-
+    
     
 	<bean id="esMessageProcessor" class="com.oneops.search.msg.processor.es.ESMessageProcessor"/>
 	
