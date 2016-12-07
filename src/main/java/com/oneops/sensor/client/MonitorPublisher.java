@@ -48,6 +48,7 @@ public class MonitorPublisher {
 
 	public final static String MONITOR_ACTION_UPDATE = "update";
 	public final static String MONITOR_ACTION_DELETE = "delete";
+	public final static String MONITOR_ACTION_REPLACE_INSTANCE = "replaceBom";
 	
 	private Connection connection = null;
 	private Session session = null; 
@@ -121,10 +122,14 @@ public class MonitorPublisher {
 			MonitorRequest mr = new MonitorRequest();
 			mr.setCiId(ciId);
 			mr.setManifestId(manifestId);
+			String rfcAction = woSimple.getRfcCi().getRfcAction();
 			
-			if (woSimple.getRfcCi().getRfcAction().equals("add") || 
-				woSimple.getRfcCi().getRfcAction().equals("update") ||
-				woSimple.getRfcCi().getRfcAction().equals("replace") ) {
+			if (woSimple.getResultCi() == null && "replace".equals(rfcAction)) {
+				mr.setAction(MONITOR_ACTION_REPLACE_INSTANCE);
+			}
+			else if (rfcAction.equals("add") ||
+					rfcAction.equals("update") ||
+					rfcAction.equals("replace") ) {
     			
 				if (woSimple.getPayLoad().get("Environment") != null 
     				&& woSimple.getPayLoad().get("Environment").get(0).getCiAttributes().get("monitoring") != null
@@ -141,11 +146,11 @@ public class MonitorPublisher {
 				} else {
 					mr.setMonitors(new ArrayList<CmsRfcCISimple>());
 				}
-				publishMonitor(mr);
 			} else if (woSimple.getRfcCi().getRfcAction().equals("delete")){
 				mr.setAction(MONITOR_ACTION_DELETE);
-				publishMonitor(mr);
 			}
+			publishMonitor(mr);
+
 		}
 	}   
     
