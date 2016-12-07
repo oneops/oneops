@@ -29,6 +29,7 @@ import java.util.SortedMap;
 import java.util.StringJoiner;
 import java.util.TreeMap;
 
+import com.oneops.cms.cm.domain.CmsCIBasic;
 import com.oneops.transistor.util.CloudUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -50,10 +51,10 @@ import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
 import static com.oneops.cms.util.CmsConstants.PRIMARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsConstants.SECONDARY_CLOUD_STATUS;
 import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
-import static com.oneops.cms.util.CmsError.TRANSISTOR_MISSING_ENTRY_POINT;
 import static java.lang.System.getProperty;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 public class BomManagerImpl implements BomManager {
 
@@ -68,6 +69,7 @@ public class BomManagerImpl implements BomManager {
 	private CloudUtil cloudUtil;
 
 	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
+	private static final boolean check4Services = Boolean.valueOf(getProperty("transistor.checkServices", "true"));
 
 	public void setCloudUtil(CloudUtil cloudUtil) {
 		this.cloudUtil = cloudUtil;
@@ -185,10 +187,10 @@ public class BomManagerImpl implements BomManager {
 		
 		long globalStartTime = System.currentTimeMillis();
 		CmsCI env = cmProcessor.getCiById(envId);
-		logger.info(manifestNs + " >>> Starting processing environemt " + env.getCiName());
+		logger.info(manifestNs + " >>> Starting processing environment " + env.getCiName());
 		List<CmsCIRelation> platRels = cmProcessor.getFromCIRelations(envId, null, "ComposedOf", "manifest.Platform");
 		
-		Set<Long> disabledPlats = new HashSet<Long>();
+		Set<Long> disabledPlats = new HashSet<>();
 		for (CmsCIRelation comOf : platRels) {
 			if (comOf.getAttribute("enabled") != null 
 				&& comOf.getAttribute("enabled").getDjValue().equalsIgnoreCase("false")) {
@@ -198,13 +200,16 @@ public class BomManagerImpl implements BomManager {
 
 		Map<Integer, List<CmsCI>> platsToProcess = getOrderedPlatforms(platRels, disabledPlats);
 
+		if (check4Services)
+			cloudUtil.check4missingServices(getPlatformIds(platsToProcess));
+
 		int maxOrder = 0;
 		for (Integer order : platsToProcess.keySet()) {
 			maxOrder = (order > maxOrder) ? order : maxOrder;
 		}
 		
 		int startingExecOrder = 1;
-		
+
 		for (int i = 1; i<=maxOrder ; i++) {
 			if (platsToProcess.containsKey(i)) {
 				startingExecOrder = (startingExecOrder >1 ) ? startingExecOrder+1 : startingExecOrder;
@@ -269,6 +274,14 @@ public class BomManagerImpl implements BomManager {
 		return startingExecOrder;
 	}
 
+	private Set<Long> getPlatformIds(Map<Integer, List<CmsCI>> platsToProcess) {
+		return platsToProcess.entrySet()
+				.stream()
+				.flatMap(e -> e.getValue().stream())
+				.map(CmsCIBasic::getCiId)
+				.collect(toSet());
+	}
+
 	private String getNspath(String nsPath, CmsCI plat) {
 		StringJoiner nSjoiner = new StringJoiner("/");
         nSjoiner.add(nsPath).add(plat.getCiName()).add(plat.getAttribute("major_version").getDjValue());
@@ -281,7 +294,10 @@ public class BomManagerImpl implements BomManager {
 				.filter(cloudUtil::isCloudActive)
 				.collect(toMap(CmsCIRelationBasic::getToCiId,this::getPriority,(i,j)->i));
 		//are there any secondary clouds for deployment
-		long numberOfSecondaryClouds = intendedCloudpriority.entrySet().stream().filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS))).count();
+		long numberOfSecondaryClouds = intendedCloudpriority.entrySet()
+				.stream()
+				.filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS)))
+				.count();
 		if (numberOfSecondaryClouds == 0) {
 			return;
 		}
@@ -297,9 +313,13 @@ public class BomManagerImpl implements BomManager {
 
 		Map<Long, Integer> existingCloudPriority = platformCloudRels.stream()
 				.map(CmsCIRelationBasic::getToCiId)
-				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId, CmsConstants.DEPLOYED_TO, null, entryPoint, finalNsPath).stream())
+				.flatMap(cloudId -> cmProcessor.getToCIRelationsByNs(cloudId,
+						CmsConstants.DEPLOYED_TO,
+						null,
+						entryPoint,
+						finalNsPath).stream())
 				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> {
-					return Math.max(i,j);
+					return Math.max(i, j);
 				}));
 
 		HashMap<Long, Integer> computedCloudPriority = new HashMap<>(existingCloudPriority);
@@ -308,7 +328,7 @@ public class BomManagerImpl implements BomManager {
 		//Now, take  all offline clouds from
 		Map<Long, Integer> offlineClouds = platformCloudRels.stream()
 				.filter(cloudUtil::isCloudOffline)
-				.collect(toMap(CmsCIRelationBasic::getToCiId,this::getPriority,(i,j)->i));
+				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> i));
 		if(!offlineClouds.isEmpty()){
 			offlineClouds.forEach((k,v)->{
 				if(computedCloudPriority.containsKey(k)){
@@ -335,7 +355,6 @@ public class BomManagerImpl implements BomManager {
 
 			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
-		return;
 	}
 
 	private String getEntryPoint(CmsCI platform) {
@@ -361,7 +380,7 @@ public class BomManagerImpl implements BomManager {
 		
 		List<CmsCIRelation> platRels = cmProcessor.getFromCIRelations(envId, null, "ComposedOf", "manifest.Platform");
 		
-		Set<Long> disabledPlats = new HashSet<Long>();
+		Set<Long> disabledPlats = new HashSet<>();
 		for (CmsCIRelation comOf : platRels) {
 			disabledPlats.add(comOf.getToCiId());
 		}
@@ -418,7 +437,7 @@ public class BomManagerImpl implements BomManager {
 	
 	private SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> getOrderedClouds(List<CmsCIRelation> cloudRels, boolean reverse) {
 		
-		SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> result = reverse ? 
+		SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> result = reverse ?
 					new TreeMap<Integer, SortedMap<Integer, List<CmsCIRelation>>>(Collections.reverseOrder())
 					: new TreeMap<Integer, SortedMap<Integer, List<CmsCIRelation>>>();
 		
@@ -473,8 +492,8 @@ public class BomManagerImpl implements BomManager {
 	
 	private Map<Integer, List<CmsCI>> getOrderedPlatforms(List<CmsCIRelation> platRels, Set<Long> disabledPlats) {
 
-		Map<Long, Integer> plat2ExecOrderMap = new HashMap<Long, Integer>();
-		Map<Long, CmsCI> plats = new HashMap<Long, CmsCI>();
+		Map<Long, Integer> plat2ExecOrderMap = new HashMap<>();
+		Map<Long, CmsCI> plats = new HashMap<>();
 		for (CmsCIRelation platRel : platRels) {
 			plats.put(platRel.getToCiId(), platRel.getToCi());
 			List<CmsCIRelation> linksToRels = cmProcessor.getFromCIRelationsNaked(platRel.getToCiId(), "manifest.LinksTo", "manifest.Platform");
@@ -493,16 +512,16 @@ public class BomManagerImpl implements BomManager {
 			}
 		}
 		
-		Map<Integer, List<CmsCI>> ExecOrder2PlatMap = new HashMap<Integer, List<CmsCI>>();
+		Map<Integer, List<CmsCI>> execOrder2PlatMap = new HashMap<>();
 
 		for (long platId : plat2ExecOrderMap.keySet()) {
-			if (!ExecOrder2PlatMap.containsKey(plat2ExecOrderMap.get(platId))) {
-				ExecOrder2PlatMap.put(plat2ExecOrderMap.get(platId), new ArrayList<CmsCI>());
+			if (!execOrder2PlatMap.containsKey(plat2ExecOrderMap.get(platId))) {
+				execOrder2PlatMap.put(plat2ExecOrderMap.get(platId), new ArrayList<>());
 			}
-			ExecOrder2PlatMap.get(plat2ExecOrderMap.get(platId)).add(plats.get(platId));
+			execOrder2PlatMap.get(plat2ExecOrderMap.get(platId)).add(plats.get(platId));
 		}
 		
-		return ExecOrder2PlatMap;
+		return execOrder2PlatMap;
 	}
 	
 	private int getMaxPlatExecOrder(Map<Long, Integer> platMap) {
