@@ -1,165 +1,186 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+ ">
 
-    <!-- import mybatis staff  -->
+	<!-- import mybatis staff  -->
     <import resource="mybatis-beans.xml"/>
 
-    <bean id="expEval" class="com.oneops.transistor.util.ExpEvaluator"/>
+	<bean id="expEval" class="com.oneops.transistor.util.ExpEvaluator"/>
+	
+	<!--bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
 
-    <!--bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
-       <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil"/-->
+	<bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil"/-->
 
-    <bean id="trUtil" class="com.oneops.transistor.service.TransUtil">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="nsManager" ref="cmsNsManager"/>
-        <property name="expEval" ref="expEval"/>
-        <property name="mdProcessor" ref="cmsMdProcessor"/>
-        <property name="cmsUtil" ref="cmsUtil"/>
+	<bean id="trUtil" class="com.oneops.transistor.service.TransUtil">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="nsManager" ref="cmsNsManager" />
+        <property name="expEval" ref="expEval" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="cmsUtil" ref="cmsUtil" />
+    </bean>
+    
+    <bean id="manifestExecutor" class="java.util.concurrent.Executors" 
+      factory-method="newFixedThreadPool" destroy-method="shutdown">
+    	<constructor-arg value="${MANIFEST_EXEC_POOL_CNT:100}"/>
+	</bean>
+
+	<bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcBulkProcessor">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="djValidator" ref="cmsDjValidator" />
+        <property name="trUtil" ref="trUtil" />
+        <property name="rfcUtil" ref="rfcUtil" />
+		<property name="cloudUtil" ref="cloudUtil" />
+    </bean>
+    
+
+	<bean id="designRfcProcessor" class="com.oneops.transistor.service.DesignRfcProcessor">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="trUtil" ref="trUtil" />
     </bean>
 
-    <bean id="manifestExecutor" class="java.util.concurrent.Executors"
-          factory-method="newFixedThreadPool" destroy-method="shutdown">
-        <constructor-arg value="${MANIFEST_EXEC_POOL_CNT:100}"/>
-    </bean>
-
-    <bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcBulkProcessor">
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="mdProcessor" ref="cmsMdProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="djValidator" ref="cmsDjValidator"/>
-        <property name="trUtil" ref="trUtil"/>
-        <property name="rfcUtil" ref="rfcUtil"/>
-        <property name="cloudUtil" ref="cloudUtil"/>
-    </bean>
-
-
-    <bean id="designRfcProcessor" class="com.oneops.transistor.service.DesignRfcProcessor">
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="mdProcessor" ref="cmsMdProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-    </bean>
-
-    <bean id="designExpProcessor" class="com.oneops.transistor.service.DesignExportProcessor">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="designRfcProcessor" ref="designRfcProcessor"/>
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-        <property name="ciMapper" ref="ciMapper"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-    </bean>
-
-
-    <bean id="catalogProcessor" class="com.oneops.transistor.service.CatalogProcessor">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-    </bean>
-
-    <bean id="manifestManager" class="com.oneops.transistor.service.ManifestManagerImpl">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="manifestRfcProcessor" ref="manifestRfcProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="executorService" ref="manifestExecutor"/>
-        <!--15 mins-->
-        <property name="timeoutInMilliSeconds" value="${MANIFEST_MAX_TIME_LIMIT_IN_MILLIS:  #{ T(Integer).valueOf(15*60*1000) } }"/>
-        <property name="cloudUtil" ref="cloudUtil"/>
-    </bean>
-
-    <bean id="dManager" class="com.oneops.transistor.service.DesignManagerImpl">
-        <property name="designRfcProcessor" ref="designRfcProcessor"/>
-        <property name="designExpProcessor" ref="designExpProcessor"/>
-        <property name="catalogProcessor" ref="catalogProcessor"/>
-        <property name="packRefreshProcessor" ref="packRefreshProcessor"/>
-    </bean>
-
-    <bean id="iaasManager" class="com.oneops.transistor.service.IaasManagerImpl">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="manifestRfcProcessor" ref="manifestRfcProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
+	<bean id="designExpProcessor" class="com.oneops.transistor.service.DesignExportProcessor">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="designRfcProcessor" ref="designRfcProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="trUtil" ref="trUtil" />
+		<property name="ciMapper" ref="ciMapper" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
     </bean>
 
 
-    <bean id="bomRfcProcessor" class="com.oneops.transistor.service.BomRfcBulkProcessor">
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="mdProcessor" ref="cmsMdProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-        <property name="djValidator" ref="cmsDjValidator"/>
-        <property name="cmsUtil" ref="cmsUtil"/>
+	<bean id="catalogProcessor" class="com.oneops.transistor.service.CatalogProcessor">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="trUtil" ref="trUtil" />
     </bean>
 
-    <bean id="bomManager" class="com.oneops.transistor.service.BomManagerImpl">
-        <property name="bomRfcProcessor" ref="bomRfcProcessor"/>
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-        <property name="dpmtProcessor" ref="cmsDpmtProcessor"/>
-        <property name="cmsUtil" ref="cmsUtil"/>
-        <property name="cloudUtil" ref="cloudUtil"/>
+	<bean id="manifestManager" class="com.oneops.transistor.service.ManifestManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="manifestRfcProcessor" ref="manifestRfcProcessor" />
+        <property name="trUtil" ref="trUtil" />
+        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+        <property name="executorService" ref="manifestExecutor" />
+		<!--15 mins-->
+		<property name="timeoutInMilliSeconds" value="${MANIFEST_MAX_TIME_LIMIT_IN_MILLIS:  #{ T(Integer).valueOf(15*60*1000) } }" />
+		<property name="cloudUtil" ref="cloudUtil" ></property>
     </bean>
 
-    <bean id="flexManager" class="com.oneops.transistor.service.FlexManagerImpl">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="trUtil" ref="trUtil"/>
-        <property name="bomRfcProcessor" ref="bomRfcProcessor"/>
-        <property name="dpmtProcessor" ref="cmsDpmtProcessor"/>
-        <property name="bomManager" ref="bomManager"/>
-        <property name="cmsUtil" ref="cmsUtil"/>
+	<bean id="dManager" class="com.oneops.transistor.service.DesignManagerImpl">
+		<property name="designRfcProcessor" ref="designRfcProcessor" />
+		<property name="designExpProcessor" ref="designExpProcessor" />
+		<property name="catalogProcessor" ref="catalogProcessor" />
+		<property name="packRefreshProcessor" ref="packRefreshProcessor" />
     </bean>
 
-    <bean id="envManager" class="com.oneops.transistor.service.BomEnvManagerImpl">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="nsManager" ref="cmsNsManager"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="dpmtProcessor" ref="cmsDpmtProcessor"/>
-        <property name="bomManager" ref="bomManager"/>
+	<bean id="iaasManager" class="com.oneops.transistor.service.IaasManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+        <property name="manifestRfcProcessor" ref="manifestRfcProcessor" />
+        <property name="trUtil" ref="trUtil" />
+    </bean>
+
+
+	<bean id="bomRfcProcessor" class="com.oneops.transistor.service.BomRfcBulkProcessor">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="trUtil" ref="trUtil" />
+        <property name="djValidator" ref="cmsDjValidator" />
+        <property name="cmsUtil" ref="cmsUtil" />
+    </bean>
+
+	<bean id="bomManager" class="com.oneops.transistor.service.BomManagerImpl">
+		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="trUtil" ref="trUtil" />
+		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
+		<property name="cmsUtil" ref="cmsUtil" />
+		<property name="cloudUtil" ref="cloudUtil" />
+    </bean>
+
+	<bean id="flexManager" class="com.oneops.transistor.service.FlexManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="trUtil" ref="trUtil" />
+		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
+		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
+		<property name="bomManager" ref="bomManager"/>
+		<property name="cmsUtil" ref="cmsUtil" />
+    </bean>
+
+	<bean id="envManager" class="com.oneops.transistor.service.BomEnvManagerImpl">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="nsManager" ref="cmsNsManager" />
+        <property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="dpmtProcessor" ref="cmsDpmtProcessor" />
+		<property name="bomManager" ref="bomManager" />
 
     </bean>
 
-    <bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">
-        <property name="cmManager" ref="cmsCmManager"/>
-        <property name="cmUtilProcessor" ref="uProcessor"/>
-        <property name="envTimeOutInSeconds" value="${envLockTimeOutInSeconds: 10 }"/>
+	<bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">
+        <property name="cmManager" ref="cmsCmManager" />
+		<property name="cmUtilProcessor" ref="uProcessor" />
+		<property name="envTimeOutInSeconds" value="${envLockTimeOutInSeconds: 10 }"/>
+	</bean>
+
+	<bean id="uProcessor" class="com.oneops.cms.util.service.CmsUtilProcessor">
+		<property name="utilMapper" ref="utilMapper" />
+	</bean>
+
+
+	<bean id="baProcessor" class="com.oneops.transistor.service.BomAsyncProcessor" >
+		<property name="bomManager" ref="bomManager" />
+        <property name="envSemaphore" ref="envSemaphore" />
+	  	<property name="flexManager" ref="flexManager" />
     </bean>
 
-    <bean id="uProcessor" class="com.oneops.cms.util.service.CmsUtilProcessor">
-        <property name="utilMapper" ref="utilMapper"/>
+	<bean id="maProcessor" class="com.oneops.transistor.service.ManifestAsyncProcessor" >
+		<property name="manifestManager" ref="manifestManager" />
+        <property name="envSemaphore" ref="envSemaphore" />
     </bean>
 
-    <bean id="baProcessor" class="com.oneops.transistor.service.BomAsyncProcessor">
-        <property name="bomManager" ref="bomManager"/>
-        <property name="envSemaphore" ref="envSemaphore"/>
-        <property name="flexManager" ref="flexManager"/>
-    </bean>
+	<bean id="packRefreshProcessor" class="com.oneops.transistor.service.PackRefreshProcessor" >
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="djValidator" ref="cmsDjValidator" />
+		<property name="trUtil" ref="trUtil" />
+	</bean>
+	
+	<bean id="cloudUtil" class="com.oneops.transistor.util.CloudUtil">
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+	</bean>
 
-    <bean id="maProcessor" class="com.oneops.transistor.service.ManifestAsyncProcessor">
-        <property name="manifestManager" ref="manifestManager"/>
-        <property name="envSemaphore" ref="envSemaphore"/>
-    </bean>
+	<bean id="snapshotManager" class="com.oneops.transistor.service.SnapshotManagerImpl">
+		<property name="snapshotProcessor" ref="snapshotProcessor"/>
+	</bean>
 
-    <bean id="packRefreshProcessor" class="com.oneops.transistor.service.PackRefreshProcessor">
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="mdProcessor" ref="cmsMdProcessor"/>
-        <property name="rfcProcessor" ref="cmsRfcProcessor"/>
-        <property name="djValidator" ref="cmsDjValidator"/>
-        <property name="trUtil" ref="trUtil"/>
-    </bean>
+	<bean id="snapshotProcessor" class="com.oneops.transistor.service.SnapshotProcessor">
+		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
+		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
+		<property name="cmProcessor" ref="cmsCmProcessor"/>
+		<property name="replayProcessor" ref="replayProcessor"/>
+	</bean>
 
-    <bean id="cloudUtil" class="com.oneops.transistor.util.CloudUtil">
-        <property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
-        <property name="cmProcessor" ref="cmsCmProcessor"/>
-    </bean>
+	<bean id="replayProcessor" class="com.oneops.transistor.service.ReplayProcessor">
+		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
+		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
+		<property name="cmProcessor" ref="cmsCmProcessor"/>
+	</bean>
 
 </beans>
      

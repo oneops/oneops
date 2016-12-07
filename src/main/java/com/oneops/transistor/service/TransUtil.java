@@ -162,7 +162,7 @@ public class TransUtil {
 	}
 
 	
-	public CmsRfcCI cloneRfcCIBasic(CmsRfcCI rfcCi) {
+	public static CmsRfcCI cloneRfcCIBasic(CmsRfcCI rfcCi) {
 		
 		CmsRfcCI newRfc = new CmsRfcCI();
 		
@@ -184,7 +184,7 @@ public class TransUtil {
 		return newRfc;
 	}
 
-	public CmsRfcCI cloneRfc(CmsRfcCI rfcCi) {
+	public static CmsRfcCI cloneRfc(CmsRfcCI rfcCi) {
 		
 		CmsRfcCI newRfc = new CmsRfcCI();
 		
@@ -260,7 +260,7 @@ public class TransUtil {
 	}
 	
 	
-	public CmsRfcRelation cloneRfcRelationBasic(CmsRfcRelation baseRfc) {
+	public static CmsRfcRelation cloneRfcRelationBasic(CmsRfcRelation baseRfc) {
 
 		CmsRfcRelation newRfc = new CmsRfcRelation();
 		
@@ -281,7 +281,7 @@ public class TransUtil {
 	    return newRfc;
 	}
 
-	public CmsRfcRelation cloneRfcRelation(CmsRfcRelation baseRfc) {
+	public static CmsRfcRelation cloneRfcRelation(CmsRfcRelation baseRfc) {
 
 		CmsRfcRelation newRfc = new CmsRfcRelation();
 		
