@@ -147,6 +147,11 @@ if node.platform =~ /windows/
 	content "c:/opt /opt"
 	only_if{File.directory?("C:/tools/DevKit2/etc")}
   end
+  
+  #Adding check_load for windows - in linux it's coming from nagios plugin, but for windows we write a simple bash script, that currently only returns 0s
+  cookbook_file "/opt/nagios/libexec/check_load" do
+	source "check_load"
+  end
 end
 
 #Create necessary directories
