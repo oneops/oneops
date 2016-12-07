@@ -46,6 +46,7 @@ import com.oneops.sensor.CiStateProcessor;
 import com.oneops.sensor.jms.OpsEventPublisher;
 import com.oneops.sensor.util.EventContext;
 import com.oneops.sensor.util.EventConverter;
+import com.oneops.sensor.util.ReplacedInstances;
 import com.oneops.sensor.util.SensorHeartBeat;
 
 /**
@@ -77,6 +78,7 @@ public class OpsEventListener implements UpdateListener {
     private CmsCmProcessor cmProcessor;
     private CiStateProcessor ciStateProcessor;
     private long hbChannelUpTimeout = 90;
+    private ReplacedInstances replacedInstances;
 
     public void init() {
         String chdelay = System.getProperty("com.oneops.sensor.channel.uptimedelay");
@@ -199,6 +201,11 @@ public class OpsEventListener implements UpdateListener {
 
                     // we need to set the state to notify
                     //event.setCiState("notify");
+                    continue;
+                }
+
+                if (replacedInstances.isReplaced(event.getCiId())) {
+                    logger.info("HEARTBEAT event for " + event.getCiId() + " ignored as this ci is getting replaced");
                     continue;
                 }
 
@@ -332,6 +339,10 @@ public class OpsEventListener implements UpdateListener {
 
 	public void setCiStateProcessor(CiStateProcessor ciStateProcessor) {
 		this.ciStateProcessor = ciStateProcessor;
+	}
+
+	public void setReplacedInstances(ReplacedInstances replacedInstances) {
+		this.replacedInstances = replacedInstances;
 	}
 
 }

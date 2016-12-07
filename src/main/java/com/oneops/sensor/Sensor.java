@@ -33,6 +33,8 @@ import com.oneops.sensor.exceptions.SensorException;
 import com.oneops.sensor.thresholds.Threshold;
 import com.oneops.sensor.thresholds.ThresholdsDao;
 import com.oneops.sensor.util.ChannelDownEvent;
+import com.oneops.sensor.util.ReplacedInstances;
+
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -87,7 +89,7 @@ public class Sensor {
     private Map<String, UpdateListener> listeners;
     private int minHeartbeatSeedDelay = 300;
     private int heartbeatRandomDelay = 30;
-
+    private ReplacedInstances replacedInstances;
 
     /**
      * Sets the statement builder
@@ -914,6 +916,17 @@ public class Sensor {
     	return (manifestId % poolSize) == instanceId;
     }
 
+    public void handleReplace(long ciId, long manifestId) {
+        if (loadedThresholds.containsKey(manifestId)) {
+            loadedThresholds.get(manifestId).entrySet().stream().
+            	filter(entry -> entry.getValue().isHeartbeat()).
+            	forEach(entry -> {
+                    opsEventDao.removeOpenEventForCi(ciId, entry.getKey());
+                    insertFakeEvent(ciId, manifestId, entry.getKey());
+                    });
+        }
+    }
+
     private class FakeEvent {
         long ciId;
         long manifestId;
@@ -930,5 +943,9 @@ public class Sensor {
 
 	public void setCiStateProcessor(CiStateProcessor ciStateProcessor) {
 		this.ciStateProcessor = ciStateProcessor;
+	}
+
+	public void setReplacedInstances(ReplacedInstances replacedInstances) {
+		this.replacedInstances = replacedInstances;
 	}
 }
