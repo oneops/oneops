@@ -31,6 +31,8 @@ import com.oneops.controller.domain.WoProcessRequest;
 import com.oneops.controller.domain.WoProcessResponse;
 import com.oneops.controller.jms.InductorPublisher;
 import com.oneops.controller.plugin.WoProcessor;
+import com.oneops.controller.sensor.SensorClient;
+import com.oneops.sensor.client.SensorClientException;
 
 /**
  * The Class WoDispatcher.
@@ -44,6 +46,7 @@ public class WoDispatcher {
 	private InductorPublisher inductorPublisher;
 	private WorkflowController wfController;
 	private CMSClient cmsClient;
+	private SensorClient sensorClient;
 	
 	private static String WAIT_STATE_NODE = "pwoWaitResponse";
 	private static String NR_OF_INSTANCES = "nrOfInstances";
@@ -158,6 +161,13 @@ public class WoDispatcher {
 			if (wo != null) {
 				cmsClient.updateWoState(exec, wo, CMSClient.INPROGRESS);
 				dispatchWO(exec, wo, WAIT_STATE_NODE);
+				if ("replace".equals(wo.getRfcCi().getRfcAction())) {
+					try {
+						sensorClient.processMonitors(wo);
+					} catch (SensorClientException e) {
+						logger.error("Error while sending replaced instance " + wo.getRfcCi().getCiId() + " to sensor ", e);
+					}
+				}
 			} else {
 				cmsClient.updateWoState(exec, dpmtRec, CMSClient.FAILED);
 				//this is really a hack I need to release the stack here for process to get to syncWait node, but I also need something to poke it
@@ -192,4 +202,8 @@ public class WoDispatcher {
 		wfController.checkSyncWait(exec.getProcessInstanceId(), exec.getId());
 	}	
 	*/
+
+	public void setSensorClient(SensorClient sensorClient) {
+		this.sensorClient = sensorClient;
+	}
 }
