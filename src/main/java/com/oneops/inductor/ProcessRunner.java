@@ -17,7 +17,6 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
-import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
@@ -30,7 +29,7 @@ import java.util.Map;
 
 public class ProcessRunner {
 
-	private static Logger logger = Logger.getLogger(ProcessRunner.class);
+	private static final Logger logger = Logger.getLogger(ProcessRunner.class);
 
 	private int timeoutInSeconds = 7200; // 2hr
 
@@ -51,32 +50,29 @@ public class ProcessRunner {
 	/**
 	 * Process retry over loaded method with shutdown cloud processing.
 	 *
-	 * @param wo          work order
-	 * @param cmd         command to execute
-	 * @param logKey      log key
-	 * @param max_retries max retry count
-	 * @return process result
+	 *
+	 * @param executionContext@return process result
 	 */
-	public ProcessResult executeProcessRetry(CmsWorkOrderSimpleBase wo, String[] cmd, String logKey, int max_retries, Config config) {
-
-		boolean shutdown = config.hasCloudShutdownFor(logKey, wo);
+	public ProcessResult executeProcessRetry(ExecutionContext executionContext) {
+		boolean shutdown = config.hasCloudShutdownFor(executionContext.getWo());
+		int maxRetries = executionContext.getRetryCount();
 		if (shutdown) {
 			// If the cloud is already shutdown, set max retry count to 0.
 			// This is to avoid unnecessary command retries for already
 			// decommissioned/deleted cloud resources.
-			max_retries = 0;
+			maxRetries =0;
 			// Reduce the rsync timeout (default is 10).
 			long timeout = config.getCmdTimeout();
-			for (int i = 0; i < cmd.length; i++) {
-				if (cmd[i].startsWith("--timeout=")) {
-					cmd[i] = "--timeout=" + timeout;
+			for (int i = 0; i < executionContext.getCmd().length; i++) {
+				if (executionContext.getCmd()[i].startsWith("--timeout=")) {
+					executionContext.getCmd()[i] = "--timeout=" + timeout;
 				}
 			}
 		}
-		ProcessResult result = executeProcessRetry(cmd, logKey, max_retries, InductorConstants.PRIVATE_IP);
+		ProcessResult result = executeProcessRetry(executionContext.getCmd(), executionContext.getLogKey(), maxRetries, InductorConstants.PRIVATE_IP);
 		// Mark the process execution result code to 0 for the shutdown.clouds.
 		if (shutdown) {
-			logger.warn(logKey + " ### Set the result code to 0 as the cloud resource for this component is already released.");
+			logger.warn(executionContext.getLogKey() + " ### Set the result code to 0 as the cloud resource for this component is already released.");
 			result.setResultCode(0);
 		}
 		return result;
@@ -95,15 +91,19 @@ public class ProcessRunner {
 		return executeProcessRetry(cmd, logKey, max_retries, InductorConstants.PRIVATE_IP);
 	}
 
-	/**
-	 * Execute the command and retry if it fails.
-	 *
-	 * @param cmd          command to execute
-	 * @param logKey       log key
-	 * @param max_retries  max retry count
-	 * @param ip_attribute ip address
-	 * @return process result
-	 */
+
+	public ProcessResult executeProcessRetry(String[] cmd, String logKey) {
+		return executeProcessRetry( cmd,  logKey, config.getRetryCount(), config.getIpAttribute());
+	}
+		/**
+         * Execute the command and retry if it fails.
+         *
+         * @param cmd          command to execute
+         * @param logKey       log key
+         * @param max_retries  max retry count
+         * @param ip_attribute ip address
+         * @return process result
+         */
 	public ProcessResult executeProcessRetry(String[] cmd, String logKey, int max_retries, String ip_attribute) {
 
 		int count = 0;

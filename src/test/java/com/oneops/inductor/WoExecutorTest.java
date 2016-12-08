@@ -20,6 +20,8 @@ package com.oneops.inductor;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -44,8 +46,14 @@ public class WoExecutorTest {
 		classes.add("cloud.compliance.Security");
 		classes.add("cloud.compliance.Dummy");
 		classes.add("cloud.compliance.Dummy");
+		CmsWorkOrderSimple wo = new CmsWorkOrderSimple();
+		wo.putPayLoadEntry(InductorConstants.EXTRA_RUN_LIST,getRfcCiForExtraRunList(classes));
+		CmsRfcCISimple rfci = new CmsRfcCISimple();
+		rfci.setRfcAction("add");
+		wo.setRfcCi(rfci);
 
-		List<String> runList = woExecutor.getExtraRunListClasses(getRfcCiForExtraRunList(classes), "add");
+		List<String> runList = woExecutor.getExtraRunListClasses(wo);
+
 		Assert.assertFalse(runList.isEmpty());
 		Assert.assertEquals(2, runList.size());
 
@@ -57,7 +65,9 @@ public class WoExecutorTest {
 		Assert.assertTrue(runList.contains(dummyRecipe));
 		
 		classes = null;
-		List<String> runList1 = woExecutor.getExtraRunListClasses(getRfcCiForExtraRunList(classes), "add");
+        wo.putPayLoadEntry(InductorConstants.EXTRA_RUN_LIST,getRfcCiForExtraRunList(classes));
+
+        List<String> runList1 = woExecutor.getExtraRunListClasses(wo);
 		Assert.assertTrue(runList1.isEmpty());
 	}
 	

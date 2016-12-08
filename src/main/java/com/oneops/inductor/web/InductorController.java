@@ -33,9 +33,7 @@ public class InductorController {
 	
 
 	public void init() {
-		
 		logger.info("inductor web controller : up");
-
 	}
 
 		

@@ -17,19 +17,33 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
+import com.oneops.cms.util.CmsConstants;
+
+import java.util.Collections;
+import java.util.List;
+
+import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
+
 public final class InductorConstants {
+
+	public static final String ERROR_RESPONSE_CODE = "500";
+	public static final String OK_RESPONSE_CODE = "200";
+	public static final String MONITOR = "monitor";
+	public static final String LOG = "log";
+	public static final String ATTACHMENT = "attachment";
+	public static final String BEFORE_ATTACHMENT = "before_";
+	public static final String AFTER_ATTACHMENT = "after_";
+
 	private InductorConstants() {
 	} // Prevents instantiation
 
 	public static final String WORK_ORDER_TYPE = "deploybom";
 	public static final String ACTION_ORDER_TYPE = "opsprocedure";
 
-	public static final String MANAGED_VIA = "ManagedVia";
 	public static final String ENVIRONMENT = "Environment";
 	public static final String ORGANIZATION = "Organization";
 	public static final String KEYPAIR = "Keypair";
-	public static final String SECURED_BY = "SecuredBy";
-	public static final String SERVICED_BY = "ServicedBy";
+
 	public static final String WATCHED_BY = "WatchedBy";
 	public static final String LOGGED_BY = "LoggedBy";
 	public static final String EXTRA_RUN_LIST = "ExtraRunList";
@@ -56,4 +70,7 @@ public final class InductorConstants {
 	public static final String TEST_HOST = "inductor-test-host";
 
 	public static final String ONEOPS_USER = "oneops";
+
+	protected static final List<String> SEARCH_TS_FORMATS = Collections.singletonList(SEARCH_TS_PATTERN);
+
 }
