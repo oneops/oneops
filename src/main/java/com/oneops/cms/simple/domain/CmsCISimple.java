@@ -31,8 +31,8 @@ public class CmsCISimple extends CmsCIBasic implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	private long nsId;
-	private Map<String,String> ciAttributes = new HashMap<String,String>();
-	private Map<String,Map<String,String>> attrProps = new HashMap<String,Map<String,String>>();
+	private Map<String,String> ciAttributes = new HashMap<>();
+	private Map<String,Map<String,String>> attrProps = new HashMap<>();
 	
 	
 	/**

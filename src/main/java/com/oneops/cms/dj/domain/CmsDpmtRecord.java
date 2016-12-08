@@ -168,5 +168,5 @@ public class CmsDpmtRecord implements Serializable {
 	public void setOps(String ops) {
 		this.ops = ops;
 	}
-	
+
 }
