@@ -25,6 +25,7 @@ import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.util.ReliableExecutor;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.commons.lang.StringUtils;
@@ -156,7 +157,7 @@ public class DeploymentNotifier {
                 return;
             }
 
-            if (!anchorCi.getCiClassName().startsWith(CMSClient.CLOUDSERVICEPREFIX)) {
+            if (!anchorCi.getCiClassName().startsWith(CmsConstants.CLOUDSERVICEPREFIX)) {
                 antennaClient.executeAsync(notify);
             }
         } catch (Exception e) {

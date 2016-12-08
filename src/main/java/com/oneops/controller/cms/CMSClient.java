@@ -84,7 +84,6 @@ public class CMSClient {
     public static final String FAILED = "failed";
     public static final String PAUSED = "paused";
     private static final String DPMT = "dpmt";
-    protected static final String CLOUDSERVICEPREFIX = "cloud.service";
 
     private RestTemplate restTemplate;
     @SuppressWarnings("unused")
