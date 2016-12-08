@@ -1,21 +1,32 @@
+run_on_event = 'after'
+action_name,class_name,attribute_to_look =get_attachment_context
+
 if node.workorder.payLoad.has_key?('EscortedBy') &&
-   node.workorder.rfcCi.ciClassName !~ /\.Compute/
-   
+    class_name !~ /\.Compute/
+
   attachments = node.workorder.payLoad.EscortedBy
+
   after = Array.new
   attachments.each do |a|
-    a[:ciAttributes][:run_on].split(",").each do |r|
-      after.push(a) if ["after-#{node.workorder.rfcCi.rfcAction}"].index(r)
+    if attribute_to_look =='run_on'
+      a[:ciAttributes][attribute_to_look].split(",").each do |r|
+        after.push(a) if ["#{run_on_event}-#{action_name}"].index(r)
+      end
+    else
+      run_on_actions = JSON.parse(a[:ciAttributes][attribute_to_look])
+      run_on_actions.each do |r|
+      after.push(a) if ["#{run_on_event}-#{action_name}"].index(r)
+      end
     end
-  end 
+  end
 
   after.sort_by { |a| a[:ciAttributes][:priority] }.each do |a|
-    
-    Chef::Log.info("Loading after-#{node.workorder.rfcCi.rfcAction} attachment #{a[:ciName]}") 
-    
+
+    Chef::Log.info("Loading after-#{action_name} attachment #{a[:ciName]}")
+
     _path = a[:ciAttributes][:path] or "/tmp/#{a[:ciName]}"
     _d = File.dirname(_path)
-    
+
     directory "#{_d}" do
       owner "root"
       group "root"
@@ -24,13 +35,13 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
       action :create
       not_if { File.directory?(_d) }
     end
-    
+
     _source = a[:ciAttributes][:source]
-    
+
     if _source.nil? || _source.empty?
-      
+
       _content = a[:ciAttributes][:content]
-      
+
       file "#{_path}" do
         content _content.gsub(/\r\n?/,"\n")
         owner "root"
@@ -38,15 +49,15 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
         mode "0755"
         action :create
       end
-      
+
     else
       _user = a[:ciAttributes][:basic_auth_user]
       _password = a[:ciAttributes][:basic_auth_password]
       _headers = a[:ciAttributes][:headers]
-      
+
       _headers = _headers.empty? ? Hash.new : JSON.parse(_headers)
       _checksum = a[:ciAttributes][:checksum] or nil
-      
+
       shared_download_http "#{_source}" do
         path _path
         checksum _checksum
@@ -57,7 +68,7 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
         action :create
         not_if do _source =~ /s3:\/\// end
       end
-      
+
       shared_s3_file "#{_source}" do
         source _source
         path _path
@@ -66,15 +77,15 @@ if node.workorder.payLoad.has_key?('EscortedBy') &&
         owner "root"
         group "root"
         mode 0644
-        action :create  
+        action :create
         only_if do _source =~ /s3:\/\// end
       end
-      
+
     end
 
     if a[:ciAttributes].has_key?("exec_cmd")
       _exec_cmd = a[:ciAttributes][:exec_cmd].gsub(/\r\n?/,"\n")
-      bash "execute after-#{node.workorder.rfcCi.rfcAction} #{a[:ciName]} attachment" do
+      bash "execute after-#{action_name} #{a[:ciName]} attachment" do
         code <<-EOH
           #{_exec_cmd}
         EOH
