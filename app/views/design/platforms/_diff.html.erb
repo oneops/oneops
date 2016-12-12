@@ -10,7 +10,7 @@
                                 :remote       => true,
                                 'data-toggle' => 'button',
                                 :class        => "btn btn-mini #{'active' if changes_only}")] %>
-<%= section_panel 'Differencies with Pack', :width => 'triple', :menu => menu do %>
+<%= section_panel 'Differences with Pack', :width => 'triple', :menu => menu do %>
   <%= render 'base/shared/ci_diff_list',
              :cis          => @diff,
              :owner        => 'design',

@@ -3,19 +3,6 @@ class Cms::ReleaseBom < Cms::Release
   self.element_name = 'release'
   self.primary_key  = :releaseId
 
-  def clouds(environment)
-    Cms::Relation.all(:params => {:ciId              => environment.ciId,
-                                  :direction         => 'from',
-                                  :relationShortName => 'Consumes',
-                                  :targetClassName   => 'account.Cloud'})
-  end
-
-  def platforms(environment)
-    Cms::DjRelation.all(:params => {:ciId              => environment.ciId,
-                                    :direction         => 'from',
-                                    :relationShortName => 'ComposedOf'})
-  end
-
   def bom
     Cms::DjCi.all(:params => {:nsPath => self.nsPath, :recursive => true})
   end

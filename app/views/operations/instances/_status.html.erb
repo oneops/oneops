@@ -36,7 +36,7 @@
               <%= icon('asterisk') %> Last component change in transition <%= highlight(@component.lastAppliedRfcId) %>
               <ul>
                 <li><%= icon('user') %> made by <strong><%= @component_rfc.rfcCreatedBy %></strong></li>
-                <li><%= icon('th-list') %> as part of environment release <strong><%= link_to(@component_release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@component_release.releaseId}")) %></strong></li>
+                <li><%= icon('th-list') %> as part of environment release <strong><%= link_to(@component_release.releaseId, path_to_release(@component_release)) %></strong></li>
                 <li><%= icon('clock-o') %> committed <strong><%= time_ago_in_words(@component_release.updated_timestamp) %></strong> by <strong><%= @component_release.commitedBy %></strong></li>
               </ul>
             </li>
@@ -45,7 +45,7 @@
             <%= icon('repeat') %> Last deployed change <%= highlight(@instance.lastAppliedRfcId) %>
             <ul>
               <li><%= icon('user') %> made by <strong><%= @instance_rfc.rfcCreatedBy %></strong></li>
-              <li><%= icon('th-list') %> as part of environment release <strong><%=  link_to(@release.releaseId, assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@release.releaseId}")) %></strong></li>
+              <li><%= icon('th-list') %> as part of environment release <strong><%=  link_to(@release.releaseId, path_to_release(@release)) %></strong></li>
               <li><%= icon('clock-o') %> deployed <strong><%= time_ago_in_words(@instance_rfc.rfc_updated_timestamp) %></strong></li>
             </ul>
           </li>

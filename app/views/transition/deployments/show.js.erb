@@ -1,1 +1,1 @@
-$j("#deployment_details").html('<%= escape_javascript(render('deployment_details')) %>')[0].scrollIntoView(false);
+$j("#<%= request.original_url.downcase.include?('timeline/') ? 'timeline' : 'deployment' %>_details").html('<%= escape_javascript(render('deployment_details')) %>')[0].scrollIntoView(false);

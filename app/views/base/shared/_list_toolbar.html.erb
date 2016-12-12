@@ -1,5 +1,6 @@
 <% sort_by   = toolbar[:sort_by]
-   filter_by = toolbar[:filter_by] %>
+   filter_by = toolbar[:filter_by]
+   quick_filters = toolbar[:quick_filters] %>
 <div class="list-toolbar <%= 'hide' if pagination %>" list-name="<%= toolbar[:list_name] || controller.class.to_s.gsub(/\W/, '_') %>" filters="<%= filter_by.join(',') if filter_by %>">
   <% if sort_by %>
     <div class="btn-group sort pull-left">
@@ -40,6 +41,17 @@
       <% end %>
       <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-medium search-query', :placeholder => 'type to filter...', (pagination ? :onchnage : :onkeyup) => "filter_changed(this, false)") %>
       <i class="fa fa-times-circle" onclick="filter_changed(this, true)"></i>
+    </div>
+  <% end %>
+  <% if quick_filters.present? %>
+    <div class="quick-filters">
+      <ul>
+        <% quick_filters.each do |qf| %>
+          <li class="<%= 'active' if qf[:selected] %>" data-filter-value="<%= qf[:value] %>">
+            <%= link_to_function(qf[:label], %(apply_list_quick_filter(this, "#{escape_javascript(qf[:value])}"))) %>
+          </li>
+        <% end %>
+      </ul>
     </div>
   <% end %>
 </div>
@@ -138,15 +150,27 @@
         filter_field.val("");
       }
 
+      var filterValue = filter_field.val();
       if (localStorage) {
         var prefix = LOCAL_STORAGE_KEY_PREFIX + el.up(".list-toolbar").getAttribute("list-name") + "_list_";
-        localStorage.setItem(prefix + "filter", filter_field.val());
+        localStorage.setItem(prefix + "filter", filterValue);
       }
 
       if (!listDiv.hasClass('list-paginated')) {
-        filter_list(listDiv.find(".list-body ul"), listDiv.find(".list-toolbar").attr("filters").split(","), filter_field.val());
+        filter_list(listDiv.find(".list-body ul"), listDiv.find(".list-toolbar").attr("filters").split(","), filterValue);
       }
       update_filter_marker(listDiv);
+
+      listDiv.find(".quick-filters li").toArray().forEach(function(e) {
+        var li = $j(e);
+        if (filterValue == li.attr('data-filter-value')) {
+          li.addClass('active');
+        }
+        else {
+          li.removeClass('active');
+        }
+      });
+
       listDiv.trigger('filterChanged');
     };
 
@@ -158,6 +182,7 @@
           filter_list(list.find(".list-body ul")[0], list.find(".list-toolbar").attr("filters").split(","), value);
         }
         update_filter_marker(list);
+
         list.trigger('filterChanged');
       }
     };
@@ -168,6 +193,14 @@
         fields: list.find(".list-toolbar").attr("filters").split(","),
         value:  list.find(".list-toolbar-filter").val()
       }
+    }
+
+    window.apply_list_quick_filter = function(source, value) {
+      source = $j(source);
+      var li = source.parents("li");
+      set_list_filter(source.parents(".list")[0], value);
+      li.siblings("li").removeClass('active');
+      li.addClass('active');
     }
   }
 
@@ -191,48 +224,58 @@
 
         var filter_field = list.find(".list-toolbar-filter");
         var filtersFields = list.find(".list-toolbar").attr("filters");
-        var taItems = filtersFields.split(",");
-        filter_field.typeahead({items: 15,
-                                source:  function (query, process) {
-                                  var split = query.split(/:|=/);
-                                  var val = split.length > 1 ? split[1] : split[0];
-                                  var items = taItems.map(function(i) {return i + "=" + val;});
-                                  items.unshift(val);
-                                  return items;
-                                },
-                                matcher: function (item) {
-                                  return true;
-                                },
-                                sorter: function(items) {
-                                  var query = this.query;
-                                  return items.sort(function(a, b) {
-                                    if (a == query){
-                                      return -1;
-                                    }
-                                    else if (b == query) {
-                                      return 1;
-                                    }
-                                    else {
-                                      return a.localeCompare(b);
-                                    }
-                                  });
-                                },
-                                highlighter: function (item) {
-                                  var split = item.split('=');
-                                  return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
-                                },
-                                updater: function (item) {
-                                  setTimeout(function () {
-                                    filter_changed(filter_field[0]);
-                                  }, 10);
-                                  return item;
-                                }});
-        var filter = localStorage.getItem(prefix + "filter");
-        if (filter) {
-//          filter_field.val(filter);
-//          filter_changed(filter_field[0]);
+        if (filtersFields) {
+          var taItems = filtersFields.split(",");
+          filter_field.typeahead({items: 15,
+                                  source:  function(query, process) {
+                                    var split = query.split(/:|=/);
+                                    var val = split.length > 1 ? split[1] : split[0];
+                                    var items = taItems.map(function(i) {return i + "=" + val;});
+                                    items.unshift(val);
+                                    return items;
+                                  },
+                                  matcher: function (item) {
+                                    return true;
+                                  },
+                                  sorter: function(items) {
+                                    var query = this.query;
+                                    return items.sort(function(a, b) {
+                                      if (a == query){
+                                        return -1;
+                                      }
+                                      else if (b == query) {
+                                        return 1;
+                                      }
+                                      else {
+                                        return a.localeCompare(b);
+                                      }
+                                    });
+                                  },
+                                  highlighter: function (item) {
+                                    var split = item.split('=');
+                                    return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
+                                  },
+                                  updater: function (item) {
+                                    setTimeout(function () {
+                                      filter_changed(filter_field[0]);
+                                    }, 10);
+                                    return item;
+                                  }});
+        }
+        else {
+          filter_field.on('keydown', function(event) {
+            if (event.keyCode == 13) {
+              filter_changed(filter_field[0]);
+            }
+          });
         }
       }
+      // Uncomment to reset last filter on reload.
+      //      var filter = localStorage.getItem(prefix + "filter");
+      //      if (filter) {
+      //          filter_field.val(filter);
+      //          filter_changed(filter_field[0]);
+      //      }
       update_filter_marker(list);
       if (list.find(".btn i.fa-angle-double-down").length) {
         list.find(".list-body > ul > li .middle").hide();

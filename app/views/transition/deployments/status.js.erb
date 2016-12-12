@@ -17,7 +17,7 @@ if (window.refresh_status_results) {
 }
 
 <% @deployment.log_data.each_pair do |record_id, log| %>
-  var rfcLogDiv = $j("div[deployment-record-id=<%= record_id %>]");
+  var rfcLogDiv = $j("li.rfc[data-deployment-record-id=<%= record_id %>]");
   var logUl = rfcLogDiv.find(".log-body ul.log");
   <% if log.present? %>
     logUl.html("<%= escape_javascript(render('cms/log_content', :log => log)) %>");
@@ -39,12 +39,13 @@ if (window.refresh_status_results) {
   <% end %>
   <% @time_stats[:rfcs].each_pair do |rfc_id, stats| %>
     <% if stats.present? %>
+      var rfcLi = $j("li.rfc[data-bom-rfc-id=<%= rfc_id %>]");
+
       <% rfc_time = stats['totalTime'].to_f * 1000 %>
       <% if rfc_time > 0 %>
-        $j("#rfc_<%= rfc_id %>_duration").html("<%= time_duration_in_words(rfc_time) %>");
+        rfcLi.find(".rfc-duration a").html("<%= time_duration_in_words(rfc_time) %>");
       <% end %>
-        $j("#time_stats_tab_<%= rfc_id %>").show();
-        $j("#time_stats_<%= rfc_id %>").html("<%= escape_javascript(hash_list(stats)) %>");
+      rfcLi.find(".tab-pane.rfc-stats").html("<%= escape_javascript(hash_list(stats)) %>");
     <% end %>
   <% end %>
 <% end %>

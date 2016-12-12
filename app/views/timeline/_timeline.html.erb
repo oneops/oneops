@@ -1,0 +1,8 @@
+<%= section_panel 'Releases & Deployments', :width => 'single', :position => 'left' do %>
+  <%= timeline_list([], :paginate => {:url  => @environment ?
+                                                 page_assembly_transition_environment_timeline_path(@assembly, @environment) :
+                                                 page_assembly_design_timeline_path(@assembly),
+                                        :size => 20}) %>
+<% end %>
+
+<div id="timeline_details"></div>

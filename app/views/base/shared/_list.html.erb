@@ -9,7 +9,7 @@
    new_link        = options[:new_link].presence
    new_link        = nil unless new_link.present? && dto_allowed? %>
 <div id="<%= list_id %>" class="<%= list_class %> <%= 'list-paginated' if pagination %>"
- <%= raw %(data-paginate-url="#{pagination[:url]}" data-paginate-size="#{pagination[:size]}" data-paginate-offset="0") if pagination %> >
+ <%= raw %(data-paginate-url="#{pagination[:url]}" data-paginate-size="#{pagination[:size]}" data-paginate-offset="") if pagination %> >
   <% if header || pagination %>
     <div class="list-header <%= 'hide' if pagination %>">
       <% if pagination %>
@@ -40,7 +40,7 @@
 
       <% if pagination %>
         <div class="paginate-footer">
-          <%= link_to_function("Load #{pagination[:size]} more", 'list_paginate(this, "add")', :class => 'btn load-next', :style => 'display:none') %>
+          <%= link_to_function("more", 'list_paginate(this, "add")', :class => 'btn load-next', :style => 'display:none') %>
           <%= link_to_function(icon('spinner', 'Loading...', 'fa-spin'), '', :class => 'btn disabled loading', :style => 'display:none') %>
         </div>
       <% end %>
@@ -156,7 +156,7 @@
 
     window.list_paginate = function(source, mode) {
       var listDiv = $j(source).closest('.list-paginated'),
-          offset  = parseInt(listDiv.attr('data-paginate-offset')),
+          offset  = listDiv.attr('data-paginate-offset'),
           size    = parseInt(listDiv.attr('data-paginate-size'));
 
       var refreshIcon = listDiv.find(".refresh i");
@@ -165,14 +165,8 @@
       }
       refreshIcon.addClass("fa-spin");
 
-      if (mode == 'refresh') {
-        if (offset > 0) {
-          size = offset;
-        }
-        offset = 0;
-      }
-      else if (mode == 'startover') {
-        offset = 0;
+      if (mode == 'refresh' || mode == 'startover') {
+        offset = "";
       }
 
       listDiv.find('.list-toolbar').find('input, a').prop('disabled', true);
@@ -217,18 +211,25 @@
       });
     };
 
-    window.list_paginate_update = function(list, content, total_count, content_offset, content_size) {
-      var showing_size = (content_offset + content_size);
+    window.list_paginate_update = function(list, content, total_count, content_size, offset, next_offset) {
       var listDiv = $j(list).closest('.list-paginated');
-      listDiv.attr('data-paginate-offset', content_offset + content_size);
-      listDiv.find(".list-body > ul > li:nth-child(n+" + (content_offset + 1) + ")").remove();
+      if (next_offset) {
+        listDiv.attr('data-paginate-offset', next_offset);
+        if (!offset) {
+          listDiv.find(".list-body > ul > li").remove();
+        }
+      }
+      else {
+        listDiv.attr('data-paginate-offset', offset + content_size);
+        listDiv.find(".list-body > ul > li:nth-child(n+" + (offset + 1) + ")").remove();
+      }
       listDiv.find(".list-body > ul").append(content);
-      listDiv.find('.paginate-header span.summary').html("Showing " + showing_size + " of " + total_count);
+      listDiv.find('.paginate-header span.summary').html("Showing " + list.find(".list-body > ul > li:visible").length + (total_count < 0 ? "" : " of " + total_count));
       listDiv.find('.list-header').show();
       listDiv.find('.list-toolbar').show();
       listDiv.find('.list-toolbar').find('input, a').prop('disabled', false);
       listDiv.find('.paginate-footer .btn.loading').hide();
-      if (showing_size < total_count) {
+      if (content_size >= parseInt(listDiv.attr('data-paginate-size'))) {
         listDiv.find('.paginate-footer .btn.load-next').show();
       }
       listDiv.find(".refresh i").removeClass("fa-spin");
@@ -244,7 +245,7 @@
   <% if toolbar %>
     list_toolbar_init(listDiv);
 
-  <% if pagination %>
+    <% if pagination %>
       if (listItemId) {
         set_list_filter(listDiv, listItemId)
       }

@@ -384,7 +384,6 @@ Display::Application.routes.draw do
           resources :releases, :only => [:show, :edit, :index] do
             get  'latest',  :on => :collection
             get  'bom',     :on => :collection
-            get  'diagram', :on => :member
             post 'discard', :on => :member
           end
 
@@ -398,6 +397,13 @@ Display::Application.routes.draw do
             resources :approvals, :only => [:index] do
               put 'settle', :on => :collection
             end
+          end
+
+          resource :timeline, :controller => '/timeline', :only => [:show] do
+            get 'page', :on => :member
+
+            resources :releases, :only => [:show]
+            resources :deployments, :only => [:show]
           end
         end
       end

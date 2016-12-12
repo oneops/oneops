@@ -32,7 +32,7 @@ development:
   # <<: *AUTHORIZATIONS
 
 shared:
-  host: <%= ENV['LDAP_HOST'] || 'honts0101.homeoffice.wal-mart.com' %>
+  host: <%= ENV['LDAP_HOST'] || 'honts0102.homeoffice.wal-mart.com' %>
   port: <%= ENV['LDAP_PORT'] || '3269' %>
   attribute: <%= ENV['LDAP_ATTRIBUTE'] || 'sAMAccountName' %>
   base: <%= ENV['LDAP_BASE'] || 'dc=wal-mart,dc=com' %>

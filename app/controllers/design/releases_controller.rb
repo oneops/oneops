@@ -25,8 +25,7 @@ class Design::ReleasesController < ApplicationController
   end
 
   def show
-    @release = Cms::Release.locate(params[:id], assembly_ns_path(@assembly))
-    render_json_ci_response(@release.present?, @release)
+    edit
   end
 
   def edit

@@ -21,10 +21,15 @@ class Daq < ActiveResource::Base
   end
 
   def self.logs(req_set)
-    result = {}
+    result = []
     if req_set.present?
       if Settings.log_data_source == 'es'
         result = Search::Log.find_by_request_ids(req_set.map {|e| e[:id]})
+      elsif Settings.log_data_source == 'fake'
+        result = req_set.map do |e|
+          {'id' => e[:id],
+           'logData' => [{'message' => "#{Time.now} - This is pretend log for id=#{e[:id]}"}] * (Time.now.sec + 1)}
+        end
       else
         begin
           content_type = headers['Content-Type']
