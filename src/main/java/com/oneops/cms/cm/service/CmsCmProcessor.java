@@ -943,15 +943,8 @@ public class CmsCmProcessor {
 	}
 
 	private List<CmsCIRelation> getFromCIRelationsLocal(long fromId, List<String> relationNames, List<String> shortRelNames) {
-
 		List<CmsCIRelation> relList = getFromCIRelationsNakedLocal(fromId, relationNames, shortRelNames);
-
 		populateRelCis(relList, false, true);
-		/*
-		for (CmsCIRelation rel : relList) {
-			rel.setToCi(getCiById(rel.getToCiId()));
-		}
-		*/
 		return relList;
 	}
 
