@@ -34,13 +34,7 @@
           Deployment <strong>failed</strong>
           <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
         </li>
-        <% problems = @deployment.rfc_cis.inject(@deployment.description.present? ? [@deployment.description] : []) do |p, ci|
-             p << ci.comments if ci.comments.present? && ci.dpmtRecordState == 'failed'
-             p
-           end %>
-        <% if problems.present? %>
-          <li><%= render 'deployment_problems', :problems => problems %></li>
-        <% end %>
+        <%= render 'deployment_problems' %>
       <% elsif @deployment.deploymentState == 'pending' && @pending_approvals.present? %>
          <%= render 'pending_approvals_info' %>
       <% end %>

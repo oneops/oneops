@@ -1,5 +1,25 @@
-$("rfc_<%= @deployment_ci.rfcId %>_tab_log")
-    .update("<%= escape_javascript(render('cms/log',
-    :log => @log_data,
-    :url => log_data_assembly_transition_environment_deployment_path(params[:assembly_id], params[:environment_id], params[:id], :rfcId => @deployment_ci.rfcId, :format => :text),
-    :refresh => "rfc_list_fetch_log(#{@deployment_ci.rfcId})")) %>");
+var logTab = $j("li.rfc[data-bom-rfc-id=<%= @deployment_ci.rfcId %>] .tab-pane.rfc-log"),
+    logUl = logTab.find("ul.log");
+if (logUl[0]) {
+  <% if @log_data.present? %>
+    logUl.html("<%= escape_javascript(render('cms/log_content', :log => @log_data)) %>");
+    if (window.log_auto_scroll) {
+      log_auto_scroll(logTab);
+      log_filter(logTab);
+    }
+  <% else %>
+    var html = logUl.find('li').html();
+    if (html && html.indexOf("Loading...") >= 0) {
+      logUl.html('');
+    }
+  <% end %>
+}
+else {
+  <% url = log_data_assembly_transition_environment_deployment_path(params[:assembly_id], params[:environment_id], params[:id], :rfcId => @deployment_ci.rfcId, :format => :text) %>
+  logTab.html("<%= escape_javascript(render('cms/log',
+                                            :log => @log_data,
+                                            :auto_scroll_toggle => true,
+                                            :url => url,
+                                            :refresh => %($j.get("#{url.gsub('.text', '')}")))) %>");
+  log_auto_scroll(logTab);
+}

@@ -1114,7 +1114,7 @@ class ApplicationController < ActionController::Base
   def path_to_release(release)
     root, org, assembly, env, manifest = release.nsPath.split('/')
     if env.present?
-      assembly_transition_environment_path(:org_name => org, :assembly_id => assembly, :id => env, :anchor => "releases/release_list/#{release.releaseId}")
+      assembly_transition_environment_path(:org_name => org, :assembly_id => assembly, :id => env, :anchor => "timeline/timeline_list/release_#{release.releaseId}")
     else
       assembly_design_path(:org_name => org, :assembly_id => assembly, :anchor => "releases/release_list/#{release.releaseId}")
     end
@@ -1122,7 +1122,7 @@ class ApplicationController < ActionController::Base
 
   def path_to_deployment(deployment)
     root, org, assembly, env, bom = deployment.nsPath.split('/')
-    assembly_transition_environment_path(:org_name => org, :assembly_id => assembly, :id => env, :anchor => "deployments/deployment_list/#{deployment.deploymentId}")
+    assembly_transition_environment_path(:org_name => org, :assembly_id => assembly, :id => env, :anchor => "timeline/timeline_list/deployment_#{deployment.deploymentId}")
   end
 
 

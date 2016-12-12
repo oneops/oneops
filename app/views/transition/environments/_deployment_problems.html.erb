@@ -1,13 +1,43 @@
-<div class="alert alert-danger">
-  <% problems.each_with_index do |problem, i| %>
-    <% if problem.size > 200 %>
-      <%= problem[0..200] %> <%= link_to_function(icon('ellipsis-h'), '$j(this).siblings("p").toggle(300)', :class => 'btn btn-mini') %>
-      <p class="hide">...<%= problem[201..-1] %></p>
-    <% else %>
-      <%= problem %>
-    <% end %>
-    <% unless i == problems.size - 1 %>
-      <hr>
-    <% end %>
-  <% end %>
-</div>
+<% problems = @deployment.rfc_cis.inject(@deployment.description.present? ? [{:text => @deployment.description}] : []) do |p, ci|
+     p << {:text => ci.comments, :url => log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment, :rfcId => ci.rfcId)} if ci.comments.present? && ci.dpmtRecordState == 'failed'
+     p
+   end %>
+<% if problems.present? %>
+  <li>
+    <% max_count = 5
+       max_length = 200 %>
+    <div class="alert alert-danger deployment-problems">
+      <% problems[0..max_count - 1].each do |problem| %>
+        <% text = problem[:text] %>
+        <div>
+          <% if text.size > max_length %>
+            <%= text[0..max_length - 1] %><%= link_to_function(content_tag(:b, '...'), '$j(this).hide().siblings("span").toggle(300)') %><span class="hide"><%= text[max_length..-1] %></span>
+          <% else %>
+            <%= text %>
+          <% end %>
+          <% if problem[:url] %>
+            &nbsp;&nbsp;&nbsp;<%= link_to(icon('external-link', 'Log'), problem[:url], :target => '_blank') %>
+          <% end %>
+        </div>
+      <% end %>
+      <% if problems.size > max_count %>
+        <%= link_to_function(content_tag(:b, '...'), '$j(this).hide().next().toggle(300)') %>
+        <div class="hide">
+          <% problems[max_count..-1].each do |problem| %>
+            <% text = problem[:text] %>
+            <div>
+              <% if text.size > max_length %>
+                <%= text[0..max_length - 1] %><%= link_to_function(content_tag(:b, '...'), '$j(this).hide().siblings("span").toggle(300)') %><span class="hide"><%= text[max_length..-1] %></span>
+              <% else %>
+                <%= text %>
+              <% end %>
+              <% if problem[:url] %>
+                &nbsp;&nbsp;&nbsp;<%= link_to(icon('external-link', 'Log'), problem[:url], :target => '_blank') %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </li>
+<% end %>

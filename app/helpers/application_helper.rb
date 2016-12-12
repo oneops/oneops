@@ -22,6 +22,7 @@ module ApplicationHelper
                 :cost                   => 'money',
                 :export                 => 'download',
                 :import                 => 'upload',
+                :timeline               => 'clock-o',
                 :history                => 'history'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
@@ -407,6 +408,23 @@ module ApplicationHelper
     raw ListItemBuilder.build_list_item_content(deployment_collection, self, options.merge(:item_partial => 'base/shared/deployment_list_item'), &block)
   end
 
+  def timeline_list(timeline_collection, options = {}, &block)
+    options[:toolbar] = nil if timeline_collection.blank? && options[:paginate].blank?
+    options.reverse_merge!({:class   => 'list-timeline',
+                            :toolbar => {:list_name     => 'timeline_list',
+                                         :sort_by       => [%w(Created created)],
+                                         :filter_by     => %w(),
+                                         :quick_filters => [{:label => 'All', :value => '', :selected => true},
+                                                            {:label => 'Releases', :value => 'type=release'},
+                                                            {:label => 'Deployments', :value => 'type=deployment'}]}})
+    render(:partial => 'base/shared/list',
+           :locals  => {:list_content => render_timeline_list_content(timeline_collection, options, &block), :options => options})
+  end
+
+  def render_timeline_list_content(timeline_collection, options = {}, &block)
+    raw ListItemBuilder.build_list_item_content(timeline_collection, self, options.merge(:item_partial => 'base/shared/timeline_list_item'), &block)
+  end
+
   def notification_list(notification_collection, options = {}, &block)
     if notification_collection
       options[:toolbar] = nil if notification_collection.blank? && options[:paginate].blank?
@@ -494,8 +512,9 @@ module ApplicationHelper
 
   def list_paginate_update(list_id, data, template)
     info    = data.info
+    next_offset = info[:next_offset]
     content = escape_javascript(render(template))
-    raw("list_paginate_update($j('##{list_id}'), \"#{content}\", #{info[:total] || 0}, #{info[:offset] || 0}, #{data.size || 0})")
+    raw("list_paginate_update($j('##{list_id}'), \"#{content}\", #{info[:total] || -1}, #{data.size}, #{info[:offset] || 0}#{",\"#{next_offset}\"" if next_offset})")
   end
 
   def link_confirm_busy(link_text, options)
@@ -980,7 +999,7 @@ module ApplicationHelper
         icon = 'check'
         text = 'text-success'
       when 'open'
-        icon = 'folder-open'
+        icon = 'circle-o'
         text = 'text-info'
       when 'canceled'
         icon = 'ban'
@@ -1067,27 +1086,6 @@ module ApplicationHelper
     content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end
 
-  def rfc_header(rfc, options)
-    state            = options[:state]
-    duration         = options[:duration]
-    deployment_state = options[:deployment_state]
-    result   = ''
-    result << rfc_action_icon(rfc.rfcAction, 'fa-lg')
-    result << '&nbsp;&nbsp;'
-    result << %(#{highlight(rfc.nsPath.gsub(/(\/_design\/)|(\/manifest\/)|\/bom\//, '/').split('/')[3..-1].join('/'))}&nbsp;&nbsp;#{rfc.ciClassName.split('.').last} )
-    result << '&nbsp;&nbsp;'
-    if deployment_state && deployment_state == 'complete' && rfc.rfcAction == 'delete'
-      result << %(<strong>#{rfc.ciName}</strong>)
-    else
-      result << %(<strong>#{link_to(rfc.ciName, path_to_ci(rfc), :onclick => "if (!event.ctrlKey && !event.shiftKey && !event.metaKey) show_busy(' '); event.stopPropagation()")}</strong>)
-    end
-    result << '<span class="pull-right">'
-    result <<   %(<small id="rfc_<%= rfc.rfcId %>_duration">#{time_duration_in_words(duration) if duration && duration > 0 }</small>)
-    result <<   %(<span class="rfc-state">#{rfc_state_icon(state)}</span>) if state
-    result << '</span>'
-    raw(result)
-  end
-
   def rfc_properties(rfc)
     result = '<dl class="dl-horizontal">'
     result << '<dt>RfcId</dt>'
@@ -1121,12 +1119,14 @@ module ApplicationHelper
   end
 
   def rfc_attributes(rfc)
+    base_attrs = rfc.is_a?(Cms::RfcCi) ? rfc.ciBaseAttributes.attributes : rfc.relationBaseAttributes.attributes
     result = '<dl class="dl-horizontal">'
     (rfc.is_a?(Cms::RfcCi) ? rfc.ciAttributes : rfc.relationAttributes).attributes.each do |attr_name, attr_value|
       md_attribute = rfc.meta.md_attribute(attr_name)
       description = md_attribute.description.presence || attr_name
       data_type   = md_attribute.dataType
       json        = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+      base_value  = base_attrs[attr_name]
       if json && attr_value.present?
         begin
           attr_value = JSON.parse(attr_value)
@@ -1139,8 +1139,9 @@ module ApplicationHelper
       if attr_value.blank?
         result << '&nbsp;'
       else
-        result << %(<pre>#{json && attr_value.present? ? JSON.pretty_unparse(attr_value) : attr_value}</pre>)
+        result << %(<pre class="changed">#{json && attr_value.present? ? JSON.pretty_unparse(attr_value) : attr_value}</pre>)
       end
+      result << %(<pre class="original hide">#{json && base_value.present? ? JSON.pretty_unparse(base_value) : base_value}</pre>)
       result << '</dd>'
     end
     result << '</dl>'

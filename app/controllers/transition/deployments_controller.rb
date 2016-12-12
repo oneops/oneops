@@ -110,6 +110,8 @@
         load_time_stats
         load_state_history
         load_approvals
+        load_clouds
+        load_platforms
 
         render :action => :show
       end
@@ -306,15 +308,11 @@
 
   def load_bom_release_data
     load_deployment_states
+    load_clouds
+    load_platforms
 
-    @clouds  = @release.clouds(@environment).inject({}) { |h, r| h[r.toCiId] = r.toCi; h }
     @rfc_cis = @release.rfc_cis
 
-    @platforms = @release.platforms(@environment).inject({}) do |h, c|
-      platform = c.toCi
-      h["#{platform.ciName}/#{platform.ciAttributes.major_version}"] = platform
-      h
-    end
     load_ops_state_data
   end
 
@@ -328,5 +326,21 @@
 
   def load_approvals
     @approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId})
+  end
+
+  def load_clouds
+    @clouds = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
+                                            :direction         => 'from',
+                                            :relationShortName => 'Consumes',
+                                            :targetClassName   => 'account.Cloud'}).to_map_with_value {|r| [r.toCiId, r.toCi]}
+  end
+
+  def load_platforms
+    @platforms = Cms::DjRelation.all(:params => {:ciId              => @environment.ciId,
+                                                 :direction         => 'from',
+                                                 :relationShortName => 'ComposedOf'}).to_map_with_value do |r|
+      platform = r.toCi
+      ["#{platform.ciName}/#{platform.ciAttributes.major_version}", platform]
+    end
   end
 end

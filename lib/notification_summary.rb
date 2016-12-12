@@ -4,7 +4,7 @@ module NotificationSummary
 
   def notifications
     @ns_path = "#{search_ns_path}/"
-    @notifications = Search::Notification.find_by_ns(@ns_path, :size => 50, :_silent => true)
+    @notifications = Search::Notification.find_by_ns(@ns_path, :size => (params[:size] || 50).to_i, :_silent => true)
 
     start_time = (Time.now.beginning_of_hour + 1.hour - 1.day)
     @histogram = nil

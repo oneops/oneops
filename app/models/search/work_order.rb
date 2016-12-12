@@ -3,6 +3,22 @@ class Search::WorkOrder < Search::Base
   self.element_name = ''
 
   def self.time_stats(deployment)
+    if Settings.log_data_source == 'fake'
+
+      return {:rfcs => deployment.rfc_cis.to_map_with_value { |rfc| [rfc.rfcId,
+                                                                     {'executionTime'   => '80.955',
+                                                                      'requestDequeTS'  => '2016-11-30T19:19:41.008',
+                                                                      'inductor'        => '10.9.201.201 (eth0)',
+                                                                      'localWaitTime'   => '0.008',
+                                                                      'totalTime'       => '81.004',
+                                                                      'closeTime'       => '0.029',
+                                                                      'responseDequeTS' => '2016-11-30T19:21:01.994',
+                                                                      'rfcAction'       => 'update',
+                                                                      'responseEnqueTS' => '2016-11-30T19:21:01.965',
+                                                                      'requestEnqueTS'  => '2016-11-30T19:19:40.990',
+                                                                      'queueTime'       => '0.018'}]},
+        :steps => (1..99).to_a.to_map_with_value { |o| [o, 1000 + rand(10000)] }}
+    end
     result        = nil
     search_params = {
       :query   => {

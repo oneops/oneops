@@ -8,12 +8,15 @@
         <ul>
           <li>
             <%= icon('info-circle') %> deployment <%= highlight(@deployment.deploymentId) %> for
-            release <%= link_to(highlight(@manifest.releaseId), assembly_transition_environment_path(@assembly, @environment, :anchor => "releases/list_item/#{@manifest.releaseId}")) %> is
+            release <%= link_to(highlight(@manifest.releaseId), path_to_release(@manifest)) %> is
             in <%= highlight(@deployment.deploymentState, @deployment.deploymentState) %> state
           </li>
           <li>
-            <%= icon('star') %> submitted <%= highlight(time_ago_in_words(@deployment.created_timestamp)) %>
+            <%= icon('user') %> submitted <%= highlight(time_ago_in_words(@deployment.created_timestamp)) %>
             by <%= highlight(@deployment.createdBy, 'info') %>
+          </li>
+          <li>
+            <%= icon('star') %> has <b><%= @rfc_cis.size %></b> <%= 'work-order'.pluralize(@rfc_cis.size) %>
           </li>
           <% if @deployment.deploymentState == 'complete' %>
             <li>
@@ -43,7 +46,6 @@
                             :busy   => 'Retrieving deployment plan...') %>
             </li>
           <% end %>
-
         </ul>
       </div>
     <li>
@@ -54,6 +56,6 @@
     <%= render 'state_history' %>
   <% end %>
 <% end %>
-<%= section_panel 'Details', :width => 'double', :position => 'right' do %>
+<%= section_panel 'Plan', :width => 'double', :position => 'right' do %>
   <p><%= render 'cms/rfcs/rfc_list', :rfc_cis => @rfc_cis, :rfc_relations => @rfc_relations %></p>
 <% end %>

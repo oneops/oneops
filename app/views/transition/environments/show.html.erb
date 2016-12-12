@@ -17,6 +17,5 @@
                       {:label => 'configuration', :template => 'configuration', :selected => true},
                       {:label => 'variables', :url => assembly_transition_environment_variables_path(@assembly, @environment)},
                       {:label => 'relays', :url => assembly_transition_environment_relays_path(@assembly, @environment)},
-                      {:label => 'releases', :template => 'releases'},
-                      {:label => 'deployments', :template => 'deployments'},
+                      {:label => 'timeline', :url => assembly_transition_environment_timeline_path(@assembly, @environment)},
                       {:label => icon('search'), :id => 'search', :template => 'search'}] %>

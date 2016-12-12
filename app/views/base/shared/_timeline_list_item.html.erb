@@ -1,0 +1,73 @@
+<% is_release = item.is_a?(Cms::Release)
+   item_id = is_release ? "release_#{item.releaseId}" : "deployment_#{item.deploymentId}" %>
+<li id="item_<%= item_id %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, '<%= item_id %>')"
+    <%= builder[:attributes] || '' %> <%= raw(%(style="display:none")) if collapse %>>
+  <div class="target">
+    <% if builder[:target] %>
+      <%= builder[:target] %>
+    <% else %>
+      <% url = is_release ? (@environment ? assembly_transition_environment_timeline_release_path(@assembly, @environment, item) : assembly_design_timeline_release_path(@assembly, item)) : assembly_transition_environment_timeline_deployment_path(@assembly, @environment, item) %>
+      <%= link_to('', url, :remote => true) %>
+    <% end %>
+  </div>
+	<div class="status">
+		<% if builder[:status] %>
+			<%= builder[:status] %>
+		<% else %>
+      <% if is_release %>
+        <%= status_marker('release', item.releaseState, state_to_label(item.releaseState)) %>
+      <% else %>
+        <%= status_marker('deployment', item.deploymentState, state_to_label(item.deploymentState)) %>
+      <% end %>
+    <% end %>
+    <%= status_marker(icon('user'), item.createdBy) if item.createdBy %>
+  </div>
+
+  <% menu = builder[:menu] %>
+  <% if menu.present? %>
+    <div class="menu">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
+      <ul class="dropdown-menu">
+        <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if multi_select %>
+    <% if builder.include?(:selectable) && !builder[:selectable] %>
+      <i class="placeholder"></i>
+    <% else %>
+      <i class="fa fa-lg fa-square-o select" onclick="event.stopPropagation();toggle_select_item(this)"></i>
+    <% end %>
+  <% end %>
+
+	<div class="content">
+		<div class="top">
+      <% if builder.has_key?(:icon) && builder[:icon] != :none %>
+        <%= image_tag(builder[:icon]) %>
+      <% else %>
+        <%= icon(is_release ? 'tag' : 'cloud-upload', nil, 'muted fa-fw') %>
+      <% end %>
+			<% if builder[:top] %>
+				<%= builder[:top] %>
+			<% else %>
+        <% if is_release %>
+          <span class="topname"><%= item.releaseId %></span>
+        <% else %>
+          <span class="topname"><%= item.deploymentId %></span>
+  			<% end %>
+        <span class="pull-right"><%= is_release ? release_state_icon(item.releaseState, 'fa-fw') : deployment_state_icon(item.deploymentState, 'fa-fw')%></span>
+        <br/>
+        <span class="topdesc"><%= time_ago_in_words(item.created_timestamp) %></span>
+			<% end %>
+		</div>
+		<% middle = builder[:middle]
+       if middle %>
+		  <div class="middle"><%= middle %></div>
+		<% end %>
+    <% bottom = builder[:bottom]
+       if bottom %>
+      <div class="bottom"><%= bottom %></div>
+    <% end %>
+	</div>
+</li>

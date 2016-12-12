@@ -27,17 +27,14 @@ class Transition::ReleasesController < ApplicationController
   end
 
   def show
-    @release = Cms::Release.find(params[:id])
-    respond_to do |format|
-      format.js
-      format.json { render_json_ci_response(@release.present?, @release) }
-    end
+    edit
   end
 
   def edit
     @release = Cms::Release.find(params[:id])
-    @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
+    @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom") unless request.format.json?
     respond_to do |format|
+      format.html { render '_release_details', :locals => {:release => @release} }
       format.js   { render :action => :edit }
       format.json { render_json_ci_response(@release.present?, @release) }
     end

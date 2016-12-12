@@ -1512,7 +1512,7 @@ img.authicon {
 .list-toolbar {
   float:       left;
   width:       100%;
-  margin:	   0px;
+  margin:	     0;
   padding:     0px 0px 0px 0px;
   border-top:  none;
   border-bottom:    solid 1px #eee;
@@ -1601,6 +1601,24 @@ img.authicon {
 
 .list-toolbar a {
   text-align: left;
+}
+
+.list-toolbar .quick-filters {
+  margin: 0 0 5px 5px;
+}
+
+.list-toolbar .quick-filters ul {
+  list-style: none;
+  margin: 0;
+}
+
+.list-toolbar .quick-filters ul li {
+  float: left;
+  padding: 5px 12px;
+}
+
+.list-toolbar .quick-filters ul li.active {
+  border-bottom: 2px solid orange;
 }
 
 .dropdown-menu > li a {
@@ -1800,9 +1818,9 @@ img.authicon {
   float:    left;
   position: relative;
   margin:   3px 3px 3px 3px;
-  width: -moz-calc(100% - 40px);
-  width: -webkit-calc(100% - 40px);
-  width: calc(100% - 40px);
+  width: -moz-calc(100% - 5px);
+  width: -webkit-calc(100% - 5px);
+  width: calc(100% - 5px);
   overflow: hidden;
 }
 
@@ -1840,6 +1858,10 @@ img.authicon {
   text-overflow: ellipsis;
   -o-text-overflow: ellipsis;
   -ms-text-overflow: ellipsis;
+}
+
+.list-body li .content .top i.muted {
+  color: #777;
 }
 
 .list-body li:hover .content .top .topname {
@@ -1959,7 +1981,7 @@ img.authicon {
 .list-body li .select, .list-body li .placeholder {
   position: relative;
   float: left;
-  padding: 13px 2px 0px 5px;
+  padding: 11px 0px 0px 5px;
   clear: both;
   width: 20px;
   z-index: 5;
@@ -2331,7 +2353,7 @@ img.authicon {
   padding: 10px 0px 10px 10px;
 }
 
-.section-heading .content-toggle {
+.section-heading .content-toggle, .step .content-toggle {
   color: black;
 }
 
@@ -2628,6 +2650,21 @@ div.rfc-list div.step {
   padding-bottom: 20px;
 }
 
+div.rfc-list .step-content .component {
+  padding: 5px;
+  margin-bottom: 5px;
+  margin-top: 15px;
+}
+
+div.rfc-list .step-content .component:first-child {
+  margin-top: 0;
+}
+
+div.rfc-list .step-content .component img {
+  height: 16px;
+  width: 16px;
+}
+
 div.rfc-list div.step > .name {
   position:   relative;
   top:        -12px;
@@ -2638,6 +2675,7 @@ div.rfc-list div.step > .name {
   max-width: 30%;
   margin-bottom: -5px;
   font-size: 14px;
+  cursor: pointer;
 }
 
 div.rfc-list img, div.action-list img {
@@ -2653,6 +2691,35 @@ div.rfc-list img, div.action-list img {
   padding: 0;
 }
 
+.rfc-list ul.rfc {
+  list-style-type: none;
+  margin:          3px 5px 0 5px;
+  padding:         0;
+}
+
+.rfc-list li.rfc {
+  position:      relative;
+  margin:        0;
+  padding:       2px;
+}
+.rfc-list li.rfc .accordion-toggle {
+  padding-left: 10px;
+  padding-right: 5px;
+}
+
+.rfc-list .accordion-toggle .nav > li.active {
+  border-bottom: 2px solid orange;
+}
+
+.rfc-list li.rfc .accordion-toggle .rfc-duration a {
+  padding-right: 3px;
+  color: black;
+}
+
+.rfc-list li.rfc:last-child {
+  margin-bottom: 10px;
+}
+
 .rfc-list dl {
 	font-size: 11px;
 }
@@ -2666,7 +2733,6 @@ div.rfc-list img, div.action-list img {
 
 .rfc-list dd {
   margin-left: 110px;
-  width: 450px;
   word-wrap: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2915,6 +2981,11 @@ div.rfc-list img, div.action-list img {
   padding:  10px 5px;
   font-size: 12px;
   line-height: 22px;
+  margin-top: 11px;
+}
+
+.wf .manifest .component .cloud i {
+  color: #606060;
 }
 
 .wf .manifest .component .counts {
@@ -2971,22 +3042,22 @@ div.rfc-list img, div.action-list img {
   position:      relative;
   border-bottom: dotted 1px #eee;
   margin:        0;
-  padding:       5px;
+  padding:       2px;
   font-size:     12px;
 }
 
-.wf li.rfc .accordion-heading a.accordion-toggle {
-  padding-left:  0;
-  padding-right: 0;
+.wf li.rfc .accordion-toggle {
+  padding-left: 10px;
+  padding-right: 5px;
 }
 
-.wf li.rfc i.rfc-action {
-  margin: 10px;
+.wf li.rfc .accordion-toggle .nav > li.active {
+  border-bottom: 2px solid orange;
 }
 
-.wf li.rfc .rfc-state {
-  margin-right: 10px;
-  font-size: 16px;
+.wf li.rfc .accordion-toggle .rfc-duration a {
+  padding-right: 3px;
+  color: black;
 }
 
 .wf li.rfc .alert {
@@ -3015,12 +3086,13 @@ div.rfc-list img, div.action-list img {
   margin:         2px 3px 3px 3px;
 }
 
-.wf li.rfc img.rfcstatus {
-  float: right;
+.wf .autopause input[type=checkbox] {
+  display:none;
 }
 
-.wf .autopause input[type=checkbox] { display:none; }
-.wf input[type=checkbox] + label:before { font-family: FontAwesome; }
+.wf input[type=checkbox] + label:before {
+  font-family: FontAwesome;
+}
 
 .wf .autopause input[type=checkbox] + label:before
 {
@@ -3772,6 +3844,7 @@ label a input[type=checkbox] {
 }
 
 .log-header {
+  clear: both;
   padding-bottom: 3px;
   border-bottom: solid 1px #eee
 }
@@ -4441,6 +4514,13 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 }
 
 .tooltip {
-  white-space: normal;
+  white-space: normal
+}
 
+.deployment-problems > div:not(:last-child) {
+  margin-bottom: 5px;
+}
+
+.deployment-problems a {
+  font-size: 85%;
 }

@@ -36,6 +36,18 @@ class Operations::Sensor < ActiveResource::Base
     end
   end
 
+  def self.events_for_instances(instances)
+    return {} if instances.blank?
+    begin
+      get('events', {:ciIds => instances.join(',')})
+      # response = Operations::Sensor.post('events', {}, instances.to_json).body
+      # return JSON(response)
+    rescue Exception => e
+      Rails.logger.warn "Failed to retrieve instances events: #{e}"
+      return {}
+    end
+  end
+
   def self.custom_method_collection_url(method_name, options = {})
     super.gsub(/.#{self.format.extension}/, '')
   end

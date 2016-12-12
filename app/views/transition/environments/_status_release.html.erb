@@ -44,7 +44,6 @@
       </ul>
       <ul class="status-actions">
         <li>
-          <% # Include dummy 'time' parameter to force reload to ensure release loading regardless of current sort on PAGINATED release list. %>
           <%= link_to('Review',
                       assembly_transition_environment_path(@assembly, @environment, :anchor => path_to_release(@release).split('#').last),
                       :class => 'btn btn-primary') %>
@@ -83,7 +82,7 @@
         <% if @release.description.present? %>
           <li><%= icon('comment') %><%= @release.description %></li>
         <% end %>
-        <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#releases') %>
+        <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#timeline') %>
           history of environment releases
         </li>
       </ul>
