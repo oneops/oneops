@@ -632,6 +632,37 @@
 			and cir.ns_id = ns.ns_id
 	 </select>
 	 
+	 <select id="getFromCIRelationsByMultiRelationNames" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
+		select
+			cir.ci_relation_id as ciRelationId,
+			cir.ns_id as nsId,
+			ns.ns_path as nsPath,
+			cir.from_ci_id as fromCiId,
+			cir.relation_goid as relationGoid,
+			cir.relation_id as relationId,
+			mdr.relation_name as relationName,
+			cir.to_ci_id toCiId,
+			cir.ci_state_id as relationStateId,
+			cis.state_name as relationState,
+			cir.last_applied_rfc_id as lastAppliedRfcId,
+			cir.comments,
+			cir.created,
+			cir.updated
+		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci cc, md_classes mdc, ns_namespaces ns
+		where cir.from_ci_id = #{fromId}  
+			<if test="relationNames != null &amp;&amp; !relationNames.isEmpty()">
+				and mdr.relation_name in  <foreach item="item" index="index" collection="relationNames" open="(" close=")" separator=", "> #{item} </foreach>
+			</if>   
+		    <if test="shortRelNames != null &amp;&amp; !shortRelNames.isEmpty()">
+		    	and mdr.short_relation_name in <foreach item="item" index="index" collection="shortRelNames" open="(" close=")" separator=", "> #{item} </foreach>
+		    </if>
+		    and cir.to_ci_id = cc.ci_id
+		    and cc.class_id = mdc.class_id
+			and cir.relation_id = mdr.relation_id
+			and cir.ci_state_id = cis.ci_state_id
+			and cir.ns_id = ns.ns_id
+	 </select>
+
      <select id="getFromCIRelationsByToClassAndCiName" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
         select
             cir.ci_relation_id as ciRelationId,
