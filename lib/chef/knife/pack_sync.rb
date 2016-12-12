@@ -21,6 +21,12 @@ require 'kramdown'
 
 class Chef
   class Knife
+    class UI
+      def debug(message)
+        stdout.puts message if @config[:verbosity] >= 2
+      end
+    end
+
     class PackSync < Chef::Knife
 
       banner "knife pack sync PACK (options)"
@@ -64,6 +70,39 @@ class Chef
         @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Pack, ui)
       end
 
+      
+      # safety measure: make sure no packs conflict in scope
+      def validate_packs
+        config[:pack_path] ||= Chef::Config[:pack_path]
+        config[:version] ||= Chef::Config[:version]
+         
+        # keyed by group-name-version 
+        pack_map = {}
+         
+        config[:pack_path].each do |dir|
+                    
+          pack_file_pattern = "#{dir}/*.rb"
+          files = Dir.glob(pack_file_pattern)
+          files.each do |file|
+            pack = packs_loader.load_from("packs", file)
+            version = config[:version].split(".").first
+            if !pack.version.empty?
+              version = pack.version.split(".").first
+            end
+            key = get_group(pack) + '-' + pack.name.downcase + '-' + version
+
+            if pack_map.has_key?(key)
+              puts "error: conflict of pack group-name-version: #{key} #{file} to #{pack_map[key]}"
+              puts "no packs loaded."
+              exit 1
+            else
+              pack_map[key] = "#{file}"
+            end
+          end
+        end  
+      end
+           
+
       def run
         config[:pack_path] ||= Chef::Config[:pack_path]
         config[:register] ||= Chef::Config[:register]
@@ -72,6 +111,8 @@ class Chef
         comments = "#{ENV['USER']}:#{$0}"
         comments += " #{config[:msg]}" if config[:msg]
 
+        validate_packs
+        
         if config[:all]
           config[:pack_path].each do |dir|
             pack_file_pattern = "#{dir}/*.rb"
@@ -112,9 +153,9 @@ class Chef
         @remote_dir = conn.directories.get env_bucket
         if @remote_dir.nil?
           @remote_dir = conn.directories.create :key => env_bucket
-          puts "created #{env_bucket}"
+          ui.debug "created #{env_bucket}"
         end
-        puts "remote_dir:\n #{@remote_dir.inspect}"
+        ui.info "remote_dir:\n #{@remote_dir.inspect}"
 
       end
 
@@ -141,7 +182,7 @@ class Chef
         end
 
         if conn.nil?
-          puts "unsupported provider: #{object_store_provider}"
+          ui.info "unsupported provider: #{object_store_provider}"
           exit 1
         end
         @object_store_connection = conn
@@ -153,7 +194,7 @@ class Chef
 
         if !Chef::Config.has_key?("object_store_provider") ||
             Chef::Config[:object_store_provider].nil? || Chef::Config[:object_store_provider].empty?
-          puts "skipping doc - no object_store_provider"
+          ui.info "skipping doc - no object_store_provider"
           return
         end
 
@@ -167,7 +208,7 @@ class Chef
             remote_file = ns  + '/' + file
             local_file = doc_dir + '/' + file
             if !File.exists?(local_file)
-              puts "missing local file: #{local_file}"
+              ui.warn "missing local file: #{local_file}"
               next
             end
             if file =~ /\.md$/
@@ -179,7 +220,7 @@ class Chef
             end
             # remove first slash in ns path
             remote_file = remote_file[1..-1]
-            puts "doc: #{local_file} remote: #{remote_file}"
+            ui.info "doc: #{local_file} remote: #{remote_file}"
             obj = { :key => remote_file, :body => content }
             if remote_file =~ /\.html/
               obj['content_type'] = 'text/html'
@@ -191,18 +232,34 @@ class Chef
         Dir.chdir initial_dir
       end
 
+      
+      # default to knife.rb config's register attr for backwards compat
+      def get_group (pack)
+        if !pack.group_id.empty? 
+          group_id = pack.group_id
+        else
+          group_id = Chef::Config[:register]          
+        end
+        return group_id
+      end
+      
 
       def upload_template_from_file(file,comments)
-        source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+        pack = packs_loader.load_from("packs", file)
+        pack.name.downcase!
+        source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
+        puts "source: #{source}"
 
         unless ensure_path_exists(source)
           return false
         end
 
-        pack = packs_loader.load_from("packs", file)
-
         # default to the global knife version if not specified
-        pack.version(config[:version].split(".").first) if pack.version.empty?
+        version = config[:version].split(".").first
+        if !pack.version.empty?
+          version = pack.version.split(".").first
+        end
+        pack.version(version)
 
         signature = Digest::MD5.hexdigest(pack.signature)
 
@@ -274,8 +331,8 @@ class Chef
         relsHash
       end
 
-      def fix_delta_cms(pack)
-        nsPath = "#{Chef::Config[:nspath]}/#{config[:register]}/packs/#{pack.name}/#{pack.version}"
+      def fix_delta_cms(pack) 
+        nsPath = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}/#{pack.version}"
         cmsEnvs = ['_default'] + Cms::Ci.all(:params => {:nsPath => nsPath, :ciClassName => 'mgmt.Mode'}).map(&:ciName)
         cmsEnvs.each do |env|
           relations = fix_rels_from_cms(pack, env)
@@ -285,7 +342,7 @@ class Chef
 
       def fix_rels_from_cms(pack, env = '_default')
         scope = (env == '_default') ? '' : "/#{env}"
-        cms_rels = Cms::Relation.all(:params => {:nsPath        => "#{Chef::Config[:nspath]}/#{config[:register]}/packs/#{pack.name}/#{pack.version}#{scope}",
+        cms_rels = Cms::Relation.all(:params => {:nsPath        => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}/#{pack.version}#{scope}",
                                                  :includeToCi   => true,
                                                  :includeFromCi => true})
         pack_rels = pack.relations
@@ -302,10 +359,10 @@ class Chef
           unless exists_in_pack
             case relationShort
               when 'Payload'
-                exists_in_pack = pack.resources[fromCiName].include?('payloads') &&
+                exists_in_pack = pack.resources[fromCiName] && pack.resources[fromCiName].include?('payloads') &&
                     pack.resources[fromCiName]['payloads'].include?(toCiName)
               when 'WatchedBy'
-                exists_in_pack = pack.resources[fromCiName].include?('monitors') &&
+                exists_in_pack = pack.resources[fromCiName] && pack.resources[fromCiName].include?('monitors') &&
                     pack.resources[fromCiName]['monitors'].include?(toCiName)
               when 'Requires'
                 exists_in_pack = pack.resources[fromCiName] && pack.resources[toCiName]
@@ -331,7 +388,7 @@ class Chef
           if new_state
             r.relationState = new_state
             if save(r)
-              ui.info("Successfuly updated ciRelationState to #{new_state} #{r.relationName} #{r.fromCi.ciName} <-> #{r.toCi.ciName} for #{env}")
+              ui.debug("Successfuly updated ciRelationState to #{new_state} #{r.relationName} #{r.fromCi.ciName} <-> #{r.toCi.ciName} for #{env}")
             else
               ui.error("Failed to update ciRelationState to #{new_state} #{r.relationName} #{r.fromCi.ciName} <-> #{r.toCi.ciName} for #{env}")
             end
@@ -343,7 +400,7 @@ class Chef
 
     def fix_ci_from_cms(pack, env = '_default',relations,environments)
       scope = (env == '_default') ? '' : "/#{env}"
-      cms_resources = Cms::Ci.all( :params => { :nsPath => "#{Chef::Config[:nspath]}/#{config[:register]}/packs/#{pack.name}/#{pack.version}#{scope}"})
+      cms_resources = Cms::Ci.all( :params => { :nsPath => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}/#{pack.version}#{scope}"})
 
       pack_resources = pack.resources
 
@@ -358,8 +415,7 @@ class Chef
         if new_state
           resource.ciState = new_state
           if save(resource)
-            pp resource
-            ui.info("Successfuly updated ciState to #{new_state} for #{resource.ciName} for #{env}")
+            ui.debug("Successfuly updated ciState to #{new_state} for #{resource.ciName} for #{env}")
           else
             ui.error("Failed to update ciState to #{new_state} for #{resource.ciName} for #{env}")
           end
@@ -368,7 +424,7 @@ class Chef
     end
 
     def check_pack_version(pack,signature)
-      source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+      source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       pack_version = Cms::Ci.first( :params => { :nsPath => "#{source}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version })
       if pack_version.nil?
         ui.info( "Pack #{pack.name} version #{pack.version} not found")
@@ -385,7 +441,7 @@ class Chef
     end
 
     def setup_pack_version(pack,comments,signature)
-      source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+      source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       pack_ci = Cms::Ci.first( :params => { :nsPath => "#{source}", :ciClassName => 'mgmt.Pack', :ciName => pack.name })
       if pack_ci.nil?
         ui.info( "Creating pack #{pack.name}")
@@ -437,7 +493,7 @@ class Chef
     end
 
     def setup_mode(pack,env,comments)
-      source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+      source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       mode = Cms::Ci.first( :params => { :nsPath => "#{source}/#{pack.name}/#{pack.version}", :ciClassName => 'mgmt.Mode', :ciName => env })
       if mode.nil?
         ui.info( "Creating pack #{pack.name} version #{pack.version} environment mode #{env}")
@@ -492,7 +548,7 @@ class Chef
           return false
         end
       else
-        ui.info("Updating #{ciClassName} for template #{template_name}")
+        ui.debug("Updating #{ciClassName} for template #{template_name}")
       end
 
       #iterate over platform attributes and populate them with pack attributes from file
@@ -504,7 +560,7 @@ class Chef
 
       platform.comments = comments
       platform.ciAttributes.description = pack.description
-      platform.ciAttributes.source = config[:register]
+      platform.ciAttributes.source = get_group(pack)
       platform.ciAttributes.pack = pack.name.capitalize
       platform.ciAttributes.version = pack.version
 
@@ -514,7 +570,7 @@ class Chef
 
       Chef::Log.debug(platform.to_json)
       if save(platform)
-        ui.info("Successfuly saved #{ciClassName} for template #{template_name}")
+        ui.debug("Successfuly saved #{ciClassName} for template #{template_name}")
         return platform
       else
         ui.error("Could not save #{ciClassName}, skipping template #{template_name}")
@@ -568,7 +624,7 @@ class Chef
             Log.debug(relation.inspect)
             # if relation is missing, but ci is present, save the relation only first
             if save(relation)
-              ui.info("Successfuly saved resource #{resource_name} for template #{template_name}")
+              ui.debug("Successfuly saved resource #{resource_name} for template #{template_name}")
               relation = Cms::Relation.find(relation.id, :params => {  :nsPath => nspath, :includeToCi => true } )
             else
               ui.error("Could not save resource #{resource_name}, skipping it")
@@ -580,7 +636,7 @@ class Chef
           end
 
         else
-          ui.info("Updating resource #{resource_name} for template #{template_name}")
+          ui.debug("Updating resource #{resource_name} for template #{template_name}")
         end
 
         Log.debug("PRE-ATTRIBUTE: " + relation.inspect)
@@ -612,7 +668,7 @@ class Chef
 
         Log.debug(relation.inspect)
         if save(relation)
-          ui.info("Successfuly saved resource #{resource_name} for template #{template_name}")
+          ui.debug("Successfuly saved resource #{resource_name} for template #{template_name}")
           children[resource_name] = relation.toCi.ciId
         else
           ui.error("Could not save resource #{resource_name}, skipping it")
@@ -640,7 +696,7 @@ class Chef
                                  :toCiId => children[relation[:to_resource]]
             )
           else
-            ui.info( "Updating relation #{relation[:relation_name]} between #{relation[:from_resource]} and #{relation[:to_resource]}")
+            ui.debug( "Updating relation #{relation[:relation_name]} between #{relation[:from_resource]} and #{relation[:to_resource]}")
           end
 
           relation_new.relationAttributes.attributes.each do |name,value|
@@ -650,7 +706,7 @@ class Chef
           end
           Log.debug(relation_new.to_yaml)
           if save(relation_new)
-            ui.info("Successfuly saved relation #{relation[:relation_name]} between #{relation[:from_resource]} and #{relation[:to_resource]}")
+            ui.debug("Successfuly saved relation #{relation[:relation_name]} between #{relation[:from_resource]} and #{relation[:to_resource]}")
           else
             ui.error("Could not save relation #{relation[:relation_name]} between #{relation[:from_resource]} and #{relation[:to_resource]}")
           end
@@ -675,7 +731,7 @@ class Chef
                                  :toCiId => children[do_class]
               )
             else
-              ui.info( "Updating depends on between #{resource_name} and #{do_class}")
+              ui.debug( "Updating depends on between #{resource_name} and #{do_class}")
             end
 
             depends_on.relationAttributes.attributes.each do |name,value|
@@ -685,7 +741,7 @@ class Chef
             end
             Log.debug(depends_on.to_yaml)
             if save(depends_on)
-              ui.info("Successfuly saved depends on between #{resource_name} and #{do_class}")
+              ui.debug("Successfuly saved depends on between #{resource_name} and #{do_class}")
             else
               ui.error("Could not save depends on between #{resource_name} and #{do_class} in #{nspath}, skipping it")
             end
@@ -713,7 +769,7 @@ class Chef
                                   :toCiId => children[mv_class]
               )
             else
-              ui.info( "Updating managed via between #{resource_name} and #{mv_class}")
+              ui.debug( "Updating managed via between #{resource_name} and #{mv_class}")
             end
 
             managed_via.relationAttributes.attributes.each do |name,value|
@@ -723,7 +779,7 @@ class Chef
             end
             Log.debug(managed_via.to_yaml)
             if save(managed_via)
-              ui.info("Successfuly saved managed via between #{resource_name} and #{mv_class}")
+              ui.debug("Successfuly saved managed via between #{resource_name} and #{mv_class}")
             else
               ui.error("Could not save managed via between #{resource_name} and #{mv_class}, skipping it")
             end
@@ -733,7 +789,8 @@ class Chef
     end
 
     def upload_template_serviced_bys(nspath,pack,resources,children,platform,env)
-      source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+
+      source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       relationName = 'mgmt.manifest.ServicedBy'
       serviced_by_list = Cms::Relation.all( :params => {  :ciId => platform.ciId,
                                                           :nsPath => nspath,
@@ -756,7 +813,7 @@ class Chef
             )
             Log.debug(serviced_by.to_yaml)
             if save(serviced_by)
-              ui.info("Successfuly saved serviced by between platform and #{iaas_pack[:pack]} version #{iaas_pack[:version]}")
+              ui.debug("Successfuly saved serviced by between platform and #{iaas_pack[:pack]} version #{iaas_pack[:version]}")
             else
               ui.error("Could not save serviced by between platform and #{iaas_pack[:pack]} version #{iaas_pack[:version]}, skipping it")
             end
@@ -786,7 +843,7 @@ class Chef
                                :toCiId => children[resource_name]
             )
           else
-            ui.info( "Updating entrypoint between platform and #{resource_name}")
+            ui.debug("Updating entrypoint between platform and #{resource_name}")
           end
 
           entrypoint.relationAttributes.attributes.each do |name,value|
@@ -796,7 +853,7 @@ class Chef
           end
           Log.debug(entrypoint.to_yaml)
           if save(entrypoint)
-            ui.info("Successfuly saved entrypoint between platform and #{resource_name}")
+            ui.debug("Successfuly saved entrypoint between platform and #{resource_name}")
           else
             ui.error("Could not save entrypoint between platform and #{resource_name}, skipping it")
           end
@@ -805,7 +862,8 @@ class Chef
     end
 
     def upload_template_serviced_by(nspath,pack,resources,children,platform,env)
-      source = "#{Chef::Config[:nspath]}/#{config[:register]}/packs"
+
+      source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       resources.each do |resource_name,resource|
         next if resource[:serviced_by].nil?
         relationName = 'mgmt.manifest.ServicedBy'
@@ -830,7 +888,7 @@ class Chef
               )
               Log.debug(serviced_by.to_yaml)
               if save(serviced_by)
-                ui.info("Successfuly saved serviced by between #{resource_name} and #{iaas_pack[:pack]} version #{iaas_pack[:version]}")
+                ui.debug("Successfuly saved serviced by between #{resource_name} and #{iaas_pack[:pack]} version #{iaas_pack[:version]}")
               else
                 ui.error("Could not save serviced by between #{resource_name} and #{iaas_pack[:pack]} version #{iaas_pack[:version]}, skipping it")
               end
@@ -941,7 +999,7 @@ class Chef
               Log.debug(relation.inspect)
               # if relation is missing, but ci is present, save the relation only first
               if save(relation)
-                ui.info("Successfuly saved payload #{payload_name} for #{resource_name}")
+                ui.debug("Successfuly saved payload #{payload_name} for #{resource_name}")
                 relation = Cms::Relation.find(relation.id, :params => {  :nsPath => nspath, :includeToCi => true } )
               else
                 ui.error("Could not save payload #{payload_name} for #{resource_name}, skipping it")
@@ -952,7 +1010,7 @@ class Chef
               next;
             end
           else
-            ui.info("Updating payload #{payload_name} for #{resource_name}")
+            ui.debug("Updating payload #{payload_name} for #{resource_name}")
           end
 
           # qpath attributes
@@ -964,7 +1022,7 @@ class Chef
 
           Log.debug(relation.inspect)
           if save(relation)
-            ui.info("Successfuly saved payload #{payload_name} for #{resource_name}")
+            ui.debug("Successfuly saved payload #{payload_name} for #{resource_name}")
           else
             ui.error("Could not save payload #{payload_name} for #{resource_name}, skipping it")
           end
@@ -1002,7 +1060,7 @@ class Chef
 
             # if relation is missing, but ci is present, save the relation only first
             if save(relation)
-              ui.info("Successfuly saved procedure #{procedure_name} for environment #{env}")
+              ui.debug("Successfuly saved procedure #{procedure_name} for environment #{env}")
               relation = Cms::Relation.find(relation.id, :params => {  :nsPath => nspath, :includeToCi => true } )
             else
               ui.error("Could not save procedure #{procedure_name} for environment #{env}, skipping it")
@@ -1013,10 +1071,8 @@ class Chef
             next;
           end
         else
-          ui.info("Updating procedure #{procedure_name} for environment #{env}")
+          ui.debug("Updating procedure #{procedure_name} for environment #{env}")
         end
-
-        Log.debug("PRE-ATTRIBUTE: " + relation.inspect)
 
         # procedure attributes
         relation.toCi.ciAttributes.attributes.each do |name,value|
@@ -1030,7 +1086,7 @@ class Chef
 
         Log.debug(relation.inspect)
         if save(relation)
-          ui.info("Successfuly saved procedure #{procedure_name} for environment #{env}")
+          ui.debug("Successfuly saved procedure #{procedure_name} for environment #{env}")
         else
           ui.error("Could not save procedure #{procedure_name} for environment #{env}, skipping it")
         end
@@ -1067,7 +1123,7 @@ class Chef
             Log.debug(relation.inspect)
             # if relation is missing, but ci is present, save the relation only first
             if save(relation)
-              ui.info("Successfuly saved variable #{variable_name} for environment #{env}")
+              ui.debug("Successfuly saved variable #{variable_name} for environment #{env}")
               relation = Cms::Relation.find(relation.id, :params => {  :nsPath => nspath, :includeFromCi => true } )
             else
               ui.error("Could not save variable #{variable_name} for environment #{env}, skipping it")
@@ -1078,10 +1134,8 @@ class Chef
             next;
           end
         else
-          ui.info("Updating variable #{variable_name} for environment #{env}")
+          ui.debug("Updating variable #{variable_name} for environment #{env}")
         end
-
-        Log.debug("PRE-ATTRIBUTE: " + relation.inspect)
 
         # procedure attributes
         relation.fromCi.ciAttributes.attributes.each do |name,value|
@@ -1092,7 +1146,7 @@ class Chef
 
         Log.debug(relation.inspect)
         if save(relation)
-          ui.info("Successfuly saved variable #{variable_name} for environment #{env}")
+          ui.debug("Successfuly saved variable #{variable_name} for environment #{env}")
         else
           ui.error("Could not save variable #{variable_name} for environment #{env}, skipping it")
         end
@@ -1112,7 +1166,7 @@ class Chef
                      :ciName => policy_name)
 
           if save(ci)
-            ui.info("Successfuly saved policy #{policy_name} for environment #{env} and #{pack}")
+            ui.debug("Successfuly saved policy #{policy_name} for environment #{env} and #{pack}")
           else
             ui.error("Could not save policy #{policy_name} for environment #{env}, skipping it")
           end
@@ -1127,7 +1181,7 @@ class Chef
 
         Log.debug(ci.inspect)
         if save(ci)
-          ui.info("Successfuly saved policy #{policy_name} attributes for environment #{env} and #{pack}")
+          ui.debug("Successfuly saved policy #{policy_name} attributes for environment #{env} and #{pack}")
         else
           ui.error("Could not save policy #{policy_name} attributes for environment #{env} and #{pack}, skipping it")
         end

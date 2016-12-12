@@ -18,7 +18,7 @@ attribute 'secure',
             :category => 'Value',
             :order    => 1,
             :tip      => 'NOTE: Make sure to always re-enter the variable value when changing this attribute.',
-            :help     => 'Secure varialble values are encrypted on save and stored in encrypted format.',
+            :help     => 'Secure variable values are encrypted on save and stored in encrypted format.',
             :form     => {:field => 'checkbox'}
           }
 

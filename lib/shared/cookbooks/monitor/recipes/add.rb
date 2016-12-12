@@ -18,11 +18,13 @@
 
 # gens nagios config using WatchedBy payload and reloads/starts nagios and perf-agent
 #
+require 'fileutils'
+
 cloud_name = node.workorder.cloud.ciName
 
 ostype = ''
 begin
-  ostype = node.workorder.payLoad.os[0].ciAttributes["ostype"]
+  ostype = node.workorder.payLoad.os[0].ciAttributes['ostype']
 rescue
   begin
     ostype = node.workorder.rfcCi.ciAttributes['ostype']
@@ -50,46 +52,47 @@ if ostype.nil? || ostype.length == 0
 end
 
 Chef::Log.info("*** OS_PLATFORM => #{ostype} ***")
+
+dir_prefix = ''
 if ostype =~ /windows/
-  return
+  dir_prefix = 'c:/cygwin64'
 end
 
 cloud_service = nil
 
-if !node.workorder.services["monitoring"].nil? &&
-   !node.workorder.services["monitoring"][cloud_name].nil?
+if !node.workorder.services['monitoring'].nil? &&
+   !node.workorder.services['monitoring'][cloud_name].nil?
 
-  cloud_service = node.workorder.services["monitoring"][cloud_name]
+  cloud_service = node.workorder.services['monitoring'][cloud_name]
 end
 
 # skip if no managed via without monitoring cloud service
-if cloud_service.nil? && (!node.workorder.payLoad.has_key?("ManagedVia") &&
-  !node.workorder.rfcCi.ciClassName.include?("Compute") )
+if cloud_service.nil? && (!node.workorder.payLoad.has_key?('ManagedVia') &&
+  !node.workorder.rfcCi.ciClassName.include?('Compute') )
 
-  Chef::Log.info("no monitoring service provided, no managed via, nor compute. ")
-  Chef::Log.info("will skip monitor creation. services: "+node.workorder.services.inspect)
+  Chef::Log.info('no monitoring service provided, no managed via, nor compute. ')
+  Chef::Log.info('will skip monitor creation. services: '+node.workorder.services.inspect)
   return
 end
 
 # delegate to monitoring service to config
 if !cloud_service.nil?
   recipe_name = cloud_service
-  Chef::Log.info("including cloud monitor recipe: " + cloud_service.ciClassName.split(".").last.downcase + "::monitor")
-  include_recipe cloud_service.ciClassName.split(".").last.downcase + "::monitor"
+  Chef::Log.info('including cloud monitor recipe: ' + cloud_service.ciClassName.split('.').last.downcase + '::monitor')
+  include_recipe cloud_service.ciClassName.split('.').last.downcase + '::monitor'
   return
 end
 
-if !node.workorder.payLoad.has_key?("WatchedBy")
-  Chef::Log.info("no WatchedBy - skipping monitor::add")
+if !node.workorder.payLoad.has_key?('WatchedBy')
+  Chef::Log.info('no WatchedBy - skipping monitor::add')
   return
 end
 
-if node.workorder.payLoad[:Environment][0][:ciAttributes][:monitoring] == "false"
+if node.workorder.payLoad[:Environment][0][:ciAttributes][:monitoring] == 'false'
 
-  # some component add nagios plugins and config in these dirs (ex postgresql)
-  execute "mkdir -p /opt/nagios/libexec"
+  FileUtils::mkdir_p "#{dir_prefix}/opt/nagios/libexec"
 
-  Chef::Log.info("monitoring disabled for the env")
+  Chef::Log.info('monitoring disabled for the env')
   return
 end
 
@@ -97,78 +100,86 @@ is_new_compute = false
 if node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/
   is_new_compute = true
 else
-  include_recipe "monitor::install_nagios"
+  include_recipe 'monitor::install_nagios'
 end
 
+Chef::Log.info("Is new compute: #{is_new_compute}")
 
-conf_dir = "/etc/nagios"
-perf_dir = "/opt/oneops/perf"
+conf_dir = "#{dir_prefix}/etc/nagios"
+perf_dir = "#{dir_prefix}/opt/oneops/perf"
 if is_new_compute
   puuid = (0..32).to_a.map{|a| rand(32).to_s(32)}.join
   conf_dir = "/tmp/#{puuid}"
-  perf_dir = conf_dir + "/perf"
-  execute "mkdir -p #{conf_dir}/conf.d"
+  perf_dir = "#{conf_dir}/perf"
+  FileUtils::mkdir_p "#{conf_dir}/conf.d"
 end
 
-node.set["nagios_conf_dir"] = conf_dir
-node.set["perf_conf_dir"] = perf_dir
+node.set['nagios_conf_dir'] = conf_dir
+node.set['perf_conf_dir'] = perf_dir
 
 template "#{conf_dir}/nagios.cfg" do
-    source "nagios.cfg.erb"
+    source 'nagios.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/generic-service.cfg" do
-    source "generic-service.cfg.erb"
+    source 'generic-service.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/generic-host.cfg" do
-    source "generic-host.cfg.erb"
+    source 'generic-host.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
 template "#{conf_dir}/resource.cfg" do
-    source "resource.cfg.erb"
+    source 'resource.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/contacts.cfg" do
-    source "contacts.cfg.erb"
+    source 'contacts.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/timeperiods.cfg" do
-    source "timeperiods.cfg.erb"
+    source 'timeperiods.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
 template "#{conf_dir}/conf.d/command_perf_process.cfg" do
-    source "perf_process_command.cfg.erb"
+    source 'perf_process_command.cfg.erb'
+    cookbook 'monitor'
     mode 0644
 end
 
-if node.workorder.payLoad.has_key?("WatchedBy")
+if node.workorder.payLoad.has_key?('WatchedBy')
   node.workorder.payLoad.WatchedBy.each do |monitor|
-    config = ""
+    config = ''
     config_map = {}
-    metrics = JSON.parse(monitor["ciAttributes"]["metrics"])
+    metrics = JSON.parse(monitor['ciAttributes']['metrics'])
     metrics.each_pair do |k,v|
-      dstype = "gauge"
-      if v.has_key?("dstype")
-        dstype = v["dstype"].downcase
+      dstype = 'gauge'
+      if v.has_key?('dstype')
+        dstype = v['dstype'].downcase
       end
       config += "#{k}-dstype=#{dstype}\n"
     end
 
-    if monitor["ciAttributes"].has_key?("sample_interval")
-      config += "interval="+ monitor["ciAttributes"]["sample_interval"]
+    if monitor['ciAttributes'].has_key?('sample_interval')
+      config += 'interval='+ monitor['ciAttributes']['sample_interval']
     else
-      config += "interval=60"
+      config += 'interval=60'
     end
 
     metric_config_dir = "#{perf_dir}/#{node.workorder.rfcCi.ciId}-#{monitor['ciName']}"
-    `mkdir -p #{metric_config_dir}`
+    FileUtils::mkdir_p "#{metric_config_dir}"
     metric_config_file = "#{metric_config_dir}/config"
     # write simple dstype file
     File.open(metric_config_file, 'w') { |file| file.write(config) }
@@ -176,7 +187,6 @@ if node.workorder.payLoad.has_key?("WatchedBy")
   end
 
 end
-
 
 ruby_block 'setup nagios' do
   block do
@@ -206,8 +216,8 @@ ruby_block 'setup nagios' do
       template += '  display_name        :::source:::\n'
       template += '  check_command       :::cmd:::\n'
       template += '  register            :::enableAttr:::\n' # 1: enable the monitor 0:disable the monitor
-      if monitor["ciAttributes"].has_key?("sample_interval")
-        template += '  normal_check_interval '+ monitor["ciAttributes"]["sample_interval"]+"\n"
+      if monitor['ciAttributes'].has_key?('sample_interval')
+        template += '  normal_check_interval '+ monitor['ciAttributes']['sample_interval']+"\n"
       end
       template += get_additional_attributes(monitor,'service')
       template += '}\n\n'
@@ -220,7 +230,7 @@ ruby_block 'setup nagios' do
       final_block = eval( '"' + new_block + '"' )
 
       Chef::Log.info("adding: #{final_block}")
-      service_file = $conf_d + "/service_" + monitor_name + ".cfg"
+      service_file = $conf_d + '/service_' + monitor_name + '.cfg'
       ::File.open(service_file, 'w') {|f| f.write(final_block) }
       return 1
     end
@@ -252,7 +262,7 @@ ruby_block 'setup nagios' do
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
       Chef::Log.info('adding: '+new_block)
-      host_file = $conf_d + "/host_" + ci_id.to_s + ".cfg"
+      host_file = $conf_d + '/host_' + ci_id.to_s + '.cfg'
       ::File.open(host_file, 'w') {|f| f.write(new_block) }
       return 1
     end
@@ -271,13 +281,13 @@ ruby_block 'setup nagios' do
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
       Chef::Log.info('adding: '+new_block)
-      hostgroup_file = $conf_d + "/hostgroup_" + ci_name + ".cfg"
+      hostgroup_file = $conf_d + '/hostgroup_' + ci_name + '.cfg'
       ::File.open(hostgroup_file, 'w') {|f| f.write(new_block) }
       return 1
     end
 
     def set_command(monitor)
-      command_name = monitor[:ciAttributes][:cmd].split("!")[0]
+      command_name = monitor[:ciAttributes][:cmd].split('!')[0]
       command_line = monitor[:ciAttributes][:cmd_line]
 
       template = 'define command{\n'
@@ -289,7 +299,7 @@ ruby_block 'setup nagios' do
       template.gsub!( /:::(.*?):::/ ) { '#{'+$1+'}' }
       new_block = eval( '"' + template + '"' )
       Chef::Log.info('adding: '+new_block )
-      command_file = $conf_d + "/command_" + command_name + ".cfg"
+      command_file = $conf_d + '/command_' + command_name + '.cfg'
       ::File.open(command_file, 'w') {|f| f.write(new_block) }
       return 1
     end
@@ -314,9 +324,9 @@ ruby_block 'setup nagios' do
     ci_id = node.workorder.rfcCi.ciId
     delete_monitor_ciid(ci_id)
 
-    nagios_service = "nagios"
-    if node.platform == "ubuntu"
-      nagios_service = "nagios3"
+    nagios_service = 'nagios'
+    if node.platform == 'ubuntu'
+      nagios_service = 'nagios3'
     end
 
     # gets a list of monitors
@@ -326,44 +336,43 @@ ruby_block 'setup nagios' do
       changes += process_monitor(monitor)
     end
 
-    if File.directory?("/var/log/nagios")
-      result = `rm -fr /var/log/nagios ; ln -sf /var/log/nagios3 /var/log/nagios`
-    end
-
     if is_new_compute
 
       # sync and restart
       # node rsync and ssh set from compute::base
-      cmd = node.rsync_cmd.gsub("SOURCE",conf_dir).gsub("DEST","/tmp").gsub("IP",node.ip)
+      cmd = node.rsync_cmd.gsub('SOURCE',conf_dir).gsub('DEST','/tmp').gsub('IP',node.ip)
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      # setup dirs used in nagios config
-      dirs = ["/var/run/nagios3","/opt/nagios/libexec","/var/lib/nagios3/spool/checkresults"]
-      dirs += ["/var/log/nagios3","/var/lib/nagios3/rw","/opt/oneops/perf"]
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"'+ "sudo mkdir -p "+dirs.join(" ")+";" +
-            "sudo chown -R nagios:nagios /var/lib/nagios3 /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf" + '"'
+      dirs = ["#{dir_prefix}/var/run/nagios3","#{dir_prefix}/opt/nagios/libexec"]
+      dirs += ["#{dir_prefix}/var/log/nagios3","#{dir_prefix}/opt/oneops/perf"]
+      # not going to chown for windows
+      if ostype =~ /windows/
+        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
+         'sudo chown -R oneops:Administrators /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
+	  else
+        cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
+         'sudo chown -R nagios:nagios /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
+      end
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
       # copy default plugins
-      nagios_plugins = node.circuit_dir+"/shared/cookbooks/monitor/files/default/*"
-      cmd = node.rsync_cmd.gsub("SOURCE",nagios_plugins).gsub("DEST","~/nagios_libexec/").gsub("IP",node.ip)
+      nagios_plugins = node.circuit_dir+'/shared/cookbooks/monitor/files/default/*'
+      cmd = node.rsync_cmd.gsub('SOURCE',nagios_plugins).gsub('DEST','~/nagios_libexec/').gsub('IP',node.ip)
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo mv ~/nagios_libexec/* /opt/nagios/libexec/" + '"'
+      cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + "sudo mv ~/nagios_libexec/* #{dir_prefix}/opt/nagios/libexec/" + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
 
-
-      # copy config and restart nagios
-      cmd = node.ssh_cmd.gsub("IP",node.ip) + '"' + "sudo cp -r #{conf_dir}/* /etc/nagios/; sudo cp -r #{conf_dir}/perf /opt/oneops/; " +
-            "sudo ln -sf /etc/nagios /etc/nagios3; sudo chmod +x /opt/nagios/libexec/* " + '"'
+      cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + "sudo cp -r #{conf_dir}/* #{dir_prefix}/etc/nagios/; sudo cp -r #{conf_dir}/perf #{dir_prefix}/opt/oneops/; " +
+          "sudo chmod +x #{dir_prefix}/opt/nagios/libexec/* " + '"'
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
       result.error!
@@ -374,26 +383,32 @@ ruby_block 'setup nagios' do
       # standard way
       # for flume agent use in connecting to collectors
       mgmt_domain = node.mgmt_domain
-      `echo #{mgmt_domain} > /opt/oneops/mgmt_domain`
+      `echo #{mgmt_domain} > #{dir_prefix}/opt/oneops/mgmt_domain`
 
       cloud = node.workorder.cloud.ciName
-      Chef::Log.info("setting /opt/oneops/cloud to #{cloud} - flume will send to #{cloud}.collector.#{mgmt_domain}")
-      `echo #{cloud} > /opt/oneops/cloud`
+      `echo #{cloud} > #{dir_prefix}/opt/oneops/cloud`
 
       env = node.workorder.payLoad[:Environment][0]
       has_monitoring = true
-      Chef::Log.debug("env: "+env.inspect)
-      if env[:ciAttributes].has_key?("monitoring")
-        Chef::Log.info("monitoring: "+env[:ciAttributes][:monitoring])
-        if env[:ciAttributes][:monitoring] == "false"
+      Chef::Log.debug('env: '+env.inspect)
+      if env[:ciAttributes].has_key?('monitoring')
+        Chef::Log.info('monitoring: '+env[:ciAttributes][:monitoring])
+        if env[:ciAttributes][:monitoring] == 'false'
           has_monitoring = false
         end
       end
 
       Chef::Log.info("total of #{changes} changes")
-      `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
-      # restart nagios & forwarder
-      `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
+      # path to initd is diff for windows
+      if ostype =~ /windows/
+        `chown -R oneops:Administrators /etc/nagios /opt/oneops/perf`
+		# restart nagios & forwarder
+        # `c:/cygwin64/etc/rc.d/init.d/nagios restart && c:/cygwin64/etc/init.d/perf-agent restart`
+      else
+        `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
+        # restart nagios & forwarder
+        `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
+      end
 
     end
 
@@ -402,35 +417,49 @@ end
 
 
 if is_new_compute
-  include_recipe "compute::ssh_key_file_rm"
+  include_recipe 'compute::ssh_key_file_rm'
 else
+  if ostype =~ /windows/
+    perf_dir = '/opt/oneops/perf'
+	    
+    #grant permissions to all subfolders and files to SYSTEM
+    directory perf_dir do
+      rights :modify, 'SYSTEM'
+      rights :full_control, 'oneops'
+      rights :full_control, 'Administrators'
+      inherits false
+      action :create
+    end
+  
+    ps_code = "
+    $Path = '#{perf_dir}'
+    $acl = Get-Acl $Path
+    $Objects = Get-ChildItem -Path $Path -Recurse | % { $_.FullName }
+    ForEach ($Object in $Objects)  {Set-Acl -Path $Object -AclObject $acl }"
 
-  nagios_service = "nagios"
-  if node.platform == "ubuntu"
-    nagios_service = "nagios3"
+    powershell_script 'Assign Permissions' do
+      code ps_code
+    end
   end
 
+  nagios_service = 'nagios'
+  if node.platform == 'ubuntu'
+    nagios_service = 'nagios3'
+  end
 
-  if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?("monitoring") &&
-     node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == "true"
+  if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
+     node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
     service nagios_service do
-        supports [ :restart, :enable ]
-        action [ :restart, :enable ]
+      supports [ :restart, :enable ]
+      action [ :restart, :enable ]
     end
-
-    service_path = "/usr/sbin"
-    case node.platform
-    when "redhat", "centos", "fedora", "suse"
-        service_path = "/sbin"
-    end
-    execute "#{service_path}/service #{nagios_service} restart"
 
   else
     service nagios_service do
       action [ :stop, :disable ]
     end
-    service "perf-agent" do
+    service 'perf-agent' do
       action [ :stop, :disable ]
     end
 
