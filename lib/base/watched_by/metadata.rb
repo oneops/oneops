@@ -8,11 +8,13 @@ license          "Copyright OneOps, All rights reserved."
 
 grouping 'default',
   :relation => true,
-  :packages => [ 'base', 'mgmt.manifest', 'manifest' ]
+  :packages => [ 'base', 'mgmt.manifest', 'manifest', 'mgmt.catalog', 'catalog' ]
 
 
 { 'mgmt.manifest' => 'mgmt.manifest',
-  'manifest'      => 'manifest' }.each do |class_package,relation_package|
+  'manifest'      => 'manifest',
+  'mgmt.catalog'  => 'mgmt.catalog',
+  'catalog'       => 'catalog' }.each do |class_package,relation_package|
 
     attribute "Component-#{relation_package}.WatchedBy-#{class_package}.Monitor",
       :relation_target => true,
@@ -39,5 +41,13 @@ attribute 'notifyOnlyOnStateChange',
        :format => {
          :help => 'Checking this checkbox, will enable only notifiactions to be sent once per state change.By default checked. ',
          :form => { 'field' => 'checkbox' },    
-         }        
+         }
+
+attribute 'source',
+        :grouping => 'default',
+        :description => 'Source',
+        :default => ' ',
+        :type => 'string',
+        :format => ''
+         
 end
