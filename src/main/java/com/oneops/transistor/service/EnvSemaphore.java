@@ -53,7 +53,7 @@ public class EnvSemaphore {
 	public void lockEnv(long envId, String lock, String processId) {
 		if (cmUtilProcessor.acquireLock(getLockName(envId), processId, envTimeOutInSeconds)) {
 			CmsCI env = cmManager.getCiById(envId);
-			if (env.getCiState().equals(LOCKED_STATE) || env.getCiState().equals(MANIFEST_LOCKED_STATE)) {
+			if (isEnvLocked(env)) {
 				throw new TransistorException(CmsError.TRANSISTOR_ENVIRONMENT_IN_LOCKED_STATE, "Environment is in a locked state.");
 			}
 			env.setCiState(lock);
@@ -68,6 +68,10 @@ public class EnvSemaphore {
 		}
 	}
 
+	private boolean isEnvLocked(CmsCI env) {
+		return LOCKED_STATE.equals(env.getCiState()) || MANIFEST_LOCKED_STATE.equals(env.getCiState());
+	}
+
 	private String getLockName(long envId) {
 		return envId+"-" + LOCKED_STATE;
 	}
@@ -76,6 +80,7 @@ public class EnvSemaphore {
 		cmUtilProcessor.releaseLock(getLockName(envId), processId);
 		CmsCI env = cmManager.getCiById(envId);
 		env.setCiState(DEFAULT_STATE);
+
 		env.setComments(envMsg);
 		cmManager.updateCI(env);
 		logger.info("unlocked env id " + envId + " state:" + env.getCiState());
