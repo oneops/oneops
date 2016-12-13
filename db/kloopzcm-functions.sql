@@ -2625,3 +2625,92 @@ $BODY$
 ALTER FUNCTION dj_rm_rfcs(character varying)
   OWNER TO :user;
 
+
+
+-- Function: dj_create_alt_namespace(bigint, character varying, bigint)
+
+-- DROP FUNCTION dj_create_alt_namespace(bigint, character varying, bigint);
+
+CREATE OR REPLACE FUNCTION dj_create_alt_namespace( p_ns_id bigint, p_tag character varying, p_rfc_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+   insert into ns_opt_tag (tag_id, tag)
+        select nextval('cm_pk_seq'), p_tag
+        from ns_opt_tag
+        where not exists (select 1 from ns_opt_tag where tag = p_tag);
+        
+    insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (p_rfc_id, p_ns_id, now(), (select tag_id from ns_opt_tag where tag=p_tag));    
+    return p_ns_id;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION dj_create_alt_namespace(bigint, character varying, bigint) OWNER TO :user;
+
+
+
+-- Function: dj_delete_alt_namespace(bigint, bigint)
+
+-- DROP FUNCTION dj_delete_alt_namespace(bigint, bigint);
+
+CREATE OR REPLACE FUNCTION dj_delete_alt_namespace( p_ns_id bigint, p_rfc_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+    delete from dj_ns_opt where rfc_id= p_rfc_id and ns_id=p_ns_id;    
+    return p_ns_id;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION dj_delete_alt_namespace(bigint, bigint) OWNER TO :user;
+
+
+
+
+-- Function: cm_create_alt_namespace(bigint, character varying, bigint)
+
+-- DROP FUNCTION cm_create_alt_namespace(bigint, character varying, bigint);
+
+CREATE OR REPLACE FUNCTION cm_create_alt_namespace( p_ns_id bigint, p_tag character varying, p_ci_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+    insert into ns_opt_tag (tag_id, tag)
+        select nextval('cm_pk_seq'), p_tag
+        from ns_opt_tag
+        where not exists (select 1 from ns_opt_tag where tag = p_tag);
+        
+    insert into cm_ns_opt (ci_id, ns_id, created, tag_id) values (p_ci_id, p_ns_id, now(), (select tag_id from ns_opt_tag where tag=p_tag));    
+    return p_ns_id;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION cm_create_alt_namespace(bigint, character varying, bigint) OWNER TO :user;
+
+
+
+
+-- Function: cm_delete_alt_namespace(bigint, bigint)
+
+-- DROP FUNCTION cm_delete_alt_namespace(bigint, bigint);
+
+CREATE OR REPLACE FUNCTION cm_delete_alt_namespace( p_ns_id bigint, p_ci_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+    delete from ci_ns_opt where ci_id= p_ci_id and ns_id=p_ns_id;    
+    return p_ns_id;
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+
+ALTER FUNCTION cm_delete_alt_namespace(bigint, bigint) OWNER TO :user;
+
+
