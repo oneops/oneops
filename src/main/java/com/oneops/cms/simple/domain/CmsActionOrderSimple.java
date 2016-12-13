@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * The Class CmsActionOrderSimple.
  */
-public class CmsActionOrderSimple extends CmsOpsAction implements CmsWorkOrderSimpleBase {
+public class CmsActionOrderSimple extends CmsOpsAction implements CmsWorkOrderSimpleBase<CmsCISimple> {
 	private static final long serialVersionUID = 1L;
 
 	public CmsCISimple ci;
@@ -119,8 +119,58 @@ public class CmsActionOrderSimple extends CmsOpsAction implements CmsWorkOrderSi
 	public Map<String, List<CmsCISimple>> getPayLoad() {
 		return payLoad;
 	}
-	
-	/**
+
+	@Override
+	public List<CmsCISimple> getPayLoadEntry(String payloadKey) {
+		return getPayLoad().get(payloadKey);
+	}
+
+	@Override
+	public CmsCISimple getPayLoadEntryAt(String payloadKey, int indx) {
+		if(isPayLoadEntryPresent(payloadKey)){
+			return getPayLoad().get(payloadKey).get(indx);
+		}
+
+		return null;
+	}
+
+    @Override
+	public String getPayLoadAttribute(String payloadEntry, String attributeName) {
+		if(getPayLoadEntryAt(payloadEntry,0)!=null){
+			return getPayLoadEntryAt(payloadEntry,0).getCiAttributes().get(attributeName);
+		}
+		return null;
+	}
+
+	@Override
+	public Map<String, String> getCiAttributes() {
+		return getCi().getCiAttributes();
+	}
+
+	@Override
+    public String getAction() {
+
+	    return getActionName();
+    }
+
+    @Override
+    public String getNsPath() {
+
+	    return getCi().getNsPath();
+    }
+
+    @Override
+    public String getClassName() {
+        return getCi().getCiClassName();
+    }
+
+    @Override
+    public boolean isPayloadEntryEqual(String payloadEntry, String attributeName, String valueToBeCompared) {
+        return false;
+    }
+
+
+    /**
 	 * Sets the pay load.
 	 *
 	 * @param payLoad the pay load
@@ -138,7 +188,7 @@ public class CmsActionOrderSimple extends CmsOpsAction implements CmsWorkOrderSi
 	public void putPayLoadEntry(String key, List<CmsCISimple> value) {
 		if (value != null && value.size()>0) {
 			if (this.payLoad == null) {
-				this.payLoad = new HashMap<String, List<CmsCISimple>>();
+				this.payLoad = new HashMap<>();
 			}
 			this.payLoad.put(key, value);
 		}
@@ -153,10 +203,10 @@ public class CmsActionOrderSimple extends CmsOpsAction implements CmsWorkOrderSi
 	public void addPayLoadEntry(String key, CmsCISimple value) {
 		if (value != null) {
 			if (this.payLoad == null) {
-				this.payLoad = new HashMap<String, List<CmsCISimple>>();
+				this.payLoad = new HashMap<>();
 			}
 			if (!this.payLoad.containsKey(key)) {
-				this.payLoad.put(key, new ArrayList<CmsCISimple>());
+				this.payLoad.put(key, new ArrayList<>());
 			}
 			this.payLoad.get(key).add(value);
 		}
@@ -194,6 +244,11 @@ public class CmsActionOrderSimple extends CmsOpsAction implements CmsWorkOrderSi
 	 */
 	public void setSearchTags(Map<String, String> searchTags) {
 		this.searchTags = searchTags;
+	}
+
+	@Override
+	public String getCiName() {
+		return getCi().getCiName();
 	}
 
 }
