@@ -347,9 +347,8 @@ public class CMSClient {
             dpmtRec.setDeploymentId(wo.getDeploymentId());
             dpmtRec.setDpmtRecordState(newState);
             dpmtRec.setComments(wo.getComments());
-            CmsDeployment depl = djManager.getDeployment(wo.getDeploymentId());
-            if (newState.equalsIgnoreCase(FAILED) && !depl.getContinueOnFailure()) {
-                CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
+            CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
+            if (newState.equalsIgnoreCase(FAILED) && (dpmt!=null && !dpmt.getContinueOnFailure())) {
                 dpmt.setDeploymentState(FAILED);
                 if (exec.getVariable("error-message") != null) {
                     dpmtRec.setComments(exec.getVariable("error-message").toString());
