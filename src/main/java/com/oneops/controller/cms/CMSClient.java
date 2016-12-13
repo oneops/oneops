@@ -188,7 +188,7 @@ public class CMSClient {
 
         	long failedWos = djManager.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", execOrder);
         	
-            if (failedWos > 0) {
+            if (failedWos > 0 && !dpmt.getContinueOnFailure()) {
                 logger.error("Previous step has failed work orders, the deployment should be in failed state");
                 String descr = dpmt.getDescription();
                 if (descr == null) {
@@ -345,7 +345,8 @@ public class CMSClient {
             dpmtRec.setDeploymentId(wo.getDeploymentId());
             dpmtRec.setDpmtRecordState(newState);
             dpmtRec.setComments(wo.getComments());
-            if (newState.equalsIgnoreCase(FAILED)) {
+            CmsDeployment depl = djManager.getDeployment(wo.getDeploymentId());
+            if (newState.equalsIgnoreCase(FAILED) && !depl.getContinueOnFailure()) {
                 CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
                 dpmt.setDeploymentState(FAILED);
                 if (exec.getVariable("error-message") != null) {
@@ -501,7 +502,7 @@ public class CMSClient {
      * Update action order state.
      *
      * @param exec     the exec
-     * @param ao       the ao
+     * @param aos       the aos
      * @param newState the new state
      */
     public void updateActionOrderState(DelegateExecution exec, CmsActionOrderSimple aos, String newState) {
