@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import org.apache.log4j.Logger;
 
@@ -173,7 +174,7 @@ public class DesignRfcProcessor {
 	public long clonePlatform(CmsRfcCI designPlatformRequest, Long targetAssemblyId, long sourcePlatId, String userId, String scope) {
 		
 		
-		CmsCI assembly = null;
+		CmsCI assembly;
 		if (targetAssemblyId != null) {
 			assembly = cmProcessor.getCiById(targetAssemblyId);
 		} else {
@@ -226,17 +227,33 @@ public class DesignRfcProcessor {
 		return designPlatformRfc.getCiId();
 	}
 
+	/**
+	 * OneOps assembly `copy` implementation. The following steps are
+	 * involved in the assembly copy action.
+	 * <p>
+	 * 1. Set target assembly description if from description is empty or null.
+	 * 2. Create the target assembly ci.
+	 * 3. Set org relation (org -> base.Manages -> assembly) to the newly created assembly
+	 * 4. Copy all the platform (assembly -> base.ComposedOf -> catalog.Platform) from `from` assembly.
+	 * 5. Copy all the global (Global var -> base.ValueFor -> account.Assembly) variables.
+	 * 6. Restore LinksTo (platform -> catalog.LinksTo -> catalog.Platform) relation between platforms.
+	 *
+	 * @param targetAssembly target assembly ci to be created
+	 * @param fromAssemblyId assembly ciid from where it to be copied.
+	 * @param userId         id of the user performing this action.
+	 * @param scope          scope is the nspath of the assembly.
+	 * @return cid of the created assembly.
+	 */
 	public long cloneAssembly(CmsCI targetAssembly, long fromAssemblyId, String userId, String scope) {
 
 		CmsCI fromOrg = trUtil.getOrgByScope(scope);
-		
 		if (fromOrg == null) {
-			String errMsg = "Can not find org by the scope = " + scope + ";"; 
+			String errMsg = "Can not find org by the scope = " + scope;
 			logger.error(errMsg);
 			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_ORG_BY_SCOPE, errMsg);
 		}
-		
-		CmsCI toOrg = null;
+
+		CmsCI toOrg;
 		if (targetAssembly.getNsPath() == null) {
 			String assemblyNS = "/" + fromOrg.getCiName();
 			targetAssembly.setNsPath(assemblyNS);
@@ -244,52 +261,91 @@ public class DesignRfcProcessor {
 		} else {
 			toOrg = trUtil.getOrgByScope(targetAssembly.getNsPath());
 			if (toOrg == null) {
-				String errMsg = "Can not find org by the nsPath = " + targetAssembly.getNsPath() + ";"; 
+				String errMsg = "Can not find org by the nsPath = " + targetAssembly.getNsPath();
 				logger.error(errMsg);
 				throw new TransistorException(CmsError.TRANSISTOR_CANNOT_ORG_BY_SCOPE, errMsg);
 			}
 		}
-		
+
 		CmsCI fromAssembly = cmProcessor.getCiById(fromAssemblyId);
-		if (targetAssembly.getAttribute("description").getDfValue() == null) {
+		CmsCIAttribute newDesc = targetAssembly.getAttribute("description");
+		if (newDesc.getDfValue() == null || newDesc.getDfValue().trim().isEmpty()) {
 			String desc = "Created from " + fromAssembly.getCiName();
-			targetAssembly.getAttribute("description").setDfValue(desc);
-			targetAssembly.getAttribute("description").setDjValue(desc);
+			newDesc.setDfValue(desc);
+			newDesc.setDjValue(desc);
 		}
+
+		// Creates the relation to org.
 		CmsCI assembly = cmProcessor.createCI(targetAssembly);
-		// create org -> base.Manages -> assembly rel
 		CmsCIRelation manages = trUtil.bootstrapRelation(toOrg.getCiId(), assembly.getCiId(), "base.Manages", targetAssembly.getNsPath());
 		cmProcessor.createRelation(manages);
-		Map<Long,Long> source2design = new HashMap<Long,Long>();
+
+		// Clone all the platforms
+		Map<Long, Long> source2design = new HashMap<>();
 		List<CmsRfcRelation> composedOfs = cmRfcMrgProcessor.getFromCIRelations(fromAssemblyId, "base.ComposedOf", "catalog.Platform", "dj");
 		for (CmsRfcRelation composedOf : composedOfs) {
 			long sourcePlatId = composedOf.getToCiId();
-			long designPlatId = clonePlatform(null, assembly.getCiId(),sourcePlatId,userId, assembly.getNsPath());
+			long designPlatId = clonePlatform(null, assembly.getCiId(), sourcePlatId, userId, assembly.getNsPath());
 			source2design.put(sourcePlatId, designPlatId);
 		}
-		//process linksTo relations
+
+		// Process  global vars
 		String platsNS = assembly.getNsPath() + "/" + assembly.getCiName();
+		cloneGlobalVars(fromAssemblyId, assembly.getCiId(), platsNS, userId);
+
+		// Process linksTo relations
 		processAssemblyInternalRels(source2design, platsNS, userId);
 		return assembly.getCiId();
 	}
-	
-	private void processAssemblyInternalRels(Map<Long,Long> source2design, String nsPath, String userId) {
+
+	/**
+	 * Clone the global variables into target assembly with given id.
+	 *
+	 * @param fromAssemblyId   assembly id from which global vars to be copied.
+	 * @param targetAssemblyId target assembly cid to copy variables.
+	 * @param nsPath           assembly nspath.
+	 * @param userId           id of the user performing this action.
+	 */
+	private void cloneGlobalVars(long fromAssemblyId, long targetAssemblyId, String nsPath, String userId) {
+		List<CmsRfcRelation> sourceValueFor = cmRfcMrgProcessor.getToCIRelations(fromAssemblyId, "base.ValueFor", null, null);
+		for (CmsRfcRelation srcRel : sourceValueFor) {
+			CmsRfcCI srcVar = srcRel.getFromRfcCi();
+
+			CmsRfcCI designVar = trUtil.cloneRfcCIBasic(srcVar);
+			designVar.setNsPath(nsPath);
+			designVar.setReleaseNsPath(nsPath);
+			designVar.setCreatedBy(userId);
+			designVar.setUpdatedBy(userId);
+			CmsRfcCI designVarRfc = cmRfcMrgProcessor.upsertCiRfc(designVar, userId);
+
+			CmsRfcRelation designValForRel = trUtil.cloneRfcRelationBasic(srcRel);
+			designValForRel.setToCiId(targetAssemblyId);
+			designValForRel.setFromCiId(designVarRfc.getCiId());
+			designValForRel.setNsPath(nsPath);
+			designValForRel.setReleaseNsPath(nsPath);
+			designValForRel.setCreatedBy(userId);
+			designValForRel.setUpdatedBy(userId);
+			cmRfcMrgProcessor.upsertRelationRfc(designValForRel, userId);
+		}
+	}
+
+	private void processAssemblyInternalRels(Map<Long, Long> source2design, String nsPath, String userId) {
 		for (Long sourcePlatId : source2design.keySet()) {
 			List<CmsRfcRelation> linkesTos = cmRfcMrgProcessor.getFromCIRelations(sourcePlatId, "catalog.LinksTo", "catalog.Platform", "dj");
 			for (CmsRfcRelation linkedTo : linkesTos) {
-				CmsRfcRelation designInternalRel = trUtil.cloneRfcRelationBasic(linkedTo); 
-				
+				CmsRfcRelation designInternalRel = trUtil.cloneRfcRelationBasic(linkedTo);
+
 				designInternalRel.setFromCiId(source2design.get(linkedTo.getFromCiId()));
 				designInternalRel.setToCiId(source2design.get(linkedTo.getToCiId()));
 				designInternalRel.setNsPath(nsPath);
 				designInternalRel.setReleaseNsPath(nsPath);
 				designInternalRel.setCreatedBy(userId);
 				designInternalRel.setUpdatedBy(userId);
-				
 				cmRfcMrgProcessor.upsertRelationRfc(designInternalRel, userId);
 			}
 		}
 	}
+
 
 	/*
 	private void populatePackInfo(CmsRfcCI designPlatformRfc, CmsRfcCI sourcePlatform) {
@@ -302,7 +358,7 @@ public class DesignRfcProcessor {
 	
 	private void clonePlatformComponents(CmsRfcCI designPlatformRfc, List<CmsRfcRelation> sourceRequires, String platNsPath, String releaseNsPath, String userId) {
 		//1st lets create all the components and have a map of new Design IDs to tmpl IDs
-		Map<Long,Long> source2design = new HashMap<Long,Long>();
+		Map<Long,Long> source2design = new HashMap<>();
 		for (CmsRfcRelation sourceReqRel : sourceRequires) {
 			
 			CmsRfcCI sourceComponent = sourceReqRel.getToRfcCi();
@@ -340,8 +396,8 @@ public class DesignRfcProcessor {
 
 		for (CmsRfcRelation sourceValueForRel : sourceValueFor) {
 			CmsRfcCI sourceVar = sourceValueForRel.getFromRfcCi();
+
 			CmsRfcCI designVar = trUtil.cloneRfcCIBasic(sourceVar);
-			
 			designVar.setNsPath(platNsPath);
 			designVar.setReleaseNsPath(releaseNsPath);
 			designVar.setReleaseId(designPlatformRfc.getReleaseId());
@@ -350,7 +406,6 @@ public class DesignRfcProcessor {
 			CmsRfcCI designVarRfc = cmRfcMrgProcessor.upsertCiRfc(designVar, userId);
 
 			CmsRfcRelation designValueForRel = trUtil.cloneRfcRelationBasic(sourceValueForRel);
-			
 			designValueForRel.setToCiId(designPlatformRfc.getCiId());
 			designValueForRel.setToRfcId(designPlatformRfc.getRfcId());
 			designValueForRel.setFromCiId(designVarRfc.getCiId());
@@ -360,16 +415,15 @@ public class DesignRfcProcessor {
 			designValueForRel.setReleaseId(designPlatformRfc.getReleaseId());
 			designValueForRel.setCreatedBy(userId);
 			designValueForRel.setUpdatedBy(userId);
-			
 			cmRfcMrgProcessor.upsertRelationRfc(designValueForRel, userId);
 		}
-		
+
 	}
 
 	
 	private void processTmplPlatformComponents(CmsRfcCI designPlatformRfc, List<CmsCIRelation> tmplRequires, String platNsPath, String releaseNsPath, String userId) {
 		//1st lets create all the components and have a map of new Design IDs to tmpl IDs
-		Map<Long,Long> tmpl2design = new HashMap<Long,Long>();
+		Map<Long,Long> tmpl2design = new HashMap<>();
 		for (CmsCIRelation tmplReqRel : tmplRequires) {
 			
 			CmsCI tmplComponent = tmplReqRel.getToCi();
@@ -451,7 +505,7 @@ public class DesignRfcProcessor {
 
 	private List<CmsCIRelation> getRequiredTmplComponents(CmsCI templatePlatform) {
 		List<CmsCIRelation> tmplRequires = cmProcessor.getFromCIRelationsNaked(templatePlatform.getCiId(), "mgmt.Requires", null);
-		List<CmsCIRelation> requiresList = new ArrayList<CmsCIRelation>();
+		List<CmsCIRelation> requiresList = new ArrayList<>();
 		for (CmsCIRelation rel : tmplRequires) {
 			if (rel.getAttribute("constraint").getDfValue().matches("1..1|1..*")) {
 				CmsCI component = cmProcessor.getCiById(rel.getToCiId());
@@ -467,7 +521,7 @@ public class DesignRfcProcessor {
 
 	
 	private List<CmsCIRelation> getInternalTmplRelations(Set<Long> tmplIds) {
-		List<CmsCIRelation> internalList = new ArrayList<CmsCIRelation>();
+		List<CmsCIRelation> internalList = new ArrayList<>();
 
 		for (Long tmplId : tmplIds) {
 			List<CmsCIRelation> tmplInternals = cmProcessor.getFromCIRelationsNaked(tmplId, null, null);
@@ -477,7 +531,7 @@ public class DesignRfcProcessor {
 	}
 
 	private List<CmsRfcRelation> getInternalPlatRelations(Set<Long> componentIds) {
-		List<CmsRfcRelation> internalList = new ArrayList<CmsRfcRelation>();
+		List<CmsRfcRelation> internalList = new ArrayList<>();
 
 		for (Long componentId : componentIds) {
 			List<CmsRfcRelation> tmplInternals = cmRfcMrgProcessor.getFromCIRelationsNaked(componentId, null, null, null); 
@@ -501,7 +555,7 @@ public class DesignRfcProcessor {
 		newRfc.setCiClassName(targetClazz.getClassName());
 		
 		//bootstrap the default values from Class definition and populate map for checks
-		Map<String, CmsClazzAttribute> clazzAttrs = new HashMap<String, CmsClazzAttribute>();
+		Map<String, CmsClazzAttribute> clazzAttrs = new HashMap<>();
 	    for (CmsClazzAttribute clAttr : targetClazz.getMdAttributes()) {
 	    	if (clAttr.getDefaultValue() != null) {
 	    		CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
@@ -532,7 +586,7 @@ public class DesignRfcProcessor {
 		newRfc.setRelationName(targetRelation.getRelationName());
 		
 		//bootstrap the default values from Class definition
-		Map<String, CmsRelationAttribute> relAttrs = new HashMap<String, CmsRelationAttribute>();
+		Map<String, CmsRelationAttribute> relAttrs = new HashMap<>();
 	    for (CmsRelationAttribute relAttr : targetRelation.getMdAttributes()) {
 	    	if (relAttr.getDefaultValue() != null) {
 	    		CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
