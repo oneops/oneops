@@ -19,10 +19,12 @@ package com.oneops.controller.cms;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
@@ -80,8 +82,8 @@ public class CMSClient {
     public static final String INPROGRESS = "inprogress";
     public static final String COMPLETE = "complete";
     public static final String FAILED = "failed";
+    public static final String PAUSED = "paused";
     private static final String DPMT = "dpmt";
-    protected static final String CLOUDSERVICEPREFIX = "cloud.service";
 
     private RestTemplate restTemplate;
     @SuppressWarnings("unused")
@@ -437,8 +439,23 @@ public class CMSClient {
      * @param exec the exec
      */
     public void incExecOrder(DelegateExecution exec) {
-        Integer execOrder = (Integer) exec.getVariable(EXEC_ORDER) + 1;
-        exec.setVariable(EXEC_ORDER, execOrder);
+        Integer newExecOrder = (Integer) exec.getVariable(EXEC_ORDER) + 1;
+        if (exec.hasVariable(DPMT)) {
+            CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
+            Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
+            if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
+                logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
+                dpmt.setDeploymentState(PAUSED);
+                dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
+                try {
+                    djManager.updateDeployment(dpmt);
+                } catch (CmsBaseException e) {
+                    logger.error("CmsBaseException in incExecOrder", e);
+                    throw e;
+                }
+            }
+        }
+        exec.setVariable(EXEC_ORDER, newExecOrder);
     }
 
     /**
