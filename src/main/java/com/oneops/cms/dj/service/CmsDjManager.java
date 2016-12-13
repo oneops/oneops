@@ -21,17 +21,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.*;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.TimelineBase;
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.util.TimelineQueryParam;
 
 /**
@@ -100,4 +93,13 @@ public interface CmsDjManager {
 	long getRfcCiCountByNs(String nsPath);
 	long getRfcRelationCountByNs(String nsPath);
 	List<TimelineBase> getDjTimeLine(TimelineQueryParam queryParam);
+
+
+	/*
+	 * Alt NS
+	 */
+	void createAltNs(CmsAltNs cmsAltNs, CmsRfcCI rfcCi);
+	void deleteAltNs(long nsId, long rfcId);
+	List<CmsAltNs> getAltNsBy(long rfcCI);
+	List<CmsRfcCI> getByAltNsAndTag(String altNsPath, String tag, Long releaseId, boolean active, Long ciId);
 }

@@ -1613,4 +1613,67 @@
 			limit coalesce(#{limit},10)
 		</if>
 	</select>
+
+	<insert id="createAltNs" parameterType="map" statementType="CALLABLE">
+		{call dj_create_alt_namespace(#{nsId}, #{tag}, #{rfcId})}
+	</insert>
+
+
+	<delete id="deleteAltNs" parameterType="long" statementType="CALLABLE">
+		{call dj_delete_alt_namespace(#{nsId}, #{rfcId})}
+	</delete>
+
+
+
+	<select id="getRfcCIByAltNsAndTag" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT
+		rci.rfc_id as rfcId,
+		rci.release_id as releaseId,
+		rci.ci_id as ciId,
+		rci.ns_id as nsId,
+		ns.ns_path as nsPath,
+		rci.class_id as ciClassId,
+		cl.class_name as ciClassName,
+		cl.impl as impl,
+		rci.ci_name as ciName,
+		rci.ci_goid as ciGoid,
+		rci.action_id as rfcActionId,
+		a.action_name as rfcAction,
+		rci.execution_order as execOrder,
+		rci.is_active_in_release as isActiveInRelease,
+		rci.last_rfc_id lastAppliedRfcId,
+		r.release_type as releaseType,
+		rci.comments,
+		rci.created_by as createdBy,
+		rci.updated_by as updatedBy,
+		rci.created_by as rfcCreatedBy,
+		rci.updated_by as rfcUpdatedBy,
+		rci.created as rfcCreated,
+		rci.updated as rfcUpdated,
+		rci.created,
+		rci.updated
+		FROM dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a, dj_releases r, dj_ns_opt dno, ns_namespaces ns1, ns_opt_tag nt
+		where rci.release_id = r.release_id
+		and (#{tag}::varchar is null or nt.tag = #{tag})
+		and (#{nsPath}::varchar is null or ns1.ns_path = #{nsPath})
+		and (#{isActive}::boolean is null or rci.is_active_in_release = #{isActive})
+		and (#{releaseId}::bigint is null or rci.release_id = #{releaseId})
+		and (#{ciId}::bigint is null or rci.ci_id = #{ciId})
+		and rci.ns_id = ns.ns_id
+		and rci.class_id = cl.class_id
+		and rci.action_id = a.action_id
+		and ns1.ns_id = dno.ns_id
+		and dno.rfc_id = rci.rfc_id
+		and dno.tag_id = nt.tag_id
+	</select>
+
+	<select  id="getAltNsBy" parameterType="long" useCache="false" resultType="com.oneops.cms.cm.domain.CmsAltNs">
+		SELECT ns.ns_path as nsPath,
+		nt.tag,
+		ns.ns_id as nsId
+		FROM ns_namespaces ns, dj_ns_opt dno, ns_opt_tag nt
+		where ns.ns_id = dno.ns_id
+		and dno.tag_id = nt.tag_id
+		and dno.rfc_id = #{rfcId}
+	</select>
 </mapper>

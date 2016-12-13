@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -388,7 +389,7 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	/**
 	 * Update ci state in bulk mode. Needs to be perf improved later
 	 * This method does relationship traversal and updates all related cis with new state
-	 * @param long ciId, String new ciState  String relName, String direction, boolean recursive
+	 * @param ids, String new ciState  String relName, String direction, boolean recursive
 	 * @return void
 	 */
 	
@@ -417,7 +418,7 @@ public class CmsCmManagerImpl implements CmsCmManager {
 	/**
 	 * Update ci state.
 	 * This method does relationship traversal and updates all related cis with new state
-	 * @param long ciId, String new ciState  String relName, String direction, boolean recursive
+	 * @param ciId, String new ciState  String relName, String direction, boolean recursive
 	 * @return void
 	 */
 	public void updateCiState(long ciId, String ciState, String relName,
@@ -502,4 +503,20 @@ public class CmsCmManagerImpl implements CmsCmManager {
 		return cmProcessor.getCmSimpleVar(varName);
 	}
 
+	@Override
+	public void deleteAltNs(long nsId, long ciId) {
+		cmProcessor.deleteAltNs(nsId, ciId);
+	}
+
+	public void createAltNs(CmsAltNs cmsAltNs, CmsCI ci) {
+		cmProcessor.createAltNs(cmsAltNs, ci);
+	}
+
+	public List<CmsAltNs> getAltNsBy(long ciId){
+		return cmProcessor.getAltNsBy(ciId);
+	}
+
+	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag){
+		return cmProcessor.getCmCIByAltNsAndTag(nsPath, tag);
+	}
 }

@@ -1333,4 +1333,53 @@
 		  and (#{relName}::varchar is null or r.relation_name = #{relName})
 	 </select>
 
+	<insert id="createAltNs" parameterType="map" statementType="CALLABLE">
+		{call cm_create_alt_namespace(#{nsId}, #{tag}, #{ciId})}
+	</insert>
+
+	<delete id="deleteAltNs" parameterType="long" statementType="CALLABLE">
+		{call cm_delete_alt_namespace(#{nsId}, #{ciId})}
+	</delete>
+
+
+
+	<select id="getCmCIByAltNsAndTag" parameterType="map" useCache="false" resultType="com.oneops.cms.cm.domain.CmsCI">
+	    select
+			ci.ci_id as ciId,
+			ci.ci_name as ciName,
+			ci.class_id as ciClassId,
+			cl.class_name as ciClassName,
+			cl.impl as impl,
+			ci.ns_id as nsId,
+			ns.ns_path as nsPath,
+			ci.ci_goid as ciGoid,
+			ci.comments,
+			ci.ci_state_id as ciStateId,
+			st.state_name as ciState,
+			ci.last_applied_rfc_id as lastAppliedRfcId,
+			ci.created_by as createdBy,
+			ci.updated_by as updatedBy,
+			ci.created,
+			ci.updated
+		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
+		where cno.ci_id = ci.ci_id
+			and ci.class_id = cl.class_id
+			and ci.ns_id = ns.ns_id
+			and ns1.ns_id = cno.ns_id
+			and nt.tag_id = cno.tag_id
+			and (#{tag}::varchar is null or nt.tag = #{tag})
+			and (#{nsPath}::varchar is null or ns1.ns_path = #{nsPath})
+			and ci.ci_state_id = st.ci_state_id
+	</select>
+
+	<select  id="getAltNsBy" parameterType="long" useCache="false" resultType="com.oneops.cms.cm.domain.CmsAltNs">
+		SELECT ns.ns_path as nsPath,
+		nt.tag as tag,
+		ns.ns_id as nsId
+		FROM ns_namespaces ns, cm_ns_opt cno, ns_opt_tag nt
+		where ns.ns_id = cno.ns_id
+		and nt.tag_id = cno.tag_id
+		and cno.ci_id = #{ciId}
+	</select>
+
 </mapper>
