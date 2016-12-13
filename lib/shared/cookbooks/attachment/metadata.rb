@@ -94,7 +94,6 @@ attribute 'run_on',
   
 attribute 'run_on_action',
           :description => 'Run on Action',
-          :required => 'required',
           :default => '[]',
           :data_type => 'array',
           :format => {
