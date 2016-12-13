@@ -5,28 +5,31 @@
 <% if has_cloud_services?(@cloud.ciId) %>
   <% actions = @service.meta.actions %>
   <% if actions.present? %>
-    <%= section_panel 'Actions', :id => 'overview_action_section', :width => 'single', :position => 'right' do %>
-      <%= list_simple(actions, :toolbar => false) do |item, action| %>
-        <% item.target do %>
-          <%= procedure_params = {:ciId              => @cloud.ciId,
-                                  :direction         => 'from',
-                                  :relationName      => 'base.Provides',
-                                  :actionCiIds       => [@service.ciId],
-                                  :procedureCiId     => 0,
-                                  :procedureState    => 'active',
-                                  :actionCiClassName => @service.ciClassName,
-                                  :actionName        => action.actionName}
-              link_to('', new_operations_procedure_path(procedure_params), :remote => true) %>
-        <% end %>
-
-        <% item.simple do %>
-          <%= highlight(action.actionName) %>
-          <br/>
-          <%= action.description %>
-        <% end %>
-        <br/>
-        <% item.itemid action.actionId %>
-      <% end %>
+    <%= section_panel 'Actions', :width => 'single', :position => 'right' do %>
+      <div class="btn-group">
+        <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
+          Choose Action To Execute
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+          <% actions.each do |action| %>
+            <li onclick="$j(this).parents('.btn-group').find('.dropdown-toggle').dropdown('toggle');">
+              <% procedure_params = {:ciId              => @cloud.ciId,
+                                      :direction         => 'from',
+                                      :relationName      => 'base.Provides',
+                                      :actionCiIds       => [@service.ciId],
+                                      :procedureCiId     => 0,
+                                      :procedureState    => 'active',
+                                      :actionCiClassName => @service.ciClassName,
+                                      :actionName        => action.actionName} %>
+              <%= link_to(new_operations_procedure_path(procedure_params), :remote => true) do %>
+                <%= highlight(action.actionName) %>
+                <div class="description"><small><%= action.description %></small></div>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
     <% end %>
   <% end %>
 <% end %>
