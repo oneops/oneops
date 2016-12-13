@@ -302,11 +302,9 @@ public class CmsDeployment implements Serializable{
 	}
 
 	/**
-	 * Sets the flag indicating that when creating ci of this class and isNamespace set to true use class name in nsPath
-	 * i.e. /.../class.Name/ciName
-	 * @return the impl
+	 * Sets the flag indicating that deployment should continue even if one of the deployment steps has failed
 	 */
-	public void setUseClassNameNS(boolean continueOnFailure) {
+	public void setContinueOnFailure(boolean continueOnFailure) {
 		this.continueOnFailure = continueOnFailure;
 		if (continueOnFailure) {
 			setFlag(CONTINUE_ON_FAILURE_FLAG_POSITION);
@@ -316,7 +314,7 @@ public class CmsDeployment implements Serializable{
 	}
 	/**
 	 * Varios CMS class flags, each bit is used for some attribute
-	 * i.e 010 is set for useClassNameInNS 
+	 * i.e 010 is set for continueOnFailure
 	 * @return the impl
 	 */
 	public Integer getFlags() {
@@ -324,7 +322,7 @@ public class CmsDeployment implements Serializable{
 	}
 
 	/**
-	 * This is needed to mask flags to the end-api calls so users can do GET, update jason (some props like useClassNameInNS) without modifing flags and do PUT
+	 * This is needed to mask flags to the end-api calls so users can do GET, update jason (some props like continueonfailure) without modifing flags and do PUT
 	 *
 	 * @return the impl
 	 */
