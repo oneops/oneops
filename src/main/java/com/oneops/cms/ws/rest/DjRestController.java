@@ -137,7 +137,7 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="latest", required = false) Boolean latest,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		List<CmsRelease> relList = null;
+		List<CmsRelease> relList;
 		
 		if (latest != null && latest.booleanValue()) {
 			relList =  djManager.getLatestRelease(nsPath, releaseState);
@@ -360,7 +360,7 @@ public class DjRestController extends AbstractRestController {
             @RequestParam(value="nsPath", required = false) String nsPath, 
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<CmsRfcRelationSimple>();
+		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<>();
 		List<CmsRfcRelation> relList = null;
 
         if (isActive == null) {

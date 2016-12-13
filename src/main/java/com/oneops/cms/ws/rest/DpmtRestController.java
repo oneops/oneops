@@ -20,6 +20,7 @@ package com.oneops.cms.ws.rest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -306,7 +307,7 @@ public class DpmtRestController extends AbstractRestController {
 			return djManager.countDeploymentGroupByNsPath(nsPath, state);
 		} else{
 	 		long count =  djManager.countDeployments(nsPath, state, recursive);
-	 		Map<String, Long> result = new HashMap<String,Long>();
+	 		Map<String, Long> result = new HashMap<>();
 	 		result.put("Total", count);
 	 		return result;
 		}
@@ -332,7 +333,8 @@ public class DpmtRestController extends AbstractRestController {
 	@ResponseBody
 	public List<CmsDpmtRecord> getDpmtRecordCis(
 			@PathVariable long dpmtId,
-			@RequestParam(value="state", required = false) String state,  
+			@RequestParam(value="updatedAfter", required = false) Long updatedAfter,
+			@RequestParam(value="state", required = false) String state,
 			@RequestParam(value="execorder", required = false) Integer execOrder,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
@@ -340,7 +342,11 @@ public class DpmtRestController extends AbstractRestController {
 			CmsDeployment dpmt = djManager.getDeployment(dpmtId);
 			scopeVerifier.verifyScope(scope, dpmt);
 		}
-		if (state == null && execOrder==null) {
+
+		if (updatedAfter != null) {
+			return djManager.getDpmtRecordCis(dpmtId, new Date(updatedAfter));
+		}
+		else if (state == null && execOrder==null) {
 			return djManager.getDpmtRecordCis(dpmtId);
 		} else {
 			return djManager.getDpmtRecordCis(dpmtId, state, execOrder);
@@ -444,7 +450,7 @@ public class DpmtRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
 			@RequestHeader(value="X-Cms-User", required = true)  String userId){
 		
-		List<CmsDpmtApproval> toApprove = new ArrayList<CmsDpmtApproval>();
+		List<CmsDpmtApproval> toApprove = new ArrayList<>();
 		for (CmsDpmtApproval approval : approvals) {
 			approval.setUpdatedBy(userId);
 			toApprove.add(approval);
