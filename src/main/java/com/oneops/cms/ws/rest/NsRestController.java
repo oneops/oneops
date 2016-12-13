@@ -57,7 +57,7 @@ public class NsRestController {
 		if (recursive != null && recursive) {
 			return nsManager.getNsLike(nsPath);
 		} else {
-			List<CmsNamespace> nsList = new ArrayList<CmsNamespace>();
+			List<CmsNamespace> nsList = new ArrayList<>();
 			CmsNamespace ns = nsManager.getNs(nsPath);
 			if (ns != null) {
 				nsList.add(ns);
@@ -76,7 +76,7 @@ public class NsRestController {
 	@ResponseBody
 	public Map<String,String> deleteNs(@PathVariable long nsId) {	
 		nsManager.deleteNsById(nsId);
-		Map<String,String> result = new HashMap<String,String>();
+		Map<String,String> result = new HashMap<>();
 		result.put("result","OK");
 		return result;
 	}
@@ -86,7 +86,7 @@ public class NsRestController {
 	public Map<String,String> deleteNsPath(
 			@RequestParam(value="nsPath", required = true) String nsPath){
 		nsManager.deleteNs(nsPath);
-		Map<String,String> result = new HashMap<String,String>();
+		Map<String,String> result = new HashMap<>();
 		result.put("result","OK");
 		return result;
 	}
