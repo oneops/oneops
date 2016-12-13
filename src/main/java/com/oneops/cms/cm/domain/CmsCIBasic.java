@@ -17,8 +17,10 @@
  *******************************************************************************/
 package com.oneops.cms.cm.domain;
 
+
 import java.io.Serializable;
 import java.util.Date;
+
 
 /**
  * The Class CmsCIBasic.
@@ -26,6 +28,7 @@ import java.util.Date;
 public class CmsCIBasic implements Serializable {
 
 	private static final long serialVersionUID = 1L;
+	public static final int MAX_LENGTH = 2000;
 
 	private long ciId;
 	private String ciName;
@@ -146,6 +149,9 @@ public class CmsCIBasic implements Serializable {
 	 * @param comments the new comments
 	 */
 	public void setComments(String comments) {
+		if (comments != null && comments.length() > MAX_LENGTH) {
+			comments = comments.substring(0, MAX_LENGTH );
+		}
 		this.comments = comments;
 	}
 	
