@@ -629,7 +629,7 @@ public abstract class AbstractOrderExecutor {
             envSimple = new CmsCISimple();
             mergeRfcToResult(CmsRfcCISimple.class.cast(env), envSimple);
         }
-        return getCustomerDomain(envSimple,cloudService);
+        return getCustomerDomain(cloudService,envSimple);
     }
 
     /**
