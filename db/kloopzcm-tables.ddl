@@ -10,8 +10,6 @@ CREATE UNIQUE INDEX ns_opt_tag_idx
  ON kloopzcm.ns_opt_tag
  ( tag );
 
-
-
 CREATE TABLE kloopzcm.dj_approval_states (
                 state_id INTEGER NOT NULL,
                 state_name VARCHAR(64) NOT NULL,
@@ -158,6 +156,7 @@ CREATE INDEX dj_releases_ns_idx
 
 CREATE TABLE kloopzcm.dj_deployment (
                 deployment_id BIGINT NOT NULL,
+                flags INTEGER NOT NULL,
                 ns_id BIGINT NOT NULL,
                 release_id BIGINT NOT NULL,
                 created_by VARCHAR(200),

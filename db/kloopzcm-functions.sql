@@ -866,7 +866,8 @@ l_dpmt_updated_by character varying;
 l_desc text;
 l_comments text;
 l_ops text;
-l_old_state integer;
+l_old_state integer;  
+l_continue_on_failure bool;
 BEGIN
 
 	select into l_incomplete count(1) 
@@ -875,7 +876,8 @@ BEGIN
 	and dpmt.state_id <> 200
 	and dpmt.rfc_id = rfc.rfc_id;	
 
-	if l_incomplete > 0 then
+	select into l_continue_on_failure (d.flags&1>0) from dj_deployment d where d.deployment_id = p_deployment_id;
+	if l_incomplete > 0 AND not(l_continue_on_failure) then
 	RAISE EXCEPTION 'Not all rfc are complete in deployment: %', p_deployment_id USING ERRCODE = '22000';
 	end if;
 
