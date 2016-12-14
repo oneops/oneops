@@ -7,7 +7,7 @@ license          "Copyright OneOps, All rights reserved."
 
 grouping 'default',
   :access => "global",
-  :packages => [ 'base', 'mgmt.manifest', 'manifest' ]
+  :packages => [ 'base', 'mgmt.catalog', 'mgmt.manifest', 'catalog', 'manifest' ]
 
 attribute 'enable',
   :description => "Monitor Status",

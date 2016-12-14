@@ -529,7 +529,7 @@ class Chef
         upload_template_serviced_bys(nspath,pack,resources,children,platform,env)
         upload_template_entrypoint(nspath,pack,resources,children,platform,env)
         upload_template_serviced_by(nspath,pack,resources,children,platform,env)
-        upload_template_monitors(nspath,pack,resources,children,platform,env)
+        upload_template_monitors(nspath,pack,resources,children,platform,env,package)
         upload_template_payloads(nspath,pack,resources,children,platform,env)
         upload_template_procedures(nspath,pack,resources,children,platform,env)
         upload_template_variables(nspath,pack,package,platform,env)
@@ -901,11 +901,13 @@ class Chef
       end
     end
 
-    def upload_template_monitors(nspath,pack,resources,children,platform,env)
+    def upload_template_monitors(nspath,pack,resources,children,platform,env,package)
 
+      relationName = "#{package}.WatchedBy"
+      ciClassName = "#{package}.Monitor"
       relations = Cms::Relation.all(:params => {
           :nsPath            => nspath,
-          :relationShortName => 'WatchedBy',
+          :relationName => relationName,
           :includeToCi       => true})
 
       resources.each do |resource_name,resource|
@@ -916,11 +918,10 @@ class Chef
 
           if relation.nil?
             ui.info( "Creating monitor #{monitor_name} for #{resource_name}")
-            relation = build('Cms::Relation',   :relationName => 'mgmt.manifest.WatchedBy',
+            relation = build('Cms::Relation',   :relationName => relationName,
                              :nsPath => nspath,
                              :fromCiId => children[resource_name]
             )
-            ciClassName = 'mgmt.manifest.Monitor'
             ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => monitor_name })
             if ci.nil?
               relation.toCiId = 0
@@ -931,9 +932,10 @@ class Chef
             else
               relation.toCiId = ci.id
               Log.debug(relation.inspect)
+
               # if relation is missing, but ci is present, save the relation only first
               if save(relation)
-                ui.debug("Successfuly saved monitor #{monitor_name} for #{resource_name}")
+                ui.info("Successfuly saved monitor #{monitor_name} for #{resource_name} in #{package}")
                 relation = Cms::Relation.find(relation.id, :params => {  :nsPath => nspath, :includeToCi => true } )
               else
                 ui.error("Could not save monitor #{monitor_name} for #{resource_name}, skipping it")
@@ -944,7 +946,7 @@ class Chef
               next;
             end
           else
-            ui.debug("Updating monitor #{monitor_name} for #{resource_name}")
+            ui.info("Updating monitor #{monitor_name} for #{resource_name} in #{package}")
           end
 
           # qpath attributes
@@ -957,7 +959,7 @@ class Chef
 
           Log.debug(relation.inspect)
           if save(relation)
-            ui.debug("Successfuly saved monitor #{monitor_name} for #{resource_name}")
+            ui.info("Successfuly saved monitor #{monitor_name} for #{resource_name} in #{package}")
           else
             ui.error("Could not save monitor #{monitor_name} for #{resource_name}, skipping it")
           end
