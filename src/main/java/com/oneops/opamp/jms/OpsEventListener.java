@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.opamp.jms;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.jms.JMSException;
@@ -34,6 +36,7 @@ import com.oneops.opamp.service.EnvPropsProcessor;
 import com.oneops.opamp.service.FlexStateProcessor;
 import com.oneops.opamp.service.Notifications;
 import com.oneops.opamp.util.EventUtil;
+import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.dao.OpsCiStateDao;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
@@ -55,6 +58,7 @@ public class OpsEventListener implements MessageListener {
 	private EnvPropsProcessor envProcessor;
 	private OpsCiStateDao opsCiStateDao;
 	private EventUtil eventUtil;
+	private CiOpsProcessor ciOpsProcessor;
 	
 	/**
 	 * Sets the fs processor.
@@ -126,10 +130,12 @@ public class OpsEventListener implements MessageListener {
 						eventUtil.addCloudName(event, envProcessor.fetchDeployedToRelations(event.getCiId()));
 						
 						OpsBaseEvent opsEvent = eventUtil.getOpsEvent(event);
-						Map<String, Long> counters = opsCiStateDao.getComponentStates(opsEvent.getManifestId());
+						long manifestId = opsEvent.getManifestId();
+						List<Long> manifestIds = new ArrayList<>();
+						manifestIds.add(manifestId);
+						Map<String, Integer> counters = ciOpsProcessor.getManifestStates(manifestIds).get(manifestId);
 						if (counters != null) {
-							logger.info("state counters for bom cid " + event.getCiId() + ": "+ counters);
-							counters.remove("updated");
+							logger.info("component level state counters for bom cid " + event.getCiId() + ": "+ counters);
 							event.setComponentStatesCounters(counters);
 						} else {
 							logger.warn("state counters found null for " + event.getCiId());
@@ -145,7 +151,7 @@ public class OpsEventListener implements MessageListener {
 					    	logger.info("sendingOpsCloseEventNotification for cid: " + event.getCiId() + " " + opsEvent.getSource() + " status " + opsEvent.getStatus() + " ostate:"
 									+ event.getOldState() + " nstate: " + event.getNewState() );
 					    	notifier.sendOpsEventNotification(event);
-					    }else if ("unhealthy".equals(event.getNewState())) {
+					    } else if ("unhealthy".equals(event.getNewState())) {
 					    	if (opsEvent != null && opsEvent.getType() != null 
 					    			&& "heartbeat".equals(opsEvent.getType())
 					    			&& envProcessor.isHeartbeatAlarmSuspended()) {
@@ -158,7 +164,7 @@ public class OpsEventListener implements MessageListener {
 							fsProcessor.processOverutilized(event, isNewState);
 						} else if ("underutilized".equals(event.getNewState())) {
 							fsProcessor.processUnderutilized(event, isNewState, event.getTimestamp());
-						}else if (event.getPayLoad() != null &&  "notify".equals(event.getNewState()) && eventUtil.shouldNotify(event, opsEvent) )   {
+						} else if (event.getPayLoad() != null &&  "notify".equals(event.getNewState()) && eventUtil.shouldNotify(event, opsEvent) )   {
 							//skip the notification in case payload is null
 							notifier.sendOpsEventNotification(event);
 						} else if ("good".equals(event.getNewState()) && "unhealthy".equals(event.getOldState())) {
@@ -192,4 +198,11 @@ public class OpsEventListener implements MessageListener {
 		this.eventUtil = eventUtil;
 	}
 
+	public CiOpsProcessor getCiOpsProcessor() {
+		return ciOpsProcessor;
+	}
+
+	public void setCiOpsProcessor(CiOpsProcessor ciOpsProcessor) {
+		this.ciOpsProcessor = ciOpsProcessor;
+	}
 }
