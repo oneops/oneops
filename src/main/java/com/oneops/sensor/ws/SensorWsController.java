@@ -457,7 +457,7 @@ public class SensorWsController {
         for (Long ciId : idsAr) {
             ciIds.add(ciId);
         }
-        return getManifestStates(ciIds);
+        return coProcessor.getManifestStates(ciIds);
     }
 
     /**
@@ -475,32 +475,8 @@ public class SensorWsController {
         for (String ciId : ciIdsAr) {
             ciIds.add(Long.valueOf(ciId));
         }
-        return getManifestStates(ciIds);
+        return coProcessor.getManifestStates(ciIds);
     }
-
-    private Map<Long, Map<String, Integer>> getManifestStates(List<Long> manifestIds) {
-
-        Map<Long, Map<String, Integer>> result = new HashMap<Long, Map<String, Integer>>();
-
-        Map<Long, List<Long>> manifestCis = tsDao.getManifestCiIds(manifestIds);
-        for (Map.Entry<Long, List<Long>> manifestEntry : manifestCis.entrySet()) {
-            if (!result.containsKey(manifestEntry.getKey())) {
-                result.put(manifestEntry.getKey(), new HashMap<String, Integer>());
-            }
-            result.get(manifestEntry.getKey()).put("total", manifestEntry.getValue().size());
-            Map<Long, String> manifestStates = coProcessor.getCisStates(manifestEntry.getValue());
-            for (Map.Entry<Long, String> ciState : manifestStates.entrySet()) {
-                if (!result.get(manifestEntry.getKey()).containsKey(ciState.getValue())) {
-                    result.get(manifestEntry.getKey()).put(ciState.getValue(), 1);
-                } else {
-                    int currentCount = result.get(manifestEntry.getKey()).get(ciState.getValue());
-                    result.get(manifestEntry.getKey()).put(ciState.getValue(), currentCount + 1);
-                }
-            }
-        }
-        return result;
-    }
-
 
     /**
      * Close c ievent.
@@ -739,6 +715,4 @@ public class SensorWsController {
     public String getEventProcessingCount() {
         return "<count>" + SensorListenerContainer.COUNT.get() + "</count>";
     }
-
-
 }
