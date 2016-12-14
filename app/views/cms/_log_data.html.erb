@@ -1,11 +1,25 @@
-<% if @rfc %>
-  <h4>
-    <%= @rfc.ciName %> <br/>
-    <%= @rfc.ciClassName %> <br/>
-    <%= @rfc.nsPath %>
-  </h4>
-<% end %>
-<% render 'cms/log_data', :log_data => @log_data %>
+<% retry_class = '' %>
+<ol class="log">
+  <% log_data.each_with_index do |e, index| %>
+    <% message = e['message'].gsub(/^.*cmd out:/, '')
+       if message =~ /ERROR:|FATAL:/
+         class_name = 'error'
+       elsif message =~ /WARN:/
+         class_name = 'warning'
+       elsif message =~ /INFO:/
+         class_name = 'info'
+       else
+         class_name = ''
+       end
+       if message == 'retry #: 1'
+         retry_class = 'retry-1'
+       elsif message == 'retry #: 2'
+         retry_class = 'retry-2'
+       end
+    %>
+    <li id="L<%= index + 1 %>" class="<%= retry_class %>" onclick="log_line_selected(this, event)"> <span class="<%= class_name %>"><%= message %></span></li>
+  <% end %>
+</ol>
 
 <script>
   window.log_line_selected = function(source, event) {
