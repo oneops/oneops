@@ -25,6 +25,15 @@ $PSQL  -h localhost -d kloopzdb -v user=${PGUSER} -f kloopzcm-schema.sql
 RETVAL=$?
 [ $RETVAL -ne 0 ] && echo create schema failed && exit 1
 
+# set search path to kloopzcm,public
+alter_role=`sudo -u postgres psql -t -c "ALTER ROLE $PGUSER  SET search_path TO kloopzcm,public;"|xargs`
+echo "alter_role result =$alter_role"
+if [ "$alter_role" != "ALTER ROLE" ]; then
+  echo "Could not set search_path for $PGUSER"
+  exit 1
+fi
+
+
 # create tables in the schema
 $PSQL  -h localhost -d kloopzdb -f kloopzcm-tables.ddl
 RETVAL=$?
