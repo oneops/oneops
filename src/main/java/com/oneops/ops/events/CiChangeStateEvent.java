@@ -31,7 +31,7 @@ public class CiChangeStateEvent implements Serializable {
 	private String payLoad;
 	private long timestamp;
 
-	private Map<String, Long> componentStatesCounters;
+	private Map<String, Integer> componentStatesCounters;
 	
 	public long getCiId() {
 		return ciId;
@@ -63,10 +63,10 @@ public class CiChangeStateEvent implements Serializable {
 	public void setPayLoad(String payLoad) {
 		this.payLoad = payLoad;
 	}
-	public Map<String, Long> getComponentStatesCounters() {
+	public Map<String, Integer> getComponentStatesCounters() {
 		return componentStatesCounters;
 	}
-	public void setComponentStatesCounters(Map<String, Long> componentStatesCounters) {
+	public void setComponentStatesCounters(Map<String, Integer> componentStatesCounters) {
 		this.componentStatesCounters = componentStatesCounters;
 	}
 

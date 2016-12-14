@@ -203,5 +203,27 @@ public class CiOpsProcessor {
             resetManifestStateCounters(manifestId, bomIds, manifestStates);
         }
     }
-    
+
+    public Map<Long, Map<String, Integer>> getManifestStates(List<Long> manifestIds) {
+
+        Map<Long, Map<String, Integer>> result = new HashMap<Long, Map<String, Integer>>();
+
+        Map<Long, List<Long>> manifestCis = trDao.getManifestCiIds(manifestIds);
+        for (Map.Entry<Long, List<Long>> manifestEntry : manifestCis.entrySet()) {
+            if (!result.containsKey(manifestEntry.getKey())) {
+                result.put(manifestEntry.getKey(), new HashMap<String, Integer>());
+            }
+            result.get(manifestEntry.getKey()).put("total", manifestEntry.getValue().size());
+            Map<Long, String> manifestStates = getCisStates(manifestEntry.getValue());
+            for (Map.Entry<Long, String> ciState : manifestStates.entrySet()) {
+                if (!result.get(manifestEntry.getKey()).containsKey(ciState.getValue())) {
+                    result.get(manifestEntry.getKey()).put(ciState.getValue(), 1);
+                } else {
+                    int currentCount = result.get(manifestEntry.getKey()).get(ciState.getValue());
+                    result.get(manifestEntry.getKey()).put(ciState.getValue(), currentCount + 1);
+                }
+            }
+        }
+        return result;
+    }
 }
