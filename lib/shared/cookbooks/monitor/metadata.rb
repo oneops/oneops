@@ -1,4 +1,4 @@
-name             "monitor"
+name             "Monitor"
 description      "Monitor"
 version          "0.1"
 maintainer       "OneOps"
