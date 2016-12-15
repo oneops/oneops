@@ -55,6 +55,7 @@ defaults: &defaults
   cms_site: <%= ENV['CMS_SITE'] || 'http://cmsapi:8080/' %>
   transistor_site: <%= ENV['TRANSISTOR_SITE'] || ENV['CMS_SITE'] || 'http://cmsapi:8080/' %>
   metrics_site: <%= ENV['METRICS_SITE'] || 'http://cmsapi:8080/' %>
+  metrics_context: <%= ENV['METRICS_CONTEXT'] || '/daq-1.0.0' %>
   events_site: <%= ENV['EVENTS_SITE'] || 'http://sensor:8080/' %>
   notifications_site: <%= ENV['NOTIFICATION_SITE'] || 'http://antenna:8080/' %>
   search_site: <%= ENV['SEARCH_SITE'] || 'http://search:9200/' %>

@@ -1,6 +1,6 @@
 class Daq < ActiveResource::Base
   self.site         = Settings.metrics_site
-  self.prefix       = '/daq-1.0.0'
+  self.prefix       = Settings.metrics_context
   self.element_name = ''
   self.timeout      = 60
 
