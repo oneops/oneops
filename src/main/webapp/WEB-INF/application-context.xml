@@ -143,7 +143,7 @@
 		<property name="opsProcProcessor" ref="procProcessor" />
         <property name="notifier" ref="notifier" />
        	<property name="restTemplate" ref="restTemplate" />
-       	<property name="transistorUrl" value="http://cmsapi:8080/transistor/rest/" />
+       	<property name="transistorUrl" value="${TRANSISTOR_HOST:http://cmsapi}:8080/transistor/rest/"/>
        	<property name="eventUtil" ref="eventUtil" />
        	<property name="startExponentialDelayAfterProcedures" value="${startExponentialDelayAfterProcedures:4}"/>
        	<property name="exponentialBackoffFactor" value="${exponentialBackoffFactor:2}"/>
@@ -169,7 +169,7 @@
 
   	<bean id="fsProcessor" class="com.oneops.opamp.service.FlexStateProcessor">
        	<property name="restTemplate" ref="restTemplate" />
-       	<property name="transistorUrl" value="http://cmsapi:8080/transistor/rest/" />
+       	<property name="transistorUrl" value="${TRANSISTOR_HOST:http://cmsapi}:8080/transistor/rest/" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="envProcessor" ref="envProcessor" />
 		<property name="coProcessor" ref="coProcessor" />
@@ -182,11 +182,25 @@
         <property name="keyspaceName" value="sensor_ksp"/>
     </bean>
 
+    <bean id="trDao" class="com.oneops.sensor.thresholds.ThresholdsDao" init-method="init">
+    	<property name="clusterBootstrap" ref="opsdbCluster" />
+        <property name="clusterName" value="sensor_cluster"/>
+        <property name="keyspaceName" value="sensor_ksp"/>
+        <property name="timeout" value="600000"/>
+        <property name="opsCiStateDao" ref="opsCiStateDao"/>
+    </bean>
+
+	<bean id="ciOpsProcessor" class="com.oneops.ops.CiOpsProcessor">
+        <property name="oeDao" ref="opsEventDao"/>
+        <property name="opsCiStateDao" ref="opsCiStateDao"/>
+        <property name="trDao" ref="trDao"/>
+	</bean>
 
 	<bean id="opsEventListener" class="com.oneops.opamp.jms.OpsEventListener">
 		<property name="opsCiStateDao" ref="opsCiStateDao"/>
 		<property name="bsProcessor" ref="bsProcessor" />
 		<property name="fsProcessor" ref="fsProcessor" />
+		<property name="ciOpsProcessor" ref="ciOpsProcessor" />
 		<property name="envProcessor" ref="envProcessor" />
 		<property name="gson" ref="gson" />
 		<property name="notifier" ref="notifier" />

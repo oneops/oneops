@@ -48,6 +48,7 @@ import com.oneops.opamp.service.EnvPropsProcessor;
 import com.oneops.opamp.service.FlexStateProcessor;
 import com.oneops.opamp.service.Notifications;
 import com.oneops.opamp.util.EventUtil;
+import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.dao.OpsCiStateDao;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;
@@ -71,6 +72,7 @@ public class OpsEventListenerTest
 
     Notifications notifier = mock(Notifications.class);
     OpsCiStateDao stateDao = mock(OpsCiStateDao.class);
+    CiOpsProcessor ciOpsProcessor = mock(CiOpsProcessor.class);
 
     @BeforeClass
     public void setup()
@@ -83,6 +85,7 @@ public class OpsEventListenerTest
         opsEventListener.setNotifier(notifier);
         opsEventListener.setEventUtil(evtUtil);
         opsEventListener.setOpsCiStateDao(stateDao);
+        opsEventListener.setCiOpsProcessor(ciOpsProcessor);
     }
 
     @Test
