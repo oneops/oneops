@@ -2,6 +2,7 @@ package com.oneops.transistor.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.export.domain.ComponentExport;
@@ -40,11 +42,11 @@ public class DesignExportProcessor {
 	private static final String BAD_ASSEMBLY_ID_ERROR_MSG = "Assmbly does not exists with id=";
 	private static final String OPEN_RELEASE_ERROR_MSG = "Design have open release. Please commit/discard before import.";
 	private static final String BAD_TEMPLATE_ERROR_MSG = "Can not find template for pack: ";
-	private static final String CANT_FIND_REQUIRES_ERROR_MSG = "Can not find Requires relation for ci id=";
+	private static final String CANT_FIND_RELATION_ERROR_MSG = "Can not find $relationName relation for ci id=";
 	private static final String CANT_FIND_PLATFORM_BY_NAME_ERROR_MSG = "Can not find platform with name: $toPlaform, used in links of platform $fromPlatform";
 	private static final String CANT_FIND_COMPONENT_BY_NAME_ERROR_MSG = "Can not find component with name: $toComponent, used in depends of component $fromComponent";
 	private static final String IMPORT_ERROR_PLAT_COMP = "Platform/Component - ";
-	private static final String IMPORT_ERROR_PLAT_COMP_ATTACH = "Platform/Component/Attachment - ";
+	private static final String IMPORT_ERROR_PLAT_COMP_ATTACH = "Platform/Component/Attachment/Monitor - ";
 
 	
 	private static final String GLOBAL_VAR_RELATION = "base.ValueFor";
@@ -54,6 +56,7 @@ public class DesignExportProcessor {
 	private static final String REQUIRES_RELATION = "base.Requires";
 	private static final String MGMT_REQUIRES_RELATION = "mgmt.Requires";
 	private static final String ESCORTED_RELATION = "catalog.EscortedBy";
+	private static final String WATCHEDBY_RELATION = "catalog.WatchedBy";
 	private static final String DEPENDS_ON_RELATION = "catalog.DependsOn";
 	private static final String MGMT_DEPENDS_ON_RELATION = "mgmt.catalog.DependsOn";
 	
@@ -61,6 +64,7 @@ public class DesignExportProcessor {
 	private static final String LOCAL_VAR_CLASS = "catalog.Localvar";
 	private static final String DESIGN_PLATFORM_CLASS = "catalog.Platform";
 	private static final String DESIGN_ATTACHMENT_CLASS = "catalog.Attachment";
+	private static final String DESIGN_MONITOR_CLASS = "catalog.Monitor";
 	private static final String MGMT_PREFIX = "mgmt.";
 	private static final String OWNER_DESIGN = "design";
 	private static final String ATTR_SECURE = "secure";
@@ -171,12 +175,28 @@ public class DesignExportProcessor {
 			boolean isOptional = requires.getAttribute("constraint").getDjValue().startsWith("0.");
 			String template = requires.getAttribute("template").getDjValue();
 			//always export optionals components or with attachments
-			List<CmsCIRelation> attachmentRels =  cmProcessor.getFromCIRelations(component.getCiId(), ESCORTED_RELATION, DESIGN_ATTACHMENT_CLASS);
-			ComponentExport eCi = stripAndSimplify(ComponentExport.class, component, false, (attachmentRels.size() > 0 || isOptional));
+
+			Map<String, List<CmsCIRelation>> relationsMap = cmProcessor.getFromCIRelationsByMultiRelationNames(component.getCiId(), 
+					Arrays.asList(new String[]{ESCORTED_RELATION, WATCHEDBY_RELATION}), null);
+			List<CmsCIRelation> attachmentRels = relationsMap.get(ESCORTED_RELATION);
+			List<CmsCIRelation> watchedByRels = relationsMap.get(WATCHEDBY_RELATION);
+
+			if (attachmentRels == null)
+				attachmentRels = Collections.emptyList();
+			if (watchedByRels == null)
+				watchedByRels = Collections.emptyList();
+
+			ComponentExport eCi = stripAndSimplify(ComponentExport.class, component, false, ((attachmentRels.size()+watchedByRels.size()) > 0 || isOptional));
 			if (eCi != null) {
 				eCi.setTemplate(template);
 				for (CmsCIRelation attachmentRel : attachmentRels) {
 					eCi.addAttachment(stripAndSimplify(ExportCi.class, attachmentRel.getToCi(),true));
+				}
+				for (CmsCIRelation watchedByRel : watchedByRels) {
+					ExportCi monitorCi = stripAndSimplify(ExportCi.class, watchedByRel.getToCi(), isCustomMonitor(watchedByRel));
+					if (monitorCi != null) {
+						eCi.addMonitor(monitorCi);
+					}
 				}
 				// need to work out dependsOn logic for now just include all within the resource
 				List<CmsCIRelation> dependsOns =  cmProcessor.getFromCIRelations(component.getCiId(), DEPENDS_ON_RELATION, component.getCiClassName());
@@ -188,6 +208,13 @@ public class DesignExportProcessor {
 		}
 	}
 	
+	private boolean isCustomMonitor(CmsCIRelation watchedByRel) {
+		CmsCI monitorCi = watchedByRel.getToCi();
+		return (monitorCi.getAttribute(CmsConstants.MONITOR_CUSTOM_ATTR) != null &&
+				"true".equalsIgnoreCase(monitorCi.getAttribute(CmsConstants.MONITOR_CUSTOM_ATTR).getDfValue()));
+	}
+
+
 	private <T extends ExportCi> T stripAndSimplify(Class<T> expType, CmsCI ci, boolean force) {	
 		return stripAndSimplify(expType, ci, force, false);
 	}	
@@ -311,6 +338,7 @@ public class DesignExportProcessor {
 				designPlatform = designRfcProcessor.generatePlatFromTmpl(platformRfc, assemblyId, userId, scope);
 			}
 			String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
+			String packNsPath = getPackNsPath(designPlatform);
 			//local vars
 			if (platformExp.getVariables() != null) {
 				importLocalVars(designPlatform.getCiId(), platNsPath, designNsPath, platformExp.getVariables(), userId);
@@ -318,7 +346,7 @@ public class DesignExportProcessor {
 			if (platformExp.getComponents() != null) {
 				Set<Long> componentIds = new HashSet<>(); 
 				for (ComponentExport componentExp : platformExp.getComponents()) {
-					componentIds.add(importComponent(designPlatform, componentExp, platNsPath, designNsPath, userId));
+					componentIds.add(importComponent(designPlatform, componentExp, platNsPath, designNsPath, packNsPath, userId));
 				}
 				importDepends(platformExp.getComponents(),platNsPath, designNsPath,userId);
 				//if its existing platform - process absolete components
@@ -486,7 +514,7 @@ public class DesignExportProcessor {
 	}
 	
 	
-	private long importComponent(CmsRfcCI designPlatform, ComponentExport compExpCi, String platNsPath, String releaseNsPath, String userId) {
+	private long importComponent(CmsRfcCI designPlatform, ComponentExport compExpCi, String platNsPath, String releaseNsPath, String packNsPath, String userId) {
 		List<CmsRfcCI> existingComponent = cmRfcMrgProcessor.getDfDjCiNakedLower(platNsPath, compExpCi.getType(), compExpCi.getName(), null);
 		CmsRfcCI componentRfc = null;
 		try {
@@ -500,7 +528,6 @@ public class DesignExportProcessor {
 				componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
 			} else {
 				//this is optional component lets find template
-				String packNsPath = getPackNsPath(designPlatform);
 				List<CmsCI> mgmtComponents = cmProcessor.getCiBy3(packNsPath, MGMT_PREFIX + compExpCi.getType(), compExpCi.getTemplate());
 				if (mgmtComponents.isEmpty()) {
 					//can not find template - abort
@@ -511,7 +538,7 @@ public class DesignExportProcessor {
 				CmsRfcCI component = designRfcProcessor.popRfcCiFromTemplate(template, "catalog", platNsPath, releaseNsPath);
 				applyExportCiToTemplateRfc(compExpCi, component);
 				componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
-				createRequires(designPlatform, template, componentRfc,userId);
+				createRelationFromMgmt(designPlatform, template, componentRfc, MGMT_REQUIRES_RELATION, userId);
 				processMgmtDependsOnRels(designPlatform, template, componentRfc, userId);
 			}
 		} catch (DJException dje) {
@@ -526,50 +553,118 @@ public class DesignExportProcessor {
 				try {
 				importAttachements(componentRfc, attachmentExp, releaseNsPath, userId);
 				} catch (DJException dje) {
-					throw new DesignExportException(dje.getErrorCode(),IMPORT_ERROR_PLAT_COMP_ATTACH 
-													+ designPlatform.getCiName() 
-													+ "/" + compExpCi.getName() 
-													+ "/" + attachmentExp.getName() + ":" + dje.getMessage());  
+					throw new DesignExportException(dje.getErrorCode(), getComponentImportError(designPlatform, compExpCi, attachmentExp, dje.getMessage()));
+				}
+			}
+		}
+		if (compExpCi.getMonitors() != null) {
+			for (ExportCi monitorExp : compExpCi.getMonitors()) {
+				try {
+					importMonitor(designPlatform, componentRfc, monitorExp, platNsPath, releaseNsPath, packNsPath, userId);
+				} catch (DJException dje) {
+					throw new DesignExportException(dje.getErrorCode(), getComponentImportError(designPlatform, compExpCi, monitorExp, dje.getMessage()));  
 				}
 			}
 		}
 		return componentRfc.getCiId();
 	}
 
+	private String getComponentImportError(CmsRfcCI designPlatform, ComponentExport compExpCi, ExportCi ciExp, String message) {
+		return IMPORT_ERROR_PLAT_COMP_ATTACH
+				+ designPlatform.getCiName()
+				+ "/" + compExpCi.getName()
+				+ "/" + ciExp.getName() + ":" + message;
+	}
+
 	private void importAttachements(CmsRfcCI componentRfc, ExportCi attachmentExp, String releaseNsPath, String userId) {
 		List<CmsRfcCI> existingAttachments = cmRfcMrgProcessor.getDfDjCiNakedLower(componentRfc.getNsPath(), DESIGN_ATTACHMENT_CLASS, attachmentExp.getName(), null);
-		CmsRfcCI attachmentRfc = null;
 		if (!existingAttachments.isEmpty()) {
 			CmsRfcCI existingRfc = existingAttachments.get(0);
-			CmsRfcCI attachment = newFromExportCi(attachmentExp);
-			attachment.setNsPath(existingRfc.getNsPath());
-			attachment.setRfcId(existingRfc.getRfcId());
-			attachment.setCiId(existingRfc.getCiId());
-			attachment.setReleaseNsPath(releaseNsPath);
-			attachmentRfc = cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
-		} else {
-			CmsRfcCI attachment = newFromExportCi(attachmentExp);
-			attachment.setNsPath(componentRfc.getNsPath());
-			attachment.setReleaseNsPath(releaseNsPath);
-			attachmentRfc = cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
-			CmsRfcRelation escortedBy = trUtil.bootstrapRelationRfc(componentRfc.getCiId(), attachmentRfc.getCiId(), ESCORTED_RELATION, componentRfc.getNsPath(), releaseNsPath, null);
-			if (componentRfc.getRfcId() > 0) {
-				escortedBy.setFromRfcId(componentRfc.getRfcId());
-			}
-			escortedBy.setToRfcId(attachmentRfc.getRfcId());
-			cmRfcMrgProcessor.upsertRelationRfc(escortedBy, userId);
+			mergeRfcWithExportCi(existingRfc, attachmentExp, releaseNsPath, userId);
+		} 
+		else {
+			createRfcAndRelationFromExportCi(componentRfc, attachmentExp, ESCORTED_RELATION, releaseNsPath, userId);
 		}
 	}
 	
-	private void createRequires(CmsRfcCI designPlatform, CmsCI template, CmsRfcCI componentRfc, String userId) {
-		List<CmsCIRelation> mgmtRequiresRels = cmProcessor.getToCIRelationsNaked(template.getCiId(), MGMT_REQUIRES_RELATION, MGMT_PREFIX + designPlatform.getCiClassName());
-		if (mgmtRequiresRels.isEmpty()) {
+	private CmsRfcCI mergeRfcWithExportCi(CmsRfcCI existingRfc, ExportCi exportCi, String releaseNsPath, String userId) {
+		CmsRfcCI attachment = newFromExportCi(exportCi);
+		attachment.setNsPath(existingRfc.getNsPath());
+		attachment.setRfcId(existingRfc.getRfcId());
+		attachment.setCiId(existingRfc.getCiId());
+		attachment.setReleaseNsPath(releaseNsPath);
+		return cmRfcMrgProcessor.upsertCiRfc(attachment, userId);
+	}
+
+	private void createRfcAndRelationFromExportCi(CmsRfcCI componentRfc, ExportCi exportCi, String relationName, String releaseNsPath, String userId) {
+		CmsRfcCI rfc = newFromExportCi(exportCi);
+		rfc.setNsPath(componentRfc.getNsPath());
+		rfc.setReleaseNsPath(releaseNsPath);
+		CmsRfcCI newRfc = cmRfcMrgProcessor.upsertCiRfc(rfc, userId);
+		CmsRfcRelation relationRfc = trUtil.bootstrapRelationRfc(componentRfc.getCiId(), newRfc.getCiId(), relationName, componentRfc.getNsPath(), releaseNsPath, null);
+		if (componentRfc.getRfcId() > 0) {
+			relationRfc.setFromRfcId(componentRfc.getRfcId());
+		}
+		relationRfc.setToRfcId(newRfc.getRfcId());
+		cmRfcMrgProcessor.upsertRelationRfc(relationRfc, userId);
+	}
+
+	private void importMonitor(CmsRfcCI designPlatform, CmsRfcCI componentRfc, ExportCi monitorExp,
+			String platNsPath, String releaseNsPath, String packNsPath, String userId) {
+		List<CmsRfcCI> existingMonitors = cmRfcMrgProcessor.getDfDjCiNakedLower(componentRfc.getNsPath(), DESIGN_MONITOR_CLASS, monitorExp.getName(), null);
+		if (!existingMonitors.isEmpty()) {
+			CmsRfcCI existingRfc = existingMonitors.get(0);
+			mergeRfcWithExportCi(existingRfc, monitorExp, releaseNsPath, userId);
+		}
+		else {
+			boolean isCustomMonitor = false;
+			if (monitorExp.getAttributes() != null) {
+				if ("true".equalsIgnoreCase(monitorExp.getAttributes().get(CmsConstants.MONITOR_CUSTOM_ATTR))) {
+					isCustomMonitor = true;
+				}
+			}
+			if (isCustomMonitor) {
+				createRfcAndRelationFromExportCi(componentRfc, monitorExp, WATCHEDBY_RELATION, releaseNsPath, userId);
+			}
+			else {
+				//get the template monitor and merge with monitor from export
+				String tmplMonitorName = extractTmplMonitorNameFromDesignMonitor(designPlatform.getCiName(), componentRfc.getCiName(), monitorExp.getName());
+				List<CmsCI> mgmtComponents = cmProcessor.getCiBy3(packNsPath, MGMT_PREFIX + monitorExp.getType(), tmplMonitorName);
+				if (mgmtComponents.isEmpty()) {
+					//can not find template - abort
+					throw new DesignExportException(DesignExportException.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR, 
+							BAD_TEMPLATE_ERROR_MSG + packNsPath + ";" + monitorExp.getType() + ";" + tmplMonitorName);
+				}
+
+				CmsCI tmplMonitor = mgmtComponents.get(0);
+				CmsRfcCI monitorRfc = designRfcProcessor.popRfcCiFromTemplate(tmplMonitor, "catalog", platNsPath, releaseNsPath);
+				applyExportCiToTemplateRfc(monitorExp, monitorRfc);
+				monitorRfc = cmRfcMrgProcessor.upsertCiRfc(monitorRfc, userId);
+
+				//create watchedBy relation from mgmt relation
+				createRelationFromMgmt(componentRfc, tmplMonitor, monitorRfc, WATCHEDBY_RELATION, userId);
+			}
+		}
+	}
+
+	private String extractTmplMonitorNameFromDesignMonitor(String platName, String componentName, String designMonitorName) {
+	    String prefix = platName + "-" + componentName + "-";
+	    if (designMonitorName.length() > prefix.length())
+	        return designMonitorName.substring(designMonitorName.indexOf(prefix) + prefix.length());
+	    else
+	        return designMonitorName;
+	}
+
+	private void createRelationFromMgmt(CmsRfcCI fromRfc, CmsCI template, CmsRfcCI componentRfc, String relationName, String userId) {
+		List<CmsCIRelation> mgmtRels = cmProcessor.getToCIRelationsNaked(template.getCiId(), relationName, MGMT_PREFIX + fromRfc.getCiClassName());
+		if (mgmtRels.isEmpty()) {
 			//can not find template relation - abort
-			throw new DesignExportException(DesignExportException.CMS_CANT_FIND_REQUIRES_FOR_CI_ERROR, CANT_FIND_REQUIRES_ERROR_MSG + template.getCiId());
+			throw new DesignExportException(DesignExportException.CMS_CANT_FIND_REQUIRES_FOR_CI_ERROR, 
+					CANT_FIND_RELATION_ERROR_MSG.replace("$relationName", relationName) + template.getCiId());
 		}
 		
-		CmsRfcRelation designReqRel = designRfcProcessor.popRfcRelFromTemplate(mgmtRequiresRels.get(0), "base", componentRfc.getNsPath(), componentRfc.getReleaseNsPath());
-		upsertRelRfc(designReqRel, designPlatform, componentRfc, componentRfc.getReleaseId(), userId);
+		CmsRfcRelation designRel = designRfcProcessor.popRfcRelFromTemplate(mgmtRels.get(0), "base", componentRfc.getNsPath(), componentRfc.getReleaseNsPath());
+		upsertRelRfc(designRel, fromRfc, componentRfc, componentRfc.getReleaseId(), userId);
 	}
 	
 	private void processMgmtDependsOnRels(CmsRfcCI designPlatform, CmsCI mgmtCi, CmsRfcCI componentRfc, String userId) {
@@ -620,7 +715,7 @@ public class DesignExportProcessor {
 
 		
 	}
-	
+
 	private void upsertRelRfc(CmsRfcRelation relRfc, CmsRfcCI fromRfc, CmsRfcCI toRfc, long releaseId, String userId) {
 		relRfc.setToCiId(toRfc.getCiId());
 		if (toRfc.getRfcId() > 0) {

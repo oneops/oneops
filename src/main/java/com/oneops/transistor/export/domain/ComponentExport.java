@@ -5,6 +5,7 @@ import java.util.List;
 
 public class ComponentExport extends ExportCi{
 	private List<ExportCi> attachments;
+	private List<ExportCi> monitors;
 	private List<String> depends;
 	private String template;
 
@@ -39,6 +40,15 @@ public class ComponentExport extends ExportCi{
 			this.depends = new ArrayList<String>();
 		}
 		this.depends.add(dependsOn);
+	}
+	public void addMonitor(ExportCi monitor) {
+		if (this.monitors == null) {
+			this.monitors = new ArrayList<ExportCi>();
+		}
+		this.monitors.add(monitor);
+	}
+	public List<ExportCi> getMonitors() {
+		return monitors;
 	}
 	
 }
