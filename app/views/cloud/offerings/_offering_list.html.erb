@@ -7,6 +7,10 @@
   <%= ci_list(@offerings, :new_link => new_link && link_to(icon('plus', 'Add Offering...'), new_link, :remote => true)) do |builder, target| %>
     <% builder.target link_to('', edit_cloud_service_offering_path(@cloud, @service, target), :remote => true) %>
     <% builder.icon :none %>
+    <% builder.top do %>
+      <span class="topname"><%= target.ciName %></span>
+      <span class="topdesc"><%= raw("#{content_tag(:span, raw("#{content_tag(:b, target.ciAttributes.cost_rate)} #{content_tag(:sub, "#{target.ciAttributes.cost_unit.upcase}/hour")}"), :class => 'cost-rate')}") %></span>
+    <% end %>
     <% builder.middle target.ciAttributes.description %>
     <% if write_access %>
       <% builder.menu do |ci| %>
@@ -15,10 +19,8 @@
     <% end %>
     <% builder.status do %>
       <% mgmt_offering = mgmt_offering_map[target.ciName] %>
-      <% if mgmt_offering %>
-        <%= status_marker('base', 'updated', 'label-warning') if mgmt_offering.updated > target.created %>
-      <% else %>
-        <%= status_marker('base', 'removed', 'label-important') %>
+      <% unless mgmt_offering %>
+        <%= status_marker('template', 'removed', 'label-important') %>
       <% end %>
     <% end %>
   <% end %>

@@ -108,7 +108,10 @@ Display::Application.routes.draw do
   resources :authentications, :only => [:create, :destroy]
 
   resources :clouds, :controller => 'cloud/clouds', :only => :none do
-    get :public_services,  :on => :collection
+    collection do
+      get :services
+      get :offerings
+    end
   end
 
   scope '/:org_name' do

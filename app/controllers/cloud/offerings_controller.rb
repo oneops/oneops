@@ -114,9 +114,12 @@ class Cloud::OfferingsController < ApplicationController
 
   def find_parents_and_offering
     @cloud   = locate_cloud(params[:cloud_id])
-    @service = Cms::Ci.locate(params[:service_id], cloud_ns_path(@cloud))
-    offering = params[:id]
-    @offering = Cms::Ci.locate(offering, cloud_service_ns_path(@service)) if offering.present?
+    service_id = params[:service_id]
+    if service_id.present?
+      @service  = Cms::Ci.locate(service_id, cloud_ns_path(@cloud))
+      offering  = params[:id]
+      @offering = Cms::Ci.locate(offering, cloud_service_ns_path(@service)) if offering.present?
+    end
   end
 
   def authorize_write
