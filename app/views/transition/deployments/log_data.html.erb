@@ -5,7 +5,7 @@
     <%= @rfc.nsPath %>
   </h4>
 <% end %>
-<% render 'cms/log_data', :log_data => @log_data %>
+<%= render 'cms/log_data', :log_data => @log_data %>
 
 <script>
   window.log_line_selected = function(source, event) {
