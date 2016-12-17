@@ -11,19 +11,5 @@
   <% if action %>
     <h5>Action: <%= action.actionName %> (<%= action.actionId %>)</h5>
   <% end %>
-  <ol class="log">
-    <% log_data.each do |e| %>
-      <% message = e['message'].gsub(/^.*cmd out:/, '')
-         if message =~ /ERROR:|FATAL:/
-           class_name = 'error'
-         elsif message =~ /WARN:/
-           class_name = 'warning'
-         elsif message =~ /INFO:/
-           class_name = 'info'
-         else
-           class_name = ''
-         end %>
-      <li><span class="<%= class_name %>"><%= message %></span></li>
-    <% end %>
-  </ol>
+  <%= render 'cms/log_data', :log_data => log_data %>
 <% end %>
