@@ -450,7 +450,7 @@ public class DpmtRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
 			@RequestHeader(value="X-Cms-User", required = true)  String userId){
 		
-		List<CmsDpmtApproval> toApprove = new ArrayList<CmsDpmtApproval>();
+		List<CmsDpmtApproval> toApprove = new ArrayList<>();
 		for (CmsDpmtApproval approval : approvals) {
 			approval.setUpdatedBy(userId);
 			toApprove.add(approval);

@@ -26,6 +26,8 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.CmsRfcCI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -272,11 +274,11 @@ public class CmRestController extends AbstractRestController {
 	public List<CmsCISimple> getCIcByIds(
 			@RequestBody Long[] ciIdsAr) {
 		
-		List<Long> ciIds = new ArrayList<Long>();
+		List<Long> ciIds = new ArrayList<>();
         for (Long ciId : ciIdsAr) {
             ciIds.add(Long.valueOf(ciId));
         }
-        List<CmsCISimple> ciSimpleList = new ArrayList<CmsCISimple>();
+        List<CmsCISimple> ciSimpleList = new ArrayList<>();
 		for (CmsCI ci : cmManager.getCiByIdList(ciIds)) {
 			ciSimpleList.add(cmsUtil.custCI2CISimple(ci, "df", false));
 		}
@@ -294,36 +296,40 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="attr", required = false)  String[] attrs,
 			@RequestParam(value="ids", required = false)  String ids,
 			@RequestParam(value="value", required = false)  String valueType,
+			@RequestParam(value="altNs", required = false)  String altNs,
+			@RequestParam(value="tag", required = false)  String tag,
 			@RequestParam(value="recursive", required = false)  Boolean recursive,
 			@RequestParam(value="getEncrypted", required = false) String getEncrypted,
 			@RequestParam(value="attrProps", required = false) String attrProps,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 	
-		List<CmsCISimple> ciSimpleList = null;
+		List<CmsCISimple> ciSimpleList;
 		
 		if (attrs != null) {
 			boolean nsRecursive = recursive != null;
 			ciSimpleList = getCISimpleByAttrs(nsPath, clazzName, attrs, valueType, nsRecursive);
 		} else if (ids != null) {
 			String[] ciIdsAr = ids.split(",");
-	        List<Long> ciIds = new ArrayList<Long>();
+	        List<Long> ciIds = new ArrayList<>();
 	        for (String ciId : ciIdsAr) {
 	            ciIds.add(Long.valueOf(ciId));
 	        }
-			ciSimpleList = new ArrayList<CmsCISimple>();
+			ciSimpleList = new ArrayList<>();
 			for (CmsCI ci : cmManager.getCiByIdList(ciIds)) {
 				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null));
 			}
 	        
 		} else {
 		
-			List<CmsCI> ciList = null;
-			if (recursive != null && recursive) {
+			List<CmsCI> ciList;
+			if (altNs!=null || tag!=null){
+				ciList = cmManager.getCmCIByAltNsAndTag(altNs, tag);
+			} else if (recursive != null && recursive) {
 				ciList = cmManager.getCiBy3NsLike(nsPath, clazzName, ciName);
 			} else {	
 				ciList = cmManager.getCiBy3(nsPath, clazzName, ciName);
 			}	
-			ciSimpleList = new ArrayList<CmsCISimple>();
+			ciSimpleList = new ArrayList<>();
 			for (CmsCI ci : ciList) {
 				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null));
 			}
@@ -359,7 +365,7 @@ public class CmRestController extends AbstractRestController {
 			return cmManager.getCountBy3GroupByNs(nsPath, clazzName, ciName);
 		} else {
 			Long count = cmManager.getCountBy3(nsPath, clazzName, ciName, recursive);
-			Map<String, Long> result = new HashMap<String,Long>(1);
+			Map<String, Long> result = new HashMap<>(1);
 			result.put("count", count);
 			return result;
 		}
@@ -375,7 +381,7 @@ public class CmRestController extends AbstractRestController {
 		List<AttrQueryCondition> attrConds = cmsUtil.parseConditions(attrs); 
 
 		List<CmsCI> ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, recursive);
-		List<CmsCISimple> ciSimpleList = new ArrayList<CmsCISimple>();
+		List<CmsCISimple> ciSimpleList = new ArrayList<>();
 		for (CmsCI ci : ciList) {
 			ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType));
 		}
@@ -496,14 +502,14 @@ public class CmRestController extends AbstractRestController {
 		}
 		if (groupBy != null) {
 			if ("ciId".equals(groupBy)) {
-				Map<Long,Long> counts = null;
+				Map<Long,Long> counts;
 				if ("from".equals(direction)) {
 					counts = cmManager.getCounCIRelationsGroupByFromCiId(relationName, shortRelationName, targetClazz, nsPath);
 				} else {
 					counts = cmManager.getCounCIRelationsGroupByToCiId(relationName, shortRelationName, targetClazz, nsPath);
 				}
 				//convert to Map<String,Long>
-				Map<String, Long> result = new HashMap<String,Long>(1);
+				Map<String, Long> result = new HashMap<>(1);
 				for (Map.Entry<Long, Long> count : counts.entrySet()) {
 					result.put(count.getKey().toString(), count.getValue());
 				}
@@ -516,13 +522,13 @@ public class CmRestController extends AbstractRestController {
 				}
 			}
 		} else {
-			Long count = null;
+			Long count;
 			if ("from".equals(direction)) {
 				count = cmManager.getCountFromCIRelationsByNS(ciId, relationName, shortRelationName, targetClazz, nsPath, recursive);
 			} else {
 				count = cmManager.getCountToCIRelationsByNS(ciId, relationName, shortRelationName, targetClazz, nsPath, recursive);
 			}
-			Map<String, Long> result = new HashMap<String,Long>(1);
+			Map<String, Long> result = new HashMap<>(1);
 			result.put("count", count);
 			return result;
 		}
@@ -585,7 +591,7 @@ public class CmRestController extends AbstractRestController {
                                             "You must specify either ciId or nsPath ");
 		}
 		
-		List<CmsCIRelationSimple> simpleList = new ArrayList<CmsCIRelationSimple>();
+		List<CmsCIRelationSimple> simpleList = new ArrayList<>();
 		for (CmsCIRelation rel : relList) {
 			scopeVerifier.verifyScope(scope, rel);
 			simpleList.add(cmsUtil.custCIRelation2CIRelationSimple(rel, valueType, getEncrypted!=null));
@@ -825,6 +831,48 @@ public class CmRestController extends AbstractRestController {
 	public CmsVar getCmSimpleVar(@PathVariable String varName){
 		return cmManager.getCmSimpleVar(varName);
 	}
-	
-    
+
+
+	@RequestMapping(method = RequestMethod.PUT, value = "/cm/simple/ci/{ciId}/altNs")
+	@ResponseBody
+	public void tagRfc(@PathVariable long ciId,
+					   @RequestParam(value = "tag", required = false) String tag,
+					   @RequestParam(value = "altNsPath", required = false) String altNsPath,
+					   @RequestParam(value = "altNsId", required = false) Long altNsId,
+					   @RequestHeader(value = "X-Cms-User", required = false) String userId,
+					   @RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+		CmsCI ci = cmManager.getCiById(ciId);
+		scopeVerifier.verifyScope(scope, ci);
+		CmsAltNs cmsAltNs = new CmsAltNs();
+		cmsAltNs.setNsPath(altNsPath);
+		if (altNsId != null) {
+			cmsAltNs.setNsId(altNsId);
+		}
+		cmsAltNs.setTag(tag);
+		cmManager.createAltNs(cmsAltNs, ci);
+	}
+
+
+	@RequestMapping(method = RequestMethod.GET, value = "/cm/simple/ci/{ciId}/altNs")
+	@ResponseBody
+	public List<CmsAltNs> getCiTags(@PathVariable long ciId,
+									@RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+		CmsCI baseCi = cmManager.getCiById(ciId);
+		scopeVerifier.verifyScope(scope, baseCi);
+		return  cmManager.getAltNsBy(ciId);
+	}
+
+	@RequestMapping(method = RequestMethod.DELETE, value = "/cm/simple/ci/{ciId}/ns/{nsId}/altNs")
+	@ResponseBody
+	public String getCiTags(@PathVariable long ciId, @PathVariable long nsId, 
+									@RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+		CmsCI baseCi = cmManager.getCiById(ciId);
+		scopeVerifier.verifyScope(scope, baseCi);
+		cmManager.deleteAltNs(ciId, nsId);
+		return  "";
+	}
+
+
 }

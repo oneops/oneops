@@ -23,6 +23,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -136,7 +137,7 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="latest", required = false) Boolean latest,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		List<CmsRelease> relList = null;
+		List<CmsRelease> relList;
 		
 		if (latest != null && latest.booleanValue()) {
 			relList =  djManager.getLatestRelease(nsPath, releaseState);
@@ -237,14 +238,18 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="isActive", required = false) Boolean isActive, 
 			@RequestParam(value="ciId", required = false) Long ciId,
 			@RequestParam(value="nsPath", required = false) String nsPath,
+            @RequestParam(value="altNsPath", required = false) String altNsPath, 
+            @RequestParam(value="tag", required = false) String tag, 
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<CmsRfcCISimple>();
+		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<>();
 		List<CmsRfcCI> rfcList = null;
 		if (isActive == null) {
 			isActive = true;
 		}
-		if (releaseId != null) {
+		if (altNsPath!=null || tag!=null){
+		    rfcList = djManager.getByAltNsAndTag(altNsPath, tag, releaseId, isActive, ciId);
+        } else if (releaseId != null) {
 			rfcList = djManager.getRfcCIBy3(releaseId, isActive, ciId);
 		} else if (ciId != null) {
 			rfcList = djManager.getClosedRfcCIByCiId(ciId);
@@ -355,7 +360,7 @@ public class DjRestController extends AbstractRestController {
             @RequestParam(value="nsPath", required = false) String nsPath, 
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
-		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<CmsRfcRelationSimple>();
+		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<>();
 		List<CmsRfcRelation> relList = null;
 
         if (isActive == null) {
@@ -469,4 +474,47 @@ public class DjRestController extends AbstractRestController {
 		return djManager.getDjTimeLine(queryParam);
 	}
 
+
+    @RequestMapping(method = RequestMethod.PUT, value = "/dj/simple/rfc/{rfcId}/altNs")
+    @ResponseBody
+    public void tagRfc(@PathVariable long rfcId,
+                       @RequestParam(value = "tag", required = false) String tag,
+                       @RequestParam(value = "altNsPath", required = false) String altNsPath,
+                       @RequestParam(value = "altNsId", required = false) Long altNsId,
+                       @RequestHeader(value = "X-Cms-User", required = false) String userId,
+                       @RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+        CmsRfcCI ci = djManager.getRfcCIById(rfcId);
+        scopeVerifier.verifyScope(scope, ci);
+        CmsAltNs cmsAltNs = new CmsAltNs();
+        cmsAltNs.setNsPath(altNsPath);
+        if (altNsId != null) {
+            cmsAltNs.setNsId(altNsId);
+        }
+        cmsAltNs.setTag(tag);
+        djManager.createAltNs(cmsAltNs, ci);
+    }
+
+
+    @RequestMapping(method = RequestMethod.GET, value = "/dj/simple/rfc/{rfcId}/altNs")
+    @ResponseBody
+    public List<CmsAltNs> getCiTags(@PathVariable long rfcId,
+                                    @RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+        CmsRfcCI baseCi = djManager.getRfcCIById(rfcId);
+        scopeVerifier.verifyScope(scope, baseCi);
+        return  djManager.getAltNsBy(rfcId);
+    }
+
+
+	@RequestMapping(method = RequestMethod.DELETE, value = "/dj/simple/rfc/{rfcId}/ns/{nsId}/altNs")
+	@ResponseBody
+	public String getCiTags(@PathVariable long rfcId, @PathVariable long nsId,
+							@RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+
+		CmsRfcCI baseCi = djManager.getRfcCIById(rfcId);
+		scopeVerifier.verifyScope(scope, baseCi);		
+		djManager.deleteAltNs(rfcId, nsId);
+		return  "";
+	}
 }
