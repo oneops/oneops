@@ -150,6 +150,7 @@ if node.platform =~ /windows/
   
   #Adding check_load for windows - in linux it's coming from nagios plugin, but for windows we write a simple bash script, that currently only returns 0s
   cookbook_file "/opt/nagios/libexec/check_load" do
+    cookbook 'monitor'
 	source "check_load"
   end
 end
