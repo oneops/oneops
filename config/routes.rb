@@ -30,6 +30,7 @@ Display::Application.routes.draw do
   get 'r/instances/:id/monitors/:monitor/d' => 'redirect#monitor_doc', :as => 'redirect_instance_monitor_doc'
 
   get 'l/ci/:id'         => 'lookup#ci',         :as => 'lookup_ci'
+  get 'l/ci/:id/:attribute_name' => 'lookup#ci', :as => 'lookup_ci_attribute'
   get 'l/release/:id'    => 'lookup#release'
   get 'l/r/:id'          => 'lookup#release',    :as => 'lookup_release'
   get 'l/deployment/:id' => 'lookup#deployment'
