@@ -124,7 +124,12 @@ Display::Application.routes.draw do
         get 'cost'
       end
 
-      resources :users, :controller => 'organization/users'
+      resources :users, :controller => 'organization/users' do
+        collection do
+          post 'confirm_remove'
+          delete 'remove'
+        end
+      end
 
       resources :teams, :controller => 'organization/teams' do
         resources :members, :controller => 'organization/team_members', :as => :members, :only => [:index, :create, :destroy]
