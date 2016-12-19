@@ -7,7 +7,7 @@ class Chef
       chunk_minimum = 1048576 * 2 # 1 Mb * 2
       num_chunk_max = 10 # maximum of part download in parallel
       headers = probe_url(url)
-      content_length = headers["content-length"][0].to_i
+      content_length = headers.has_key?("content-length") ? headers["content-length"][0].to_i : 0
       accept_ranges = (headers["accept-ranges"].nil? || headers["accept-ranges"].empty?) ? "" : headers["accept-ranges"][0]
       remote_url = headers["location"].nil? ? url : headers["location"][0]
 
