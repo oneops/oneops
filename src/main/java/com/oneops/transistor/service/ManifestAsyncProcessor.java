@@ -40,18 +40,17 @@ public class ManifestAsyncProcessor {
         this.envSemaphore = envSemaphore;
     }
 
-    public long generateEnvManifest(String[] envIds, String userId, Map<String, String> platModes) {
+    public long generateEnvManifest(List<Long> envIds, String userId, Map<String, String> platModes) {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         String oldThreadName = Thread.currentThread().getName();
         try {
-            for (String envIdS : envIds) {
-                long envId = Long.parseLong(envIdS);
-                Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName, envId));
+            for (long envId : envIds) {
                 final String processId = UUID.randomUUID().toString();
                 envSemaphore.lockEnv(envId, EnvSemaphore.MANIFEST_LOCKED_STATE, processId);
                 executor.submit(() -> {
                     String envMsg = null;
                     try {
+                        Thread.currentThread().setName(manifestManager.getProcessingThreadName(oldThreadName, envId));
                         return  manifestManager.generateEnvManifest(envId, userId, platModes);
                     } catch (CmsBaseException e) {
                         logger.error("CmsBaseException occurred", e);
