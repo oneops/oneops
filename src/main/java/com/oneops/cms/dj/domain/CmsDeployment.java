@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.cms.dj.domain;
 
@@ -33,7 +33,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public class CmsDeployment implements Serializable{
 
 	private static final long serialVersionUID = 1L;
-	
+	private static final int CONTINUE_ON_FAILURE_FLAG_POSITION = 0;
+
 	private long deploymentId;
 	private long releaseId;
 	private int maxExecOrder;
@@ -52,6 +53,9 @@ public class CmsDeployment implements Serializable{
 	private Date created;
 	private Date updated;
 
+	private Integer flags = 0;
+	private boolean continueOnFailure = false;
+
 	/**
 	 * Gets the deployment id.
 	 *
@@ -60,7 +64,7 @@ public class CmsDeployment implements Serializable{
 	public long getDeploymentId() {
 		return deploymentId;
 	}
-	
+
 	/**
 	 * Sets the deployment id.
 	 *
@@ -69,7 +73,7 @@ public class CmsDeployment implements Serializable{
 	public void setDeploymentId(long deploymentId) {
 		this.deploymentId = deploymentId;
 	}
-	
+
 	/**
 	 * Gets the release id.
 	 *
@@ -78,7 +82,7 @@ public class CmsDeployment implements Serializable{
 	public long getReleaseId() {
 		return releaseId;
 	}
-	
+
 	/**
 	 * Sets the release id.
 	 *
@@ -87,7 +91,7 @@ public class CmsDeployment implements Serializable{
 	public void setReleaseId(long releaseId) {
 		this.releaseId = releaseId;
 	}
-	
+
 	/**
 	 * Gets the max exec order.
 	 *
@@ -96,7 +100,7 @@ public class CmsDeployment implements Serializable{
 	public int getMaxExecOrder() {
 		return maxExecOrder;
 	}
-	
+
 	/**
 	 * Sets the max exec order.
 	 *
@@ -105,7 +109,7 @@ public class CmsDeployment implements Serializable{
 	public void setMaxExecOrder(int maxExecOrder) {
 		this.maxExecOrder = maxExecOrder;
 	}
-	
+
 	/**
 	 * Gets the ns path.
 	 *
@@ -114,7 +118,7 @@ public class CmsDeployment implements Serializable{
 	public String getNsPath() {
 		return nsPath;
 	}
-	
+
 	/**
 	 * Sets the ns path.
 	 *
@@ -123,7 +127,7 @@ public class CmsDeployment implements Serializable{
 	public void setNsPath(String nsPath) {
 		this.nsPath = nsPath;
 	}
-	
+
 	/**
 	 * Gets the deployment state.
 	 *
@@ -132,7 +136,7 @@ public class CmsDeployment implements Serializable{
 	public String getDeploymentState() {
 		return deploymentState;
 	}
-	
+
 	/**
 	 * Sets the deployment state.
 	 *
@@ -141,7 +145,7 @@ public class CmsDeployment implements Serializable{
 	public void setDeploymentState(String deploymentState) {
 		this.deploymentState = deploymentState;
 	}
-	
+
 	/**
 	 * Gets the created by.
 	 *
@@ -150,7 +154,7 @@ public class CmsDeployment implements Serializable{
 	public String getCreatedBy() {
 		return createdBy;
 	}
-	
+
 	/**
 	 * Sets the created by.
 	 *
@@ -159,7 +163,7 @@ public class CmsDeployment implements Serializable{
 	public void setCreatedBy(String createdBy) {
 		this.createdBy = createdBy;
 	}
-	
+
 	/**
 	 * Gets the updated by.
 	 *
@@ -168,7 +172,7 @@ public class CmsDeployment implements Serializable{
 	public String getUpdatedBy() {
 		return updatedBy;
 	}
-	
+
 	/**
 	 * Sets the updated by.
 	 *
@@ -177,7 +181,7 @@ public class CmsDeployment implements Serializable{
 	public void setUpdatedBy(String updatedBy) {
 		this.updatedBy = updatedBy;
 	}
-	
+
 	/**
 	 * Gets the description.
 	 *
@@ -186,7 +190,7 @@ public class CmsDeployment implements Serializable{
 	public String getDescription() {
 		return description;
 	}
-	
+
 	/**
 	 * Sets the description.
 	 *
@@ -195,7 +199,7 @@ public class CmsDeployment implements Serializable{
 	public void setDescription(String description) {
 		this.description = description;
 	}
-	
+
 	/**
 	 * Gets the created.
 	 *
@@ -204,7 +208,7 @@ public class CmsDeployment implements Serializable{
 	public Date getCreated() {
 		return created;
 	}
-	
+
 	/**
 	 * Sets the created.
 	 *
@@ -213,7 +217,7 @@ public class CmsDeployment implements Serializable{
 	public void setCreated(Date created) {
 		this.created = created;
 	}
-	
+
 	/**
 	 * Gets the updated.
 	 *
@@ -222,7 +226,7 @@ public class CmsDeployment implements Serializable{
 	public Date getUpdated() {
 		return updated;
 	}
-	
+
 	/**
 	 * Sets the updated.
 	 *
@@ -231,7 +235,7 @@ public class CmsDeployment implements Serializable{
 	public void setUpdated(Date updated) {
 		this.updated = updated;
 	}
-	
+
 	/**
 	 * Gets the process id.
 	 *
@@ -240,7 +244,7 @@ public class CmsDeployment implements Serializable{
 	public String getProcessId() {
 		return processId;
 	}
-	
+
 	/**
 	 * Sets the process id.
 	 *
@@ -291,5 +295,61 @@ public class CmsDeployment implements Serializable{
 	public String getAutoPauseExecOrdersVal() {
 		return autoPauseExecOrdersVal;
 	}
-	
+
+
+	public boolean getContinueOnFailure() {
+		return this.continueOnFailure;
+	}
+
+	/**
+	 * Sets the flag indicating that deployment should continue even if one of the deployment steps has failed
+	 */
+	public void setContinueOnFailure(boolean continueOnFailure) {
+		this.continueOnFailure = continueOnFailure;
+		if (continueOnFailure) {
+			setFlag(CONTINUE_ON_FAILURE_FLAG_POSITION);
+		} else {
+			unsetFlag(CONTINUE_ON_FAILURE_FLAG_POSITION);
+		}
+	}
+	/**
+	 * Varios CMS class flags, each bit is used for some attribute
+	 * i.e 010 is set for continueOnFailure
+	 * @return the impl
+	 */
+	public Integer getFlags() {
+		return flags;
+	}
+
+	/**
+	 * This is needed to mask flags to the end-api calls so users can do GET, update jason (some props like continueonfailure) without modifing flags and do PUT
+	 *
+	 * @return the impl
+	 */
+	public void setFlagsToNull() {
+		this.flags = null;
+	}
+
+	/**
+	 * When class def is read from DB - parse the flags and set properties
+	 *
+	 * @return the impl
+	 */
+	public void setFlags(Integer flags) {
+		if (flags != null) {
+			this.flags = flags;
+			this.continueOnFailure = (this.flags & (1 << CONTINUE_ON_FAILURE_FLAG_POSITION)) > 0;
+		}
+	}
+
+	private void setFlag(int bitPos) {
+		if (this.flags == null) this.flags = 0;
+		this.flags |= 1 << bitPos;
+	}
+
+	private void unsetFlag(int bitPos) {
+		if (this.flags == null) this.flags = 0;
+		this.flags &= ~(1 << bitPos);
+	}
+
 }

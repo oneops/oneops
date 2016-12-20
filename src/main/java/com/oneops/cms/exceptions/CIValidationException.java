@@ -42,7 +42,8 @@ public class CIValidationException extends CmsBaseException {
     	super(message);
     }
 
-    public static ExceptionConsolidator consolidator(int errorCode){
-		return new ExceptionConsolidator(CIValidationException.class, errorCode);
+    public static ExceptionConsolidator consolidator(int errorCode, int countOfErrorsToReport){
+		return new ExceptionConsolidator(CIValidationException.class, errorCode, countOfErrorsToReport);
 	}
+
 }

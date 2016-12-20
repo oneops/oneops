@@ -24,20 +24,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.TimelineBase;
-import com.oneops.cms.dj.domain.TimelineDeployment;
-import com.oneops.cms.dj.domain.TimelineRelease;
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.QueryOrder;
@@ -520,5 +511,25 @@ public class CmsDjManagerImpl implements CmsDjManager {
 					}
 				}).
 				collect(Collectors.toList());
+	}
+
+	@Override
+	public void deleteAltNs(long nsId, long rfcId) {
+		rfcProcessor.deleteAltNs(nsId, rfcId);
+	}
+
+	@Override
+	public void createAltNs(CmsAltNs cmsAltNs, CmsRfcCI rfcCi) {
+		rfcProcessor.createAltNs(cmsAltNs, rfcCi);
+	}
+
+	@Override
+	public List<CmsAltNs> getAltNsBy(long rfcCI){
+		return rfcProcessor.getAltNsBy(rfcCI);
+	}
+
+	@Override
+	public List<CmsRfcCI> getByAltNsAndTag(String nsPath, String tag, Long releaseId, boolean active, Long ciId) {
+		return rfcProcessor.getRfcCIByAltNsAndTag(nsPath, tag, releaseId, active, ciId);
 	}
 }

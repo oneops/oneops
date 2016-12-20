@@ -21,13 +21,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.cms.cm.domain.*;
 import org.apache.ibatis.annotations.Param;
 
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
-import com.oneops.cms.cm.domain.CmsLink;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 
 public interface CIMapper {
@@ -130,4 +126,12 @@ public interface CIMapper {
 	List<HashMap<String, Object>> getEnvState(String nsPath);
 	List<CmsLink> getLinks(@Param("nsPath") String nsPath, @Param("relName") String relName);
 	
+
+	void createAltNs(@Param("nsId")long nsId, @Param("tag")String tag, @Param("ciId")long ciId);
+
+	long deleteAltNs(@Param("nsId")long nsId, @Param("ciId")long ciId);
+
+	List<CmsCI> getCmCIByAltNsAndTag(@Param("nsPath") String nsPath, @Param("tag") String tag);
+
+	List<CmsAltNs> getAltNsBy(@Param("ciId") long ciCI);
 }
