@@ -1817,7 +1817,11 @@ public class CmsRfcProcessor {
 
 	private List<TimelineRelease> getReleaseByFilterInternal(TimelineQueryParam queryParam) {
 		List<TimelineRelease> releases = null;
-		addFilters(queryParam);
+		String filter = queryParam.getWildcardFilter();
+		String envNsPath = queryParam.getEnvNs();
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, null));
+		queryParam.setManifestNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.MANIFEST, filter));
+		queryParam.setManifestClassFilter(CmsConstants.MANIFEST + "." + filter);
 		releases = djMapper.getReleaseByFilter(queryParam);
 		Long endRelId = null;
 		if (QueryOrder.ASC.equals(queryParam.getOrder())) {
@@ -1834,35 +1838,8 @@ public class CmsRfcProcessor {
 		return releases;
 	}
 
-	private void addFilters(TimelineQueryParam queryParam) {
-		String filter = queryParam.getWildcardFilter();
-		String nsPath = queryParam.getNsPath();
-
-		if (queryParam.isDesignNamespace()) {
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPath(nsPath));
-			queryParam.setReleaseNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(nsPath, null, filter));
-			queryParam.setReleaseClassFilter(CmsConstants.CATALOG + "." + filter);
-		}
-		else {
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithFilter(nsPath, CmsConstants.MANIFEST, null));
-			queryParam.setReleaseNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(nsPath, CmsConstants.MANIFEST, filter));
-			queryParam.setReleaseClassFilter(CmsConstants.MANIFEST + "." + filter);
-		}
-	}
-
 	private List<TimelineRelease> getReleaseByNsPath(TimelineQueryParam queryParam) {
-		String nsPath = queryParam.getNsPath();
-		if (queryParam.isDesignNamespace()) {
-			String designSuffix = "/_design";
-			if (nsPath.endsWith("/")) {
-				designSuffix = "/_design/";
-			}
-			String nsPathTrimmed = nsPath.substring(0, (nsPath.length() - designSuffix.length()));
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithoutEndingSlash(nsPathTrimmed));
-		}
-		else {
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(nsPath, CmsConstants.MANIFEST));
-		}
+		queryParam.setManifestNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.MANIFEST));
 		return djMapper.getReleaseByNsPath(queryParam);
 	}
 

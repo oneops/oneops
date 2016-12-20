@@ -583,7 +583,7 @@
 			d.updated
 		from dj_deployment d, dj_releases rel, ns_namespaces ns, dj_deployment_states ds
 		where d.ns_id = ns.ns_id
-		  and ns.ns_path like #{dpmtNsLike}
+		  and ns.ns_path like #{bomNsLike}
 		  and d.release_id = rel.release_id
 		  and d.state_id = ds.state_id
 		  and (#{dpmtOffset}::bigint is null or d.deployment_id ${order.aboveOperator} #{dpmtOffset})
@@ -612,14 +612,14 @@
 				from dj_deployment_rfc dj, dj_rfc_ci rfc, md_classes md, ns_namespaces ns
 				where dj.rfc_id = rfc.rfc_id
 				  and rfc.ns_id = ns.ns_id
-				  and ns.ns_path like #{dpmtNsLike}
+				  and ns.ns_path like #{bomNsLike}
 				  and rfc.class_id = md.class_id
 				  and (
 				       (#{wildcardFilter}::varchar is null or rfc.ci_name like #{wildcardFilter})
 				       or
-				       (#{dpmtClassFilter}::varchar is null or (lower(md.class_name) like lower(#{dpmtClassFilter})))
+				       (#{bomClassFilter}::varchar is null or (lower(md.class_name) like lower(#{bomClassFilter})))
 				       or
-				       (#{dpmtNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{dpmtNsLikeWithFilter}))
+				       (#{bomNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{bomNsLikeWithFilter}))
 				      )
 				  and (#{dpmtOffset}::bigint is null or dj.deployment_id ${order.aboveOperator} #{dpmtOffset})
 				order by dj.deployment_id ${order.sort}

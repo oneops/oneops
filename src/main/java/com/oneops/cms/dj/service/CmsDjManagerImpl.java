@@ -470,8 +470,7 @@ public class CmsDjManagerImpl implements CmsDjManager {
 		String wildcardFilter = StringUtils.isBlank(queryParam.getFilter()) ? null : "%" + queryParam.getFilter() + "%";
 		queryParam.setWildcardFilter(wildcardFilter);
 
-		queryParam.setDesignNamespace(queryParam.getNsPath().contains("_design"));
-		boolean onlyRelease = "release".equalsIgnoreCase(queryParam.getType()) || queryParam.isDesignNamespace();
+		boolean onlyRelease = "release".equalsIgnoreCase(queryParam.getType());
 		boolean onlyDpmt = "deployment".equalsIgnoreCase(queryParam.getType());
 
 		List<TimelineDeployment> deployments;
@@ -482,7 +481,7 @@ public class CmsDjManagerImpl implements CmsDjManager {
 			deployments = Collections.emptyList();
 		}
 
-		List<TimelineRelease> releases;
+		List<TimelineRelease> manifestReleases;
 		if (!onlyDpmt) {
 			List<Long> reqdReleaseIds = Collections.emptyList();
 			Long endRelId = null;
@@ -492,13 +491,13 @@ public class CmsDjManagerImpl implements CmsDjManager {
 			}
 			queryParam.setEndRelId(endRelId);
 			queryParam.setReleaseList(reqdReleaseIds);
-			releases = rfcProcessor.getReleaseByFilter(queryParam);
+			manifestReleases = rfcProcessor.getReleaseByFilter(queryParam);
 		}
 		else {
-			releases = Collections.emptyList();
+			manifestReleases = Collections.emptyList();
 		}
 
-		return combineResults(deployments, releases, queryParam.getOrder());
+		return combineResults(deployments, manifestReleases, queryParam.getOrder());
 	}
 
 	private List<TimelineBase> combineResults(List<TimelineDeployment> deployments, List<TimelineRelease> manifestReleases, QueryOrder order) {

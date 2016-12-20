@@ -888,13 +888,13 @@ public class CmsDpmtProcessor {
     }
 
 	public List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam) {
-		String envNsPath = queryParam.getNsPath();
+		String envNsPath = queryParam.getEnvNs();
 		String filter = queryParam.getWildcardFilter();
 		List<TimelineDeployment> deployments = null;
 		if (!StringUtils.isBlank(filter)) {
-			queryParam.setDpmtNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
-			queryParam.setDpmtNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, filter));
-			queryParam.setDpmtClassFilter(CmsConstants.BOM + "." + filter);
+			queryParam.setBomNsLike(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, null));
+			queryParam.setBomNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(envNsPath, CmsConstants.BOM, filter));
+			queryParam.setBomClassFilter(CmsConstants.BOM + "." + filter);
 			deployments = dpmtMapper.getDeploymentsByFilter(queryParam);
 		}
 		else {
@@ -904,7 +904,7 @@ public class CmsDpmtProcessor {
 	}
 
 	private List<TimelineDeployment> getDeployments4NsPathLike(TimelineQueryParam queryParam) {
-		queryParam.setDpmtNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getNsPath(), CmsConstants.BOM));
+		queryParam.setBomNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getEnvNs(), CmsConstants.BOM));
 		return dpmtMapper.getDeploymentsByNsPath(queryParam);
 	}
 
