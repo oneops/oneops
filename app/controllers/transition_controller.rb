@@ -72,38 +72,44 @@ class TransitionController < ApplicationController
 
   def pull
     environment_ids = params["ciIds"]
-    status = environment_ids.collect do |environment_id|
-      @environment = locate_environment(environment_id, @assembly) if environment_id
-      manifest_ns_path = environment_manifest_ns_path(@environment)
 
-      @release  = Cms::Release.latest(:nsPath => manifest_ns_path)
-      @manifest = @release && @release.releaseState == 'canceled' ? Cms::Release.latest(:nsPath => manifest_ns_path, :releaseState => 'closed') : @release
+    environments_to_pull = []
+    env_errors = []
 
-      design_pull_in_progress = @environment.ciState == 'manifest_locked'
-      open_manifest_release = @manifest && @manifest.releaseState == 'open'
-      design_latest = @manifest && @manifest.parentReleaseId == @catalog.releaseId
+    environment_ids.each do |environment_id|
+      environment = locate_environment(environment_id, @assembly)
+      manifest_ns_path = environment_manifest_ns_path(environment)
+      release  = Cms::Release.latest(:nsPath => manifest_ns_path)
+      manifest = release && release.releaseState == 'canceled' ? Cms::Release.latest(:nsPath => manifest_ns_path, :releaseState => 'closed') : release
+
+      design_pull_in_progress = environment.ciState == 'manifest_locked'
+      open_manifest_release = manifest && manifest.releaseState == 'open'
+      design_latest = manifest && manifest.parentReleaseId == @catalog.releaseId
 
       if open_manifest_release
-        {:environment => @environment.ciName, :status => 'Current release not committed', :success => false}
+        env_errors << {:environment => environment.ciName, :message => 'Open manifest release'}
       elsif design_pull_in_progress
-        {:environment => @environment.ciName, :status => 'Design pull in progress', :success => false}
+        env_errors << {:environment => environment.ciName, :message => 'Design pull already in progress'}
+      elsif design_latest
+        env_errors << {:environment => environment.ciName, :message => 'Design already latest'}
       else
-        release_id, error = Transistor.pull_design(@environment.ciId)
-        if error
-          {:environment => @environment.ciName, :status => error, :success => false}
-        else
-          {:environment => @environment.ciName, :status => 'pull initiated', :success => true}
-        end
+        environments_to_pull << environment
       end
     end
 
-    if status.all? {|s| s[:success]}
-      message = "Pull initiated"
-      flash[:notice] = message
-    else
-      message = status.select{|s| !s[:success]}.map{|s| "#{s[:environment]}: #{s[:status]}"}.join("<br/>").html_safe
-      flash[:error] = message
+    if environments_to_pull
+      success, error = Transistor.pull_design(environments_to_pull.map{|e| e.ciId}.join(','))
+      if error
+        environments_to_pull.each do |e|
+          env_errors << {:environment => e.ciName, :message => 'Error pulling'}
+        end
+      else
+        message = "Design pull initiated for: #{environments_to_pull.map{|e| e.ciName}.join(',')}"
+        flash[:notice] = message
+      end
     end
+    error_message = env_errors.map{|e| "#{e[:environment]}: #{e[:message]}"}.join("<br/>")
+    flash[:error] = error_message.html_safe if error_message
 
     show
   end
