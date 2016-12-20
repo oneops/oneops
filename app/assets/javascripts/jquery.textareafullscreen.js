@@ -74,7 +74,9 @@
             return;
         }
 
+        var rawUrl = this.$el.data('rawUrl');
         content = '<div class="tx-editor-wrapper"><div class="tx-editor"><div class="tx-toolbar">' +
+          (rawUrl ? '<a class="tx-btn" title="raw value" href="' + rawUrl + '" target="_blank" ><i class="fa fa-external-link"></i></a>': "") +
           '<a class="tx-btn" title="copy value to clipboard"><i class="fa fa-files-o"></i></a>' +
           '<a class="tx-btn" title="expand/collapse"><i class="fa fa-expand"></i></a>' +
           '</div></div></div>';
