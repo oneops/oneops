@@ -45,7 +45,8 @@ import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.oneops.cms.util.CmsError.*;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
 
 /**
  * The Class CmsUtil.
@@ -74,6 +75,9 @@ public class CmsUtil {
     private CmsCmProcessor cmProcessor;
     private CmsRfcUtil rfcUtil;
     private CmsCrypto cmsCrypto;
+
+
+    private int countOfErrorsToReport = Integer.valueOf(System.getProperty("cms.countOfErrorsToReport", "10"));
 
     public static String likefyNsPath(String queryParam) {
 		if (queryParam.endsWith("/")) {
@@ -1008,7 +1012,7 @@ public class CmsUtil {
         //create varContext once
         VariableContext vContext = new VariableContext(ci.getCiId(), ci.getCiName(), ci.getNsPath(), cloudVars, globalVars, localVars);
 
-        ExceptionConsolidator ec = CIValidationException.consolidator(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
+        ExceptionConsolidator ec = CIValidationException.consolidator(TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,getCountOfErrorsToReport());
         for (CmsCIAttribute manifestAttr : ci.getAttributes().values()) {
             ec.invokeChecked(() ->
             {
@@ -1534,4 +1538,12 @@ public class CmsUtil {
             varCi.getAttribute("value").setDfValue(value);
         }
     }
+    public int getCountOfErrorsToReport() {
+        return countOfErrorsToReport;
+    }
+
+    public void setCountOfErrorsToReport(int countOfErrorsToReport) {
+        this.countOfErrorsToReport = countOfErrorsToReport;
+    }
+
 }
