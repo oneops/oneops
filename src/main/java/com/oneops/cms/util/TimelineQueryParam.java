@@ -21,17 +21,17 @@ import java.util.List;
 
 public class TimelineQueryParam {
 	
-	private String envNs;
-	private String manifestNsLike;
-	private String bomNsLike;
+	private String nsPath;
+	private String releaseNsLike;
+	private String dpmtNsLike;
 	private String type;
 	
 	private String filter;
 	private String wildcardFilter;
-	private String manifestClassFilter;
-	private String bomClassFilter;
-	private String manifestNsLikeWithFilter;
-	private String bomNsLikeWithFilter;
+	private String releaseClassFilter;
+	private String releaseNsLikeWithFilter;
+	private String dpmtClassFilter;
+	private String dpmtNsLikeWithFilter;
 
 	private Long dpmtOffset;
 	private Long releaseOffset;
@@ -43,8 +43,10 @@ public class TimelineQueryParam {
 	private QueryOrder order;
 	private Integer limit;
 
-	public TimelineQueryParam(String envNs, String filter, String type, QueryOrder order, Long releaseOffset, Long dpmtOffset, Integer limit) {
-		this.envNs = envNs;
+	private boolean isDesignNamespace;
+
+	public TimelineQueryParam(String nsPath, String filter, String type, QueryOrder order, Long releaseOffset, Long dpmtOffset, Integer limit) {
+		this.nsPath = nsPath;
 		this.order = order;
 		this.type = type;
 		this.filter = filter;
@@ -53,12 +55,12 @@ public class TimelineQueryParam {
 		this.limit = limit;
 	}
 
-	public String getBomNsLike() {
-		return bomNsLike;
+	public String getDpmtNsLike() {
+		return dpmtNsLike;
 	}
 
-	public void setBomNsLike(String envNsLike) {
-		this.bomNsLike = envNsLike;
+	public void setDpmtNsLike(String envNsLike) {
+		this.dpmtNsLike = envNsLike;
 	}
 
 	public String getWildcardFilter() {
@@ -69,12 +71,12 @@ public class TimelineQueryParam {
 		this.wildcardFilter = ciFilter;
 	}
 
-	public String getManifestNsLike() {
-		return manifestNsLike;
+	public String getReleaseNsLike() {
+		return releaseNsLike;
 	}
 
-	public void setManifestNsLike(String manifestNsLike) {
-		this.manifestNsLike = manifestNsLike;
+	public void setReleaseNsLike(String releaseNsLike) {
+		this.releaseNsLike = releaseNsLike;
 	}
 
 	public Long getEndRelId() {
@@ -109,12 +111,12 @@ public class TimelineQueryParam {
 		this.limit = limit;
 	}
 
-	public String getEnvNs() {
-		return envNs;
+	public String getNsPath() {
+		return nsPath;
 	}
 
-	public void setEnvNs(String envNs) {
-		this.envNs = envNs;
+	public void setNsPath(String envNs) {
+		this.nsPath = envNs;
 	}
 
 	public String getFilter() {
@@ -133,20 +135,20 @@ public class TimelineQueryParam {
 		this.dpmtOffset = dpmtOffset;
 	}
 
-	public String getManifestClassFilter() {
-		return manifestClassFilter;
+	public String getReleaseClassFilter() {
+		return releaseClassFilter;
 	}
 
-	public void setManifestClassFilter(String manifestClassFilter) {
-		this.manifestClassFilter = manifestClassFilter;
+	public void setReleaseClassFilter(String releaseClassFilter) {
+		this.releaseClassFilter = releaseClassFilter;
 	}
 
-	public String getBomClassFilter() {
-		return bomClassFilter;
+	public String getDpmtClassFilter() {
+		return dpmtClassFilter;
 	}
 
-	public void setBomClassFilter(String bomClassFilter) {
-		this.bomClassFilter = bomClassFilter;
+	public void setDpmtClassFilter(String dpmtClassFilter) {
+		this.dpmtClassFilter = dpmtClassFilter;
 	}
 
 	public Long getReleaseOffset() {
@@ -165,20 +167,20 @@ public class TimelineQueryParam {
 		this.type = type;
 	}
 
-	public String getManifestNsLikeWithFilter() {
-		return manifestNsLikeWithFilter;
+	public String getReleaseNsLikeWithFilter() {
+		return releaseNsLikeWithFilter;
 	}
 
-	public void setManifestNsLikeWithFilter(String manifestNsFilter) {
-		this.manifestNsLikeWithFilter = manifestNsFilter;
+	public void setReleaseNsLikeWithFilter(String releaseNsLikeWithFilter) {
+		this.releaseNsLikeWithFilter = releaseNsLikeWithFilter;
 	}
 
-	public String getBomNsLikeWithFilter() {
-		return bomNsLikeWithFilter;
+	public String getDpmtNsLikeWithFilter() {
+		return dpmtNsLikeWithFilter;
 	}
 
-	public void setBomNsLikeWithFilter(String bomNsFilter) {
-		this.bomNsLikeWithFilter = bomNsFilter;
+	public void setDpmtNsLikeWithFilter(String dpmtNsLikeWithFilter) {
+		this.dpmtNsLikeWithFilter = dpmtNsLikeWithFilter;
 	}
 
 	public List<Long> getExcludeReleaseList() {
@@ -187,6 +189,14 @@ public class TimelineQueryParam {
 
 	public void setExcludeReleaseList(List<Long> exclusionReleaseList) {
 		this.excludeReleaseList = exclusionReleaseList;
+	}
+
+	public boolean isDesignNamespace() {
+		return isDesignNamespace;
+	}
+
+	public void setDesignNamespace(boolean isDesignNamespace) {
+		this.isDesignNamespace = isDesignNamespace;
 	}
 
 }
