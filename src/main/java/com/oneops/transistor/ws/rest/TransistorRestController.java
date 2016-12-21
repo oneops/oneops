@@ -925,6 +925,16 @@ public class TransistorRestController extends AbstractRestController {
 		return result;
 	}
 
+	@RequestMapping(value="platforms/{platId}/components", method = RequestMethod.POST)
+	@ResponseBody
+	public CmsRfcRelationSimple createComponent(
+			@PathVariable long platId,
+			@RequestBody CmsRfcRelationSimple relSimple,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) throws DJException {
+
+		return dManager.createComponent(platId, relSimple, userId, scope);
+	}
 
 	private Map<String,Long> toReleaseMap(long releaseId) {
 		return Collections.singletonMap(RELEASE_ID,releaseId);

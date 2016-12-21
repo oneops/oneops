@@ -45,6 +45,7 @@
 		<property name="mdProcessor" ref="cmsMdProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
+        <property name="cmsUtil" ref="cmsUtil" />
     </bean>
 
 	<bean id="designExpProcessor" class="com.oneops.transistor.service.DesignExportProcessor">
