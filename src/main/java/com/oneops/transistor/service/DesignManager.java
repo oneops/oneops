@@ -20,6 +20,7 @@ package com.oneops.transistor.service;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -46,5 +47,7 @@ public interface DesignManager {
     public long refreshPack(long platformId, String userId, String scope);
     public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope);
 	
+
+	EnvironmentExportSimple exportEnvironment(long envId, Long[] platformIds, String scope);
 }
 

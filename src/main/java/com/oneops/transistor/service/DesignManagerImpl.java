@@ -22,6 +22,7 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
+import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 
 import java.util.List;
 import java.util.Map;
@@ -124,6 +125,11 @@ public class DesignManagerImpl implements DesignManager {
 	@Override
 	public long commitReleaseForPlatform(long platId, String desc, String userId) {
 		return designRfcProcessor.commitReleaseForPlatform(platId, desc, userId);	}
+
+	@Override
+	public EnvironmentExportSimple exportEnvironment(long envId, Long[] platformIds, String scope) {
+		return designExpProcessor.exportEnvironment(envId, platformIds, scope);
+	}
 
 	@Override
 	public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope) {
