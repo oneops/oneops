@@ -91,7 +91,7 @@
                              ops_state_alerts[rfc.rfcId] = alert_info if alert_info.present?
                            end %>
                         <li class="manifest">
-                          <div class="component rounded shadow white" style="cursor:pointer" onclick="$j(this).next().toggle(300)">
+                          <div class="component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
                             <div class="info">
                               <% platform = @platforms[platform_id]
                                  active   = platform.ciAttributes.attributes.has_key?(:is_active) && platform.ciAttributes.is_active == 'false' ? false : true %>
@@ -149,10 +149,10 @@
                                     <span>
                                       <%= rfc_action_icon(rfc.rfcAction, 'fa-lg') %>&nbsp;&nbsp;
                                       <strong>
-                                        <% if (@deployment.deploymentState != 'complete' && rfc.rfcAction == 'add') || (@deployment.deploymentState == 'complete' && rfc.rfcAction == 'delete') %>
+                                        <% if (state != 'complete' && rfc.rfcAction == 'add') || (state == 'complete' && rfc.rfcAction == 'delete') %>
                                           <%= rfc.ciName %>
                                         <% else %>
-                                          <%= link_to(rfc.ciName, path_to_ci(rfc), :onclick => "if (!event.ctrlKey && !event.shiftKey && !event.metaKey) show_busy(' '); event.stopPropagation()") %>
+                                          <%= link_to(rfc.ciName, path_to_ci(rfc)) %>
                                         <% end %>
                                       </strong>
                                     </span>

@@ -411,12 +411,12 @@ module ApplicationHelper
   def timeline_list(timeline_collection, options = {}, &block)
     options[:toolbar] = nil if timeline_collection.blank? && options[:paginate].blank?
     options.reverse_merge!({:class   => 'list-timeline',
-                            :toolbar => {:list_name     => 'timeline_list',
-                                         :sort_by       => [%w(Created created)],
-                                         :filter_by     => %w(),
-                                         :quick_filters => [{:label => 'All', :value => '', :selected => true},
-                                                            {:label => 'Releases', :value => 'type=release'},
-                                                            {:label => 'Deployments', :value => 'type=deployment'}]}})
+                            :toolbar => (options[:toolbar] || {}).reverse_merge!({:list_name     => 'timeline_list',
+                                                                                  :sort_by       => [%w(Created created)],
+                                                                                  :filter_by     => %w(),
+                                                                                  :quick_filters => [{:label => 'All',         :value => '', :selected => true},
+                                                                                                     {:label => 'Releases',    :value => 'type=release'},
+                                                                                                     {:label => 'Deployments', :value => 'type=deployment'}]})})
     render(:partial => 'base/shared/list',
            :locals  => {:list_content => render_timeline_list_content(timeline_collection, options, &block), :options => options})
   end
@@ -1140,6 +1140,13 @@ module ApplicationHelper
         result << '&nbsp;'
       else
         result << %(<pre class="changed">#{json && attr_value.present? ? JSON.pretty_unparse(attr_value) : attr_value}</pre>)
+      end
+      if json && base_value.present?
+        begin
+          base_value = JSON.parse(attr_value)
+        rescue
+          json = false
+        end
       end
       result << %(<pre class="original hide">#{json && base_value.present? ? JSON.pretty_unparse(base_value) : base_value}</pre>)
       result << '</dd>'

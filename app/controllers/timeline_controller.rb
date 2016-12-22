@@ -9,7 +9,7 @@ class TimelineController < ApplicationController
 
       format.json do
         @timeline, error = fetch
-        render :json => render_json_ci_response(@timeline, @timeline, [error])
+        render_json_ci_response(@timeline, @timeline, error)
       end
     end
   end
@@ -24,7 +24,7 @@ class TimelineController < ApplicationController
         end
       end
 
-      format.json { render :json => render_json_ci_response(@timeline, @timeline, [error]) }
+      format.json { render_json_ci_response(@timeline, @timeline, [error]) }
     end
   end
 
@@ -68,10 +68,12 @@ class TimelineController < ApplicationController
     end
 
     search_params[:offset] = params[:offset]
-    timeline, error = Cms::Timeline.fetch(@environment ? environment_ns_path(@environment) : assembly_ns_path(@assembly), size, search_params)
+    timeline, error = Cms::Timeline.fetch(@environment ? environment_ns_path(@environment) : design_ns_path(@assembly), size, search_params)
     if timeline && request.format.json?
-      response.headers['oneops-list-offset']      = timeline.info[:offset]
-      response.headers['oneops-list-next-offset'] = timeline.info[:next_offset]
+      offset      = timeline.info[:offset]
+      next_offset = timeline.info[:next_offset]
+      response.headers['oneops-list-offset']      = offset.to_s if offset.present?
+      response.headers['oneops-list-next-offset'] = next_offset.to_s if next_offset.present?
     end
 
     return timeline, error

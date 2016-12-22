@@ -36,7 +36,7 @@
               <li><%= icon('comment') %> <%= @release.description %></li>
             <% end %>
             <li><%= icon('user') %> <%= state.capitalize %> by <%= highlight(@release.commitedBy) %></li>
-            <li><%= icon('th-list') %> <%= link_to(highlight('View', 'info'), '#releases') %> history of design
+            <li><%= icon('th-list') %> <%= link_to(highlight('View', 'info'), '#timeline') %> history of design
               releases
             </li>
           </ul>

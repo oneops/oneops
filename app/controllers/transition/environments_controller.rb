@@ -537,12 +537,12 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
 
     start_time = Time.now
     while @environment.ciState == 'manifest_locked' && (Time.now - start_time < Transistor.timeout)
-      sleep(3)
+      sleep(5)
       @environment.reload
     end
 
     if @environment.ciState == 'manifest_locked'
-      return false, 'Timed out pulling design, design pull is still in progress'
+      return false, 'Timed out pulling design, design pull is still in progress.'
     else
       return true
     end

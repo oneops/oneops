@@ -1985,6 +1985,7 @@ img.authicon {
   clear: both;
   width: 20px;
   z-index: 5;
+  margin-right: 3px;
 }
 
 .list-body .new {
@@ -2241,6 +2242,7 @@ img.authicon {
 .component {
   clear:         both;
   margin-bottom: 10px;
+  cursor: pointer;
 }
 
 .component-heading {
@@ -4517,7 +4519,7 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
   white-space: normal
 }
 
-.deployment-problems > div:not(:last-child) {
+.deployment-problems div:not(:last-child) {
   margin-bottom: 5px;
 }
 

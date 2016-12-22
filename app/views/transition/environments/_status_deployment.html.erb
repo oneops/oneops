@@ -81,7 +81,7 @@
       <li><%= icon('clock-o', ' ', 'fa-fw') %>Duration of last deployment was
         <strong><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</strong>
       </li>
-      <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#deployments') %> history of deployments</li>
+      <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#timeline/timeline_list/filter::type=deployment') %> history of deployments</li>
       <% unless @manifest && @manifest.releaseState == 'open' %>
         <li><%= icon('info-circle', ' ', 'fa-fw') %>You can 'Force deploy' last release from <strong><%= link_to('environment operations', assembly_operations_environment_path(@assembly, @environment)) %></strong></li>
       <% end %>

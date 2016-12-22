@@ -312,6 +312,13 @@ Display::Application.routes.draw do
           post 'commit',  :on => :member
           post 'discard', :on => :member
         end
+
+        resource :timeline, :controller => '/timeline', :only => [:show] do
+          get 'page', :on => :member
+
+          resources :releases, :only => [:show]
+          resources :deployments, :only => [:show]
+        end
       end
 
       # Transition.

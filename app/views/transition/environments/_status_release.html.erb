@@ -82,7 +82,7 @@
         <% if @release.description.present? %>
           <li><%= icon('comment') %><%= @release.description %></li>
         <% end %>
-        <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#timeline') %>
+        <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), '#timeline/timeline_list/filter::type=release') %>
           history of environment releases
         </li>
       </ul>
