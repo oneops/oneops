@@ -103,6 +103,20 @@ class Organization::UsersController < ApplicationController
     index
   end
 
+  def remove
+    users = current_user.organization.users.find(params[:ids]).reject{|user| user.id == current_user.id}
+    if current_user.organization.teams.each { |team| team.users.delete(users) }
+      flash[:notice] = "Successfully removed users"
+    else
+      flash[:error] = "Error removing users"
+    end
+    index
+  end
+
+  def confirm_remove
+    @users = current_user.organization.users.find(params[:user_ids]).reject{|user| user.id == current_user.id}
+  end
+
   private
 
   def check_reset_org

@@ -7,7 +7,32 @@ class LookupController < ApplicationController
     rescue
     end
 
-    authorize_and_respond(ci)
+    attribute_name_param = params[:attribute_name]
+    if attribute_name_param.present?
+      if authorize(ci.nsPath)
+        attribute = ci.ciAttributes.attributes[attribute_name_param]
+        md_attribute = ci.meta.md_attribute(attribute_name_param)
+        if md_attribute.present?
+          data_type = md_attribute.dataType
+          if (data_type == 'hash' || data_type == 'array' || data_type == 'struct')
+            begin
+              render :json => JSON.parse(attribute)
+            rescue
+              render :text => attribute
+            end
+          else
+            render :text => attribute
+          end
+        else
+          render :nothing => true, :status => :not_found
+        end
+      else
+        render :nothing => true, :status => :unauthorized
+      end
+    else
+      authorize_and_respond(ci)
+    end
+
   end
 
   def release
