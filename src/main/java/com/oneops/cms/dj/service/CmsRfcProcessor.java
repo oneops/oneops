@@ -1858,7 +1858,8 @@ public class CmsRfcProcessor {
 				designSuffix = "/_design/";
 			}
 			String nsPathTrimmed = nsPath.substring(0, (nsPath.length() - designSuffix.length()));
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithoutEndingSlash(nsPathTrimmed));
+			queryParam.setReleaseNsLike(null);
+			queryParam.setReleaseNs(nsPathTrimmed);
 		}
 		else {
 			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(nsPath, CmsConstants.MANIFEST));
