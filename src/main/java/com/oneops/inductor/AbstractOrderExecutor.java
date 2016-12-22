@@ -620,16 +620,16 @@ public abstract class AbstractOrderExecutor {
         final T env = wo.getPayLoadEntryAt(ENVIRONMENT, 0);
         String cloudName = wo.getCloud().getCiName();
         CmsCISimple cloudService = new CmsCISimple();
-        if (wo.getServices().containsKey("dns"))
+        if (wo.getServices() != null && wo.getServices().containsKey("dns"))
             cloudService = wo.getServices().get("dns").get(cloudName);
-        CmsCISimple envSimple ;
-        if( env instanceof CmsCISimple ){
-            envSimple =CmsCISimple.class.cast(env);
-        }else {
+        CmsCISimple envSimple;
+        if (env instanceof CmsCISimple) {
+            envSimple = CmsCISimple.class.cast(env);
+        } else {
             envSimple = new CmsCISimple();
             mergeRfcToResult(CmsRfcCISimple.class.cast(env), envSimple);
         }
-        return getCustomerDomain(cloudService,envSimple);
+        return getCustomerDomain(cloudService, envSimple);
     }
 
     /**
