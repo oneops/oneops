@@ -19,7 +19,7 @@
       <tr>
         <td><%= link_to_function('cancel', 'hide_modal()', :class => 'btn red-inverse') %></td>
         <td>
-          <% busy_options = {:url    => pull_assembly_transition_environment_path(@assembly, @environment),
+          <% busy_options = {:url    => pull_assembly_transition_environment_path(@assembly, @environment, :async => true),
                              :method => :post,
                              :with   => 'platform_availability_pull_params()',
                              :class  => 'btn green-inverse'} %>

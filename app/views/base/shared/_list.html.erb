@@ -139,18 +139,8 @@
                       $j(".list-body").each(function (i, l) {
                         var list = $j(l);
                         var hash_param_name = list.attr('data-hash-param-name');
-                        var listItemId = getHashParam(hash_param_name);
-                        if (listItemId) {
-                          var current = list.find("#item_" + listItemId);
-                          if (current[0]) {
-                            if (!current.hasClass(CURRENT_ITEM_CLASS)) {
-                              current.find("div.target a").click();
-                            }
-                          }
-                          else {
-                            list.find("li." + CURRENT_ITEM_CLASS).removeClass(CURRENT_ITEM_CLASS);
-                          }
-                        }
+                        var hash_param_value = getHashParam(hash_param_name);
+                        list_process_hash_param(list.closest(".list"), hash_param_value);
                       });
                     });
 
@@ -235,7 +225,31 @@
       listDiv.find(".refresh i").removeClass("fa-spin");
       var listItemId = getHashParam(listDiv.find('.list-body').attr('data-hash-param-name'));
       if (listItemId) {
-        listDiv.find("#item_" + listItemId + ":not(.current) .target a").click();
+        listDiv.find("#item_" + listItemId.gsub(/\W/, '') + ":not(.current) .target a").click();
+      }
+    };
+
+    window.list_process_hash_param = function(list, hash_param_value) {
+      if (hash_param_value) {
+        var split = hash_param_value.split('::');
+        if (split.length == 2 && split[0].toLowerCase() == 'filter' && split[1]) {
+          set_list_filter(list, split[1]);
+        }
+        else {
+          console.log(hash_param_value);
+          var current = list.find("#item_" + hash_param_value);
+          if (current[0]) {
+            if (!current.hasClass(CURRENT_ITEM_CLASS)) {
+              current.find("div.target a").click();
+            }
+          }
+          else {
+            list.find("li." + CURRENT_ITEM_CLASS).removeClass(CURRENT_ITEM_CLASS);
+            if (list.hasClass('list-paginated')) {
+              set_list_filter(list, hash_param_value);
+            }
+          }
+        }
       }
     }
   }
@@ -247,7 +261,7 @@
 
     <% if pagination %>
       if (listItemId) {
-        set_list_filter(listDiv, listItemId)
+        list_process_hash_param(listDiv, listItemId);
       }
 
       listDiv.bind('sortChanged', function (e) {

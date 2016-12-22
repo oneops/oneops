@@ -15,7 +15,12 @@
   <% if has_design?(@assembly.ciId) %>
     <% builder.menu do |ci| %>
       <%= link_to icon('files-o', ' Copy'), new_clone_assembly_design_platform_path(@assembly, ci), :remote => true %>
-      <%= link_to icon('trash',' Delete'), assembly_design_platform_path(@assembly, ci), :method => :delete, :data => { :confirm => 'Confirm delete?' } unless ci.rfcAction == 'delete' %>
+      <%= link_confirm_busy(icon('trash', ' Delete'),
+                            :url     => assembly_design_platform_path(@assembly, ci),
+                            :method  => :delete,
+                            :remote  => false,
+                            :confirm => 'Delete platform?',
+                            :body    => "Platform <b>#{ci.ciName}</b> will be marked for deletion and will be removed after design release is committed.") unless ci.rfcAction == 'delete' %>
     <% end %>
   <% end %>
 <% end %>

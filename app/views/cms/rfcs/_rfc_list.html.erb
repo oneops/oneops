@@ -26,7 +26,7 @@
               <% component_type = component_class.split('.').last %>
               <% class_rfcs.group_by {|rfc| rfc.ciName.split('-')[0..-3].join('-')}.sort.each do |component, component_rfcs| %>
                 <% component_rfcs.group_by { |rfc| rfc.ciName.split('-')[-2].to_i }.sort.each do |cloud_id, cloud_rfcs| %>
-                  <ul class="inline component rounded shadow white" onclick="$j(this).next().toggle(300)">
+                  <ul class="inline component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
                     <li>
                       <% platform = @platforms[platform_name] %>
                       <%= image_tag(platform_image_url(platform), :alt => platform_name) %>
@@ -53,10 +53,10 @@
                               <span>
                                 <%= rfc_action_icon(rfc_ci.rfcAction, 'fa-lg') %>&nbsp;&nbsp;
                                 <strong>
-                                  <% if (@deployment.deploymentState != 'complete' && rfc_ci.rfcAction == 'add') || (@deployment.deploymentState == 'complete' && rfc_ci.rfcAction == 'delete') %>
+                                  <% if (deployment_record_state != 'complete' && rfc_ci.rfcAction == 'add') || (deployment_record_state == 'complete' && rfc_ci.rfcAction == 'delete') %>
                                     <%= rfc_ci.ciName %>
                                   <% else %>
-                                    <%= link_to(rfc_ci.ciName, path_to_ci(rfc_ci), :onclick => "if (!event.ctrlKey && !event.shiftKey && !event.metaKey) show_busy(' '); event.stopPropagation()") %>
+                                    <%= link_to(rfc_ci.ciName, path_to_ci(rfc_ci)) %>
                                   <% end %>
                                 </strong>
                               </span>

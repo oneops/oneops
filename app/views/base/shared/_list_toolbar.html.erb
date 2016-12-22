@@ -144,26 +144,38 @@
   if (!window.filter_changed) {
     window.filter_changed = function(el, clear) {
       var listDiv = $j(el).closest(".list");
-      var filter_field = listDiv.find(".list-toolbar-filter");
+      var filterField = listDiv.find(".list-toolbar-filter");
 
       if (clear) {
-        filter_field.val("");
+        filterField.val("");
       }
 
-      var filterValue = filter_field.val();
+      var filterValue = filterField.val();
       if (localStorage) {
         var prefix = LOCAL_STORAGE_KEY_PREFIX + el.up(".list-toolbar").getAttribute("list-name") + "_list_";
         localStorage.setItem(prefix + "filter", filterValue);
       }
 
-      if (!listDiv.hasClass('list-paginated')) {
-        filter_list(listDiv.find(".list-body ul"), listDiv.find(".list-toolbar").attr("filters").split(","), filterValue);
-      }
-      update_filter_marker(listDiv);
+      apply_list_filter(list, filterValue)
+    };
 
-      listDiv.find(".quick-filters li").toArray().forEach(function(e) {
+    window.set_list_filter = function(list, value) {
+      if (list) {
+        list = $j(list);
+        list.find(".list-toolbar-filter").val(value);
+        apply_list_filter(list, value);
+      }
+    };
+
+    window.apply_list_filter = function(list, value) {
+      if (!list.hasClass('list-paginated')) {
+        filter_list(list.find(".list-body ul"), list.find(".list-toolbar").attr("filters").split(","), value);
+      }
+      update_filter_marker(list);
+
+      list.find(".quick-filters li").toArray().forEach(function(e) {
         var li = $j(e);
-        if (filterValue == li.attr('data-filter-value')) {
+        if (value == li.attr('data-filter-value')) {
           li.addClass('active');
         }
         else {
@@ -171,20 +183,7 @@
         }
       });
 
-      listDiv.trigger('filterChanged');
-    };
-
-    window.set_list_filter = function(list, value) {
-      if (list) {
-        list = $j(list);
-        list.find(".list-toolbar-filter").val(value);
-        if (!list.hasClass('list-paginated')) {
-          filter_list(list.find(".list-body ul")[0], list.find(".list-toolbar").attr("filters").split(","), value);
-        }
-        update_filter_marker(list);
-
-        list.trigger('filterChanged');
-      }
+      list.trigger('filterChanged');
     };
 
     window.get_list_filter = function(list) {

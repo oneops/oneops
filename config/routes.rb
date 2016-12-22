@@ -109,7 +109,10 @@ Display::Application.routes.draw do
   resources :authentications, :only => [:create, :destroy]
 
   resources :clouds, :controller => 'cloud/clouds', :only => :none do
-    get :public_services,  :on => :collection
+    collection do
+      get :services
+      get :offerings
+    end
   end
 
   scope '/:org_name' do
@@ -314,6 +317,13 @@ Display::Application.routes.draw do
           get  'latest',  :on => :collection
           post 'commit',  :on => :member
           post 'discard', :on => :member
+        end
+
+        resource :timeline, :controller => '/timeline', :only => [:show] do
+          get 'page', :on => :member
+
+          resources :releases, :only => [:show]
+          resources :deployments, :only => [:show]
         end
       end
 

@@ -234,6 +234,10 @@ class ApplicationController < ActionController::Base
     "#{organization_ns_path}/#{assembly_ci.ciName}"
   end
 
+  def design_ns_path(assmebly_ci)
+    "#{organization_ns_path}/#{assmebly_ci.ciName}/_design"
+  end
+
   def environment_ns_path(environment_ci)
     "#{environment_ci.nsPath}/#{environment_ci.ciName}"
   end
@@ -1028,15 +1032,15 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def path_to_ns!(ns_path)
+  def path_to_ns!(ns_path, dto_area = nil)
     begin
-      path_to_ns(ns_path)
+      path_to_ns(ns_path, dto_area)
     rescue Exception => e
       return nil
     end
   end
 
-  def path_to_ns(ns_path)
+  def path_to_ns(ns_path, dto_area = nil)
     if ns_path.include?('/_clouds')
       root, org, _clouds, cloud, zone = ns_path.split('/')
       if zone.present?
@@ -1096,7 +1100,7 @@ class ApplicationController < ActionController::Base
     else
       root, org, assembly, env = ns_path.split('/')
       if env.present?
-        if ns_path.end_with?('/bom')
+        if ns_path.end_with?('/bom') || dto_area == 'operations'
           return assembly_operations_environment_path(:org_name => org, :assembly_id => assembly, :id => env)
         else
           return assembly_transition_environment_path(:org_name => org, :assembly_id => assembly, :id => env)
@@ -1116,7 +1120,7 @@ class ApplicationController < ActionController::Base
     if env.present?
       assembly_transition_environment_path(:org_name => org, :assembly_id => assembly, :id => env, :anchor => "timeline/timeline_list/release_#{release.releaseId}")
     else
-      assembly_design_path(:org_name => org, :assembly_id => assembly, :anchor => "releases/release_list/#{release.releaseId}")
+      assembly_design_path(:org_name => org, :assembly_id => assembly, :anchor => "timeline/timeline_list/release_#{release.releaseId}")
     end
   end
 

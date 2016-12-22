@@ -1,8 +1,23 @@
 <% if @rfc %>
+  <% ns_split = @rfc.nsPath.split('/')
+     env_ns = ns_split[0..-4].join('/')
+     deployment_id = params[:id] %>
   <h4>
-    <%= @rfc.ciName %> <br/>
-    <%= @rfc.ciClassName %> <br/>
-    <%= @rfc.nsPath %>
+    <span style="float: right">
+      Deployment
+      <%= link_to(deployment_id, redirect_deployment_path(deployment_id)) %>
+    </span>
+    <%= image_tag(ci_class_image_url(@rfc.ciClassName)) %>
+    <%= @rfc.ciClassName.split('.', 2).last %>
+    <%= link_to(@rfc.ciName, path_to_ci(@rfc)) %>
+  </h4>
+  <h4>
+    <%= image_tag(ci_class_image_url('manifest.Platform')) %> Platform
+    <%= link_to("#{ns_split[-2]} ver.#{ns_split[-1]}", path_to_ns(@rfc.nsPath.sub('/bom/', '/manifest/'))) %>
+  </h4>
+  <h4>
+    <%= image_tag(ci_class_image_url('manifest.Environment')) %> Environment
+    <%= link_to(env_ns, path_to_ns(env_ns)) %>
   </h4>
 <% end %>
 <%= render 'cms/log_data', :log_data => @log_data %>

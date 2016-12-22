@@ -3,7 +3,7 @@
 </div>
 <script>
   setTimeout(function () {
-               $j.get("<%= pull_status_assembly_transition_environment_path(@assembly, @environment, :async => true) %>");
+               $j.get("<%= pull_status_assembly_transition_environment_path(@assembly, @environment) %>");
              },
-             15000);
+             10000);
 </script>
