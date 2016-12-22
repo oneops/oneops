@@ -192,8 +192,9 @@ execute "rm -f /opt/nagios/libexec/plugins"
 execute "cp /home/oneops/shared/cookbooks/monitor/files/default/* /opt/nagios/libexec/"
 execute "chmod +x /opt/nagios/libexec/*"
 
-template "/etc/logrotate.d/nagios" do
-  source "logrotate.erb"
+template '/etc/logrotate.d/nagios' do
+  cookbook 'monitor'
+  source 'logrotate.erb'
   owner root_user
   group root_group
   mode 0644
