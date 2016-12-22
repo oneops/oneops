@@ -74,7 +74,7 @@ class TransitionController < ApplicationController
     environment_ids = params["ciIds"]
 
     environments_to_pull = []
-    env_errors = []
+    env_messages = []
 
     environment_ids.each do |environment_id|
       environment = locate_environment(environment_id, @assembly)
@@ -86,12 +86,12 @@ class TransitionController < ApplicationController
       open_manifest_release = manifest && manifest.releaseState == 'open'
       design_latest = manifest && manifest.parentReleaseId == @catalog.releaseId
 
-      if open_manifest_release
-        env_errors << {:environment => environment.ciName, :message => 'Open manifest release'}
-      elsif design_pull_in_progress
-        env_errors << {:environment => environment.ciName, :message => 'Design pull already in progress'}
+      if design_pull_in_progress
+        env_messages << {:environment => environment.ciName, :message => 'Design pull already in progress', :status => :warning}
+      elsif open_manifest_release
+        env_messages << {:environment => environment.ciName, :message => 'Open manifest release', :status => :warning}
       elsif design_latest
-        env_errors << {:environment => environment.ciName, :message => 'Design already latest'}
+        env_messages << {:environment => environment.ciName, :message => 'Design already latest', :status => :warning}
       else
         environments_to_pull << environment
       end
@@ -99,17 +99,24 @@ class TransitionController < ApplicationController
 
     if environments_to_pull
       success, error = Transistor.pull_design(environments_to_pull.map{|e| e.ciId}.join(','))
-      if error
-        environments_to_pull.each do |e|
-          env_errors << {:environment => e.ciName, :message => 'Error pulling'}
+      environments_to_pull.each do |e|
+        if error
+          env_messages << {:environment => e.ciName, :message => 'Error pulling', :status => :error}
+        else
+          env_messages << {:environment => e.ciName, :message => 'Design pull initiated', :status => :success}
         end
-      else
-        message = "Design pull initiated for: #{environments_to_pull.map{|e| e.ciName}.join(',')}"
-        flash[:notice] = message
       end
     end
-    error_message = env_errors.map{|e| "#{e[:environment]}: #{e[:message]}"}.join("<br/>")
-    flash[:error] = error_message.html_safe if error_message
+    message = env_messages.map{|e| "#{e[:environment]}: #{e[:message]}"}.join("<br/>").html_safe
+    if env_messages.any? {|message| message[:status] == :error}
+      flash[:error] = message
+    elsif env_messages.any? {|message| message[:status] == :warning}
+      flash[:alert] = message
+    elsif env_messages.all? {|message| message[:status] == :success}
+      flash[:notice] = message
+    else
+      flash[:error] = message
+    end
 
     show
   end
