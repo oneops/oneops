@@ -18,7 +18,9 @@ class TimelineController < ApplicationController
     @timeline, error = fetch
     respond_to do |format|
       format.js do
-        unless @timeline
+        if @timeline
+          @release = Cms::Release.latest(:nsPath => @environment ? environment_manifest_ns_path(@environment) : assembly_ns_path(@assembly))
+        else
           flash[:error] = 'Faled to load timeline.'
           render :js => ''
         end

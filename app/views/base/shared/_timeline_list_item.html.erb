@@ -56,7 +56,7 @@
         <% else %>
           <span class="topname"><%= item.deploymentId %></span>
   			<% end %>
-        <span class="pull-right"><%= is_release ? release_state_icon(item.releaseState, 'fa-fw') : deployment_state_icon(item.deploymentState, 'fa-fw')%></span>
+        <span><%= is_release ? release_state_icon(item.releaseState, 'fa-fw') : deployment_state_icon(item.deploymentState, 'fa-fw')%></span>
         <br/>
         <span class="topdesc"><%= time_ago_in_words(item.created_timestamp) %></span>
 			<% end %>

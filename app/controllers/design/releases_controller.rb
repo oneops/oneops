@@ -1,4 +1,4 @@
-class Design::ReleasesController < ApplicationController
+class Design::ReleasesController < Base::ReleasesController
   before_filter :find_assembly
 
   def index
@@ -13,8 +13,12 @@ class Design::ReleasesController < ApplicationController
                      :sort         => sort,
                      :_silent      => []}
     search_params[:query] = filter if filter.present?
-    # @releases = Cms::Release.all(:params => {:nsPath => assembly_ns_path(@assembly)})
-    @releases = Cms::Release.search(search_params)
+    source = params[:source]
+    if source == 'cms' || source == 'simple'
+      @releases = Cms::Release.all(:params => {:nsPath => assembly_ns_path(@assembly)})
+    else
+      @releases = Cms::Release.search(search_params)
+    end
     respond_to do |format|
       format.js   { render :action => :index }
       format.json do

@@ -1,2 +1,17 @@
-<%= render_timeline_list_content(@timeline) do |builder, deployment| %>
+<% open_release = @release && @release.releaseState == 'open'
+   restore_label = icon('backward', 'Restore release') %>
+<%= render_timeline_list_content(@timeline) do |builder, item| %>
+  <% if false %>
+  <%# if item.is_a?(Cms::Release) && item.releaseState == 'closed' && @release.releaseId != item.releaseId %>
+    <% builder.menu do %>
+      <% if open_release %>
+        <li class="disabled"><%= link_to_function(restore_label, '') %></li>
+      <% else %>
+        <%= link_busy(restore_label,
+                      :url    => @environment ? restore_assembly_transition_environment_release_path(@assembly, @environment, item) : restore_assembly_design_release_path(@assembly, item),
+                      :method => :post,
+                      :remote => true) %>
+      <% end %>
+    <% end %>
+  <% end %>
 <% end %>

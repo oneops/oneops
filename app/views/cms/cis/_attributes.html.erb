@@ -49,7 +49,7 @@
                            :builder         => c,
                            :id => "#{a.attributeName}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>
               <% when 'text' %>
-                <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern, :'data-raw-url' => lookup_ci_attribute_path(ci.ciId, a.attributeName) %>
+                <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern, :'data-raw-url' => ci.persisted? ? lookup_ci_attribute_path(ci.ciId, a.attributeName) : '' %>
               <% when 'struct' %>
                 <%= render "cms/cis/#{ci.ciClassName.split('.').last.downcase}/#{a.attributeName.downcase}",
                                :attribute_name  => a.attributeName,

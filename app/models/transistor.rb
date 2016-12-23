@@ -225,6 +225,14 @@ class Transistor < ActiveResource::Base
     return result
   end
 
+  def self.restore_release(snapshot, release_id)
+    begin
+      return JSON.parse(post('snapshot/import', {:release => release_id}, snapshot.to_json).body)['result'] == 'success'
+    rescue Exception => e
+      return false, handle_exception(e, "Failed to restore release #{release_id} for '#{snapshot['namespace'] if snapshot}':")
+    end
+  end
+
   def self.custom_method_collection_url(method_name, options = {})
     super.gsub(/.#{self.format.extension}/, '')
   end
