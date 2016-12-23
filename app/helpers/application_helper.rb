@@ -511,9 +511,9 @@ module ApplicationHelper
   end
 
   def list_paginate_update(list_id, data, template)
-    info    = data.info
+    info        = data ? data.info : {}
     next_offset = info[:next_offset]
-    content = escape_javascript(render(template))
+    content     = escape_javascript(render(template))
     raw("list_paginate_update($j('##{list_id}'), \"#{content}\", #{info[:total] || -1}, #{data.size}, #{info[:offset] || 0}#{",\"#{next_offset}\"" if next_offset})")
   end
 
@@ -996,7 +996,7 @@ module ApplicationHelper
   def release_state_icon(state, additional_classes = '')
     case state
       when 'closed'
-        icon = 'check'
+        icon = 'check-circle'
         text = 'text-success'
       when 'open'
         icon = 'circle-o'
@@ -1019,7 +1019,7 @@ module ApplicationHelper
         icon = 'clock-o'
         text = 'muted'
       when 'complete'
-        icon = 'check'
+        icon = 'check-circle'
         text = 'text-success'
       when 'failed'
         icon = 'remove'

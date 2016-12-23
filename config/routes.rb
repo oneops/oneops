@@ -317,6 +317,7 @@ Display::Application.routes.draw do
           get  'latest',  :on => :collection
           post 'commit',  :on => :member
           post 'discard', :on => :member
+          post 'restore', :on => :member
         end
 
         resource :timeline, :controller => '/timeline', :only => [:show] do
@@ -401,6 +402,7 @@ Display::Application.routes.draw do
             get  'latest',  :on => :collection
             get  'bom',     :on => :collection
             post 'discard', :on => :member
+            post 'restore', :on => :member
           end
 
           resources :deployments, :only => [:new, :create, :edit, :update, :show, :index] do

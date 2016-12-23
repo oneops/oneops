@@ -1,4 +1,4 @@
-class Transition::ReleasesController < ApplicationController
+class Transition::ReleasesController < Base::ReleasesController
   layout nil
   before_filter :find_assembly_and_environment
 
