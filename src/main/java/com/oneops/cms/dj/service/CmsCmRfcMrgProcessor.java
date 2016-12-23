@@ -1363,6 +1363,7 @@ public class CmsCmRfcMrgProcessor {
             if (existingRfc != null) {
                 rfcRelation.setRfcId(existingRfc.getRfcId());
                 rfcRelation.setCiRelationId(existingRfc.getCiRelationId());
+                rfcRelation.setReleaseId(existingRfc.getReleaseId());
             }
         }
 
