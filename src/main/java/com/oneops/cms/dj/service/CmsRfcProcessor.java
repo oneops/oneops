@@ -1492,7 +1492,8 @@ public class CmsRfcProcessor {
 			logger.error(errorMsg);
 			throw new DJException(CmsError.DJ_RELATION_RFC_DOESNT_EXIST_ERROR, errorMsg);
 		}
-
+		
+		relation.setReleaseId(existingRelation.getReleaseId());
 		relation.setRelationName(existingRelation.getRelationName());
 		
 		CIValidationResult validation = djValidator.validateRfcRelationAttrs(relation);
