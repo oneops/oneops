@@ -139,7 +139,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     private ArrayList<String> getRunList(CmsWorkOrderSimpleBase ao, String appName, String action) {
         ArrayList<String> runList = new ArrayList<>();
         runList.add(getRunListEntry(appName,action));
-        if (shouldAddAttachment(ao)) {
+        if (!ONDEMAND.equals(action) && shouldAddAttachment(ao)) {
             // only run attachments on remote calls
             runList.add(0,getRunListEntry("attachment","before") );
             runList.add(getRunListEntry("attachment","after"));
