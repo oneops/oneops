@@ -52,11 +52,13 @@ import static com.oneops.inductor.InductorConstants.*;
 
 public abstract class AbstractOrderExecutor {
 
+    public static final String ONDEMAND = "ondemand";
     private static final Logger logger = Logger.getLogger(AbstractOrderExecutor.class);
 
     protected static final String RUN_LIST_SEPARATOR = "::";
     protected static final String RUN_LIST_PREFIX = "recipe[";
     protected static final String RUN_LIST_SUFFIX = "]";
+    public static final String USER_CUSTOM_ATTACHMENT = "user-custom-attachment";
     final protected Gson gson = new Gson();
     final protected Gson gsonPretty = new GsonBuilder().setPrettyPrinting().create();
     protected int retryCount = 3;
@@ -796,8 +798,8 @@ public abstract class AbstractOrderExecutor {
 
     protected String getAction(CmsWorkOrderSimpleBase ao) {
         String action = ao.getAction();
-        if (action.equalsIgnoreCase("user-custom-attachment")) {
-            action = "attachment";
+        if (USER_CUSTOM_ATTACHMENT.equalsIgnoreCase(action)) {
+            action = ONDEMAND;
         }
         return action;
     }
