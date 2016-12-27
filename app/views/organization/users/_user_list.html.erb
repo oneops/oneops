@@ -4,11 +4,11 @@
   <%= list(@users,
            :new_link => (is_admin? ? link_to(icon('plus', 'Add User...'), new_organization_user_path, :remote => true) : nil),
            :menu     => [{:id => 'remove_user', :label => icon('trash', 'Remove', 'fa-fw'), :function => 'confirm_remove', :param_name => 'userIds'}],
-           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Last Sign In', 'last_sign_in_at_for_current_org'], ['Sign In Count', 'sign_in_count']],
+           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Last Sign-In for Org', 'last_org_sign_in'], ['Last Sign-In for OneOps (Global)', 'last_oneops_sign_in'] ],
                         :filter_by => %w(email team)}) do |builder, user| %>
     <% builder.itemid user.id %>
     <% teams = @user_teams[user.id] || [] %>
-    <% builder.attributes raw(%(username="#{user.username}" email="#{user.email}" created="#{user.created_at}" sign_in_time="#{user.current_sign_in_at}" sign_in_count="#{user.sign_in_count.to_s.rjust(7, '0')}" team="#{teams.join(', ')}")) %>
+    <% builder.attributes raw(%(username="#{user.username}" email="#{user.email}" created="#{user.created_at}" last_org_sign_in="#{user.last_sign_in_at_for_current_org} || 0" last_oneops_sign_in="#{user.current_sign_in_at}" team="#{teams.join(', ')}")) %>
     <% builder.target link_to('', edit_organization_user_path(user), :remote => true) if is_admin? %>
     <% builder.top do %>
     	<span class="topname"><%= user.username %></span>
@@ -19,9 +19,17 @@
     	<% if user.confirmation_token? %>
     		confirmation email sent <%= time_ago_in_words(user.confirmation_sent_at) %>
     	<% end %>
+    	Last org sign in:
     	<% if user.last_sign_in_at_for_current_org %>
-    		sign in <%= time_ago_in_words(user.last_sign_in_at_for_current_org) %> -
-    		sign in count <strong><%= user.sign_in_count %></strong>
+    		<%= time_ago_in_words(user.last_sign_in_at_for_current_org) %> |
+    	<% else %>
+    		"N/A" |
+    	<% end %>
+    	Last OneOps sign in:
+    	<% if user.current_sign_in_at %>
+    		<%= time_ago_in_words(user.current_sign_in_at) %>
+    	<% else %>
+    		"N/A"
     	<% end %>
       <% if teams.present? %>
         <br><%= teams %>
