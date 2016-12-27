@@ -166,7 +166,11 @@ Display::Application.routes.draw do
     end
 
     resources :clouds, :controller => 'cloud/clouds' do
-      get :locations, :on => :collection
+      collection do
+        get :locations
+        get :services
+        get :offerings
+      end
 
       member do
         get :operations
