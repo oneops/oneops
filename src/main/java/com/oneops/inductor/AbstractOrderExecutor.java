@@ -623,6 +623,8 @@ public abstract class AbstractOrderExecutor {
         if (wo.getServices() != null && wo.getServices().containsKey("dns"))
             cloudService = wo.getServices().get("dns").get(cloudName);
         CmsCISimple envSimple;
+        //cloud actions
+        if(env ==null)  return  getCustomerDomain(cloudService, null);
         if (env instanceof CmsCISimple) {
             envSimple = CmsCISimple.class.cast(env);
         } else {
