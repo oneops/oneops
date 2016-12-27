@@ -93,10 +93,6 @@ class Cloud::CloudsController < ApplicationController
     end
   end
 
-  def locations
-    render :json => load_available_clouds.inject({}) { |m, c| m[c.ciName] = "#{c.nsPath}/#{c.ciName}"; m }
-  end
-
   def operations
     @environments = Cms::Relation.all(:params => {:ciId              => @cloud.ciId,
                                                   :direction         => 'to',
@@ -166,13 +162,20 @@ class Cloud::CloudsController < ApplicationController
     end
   end
 
+  def locations
+    render :json => load_available_clouds.to_map_with_value {|c| [c.ciName, "#{c.nsPath}/#{c.ciName}"]}
+  end
+
   def services
-    services = Cms::Relation.all(:params => {:nsPath            => params[:ns_path].presence || '/public',
+    services_ns_path, provides_ns_path = deduce_ns_path
+    return if services_ns_path.blank?
+
+    services = Cms::Relation.all(:params => {:nsPath            => provides_ns_path,
                                              :relationShortName => 'Provides',
-                                             :fromClassName     => 'mgmt.Cloud',
                                              :includeToCi       => true,
                                              :recursive         => true}).inject({}) do |m, r|
-      (m[r.relationAttributes.service] ||= []) << r.toCi
+      service = r.toCi
+      (m[r.relationAttributes.service] ||= []) << service if r.toCi.nsPath.start_with?(services_ns_path)
       m
     end
 
@@ -180,18 +183,19 @@ class Cloud::CloudsController < ApplicationController
   end
 
   def offerings
-    ns_path   = params[:ns_path].presence || '/public'
-    services  = Cms::Relation.all(:params => {:nsPath            => ns_path,
+    ns_path, provides_ns_path = deduce_ns_path
+    return if ns_path.blank?
+
+    services  = Cms::Relation.all(:params => {:nsPath            => provides_ns_path,
                                               :relationShortName => 'Provides',
-                                              :fromClassName     => 'mgmt.Cloud',
                                               :includeToCi       => true,
                                               :recursive         => true}).inject({}) do |h, r|
       h[r.toCiId] = r.relationAttributes.service
       h
     end
+
     offerings = Cms::Relation.all(:params => {:nsPath            => ns_path,
                                               :relationShortName => 'Offers',
-                                              :toClassName       => 'mgmt.cloud.Offering',
                                               :includeToCi       => true,
                                               :recursive         => true}).inject({}) do |h, r|
       (h[services[r.fromCiId]] ||= []) << r.toCi
@@ -247,5 +251,22 @@ class Cloud::CloudsController < ApplicationController
     end
 
     return @cloud.errors.empty?
+  end
+
+  def deduce_ns_path
+    org_name = params[:org_name]
+    ns_path  = params[:ns_path]
+    if ns_path.blank?
+      ns_path = org_name.blank? ? '/public' : clouds_ns_path(org_name)
+      provides_ns_path = ns_path
+    elsif !ns_path.start_with?("#{org_name.blank? ? '/public' : organization_ns_path(org_name)}/")
+      unauthorized
+      return nil
+    else
+      # Unfortunately, we have inconsistency with Provides relations living in the org "_clouds" namespace instead of its
+      # cloud name space.   So we will have to pull all of them and filter further in-memory.
+      provides_ns_path = clouds_ns_path(org_name)
+    end
+    return ns_path, provides_ns_path
   end
 end
