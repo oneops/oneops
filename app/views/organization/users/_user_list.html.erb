@@ -4,7 +4,7 @@
   <%= list(@users,
            :new_link => (is_admin? ? link_to(icon('plus', 'Add User...'), new_organization_user_path, :remote => true) : nil),
            :menu     => [{:id => 'remove_user', :label => icon('trash', 'Remove', 'fa-fw'), :function => 'confirm_remove', :param_name => 'userIds'}],
-           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Last Sign for Org', 'last_org_sign_in'], ['Last Sign for OneOps (Global)', 'last_oneops_sign_in'] ],
+           :toolbar => {:sort_by => [%w(Email email), %w(Username username), %w(Created created), ['Last Sign-In for Org', 'last_org_sign_in'], ['Last Sign-In for OneOps (Global)', 'last_oneops_sign_in'] ],
                         :filter_by => %w(email team)}) do |builder, user| %>
     <% builder.itemid user.id %>
     <% teams = @user_teams[user.id] || [] %>
