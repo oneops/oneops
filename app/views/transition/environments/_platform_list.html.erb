@@ -58,24 +58,33 @@
 <% end %>
 
 <script>
-  window.enable_transition_assembly = function(actionId, platformCiIds) {
-      window.platform_ids = $j.map(platformCiIds, function(i) {return "platformCiIds[]=" + i;}).join("&");
-      render_modal("enable_transition_assembly", "<%= escape_javascript(render('base/shared/confirm_busy_block',
-                                                                 {  :modal_id => "enable_transition_assembly",
-                                                                    :url => enable_assembly_transition_environment_path,
-          :method => :put,
-          :confirm => 'Enable?',
-          :body    => "Enable assemblies?",
-          :with    => "window.platform_ids" })) %>");
-  }
-  window.disable_transition_assembly = function(actionId, platformCiIds) {
-      window.platform_ids = $j.map(platformCiIds, function(i) {return "platformCiIds[]=" + i;}).join("&");
-      render_modal("disable_transition_assembly", "<%= escape_javascript(render('base/shared/confirm_busy_block',
-                                                                 {  :modal_id => "disable_transition_assembly",
-                                                                    :url => disable_assembly_transition_environment_path,
-          :method => :put,
-          :confirm => 'Disable?',
-          :body    => "Disable assemblies?",
-          :with    => "window.platform_ids" })) %>");
+  window.enable_transition_assembly = function (actionId, platformCiIds) {
+    window.platform_ids = $j.map(platformCiIds, function (i) {
+      return "platformCiIds[]=" + i;
+    }).join("&");
+
+    render_modal("enable_transition_assembly",
+                 "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                               {:modal_id => 'enable_transition_assembly',
+                                                :url => enable_assembly_transition_environment_path,
+                                                :method => :put,
+                                                :confirm => 'Enable?',
+                                                :body    => 'Enable platforms?',
+                                                :with    => 'window.platform_ids'})) %>");
+  };
+
+  window.disable_transition_assembly = function (actionId, platformCiIds) {
+    window.platform_ids = $j.map(platformCiIds, function (i) {
+      return "platformCiIds[]=" + i;
+    }).join("&");
+
+    render_modal("disable_transition_assembly",
+                 "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                               {:modal_id => 'disable_transition_assembly',
+                                                :url => disable_assembly_transition_environment_path,
+                                                :method => :put,
+                                                :confirm => 'Disable?',
+                                                :body    => 'Disable platforms?',
+                                                :with    => 'window.platform_ids'})) %>");
   }
 </script>
