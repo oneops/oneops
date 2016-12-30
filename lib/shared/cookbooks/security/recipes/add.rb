@@ -29,11 +29,13 @@ if node.workorder.has_key?('arglist')
   Chef::Log.info("override_version : #{override_version}")
 end
 
+run_all = !compl_list.nil? && compl_list == "*"
 sec_list = nil
 if node.workorder.payLoad.has_key?('ExtraRunList')
   sec_list = node.workorder.payLoad.ExtraRunList.select do |runList|
-    runList.ciClassName == 'cloud.compliance.Security' && (filter.nil? || 
-         filter.empty? || filter.include?(runList.ciName))
+    runList.ciClassName == 'cloud.compliance.Security' && 
+         ((run_all && runList.ciAttributes.enabled == 'true') || 
+           (!run_all && (filter.nil? || filter.empty? || filter.include?(runList.ciName))))
   end
 end
 
