@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.add_dependency "activeresource", '= 4.0.0'
   s.add_dependency "activemodel", '= 4.1.10'
   s.add_dependency "ffi", '= 1.9.10'
-  s.add_dependency "fog", '= 1.29.0'
+  s.add_dependency "fog", '= 1.37.0'
   s.add_dependency "aws-s3", '= 0.6.3'
   s.add_dependency "chef", '= 11.18.12'
   s.add_dependency "ohai", '= 7.4.1'
@@ -41,7 +41,7 @@ Gem::Specification.new do |s|
   s.add_dependency "azure_mgmt_network", '= 0.1.1'
   s.add_dependency "azure_mgmt_resources", '= 0.1.1'
   s.add_dependency "azure", '= 0.6.4'
-  s.add_dependency "fog-vsphere", '= 0.7.0'
+  s.add_dependency "fog-vsphere", '= 1.3.0'
   s.add_dependency "crack", '= 0.4.3'
   s.add_dependency "rack", '= 1.6.4'
 

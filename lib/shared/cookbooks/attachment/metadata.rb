@@ -92,6 +92,16 @@ attribute 'run_on',
     :form => { 'field' => 'checkbox', 'multiple' => 'true', 'options_for_select' => [['Before Add','before-add'],['After Add','after-add'],['Before Replace','before-replace'],['After Replace','after-replace'],['Before Update','before-update'],['After Update','after-update'],['Before Delete','before-delete'], ['After Delete','after-delete'], ['On Demand','on-demand']] }
   } 
   
+attribute 'run_on_action',
+          :description => 'Run on Action',
+          :default => '[]',
+          :data_type => 'array',
+          :format => {
+              :help => 'You can specify attachments to be run before any action. Specify using this format  before-repair,after-repair ',
+              :category => '4.Run',
+              :order => 3,
+          }
+
 attribute 'priority',
   :description => "Execution Priority",
   :required => "required",
