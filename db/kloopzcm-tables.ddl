@@ -156,7 +156,7 @@ CREATE INDEX dj_releases_ns_idx
 
 CREATE TABLE kloopzcm.dj_deployment (
                 deployment_id BIGINT NOT NULL,
-                flags INTEGER NOT NULL,
+                flags INTEGER DEFAULT 0 NOT NULL,
                 ns_id BIGINT NOT NULL,
                 release_id BIGINT NOT NULL,
                 created_by VARCHAR(200),
