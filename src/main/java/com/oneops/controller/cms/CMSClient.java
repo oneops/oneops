@@ -100,6 +100,8 @@ public class CMSClient {
     private ControllerUtil controllerUtil;
     private OpsManager opsManager;
 
+    private static final String ONEOPS_SYSTEM_USER = "oneops-system";
+
 	public void setOpsManager(OpsManager opsManager) {
 		this.opsManager = opsManager;
 	}
@@ -393,7 +395,7 @@ public class CMSClient {
         CmsDeployment dpmtParam = new CmsDeployment();
         dpmtParam.setDeploymentId(dpmt.getDeploymentId());
         dpmtParam.setProcessId(processId + "!" + execId);
-        dpmtParam.setUpdatedBy("oo-controller");
+        dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
         
         try {
         	djManager.updateDeployment(dpmtParam);
@@ -445,6 +447,7 @@ public class CMSClient {
             if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
                 logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
                 dpmt.setDeploymentState(PAUSED);
+                dpmt.setUpdatedBy(ONEOPS_SYSTEM_USER);
                 dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
                 try {
                     djManager.updateDeployment(dpmt);
