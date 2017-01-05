@@ -1,10 +1,11 @@
 package com.oneops.transistor.service;
 
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.domain.CmsRfcRelationBasic;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import org.apache.log4j.Logger;
@@ -13,7 +14,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /*******************************************************************************
  *
@@ -56,36 +56,50 @@ public class ReplayProcessor {
 
     List<String> replay(Long fromReleaseId, Long toReleaseId, String nsPath, Map<Long, RelationLink> idMap) {
         List<String> errors = new ArrayList<>();
-        List<CmsRfcCI> cis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+
+        List<CmsRfcCI> rfcCis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+        rfcCis.forEach(ci -> restoreCi(idMap, errors, ci));
+
         List<CmsRfcRelation> relations = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
-        Map<Long, List<CmsRfcRelation>> relationsByRelease = relations.stream().collect(Collectors.groupingBy(CmsRfcRelationBasic::getReleaseId));
-        long currentReleaseId = 0;
-        for (CmsRfcCI ci : cis) {
-            if (currentReleaseId != ci.getReleaseId()) {
-                restoreReleaseRelations(idMap, errors, relationsByRelease.get(currentReleaseId));
-                currentReleaseId = ci.getReleaseId();
+        relations.forEach(relation -> restoreRelation(idMap, errors, relation));
+        
+        
+        // remove release if replay triggered no rfc's. 
+        if (rfcProcessor.getRfcCountByNs(nsPath)+rfcProcessor.getRfcRelationCountByNs(nsPath)==0){
+            List<CmsRelease> open = rfcProcessor.getLatestRelease(nsPath, "open");
+            if (!open.isEmpty()) {
+                rfcProcessor.deleteRelease(open.get(0).getReleaseId());
             }
-            restoreCi(idMap, errors, ci);
         }
-        restoreReleaseRelations(idMap, errors, relationsByRelease.get(currentReleaseId)); // we need to call restore release relations one last time for last release
         return errors;
     }
 
 
     private void restoreCi(Map<Long, RelationLink> idMap, List<String> errors, CmsRfcCI rfcToReplay) {
         CmsCI existingCi = getCmsCI(rfcToReplay);
-        if (ADD.equalsIgnoreCase(rfcToReplay.getRfcAction()) && existingCi != null) { 
-            CmsRfcCI existingRfc = getCmsRfcCI(rfcToReplay);
-            if (existingRfc != null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())) { // special case get rid of existing RFC delete
-                rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
-            }
-        }
+        CmsRfcCI existingRfc = getCmsRfcCI(rfcToReplay);
+        logger.info(rfcToReplay.getRfcAction() + ":" + rfcToReplay.getCiName() + "@" + rfcToReplay.getNsPath());
+        
         long oldCiId = rfcToReplay.getCiId();
-        rfcToReplay.setReleaseId(0);
-        rfcToReplay.setRfcId(0);
+
+        rfcToReplay.setRfcId(existingRfc == null ? 0 : existingRfc.getRfcId());
         rfcToReplay.setCiId(existingCi == null ? 0 : existingCi.getCiId());
+        rfcToReplay.setReleaseId(existingRfc == null ? 0 : existingRfc.getReleaseId());
         try {
-            logger.info(rfcToReplay.getRfcAction() + ":" + rfcToReplay.getCiName() + "@" + rfcToReplay.getNsPath());
+            if (ADD.equalsIgnoreCase(rfcToReplay.getRfcAction()) && existingCi != null) {
+                if (existingRfc != null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())) { // special case get rid of existing RFC delete
+                    rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
+                }
+            }
+            if (DELETE.equalsIgnoreCase(rfcToReplay.getRfcAction())) {
+                if (existingCi == null && existingRfc != null) {
+                    rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
+                } else if (existingCi != null) {
+                    rfcProcessor.createRfcCI(getRemoveRfc(existingCi), REPLAY);
+                }
+                return;
+            }
+
             rfcToReplay = rfcMrgProcessor.upsertCiRfc(rfcToReplay, REPLAY);
             if (oldCiId != rfcToReplay.getCiId()) {
                 idMap.put(oldCiId, new RelationLink(rfcToReplay.getCiId(), rfcToReplay.getRfcId()));
@@ -95,6 +109,46 @@ public class ReplayProcessor {
             logger.warn(message, e);
             errors.add(message);
         }
+    }
+
+    private CmsRfcCI getRemoveRfc(CmsCI existingCi) {
+        CmsRfcCI newRfc = new CmsRfcCI();
+
+        newRfc.setCiId(existingCi.getCiId());
+        newRfc.setCiClassId(existingCi.getCiClassId());
+        newRfc.setCiClassName(existingCi.getCiClassName());
+        newRfc.setCiGoid(existingCi.getCiGoid());
+        newRfc.setCiName(existingCi.getCiName());
+
+        newRfc.setNsId(existingCi.getNsId());
+        newRfc.setNsPath(existingCi.getNsPath());
+        newRfc.setComments("deleting");
+        newRfc.setRfcAction("delete");
+
+
+        newRfc.setExecOrder(0);
+        newRfc.setCreatedBy(REPLAY);
+        newRfc.setUpdatedBy(REPLAY);
+        return newRfc;
+    }
+
+
+    private CmsCIRelation getCmsRelation(CmsRfcRelation clone) {
+        CmsCIRelation existingRelation = null;
+        List<CmsCIRelation> list = cmProcessor.getFromToCIRelationsNaked(clone.getFromCiId(), clone.getRelationName(), clone.getToCiId());
+        if (list != null && list.size() > 0) {
+            existingRelation = list.get(0);
+        }
+        return existingRelation;
+    }
+
+    private CmsRfcRelation getCmsRfcRelationCI(CmsRfcRelation clone) {
+        List<CmsRfcRelation> list = rfcProcessor.getOpenRfcRelationBy2(clone.getFromCiId(), clone.getToCiId(), clone.getRelationName(), null);
+        CmsRfcRelation cmsRfcRelation = null;
+        if (list != null && list.size() > 0) {
+            cmsRfcRelation = list.get(0);
+        }
+        return cmsRfcRelation;
     }
 
     private CmsCI getCmsCI(CmsRfcCI clone) {
@@ -116,35 +170,66 @@ public class ReplayProcessor {
     }
 
 
-    private void restoreReleaseRelations(Map<Long, RelationLink> idMap, List<String> errors, List<CmsRfcRelation> rels) {
-        if (rels == null) return;
-        for (CmsRfcRelation relation : rels) {
-            relation.setRfcId(0);
-            relation.setCiRelationId(0);
-            relation.setReleaseId(0);
-            Long fromCiId = relation.getFromCiId();
-            if (idMap.containsKey(fromCiId)) {
-                relation.setFromCiId(idMap.get(fromCiId).getId());
-            }
-            Long toCiId = relation.getToCiId();
-            if (idMap.containsKey(toCiId)) {
-                relation.setToCiId(idMap.get(toCiId).getId());
-            }
-            if (ADD.equalsIgnoreCase(relation.getRfcAction())){
-                CmsRfcRelation existingRfc = rfcMrgProcessor.getExisitngRelationRfcMerged(relation.getFromCiId(), relation.getRelationName(), relation.getToCiId(), "df");
-                if (existingRfc!=null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())){ // special case get rid of RFC delete
-                    rfcProcessor.rmRfcRelationFromRelease(existingRfc.getRfcId());
+    private void restoreRelation(Map<Long, RelationLink> idMap, List<String> errors, CmsRfcRelation relation) {
+        Long fromCiId = relation.getFromCiId();
+        if (idMap.containsKey(fromCiId)) {
+            relation.setFromCiId(idMap.get(fromCiId).getId());
+        }
+        Long toCiId = relation.getToCiId();
+        if (idMap.containsKey(toCiId)) {
+            relation.setToCiId(idMap.get(toCiId).getId());
+        }
+        CmsCIRelation existingRel = getCmsRelation(relation);
+        CmsRfcRelation existingRfcRel = getCmsRfcRelationCI(relation);
+        relation.setRfcId(existingRfcRel == null ? 0 : existingRfcRel.getRfcId());
+        relation.setCiRelationId(existingRel == null ? 0 : existingRel.getCiRelationId());
+        relation.setReleaseId(existingRfcRel == null ? 0 : existingRfcRel.getReleaseId());
+        logger.info(relation.getRfcAction() + " relation:" + relation.getRelationName() + "@" + relation.getNsPath());
+
+
+        try {
+
+            if (ADD.equalsIgnoreCase(relation.getRfcAction())) {
+                if (existingRfcRel != null && DELETE.equalsIgnoreCase(existingRfcRel.getRfcAction())) { // special case get rid of RFC delete
+                    rfcProcessor.rmRfcRelationFromRelease(existingRfcRel.getRfcId());
                 }
             }
-            try {
-                logger.info(relation.getRfcAction()+" relation:"+relation.getRelationName()+"@"+relation.getNsPath());
-                rfcMrgProcessor.upsertRelationRfc(relation, REPLAY);
-            } catch (Exception e) {
-                String message = "Relation restore failure:" + e.getMessage();
-                logger.warn(message);
-                errors.add(message);
+
+            if (DELETE.equalsIgnoreCase(relation.getRfcAction())) {
+                if (existingRel == null) {
+                    if (existingRfcRel!=null) {
+                        rfcProcessor.rmRfcRelationFromRelease(existingRfcRel.getRfcId());
+                    }
+                } else {
+                    rfcProcessor.createRfcRelation(getRemoveRfc(existingRel), REPLAY);
+                }
+                return;
             }
+
+            rfcMrgProcessor.upsertRelationRfc(relation, REPLAY);
+        } catch (Exception e) {
+            String message = "Relation restore failure:" + e.getMessage();
+            logger.warn(message);
+            errors.add(message);
         }
+    }
+
+    private CmsRfcRelation getRemoveRfc(CmsCIRelation existingRel) {
+        CmsRfcRelation newRfc = new CmsRfcRelation();
+        newRfc.setCiRelationId(existingRel.getCiRelationId());
+        newRfc.setFromCiId(existingRel.getFromCiId());
+        newRfc.setToCiId(existingRel.getToCiId());
+        newRfc.setNsId(existingRel.getNsId());
+        newRfc.setNsPath(existingRel.getNsPath());
+        newRfc.setRelationGoid(existingRel.getRelationGoid());
+        newRfc.setRelationId(existingRel.getRelationId());
+        newRfc.setRelationName(existingRel.getRelationName());
+        newRfc.setComments("deleting");
+        newRfc.setRfcAction("delete");
+        newRfc.setExecOrder(0);
+        newRfc.setCreatedBy(REPLAY);
+        newRfc.setUpdatedBy(REPLAY);
+        return newRfc;
     }
 
 
