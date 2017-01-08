@@ -3213,6 +3213,12 @@ div.ciAttributes {
   font-style: italic;
 }
 
+.ciAttributes .control-label.sticky,
+.relationAttributes .control-label.sticky {
+  width: 140px;
+  margin-right: 5px;
+}
+
 .ciAttributes .text {
   font-family: monospace;
   white-space: pre;
@@ -3220,27 +3226,33 @@ div.ciAttributes {
   min-height:  54px;
 }
 
-.ciAttributes .input-xlarge {
+.ciAttributes .input-xlarge,
+.relationAttributes .input-xlarge {
   width: 388px;
 }
 
-.ciAttributes .input-xlarge.encrypted {
-  width: 282px;
+.ciAttributes .input-xlarge.encrypted,
+.relationAttributes .input-xlarge.encrypted {
+  width: 294px;
 }
 
-.ciAttributes .input-prepend .input-xlarge {
+.ciAttributes .input-prepend .input-xlarge,
+.relationAttributes .input-prepend .input-xlarge {
   width: 346px;
 }
 
-.ciAttributes .input-prepend .input-xlarge.encrypted {
-  width: 240px;
+.ciAttributes .input-prepend .input-xlarge.encrypted,
+.relationAttributes .input-prepend .input-xlarge.encrypted {
+  width: 252px;
 }
 
-.ciAttributes .select-xlarge {
+.ciAttributes .select-xlarge,
+.relationAttributes .select-xlarge {
   width: 402px;
 }
 
-.ciAttributes .input-prepend .select-xlarge {
+.ciAttributes .input-prepend .select-xlarge,
+.relationAttributes .input-prepend .select-xlarge {
   width: 360px;
 }
 
@@ -3421,19 +3433,20 @@ input.readonly[type=text] {
   margin-top: 20px;
 }
 
-#container .ciAttributes .lock {
-  width: 30px;
+#container .edit_form .lock {
+  width:          20px;
   font-size:      19px;
   text-decoration: none;
 }
 
-#container form:not(.editing) .ciAttributes .lock {
-  color:          #000000;
-  cursor:         no-drop;
+#container .edit_form form.editing .lock i {
+  cursor:         pointer;
 }
 
-#container form.editing .ciAttributes .lock i {
-  cursor:         pointer;
+#container .edit_form form:not(.editing) .lock,
+#container .edit_form .control-group[editable=false] .lock {
+  color:          #000000;
+  cursor:         no-drop;
 }
 
 div.monitor_threshold, div.monitor_metric {
@@ -3447,9 +3460,10 @@ div.monitor_threshold div.header, div.monitor_metric div.header {
 	float:      left;
   display:    inline-block;
   padding:    5px;
-  width:      400px;
+  width:      390px;
+  height:     18px;
   background: whitesmoke;
-  box-shadow: 0 0 4px #aaa inset;
+  box-shadow: 0 0 4px #aaa;
   cursor:     pointer;
 }
 
@@ -3513,7 +3527,7 @@ div.monitor_metric .body table {
   margin-bottom: 10px;
   border: 1px solid #ccc;
   padding: 4px;
-  width: 400px;
+  width: 392px;
 }
 
 div.monitor_metric .body table th {
@@ -3526,28 +3540,28 @@ div.monitor_metric .body table td {
 }
 
 div.monitor_metric .body input.name {
-  width: 250px;
+  width: 244px;
 }
 
 div.monitor_metric .body input.unit {
-  width: 110px;
+  width: 108px;
 }
 
 div.monitor_metric .body textarea.description {
-  width: 384px;
+  width: 376px;
   height: 40px;
 }
 
 div.monitor_metric .body select.dstype {
-  width: 170px;
+  width: 167px;
 }
 
 div.monitor_metric .body select.display {
-  width: 85px;
+  width: 83px;
 }
 
 div.monitor_metric .body input.display-group {
-  width: 110px;
+  width: 107px;
 }
 
 div.modal-body {
@@ -3666,7 +3680,7 @@ div.status .label {
 }
 
 .input-xlarge.encrypted {
-  width: 310px;
+  width: 322px;
 }
 
 .select-xlarge {
@@ -3678,7 +3692,7 @@ div.status .label {
 }
 
 .triple .input-xlarge.encrypted {
-  width: 760px;
+  width: 772px;
 }
 
 .input span.help-inline {
@@ -3993,6 +4007,15 @@ div.category > .name {
   padding-top: 6px;
   margin-right: 5px;
   text-align: left;
+}
+
+.check-box > i.fa-fw {
+  margin-left: 5px;
+  font-size: 26px;
+}
+
+.input-append .check-box i.fa-fw {
+  margin-right: -5px;
 }
 
 .check-box.disabled {
@@ -4525,4 +4548,10 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 .deployment-problems a {
   font-size: 85%;
+}
+
+.input-prepend.lock-container {
+  float: left;
+  font-size: inherit;
+  white-space: inherit;
 }

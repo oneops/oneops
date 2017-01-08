@@ -23,9 +23,10 @@
                             elsif resource.is_a?(Cms::Relation)
                               'cms/relations/relation'
                             end %>
-      <%= render content_template,
-                 :f => f,
-                 (resource.is_a?(Cms::Ci) ? :ci : (resource.is_a?(Cms::Relation) ? :relation : :resource)) => resource %>
+      <%= resource_key = resource.is_a?(Cms::Ci) ? :ci : (resource.is_a?(Cms::Relation) ? :relation : :resource)
+          render content_template,
+                 {:f => f,
+                 resource_key => resource}.merge(defined?(content_locals) ? content_locals : {}) %>
       <% unless read_only %>
         <div id="<%= prefix %>_form_actions" class="form-actions" <%= "style=display:none" if block %>>
         	<%= link_to(content_tag(:button, icon('trash', 'Delete', 'fa-inverse'), :class => 'btn btn-danger secondary-action'),

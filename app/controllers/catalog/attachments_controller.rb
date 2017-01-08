@@ -18,6 +18,6 @@ class Catalog::AttachmentsController < Base::AttachmentsController
   end
 
   def find_attachment
-    @attachment = locate_ci_in_platform_ns(params[:id], @platform, 'catalog.Attachment')
+    @attachment = Cms::Ci.locate(params[:id], catalog_design_platform_ns_path(@design, @platform), 'catalog.Attachment', :attrProps => 'owner')
   end
 end

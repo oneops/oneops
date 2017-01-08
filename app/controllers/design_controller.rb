@@ -166,6 +166,16 @@ class DesignController < ApplicationController
                 [a['name'], attrs]
               end
             end
+
+            monitors = c['monitors']
+            if monitors.present?
+              comp['monitors'] = monitors.sort_by {|a| a['name']}.to_map_with_value do |a|
+                attrs = a['attributes']
+                attrs = convert_json_attrs_from_string(attrs, 'catalog.Monitor') unless collapse
+                [a['name'], attrs]
+              end
+            end
+
             [c['name'], comp]
           end
           templates_hash
@@ -248,6 +258,7 @@ class DesignController < ApplicationController
     if plats.present?
       platform_md_attrs   = Cms::CiMd.look_up('catalog.Platform').mdAttributes.map(&:attributeName)
       attachment_md_attrs = Cms::CiMd.look_up('catalog.Attachment').mdAttributes.map(&:attributeName)
+      monitor_md_attrs    = Cms::CiMd.look_up('catalog.Monitor').mdAttributes.map(&:attributeName)
 
       result['platforms'] = []
       errors['platforms'] = {}
@@ -345,6 +356,36 @@ class DesignController < ApplicationController
 
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
                             result['platforms'].last['components'].last['attachments'] << ci_to_load(attachment_ci, :attributes => attachment_attrs)
+                          end
+                        end
+
+                        monitors = comp['monitors']
+                        if monitors.present?
+                          result['platforms'].last['components'].last['monitors'] = []
+                          errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'] = {}
+                          monitors.each do |monitor_name, monitor|
+                            errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'][monitor_name] = {}
+
+                            monitor_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
+                                                                         :ciClassName => 'mgmt.catalog.Monitor',
+                                                                         :ciName      => monitor_name.split('-').last})
+
+                            monitor_attrs = monitor.slice(*monitor_md_attrs)
+                            monitor_attrs = convert_json_attrs_to_string(monitor_attrs)
+                            if monitor_template
+                              monitor_attrs = monitor_template.ciAttributes.attributes.merge(monitor_attrs)
+                              monitor_attrs.delete(:custom)
+                            else
+                              monitor_attrs.merge!(:custom => 'true')
+                            end
+                            monitor_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Monitor',
+                                                          :nsPath       => platform_ns_path,
+                                                          :ciName       => monitor_name,
+                                                          :ciAttributes => monitor_attrs})
+                            monitor_ci.add_policy_locations(pack_ns_path)
+
+                            errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'][monitor_name]['errors'] = monitor_ci.errors.full_messages unless monitor_ci.valid?
+                            result['platforms'].last['components'].last['monitors'] << ci_to_load(monitor_ci, :attributes => monitor_attrs)
                           end
                         end
                       end

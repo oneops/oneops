@@ -18,5 +18,8 @@
 <%= page_info new ? 'Create component' : 'View and update component configuration attributes' %>
 
 <%= tabs = [{:label => 'configuration', :template => 'configuration', :selected => true}]
-    tabs << {:label => 'attachments',   :url => assembly_design_platform_component_attachments_path(@assembly, @platform, @component)} unless new
+    unless new
+      tabs << {:label => 'attachments',   :url => assembly_design_platform_component_attachments_path(@assembly, @platform, @component)}
+      tabs << {:label => 'monitors', :url => assembly_design_platform_component_monitors_path(@assembly, @platform, @component)}
+    end
     render 'base/shared/page_nav_pages', :items => tabs %>

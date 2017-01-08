@@ -4,11 +4,12 @@ class Cms::DjCi < Cms::RfcCi
   self.primary_key  = :ciId
 
   def relations(options = {})
-    Cms::DjRelation.all( :params => { :ciId => self.id }.merge(options) )
+    Cms::DjRelation.all(:params => {:ciId => ciId}.merge(options))
   end
 
-  def self.build(attributes = {}, attr_props = {})
+  def self.build(attributes = {}, attr_props = nil)
     ci = super(attributes)
+    attr_props = attributes.delete(:ciAttrProps) || attributes.delete('ciAttrProps') if attributes && !attr_props
     ci.ciAttrProps = Cms::AttrMap.new(attr_props || {})
     ci
   end
@@ -31,6 +32,6 @@ class Cms::DjCi < Cms::RfcCi
   end
 
   def attrOwner
-    ciAttrProps.owner
+    ciAttrProps && ciAttrProps.attributes['owner']
   end
 end

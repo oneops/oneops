@@ -149,6 +149,24 @@ class Transistor < ActiveResource::Base
     return platform
   end
 
+  def self.create_component(platform_id, requires_rel)
+    result = requires_rel
+    if requires_rel.valid?
+      begin
+        data = JSON.parse(post("platforms/#{platform_id}/components", {}, requires_rel.to_json).body)
+        result = Cms::DjRelation.new(data, true)
+      rescue Exception => e
+        error = handle_exception(e, "Failed to create component [#{requires_rel.inspect}] for platform '#{platform_id}'.")
+        result.errors.add(:base, error)
+        result.toCi.errors.add(:base, error)
+      end
+    else
+      Rails.logger.info "====== #{requires_rel.errors.full_messages}"
+      Rails.logger.info "====== #{requires_rel.toCi.errors.full_messages}"
+    end
+    return result
+  end
+
   def self.clone_platform(platform_id, platform_ci)
     new_platform_id = nil
     begin

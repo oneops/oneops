@@ -184,7 +184,7 @@ class Cms::Ci < Cms::Base
   end
 
   def attrOwner
-    attrProps.owner
+    attrProps && attrProps.attributes['owner']
   end
 
 

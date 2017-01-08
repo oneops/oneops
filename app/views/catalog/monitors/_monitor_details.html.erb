@@ -1,0 +1,19 @@
+<%= section_panel 'Monitor Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @monitor,
+                           :content   => 'cms/cis/ci',
+                           :read_only => true,
+                           :form_url  => @design ?
+                               catalog_design_platform_component_monitor_path(@design, @platform, @component, @monitor) :
+                               catalog_pack_platform_monitor_path(:platform_id => @platform, :id => @monitor)}) %>
+<% end %>
+<% if @design %>
+  <%= section_panel 'Advanced Configuration', :width => 'double', :position => 'right' do %>
+    <%= render('base/shared/edit_form',
+               {:resource       => @watched_by_rel,
+                :content        => 'cms/relations/attributes',
+                :read_only      => true,
+                :content_locals => {:only => %w(docUrl notifyOnlyOnStateChange)},
+                :form_url       => watched_by_catalog_design_platform_component_monitor_path(@design, @platform, @component, @monitor)}) %>
+  <% end %>
+<% end %>

@@ -8,16 +8,14 @@
                    :kind  => 'platform',
                    :link  => catalog_design_platform_path(@design, @platform)}] %>
 <% else %>
-  <%
-     if @platform.ciName.end_with?('catalog.Platform')
+  <% if @platform.ciClassName.end_with?('catalog.Platform')
        doc_anchor = 'design'
        bc_label   = icon(site_icon('design'), 'design')
      else
        doc_anchor   = 'transition'
        availability = params[:availability]
        bc_label     = icon(availability == 'redundant' ? 'cubes' : 'cube', "#{availability} availability")
-     end
-  %>
+     end %>
   <%= breadcrumb [{:label => icon(site_icon(:pack), 'packs'), :link => catalog_path(:anchor => 'packs')},
                   {:label => "#{@platform.ciName} #{content_tag(:sub, bc_label)}",
                    :icon  => platform_image_url(@platform),
@@ -30,5 +28,11 @@
                :page_label => @component.ciName,
                :doc_link   => ci_doc_link(@component, icon('book'), :anchor => doc_anchor, :class => 'doc-link') %>
 
-<%= render 'base/shared/page_nav_pages',
-           :items => [{:label => 'configuration', :template => 'configuration', :selected => true}] %>
+<%= items = [{:label => 'configuration', :template => 'configuration', :selected => true}]
+    if @design
+      items << {:label => 'attachments', :url => catalog_design_platform_component_attachments_path(@design, @platform, @component)}
+      items << {:label => 'monitors',    :url => catalog_design_platform_component_monitors_path(@design, @platform, @component)}
+    else
+      items << {:label => 'monitors', :url => catalog_pack_platform_component_monitors_path(:platform_id => @platform, :component_id => @component)}
+    end
+    render 'base/shared/page_nav_pages', :items => items %>
