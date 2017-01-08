@@ -25,7 +25,7 @@ class SessionsController < Devise::SessionsController
     token = Devise.friendly_token
     session[:token] = token
     current_user.update_attribute(:session_token, token)
-    current_user.team_users.joins(:team).where("teams.organization_id" => current_user.organization.id).update_all(last_sign_in_at: DateTime.now)
+    current_user.team_users.joins(:team).where("teams.organization_id" => current_user.organization_id).update_all(last_sign_in_at: DateTime.now) if current_user.organization_id
     browser_timezone = params[:browser_timezone]
     session[:browser_timezone] = browser_timezone.to_i if browser_timezone.present?
   end
