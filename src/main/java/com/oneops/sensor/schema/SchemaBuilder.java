@@ -118,7 +118,7 @@ public class SchemaBuilder {
 		if (!existingCFNames.contains(CI_OPEN_EVENTS_CF)) {
 			ColumnFamilyDefinition cfCiOpenEventsDef = HFactory.createColumnFamilyDefinition(keyspaceName,                              
 					CI_OPEN_EVENTS_CF, 
-	                ComparatorType.LONGTYPE);
+	                ComparatorType.BYTESTYPE);
 			cfCiOpenEventsDef.setColumnType(ColumnType.SUPER);
 			cfCiOpenEventsDef.setSubComparatorType(ComparatorType.BYTESTYPE);
 			cluster.addColumnFamily(cfCiOpenEventsDef,true);
