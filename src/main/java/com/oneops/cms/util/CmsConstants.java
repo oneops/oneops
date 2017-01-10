@@ -87,6 +87,7 @@ public final class CmsConstants {
 
 	public static final String BOM = "bom";
 	public static final String MANIFEST = "manifest";
+	public static final String CATALOG = "catalog";
 
 
     public static final String CLOUDSERVICEPREFIX = "cloud.service";
