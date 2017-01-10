@@ -34,6 +34,7 @@ import com.oneops.transistor.domain.IaasRequest;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
+//import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.service.*;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 import com.oneops.transistor.service.SnapshotManager;
@@ -323,11 +324,29 @@ public class TransistorRestController extends AbstractRestController {
 		result.put("result", "success");
 		return result;
 	}
+//
+//	@RequestMapping(value="/environment/{envId}/export", method = RequestMethod.GET)
+//	@ResponseBody
+//	public EnvironmentExportSimple exportEnvironment(
+//			@PathVariable long envId,
+//			@RequestParam(value="platformIds", required = false)  Long[] platformIds,
+//			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+//			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+//
+//		if (userId == null) userId = "oneops-system";
+//		try {
+//			return dManager.exportEnvironment(envId, platformIds, scope);
+//		}  catch (CmsBaseException te) {
+//			logger.error(te);
+//			te.printStackTrace();
+//			throw te;
+//		}
+//	}
 	
 	@RequestMapping(value="/environments/{envId}", method = RequestMethod.PUT)
 	@ResponseBody
 	public Map<String,String> generateManifest(
-			@PathVariable long envId,
+			@PathVariable String envId,
 			@RequestBody Map<String,String> platModes,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			HttpServletResponse response){
@@ -335,10 +354,14 @@ public class TransistorRestController extends AbstractRestController {
 		try {
 			if (userId == null) userId = "oneops-system";
 			
-			long startTime = System.currentTimeMillis(); 
+			long startTime = System.currentTimeMillis();
 			
-			//long releaseId = manifestManager.generateEnvManifest(envId, userId, platModes);
-			long releaseId = maProcessor.generateEnvManifest(envId, userId, platModes);
+			String[] envIdStrings = envId.split(",");
+			List<Long> envIds = new ArrayList<>();
+			for (String envIdString:envIdStrings){
+				envIds.add(Long.parseLong(envIdString));
+			}
+			long releaseId = maProcessor.generateEnvManifest(envIds, userId, platModes);
 			
 			Map<String,String> result = new HashMap<>();
 			result.put("releaseId", String.valueOf(releaseId));

@@ -243,7 +243,7 @@ public class BomRfcBulkProcessor {
 	}
 
 	private void processVars(List<BomRfc> boms, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
-        ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF);
+        ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,cmsUtil.getCountOfErrorsToReport());
 		for (BomRfc bom : boms) {
 			ec.invokeChecked(()-> trUtil.processAllVars(bom.mfstCi, cloudVars, globalVars, localVars));
 		}
