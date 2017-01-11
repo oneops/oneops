@@ -32,6 +32,6 @@ class Cms::DjCi < Cms::RfcCi
   end
 
   def attrOwner
-    ciAttrProps && ciAttrProps.attributes['owner']
+    attributes[:ciAttrProps] && ciAttrProps.attributes['owner']
   end
 end
