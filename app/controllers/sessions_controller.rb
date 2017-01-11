@@ -31,7 +31,12 @@ class SessionsController < Devise::SessionsController
   end
 
   def after_sign_in_path_for(resource_or_scope)
-    current_user.organization ? (session['user_return_to'].presence || organization_path) : root_path
+    return_to = session['user_return_to']
+    if return_to.include?(new_user_session_path)
+      return_to = nil
+      session['user_return_to'] = nil
+    end
+    current_user.organization ? (return_to.presence || organization_path) : root_path
   end
 
 
