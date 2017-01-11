@@ -2,9 +2,10 @@ package com.oneops.controller.cms;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import org.apache.log4j.Logger;
+import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -18,7 +19,7 @@ import java.util.regex.Pattern;
  */
 public class OfferingsMatcher {
     private static Logger logger = Logger.getLogger(OfferingsMatcher.class);
-    private CmsCmProcessor cmProcessor;
+    private CmsCmManager cmManager;
     private ExpressionParser exprParser;
 
     public static String convert(String elasticExp) {
@@ -29,8 +30,8 @@ public class OfferingsMatcher {
         return elasticExp.contains(":") || elasticExp.contains("ciAttribute.size");
     }
 
-    public void setCmProcessor(CmsCmProcessor cmProcessor) {
-        this.cmProcessor = cmProcessor;
+    public void setCmManager(CmsCmManager cmManager) {
+        this.cmManager = cmManager;
     }
 
     public void setExprParser(ExpressionParser exprParser) {
@@ -39,7 +40,7 @@ public class OfferingsMatcher {
 
     List<CmsCI> getEligbleOfferings(CmsRfcCISimple cmsRfcCISimple, String offeringNS) {
         List<CmsCI> offerings = new ArrayList<>(); 
-        List<CmsCI> list = cmProcessor.getCiBy3(offeringNS, "cloud.Offering", null);
+        List<CmsCI> list = cmManager.getCiBy3(offeringNS, "cloud.Offering", null);
         for (CmsCI ci: list){
             CmsCIAttribute criteriaAttribute = ci.getAttribute("criteria");
             String criteria = criteriaAttribute.getDfValue();
