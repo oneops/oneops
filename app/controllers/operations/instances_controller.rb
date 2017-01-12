@@ -214,8 +214,13 @@ class Operations::InstancesController < ApplicationController
   end
 
   def cancel_deployment
-    @instance.records('inprogress').each {|r| r.update_attribute(:dpmtRecordState, 'canceled')}
-    @inprogress_records = @instance.records('inprogress')
+    records = @instance.records('inprogress')
+    records.each {|r| r.update_attribute(:dpmtRecordState, 'canceled')}
+
+    respond_to do |format|
+      format.js { @inprogress_records = @instance.records('inprogress') }
+      format.json {render :json => records}
+    end
   end
 
 
@@ -332,7 +337,7 @@ class Operations::InstancesController < ApplicationController
                                                      :direction         => 'to',
                                                      :relationShortName => 'RealizedAs'})
 
-    @component = @realized_as.fromCi unless @component
+    @component = @realized_as.fromCi if @realized_as && !@component
   end
 
   def load_custom_actions

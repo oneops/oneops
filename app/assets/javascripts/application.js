@@ -418,7 +418,7 @@ function copyToClipboard(trigger, target) {
 
 function toggleAttrPropOwner(source) {
   source = $j(source);
-  if (source.parents("form").hasClass('editing')) {
+  if (source.parents("form").hasClass('editing') && !source.parents(".control-group[editable=false]").length) {
     var input      = source.find("input[type=hidden]"),
         ownerValue = input.attr('data-owner-value');
     input.val(input.val() == ownerValue ? "" : ownerValue);

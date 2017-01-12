@@ -4,18 +4,13 @@ class Cms::Relation < Cms::Base
   self.timeout     = 300
 
   validate do |r|
-    if r.respond_to?(:toCi)
-      ci = r.toCi
-      if ci && ci.present? && !ci.valid?
-        ci.errors.full_messages.each { |e| r.errors.add(:base, e) }
-        ci.errors.clear
-      end
-    end
-    if r.respond_to?(:fromCi)
-      ci = r.fromCi
-      if ci && ci.present? && !ci.valid?
-        ci.errors.full_messages.each { |e| r.errors.add(:base, e) }
-        ci.errors.clear
+    [:fromCi, :toCi].each do |key|
+      if r.respond_to?(key)
+        ci = r.send(key)
+        if ci.present? && !ci.valid?
+          ci.errors.full_messages.each {|e| r.errors.add(:base, e)}
+          # ci.errors.clear
+        end
       end
     end
   end

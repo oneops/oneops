@@ -1,8 +1,12 @@
-<%= section_panel('Attachments', :position => 'left', :width => 'single') do %>
-  <%= ci_list(@attachments, ) do |builder, target| %>
-    <% edit_path = catalog_design_platform_component_attachment_path(@design, @platform, @component, target) %>
-    <% builder.target link_to('', edit_path, :remote => true) %>
-    <% builder.middle target.ciAttributes.attributes[:source] %>
+<% if @attachments.blank? %>
+  This platform has no attachments.
+<% else %>
+  <%= section_panel('Attachments', :position => 'left', :width => 'single') do %>
+    <%= ci_list(@attachments) do |builder, target| %>
+      <% edit_path = catalog_design_platform_component_attachment_path(@design, @platform, @component, target) %>
+      <% builder.target link_to('', edit_path, :remote => true) %>
+      <% builder.middle target.ciAttributes.attributes[:source] %>
+    <% end %>
   <% end %>
+  <div id="attachment_details"></div>
 <% end %>
-<div id="attachment_details"></div>

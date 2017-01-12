@@ -1,0 +1,19 @@
+<% persisted = @monitor.persisted? %>
+<%= section_panel 'Monitor Details', :width => 'double', :position => 'right' do %>
+  <% options = {:resource => @monitor,
+                :content  => 'cms/cis/ci',
+                :form_url => persisted ?
+                    assembly_design_platform_component_monitor_path(@assembly, @platform, @component, @monitor) :
+                    assembly_design_platform_component_monitors_path(@assembly, @platform, @component)}
+     options[:destroy_url] = assembly_design_platform_component_monitor_path(@assembly, @platform, @component, @monitor) if persisted && is_custom_monitor? %>
+  <%= render('base/shared/edit_form', options) %>
+<% end %>
+<% if persisted %>
+  <%= section_panel 'Advanced Configuration', :width => 'double', :position => 'right' do %>
+    <%= render('base/shared/edit_form',
+               {:resource => @watched_by_rel,
+                :content  => 'cms/relations/attributes',
+                :content_locals => {:only => %w(docUrl notifyOnlyOnStateChange)},
+                :form_url => update_watched_by_assembly_design_platform_component_monitor_path(@assembly, @platform, @component, @monitor)}) %>
+  <% end %>
+<% end %>

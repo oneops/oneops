@@ -46,7 +46,7 @@
       <% if builder.has_key?(:icon) && builder[:icon] != :none %>
         <%= image_tag(builder[:icon]) %>
       <% else %>
-        <%= icon(is_release ? 'tag' : 'cloud-upload', nil, 'muted fa-fw') %>
+        <%= icon(site_icon(is_release ? 'release' : 'deployment'), nil, 'muted fa-fw') %>
       <% end %>
 			<% if builder[:top] %>
 				<%= builder[:top] %>

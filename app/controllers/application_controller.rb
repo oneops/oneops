@@ -434,11 +434,11 @@ class ApplicationController < ActionController::Base
   def execute_nested(parent_model, model, operation, *args)
     begin
       result = model.send(operation, *args)
-      model.errors.full_messages.each {|e| parent_model.errors.add(:base, e)} unless parent_model == model
     rescue Exception => e
       handle_error e, parent_model
       result = false
     end
+    model.errors.full_messages.each {|e| parent_model.errors.add(:base, e)} unless parent_model == model
     return result
   end
 
@@ -892,7 +892,17 @@ class ApplicationController < ActionController::Base
       if ns_path.include?('/_catalogs/')
         root, org, _catalogs, design, _design, platform = ns_path.split('/')
         if platform.present?
-          return catalog_design_platform_component_path(:org_name => org, :design_id => design, :platform_id => platform, :id => name)
+          if class_name == 'catalog.Monitor'
+            return catalog_design_platform_monitor_path(:org_name    => org,
+                                                        :design_id   => design,
+                                                        :platform_id => platform,
+                                                        :id          => ci_id)
+          else
+            return catalog_design_platform_component_path(:org_name    => org,
+                                                          :design_id   => design,
+                                                          :platform_id => platform,
+                                                          :id          => name)
+          end
         elsif class_name == 'catalog.Platform'
           return catalog_design_platform_path(:org_name => org, :design_id => design, :id => name)
         else
@@ -911,6 +921,11 @@ class ApplicationController < ActionController::Base
                                                             :assembly_id => assembly,
                                                             :platform_id => platform,
                                                             :id          => ci_id)
+          elsif class_name == 'catalog.Monitor'
+            return assembly_design_platform_monitor_path(:org_name    => org,
+                                                         :assembly_id => assembly,
+                                                         :platform_id => platform,
+                                                         :id          => ci_id)
           else
             return edit_assembly_design_platform_component_path(:org_name => org, :assembly_id => assembly, :platform_id => platform, :id => ci_id)
           end

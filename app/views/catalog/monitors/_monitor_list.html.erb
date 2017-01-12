@@ -1,0 +1,28 @@
+<% if @monitors.blank? %>
+  This component has no monitors.
+<% else %>
+  <%= section_panel 'Monitors', :width => 'single' do %>
+    <%= ci_list(@monitors) do |builder, target| %>
+      <% builder.target link_to('',
+                                @design ?
+                                    catalog_design_platform_component_monitor_path(@design, @platform, @component, target) :
+                                    catalog_pack_platform_monitor_path(:platform_id => @platform, :id => target),
+                                :remote => true) %>
+      <% builder.icon :none %>
+
+      <% status = (target.ciAttributes.enable == 'true') ? 'enabled' : 'disabled' %>
+      <% builder.status do %>
+        <%= marker(status, state_to_label(status)) %>
+        <%= marker('custom', 'label-info') if is_custom_monitor?(target) %>
+        <%= status_marker('thresholds', ActiveSupport::JSON.decode(target.ciAttributes.thresholds).size, 'label-info') %>
+        <%= icon('heartbeat') if target.ciAttributes.heartbeat == 'true' %>
+      <% end %>
+
+      <% builder.top do %>
+        <span class="topname"><%= target.ciAttributes.description.presence || target.ciName %> </span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+  <div id="monitor_details"></div>
+<% end %>

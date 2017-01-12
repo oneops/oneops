@@ -45,59 +45,30 @@ class Design::ComponentsController < Base::ComponentsController
 
     ok = @component.errors.blank?
     if ok
-      relation = Cms::DjRelation.build(:relationName => 'base.Requires',
+      @requires = Cms::DjRelation.build(:relationName => 'base.Requires',
                                        :nsPath       => ns_path,
                                        :fromCiId     => @platform.ciId,
                                        :toCi         => @component)
-      relation.relationAttributes = @template.requires.relationAttributes.attributes.
+      @requires.relationAttributes = @template.requires.relationAttributes.attributes.
         merge(:template => @template_name).
-        slice(*relation.meta.attributes[:mdAttributes].map(&:attributeName)).
+        slice(*@requires.meta.attributes[:mdAttributes].map(&:attributeName)).
         reject {|k, v| v.blank?}
 
-      ok = execute_nested(@component, relation, :save)
-      @component = relation.toCi if ok
-    end
-
-    if ok
-      # Make sure all "DependsOn" relations are present (according to platform template) since we added a new sibling.
-      platform_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_design_ns_path(@platform),
-                                                    :ciClassName => "mgmt.#{@platform.ciClassName}"})
-      component_template_id_name_map = Cms::Relation.all(:params => {:ciId              => platform_template.ciId,
-                                                                     :relationShortName => 'Requires',
-                                                                     :direction         => 'from'}).inject({}) { |m, t| m[t.toCiId] = t.toCi.ciName; m }
-      components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
-                                                   :relationShortName => 'Requires',
-                                                   :direction         => 'from'})
-
-      Cms::Relation.all(:params => {:nsPath            => platform_template.nsPath,
-                                    :relationShortName => 'DependsOn'}).each do |depends_relation_template|
-        components.select {|d| d.relationAttributes.template == component_template_id_name_map[depends_relation_template.fromCiId]}.each do |from_component|
-          components.select {|d| d.relationAttributes.template == component_template_id_name_map[depends_relation_template.toCiId]}.each do |to_component|
-            if from_component.toCiId == @component.ciId || to_component.toCiId == @component.ciId
-              depends_relation = Cms::DjRelation.build(:relationName => 'catalog.DependsOn',
-                                                       :nsPath       => ns_path,
-                                                       :fromCiId     => from_component.toCiId,
-                                                       :toCiId       => to_component.toCiId)
-              # Copy attributes.
-              ci_attributes    = depends_relation.relationAttributes.attributes
-              ci_attributes.keys.each do |attribute|
-                default = depends_relation_template.relationAttributes.attributes[attribute]
-                ci_attributes[attribute] = default if default
-              end
-              depends_relation.relationAttributes.source = 'template'
-              ok = execute_nested(@component, depends_relation, :save)
-              break unless ok
-            end
-          end
+      # ok = execute_nested(@component, @requires, :save)
+      @requires = Transistor.create_component(@platform.ciId, @requires)
+      @component = @requires.toCi
+      ok = @requires.errors.blank?
+      if ok
+        unless save_sibling_depends_on_relations
+          @component.errors.add(:base, 'Created component but failed to save some peer dependencies.')
         end
       end
     end
 
-    ok = save_sibling_depends_on_relations if ok
 
     respond_to do |format|
       format.html do
-        if ok
+        if ok && @component.errors.blank?
           redirect_to_show_platform
         else
           render :action => :edit

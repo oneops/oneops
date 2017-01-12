@@ -2,7 +2,7 @@
 
 <%= breadcrumb [{:label => @assembly.ciName, :kind => 'operations', :link => assembly_operations_path(@assembly)}] %>
 
-<%= page_title :page_icon     => ci_image_url(@environment),
+<%= page_title :page_icon     => "#{@environment.ciAttributes.availability}_availability",
                :page_kind     => 'Environment',
                :page_label    => breadcrumb_environment_label,
                :page_sublabel => "created by #{@environment.createdBy}" %>

@@ -2,7 +2,8 @@
 <div class="ciAttributes" id="<%= dom_id %>">
   <% ci_attributes   = ci.ciAttributes
      base_attrs      = ci.respond_to?(:ciBaseAttributes) && ci.ciBaseAttributes
-     sticky_map      = ci.respond_to?(:ciAttrProps) && ci.ciAttrProps.respond_to?(:owner)
+     attr_owner      = ci.respond_to?(:attrOwner) && ci.attrOwner
+     attr_owner_name = ci.respond_to?(:ciAttrProps) ? :ciAttrProps : :attrProps if attr_owner
      meta_attributes = ci.meta.attributes[:mdAttributes] %>
   <%= f.fields_for :ciAttributes, ci_attributes do |c| %>
     <% if defined?(only)
@@ -13,22 +14,21 @@
       <div class="category">
       	<div class="name"><%= category.split('.').last %></div>
     		<% attribute_list.sort_by {|a| a.options.has_key?(:order) ? a.options[:order] : 999 }.each do |a| %>
-  		   	<div class="control-group">
-            <% if a.options.has_key?(:help) %>
-              <%= c.label a.attributeName, link_to(a.description + (a.isMandatory ? '*' : ''), '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{a.options[:help]}"), :class => 'control-label' %>
-            <% else %>
-              <%= c.label a.attributeName, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+          <% ci_attributes.attributes[a.attributeName] = a.defaultValue unless ci_attributes.attributes.include?(a.attributeName) %>
+          <% read_only = ci.respond_to?(:ciId) && ci.ciId.to_i > 0 && a.options.has_key?(:editable) && !a.options[:editable] %>
+  		   	<div class="control-group" editable="<%= !read_only %>">
+            <%= c.label a.attributeName,
+                        link_to("#{a.description}#{'*' if a.isMandatory}", '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{a.options[:help].presence || a.description}"),
+                        :class => "control-label #{'sticky' if attr_owner}" %>
+            <% if attr_owner %>
+              <div class="input-prepend lock-container">
+                <%= render 'cms/cis/sticky',
+                           :name      => "#{f.object_name}[#{attr_owner_name}][owner][#{a.attributeName}]",
+                           :value     => attr_owner.attributes[a.attributeName],
+                           :read_only => read_only && !ci.ciClassName.start_with?('catalog.') %>
+              </div>
             <% end %>
-            <% ci_attributes.attributes[a.attributeName] = a.defaultValue unless ci_attributes.attributes.include?(a.attributeName) %>
-            <% read_only = ci.respond_to?(:ciId) && ci.ciId.to_i > 0 && a.options.has_key?(:editable) && !a.options[:editable] %>
             <div class="controls" editable="<%= !read_only %>">
-              <% if sticky_map %>
-                <div class="input-prepend">
-                  <%= render 'cms/cis/sticky',
-                             :name      => "#{f.object_name}[ciAttrProps][owner][#{a.attributeName}]",
-                             :value     => ci.ciAttrProps.owner.attributes[a.attributeName],
-                             :read_only => read_only && !ci.ciClassName.start_with?('catalog.') %>
-              <% end %>
               <% pattern         = a.options[:pattern]
                  pattern         = "(#{pattern})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present?
                  required        = a.isMandatory ? true : nil
@@ -93,7 +93,7 @@
                   <% if form_options.present? %>
                     <% case form_options[:field] %>
                       <% when 'textarea' %>
-                        <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern %>
+                        <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern, :'data-raw-url' => ci.persisted? ? lookup_ci_attribute_path(ci.ciId, a.attributeName) : '' %>
                       <% when 'checkbox' %>
                         <% if form_options[:multiple] == 'true' %>
                           <%= render 'cms/cis/multiselect',
@@ -117,9 +117,6 @@
                     <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern %>
                   <% end %>
                 <% end %>
-              <% end %>
-              <% if sticky_map %>
-                </div>
               <% end %>
               <% if a.options.has_key?(:tip) %>
                 <% tip = a.options[:tip] %>

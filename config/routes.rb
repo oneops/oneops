@@ -29,14 +29,14 @@ Display::Application.routes.draw do
   get 'r/i/:id'                             => 'redirect#instance',    :as => 'redirect_instance'
   get 'r/instances/:id/monitors/:monitor/d' => 'redirect#monitor_doc', :as => 'redirect_instance_monitor_doc'
 
-  get 'l/ci/:id'         => 'lookup#ci',         :as => 'lookup_ci'
-  get 'l/ci/:id/:attribute_name' => 'lookup#ci', :as => 'lookup_ci_attribute'
-  get 'l/release/:id'    => 'lookup#release'
-  get 'l/r/:id'          => 'lookup#release',    :as => 'lookup_release'
-  get 'l/deployment/:id' => 'lookup#deployment'
-  get 'l/d/:id'          => 'lookup#deployment', :as => 'lookup_deployment'
-  get 'l/procedure/:id'  => 'lookup#procedure'
-  get 'l/p/:id'          => 'lookup#procedure',  :as => 'lookup_procedure'
+  get 'l/ci/:id'                 => 'lookup#ci',         :as => 'lookup_ci'
+  get 'l/ci/:id/:attribute_name' => 'lookup#ci',         :as => 'lookup_ci_attribute'
+  get 'l/release/:id'            => 'lookup#release'
+  get 'l/r/:id'                  => 'lookup#release',    :as => 'lookup_release'
+  get 'l/deployment/:id'         => 'lookup#deployment'
+  get 'l/d/:id'                  => 'lookup#deployment', :as => 'lookup_deployment'
+  get 'l/procedure/:id'          => 'lookup#procedure'
+  get 'l/p/:id'                  => 'lookup#procedure',  :as => 'lookup_procedure'
 
   get '/api_docs' => 'welcome#api_docs'
 
@@ -232,6 +232,13 @@ Display::Application.routes.draw do
 
           resources :components, :only => [:index, :show] do
             resources :attachments, :only => [:index, :show]
+            resources :monitors, :only => [:index, :show] do
+              get 'watched_by', :on => :member
+            end
+          end
+
+          resources :monitors, :only => [:show] do
+            get 'watched_by', :on => :member
           end
         end
       end
@@ -246,8 +253,9 @@ Display::Application.routes.draw do
           resources :policies, :only => [:index, :show]
 
           resources :components, :only => [:index, :show] do
-            resources :attachments, :only => [:index, :show]
+            resources :monitors, :only => [:index, :show]
           end
+          resources :monitors, :only => [:show]
         end
       end
     end
@@ -312,9 +320,23 @@ Display::Application.routes.draw do
             resources :attachments do
               get 'history', :on => :member
             end
+
+            resources :monitors do
+              get 'watched_by',        :on => :member
+              put 'update_watched_by', :on => :member
+              put 'toggle',            :on => :member
+              get 'history',           :on => :member
+            end
           end
 
           resources :attachments, :only => [:show, :edit, :update, :destroy]
+
+          resources :monitors, :only => [:show, :edit, :update, :destroy] do
+            get 'watched_by', :on => :member
+            put 'update_watched_by', :on => :member
+            put 'toggle', :on => :member
+            get 'history', :on => :member
+          end
         end
 
         resources :releases, :only => [:edit, :show, :index] do
@@ -381,7 +403,7 @@ Display::Application.routes.draw do
                 get 'history', :on => :member
               end
 
-              resources :monitors do
+              resources :monitors, :only => [:index, :show, :edit, :update] do
                 get 'watched_by',        :on => :member
                 put 'update_watched_by', :on => :member
                 put 'toggle',            :on => :member
@@ -399,7 +421,12 @@ Display::Application.routes.draw do
 
             resources :attachments, :only => [:show, :edit, :update]
 
-            resources :monitors, :only => [:show, :edit, :update]
+            resources :monitors, :only => [:show, :edit, :update] do
+              get 'watched_by', :on => :member
+              put 'update_watched_by', :on => :member
+              put 'toggle', :on => :member
+              get 'history', :on => :member
+            end
           end
 
           resources :releases, :only => [:show, :edit, :index] do

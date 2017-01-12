@@ -16,13 +16,13 @@
     <dd><%= ci.nsPath %></dd>
     <% unless editable %>
       <dt>Created</dt>
-      <dd><%= time_ago_in_words(ci.created_timestamp) %> by <%= ci.createdBy %></dd>
+      <dd><%= time_ago_in_words(ci.created_timestamp) %><%= raw(" by #{ci.createdBy}") if ci.createdBy %></dd>
       <% unless ci.created == ci.updated %>
         <dt>Updated</dt>
         <dd><%= time_ago_in_words(ci.updated_timestamp) %><%= raw(" by #{ci.updatedBy}") if ci.updatedBy %></dd>
       <% end %>
     <% end %>
-    <% if ci.is_a?(Cms::DjCi)&& controller.action_methods.include?('history') && ci.rfcAction != 'add'  %>
+    <% if ci.is_a?(Cms::DjCi) && controller.action_methods.include?('history') && ci.rfcAction != 'add'  %>
       <dt>History</dt>
       <dd><%= link_to('View history of committed changes', url_for(:action => :history, :id => ci)) %></dd>
     <% end %>
