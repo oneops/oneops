@@ -1012,7 +1012,12 @@ img.authicon {
 .breadcrumb_image {
   float:    left;
   position: relative;
-  /*display:  none;*/
+  padding-right: 5px;
+}
+
+.breadcrumb_image i {
+  color: black;
+  vertical-align: text-bottom;
 }
 
 .breadcrumb_image img {
@@ -1115,12 +1120,19 @@ img.authicon {
   text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
 }
 
-#page_title > img, #page_title > i.fa {
+#page_title > img {
   float:        left;
   height:       30px;
   width:        30px;
   padding:      0;
+  font-size:    24px;
+}
+
+#page_title > i {
+  float:        left;
+  padding:      0 5px 0 0;
   font-size:    28px;
+  vertical-align: text-bottom;
 }
 
 #page_title_text {
@@ -2784,7 +2796,7 @@ div.rfc-list img, div.action-list img {
   font-weight: bold;
   vertical-align: middle;
   color:       #000;
-  padding: 15px;
+  padding: 15px 0 10px 15px;
 }
 
 .wf .instance .type {
@@ -2809,19 +2821,19 @@ div.rfc-list img, div.action-list img {
   padding-left: 5px;
 }
 .wf .instance .scope {
+  color: #888;
   margin-top: 7px;
   font-size: 14px;
+}
+
+.wf .instance .scope i {
+  color: black;
 }
 
 .wf .comments {
   margin: -15px 20px 5px 20px;
   font-size: 12px;
   font-weight: normal;
-}
-
-.wf .instance .scope img {
-  width: 24px;
-  height: 24px;
 }
 
 .wf .close {
@@ -4168,7 +4180,7 @@ hr {
 }
 
 #page_title  .favorite i.fa-bookmark-o {
-  color: #c8c8c8;
+  color: #8cf;
 }
 
 .drop-up {

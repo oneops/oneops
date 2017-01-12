@@ -4,17 +4,15 @@
 <div class="wf">
   <div class="header">
     <div class="instance">
-      <span class="type">Deployment</span><%= deployment_persisted ? @deployment.id : '' %>
+      <%= icon(site_icon!(:deployment)) %> <span class="type">Deployment</span> <%= deployment_persisted ? @deployment.id : '' %>
       <div class="status">
         <% deployment_state = @deployment ? (@deployment.deploymentState.presence || 'new') : 'generating' %>
         <%= content_tag(:span, deployment_state.upcase, :id => 'deployment_state', :class => "highlight #{deployment_state}") %>
       </div>
       <div class="scope">
-        <%= image_tag(ci_image_url(@assembly)) %> <%= @assembly.ciName %>
-        <%= image_tag(ci_image_url(@environment)) %> <%= @environment.ciName %>
-        <% if @deployment %>
-          - release <%= highlight(@release.id) %>
-        <% end %>
+        <%= icon(site_icon!(:assembly)) %> assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
+        <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %> <b> > </b>&nbsp;
+        <%= icon(site_icon!(:release)) %> release <%= link_to(@release.id, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
       </div>
     </div>
     <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>

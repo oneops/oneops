@@ -23,7 +23,9 @@ module ApplicationHelper
                 :export                 => 'download',
                 :import                 => 'upload',
                 :timeline               => 'clock-o',
-                :history                => 'history'}
+                :history                => 'history',
+                :release                => 'tag',
+                :deployment             => 'cloud-upload'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -282,8 +284,16 @@ module ApplicationHelper
       items.each do |item|
         html << '<li>'
         block = ''
-        block << content_tag(:div, image_tag(item[:icon]), :class => 'breadcrumb_image') if item[:icon]
-        block << content_tag(:div, sanitize(item[:kind]), :class => 'item_kind') if item[:kind]
+
+        icon_name = item[:icon]
+        kind      = item[:kind]
+        if icon_name.present?
+          block << content_tag(:div, image_tag(icon_name), :class => 'breadcrumb_image')
+        else
+          icon_name = site_icon!(kind.downcase)
+          block << content_tag(:div, icon(icon_name), :class => 'breadcrumb_image') if icon_name
+        end
+        block << content_tag(:div, sanitize(kind), :class => 'item_kind') if kind
         block << content_tag(:div, sanitize(item[:label]), :class => 'item_label')
         html << content_tag(:div, (item[:link] ? link_to(sanitize(block), item[:link]) : block.html_safe), :class => 'breadcrumb_text')
         html << content_tag(:div, icon('angle-right'), :class => 'breadcrumb_separator_text')
