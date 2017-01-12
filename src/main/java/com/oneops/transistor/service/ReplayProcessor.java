@@ -62,8 +62,8 @@ public class ReplayProcessor {
 
         List<CmsRfcRelation> relations = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
         relations.forEach(relation -> restoreRelation(idMap, errors, relation));
-        
-        
+
+
         // remove release if replay triggered no rfc's. 
         if (rfcProcessor.getRfcCountByNs(nsPath)+rfcProcessor.getRfcRelationCountByNs(nsPath)==0){
             List<CmsRelease> open = rfcProcessor.getLatestRelease(nsPath, "open");
@@ -79,7 +79,7 @@ public class ReplayProcessor {
         CmsCI existingCi = getCmsCI(rfcToReplay);
         CmsRfcCI existingRfc = getCmsRfcCI(rfcToReplay);
         logger.info(rfcToReplay.getRfcAction() + ":" + rfcToReplay.getCiName() + "@" + rfcToReplay.getNsPath());
-        
+
         long oldCiId = rfcToReplay.getCiId();
 
         rfcToReplay.setRfcId(existingRfc == null ? 0 : existingRfc.getRfcId());
