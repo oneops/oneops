@@ -343,6 +343,23 @@ public class TransistorRestController extends AbstractRestController {
 			throw te;
 		}
 	}
+
+	@RequestMapping(value="/environment/{envId}/import", method = RequestMethod.POST)
+	@ResponseBody
+	public Map<String,String> importEnvironment(
+			@RequestBody EnvironmentExportSimple envExport,
+			@PathVariable long envId,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+
+		dManager.importEnvironment(envId, userId, scope, envExport);
+
+		Map<String, String> result = new HashMap<>(1);
+		result.put("result", "success");
+		return result;
+	}
 	
 	@RequestMapping(value="/environments/{envId}", method = RequestMethod.PUT)
 	@ResponseBody

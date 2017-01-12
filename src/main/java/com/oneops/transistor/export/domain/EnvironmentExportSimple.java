@@ -54,7 +54,7 @@ public class EnvironmentExportSimple {
         return manifest;
     }
 
-    public void getDesign(DesignExportSimple design) {
-        this.manifest = design;
+    public void setManifest(DesignExportSimple manifest) {
+        this.manifest = manifest;
     }
 }

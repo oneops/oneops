@@ -97,6 +97,11 @@ public class DesignManagerImpl implements DesignManager {
 	}
 
 	@Override
+	public long importEnvironment(long assemblyId, String userId, String scope, EnvironmentExportSimple ees) {
+		return designExpProcessor.importEnvironment(assemblyId, userId, scope, ees);
+	}
+
+	@Override
 	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des) {
 		return designExpProcessor.importDesign(assemblyId, userId, scope, des);
 	}

@@ -1,18 +1,12 @@
 package com.oneops.transistor.service;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.exceptions.DJException;
@@ -20,9 +14,16 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.export.domain.*;
+import com.oneops.transistor.export.domain.ExportCi;
+import com.oneops.transistor.export.domain.ExportRelation;
+import org.apache.log4j.Logger;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class DesignExportProcessor {
-	
+    private static final String USER_EXPORT = "export";
+    private static Logger logger = Logger.getLogger(DesignExportProcessor.class);
 	private CmsCmProcessor cmProcessor;
 	private DesignRfcProcessor designRfcProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
@@ -46,7 +47,6 @@ public class DesignExportProcessor {
     private static final String MGMT_PREFIX = "mgmt.";
     private static final String DESIGN_MONITOR_CLASS = "catalog.Monitor";
     
-
     private static final String OWNER_DESIGN = "design";
     private static final String OWNER_MANIFEST = "manifest";
     private static final String ATTR_SECURE = "secure";
@@ -279,14 +279,197 @@ public class DesignExportProcessor {
         return (value != null && value.startsWith(ENCRYPTED_PREFIX)) ? ENCRYPTED_PREFIX : value;
     }
 
-  
+
+    long importEnvironment(long environmentId, String userId, String scope, EnvironmentExportSimple ees) {
+        DesignExportFlavor flavor = DesignExportFlavor.MANIFEST;
+        CmsCI environment = cmProcessor.getCiById(environmentId);
+        if (environment == null) {
+            throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ENV_ID_ERROR_MSG + environmentId);
+        }
+
+        String nsPath = environment.getNsPath() + "/" + environment.getCiName();
+
+        List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(nsPath, "open");
+        if (openReleases.size() > 0) {
+            throw new DesignExportException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
+        }
+
+        List<ExportRelation> consumes = ees.getConsumes();
+        Map<String, CmsCIRelation> map = cmProcessor.getFromCIRelations(environmentId, flavor.getConsumesRelation(), ACCOUNT_CLOUD_CLASS).stream().collect(Collectors.toMap(x -> x.getToCi().getCiName(), x->x));
+        for (ExportRelation cloudRel: consumes) {
+            CmsCIRelation rel =  map.remove(cloudRel.getName());
+            if (rel==null){ // need to add link to a cloud
+                List<CmsCI> existingClouds = cmProcessor.getCiBy3(cloudRel.getType(), ACCOUNT_CLOUD_CLASS, cloudRel.getName());
+                if (existingClouds != null && !existingClouds.isEmpty()) {
+                    addRelation(flavor.getConsumesRelation(), cloudRel.getType(), cloudRel.getAttributes(), environmentId, existingClouds.get(0).getCiId());
+                } else {
+                    logger.warn("There is no cloud:"+ cloudRel.getName()); // this is error cloud doesn't exist 
+                }
+            } else {
+                updateRelation(rel, cloudRel.getAttributes());
+            }
+        }
+        for (CmsCIRelation existingRel : map.values()) {
+            removeRelation(existingRel);
+        }
+
+
+        List<ExportCi> delivers = ees.getRelays();
+        Map<String, CmsCIRelation> map1 = cmProcessor.getFromCIRelations(environmentId, "manifest.Delivers", "manifest.relay.email.Relay").stream().collect(Collectors.toMap(x -> x.getToCi().getCiName(), x->x));
+        for (ExportCi deliver: delivers) {
+            CmsCIRelation del =  map1.remove(deliver.getName());
+            if (del == null) {
+                addCi(nsPath, deliver);
+            } else {
+                updateCi( del.getToCi(), deliver);
+            }
+            for (CmsCIRelation existingRel : map1.values()) {
+                removeRelation(existingRel);
+                removeCi(existingRel.getToCi());
+            }
+        }
+        
+
+        return importDesignWithFlavor(environmentId, userId, scope, ees.getManifest(), nsPath, flavor);
+    }
+
+
+    private void addRelation(String name, String ns, Map<String, String> attributes, long fromCi, long toCi) {
+        CmsRfcRelation rel = new CmsRfcRelation();
+        rel.setNsPath(ns);
+        rel.setRelationName(name);
+        rel.setFromCiId(fromCi);
+        rel.setToCiId(toCi);
+        
+        if (attributes != null) {
+            for (Map.Entry<String, String> attr : attributes.entrySet()) {
+                CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                if (attr.getValue() != null) {
+                    rfcAttr.setAttributeName(attr.getKey());
+                    rfcAttr.setNewValue(attr.getValue());
+                    rfcAttr.setOwner(OWNER_MANIFEST);
+                    rel.addAttribute(rfcAttr);
+                }
+            }
+        }
+        logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath() + " " + rel.getFromCiId() + "->" + rel.getToCiId());
+        cmRfcMrgProcessor.upsertRfcRelationNoCheck(rel, USER_EXPORT, null);
+    }
+
+    private void updateRelation(CmsCIRelation relation, Map<String, String> snapshotAttributes) {
+        CmsRfcRelation rel = new CmsRfcRelation();
+        rel.setNsPath(relation.getNsPath());
+        rel.setToCiId(relation.getToCiId());
+        rel.setFromCiId(relation.getFromCiId());
+       
+        Map<String, CmsCIRelationAttribute> existingAttributes = relation.getAttributes();
+        relation.setRelationId(relation.getRelationId());
+        for (String key : snapshotAttributes.keySet()) {
+            CmsCIRelationAttribute ciAttribute = existingAttributes.remove(key);
+            String value = snapshotAttributes.get(key);
+            if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
+                rel.addAttribute(getAttributeRfc(key, value));
+            }
+        }
+        if (!rel.getAttributes().isEmpty()) {
+            logger.info("Updating relation:" + relation.getRelationName() + "@" + relation.getNsPath());
+            cmRfcMrgProcessor.upsertRelationRfc(rel, "import");
+        } else {
+            logger.info("Nothing to update in relation:" + relation.getRelationName() + "@" + relation.getNsPath());
+        }
+    }
+
+
+    private CmsRfcCI addCi(String ns, ExportCi eci) {
+        CmsRfcCI rfc = new CmsRfcCI();
+        rfc.setCiName(eci.getName());
+        rfc.setCiClassName(eci.getType());
+        rfc.setNsPath(ns);
+        processAttributes(eci, rfc);
+        logger.info("adding ci:" + rfc.getCiName() + "@" + rfc.getNsPath());
+        return cmRfcMrgProcessor.upsertCiRfc(rfc, USER_EXPORT);
+    }
+
+    private void removeCi(CmsCI ci) {
+        logger.info("removing ci:" + ci.getCiName() + "@" + ci.getNsPath());
+        cmRfcMrgProcessor.requestCiDelete(ci.getCiId(), USER_EXPORT);
+    }
+    
+    private void processAttributes(ExportCi exportRelation, CmsRfcContainer rel) {
+        if (exportRelation.getAttributes() != null) {
+            for (Map.Entry<String, String> attr : exportRelation.getAttributes().entrySet()) {
+                CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                if (attr.getValue() != null) {
+                    rfcAttr.setAttributeName(attr.getKey());
+                    rfcAttr.setNewValue(attr.getValue());
+                    rel.addAttribute(rfcAttr);
+                }
+            }
+        }
+    }
+
+
+    private void updateCi(CmsCI ci, ExportCi eci) {
+        Map<String, CmsCIAttribute> existingAttributes = ci.getAttributes();
+        Map<String, String> snapshotAttributes = eci.getAttributes();
+        CmsRfcCI rfc = new CmsRfcCI();
+        rfc.setCiName(eci.getName());
+        rfc.setCiClassName(eci.getType());
+        rfc.setNsPath(ci.getNsPath());
+        rfc.setCiId(ci.getCiId());
+        for (String key : snapshotAttributes.keySet()) {
+            CmsCIAttribute ciAttribute = existingAttributes.remove(key);
+            String value = snapshotAttributes.get(key);
+
+            if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
+                CmsRfcAttribute rfcAttr = getAttributeRfc(key, value);
+                rfc.addAttribute(rfcAttr);
+            }
+        }
+        if (!rfc.getAttributes().isEmpty()) {
+            logger.info("Updating:" + ci.getCiName() + "@" + ci.getNsPath());
+            cmRfcMrgProcessor.upsertRfcCINoChecks(rfc, USER_EXPORT, null);
+
+        } else {
+            logger.info("no need to update:"+ ci.getCiName() + "@" + ci.getNsPath());
+        }
+    }
+
+    private CmsRfcAttribute getAttributeRfc(String key, String value) {
+        CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+        rfcAttr.setAttributeName(key);
+        rfcAttr.setNewValue(value);
+        rfcAttr.setOwner(OWNER_MANIFEST);
+        return rfcAttr;
+    }
+
+
+    private void removeRelation(CmsCIRelation existingRel) {
+        CmsRfcRelation newRfc = new CmsRfcRelation();
+        newRfc.setCiRelationId(existingRel.getCiRelationId());
+        newRfc.setFromCiId(existingRel.getFromCiId());
+        newRfc.setToCiId(existingRel.getToCiId());
+        newRfc.setNsId(existingRel.getNsId());
+        newRfc.setNsPath(existingRel.getNsPath());
+        newRfc.setRelationGoid(existingRel.getRelationGoid());
+        newRfc.setRelationId(existingRel.getRelationId());
+        newRfc.setRelationName(existingRel.getRelationName());
+        newRfc.setComments("deleting");
+        newRfc.setRfcAction("delete");
+        newRfc.setExecOrder(0);
+        newRfc.setCreatedBy(USER_EXPORT);
+        newRfc.setUpdatedBy(USER_EXPORT);
+        logger.info("Removing relation:" + newRfc.getRelationName() + "@" + newRfc.getNsPath());
+        rfcProcessor.createRfcRelation(newRfc, USER_EXPORT);
+    }
+
 
     /***********
      * Import
      */
 
     long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des) {
-        DesignExportFlavor flavor = DesignExportFlavor.DESIGN;
+        
         CmsCI assembly = cmProcessor.getCiById(assemblyId);
         if (assembly == null) {
             throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ASSEMBLY_ID_ERROR_MSG + assemblyId);
@@ -299,8 +482,12 @@ public class DesignExportProcessor {
             throw new DesignExportException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
         }
 
+        return importDesignWithFlavor(assemblyId, userId, scope, des, designNsPath, DesignExportFlavor.DESIGN);
+    }
+
+    private long importDesignWithFlavor(long ciId, String userId, String scope, DesignExportSimple des, String designNsPath, DesignExportFlavor flavor) {
         if (des.getVariables() != null && !des.getVariables().isEmpty()) {
-            importGlobalVars(assemblyId, designNsPath, des.getVariables(), userId, flavor);
+            importGlobalVars(ciId, designNsPath, des.getVariables(), userId, flavor);
         }
         for (PlatformExport platformExp : des.getPlatforms()) {
 
@@ -334,7 +521,7 @@ public class DesignExportProcessor {
 				if (platformRfc.getAttribute("description").getNewValue() == null) {
 					platformRfc.getAttribute("description").setNewValue("");
 				}
-				designPlatform = designRfcProcessor.generatePlatFromTmpl(platformRfc, assemblyId, userId, scope);
+				designPlatform = designRfcProcessor.generatePlatFromTmpl(platformRfc, ciId, userId, scope);
 			}
 			String platNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
 			String packNsPath = getPackNsPath(designPlatform);
@@ -354,9 +541,9 @@ public class DesignExportProcessor {
 				}
 			}
 		}
-		
-		//process LinkTos
-		importLinksTos(des, designNsPath, userId, flavor);	
+
+        //process LinkTos
+        importLinksTos(des, designNsPath, userId, flavor);
 
         CmsRelease release = cmRfcMrgProcessor.getReleaseByNameSpace(designNsPath);
         if (release != null) {
@@ -449,6 +636,7 @@ public class DesignExportProcessor {
             }
 
             if (existingVars.isEmpty()) {
+                logger.info("Adding global variable:"+varBaseRfc.getCiName());
                 CmsRfcCI varRfc = cmRfcMrgProcessor.upsertCiRfc(varBaseRfc, userId);
                 CmsRfcRelation valueForRel = trUtil.bootstrapRelationRfc(varRfc.getCiId(), assemblyId, flavor.getGlobalVarRelation(), designNsPath, designNsPath, null);
                 valueForRel.setFromRfcId(varRfc.getRfcId());
@@ -907,7 +1095,9 @@ public class DesignExportProcessor {
         List<CmsCIRelation> clouds = cmProcessor.getFromCIRelations(envId, flavor.getConsumesRelation(), ACCOUNT_CLOUD_CLASS);
         List<ExportRelation> consumes = new ArrayList<>();
         for (CmsCIRelation cloud : clouds) {
-            consumes.add(stripAndSimplify(ExportRelation.class, cloud));
+            ExportRelation exportRelation = stripAndSimplify(ExportRelation.class, cloud);
+            exportRelation.setType(cloud.getToCi().getNsPath());
+            consumes.add(exportRelation);
         }
         exportSimple.setConsumes(consumes);
 
@@ -920,7 +1110,7 @@ public class DesignExportProcessor {
 
 
         DesignExportSimple design = exportDesign(envId, platformIds, scope, flavor);
-        exportSimple.getDesign(design);
+        exportSimple.setManifest(design);
         return exportSimple;
     }
 
