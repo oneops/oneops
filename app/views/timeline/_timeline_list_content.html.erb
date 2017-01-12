@@ -1,8 +1,7 @@
 <% open_release = @release && @release.releaseState == 'open'
    restore_label = icon('backward', 'Restore release') %>
 <%= render_timeline_list_content(@timeline) do |builder, item| %>
-  <% if false %>
-  <%# if item.is_a?(Cms::Release) && item.releaseState == 'closed' && @release.releaseId != item.releaseId %>
+  <% if item.is_a?(Cms::Release) && item.releaseState == 'closed' && @release.releaseId != item.releaseId %>
     <% builder.menu do %>
       <% if open_release %>
         <li class="disabled"><%= link_to_function(restore_label, '') %></li>
