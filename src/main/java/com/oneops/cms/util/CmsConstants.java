@@ -48,10 +48,18 @@ public final class CmsConstants {
 	public static final String BASE_PROVIDES = "base.Provides";
 	public static final String BASE_PLACED_IN = "base.PlacedIn";
 	public static final String BASE_CONSUMES = "base.Consumes";
+	public static final String BASE_REQUIRES = "base.Requires";
+
+	//catalog relations
+	public static final String CATALOG_ESCORTED_BY = "catalog.EscortedBy";
+	public static final String CATALOG_WATCHED_BY = "catalog.WatchedBy";
+
 	//manifest
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
 
+	//mgmt
+	public static final String MGMT_CATALOG_WATCHEDBY = "mgmt.catalog.WatchedBy";
 
 	//attributes
 	public static final String ATTR_VALUE_TYPE_DF = "df";
@@ -62,6 +70,10 @@ public final class CmsConstants {
 	public static final String ATTR_NAME_ADMINSTATUS = "adminstatus";
 	public static final String ATTR_RUN_ON = "run_on";
 	public static final String ATTR_RUN_ON_ACTION = "run_on_action";
+	public static final String ATTR_NAME_SOURCE = "source";
+	public static final String ATTR_SOURCE_VALUE_DESIGN = "design";
+	public static final String ATTR_OWNER_VALUE_DESIGN = "design";
+	public static final String MONITOR_CUSTOM_ATTR = "custom";
 
 	//class-names
 	//account
@@ -70,6 +82,8 @@ public final class CmsConstants {
 	public static final String MONITOR_CLASS = "manifest.Monitor";
 	public static final String ZONE_CLASS = "cloud.Zone";
 	public static final String CLOUD_CLASS = "account.Cloud";
+
+	public static final String CATALOG_MONITOR_CLASS = "catalog.Monitor";
 
 	public static final String BOM = "bom";
 	public static final String MANIFEST = "manifest";

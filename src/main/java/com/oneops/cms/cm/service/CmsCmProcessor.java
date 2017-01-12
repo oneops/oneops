@@ -18,12 +18,14 @@
 package com.oneops.cms.cm.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -884,6 +886,27 @@ public class CmsCmProcessor {
 	}
 
 	/**
+	 * Gets the from ci relations by multiple names
+	 *
+	 * @param fromId the from id
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param toClazzName the to clazz name
+	 * @return the from ci relations
+	 */
+	public Map<String, List<CmsCIRelation>> getFromCIRelationsByMultiRelationNames(long fromId, List<String> relationNames, List<String> shortRelNames) {
+		List<CmsCIRelation> relations = getFromCIRelationsLocal(fromId, relationNames, shortRelNames);
+		Map<String, List<CmsCIRelation>> relationsMap = null;
+		if (relations != null) {
+			relationsMap = relations.stream().collect(Collectors.groupingBy(CmsCIRelation::getRelationName));
+		}
+		else {
+			relationsMap = Collections.emptyMap();
+		}
+		return relationsMap;
+	}
+
+	/**
 	 * Gets the specific CI Relation using name and class
 	 * @param fromId the ciId of which the relation needs to be found from 
 	 * @param relationName  relationName (eg. manifest.WatchedBy)
@@ -902,8 +925,6 @@ public class CmsCmProcessor {
 		return relList;
 	}
 
-	
-	
 	private List<CmsCIRelation> getFromCIRelationsLocal(long fromId,
 			String relationName, String shortRelName, String toClazzName) {
 
@@ -915,6 +936,12 @@ public class CmsCmProcessor {
 			rel.setToCi(getCiById(rel.getToCiId()));
 		}
 		*/
+		return relList;
+	}
+
+	private List<CmsCIRelation> getFromCIRelationsLocal(long fromId, List<String> relationNames, List<String> shortRelNames) {
+		List<CmsCIRelation> relList = getFromCIRelationsNakedLocal(fromId, relationNames, shortRelNames);
+		populateRelCis(relList, false, true);
 		return relList;
 	}
 
@@ -985,13 +1012,19 @@ public class CmsCmProcessor {
 		populateRelAttrs(relList);
 		return relList;
 	}
-	
+
 	private List<CmsCIRelation> getFromCIRelationsNakedLocal(long fromId,
 			String relationName, String shortRelName, String toClazzName) {
 		
 		CiClassNames names = parseClassName(toClazzName);
 		
 		List<CmsCIRelation> relList = ciMapper.getFromCIRelations(fromId, relationName, shortRelName, names.className, names.shortClassName);
+		populateRelAttrs(relList);
+		return relList;
+	}
+
+	private List<CmsCIRelation> getFromCIRelationsNakedLocal(long fromId, List<String> relationNames, List<String> shortRelNames) {
+		List<CmsCIRelation> relList = ciMapper.getFromCIRelationsByMultiRelationNames(fromId, relationNames, shortRelNames);
 		populateRelAttrs(relList);
 		return relList;
 	}
@@ -1209,6 +1242,25 @@ public class CmsCmProcessor {
 		return ciMapper.getCIRelationsNsLike(ns, nsLike, relationName, shortRelName, fromNames.className, fromNames.shortClassName, toNames.className, toNames.shortClassName); 
 	}
 	
+	/**
+	 * Gets the cI relations 
+	 *
+	 * @param nsPath the ns path
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param fromClazzName the from clazz name
+	 * @param toClazzName the to clazz name
+	 * @return the cI relations naked
+	 */
+	public List<CmsCIRelation> getCIRelations(String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName) {
+		CiClassNames toNames = parseClassName(toClazzName);
+		CiClassNames fromNames = parseClassName(fromClazzName);
+		List<CmsCIRelation> relList = ciMapper.getCIRelations(nsPath, relationName, shortRelName, fromNames.className, fromNames.shortClassName, toNames.className, toNames.shortClassName);
+		populateRelAttrs(relList);
+		populateRelCis(relList, true, true);
+		return relList;
+
+	}
 	
 	/**
 	 * Gets the to ci relations.

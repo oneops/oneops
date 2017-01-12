@@ -807,6 +807,14 @@ public class CmsCmRfcMrgProcessor {
     }
 
     /**
+     * gets the ci relations by nsPath
+     */
+    public List<CmsRfcRelation> getCIRelations(String nsPath, String relationName, String shortRelationName, 
+    		String fromClazzName, String toClazzName, String cmAttrValue) {
+        return getCIRelationsByAttrs(nsPath, relationName, shortRelationName, fromClazzName, toClazzName, cmAttrValue, null);
+    }
+
+    /**
      * Gets the from ci relations by attrs.
      *
      * @param fromId            the from id
@@ -825,6 +833,21 @@ public class CmsCmRfcMrgProcessor {
         List<CmsCIRelation> cmRelations = cmProcessor.getFromCIRelationsNaked(fromId, relationName, shortRelationName, toClazzName);
         List<CmsRfcRelation> rfcRelations = (toClazzName != null) ?
                 rfcProcessor.getOpenFromRfcRelationByTargetClazz(fromId, relationName, shortRelationName, toClazzName) : rfcProcessor.getOpenRfcRelationBy2(fromId, null, relationName, shortRelationName);
+
+        Map<Long, Relations> relsMap = buildRelationsMap(cmRelations, rfcRelations);
+
+        return mergeRelations(relsMap.values(), cmAttrValue, false, true, attrConditions);
+    }
+
+    public List<CmsRfcRelation> getCIRelationsByAttrs(
+            String nsPath, String relationName, String shortRelationName, String fromClazzName, String toClazzName, String cmAttrValue, List<AttrQueryCondition> attrConditions) {
+
+        if (cmAttrValue == null) cmAttrValue = "df";
+
+        List<CmsCIRelation> cmRelations = cmProcessor.getCIRelationsNaked(nsPath, relationName, shortRelationName, fromClazzName, toClazzName);
+        List<CmsRfcRelation> rfcRelations = (toClazzName != null) ?
+                rfcProcessor.getOpenRfcRelationsNaked(relationName, shortRelationName, nsPath, fromClazzName, toClazzName) : 
+                rfcProcessor.getOpenRfcRelationBy2(null, null, relationName, shortRelationName);
 
         Map<Long, Relations> relsMap = buildRelationsMap(cmRelations, rfcRelations);
 

@@ -78,6 +78,8 @@ public interface CmsError {
     int DJ_OPEN_RELEASE_WRONG_TYPE_ERROR = 2025;
     int DJ_BAD_CI_NAME_ERROR = 2026;
     int DJ_EXPR_EVAL_ERROR = 2027;
+    int DJ_INVALID_COMPONENT_ERROR = 2028;
+    int DJ_BAD_TEMPLATE_NAME_ERROR = 2029;
  
 
 
