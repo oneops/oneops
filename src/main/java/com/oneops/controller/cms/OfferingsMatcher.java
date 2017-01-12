@@ -5,7 +5,6 @@ import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import org.apache.log4j.Logger;
-import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -23,7 +22,7 @@ public class OfferingsMatcher {
     private ExpressionParser exprParser;
 
     public static String convert(String elasticExp) {
-        return elasticExp.replace(":", "=='").replace("*.[1 TO *]", "[a-zA-Z0-9.]*").replace(".size", "['size']").replaceFirst("ciClassName==", "ciClassName matches ").replace(".Compute", ".Compute'")+"'";
+        return elasticExp.replace(":", "=='").replace("*.[1 TO *]", "[a-zA-Z0-9.]*").replace(".size", "['size']").replaceFirst("ciClassName==", "ciClassName matches ").replace(".Compute", ".Compute'").replace(".*Compute", ".*Compute'")+"'";
     }
 
     public static boolean isLikelyElasticExpression(String elasticExp) {
