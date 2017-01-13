@@ -74,7 +74,9 @@ public class CloudUtil {
                             cloudServices.put(cloud, getCloudServices(cloudRelation));
                         }
                         //check if service is configured
-                        cloudsMissingServices.putAll(getMissingCloudServices(cloud, cloudServices.get(cloud), requiredServices));
+                        cloudsMissingServices.putAll(getMissingCloudServices(cloud,
+                                cloudServices.get(cloud),
+                                requiredServices));
                     });
 
             if (!cloudsMissingServices.isEmpty()) {
@@ -91,7 +93,7 @@ public class CloudUtil {
 
 
     private String getErrorMessage(Map<String, TreeSet<String>> cloudsMissingServices, String nsPath) {
-        return String.format("All services <%s> required for platform (%s) are not configured for clouds.Please contact your org. admin ."
+        return String.format("All services <%s> required for platform (%s) are not configured for clouds. Please contact your org. admin."
                         , cloudsMissingServices.toString(),
                 getNSWithoutManifest(nsPath));
     }

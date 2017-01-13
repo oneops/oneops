@@ -33,6 +33,9 @@ import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdProcessor;
+import static com.oneops.cms.util.CmsConstants.*;
+
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.DesignExportException;
@@ -40,6 +43,8 @@ import com.oneops.transistor.exceptions.TransistorException;
 import org.apache.log4j.Logger;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Processor class to sync the design components with the latest pack changes
@@ -111,7 +116,14 @@ public class PackRefreshProcessor {
 
         Map<String, Map<String, CmsCIRelation>> existingCatalogPlatRels = getExistingCatalogPlatRels(designPlatformNsPath);
 
-        processPlatform(templatePlatform, designPlatform, existingCatalogPlatRels, userId, designPlatformNsPath);
+        RefreshContext context = new RefreshContext();
+        context.designPlatformNsPath = designPlatformNsPath;
+        context.userId = userId;
+        context.existingCatalogPlatRels = existingCatalogPlatRels;
+        context.templatePlatform = templatePlatform;
+        context.designPlatform = designPlatform;
+
+        processPlatform(context);
 
         //Check if there is an open release after the pack sync and return the corresponding release id
         CmsRelease release = cmRfcMrgProcessor.getReleaseByNameSpace(designPlatform.getNsPath());
@@ -122,14 +134,17 @@ public class PackRefreshProcessor {
         }
     }
 
-    private void processPlatform(CmsCI templatePlatform, CmsCI designPlatform, Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels, String userId, String designPlatformNsPath){
+    private void processPlatform(RefreshContext context){
+        CmsCI designPlatform = context.designPlatform;
+        CmsCI templatePlatform = context.templatePlatform;
 
         String releaseNsPath = designPlatform.getNsPath();
+        context.releaseNsPath = releaseNsPath;
 
         List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
         List<CmsCIRelation> designRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
 
-        List<CmsCIRelation> existingDependsOnRels =  new ArrayList<>(existingCatalogPlatRels.get("catalog.DependsOn").values());
+        List<CmsCIRelation> existingDependsOnRels =  new ArrayList<>(context.existingCatalogPlatRels.get("catalog.DependsOn").values());
 
         List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
         Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -156,25 +171,126 @@ public class PackRefreshProcessor {
         }
 
         //add call to processEdges
-        Map<Long, List<Long>> templateIdsMap = processEdges(edges , designPlatform, designPlatformNsPath, releaseNsPath, userId);
+        Map<Long, List<CmsRfcCI>> templateIdsMap = processEdges(edges , designPlatform, context);
 
-        Set<String> newRelIds = processPackInterRelations(templInternalRels, templateIdsMap, designPlatformNsPath , releaseNsPath, existingCatalogPlatRels, userId);
+        processMonitors(templInternalRels, templateIdsMap, context);
+        Set<String> newRelIds = processPackInterRelations(templInternalRels, templateIdsMap, context);
 
         for (CmsCIRelation existingDpOn : existingDependsOnRels) {
             String source = existingDpOn.getAttributes().get("source") != null ? existingDpOn.getAttribute("source").getDfValue(): "";
             if (!"user".equals(source) && !newRelIds.contains(existingDpOn.getRelationGoid())) {
                     //call to create the delete relation rfc
-                    cmRfcMrgProcessor.requestRelationDelete(existingDpOn.getCiRelationId(), userId);
+                    cmRfcMrgProcessor.requestRelationDelete(existingDpOn.getCiRelationId(), context.userId);
             }
         }
 
-        processLocalVars(templatePlatform,designPlatform, designPlatformNsPath, releaseNsPath, userId);
-        
-        updatePackDigest(designPlatform, userId);
+        processLocalVars(templatePlatform,designPlatform, releaseNsPath, context);
+
+        updatePackDigest(designPlatform, context);
 
     }
 
-    private void updatePackDigest(CmsCI designPlatform, String userId) {
+    private void processMonitors(List<CmsCIRelation> templInternalRels, Map<Long, List<CmsRfcCI>> templateIdsMap, RefreshContext context) {
+
+        List<CmsCIRelation> existingDesignMonitors = cmProcessor.getCIRelations(context.designPlatformNsPath, CATALOG_WATCHED_BY, null, null, CATALOG_MONITOR_CLASS);
+        //ignore custom monitors
+        Map<Long, List<CmsCIRelation>> existingDesignMonitorMap = existingDesignMonitors.stream().
+                filter(relation -> !(isCustomMonitor(relation.getToCi()))).
+                collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
+
+        List<CmsCIRelation> obsoleteMonitors = new ArrayList<>();
+
+        Map<Long, List<CmsCIRelation>> templateMonitorMap = templInternalRels.stream().
+                filter(relation -> MGMT_CATALOG_WATCHEDBY.equals(relation.getRelationName())).
+                collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
+
+        templateMonitorMap.entrySet().stream().
+            forEach(entry -> {
+                long tmplFromCiId = entry.getKey();
+                List<CmsCIRelation> tmplWatchedByRels = entry.getValue();
+
+                List<CmsRfcCI> designFromRfcs = templateIdsMap.get(tmplFromCiId);
+                if (designFromRfcs != null) {
+                    for (CmsRfcCI designFromRfc : designFromRfcs) {
+                        Map<String, CmsCIRelation> existingRelations4Component = mapMonitorRelations(
+                                existingDesignMonitorMap.get(designFromRfc.getCiId()), designFromRfc, context);
+
+                        for (CmsCIRelation tmplWatchedByRel : tmplWatchedByRels) {
+                            CmsCI tmplMonitorCi = tmplWatchedByRel.getToCi();
+                            CmsCI designMonitorCi = null;
+                            if (existingRelations4Component.containsKey(tmplMonitorCi.getCiName())) {
+                                designMonitorCi = existingRelations4Component.get(tmplMonitorCi.getCiName()).getToCi();
+                            }
+
+                            CmsRfcCI monitorRfc = mergeCis(tmplMonitorCi, designMonitorCi, "catalog", context);
+                            //set monitor name if this is a new monitor
+                            if (designMonitorCi == null) {
+                                monitorRfc.setCiName(getMonitorName(context.designPlatform, designFromRfc.getCiName(), tmplMonitorCi.getCiName()));
+                            }
+                            setCiId(monitorRfc, designMonitorCi);
+                            monitorRfc.setCreatedBy(context.userId);
+                            monitorRfc.setUpdatedBy(context.userId);
+                            monitorRfc = cmRfcMrgProcessor.upsertCiRfc(monitorRfc, context.userId);
+
+                            CmsRfcRelation leafWatchedByRel = mergeRelations(tmplWatchedByRel, context, "catalog.");;
+                            leafWatchedByRel.setFromCiId(designFromRfc.getCiId());
+
+                            if(monitorRfc.getRfcId() > 0) leafWatchedByRel.setToRfcId(monitorRfc.getRfcId());
+                            leafWatchedByRel.setToCiId(monitorRfc.getCiId());
+
+                            leafWatchedByRel.setCreatedBy(context.userId);
+                            leafWatchedByRel.setUpdatedBy(context.userId);
+                            //set the source attribute on the watched by relation to design
+                            CmsRfcAttribute sourceAttrbute = leafWatchedByRel.getAttribute(CmsConstants.ATTR_NAME_SOURCE);
+                            sourceAttrbute.setNewValue(CmsConstants.ATTR_SOURCE_VALUE_DESIGN);
+                            sourceAttrbute.setOwner(CmsConstants.ATTR_OWNER_VALUE_DESIGN);
+                            cmRfcMrgProcessor.upsertRelationRfc(leafWatchedByRel, context.userId);
+
+                            existingRelations4Component.remove(tmplMonitorCi.getCiName());
+                        }
+                        obsoleteMonitors.addAll(existingRelations4Component.values());
+                    }
+			    }
+		    });
+
+        obsoleteMonitors.stream().map(CmsCIRelation::getToCi).forEach(obsoleteMonitor -> {
+            cmRfcMrgProcessor.requestCiDelete(obsoleteMonitor.getCiId(), context.userId, 0);	
+        });
+    }
+    
+    private Map<String, CmsCIRelation> mapMonitorRelations(List<CmsCIRelation> ciRelations, CmsRfcCI designFromRfc, RefreshContext context) {
+        Map<String, CmsCIRelation> relationsMap;
+        if (ciRelations != null) {
+            relationsMap = ciRelations.stream().
+                    collect(Collectors.toMap(
+                        rel -> extractTmplMonitorNameFromDesignMonitor(context.designPlatform, designFromRfc.getCiName(), rel.getToCi().getCiName()), 
+                        Function.identity()));
+        }
+        else {
+            relationsMap = Collections.emptyMap();
+        }
+        return relationsMap;
+    }
+
+    private String getMonitorName(CmsCI designPlat, String componentName, String monitorName) {
+	    return designPlat.getCiName() + "-" + componentName + "-" + monitorName;
+	}
+
+    private String extractTmplMonitorNameFromDesignMonitor(CmsCI designPlat, String componentName, String designMonitorName) {
+	    String prefix = designPlat.getCiName() + "-" + componentName + "-";
+	    if (designMonitorName.length() > prefix.length())
+	        return designMonitorName.substring(designMonitorName.indexOf(prefix) + prefix.length());
+	    else
+	        return designMonitorName;
+	}
+
+	private boolean isCustomMonitor(CmsCI monitorCi) {
+	    CmsCIAttribute customAttr = monitorCi.getAttribute(MONITOR_CUSTOM_ATTR);
+	    return (customAttr != null && "true".equalsIgnoreCase(customAttr.getDfValue()));
+	}
+
+
+    private void updatePackDigest(CmsCI designPlatform, RefreshContext context) {
         String nsPrefix = "/public/" + designPlatform.getAttribute("source").getDfValue()
                 + "/packs/" + designPlatform.getAttribute("pack").getDfValue();
         List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", designPlatform.getAttribute("version").getDfValue());
@@ -182,105 +298,104 @@ public class PackRefreshProcessor {
             String digest = version.getAttribute("commit").getDfValue();
             CmsRfcCI plat = trUtil.cloneRfc(cmRfcMrgProcessor.getCiById(designPlatform.getCiId(), "dj"));
             plat.getAttribute("pack_digest").setNewValue(digest);
-            cmRfcMrgProcessor.upsertCiRfc(plat, userId);
+            cmRfcMrgProcessor.upsertCiRfc(plat, context.userId);
         }
     }
 
-    private void processLocalVars(CmsCI templatePlatform,CmsCI designPlatform, String platNsPath, String releaseNsPath, String userId) {
+    private void processLocalVars(CmsCI templatePlatform,CmsCI designPlatform, String releaseNsPath, RefreshContext context) {
 
         List<CmsCIRelation> localVarPackRels = cmProcessor.getToCIRelations(templatePlatform.getCiId(), "mgmt.catalog.ValueFor",null, "mgmt.catalog.Localvar");
 
         for (CmsCIRelation localVarPackRel : localVarPackRels) {
             CmsCI packVar = localVarPackRel.getFromCi();
-            CmsRfcCI designVarRfc = trUtil.mergeCis(null, packVar, "catalog", platNsPath, releaseNsPath);
+            CmsRfcCI designVarRfc = trUtil.mergeCis(null, packVar, "catalog", context.designPlatformNsPath, releaseNsPath);
             setCiId(designVarRfc,null);
-            designVarRfc.setCreatedBy(userId);
-            designVarRfc.setUpdatedBy(userId);
-            designVarRfc = cmRfcMrgProcessor.upsertCiRfc(designVarRfc, userId);
+            designVarRfc.setCreatedBy(context.userId);
+            designVarRfc.setUpdatedBy(context.userId);
+            designVarRfc = cmRfcMrgProcessor.upsertCiRfc(designVarRfc, context.userId);
 
             List<CmsCIRelation> existingVar2Palt = cmProcessor.getFromToCIRelations(designVarRfc.getCiId(), "catalog.ValueFor",designPlatform.getCiId());
             if (existingVar2Palt.size() == 0) {
-                CmsRfcRelation designLVRfcRelation = mergeRelations(localVarPackRel,platNsPath, releaseNsPath,"catalog.");
+                CmsRfcRelation designLVRfcRelation = mergeRelations(localVarPackRel,context,"catalog.");
                 designLVRfcRelation.setFromRfcId(designVarRfc.getRfcId());
                 designLVRfcRelation.setFromCiId(designVarRfc.getCiId());
                 designLVRfcRelation.setToCiId(designPlatform.getCiId());
-                designLVRfcRelation.setCreatedBy(userId);
-                designLVRfcRelation.setUpdatedBy(userId);
-                cmRfcMrgProcessor.upsertRelationRfc(designLVRfcRelation, userId);
+                designLVRfcRelation.setCreatedBy(context.userId);
+                designLVRfcRelation.setUpdatedBy(context.userId);
+                cmRfcMrgProcessor.upsertRelationRfc(designLVRfcRelation, context.userId);
             }
         }
 
     }
 
 
-    private Map<Long, List<Long>> processEdges(Map<String, Edge> edges , CmsCI designPlatform, String platformNsPath , String releaseNsPath , String userId) {
+    private Map<Long, List<CmsRfcCI>> processEdges(Map<String, Edge> edges , CmsCI designPlatform, RefreshContext context) {
 
-        Map<Long, List<Long>> templateIdsMap =  new HashMap<>();
+        Map<Long, List<CmsRfcCI>> templateIdsMap =  new HashMap<>();
 
         for (Edge edge : edges.values()) {
             if (edge.userRels.size()>0) {
-                List<Long> catalogCiIds = new ArrayList<Long>();
+                List<CmsRfcCI> catalogRfcs = new ArrayList<>();
                 CmsCI templLeafCi = (edge.templateRel != null) ? edge.templateRel.getToCi() : null;
                 for (CmsCIRelation userRel : edge.userRels) {
-                    CmsRfcCI leafRfc = mergeCis(templLeafCi , userRel.getToCi(), "catalog", platformNsPath, releaseNsPath);
+                    CmsRfcCI leafRfc = mergeCis(templLeafCi , userRel.getToCi(), "catalog", context);
 
                     if (templLeafCi == null || "pending_deletion".equals(templLeafCi.getCiState())) {
                         leafRfc.setRfcAction("delete");
                     }
 
                     setCiId(leafRfc,userRel.getToCi());
-                    leafRfc.setCreatedBy(userId);
-                    leafRfc.setUpdatedBy(userId);
+                    leafRfc.setCreatedBy(context.userId);
+                    leafRfc.setUpdatedBy(context.userId);
                     if("delete".equals(leafRfc.getRfcAction())){
-                        CmsRfcCI deleteRfc = cmRfcMrgProcessor.requestCiDelete(leafRfc.getCiId(), userId,0);
+                        CmsRfcCI deleteRfc = cmRfcMrgProcessor.requestCiDelete(leafRfc.getCiId(), context.userId,0);
                         logger.debug("new delete ci rfc id = " + deleteRfc.getRfcId());
                         continue;
                     }
 
-                    CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
+                    CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, context.userId);
                     logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
-                    catalogCiIds.add(newLeafRfc.getCiId());
+                    catalogRfcs.add(newLeafRfc);
 
 
-                    CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, platformNsPath, releaseNsPath, null);
+                    CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, context, null);
                     leafRfcRelation.setFromCiId(designPlatform.getCiId());
 
                     if(newLeafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
                     leafRfcRelation.setToCiId(leafRfc.getCiId());
 
-                    leafRfcRelation.setCreatedBy(userId);
-                    leafRfcRelation.setUpdatedBy(userId);
-                    CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, userId);
+                    leafRfcRelation.setCreatedBy(context.userId);
+                    leafRfcRelation.setUpdatedBy(context.userId);
+                    CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, context.userId);
                     logger.debug("Created new relation rfc - " + newLeafRfcRelation.getRfcId());
 
-                    if (templLeafCi != null)  templateIdsMap.put(templLeafCi.getCiId(), catalogCiIds);
-
                 }
+                if (templLeafCi != null)  templateIdsMap.put(templLeafCi.getCiId(), catalogRfcs);
 
             } else {
                 CmsCI templateCi = edge.templateRel.getToCi();
                 if (!"pending_deletion".equals(templateCi.getCiState())) {
                     String cardinality = edge.templateRel.getAttribute("constraint").getDfValue();
                     if (cardinality != null && cardinality.startsWith("1..")) {
-                        List<Long> catalogCiIds = new ArrayList<>();
-                        CmsRfcCI leafRfc = mergeCis(templateCi, null, "catalog", platformNsPath, releaseNsPath);
+                        List<CmsRfcCI> catalogCiIds = new ArrayList<>();
+                        CmsRfcCI leafRfc = mergeCis(templateCi, null, "catalog", context);
                         setCiId(leafRfc, null);
-                        leafRfc.setCreatedBy(userId);
-                        leafRfc.setUpdatedBy(userId);
-                        CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, userId);
-                        catalogCiIds.add(newLeafRfc.getCiId());
+                        leafRfc.setCreatedBy(context.userId);
+                        leafRfc.setUpdatedBy(context.userId);
+                        CmsRfcCI newLeafRfc = cmRfcMrgProcessor.upsertCiRfc(leafRfc, context.userId);
+                        catalogCiIds.add(newLeafRfc);
                         logger.debug("new ci rfc id = " + newLeafRfc.getRfcId());
                         templateIdsMap.put(templateCi.getCiId(), catalogCiIds);
 
-                        CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, platformNsPath, releaseNsPath, null);
+                        CmsRfcRelation leafRfcRelation = mergeRelations(edge.templateRel, context, null);
 
                         leafRfcRelation.setFromCiId(designPlatform.getCiId());
                         if (newLeafRfc.getRfcId() > 0) leafRfcRelation.setToRfcId(newLeafRfc.getRfcId());
                         leafRfcRelation.setToCiId(newLeafRfc.getCiId());
                         setCiRelationId(leafRfcRelation);
-                        leafRfcRelation.setCreatedBy(userId);
-                        leafRfcRelation.setUpdatedBy(userId);
-                        CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, userId);
+                        leafRfcRelation.setCreatedBy(context.userId);
+                        leafRfcRelation.setUpdatedBy(context.userId);
+                        CmsRfcRelation newLeafRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(leafRfcRelation, context.userId);
                         logger.debug("Created new relation rfc - " + newLeafRfcRelation.getRfcId());
                     }
                 }
@@ -290,36 +405,37 @@ public class PackRefreshProcessor {
         return templateIdsMap;
     }
 
-    private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<Long>> ciIdsMap, String platNsPath , String releaseNsPath , Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels, String userId) {
+    private Set<String> processPackInterRelations(List<CmsCIRelation> internalRels, Map<Long, List<CmsRfcCI>> rfcsMap, RefreshContext context) {
 
         Set<String> newRelsGoids = new HashSet<String>();
         for (CmsCIRelation ciRel : internalRels) {
             Long fromPackCiId = ciRel.getFromCiId();
             Long toPackCiId = ciRel.getToCiId();
-            if (ciIdsMap.containsKey(fromPackCiId)){
-                for (Long fromCatalogRfcCiId : ciIdsMap.get(fromPackCiId)) {
-                    if (ciIdsMap.containsKey(toPackCiId)) {
-                        for (Long toCatalogRfcCiId : ciIdsMap.get(toPackCiId)) {
-                            CmsRfcRelation rfcRelation = mergeRelations(ciRel,platNsPath, releaseNsPath, "catalog.");
-                            rfcRelation.setFromCiId(fromCatalogRfcCiId);
-                            rfcRelation.setToCiId(toCatalogRfcCiId);
+            if (rfcsMap.containsKey(fromPackCiId)){
+                if (rfcsMap.containsKey(toPackCiId)) {
+                    for (CmsRfcCI fromCatalogRfc : rfcsMap.get(fromPackCiId)) {
+                        for (CmsRfcCI toCatalogRfc : rfcsMap.get(toPackCiId)) {
+                            CmsRfcRelation rfcRelation = mergeRelations(ciRel, context, "catalog.");
+                            rfcRelation.setFromCiId(fromCatalogRfc.getCiId());
+                            rfcRelation.setToCiId(toCatalogRfc.getCiId());
                             setCiRelationId(rfcRelation);
-                            rfcRelation.setCreatedBy(userId);
-                            rfcRelation.setUpdatedBy(userId);
+                            rfcRelation.setCreatedBy(context.userId);
+                            rfcRelation.setUpdatedBy(context.userId);
 
                             CmsRfcRelation newRfcRelation = null;
+                            Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels = context.existingCatalogPlatRels; 
                             CmsCIRelation existingCIRel = existingCatalogPlatRels.get(rfcRelation.getRelationName())!=null?
                                     existingCatalogPlatRels.get(rfcRelation.getRelationName()).get(rfcRelation.getFromCiId() + ":" + rfcRelation.getToCiId()):null;
                             if ("delete".equals(rfcRelation.getRfcAction())){
                                 if (existingCIRel!=null) {
-                                    cmRfcMrgProcessor.requestRelationDelete(rfcRelation.getRelationId(), userId);
+                                    cmRfcMrgProcessor.requestRelationDelete(rfcRelation.getRelationId(), context.userId);
                                     logger.info("removing relation id = " + rfcRelation.getRelationName()+"#"+rfcRelation.getFromRfcId()+"->"+rfcRelation.getToRfcId());
                                 } else {
                                     logger.info("Relation removed from the pack, but is not a part of the platform. Won't do anything");
                                 }
 
                             } else if(needUpdateRfcRelation(rfcRelation, existingCIRel)){
-                                newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcRelation, userId);
+                                newRfcRelation = cmRfcMrgProcessor.upsertRelationRfc(rfcRelation, context.userId);
                                 logger.debug("new relation rfc id = " + newRfcRelation.getRfcId());
                                 newRelsGoids.add(newRfcRelation.getRelationGoid());
                             }else{
@@ -327,7 +443,7 @@ public class PackRefreshProcessor {
                             }
                         }
                     }
-                }
+            	}
             }
         }
 
@@ -335,11 +451,11 @@ public class PackRefreshProcessor {
     }
 
 
-    private CmsRfcRelation mergeRelations(CmsCIRelation mgmtCiRelation, String nsPath, String releaseNsPath, String prefix) {
+    private CmsRfcRelation mergeRelations(CmsCIRelation mgmtCiRelation, RefreshContext context, String prefix) {
 
         CmsRfcRelation newRfc = new CmsRfcRelation();
-        newRfc.setNsPath(nsPath);
-        newRfc.setReleaseNsPath(releaseNsPath);
+        newRfc.setNsPath(context.designPlatformNsPath);
+        newRfc.setReleaseNsPath(context.releaseNsPath);
         if(prefix == null) prefix = "base.";
 
         String targetRelationName = prefix + trUtil.getLongShortClazzName(mgmtCiRelation.getRelationName());
@@ -438,11 +554,11 @@ public class PackRefreshProcessor {
         return needUpdate;
     }
 
-    private CmsRfcCI mergeCis(CmsCI templateCi, CmsCI userCi, String targetPrefix, String nsPath, String releaseNsPath) {
+    private CmsRfcCI mergeCis(CmsCI templateCi, CmsCI userCi, String targetPrefix, RefreshContext context) {
 
         CmsRfcCI newRfc = new CmsRfcCI();
-        newRfc.setNsPath(nsPath);
-        newRfc.setReleaseNsPath(releaseNsPath);
+        newRfc.setNsPath(context.designPlatformNsPath);
+        newRfc.setReleaseNsPath(context.releaseNsPath);
 
         String targetClazzName = null;
 
@@ -519,6 +635,15 @@ public class PackRefreshProcessor {
     private class Edge {
         CmsCIRelation templateRel;
         List<CmsCIRelation> userRels = new ArrayList<CmsCIRelation>();
+    }
+
+    class RefreshContext {
+        Map<String, Map<String,CmsCIRelation>> existingCatalogPlatRels;
+        String userId;
+        String designPlatformNsPath;
+        String releaseNsPath;
+        CmsCI templatePlatform;
+        CmsCI designPlatform;
     }
 
 }

@@ -17,15 +17,16 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.transaction.annotation.Transactional;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
-
-import java.util.List;
-import java.util.Map;
 
 @Transactional
 public interface DesignManager {
@@ -43,6 +44,7 @@ public interface DesignManager {
 	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des);
 	public void updateOwner(long assemblyId);
     public long refreshPack(long platformId, String userId, String scope);
+    public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope);
 	
 }
 

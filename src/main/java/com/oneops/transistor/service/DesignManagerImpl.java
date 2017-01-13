@@ -19,6 +19,7 @@ package com.oneops.transistor.service;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 
@@ -123,4 +124,9 @@ public class DesignManagerImpl implements DesignManager {
 	@Override
 	public long commitReleaseForPlatform(long platId, String desc, String userId) {
 		return designRfcProcessor.commitReleaseForPlatform(platId, desc, userId);	}
+
+	@Override
+	public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope) {
+		return designRfcProcessor.createComponent(platId, relSimple, userId, scope);
+	}
 }
