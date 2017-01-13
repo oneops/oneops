@@ -23,6 +23,7 @@ public class TimelineQueryParam {
 	
 	private String nsPath;
 	private String releaseNsLike;
+	private String releaseNs;
 	private String dpmtNsLike;
 	private String type;
 	
@@ -197,6 +198,14 @@ public class TimelineQueryParam {
 
 	public void setDesignNamespace(boolean isDesignNamespace) {
 		this.isDesignNamespace = isDesignNamespace;
+	}
+
+	public String getReleaseNs() {
+		return releaseNs;
+	}
+
+	public void setReleaseNs(String releaseNs) {
+		this.releaseNs = releaseNs;
 	}
 
 }

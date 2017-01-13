@@ -1489,7 +1489,8 @@ public class CmsRfcProcessor {
 			logger.error(errorMsg);
 			throw new DJException(CmsError.DJ_RELATION_RFC_DOESNT_EXIST_ERROR, errorMsg);
 		}
-
+		
+		relation.setReleaseId(existingRelation.getReleaseId());
 		relation.setRelationName(existingRelation.getRelationName());
 		
 		CIValidationResult validation = djValidator.validateRfcRelationAttrs(relation);
@@ -1855,7 +1856,8 @@ public class CmsRfcProcessor {
 				designSuffix = "/_design/";
 			}
 			String nsPathTrimmed = nsPath.substring(0, (nsPath.length() - designSuffix.length()));
-			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithoutEndingSlash(nsPathTrimmed));
+			queryParam.setReleaseNsLike(null);
+			queryParam.setReleaseNs(nsPathTrimmed);
 		}
 		else {
 			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(nsPath, CmsConstants.MANIFEST));

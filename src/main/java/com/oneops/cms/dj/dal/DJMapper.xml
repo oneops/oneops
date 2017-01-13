@@ -1604,7 +1604,14 @@
 			r.updated
 		from dj_releases r, ns_namespaces ns, dj_release_states rs
 		where r.ns_id = ns.ns_id
-		  and ns.ns_path like #{releaseNsLike}
+		  <choose>
+    		<when test="releaseNs != null &amp;&amp; releaseNs.length() > 0">
+      			and ns.ns_path = #{releaseNs}
+    		</when>
+    		<otherwise>
+      			and ns.ns_path like #{releaseNsLike}
+    		</otherwise>
+    	  </choose>
 		  and r.release_state_id = rs.release_state_id
 		  and (#{releaseOffset}::bigint is null or r.release_id ${order.aboveOperator} #{releaseOffset})
 		  and (#{endRelId}::bigint is null or r.release_id ${order.belowOperator}= #{endRelId})
