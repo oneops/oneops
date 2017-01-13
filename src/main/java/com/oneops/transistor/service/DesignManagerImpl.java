@@ -33,7 +33,12 @@ public class DesignManagerImpl implements DesignManager {
 	private DesignExportProcessor designExpProcessor;
 	private CatalogProcessor catalogProcessor;
 	private PackRefreshProcessor packRefreshProcessor;
-	
+	private EnvironmentExportProcessor environmentExpProcessor;
+
+	public void setEnvironmentExpProcessor(EnvironmentExportProcessor environmentExpProcessor) {
+		this.environmentExpProcessor = environmentExpProcessor;
+	}
+
 	public void setDesignExpProcessor(DesignExportProcessor designExpProcessor) {
 		this.designExpProcessor = designExpProcessor;
 	}
@@ -98,7 +103,7 @@ public class DesignManagerImpl implements DesignManager {
 
 	@Override
 	public long importEnvironment(long assemblyId, String userId, String scope, EnvironmentExportSimple ees) {
-		return designExpProcessor.importEnvironment(assemblyId, userId, scope, ees);
+		return environmentExpProcessor.importEnvironment(assemblyId, userId, scope, ees);
 	}
 
 	@Override
@@ -133,7 +138,7 @@ public class DesignManagerImpl implements DesignManager {
 
 	@Override
 	public EnvironmentExportSimple exportEnvironment(long envId, Long[] platformIds, String scope) {
-		return designExpProcessor.exportEnvironment(envId, platformIds, scope);
+		return environmentExpProcessor.exportEnvironment(envId, platformIds, scope);
 	}
 
 	@Override
