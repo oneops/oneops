@@ -26,8 +26,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
+import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -49,14 +53,11 @@ import com.oneops.cms.cm.ops.domain.CmsOpsAction;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
-import com.oneops.cms.cm.ops.service.OpsManager;
-import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
-import com.oneops.cms.dj.service.CmsDjManager;
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
@@ -94,27 +95,27 @@ public class CMSClient {
     private DeploymentNotifier deploymentNotifier;
     private int stepWoLimit = 100;
     private CmsWoProvider cmsWoProvider;
-	private CmsDjManager djManager;
-	private CmsCmManager cmManager;
+	private CmsDpmtProcessor cmsDpmtProcessor;
+	private CmsCmProcessor cmsCmProcessor;
 	private CmsUtil cmsUtil;
     private ControllerUtil controllerUtil;
-    private OpsManager opsManager;
+    private OpsProcedureProcessor opsProcedureProcessor;
 
     private static final String ONEOPS_SYSTEM_USER = "oneops-system";
 
-	public void setOpsManager(OpsManager opsManager) {
-		this.opsManager = opsManager;
-	}
+    public void setCmsDpmtProcessor(CmsDpmtProcessor cmsDpmtProcessor) {
+        this.cmsDpmtProcessor = cmsDpmtProcessor;
+    }
 
-	public void setCmManager(CmsCmManager cmManager) {
-		this.cmManager = cmManager;
-	}
+    public void setCmsCmProcessor(CmsCmProcessor cmsCmProcessor) {
+        this.cmsCmProcessor = cmsCmProcessor;
+    }
 
-	public void setDjManager(CmsDjManager djManager) {
-		this.djManager = djManager;
-	}
+    public void setOpsProcedureProcessor(OpsProcedureProcessor opsProcedureProcessor) {
+        this.opsProcedureProcessor = opsProcedureProcessor;
+    }
 
-	public void setCmsUtil(CmsUtil cmsUtil) {
+    public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
 	}
 	
@@ -190,7 +191,7 @@ public class CMSClient {
             // check if all previous orders got completed
             //Long failedWos = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/cis/count?execorder={execOrder}&state=failed", Long.class, dpmt.getDeploymentId(), execOrder));
 
-        	long failedWos = djManager.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", execOrder);
+        	long failedWos = cmsDpmtProcessor.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", execOrder);
         	
             if (failedWos > 0 && !dpmt.getContinueOnFailure()) {
                 logger.error("Previous step has failed work orders, the deployment should be in failed state");
@@ -307,7 +308,7 @@ public class CMSClient {
         CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
         try {
             //CmsDeployment cmsDpmt = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}", CmsDeployment.class, dpmt.getDeploymentId()));
-        	CmsDeployment cmsDpmt = djManager.getDeployment(dpmt.getDeploymentId());
+        	CmsDeployment cmsDpmt = cmsDpmtProcessor.getDeployment(dpmt.getDeploymentId());
         	if (cmsDpmt == null) {
         		throw new DJException(CmsError.DJ_NO_DEPLOYMENT_WITH_GIVEN_ID_ERROR,"Cant get deployment with id = " + dpmt.getDeploymentId());
         	}
@@ -358,7 +359,7 @@ public class CMSClient {
                 exec.setVariable(DPMT, dpmt);
             }
             try {
-            	djManager.updateDpmtRecord(dpmtRec);
+            	cmsDpmtProcessor.updateDpmtRecord(dpmtRec);
             } catch (CmsBaseException ce) {
                 logger.error(ce.getMessage(), ce);
                 throw ce;
@@ -372,7 +373,7 @@ public class CMSClient {
         try {
         	CmsWorkOrderSimple responseWo = controllerUtil.stripWO(woSimple, true); 
         	CmsWorkOrder wo = cmsUtil.custSimple2WorkOrder(responseWo);
-        	djManager.completeWorkOrder(wo);
+        	cmsDpmtProcessor.completeWorkOrder(wo);
             logger.info(">>>>>>>>>>>>>>>>>>>>>completed wo " + wo.getDpmtRecordId() + "! Rfc_Id = " + wo.getRfcId());
             
         } catch (CmsBaseException ce) {
@@ -398,7 +399,7 @@ public class CMSClient {
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
         
         try {
-        	djManager.updateDeployment(dpmtParam);
+        	cmsDpmtProcessor.updateDeployment(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
         } catch (CmsBaseException e) {
 			logger.error("CmsBaseException in updateDeployment", e);
@@ -417,14 +418,18 @@ public class CMSClient {
      * @throws InterruptedException
      */
     public void updateDpmtState(DelegateExecution exec, CmsDeployment dpmt, String newState) {
+        
         if (dpmt.getDeploymentState().equalsIgnoreCase("active")) {
+            CmsDeployment clone = new CmsDeployment();
+            BeanUtils.copyProperties(dpmt, clone);
+            dpmt = clone;  // Need to clone dpmt before setting the state, otherwise mybatis pulls the same instance that doesn't reflect actual db state
             dpmt.setDeploymentState(COMPLETE);
         }
         // lets do the retries here
         logger.info("Client: put:update deployment " + dpmt.getDeploymentId() + " state to " + dpmt.getDeploymentState());
         
         try {
-        	djManager.updateDeployment(dpmt);
+        	cmsDpmtProcessor.updateDeployment(dpmt);
             deploymentNotifier.sendDpmtNotification(dpmt);
         } catch (CmsBaseException e) {
 			logger.error("CmsBaseException in updateDeployment", e);
@@ -450,7 +455,7 @@ public class CMSClient {
                 dpmt.setUpdatedBy(ONEOPS_SYSTEM_USER);
                 dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
                 try {
-                    djManager.updateDeployment(dpmt);
+                    cmsDpmtProcessor.updateDeployment(dpmt);
                 } catch (CmsBaseException e) {
                     logger.error("CmsBaseException in incExecOrder", e);
                     throw e;
@@ -481,7 +486,7 @@ public class CMSClient {
             }
             exec.setVariable("cmsaos", aoList);
             if (exec.getVariable("procanchor") == null) {
-                CmsCI procAnchorCI = cmManager.getCiById(proc.getCiId()); 
+                CmsCI procAnchorCI = cmsCmProcessor.getCiById(proc.getCiId()); 
                 		//retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "/cm/cis/{ciId}", CmsCI.class, proc.getCiId()));
                 exec.setVariable("procanchor", procAnchorCI);
             }
@@ -507,7 +512,7 @@ public class CMSClient {
         }
         logger.info("Client: put:update ops procedure state to " + proc.getProcedureState());
         try {
-	        opsManager.updateOpsProcedure(proc);
+	        opsProcedureProcessor.updateOpsProcedure(proc);
 	        deploymentNotifier.sendProcNotification(proc, exec);
         } catch (CmsBaseException e) {
 			logger.error("CmsBaseException in updateProcedureState", e);
@@ -530,7 +535,7 @@ public class CMSClient {
         try {
             if (newState.equalsIgnoreCase(COMPLETE)) {
                 CmsActionOrder ao = cmsUtil.custSimple2ActionOrder(aos);
-                opsManager.completeActionOrder(ao);
+                opsProcedureProcessor.completeActionOrder(ao);
                 /*
                 
                 retryTemplate.execute(retryContext -> {
@@ -548,7 +553,7 @@ public class CMSClient {
                     proc.setProcedureState(OpsProcedureState.failed);
                     exec.setVariable("proc", proc);
                 }
-                opsManager.updateOpsAction(action);
+                opsProcedureProcessor.updateOpsAction(action);
                 /*
                 retryTemplate.execute(retryContext -> {
                     restTemplate.put(serviceUrl + "cm/ops/procedures/{procedureId}/actions", action, action.getProcedureId());
@@ -584,7 +589,7 @@ public class CMSClient {
 
         //CmsCISimple[] envs = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "/cm/simple/cis?ciClassName=manifest.Environment&nsPath={envNsPath}&ciName={envName}", CmsCISimple[].class, envNsPath, envName));
 
-        List<CmsCI> envs = cmManager.getCiBy3(envNsPath, "manifest.Environment", envName);
+        List<CmsCI> envs = cmsCmProcessor.getCiBy3(envNsPath, "manifest.Environment", envName);
         
         CmsCISimple env = null;
         if (envs.size() > 0) {
