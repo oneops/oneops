@@ -103,7 +103,9 @@ def gen_gemfile_and_install (gems, dsl, ostype, log_level)
       end
       `gem source`
     end
-
+    
+    cmd_to_patch_azure_blob_sdk = "cp /usr/local/share/gems/gems/azure-0.6.4/lib/azure/core/http/http_request.rb tmpfile;sed -e \"s/2012-02-12/2014-02-14/\" tmpfile > /usr/local/share/gems/gems/azure-0.6.4/lib/azure/core/http/http_request.rb"
+    system cmd_to_patch_azure_blob_sdk
 end
 
 # set cwd to same dir as the exe-order.rb file
