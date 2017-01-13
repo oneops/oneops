@@ -431,7 +431,7 @@ BEGIN
     update cm_ci_relation_attributes set
     df_attribute_value = coalesce(p_df_value, df_attribute_value),
     dj_attribute_value = coalesce(p_dj_value, dj_attribute_value),
-    owner = coalesce(p_owner, owner),
+    owner = p_owner,
     comments = p_comments,
     updated = now()
     where ci_rel_attribute_id = p_ci_rel_attr_id
@@ -1588,7 +1588,7 @@ DECLARE
 BEGIN
 	update dj_rfc_relation_attributes
 	set new_attribute_value = p_new_attr_value,
-	    owner = coalesce(p_owner,owner),
+	    owner = p_owner,
 	    comments = coalesce(p_comments,comments)
 	where rfc_id = p_rfc_id
          and attribute_id = p_attribute_id
