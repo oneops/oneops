@@ -1,6 +1,6 @@
 <%= assembly_page_header(@assembly, 'transition') %>
 <%= breadcrumb [{:label => @assembly.ciName, :kind => 'transition', :link => assembly_transition_path(@assembly)},
-                {:icon  => ci_image_url(@environment),
+                {:icon  => breadcrumb_environment_icon,
                  :label => breadcrumb_environment_label,
                  :kind  => 'Environment',
                  :link  => assembly_transition_environment_path(@assembly, @environment)}] %>

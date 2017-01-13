@@ -288,10 +288,12 @@ module ApplicationHelper
         icon_name = item[:icon]
         kind      = item[:kind]
         if icon_name.present?
-          block << content_tag(:div, image_tag(icon_name), :class => 'breadcrumb_image')
-        else
-          icon_name = site_icon!(kind.downcase)
-          block << content_tag(:div, icon(icon_name), :class => 'breadcrumb_image') if icon_name
+          icon = site_icon!(icon_name)
+          if icon.present?
+            block << content_tag(:div, icon(icon), :class => 'breadcrumb_image')
+          else
+            block << content_tag(:div, image_tag(icon_name), :class => 'breadcrumb_image')
+          end
         end
         block << content_tag(:div, sanitize(kind), :class => 'item_kind') if kind
         block << content_tag(:div, sanitize(item[:label]), :class => 'item_label')
@@ -998,9 +1000,13 @@ module ApplicationHelper
     "#{env.ciName}#{" #{breadcrumb_marker("#{profile}", 'label-info')}" if profile}"
   end
 
+  def breadcrumb_environment_icon(env = @environment)
+    "#{@environment.ciAttributes.availability}_availability"
+  end
+
   def breadcrumb_platform_label(platform = @platform)
     active = platform.ciAttributes.attributes.has_key?(:is_active) && @platform.ciAttributes.is_active == 'false' ? false : true
-    "#{platform.ciName} #{breadcrumb_marker("version #{platform.ciAttributes.major_version}", active ? 'label-success' : '')}"
+    "#{platform.ciName} #{breadcrumb_marker("ver. #{platform.ciAttributes.major_version}", active ? 'label-success' : '')}"
   end
 
   def release_state_icon(state, additional_classes = '')
