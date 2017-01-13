@@ -112,3 +112,6 @@ chef-12.11.18:
     -
       - ffi-yajl
       - 2.2.3
+    -
+      - azure_mgmt_compute
+      - 0.1.1
