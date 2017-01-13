@@ -35,8 +35,10 @@ import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdManager;
+import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsManager;
+import com.oneops.cms.ns.service.CmsNsProcessor;
 
 /**
  * The Class CmsCmValidator.
@@ -46,27 +48,17 @@ public class CmsCmValidator {
 	private static final String CAN_NOT_ENCRYPT_ATTRIBUTE = "Can not encrypt attribute ";
 	private static final int STATE_100 = 100;
 	private static final String ATTRIBUTE = "Attribute ";
-	private CmsMdManager mdManager;
-    private CmsNsManager nsManager;
+	private CmsMdProcessor cmsMdProcessor;
+    private CmsNsProcessor cmsNsProcessor;
     private CmsCrypto cmsCrypto;
-	
-	
-	/**
-	 * Sets the md manager.
-	 *
-	 * @param mdManager the new md manager
-	 */
-	public void setMdManager(CmsMdManager mdManager) {
-		this.mdManager = mdManager;
+
+
+	public void setCmsMdProcessor(CmsMdProcessor cmsMdProcessor) {
+		this.cmsMdProcessor = cmsMdProcessor;
 	}
 
-	/**
-	 * Sets the ns manager.
-	 *
-	 * @param nsManager the new ns manager
-	 */
-	public void setNsManager(CmsNsManager nsManager) {
-		this.nsManager = nsManager;
+	public void setCmsNsProcessor(CmsNsProcessor cmsNsProcessor) {
+		this.cmsNsProcessor = cmsNsProcessor;
 	}
 
 	/**
@@ -341,16 +333,16 @@ public class CmsCmValidator {
 	
 	
 	private CmsClazz getClazz(String clazzName) {
-		return mdManager.getClazz(clazzName);
+		return cmsMdProcessor.getClazz(clazzName);
 	}
 
 	private CmsRelation getRelationClazz(String relationName) {
-		return mdManager.getRelation(relationName);
+		return cmsMdProcessor.getRelation(relationName);
 	}
 
 	
 	private CmsNamespace getNs(String nsPath){
-		return nsManager.getNs(nsPath);
+		return cmsNsProcessor.getNs(nsPath);
 	}
 	
 	/**

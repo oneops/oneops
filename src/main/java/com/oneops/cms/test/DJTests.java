@@ -22,6 +22,7 @@ import java.io.Reader;
 import java.sql.SQLException;
 import java.util.List;
 
+import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -41,10 +42,8 @@ import com.oneops.cms.dj.service.CmsDjManagerImpl;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.md.dal.ClazzMapper;
 import com.oneops.cms.md.dal.RelationMapper;
-import com.oneops.cms.md.service.CmsMdManagerImpl;
 import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.ns.dal.NSMapper;
-import com.oneops.cms.ns.service.CmsNsManagerImpl;
 import com.oneops.cms.util.CmsCmValidator;
 import com.oneops.cms.util.CmsDJValidator;
 
@@ -55,8 +54,8 @@ public class DJTests {
 
 	private static CmsCmValidator cmValidator = new CmsCmValidator();
 	private static CmsDJValidator djValidator = new CmsDJValidator();
-	private static CmsNsManagerImpl nsMan = new CmsNsManagerImpl();
-	private static CmsMdManagerImpl mdMan = new CmsMdManagerImpl();
+	private static CmsNsProcessor nsProc = new CmsNsProcessor();
+	private static CmsMdProcessor mdProc = new CmsMdProcessor();
 	private static CmsDjManagerImpl djMan = new CmsDjManagerImpl();
 	private static CmsCmDjManagerImpl cmdjMan = new CmsCmDjManagerImpl();
 	/**
@@ -80,28 +79,27 @@ public class DJTests {
 		
 		//cmMan.setCiMapper(ciMapper);
 		//cmMan.setCmValidator(cmValidator);
-		//cmMan.setNsManager(nsMan);
+		//cmMan.setNsManager(nsProc);
 		
 		cmProcessor.setCiMapper(ciMapper);
 		cmProcessor.setCmValidator(cmValidator);
-		cmProcessor.setNsManager(nsMan);
+		cmProcessor.setCmsNsProcessor(nsProc);
 
-		cmValidator.setMdManager(mdMan);
-		cmValidator.setNsManager(nsMan);
+		cmValidator.setCmsMdProcessor(mdProc);
+		cmValidator.setCmsNsProcessor(nsProc);
 		
-		djValidator.setMdManager(mdMan);
-		djValidator.setNsManager(nsMan);
+		djValidator.setCmsMdProcessor(mdProc);
+		djValidator.setCmsNsProcessor(nsProc);
 		
-		nsMan.setNsMapper(nsMapper);
+		nsProc.setNsMapper(nsMapper);
 		
 		CmsMdProcessor mdProcessor = new CmsMdProcessor();
 		mdProcessor.setClazzMapper(clMapper);
 		mdProcessor.setRelationMapper(rlMapper);
 		
-		mdMan.setMdProcessor(mdProcessor);
-
+	
 		rfcProcessor.setDjMapper(djMapper);
-		rfcProcessor.setNsManager(nsMan);
+		rfcProcessor.setCmsNsProcessor(nsProc);
 		rfcProcessor.setDjValidator(djValidator);
 		rfcProcessor.setCiMapper(ciMapper);
 		

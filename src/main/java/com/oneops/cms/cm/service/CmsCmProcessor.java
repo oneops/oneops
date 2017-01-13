@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
-import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -63,7 +63,7 @@ public class CmsCmProcessor {
 	private CIMapper ciMapper;
 	private UtilMapper utilMapper;
 	private CmsCmValidator cmValidator;
-	private CmsNsManager nsManager;
+	private CmsNsProcessor cmsNsProcessor;
 	private CmsMdProcessor mdProcessor;
 	private QueryConditionMapper qcm = new QueryConditionMapper();
 	private Gson gson = new Gson();
@@ -87,13 +87,9 @@ public class CmsCmProcessor {
 		this.cmValidator = cmValidator;
 	}
 
-	/**
-	 * Sets the ns manager.
-	 *
-	 * @param nsManager the new ns manager
-	 */
-	public void setNsManager(CmsNsManager nsManager) {
-		this.nsManager = nsManager;
+
+	public void setCmsNsProcessor(CmsNsProcessor cmsNsProcessor) {
+		this.cmsNsProcessor = cmsNsProcessor;
 	}
 
 	/**
@@ -168,7 +164,7 @@ public class CmsCmProcessor {
 					ns.setNsPath(ci.getNsPath() + ci.getCiName());
 				}
 			}
-			nsManager.createNs(ns);
+			cmsNsProcessor.createNs(ns);
 		}
 
 		return getCiById(ci.getCiId());
@@ -2065,14 +2061,14 @@ public class CmsCmProcessor {
 
 		CmsNamespace ns = null;
 		if (cmsAltNs.getNsId() != 0) {
-			ns = nsManager.getNsById(cmsAltNs.getNsId());
+			ns = cmsNsProcessor.getNsById(cmsAltNs.getNsId());
 		} else {
-			ns = nsManager.getNs(cmsAltNs.getNsPath());
+			ns = cmsNsProcessor.getNs(cmsAltNs.getNsPath());
 		}
 		if (ns ==null){
 			ns = new CmsNamespace();
 			ns.setNsPath(cmsAltNs.getNsPath());
-			ns = nsManager.createNs(ns);
+			ns = cmsNsProcessor.createNs(ns);
 		}
 		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ci.getCiId());
 	}

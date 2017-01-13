@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 
 import com.google.gson.Gson;

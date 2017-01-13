@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.cms.util;
 
+import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.testng.annotations.*;
@@ -44,8 +46,8 @@ public class CmsDJValidatorTest {
 	 */
 	@BeforeClass
 	public void setMocks(){
-		this.validator.setMdManager(mock(CmsMdManager.class));
-		this.validator.setNsManager(mock(CmsNsManager.class));
+		this.validator.setCmsMdProcessor(mock(CmsMdProcessor.class));
+		this.validator.setCmsNsProcessor(mock(CmsNsProcessor.class));
 	}
 	
 	/**
@@ -66,15 +68,15 @@ public class CmsDJValidatorTest {
 	@Test
 	public void testNullClass(){
 		CmsDJValidator myValidator = new CmsDJValidator();
-		CmsMdManager mdm = mock(CmsMdManager.class);
- 		when(mdm.getClazz(null)).thenReturn(null);
-		myValidator.setMdManager(mdm);
+		CmsMdProcessor mdp = mock(CmsMdProcessor.class);
+ 		when(mdp.getClazz(null)).thenReturn(null);
+		myValidator.setCmsMdProcessor(mdp);
 		//
-		CmsNsManager nsManager= mock(CmsNsManager.class);
+		CmsNsProcessor cmsNsProcessor= mock(CmsNsProcessor.class);
 		CmsNamespace cmsNameSpace = new CmsNamespace();
 		cmsNameSpace.setNsId(222);
-		when(nsManager.getNs(anyString())).thenReturn(cmsNameSpace);
-		myValidator.setNsManager(nsManager);
+		when(cmsNsProcessor.getNs(anyString())).thenReturn(cmsNameSpace);
+		myValidator.setCmsNsProcessor(cmsNsProcessor);
 
 		CmsRfcCI rfcCi = new CmsRfcCI();
 		rfcCi.setCiName("testClassName");
@@ -92,12 +94,12 @@ public class CmsDJValidatorTest {
 	@Test
 	public void testNsId(){
 		CmsDJValidator myValidator = new CmsDJValidator();
-		CmsMdManager mdm = mock(CmsMdManager.class);
+		CmsMdProcessor mdm = mock(CmsMdProcessor.class);
 		CmsClazz aClazz = new CmsClazz();
 		aClazz.setClassId(111111);
 		when(mdm.getClazz("catalog.Platform")).thenReturn(aClazz);
-		myValidator.setMdManager(mdm);
-		myValidator.setNsManager(mock(CmsNsManager.class));
+		myValidator.setCmsMdProcessor(mdm);
+		myValidator.setCmsNsProcessor(mock(CmsNsProcessor.class));
 
 		
 		CmsRfcCI rfcCi = new CmsRfcCI();

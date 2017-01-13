@@ -29,93 +29,41 @@ import com.oneops.cms.ns.domain.CmsNamespace;
  */
 public class CmsNsManagerImpl implements CmsNsManager {
 
-	private NSMapper nsMapper;
-	
-	/**
-	 * Sets the ns mapper.
-	 *
-	 * @param nsMapper the new ns mapper
-	 */
-	@Autowired
+	private CmsNsProcessor cmsNsProcessor;
+
+	public void setCmsNsProcessor(CmsNsProcessor cmsNsProcessor) {
+		this.cmsNsProcessor = cmsNsProcessor;
+	}
+
 	public void setNsMapper(NSMapper nsMapper) {
-		this.nsMapper = nsMapper;
+		cmsNsProcessor.setNsMapper(nsMapper);
 	}
 
-	/**
-	 * Creates the ns.
-	 *
-	 * @param ns the ns
-	 * @return the cms namespace
-	 */
-	@Override
 	public CmsNamespace createNs(CmsNamespace ns) {
-		nsMapper.createNamespace(ns);
-		return nsMapper.getNamespace(ns.getNsPath());
+		return cmsNsProcessor.createNs(ns);
 	}
 
-	/**
-	 * Gets the ns.
-	 *
-	 * @param nsPath the ns path
-	 * @return the ns
-	 */
-	@Override
 	public CmsNamespace getNs(String nsPath) {
-		return nsMapper.getNamespace(nsPath);
+		return cmsNsProcessor.getNs(nsPath);
 	}
 
-	/**
-	 * Delete ns.
-	 *
-	 * @param nsPath the ns path
-	 */
-	@Override
 	public void deleteNs(String nsPath) {
-		nsMapper.deleteNamespace(nsPath);
+		cmsNsProcessor.deleteNs(nsPath);
 	}
 
-	/**
-	 * Gets the ns by id.
-	 *
-	 * @param nsId the ns id
-	 * @return the ns by id
-	 */
-	@Override
 	public CmsNamespace getNsById(long nsId) {
-		return nsMapper.getNamespaceById(nsId);
+		return cmsNsProcessor.getNsById(nsId);
 	}
 
-	/**
-	 * Delete ns by id.
-	 *
-	 * @param nsId the ns id
-	 */
-	@Override
 	public void deleteNsById(long nsId) {
-		CmsNamespace ns = nsMapper.getNamespaceById(nsId);
-		nsMapper.deleteNamespace(ns.getNsPath());
+		cmsNsProcessor.deleteNsById(nsId);
 	}
 
-	/**
-	 * Gets the ns like.
-	 *
-	 * @param nsPath the ns path
-	 * @return the ns like
-	 */
-	@Override
 	public List<CmsNamespace> getNsLike(String nsPath) {
-		return nsMapper.getNamespaceLike(nsPath);
+		return cmsNsProcessor.getNsLike(nsPath);
 	}
 
-	/**
-	 * Lock ns.
-	 *
-	 * @param nsPath the ns path
-	 */
-	@Override
 	public void lockNs(String nsPath) {
-		nsMapper.lockNamespace(nsPath);
-		
+		cmsNsProcessor.lockNs(nsPath);
 	}
-
 }
