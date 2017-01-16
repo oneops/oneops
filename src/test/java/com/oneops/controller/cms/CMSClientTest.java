@@ -29,6 +29,9 @@ import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
+import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
 import org.springframework.http.HttpStatus;
@@ -43,12 +46,9 @@ import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
-import com.oneops.cms.cm.ops.service.OpsManager;
-import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.service.CmsDjManager;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
@@ -73,10 +73,10 @@ public class CMSClientTest {
     private RestTemplate mockHttpAnchor = mock(RestTemplate.class);
     private CmsWoProvider mockWoProvider = mock(CmsWoProvider.class);
     private ControllerUtil ctrlUtil = mock(ControllerUtil.class);
-	private CmsDjManager djManager = mock(CmsDjManager.class);
-	private CmsCmManager cmManager = mock(CmsCmManager.class);
+	private CmsDpmtProcessor cmsDpmtProcessor = mock(CmsDpmtProcessor.class);
+	private CmsCmProcessor cmsCmProcessor = mock(CmsCmProcessor.class);
 	private CmsUtil cmsUtil = mock(CmsUtil.class) ;
-    private OpsManager opsManager = mock(OpsManager.class) ;
+    private OpsProcedureProcessor opsProcedureProcessor = mock(OpsProcedureProcessor.class) ;
 
 
 	private static Logger logger = Logger.getLogger(CMSClientTest.class);
@@ -100,10 +100,10 @@ public class CMSClientTest {
 		cc.setRetryTemplate(new RetryTemplate());
 		cc.setCmsWoProvider(mockWoProvider);
 		cc.setControllerUtil(ctrlUtil);
-		cc.setDjManager(djManager);
-		cc.setCmManager(cmManager);
+		cc.setCmsDpmtProcessor(cmsDpmtProcessor);
+		cc.setCmsCmProcessor(cmsCmProcessor);
 		cc.setCmsUtil(cmsUtil);
-		cc.setOpsManager(opsManager);
+		cc.setOpsProcedureProcessor(opsProcedureProcessor);
 		CmsWorkOrderSimple[] simpleWorkOrders = new CmsWorkOrderSimple[1];
 		CmsWorkOrderSimple workOrderSymple = new CmsWorkOrderSimple();
 		workOrderSymple.setComments("mocked-and-does-not-need-anything");
