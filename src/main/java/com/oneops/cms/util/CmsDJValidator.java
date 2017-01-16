@@ -33,35 +33,26 @@ import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdManager;
+import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsManager;
+import com.oneops.cms.ns.service.CmsNsProcessor;
 
 /**
  * The Class CmsDJValidator.
  */
 public class CmsDJValidator {
 
-	private CmsMdManager mdManager;
-    private CmsNsManager nsManager;
+	private CmsMdProcessor cmsMdProcessor;
+    private CmsNsProcessor cmsNsProcessor;
     private CmsCrypto cmsCrypto;
-    
-	
-	/**
-	 * Sets the md manager.
-	 *
-	 * @param mdManager the new md manager
-	 */
-	public void setMdManager(CmsMdManager mdManager) {
-		this.mdManager = mdManager;
+
+	public void setCmsMdProcessor(CmsMdProcessor cmsMdProcessor) {
+		this.cmsMdProcessor = cmsMdProcessor;
 	}
 
-	/**
-	 * Sets the ns manager.
-	 *
-	 * @param nsManager the new ns manager
-	 */
-	public void setNsManager(CmsNsManager nsManager) {
-		this.nsManager = nsManager;
+	public void setCmsNsProcessor(CmsNsProcessor cmsNsProcessor) {
+		this.cmsNsProcessor = cmsNsProcessor;
 	}
 
 	/**
@@ -196,8 +187,8 @@ public class CmsDJValidator {
 		
 		if (relationClazz.getTargets().size()==0) {
 			result.setValidated(false);
-			CmsClazz fromClazz = mdManager.getClazz(fromClassId);
-			CmsClazz toClazz = mdManager.getClazz(toClassId);
+			CmsClazz fromClazz = cmsMdProcessor.getClazz(fromClassId);
+			CmsClazz toClazz = cmsMdProcessor.getClazz(toClassId);
 			
 			result.setErrorMsg(" Targets do not exists for relation type " + rfcRelation.getRelationName() + "; fromClass=" + fromClazz.getClassName() + "; toClass=" + toClazz.getClassName());
 			return result;
@@ -298,10 +289,7 @@ public class CmsDJValidator {
 						}
 					}
 				}
-			} catch (GeneralSecurityException e) {
-				encResult.setValidated(false);
-				encResult.addErrorMsg("Can not encrypt attribute " + attr.getAttributeName() + " " + e.getMessage());
-			} catch (IOException e) {
+			} catch (GeneralSecurityException | IOException e) {
 				encResult.setValidated(false);
 				encResult.addErrorMsg("Can not encrypt attribute " + attr.getAttributeName() + " " + e.getMessage());
 			}
@@ -348,7 +336,7 @@ public class CmsDJValidator {
 	 * Compares 2 attr values.
 	 *
 	 * @param str1 the attr1
-	 * @param str22 the attr2
+	 * @param str2 the attr2
 	 * @return true, if equal
 	 */
 
@@ -362,26 +350,26 @@ public class CmsDJValidator {
 	
 	
 	private CmsClazz getClazz(String clazzName) {
-		return mdManager.getClazz(clazzName);
+		return cmsMdProcessor.getClazz(clazzName);
 	}
 
 	private CmsRelation getRelationClazz(String relationName) {
-		return mdManager.getRelation(relationName);
+		return cmsMdProcessor.getRelation(relationName);
 	}
 	
 	/*
 	private CmsRelation getRelationClazzWithTargets(String relationName) {
-		return mdManager.getRelationWithTargets(relationName);
+		return cmsMdProcessor.getRelationWithTargets(relationName);
 	}
 	*/
 	
 	private CmsRelation getRelationClazzWithTargets(String relationName, int fromClassId, int toClassId) {
-		return mdManager.getRelationWithTargets(relationName, fromClassId, toClassId);
+		return cmsMdProcessor.getRelationWithTargets(relationName, fromClassId, toClassId);
 	}
 
 	
 	private CmsNamespace getNs(String nsPath){
-		return nsManager.getNs(nsPath);
+		return cmsNsProcessor.getNs(nsPath);
 	}
 
 	

@@ -34,6 +34,8 @@ import java.util.stream.Stream;
 import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -143,20 +145,31 @@ public class CmsDpmtProcessor {
 		updateAutoDeployExecOrders(dpmt);
 		if (ONEOPS_AUTOREPLACE_USER.equals(dpmt.getCreatedBy()))  {
 			dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
-			dpmtMapper.createDeployment(dpmt);
+			createDeployment(dpmt);
+			
 		} else  {
 			if (needApprovalForNewDpmt(dpmt)) {
 				dpmt.setDeploymentState(DPMT_STATE_PENDING);
-				dpmtMapper.createDeployment(dpmt);
+				createDeployment(dpmt);
 				needApproval(dpmt); // to cerate approval for this deployment
 			} else {
 				dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
-				dpmtMapper.createDeployment(dpmt);
+				createDeployment(dpmt);
 			}
 		}
 		logger.info("Created new deployment, dpmtId = " + dpmt.getDeploymentId());
 		
 		return dpmtMapper.getDeployment(dpmt.getDeploymentId());
+	}
+	
+	private void createDeployment(CmsDeployment dpmt) {
+		try {
+			dpmtMapper.createDeployment(dpmt);
+		} catch (DuplicateKeyException e) {
+			logger.error("DuplicateKeyException while creating deployment", e);
+			String errMsg = "There is a deployment already in one of pending/active/paused/failed state, returning this";
+			throw new DJException(CmsError.DJ_STATE_ALREADY_DEPLOYMENT_ERROR, errMsg);
+		}
 	}
 	
 	private void validateReleaseForDpmt(long releaseId) {

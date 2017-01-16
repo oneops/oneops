@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.dj.domain.*;
+import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -60,7 +61,7 @@ public class CmsRfcProcessor {
     private static Pattern rfcNamePattern = Pattern.compile(RFCNAMEREGEX);	
     private static final int CHUNK_SIZE = 100;
 	private DJMapper djMapper;
-	private CmsNsManager nsManager;
+	private CmsNsProcessor cmsNsProcessor;
 	private CmsDJValidator djValidator;
 	private CIMapper ciMapper;
 	private CmsRfcUtil rfcUtil;
@@ -84,13 +85,9 @@ public class CmsRfcProcessor {
 		this.djMapper = djMapper;
 	}
 
-	/**
-	 * Sets the ns manager.
-	 *
-	 * @param nsManager the new ns manager
-	 */
-	public void setNsManager(CmsNsManager nsManager) {
-		this.nsManager = nsManager;
+
+	public void setCmsNsProcessor(CmsNsProcessor cmsNsProcessor) {
+		this.cmsNsProcessor = cmsNsProcessor;
 	}
 
 	/**
@@ -242,7 +239,7 @@ public class CmsRfcProcessor {
 		long releaseId = djMapper.getNextDjId();
 		release.setReleaseId(releaseId);
 
-		CmsNamespace ns = nsManager.getNs(release.getNsPath());
+		CmsNamespace ns = cmsNsProcessor.getNs(release.getNsPath());
 		if (ns == null) {
 			String err = "Can not resolve name space";
 			logger.error(err);
@@ -1885,14 +1882,14 @@ public class CmsRfcProcessor {
 
 		CmsNamespace ns = null;
 		if (cmsAltNs.getNsId() != 0) {
-			ns = nsManager.getNsById(cmsAltNs.getNsId());
+			ns = cmsNsProcessor.getNsById(cmsAltNs.getNsId());
 		} else {
-			ns = nsManager.getNs(cmsAltNs.getNsPath());
+			ns = cmsNsProcessor.getNs(cmsAltNs.getNsPath());
 		}
 		if (ns ==null){
 			ns = new CmsNamespace();
 			ns.setNsPath(cmsAltNs.getNsPath());
-			ns = nsManager.createNs(ns);
+			ns = cmsNsProcessor.createNs(ns);
 		}
 		djMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), rfcCi.getRfcId());
 	}

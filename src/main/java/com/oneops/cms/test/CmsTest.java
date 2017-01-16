@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -58,10 +59,10 @@ import com.oneops.cms.util.domain.AttrQueryCondition;
  */
 public class CmsTest {
 
-	private static CmsCmManagerImpl cmMan = new CmsCmManagerImpl();
+	private static CmsCmProcessor cmMan = new CmsCmProcessor();
 	private static CmsCmValidator cmValidator = new CmsCmValidator();
-	private static CmsNsManagerImpl nsMan = new CmsNsManagerImpl();
-	private static CmsMdManagerImpl mdMan = new CmsMdManagerImpl();
+	private static CmsNsProcessor nsMan = new CmsNsProcessor();
+	private static CmsMdProcessor mdMan = new CmsMdProcessor();
 	
 	
 	/**
@@ -104,11 +105,10 @@ public class CmsTest {
 		
 		cmProcessor.setCiMapper(ciMapper);
 		cmProcessor.setCmValidator(cmValidator);
-		cmProcessor.setNsManager(nsMan);
-		cmMan.setCmProcessor(cmProcessor);
-
-		cmValidator.setMdManager(mdMan);
-		cmValidator.setNsManager(nsMan);
+		cmProcessor.setCmsNsProcessor(nsMan);
+		
+		cmValidator.setCmsMdProcessor(mdMan);
+		cmValidator.setCmsNsProcessor(nsMan);
 		
 		nsMan.setNsMapper(nsMapper);
 		
@@ -116,8 +116,7 @@ public class CmsTest {
 		mdProcessor.setClazzMapper(clMapper);
 		mdProcessor.setRelationMapper(rlMapper);
 		
-		mdMan.setMdProcessor(mdProcessor);
-
+		
 		
 		try {
 			testQueryAttrs(ciMapper);
