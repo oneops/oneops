@@ -32,6 +32,8 @@ public class CmsCIRelationSimple extends CmsCIRelationBasic implements Serializa
 	private static final long serialVersionUID = 1L;
 
 	private Map<String,String> relationAttributes = new HashMap<String,String>();
+	private Map<String,Map<String,String>> relationAttrProps = new HashMap<String,Map<String,String>>();
+
 	
 	private CmsCISimple fromCi;
 	private CmsCISimple toCi;
@@ -99,6 +101,30 @@ public class CmsCIRelationSimple extends CmsCIRelationBasic implements Serializa
 	 */
 	public void setToCi(CmsCISimple toCi) {
 		this.toCi = toCi;
+	}
+
+	public Map<String, Map<String, String>> getRelationAttrProps() {
+		return relationAttrProps;
+	}
+
+	public void setRelationAttrProps(Map<String, Map<String, String>> relationAttrProps) {
+		this.relationAttrProps = relationAttrProps;
+	}
+
+	/**
+	 * Adds the relation attr prop.
+	 *
+	 * @param propName the prop name
+	 * @param attrName the attr name
+	 * @param value the value
+	 */
+	public void addRelationAttrProp(String propName, String attrName, String value) {
+		if (relationAttrProps.get(propName) == null) {
+			relationAttrProps.put(propName, new HashMap<String,String>());
+		}
+		if (attrName != null && value != null) {
+			relationAttrProps.get(propName).put(attrName, value);
+		}
 	}
 	
 }

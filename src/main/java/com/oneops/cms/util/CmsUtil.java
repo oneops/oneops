@@ -394,7 +394,10 @@ public class CmsUtil {
      * @return the cms ci relation simple
      */
     public CmsCIRelationSimple custCIRelation2CIRelationSimple(CmsCIRelation rel, String valueType, boolean getEncrypted) {
-        // TODO get the conversion right
+        return custCIRelation2CIRelationSimple(rel, valueType, getEncrypted, null);
+    }
+
+    public CmsCIRelationSimple custCIRelation2CIRelationSimple(CmsCIRelation rel, String valueType, boolean getEncrypted, String[] attrProps) {
         if (rel == null) {
             return null;
         }
@@ -417,6 +420,13 @@ public class CmsUtil {
                 relSimple.addRelationAttribute(attr.getAttributeName(), attr.getDjValue());
             } else {
                 relSimple.addRelationAttribute(attr.getAttributeName(), attr.getDfValue());
+            }
+            if (attrProps != null) {
+                for (String attrProp : attrProps) {
+                    if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
+                        relSimple.addRelationAttrProp(attrProp, attr.getAttributeName(), attr.getOwner());
+                    }
+                }
             }
         }
 
@@ -473,7 +483,19 @@ public class CmsUtil {
                 attr.setDjValue(relSimple.getRelationAttributes().get(attrSimpleName));
                 attr.setDfValue(relSimple.getRelationAttributes().get(attrSimpleName));
             }
+
             rel.addAttribute(attr);
+        }
+
+        if (relSimple.getRelationAttrProps() != null) {
+            for (String attrProp : relSimple.getRelationAttrProps().keySet()) {
+                if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
+                    for (String attrName : relSimple.getRelationAttrProps().get(attrProp).keySet()) {
+                        String owner = relSimple.getRelationAttrProps().get(attrProp).get(attrName);
+                        rel.getAttribute(attrName).setOwner(StringUtils.isEmpty(owner) ? null : owner);
+                    }
+                }
+            }
         }
 
         if (relSimple.getFromCi() != null) {
