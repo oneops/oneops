@@ -10,9 +10,9 @@
         <%= content_tag(:span, deployment_state.upcase, :id => 'deployment_state', :class => "highlight #{deployment_state}") %>
       </div>
       <div class="scope">
-        <%= icon(site_icon!(:assembly)) %> assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
-        <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %> <b> > </b>&nbsp;
-        <%= icon(site_icon!(:release)) %> release <%= link_to(@release.id, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
+        <%= icon(site_icon!(:assembly)) %> Assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
+        <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> Environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %> <b> > </b>&nbsp;
+        <%= icon(site_icon!(:release)) %> Release <%= link_to(@release.id, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
       </div>
     </div>
     <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>

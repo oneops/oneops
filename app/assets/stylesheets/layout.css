@@ -1018,6 +1018,7 @@ img.authicon {
 .breadcrumb_image i {
   color: black;
   vertical-align: text-bottom;
+  margin-left: 5px;
 }
 
 .breadcrumb_image img {
@@ -1067,8 +1068,10 @@ img.authicon {
   text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
 }
 
-#breadcrumb ul li:hover .breadcrumb_text a {
-
+.breadcrumb_text .item_label .label {
+  font-size: 10px;
+  padding: 0 3px;
+  vertical-align: -2px;
 }
 
 .breadcrumb_separator {
@@ -3737,12 +3740,6 @@ div.status .label {
 	float: right;
 }
 
-span.label-count, span.label-breadcrumb {
-  margin-left:    2px;
-  margin-right:   2px;
-  vertical-align: middle;
-}
-
 .AltRowTable tr:hover {
   background-color: #D2DEE8 !important;
 }
@@ -4566,4 +4563,8 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
   float: left;
   font-size: inherit;
   white-space: inherit;
+}
+
+.text-black {
+  color: black;
 }
