@@ -95,21 +95,25 @@ public class ESMessageProcessor implements MessageProcessor {
                     break;
             }
         } catch (Exception e) {
-            logger.error(">>>>>>>>Error in ESMessageProcessor for type :" + msgType + "::" + ExceptionUtils.getMessage(e));
+            logger.error(">>>>>>>>Error in processMessage() ESMessageProcessor for type :" + msgType + "::" + ExceptionUtils.getMessage(e), e);
         }
     }
 
     private void deleteMessage(String msgType, String msgId) {
-        if ("namespace".equals(msgType)) {
-            nsMessageProcessor.processNSDeleteMsg(msgId);
-        } else {
-            if ("cm_ci".equals(msgType)) {
-                msgType = "ci";
-                relationMsgProcessor.processRelationDeleteMsg(msgId); //Delete all relation docs for given ci 
-                indexer.getTemplate().delete(indexer.getIndexName(), ".percolator", msgId);//TEMP code: Till ciClassName is available try to delete all ciIds from percolator type also
+        try {
+            if ("namespace".equals(msgType)) {
+                nsMessageProcessor.processNSDeleteMsg(msgId);
+            } else {
+                if ("cm_ci".equals(msgType)) {
+                    msgType = "ci";
+                    relationMsgProcessor.processRelationDeleteMsg(msgId); //Delete all relation docs for given ci 
+                    indexer.getTemplate().delete(indexer.getIndexName(), ".percolator", msgId);//TEMP code: Till ciClassName is available try to delete all ciIds from percolator type also
+                }
+                indexer.getTemplate().delete(indexer.getIndexName(), msgType, msgId);
+                logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES.");
             }
-            indexer.getTemplate().delete(indexer.getIndexName(), msgType, msgId);
-            logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES.");
+        } catch (Exception e) {
+            logger.error(">>>>>>>>Error in deleteMessage() ESMessageProcessorfor type :" + msgType + "::" + ExceptionUtils.getMessage(e), e);
         }
     }
 }

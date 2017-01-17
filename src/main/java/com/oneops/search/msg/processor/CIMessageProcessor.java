@@ -17,6 +17,9 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
@@ -33,6 +36,11 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
@@ -75,8 +83,37 @@ public class CIMessageProcessor implements MessageProcessor {
 		} else {
 			message = GSON_ES.toJson(simpleCI);
 		}
-		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
+		JsonParser parser = new JsonParser();
+		JsonElement jsonElement = parser.parse(message);
+		if (jsonElement.isJsonObject()) {
+			expand(jsonElement.getAsJsonObject());
+		}
+
+		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", GSON_ES.toJson(jsonElement));
+
 		relationMessageProcessor.processRelationForCi(message);
+	}
+
+	private void expand(JsonObject currentElement) {
+		Map<String, JsonElement> map = new HashMap<>();
+		for (Map.Entry<String, JsonElement> entry: currentElement.entrySet()){
+			JsonElement value = entry.getValue();
+			if (value.isJsonObject()){
+            	expand(value.getAsJsonObject()); // expand recursively
+			} else if (value.isJsonPrimitive()){
+				String valueAsString = value.getAsString();
+				if (valueAsString.endsWith("}") && valueAsString.startsWith("{") && valueAsString.length()>2){
+					try {
+						JsonElement object = new JsonParser().parse(valueAsString);
+						map.put(entry.getKey()+MessageProcessor.EXPJSON_SUFFIX, object);
+					} catch (Exception ignore){
+					}
+				}
+			}
+        }
+        for (Map.Entry<String, JsonElement> element:map.entrySet()){
+			currentElement.add(element.getKey(),element.getValue());
+		}
 	}
 
 
