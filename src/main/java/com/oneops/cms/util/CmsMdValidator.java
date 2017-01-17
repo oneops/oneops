@@ -26,17 +26,6 @@ import com.oneops.cms.md.service.CmsMdManager;
  */
 public class CmsMdValidator {
 
-    @SuppressWarnings("unused")
-	private CmsMdManager mdManager;
-
-    /**
-     * Sets the md manager.
-     *
-     * @param mdManager the new md manager
-     */
-    public void setMdManager(CmsMdManager mdManager) {
-        this.mdManager = mdManager;
-    }
 
     /**
      * Validate update clazz.
