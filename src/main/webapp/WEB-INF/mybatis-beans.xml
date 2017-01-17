@@ -82,10 +82,8 @@
 
 	<bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
 	
-    <bean id="cmsMdValidator" class="com.oneops.cms.util.CmsMdValidator">
-        <property name="mdManager" ref="cmsMdManager" />
-    </bean>
-
+    <bean id="cmsMdValidator" class="com.oneops.cms.util.CmsMdValidator"/>
+    
 	<bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
         <property name="clazzMapper" ref="clazzMapper" />
         <property name="relationMapper" ref="relationMapper" />
@@ -96,21 +94,25 @@
         <property name="mdProcessor" ref="cmsMdProcessor" />
     </bean>
 
-	<bean id="cmsNsManager" class="com.oneops.cms.ns.service.CmsNsManagerImpl">
-        <property name="nsMapper" ref="nsMapper" />
+    <bean id="cmsNsProcessor" class="com.oneops.cms.ns.service.CmsNsProcessor">
+        <property name="nsMapper" ref="nsMapper"/>
+    </bean>
+
+    <bean id="cmsNsManager" class="com.oneops.cms.ns.service.CmsNsManagerImpl">
+        <property name="cmsNsProcessor" ref="cmsNsProcessor"/>
     </bean>
 
     <!--bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoDES" init-method="init" /-->
 
 	<bean id="cmsCmValidator" class="com.oneops.cms.util.CmsCmValidator">
-        <property name="mdManager" ref="cmsMdManager" />
-        <property name="nsManager" ref="cmsNsManager" />
+        <property name="cmsNsProcessor" ref="cmsNsProcessor" />
+        <property name="cmsMdProcessor" ref="cmsMdProcessor" />
         <!--property name="cmsCrypto" ref="cmsCrypto" /-->
     </bean>
 
 	<bean id="cmsDjValidator" class="com.oneops.cms.util.CmsDJValidator">
-        <property name="mdManager" ref="cmsMdManager" />
-        <property name="nsManager" ref="cmsNsManager" />
+        <property name="cmsNsProcessor" ref="cmsNsProcessor" />
+        <property name="cmsMdProcessor" ref="cmsMdProcessor" />
         <!--property name="cmsCrypto" ref="cmsCrypto" /-->
     </bean>
 
@@ -118,7 +120,7 @@
 		<property name="ciMapper" ref="ciMapper" />
 		<property name="utilMapper" ref="utilMapper" />
         <property name="cmValidator" ref="cmsCmValidator" />
-        <property name="nsManager" ref="cmsNsManager" />
+        <property name="cmsNsProcessor" ref="cmsNsProcessor" />
         <property name="mdProcessor" ref="cmsMdProcessor" />
     </bean>
 
@@ -130,7 +132,7 @@
 	<bean id="cmsRfcProcessor" class="com.oneops.cms.dj.service.CmsRfcProcessor">
 		<property name="djMapper" ref="djMapper" />
         <property name="djValidator" ref="cmsDjValidator" />
-        <property name="nsManager" ref="cmsNsManager" />
+        <property name="cmsNsProcessor" ref="cmsNsProcessor" />
         <property name="ciMapper" ref="ciMapper" />
         <property name="rfcUtil" ref="rfcUtil" />
     </bean>
