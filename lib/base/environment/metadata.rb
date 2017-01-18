@@ -186,7 +186,8 @@ attribute 'debug',
     :category => '5.Other',
     :order => 1,
     :help => 'For developers troubleshooting',
-    :form => { 'field' => 'checkbox' }
+    :form => { 'field' => 'checkbox' },
+    :filter => {:all => {:visible => 'false'}}
   }
 
 attribute 'logging',
@@ -199,15 +200,4 @@ attribute 'logging',
     :help => 'To enable logging',
     :form => { 'field' => 'checkbox' },
     :filter => {"all" => {"visible" => "availability:eq:none"}}
-  }
-
-attribute 'custom_monitor',
-  :description => "Custom Monitor",
-  :required => "required",
-  :default => "false",
-  :format => {
-    :category => '6.Other',
-    :order => 3,
-    :help => 'To enable custom monitor',
-    :form => { 'field' => 'checkbox' }
   }
