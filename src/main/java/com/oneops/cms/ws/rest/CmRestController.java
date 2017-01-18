@@ -27,7 +27,6 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
-import com.oneops.cms.dj.domain.CmsRfcCI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -552,6 +551,7 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="targetIds", required = false)  Long[] targetIds,
 			@RequestParam(value="includeFromCi", required = false) String includeFromCi,
 			@RequestParam(value="includeToCi", required = false) String includeToCi,
+			@RequestParam(value="attrProps", required = false) String attrProps,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsCIRelation> relList = null;
@@ -590,11 +590,16 @@ public class CmRestController extends AbstractRestController {
 			throw new DJException(CmsError.DJ_MUST_SPECIFY_CI_ID_OR_NSPATH_ERROR,
                                             "You must specify either ciId or nsPath ");
 		}
-		
+
+		String[] relationAttrProps = null;
+		if (attrProps != null) {
+			relationAttrProps = attrProps.split(",");
+		}
+
 		List<CmsCIRelationSimple> simpleList = new ArrayList<>();
 		for (CmsCIRelation rel : relList) {
 			scopeVerifier.verifyScope(scope, rel);
-			simpleList.add(cmsUtil.custCIRelation2CIRelationSimple(rel, valueType, getEncrypted!=null));
+			simpleList.add(cmsUtil.custCIRelation2CIRelationSimple(rel, valueType, getEncrypted!=null, relationAttrProps));
 		}
 		return simpleList;
 	}
@@ -638,7 +643,11 @@ public class CmRestController extends AbstractRestController {
 		CmsCIRelation rel = cmsUtil.custCIRelationSimple2CIRelation(relSimple, valueType);
 		rel.setUpdatedBy(userId);
 		CmsCIRelation newRel = cmManager.updateRelation(rel);
-		return cmsUtil.custCIRelation2CIRelationSimple(newRel, valueType,false);
+		String[] attrProps = null;
+		if (relSimple.getRelationAttrProps().size() >0) {
+			attrProps = relSimple.getRelationAttrProps().keySet().toArray(new String[relSimple.getRelationAttrProps().size()]);
+		}
+		return cmsUtil.custCIRelation2CIRelationSimple(newRel, valueType,false, attrProps);
 	}
 	
 	
