@@ -1004,19 +1004,8 @@ ALTER FUNCTION dj_create_rfc_relation(bigint, bigint, bigint, bigint, bigint, bi
 
 -- DROP FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying);
 
-CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, OUT out_deployment_id bigint)
-  RETURNS bigint AS
-$BODY$
-BEGIN
-    out_deployment_id = dj_deploy_release(p_release_id, p_state, p_created_by, p_description, p_comments, p_ops, null);
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying)
-  OWNER TO :user;
 
-CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, IN p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint)
+CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, IN p_flags bigint, IN p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint)
   RETURNS bigint AS
 $BODY$
 DECLARE
@@ -1035,8 +1024,8 @@ BEGIN
 	RAISE EXCEPTION 'Given deployment state % is wrong.', p_state USING ERRCODE = '22000';
     end if;
 
-    insert into dj_deployment (deployment_id, ns_id, release_id, release_revision, state_id, created_by, description, comments, ops, auto_pause_exec_orders )
-    values (nextval('dj_pk_seq'), l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders)
+    insert into dj_deployment (deployment_id, ns_id, release_id, release_revision, state_id, created_by, description, comments, ops, auto_pause_exec_orders, flags )
+    values (nextval('dj_pk_seq'), l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders, p_flags)
     returning deployment_id into l_deployment_id;	
 
     insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
@@ -1079,8 +1068,41 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
+ALTER FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying, bigint, character varying)
+  OWNER TO :user;
+
+CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, OUT out_deployment_id bigint)
+  RETURNS bigint AS
+$BODY$
+BEGIN
+    out_deployment_id = dj_deploy_release(p_release_id, p_state, p_created_by, p_description, p_comments, p_ops, null);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying)
+  OWNER TO :user;
+
+CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, IN p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint)
+  RETURNS bigint AS
+$BODY$
+DECLARE
+    l_rfc_ci record;
+    l_ns_id bigint;
+    l_revision smallint;	
+    l_deployment_id bigint;
+    l_dpmt_state_id integer;
+BEGIN
+     out_deployment_id = dj_deploy_release(p_release_id, p_state, p_created_by, p_description, p_comments, p_ops, 0, null);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+  
 ALTER FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying, character varying)
   OWNER TO :user;
+
+
 
 -- Function: dj_promote_rfc_ci(bigint, boolean, integer, bigint)
 
