@@ -31,7 +31,7 @@
 	 </update> 
 
 	 <update id="updDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
-	    {call dj_upd_deployment(#{deploymentId}, #{deploymentState}, #{updatedBy}, #{description}, #{comments}, #{processId}, #{autoPauseExecOrdersVal})}
+	    {call dj_upd_deployment(#{deploymentId}, #{deploymentState}, #{updatedBy}, #{description}, #{comments}, #{processId}, #{autoPauseExecOrdersVal}, #{flags})}
 	 </update> 
 
 	 <update id="updDpmtRecordState" parameterType="com.oneops.cms.dj.domain.CmsDpmtRecord" statementType="CALLABLE">
