@@ -17,7 +17,7 @@ package com.oneops.transistor.service;
  *   limitations under the License.
  *
  *******************************************************************************/
-public class DesignExportFlavor {
+public class ExportFlavor {
     private static final String VAR_RELATION = "ValueFor";
     private static final String COMPOSED_OF_RELATION = "ComposedOf";
     private static final String CONSUMES_RELATION = "Consumes";
@@ -42,12 +42,12 @@ public class DesignExportFlavor {
     private String  relPrefix;
     private String classPrefix;
     
-    public static DesignExportFlavor MANIFEST = new DesignExportFlavor(true);
+    public static ExportFlavor MANIFEST = new ExportFlavor(true);
     
-    public static DesignExportFlavor DESIGN = new DesignExportFlavor(false);
+    public static ExportFlavor DESIGN = new ExportFlavor(false);
 
     
-    private DesignExportFlavor(boolean manifest) {
+    private ExportFlavor(boolean manifest) {
         if (manifest) {
             owner = OWNER_MANIFEST;
             relPrefix = MANIFEST_PREFIX;

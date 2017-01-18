@@ -1,6 +1,5 @@
 package com.oneops.transistor.service;
 
-import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -27,7 +26,7 @@ public class EnvironmentExportProcessor {
     private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
     private CmsRfcProcessor rfcProcessor;
     private TransUtil trUtil;
-    private static final DesignExportFlavor FLAVOR = DesignExportFlavor.MANIFEST;
+    private static final ExportFlavor FLAVOR = ExportFlavor.MANIFEST;
     private static final String BAD_ENV_ID_ERROR_MSG = "Environment does not exists with id=";
     private static final String OPEN_RELEASE_ERROR_MSG = "Design have open release. Please commit/discard before import.";
     private static final String BAD_TEMPLATE_ERROR_MSG = "Can not find template for pack: ";
