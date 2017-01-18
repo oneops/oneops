@@ -18,7 +18,8 @@
                            options_for_select([['Notify Only', 'notify'],
                                                ['Unhealthy', 'unhealthy'],
                                                ['Over-Utilized', 'overutilized'],
-                                               ['Under-Utilized', 'underutilized']],
+					       ['Under-Utilized', 'underutilized'],
+	    					['Defunct', 'defunct']],
                                               threshold['state']),
                            :class    => 'state',
                            :onchange => 'thresholds_struct_changed(this);') %>
