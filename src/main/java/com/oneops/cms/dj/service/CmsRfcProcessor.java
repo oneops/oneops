@@ -40,7 +40,6 @@ import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.domain.CmsNamespace;
-import com.oneops.cms.ns.service.CmsNsManager;
 import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsDJValidator;
@@ -1816,6 +1815,8 @@ public class CmsRfcProcessor {
 	private List<TimelineRelease> getReleaseByFilterInternal(TimelineQueryParam queryParam) {
 		List<TimelineRelease> releases = null;
 		addFilters(queryParam);
+		getMatchingNamespaces4Timeline(queryParam);
+
 		releases = djMapper.getReleaseByFilter(queryParam);
 		Long endRelId = null;
 		if (QueryOrder.ASC.equals(queryParam.getOrder())) {
@@ -1832,18 +1833,30 @@ public class CmsRfcProcessor {
 		return releases;
 	}
 
+	private void getMatchingNamespaces4Timeline(TimelineQueryParam queryParam) {
+		List<CmsNamespace> releaseNamespaces = cmsNsProcessor.getNsLike(queryParam.getReleaseNsLike());
+		List<Long> releaseScopeNsIds = new ArrayList<Long>();
+		List<Long> matchedNsIds = new ArrayList<Long>();
+		releaseNamespaces.stream().forEach((namespace) -> {
+			releaseScopeNsIds.add(namespace.getNsId());
+			if (namespace.getNsPath().indexOf(queryParam.getFilter(), queryParam.getNsPath().length()) != -1) {
+				matchedNsIds.add(namespace.getNsId());
+			}
+		});
+		queryParam.setNsIdsMatchingFilter(matchedNsIds);
+		queryParam.setReleaseScopeNsIds(releaseScopeNsIds);
+	}
+
 	private void addFilters(TimelineQueryParam queryParam) {
 		String filter = queryParam.getWildcardFilter();
 		String nsPath = queryParam.getNsPath();
 
 		if (queryParam.isDesignNamespace()) {
 			queryParam.setReleaseNsLike(CmsUtil.likefyNsPath(nsPath));
-			queryParam.setReleaseNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(nsPath, null, filter));
 			queryParam.setReleaseClassFilter(CmsConstants.CATALOG + "." + filter);
 		}
 		else {
 			queryParam.setReleaseNsLike(CmsUtil.likefyNsPathWithFilter(nsPath, CmsConstants.MANIFEST, null));
-			queryParam.setReleaseNsLikeWithFilter(CmsUtil.likefyNsPathWithFilter(nsPath, CmsConstants.MANIFEST, filter));
 			queryParam.setReleaseClassFilter(CmsConstants.MANIFEST + "." + filter);
 		}
 	}

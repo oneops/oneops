@@ -1411,16 +1411,20 @@
 		from dj_releases r, ns_namespaces ns, dj_release_states rs
 		where r.release_id in (
 				select distinct rfc.release_id
-				from dj_rfc_ci rfc, md_classes md, ns_namespaces ns
-				where rfc.ns_id = ns.ns_id
-				  and ns.ns_path like #{releaseNsLike}
+				from dj_rfc_ci rfc, md_classes md
+				where rfc.ns_id in 
+					<foreach item="item" index="index" collection="releaseScopeNsIds" open="(" close=")" separator=", ">#{item}</foreach>
 				  and rfc.class_id = md.class_id
 				  and (
 				    (#{wildcardFilter}::varchar is null or rfc.ci_name like #{wildcardFilter})
 				    or
 				    (#{releaseClassFilter}::varchar is null or lower(md.class_name) like lower(#{releaseClassFilter}))
-				    or
-				    (#{releaseNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{releaseNsLikeWithFilter}))
+				    <if test="nsIdsMatchingFilter != null &amp;&amp; !nsIdsMatchingFilter.isEmpty()">
+						or
+						(rfc.ns_id in 
+							<foreach item="item" index="index" collection="nsIdsMatchingFilter" open="(" close=")" separator=", ">#{item}</foreach>
+						)
+				    </if>
 				  )
 				  and (#{releaseOffset}::bigint is null or rfc.release_id ${order.aboveOperator} #{releaseOffset})
 				  and (#{endRelId}::bigint is null or rfc.release_id ${order.belowOperator}= #{endRelId})
@@ -1559,9 +1563,9 @@
 		from dj_releases r, ns_namespaces ns, dj_release_states rs
 		where r.release_id in (
 			select distinct rfc.release_id
-			from dj_rfc_relation rfc, cm_ci from_ci, md_classes from_md, cm_ci to_ci, md_classes to_md, ns_namespaces ns
-			where rfc.ns_id = ns.ns_id
-			  and ns.ns_path like #{releaseNsLike}
+			from dj_rfc_relation rfc, cm_ci from_ci, md_classes from_md, cm_ci to_ci, md_classes to_md
+			where rfc.ns_id in 
+				<foreach item="item" index="index" collection="releaseScopeNsIds" open="(" close=")" separator=", ">#{item}</foreach>
 			  and rfc.from_ci_id = from_ci.ci_id
 			  and from_ci.class_id = from_md.class_id
 			  and rfc.to_ci_id = to_ci.ci_id
@@ -1573,8 +1577,13 @@
 			    (#{wildcardFilter}::varchar is null or from_ci.ci_name like #{wildcardFilter} or to_ci.ci_name like #{wildcardFilter})
 			    or
 			    (#{releaseClassFilter}::varchar is null or lower(from_md.class_name) like lower(#{releaseClassFilter}) or lower(to_md.class_name) like lower(#{releaseClassFilter}))
-			    or
-			    (#{releaseNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{releaseNsLikeWithFilter}))
+
+			    <if test="nsIdsMatchingFilter != null &amp;&amp; !nsIdsMatchingFilter.isEmpty()">
+				    or
+				    (rfc.ns_id in  
+						<foreach item="item" index="index" collection="nsIdsMatchingFilter" open="(" close=")" separator=", ">#{item}</foreach>
+				    )
+				</if>
 			  )
 			  and (#{releaseOffset}::bigint is null or rfc.release_id ${order.aboveOperator} #{releaseOffset})
 			  and (#{endRelId}::bigint is null or rfc.release_id ${order.belowOperator}= #{endRelId})
