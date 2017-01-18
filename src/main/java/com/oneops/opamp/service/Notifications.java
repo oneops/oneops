@@ -84,6 +84,8 @@ public class Notifications {
 
     protected static final String SUBJECT_SUFFIX_CLOSE_EVENT = " recovered.";
 
+	private static final String CI_IN_DEFUNCT_STATE_NOTIFICATION = "This component is in defunct state. Trying to auto-replace.";
+
     private ReliableExecutor<NotificationMessage> antennaClient;
 	private CmsCmProcessor cmProcessor;
 	private EnvPropsProcessor envProcessor;
@@ -652,5 +654,9 @@ public class Notifications {
 
 	public void setEnvProcessor(EnvPropsProcessor envProcessor) {
 		this.envProcessor = envProcessor;
+	}
+
+	public NotificationMessage sendDefunctNotification(CiChangeStateEvent event) {
+		return sendOpsEventNotification(event, CI_IN_DEFUNCT_STATE_NOTIFICATION, NotificationSeverity.warning);		
 	}
 }
