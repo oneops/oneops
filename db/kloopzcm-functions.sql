@@ -1483,7 +1483,7 @@ BEGIN
 	    updated_by = coalesce(p_updated_by, updated_by),
 	    description = coalesce(p_desc, description),
 	    comments = coalesce(p_comments, comments),
-	    p_flags = coalesce(p_flags, flags),
+	    flags = coalesce(p_flags, flags),
 	    process_id = coalesce(p_process_id, process_id),
             auto_pause_exec_orders = coalesce(p_auto_pause_exec_orders, auto_pause_exec_orders),
 	    updated = now()
