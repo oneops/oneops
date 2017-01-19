@@ -167,6 +167,8 @@ public class OpsEventListener implements MessageListener {
 						} else if (event.getPayLoad() != null &&  "notify".equals(event.getNewState()) && eventUtil.shouldNotify(event, opsEvent) )   {
 							//skip the notification in case payload is null
 							notifier.sendOpsEventNotification(event);
+						} else if ("defunct".equals(event.getNewState())) {
+							bsProcessor.processDefunctState(event);
 						} else if ("good".equals(event.getNewState()) && "unhealthy".equals(event.getOldState())) {
 							logger.info("sending good notification for cid: " + event.getCiId() + " " + (opsEvent!=null ? opsEvent.getSource():"") + " status " + (opsEvent!=null ? opsEvent.getStatus():"") + " ostate:"
 									+ event.getOldState() + " nstate: " + event.getNewState() );
@@ -176,7 +178,7 @@ public class OpsEventListener implements MessageListener {
 							logger.info("sending recoverynotification for cid: " + event.getCiId() + " " + (opsEvent!=null ? opsEvent.getSource():"") + " status " + (opsEvent!=null ? opsEvent.getStatus():"") + " ostate:"
 									+ event.getOldState() + " nstate: " + event.getNewState() );
 							notifier.sendOpsEventNotification(event);
-						}	
+						}
 					}
 				} catch (OpsException opse) {
 					logger.error("OpsException in onMessage", opse);
