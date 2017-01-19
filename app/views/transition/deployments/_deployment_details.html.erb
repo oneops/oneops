@@ -7,36 +7,39 @@
       <div class="description">
         <ul>
           <li>
-            <%= icon('info-circle') %> deployment <%= highlight(@deployment.deploymentId) %> for
+            <%= icon('info-circle', nil, 'fa-fw') %> deployment <%= highlight(@deployment.deploymentId) %> for
             release <%= link_to(highlight(@manifest.releaseId), path_to_release(@manifest)) %> is
             in <%= highlight(@deployment.deploymentState, @deployment.deploymentState) %> state
           </li>
           <li>
-            <%= icon('user') %> submitted <%= highlight(time_ago_in_words(@deployment.created_timestamp)) %>
+            <%= icon('user', nil, 'fa-fw') %> submitted <%= highlight(time_ago_in_words(@deployment.created_timestamp)) %>
             by <%= highlight(@deployment.createdBy, 'info') %>
           </li>
           <li>
-            <%= icon('star') %> has <b><%= @rfc_cis.size %></b> <%= 'work-order'.pluralize(@rfc_cis.size) %>
+            <%= icon('star', nil, 'fa-fw') %> has <b><%= @rfc_cis.size %></b> <%= 'work-order'.pluralize(@rfc_cis.size) %>
           </li>
           <% if @deployment.deploymentState == 'complete' %>
             <li>
-              <%= icon('clock-o') %> duration was
+              <%= icon('clock-o', nil, 'fa-fw') %> duration was
               <strong><%= time_duration_in_words((@deployment.updated_timestamp - @deployment.created_timestamp) * 1000) %></strong>
             </li>
           <% else %>
             <% if @deployment.updatedBy %>
               <li>
-                <%= icon('arrow-circle-o-down') %> <%= @deployment.deploymentState %>
+                <%= icon('arrow-circle-o-down', nil, 'fa-fw') %> <%= @deployment.deploymentState %>
                 by <%= highlight(@deployment.updatedBy, 'info') %>
                 <%= highlight(time_ago_in_words(@deployment.updated_timestamp)) %>
               </li>
             <% end %>
           <% end %>
+          <% if @deployment.continueOnFailure %>
+            <li><%= icon('exclamation', nil, 'fa-fw') %> <b>continue on failure</b> was requested</li>
+          <% end %>
           <% if @deployment.comments.present? %>
-            <li><%= icon('comment') %> <%= @deployment.comments %></li>
+            <li><%= icon('comment', nil, 'fa-fw') %> <%= @deployment.comments %></li>
           <% end %>
           <% if @deployment.ops.present? %>
-            <li><%= icon('exclamation-triangle') %> <%= @deployment.ops %></li>
+            <li><%= icon('exclamation-triangle', nil, 'fa-fw') %> <%= @deployment.ops %></li>
           <% end %>
           <% if Rails.env.shared? || Rails.env.development? %>
             <li>

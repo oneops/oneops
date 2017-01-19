@@ -11,8 +11,11 @@
       </div>
       <div class="scope">
         <%= icon(site_icon!(:assembly)) %> Assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
-        <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> Environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %> <b> > </b>&nbsp;
-        <%= icon(site_icon!(:release)) %> Release <%= link_to(@release.id, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
+        <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> Environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %>
+        <% if @release %>
+          <%= icon(site_icon!(:release)) %><b> > </b>&nbsp; Release <%= link_to(@release.parentReleaseId, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
+        <% end %>
+
       </div>
     </div>
     <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>
@@ -53,8 +56,8 @@
                 <% unless exec_order == 1 %>
                   <% if deployment_state == 'new' %>
                     <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => false %>
-                  <% elsif deployment_state == 'active' || deployment_state == 'paused' %>
-                    <% exec_order_paused = @deployment.attributes["autoPauseExecOrders"].try(:include?, (exec_order)) ? true : false %>
+                  <% elsif deployment_state == 'active' || deployment_state == 'paused' || deployment_state == 'pausing' || deployment_state == 'pending' %>
+                    <% exec_order_paused = @deployment.attributes['autoPauseExecOrders'].try(:include?, (exec_order)) ? true : false %>
                     <% rfcs_states = order_rfcs.map{|rfcs| @deployment_rfc_cis_info.try(:[], rfcs.rfcId).try(:[], :state)} %>
                     <% exec_order_enabled = rfcs_states.all?{|rfcs_state| rfcs_state == 'pending'} %>
                     <% if exec_order_enabled %>
@@ -92,7 +95,9 @@
                           <div class="component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
                             <div class="info">
                               <% platform = @platforms[platform_id]
-                                 active   = platform.ciAttributes.attributes.has_key?(:is_active) && platform.ciAttributes.is_active == 'false' ? false : true %>
+                                 version  = platform.ciAttributes.major_version
+                                 active   = platform.ciAttributes.attributes.has_key?(:is_active) && platform.ciAttributes.is_active == 'false' ? false : true
+                                 primary  = @priority["#{"#{platform.ciName}/#{version}"}/#{cloud_id}"] == '1' %>
                               <% if ops_state_alerts.present? %>
                                 <i class="fa fa-2x fa-exclamation text-error"></i>
                               <% end %>
@@ -100,11 +105,13 @@
                               <div class="name ellipsis"><%= link_to(component, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, platform, component)) %></div>
                               <div class="platform ellipsis">
                                 <%= platform.ciAttributes.pack %> <%= highlight(platform.ciName) %>
-                                <%= highlight("v#{platform.ciAttributes.major_version}", active ? 'success' : '') if platform.ciAttributes.attributes.has_key?(:major_version) %>
+                                <%= highlight("v#{version}", active ? 'success' : '') if platform.ciAttributes.attributes.has_key?(:major_version) %>
                               </div>
                             </div>
                             <div class="cloud ellipsis">
                               <% cloud = @clouds[cloud_id] %>
+                              <%= marker(primary ? 'primary' : 'secondary',  primary ? 'label-info' : '')%>
+                              <br/>
                               <%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %>
                             </div>
                             <div class="counts">
@@ -147,7 +154,7 @@
                                     <span>
                                       <%= rfc_action_icon(rfc.rfcAction, 'fa-lg') %>&nbsp;&nbsp;
                                       <strong>
-                                        <% if (state != 'complete' && rfc.rfcAction == 'add') || (state == 'complete' && rfc.rfcAction == 'delete') %>
+                                        <% if state == 'complete' && rfc.rfcAction == 'delete' %>
                                           <%= rfc.ciName %>
                                         <% else %>
                                           <%= link_to(rfc.ciName, path_to_ci(rfc)) %>
@@ -225,50 +232,58 @@
       <div class="text-error" style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
     <% end %>
   </div>
-  <div class="controls">
-    <% if !@deployment %>
-      <%= render('bad_instances_alert', :count => bad_ops_state_count) if bad_ops_state_count > 0 %>
-    <% elsif @deployment.new_record? %>
+  <% if @deployment %>
+    <div class="controls">
       <%= render('bad_instances_alert', :count => bad_ops_state_count) if bad_ops_state_count > 0 %>
       <table>
-        <tr id="controls_new">
-          <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
-          <td><%= render 'transition/deployments/action',
-                         :action => 'deploy',
-                         :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %></td>
-        </tr>
-      </table>
-    <% else %>
-      <%= render('bad_instances_alert', :count => bad_ops_state_count) if bad_ops_state_count > 0 %>
-      <table>
-        <tr id="controls_failed" <%= 'style=display:none' unless deployment_state == 'failed' %>>
-          <td><%= render 'transition/deployments/action', :action => 'cancel' %></td>
-          <td><%= render 'transition/deployments/action', :action => 'retry' %></td>
-        </tr>
-        <tr id="controls_active" <%= 'style=display:none' unless deployment_state == 'active' %>>
-          <td style="text-align: center">
-            <small>To cancel deployment you must pause it first and then wait for all in-progress steps to finish.</small>
-            <%= render 'transition/deployments/action', :action => 'pause' %>
+        <tr>
+          <td colspan="2">
+            <%= render 'cms/cis/checkbox',
+                       :attribute_name  => 'continueOnFailure',
+                       :attribute_value => @deployment.continueOnFailure,
+                       :checked_value   => true,
+                       :unchecked_value => false,
+                       :read_only       => deployment_state == 'failed' || deployment_state == 'canceled' || deployment_state == 'complete',
+                       :label           => 'continue on failure <small>(deployment proceeds even if some work-orders fail)</small>' %>
           </td>
         </tr>
-        <tr id="controls_pausing" <%= 'style=display:none' unless deployment_state == 'pausing' %>>
-          <td style="text-align: center">
-            <small>To cancel or resume deployment you must wait for all in-progress steps to finish.</small>
-          </td>
-        </tr>
-        <tr id="controls_paused" <%= 'style=display:none' unless deployment_state == 'paused' %>>
-          <td><%= render 'transition/deployments/action', :action => 'cancel' %></td>
-          <td><%= render 'transition/deployments/action', :action => 'resume' %></td>
-        </tr>
-        <tr id="controls_pending" <%= 'style=display:none' unless deployment_state == 'pending' %>>
-          <%= render 'pending_approvals' if @approvals.present? %>
-        </tr>
+        <% if deployment_persisted %>
+          <tr id="controls_failed" <%= 'style=display:none' unless deployment_state == 'failed' %>>
+            <td><%= render 'transition/deployments/action', :action => 'cancel' %></td>
+            <td><%= render 'transition/deployments/action', :action => 'retry' %></td>
+          </tr>
+          <tr id="controls_active" <%= 'style=display:none' unless deployment_state == 'active' %>>
+            <td style="text-align: center">
+              <%= render 'transition/deployments/action', :action => 'pause' %>
+              <small>To cancel deployment you must pause it first and then wait for all in-progress steps to finish.</small>
+            </td>
+          </tr>
+          <tr id="controls_paused" <%= 'style=display:none' unless deployment_state == 'paused' %>>
+            <td><%= render 'transition/deployments/action', :action => 'cancel' %></td>
+            <td><%= render 'transition/deployments/action', :action => 'resume' %></td>
+          </tr>
+          <tr id="controls_pausing" <%= 'style=display:none' if deployment_state == 'pausing' || deployment_state == 'active' %>>
+            <td style="text-align: center">
+              <small>To cancel or resume deployment you must wait for all in-progress steps to finish.</small>
+            </td>
+          </tr>
+          <tr id="controls_pending" <%= 'style=display:none' unless deployment_state == 'pending' %>>
+            <%= render 'pending_approvals' if @approvals.present? %>
+          </tr>
+        <% elsif @deployment %>
+          <tr id="controls_new">
+            <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
+            <td><%= render 'transition/deployments/action',
+                           :action => 'deploy',
+                           :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %></td>
+          </tr>
+        <% end %>
       </table>
-    <% end %>
-  </div>
+    </div>
+  <% end %>
   <div class="footer">
   	<% if @deployment %>
-  	  Close will NOT cancel or interrupt the deployment.&nbsp;
+  	  Close will NOT cancel or interrupt or discard the deployment.&nbsp;
   	<% end %>
 
   	<%= link_to_function 'Close', 'close_deployment_overlay()', :class => 'btn' %>
@@ -365,21 +380,14 @@
   <%= render 'cms/rfcs/rfc' %>
 
   <% if deployment_persisted %>
-    $j('.autopause :checkbox').change(function () {
-      var payload = {};
-      payload["cms_deployment[releaseId]"] = <%= @deployment.releaseId %>;
-      payload["cms_deployment[autoPauseExecOrders][]"] = [];
-      $j('.autopause input:checkbox:checked').each(function() {
-        payload["cms_deployment[autoPauseExecOrders][]"].push(this.value);
-      });
-      if (payload["cms_deployment[autoPauseExecOrders][]"].length == 0) {
-        payload["cms_deployment[autoPauseExecOrders][]"] = "";
-      }
+    $j('.autopause :checkbox, input#continueOnFailure').change(function () {
+      var autoPause = $j('.autopause input:checkbox:checked').map(function() {return this.value;});
       $j.ajax({
         url:  "<%= assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
         traditional: true,
         type: "PUT",
-        data: payload
+        data: {"cms_deployment[autoPauseExecOrders][]": autoPause.length == 0 ? [] : autoPause.toArray(),
+               "cms_deployment[continueOnFailure]": $j('input#continueOnFailure').val()}
       });
     });
   <% else %>
@@ -387,6 +395,7 @@
       $j('.autopause input:checkbox:checked').each(function() {
         $j("#new_cms_deployment").append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value +" />");
       });
+      $j("#new_cms_deployment input#cms_deployment_continueOnFailure").val($j('input#continueOnFailure').val());
     });
   <% end %>
 

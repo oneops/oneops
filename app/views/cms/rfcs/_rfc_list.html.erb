@@ -38,10 +38,21 @@
                       <b><%= link_to(component, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, platform, component)) %></b>
                     </li>
                     <% cloud = @clouds[cloud_id] %>
-                    <li class="pull-right"><%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %></li>
+                    <li class="pull-right">
+                      <%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %>
+                      <% cloud_deployment_state_summary = class_rfcs.group_by{|rfc_ci| rfc_ci.deployment.dpmtRecordState}
+                         cloud_deployment_state = ''
+                         %w(failed canceled pending complete).each do |s|
+                           if cloud_deployment_state_summary[s]
+                             cloud_deployment_state = s
+                             break
+                           end
+                         end %>
+                      &nbsp;
+                      <%= rfc_state_icon(cloud_deployment_state) %></li>
                   </ul>
                   <ul class="rfc">
-                    <% cloud_rfcs.sort_by(&:execOrder).each do |rfc_ci| %>
+                    <% cloud_rfcs.each do |rfc_ci| %>
                       <% rfc_id = rfc_ci.rfcId %>
                       <li class="rfc" data-bom-rfc-id="<%= rfc_id %>">
                         <div class="accordion-group">

@@ -8,9 +8,10 @@ class Cms::Deployment < Cms::Base
   end
 
   def self.build(attributes = {})
-    self.new(ActiveSupport::HashWithIndifferentAccess.new({:releaseId       => '',
-                                                           :nsPath          => '',
-                                                           :deploymentState => ''}).merge(attributes))
+    self.new(ActiveSupport::HashWithIndifferentAccess.new({:releaseId         => '',
+                                                           :nsPath            => '',
+                                                           :deploymentState   => '',
+                                                           :continueOnFailure => false}).merge(attributes))
   end
 
   def self.find_open_or_build(options = {})
