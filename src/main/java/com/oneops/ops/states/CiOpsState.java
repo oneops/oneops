@@ -22,6 +22,7 @@ public enum CiOpsState {
     overutilized("overutilized",25),
     underutilized("underutilized",20),
     unhealthy("unhealthy",30),
+    defunct("defunct", 35),
     bad("bad",40);
 
     private String name;
