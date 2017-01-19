@@ -113,6 +113,7 @@ class Chef
 
     def fetch(uri, local_path, parts, resume=false)
       full_path = "#{uri.scheme}://#{uri.host}:#{uri.port}#{uri.path}"
+      validate_url(full_path)
       Chef::Log.info("Fetching resume is set to #{resume}")
       Chef::Log.info("Remote: #{full_path}")
       Chef::Log.info("Local: #{local_path}")
@@ -276,6 +277,24 @@ class Chef
         end
       end
       parts_details
+    end
+
+    def exit_with_error(msg)
+      Chef::Log.error(msg)
+      puts "***FAULT:FATAL=#{msg}"
+      Chef::Application.fatal!(msg)
+    end
+
+    def validate_url(remote_file)
+      uri = URI(remote_file)
+      req = Net::HTTP.new(uri.host, uri.port)
+      req.use_ssl = true if uri.scheme == "https"
+      res = req.request_head(uri.path)
+      if res.code != 200
+        exit_with_error "#{remote_file} response code is #{res.code}.. Please specify correct url.."
+      else
+        Chef::Log.info("#{remote_file} response code is #{res.code}. Continuing..")
+      end
     end
   end
 end
