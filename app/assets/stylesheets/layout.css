@@ -559,14 +559,14 @@ img.authicon {
   text-align: center;
 }
 
+#overlay div.controls td form {
+  margin: 0;
+}
+
 #overlay div.controls input.button, #overlay div.controls button {
   height:    40px;
   font-size: 16px;
   min-width: 80px;
-}
-
-#overlay div.controls div.btn-group {
-  margin-bottom: 20px;
 }
 
 #overlay div.controls div.btn-group .dropdown-menu {
@@ -2998,7 +2998,6 @@ div.rfc-list img, div.action-list img {
   padding:  10px 5px;
   font-size: 12px;
   line-height: 22px;
-  margin-top: 11px;
 }
 
 .wf .manifest .component .cloud i {
@@ -3226,6 +3225,11 @@ div.ciAttributes {
 .edit_form form.editing .controls .help-block {
   display: inherit;
   font-style: italic;
+}
+
+.ciAttributes .control-label.required,
+.relationAttributes .control-label.required {
+  font-weight: bold;
 }
 
 .ciAttributes .control-label.sticky,

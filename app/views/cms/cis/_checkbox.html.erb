@@ -5,7 +5,7 @@
 <span id="<%= dom_id %>" class="check-box <%= 'disabled' if read_only_x %>">
   <i class="cb fa fa-fw fa-lg <%= attribute_value == checked ? 'fa-check-square-o' : 'fa-square-o' %>"></i>
   <%= icon(label_icon, '', 'fa-fw') if defined?(label_icon) == 'local-variable' %>
-  <%= label if defined?(label) == 'local-variable' %>
+  <%= raw(label) if defined?(label) == 'local-variable' %>
   <% if defined?(builder) %>
     <%= builder.hidden_field attribute_name, :'checked-value' => checked, :'unchecked-value' => unchecked %>
   <% else %>

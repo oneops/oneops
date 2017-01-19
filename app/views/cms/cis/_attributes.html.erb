@@ -14,12 +14,13 @@
       <div class="category">
       	<div class="name"><%= category.split('.').last %></div>
     		<% attribute_list.sort_by {|a| a.options.has_key?(:order) ? a.options[:order] : 999 }.each do |a| %>
-          <% ci_attributes.attributes[a.attributeName] = a.defaultValue unless ci_attributes.attributes.include?(a.attributeName) %>
-          <% read_only = ci.respond_to?(:ciId) && ci.ciId.to_i > 0 && a.options.has_key?(:editable) && !a.options[:editable] %>
+          <% ci_attributes.attributes[a.attributeName] = a.defaultValue unless ci_attributes.attributes.include?(a.attributeName)
+             required  = a.isMandatory ? true : nil
+             read_only = ci.respond_to?(:ciId) && ci.ciId.to_i > 0 && a.options.has_key?(:editable) && !a.options[:editable] %>
   		   	<div class="control-group" editable="<%= !read_only %>">
             <%= c.label a.attributeName,
                         link_to("#{a.description}#{'*' if a.isMandatory}", '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{a.options[:help].presence || a.description}"),
-                        :class => "control-label #{'sticky' if attr_owner}" %>
+                        :class => "control-label #{'sticky' if attr_owner} #{'required' if required}" %>
             <% if attr_owner %>
               <div class="input-prepend lock-container">
                 <%= render 'cms/cis/sticky',
@@ -31,7 +32,6 @@
             <div class="controls" editable="<%= !read_only %>">
               <% pattern         = a.options[:pattern]
                  pattern         = "(#{pattern})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present?
-                 required        = a.isMandatory ? true : nil
                  attribute_value = ci_attributes.send(a.attributeName)
                  data_type       = a.dataType
                  form_options    = a.options[:form]

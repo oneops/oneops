@@ -7,7 +7,8 @@
       <%= error_messages_for(@deployment) %>
       <%= f.hidden_field :releaseId %>
       <%= f.hidden_field :nsPath, :value => @release.nsPath %>
-      <%= f.hidden_field :comments, :value => @manifest.description %><br>
+      <%= f.hidden_field :continueOnFailure %>
+      <%= f.hidden_field :comments, :value => @manifest.description %>
       <%= f.hidden_field :ops, :value => warning if defined?(warning) && warning %>
       <%= f.button((icon('check', 'Deploy')), :data => {:disable_with => 'Deploying...'}, :class => 'btn btn-success', :name => 'deploy') %>
     <% end %>
@@ -21,7 +22,7 @@
   <% when 'cancel' %>
     <div class="btn-group">
       <a id="cancel_deployment_button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown" href="#">
-        <span><%= icon('remove') %> Cancel</span> <span class="caret"></span>
+        <span><%= icon('ban') %> Cancel</span> <span class="caret"></span>
       </a>
       <ul class="dropdown-menu drop-up">
         <li class="disabled" style="border-bottom: 1px solid #bbb">

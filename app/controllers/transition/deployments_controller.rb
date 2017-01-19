@@ -110,8 +110,7 @@
         load_time_stats
         load_state_history
         load_approvals
-        load_clouds
-        load_platforms
+        load_clouds_and_platforms
 
         render :action => :show
       end
@@ -308,8 +307,7 @@
 
   def load_bom_release_data
     load_deployment_states
-    load_clouds
-    load_platforms
+    load_clouds_and_platforms
 
     @rfc_cis = @release.rfc_cis
 
@@ -328,19 +326,24 @@
     @approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId})
   end
 
-  def load_clouds
+  def load_clouds_and_platforms
     @clouds = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
                                             :direction         => 'from',
                                             :relationShortName => 'Consumes',
                                             :targetClassName   => 'account.Cloud'}).to_map_with_value {|r| [r.toCiId, r.toCi]}
-  end
 
-  def load_platforms
     @platforms = Cms::DjRelation.all(:params => {:ciId              => @environment.ciId,
                                                  :direction         => 'from',
                                                  :relationShortName => 'ComposedOf'}).to_map_with_value do |r|
       platform = r.toCi
       ["#{platform.ciName}/#{platform.ciAttributes.major_version}", platform]
+    end
+
+    @priority = Cms::DjRelation.all(:params => {:nsPath            => environment_manifest_ns_path(@environment),
+                                                :fromClassName     => 'manifest.Platform',
+                                                :relationShortName => 'Consumes',
+                                                :recursive         => true}).to_map_with_value do |r|
+      ["#{r.nsPath.split('/', 6).last}/#{r.toCiId}", r.relationAttributes.priority]
     end
   end
 end

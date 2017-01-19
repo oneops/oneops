@@ -20,7 +20,7 @@
           <div class="control-group" editable="<%= editable %>">
             <%= c.label a.attributeName,
                         link_to("#{a.description}#{'*' if a.isMandatory}", '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{a.options[:help].presence || a.description}"),
-                        :class => "control-label #{'sticky' if sticky_map}" %>
+                        :class => "control-label #{'sticky' if sticky_map} #{'required' if required}" %>
             <% if sticky_map %>
               <div class="input-prepend lock-container">
                 <%= render 'cms/cis/sticky',
