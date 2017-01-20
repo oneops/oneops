@@ -397,7 +397,7 @@ public class CMSClient {
         dpmtParam.setDeploymentId(dpmt.getDeploymentId());
         dpmtParam.setProcessId(processId + "!" + execId);
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
-        
+        dpmtParam.setContinueOnFailure(dpmt.getContinueOnFailure());
         try {
         	cmsDpmtProcessor.updateDeployment(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
@@ -423,7 +423,16 @@ public class CMSClient {
             CmsDeployment clone = new CmsDeployment();
             BeanUtils.copyProperties(dpmt, clone);
             dpmt = clone;  // Need to clone dpmt before setting the state, otherwise mybatis pulls the same instance that doesn't reflect actual db state
-            dpmt.setDeploymentState(COMPLETE);
+            long failedWos = 0;
+            try {
+                failedWos = cmsDpmtProcessor.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", null);
+            } finally {
+                if (failedWos>0){
+                    clone.setDeploymentState(FAILED);
+                } else {
+                    clone.setDeploymentState(COMPLETE);
+                }
+            }
         }
         // lets do the retries here
         logger.info("Client: put:update deployment " + dpmt.getDeploymentId() + " state to " + dpmt.getDeploymentState());
