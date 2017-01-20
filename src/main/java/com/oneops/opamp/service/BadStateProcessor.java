@@ -510,6 +510,26 @@ public class BadStateProcessor {
 		return postponedRepairCi.contains(ciId);
 	}
 
+	public void processDefunctState(CiChangeStateEvent event) throws OpampException {
+		CmsCI platform = envProcessor.getPlatform4Bom(event.getCiId());
+
+		if (platform == null) {
+			logger.error("can not get platform for CI id " + event.getCiId() + " while handling defunct ops state change event");
+			return;
+		}
+		
+		CmsCI env = envProcessor.getEnv4Platform(platform);
+		
+		if (envProcessor.isOpenRelease4Env(env)) {
+			logger.info("There is an open release or undeployed changes for the env => "
+					+   env.getNsPath() + "/" + env.getCiName()+ ". Can not auto-replace for defunct ci with CI Id: " + event.getCiId());
+			notifier.sendPostponedReplaceNotification(event);
+		} else {		
+			notifier.sendDefunctNotification(event);		
+			replace(event.getCiId(), env);
+		}
+	}
+	
 	public EventUtil getEventUtil() {
 		return eventUtil;
 	}
