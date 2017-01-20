@@ -35,10 +35,12 @@ public class ExportCi {
 	}
 	
 	public void addAttribute(String name, String value) {
-		if (this.attributes == null) {
-			this.attributes = new HashMap<String,String>();
+		if (value != null) {
+			if (this.attributes == null) {
+				this.attributes = new HashMap<>();
+			}
+			this.attributes.put(name, value);
 		}
-		this.attributes.put(name, value);
 	}
 	
 }

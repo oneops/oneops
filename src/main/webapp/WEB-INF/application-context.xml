@@ -58,6 +58,15 @@
     </bean>
 
 
+	<bean id="environmentExpProcessor" class="com.oneops.transistor.service.EnvironmentExportProcessor">
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="designRfcProcessor" ref="designRfcProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="trUtil" ref="trUtil" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+	</bean>
+
+
 	<bean id="catalogProcessor" class="com.oneops.transistor.service.CatalogProcessor">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="trUtil" ref="trUtil" />
@@ -72,7 +81,7 @@
         <property name="executorService" ref="manifestExecutor" />
 		<!--15 mins-->
 		<property name="timeoutInMilliSeconds" value="${MANIFEST_MAX_TIME_LIMIT_IN_MILLIS:  #{ T(Integer).valueOf(15*60*1000) } }" />
-		<property name="cloudUtil" ref="cloudUtil" ></property>
+		<property name="cloudUtil" ref="cloudUtil"/>
     </bean>
 
 	<bean id="dManager" class="com.oneops.transistor.service.DesignManagerImpl">
@@ -80,6 +89,7 @@
 		<property name="designExpProcessor" ref="designExpProcessor" />
 		<property name="catalogProcessor" ref="catalogProcessor" />
 		<property name="packRefreshProcessor" ref="packRefreshProcessor" />
+		<property name="environmentExpProcessor" ref="environmentExpProcessor"/>
     </bean>
 
 	<bean id="iaasManager" class="com.oneops.transistor.service.IaasManagerImpl">

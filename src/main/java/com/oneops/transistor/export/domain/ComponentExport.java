@@ -1,13 +1,35 @@
 package com.oneops.transistor.export.domain;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ComponentExport extends ExportCi{
 	private List<ExportCi> attachments;
 	private List<ExportCi> monitors;
 	private List<String> depends;
 	private String template;
+	private Map<String, Map<String, ExportCi>> scaling;
+
+
+	public Map<String, Map<String, ExportCi>> getScaling() {
+		return scaling;
+	}
+	
+	public void setScaling(Map<String, Map<String, ExportCi>> scaling) {
+		this.scaling = scaling;
+	}
+
+	public void addScaling(String ciClassName, String ciName, ExportCi exportCi){
+		if (scaling == null){
+			scaling = new HashMap<>();
+		}
+		Map<String, ExportCi> map = scaling.computeIfAbsent(ciClassName, k -> new HashMap<>());
+		map.put(ciName, exportCi);
+	}
+
+
 
 	public String getTemplate() {
 		return template;

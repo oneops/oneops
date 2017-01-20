@@ -18,10 +18,12 @@ public class DesignExportSimple {
 	}
 
 	public void addVariable(String name, String value) {
-		if (this.variables == null) {
-			this.variables = new HashMap<String,String>();
+		if (value!=null) {
+			if (this.variables == null) {
+				this.variables = new HashMap<>();
+			}
+			this.variables.put(name, value);
 		}
-		this.variables.put(name, value);
 	}
 	
 	

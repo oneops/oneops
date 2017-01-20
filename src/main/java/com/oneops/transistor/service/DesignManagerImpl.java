@@ -22,6 +22,7 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.transistor.domain.CatalogExport;
 import com.oneops.transistor.export.domain.DesignExportSimple;
+import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,12 @@ public class DesignManagerImpl implements DesignManager {
 	private DesignExportProcessor designExpProcessor;
 	private CatalogProcessor catalogProcessor;
 	private PackRefreshProcessor packRefreshProcessor;
-	
+	private EnvironmentExportProcessor environmentExpProcessor;
+
+	public void setEnvironmentExpProcessor(EnvironmentExportProcessor environmentExpProcessor) {
+		this.environmentExpProcessor = environmentExpProcessor;
+	}
+
 	public void setDesignExpProcessor(DesignExportProcessor designExpProcessor) {
 		this.designExpProcessor = designExpProcessor;
 	}
@@ -96,6 +102,11 @@ public class DesignManagerImpl implements DesignManager {
 	}
 
 	@Override
+	public long importEnvironment(long assemblyId, String userId, String scope, EnvironmentExportSimple ees) {
+		return environmentExpProcessor.importEnvironment(assemblyId, userId, scope, ees);
+	}
+
+	@Override
 	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des) {
 		return designExpProcessor.importDesign(assemblyId, userId, scope, des);
 	}
@@ -124,6 +135,11 @@ public class DesignManagerImpl implements DesignManager {
 	@Override
 	public long commitReleaseForPlatform(long platId, String desc, String userId) {
 		return designRfcProcessor.commitReleaseForPlatform(platId, desc, userId);	}
+
+	@Override
+	public EnvironmentExportSimple exportEnvironment(long envId, Long[] platformIds, String scope) {
+		return environmentExpProcessor.exportEnvironment(envId, platformIds, scope);
+	}
 
 	@Override
 	public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope) {
