@@ -58,19 +58,12 @@ public class ReplayProcessor {
         List<String> errors = new ArrayList<>();
 
         List<CmsRfcCI> rfcCis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+        logger.info("Cis to replay: "+rfcCis.size());
         rfcCis.forEach(ci -> restoreCi(idMap, errors, ci));
 
         List<CmsRfcRelation> relations = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+        logger.info("Relations to replay: "+relations.size());
         relations.forEach(relation -> restoreRelation(idMap, errors, relation));
-
-
-        // remove release if replay triggered no rfc's. 
-        if (rfcProcessor.getRfcCountByNs(nsPath)+rfcProcessor.getRfcRelationCountByNs(nsPath)==0){
-            List<CmsRelease> open = rfcProcessor.getLatestRelease(nsPath, "open");
-            if (!open.isEmpty()) {
-                rfcProcessor.deleteRelease(open.get(0).getReleaseId());
-            }
-        }
         return errors;
     }
 
@@ -182,7 +175,7 @@ public class ReplayProcessor {
         CmsCIRelation existingRel = getCmsRelation(relation);
         CmsRfcRelation existingRfcRel = getCmsRfcRelationCI(relation);
         relation.setRfcId(existingRfcRel == null ? 0 : existingRfcRel.getRfcId());
-        relation.setCiRelationId(existingRel == null ? 0 : existingRel.getCiRelationId());
+        relation.setCiRelationId(existingRel == null ? (existingRfcRel==null?0:existingRfcRel.getCiRelationId()) : existingRel.getCiRelationId());
         relation.setReleaseId(existingRfcRel == null ? 0 : existingRfcRel.getReleaseId());
         logger.info(relation.getRfcAction() + " relation:" + relation.getRelationName() + "@" + relation.getNsPath());
 
