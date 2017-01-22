@@ -326,7 +326,7 @@ public class TransistorRestController extends AbstractRestController {
 		return result;
 	}
 
-	@RequestMapping(value="/environment/{envId}/export", method = RequestMethod.GET)
+	@RequestMapping(value="/environments/{envId}/export", method = RequestMethod.GET)
 	@ResponseBody
 	public EnvironmentExportSimple exportEnvironment(
 			@PathVariable long envId,
@@ -344,7 +344,7 @@ public class TransistorRestController extends AbstractRestController {
 		}
 	}
 
-	@RequestMapping(value="/environment/{envId}/import", method = RequestMethod.POST)
+	@RequestMapping(value="/environments/{envId}/import", method = RequestMethod.POST)
 	@ResponseBody
 	public Map<String,String> importEnvironment(
 			@RequestBody EnvironmentExportSimple envExport,
