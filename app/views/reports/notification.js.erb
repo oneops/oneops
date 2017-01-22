@@ -1,6 +1,6 @@
-<% if params[:offset].blank? %>
+<% if params.include?(:offset) %>
+  <%= list_paginate_update(params[:list_id], @notifications || [], 'notification_list_content') %>
+<% else %>
   $j("#notification_list").html("<%= escape_javascript(render('notification_list')) %>");
   replace_state("<%= request.url %>");
-<% else %>
-<%= list_paginate_update(params[:list_id], @notifications, 'notification_list_content') %>
 <% end %>
