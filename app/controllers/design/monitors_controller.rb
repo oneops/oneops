@@ -19,10 +19,11 @@ class Design::MonitorsController < Base::MonitorsController
     dj_ci[:ciAttributes][:custom] = true
     @monitor = Cms::DjCi.build(dj_ci.merge(:nsPath      => @component.nsPath,
                                            :ciClassName => 'catalog.Monitor'))
-    @watched_by_rel = Cms::DjRelation.build(:nsPath       => @component.nsPath,
-                                            :relationName => 'catalog.WatchedBy',
-                                            :fromCiId     => @component.ciId,
-                                            :toCi         => @monitor)
+    @watched_by_rel = Cms::DjRelation.build(:nsPath             => @component.nsPath,
+                                            :relationName       => 'catalog.WatchedBy',
+                                            :fromCiId           => @component.ciId,
+                                            :toCi               => @monitor,
+                                            :relationAttributes => {:source => 'user'})
 
     ok = execute_nested(@monitor, @watched_by_rel, :save)
     @monitor = @watched_by_rel.toCi if ok

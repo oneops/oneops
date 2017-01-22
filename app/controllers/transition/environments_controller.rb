@@ -296,6 +296,20 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     send_data(prepare_platform_diagram, :type => 'image/svg+xml', :disposition => 'inline')
   end
 
+  def extract
+    collapse = params[:collapse]
+    collapse = false if collapse == 'false'
+    respond_to do |format|
+      format.json do
+        render :json => export_environment(collapse, params[:platform_id])
+      end
+
+      format.yaml do
+        render :text => export_environment(collapse, params[:platform_id]).to_yaml, :content_type => 'text/data_string'
+      end
+    end
+  end
+
 
   private
 
@@ -546,5 +560,93 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     else
       return true
     end
+  end
+
+  def export_environment(collapse, platform_id = nil)
+    data   = Transistor.export_environment(@environment, platform_id && [platform_id])
+    result = {}
+
+    environment = data['environment']['attributes'].delete_blank
+    convert_json_attrs_from_string(environment, 'manifest.Environment') unless collapse
+    result['environment'] = environment
+
+    consumes = data['consumes']
+    result['clouds'] = consumes.sort_by {|c| c['name']}.to_map_with_value {|c| [c['name'], (c['attributes'] || {}).delete_blank]} if consumes.present?
+
+    relays = data['relays']
+    if relays.present?
+      result['relays'] = relays.sort_by { |c| c['name'] }.to_map_with_value do |r|
+        relay = (r['attributes'] || {}).delete_blank
+        convert_json_attrs_from_string(relay, 'manifest.relay.email.Relay') unless collapse
+        [r['name'], relay]
+      end
+    end
+
+
+    manifest = data['manifest']
+    if manifest.present?
+      data.copy_if(manifest, 'variables')
+
+      platforms = manifest['platforms']
+      result['platforms'] = (platforms || []).sort_by {|p| p['name']}.inject({}) do |plats, p|
+        attrs = p['attributes']
+        plat = {'pack' => "#{attrs.delete('source')}/#{attrs.delete('pack')}:#{attrs.delete('version')}"}
+        attrs.delete('description') if attrs['description'].blank?
+        plat.merge!(attrs)
+
+        consumes = p['consumes']
+        plat['clouds'] = consumes.sort_by {|c| c['name']}.to_map_with_value {|c| [c['name'], (c['attributes'] || {}).delete_blank]} if consumes.present?
+
+        p.copy_if(plat, 'links', 'variables')
+
+        components = p.delete('components')
+        if components.present?
+          plat['components'] = components.group_by {|c| "#{c['template']}/#{c['type'].sub(/^manifest\./, '')}"}.inject({}) do |templates_hash, (template_name, template_components)|
+            templates_hash[template_name] = template_components.sort_by {|c| c['name']}.to_map_with_value do |c|
+              comp = c['attributes'].presence || {}
+              comp = convert_json_attrs_from_string(comp, c['type']) unless collapse
+
+              c.copy_if(comp, 'depends')
+
+              attachments = c['attachments']
+              if attachments.present?
+                comp['attachments'] = attachments.sort_by {|a| a['name']}.to_map_with_value do |a|
+                  attrs = a['attributes']
+                  attrs = convert_json_attrs_from_string(attrs, 'manifest.Attachment') unless collapse
+                  [a['name'], attrs]
+                end
+              end
+
+              monitors = c['monitors']
+              if monitors.present?
+                comp['monitors'] = monitors.sort_by {|a| a['name']}.to_map_with_value do |a|
+                  attrs = a['attributes']
+                  attrs = convert_json_attrs_from_string(attrs, 'manifest.Monitor') unless collapse
+                  [a['name'], attrs]
+                end
+              end
+
+              scaling = c['scaling']
+              if scaling.present?
+                comp['scaling'] = scaling.values.inject({}) do |s, rels|
+                  rels.each_pair do |to_name, rel|
+                    scaling_attrs = rel['attributes']
+                    s[to_name] = scaling_attrs.delete_blank if scaling_attrs.present?
+                  end
+                  s
+                end
+              end
+
+              [c['name'], comp]
+            end
+            templates_hash
+          end
+        end
+        plats[p['name']] = plat
+        plats
+      end
+    end
+
+    result
   end
 end

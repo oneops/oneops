@@ -434,27 +434,6 @@ class DesignController < ApplicationController
     return data, format
   end
 
-  def convert_json_attrs_from_string(attrs, ci_class_name)
-    return attrs if attrs.blank?
-
-    types = %w(array hash struct)
-    ci_md = Cms::CiMd.look_up(ci_class_name)
-    attrs.each_pair do |k, v|
-      if v.present?
-        attr_md = ci_md.md_attribute(k)
-        if attr_md
-          if types.include?(attr_md.dataType)
-            begin
-              attrs[k] = JSON.parse(v)
-            rescue Exception => e
-              # Do nothing - leave as string.
-            end
-          end
-        end
-      end
-    end
-  end
-
   def convert_json_attrs_to_string(attrs)
     attrs.each_pair {|k, v| attrs[k] = v.to_json if v && !v.is_a?(String)}
   end

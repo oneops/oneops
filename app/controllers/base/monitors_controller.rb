@@ -6,7 +6,6 @@ class Base::MonitorsController < ApplicationController
   def index
     pack_ns_path = platform_pack_ns_path(@platform)
 
-    Rails.logger.info "+++ #{@component.ciClassName} #{@component.nsPath}"
     @monitors = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
                                                 :relationShortName => 'WatchedBy',
                                                 :direction         => 'from',
@@ -25,7 +24,14 @@ class Base::MonitorsController < ApplicationController
 
   def show
     respond_to do |format|
-      format.html { redirect_to path_to_ci(@monitor) }
+      format.html do
+        if @monitor.ciClassName == 'catalog.Monitor'
+          redirect_to edit_assembly_design_platform_component_path(@assembly, @platform, @component, :anchor => "monitors/list_item/#{@monitor.ciId}")
+        else
+          redirect_to edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component, :anchor => "monitors/list_item/#{@monitor.ciId}")
+        end
+      end
+
       format.js   { render 'base/monitors/edit' }
       format.json { render_json_ci_response(true, @monitor) }
     end
