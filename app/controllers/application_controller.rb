@@ -1189,4 +1189,25 @@ class ApplicationController < ActionController::Base
   def browser_timezone_offset(default = 0)
     session[:browser_timezone] || default
   end
+
+  def convert_json_attrs_from_string(attrs, ci_class_name)
+    return attrs if attrs.blank?
+
+    types = %w(array hash struct)
+    ci_md = Cms::CiMd.look_up(ci_class_name)
+    attrs.each_pair do |k, v|
+      if v.present?
+        attr_md = ci_md.md_attribute(k)
+        if attr_md
+          if types.include?(attr_md.dataType)
+            begin
+              attrs[k] = JSON.parse(v)
+            rescue Exception => e
+              # Do nothing - leave as string.
+            end
+          end
+        end
+      end
+    end
+  end
 end

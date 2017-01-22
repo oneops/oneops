@@ -370,6 +370,7 @@ Display::Application.routes.draw do
           put  'disable',      :on => :member
           get  'diagram',      :on => :member
           get  'search',       :on => :member
+          get  'extract',      :on => :member
 
           resources :variables, :only => [:index, :show, :edit, :update] do
             put 'lock',    :on => :collection

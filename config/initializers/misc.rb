@@ -37,6 +37,14 @@ class Hash
   def delete_blank
     delete_if { |k, v| (((v.instance_of?(Hash) || v.instance_of?(Array)) && v.delete_blank) || v).blank? }
   end
+
+  def copy_if(target, *keys)
+    (keys.presence || self.keys).each do |key|
+      value = self[key]
+      target[key] = value if value.present? && (block_given? ? yield(value) : true)
+    end
+    target
+  end
 end
 
 class Numeric

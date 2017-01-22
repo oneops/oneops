@@ -9,7 +9,7 @@ class Transistor < ActiveResource::Base
     begin
       return get("assemblies/#{assembly.ciId}/export#{"?#{platform_ids.map {|i| "platformIds=#{i}"}.join('&')}" if platform_ids.present?}")
     rescue Exception => e
-      return nil, handle_exception(e, 'Failed to export design:')
+      return nil, handle_exception(e, "Failed to export design for assembly #{assembly.ciId} :")
     end
   end
 
@@ -18,6 +18,14 @@ class Transistor < ActiveResource::Base
       return JSON.parse(post("assemblies/#{assembly.ciId}/import", {}, design.to_json).body)['result'] == 'success'
     rescue Exception => e
       return false, handle_exception(e, 'Failed to import design:')
+    end
+  end
+
+  def self.export_environment(env, platform_ids = nil)
+    begin
+      return get("environments/#{env.ciId}/export#{"?#{platform_ids.map {|i| "platformIds=#{i}"}.join('&')}" if platform_ids.present?}")
+    rescue Exception => e
+      return nil, handle_exception(e, "Failed to export environment #{env.ciId} :")
     end
   end
 

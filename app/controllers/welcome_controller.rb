@@ -36,7 +36,7 @@ class WelcomeController < ApplicationController
       format.html
       format.js {render :js => '', :status => :not_found}
       format.json {render :json => {:errors => ['not found']}, :status => :not_found}
-      format.any {render :status => :not_found}
+      format.any {render :text => 'not found', :status => :not_found}
     end
   end
 

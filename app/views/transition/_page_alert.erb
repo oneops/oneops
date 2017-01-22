@@ -4,9 +4,9 @@
 <div class="alert alert-block alert-info attention">
   <strong>Open Environment Release</strong> &raquo;
   <% if deploying %>
-    Review open environment release. You can not commit while deployment is in progress.
+    Review open environment release. <small>(You can not commit while deployment is in progress.)</small>
   <% elsif generating %>
-    Review open environment release. You can not commit while deployment plan generation is in progress.
+    Review open environment release. <small>(You can not commit while deployment plan generation is in progress.)</small>
   <% elsif has_transition %>
     Review, commit and deploy open environment release.
   <% else %>

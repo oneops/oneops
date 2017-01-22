@@ -92,9 +92,8 @@ class ReportsController < ApplicationController
       end
 
       format.js do
-        histogram = params[:offset].blank?
+        histogram = !params.include?(:offset)
         fetch_notifications(histogram)
-
         unless histogram || @notifications
           flash[:error] = 'Failed to load notifications.'
           render :js => ''
