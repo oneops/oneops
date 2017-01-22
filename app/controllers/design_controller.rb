@@ -366,12 +366,13 @@ class DesignController < ApplicationController
                           monitors.each do |monitor_name, monitor|
                             errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'][monitor_name] = {}
 
-                            monitor_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
-                                                                         :ciClassName => 'mgmt.catalog.Monitor',
-                                                                         :ciName      => monitor_name.split('-').last})
-
                             monitor_attrs = monitor.slice(*monitor_md_attrs)
                             monitor_attrs = convert_json_attrs_to_string(monitor_attrs)
+
+                            monitor_template = monitor_name.start_with?("#{plat_name}-#{comp_name}-") &&
+                              Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
+                                                        :ciClassName => 'mgmt.catalog.Monitor',
+                                                        :ciName      => monitor_name.split('-').last})
                             if monitor_template
                               monitor_attrs = monitor_template.ciAttributes.attributes.merge(monitor_attrs)
                               monitor_attrs.delete(:custom)
