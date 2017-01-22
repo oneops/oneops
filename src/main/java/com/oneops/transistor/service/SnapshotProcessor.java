@@ -8,7 +8,9 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.DesignExportException;
+import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.snapshot.domain.*;
 import org.apache.log4j.Logger;
 
@@ -87,13 +89,34 @@ public class SnapshotProcessor {
 
 
     List<String> importSnapshotAndReplayTo(Snapshot snapshot, Long releaseId) {
+        validateReleaseId(releaseId);
+        
         HashMap<Long, RelationLink> oldToNewCiIdsMap = new HashMap<>();
+        
         List<String> errors = importSnapshot(snapshot, oldToNewCiIdsMap);
         if (releaseId != null && releaseId > snapshot.getRelease()) {
             CmsRelease release = rfcProcessor.getReleaseById(snapshot.getRelease());
             errors.addAll(replayProcessor.replay(snapshot.getRelease(), releaseId, release.getNsPath(), oldToNewCiIdsMap));
         }
+        
+        List<CmsRelease> relList = rfcProcessor.getLatestRelease(snapshot.getNamespace(), "open");
+        if (!relList.isEmpty()) {   
+            CmsRelease release = relList.get(0);
+            if (rfcProcessor.getRfcCIBy3(release.getReleaseId(), true, null).size() == 0 && rfcProcessor.getRfcRelationByReleaseId(release.getReleaseId()).size() == 0){                 // remove release if replay triggered no rfc's.
+                logger.info("No release because rfc count is 0. Cleaning up release.");
+                rfcProcessor.deleteRelease(release.getReleaseId());
+            }
+        }
         return errors;
+    }
+
+    private void validateReleaseId(Long releaseId) {
+        if (releaseId!=null) {
+            CmsRelease targetRelease = rfcProcessor.getReleaseById(releaseId);
+            if (targetRelease == null) {
+                throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, "ReplayProcessor cannot find target release: " + releaseId);
+            }
+        }
     }
 
 
@@ -102,6 +125,7 @@ public class SnapshotProcessor {
     }
 
     private List<String> importSnapshot(Snapshot snapshot, Map<Long, RelationLink> oldToNewCiIdsMap) {
+        logger.info("Restoring:"+snapshot.getRelease());
         for (String ns : snapshot.allNamespaces()) {  // there shouldn't be any "open" releases for snapshot namespaces
             List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(ns, "open");
             if (openReleases.size() > 0) {
@@ -170,7 +194,7 @@ public class SnapshotProcessor {
             CmsCIRelationAttribute ciAttribute = existingAttributes.remove(key);
             String value = snapshotAttributes.get(key);
             if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
-                rel.addAttribute(createRfcAttribute(key, value, exportRelation.getOwner(key)));
+                rel.addAttribute(RfcUtil.getAttributeRfc(key, value, exportRelation.getOwner(key)));
             }
         }
         if (!rel.getAttributes().isEmpty()) {
@@ -179,13 +203,7 @@ public class SnapshotProcessor {
         }
     }
 
-    private static CmsRfcAttribute createRfcAttribute(String key, String value, String owner) {
-        CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
-        rfcAttr.setAttributeName(key);
-        rfcAttr.setNewValue(value);
-        rfcAttr.setOwner(owner);
-        return rfcAttr;
-    }
+
 
     private void addRelation(String ns, ExportRelation exportRelation, RelationLink fromLink, RelationLink toLink) {
         CmsRfcRelation rel = new CmsRfcRelation();
@@ -290,7 +308,7 @@ public class SnapshotProcessor {
             String value = snapshotAttributes.get(key);
 
             if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
-                rfcCI.addAttribute(createRfcAttribute(key, value, eci.getOwner(key)));
+                rfcCI.addAttribute(RfcUtil.getAttributeRfc(key, value, eci.getOwner(key)));
             }
         }
         if (!rfcCI.getAttributes().isEmpty()) {
