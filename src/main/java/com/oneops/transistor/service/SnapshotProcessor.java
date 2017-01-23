@@ -187,6 +187,7 @@ public class SnapshotProcessor {
         rel.setNsPath(relation.getNsPath());
         rel.setToCiId(relation.getToCiId());
         rel.setFromCiId(relation.getFromCiId());
+        rel.setRelationName(relation.getRelationName());
         Map<String, String> snapshotAttributes = exportRelation.getAttributes();
         Map<String, CmsCIRelationAttribute> existingAttributes = relation.getAttributes();
         relation.setRelationId(relation.getRelationId());
