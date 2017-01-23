@@ -191,9 +191,7 @@ when "chef"
 	end
   end
 
-  # generate chef_config if doesn't exist
-#  if !File::exist?(chef_config)
-#    puts "config missing: #{chef_config}" if log_level == 'debug'
+  # generate chef_config 
     
     cookbook_full_path = chef_config.gsub("/chef-#{ci}.rb","")
     # when using alternate cookbooks include base cookbooks
@@ -228,7 +226,6 @@ when "chef"
 
     puts "chef_config: #{chef_config}"
     File.open(chef_config, 'w') {|f| f.write(config_content) }
-#  end
 
   if ostype =~ /windows/
     cmd = "c:/opscode/chef/embedded/bin/chef-solo.bat -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
