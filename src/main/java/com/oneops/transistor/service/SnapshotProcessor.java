@@ -8,16 +8,14 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.snapshot.domain.*;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /*******************************************************************************
  *
@@ -38,6 +36,7 @@ import java.util.Map;
  *******************************************************************************/
 public class SnapshotProcessor {
     private static final String SNAPSHOT_RESTORE = "restore";
+    public static final String UPDATE = "update";
     private static Logger logger = Logger.getLogger(SnapshotProcessor.class);
     private CmsCmProcessor cmProcessor;
     private CmsRfcProcessor rfcProcessor;
@@ -102,12 +101,54 @@ public class SnapshotProcessor {
         List<CmsRelease> relList = rfcProcessor.getLatestRelease(snapshot.getNamespace(), "open");
         if (!relList.isEmpty()) {   
             CmsRelease release = relList.get(0);
-            if (rfcProcessor.getRfcCIBy3(release.getReleaseId(), true, null).size() == 0 && rfcProcessor.getRfcRelationByReleaseId(release.getReleaseId()).size() == 0){                 // remove release if replay triggered no rfc's.
+            List<CmsRfcCI> rfcCis = rfcProcessor.getRfcCIBy3(release.getReleaseId(), true, null);
+            cleanUpRfcCis(rfcCis);
+            List<CmsRfcRelation> rfcRels = rfcProcessor.getRfcRelationByReleaseId(release.getReleaseId());
+            cleanUpRfcRels(rfcRels);
+            // clean up redundant release
+            if (rfcCis.size() == 0 && rfcRels.size() == 0){                 // remove release if replay triggered no rfc's.
                 logger.info("No release because rfc count is 0. Cleaning up release.");
                 rfcProcessor.deleteRelease(release.getReleaseId());
             }
         }
         return errors;
+    }
+
+    private void cleanUpRfcRels(List<CmsRfcRelation> rfcRels) { // clean up redundant Rel updates
+        Iterator<CmsRfcRelation> itR = rfcRels.iterator();
+        while (itR.hasNext()){
+            CmsRfcRelation rfcRel = itR.next();
+            if (UPDATE.equalsIgnoreCase(rfcRel.getRfcAction())) {
+                if (!needToUpdate(rfcRel.getAttributes().values())){
+                    rfcProcessor.rmRfcRelationFromRelease(rfcRel.getRfcId());
+                    itR.remove();
+                }
+            }
+        }
+    }
+
+    private void cleanUpRfcCis(List<CmsRfcCI> rfcCis) { // clean up redundant CI updates
+        Iterator<CmsRfcCI> it = rfcCis.iterator();
+        while (it.hasNext()){
+            CmsRfcCI rfcCi = it.next(); 
+            if (UPDATE.equalsIgnoreCase(rfcCi.getRfcAction())) {
+                if (!needToUpdate(rfcCi.getAttributes().values())){
+                    rfcProcessor.rmRfcCiFromRelease(rfcCi.getRfcId());
+                    it.remove();
+                }
+            }
+        }
+    }
+
+    private boolean needToUpdate(Collection< CmsRfcAttribute> attributes) {
+        boolean needUpdate=false;
+        for (CmsRfcAttribute attr : attributes) {
+            if (!attr.getOldValue().equals(attr.getNewValue())) {
+                needUpdate = true;
+                break;
+            }
+        }
+        return needUpdate;
     }
 
     private void validateReleaseId(Long releaseId) {
@@ -187,6 +228,7 @@ public class SnapshotProcessor {
         rel.setNsPath(relation.getNsPath());
         rel.setToCiId(relation.getToCiId());
         rel.setFromCiId(relation.getFromCiId());
+        rel.setRelationName(relation.getRelationName());
         Map<String, String> snapshotAttributes = exportRelation.getAttributes();
         Map<String, CmsCIRelationAttribute> existingAttributes = relation.getAttributes();
         relation.setRelationId(relation.getRelationId());
