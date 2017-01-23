@@ -29,6 +29,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
@@ -423,6 +424,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
         String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
         logger.info("cookbookPath: " + cookbookPath);
+        
+        Set<String> serviceCookbookPaths = null;
 
         // sync cookbook and chef json request to remote site
         String host = null;
@@ -509,14 +512,14 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     return;
                 }
             }
-
+            
             // rsync exec-order shared
-            components = config.getCircuitDir().replace("packer", "shared/");
+            String sharedComponents = config.getCircuitDir().replace("packer", "shared/");
             destination = "/home/" + user + "/shared/";
             cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
-                    new String[]{components,
+                    new String[]{sharedComponents,
                             user + "@" + host + ":" + destination});
-            logger.info(logKey + " ### SYNC SHARED: " + components);
+            logger.info(logKey + " ### SYNC SHARED: " + sharedComponents);
 
             if (!host.equals(TEST_HOST)) {
                 ProcessResult result = processRunner.executeProcessRetry(
@@ -528,6 +531,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 }
             }
 
+            serviceCookbookPaths = syncServiceCookbooks(wo, cookbookPath, user, rsyncCmdLineWithKey, host, port, logKey, keyFile);
+            
             // put workorder
             cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
                     new String[]{fileName,
@@ -554,9 +559,15 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             if (isDebugEnabled(wo)) {
                 debugFlag = "-d";
             }
+            
+            String additionalCookbookPaths = "";
+            if (serviceCookbookPaths != null && serviceCookbookPaths.size() > 0) {
+                additionalCookbookPaths = String.join(",", serviceCookbookPaths);
+            }
+
             String remoteCmd = "sudo " + vars + " shared/exec-order.rb "
                     + wo.getRfcCi().getImpl() + " " + remoteFileName + " "
-                    + cookbookPath + " " + debugFlag;
+                    + cookbookPath + " " + additionalCookbookPaths + " " + debugFlag;
 
             cmd = (String[]) ArrayUtils.addAll(sshCmdLine, new String[]{
                     keyFile, "-p " + port, user + "@" + host, remoteCmd});
@@ -603,7 +614,74 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             removeFile(fileName);
     }
 
-    /**
+    private Set<String> syncServiceCookbooks(CmsWorkOrderSimple wo, String woBomCircuit, String user, 
+    		String[] rsyncCmdLineWithKey, String host, String port, String logKey, String keyFile) {
+        logger.info("checking for any service cookbook to be rsynched ..");
+        //rsync cloud services cookbooks
+        String cloudName = wo.getCloud().getCiName();
+        Set<String> serviceCookbookPaths = new HashSet<String>();
+        Map<String, Map<String, CmsCISimple>> services = wo.getServices();
+        if (services != null) {
+        	for (String serviceName : services.keySet()) { // for each service
+        		CmsCISimple serviceCi = services.get(serviceName).get(cloudName);
+        		if (serviceCi != null) {
+        			String serviceClassName = serviceCi.getCiClassName();
+        	        String serviceCookbookCircuit = getCookbookPath(serviceClassName);
+        	        if (! serviceCookbookCircuit.equals(woBomCircuit)) { 
+        	        	//this service class is not in the same circuit as that of the bom ci getting deployed.
+        	        	//Go ahead and include the cookbook of this service to rsync to remote
+        	            String serviceCookbookBaseDir = config.getCircuitDir().replace("packer", serviceCookbookCircuit);
+        	            String serviceClassNameShort = serviceClassName.substring(serviceClassName.lastIndexOf(".") + 1);
+        	            String serviceCookbookPath = serviceCookbookBaseDir 
+        	            		+ "/components/cookbooks/" + serviceClassNameShort.toLowerCase() + "/";
+        	            logger.info("service-serviceCookbookPath: " + serviceCookbookPath);
+        	            if (new File(serviceCookbookPath).exists()) {
+        	            	//
+        	            	String serviceCookbookCircuitPath = "/home/" + user + "/" + serviceCookbookCircuit + "/components/cookbooks";
+        	            	serviceCookbookPaths.add(serviceCookbookCircuitPath);	
+        	                String destination = serviceCookbookCircuitPath + "/" + serviceClassNameShort.toLowerCase() + "/";
+
+        	                String remoteCmd = "mkdir -p " + destination;
+        	                String[] cmd = (String[]) ArrayUtils.addAll(sshCmdLine,
+        	                        new String[]{keyFile, "-p " + port, user + "@" + host,
+        	                                remoteCmd});
+        	                logger.info(logKey + " ### EXEC: " + user + "@" + host + " "
+        	                        + remoteCmd);
+        	                ProcessResult result = processRunner.executeProcessRetry(
+        	                        new ExecutionContext(wo, cmd, getLogKey(wo), getRetryCountForWorkOrder(wo)));
+        	                if (result.getResultCode() != 0) {
+        	                    // Not throwing exceptions, Should be ok if we are not able to
+        	                    // remove remote wo.
+        	                    logger.error(logKey + " Error while creating service cookbook directory on remote");
+        	                }
+        	                
+        	                String[] cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
+        	                        new String[]{serviceCookbookPath,
+        	                                user + "@" + host + ":" + destination});
+
+        	                logger.info(logKey + " ### SYNC Service cookbook: " + serviceCookbookPath);
+
+        	                if (!host.equals(TEST_HOST)) {
+        	                    result = processRunner.executeProcessRetry(
+        	                            new ExecutionContext(wo, cmdLine, logKey, retryCount));
+        	                    if (result.getResultCode() > 0) {
+        	                        wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
+        	                        removeFile(wo, keyFile);
+        	                        return null;
+        	                    }
+        	                }            	
+        	            	//
+        	            } else {
+        	            	logger.warn("Cookbook " + serviceCookbookPath + " does not exist on this inductor");
+        	            }
+        	        }
+        		}
+        	}
+        }		
+        return serviceCookbookPaths;
+	}
+
+	/**
      * Installs base software needed for chef / oneops
      *
      * @param pr      ProcessRunner
