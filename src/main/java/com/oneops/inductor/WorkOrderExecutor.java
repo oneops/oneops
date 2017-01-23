@@ -619,7 +619,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         logger.info("checking for any service cookbook to be rsynched ..");
         //rsync cloud services cookbooks
         String cloudName = wo.getCloud().getCiName();
-        Set<String> serviceCookbookPaths = new HashSet<String>();
+        Set<String> serviceCookbookPaths = new HashSet<>();
         Map<String, Map<String, CmsCISimple>> services = wo.getServices();
         if (services != null) {
         	for (String serviceName : services.keySet()) { // for each service
@@ -636,7 +636,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         	            		+ "/components/cookbooks/" + serviceClassNameShort.toLowerCase() + "/";
         	            logger.info("service-serviceCookbookPath: " + serviceCookbookPath);
         	            if (new File(serviceCookbookPath).exists()) {
-        	            	//
         	            	String serviceCookbookCircuitPath = "/home/" + user + "/" + serviceCookbookCircuit + "/components/cookbooks";
         	            	serviceCookbookPaths.add(serviceCookbookCircuitPath);	
         	                String destination = serviceCookbookCircuitPath + "/" + serviceClassNameShort.toLowerCase() + "/";
@@ -650,8 +649,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         	                ProcessResult result = processRunner.executeProcessRetry(
         	                        new ExecutionContext(wo, cmd, getLogKey(wo), getRetryCountForWorkOrder(wo)));
         	                if (result.getResultCode() != 0) {
-        	                    // Not throwing exceptions, Should be ok if we are not able to
-        	                    // remove remote wo.
         	                    logger.error(logKey + " Error while creating service cookbook directory on remote");
         	                }
         	                
@@ -666,11 +663,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         	                            new ExecutionContext(wo, cmdLine, logKey, retryCount));
         	                    if (result.getResultCode() > 0) {
         	                        wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
-        	                        removeFile(wo, keyFile);
         	                        return null;
         	                    }
         	                }            	
-        	            	//
         	            } else {
         	            	logger.warn("Cookbook " + serviceCookbookPath + " does not exist on this inductor");
         	            }
