@@ -612,6 +612,8 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
               if attachments.present?
                 comp['attachments'] = attachments.sort_by {|a| a['name']}.to_map_with_value do |a|
                   attrs = a['attributes']
+                  watched_by_attrs = a['watchedBy']
+                  attrs.merge!(watched_by_attrs) if watched_by_attrs.present?
                   attrs = convert_json_attrs_from_string(attrs, 'manifest.Attachment') unless collapse
                   [a['name'], attrs]
                 end
