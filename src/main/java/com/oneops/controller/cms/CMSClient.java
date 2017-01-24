@@ -383,7 +383,7 @@ public class CMSClient {
                     pendingDpmtRec.setDpmtRecordId(pendingWo.getDpmtRecordId());
                     pendingDpmtRec.setDeploymentId(pendingWo.getDeploymentId());
                     pendingDpmtRec.setDpmtRecordState(FAILED);
-                    pendingDpmtRec.setComments(pendingWo.getComments());
+                    pendingDpmtRec.setComments("Automatically failed due to failed work-order for managing instance " + wo.getRfcCi().getCiId());
                     cmsDpmtProcessor.updateDpmtRecord(pendingDpmtRec);
                 }
             }
