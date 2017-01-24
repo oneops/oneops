@@ -25,9 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
@@ -54,10 +56,6 @@ import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.crypto.CmsCrypto;
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
@@ -84,6 +82,7 @@ public class CMSClient {
     public static final String COMPLETE = "complete";
     public static final String FAILED = "failed";
     public static final String PAUSED = "paused";
+    public static final String PENDING = "pending";
     private static final String DPMT = "dpmt";
 
     private RestTemplate restTemplate;
@@ -351,22 +350,48 @@ public class CMSClient {
             dpmtRec.setDpmtRecordState(newState);
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
-            if (newState.equalsIgnoreCase(FAILED) && dpmt!=null && !dpmt.getContinueOnFailure()) {
-                dpmt.setDeploymentState(FAILED);
-                if (exec.getVariable("error-message") != null) {
-                    dpmtRec.setComments(exec.getVariable("error-message").toString());
+            if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
+                if (dpmt.getContinueOnFailure()) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
+                    failAllManagedViaWorkOrders(wo);
+                } else {
+                    dpmt.setDeploymentState(FAILED);
+                    if (exec.getVariable("error-message") != null) {
+                        dpmtRec.setComments(exec.getVariable("error-message").toString());
+                    }
+                    exec.setVariable(DPMT, dpmt);
                 }
-                exec.setVariable(DPMT, dpmt);
             }
             try {
-            	cmsDpmtProcessor.updateDpmtRecord(dpmtRec);
+                cmsDpmtProcessor.updateDpmtRecord(dpmtRec);
             } catch (CmsBaseException ce) {
                 logger.error(ce.getMessage(), ce);
                 throw ce;
-            } 
+            }
             logger.info("Client: put:update record id " + wo.getDpmtRecordId() + " to state " + newState);
         }
     }
+
+    private void failAllManagedViaWorkOrders(CmsWorkOrderSimple wo) {
+        try {
+            List<CmsRfcCI> cis = cmsWoProvider.getRfcCIRelatives(wo.getRfcCi().getCiId(), "bom.ManagedVia", "to", null, "df");
+            List<Long> list = cis.stream().map(CmsRfcCI::getRfcId).collect(Collectors.toList());
+            List<CmsWorkOrder> pendingWos = cmsWoProvider.getWorkOrderIds(wo.getDeploymentId(), PENDING, null, null);
+            for (CmsWorkOrder pendingWo : pendingWos) {
+                if (list.contains(pendingWo.getRfcId())) {
+                    pendingWo.setDpmtRecordState(FAILED);
+                    CmsDpmtRecord pendingDpmtRec = new CmsDpmtRecord();
+                    pendingDpmtRec.setDpmtRecordId(pendingWo.getDpmtRecordId());
+                    pendingDpmtRec.setDeploymentId(pendingWo.getDeploymentId());
+                    pendingDpmtRec.setDpmtRecordState(FAILED);
+                    pendingDpmtRec.setComments(pendingWo.getComments());
+                    cmsDpmtProcessor.updateDpmtRecord(pendingDpmtRec);
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+        }
+    }
+
 
 
     private void completeWO(CmsWorkOrderSimple woSimple) {
