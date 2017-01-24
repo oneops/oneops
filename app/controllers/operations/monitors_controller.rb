@@ -1,15 +1,17 @@
 class Operations::MonitorsController < Base::MonitorsController
-  CHART_TIME_RANGES       = %w(hour day week month year)
-  CHART_TIME_RANGE_LENGTH = HashWithIndifferentAccess.new(:hour  => 60 * 60,
-                                                          :day   => 60 * 60 * 24,
-                                                          :week  => 60 * 60 * 24 * 7,
-                                                          :month => 60 * 60 * 24 * 31,
-                                                          :year  => 60 * 60 * 24 * 365)
-  CHART_TIME_RANGE_STEP   = HashWithIndifferentAccess.new(:hour  => 60,
-                                                          :day   => 60 * 5,
-                                                          :week  => 60 * 15,
-                                                          :month => 60 * 60,
-                                                          :year  => 60 * 60 * 24)
+  CHART_TIME_RANGES       = ['hour', '6 hours', 'day', 'week', 'month', 'year']
+  CHART_TIME_RANGE_LENGTH = HashWithIndifferentAccess.new(:hour      => 60 * 60,
+                                                          :'6 hours' => 60 * 60 * 6,
+                                                          :day       => 60 * 60 * 24,
+                                                          :week      => 60 * 60 * 24 * 7,
+                                                          :month     => 60 * 60 * 24 * 31,
+                                                          :year      => 60 * 60 * 24 * 365)
+  CHART_TIME_RANGE_STEP   = HashWithIndifferentAccess.new(:hour      => 60,
+                                                          :'6 hours' => 60,
+                                                          :day       => 60 * 5,
+                                                          :week      => 60 * 15,
+                                                          :month     => 60 * 60,
+                                                          :year      => 60 * 60 * 24)
 
   before_filter :find_parents, :only => [:index, :show, :charts]
 
