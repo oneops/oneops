@@ -3,7 +3,7 @@
   <% when 'deploy' %>
     <%= form_for @deployment,
                  :url  => assembly_transition_environment_deployments_path(@assembly, @environment),
-                 :html => {:method => :post, :remote => true} do |f| %>
+                 :html => {:method => :post, :remote => true, :class => 'deploy-action'} do |f| %>
       <%= error_messages_for(@deployment) %>
       <%= f.hidden_field :releaseId %>
       <%= f.hidden_field :nsPath, :value => @release.nsPath %>
@@ -11,6 +11,16 @@
       <%= f.hidden_field :comments, :value => @manifest.description %>
       <%= f.hidden_field :ops, :value => warning if defined?(warning) && warning %>
       <%= f.button((icon('check', 'Deploy')), :data => {:disable_with => 'Deploying...'}, :class => 'btn btn-success', :name => 'deploy') %>
+    <% end %>
+  <% when 'retry' %>
+    <%= form_for @deployment,
+                 :url  => assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                 :html => {:method => :put, :remote => true, :class => 'deploy-action'} do |f| %>
+      <%= error_messages_for(@deployment) %>
+      <%= f.hidden_field :releaseId %>
+      <%= f.hidden_field :deploymentState, :value => 'active' %>
+      <%= f.hidden_field :continueOnFailure %>
+      <%= f.button(icon('repeat', 'Retry'), :data => {:disable_with => 'Retrying...'}, :class => 'btn btn-success') %>
     <% end %>
   <% when 'discard' %>
     <%= form_for @release,
@@ -65,15 +75,6 @@
       <%= f.hidden_field :releaseId %>
       <%= f.hidden_field :deploymentState, :value => 'active' %>
       <%= f.button(icon('play', 'Resume'), :data => {:disable_with => 'Resuming...'}, :class => 'btn btn-success') %>
-    <% end %>
-  <% when 'retry' %>
-    <%= form_for @deployment,
-                 :url  => assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
-                 :html => {:method => :put, :remote => true} do |f| %>
-      <%= error_messages_for(@deployment) %>
-      <%= f.hidden_field :releaseId %>
-      <%= f.hidden_field :deploymentState, :value => 'active' %>
-      <%= f.button(icon('repeat', 'Retry'), :data => {:disable_with => 'Retrying...'}, :class => 'btn btn-success') %>
     <% end %>
   <% end %>
 <% end %>

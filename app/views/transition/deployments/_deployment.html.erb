@@ -56,7 +56,7 @@
                 <% unless exec_order == 1 %>
                   <% if deployment_state == 'new' %>
                     <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => false %>
-                  <% elsif deployment_state == 'active' || deployment_state == 'paused' || deployment_state == 'pausing' || deployment_state == 'pending' %>
+                  <% elsif deployment_state != 'canceled' %>
                     <% exec_order_paused = @deployment.attributes['autoPauseExecOrders'].try(:include?, (exec_order)) ? true : false %>
                     <% rfcs_states = order_rfcs.map{|rfcs| @deployment_rfc_cis_info.try(:[], rfcs.rfcId).try(:[], :state)} %>
                     <% exec_order_enabled = rfcs_states.all?{|rfcs_state| rfcs_state == 'pending'} %>
@@ -243,7 +243,7 @@
                        :attribute_value => @deployment.continueOnFailure,
                        :checked_value   => true,
                        :unchecked_value => false,
-                       :read_only       => deployment_state == 'failed' || deployment_state == 'canceled' || deployment_state == 'complete',
+                       :read_only       => deployment_state == 'canceled' || deployment_state == 'complete',
                        :label           => 'continue on failure <small>(deployment proceeds even if some work-orders fail)</small>' %>
           </td>
         </tr>
@@ -379,7 +379,7 @@
 
   <%= render 'cms/rfcs/rfc' %>
 
-  <% if deployment_persisted %>
+  <% if deployment_persisted && deployment_state != 'failed' %>
     $j('.autopause :checkbox, input#continueOnFailure').change(function () {
       var autoPause = $j('.autopause input:checkbox:checked').map(function() {return this.value;});
       $j.ajax({
@@ -391,12 +391,14 @@
       });
     });
   <% else %>
-    $j("#new_cms_deployment").submit(function() {
-      $j('.autopause input:checkbox:checked').each(function() {
-        $j("#new_cms_deployment").append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value +" />");
-      });
-      $j("#new_cms_deployment input#cms_deployment_continueOnFailure").val($j('input#continueOnFailure').val());
-    });
+    var deployForm = $j("#controls_new, #controls_failed").find("form.deploy-action");
+  console.log(deployForm);
+    deployForm.submit(function() {
+              $j('.autopause input:checkbox:checked').each(function() {
+                deployForm.append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value +" />");
+              });
+              $j("input#cms_deployment_continueOnFailure").val($j('input#continueOnFailure').val());
+            });
   <% end %>
 
   setTimeout(overlay_scroll_into_view, 100);
@@ -416,10 +418,12 @@
     deploymentStateEl[0].className = "highlight " + deployment_state.toLowerCase();
 
     var problems = [];
+    var continueOnFailureCheckBox = $j(".check-box:has(input#continueOnFailure)");
 
     $j.each(deployment_info, function (rfcId, info) {
-      var rfcState = info['state'];
-      var rfcLi = $j(".wf .main li.rfc[data-bom-rfc-id=" + rfcId + "]");
+      var rfcState = info['state'],
+          rfcFailed = rfcState == 'failed',
+          rfcLi = $j(".wf .main li.rfc[data-bom-rfc-id=" + rfcId + "]");
 
       rfcLi.find(".rfc-state").html(rfcStateIconMap[rfcState]);
 
@@ -427,10 +431,13 @@
         rfcLi.find(".log-tab-trigger").show();
       }
 
+      if (rfcFailed && deployment_state != 'failed' && continueOnFailureCheckBox[0]  && !continueOnFailureCheckBox.hasClass('disabled')) {
+        continueOnFailureCheckBox.addClass("disabled");
+      }
+
       var commentsDiv = rfcLi.find(".wo-comments");
       var rfcComments = info['comments'];
       if (rfcComments) {
-        var rfcFailed = rfcState == 'failed';
         if (rfcFailed) {
           commentsDiv.html('<%= escape_javascript(icon('exclamation-triangle', '', 'fa-lg')) %>&nbsp;&nbsp;');
           commentsDiv.toggleClass("alert-danger", rfcFailed);

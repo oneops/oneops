@@ -23,7 +23,7 @@ class Design::MonitorsController < Base::MonitorsController
                                             :relationName       => 'catalog.WatchedBy',
                                             :fromCiId           => @component.ciId,
                                             :toCi               => @monitor,
-                                            :relationAttributes => {:source => 'user'})
+                                            :relationAttributes => {:source => 'design'})
 
     ok = execute_nested(@monitor, @watched_by_rel, :save)
     @monitor = @watched_by_rel.toCi if ok
