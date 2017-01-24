@@ -810,7 +810,7 @@ public class CmsWoProvider {
         return getRfcCIRelatives(rfc.getCiId(), relName, direction, className, attrValue);
     }
 
-    private List<CmsRfcCI> getRfcCIRelatives(long ciId, String relName, String direction, String className, String attrValue) {
+    List<CmsRfcCI> getRfcCIRelatives(long ciId, String relName, String direction, String className, String attrValue) {
         List<CmsRfcCI> relatives = new ArrayList<>();
         if ("from".equalsIgnoreCase(direction)) {
             List<CmsRfcRelation> rels = cmrfcProcessor.getFromCIRelations(ciId, relName, className, attrValue);
