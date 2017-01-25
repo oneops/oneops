@@ -691,7 +691,7 @@ public class DesignRfcProcessor {
     }
 
     public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope) {
-        CmsCI designPlatform = cmProcessor.getCiById(platId);
+        CmsRfcCI designPlatform = cmRfcMrgProcessor.getCiById(platId);
 		trUtil.verifyScope(designPlatform, scope);
 		validateForNewComponent(relSimple);
 
@@ -716,11 +716,11 @@ public class DesignRfcProcessor {
 		return newRelSimple;
     }
 
-    private void processOtherRelations(CmsCI designPlatform, CmsRfcRelation newRfcRelation, String userId) {
+    private void processOtherRelations(CmsRfcCI designPlatform, CmsRfcRelation newRfcRelation, String userId) {
         CmsRfcAttribute templateAttribute = newRfcRelation.getAttribute(ATTR_NAME_TEMPLATE);
-        String mgmtTemplNsPath = "/public/" + designPlatform.getAttribute("source").getDfValue()
-                + "/packs/" + designPlatform.getAttribute("pack").getDfValue()
-                + "/" + designPlatform.getAttribute("version").getDfValue();
+        String mgmtTemplNsPath = "/public/" + designPlatform.getAttribute("source").getNewValue()
+                + "/packs/" + designPlatform.getAttribute("pack").getNewValue()
+                + "/" + designPlatform.getAttribute("version").getNewValue();
         List<CmsCI> list = cmProcessor.getCiBy3(mgmtTemplNsPath, null, templateAttribute.getNewValue());
         if (list.isEmpty()) {
             throw new DJException(CmsError.DJ_BAD_TEMPLATE_NAME_ERROR, 
