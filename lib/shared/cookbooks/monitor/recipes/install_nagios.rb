@@ -164,21 +164,22 @@ dirs.each do |dir_name2|
   end
 end
 
-#Create symlinks
-link "#{dir_prefix}/etc/nagios3" do
-  to "#{dir_prefix}/etc/nagios"
-end
+if node.platform !~ /ubuntu/
+  #Create symlinks
+  link "#{dir_prefix}/etc/nagios3" do
+    to "#{dir_prefix}/etc/nagios"
+  end
 
-directory '/var/log/nagios' do
-  action :delete
-  recursive true
-  only_if{::File.directory?('/var/log/nagios')}
-end
+  directory '/var/log/nagios' do
+    action :delete
+    recursive true
+    only_if{::File.directory?('/var/log/nagios')}
+  end
 
-link "#{dir_prefix}/var/log/nagios" do
-  to "#{dir_prefix}/var/log/nagios3"
+  link "#{dir_prefix}/var/log/nagios" do
+    to "#{dir_prefix}/var/log/nagios3"
+  end
 end
-
 
 # for windows we won't change owners
 if node.platform !~ /windows/
