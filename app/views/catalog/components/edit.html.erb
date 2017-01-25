@@ -8,25 +8,22 @@
                    :kind  => 'platform',
                    :link  => catalog_design_platform_path(@design, @platform)}] %>
 <% else %>
-  <% if @platform.ciClassName.end_with?('catalog.Platform')
-       doc_anchor = 'design'
-       bc_label   = icon(site_icon('design'), 'design')
-     else
-       doc_anchor   = 'transition'
-       availability = params[:availability]
-       bc_label     = icon(availability == 'redundant' ? 'cubes' : 'cube', "#{availability} availability")
-     end %>
-  <%= breadcrumb [{:label => icon(site_icon(:pack), 'packs'), :link => catalog_path(:anchor => 'packs')},
-                  {:label => "#{@platform.ciName} #{content_tag(:sub, bc_label)}",
+  <%= breadcrumb [{:label => icon(site_icon(:pack), 'packs'),
+                   :link  => catalog_path(:anchor => 'packs')},
+                  {:kind  => 'source',
+                   :label => @platform.ciAttributes.source},
+                  {:kind  => 'pack',
+                   :label => breadcrumb_platform_label,
                    :icon  => platform_image_url(@platform),
-                   :kind => 'pack',
                    :link  => catalog_pack_platform_path(:id => @platform)}] %>
 <% end %>
 
 <%= page_title :page_icon  => ci_image_url(@component),
                :page_kind  => "#{@component.ciClassName.split('.').last.capitalize} Component",
                :page_label => @component.ciName,
-               :doc_link   => ci_doc_link(@component, icon('book'), :anchor => doc_anchor, :class => 'doc-link') %>
+               :doc_link   => ci_doc_link(@component, icon('book'),
+                                          :anchor => @platform.ciClassName.end_with?('catalog.Platform') ? 'design' : 'transition',
+                                          :class => 'doc-link') %>
 
 <%= items = [{:label => 'configuration', :template => 'configuration', :selected => true}]
     if @design

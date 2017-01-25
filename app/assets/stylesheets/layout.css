@@ -1068,10 +1068,13 @@ img.authicon {
   text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.7);
 }
 
+.breadcrumb_text a .item_label sub:not(.label) {
+  color: #444;
+}
+
 .breadcrumb_text .item_label .label {
   font-size: 10px;
   padding: 0 3px;
-  vertical-align: -2px;
 }
 
 .breadcrumb_separator {
@@ -1160,6 +1163,10 @@ img.authicon {
   font-weight: normal;
   color:       #000;
   padding:     0px 5px 0px 5px;
+}
+
+#page_title_text .page_label sub:not(.label) {
+  color: #444;
 }
 
 #page_title_text .btn {
