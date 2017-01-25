@@ -30,7 +30,10 @@ public class TimelineQueryParam {
 	private String filter;
 	private String wildcardFilter;
 	private String releaseClassFilter;
-	private String releaseNsLikeWithFilter;
+
+	private List<Long> releaseScopeNsIds;
+	private List<Long> nsIdsMatchingFilter;
+
 	private String dpmtClassFilter;
 	private String dpmtNsLikeWithFilter;
 
@@ -168,14 +171,6 @@ public class TimelineQueryParam {
 		this.type = type;
 	}
 
-	public String getReleaseNsLikeWithFilter() {
-		return releaseNsLikeWithFilter;
-	}
-
-	public void setReleaseNsLikeWithFilter(String releaseNsLikeWithFilter) {
-		this.releaseNsLikeWithFilter = releaseNsLikeWithFilter;
-	}
-
 	public String getDpmtNsLikeWithFilter() {
 		return dpmtNsLikeWithFilter;
 	}
@@ -206,6 +201,22 @@ public class TimelineQueryParam {
 
 	public void setReleaseNs(String releaseNs) {
 		this.releaseNs = releaseNs;
+	}
+
+	public List<Long> getNsIdsMatchingFilter() {
+		return nsIdsMatchingFilter;
+	}
+
+	public void setNsIdsMatchingFilter(List<Long> nsIdsMatchingFilter) {
+		this.nsIdsMatchingFilter = nsIdsMatchingFilter;
+	}
+
+	public List<Long> getReleaseScopeNsIds() {
+		return releaseScopeNsIds;
+	}
+
+	public void setReleaseScopeNsIds(List<Long> releaseScopeNsIds) {
+		this.releaseScopeNsIds = releaseScopeNsIds;
 	}
 
 }

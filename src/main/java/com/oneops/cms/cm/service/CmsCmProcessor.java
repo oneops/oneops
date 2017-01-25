@@ -1658,7 +1658,7 @@ public class CmsCmProcessor {
 			if (existingAttr == null || existingAttr.getCiRelationAttributeId() == 0) {
 				ciMapper.addRelationAttributeAndPublish(updAttr);
 			} else {
-				if (!cmValidator.attrsEqual(existingAttr, updAttr, updAttr.getOwner() != null)) {
+				if (!cmValidator.attrsEqual(existingAttr, updAttr, true)) {
 					updAttr.setCiRelationAttributeId(existingAttr.getCiRelationAttributeId());
 					ciMapper.updateCIRelationAttribute(updAttr);
 				}
