@@ -195,7 +195,7 @@ class Chef
 
       if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) do |http|
-          request = Net::HTTP::Get.new uri
+          request = Net::HTTP::Get.new uri.request_uri
           Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
           request.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
 
