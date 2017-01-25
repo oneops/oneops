@@ -133,6 +133,10 @@ CREATE INDEX cm_ops_proc_ciid_nm_created
 CREATE  INDEX concurrently cm_ops_procedures_ci_proc_idx
  ON kloopzcm.cm_ops_procedures
  ( ops_proc_id, ci_id );
+ 
+CREATE INDEX CONCURRENTLY cm_ci_relations_r_ns_idx
+ ON kloopzcm.cm_ci_relations
+ ( relation_id, ns_id ); 
   
 insert into md_classes (class_id, class_name, short_class_name, access_level, is_namespace, description)
 values (100, 'Ci','Ci','global', false,'This is basic super class, all classes will extend this one');
