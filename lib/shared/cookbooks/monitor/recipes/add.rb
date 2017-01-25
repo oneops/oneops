@@ -407,6 +407,13 @@ ruby_block 'setup nagios' do
       else
         `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
         # restart nagios & forwarder
+        template '/etc/init.d/nagios' do
+          cookbook 'monitor'
+          source 'nagios_init.erb'
+          owner 'root'
+          group 'root'
+          mode 0755
+        end
         `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
       end
 
@@ -421,7 +428,7 @@ if is_new_compute
 else
   if ostype =~ /windows/
     perf_dir = '/opt/oneops/perf'
-	    
+
     #grant permissions to all subfolders and files to SYSTEM
     directory perf_dir do
       rights :modify, 'SYSTEM'
@@ -430,7 +437,7 @@ else
       inherits false
       action :create
     end
-  
+
     ps_code = "
     $Path = '#{perf_dir}'
     $acl = Get-Acl $Path
