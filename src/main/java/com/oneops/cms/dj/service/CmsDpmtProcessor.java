@@ -352,6 +352,9 @@ public class CmsDpmtProcessor {
 		//in case the new stae = old state just update the comments and timestamp
 		//CMS_ALL event will not be generated
 		if (existingDpmt.getDeploymentState().equals(dpmt.getDeploymentState())) {
+		    CmsDeployment clone = new CmsDeployment();
+		    BeanUtils.copyProperties(dpmt, clone);
+		    dpmt = clone; // need to clone deployment before resetting the status, to prevent cached deployment corruption
 			dpmt.setDeploymentState(null);
 		}
 		
