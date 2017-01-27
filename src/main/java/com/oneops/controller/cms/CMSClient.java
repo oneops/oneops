@@ -350,6 +350,9 @@ public class CMSClient {
             dpmtRec.setDpmtRecordState(newState);
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
+            dpmt = cmsDpmtProcessor.getDeployment(dpmt.getDeploymentId()); // we need to get dpmt from db (refresh) in case someone updated autopause or continue on failure after retry
+            //ToDo: provide status update only method in DAL for activity workflows to make sure it keeps deployment user parameters intact
+            exec.setVariable(DPMT, dpmt);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
                 if (dpmt.getContinueOnFailure()) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
                     failAllManagedViaWorkOrders(wo);
@@ -423,6 +426,7 @@ public class CMSClient {
         dpmtParam.setProcessId(processId + "!" + execId);
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
         dpmtParam.setContinueOnFailure(dpmt.getContinueOnFailure());
+        dpmtParam.setAutoPauseExecOrdersVal(dpmt.getAutoPauseExecOrdersVal());
         try {
         	cmsDpmtProcessor.updateDeployment(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
