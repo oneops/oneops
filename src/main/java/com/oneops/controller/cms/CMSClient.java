@@ -350,9 +350,6 @@ public class CMSClient {
             dpmtRec.setDpmtRecordState(newState);
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
-            dpmt = cmsDpmtProcessor.getDeployment(dpmt.getDeploymentId()); // we need to get dpmt from db (refresh) in case someone updated autopause or continue on failure after retry
-            //ToDo: provide status update only method in DAL for activity workflows to make sure it keeps deployment user parameters intact
-            exec.setVariable(DPMT, dpmt);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
                 if (dpmt.getContinueOnFailure()) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
                     failAllManagedViaWorkOrders(wo);
@@ -427,6 +424,7 @@ public class CMSClient {
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
         dpmtParam.setContinueOnFailure(dpmt.getContinueOnFailure());
         dpmtParam.setAutoPauseExecOrdersVal(dpmt.getAutoPauseExecOrdersVal());
+        dpmtParam.setFlagsToNull();
         try {
         	cmsDpmtProcessor.updateDeployment(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
@@ -467,6 +465,7 @@ public class CMSClient {
         logger.info("Client: put:update deployment " + dpmt.getDeploymentId() + " state to " + dpmt.getDeploymentState());
         
         try {
+            dpmt.setFlagsToNull();
         	cmsDpmtProcessor.updateDeployment(dpmt);
             deploymentNotifier.sendDpmtNotification(dpmt);
         } catch (CmsBaseException e) {
@@ -492,6 +491,7 @@ public class CMSClient {
                 dpmt.setDeploymentState(PAUSED);
                 dpmt.setUpdatedBy(ONEOPS_SYSTEM_USER);
                 dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
+                dpmt.setFlagsToNull();
                 try {
                     cmsDpmtProcessor.updateDeployment(dpmt);
                 } catch (CmsBaseException e) {
