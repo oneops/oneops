@@ -53,7 +53,7 @@ public class CmsDeployment implements Serializable{
 	private Date created;
 	private Date updated;
 
-	private Integer flags = 0;
+	private Integer flags;
 	private boolean continueOnFailure = false;
 
 	/**
