@@ -187,20 +187,6 @@ public class CMSClient {
         long startTime = System.currentTimeMillis();
         logger.info("Geting work orders for dpmt id = " + dpmt.getDeploymentId() + " step #" + execOrder);
         try {
-            // check if all previous orders got completed
-            //Long failedWos = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/cis/count?execorder={execOrder}&state=failed", Long.class, dpmt.getDeploymentId(), execOrder));
-
-        	long failedWos = cmsDpmtProcessor.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", execOrder);
-        	
-            if (failedWos > 0 && !dpmt.getContinueOnFailure()) {
-                logger.error("Previous step has failed work orders, the deployment should be in failed state");
-                String descr = dpmt.getDescription();
-                if (descr == null) {
-                    descr = "";
-                }
-                descr += "\n Deployment failed, please retry";
-                handleWoError2(exec, dpmt, descr);
-            }
             // if not - resubmit them, this is not normal situation but sometimes activiti completes subprocess
             // without calling final step, not sure how or why
             //wos = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/workorderids?execorder={execOrder}&state=inprogress&limit={limit}", CmsWorkOrderSimple[].class, dpmt.getDeploymentId(), execOrder, this.stepWoLimit));
@@ -422,7 +408,6 @@ public class CMSClient {
         dpmtParam.setDeploymentId(dpmt.getDeploymentId());
         dpmtParam.setProcessId(processId + "!" + execId);
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
-        dpmtParam.setContinueOnFailure(dpmt.getContinueOnFailure());
         dpmtParam.setFlagsToNull();
         try {
         	cmsDpmtProcessor.updateDeployment(dpmtParam);
@@ -487,10 +472,13 @@ public class CMSClient {
             Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
             if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
                 logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
+                CmsDeployment clone = new CmsDeployment();
+                BeanUtils.copyProperties(dpmt, clone);
+                dpmt = clone;
                 dpmt.setDeploymentState(PAUSED);
                 dpmt.setUpdatedBy(ONEOPS_SYSTEM_USER);
                 dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
-                dpmt.setFlagsToNull();
+                dpmt.setFlagsToNull(); 
                 try {
                     cmsDpmtProcessor.updateDeployment(dpmt);
                 } catch (CmsBaseException e) {
