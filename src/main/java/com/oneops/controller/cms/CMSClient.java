@@ -408,7 +408,6 @@ public class CMSClient {
         dpmtParam.setDeploymentId(dpmt.getDeploymentId());
         dpmtParam.setProcessId(processId + "!" + execId);
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
-        dpmtParam.setFlagsToNull();
         try {
         	cmsDpmtProcessor.updateDeployment(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
