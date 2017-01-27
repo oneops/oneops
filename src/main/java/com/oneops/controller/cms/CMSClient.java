@@ -471,15 +471,13 @@ public class CMSClient {
             Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
             if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
                 logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
-                CmsDeployment clone = new CmsDeployment();
-                BeanUtils.copyProperties(dpmt, clone);
-                dpmt = clone;
-                dpmt.setDeploymentState(PAUSED);
-                dpmt.setUpdatedBy(ONEOPS_SYSTEM_USER);
-                dpmt.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
-                dpmt.setFlagsToNull(); 
+                CmsDeployment clone = new CmsDeployment(); // cannot update existing instance need to clone deployment first 
+                clone.setDeploymentId(dpmt.getDeploymentId());
+                clone.setDeploymentState(PAUSED);
+                clone.setUpdatedBy(ONEOPS_SYSTEM_USER);
+                clone.setComments("deployment paused at step " + newExecOrder + " on " + new Date());
                 try {
-                    cmsDpmtProcessor.updateDeployment(dpmt);
+                    cmsDpmtProcessor.updateDeployment(clone);
                 } catch (CmsBaseException e) {
                     logger.error("CmsBaseException in incExecOrder", e);
                     throw e;
