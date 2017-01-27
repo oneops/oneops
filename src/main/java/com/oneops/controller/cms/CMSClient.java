@@ -423,7 +423,6 @@ public class CMSClient {
         dpmtParam.setProcessId(processId + "!" + execId);
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
         dpmtParam.setContinueOnFailure(dpmt.getContinueOnFailure());
-        dpmtParam.setAutoPauseExecOrdersVal(dpmt.getAutoPauseExecOrdersVal());
         dpmtParam.setFlagsToNull();
         try {
         	cmsDpmtProcessor.updateDeployment(dpmtParam);
