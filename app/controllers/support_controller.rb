@@ -166,6 +166,10 @@ class SupportController < ReportsController
     end
   end
 
+  def cost
+    super
+  end
+
 
   protected
 

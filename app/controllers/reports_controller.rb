@@ -113,7 +113,7 @@ class ReportsController < ApplicationController
   end
 
   def cost
-    min_ns_path = organization_ns_path
+    min_ns_path = search_ns_path
     @ns_path    = params[:ns_path] || min_ns_path
     @ns_path    = min_ns_path unless @ns_path.start_with?(min_ns_path)
 
@@ -132,7 +132,7 @@ class ReportsController < ApplicationController
 
     @interval = params[:interval]
     inteval_length = (@end_date - @start_date).days
-    unless @interval.present? && %w(month week day).include?(@interval) && inteval_length > 1.send(@interval)
+    unless @interval.present? && %w(month week day).include?(@interval) && inteval_length >= 1.send(@interval)
       if inteval_length > 31.days
         @interval = 'month'
       elsif inteval_length > 7.days
@@ -142,11 +142,55 @@ class ReportsController < ApplicationController
       end
     end
 
-    groupings = [{:name => :by_service, :label => 'Service Type'},
-                 {:name => :by_cloud, :label => 'Cloud', :url => lambda {|x| edit_cloud_path(x)}}]
+    groupings = [{:name => :by_service, :label => 'Service Type'}]
     ns_path_split = @ns_path.split('/')
     ns_path_depth = ns_path_split.size
-    if ns_path_depth == 2
+    groupings << {:name => :by_cloud, :label => 'Cloud', :url => lambda {|x| edit_cloud_path(x)}} if ns_path_depth > 1
+    if ns_path_depth == 0
+      # Cross-org.
+      groupings << {:name  => :by_organization,
+                    :label => 'Organization',
+                    :path  => :by_ns,
+                    :sum   => lambda {|x| x.split('/')[1]},
+                    :url   => lambda {|x| organization_public_profile_path(:org_name => x)}}
+      groupings << {:name  => :by_assembly,
+                    :label => 'Assembly',
+                    :path  => :by_ns,
+                    :sum   => lambda {|x| x.split('/', 4)[1..2].join('/')},
+                    :url   => lambda {|x| assembly_path(x)}}
+
+      tags = params[:tags]
+      if tags.present?
+        orgs = Search::Base.search('/cms-all/ci',
+                                   :nsPath               => '/',
+                                   'ciClassName.keyword' => 'account.Organization',
+                                   :_source              => %w(ciName ciAttributes.tags ciAttributes.owner),
+                                   :size                 => 99999,
+                                   :_timeout             => 30,
+                                   :_silent              => true)
+        return unless orgs
+
+        assemblies = Search::Base.search('/cms-all/ci',
+                                         :nsPath               => '/*',
+                                         'ciClassName.keyword' => 'account.Assembly',
+                                         :_source              => %w(ciName nsPath ciAttributes.tags ciAttributes.owner),
+                                         :size                 => 99999,
+                                         :_timeout             => 30,
+                                         :_silent              => true)
+        return unless assemblies
+
+        @tag_info = AssemblyTag.new(orgs, assemblies)
+
+        tags.each do |tag|
+          groupings << {:name  => tag.to_sym,
+                        :label => 'Pillar',
+                        :path  => :by_ns,
+                        :sum   => lambda {|x| r, org, assembly = x.split('/', 4); @tag_info.get(org, assembly, tag)},
+                        :url   => lambda {|x| split = x.split(' - '); split[1] ? path_to_ns(split[0]) : nil}}
+        end
+      end
+    elsif ns_path_depth == 2
+      # Org level.
       groupings << {:name  => :by_assembly,
                     :label => 'Assembly',
                     :path  => :by_ns,
@@ -162,7 +206,7 @@ class ReportsController < ApplicationController
                     :label => 'Environment',
                     :path  => :by_ns,
                     :sum   => lambda {|x| x.split('/')[3]},
-                    :url   => lambda {|x| assembly_transition_environment_path(ns_path_split[2], x)}}
+                    :url   => lambda {|x| assembly_transition_environment_path(x.split[2], x)}}
       groupings << {:name  => :by_platform,
                     :label => 'Platform',
                     :path  => :by_ns,
@@ -172,7 +216,7 @@ class ReportsController < ApplicationController
                     :label => 'Platform',
                     :path  => :by_ns,
                     :sum   => lambda {|x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}"},
-                    :url   => lambda {|x| ns_split = x.split('/'); assembly_transition_environment_platform_path(ns_path_split[2], ns_path_split[3], x.sub(' ver.', '!'))}}
+                    :url   => lambda {|x| ns_split = x.split('/'); assembly_transition_environment_platform_path(ns_split[2], ns_split[3], x.sub(' ver.', '!'))}}
     end
 
     data = Search::Cost.cost_time_histogram(@ns_path, @start_date, @end_date, @interval)
@@ -261,6 +305,7 @@ class ReportsController < ApplicationController
       format.js
       format.json do
         if @cost
+          @cost[:tags] = @tag_info if @tag_info
           render :json => @cost
         else
           render :json => {:errors => ['Failed to fetch cost data']}, :status => :internal_server_error
@@ -581,6 +626,42 @@ class ReportsController < ApplicationController
   class LeafNode < Hash
     def initialize(data)
       data.each_pair { |k, v| self[k] = v }
+    end
+  end
+
+  class AssemblyTag < Hash
+    def initialize(orgs, assemblies)
+      @orgs = orgs.to_map {|o| o['ciName']}
+      @assemblies = assemblies.to_map {|a| "#{a['nsPath']}/#{a['ciName']}"}
+    end
+
+    def get(org, assembly, tag)
+      key = "/#{org}/#{assembly}"
+      self[key] ||= parse_tags(@assemblies[key] || {})
+      result = self[key][:tags][tag]
+      return result if result.present?
+
+      self[org] ||= parse_tags(@orgs[org] || {})
+      result = self[org][:tags][tag]
+      return result if result.present?
+
+      return "#{key} - #{self[key][:owner] || self[org][:owner] || '???'}"
+    end
+
+
+    private
+
+    def parse_tags(org_or_assembley)
+      attrs = org_or_assembley['ciAttributes'] || {}
+      tags = attrs['tags']
+      unless tags.is_a?(Hash)
+        begin
+          tags = tags ? JSON.parse(tags) : {}
+        rescue
+          tags = {}
+        end
+      end
+      {:tags => tags, :owner => attrs['owner']}
     end
   end
 end

@@ -51,6 +51,7 @@ Display::Application.routes.draw do
       get  'organizations'
       get  'users'
       get  'user'
+      get  'cost'
 
       get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
