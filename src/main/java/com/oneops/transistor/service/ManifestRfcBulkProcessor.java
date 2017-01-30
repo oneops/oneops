@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import com.oneops.transistor.util.CloudUtil;
 
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
@@ -38,6 +39,7 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
+import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
@@ -805,7 +807,10 @@ public class ManifestRfcBulkProcessor {
 
 		String monitorName = null;
 		if (designRelation == null) {
-			monitorName = getMonitorName(manifestPlat, monitorFromRfc.getCiName(), tmplRelation.getToCi().getCiName());
+			CmsCI templateCiClone = new CmsCI();
+            BeanUtils.copyProperties(templateCi, templateCiClone);
+            templateCi = templateCiClone;
+            monitorName = getMonitorName(manifestPlat, monitorFromRfc.getCiName(), tmplRelation.getToCi().getCiName());
 			//change the template monitor CI name to target name if there is no design CI 
 			//as we need to find a match in existing manifest CIs below using this name
 			templateCi.setCiName(monitorName);
