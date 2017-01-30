@@ -17,46 +17,26 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import com.oneops.cms.cm.domain.CmsCIRelationBasic;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-import org.springframework.beans.BeanUtils;
-import org.springframework.dao.DuplicateKeyException;
-
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.TimelineDeployment;
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.CmsUtil;
-import com.oneops.cms.util.ListUtils;
-import com.oneops.cms.util.TimelineQueryParam;
+import com.oneops.cms.util.*;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.dao.DuplicateKeyException;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The Class CmsDpmtProcessor.
@@ -349,15 +329,17 @@ public class CmsDpmtProcessor {
 	 */
 	public CmsDeployment updateDeployment(CmsDeployment dpmt) {
 		CmsDeployment existingDpmt = dpmtMapper.getDeployment(dpmt.getDeploymentId());
-		//in case the new stae = old state just update the comments and timestamp
-		//CMS_ALL event will not be generated
-		if (existingDpmt.getDeploymentState().equals(dpmt.getDeploymentState())) {
-			dpmt.setDeploymentState(null);
-		}
 		
 		updateAutoDeployExecOrders(dpmt);
 
-		if (DPMT_STATE_CANCELED.equalsIgnoreCase(dpmt.getDeploymentState())) {
+        //in case the new state = old state just update the comments and timestamp CMS_ALL event will not be generated
+        if (existingDpmt.getDeploymentState().equals(dpmt.getDeploymentState())) {
+            String currentState = dpmt.getDeploymentState();
+            dpmt.setDeploymentState(null);
+            dpmtMapper.updDeployment(dpmt);
+            logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " kept the old state ");
+            dpmt.setDeploymentState(currentState);
+        } else if (DPMT_STATE_CANCELED.equalsIgnoreCase(dpmt.getDeploymentState())) {
 			if (dpmtMapper.getDeploymentRecordsCountByState(dpmt.getDeploymentId(), DPMT_RECORD_STATE_INPROGRESS, null) > 0) {
 				String errMsg = "The deployment still have active work orders!"; 
 				logger.error(errMsg);
@@ -429,11 +411,7 @@ public class CmsDpmtProcessor {
 				logger.error(errMsg);
 				throw new DJException(CmsError.DJ_DEPLOYMENT_NOT_ACTIVE_ERROR, errMsg);
 			}
-		} else if (dpmt.getDeploymentState() == null) {
-				dpmtMapper.updDeployment(dpmt);
-				logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " with new state  " + dpmt.getDeploymentState());
-		}
-		else {
+		} else {
 			String errMsg = "This state is not supported - " + dpmt.getDeploymentState(); 
 			logger.error(errMsg);
 			throw new DJException(CmsError.DJ_NOT_SUPPORTED_STATE_ERROR, errMsg);
