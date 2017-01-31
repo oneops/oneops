@@ -62,6 +62,7 @@ public class DesignRfcProcessor {
     private CmsUtil cmsUtil;
 
     private static final String ATTR_NAME_TEMPLATE = "template";
+    private static final String MGMT_PREFIX = "mgmt.";
 
 
     public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
@@ -721,7 +722,7 @@ public class DesignRfcProcessor {
         String mgmtTemplNsPath = "/public/" + designPlatform.getAttribute("source").getNewValue()
                 + "/packs/" + designPlatform.getAttribute("pack").getNewValue()
                 + "/" + designPlatform.getAttribute("version").getNewValue();
-        List<CmsCI> list = cmProcessor.getCiBy3(mgmtTemplNsPath, null, templateAttribute.getNewValue());
+        List<CmsCI> list = cmProcessor.getCiBy3(mgmtTemplNsPath, MGMT_PREFIX + newRfcRelation.getToRfcCi().getCiClassName(), templateAttribute.getNewValue());
         if (list.isEmpty()) {
             throw new DJException(CmsError.DJ_BAD_TEMPLATE_NAME_ERROR, 
                     "no template ci found for the template name " + templateAttribute.getNewValue());
