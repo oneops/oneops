@@ -2,6 +2,15 @@ class Catalog::MonitorsController < Base::MonitorsController
   before_filter :find_parents
   before_filter :find_monitor, :only => [:show]
 
+  protected
+
+  def find_monitors
+    @monitors = Cms::Relation.all(:params => {:ciId         => @component.ciId,
+                                              :relationName => 'mgmt.catalog.WatchedBy',
+                                              :direction    => 'from',
+                                              :includeToCi  => true}).map(&:toCi)
+  end
+
   private
 
   def find_parents

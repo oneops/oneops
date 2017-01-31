@@ -138,9 +138,16 @@ class SupportController < ReportsController
     if username.present?
       login = "%#{username}%"
       users = User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
+    else
+      last_sign_in = params[:active_since]
+      users = User.select('username, email, current_sign_in_at').where('current_sign_in_at >= ?', last_sign_in).all if last_sign_in.present?
     end
 
-    render :json => users
+    respond_to do |format|
+      format.csv {render :text => users.map {|u| "#{u.username},#{u.email},#{u.current_sign_in_at}"}.join("\n")}
+      format.any {render :json => users}
+    end
+
   end
 
   def user
@@ -164,6 +171,10 @@ class SupportController < ReportsController
       format.js
       format.json {render_json_ci_response(@user.present?, @user)}
     end
+  end
+
+  def cost
+    super
   end
 
 

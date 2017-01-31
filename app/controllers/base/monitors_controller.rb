@@ -4,16 +4,7 @@ class Base::MonitorsController < ApplicationController
   helper_method :is_custom_monitor?
 
   def index
-    pack_ns_path = platform_pack_ns_path(@platform)
-
-    @monitors = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
-                                                :relationShortName => 'WatchedBy',
-                                                :direction         => 'from',
-                                                :includeToCi       => true}).map do |r|
-      monitor = r.toCi
-      monitor.add_policy_locations(pack_ns_path)
-      monitor
-    end
+    find_monitors
 
     respond_to do |format|
       format.html { render '_monitor_list' }
@@ -100,5 +91,17 @@ class Base::MonitorsController < ApplicationController
 
   def ci_resource
     @monitor
+  end
+
+  def find_monitors
+    pack_ns_path = platform_pack_ns_path(@platform)
+    @monitors = Cms::DjRelation.all(:params => {:ciId              => @component.ciId,
+                                                :relationShortName => 'WatchedBy',
+                                                :direction         => 'from',
+                                                :includeToCi       => true}).map do |r|
+      monitor = r.toCi
+      monitor.add_policy_locations(pack_ns_path)
+      monitor
+    end
   end
 end

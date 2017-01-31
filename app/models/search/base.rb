@@ -10,6 +10,7 @@ class Search::Base < ActiveResource::Base
 
   def self.search(index, options = {})
     silent       = options.delete(:_silent)
+    timeout      = options.delete(:_timeout)
     source       = options.delete(:_source)
     size         = options.delete(:size) || 9999
     from         = options.delete(:from) || 0
@@ -27,7 +28,7 @@ class Search::Base < ActiveResource::Base
     }
     search_params[:_source] = source if source.present?
 
-    return run_search("#{index}/_search", search_params, silent)
+    return run_search("#{index}/_search", search_params, silent, timeout)
   end
 
   def self.search_latest_by_ns(index, ns_path, options = {})
@@ -163,8 +164,12 @@ class Search::Base < ActiveResource::Base
     return query
   end
 
-  def self.run_search(path, search_params, silent = nil)
+  def self.run_search(path, search_params, silent = nil, timeout = nil)
     result = nil
+    if timeout
+      old_timeout = self.timeout
+      self.timeout = timeout
+    end
     begin
       data          = JSON.parse(post(path, {}, search_params.to_json).body)
       result        = data['hits']['hits'].map { |r| r['_source'] }
@@ -180,6 +185,7 @@ class Search::Base < ActiveResource::Base
         raise e
       end
     end
+    self.timeout = timeout if timeout
     result
   end
 end

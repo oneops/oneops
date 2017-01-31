@@ -22,11 +22,14 @@
      end
      page_title_opts = {:page_icon     => platform_image_url(@platform),
                         :page_kind     => 'Platform Pack',
-                        :page_label    => "#{@platform.ciName} #{content_tag(:sub, content_tag(:small, bc_label))}",
+                        :page_label    => "#{@platform.ciName} #{content_tag(:sub, content_tag(:span, "ver. #{@platform.ciAttributes.major_version}", :class => 'label label-success'))} #{content_tag(:sub, content_tag(:small, bc_label))}",
                         :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => doc_anchor),
                         :page_sublabel => @platform.ciAttributes.description}
 
-     crumbs = [{:label => icon(site_icon(:pack), 'packs'), :link => catalog_path(:anchor => 'packs')}]
+     crumbs = [{:label => icon(site_icon(:pack), 'packs'),
+                :link => catalog_path(:anchor => 'packs')},
+               {:kind  => 'source',
+                :label => @platform.ciAttributes.source}]
 
      tabs << {:label => 'variables', :url => catalog_pack_platform_variables_path(:platform_id => @platform.ciId)}
      tabs << {:label => 'policies',  :url => catalog_pack_platform_policies_path(:platform_id => @platform.ciId)}
