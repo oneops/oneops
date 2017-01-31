@@ -411,7 +411,11 @@ public class CmsDpmtProcessor {
 				logger.error(errMsg);
 				throw new DJException(CmsError.DJ_DEPLOYMENT_NOT_ACTIVE_ERROR, errMsg);
 			}
-		} else {
+		} else if (dpmt.getDeploymentState() == null) {
+				dpmtMapper.updDeployment(dpmt);
+				logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " with new state  " + dpmt.getDeploymentState());
+		}
+		else {
 			String errMsg = "This state is not supported - " + dpmt.getDeploymentState(); 
 			logger.error(errMsg);
 			throw new DJException(CmsError.DJ_NOT_SUPPORTED_STATE_ERROR, errMsg);
