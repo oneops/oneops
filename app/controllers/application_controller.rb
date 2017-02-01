@@ -77,16 +77,18 @@ class ApplicationController < ActionController::Base
       unauthorized('Invalid namespace')
       return
     end
-    class_name      = params[:class_name]
+
+    class_name = params[:class_name]
+    rel_name   = params[:relation_name]
+    attr_name  = params[:attr_name]
+    attr_value = params[:attr_value]
+
     @search_results = []
 
     if @source == 'cms' || @source == 'simple'
       # CMS search.
       query_params = {:nsPath => ns_path, :recursive => true}
 
-      rel_name   = params[:relation_name]
-      attr_name  = params[:attr_name]
-      attr_value = params[:attr_value]
 
       query_params[:ciClassName] = class_name if class_name.present?
       query_params[rel_name.include?('.') ? :relationName : :relationShortName] = rel_name if rel_name.present?
@@ -117,18 +119,18 @@ class ApplicationController < ActionController::Base
 
       if query.present? || class_name.present?
         begin
-          search_params                        = {:nsPath => "#{ns_path}#{'/' unless ns_path.last == '/'}*", :size => max_size}
-          search_params[:query]                = {:query => query, :fields => %w(ciAttributes.* ciClassName ciName)} if query.present?
+          search_params = {:nsPath => "#{ns_path}#{'/' unless ns_path.last == '/'}*", :size => max_size}
+          search_params[:query] = {:query => query, :fields => %w(ciAttributes.* ciClassName ciName)} if query.present?
           # search_params[:query]                = query if query.present?
           search_params['ciClassName.keyword'] = class_name if class_name.present?
-          @search_results                      = Cms::Ci.search(search_params)
+          @search_results = Cms::Ci.search(search_params)
         rescue Exception => e
           @error = e.message
         end
       end
     end
 
-    unless is_admin? || has_org_scope?
+    unless @search_results || is_admin? || has_org_scope?
       org_ns_path = organization_ns_path
       prefixes = current_user.organization.ci_proxies.where(:ns_path => org_ns_path).joins(:teams).where('teams.id IN (?)', current_user.all_team_ids).pluck(:ci_name).inject([]) do |a, ci_name|
         a << "#{org_ns_path}/#{ci_name}"
@@ -141,9 +143,36 @@ class ApplicationController < ActionController::Base
       end
     end
 
+    if @search_results.present? && attr_name.present? && attr_value.blank?
+      split = attr_name.split('.')
+      split = split.unshift(rel_name.present? ? 'relationAttributes' : 'ciAttributes') if split.size == 1
+      @search_results = @search_results.map do |r|
+        split.inject(r) do |r, name|
+          rr = r.try(name.to_sym)
+          break r unless r
+          rr
+        end
+      end
+    end
+
     respond_to do |format|
-      format.js   {render 'base/search/search'}
-      format.json {render :json => @search_results}
+      format.js { render 'base/search/search' }
+
+      format.json do
+        if @error
+          render :json => {:errors => [@error]}, :status => :unprocessable_entity
+        else
+          render :json => @search_results
+        end
+      end
+
+      format.text do
+        if @error
+          render :text => @error, :status => :unprocessable_entity
+        else
+          render :text => @search_results.join(params[:delimeter] || ' ')
+        end
+      end
     end
   end
 

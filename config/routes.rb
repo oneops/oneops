@@ -505,6 +505,7 @@ Display::Application.routes.draw do
             get 'autoreplace', :on => :member
             put 'autoreplace', :on => :member
             put 'autoscale',   :on => :member
+            get 'search',      :on => :member
           end
 
           resources :instances, :only => [:index]

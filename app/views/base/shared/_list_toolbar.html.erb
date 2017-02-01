@@ -28,7 +28,7 @@
           <% if i.blank? %>
             <li class="divider"></li>
           <% else %>
-            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}"))) %>'><%= i[:label] %></a></li>
+            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}"))) %>'><%= raw i[:label] %></a></li>
           <% end %>
         <% end %>
       </ul>

@@ -3873,6 +3873,28 @@ label a input[type=checkbox] {
   stroke: #000;
 }
 
+.graph-line .axis .tick {
+  font-size: 11px;
+}
+
+.graph-line .axis .domain {
+  fill: none;
+  stroke: #000;
+  /*shape-rendering: crispEdges;*/
+}
+
+.graph-line .metric {
+  fill: none;
+  stroke-width: 2px;
+}
+
+.graph-line .zoom-rect {
+  fill : #eee;
+  opacity: 0.5;
+  stroke-width: 1px;
+  stroke: #888;
+}
+
 .dl-horizontal dt {
   white-space: nowrap;
   text-overflow: ellipsis;
