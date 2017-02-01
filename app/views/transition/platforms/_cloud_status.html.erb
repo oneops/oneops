@@ -1,4 +1,5 @@
-<% allow_actions = in_transition? && has_transition?(@assembly.ciId) %>
+<% allow_actions = in_transition? && has_transition?(@assembly.ciId)
+   in_operations = in_operations? %>
 <ul class="status">
 	<% @clouds.each do |cloud| %>
 		<% cloud_id = cloud.toCi.ciId
@@ -88,6 +89,13 @@
               <% end %>
             </div>
           </dd>
+          <% if in_operations %>
+            <dt><%= icon('server') %></dt>
+            <dd id="cloud_ips_<%= cloud.toCiId %>">
+              <%= link_to_function('Compute IPs...', 'fetchPlatformIPs(this)') %>
+              <span class="ips hide"></span>
+            </dd>
+          <% end %>
   		  </dl>
         <% if cloud.toCi.ciAttributes.adminstatus == 'offline' %>
           <div class="alert alert-danger pull-left">
@@ -129,3 +137,50 @@
   </script>
 <% end %>
 
+<% if in_operations %>
+  <script>
+    window.fetchPlatformIPs = function(source) {
+      source = $j(source);
+      source.hide();
+      var ipsEl = source.siblings(".ips");
+      ipsEl.show();
+      if (!ipsEl.html()) {
+        ipsEl.html("<%= escape_javascript(loading_indicator('')) %>");
+
+        var url = "<%= search_assembly_operations_environment_platform_path(@assembly,
+                                                                            @environment,
+                                                                            @platform,
+                                                                            :format          => :json,
+                                                                            :source          => 'simple',
+                                                                            :relation_name   => 'DeployedTo',
+                                                                            :from_class_name => 'Compute',
+                                                                            :include_to_ci   => 'false') %>";
+        $j.getJSON(url, function(data) {
+          var ip, attrs, cloudId, el;
+          var ipsByCloud = data.reduce(function(h, r) {
+            attrs = r['fromCi']['ciAttributes'];
+            ip = attrs['private_ip'] || attrs['public_ip'];
+            if (ip) {
+              cloudId = r['toCiId'];
+              h[cloudId] = r[cloudId] || [];
+              h[cloudId].push(ip);
+            }
+            return h;
+          }, {});
+
+          ipsEl.parents("ul.status").find('.ips').html("No computes deployed.");
+          for (cloudId in ipsByCloud) {
+            el = $j("#cloud_ips_" + cloudId + " .ips");
+            el.html("<span>" + ipsByCloud[cloudId].join(' ') + "</span>");
+            el.append("&nbsp;&nbsp;<i class='fa fa-files-o'></i>");
+            copyToClipboard(el.find("i.fa-files-o")[0],
+                            function(source) {
+                              return $j(source).siblings('span')[0];
+                            });
+          }
+        });
+      }
+    };
+
+  </script>
+<% end %>

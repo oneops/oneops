@@ -81,10 +81,13 @@ class Operations::InstancesController < ApplicationController
     respond_to do |format|
       format.js do
         if @instances.present?
+          managed_via_rels = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
+                                                           :recursive    => true,
+                                                           :relationName => 'bom.ManagedVia',
+                                                           :includeToCi  => true})
+          @managed_via = managed_via_rels.to_map_with_value {|r| [r.fromCiId, r.toCi]}
           unless component_scope
-            @managed_via_health = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
-                                                                :recursive    => true,
-                                                                :relationName => 'bom.ManagedVia'}).inject({}) do |h, r|
+            @managed_via_health = managed_via_rels.inject({}) do |h, r|
               h[r.fromCiId] = @ops_states[r.toCiId]
               h
             end

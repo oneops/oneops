@@ -181,6 +181,13 @@ class Operations::PlatformsController < Base::PlatformsController
   end
 
 
+  protected
+
+  def search_ns_path
+    platform_bom_ns_path(@environment, @platform)
+  end
+
+
   private
 
   def find_assembly_environment_platform

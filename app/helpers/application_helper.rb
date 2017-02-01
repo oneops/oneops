@@ -340,8 +340,8 @@ module ApplicationHelper
     content_for(:page_title, raw(html))
   end
 
-  def page_info(info)
-    content_for(:page_info, sanitize(info || ''))
+  def page_info(info = nil, &block)
+    content_for(:page_info, sanitize(info) || (block_given? ? capture(&block) : ''))
   end
 
   def error_messages_for(model)
@@ -768,7 +768,7 @@ module ApplicationHelper
   def status_marker(name, value, label_class = '', options = {})
     toggle = options['data-toggle']
     marker = content_tag(:span, raw(name), :class => "label label-marker-name #{options.delete(:name_class)}")
-    marker << content_tag(:span, raw("#{value}#{" #{icon('caret-down')}" if toggle}"), :class => "label label-marker-value #{label_class}")
+    marker << content_tag(:span, raw("#{value}#{" #{icon('caret-down')}" if toggle}"), :class => "label label-marker-value #{label_class}", :onclick => toggle ? nil : "selectText(this)")
     id = random_dom_id
     result = content_tag(:div, marker.html_safe, options.merge(:class => 'marker', :id => id))
     result += javascript_tag(%($j("##{id}").#{toggle}())) if toggle
@@ -895,7 +895,7 @@ module ApplicationHelper
   end
 
   def random_dom_id
-    SecureRandom.random_number(36**6).to_s(36)
+    "a#{SecureRandom.random_number(36**6).to_s(36)}"
   end
 
   def diagram
