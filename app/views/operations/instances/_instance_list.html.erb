@@ -1,7 +1,9 @@
 <% ips_map = @instances.inject({}) do |h, ci|
      compute = (ci.ciClassName.end_with?('.Compute') && ci) || (@managed_via && @managed_via[ci.ciId])
-     attrs = compute.ciAttributes.attributes
-     h[ci.ciId] = compute && (attrs['private_ip'].presence || attrs['public_ip'])
+     if compute
+       attrs = compute.ciAttributes.attributes
+       h[ci.ciId] = attrs['private_ip'].presence || attrs['public_ip']
+     end
      h
    end
 
