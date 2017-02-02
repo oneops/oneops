@@ -677,10 +677,36 @@ public class DesignRfcProcessor {
     }
 
     public long discardReleaseForPlatform(long platId) {
-        CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
-        rfcProcessor.rmRfcs(getPlatformNs(platformRfc));
-        if (platformRfc.getIsActiveInRelease()){
+        CmsRfcCI platformRfc = cmRfcMrgProcessor.getCiById(platId);
+        String nsPath = getPlatformNs(platformRfc);
+        Long releaseId = null;
+
+        List<CmsRfcCI> cmsRfcCIs = rfcProcessor.getOpenRfcCIByClazzAndName(nsPath, null, null);
+        for (CmsRfcCI cmsRfcCI:cmsRfcCIs) {
+            rfcProcessor.rmRfcCiFromRelease(cmsRfcCI.getRfcId());
+            if (releaseId==null) {
+                releaseId = cmsRfcCI.getReleaseId();
+            }
+        }
+
+        List<CmsRfcRelation> cmsRfcRelations = rfcProcessor.getOpenRfcRelationsByNs(nsPath);
+        for (CmsRfcRelation relation:cmsRfcRelations){
+            rfcProcessor.rmRfcRelationFromRelease(relation.getRfcId());
+            if (releaseId == null){
+                releaseId = relation.getReleaseId();
+            }
+        }
+
+        if (platformRfc.getIsActiveInRelease()) {
             rfcProcessor.rmRfcCiFromRelease(platformRfc.getRfcId());
+        }
+
+        if (releaseId!=null) {
+            // clean up redundant release
+            if (rfcProcessor.getRfcCIBy3(releaseId, true, null).size() == 0 && rfcProcessor.getRfcRelationByReleaseId(releaseId).size() == 0) {                 // remove release if replay triggered no rfc's.
+                logger.info("No release because rfc count is 0. Cleaning up release.");
+                rfcProcessor.deleteRelease(releaseId);
+            }
         }
         return platId;
     }
