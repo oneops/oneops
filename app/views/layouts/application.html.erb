@@ -32,7 +32,6 @@
           <%= text_field_tag(:org_lookup, '', :id => 'org_lookup', :style => 'width: 97%', :autocomplete => 'off', :placeholder => 'Organization name') %>
         </div>
       </div>
-
       <script>
         $j('input#org_lookup').typeahead({
           source:  function (query, process) {
@@ -47,6 +46,24 @@
             show_busy();
           }
         });
+      </script>
+
+      <div id="copy_to_clipboard_modal" class="modal hide">
+        <div class="modal-header">
+          <button class="close" data-dismiss="modal">&times;</button>
+          <h3></h3>
+        </div>
+        <div class="modal-body" style="overflow:visible">
+        </div>
+        <div class="modal-footer">
+          <a class="btn" data-dismiss="modal"><%= icon('files-o', 'Copy to clipboard') %></a>
+        </div>
+      </div>
+      <script>
+        copyToClipboard($j("#copy_to_clipboard_modal .modal-footer .btn")[0],
+                        function(source) {
+                          return $j("#copy_to_clipboard_modal .modal-body")[0];
+                        });
       </script>
 
       <%= render('layouts/flash_error') %>

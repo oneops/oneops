@@ -13,7 +13,7 @@
         <%= icon(site_icon!(:assembly)) %> Assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
         <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> Environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %>
         <% if @release %>
-          <%= icon(site_icon!(:release)) %><b> > </b>&nbsp; Release <%= link_to(@release.parentReleaseId, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
+          <b> > </b>&nbsp; <%= icon(site_icon!(:release)) %> Release <%= link_to(@release.parentReleaseId, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
         <% end %>
 
       </div>

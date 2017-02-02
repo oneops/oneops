@@ -48,7 +48,6 @@
               :filter_by => filter_by}
 
    has_operations = has_operations?(@assembly.try(:ciId))
-   list_menu = nil
 
    list_menu = []
    if actions.present? && has_operations
@@ -58,7 +57,7 @@
    end
    if ips_map.present?
      list_menu << nil if list_menu.size > 0
-     list_menu << {:id => 'instance_ips', :label => "List of IPs &nbsp;#{icon('external-link')}", :function => 'instance_ips'}
+     list_menu << {:id => 'instance_ips', :label => 'list of IPs...', :function => 'instance_ips'}
    end
    if has_operations
      list_menu << nil if list_menu.size > 0
@@ -127,6 +126,15 @@
     <% end %>
   <% end %>
 <% end %>
+<div id="copy_to_clipboard_modal" class="modal hide">
+  <div class="modal-header">
+    <button class="close" data-dismiss="modal">&times;</button>
+    <h3>Find Organization</h3>
+  </div>
+  <div class="modal-body" style="overflow:visible">
+    <%= text_field_tag(:org_lookup, '', :id => 'org_lookup', :style => 'width: 97%', :autocomplete => 'off', :placeholder => 'Organization name') %>
+  </div>
+</div>
 
 <script>
   var procedureNames = {};
@@ -183,7 +191,7 @@
         return h;
       }, []);
       if (ips.length) {
-        window.open().document.write(ips.join(' '));
+        showCopyToClipboardModal('IP List', ips.uniq().join(' '));
       }
     };
 
