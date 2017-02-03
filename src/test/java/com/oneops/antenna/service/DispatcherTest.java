@@ -49,7 +49,7 @@ public class DispatcherTest {
         when(cmProcessor.getCiById(anyLong())).thenReturn(ci);
 
         subService = mock(SubscriberService.class);
-        List<BasicSubscriber> bsList = new ArrayList<BasicSubscriber>(4);
+        List<BasicSubscriber> bsList = new ArrayList<>(4);
         BasicSubscriber basic1 = new EmailSubscriber();
         BasicSubscriber basic2 = new SNSSubscriber();
         BasicSubscriber basic3 = new URLSubscriber();
@@ -61,7 +61,7 @@ public class DispatcherTest {
         when(subService.getSubscribersForNs(anyString())).thenReturn(bsList);
         SubscriberService subService = mock(SubscriberService.class);
         NotificationSender notMock = mock(NotificationSender.class);
-        this.dispatcher = new Dispatcher(new Gson(), subService, notMock, notMock, notMock, notMock, cmProcessor, mock(CmsDpmtProcessor.class), mock(OpsProcedureProcessor.class));
+        this.dispatcher = new Dispatcher(new Gson(), subService, notMock, notMock, notMock, notMock, notMock, cmProcessor, mock(CmsDpmtProcessor.class), mock(OpsProcedureProcessor.class));
     }
 
     /**

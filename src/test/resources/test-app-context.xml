@@ -11,8 +11,9 @@
 
     <!-- Enable auto scanning & annotation config -->
     <context:annotation-config/>
-    <context:component-scan base-package="com.oneops.config"/>
-    <context:component-scan base-package="com.oneops.antenna.cache"/>
+    <context:component-scan base-package="com.oneops.config,
+                                          com.oneops.antenna.cache,
+                                          com.oneops.antenna.senders.slack"/>
 
     <bean id="propertyConfigurer"
           class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
@@ -32,6 +33,8 @@
     <bean id="eSender" class="com.oneops.antenna.senders.aws.EmailService"/>
 
     <bean id="urlSender" class="com.oneops.antenna.senders.generic.HTTPMsgService"/>
+
+    <bean id="slackSender" class="com.oneops.antenna.senders.slack.SlackService"/>
 
     <bean id="xmppSender" class="com.oneops.antenna.senders.generic.LoggingMsgService"/>
 

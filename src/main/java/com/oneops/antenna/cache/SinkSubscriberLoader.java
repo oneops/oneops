@@ -19,7 +19,11 @@ package com.oneops.antenna.cache;
 
 
 import com.google.common.cache.CacheLoader;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.oneops.antenna.domain.*;
+import com.oneops.antenna.domain.SlackSubscriber.Channel;
+import com.oneops.antenna.domain.SlackSubscriber.Format;
 import com.oneops.antenna.domain.filter.NotificationFilter;
 import com.oneops.antenna.domain.transform.Transformer;
 import com.oneops.antenna.service.Dispatcher;
@@ -32,8 +36,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static com.oneops.antenna.domain.NotificationSeverity.none;
 
 /**
  * A subscriber list {@link com.google.common.cache.CacheLoader} for automatic loading of
@@ -45,33 +51,21 @@ import java.util.List;
 @Component
 public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscriber>> {
 
-    /**
-     * Logger instance
-     */
     private static Logger logger = Logger.getLogger(SinkSubscriberLoader.class);
-
-    /**
-     * Cms CI processor
-     */
+    private final Gson gson;
     private final CmsCmProcessor cmProcessor;
-
-    /**
-     * Crypto util
-     */
     private final CmsCrypto cmsCrypto;
-
-    /**
-     * Default notification subscriber
-     */
     private final URLSubscriber defaultSystemSubscriber;
 
     @Autowired
     public SinkSubscriberLoader(URLSubscriber defaultSystemSubscriber,
                                 CmsCrypto cmsCrypto,
-                                CmsCmProcessor cmProcessor) {
+                                CmsCmProcessor cmProcessor,
+                                Gson gson) {
         this.defaultSystemSubscriber = defaultSystemSubscriber;
         this.cmsCrypto = cmsCrypto;
         this.cmProcessor = cmProcessor;
+        this.gson = gson;
     }
 
     @Override
@@ -116,6 +110,9 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
                     case "account.notification.jabber.Sink":
                         sub = buildJabberSub(sink);
                         break;
+                    case "account.notification.slack.Sink":
+                        sub = buildSlackSub(sink);
+                        break;
                     default:
                         logger.error("Couldn't build notification sink for " + sink.getCiClassName());
                         break;
@@ -138,6 +135,62 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
             }
         }
         return subs;
+    }
+
+    /**
+     * Builds {@linl SlackSubscriber} from sink CI.
+     *
+     * @param sink sink object
+     * @return slack subscriber.
+     */
+    private SlackSubscriber buildSlackSub(CmsCI sink) {
+        SlackSubscriber slackSink = new SlackSubscriber();
+        // Channels attribute (Array) format is "team/channel1,team/channel2,...."
+        String[] channels = gson.fromJson(sink.getAttribute("channels").getDfValue(), String[].class);
+        // Text format attribute (Hash) format is "{'pattern|[level]' : 'msg'}, ..."
+        Map<String, String> formats = gson.fromJson(sink.getAttribute("text_formats").getDfValue(),
+                new TypeToken<Map<String, String>>() {
+                }.getType());
+
+        // Use a linked list to preserve the order when applying message format.
+        List<Channel> chanList = Arrays.stream(channels)
+                .map(c -> c.trim().split("/"))
+                .filter(s -> s.length > 1)
+                .map(s -> new Channel(s[0].toLowerCase(), s[1]))
+                .collect(Collectors.toCollection(LinkedList::new));
+
+        List<Format> fmtList = formats.entrySet().stream()
+                .map(this::getSlackFormat)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toCollection(LinkedList::new));
+
+        slackSink.setChannels(chanList);
+        slackSink.setFormats(fmtList);
+        return slackSink;
+    }
+
+    /**
+     * Helper method to construct slack message format object.
+     * The format is "string|level => msg".
+     *
+     * @param e Map entry
+     * @return ${@link {@link Format}}
+     */
+    private Format getSlackFormat(Map.Entry<String, String> e) {
+        try {
+            String key = e.getKey();
+            String msg = e.getValue();
+            String[] f = key.split("\\|");
+            String pattern = f[0];
+            NotificationSeverity level = none;
+            if (f.length > 1) {
+                level = NotificationSeverity.valueOf(f[1]);
+            }
+            return new Format(level, pattern, msg);
+        } catch (Exception ex) {
+            logger.warn("Error creating slack format for entry, " + e, ex);
+            return null;
+        }
     }
 
     /**

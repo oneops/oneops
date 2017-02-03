@@ -15,7 +15,8 @@
 
     <!-- Enable auto scanning & annotation config -->
     <context:annotation-config/>
-    <context:component-scan base-package="com.oneops.antenna.cache"/>
+    <context:component-scan base-package="com.oneops.antenna.cache,
+                                          com.oneops.antenna.senders.slack"/>
 
     <!-- Common lib components -->
     <import resource="classpath:shared-lib-context.xml"/>
@@ -64,6 +65,7 @@
     <bean id="snsSender" class="com.oneops.antenna.senders.aws.SNSService"/>
     <bean id="eSender" class="com.oneops.antenna.senders.aws.EmailService"/>
     <bean id="urlSender" class="com.oneops.antenna.senders.generic.HTTPMsgService"/>
+    <bean id="slackSender" class="com.oneops.antenna.senders.slack.SlackService"/>
     <bean id="xmppSender" class="com.oneops.antenna.senders.generic.XMPPMsgService">
         <property name="botName" value="OneOpsAntenna"/>
         <property name="timeout" value="4000"/>

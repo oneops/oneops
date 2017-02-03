@@ -19,15 +19,10 @@ package com.oneops.antenna.service;
 
 import java.util.List;
 
+import com.oneops.antenna.domain.*;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.EmailSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.SNSSubscriber;
-import com.oneops.antenna.domain.URLSubscriber;
-import com.oneops.antenna.domain.XMPPSubscriber;
 import com.oneops.antenna.senders.NotificationSender;
 import com.oneops.antenna.subscriptions.SubscriberService;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -51,15 +46,21 @@ public class Dispatcher {
     private final NotificationSender snsSender;
     private final NotificationSender urlSender;
     private final NotificationSender xmppSender;
+    private final NotificationSender slackSender;
     private final CmsCmProcessor cmProcessor;
     private final CmsDpmtProcessor dpmtProcessor;
     private final OpsProcedureProcessor procProcessor;
 
     @Autowired
-    public Dispatcher(Gson gson, SubscriberService sbrService,
-                      NotificationSender eSender, NotificationSender snsSender,
-                      NotificationSender urlSender, NotificationSender xmppSender,
-                      CmsCmProcessor cmProcessor, CmsDpmtProcessor dpmtProcessor,
+    public Dispatcher(Gson gson,
+                      SubscriberService sbrService,
+                      NotificationSender eSender,
+                      NotificationSender snsSender,
+                      NotificationSender urlSender,
+                      NotificationSender xmppSender,
+                      NotificationSender slackSender,
+                      CmsCmProcessor cmProcessor,
+                      CmsDpmtProcessor dpmtProcessor,
                       OpsProcedureProcessor procProcessor) {
         this.gson = gson;
         this.sbrService = sbrService;
@@ -67,6 +68,7 @@ public class Dispatcher {
         this.snsSender = snsSender;
         this.urlSender = urlSender;
         this.xmppSender = xmppSender;
+        this.slackSender = slackSender;
         this.cmProcessor = cmProcessor;
         this.dpmtProcessor = dpmtProcessor;
         this.procProcessor = procProcessor;
@@ -106,6 +108,8 @@ public class Dispatcher {
                     urlSender.postMessage(nMsg, sub);
                 } else if (sub instanceof XMPPSubscriber) {
                     xmppSender.postMessage(nMsg, sub);
+                } else if (sub instanceof SlackSubscriber) {
+                    slackSender.postMessage(nMsg, sub);
                 }
             }
         } catch (Exception e) {

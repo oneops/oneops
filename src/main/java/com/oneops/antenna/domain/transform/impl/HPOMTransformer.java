@@ -167,7 +167,7 @@ class HPOMMessage extends NotificationMessage {
 
     private String node;
 
-    private String senderSystem;//ndc-monitor1.walmart.com
+    private String senderSystem;//monitor.oneops.com
 
     private String senderOrg;//like mobile/oneops etc
 
