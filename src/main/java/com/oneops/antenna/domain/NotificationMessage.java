@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.antenna.domain;
 
@@ -38,7 +38,7 @@ public class NotificationMessage implements Serializable {
     private String templateParams;
     private String text;
     private String nsPath;
-    private Map<String, String> payload = new HashMap<String, String>();
+    private Map<String, String> payload = new HashMap<>();
     private long timestamp;
     private String environmentProfileName;
     private String adminStatus;
@@ -48,13 +48,13 @@ public class NotificationMessage implements Serializable {
         return payload;
     }
 
-	public void putPayloadEntry(String name, String value) {
+    public void putPayloadEntry(String name, String value) {
         this.payload.put(name, value);
     }
 
-	public void putPayloadEntries(Map<String, String> payloadEntries) {
-		this.payload.putAll(payloadEntries);
-	}
+    public void putPayloadEntries(Map<String, String> payloadEntries) {
+        this.payload.putAll(payloadEntries);
+    }
 
     public String getNsPath() {
         return nsPath;
@@ -137,44 +137,44 @@ public class NotificationMessage implements Serializable {
     }
 
     public String getEnvironmentProfileName() {
-		return environmentProfileName;
-	}
+        return environmentProfileName;
+    }
 
-	public void setEnvironmentProfileName(String envProfile) {
-		this.environmentProfileName = envProfile;
-	}
+    public void setEnvironmentProfileName(String envProfile) {
+        this.environmentProfileName = envProfile;
+    }
 
-	public String getAdminStatus() {
-		return adminStatus;
-	}
+    public String getAdminStatus() {
+        return adminStatus;
+    }
 
-	public void setAdminStatus(String adminStatus) {
-		this.adminStatus = adminStatus;
-	}
+    public void setAdminStatus(String adminStatus) {
+        this.adminStatus = adminStatus;
+    }
 
-	public long getManifestCiId() {
-		return manifestCiId;
-	}
+    public long getManifestCiId() {
+        return manifestCiId;
+    }
 
-	public void setManifestCiId(long manifestCiId) {
-		this.manifestCiId = manifestCiId;
-	}
-	
-	public String getCloudName() {
-		return cloudName;
-	}
+    public void setManifestCiId(long manifestCiId) {
+        this.manifestCiId = manifestCiId;
+    }
 
-	public void setCloudName(String cloudName) {
-		this.cloudName = cloudName;
-	}
+    public String getCloudName() {
+        return cloudName;
+    }
 
-	public void appendText(String notes) {
-		StringBuilder sb = new StringBuilder();
-		sb.append(text).append(notes);
-		this.text = sb.toString();
-	}
+    public void setCloudName(String cloudName) {
+        this.cloudName = cloudName;
+    }
 
-	/**
+    public void appendText(String notes) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(text).append(notes);
+        this.text = sb.toString();
+    }
+
+    /**
      * Get OneOps web url for this NotificationMessage.
      *
      * @return URL of relevant page inside OneOps web. Returns

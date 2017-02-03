@@ -55,7 +55,7 @@ public enum NotificationSeverity {
      * @param name  severity name
      * @param level severity level
      */
-    private NotificationSeverity(String name, int level) {
+    NotificationSeverity(String name, int level) {
         this.name = name;
         this.level = level;
     }
