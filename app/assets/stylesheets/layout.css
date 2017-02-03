@@ -3876,6 +3876,12 @@ label a input[type=checkbox] {
 .graph-line .axis .tick {
   font-size: 11px;
 }
+.graph-line .axis .tick line {
+  stroke: black;
+  stroke-opacity: 0.2;
+  stroke-width: 0.5px;
+  stroke-dasharray: 2 2;
+}
 
 .graph-line .axis .domain {
   fill: none;
