@@ -50,7 +50,7 @@ public class XMPPMsgServiceTest {
 
     @BeforeClass
     public void init() {
-        System.setProperty("oneops.url", "https://oneops.prod.walmart.com");
+        System.setProperty("oneops.url", "https://oneops.com");
         MockitoAnnotations.initMocks(this);
         svc.init();
     }
@@ -103,11 +103,11 @@ public class XMPPMsgServiceTest {
     @Test
     public void linkFormatTest() {
         String deploymentNsp = "/oneops/forge/cd1/bom";
-        // https://oneops.prod.walmart.com/oneops/assemblies/forge/transition/environments/paas#summary
+        // https://oneops.com/org/assemblies/forge/transition/environments/paas#summary
         String deploymentUrlEnd = "https*://\\S+/oneops/assemblies/forge/transition/environments/\\w+#summary";
 
         String repairNsp = "/platform/LMS/prod/bom/LMS/1";
-        // https://oneops.prod.walmart.com/platform/assemblies/LMS/operations/environments/prod/platforms/LMS#summary
+        // https://oneops.com/org/assemblies/LMS/operations/environments/prod/platforms/LMS#summary
         String repairUrlEnd = "https*://\\S+/r/ci/\\w+";
 
         NotificationMessage nMessage = new NotificationMessage();
