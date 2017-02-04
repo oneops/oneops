@@ -24,6 +24,7 @@ end.parse!
 impl = ARGV[0]
 json_context = ARGV[1]
 cookbook_path = ARGV[2] || ''
+service_cookbooks = ARGV[3] || ''
 
 puts "RUBY_PLATFORM: #{RUBY_PLATFORM}" if log_level == "debug"
 case RUBY_PLATFORM
@@ -181,22 +182,34 @@ when "chef"
     chef_config = "/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
   end
 
+  additionalCookbooks = ''
+  if ! service_cookbooks.empty?
+	if ostype =~ /windows/
+		additionalCookbooks = service_cookbooks.split(",").map { |e| "\"c:/cygwin64#{e}\"" }.join(', ')
+	else
+		additionalCookbooks = service_cookbooks.split(",").map { |e| "\"#{e}\"" }.join(', ')			
+	end
+  end
 
-  # generate chef_config if doesn't exist
-  if !File::exist?(chef_config)
-    puts "config missing: #{chef_config}" if log_level == 'debug'
+  # generate chef_config 
     
     cookbook_full_path = chef_config.gsub("/chef-#{ci}.rb","")
     # when using alternate cookbooks include base cookbooks
     if cookbook_path.empty?
-     	config_content = 'cookbook_path "'+cookbook_full_path+"\"\n"
+     	config_content = 'cookbook_path "'+cookbook_full_path+"\""
     else
       if ostype =~ /windows/
-        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"c:/cygwin64/home/oneops/shared/cookbooks\"]\n"
+        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"c:/cygwin64/home/oneops/shared/cookbooks\""
       else
-        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"/home/oneops/shared/cookbooks\"]\n"
+        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"/home/oneops/shared/cookbooks\""
       end
+
+      if ! additionalCookbooks.empty?
+          config_content += "," + additionalCookbooks
+      end
+      config_content += "]\n"
     end
+    
     log_level = "info"
     config_content += "log_level :#{log_level}\n"
     config_content += "formatter :#{formatter}\n"
@@ -213,7 +226,6 @@ when "chef"
 
     puts "chef_config: #{chef_config}"
     File.open(chef_config, 'w') {|f| f.write(config_content) }
-  end
 
   if ostype =~ /windows/
     cmd = "c:/opscode/chef/embedded/bin/chef-solo.bat -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
@@ -261,3 +273,4 @@ when "puppet"
     exit ec
   end
 end
+
