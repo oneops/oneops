@@ -9,6 +9,7 @@ public class ComponentExport extends ExportCi{
 	private List<ExportCi> attachments;
 	private List<ExportCi> monitors;
 	private List<String> depends;
+	private List<ExportRelation> watchedBy;
 	private String template;
 	private Map<String, Map<String, ExportCi>> scaling;
 
@@ -72,5 +73,19 @@ public class ComponentExport extends ExportCi{
 	public List<ExportCi> getMonitors() {
 		return monitors;
 	}
-	
+
+	public List<ExportRelation> getWatchedBy() {
+		return watchedBy;
+	}
+
+	public void setWatchedBy(List<ExportRelation> watchedBy) {
+		this.watchedBy = watchedBy;
+	}
+	public void addWatchedBy(ExportRelation watchedByRel) {
+		if (this.watchedBy == null) {
+			this.watchedBy = new ArrayList<ExportRelation>();
+		}
+		this.watchedBy.add(watchedByRel);
+	}
+
 }
