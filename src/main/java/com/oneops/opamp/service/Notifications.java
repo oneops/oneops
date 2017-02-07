@@ -232,11 +232,7 @@ public class Notifications {
 			attribute = ci.getAttribute("public_ip");
 		}
 
-		if (attribute != null) {
-			if (StringUtils.isNotEmpty(attribute.getDfValue())) {
-				notificationMessage.putPayloadEntry(MANAGED_VIA_IP, attribute.getDfValue());
-			}
-		} else if (!envProcessor.excludeIpInNotifications()) { // The ci is not a compute. Find its managed-via compute
+		if (attribute == null && !envProcessor.excludeIpInNotifications()) { // The ci is not a compute. Find its managed-via compute
 			List<CmsCIRelation> relations = cmProcessor.getFromCIRelations(ci.getCiId(), "bom.ManagedVia", null, null);
 			if (relations != null && relations.size() > 0) {
 				CmsCI computeCi = relations.get(0).getToCi();
@@ -245,9 +241,9 @@ public class Notifications {
 					attribute = computeCi.getAttribute("public_ip");
 				}
 			}
-			if (attribute != null) {
-				notificationMessage.putPayloadEntry(MANAGED_VIA_IP, attribute.getDfValue());
-			}
+		}
+		if (attribute != null && StringUtils.isNotEmpty(attribute.getDfValue())) {
+			notificationMessage.putPayloadEntry(MANAGED_VIA_IP, attribute.getDfValue());
 		}
 	}
 
