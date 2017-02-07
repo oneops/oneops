@@ -164,6 +164,14 @@ dirs.each do |dir_name2|
   end
 end
 
+case node.platform
+when "ubuntu"
+  execute "rm -rf /etc/nagios3" do
+   cwd "/etc/"
+   returns [0,1]
+  end
+end
+
 #Create symlinks
 link "#{dir_prefix}/etc/nagios3" do
   to "#{dir_prefix}/etc/nagios"
@@ -178,7 +186,6 @@ end
 link "#{dir_prefix}/var/log/nagios" do
   to "#{dir_prefix}/var/log/nagios3"
 end
-
 
 # for windows we won't change owners
 if node.platform !~ /windows/
