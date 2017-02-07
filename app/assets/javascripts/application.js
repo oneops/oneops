@@ -323,8 +323,8 @@ window.hide_busy = function() {
 
 window.render_modal = function(modal_id, html) {
   hide_modal();
-  if (!$(modal_id)) {
-    $$("body").first().insert(html);
+  if (!$j(modal_id)[0]) {
+    $j("body").append(html);
   }
   $j("#" + modal_id).modal({backdrop: "static"});
 };
@@ -414,6 +414,12 @@ function copyToClipboard(trigger, target) {
                           })
                       .onClick(e);
                   });
+}
+
+function showCopyToClipboardModal(title, content) {
+  $j("#copy_to_clipboard_modal .modal-header h3").html(title);
+  $j("#copy_to_clipboard_modal .modal-body").html(content);
+  render_modal('copy_to_clipboard_modal');
 }
 
 function toggleAttrPropOwner(source) {

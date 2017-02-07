@@ -162,7 +162,7 @@
             ip = attrs['private_ip'] || attrs['public_ip'];
             if (ip) {
               cloudId = r['toCiId'];
-              h[cloudId] = r[cloudId] || [];
+              h[cloudId] = h[cloudId] || [];
               h[cloudId].push(ip);
             }
             return h;

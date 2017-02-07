@@ -168,11 +168,24 @@ class DesignController < ApplicationController
             end
 
             monitors = c['monitors']
+            watched_bys = c['watchedBy']
+            if watched_bys.present?
+              monitor_map = monitors.blank? ? {} : monitors.to_map {|w| w['name']}
+              monitor_map = watched_bys.inject(monitor_map) do |mm, w|
+                monitor_name = w['name']
+                monitor = mm[monitor_name]
+                if monitor
+                  monitor['attributes'].merge!(w['attributes'])
+                else
+                  mm[monitor_name] = w
+                end
+                mm
+              end
+              monitors = monitor_map.values
+            end
             if monitors.present?
               comp['monitors'] = monitors.sort_by {|a| a['name']}.to_map_with_value do |a|
                 attrs = a['attributes']
-                watched_by_attrs = a['watchedBy']
-                attrs.merge!(watched_by_attrs) if watched_by_attrs.present?
                 attrs = convert_json_attrs_from_string(attrs, 'catalog.Monitor') unless collapse
                 [a['name'], attrs]
               end
@@ -328,7 +341,8 @@ class DesignController < ApplicationController
                                                                    :ciName      => template})
                     if component_template
                       comps.each_pair do |comp_name, comp|
-                        errors['platforms'][plat_name]['components'][template_and_class][comp_name] = {}
+                        errors_component = {}
+                        errors['platforms'][plat_name]['components'][template_and_class][comp_name] = errors_component
 
                         component_attrs = comp.slice(*component_md_attrs)
                         component_attrs = convert_json_attrs_to_string(component_attrs)
@@ -338,17 +352,18 @@ class DesignController < ApplicationController
                                                            :ciAttributes => component_template.ciAttributes.attributes.merge(component_attrs)})
                         component_ci.add_policy_locations(pack_ns_path)
 
-                        errors['platforms'][plat_name]['components'][template_and_class][comp_name]['errors'] = component_ci.errors.full_messages unless component_ci.valid?
+                        errors_component['errors'] = component_ci.errors.full_messages unless component_ci.valid?
                         result['platforms'].last['components'] << ci_to_load(component_ci, :template => template, :attributes => component_attrs)
 
-                        transfer_if_present('depends', comp, result['platforms'].last['components'].last)
+                        result_component = result['platforms'].last['components'].last
+                        transfer_if_present('depends', comp, result_component)
 
                         attachments = comp['attachments']
                         if attachments.present?
-                          result['platforms'].last['components'].last['attachments'] = []
-                          errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'] = {}
+                          result_component['attachments'] = []
+                          errors_component['attachments'] = {}
                           attachments.each do |attachment_name, attachment|
-                            errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name] = {}
+                            errors_component['attachments'][attachment_name] = {}
                             attachment_attrs = attachment.slice(*attachment_md_attrs)
                             attachment_attrs = convert_json_attrs_to_string(attachment_attrs)
                             attachment_ci    = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
@@ -357,17 +372,18 @@ class DesignController < ApplicationController
                                                                 :ciAttributes => attachment_attrs})
                             attachment_ci.add_policy_locations(pack_ns_path)
 
-                            errors['platforms'][plat_name]['components'][template_and_class][comp_name]['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
-                            result['platforms'].last['components'].last['attachments'] << ci_to_load(attachment_ci, :attributes => attachment_attrs)
+                            errors_component['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
+                            result_component['attachments'] << ci_to_load(attachment_ci, :attributes => attachment_attrs)
                           end
                         end
 
                         monitors = comp['monitors']
                         if monitors.present?
-                          result['platforms'].last['components'].last['monitors'] = []
-                          errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'] = {}
+                          result_component['monitors'] = []
+                          result_component['watchedBy'] = []
+                          errors_component['monitors'] = {}
                           monitors.each do |monitor_name, monitor|
-                            errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'][monitor_name] = {}
+                            errors_component['monitors'][monitor_name] = {}
 
                             monitor_attrs    = convert_json_attrs_to_string(monitor.slice(*monitor_md_attrs))
                             watched_by_attrs = convert_json_attrs_to_string(monitor.slice(*watched_by_md_attrs))
@@ -388,9 +404,9 @@ class DesignController < ApplicationController
                                                           :ciAttributes => monitor_template ? monitor_template.ciAttributes.attributes.merge(monitor_attrs) : monitor_attrs})
                             monitor_ci.add_policy_locations(pack_ns_path)
 
-                            errors['platforms'][plat_name]['components'][template_and_class][comp_name]['monitors'][monitor_name]['errors'] = monitor_ci.errors.full_messages unless monitor_ci.valid?
-                            monitor_ci.ciAttributes.watchedBy = watched_by_attrs if watched_by_attrs.present?
-                            result['platforms'].last['components'].last['monitors'] << ci_to_load(monitor_ci, :attributes => monitor_attrs)
+                            errors_component['monitors'][monitor_name]['errors'] = monitor_ci.errors.full_messages unless monitor_ci.valid?
+                            result_component['monitors'] << ci_to_load(monitor_ci, :attributes => monitor_attrs)
+                            result_component['watchedBy'] << {:name => monitor_name, :type => 'catalog.WatchedBy', :attributes => watched_by_attrs} if watched_by_attrs.present?
                           end
                         end
                       end

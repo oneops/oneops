@@ -1,5 +1,5 @@
 class Operations::EnvironmentsController < Base::EnvironmentsController
-  include ::NotificationSummary, ::CostSummary
+  include ::NotificationSummary, ::CostSummary, ::Health
 
   before_filter :find_assembly_and_environment
 

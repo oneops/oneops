@@ -1,8 +1,8 @@
 class AssembliesController < ApplicationController
-  include ::TeamAccess, ::CostSummary, ::NotificationSummary
+  include ::TeamAccess, ::CostSummary, ::NotificationSummary, ::Health
 
   before_filter :find_assembly, :only => [:search, :show, :edit, :update, :destroy, :new_clone, :clone,
-                                          :teams, :update_teams, :reports, :notifications, :cost_rate, :cost]
+                                          :teams, :update_teams, :reports, :notifications, :cost_rate, :cost, :health]
 
   before_filter :authorize_create, :only => [:new, :create, :new_clone, :clone]
   before_filter :authorize_update, :only => [:update, :destroy, :update_teams]

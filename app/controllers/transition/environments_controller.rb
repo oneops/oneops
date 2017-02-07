@@ -612,14 +612,27 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
               if attachments.present?
                 comp['attachments'] = attachments.sort_by {|a| a['name']}.to_map_with_value do |a|
                   attrs = a['attributes']
-                  watched_by_attrs = a['watchedBy']
-                  attrs.merge!(watched_by_attrs) if watched_by_attrs.present?
                   attrs = convert_json_attrs_from_string(attrs, 'manifest.Attachment') unless collapse
                   [a['name'], attrs]
                 end
               end
 
               monitors = c['monitors']
+              watched_bys = c['watchedBy']
+              if watched_bys.present?
+                monitor_map = monitors.blank? ? {} : monitors.to_map {|w| w['name']}
+                monitor_map = watched_bys.inject(monitor_map) do |mm, w|
+                  monitor_name = w['name']
+                  monitor = mm[monitor_name]
+                  if monitor
+                    monitor['attributes'].merge!(w['attributes'])
+                  else
+                    mm[monitor_name] = w
+                  end
+                  mm
+                end
+                monitors = monitor_map.values
+              end
               if monitors.present?
                 comp['monitors'] = monitors.sort_by {|a| a['name']}.to_map_with_value do |a|
                   attrs = a['attributes']

@@ -58,10 +58,10 @@
 
 <% if @linkable_platform_map.present? %>
   <div class="category">
-    <div class="name">Links</div>
+    <div class="name">Dependency</div>
   </div>
   <div class="control-group">
-    <label class="control-label">To Platforms</label>
+    <label class="control-label">Connects To Platforms</label>
 
     <div class="controls">
       <% @linkable_platform_map.to_a.sort_by {|p, linked| "#{linked.blank?}|#{p.ciName}"}.each do |(p, linked)| %>

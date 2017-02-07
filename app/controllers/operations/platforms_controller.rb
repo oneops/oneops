@@ -1,4 +1,5 @@
 class Operations::PlatformsController < Base::PlatformsController
+  include ::Health
   before_filter :find_assembly_environment_platform
 
   def index
