@@ -45,6 +45,8 @@ public class EnvPropsProcessor {
 	private static final String OPAMP_SUSPENDED = "IS_OPAMP_SUSPENDED";
 	private static final String HEARTBEAT_ALARMS_SUSPENDED = "HEARTBEAT_ALARMS_SUSPENDED";
 	private static final String EXPONENTIAL_REPAIR_DELAY_VAR = "EXPONENTIAL_REPAIR_DELAY";
+
+	private static final String EXCLUDE_IP_IN_NOTIFICATIONS = "EXCLUDE_IP_IN_NOTIFICATIONS";
 	
 	/**
 	 * Sets the cm processor.
@@ -323,4 +325,8 @@ public class EnvPropsProcessor {
     public boolean isAutoReplaceEnabled(CmsCI platform) {
         return isAttributeEnabled(platform, "autoreplace");
     }
+
+	public boolean excludeIpInNotifications() {
+		return getBooleanVariable(EXCLUDE_IP_IN_NOTIFICATIONS);		
+	}
 }
