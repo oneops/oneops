@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.opamp.service;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -28,6 +29,7 @@ import com.oneops.antenna.domain.NotificationSeverity;
 import com.oneops.antenna.domain.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.events.CiChangeStateEvent;
@@ -61,6 +63,8 @@ public class Notifications {
 	protected static final String CI_NAME = "ciName";
 
 	protected static final String EVENT_NAME = "eventName";
+	
+	private static final String MANAGED_VIA_IP = "IP";
 
 	protected static final String REPAIR_IN_PROGRESS = "Starting repair";
 
@@ -85,6 +89,7 @@ public class Notifications {
     protected static final String SUBJECT_SUFFIX_CLOSE_EVENT = " recovered.";
 
 	private static final String CI_IN_DEFUNCT_STATE_NOTIFICATION = "This component is in defunct state. Trying to auto-replace.";
+
 
     private ReliableExecutor<NotificationMessage> antennaClient;
 	private CmsCmProcessor cmProcessor;
@@ -143,6 +148,8 @@ public class Notifications {
 		if (oEvent.getMetrics() != null) {
 			notify.putPayloadEntry(METRICS, gson.toJson(oEvent.getMetrics()));	
 		}
+		
+		addIpToNotification(ci, notify);
 		
 		if (payloadEntries != null && payloadEntries.size() > 0) {
 			notify.putPayloadEntries(payloadEntries);
@@ -216,6 +223,28 @@ public class Notifications {
 
 		antennaClient.executeAsync(notify);
 		return notify;
+	}
+
+	private void addIpToNotification(CmsCI ci, NotificationMessage notificationMessage) {
+		// First check if the ci is a compute
+		CmsCIAttribute attribute = ci.getAttribute("private_ip");
+		if (attribute == null) {
+			attribute = ci.getAttribute("public_ip");
+		}
+
+		if (attribute == null && !envProcessor.excludeIpInNotifications()) { // The ci is not a compute. Find its managed-via compute
+			List<CmsCIRelation> relations = cmProcessor.getFromCIRelations(ci.getCiId(), "bom.ManagedVia", null, null);
+			if (relations != null && relations.size() > 0) {
+				CmsCI computeCi = relations.get(0).getToCi();
+				attribute = computeCi.getAttribute("private_ip");
+				if (attribute == null || StringUtils.isEmpty(attribute.getDfValue())) {
+					attribute = computeCi.getAttribute("public_ip");
+				}
+			}
+		}
+		if (attribute != null && StringUtils.isNotEmpty(attribute.getDfValue())) {
+			notificationMessage.putPayloadEntry(MANAGED_VIA_IP, attribute.getDfValue());
+		}
 	}
 
 	/**
