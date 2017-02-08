@@ -29,13 +29,17 @@
                   <ul class="inline component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
                     <li>
                       <% platform = @platforms[platform_name] %>
-                      <%= image_tag(platform_image_url(platform), :alt => platform_name) %>
-                      <%= platform.ciAttributes.pack %>
-                      <b><%= platform.ciName %> v<%= platform.ciAttributes.major_version %></b>
+                      <% if platform %>
+                        <%= image_tag(platform_image_url(platform), :alt => platform_name) %>
+                        <%= platform.ciAttributes.pack %>
+                        <b><%= platform.ciName %> v<%= platform.ciAttributes.major_version %></b>
+                      <% else %>
+                        <b><%= platform_name %></b>
+                      <% end %>
                     </li>
                     <li>
                       <%= image_tag ci_class_image_url(component_class), :alt => component_type %>
-                      <b><%= link_to(component, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, platform, component)) %></b>
+                      <b><%= link_to(component, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, platform, component)) if platform %></b>
                     </li>
                     <% cloud = @clouds[cloud_id] %>
                     <li class="pull-right">
