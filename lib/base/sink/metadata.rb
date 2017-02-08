@@ -46,6 +46,7 @@ attribute 'channels',
           :format => {
               :help => "List of channel/group to send message to. Use '<Team>/<Channel>' format.",
               :category => '1.Slack Config',
+              :pattern => '^\S+\/\S+$',
               :order => 1
           }
 
