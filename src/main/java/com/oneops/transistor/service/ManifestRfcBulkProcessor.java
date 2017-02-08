@@ -1161,6 +1161,12 @@ public class ManifestRfcBulkProcessor {
 			if (edge.userRels.size()>0) {
 				processEdge(edge, newRootRfc, context, platformRfcs, mrgMaps);
 			} else {
+					CmsCI templateResource = edge.templateRel.getToCi();
+					if (templateResource != null && CmsConstants.CI_STATE_PENDING_DELETION.equals(templateResource.getCiState())) {
+						logger.info("template resource " + templateResource.getCiName() + " with cid: " 
+								+ templateResource.getCiId() + " is marked for pending deletion.");
+						continue;
+					}
 					String cardinality = edge.templateRel.getAttribute("constraint").getDfValue();
 					if ("1..1".equalsIgnoreCase(cardinality) ||
 						"1..*".equalsIgnoreCase(cardinality)) {
