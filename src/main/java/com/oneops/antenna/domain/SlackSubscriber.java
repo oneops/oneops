@@ -27,7 +27,6 @@ import java.util.List;
 public class SlackSubscriber extends BasicSubscriber {
 
     private List<Channel> channels;
-
     private List<Format> formats;
 
     public List<Channel> getChannels() {

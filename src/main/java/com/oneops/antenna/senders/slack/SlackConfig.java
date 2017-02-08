@@ -58,20 +58,20 @@ public class SlackConfig {
     private String slackUrl;
 
     // A mapping between slack team name and token id.
-    private Map<String, String> tokenMap = new HashMap<>(2);
+    private Map<String, String> teamTokenMap = new HashMap<>(2);
 
     @PostConstruct
     void init() {
         logger.info("Slack Web API Url: " + slackUrl);
         String tokens = env.getProperty("slack.tokens");
         if (tokens != null) {
-            tokenMap = Arrays.stream(tokens.trim().split(","))
+            teamTokenMap = Arrays.stream(tokens.trim().split(","))
                     .map(s -> s.split("="))
                     .filter(s -> s.length == 2)
                     .collect(toMap(e -> e[0].toLowerCase(), e -> e[1], (a, b) -> a));
         }
         // Don't log slack tokens.
-        logger.info("Initialized slack tokens for, " + tokenMap.keySet());
+        logger.info("Initialized slack tokens for, " + teamTokenMap.keySet());
     }
 
     /**
@@ -100,7 +100,7 @@ public class SlackConfig {
     /**
      * Slack token maps with team=token entries.
      */
-    public Map<String, String> getTokenMap() {
-        return tokenMap;
+    public Map<String, String> getTeamTokenMap() {
+        return teamTokenMap;
     }
 }

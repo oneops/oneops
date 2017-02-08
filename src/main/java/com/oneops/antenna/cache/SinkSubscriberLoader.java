@@ -138,19 +138,18 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
     }
 
     /**
-     * Builds {@linl SlackSubscriber} from sink CI.
+     * Builds {@link SlackSubscriber} from sink CI.
      *
      * @param sink sink object
      * @return slack subscriber.
      */
     private SlackSubscriber buildSlackSub(CmsCI sink) {
         SlackSubscriber slackSink = new SlackSubscriber();
-        // Channels attribute (Array) format is "team/channel1,team/channel2,...."
+        // Channels attribute (Array) format is "[team/channel1,team/channel2,....]"
         String[] channels = gson.fromJson(sink.getAttribute("channels").getDfValue(), String[].class);
-        // Text format attribute (Hash) format is "{'pattern|[level]' : 'msg'}, ..."
-        Map<String, String> formats = gson.fromJson(sink.getAttribute("text_formats").getDfValue(),
-                new TypeToken<Map<String, String>>() {
-                }.getType());
+        // Text format attribute (Hash) format is "{'label[|level]' : 'msg', ....}"
+        @SuppressWarnings("unchecked")
+        Map<String, String> formats = gson.fromJson(sink.getAttribute("text_formats").getDfValue(), Map.class);
 
         // Use a linked list to preserve the order when applying message format.
         List<Channel> chanList = Arrays.stream(channels)
@@ -184,11 +183,11 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
             String pattern = f[0];
             NotificationSeverity level = none;
             if (f.length > 1) {
-                level = NotificationSeverity.valueOf(f[1]);
+                level = NotificationSeverity.valueOf(f[1].trim());
             }
             return new Format(level, pattern, msg);
         } catch (Exception ex) {
-            logger.warn("Error creating slack format for entry, " + e, ex);
+            logger.warn("Error creating slack format for entry, " + e + ", Error: " + ex.getMessage());
             return null;
         }
     }

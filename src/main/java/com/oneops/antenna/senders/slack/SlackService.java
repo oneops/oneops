@@ -81,36 +81,37 @@ public class SlackService implements NotificationSender {
      */
     @Override
     public boolean postMessage(NotificationMessage msg, BasicSubscriber subscriber) {
+
         SlackSubscriber sub = (SlackSubscriber) subscriber;
         String text = getText(msg, sub.getFormats());
         Attachment attch = getAttachment(msg);
+
         // The final result would be the reduced value of all parallel post message operations.
         Optional<Boolean> result = sub.getChannels().parallelStream().map((c) -> {
             try {
-                String token = slackCfg.getTokenMap().get(c.getTeam());
+                String token = slackCfg.getTeamTokenMap().get(c.getTeam());
                 SlackResponse res = slackClient.postMessage(token, c.getName(), text, attch).execute().body();
                 if (res.isOk()) {
                     msgCount.mark();
                 } else {
-                    logger.error("Slack message posting failed for nsPath: "
-                            + msg.getNsPath() + ", Channel: " + c.getName()
-                            + ", Error: " + res.getError());
+                    logger.error("Slack msg post failed for nsPath: " + msg.getNsPath() + ", Channel: " + c.getName() + ", Error: " + res.getError());
                     errCount.mark();
+                    return false;
                 }
-                return true;
             } catch (Exception e) {
-                logger.error("Slack message posting failed for " + msg.getNsPath() + ", Channel: " + c.getName());
+                logger.error("Slack msg post failed for " + msg.getNsPath() + ", Channel: " + c.getName() + ", Error: " + e.getMessage());
                 errCount.mark();
                 return false;
             }
+            return true;
         }).reduce((a, b) -> a & b);
         return result.orElse(false);
     }
 
     /**
      * Get the formatted text message by applying all format patterns.
-     * <b>${text}</b> is the place holder for current message subject
-     * to which the pattern is applied.
+     * <b>${text}</b> is the place holder (Case-Insensitive) for current
+     * message subject to which the pattern is applied.
      *
      * @param msg  OneOps notification message.
      * @param fmts List of formats configured in sink.
