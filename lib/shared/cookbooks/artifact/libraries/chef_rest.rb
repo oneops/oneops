@@ -87,8 +87,6 @@ class Chef
       
       ssl = url_uri.scheme == "https" ? true : false
 
-      validate_remote_url(url_uri, remote_file)
-
       if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
         Net::HTTP.start(url_uri.host, url_uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new url_uri
