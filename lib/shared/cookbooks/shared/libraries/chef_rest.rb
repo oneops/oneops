@@ -12,11 +12,6 @@ class Chef
       Chef::Application.fatal!(msg)
     end
 
-    def validate_remote_url(url, file)
-      req = Net::HTTP.new(url.host, url.port)
-      res = req.request_head(url.path)
-      exit_with_error "Error Message: #{res.message} ... Error Code: #{res.code} ... Error Location: #{file}" if res.code != "200"
-    end
     def streaming_request(url, headers, local_path, &block)
       chunk_minimum = 1048576 * 2 # 1 Mb * 2
       num_chunk_max = 10 # maximum of part download in parallel
@@ -45,7 +40,7 @@ class Chef
       url_path = url.to_s
       uri = URI(url_path)
       ssl = uri.scheme == "https" ? true : false
-      headers_h = nil
+      headers_h, headers = nil
       if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) { |http|
           url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
@@ -76,6 +71,7 @@ class Chef
           end
         }
       end
+      exit_with_error "Error Message is: #{headers.message} ... Error Code is: #{headers.code} ... Location is: #{url}" if headers.code != "200"
       headers_h
     end
 
