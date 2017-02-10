@@ -46,7 +46,7 @@ public enum NotificationType {
      */
     private String name;
 
-    private NotificationType(String name) {
+    NotificationType(String name) {
         this.name = name;
     }
 
