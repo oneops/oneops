@@ -499,8 +499,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
                         if (managedViaRfcs != null && managedViaRfcs.size() > 0
                                 && DELETE.equals(managedViaRfcs.get(0).getRfcAction())) {
-                            logger.warn(logKey + "wo failed due to unreachable compute, but marking ok due to ManagedVia rfcAction==delete");
-                            wo.setDpmtRecordState(COMPLETE);
+                            if (proceedOnDeleteFailure(wo)) {
+                                logger.warn(logKey + "wo failed due to unreachable compute, but marking ok due to ManagedVia rfcAction==delete");
+                                wo.setDpmtRecordState(COMPLETE);
+                            }
+                            else {
+                                logger.info(logKey + "wo failed, proceed_on_delete_failure is set to false for this pack, so failing.");
+                            }
                         } else {
                             wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
                         }
@@ -585,8 +590,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
                         if (managedViaRfcs != null && managedViaRfcs.size() > 0
                                 && DELETE.equals(managedViaRfcs.get(0).getRfcAction())) {
-                            logger.warn(logKey + "wo failed, but marking ok due to ManagedVia rfcAction==delete");
-                            wo.setDpmtRecordState(COMPLETE);
+                            if (proceedOnDeleteFailure(wo)) {
+                                logger.warn(logKey + "wo failed, but marking ok due to ManagedVia rfcAction==delete");
+                                wo.setDpmtRecordState(COMPLETE);
+                            }
+                            else {
+                                logger.info(logKey + "wo failed, proceed_on_delete_failure is set to false for this pack, so failing.");
+                            }
                         }
                     } else {
                         String comments = getCommentsFromResult(result);
@@ -676,7 +686,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         return serviceCookbookPaths;
 	}
 
-	/**
+    private boolean proceedOnDeleteFailure(CmsWorkOrderSimple wo) {
+        String attrValue = wo.getBox().getCiAttributes().get("proceed_on_delete_failure");
+        boolean proceedOnDelete = attrValue != null ? attrValue.equals("true") : true;
+        return proceedOnDelete;
+    }
+
+    /**
      * Installs base software needed for chef / oneops
      *
      * @param pr      ProcessRunner
