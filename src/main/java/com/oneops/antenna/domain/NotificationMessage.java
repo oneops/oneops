@@ -22,7 +22,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.util.URLUtil;
 
 public class NotificationMessage implements Serializable {
