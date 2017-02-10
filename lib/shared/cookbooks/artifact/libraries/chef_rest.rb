@@ -7,6 +7,11 @@ require 'uri'
 
 class Chef
   class REST
+    def exit_with_error(msg)
+      puts "***FAULT:FATAL=#{msg}"
+      Chef::Application.fatal!(msg)
+    end
+
     def streaming_request(url, headers, local_path, &block)
       chunk_minimum = 1048576 * 2 # 1 Mb * 2
       num_chunk_max = 10 # maximum of part download in parallel
@@ -35,8 +40,8 @@ class Chef
       url_path = url.to_s
       uri = URI(url_path)
       ssl = uri.scheme == "https" ? true : false
-      headers_h = nil
-      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
+      headers_h, headers = nil
+      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) { |http|
           url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
           headers = http.head(url_path)
@@ -66,6 +71,7 @@ class Chef
           end
         }
       end
+      exit_with_error "Error Message is: #{headers.message} ... Error Code is: #{headers.code} ... Location is: #{url}" if headers.code.start_with?("4") || headers.code.start_with?("5")
       headers_h
     end
 
