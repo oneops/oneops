@@ -71,7 +71,7 @@ class Chef
           end
         }
       end
-      exit_with_error "Error Message is: #{headers.message} ... Error Code is: #{headers.code} ... Location is: #{url}" if headers.code != "200"
+      exit_with_error "Error Message is: #{headers.message} ... Error Code is: #{headers.code} ... Location is: #{url}" if headers.code.start_with?("4") || headers.code.start_with?("5")
       headers_h
     end
 
