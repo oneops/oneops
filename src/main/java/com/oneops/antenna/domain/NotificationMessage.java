@@ -191,19 +191,22 @@ public class NotificationMessage implements Serializable {
      * @return notification message as string.
      */
     public String asString() {
-        final StringBuilder sb = new StringBuilder("NotificationMessage{");
-        sb.append("cmsId=").append(cmsId);
-        sb.append(", severity=").append(severity);
-        sb.append(", type=").append(type);
-        sb.append(", source='").append(source).append('\'');
-        sb.append(", subject='").append(subject).append('\'');
-        sb.append(", templateName='").append(templateName).append('\'');
-        sb.append(", templateParams='").append(templateParams).append('\'');
-        sb.append(", text='").append(text).append('\'');
-        sb.append(", nsPath='").append(nsPath).append('\'');
-        sb.append(", payload=").append(payload);
-        sb.append(", timestamp=").append(timestamp);
-        sb.append('}');
-        return sb.toString();
+        return "NotificationMessage{" +
+                "cmsId=" + cmsId +
+                ", cloudName='" + cloudName + '\'' +
+                ", severity=" + severity +
+                ", type=" + type +
+                ", source='" + source + '\'' +
+                ", subject='" + subject + '\'' +
+                ", templateName='" + templateName + '\'' +
+                ", templateParams='" + templateParams + '\'' +
+                ", text='" + text + '\'' +
+                ", nsPath='" + nsPath + '\'' +
+                ", payload=" + payload +
+                ", timestamp=" + timestamp +
+                ", environmentProfileName='" + environmentProfileName + '\'' +
+                ", adminStatus='" + adminStatus + '\'' +
+                ", manifestCiId=" + manifestCiId +
+                '}';
     }
 }
