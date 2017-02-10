@@ -28,6 +28,7 @@ public class SlackSubscriber extends BasicSubscriber {
 
     private List<Channel> channels;
     private List<Format> formats;
+    private boolean fieldsOn;
 
     public List<Channel> getChannels() {
         return channels;
@@ -45,11 +46,20 @@ public class SlackSubscriber extends BasicSubscriber {
         this.formats = formats;
     }
 
+    public boolean isFieldsOn() {
+        return fieldsOn;
+    }
+
+    public void setFieldsOn(boolean fieldsOn) {
+        this.fieldsOn = fieldsOn;
+    }
+
     @Override
     public String toString() {
         return "SlackSubscriber{" +
                 "channels=" + channels +
                 ", formats=" + formats +
+                ", fieldsOn=" + fieldsOn +
                 '}';
     }
 

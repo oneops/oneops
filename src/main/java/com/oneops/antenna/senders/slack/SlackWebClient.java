@@ -75,12 +75,12 @@ public interface SlackWebClient {
      * @see #postMessage(String, String, String, Map)
      */
     default Call<SlackResponse> postMessage(String token, String channel, String text, List<Attachment> attachments) {
-        Map<String, Object> options = new HashMap<>(4);
-        options.put("attachments", gson.toJson(attachments));
+        Map<String, Object> options = new HashMap<>(5);
         options.put("username", BOT_NAME);
         options.put("as_user", false);
         options.put("icon_emoji", ":oneops:");
         options.put("mrkdwn", true);
+        options.put("attachments", gson.toJson(attachments));
         // options.put("parse", "full");
         return postMessage(token, channel, text, options);
     }
