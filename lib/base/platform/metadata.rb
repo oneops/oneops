@@ -187,3 +187,14 @@ attribute 'autocomply',
     :help => 'Automatically apply compliance requirements during deployment for instances in clouds that have any compliances configured.',
     :form => { 'field' => 'checkbox' }
   }
+  
+attribute 'proceed_on_delete_failure',
+  :description => 'Proceed On Failure of Delete Component',
+  :grouping => 'manifest',
+  :default => 'true',
+  :format => {
+    :category => '2.Platform Pack',
+    :order => 5,
+    :filter => {'all' => {'visible' => 'false'}},
+    :help => 'Proceed deployment when a delete work order on a component fails.'
+  }
