@@ -52,7 +52,7 @@ public class AntennaListenerTest {
      */
     @BeforeClass
     public void config() {
-        System.setProperty("oneops.url", "http://oneops.prod.walmart.com");
+        System.setProperty("oneops.url", "http://oneops.com");
         MockitoAnnotations.initMocks(this);
         this.listener.setDmlc(mock(DefaultMessageListenerContainer.class));
         this.listener.init();

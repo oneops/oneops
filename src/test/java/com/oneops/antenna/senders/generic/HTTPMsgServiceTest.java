@@ -45,7 +45,7 @@ public class HTTPMsgServiceTest {
 
     @BeforeClass
     public void init() {
-        System.setProperty("oneops.url", "http://oneops.prod.walmart.com");
+        System.setProperty("oneops.url", "http://oneops.com");
         MockitoAnnotations.initMocks(this);
         service.init();
     }
