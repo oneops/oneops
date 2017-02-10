@@ -61,6 +61,17 @@ attribute 'text_formats',
               :order => 2
           }
 
+attribute 'notification_fields',
+          :grouping => 'slack',
+          :description => 'Include Notification Fields',
+          :default => 'false',
+          :format => {
+              :help => 'Enable to include all notification fields in the message.',
+              :category => '1.Slack Config',
+              :form => {'field' => 'checkbox'},
+              :order => 3
+          }
+
 # sns attributes 
 attribute 'access',
           :grouping => 'sns',
