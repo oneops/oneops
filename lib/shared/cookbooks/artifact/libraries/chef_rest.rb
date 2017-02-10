@@ -1,5 +1,5 @@
 require 'net/http'
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
   require 'net/https'
 end
 require 'tempfile'
@@ -79,7 +79,7 @@ class Chef
       Chef::Log.debug("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+      if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
         url_uri = URI.parse(remote_file.to_s)
       else
         url_uri = URI(remote_file)
@@ -87,7 +87,7 @@ class Chef
       
       ssl = url_uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(url_uri.host, url_uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new url_uri
 
@@ -199,7 +199,7 @@ class Chef
 
       ssl = uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new uri
           Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
