@@ -1025,7 +1025,7 @@ BEGIN
     end if;
 
     insert into dj_deployment (deployment_id, ns_id, release_id, release_revision, state_id, created_by, description, comments, ops, auto_pause_exec_orders, flags )
-    values (nextval('dj_pk_seq'), l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders, p_flags)
+    values (nextval('dj_pk_seq'), l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders, COALESCE (p_flags,0))
     returning deployment_id into l_deployment_id;	
 
     insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
