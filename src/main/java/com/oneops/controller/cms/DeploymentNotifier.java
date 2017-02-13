@@ -105,7 +105,7 @@ public class DeploymentNotifier {
         notify.setNsPath(dpmt.getNsPath());
         notify.setTimestamp(System.currentTimeMillis());
         notify.setSeverity(severity);
-        notify.setSubject(subject);
+        notify.setSubject(NotificationMessage.buildSubjectPrefix(dpmt.getNsPath()) + subject);
         notify.setText(text);
         notify.getPayload().put("deploymentId", "" + dpmt.getDeploymentId());
         notify.getPayload().put("deploymentState", dpmt.getDeploymentState());
@@ -144,14 +144,15 @@ public class DeploymentNotifier {
                 payloadEntries.put("repeatCount", String.valueOf(proc.getArglist()));
                 notify.putPayloadEntries(payloadEntries);
             }
-
+            String subjectPrefix = NotificationMessage.buildSubjectPrefix(anchorCi.getNsPath());
+            
             if (proc.getProcedureState().equals(OpsProcedureState.failed)) {
                 notify.setSeverity(NotificationSeverity.critical);
-                notify.setSubject(CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " failed.");
+                notify.setSubject(subjectPrefix + CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " failed.");
                 notify.setText(buildNotificationPrefix(anchorCi.getNsPath()) + CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " failed! Please check the ci status page.");
             } else if (proc.getProcedureState().equals(OpsProcedureState.complete)) {
                 notify.setSeverity(NotificationSeverity.info);
-                notify.setSubject(CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " complete.");
+                notify.setSubject(subjectPrefix + CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " complete.");
                 notify.setText(buildNotificationPrefix(anchorCi.getNsPath()) + CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " complete!");
             } else {
                 return;
