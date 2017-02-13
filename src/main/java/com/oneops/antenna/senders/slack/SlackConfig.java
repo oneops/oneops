@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.antenna.senders.slack;
 
+import okhttp3.OkHttpClient;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -57,6 +59,9 @@ public class SlackConfig {
     @Value("${slack.url:https://slack.com}")
     private String slackUrl;
 
+    @Value("${slack.timeout.sec:5}")
+    private int slackTimeout;
+
     // A mapping between slack team name and token id.
     private Map<String, String> teamTokenMap = new HashMap<>(2);
 
@@ -81,8 +86,15 @@ public class SlackConfig {
      */
     @Bean
     public SlackWebClient getWebClient() {
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(slackTimeout, SECONDS)
+                .connectTimeout(slackTimeout, SECONDS)
+                .retryOnConnectionFailure(true)
+                .build();
+
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(slackUrl)
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create(SlackWebClient.gson))
                 .build();
         return retrofit.create(SlackWebClient.class);

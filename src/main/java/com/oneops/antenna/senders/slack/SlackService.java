@@ -29,14 +29,16 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.oneops.antenna.senders.slack.Attachment.*;
 import static com.oneops.antenna.senders.slack.SlackWebClient.BOT_NAME;
 import static com.oneops.metrics.OneOpsMetrics.ANTENNA;
-import static java.util.Collections.singletonList;
 
 /**
  * Slack message dispatcher. Used to send OneOps notifications
@@ -84,13 +86,13 @@ public class SlackService implements NotificationSender {
 
         SlackSubscriber sub = (SlackSubscriber) subscriber;
         String text = getText(msg, sub.getFormats());
-        Attachment attch = getAttachment(msg);
+        Attachment attach = getAttachment(msg, sub.isFieldsOn());
 
         // The final result would be the reduced value of all parallel post message operations.
         Optional<Boolean> result = sub.getChannels().parallelStream().map((c) -> {
             try {
                 String token = slackCfg.getTeamTokenMap().get(c.getTeam());
-                SlackResponse res = slackClient.postMessage(token, c.getName(), text, attch).execute().body();
+                SlackResponse res = slackClient.postMessage(token, c.getName(), text, attach).execute().body();
                 if (res.isOk()) {
                     msgCount.mark();
                 } else {
@@ -133,21 +135,52 @@ public class SlackService implements NotificationSender {
     /**
      * Creates an attachment from the notification message.
      *
-     * @param msg OneOps notification message.
+     * @param msg           OneOps notification message.
+     * @param includeFields <code>true</code> if the raw {@link NotificationMessage}
+     *                      fields need to be included in the attachment.
      * @return {@link Attachment}
+     * @see <a href="https://goo.gl/c4JCBG">Slack Formatting doc</a>
      */
-    private Attachment getAttachment(NotificationMessage msg) {
+    private Attachment getAttachment(NotificationMessage msg, boolean includeFields) {
         String env = BOT_NAME;
         String[] paths = msg.getNsPath().split("/");
         if (paths.length >= 4) {
             env = paths[3];
         }
+
         String color = getColor(msg.getSeverity());
-        String fmtMsg = String.format("`%s` | %s | <%s|%s> \n %s", env, msg.getType(), msg.getNotificationUrl(), msg.getNsPath(), msg.getText());
-        return new Attachment()
-                .fallback(fmtMsg)
-                .color(color)
-                .fields(singletonList(new Attachment.Field("", fmtMsg, false)));
+        StringBuilder buf = new StringBuilder();
+        buf.append(String.format("`%s` | %s | <%s|%s>", env, msg.getType(), msg.getNotificationUrl(), msg.getNsPath()));
+        String text = msg.getText();
+        if (text != null && !text.isEmpty()) {
+            buf.append('\n').append(text);
+        }
+
+        Attachment attachment = new Attachment().color(color).text(buf.toString());
+        // Add notification fields if enabled.
+        if (includeFields) {
+            List<Field> fields = new ArrayList<>();
+            long epocTs = msg.getTimestamp() / 1000;
+            fields.add(new Field("CmsId", msg.getCmsId() + "", true));
+            fields.add(new Field("Cloud", msg.getCloudName(), true));
+            fields.add(new Field("EnvProfile", msg.getEnvironmentProfileName(), true));
+            fields.add(new Field("Severity", msg.getSeverity().getName(), true));
+            fields.add(new Field("Source", msg.getSource(), true));
+            fields.add(new Field("TemplateName", msg.getTemplateName(), true));
+            fields.add(new Field("ManifestCiId", msg.getManifestCiId() + "", true));
+            fields.add(new Field("AdminStatus", msg.getAdminStatus(), true));
+            fields.add(new Field("Timestamp", String.format("<!date^%d^{date_num} {time_secs}|%d>", epocTs, epocTs), true));
+            Map<String, String> payload = msg.getPayload();
+            if (payload != null) {
+                payload.entrySet().forEach((e) -> fields.add(new Field(e.getKey(), e.getValue(), true)));
+            }
+            // Filter fields with non empty value.
+            List<Field> nonEmptyFields = fields.stream()
+                    .filter((f) -> f.getValue() != null && !f.getValue().isEmpty())
+                    .collect(Collectors.toList());
+            attachment.fields(nonEmptyFields);
+        }
+        return attachment;
     }
 
     /**

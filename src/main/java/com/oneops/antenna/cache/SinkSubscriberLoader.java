@@ -20,7 +20,6 @@ package com.oneops.antenna.cache;
 
 import com.google.common.cache.CacheLoader;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.oneops.antenna.domain.*;
 import com.oneops.antenna.domain.SlackSubscriber.Channel;
 import com.oneops.antenna.domain.SlackSubscriber.Format;
@@ -150,6 +149,8 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
         // Text format attribute (Hash) format is "{'label[|level]' : 'msg', ....}"
         @SuppressWarnings("unchecked")
         Map<String, String> formats = gson.fromJson(sink.getAttribute("text_formats").getDfValue(), Map.class);
+        // Include raw notification fields.
+        boolean includeFields = Boolean.valueOf(sink.getAttribute("notification_fields").getDfValue());
 
         // Use a linked list to preserve the order when applying message format.
         List<Channel> chanList = Arrays.stream(channels)
@@ -165,6 +166,7 @@ public class SinkSubscriberLoader extends CacheLoader<SinkKey, List<BasicSubscri
 
         slackSink.setChannels(chanList);
         slackSink.setFormats(fmtList);
+        slackSink.setFieldsOn(includeFields);
         return slackSink;
     }
 
