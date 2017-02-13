@@ -209,4 +209,17 @@ public class NotificationMessage implements Serializable {
                 ", manifestCiId=" + manifestCiId +
                 '}';
     }
+    
+	public static String buildSubjectPrefix(String nsPath) {
+		String prefix = "";
+		if (nsPath != null) {
+			String[] nsPathTokens = nsPath.split("/");
+			if (nsPathTokens.length > 3) {
+				prefix = nsPathTokens[1] + "/" + nsPathTokens[2] + "/" + nsPathTokens[3] + " : ";		
+			}
+		}		
+		return prefix;
+	}
+
+
 }
