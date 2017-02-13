@@ -177,7 +177,8 @@ public class Notifications {
 			notify.setAdminStatus(envCi.getAttribute(ADMINSTATUS_ATTRIBUTE_NAME).getDfValue());
 		}
 		notify.setManifestCiId(oEvent.getManifestId());
-
+		String subjectPrefix = NotificationMessage.buildSubjectPrefix(ci.getNsPath());
+		
 		if (oEvent.getState().equalsIgnoreCase("open")) {
             if (severity == null){
                 notify.setSeverity(NotificationSeverity.warning);
@@ -185,9 +186,9 @@ public class Notifications {
                 notify.setSeverity(severity);
             }
             if (StringUtils.isNotEmpty(subject)) {
-            	notify.setSubject(subject);
+            	notify.setSubject(subjectPrefix + subject);
             } else {
-            	notify.setSubject(oEvent.getName()+  SUBJECT_SUFFIX_OPEN_EVENT);	
+            	notify.setSubject(subjectPrefix + oEvent.getName()+  SUBJECT_SUFFIX_OPEN_EVENT);	
             }
             
 			//subject = <monitorName:[threshold_name|heartbeat]> [is violated|recovered]
@@ -201,9 +202,9 @@ public class Notifications {
     		// close events go on INFO
 			notify.setSeverity(NotificationSeverity.info);
             if (StringUtils.isNotEmpty(subject)) {
-            	notify.setSubject(subject);
+            	notify.setSubject(subjectPrefix + subject);
             } else {
-            	notify.setSubject(oEvent.getName()+ SUBJECT_SUFFIX_CLOSE_EVENT);
+            	notify.setSubject(subjectPrefix + oEvent.getName()+ SUBJECT_SUFFIX_CLOSE_EVENT);
             }
             if (StringUtils.isNotEmpty(text)) {
             	notify.setText(text);
