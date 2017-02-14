@@ -192,10 +192,10 @@ public class NotificationsTest {
 		noti.setEventUtil(eventUtil);
 		CiChangeStateEvent event = getCiChangeEvent(UNHEALTHY, NOTIFY, OPEN, NEW);
 		OpsBaseEvent opsEvent = eventUtil.getOpsEvent(event);
-		NotificationMessage message = noti.sendReplaceNotification(event);
-		String subject = message.getSubject();
+		NotificationMessage message =  noti.sendReplaceNotification(event);
+		String subject =  message.getSubject();
 		String text = message.getText();
-		Assert.assertEquals(subject, opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
+		Assert.assertEquals(subject, getSubjPrefix() +opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
 		Assert.assertEquals(text, CI_NAME +" is in "+event.getNewState()+" state"+"; Could not repair, attempting to replace." );
 		Assert.assertEquals(message.getSource(),"ops");
 		Assert.assertEquals(message.getPayload().get(Notifications.CLASS_NAME),MOCK_CI_CLASS_NAME);
@@ -204,7 +204,11 @@ public class NotificationsTest {
 		Assert.assertEquals(message.getPayload().get(Notifications.STATE),OPEN);
 		Assert.assertEquals(message.getSeverity(), NotificationSeverity.warning);
 	}
-	
+
+	private String getSubjPrefix() {
+		return NotificationMessage.buildSubjectPrefix(cmProcessorMock.getCiById(CMS_KEY).getNsPath());
+	}
+
 	@Test
     public void testPostponedReplaceNotification(){
 		Notifications noti = new Notifications();
@@ -219,7 +223,7 @@ public class NotificationsTest {
 		NotificationMessage message = noti.sendPostponedReplaceNotification(event);
 		String subject = message.getSubject();
 		String text = message.getText();
-		Assert.assertEquals(subject, opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
+		Assert.assertEquals(subject, getSubjPrefix()+opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
 		Assert.assertEquals(text, CI_NAME +" is in "+event.getNewState()+" state"+TEXT_NOTE_SEPERATOR+Notifications.REPLACE_POSTPONED_NOTIFICATION);
 		Assert.assertEquals(message.getSource(),"ops");
 		Assert.assertEquals(message.getPayload().get(Notifications.CLASS_NAME),MOCK_CI_CLASS_NAME);
@@ -244,7 +248,7 @@ public class NotificationsTest {
 		NotificationMessage message = noti.sendRepairNotification(event, null);
 		String subject = message.getSubject();
 		String text = message.getText();
-		Assert.assertEquals(subject, opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
+		Assert.assertEquals(subject, getSubjPrefix()+opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
 		Assert.assertEquals(text, CI_NAME +" is in "+event.getNewState()+" state"+TEXT_NOTE_SEPERATOR+Notifications.REPAIR_IN_PROGRESS);
 		Assert.assertEquals(message.getSource(),"ops");
 		Assert.assertEquals(message.getPayload().get(Notifications.CLASS_NAME),MOCK_CI_CLASS_NAME);
@@ -269,7 +273,7 @@ public class NotificationsTest {
 		NotificationMessage message = noti.sendPostponedRepairNotification(event, null);
 		String subject = message.getSubject();
 		String text = message.getText();
-		Assert.assertEquals(subject, opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
+		Assert.assertEquals(subject, getSubjPrefix()+opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
 		Assert.assertEquals(text, CI_NAME +" is in "+event.getNewState()+" state"+TEXT_NOTE_SEPERATOR+Notifications.REPAIR_POSTPONED);
 		Assert.assertEquals(message.getSource(),"ops");
 		Assert.assertEquals(message.getPayload().get(Notifications.CLASS_NAME),MOCK_CI_CLASS_NAME);
@@ -293,7 +297,7 @@ public class NotificationsTest {
 		NotificationMessage message = noti.sendDependsOnUnhealthyNotification(event);
 		String subject = message.getSubject();
 		String text = message.getText();
-		Assert.assertEquals(subject, opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
+		Assert.assertEquals(subject, getSubjPrefix()+opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
 		Assert.assertEquals(text, CI_NAME +" is in "+event.getNewState()+" state"+TEXT_NOTE_SEPERATOR+Notifications.WAITING_ON_DEPENDENT_REPAIR);
 		Assert.assertEquals(message.getSource(),"ops");
 		Assert.assertEquals(message.getPayload().get(Notifications.CLASS_NAME),MOCK_CI_CLASS_NAME);
@@ -321,7 +325,7 @@ public class NotificationsTest {
 		NotificationMessage message = noti.sendOpsEventNotification(event);
 		String subject = message.getSubject();
 		String text = message.getText();
-		Assert.assertEquals(subject, opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
+		Assert.assertEquals(subject,getSubjPrefix()+ opsEvent.getName()+SUBJECT_SUFFIX_OPEN_EVENT);
 		Assert.assertEquals(text, CI_NAME +" is in "+event.getNewState()+" state.");
 		Assert.assertEquals(message.getSource(),"ops");
 		Assert.assertEquals(message.getPayload().get(Notifications.CLASS_NAME),MOCK_CI_CLASS_NAME);
