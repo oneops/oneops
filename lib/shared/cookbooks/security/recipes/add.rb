@@ -103,4 +103,8 @@ if (!filter.nil? && !filter.empty?)
   Chef::Log.warn("Some of the names provided don't have matching security compliance #{filter}")
 end
 
-puts "***RESULT:applied_compliance="+JSON.generate(appliedMap)
+ruby_block 'set_attr' do
+  block do
+    puts "***RESULT:applied_compliance="+JSON.generate(appliedMap)
+  end
+end
