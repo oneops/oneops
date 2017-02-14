@@ -697,6 +697,10 @@ CREATE INDEX cm_ci_relations_r_idx
  ON kloopzcm.cm_ci_relations
  ( relation_id );
 
+CREATE INDEX cm_ci_relations_r_ns_idx
+ ON kloopzcm.cm_ci_relations
+ ( relation_id, ns_id );
+
 CREATE TABLE kloopzcm.cm_ci_relation_attributes (
                 ci_rel_attribute_id BIGINT NOT NULL,
                 ci_relation_id BIGINT NOT NULL,
