@@ -26,14 +26,14 @@ import java.lang.reflect.Type;
  * @author ranand
  */
 public interface MessageProcessor {
-    String EXPJSON_SUFFIX = "_jexp";
+    String EXPJSON_SUFFIX = "_json";
     Gson GSON = new Gson();
-    Gson GSON_ES = new GsonBuilder().setDateFormat(CmsConstants.SEARCH_TS_PATTERN).registerTypeAdapter(String.class, (JsonDeserializer<String>) (jsonElement, type, jsonDeserializationContext) -> jsonElement.toString()).setDateFormat(CmsConstants.SEARCH_TS_PATTERN).create();
+    Gson GSON_ES = new GsonBuilder().registerTypeAdapter(String.class, (JsonDeserializer<String>) (jsonElement, type, jsonDeserializationContext) -> jsonElement.toString()).setDateFormat(CmsConstants.SEARCH_TS_PATTERN).create();
 
 
     /**
      * @param message
-     * @param msgType
+     * @param msgType     s
      * @param msgId
      */
     public void processMessage(String message, String msgType, String msgId);
