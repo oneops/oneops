@@ -55,7 +55,6 @@ public class CIMessageProcessor implements MessageProcessor {
     private PolicyProcessor policyProcessor;
     private DeploymentPlanProcessor deploymentPlanProcessor;
     private RelationMessageProcessor relationMessageProcessor;
-
     private CmsUtil cmsUtil;
 
     @Autowired
@@ -83,6 +82,7 @@ public class CIMessageProcessor implements MessageProcessor {
         this.relationMessageProcessor = relationMessageProcessor;
     }
 
+    @Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
         this.cmsUtil = cmsUtil;
     }
