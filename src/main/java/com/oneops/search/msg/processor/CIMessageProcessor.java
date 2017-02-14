@@ -44,26 +44,48 @@ import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
 @Service
 public class CIMessageProcessor implements MessageProcessor {
-        public static final int EXPANSION_LEVEL_MAX = 2;
+    private static final int EXPANSION_LEVEL_MAX = 2;
     private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
     private static final String SUCCESS_PREFIX = "SUCCESS:";
     private static final int RETRY_COUNT = 5;
     private static final long TIME_TO_WAIT = 5000;
 
-
-    @Autowired
     private Client client;
-    @Autowired
     private Indexer indexer;
-    @Autowired
     private PolicyProcessor policyProcessor;
-    @Autowired
     private DeploymentPlanProcessor deploymentPlanProcessor;
-    @Autowired
     private RelationMessageProcessor relationMessageProcessor;
-    @Autowired
+
     private CmsUtil cmsUtil;
 
+    @Autowired
+    public void setClient(Client client) {
+        this.client = client;
+    }
+
+    @Autowired
+    public void setIndexer(Indexer indexer) {
+        this.indexer = indexer;
+    }
+
+    @Autowired
+    public void setPolicyProcessor(PolicyProcessor policyProcessor) {
+        this.policyProcessor = policyProcessor;
+    }
+
+    @Autowired
+    public void setDeploymentPlanProcessor(DeploymentPlanProcessor deploymentPlanProcessor) {
+        this.deploymentPlanProcessor = deploymentPlanProcessor;
+    }
+
+    @Autowired
+    public void setRelationMessageProcessor(RelationMessageProcessor relationMessageProcessor) {
+        this.relationMessageProcessor = relationMessageProcessor;
+    }
+
+    public void setCmsUtil(CmsUtil cmsUtil) {
+        this.cmsUtil = cmsUtil;
+    }
 
     @Override
     public void processMessage(String message, String msgType, String msgId) {
@@ -76,8 +98,8 @@ public class CIMessageProcessor implements MessageProcessor {
         } else if ("account.Policy".equals(ci.getCiClassName()) || "mgmt.manifest.Policy".equals(ci.getCiClassName())) {
             policyProcessor.process(simpleCI);
         }
-        
-        
+
+
         //add wo to all bom cis
         if (ci.getCiClassName().startsWith("bom")) {
             message = this.process(simpleCI);
@@ -116,8 +138,8 @@ public class CIMessageProcessor implements MessageProcessor {
                     } catch (Exception ignore) {
                     }
                 }
-            } else if (value.isJsonObject() && !(level> EXPANSION_LEVEL_MAX)) {
-                JsonObject expandedObjectReturn = expand(value.getAsJsonObject(), level+1); // expand recursively
+            } else if (value.isJsonObject() && !(level > EXPANSION_LEVEL_MAX)) {
+                JsonObject expandedObjectReturn = expand(value.getAsJsonObject(), level + 1); // expand recursively
                 if (expandedObjectReturn != null) {
                     exp.put(entry.getKey() + EXPJSON_SUFFIX, expandedObjectReturn);
                 }
@@ -140,7 +162,7 @@ public class CIMessageProcessor implements MessageProcessor {
         CmsWorkOrderSimple wos = null;
         for (int i = 0; i < RETRY_COUNT; i++) {
             try {
-				SearchResponse response = client.prepareSearch("cms-2*")
+                SearchResponse response = client.prepareSearch("cms-2*")
                         .setTypes("workorder")
                         .setQuery(queryStringQuery(String.valueOf(ciId)).field("rfcCi.ciId"))
                         .addSort("searchTags.responseDequeTS", SortOrder.DESC)
