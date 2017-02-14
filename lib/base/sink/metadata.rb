@@ -1,42 +1,81 @@
-name             "Sink"
-description      "Notification sink"
-long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
-version          "0.1"
-maintainer       "OneOps"
-maintainer_email "support@oneops.com"
-license          "Copyright OneOps, All rights reserved."
+name              'Sink'
+description       'Notification sink'
+long_description  IO.read(File.join(File.dirname(__FILE__), 'README.md'))
+version           '0.1'
+maintainer        'OneOps'
+maintainer_email  'support@oneops.com'
+license           'Copyright OneOps, All rights reserved.'
 
 grouping 'default',
-         :access => "global",
+         :access => 'global',
          :packages => ['base']
 
 grouping 'sns',
-         :access => "global",
+         :access => 'global',
          :packages => ['account.notification.sns']
 
 grouping 'url',
-         :access => "global",
+         :access => 'global',
          :packages => ['account.notification.url']
 
 grouping 'jabber',
-         :access => "global",
+         :access => 'global',
          :packages => ['account.notification.jabber']
+
+grouping 'slack',
+         :access => 'global',
+         :packages => ['account.notification.slack']
 
 
 attribute 'description',
-          :description => "Description",
+          :description => 'Description',
           :default => "",
           :format => {
-              :help => "Enter description for this notification sink",
+              :help => 'Enter description for this notification sink',
               :category => '1.Global',
               :order => 1
           }
 
+# slack attributes
+attribute 'channels',
+          :grouping => 'slack',
+          :description => 'Channels',
+          :required => 'required',
+          :data_type => 'Array',
+          :default => '[]',
+          :format => {
+              :help => "List of channel/group to send message to. Use '<Team>/<Channel>' format.",
+              :category => '1.Slack Config',
+              :pattern => '^\S+\/\S+$',
+              :order => 1
+          }
+
+attribute 'text_formats',
+          :grouping => 'slack',
+          :description => 'Text Formats',
+          :data_type => 'hash',
+          :default => '{}',
+          :format => {
+              :help => "Formats the message text if it matches the 'pattern|level'. Eg: ':spike|critical' => ':fire: ${text}' will prepend the text with fire emoji for all critical messages containing ':spike'.",
+              :category => '1.Slack Config',
+              :order => 2
+          }
+
+attribute 'notification_fields',
+          :grouping => 'slack',
+          :description => 'Include Notification Fields',
+          :default => 'false',
+          :format => {
+              :help => 'Enable to include all notification fields in the message.',
+              :category => '1.Slack Config',
+              :form => {'field' => 'checkbox'},
+              :order => 3
+          }
 
 # sns attributes 
 attribute 'access',
           :grouping => 'sns',
-          :description => "Access Key",
+          :description => 'Access Key',
           :required => 'required',
           :format => {
               :help => 'Amazon AWS account access key',
@@ -46,7 +85,7 @@ attribute 'access',
 
 attribute 'secret',
           :grouping => 'sns',
-          :description => "Secret Key",
+          :description => 'Secret Key',
           :required => 'required',
           :encrypted => true,
           :format => {
@@ -57,7 +96,7 @@ attribute 'secret',
 
 attribute 'endpoint',
           :grouping => 'sns',
-          :description => "Endpoint",
+          :description => 'Endpoint',
           :required => 'required',
           :format => {
               :help => 'SNS endpoint URL',
@@ -87,7 +126,7 @@ attribute 'user',
 
 attribute 'password',
           :grouping => 'url',
-          :description => "Service Password",
+          :description => 'Service Password',
           :encrypted => true,
           :format => {
               :help => 'Service Password',
@@ -98,7 +137,7 @@ attribute 'password',
 # jabber attributes
 attribute 'chat_server',
           :grouping => 'jabber',
-          :description => "Chat Server",
+          :description => 'Chat Server',
           :required => 'required',
           :default => 'chat.walmart.com',
           :format => {
@@ -108,18 +147,18 @@ attribute 'chat_server',
           }
 attribute 'chat_port',
           :grouping => 'jabber',
-          :description => "Chat Server Port",
+          :description => 'Chat Server Port',
           :required => 'required',
           :default => '5222',
           :format => {
               :help => 'Port Chat Service Server listens',
               :category => '2.Settings',
-              :pattern => "[0-9]+",
+              :pattern => '[0-9]+',
               :order => 2
           }
 attribute 'chat_room',
           :grouping => 'jabber',
-          :description => "Chat Room Name",
+          :description => 'Chat Room Name',
           :required => 'required',
           :default => 'oneops',
           :format => {
@@ -129,7 +168,7 @@ attribute 'chat_room',
           }
 attribute 'chat_conference',
           :grouping => 'jabber',
-          :description => "Conferences Identifier",
+          :description => 'Conferences Identifier',
           :required => 'required',
           :default => 'conference.chat.walmart.com',
           :format => {
@@ -139,7 +178,7 @@ attribute 'chat_conference',
           }
 attribute 'chat_user',
           :grouping => 'jabber',
-          :description => "User Account",
+          :description => 'User Account',
           :required => 'required',
           :default => 'portaltestuser1',
           :format => {
@@ -149,7 +188,7 @@ attribute 'chat_user',
           }
 attribute 'chat_password',
           :grouping => 'jabber',
-          :description => "User Password",
+          :description => 'User Password',
           :encrypted => true,
           :format => {
               :help => 'Password to authenticate the XMPP user',
@@ -203,7 +242,7 @@ attribute 'severity_level',
 
 attribute 'env_profile',
           :description => 'Environment Profile Pattern',
-	  :default => '',
+          :default => '',
           :format => {
               :help => 'Send notifications only for matching environment profile regex. Ex: Prod|prod|stage. Leave empty to send for all environment profiles',
               :category => '3.Filtering',

@@ -1,5 +1,5 @@
 require 'net/http'
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
   require 'net/https'
 end
 require 'tempfile'
@@ -7,6 +7,11 @@ require 'uri'
 
 class Chef
   class REST
+    def exit_with_error(msg)
+      puts "***FAULT:FATAL=#{msg}"
+      Chef::Application.fatal!(msg)
+    end
+
     def streaming_request(url, headers, local_path, &block)
       chunk_minimum = 1048576 * 2 # 1 Mb * 2
       num_chunk_max = 10 # maximum of part download in parallel
@@ -35,7 +40,7 @@ class Chef
       url_path = url.to_s
       uri = URI(url_path)
       ssl = uri.scheme == "https" ? true : false
-      headers_h = nil
+      headers_h, headers = nil
       if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) { |http|
           url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
@@ -66,6 +71,7 @@ class Chef
           end
         }
       end
+      exit_with_error "Error Message is: #{headers.message} ... Error Code is: #{headers.code} ... Location is: #{url}" if headers.code.start_with?("4") || headers.code.start_with?("5")
       headers_h
     end
 
@@ -73,7 +79,7 @@ class Chef
       Chef::Log.debug("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+      if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
         url_uri = URI.parse(remote_file.to_s)
       else
         url_uri = URI(remote_file)
@@ -81,7 +87,7 @@ class Chef
       
       ssl = url_uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(url_uri.host, url_uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new url_uri
 
@@ -193,7 +199,7 @@ class Chef
 
       ssl = uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new uri
           Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
