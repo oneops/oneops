@@ -44,7 +44,7 @@ import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
 @Service
 public class CIMessageProcessor implements MessageProcessor {
-    public static final int EXPANSTION_LEVEL_MAX = 2;
+        public static final int EXPANSION_LEVEL_MAX = 2;
     private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
     private static final String SUCCESS_PREFIX = "SUCCESS:";
     private static final int RETRY_COUNT = 5;
@@ -116,7 +116,7 @@ public class CIMessageProcessor implements MessageProcessor {
                     } catch (Exception ignore) {
                     }
                 }
-            } else if (value.isJsonObject() && !(level> EXPANSTION_LEVEL_MAX)) {
+            } else if (value.isJsonObject() && !(level> EXPANSION_LEVEL_MAX)) {
                 JsonObject expandedObjectReturn = expand(value.getAsJsonObject(), level+1); // expand recursively
                 if (expandedObjectReturn != null) {
                     exp.put(entry.getKey() + EXPJSON_SUFFIX, expandedObjectReturn);
