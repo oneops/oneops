@@ -407,13 +407,6 @@ ruby_block 'setup nagios' do
       else
         `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
         # restart nagios & forwarder
-        template '/etc/init.d/nagios' do
-          cookbook 'monitor'
-          source 'nagios_init.erb'
-          owner 'root'
-          group 'root'
-          mode 0755
-        end
         `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
       end
 
@@ -421,7 +414,6 @@ ruby_block 'setup nagios' do
 
   end
 end
-
 
 if is_new_compute
   include_recipe 'compute::ssh_key_file_rm'
@@ -469,7 +461,17 @@ else
     service 'perf-agent' do
       action [ :stop, :disable ]
     end
-
   end
+end
 
+case node.platform
+when "redhat","centos","fedora","suse"
+  template '/etc/init.d/nagios' do
+  cookbook 'monitor'
+  source 'nagios_init.erb'
+  owner 'root'
+  group 'root'
+  mode 0755
+  end
+  `/etc/init.d/nagios restart`
 end
