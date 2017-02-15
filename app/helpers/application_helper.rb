@@ -471,8 +471,7 @@ module ApplicationHelper
       when 'procedure', 'opamp', 'ops'
         link_to("#{ns_path}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
       else
-        label = ns_path.sub(/\/bom(\/|$)/) {|x| x.sub('bom', 'manifest')}
-        link_to(label, redirect_ns_url(:only_path => false, :params => {:path => ns_path}))
+        link_to(ns_path.sub(/\/((bom)|(manifest))(?=(\/|$))/, ''), redirect_ns_url(:only_path => false, :params => {:path => ns_path}))
     end
   end
 
