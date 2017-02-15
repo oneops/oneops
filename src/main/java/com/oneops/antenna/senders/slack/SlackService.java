@@ -39,6 +39,8 @@ import static com.codahale.metrics.MetricRegistry.name;
 import static com.oneops.antenna.senders.slack.Attachment.*;
 import static com.oneops.antenna.senders.slack.SlackWebClient.BOT_NAME;
 import static com.oneops.metrics.OneOpsMetrics.ANTENNA;
+import static org.apache.commons.lang.StringUtils.isEmpty;
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
 /**
  * Slack message dispatcher. Used to send OneOps notifications
@@ -92,16 +94,22 @@ public class SlackService implements NotificationSender {
         Optional<Boolean> result = sub.getChannels().parallelStream().map((c) -> {
             try {
                 String token = slackCfg.getTeamTokenMap().get(c.getTeam());
+                if (isEmpty(token)) {
+                    logger.error("Slack token is not configured for " + c + ", NsPath: " + msg.getNsPath());
+                    errCount.mark();
+                    return false;
+                }
                 SlackResponse res = slackClient.postMessage(token, c.getName(), text, attach).execute().body();
                 if (res.isOk()) {
                     msgCount.mark();
                 } else {
-                    logger.error("Slack msg post failed for nsPath: " + msg.getNsPath() + ", Channel: " + c.getName() + ", Error: " + res.getError());
+                    logger.error("Slack msg post failed for " + c + ", NsPath: " + msg.getNsPath() + ", Error: " + res.getError());
                     errCount.mark();
                     return false;
                 }
-            } catch (Exception e) {
-                logger.error("Slack msg post failed for " + msg.getNsPath() + ", Channel: " + c.getName() + ", Error: " + e.getMessage());
+            } catch (Exception ex) {
+                // Throws exception if there is some major issue with msg/transport. Needs to log exception here.
+                logger.error("Slack msg post failed for " + c + ", NsPath: " + msg.getNsPath(), ex);
                 errCount.mark();
                 return false;
             }
@@ -117,17 +125,21 @@ public class SlackService implements NotificationSender {
      *
      * @param msg  OneOps notification message.
      * @param fmts List of formats configured in sink.
-     * @return formatted text message.
+     * @return formatted text message. Returns empty text if {@link NotificationMessage#getSubject()} is <code>null</code>.
      */
     private String getText(NotificationMessage msg, List<Format> fmts) {
         String text = msg.getSubject();
         // Apply message formats
-        for (Format fmt : fmts) {
-            if (fmt.getLevel() == msg.getSeverity()) {
-                if (text.contains(fmt.getPattern())) {
-                    text = fmt.getMsg().replaceAll("(?i)\\$\\{text}", text);
+        if (text != null) {
+            for (Format fmt : fmts) {
+                if (fmt.getLevel() == msg.getSeverity()) {
+                    if (text.contains(fmt.getPattern())) {
+                        text = fmt.getMsg().replaceAll("(?i)\\$\\{text}", text);
+                    }
                 }
             }
+        } else {
+            text = "";
         }
         return text;
     }
@@ -152,32 +164,33 @@ public class SlackService implements NotificationSender {
         StringBuilder buf = new StringBuilder();
         buf.append(String.format("`%s` | %s | <%s|%s>", env, msg.getType(), msg.getNotificationUrl(), msg.getNsPath()));
         String text = msg.getText();
-        if (text != null && !text.isEmpty()) {
+        if (isNotEmpty(text)) {
             buf.append('\n').append(text);
         }
 
         Attachment attachment = new Attachment().color(color).text(buf.toString());
         // Add notification fields if enabled.
         if (includeFields) {
-            List<Field> fields = new ArrayList<>();
-            long epocTs = msg.getTimestamp() / 1000;
-            fields.add(new Field("CmsId", msg.getCmsId() + "", true));
-            fields.add(new Field("Cloud", msg.getCloudName(), true));
-            fields.add(new Field("EnvProfile", msg.getEnvironmentProfileName(), true));
-            fields.add(new Field("Severity", msg.getSeverity().getName(), true));
-            fields.add(new Field("Source", msg.getSource(), true));
-            fields.add(new Field("TemplateName", msg.getTemplateName(), true));
-            fields.add(new Field("ManifestCiId", msg.getManifestCiId() + "", true));
-            fields.add(new Field("AdminStatus", msg.getAdminStatus(), true));
-            fields.add(new Field("Timestamp", String.format("<!date^%d^{date_num} {time_secs}|%d>", epocTs, epocTs), true));
-            Map<String, String> payload = msg.getPayload();
-            if (payload != null) {
-                payload.entrySet().forEach((e) -> fields.add(new Field(e.getKey(), e.getValue(), true)));
-            }
             // Filter fields with non empty value.
-            List<Field> nonEmptyFields = fields.stream()
-                    .filter((f) -> f.getValue() != null && !f.getValue().isEmpty())
-                    .collect(Collectors.toList());
+            List<Field> nonEmptyFields = new ArrayList<Field>() {
+                {
+                    long epocTs = msg.getTimestamp() / 1000;
+                    add(new Field("CmsId", msg.getCmsId() + "", true));
+                    add(new Field("Cloud", msg.getCloudName(), true));
+                    add(new Field("EnvProfile", msg.getEnvironmentProfileName(), true));
+                    add(new Field("Severity", msg.getSeverity().getName(), true));
+                    add(new Field("Source", msg.getSource(), true));
+                    add(new Field("TemplateName", msg.getTemplateName(), true));
+                    add(new Field("ManifestCiId", msg.getManifestCiId() + "", true));
+                    add(new Field("AdminStatus", msg.getAdminStatus(), true));
+                    add(new Field("Timestamp", String.format("<!date^%d^{date_num} {time_secs}|%d>", epocTs, epocTs), true));
+                    Map<String, String> payload = msg.getPayload();
+                    if (payload != null) {
+                        payload.forEach((key, value) -> add(new Field(key, value, true)));
+                    }
+                }
+            }.stream().filter((f) -> isNotEmpty(f.getValue())).collect(Collectors.toList());
+
             attachment.fields(nonEmptyFields);
         }
         return attachment;
