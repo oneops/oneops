@@ -42,7 +42,7 @@ class Chef
       uri = URI(url_path)
       ssl = uri.scheme == "https" ? true : false
       headers_h, headers = nil
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) { |http|
           url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
           headers = http.head(url_path)
