@@ -33,6 +33,15 @@ module ApplicationHelper
                         {:label => 'Documentation',    :icon => 'book',      :url => Settings.help_url},
                         {:label => 'Release notes',    :icon => 'rss',       :url => Settings.news_url}]
 
+  OPS_HEALTH_LEGEND = [{:name => 'good', :color => '#468847'},
+                       {:name => 'notify', :color => '#3a87ad'},
+                       {:name => 'unhealthy', :color => '#b94a48'},
+                       {:name => 'overutilized', :color => '#f89406'},
+                       {:name => 'underutilized', :color => '#800080'},
+                       {:name => 'unknown', :color => '#999999'}]
+
+  OPS_HEALTH_LEGEND_MAP = OPS_HEALTH_LEGEND.to_map_with_value {|x| [x[:name], x[:color]]}
+
   def omniauth_services
     omniauth = Settings.omniauth
     return '' unless omniauth
@@ -456,15 +465,14 @@ module ApplicationHelper
   end
 
   def notification_callback(data)
-    nspath = data['nsPath']
-    source = data['source']
+    ns_path = data['nsPath']
+    source  = data['source']
     case source
-      when 'procedure'
-        link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
       when 'procedure', 'opamp', 'ops'
-        link_to("#{nspath}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
+        link_to("#{ns_path}/#{data['cmsId']}", redirect_ci_url(:only_path => false, :id => data['cmsId']))
       else
-        link_to(nspath, redirect_ns_url(:only_path => false, :params => {:path => nspath}))
+        label = ns_path.sub(/\/bom(\/|$)/) {|x| x.sub('bom', 'manifest')}
+        link_to(label, redirect_ns_url(:only_path => false, :params => {:path => ns_path}))
     end
   end
 
@@ -699,12 +707,11 @@ module ApplicationHelper
   end
 
   def ops_state_legend
-    [{:name => 'good',          :color => '#468847'},
-     {:name => 'notify', :color => '#3a87ad'},
-     {:name => 'unhealthy', :color => '#b94a48'},
-     {:name => 'overutilized', :color => '#f89406'},
-     {:name => 'underutilized', :color => '#800080'},
-     {:name => 'unknown', :color => '#999999'}]
+    OPS_HEALTH_LEGEND
+  end
+
+  def ops_state_legend_map
+    OPS_HEALTH_LEGEND_MAP
   end
 
   def cloud_admin_status_label(status)

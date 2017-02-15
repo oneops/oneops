@@ -19,6 +19,7 @@ class NotificationMailer < ActionMailer::Base
         end
       end
     end
-    mail(:to => recipients, :subject => "#{(data[:environmentProfileName] || data[:nsPath])} #{data[:subject]}")
+    profile = data[:environmentProfileName]
+    mail(:to => recipients, :subject => "#{"#{profile} " if profile.present?}#{data[:subject]}")
   end
 end
