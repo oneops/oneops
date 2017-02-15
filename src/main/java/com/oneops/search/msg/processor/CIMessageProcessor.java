@@ -49,6 +49,8 @@ public class CIMessageProcessor implements MessageProcessor {
     private static final String SUCCESS_PREFIX = "SUCCESS:";
     private static final int RETRY_COUNT = 5;
     private static final long TIME_TO_WAIT = 5000;
+    private static final String EXPJSON_SUFFIX = "_json";
+
 
     private Client client;
     private Indexer indexer;
