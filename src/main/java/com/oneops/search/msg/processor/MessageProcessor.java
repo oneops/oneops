@@ -32,7 +32,7 @@ public interface MessageProcessor {
 
     /**
      * @param message
-     * @param msgType     s
+     * @param msgType     
      * @param msgId
      */
     public void processMessage(String message, String msgType, String msgId);
