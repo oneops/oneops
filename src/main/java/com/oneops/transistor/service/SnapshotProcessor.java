@@ -346,9 +346,8 @@ public class SnapshotProcessor {
         for (String key : snapshotAttributes.keySet()) {
             CmsCIAttribute ciAttribute = existingAttributes.remove(key);
             String value = snapshotAttributes.get(key);
-
-            if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
-                value = value == null? "": value; // workaround for the case where we attempt to set null value in dj_rfc_relation_attributes new_attribute_value. Not null constraint doesn't allow us to create RFC resetting it back to null, so set it to empty string instead which is consistent with UI behavior
+            // for attributes with null value keep existing value
+            if (value != null && (ciAttribute == null || ciAttribute.getDfValue() == null || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value)))) {
                 rfcCI.addAttribute(RfcUtil.getAttributeRfc(key, value, eci.getOwner(key)));
             }
         }
