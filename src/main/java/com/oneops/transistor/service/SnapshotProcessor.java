@@ -8,7 +8,6 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
-import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
@@ -89,24 +88,24 @@ public class SnapshotProcessor {
 
     List<String> importSnapshotAndReplayTo(Snapshot snapshot, Long releaseId) {
         validateReleaseId(releaseId);
-        
+
         HashMap<Long, RelationLink> oldToNewCiIdsMap = new HashMap<>();
-        
+
         List<String> errors = importSnapshot(snapshot, oldToNewCiIdsMap);
         if (releaseId != null && releaseId > snapshot.getRelease()) {
             CmsRelease release = rfcProcessor.getReleaseById(snapshot.getRelease());
             errors.addAll(replayProcessor.replay(snapshot.getRelease(), releaseId, release.getNsPath(), oldToNewCiIdsMap));
         }
-        
+
         List<CmsRelease> relList = rfcProcessor.getLatestRelease(snapshot.getNamespace(), "open");
-        if (!relList.isEmpty()) {   
+        if (!relList.isEmpty()) {
             CmsRelease release = relList.get(0);
             List<CmsRfcCI> rfcCis = rfcProcessor.getRfcCIBy3(release.getReleaseId(), true, null);
             cleanUpRfcCis(rfcCis);
             List<CmsRfcRelation> rfcRels = rfcProcessor.getRfcRelationByReleaseId(release.getReleaseId());
             cleanUpRfcRels(rfcRels);
             // clean up redundant release
-            if (rfcCis.size() == 0 && rfcRels.size() == 0){                 // remove release if replay triggered no rfc's.
+            if (rfcCis.size() == 0 && rfcRels.size() == 0) {                 // remove release if replay triggered no rfc's.
                 logger.info("No release because rfc count is 0. Cleaning up release.");
                 rfcProcessor.deleteRelease(release.getReleaseId());
             }
@@ -116,10 +115,10 @@ public class SnapshotProcessor {
 
     private void cleanUpRfcRels(List<CmsRfcRelation> rfcRels) { // clean up redundant Rel updates
         Iterator<CmsRfcRelation> itR = rfcRels.iterator();
-        while (itR.hasNext()){
+        while (itR.hasNext()) {
             CmsRfcRelation rfcRel = itR.next();
             if (UPDATE.equalsIgnoreCase(rfcRel.getRfcAction())) {
-                if (!needToUpdate(rfcRel.getAttributes().values())){
+                if (!needToUpdate(rfcRel.getAttributes().values())) {
                     rfcProcessor.rmRfcRelationFromRelease(rfcRel.getRfcId());
                     itR.remove();
                 }
@@ -129,10 +128,10 @@ public class SnapshotProcessor {
 
     private void cleanUpRfcCis(List<CmsRfcCI> rfcCis) { // clean up redundant CI updates
         Iterator<CmsRfcCI> it = rfcCis.iterator();
-        while (it.hasNext()){
-            CmsRfcCI rfcCi = it.next(); 
+        while (it.hasNext()) {
+            CmsRfcCI rfcCi = it.next();
             if (UPDATE.equalsIgnoreCase(rfcCi.getRfcAction())) {
-                if (!needToUpdate(rfcCi.getAttributes().values())){
+                if (!needToUpdate(rfcCi.getAttributes().values())) {
                     rfcProcessor.rmRfcCiFromRelease(rfcCi.getRfcId());
                     it.remove();
                 }
@@ -140,8 +139,8 @@ public class SnapshotProcessor {
         }
     }
 
-    private boolean needToUpdate(Collection< CmsRfcAttribute> attributes) {
-        boolean needUpdate=false;
+    private boolean needToUpdate(Collection<CmsRfcAttribute> attributes) {
+        boolean needUpdate = false;
         for (CmsRfcAttribute attr : attributes) {
             if (!attr.getOldValue().equals(attr.getNewValue())) {
                 needUpdate = true;
@@ -152,7 +151,7 @@ public class SnapshotProcessor {
     }
 
     private void validateReleaseId(Long releaseId) {
-        if (releaseId!=null) {
+        if (releaseId != null) {
             CmsRelease targetRelease = rfcProcessor.getReleaseById(releaseId);
             if (targetRelease == null) {
                 throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, "ReplayProcessor cannot find target release: " + releaseId);
@@ -166,7 +165,7 @@ public class SnapshotProcessor {
     }
 
     private List<String> importSnapshot(Snapshot snapshot, Map<Long, RelationLink> oldToNewCiIdsMap) {
-        logger.info("Restoring:"+snapshot.getRelease());
+        logger.info("Restoring:" + snapshot.getRelease());
         for (String ns : snapshot.allNamespaces()) {  // there shouldn't be any "open" releases for snapshot namespaces
             List<CmsRelease> openReleases = rfcProcessor.getLatestRelease(ns, "open");
             if (openReleases.size() > 0) {
@@ -244,7 +243,6 @@ public class SnapshotProcessor {
             rfcMrgProcessor.upsertRelationRfc(rel, SNAPSHOT_RESTORE);
         }
     }
-
 
 
     private void addRelation(String ns, ExportRelation exportRelation, RelationLink fromLink, RelationLink toLink) {
@@ -350,6 +348,7 @@ public class SnapshotProcessor {
             String value = snapshotAttributes.get(key);
 
             if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
+                value = value == null? "": value; // workaround for the case where we attempt to set null value in dj_rfc_relation_attributes new_attribute_value. Not null constraint doesn't allow us to create RFC resetting it back to null, so set it to empty string instead which is consistent with UI behavior
                 rfcCI.addAttribute(RfcUtil.getAttributeRfc(key, value, eci.getOwner(key)));
             }
         }
