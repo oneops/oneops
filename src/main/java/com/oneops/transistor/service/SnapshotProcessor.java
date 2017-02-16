@@ -307,7 +307,7 @@ public class SnapshotProcessor {
                     } else {
                         existingCis.remove(ci);
                         idsMap.put(eci.getId(), new RelationLink(ci.getCiId(), null));
-                        updateCi(ci, eci);
+                        updateCi(ci, eci, errors);
                     }
                 } catch (Exception e) {
                     logger.warn(e.getMessage(), e);
@@ -338,7 +338,7 @@ public class SnapshotProcessor {
         rfcMrgProcessor.requestCiDelete(ci.getCiId(), "restore");
     }
 
-    private void updateCi(CmsCI ci, ExportCi eci) {
+    private void updateCi(CmsCI ci, ExportCi eci, List<String> errors) {
         Map<String, CmsCIAttribute> existingAttributes = ci.getAttributes();
         Map<String, String> snapshotAttributes = eci.getAttributes();
         CmsRfcCI rfcCI = newFromExportCiWithoutAttr(ci.getNsPath(), eci);
@@ -346,8 +346,12 @@ public class SnapshotProcessor {
         for (String key : snapshotAttributes.keySet()) {
             CmsCIAttribute ciAttribute = existingAttributes.remove(key);
             String value = snapshotAttributes.get(key);
-            // for attributes with null value keep existing value
-            if (value != null && (ciAttribute == null || ciAttribute.getDfValue() == null || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value)))) {
+            
+            if (ciAttribute == null ) {
+                errors.add("Snapshot attribute is no longer CI attribute. Won't try to update");
+            } else if (value==null){
+                errors.add("Existing attribute value is missing in snapshot. Keeping default value");
+            } else if (ciAttribute.getDfValue() == null || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
                 rfcCI.addAttribute(RfcUtil.getAttributeRfc(key, value, eci.getOwner(key)));
             }
         }
