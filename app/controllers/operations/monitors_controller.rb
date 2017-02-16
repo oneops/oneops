@@ -62,8 +62,8 @@ class Operations::MonitorsController < Base::MonitorsController
 
   def show
     @monitor = locate_ci_in_platform_ns(params[:id], @platform, 'manifest.Monitor')
-    @range = params[:range] || 'hour'
-    @monitor.charts = get_charts(@instance, [@monitor], params)
+    @charts = get_charts(@instance, [@monitor], params)
+      @monitor.charts = @charts
 
     respond_to do |format|
       format.js
@@ -72,12 +72,16 @@ class Operations::MonitorsController < Base::MonitorsController
   end
 
   def charts
-    @monitors = Cms::Ci.all(:params => {:ids => params[:ids].join(',')}).inject([]) do |h, monitor|
-      h << monitor if monitor.nsPath == @platform.nsPath   # Security safe check just in case.
-      h
+    monitor_id = params[:id]
+    if monitor_id.present?
+      @monitors = [locate_ci_in_platform_ns(monitor_id, @platform, 'manifest.Monitor')]
+    else
+      @monitors = Cms::Ci.all(:params => {:ids => params[:ids].join(',')}).select {|m| m.nsPath == @platform.nsPath}
     end
     @charts = get_charts(@instance, @monitors, params)
+
     respond_to do |format|
+      format.html { render 'charts', :layout => 'chart' }
       format.js
       format.json { render :json => @charts}
     end
@@ -101,30 +105,31 @@ class Operations::MonitorsController < Base::MonitorsController
   end
 
   def get_charts(instance, monitors, options)
-    start_time = options[:start_time].to_i
-    end_time   = options[:end_time].to_i
-    step       = options[:step].to_i
-    unless start_time > 0 && step > 0 && (end_time > start_time)
+    current_time = Time.now.to_i
+    @range       = params[:range] || 'hour'
+    @start_time  = options[:start_time].to_i
+    @end_time    = [current_time, options[:end_time].to_i].min
+    step         = options[:step].to_i
+    step         = CHART_TIME_RANGE_STEP[@range] unless CHART_TIME_RANGE_STEP.values.include?(step)
+    unless @start_time > 0 && step > 0 && (@end_time > @start_time)
       @range       = options[:range].presence || session[:monitor_chart_range].presence || 'hour'
       step         = CHART_TIME_RANGE_STEP[@range]
       range_length = CHART_TIME_RANGE_LENGTH[@range]
-      current_time = Time.now.to_i
-      end_time     = current_time - (current_time % step)
-      start_time   = end_time - range_length
-
-      session[:monitor_chart_range] = @range
+      @end_time     = current_time - (current_time % step)
+      @start_time   = @end_time - range_length
     end
+    session[:monitor_chart_range] = @range
 
     groups = monitors.inject({}) do |s, monitor|
       monitor_name = monitor.ciName
       metrics      = ActiveSupport::JSON.decode(monitor.ciAttributes.metrics)
       metrics.each do |metric_name, metric|
-        group = (metric.has_key?('display_group') && !metric['display_group'].empty?) ? metric['display_group'] : monitor_name
+        group = options[:aggregate] == 'overlay' ? 'All' : (metric['display_group'].presence || monitor_name)
         s[group] ||= {:ci_id      => instance.ciId,
                       :name       => group,
                       :series     => [],
-                      :start_time => start_time,
-                      :end_time   => end_time,
+                      :start_time => @start_time,
+                      :end_time   => @end_time,
                       :step       => step,
                       :data       => []}
         s[group][:series] << "#{monitor_name}:#{metric_name}"
@@ -133,8 +138,8 @@ class Operations::MonitorsController < Base::MonitorsController
     end
 
     chart_data = Daq.charts([{:ci_id   => instance.ciId,
-                            :start   => start_time,
-                            :end     => end_time,
+                            :start   => @start_time,
+                            :end     => @end_time,
                             :step    => step,
                             :metrics => groups.values.inject([]) { |a, g| a += g[:series]; a}}])
     if chart_data

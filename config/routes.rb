@@ -480,6 +480,7 @@ Display::Application.routes.draw do
                 get 'history',           :on => :member
 
                 resources :monitors, :only => [:index, :show] do
+                  get 'charts', :on => :member
                   get 'charts', :on => :collection
                 end
               end

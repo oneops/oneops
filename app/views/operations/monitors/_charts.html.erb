@@ -1,44 +1,180 @@
-<%= section_panel 'Chart', :width => 'double' do %>
-  <div class="btn-toolbar">
-    <div class="range btn-group">
-      <% Operations::MonitorsController::CHART_TIME_RANGES.each do |range| %>
-        <% if @range == range %>
-          <%= link_to(icon('check', range),
-                      '#',
-                      :remote => true,
-                      :class  => 'btn btn-mini active') %>
-        <% else %>
-          <%= link_to(range,
-                      charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :ids => @monitors.map(&:ciId), :range => range, :aggregate => params[:aggregate]),
-                      :remote => true,
-                      :class  => 'btn btn-mini') %>
-        <% end %>
-      <% end %>
-    </div>
-    <div class="refresh btn-group pull-right">
-      <%= link_to(icon('refresh'),
-                  charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :ids => @monitors.map(&:ciId), :range => @range, :aggregate => params[:aggregate]),
-                  :remote => true,
-                  :class  => 'btn btn-mini') %>
-    </div>
+<% dom_id = random_dom_id
+   levels = {}
+   monitors = @monitors.presence || [@monitor]
+   monitors.each do |monitor|
+     levels = ActiveSupport::JSON.decode(monitor.ciAttributes.thresholds).inject(levels)  do |l, (name, threshold)|
+       metric_name = threshold['metric']
+       full_metric_name = "#{monitor.ciName}:#{metric_name}"
+       trigger = threshold['trigger']
+       value = trigger['value']
+       count = trigger['numocc']
+       state = threshold['state']
+       l[full_metric_name] ||= []
+       l[full_metric_name] << {:metric => full_metric_name,
+                          :value => value,
+                          :color => ops_state_legend_map[state],
+                          :label => "#{name}: #{state} @ #{"#{count}x" if count.present? && count.to_i > 1}(#{metric_name} #{trigger['operator']} #{value})"}
+       l
+     end
+   end
+   url = charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :ids => monitors.map(&:ciId), :format => :json)
+%>
+<div class="btn-toolbar" data-chart-id="<%= dom_id %>" data-url="<%= url.sub('.json', '.html') %>">
+  <%= hidden_field_tag(:monitor_chart_range, @range) %>
+  <%= hidden_field_tag(:monitor_chart_start, @start_time) %>
+  <%= hidden_field_tag(:monitor_chart_end, @end_time) %>
+  <div class="range btn-group">
+    <% Operations::MonitorsController::CHART_TIME_RANGES.each do |range| %>
+      <%= link_to_function(icon(@range == range ? 'check' : '', range),
+                           %(updateMonitorChart(this, "#{range}")),
+                           :class => "btn btn-mini #{'active' if @range == range}") %>
+    <% end %>
   </div>
-  <% if params[:aggregate] == 'overlay' %>
-    <%= chart = {:ci_id => @instance.ciId,
-                          :name       => [],
-                          :series     => [],
-                          :data       => [],
-                          :start_time => @charts.first[:start_time],
-                          :end_time   => @charts.first[:end_time],
-                          :step       => @charts.first[:step]}
-        chart = @charts.inject(chart) do |t, c|
-          t[:name] << c[:name]
-          t[:series] += c[:series]
-          t[:data] += c[:data]
-          t
-        end
-        chart[:name] = chart[:name].join(',')
-        render 'base/shared/chart', :chart => chart %>
-  <% else %>
-    <%= render 'base/shared/chart', :chart => @charts %>
+  <div class="btn-group pull-right">
+    <%= link_to_function(icon('angle-double-left', nil, 'fa-lg'),
+                         'updateMonitorChart(this, null, -1)',
+                         :class => 'btn btn-mini') %>
+    <%= link_to_function(icon('angle-left', nil, 'fa-lg'),
+                         'updateMonitorChart(this, null, -0.5)',
+                         :class => 'btn btn-mini') %>
+    <%= link_to_function(icon('angle-right', nil, 'fa-lg'),
+                         'updateMonitorChart(this, null, 1)',
+                         :class => 'btn btn-mini') %>
+    <%= link_to_function(icon('angle-double-right', nil, 'fa-lg'),
+                         'updateMonitorChart(this, null, 1)',
+                         :class => 'btn btn-mini') %>
+    <%= link_to_function('now',
+                         'updateMonitorChart(this, null, 0)',
+                         :class => 'btn btn-mini') %>
+  </div>
+</div>
+<div id="<%= dom_id %>">
+  <% @charts.each do |c| %>
+    <% graph_name = c[:name] %>
+    <div class="category" data-graph-name="<%= graph_name %>">
+      <% if @charts.size > 1 %>
+        <div class="name"><%= graph_name %></div>
+      <% end %>
+      <%= render 'base/shared/graph_line', :graph_id => "#{dom_id}_#{graph_name.gsub(/\W/, '_')}" %>
+    </div>
   <% end %>
-<% end %>
+</div>
+
+<script>
+  var monitorChartRangeMap = JSON.parse('<%= sanitize(Operations::MonitorsController::CHART_TIME_RANGE_LENGTH.to_json) -%>'),
+      monitorChartLevels = JSON.parse('<%= sanitize(levels.to_json) -%>'),
+      monitorChartGraphs = {};
+
+  window.buildMonitorChartLineGraphData = function (rawData, levels, graphName) {
+    var disabledMetrics = localStorage.getItem("oneops_monitor_chart_disabled_lines_" + graphName);
+    return rawData
+        .sort(function (a, b) {
+                return a['header']['metric'].localeCompare(b['header']['metric']);
+              })
+        .map(function (metric) {
+               var header = metric.header,
+                   metricName = header.metric,
+                   start = header.start,
+                   step = header.step,
+                   values = metric.data,
+                   dataPoints = [],
+                   metricLevels = levels[metricName] || [];
+               for (var i = 0; i < values.length; i++) {
+                 dataPoints.push([new Date((start + i * step) * 1000), values[i]]);
+               }
+               return {
+                 name:    metricName,
+                 data:    dataPoints.length > 0 ? dataPoints : [[new Date(start * 1000), null]],
+                 yDomain: d3.extent(values.concat(metricLevels.map(function(l) {return l.value}))),
+                 enabled: disabledMetrics ? disabledMetrics.indexOf("~~~" + metricName + "~~~") < 0 : true,
+                 levels: metricLevels
+               };
+             });
+  };
+
+  window.updateMonitorChart = function (source, range, shift) {
+    var sourceEl  = $j(source),
+        container = sourceEl.parents(".btn-toolbar"),
+        rangeEl   = container.find("input#monitor_chart_range"),
+        startEl   = container.find("input#monitor_chart_start"),
+        endEl     = container.find("input#monitor_chart_end"),
+        length    = monitorChartRangeMap[range || rangeEl.val()],
+        end       = parseInt(endEl.val());
+    if (range) {
+      container.find(".range .active").removeClass("active").find("i.fa-check").removeClass("fa-check");
+      sourceEl.addClass("active").find("i.fa").addClass("fa-check");
+      rangeEl.val(range);
+    }
+    else if (shift == -1) {
+      end = parseInt(startEl.val() - length);
+    }
+    else if (shift == -0.5) {
+      end = parseInt(endEl.val()) - Math.round(length / 2);
+    }
+    else if (shift == 0.5) {
+      end = Math.min(Math.round(new Date().getTime() / 1000), parseInt(endEl.val()) + Math.round(length / 2));
+    }
+    else if (shift == 1) {
+      end = Math.min(Math.round(new Date().getTime() / 1000), parseInt(endEl.val()) + length);
+    }
+    else {
+      end = Math.round(new Date().getTime() / 1000);
+    }
+    startEl.val(end - length);
+    endEl.val(end);
+
+    $j.getJSON("<%= url %>",
+               {
+                 range:      rangeEl.val(),
+                 start_time: startEl.val(),
+                 end_time:   endEl.val()
+               },
+               function (charts) {
+                 charts.forEach(function (c) {
+                   var graphName = c.name,
+                       graphId = container.data('chart-id') + "_" + graphName.replace(/\W/g, '_');
+                   monitorChartGraphs[graphId](true, buildMonitorChartLineGraphData(c.data, monitorChartLevels, graphName));
+                 });
+               });
+  };
+
+  window.openMonitorChartExternal = function(source) {
+    var sourceEl  = $j(source),
+        container = sourceEl.parents(".section").find(".btn-toolbar"),
+        rangeEl   = container.find("input#monitor_chart_range"),
+        startEl   = container.find("input#monitor_chart_start"),
+        endEl     = container.find("input#monitor_chart_end"),
+        parser = document.createElement('a');
+    parser.href = container.data('url');
+    var searchParams = new URLSearchParams(parser.search);
+    searchParams.set('start_time', startEl.val());
+    searchParams.set('end_time', endEl.val());
+    searchParams.set('range', rangeEl.val());
+    parser.search = searchParams.toString();
+    window.open(parser.href);
+  };
+
+  setTimeout(function () {
+    var graphId, graphName, data, metrics;
+    <% @charts.each do |c| %>
+      graphName = "<%= c[:name] %>";
+      graphId = "<%= dom_id %>" + "_" + graphName.replace(/\W/g, '_');
+      data = JSON.parse('<%= sanitize(c[:data].to_json) -%>');
+      metrics = buildMonitorChartLineGraphData(data, monitorChartLevels, graphName);
+      monitorChartGraphs[graphId] = buildLineGraph(graphId, metrics);
+    <% end %>
+
+    $j("#<%= dom_id %> .graph-line")
+        .on("metricselection",
+            function (e, data) {
+              var value = data.metrics.reduce(function (v, metric) {
+                                           if (!metric.enabled) {
+                                             v += (metric.name + "~~~");
+                                           }
+                                           return v;
+                                         },
+                                         "~~~");
+              localStorage.setItem("oneops_monitor_chart_disabled_lines_" + $j(e.target).parents(".category").data("graph-name"), value);
+            })
+  }, 10);
+</script>
