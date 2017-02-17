@@ -41,7 +41,8 @@ Gem::Specification.new do |s|
   s.add_dependency "azure_mgmt_network", '= 0.1.1'
   s.add_dependency "azure_mgmt_resources", '= 0.1.1'
   s.add_dependency "azure", '= 0.6.4'
-  s.add_dependency "fog-vsphere", '= 1.3.0'
+  s.add_dependency "fog-vsphere", '= 0.7.0'
+  s.add_dependency "fog-openstack", '= 0.1.19'  
   s.add_dependency "crack", '= 0.4.3'
   s.add_dependency "rack", '= 1.6.4'
 
