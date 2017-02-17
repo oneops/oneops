@@ -204,7 +204,7 @@ public class SnapshotProcessor {
                         addRelation(actualNs, exportRelation, fromLink, toLink);
                     } else {
                         existingRelations.remove(relation); // we need to remove match
-                        updateRelation(exportRelation, relation);
+                        updateRelation(exportRelation, relation, errors);
                     }
                 } catch (Exception e) {
                     logger.warn(e.getMessage(), e);
@@ -222,7 +222,7 @@ public class SnapshotProcessor {
         relationsToCheck.stream().filter(relation -> findMatchingRelation(relation.getNsPath(), new RelationLink(relation.getFromCiId(), null), new RelationLink(relation.getToCiId(), null), relation.getRelationName(), existingRelations) == null).forEach(existingRelations::add);
     }
 
-    private void updateRelation(ExportRelation exportRelation, CmsCIRelation relation) {
+    private void updateRelation(ExportRelation exportRelation, CmsCIRelation relation, List<String> errors) {
         CmsRfcRelation rel = new CmsRfcRelation();
         rel.setNsPath(relation.getNsPath());
         rel.setToCiId(relation.getToCiId());
@@ -234,7 +234,11 @@ public class SnapshotProcessor {
         for (String key : snapshotAttributes.keySet()) {
             CmsCIRelationAttribute ciAttribute = existingAttributes.remove(key);
             String value = snapshotAttributes.get(key);
-            if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
+            if (ciAttribute == null ) {
+                errors.add("Snapshot attribute is no longer relation attribute. Won't try to update");
+            } else if (value==null){
+                errors.add("Existing attribute value is missing in snapshot. Keeping default value");
+            } else if (ciAttribute.getDfValue() == null  || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
                 rel.addAttribute(RfcUtil.getAttributeRfc(key, value, exportRelation.getOwner(key)));
             }
         }
@@ -307,7 +311,7 @@ public class SnapshotProcessor {
                     } else {
                         existingCis.remove(ci);
                         idsMap.put(eci.getId(), new RelationLink(ci.getCiId(), null));
-                        updateCi(ci, eci);
+                        updateCi(ci, eci, errors);
                     }
                 } catch (Exception e) {
                     logger.warn(e.getMessage(), e);
@@ -338,7 +342,7 @@ public class SnapshotProcessor {
         rfcMrgProcessor.requestCiDelete(ci.getCiId(), "restore");
     }
 
-    private void updateCi(CmsCI ci, ExportCi eci) {
+    private void updateCi(CmsCI ci, ExportCi eci, List<String> errors) {
         Map<String, CmsCIAttribute> existingAttributes = ci.getAttributes();
         Map<String, String> snapshotAttributes = eci.getAttributes();
         CmsRfcCI rfcCI = newFromExportCiWithoutAttr(ci.getNsPath(), eci);
@@ -346,9 +350,12 @@ public class SnapshotProcessor {
         for (String key : snapshotAttributes.keySet()) {
             CmsCIAttribute ciAttribute = existingAttributes.remove(key);
             String value = snapshotAttributes.get(key);
-
-            if (ciAttribute == null || (ciAttribute.getDfValue() == null && value != null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
-                value = value == null? "": value; // workaround for the case where we attempt to set null value in dj_rfc_relation_attributes new_attribute_value. Not null constraint doesn't allow us to create RFC resetting it back to null, so set it to empty string instead which is consistent with UI behavior
+            
+            if (ciAttribute == null ) {
+                errors.add("Snapshot attribute is no longer CI attribute. Won't try to update");
+            } else if (value==null){
+                errors.add("Existing attribute value is missing in snapshot. Keeping default value");
+            } else if (ciAttribute.getDfValue() == null || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
                 rfcCI.addAttribute(RfcUtil.getAttributeRfc(key, value, eci.getOwner(key)));
             }
         }
