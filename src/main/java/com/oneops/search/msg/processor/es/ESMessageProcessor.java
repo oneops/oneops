@@ -17,12 +17,16 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor.es;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.oneops.search.msg.index.Indexer;
 import com.oneops.search.msg.processor.*;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.Date;
 
 /**
  * Elastic Search message processor. Indexes the
@@ -95,21 +99,30 @@ public class ESMessageProcessor implements MessageProcessor {
                     break;
             }
         } catch (Exception e) {
-            logger.error(">>>>>>>>Error in ESMessageProcessor for type :" + msgType + "::" + ExceptionUtils.getMessage(e));
+            logger.error(">>>>>>>>Error in processMessage() ESMessageProcessor for type :" + msgType + "::" + ExceptionUtils.getMessage(e), e);
         }
     }
 
     private void deleteMessage(String msgType, String msgId) {
-        if ("namespace".equals(msgType)) {
-            nsMessageProcessor.processNSDeleteMsg(msgId);
-        } else {
-            if ("cm_ci".equals(msgType)) {
-                msgType = "ci";
-                relationMsgProcessor.processRelationDeleteMsg(msgId); //Delete all relation docs for given ci 
-                indexer.getTemplate().delete(indexer.getIndexName(), ".percolator", msgId);//TEMP code: Till ciClassName is available try to delete all ciIds from percolator type also
+        try {
+            if ("namespace".equals(msgType)) {
+                nsMessageProcessor.processNSDeleteMsg(msgId);
+            } else {
+                if ("cm_ci".equals(msgType)) {
+                    msgType = "ci";
+                    relationMsgProcessor.processRelationDeleteMsg(msgId); //Delete all relation docs for given ci 
+                    indexer.getTemplate().delete(indexer.getIndexName(), ".percolator", msgId);//TEMP code: Till ciClassName is available try to delete all ciIds from percolator type also
+
+                    JsonObject object = new JsonObject();
+                    object.add("timestamp", new JsonPrimitive(new Date().getTime()));
+                    object.add("ciId", new JsonPrimitive(msgId));
+                    indexer.indexEvent("ci_delete", object.toString());
+                }
+                indexer.getTemplate().delete(indexer.getIndexName(), msgType, msgId);
+                logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES.");
             }
-            indexer.getTemplate().delete(indexer.getIndexName(), msgType, msgId);
-            logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES.");
+        } catch (Exception e) {
+            logger.error(">>>>>>>>Error in deleteMessage() ESMessageProcessorfor type :" + msgType + "::" + ExceptionUtils.getMessage(e), e);
         }
     }
 }

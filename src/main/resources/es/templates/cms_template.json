@@ -58,6 +58,41 @@
             }
           }
         ]
+      },
+      "snapshot": {
+        "dynamic": false,
+        "properties": {                      
+          "lastAppliedCiRfc": {
+            "type": "long"
+          },
+          "lastAppliedRelationRfc": {
+            "type": "long"
+          },
+          "namespace": {
+            "type": "string",
+            "norms": {
+              "enabled": false
+            },
+            "fields": {
+              "keyword": {
+                "type": "string",
+                "index": "not_analyzed",
+                "ignore_above": 256
+              }
+            }
+          },
+          "release": {
+            "type": "long"
+          },
+          "timestamp": {
+            "type": "long"
+          },
+          "parts": {
+            "type":"object",
+            "enabled": false
+
+          }
+        }
       }
     },
     "aliases": {
