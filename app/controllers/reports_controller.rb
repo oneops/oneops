@@ -183,7 +183,7 @@ class ReportsController < ApplicationController
 
         tags.each do |tag|
           groupings << {:name  => tag.to_sym,
-                        :label => 'Pillar',
+                        :label => tag,
                         :path  => :by_ns,
                         :sum   => lambda {|x| r, org, assembly = x.split('/', 4); @tag_info.get(org, assembly, tag)},
                         :url   => lambda {|x| split = x.split(' - '); split[1] ? path_to_ns(split[0]) : nil}}

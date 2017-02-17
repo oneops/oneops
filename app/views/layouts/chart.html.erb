@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <%= render 'layouts/head_icons' %>
+  <title>OneOps</title>
+
+  <%= stylesheet_link_tag 'application', :media => 'all' %>
+  <%= javascript_include_tag 'application' %>
+  <%= csrf_meta_tag %>
+</head>
+<body style="background:white">
+  <% if content_for?(:breadcrumb) %>
+    <div id="breadcrumb" style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px solid #eee">
+      <%= yield(:breadcrumb) %>
+    </div>
+  <% end %>
+  <div style="margin-left: 10px">
+    <%= yield %>
+  </div>
+</body>
+</html>

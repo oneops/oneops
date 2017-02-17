@@ -3873,6 +3873,14 @@ label a input[type=checkbox] {
   stroke: #000;
 }
 
+.graph-line {
+  margin-bottom: 15px;
+}
+
+.graph-line .plot {
+  height: 300px;
+}
+
 .graph-line .axis .tick {
   font-size: 11px;
 }
@@ -3886,12 +3894,17 @@ label a input[type=checkbox] {
 .graph-line .axis .domain {
   fill: none;
   stroke: #000;
-  /*shape-rendering: crispEdges;*/
+  shape-rendering: crispEdges;
 }
 
-.graph-line .metric {
+.graph-line .plot .metric {
   fill: none;
   stroke-width: 2px;
+}
+
+.graph-line .plot line.level {
+  stroke-width: 1px;
+  stroke-dasharray: 9 3;
 }
 
 .graph-line .zoom-rect {
@@ -3899,6 +3912,89 @@ label a input[type=checkbox] {
   opacity: 0.5;
   stroke-width: 1px;
   stroke: #888;
+}
+
+.graph-line .legend {
+  background: transparent;
+  color: black;
+ 	display: inline-block;
+ 	margin-left: 40px;
+}
+
+.graph-line .legend ul {
+  list-style-type: none;
+ 	padding: 0;
+ 	margin: 2px;
+}
+
+.graph-line .legend .metric {
+  padding: 0 0 0 2px;
+ 	white-space: nowrap;
+}
+
+.graph-line .legend .metric.disabled {
+  opacity: 0.4;
+}
+
+.graph-line .legend .metric.disabled:hover {
+  opacity: 1;
+}
+
+.graph-line .legend .metric .on-off {
+  color: #4183C4;
+  margin-right: 0.2em;
+ 	cursor: pointer;
+  font-size: 16px;
+  opacity: 1;
+}
+
+.graph-line .legend .metric .on-off:hover {
+  opacity: 0.7;
+}
+
+.graph-line .legend .swatch {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin: 0 5px 0 0;
+ 	border: 1px solid rgba(0, 0, 0, 0.2);
+ 	border-radius: 2px;
+}
+
+.graph-line .legend .label {
+  margin: 0;
+ 	white-space: nowrap;
+ 	display: inline;
+ 	font-size: 12px;
+ 	background-color: transparent;
+ 	color: black;
+ 	font-weight: normal;
+ 	line-height: normal;
+ 	padding: 0px;
+ 	text-shadow: none;
+  cursor: pointer;
+}
+
+.graph-line .legend .level {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	margin: 0 3px;
+ 	border-radius: 50%;
+}
+
+.graph-line .legend .label:hover {
+  font-weight: bold;
+}
+
+.graph-line .legend .value {
+  margin-left: 10px;
+  font-weight: bold;
+  color: #444;
+}
+
+.graph-line .focus .x-hover-line {
+  stroke: #aaa;
 }
 
 .dl-horizontal dt {
@@ -4074,83 +4170,83 @@ div.category > .name {
   padding-left: 10px;
 }
 
-.chart_container {
-	position: relative;
-	float: left;
-	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-	margin-top: 15px;
-	width: 100%;
-}
+/*.rickshaw_legend {*/
+  /*background: transparent;*/
+  /*color: black;*/
+/*}*/
 
-.chart_container .legend {
-	position: relative;
-	float: left;
-	text-align: left;
-	width: 95%;
-	margin: 0px 10px 10px 30px;
-}
+/*.rickshaw_legend .action {*/
+  /*opacity: 0.7;*/
+/*}*/
 
-.chart_container .legend .line {
-  display: inline-block;
-  width: 95%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+/*.rickshaw_legend .action:hover {*/
+  /*opacity: 1;*/
+/*}*/
 
-.rickshaw_legend {
-  background: transparent;
-  color: black;
-}
+/*.rickshaw_legend .label:hover {*/
+  /*font-weight: bold;*/
+/*}*/
 
-.rickshaw_legend .action {
-  opacity: 0.7;
-}
+/*.chart_container {*/
+	/*position: relative;*/
+	/*float: left;*/
+	/*font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;*/
+	/*margin-top: 15px;*/
+	/*width: 100%;*/
+/*}*/
 
-.rickshaw_legend .action:hover {
-  opacity: 1;
-}
+/*.chart_container .legend {*/
+	/*position: relative;*/
+	/*float: left;*/
+	/*text-align: left;*/
+	/*width: 95%;*/
+	/*margin: 0px 10px 10px 30px;*/
+/*}*/
 
-.rickshaw_legend .label:hover {
-  font-weight: bold;
-}
+/*.chart_container .legend .line {*/
+  /*display: inline-block;*/
+  /*width: 95%;*/
+  /*overflow: hidden;*/
+  /*text-overflow: ellipsis;*/
+/*}*/
 
-.chart_container .y_axis {
-	position: absolute;
-	float: left;
-	top: 0;
-	bottom: 0;
-	width: 40px;
-}
+/*.chart_container .y_axis {*/
+	/*position: absolute;*/
+	/*float: left;*/
+	/*top: 0;*/
+	/*bottom: 0;*/
+	/*width: 40px;*/
+/*}*/
 
-.chart_container .chart {
-	position: relative;
-	float: left;
-	margin-left: 40px;
-	width: 90%;
-	height: 300px;
-}
+/*.chart_container .chart {*/
+	/*position: relative;*/
+	/*float: left;*/
+	/*margin-left: 40px;*/
+	/*width: 90%;*/
+	/*height: 300px;*/
+/*}*/
 
-.chart_container .zoom {
-	float: left;
-	margin: 10px 0 0 40px;
-}
+/*.chart_container .zoom {*/
+	/*float: left;*/
+	/*margin: 10px 0 0 40px;*/
+/*}*/
 
-.chart_container .swatch {
-	display: inline-block;
-	width: 10px;
-	height: 10px;
-	margin: 0 5px 0 0;
-}
+/*.chart_container .swatch {*/
+	/*display: inline-block;*/
+	/*width: 10px;*/
+	/*height: 10px;*/
+	/*margin: 0 5px 0 0;*/
+/*}*/
 
-.chart_container .series {
-	display: inline-block;
-}
+/*.chart_container .series {*/
+	/*display: inline-block;*/
+/*}*/
 
-.chart_container .current {
-	font-weight: bold;
-	display: inline-block;
-	margin: 0 0 0 3px;
-}
+/*.chart_container .current {*/
+	/*font-weight: bold;*/
+	/*display: inline-block;*/
+	/*margin: 0 0 0 3px;*/
+/*}*/
 
 .announcement {
   margin: 5px;

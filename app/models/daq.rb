@@ -7,6 +7,30 @@ class Daq < ActiveResource::Base
   def self.charts(req_set)
     result = nil
     if req_set.present?
+      if Settings.log_data_source == 'fake'
+        result = req_set.inject([]) do |r, rs|
+          step  = rs[:step]
+          start = (rs[:start] / step) * step
+          endd  = (rs[:end] / step + 1) * step
+          rs[:metrics].each do |m|
+            r1 = 50 + rand(50)
+            r2 = 2 + rand(8)
+            data = []
+            (1..(endd - start) / step + 1).to_a.inject(r1) do |prev, i|
+              data << prev
+              prev + r2 / 2 - rand(r2)
+            end
+            r << {'header' => {'ci_id'  => rs['ci_id'],
+                               'metric' => m,
+                               'step'   => step,
+                               'start'  => start},
+                  'data'   => data}
+          end
+          r
+        end
+        return result
+      end
+
       begin
         content_type = headers['Content-Type']
         headers['Content-Type'] = 'application/x-www-form-urlencoded'
