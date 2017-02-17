@@ -151,7 +151,7 @@ public class SnapshotProcessor {
     private boolean needToUpdate(Collection<CmsRfcAttribute> attributes) {
         boolean needUpdate = false;
         for (CmsRfcAttribute attr : attributes) {
-            if (!attr.getOldValue().equals(attr.getNewValue())) {
+            if (attr.getOldValue()==null || !attr.getOldValue().equals(attr.getNewValue())) {
                 needUpdate = true;
                 break;
             }
