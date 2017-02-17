@@ -157,7 +157,7 @@ end
 
 #Create necessary directories
 dirs = ['/var/lib/nagios3/spool/checkresults','/var/lib/nagios3/rw','/var/log/nagios3/archives','/var/log/nagios3/rw']
-dirs += ['/var/cache/nagios3', '/var/run/nagios3', '/var/run/nagios', 'etc/logrotate.d']
+dirs += ['/var/cache/nagios3', '/var/run/nagios3', '/var/run/nagios', '/etc/logrotate.d']
 dirs.each do |dir_name2|
   directory dir_name2 do
     recursive true
