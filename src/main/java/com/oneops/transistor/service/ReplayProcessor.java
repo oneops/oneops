@@ -3,11 +3,14 @@ package com.oneops.transistor.service;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.md.domain.CmsClazz;
+import com.oneops.cms.md.domain.CmsClazzAttribute;
+import com.oneops.cms.md.service.CmsMdProcessor;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
@@ -38,9 +41,15 @@ public class ReplayProcessor {
     private static final String REPLAY = "replay";
     private static final String ADD = "add";
     private static final String DELETE = "delete";
+    private static final String UPDATE = "update";
     private CmsRfcProcessor rfcProcessor;
     private CmsCmRfcMrgProcessor rfcMrgProcessor;
     private CmsCmProcessor cmProcessor;
+    private CmsMdProcessor mdProcessor;
+
+    public void setMdProcessor(CmsMdProcessor mdProcessor) {
+        this.mdProcessor = mdProcessor;
+    }
 
     public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
         this.rfcProcessor = rfcProcessor;
@@ -58,11 +67,11 @@ public class ReplayProcessor {
         List<String> errors = new ArrayList<>();
 
         List<CmsRfcCI> rfcCis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
-        logger.info("Cis to replay: "+rfcCis.size());
+        logger.info("Cis to replay: " + rfcCis.size());
         rfcCis.forEach(ci -> restoreCi(idMap, errors, ci));
 
         List<CmsRfcRelation> relations = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
-        logger.info("Relations to replay: "+relations.size());
+        logger.info("Relations to replay: " + relations.size());
         relations.forEach(relation -> restoreRelation(idMap, errors, relation));
         return errors;
     }
@@ -79,20 +88,21 @@ public class ReplayProcessor {
         rfcToReplay.setCiId(existingCi == null ? 0 : existingCi.getCiId());
         rfcToReplay.setReleaseId(existingRfc == null ? 0 : existingRfc.getReleaseId());
         try {
-            if (ADD.equalsIgnoreCase(rfcToReplay.getRfcAction()) && existingCi != null) {
-                if (existingRfc != null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())) { // special case get rid of existing RFC delete
-                    rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
-                }
-            }
             if (DELETE.equalsIgnoreCase(rfcToReplay.getRfcAction())) {
-                if (existingCi == null && existingRfc != null) {
-                    rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
-                } else if (existingCi != null) {
+                if (existingCi != null) {
                     rfcProcessor.createRfcCI(getRemoveRfc(existingCi), REPLAY);
+                } else if (existingRfc != null) {
+                    rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
                 }
                 return;
+            } else if (ADD.equalsIgnoreCase(rfcToReplay.getRfcAction())) {
+                if (existingCi != null && existingRfc != null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())) { // special case get rid of existing RFC delete
+                    rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
+                }
+                RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rfcToReplay, mdProcessor.getClazz(rfcToReplay.getCiClassName()), errors);
+            } else if (UPDATE.equalsIgnoreCase(rfcToReplay.getRfcAction()) && existingCi == null && existingRfc == null) {
+                errors.add("Replay inconsistency. Attempt to update missing component.");
             }
-
             rfcToReplay = rfcMrgProcessor.upsertCiRfc(rfcToReplay, REPLAY);
             if (oldCiId != rfcToReplay.getCiId()) {
                 idMap.put(oldCiId, new RelationLink(rfcToReplay.getCiId(), rfcToReplay.getRfcId()));
@@ -181,22 +191,21 @@ public class ReplayProcessor {
 
 
         try {
-
-            if (ADD.equalsIgnoreCase(relation.getRfcAction())) {
+            if (DELETE.equalsIgnoreCase(relation.getRfcAction())) {
+                if (existingRel != null) {
+                    rfcProcessor.createRfcRelation(getRemoveRfc(existingRel), REPLAY);
+                } else if (existingRfcRel != null) {
+                    rfcProcessor.rmRfcRelationFromRelease(existingRfcRel.getRfcId());
+                }
+                return;
+            } else if (ADD.equalsIgnoreCase(relation.getRfcAction())) {
                 if (existingRfcRel != null && DELETE.equalsIgnoreCase(existingRfcRel.getRfcAction())) { // special case get rid of RFC delete
                     rfcProcessor.rmRfcRelationFromRelease(existingRfcRel.getRfcId());
                 }
-            }
-
-            if (DELETE.equalsIgnoreCase(relation.getRfcAction())) {
-                if (existingRel == null) {
-                    if (existingRfcRel!=null) {
-                        rfcProcessor.rmRfcRelationFromRelease(existingRfcRel.getRfcId());
-                    }
-                } else {
-                    rfcProcessor.createRfcRelation(getRemoveRfc(existingRel), REPLAY);
-                }
-                return;
+                // if action is "add" then bootstrap class definition default attribute value in case replay is for old metadata and there are new required attributes
+                RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(relation, mdProcessor.getRelation(relation.getRelationName()), errors);
+            } else if (UPDATE.equalsIgnoreCase(relation.getRfcAction()) && existingRel == null && existingRfcRel == null) {
+                errors.add("Replay inconsistency. Attempt to update missing relation.");
             }
 
             rfcMrgProcessor.upsertRelationRfc(relation, REPLAY);
