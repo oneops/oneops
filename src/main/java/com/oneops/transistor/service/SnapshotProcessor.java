@@ -151,7 +151,7 @@ public class SnapshotProcessor {
     private boolean needToUpdate(Collection<CmsRfcAttribute> attributes) {
         boolean needUpdate = false;
         for (CmsRfcAttribute attr : attributes) {
-            if (attr.getOldValue()==null || !attr.getOldValue().equals(attr.getNewValue())) {
+            if (attr.getNewValue()!=null && !attr.getNewValue().equals(attr.getOldValue())) {
                 needUpdate = true;
                 break;
             }
@@ -247,8 +247,8 @@ public class SnapshotProcessor {
                 String message = "Existing snapshot attribute " + relation.getRelationName() + "->" + key + " is no longer CI attribute. Won't try to update";
                 logger.info(message);
                 errors.add(message);
-            } else if (ciAttribute.getDfValue() == null || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
-                value = value == null ? "" : value; // This is request request to reset not required attribute that wasn't set in snapshot but was set later. Null is not a valid value due to not null constraint but empty string is behavior consistent with UI.  
+            } else if ((ciAttribute.getDfValue()==null && value!=null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
+                if (value == null) value = "";
                 rel.addAttribute(RfcUtil.getAttributeRfc(key, value, exportRelation.getOwner(key)));
             }
         }
@@ -374,8 +374,8 @@ public class SnapshotProcessor {
                 String message = "Existing snapshot attribute " + ci.getCiName() + "->" + key + " is no longer CI attribute. Won't try to update";
                 logger.info(message);
                 errors.add(message);
-            } else if (ciAttribute.getDfValue() == null || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
-                value = value == null ? "" : value; // This is request request to reset not required attribute that wasn't set in snapshot but was set later. Null is not a valid value due to not null constraint but empty string is behavior consistent with UI.
+            } else if ((ciAttribute.getDfValue()==null && value!=null) || (ciAttribute.getDfValue() != null && !ciAttribute.getDfValue().equals(value))) {
+                if (value == null) value = "";// This is request request to reset not required attribute that wasn't set in snapshot but was set later. Null is not a valid value due to not null constraint but empty string is behavior consistent with UI.
                 rfcCI.addAttribute(RfcUtil.getAttributeRfc(key, value, eci.getOwner(key)));
             }
         }
