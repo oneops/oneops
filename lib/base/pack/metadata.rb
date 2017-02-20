@@ -47,3 +47,14 @@ attribute 'category',
     :category => '1.Global',
     :order => 4
   }
+
+attribute 'pack_admin_digest',
+  :description => 'Pack Admin Digest',
+  :default => '',
+  :format => {
+    :help => 'Key to be entered while doing pack-org allocation',
+    :filter => {'all' => {'visible' => 'false'}},
+    :category => '1.Global',
+    :order => 5
+  }
+

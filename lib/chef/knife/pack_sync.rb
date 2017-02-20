@@ -458,6 +458,7 @@ class Chef
       pack_ci.ciAttributes.description = pack.description
       pack_ci.ciAttributes.category = pack.category
       pack_ci.ciAttributes.owner = pack.owner
+      pack_ci.ciAttributes.pack_admin_digest = pack.pack_admin_digest
 
       Chef::Log.debug(pack_ci.to_json)
       if save(pack_ci)

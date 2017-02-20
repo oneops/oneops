@@ -59,6 +59,7 @@ class Chef
       @description = ''
       @category = ''
       @version = ''
+      @pack_admin_digest = ''
       @group_id = ''      
       @ignore = false
       @enabled = true
@@ -124,6 +125,14 @@ class Chef
     def category(arg=nil)
       set_or_return(
         :category,
+        arg,
+        :kind_of => String
+      )
+    end
+
+    def pack_admin_digest(arg=nil)
+      set_or_return(
+        :pack_admin_digest,
         arg,
         :kind_of => String
       )
@@ -534,6 +543,7 @@ class Chef
         "name" => @name,
         "description" => @description,
         "category" => @category,
+	"pack_admin_digest" => @pack_admin_digest,
         "version" => @version,
         "ignore" => @ignore,
         "enabled" => @enabled,
@@ -570,6 +580,7 @@ class Chef
       description(o.description)
       owner(o.owner)
       category(o.category)
+      pack_admin_digest(o.pack_admin_digest)
       version(o.version)
       ignore(o.ignore)
       enabled(o.enabled)
@@ -597,6 +608,7 @@ class Chef
       pack.name(o["name"])
       pack.description(o["description"])
       pack.category(o["category"])
+      pack.pack_admin_digest(o["pack_admin_digest"])
       pack.version(o["version"])
       pack.ignore(o["ignore"])
       pack.enabled(o["enabled"])
