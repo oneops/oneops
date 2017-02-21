@@ -829,14 +829,14 @@ CREATE INDEX cm_ci_attributes_attr_idx
 ALTER TABLE kloopzcm.cm_ns_opt ADD CONSTRAINT ns_opt_tag_cm_ns_opt_fk
 FOREIGN KEY (tag_id)
 REFERENCES kloopzcm.ns_opt_tag (tag_id)
-ON DELETE NO ACTION
+ON DELETE CASCADE
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
 
 ALTER TABLE kloopzcm.dj_ns_opt ADD CONSTRAINT ns_opt_tag_dj_ns_opt_fk
 FOREIGN KEY (tag_id)
 REFERENCES kloopzcm.ns_opt_tag (tag_id)
-ON DELETE NO ACTION
+ON DELETE CASCADE
 ON UPDATE NO ACTION
 NOT DEFERRABLE;
 

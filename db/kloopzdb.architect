@@ -2279,15 +2279,15 @@
    <relationship id="REL813" populated="true" UUID="fcb40c0f-b298-4752-ae29-0365b5fdaa4a" deferrability="7" deleteRule="1" fk-table-ref="TAB680" fkCardinality="7" identifying="false" name="dj_dpmt_approvals_states_fk" physicalName="dj_dpmt_approvals_states_fk" pk-table-ref="TAB697" pkCardinality="2" updateRule="3" >
     <column-mapping id="CMP814" populated="true" UUID="b51139fa-aaf7-4f2e-97a1-d39da549322b" fk-column-ref="COL685" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL698" />
    </relationship>
-   <relationship id="REL815" populated="true" UUID="8d1776d4-a1a1-4887-b391-7d083936c1cb" deferrability="7" deleteRule="3" fk-table-ref="TAB627" fkCardinality="7" identifying="false" name="ns_opt_tag_cm_ns_opt_fk" physicalName="ns_opt_tag_cm_ns_opt_fk" pk-table-ref="TAB702" pkCardinality="2" updateRule="3" >
-    <column-mapping id="CMP816" populated="true" UUID="96a23760-185b-42f3-b531-9720831f3ebf" fk-column-ref="COL631" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL703" />
+   <relationship id="REL815" populated="true" UUID="8d1776d4-a1a1-4887-b391-7d083936c1cb" deferrability="7" deleteRule="0" fk-table-ref="TAB627" fkCardinality="7" identifying="false" name="ns_opt_tag_cm_ns_opt_fk" physicalName="ns_opt_tag_cm_ns_opt_fk" pk-table-ref="TAB702" pkCardinality="2" updateRule="3" >
+    <column-mapping id="CMP816" populated="true" UUID="3f92759a-db76-4ba8-841a-74735129cd72" fk-column-ref="COL631" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL703" />
    </relationship>
-   <relationship id="REL817" populated="true" UUID="85e4df08-ec1c-4dc5-8496-bd193ed26924" deferrability="7" deleteRule="3" fk-table-ref="TAB637" fkCardinality="7" identifying="false" name="ns_opt_tag_dj_ns_opt_fk" physicalName="ns_opt_tag_dj_ns_opt_fk" pk-table-ref="TAB702" pkCardinality="2" updateRule="3" >
-    <column-mapping id="CMP818" populated="true" UUID="82c34dd0-c51e-433c-8856-3bf19c54ea74" fk-column-ref="COL641" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL703" />
+   <relationship id="REL817" populated="true" UUID="85e4df08-ec1c-4dc5-8496-bd193ed26924" deferrability="7" deleteRule="0" fk-table-ref="TAB637" fkCardinality="7" identifying="false" name="ns_opt_tag_dj_ns_opt_fk" physicalName="ns_opt_tag_dj_ns_opt_fk" pk-table-ref="TAB702" pkCardinality="2" updateRule="3" >
+    <column-mapping id="CMP818" populated="true" UUID="8b1208b4-5814-4172-9833-2636a71114f2" fk-column-ref="COL641" name="Column Mapping" physicalName="Column Mapping" pk-column-ref="COL703" />
    </relationship>
   </relationships>
  </target-database>
- <ddl-generator type="ca.sqlpower.architect.ddl.PostgresDDLGenerator" allow-connection="false" target-schema="kloopzcm"> </ddl-generator>
+ <ddl-generator type="ca.sqlpower.architect.ddl.PostgresDDLGenerator" allow-connection="true" target-schema="kloopzcm"> </ddl-generator>
  <liquibase-settings useSeparateChangeSets="false" generateId="false" idStart="1"/>
  <compare-dm-settings  ddlGenerator="ca.sqlpower.architect.ddl.PostgresDDLGenerator"  outputFormatAsString="SQL"  saveFlag="true" >
   <source-stuff   datastoreTypeAsString="FILE"   filePath="/Users/zika/work/kloopz/kloopz-cms/db/kloopzdb.architect"  />

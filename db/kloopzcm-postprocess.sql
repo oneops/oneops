@@ -77,26 +77,6 @@ ALTER TABLE dj_rfc_relation
       REFERENCES dj_releases (release_id) MATCH SIMPLE
       ON UPDATE RESTRICT ON DELETE CASCADE;
 
-      
-CREATE TABLE kloopzcm.ns_opt (
-                ci_id BIGINT NOT NULL,
-                ns_id BIGINT NOT NULL,
-                created TIMESTAMP NOT NULL,
-                CONSTRAINT ns_opt_pk PRIMARY KEY (ci_id, ns_id)
-);
-
-
-CREATE INDEX ns_opt_ns_id_idx
- ON kloopzcm.ns_opt
- ( ns_id );
-      
-ALTER TABLE kloopzcm.ns_opt ADD CONSTRAINT ns_path_ns_opt_fk
-FOREIGN KEY (ns_id)
-REFERENCES kloopzcm.ns_namespaces (ns_id)
-ON DELETE CASCADE
-ON UPDATE NO ACTION
-NOT DEFERRABLE;      
-
 
 CREATE INDEX cm_ops_proc_ci_id_idx
  ON kloopzcm.cm_ops_procedures
