@@ -253,7 +253,8 @@ class Transistor < ActiveResource::Base
 
   def self.restore_release(snapshot, release_id)
     begin
-      return JSON.parse(post('snapshot/import', {:release => release_id}, snapshot.to_json).body)['result'] == 'success'
+      response = JSON.parse(post('snapshot/import', {:release => release_id}, snapshot.to_json).body)
+      return response['result'] == 'success', response['errors']
     rescue Exception => e
       return false, handle_exception(e, "Failed to restore release #{release_id} for '#{snapshot['namespace'] if snapshot}':")
     end

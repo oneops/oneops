@@ -322,7 +322,7 @@ window.hide_busy = function() {
 
 window.render_modal = function(modal_id, html) {
   hide_modal();
-  if (!$j(modal_id)[0]) {
+  if (!$j("#" + modal_id)[0]) {
     $j("body").append(html);
   }
   $j("#" + modal_id).modal({backdrop: "static"});

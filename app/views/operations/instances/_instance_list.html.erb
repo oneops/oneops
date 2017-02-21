@@ -126,15 +126,6 @@
     <% end %>
   <% end %>
 <% end %>
-<div id="copy_to_clipboard_modal" class="modal hide">
-  <div class="modal-header">
-    <button class="close" data-dismiss="modal">&times;</button>
-    <h3>Find Organization</h3>
-  </div>
-  <div class="modal-body" style="overflow:visible">
-    <%= text_field_tag(:org_lookup, '', :id => 'org_lookup', :style => 'width: 97%', :autocomplete => 'off', :placeholder => 'Organization name') %>
-  </div>
-</div>
 
 <script>
   var procedureNames = {};
