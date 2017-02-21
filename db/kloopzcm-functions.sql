@@ -2668,19 +2668,24 @@ ALTER FUNCTION dj_rm_rfcs(character varying)
 
 -- Function: dj_create_alt_namespace(bigint, character varying, bigint)
 
--- DROP FUNCTION dj_create_alt_namespace(bigint, character varying, bigint);
+DROP FUNCTION dj_create_alt_namespace(bigint, character varying, bigint);
 
-CREATE OR REPLACE FUNCTION dj_create_alt_namespace( p_ns_id bigint, p_tag character varying, p_rfc_id bigint)
-  RETURNS bigint AS
+CREATE OR REPLACE FUNCTION dj_create_alt_namespace(p_ns_id bigint, p_tag character varying, p_rfc_id bigint)
+  RETURNS void AS
 $BODY$
+DECLARE
+    l_tag_id bigint;
 BEGIN
-   insert into ns_opt_tag (tag_id, tag)
-        select nextval('cm_pk_seq'), p_tag
-        from ns_opt_tag
-        where not exists (select 1 from ns_opt_tag where tag = p_tag);
+    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;	
+
+    if not found then
+	    insert into ns_opt_tag (tag_id, tag)
+        values
+        (nextval('cm_pk_seq'), p_tag)
+        returning tag_id into l_tag_id;
+    end if;
         
-    insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (p_rfc_id, p_ns_id, now(), (select tag_id from ns_opt_tag where tag=p_tag));    
-    return p_ns_id;
+    insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (p_rfc_id, p_ns_id, now(), l_tag_id);    
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
@@ -2712,19 +2717,25 @@ ALTER FUNCTION dj_delete_alt_namespace(bigint, bigint) OWNER TO :user;
 
 -- Function: cm_create_alt_namespace(bigint, character varying, bigint)
 
--- DROP FUNCTION cm_create_alt_namespace(bigint, character varying, bigint);
+DROP FUNCTION cm_create_alt_namespace(bigint, character varying, bigint);
 
-CREATE OR REPLACE FUNCTION cm_create_alt_namespace( p_ns_id bigint, p_tag character varying, p_ci_id bigint)
-  RETURNS bigint AS
+CREATE OR REPLACE FUNCTION cm_create_alt_namespace(p_ns_id bigint, p_tag character varying, p_ci_id bigint)
+  RETURNS void AS
 $BODY$
+DECLARE
+    l_tag_id bigint;
 BEGIN
-    insert into ns_opt_tag (tag_id, tag)
-        select nextval('cm_pk_seq'), p_tag
-        from ns_opt_tag
-        where not exists (select 1 from ns_opt_tag where tag = p_tag);
+    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;	
+
+    if not found then
+	    insert into ns_opt_tag (tag_id, tag)
+        values
+        (nextval('cm_pk_seq'), p_tag)
+        returning tag_id into l_tag_id;
+    end if;
         
-    insert into cm_ns_opt (ci_id, ns_id, created, tag_id) values (p_ci_id, p_ns_id, now(), (select tag_id from ns_opt_tag where tag=p_tag));    
-    return p_ns_id;
+    insert into cm_ns_opt (ci_id, ns_id, created, tag_id) values (p_ci_id, p_ns_id, now(), l_tag_id);    
+
 END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
