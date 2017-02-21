@@ -179,16 +179,16 @@ attribute 'configure',
   :description => "Configure",
   :data_type => "text",
   :format => {
-    :help => 'Resources to be executed to configure the artifact package.',
+    :help => 'Chef Resources to be executed to configure the artifact. Common resources: execute, bash, and service. examples) https://docs.chef.io/resources.html',
     :category => '5.Stages',
     :order => 1
   }
-  
+
 attribute 'migrate',
   :description => "Migrate",
   :data_type => "text",
   :format => {
-    :help => 'Resources to be executed during the migration stage.',
+    :help => 'Chef Resources to be executed to migrate the artifact. Common resources: execute, bash, and service. examples) https://docs.chef.io/resources.html',
     :category => '5.Stages',
     :order => 2
   }
@@ -197,7 +197,7 @@ attribute 'restart',
   :description => "Restart",
   :data_type => "text",
   :format => {
-    :help => 'Resources to be executed to restart.',
+    :help => 'Chef Resources to be executed to restart the artifact. Common resources: execute, bash, and service. examples) https://docs.chef.io/resources.html',
     :category => '5.Stages',
     :order => 3
   }
