@@ -76,20 +76,10 @@ public class Part {
     }
 
     public void addExportCi(String actualNs, ExportCi exportCi){
-        List<ExportCi> list = cis.get(actualNs);
-        if (list==null) {
-            list = new ArrayList<>();
-            cis.put(actualNs, list);
-        }
-        list.add(exportCi);
+        cis.computeIfAbsent(actualNs, k -> new ArrayList<>()).add(exportCi);
     }
 
     public void addExportRelation(String actualNs, ExportRelation exportRelation){
-        Set<ExportRelation> set = relations.get(actualNs);
-        if (set==null) {
-            set = new HashSet<>();
-            relations.put(actualNs, set);
-        }
-        set.add(exportRelation);
+        relations.computeIfAbsent(actualNs, k -> new HashSet<>()).add(exportRelation);
     }
 }

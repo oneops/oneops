@@ -29,12 +29,7 @@ public class BaseEntity {
 
     void addOwner(String owner, String name) {
         if (owner != null && !owner.isEmpty()) {
-            List<String> ownerList = owners.get(owner);
-            if (ownerList == null) {
-                ownerList = new ArrayList<>();
-                owners.put(owner, ownerList);
-            }
-            ownerList.add(name);
+            owners.computeIfAbsent(owner, k -> new ArrayList<>()).add(name);
         }
     }
 

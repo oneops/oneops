@@ -184,6 +184,7 @@
 		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
 		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
 		<property name="cmProcessor" ref="cmsCmProcessor"/>
+		<property name="mdProcessor" ref="cmsMdProcessor"/>
 		<property name="replayProcessor" ref="replayProcessor"/>
 	</bean>
 
@@ -191,6 +192,7 @@
 		<property name="rfcMrgProcessor" ref="cmsCmRfcMrgProcessor"/>
 		<property name="rfcProcessor" ref="cmsRfcProcessor"/>
 		<property name="cmProcessor" ref="cmsCmProcessor"/>
+		<property name="mdProcessor" ref="cmsMdProcessor"/>
 	</bean>
 
 </beans>

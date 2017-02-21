@@ -3,8 +3,16 @@ package com.oneops.transistor.service;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.md.domain.CmsClazz;
+import com.oneops.cms.md.domain.CmsClazzAttribute;
+import com.oneops.cms.md.domain.CmsRelation;
+import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.transistor.export.domain.ExportCi;
+import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /*******************************************************************************
@@ -25,6 +33,7 @@ import java.util.Map;
  *
  *******************************************************************************/
 public class RfcUtil {
+    private static Logger logger = Logger.getLogger(RfcUtil.class);
     private static final String DUMMY_ENCRYPTED_IMP_VALUE = "CHANGE ME!!!";
     private static final String ENCRYPTED_PREFIX = "::ENCRYPTED::";
     static final String DUMMY_ENCRYPTED_EXP_VALUE = ENCRYPTED_PREFIX;
@@ -111,6 +120,46 @@ public class RfcUtil {
     static String checkEncrypted(String value) {
         return (value != null && value.startsWith(ENCRYPTED_PREFIX)) ? ENCRYPTED_PREFIX : value;
     }
-    
-    
+
+
+    public  static void bootstrapNewMandatoryAttributesFromMetadataDefaults(CmsRfcRelation rel, CmsRelation cmsRelation, List<String> errors) {
+        for (CmsRelationAttribute clAttr : cmsRelation.getMdAttributes()) {
+            if (rel.getAttribute(clAttr.getAttributeName())==null  && clAttr.getIsMandatory()) {
+                CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                rfcAttr.setAttributeId(clAttr.getAttributeId());
+                rfcAttr.setAttributeName(clAttr.getAttributeName());
+
+                rel.addAttribute(rfcAttr);
+
+                if (clAttr.getDefaultValue() != null) {
+                    rfcAttr.setNewValue(clAttr.getDefaultValue());
+                } else {
+                    rfcAttr.setNewValue("");
+                    String message = "Relation " + rel.getRelationName() + " metadata has mandatory attribute "+ clAttr.getAttributeName() +"that is missing from snapshot and no default value";
+                    errors.add(message);
+                    logger.warn(message);
+                }
+            }
+        }
+    }
+
+    public static void bootstrapNewMandatoryAttributesFromMetadataDefaults(CmsRfcCI rel, CmsClazz targetClazz, List<String> errors) {
+        for (CmsClazzAttribute clAttr : targetClazz.getMdAttributes()) {
+            if (rel.getAttribute(clAttr.getAttributeName())==null  && clAttr.getIsMandatory()) {
+                CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                rfcAttr.setAttributeId(clAttr.getAttributeId());
+                rfcAttr.setAttributeName(clAttr.getAttributeName());
+                
+                rel.addAttribute(rfcAttr);
+                if (clAttr.getDefaultValue() != null) {
+                    rfcAttr.setNewValue(clAttr.getDefaultValue());
+                } else {
+                    rfcAttr.setNewValue("");
+                    String message = "Ci "+rel.getCiName()+"of " + rel.getCiClassName() + "class metadata has mandatory attribute that is missing from snapshot and no default value";
+                    errors.add(message);
+                    logger.warn(message);
+                }
+            }
+        }
+    }
 }
