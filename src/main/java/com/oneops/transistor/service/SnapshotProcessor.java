@@ -100,6 +100,11 @@ public class SnapshotProcessor {
         List<String> errors = importSnapshot(snapshot, oldToNewCiIdsMap);
         if (releaseId != null && releaseId > snapshot.getRelease()) {
             CmsRelease release = rfcProcessor.getReleaseById(snapshot.getRelease());
+            
+            CmsRelease targetRelease = rfcProcessor.getReleaseById(releaseId);
+            if (targetRelease==null || !"closed".equalsIgnoreCase(targetRelease.getReleaseState())){
+                throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, "Target release doesn't exist or is not \"closed\": " + releaseId);
+            }
             errors.addAll(replayProcessor.replay(snapshot.getRelease(), releaseId, release.getNsPath(), oldToNewCiIdsMap));
         }
 
