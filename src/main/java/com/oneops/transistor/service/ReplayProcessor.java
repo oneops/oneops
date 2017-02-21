@@ -6,6 +6,7 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.CmsRfcRelationBasic;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.md.domain.CmsClazz;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /*******************************************************************************
  *
@@ -65,17 +67,30 @@ public class ReplayProcessor {
 
     List<String> replay(Long fromReleaseId, Long toReleaseId, String nsPath, Map<Long, RelationLink> idMap) {
         List<String> errors = new ArrayList<>();
-
-        List<CmsRfcCI> rfcCis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
-        logger.info("Cis to replay: " + rfcCis.size());
-        rfcCis.forEach(ci -> restoreCi(idMap, errors, ci));
-
+        List<CmsRfcCI> cis = rfcProcessor.getRfcCIsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
+        logger.info("Cis to replay: " + cis.size());
         List<CmsRfcRelation> relations = rfcProcessor.getRfcRelationsAppliedBetweenTwoReleases(nsPath, fromReleaseId, toReleaseId);
         logger.info("Relations to replay: " + relations.size());
-        relations.forEach(relation -> restoreRelation(idMap, errors, relation));
-        return errors;
+        
+        Map<Long, List<CmsRfcRelation>> relationsByRelease = relations.stream().collect(Collectors.groupingBy(CmsRfcRelationBasic::getReleaseId));
+        long currentReleaseId = 0;
+        for (CmsRfcCI ci : cis) {
+            if (currentReleaseId != ci.getReleaseId()) {
+                restoreReleaseRelations(idMap, errors, relationsByRelease.get(currentReleaseId));
+                currentReleaseId = ci.getReleaseId();
+            }
+            restoreCi(idMap, errors, ci);
+        }
+        restoreReleaseRelations(idMap, errors, relationsByRelease.get(currentReleaseId)); // we need to call restore release relations one last time for last release
+       return errors;
     }
 
+    private void restoreReleaseRelations(Map<Long, RelationLink> idMap, List<String> errors, List<CmsRfcRelation> rels) {
+        if (rels == null) return;
+        for (CmsRfcRelation relation : rels) {
+            restoreRelation(idMap, errors, relation);
+        }
+    }
 
     private void restoreCi(Map<Long, RelationLink> idMap, List<String> errors, CmsRfcCI rfcToReplay) {
         CmsCI existingCi = getCmsCI(rfcToReplay);
