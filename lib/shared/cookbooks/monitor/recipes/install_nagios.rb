@@ -65,6 +65,8 @@ when "redhat","centos","fedora","suse"
   end
 when "windows"
 
+  #Download and install only if not already installed, should happen in OS step
+  if !(::Win32::Service.exists?('nagios'))
     cloud_name = node[:workorder][:cloud][:ciName]
     services = node[:workorder][:services]
     if services.has_key?(:mirror)
@@ -101,7 +103,7 @@ when "windows"
       code "C:/Cygwin64/bin/cygrunsrv.exe -I nagios -d Nagios -p /opt/nagios/bin/nagios.exe -a /etc/nagios/nagios.cfg"
       not_if {::Win32::Service.exists?("nagios")}
     end
-	
+  end #if !(::Win32::Service.exists?('nagios'))
 else
   nagios_service = "nagios3"
   package "nagios3-core" do
