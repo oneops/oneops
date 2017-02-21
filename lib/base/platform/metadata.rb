@@ -188,13 +188,13 @@ attribute 'autocomply',
     :form => { 'field' => 'checkbox' }
   }
   
-attribute 'proceed_on_delete_failure',
-  :description => 'Proceed On Failure of Delete Component',
+attribute 'fail_on_delete_failure',
+  :description => 'Fail Deployment On Failure of Delete Components',
   :grouping => 'manifest',
-  :default => 'true',
+  :default => '[]',
   :format => {
     :category => '2.Platform Pack',
     :order => 5,
     :filter => {'all' => {'visible' => 'false'}},
-    :help => 'Proceed deployment when a delete work order on a component fails.'
+    :help => 'Fail the deployment when a delete work order on any of the given components fail.'
   }
