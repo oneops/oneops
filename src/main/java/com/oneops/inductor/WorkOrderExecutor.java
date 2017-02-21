@@ -47,6 +47,7 @@ import static com.oneops.inductor.InductorConstants.*;
 public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     private static final String BOM_CLASS_PREFIX = "bom\\.(.*\\.)*";
+    private static final String FAIL_ON_DELETE_FAILURE_ATTR = "fail_on_delete_failure";
     private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
     private Semaphore semaphore = null;
     private Config config = null;
@@ -144,14 +145,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 runList.add(0, getRunListEntry(ATTACHMENT, BEFORE_ATTACHMENT + wo.getAction()));
                 runList.add(getRunListEntry(ATTACHMENT, AFTER_ATTACHMENT + wo.getAction()));
             }
-            if (wo.isPayLoadEntryPresent(EXTRA_RUN_LIST)) {
-                if (wo instanceof CmsWorkOrderSimple) {
-                    runList.addAll(getExtraRunListClasses(CmsWorkOrderSimple.class.cast(wo)));
-                } else {
-                    throw new IllegalArgumentException("wo can not be of type " + wo.getClass());
-                }
-
-            }
+            addExtraRunListEntry(wo, runList);
 
         } else if (!wo.getAction().equals(ADD_FAIL_CLEAN)) {
             // this is to call global monitoring service from the inductor host
@@ -163,6 +157,16 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             }
         }
         return runList;
+    }
+
+    private void addExtraRunListEntry(CmsWorkOrderSimpleBase wo, List<String> runList) {
+        if (wo.isPayLoadEntryPresent(EXTRA_RUN_LIST)) {
+            if (wo instanceof CmsWorkOrderSimple) {
+                runList.addAll(getExtraRunListClasses(CmsWorkOrderSimple.class.cast(wo)));
+            } else {
+                throw new IllegalArgumentException("wo can not be of type " + wo.getClass());
+            }
+        }
     }
 
 
@@ -444,7 +448,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 logger.error(e.getMessage());
                 return;
             }
-
             if (host.contains(":")) {
                 String[] parts = host.split(":");
                 host = parts[0];
@@ -499,8 +502,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
                         if (managedViaRfcs != null && managedViaRfcs.size() > 0
                                 && DELETE.equals(managedViaRfcs.get(0).getRfcAction())) {
-                            logger.warn(logKey + "wo failed due to unreachable compute, but marking ok due to ManagedVia rfcAction==delete");
-                            wo.setDpmtRecordState(COMPLETE);
+                            if (failOnDeleteFailure(wo)) {
+                                logger.info(logKey + "wo failed due to unreachable compute, this component is set to fail on delete failures");
+                            }
+                            else {
+                                logger.warn(logKey + "wo failed due to unreachable compute, but marking ok due to ManagedVia rfcAction==delete");
+                                wo.setDpmtRecordState(COMPLETE);
+                            }
                         } else {
                             wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
                         }
@@ -585,8 +593,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
                         if (managedViaRfcs != null && managedViaRfcs.size() > 0
                                 && DELETE.equals(managedViaRfcs.get(0).getRfcAction())) {
-                            logger.warn(logKey + "wo failed, but marking ok due to ManagedVia rfcAction==delete");
-                            wo.setDpmtRecordState(COMPLETE);
+                            if (failOnDeleteFailure(wo)) {
+                                logger.info(logKey + "wo failed, this component is set to fail on delete failures");
+                            }
+                            else {
+                                logger.warn(logKey + "wo failed, but marking ok due to ManagedVia rfcAction==delete");
+                                wo.setDpmtRecordState(COMPLETE);
+                            }
                         }
                     } else {
                         String comments = getCommentsFromResult(result);
@@ -676,7 +689,23 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         return serviceCookbookPaths;
 	}
 
-	/**
+    private boolean failOnDeleteFailure(CmsWorkOrderSimple wo) {
+        String attrValue = wo.getBox().getCiAttributes().get(FAIL_ON_DELETE_FAILURE_ATTR);
+        if (StringUtils.isNotBlank(attrValue)) {
+            if (attrValue.startsWith("[") && attrValue.endsWith("]")) {
+                attrValue = attrValue.substring(1, attrValue.length()-1);
+                String[] classes = attrValue.split(",");
+                for (String clazz : classes) {
+                    if (wo.getRfcCi().getCiClassName().equals(clazz.trim())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * Installs base software needed for chef / oneops
      *
      * @param pr      ProcessRunner
