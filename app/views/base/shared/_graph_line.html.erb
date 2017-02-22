@@ -47,6 +47,18 @@
       svg.append("g")
           .attr("class", "y axis");
 
+      svg.append("text")
+          .attr("class", "na")
+          .attr("text-anchor", "middle")
+          .attr("alignment-baseline", "middle")
+          .attr("x", plotWidth / 2)
+          .attr("y", plotHeight / 2)
+          .style("font-size", "100px")
+          .style("font-weight", "bold")
+          .style("fill", "#fdd")
+          .style("stroke", "#ccc")
+          .text("N/A");
+
       var zoomRect = svg.append("rect")
           .attr("width", 0)
           .attr("height", 0)
@@ -301,12 +313,16 @@
           yScale.domain(zoomYDomain);
         }
         else {
-          var minY = null,
+          var minX = null,
+              maxX = null,
+              minY = null,
               maxY = null,
               hasDisabled = false;
           for (var metric, i = 0; i < metrics.length; i++) {
             metric = metrics[i];
             if (metric.enabled) {
+              minX = minX ? Math.min(minX, metric.data.first()[0]) : metric.data.first()[0];
+              maxX = maxX ? Math.min(maxX, metric.data.last()[0]) : metric.data.last()[0];
               minY = minY ? Math.min(minY, metric.yDomain[0]) : metric.yDomain[0];
               maxY = maxY ? Math.max(maxY, metric.yDomain[1]) : metric.yDomain[1];
             }
@@ -314,10 +330,12 @@
               hasDisabled = true;
             }
           }
-          xScale.domain([metrics[0].data.first()[0], metrics[0].data.last()[0]]);
+          xScale.domain([minX, maxX]);
           yScale.domain([hasDisabled ? 0.95 * minY : 0, 1.05 * maxY]);
         }
 
+        var domain = xScale.domain(),
+            na = (domain[0].getTime() == domain[1].getTime());
         var t = d3.select("#" + graphId);
         if (runTransition) {
           t = t.transition().duration(750);
@@ -332,9 +350,13 @@
             .call(yAxis);
         t.selectAll(".plot line.level")
             .attr("y1", function(d) {return yScale(d.value)})
-            .attr("y2", function(d) {return yScale(d.value)});
+            .attr("y2", function(d) {return yScale(d.value)})
+            .style("visibility", na ? "hidden" : "visible");
         t.selectAll(".plot circle.level")
-            .attr("cy", function(d) {return yScale(d.value)});
+            .attr("cy", function(d) {return yScale(d.value)})
+            .style("visibility", na ? "hidden" : "visible");
+        t.select("text.na")
+            .style("visibility", na ? "visible" : "hidden");
 
         t.selectAll(".plot g.metric")
             .style("visibility", function (d) {return (d.enabled ? "visible" : "hidden")})
