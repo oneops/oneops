@@ -421,11 +421,17 @@ class ApplicationController < ActionController::Base
     result
   end
 
-  def locate_ci_in_platform_ns(qualifier, platform, ci_class_name = nil, opts = {})
+  def locate_ci_in_platform_ns(qualifier, platform, ci_class_name = nil, opts = {}, &block)
     ns_path = (in_design? || in_catalog?) ? "#{platform.nsPath}/_design/#{platform.ciName}" : platform.nsPath
-    ci = Cms::DjCi.locate(qualifier, ns_path, ci_class_name, opts)
+    ci = Cms::DjCi.locate(qualifier, ns_path, ci_class_name, opts, &block)
     ci.add_policy_locations(platform_pack_ns_path(platform))
     return ci
+  end
+
+  def locate_component_in_manifest_ns(component_id, platform, class_name = nil, opts = {})
+    locate_ci_in_platform_ns(component_id, platform, class_name, opts) do |results|
+      results.find { |ci| !%w(Platform Attachment Monitor Localvar).include?(ci.ciClassName.split('.').last) }
+    end
   end
 
   def locate_cloud_service_template(service)
