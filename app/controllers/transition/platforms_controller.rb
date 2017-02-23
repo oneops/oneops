@@ -222,15 +222,8 @@ class Transition::PlatformsController < Base::PlatformsController
   end
 
   def check_primary_cloud
-    ok = @clouds.find do |c|
-      c.relationAttributes.adminstatus != 'offline' &&
-        c.relationAttributes.priority == '1' &&
-        (c.rfcId == 0 || c.relationAttributes.adminstatus == 'active')
-    end
-    unless ok
-      message = 'This change will remove all primary clouds for this platform.'
-      @cloud.errors.add(:base, message)
-    end
+    ok = @clouds.find {|c| c.relationAttributes.adminstatus != 'offline' && c.relationAttributes.priority == '1'}
+    @cloud.errors.add(:base, 'This change will remove all primary clouds for this platform.') unless ok
     return ok
   end
 end
