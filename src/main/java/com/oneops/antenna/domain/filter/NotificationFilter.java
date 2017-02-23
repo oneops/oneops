@@ -22,12 +22,14 @@ import com.oneops.antenna.domain.NotificationSeverity;
 import com.oneops.antenna.domain.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
-
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 import java.util.Arrays;
+
+import static org.apache.commons.lang3.ArrayUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 
 /**
  * Notification message filter implementation.
@@ -39,12 +41,12 @@ public class NotificationFilter implements MessageFilter {
     /**
      * Logger instance
      */
-    private static Logger logger = Logger.getLogger(NotificationFilter.class);
+    private static final Logger logger = Logger.getLogger(NotificationFilter.class);
 
     /**
      * Json Object mapper
      */
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * Notification event type
@@ -77,19 +79,34 @@ public class NotificationFilter implements MessageFilter {
     private String envProfilePattern;
 
 
+    /**
+     * Check whether or not the given ${@link NotificationMessage} needs
+     * to be accepted based on this filter rules. The filtering logic is
+     * a simple check of the filter rules in the following order.
+     * <p>
+     * 1. Filter ALL (ie, filtering == none) or a specific event type
+     * 2. Filter ALL (ie, filtering == none) or >= specific event severity
+     * 3. Filter msgs with nsPaths configured in sink.
+     * 4. Filter msgs with clouds configured in sink.
+     * 5. Filter msgs with env profile pattern(Case-Insensitive) configured in sink.
+     *
+     * @param msg {@link  com.oneops.antenna.domain.NotificationMessage}
+     * @return <code>true</code> if message pass the filter rules.
+     */
     @Override
     public boolean accept(NotificationMessage msg) {
-        String envProfile = msg.getEnvironmentProfileName();
-        // Filter ALL (ie, filtering == none) or that specific event type
         if (NotificationType.none == this.eventType || msg.getType() == this.eventType) {
-            // Filter ALL (ie, filtering == none) or >= specific event severity
             if (msg.getSeverity().getLevel() >= this.eventSeverity.getLevel()) {
                 if (hasValidNSPath(msg.getNsPath())) {
-                    if (envProfile == null || envProfile.trim().equals("")
-                            || envProfilePattern == null || envProfilePattern.trim().equals("")
-                            || envProfile.matches(envProfilePattern.trim())) {
-                        // ToDo - add cloud and selector pattern check once it is finalized.
-                        return true;
+                    if (allowCloud(msg.getCloudName())) {
+                        if (isNotEmpty(envProfilePattern)) {
+                            String envProfile = msg.getEnvironmentProfileName();
+                            // ProfilePattern regex match is Case-Insensitive.
+                            return envProfile != null && envProfile.matches("(?i)" + envProfilePattern);
+                        } else {
+                            // Pass through all messages because env profile pattern is empty.
+                            return true;
+                        }
                     }
                 }
             }
@@ -151,7 +168,8 @@ public class NotificationFilter implements MessageFilter {
                 if (attr != null) {
                     envProfilePattern = attr.getDjValue();
                 }
-                NotificationFilter filter = new NotificationFilter().eventType(eventType)
+                NotificationFilter filter = new NotificationFilter()
+                        .eventType(eventType)
                         .eventSeverity(eventSeverity)
                         .clouds(clouds)
                         .nsPaths(nsPaths)
@@ -165,21 +183,14 @@ public class NotificationFilter implements MessageFilter {
     }
 
 
-    private NotificationFilter envProfilePattern(String envProfilePattern) {
-        this.envProfilePattern = envProfilePattern;
-        return this;
-    }
-
     /**
-     * Checks whether the message nspath is a valid one for filtering.
+     * Checks whether or not the message nspath is a valid one for filtering.
      *
      * @param nsPath notification message nspath
      * @return <code>false</code> if it's need to be filtered, else return <code>true</code>
      */
     public boolean hasValidNSPath(String nsPath) {
-        if (this.nsPaths == null) {
-            return true;
-        } else {
+        if (isNotEmpty(this.nsPaths)) {
             for (String nsp : nsPaths) {
                 if (nsPath.startsWith(nsp)) {
                     return true;
@@ -187,6 +198,26 @@ public class NotificationFilter implements MessageFilter {
             }
             return false;
         }
+        return true;
+    }
+
+    /**
+     * Checks whether or not the given cloud is allowed for filtering.
+     *
+     * @param cloudName cloud name from ${@link NotificationMessage}
+     * @return <code>true</code> if the cloud matches the one in the filter list
+     * or if there are no cloud configured in the sink.
+     */
+    public boolean allowCloud(String cloudName) {
+        if (isNotEmpty(this.clouds)) {
+            for (String cloud : clouds) {
+                if (cloudName != null && cloudName.matches(cloud)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return true;
     }
 
     /* Fluent interfaces */
@@ -227,6 +258,15 @@ public class NotificationFilter implements MessageFilter {
         return this;
     }
 
+    public NotificationFilter envProfilePattern(String envProfilePattern) {
+        this.envProfilePattern = envProfilePattern;
+        return this;
+    }
+
+    public String envProfilePattern() {
+        return this.envProfilePattern;
+    }
+
     public String[] nsPaths() {
         return this.nsPaths;
     }
@@ -238,15 +278,14 @@ public class NotificationFilter implements MessageFilter {
 
     @Override
     public String toString() {
-        final StringBuilder sb = new StringBuilder("NotificationFilter{");
-        sb.append("eventType=").append(eventType);
-        sb.append(", eventSeverity=").append(eventSeverity);
-        sb.append(", clouds=").append(Arrays.toString(clouds));
-        sb.append(", nsPaths=").append(Arrays.toString(nsPaths));
-        sb.append(", selectorPattern='").append(selectorPattern).append('\'');
-        sb.append(", envProfilePattern='").append(envProfilePattern).append('\'');
-        sb.append('}');
-        return sb.toString();
+        String sb = "NotificationFilter{" + "eventType=" + eventType +
+                ", eventSeverity=" + eventSeverity +
+                ", clouds=" + Arrays.toString(clouds) +
+                ", nsPaths=" + Arrays.toString(nsPaths) +
+                ", selectorPattern='" + selectorPattern + '\'' +
+                ", envProfilePattern='" + envProfilePattern + '\'' +
+                '}';
+        return sb;
     }
 }
 
