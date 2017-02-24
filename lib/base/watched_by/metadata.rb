@@ -36,11 +36,11 @@ attribute 'docUrl',
 
 attribute 'notifyOnlyOnStateChange',
         :grouping => 'default',
-        :description => 'Recieve Email Notifications only On state change. ',
+        :description => 'Receive email notifications only on state change. ',
         :default => 'true',
-       :format => {
-         :help => 'Checking this checkbox, will enable only notifiactions to be sent once per state change.By default checked. ',
-         :form => { 'field' => 'checkbox' },    
+        :format => {
+        :help => 'Checking this checkbox, will enable only notifications to be sent once per state change. By default checked. ',
+        :form => { 'field' => 'checkbox' },
          }
 
 attribute 'source',
