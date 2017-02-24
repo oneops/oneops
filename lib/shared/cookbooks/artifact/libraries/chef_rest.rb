@@ -126,7 +126,19 @@ class Chef
       Chef::Log.info("Fetching in #{parts.length} parts")
       Chef::Log.info("Part details: #{pp parts.inspect}")
       # todo.. resume mode
-      install_gem_output = `gem install parallel -v 1.3.3` #install parallel gem
+
+      #install parallel gem, for windows make sure it installs into chef-dedicated instance of ruby
+      if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+        `c:\\opscode\\chef\\embedded\\bin\\gem install parallel -v 1.3.3`
+      else
+        `gem install parallel -v 1.3.3`
+     end
+
+	  if $?.to_i != 0
+		Chef::Log.fatal("Failure installing gem 'parallel'")
+        return nil
+	  end
+			
       require 'parallel'
 
       download_start = Time.now
@@ -179,7 +191,9 @@ class Chef
 
       parts.each do |part|
         file="#{local_path}.#{part['slot']}.tmp"
-        temp_file.write(File.open(file, 'rb').read)
+		File.open(file,'rb') do |part_file|
+		  temp_file.write(part_file.read)
+		end
       end
 
       temp_file.flush
