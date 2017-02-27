@@ -476,6 +476,7 @@ class Chef
         pack_version.ciAttributes.enabled = pack.enabled
         pack_version.ciAttributes.description = pack.description
         pack_version.ciAttributes.commit = signature
+	pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest 
 
         Chef::Log.debug(pack_version.to_json)
         if save(pack_version)
