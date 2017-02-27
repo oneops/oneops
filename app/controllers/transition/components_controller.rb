@@ -79,8 +79,8 @@ class Transition::ComponentsController < Base::ComponentsController
     @platform    = locate_manifest_platform(params[:platform_id], @environment)
   end
 
-  def find_component(id = params[:id])
-    @component = locate_ci_in_platform_ns(id, @platform, nil, :attrProps => 'owner')
+  def find_component(id = params[:id], class_name = params[:class_name])
+    @component = locate_component_in_manifest_ns(id, @platform, class_name, :attrProps => 'owner')
   end
 
   def redirect_to_show_platform

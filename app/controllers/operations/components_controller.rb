@@ -73,6 +73,6 @@ class Operations::ComponentsController < Base::ComponentsController
     @environment = locate_environment(params[:environment_id], @assembly)
     @platform    = locate_manifest_platform(params[:platform_id], @environment)
     component_id = params[:id]
-    @component   = locate_ci_in_platform_ns(component_id, @platform) if component_id.present?
+    @component = locate_component_in_manifest_ns(component_id, @platform, params[:class_name]) if component_id.present?
   end
 end
