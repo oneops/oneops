@@ -512,11 +512,17 @@ public class CmsCmManagerImpl implements CmsCmManager {
 		cmProcessor.createAltNs(cmsAltNs, ci);
 	}
 
-	public List<CmsAltNs> getAltNsBy(long ciId){
-		return cmProcessor.getAltNsBy(ciId);
+	@Override
+	public List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag){
+		return cmProcessor.getAltNsByCiAndTag(ciId, tag);
 	}
 
 	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag){
 		return cmProcessor.getCmCIByAltNsAndTag(nsPath, tag);
+	}
+
+	@Override
+	public List<CmsCI> getCisByTagClassNs(String tag, String className, String nsPath) {
+		return cmProcessor.getAltNsCisByTagClassNs(tag, className, nsPath);
 	}
 }
