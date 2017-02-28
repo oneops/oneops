@@ -866,11 +866,21 @@ public class CmRestController extends AbstractRestController {
 	@RequestMapping(method = RequestMethod.GET, value = "/cm/simple/ci/{ciId}/altNs")
 	@ResponseBody
 	public List<CmsAltNs> getCiTags(@PathVariable long ciId,
+									@RequestParam(value = "tag", required = false) String tag,
 									@RequestHeader(value = "X-Cms-Scope", required = false) String scope) throws DJException {
+		if (scope != null) {
+			CmsCI baseCi = cmManager.getCiById(ciId);
+			scopeVerifier.verifyScope(scope, baseCi);
+		}
+		return  cmManager.getAltNsByCiAndTag(ciId, tag);
+	}
 
-		CmsCI baseCi = cmManager.getCiById(ciId);
-		scopeVerifier.verifyScope(scope, baseCi);
-		return  cmManager.getAltNsBy(ciId);
+	@RequestMapping(method = RequestMethod.GET, value = "/cm/simple/altNs/tags/{tag}")
+	@ResponseBody
+	public List<CmsCI> getAltNsCisByTag(@PathVariable String tag,
+									@RequestParam(value="ciClassName", required = false) String className,
+									@RequestParam(value = "altNsPath", required = false) String nsPath) throws DJException {
+		return cmManager.getCisByTagClassNs(tag, className, nsPath);
 	}
 
 	@RequestMapping(method = RequestMethod.DELETE, value = "/cm/simple/ci/{ciId}/ns/{nsId}/altNs")
@@ -882,6 +892,5 @@ public class CmRestController extends AbstractRestController {
 		cmManager.deleteAltNs(ciId, nsId);
 		return  "";
 	}
-
 
 }
