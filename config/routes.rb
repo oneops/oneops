@@ -155,6 +155,7 @@ Display::Application.routes.draw do
     resource :lookup, :controller => 'lookup', :only => :none do
       get 'counterparts', :on => :collection
       get 'variables', :on => :collection
+      get 'ci_lookup', :on => :collection
     end
 
     resource :ci, :controller => 'lookup', :only => :none do

@@ -2,6 +2,7 @@
 <ul class="menu">
   <% if (!Settings.eula || current_user.eula_accepted_at.present?) && current_org %>
     <li class="title">
+      <%= link_to_function(content_tag(:small, icon(site_icon('search'), nil, 'fa-fw pull-right')), '$j("#organization_lookup_modal").modal("show").find("input").focus()') %>
       <%= link_to(organization_path) do %>
         <span title="<%= current_org.name %>"><%= icon(site_icon(:organization), content_tag(:span, raw("&nbsp;#{current_org.name}"), :class => 'name')) %></span>
         <% if current_org.full_name.present? %>

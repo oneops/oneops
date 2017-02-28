@@ -177,6 +177,39 @@ class LookupController < ApplicationController
     render :json => result, :status => result.blank? ? :unauthorized : :ok
   end
 
+  def ci_lookup
+    org = params[:org]
+    query = params[:query]
+    if org.blank? || query.blank?
+      render :json => []
+      return
+    end
+
+    class_name_filter = nil
+    tokens = query.split(/\s+/).inject([]) do |a, t|
+      case t
+        when 'd'
+          class_name_filter = 'catalog.*'
+        when 't'
+          class_name_filter = 'manifest.*'
+        when 'o'
+          class_name_filter = 'bom.*'
+        else
+          a << t
+      end
+      a
+    end
+    search_params = {:nsPath  => "/#{org}/*",
+                     :size    => (params[:max_size] || 20).to_i,
+                     :query   => {:query  => tokens.join(' AND '),
+                                  :fields => %w(ciName nsPath)},
+                     :_source => %w(ciName ciClassName nsPath ciId),
+                     :_silent => []}
+    search_params['ciClassName.keyword'] = class_name_filter if class_name_filter.present?
+    result = Cms::Ci.search(search_params)
+    render :json => result
+  end
+
 
   private
 

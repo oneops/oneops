@@ -166,10 +166,8 @@ class Search::Base < ActiveResource::Base
 
   def self.run_search(path, search_params, silent = nil, timeout = nil)
     result = nil
-    if timeout
-      old_timeout = self.timeout
-      self.timeout = timeout
-    end
+    old_timeout = self.timeout
+    self.timeout = timeout if timeout
     begin
       data          = JSON.parse(post(path, {}, search_params.to_json).body)
       result        = data['hits']['hits'].map { |r| r['_source'] }
@@ -184,8 +182,9 @@ class Search::Base < ActiveResource::Base
       else
         raise e
       end
+    ensure
+      self.timeout = old_timeout if timeout
     end
-    self.timeout = timeout if timeout
     result
   end
 end
