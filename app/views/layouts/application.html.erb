@@ -9,7 +9,9 @@
   <%= csrf_meta_tag %>
 </head>
 <body>
-  <% show_sidebar    = session[:sidebar].blank? || session[:sidebar] == 'true'
+  <% user_signed_in  = user_signed_in?
+     current_org     = user_signed_in && current_user.organization
+     show_sidebar    = session[:sidebar].blank? || session[:sidebar] == 'true'
      sidebar_theme   = session[:sidebar_theme].presence || 'dark' %>
     <div id="container" class="<%= 'sidebar-visible' if show_sidebar %>">
       <div id="overlay" style="display:none" class="rounded-bottom shadow"></div>
@@ -61,7 +63,7 @@
         </div>
       </div>
       <script>
-        <% org_name = current_user.organization.try(:name) %>
+        <% org_name = current_org && current_org.name %>
         <% if org_name.present? %>
           $j('#ci_lookup_modal .modal-body input')
               .typeahead({items: 20,
@@ -133,7 +135,7 @@
         </div>
       <% end %>
 
-      <% if user_signed_in? %>
+      <% if user_signed_in %>
         <div class="top-nav" data-spy="affix" data-offset="0">
           <div id="header" class="<%= 'hide' if show_sidebar %>">
             <div class="sidebar-toggle">
@@ -162,9 +164,8 @@
         </div>
 
         <div class="scaffold">
-          <% if user_signed_in? %>
-            <% current_org = current_user.organization
-               must_accept_eula = Settings.eula && current_user.eula_accepted_at.blank?%>
+          <% if user_signed_in %>
+            <% must_accept_eula = Settings.eula && current_user.eula_accepted_at.blank?%>
             <div class="sidebar affix <%= sidebar_theme %> <%= 'hide' unless show_sidebar %>">
               <div class="header">
                 <div class="logo">
@@ -317,7 +318,7 @@
       }
     };
 
-    <% if user_signed_in? %>
+    <% if user_signed_in %>
       $j("body").on('keydown',
                     function (event) {
                       if (event.altKey) {

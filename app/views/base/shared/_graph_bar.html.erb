@@ -34,7 +34,7 @@
   for(var i = 0, len = data.x.length; i < len; i++) {
     bar = data.y[i];
     if (typeof(bar) == 'number') {
-      bars.push({x: data.x[i], y: {grouping: [{label: labels.y, value: bar, offset: 0, color: colors['grouping'](0)}]}});
+      bars.push({x: data.x[i], y: {grouping: [{label: labels.y, x: data.x[i], value: bar, offset: 0, color: colors['grouping'](0)}]}});
       maxY = Math.max(maxY, bar);
     }
     else {
@@ -47,6 +47,7 @@
           barSegment = barGrouping[j];
           barSegment.offset = offset;
           barSegment.color = colors[grouping](barSegment.label);
+          barSegment.x = data.x[i];
           offset += barSegment.value;
         }
         maxY = Math.max(maxY, offset);
@@ -181,7 +182,7 @@
     segments.enter().append("rect")
         .attr('class', 'bar-segment')
         .style("fill", function (d) {return d.color})
-        .attr("x", function (d) {return x(d3.select(this.parentNode).datum().x)})
+        .attr("x", function (d) {return x(d.x)})
         .attr("width", x.rangeBand())
         .attr("y", height)
         .attr("height", 0)
