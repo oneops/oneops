@@ -33,7 +33,7 @@
         </div>
       </div>
       <script>
-        $j('input#org_lookup').typeahead({
+        $j("#organization_lookup_modal input").typeahead({
           source:  function (query, process) {
             return $j.get('<%= lookup_organization_path %>',
                           {name: query},
@@ -46,6 +46,60 @@
             show_busy();
           }
         });
+      </script>
+
+      <div id="ci_lookup_modal" class="modal hide">
+        <div class="modal-header">
+          <button class="close" data-dismiss="modal">&times;</button>
+          <h3>Go to</h3>
+        </div>
+        <div class="modal-body" style="overflow:visible">
+          <div class="input-append">
+            <%= text_field_tag(:ci_lookup, '', :id => 'org_lookup', :style => 'width: 92%', :autocomplete => 'off', :placeholder => 'name') %>
+            <span class="add-on"><i class="fa fa-times-circle" onclick="$j(this).parents('div').find('input').val('')"></i></span>
+          </div>
+        </div>
+      </div>
+      <script>
+        <% org_name = current_user.organization.try(:name) %>
+        <% if org_name.present? %>
+          $j('#ci_lookup_modal .modal-body input')
+              .typeahead({items: 20,
+                minLength: 3,
+                source:  function (query, process) {
+                  this.lastTimestamp = new Date().getTime();
+                  var that = this;
+                  setTimeout(function() {
+                    if (new Date().getTime() - that.lastTimestamp > 400) {
+                      return $j.get('<%= ci_lookup_lookup_path %>',
+                                    {
+                                      org:      "<%= org_name %>",
+                                      query:    query,
+                                      max_size: 20
+                                    },
+                                    function (data) {
+                                      return process(data.reduce(function (a, d) {
+                                                                   a.push(d.ciName + " " + d.ciClassName + " " + d.nsPath + " " + d.ciId);
+                                                                   return a;
+                                                                 },
+                                                                 []));
+                                    });
+                    }
+                  }, 500);
+                },
+                matcher: function(item) {
+                  return true;
+                },
+                highlighter: function (item) {
+                  var s = item.split(" ");
+                  return s[0] + " <small><em>" + s[1].split(".").last() + "</em> " + s[2].substring(<%= org_name.size + 1 %>) + "</small>";
+                },
+                updater: function (item) {
+                  window.location = "/r/ci/" + item.split(" ").last();
+                  show_busy();
+                }
+              });
+        <% end %>
       </script>
 
       <div id="copy_to_clipboard_modal" class="modal hide">
@@ -61,7 +115,7 @@
       </div>
       <script>
         copyToClipboard($j("#copy_to_clipboard_modal .modal-footer .btn")[0],
-                        function(source) {
+                        function() {
                           return $j("#copy_to_clipboard_modal .modal-body")[0];
                         });
       </script>
@@ -263,14 +317,29 @@
       }
     };
 
-    <% if user_signed_in? && session[:sidebar].nil? %>
-      setTimeout(function() {
-        if (localStorage.getItem(local_storage_key_sidebar_pin) == 'false') {
-          toggleSidebar();
-          toggleSidebarPin();
-        }
-        toggleSidebarTheme(localStorage.getItem(local_storage_key_sidebar_theme));
-      }, 100);
+    <% if user_signed_in? %>
+      $j("body").on('keydown',
+                    function (event) {
+                      if (event.altKey) {
+                        if (event.keyCode == 71) {
+                          $j("#ci_lookup_modal").modal("show").find(".modal-body input").focus();
+                          event.preventDefault();
+                        }
+                        else if (event.keyCode == 79) {
+                          $j("#organization_lookup_modal").modal("show").find(".modal-body input").focus();
+                          event.preventDefault();
+                        }
+                      }
+                    });
+      <% if session[:sidebar].nil? %>
+        setTimeout(function() {
+          if (localStorage.getItem(local_storage_key_sidebar_pin) == 'false') {
+            toggleSidebar();
+            toggleSidebarPin();
+          }
+          toggleSidebarTheme(localStorage.getItem(local_storage_key_sidebar_theme));
+        }, 100);
+      <% end %>
     <% end %>
   </script>
 </body>
