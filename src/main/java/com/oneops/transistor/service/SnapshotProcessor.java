@@ -215,7 +215,7 @@ public class SnapshotProcessor {
                     }
                     CmsCIRelation relation = findMatchingRelation(actualNs, fromLink, toLink, exportRelation.getType(), existingRelations);
                     if (relation == null) { // relation doesn't exist
-                        addRelation(actualNs, exportRelation, fromLink, toLink, errors);
+                        addRelation(actualNs, exportRelation, fromLink, toLink);
                     } else {
                         existingRelations.remove(relation); // we need to remove match
                         updateRelation(exportRelation, relation, errors);
@@ -264,7 +264,7 @@ public class SnapshotProcessor {
     }
 
 
-    private void addRelation(String ns, ExportRelation exportRelation, RelationLink fromLink, RelationLink toLink, List<String> errors) {
+    private void addRelation(String ns, ExportRelation exportRelation, RelationLink fromLink, RelationLink toLink) {
         CmsRfcRelation rel = new CmsRfcRelation();
         rel.setNsPath(ns);
         rel.setRelationName(exportRelation.getType());
@@ -280,20 +280,20 @@ public class SnapshotProcessor {
             rel.setToRfcId(toLink.getRfcId());
             rel.setToCiId(toLink.getId());
         }
-        processRelationAttributes(exportRelation, rel, rel.getRelationName(), errors);
+        processRelationAttributes(exportRelation, rel, rel.getRelationName());
         logger.info("adding relation:" + rel.getRelationName() + "@" + rel.getNsPath() + " " + rel.getFromCiId() + "->" + rel.getToCiId());
         rfcMrgProcessor.upsertRfcRelationNoCheck(rel, SNAPSHOT_RESTORE, null);
     }
 
 
-    private void processRelationAttributes(BaseEntity exportRelation, CmsRfcRelation rel, String className, List<String> errors) {
+    private void processRelationAttributes(BaseEntity exportRelation, CmsRfcRelation rel, String className) {
         processSnapshotAttributes(exportRelation, rel);
-        RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rel, mdProcessor.getRelation(className), errors);
+        RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rel, mdProcessor.getRelation(className));
     }
 
-    private void processClassAttributes(BaseEntity exportRelation, CmsRfcCI rel, String className, List<String> errors) {
+    private void processClassAttributes(BaseEntity exportRelation, CmsRfcCI rel, String className) {
         processSnapshotAttributes(exportRelation, rel);
-        RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rel, mdProcessor.getClazz(className), errors);
+        RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rel, mdProcessor.getClazz(className));
     }
 
     private void processSnapshotAttributes(BaseEntity entity, CmsRfcContainer rel) {
@@ -330,7 +330,7 @@ public class SnapshotProcessor {
                 try {
                     CmsCI ci = findMatchingCi(actualNs, eci, existingCis);
                     if (ci == null) {
-                        CmsRfcCI rfcCi = addCi(actualNs, eci, errors);
+                        CmsRfcCI rfcCi = addCi(actualNs, eci);
                         idsMap.put(eci.getId(), new RelationLink(rfcCi.getCiId(), rfcCi.getRfcId()));
                     } else {
                         existingCis.remove(ci);
@@ -346,9 +346,9 @@ public class SnapshotProcessor {
         existingCis.forEach(this::remove);     // remove remaining CIs that aren't a part of the snapshot
     }
 
-    private CmsRfcCI addCi(String ns, ExportCi eci, List<String> errors) {
+    private CmsRfcCI addCi(String ns, ExportCi eci) {
         CmsRfcCI rfc = newFromExportCiWithoutAttr(ns, eci);
-        processClassAttributes(eci, rfc, rfc.getCiClassName(), errors);
+        processClassAttributes(eci, rfc, rfc.getCiClassName());
         logger.info("adding ci:" + rfc.getCiName() + "@" + rfc.getNsPath());
         return rfcMrgProcessor.upsertCiRfc(rfc, SNAPSHOT_RESTORE);
     }

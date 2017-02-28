@@ -114,7 +114,7 @@ public class ReplayProcessor {
                 if (existingCi != null && existingRfc != null && DELETE.equalsIgnoreCase(existingRfc.getRfcAction())) { // special case get rid of existing RFC delete
                     rfcProcessor.rmRfcCiFromRelease(existingRfc.getRfcId());
                 }
-                RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rfcToReplay, mdProcessor.getClazz(rfcToReplay.getCiClassName()), errors);
+                RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(rfcToReplay, mdProcessor.getClazz(rfcToReplay.getCiClassName()));
             } else if (UPDATE.equalsIgnoreCase(rfcToReplay.getRfcAction()) && existingCi == null && existingRfc == null) {
                 errors.add("Replay inconsistency. Attempt to update missing component.");
             }
@@ -218,7 +218,7 @@ public class ReplayProcessor {
                     rfcProcessor.rmRfcRelationFromRelease(existingRfcRel.getRfcId());
                 }
                 // if action is "add" then bootstrap class definition default attribute value in case replay is for old metadata and there are new required attributes
-                RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(relation, mdProcessor.getRelation(relation.getRelationName()), errors);
+                RfcUtil.bootstrapNewMandatoryAttributesFromMetadataDefaults(relation, mdProcessor.getRelation(relation.getRelationName()));
             } else if (UPDATE.equalsIgnoreCase(relation.getRfcAction()) && existingRel == null && existingRfcRel == null) {
                 errors.add("Replay inconsistency. Attempt to update missing relation.");
             }
