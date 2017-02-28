@@ -65,6 +65,8 @@ when "redhat","centos","fedora","suse"
   end
 when "windows"
 
+  #Download and install only if not already installed, should happen in OS step
+  if !(::Win32::Service.exists?('nagios'))
     cloud_name = node[:workorder][:cloud][:ciName]
     services = node[:workorder][:services]
     if services.has_key?(:mirror)
@@ -101,7 +103,7 @@ when "windows"
       code "C:/Cygwin64/bin/cygrunsrv.exe -I nagios -d Nagios -p /opt/nagios/bin/nagios.exe -a /etc/nagios/nagios.cfg"
       not_if {::Win32::Service.exists?("nagios")}
     end
-	
+  end #if !(::Win32::Service.exists?('nagios'))
 else
   nagios_service = "nagios3"
   package "nagios3-core" do
@@ -157,10 +159,18 @@ end
 
 #Create necessary directories
 dirs = ['/var/lib/nagios3/spool/checkresults','/var/lib/nagios3/rw','/var/log/nagios3/archives','/var/log/nagios3/rw']
-dirs += ['/var/cache/nagios3', '/var/run/nagios3', '/var/run/nagios', 'etc/logrotate.d']
+dirs += ['/var/cache/nagios3', '/var/run/nagios3', '/var/run/nagios', '/etc/logrotate.d']
 dirs.each do |dir_name2|
   directory dir_name2 do
     recursive true
+  end
+end
+
+case node.platform
+when "ubuntu"
+  execute "rm -rf /etc/nagios3" do
+   cwd "/etc/"
+   returns [0,1]
   end
 end
 
@@ -178,7 +188,6 @@ end
 link "#{dir_prefix}/var/log/nagios" do
   to "#{dir_prefix}/var/log/nagios3"
 end
-
 
 # for windows we won't change owners
 if node.platform !~ /windows/

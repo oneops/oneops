@@ -112,3 +112,24 @@ chef-12.11.18:
     -
       - ffi-yajl
       - 2.2.3
+    -
+      - ms_rest
+      - 0.1.1
+    -
+      - ms_rest_azure
+      - 0.1.1
+    -
+      - azure_mgmt_compute
+      - 0.1.1
+    -
+      - azure_mgmt_network
+      - 0.1.1
+    -
+      - azure_mgmt_storage
+      - 0.1.1
+    -
+      - azure_mgmt_resources
+      - 0.1.1
+    -
+      - azure
+      - 0.6.4

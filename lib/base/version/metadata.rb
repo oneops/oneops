@@ -38,3 +38,14 @@ attribute 'commit',
             :category => '1.Global',
             :order    => 3
           }
+
+attribute 'admin_password_digest',
+	  :description => 'Admin Password Digest',
+  	  :default => '',
+	  :format => {
+	    :help => 'Key to be entered while doing pack admin changes',
+	    :filter => {'all' => {'visible' => 'false'}},
+	    :category => '1.Global',
+	    :order => 4
+  	  }
+

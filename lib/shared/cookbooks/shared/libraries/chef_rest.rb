@@ -1,17 +1,23 @@
 require 'net/http'
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
   require 'net/https'
 end
 require 'tempfile'
 require 'uri'
+require 'openssl'
 
 class Chef
   class REST
+    def exit_with_error(msg)
+      puts "***FAULT:FATAL=#{msg}"
+      Chef::Application.fatal!(msg)
+    end
+
     def streaming_request(url, headers, local_path, &block)
       chunk_minimum = 1048576 * 2 # 1 Mb * 2
       num_chunk_max = 10 # maximum of part download in parallel
       headers = probe_url(url)
-      content_length = headers["content-length"][0].to_i
+      content_length = headers.has_key?("content-length") ? headers["content-length"][0].to_i : 0
       accept_ranges = (headers["accept-ranges"].nil? || headers["accept-ranges"].empty?) ? "" : headers["accept-ranges"][0]
       remote_url = headers["location"].nil? ? url : headers["location"][0]
 
@@ -35,8 +41,8 @@ class Chef
       url_path = url.to_s
       uri = URI(url_path)
       ssl = uri.scheme == "https" ? true : false
-      headers_h = nil
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      headers_h, headers = nil
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) { |http|
           url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
           headers = http.head(url_path)
@@ -49,14 +55,14 @@ class Chef
 
         }
       else
-        req = Net::HTTP.new(url.host,url.port)
+        req = Net::HTTP.new(uri.host,uri.port)
         if ssl
           req.use_ssl = true
           req.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
 
         req.start { |http|
-          url_path = !url.query.nil? ? "#{url.path}?#{url.query}" : url.path
+          url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
           headers = http.head(url_path)
           headers_h = headers.to_hash
           if headers.code == "301" || headers.code == "307"
@@ -66,14 +72,15 @@ class Chef
           end
         }
       end
+      exit_with_error "Error Message is: #{headers.message} ... Error Code is: #{headers.code} ... Location is: #{url}" if headers.code.start_with?("4") || headers.code.start_with?("5")
       headers_h
     end
 
     def download_file_single(remote_file, local_file)
-      Chef::Log.debug("Saving file to #{local_file}")
+      Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
+      if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
         url_uri = URI.parse(remote_file.to_s)
       else
         url_uri = URI(remote_file)
@@ -81,7 +88,7 @@ class Chef
       
       ssl = url_uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(url_uri.host, url_uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new url_uri
 
@@ -117,7 +124,7 @@ class Chef
       Chef::Log.info("Remote: #{full_path}")
       Chef::Log.info("Local: #{local_path}")
       Chef::Log.info("Fetching in #{parts.length} parts")
-      Chef::Log.debug("Part details: #{pp parts.inspect}")
+      Chef::Log.info("Part details: #{pp parts.inspect}")
       # todo.. resume mode
       install_gem_output = `gem install parallel -v 1.3.3` #install parallel gem
       require 'parallel'
@@ -142,7 +149,7 @@ class Chef
         if part['end'] != ''
           part_size = (part['slot'] + 1 == parts.length) ? part['size'] : part['size'] + 1
           if size != part_size
-            Chef::Log.debug("slot: #{part['slot']} comparing #{part_size} == #{part['size']}   fize_size = #{size}")
+            Chef::Log.info("slot: #{part['slot']} comparing #{part_size} == #{part['size']}   fize_size = #{size}")
             Chef::Log.warn("File: #{part_file} does not seem to complete its download, please retry and verify")
             failure_flag = true
           end
@@ -187,16 +194,16 @@ class Chef
     end
 
     def download_file(part, remote_file, local_file)
-      Chef::Log.debug("Saving file to #{local_file}")
+      Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file} part: #{part['slot']} [Start: #{part['start']} End: #{part['end']}]")
       uri = URI(remote_file)
 
       ssl = uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) do |http|
-          request = Net::HTTP::Get.new uri
-          Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
+          request = Net::HTTP::Get.new uri.request_uri
+          Chef::Log.info("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
           request.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
 
           http.request request do |response|
@@ -210,7 +217,7 @@ class Chef
       else
         http = Net::HTTP.new(uri.host,uri.port)
         req = Net::HTTP::Get.new(uri.request_uri)
-        Chef::Log.debug("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
+        Chef::Log.info("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
         req.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
         if ssl
           http.use_ssl = true
