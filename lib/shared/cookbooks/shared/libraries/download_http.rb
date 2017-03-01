@@ -4,7 +4,10 @@ require 'fileutils'
 class Chef
   class Provider
     class SharedDownloadHttp < Chef::Provider::RemoteFile
-
+       def exit_with_error(msg)
+        puts "***FAULT:FATAL=#{msg}"
+        Chef::Application.fatal!(msg)
+       end
        def action_create
         Chef::Log.debug("#{@new_resource} checking for changes")
 
@@ -34,17 +37,13 @@ class Chef
                 FileUtils.mv(raw_file.path, @new_resource.path)
                 Chef::Log.info("Downloaded file: #{@new_resource.path}")
               else
-                Chef::Log.error("Checksum of downloaded file: #{raw_checksum} expecting: #{@new_resource.checksum}")
-                exit 1
+                exit_with_error "Checksum of downloaded file: #{raw_checksum} expecting: #{@new_resource.checksum}"
               end
               @new_resource.updated_by_last_action(true)
               # successful download or checksum match
               break
             rescue Exception => e
-              Chef::Log.error("got exception downloading: #{mirror} message:"+e.message)
-              if e.message == "exit"
-                exit 1
-              end
+              exit_with_error "got exception downloading: #{mirror} message: #{e.message}" if e.message == "exit"
             end
           end
         end
