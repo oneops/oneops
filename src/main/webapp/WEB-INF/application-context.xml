@@ -60,7 +60,6 @@
 
 	<bean id="environmentExpProcessor" class="com.oneops.transistor.service.EnvironmentExportProcessor">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
-		<property name="mdProcessor" ref="cmsMdProcessor" />
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />

@@ -6,14 +6,11 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.md.domain.CmsRelation;
-import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.export.domain.*;
@@ -26,7 +23,6 @@ public class EnvironmentExportProcessor {
     private static final String USER_EXPORT = "export";
     private static Logger logger = Logger.getLogger(EnvironmentExportProcessor.class);
     private CmsCmProcessor cmProcessor;
-    private CmsMdProcessor mdProcessor;
     private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
     private CmsRfcProcessor rfcProcessor;
     private TransUtil trUtil;
@@ -61,21 +57,16 @@ public class EnvironmentExportProcessor {
     }
 
 
-    public void setMdProcessor(CmsMdProcessor mdProcessor) {
-        this.mdProcessor = mdProcessor;
-    }
-
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
     }
 
 
-    private DesignExportSimple exportDesign(long ciId, Long[] platformIds, String scope) {
+    private DesignExportSimple exportDesign(long ciId, Long[] platformIds) {
         CmsCI ci = cmProcessor.getCiById(ciId);
         if (ci == null) {
             throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ENV_ID_ERROR_MSG + ciId);
         }
-        trUtil.verifyScope(ci, scope);
         //export platforms
         DesignExportSimple des = new DesignExportSimple();
 
@@ -256,6 +247,8 @@ public class EnvironmentExportProcessor {
         if (env == null) {
             throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ENV_ID_ERROR_MSG + envId);
         }
+        trUtil.verifyScope(env, scope);
+        
         EnvironmentExportSimple exportSimple = new EnvironmentExportSimple();
         exportSimple.setEnvironment(stripAndSimplify(ExportCi.class, env, OWNER_MANIFEST));
         List<CmsCIRelation> clouds = cmProcessor.getFromCIRelations(envId, FLAVOR.getConsumesRelation(), ACCOUNT_CLOUD_CLASS);
@@ -275,7 +268,7 @@ public class EnvironmentExportProcessor {
         exportSimple.setRelays(delivers);
 
 
-        DesignExportSimple design = exportDesign(envId, platformIds, scope);
+        DesignExportSimple design = exportDesign(envId, platformIds);
         exportSimple.setManifest(design);
         return exportSimple;
     }
@@ -294,6 +287,9 @@ public class EnvironmentExportProcessor {
         if (environment == null) {
             throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ENV_ID_ERROR_MSG + environmentId);
         }
+
+        trUtil.verifyScope(environment, scope);
+
 
         String nsPath = environment.getNsPath() + "/" + environment.getCiName();
 
