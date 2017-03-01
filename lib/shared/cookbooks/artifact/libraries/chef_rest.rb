@@ -72,7 +72,7 @@ class Chef
           end
         }
       end
-      exit_with_error "error message: #{headers.message} .. error code: #{headers.code} .. #{url}" if headers.code.start_with?("4") || headers.code.start_with?("5")
+      exit_with_error "error message: #{headers.message} .. error code: #{headers.code} .. #{url}" if headers.code.to_i >= 400
       headers_h
     end
 
