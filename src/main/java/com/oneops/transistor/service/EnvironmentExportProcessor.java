@@ -170,7 +170,7 @@ public class EnvironmentExportProcessor {
                 for (CmsCIRelation scaling : flexes) {
                     eCi.addScaling(scaling.getToCi().getCiClassName(), scaling.getToCi().getCiName(), stripAndSimplify(ExportRelation.class, scaling));
                 }
-                if (isOptional || !isEmpty(eCi.getAttachments()) || !isEmpty(eCi.getMonitors()) || !isEmpty(eCi.getScaling())) {
+                if (isOptional || !isEmpty(eCi.getAttachments()) || !isEmpty(eCi.getMonitors()) || !isEmpty(eCi.getScaling()) || (eCi.getAttributes()!=null && !eCi.getAttributes().isEmpty())) {
                     pe.addComponent(eCi);
                 }
             }
