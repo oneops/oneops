@@ -298,7 +298,7 @@ public class DesignExportProcessor {
 		}
 		for (PlatformExport platformExp : des.getPlatforms()) {
 			
-			CmsRfcCI platformRfc = bootstrapNewWithAttributes(platformExp, designNsPath, designNsPath, new HashSet<>(Collections.singletonList("description")));
+			CmsRfcCI platformRfc = newFromExportCiWithMdAttrs(platformExp, designNsPath, designNsPath, new HashSet<>(Collections.singletonList("description")));
 			List<CmsRfcCI> existingPlatRfcs = cmRfcMrgProcessor.getDfDjCi(designNsPath, platformRfc.getCiClassName(), platformRfc.getCiName(), null);
 			CmsRfcCI designPlatform;
 			if (existingPlatRfcs.size()>0) {
@@ -506,7 +506,7 @@ public class DesignExportProcessor {
 		try {
 			if (existingComponent.size() > 0) {
 				CmsRfcCI existingRfc = existingComponent.get(0);
-				CmsRfcCI component = bootstrapNew(compExpCi);
+				CmsRfcCI component = newFromExportCi(compExpCi);
 				component.setNsPath(platNsPath);
 				component.setRfcId(existingRfc.getRfcId());
 				component.setCiId(existingRfc.getCiId());
@@ -522,7 +522,7 @@ public class DesignExportProcessor {
 				
 				CmsCI template = mgmtComponents.get(0);
 				CmsRfcCI component = designRfcProcessor.popRfcCiFromTemplate(template, "catalog", platNsPath, releaseNsPath);
-				applyExportToExistingRfc(compExpCi, component);
+				applyExportCiToTemplateRfc(compExpCi, component);
 				componentRfc = cmRfcMrgProcessor.upsertCiRfc(component, userId);
 				createRelationFromMgmt(designPlatform, template, componentRfc, null, MGMT_REQUIRES_RELATION, userId);
 				processMgmtDependsOnRels(designPlatform, template, componentRfc, userId);
@@ -592,7 +592,7 @@ public class DesignExportProcessor {
 	}
 	
 	private CmsRfcCI mergeRfcWithExportCi(CmsRfcCI existingRfc, ExportCi exportCi, String releaseNsPath, String userId) {
-		CmsRfcCI rfcCi = bootstrapNew(exportCi);
+		CmsRfcCI rfcCi = newFromExportCi(exportCi);
 		rfcCi.setNsPath(existingRfc.getNsPath());
 		rfcCi.setRfcId(existingRfc.getRfcId());
 		rfcCi.setCiId(existingRfc.getCiId());
@@ -621,7 +621,7 @@ public class DesignExportProcessor {
 	}
 
 	private CmsRfcCI createRfcFromExportCi(CmsRfcCI componentRfc, ExportCi exportCi, String releaseNsPath, String userId) {
-		CmsRfcCI rfc = bootstrapNew(exportCi);
+		CmsRfcCI rfc = newFromExportCi(exportCi);
 		rfc.setNsPath(componentRfc.getNsPath());
 		rfc.setReleaseNsPath(releaseNsPath);
 		return cmRfcMrgProcessor.upsertCiRfc(rfc, userId);
@@ -674,7 +674,7 @@ public class DesignExportProcessor {
 
 				CmsCI tmplMonitor = mgmtComponents.get(0);
 				CmsRfcCI monitorRfc = designRfcProcessor.popRfcCiFromTemplate(tmplMonitor, "catalog", platNsPath, releaseNsPath);
-				applyExportToExistingRfc(monitorExp, monitorRfc);
+				applyExportCiToTemplateRfc(monitorExp, monitorRfc);
 				monitorRfc = cmRfcMrgProcessor.upsertCiRfc(monitorRfc, userId);
 
 				//create watchedBy relation from mgmt relation
@@ -774,19 +774,19 @@ public class DesignExportProcessor {
 	}
     
 
-	private CmsRfcCI bootstrapNew(ExportCi compExpCi) {
+	private CmsRfcCI newFromExportCi(ExportCi compExpCi) {
 		CmsRfcCI newRfc = new CmsRfcCI();
-		applyExportToExistingRfc(compExpCi, newRfc);
+		applyExportCiToTemplateRfc(compExpCi, newRfc);
         return newRfc;
 	}
 
-	private CmsRfcCI bootstrapNewWithAttributes(ExportCi eCi, String nsPath, String releaseNsPath, Set<String> attrsToBootstrap) {
+	private CmsRfcCI newFromExportCiWithMdAttrs(ExportCi eCi, String nsPath, String releaseNsPath, Set<String> attrsToBootstrap) {
 		CmsRfcCI rfc = trUtil.bootstrapRfc(eCi.getName(), eCi.getType(), nsPath, releaseNsPath, attrsToBootstrap);
-		applyExportToExistingRfc(eCi, rfc);
+		applyExportCiToTemplateRfc(eCi, rfc);
 		return rfc;
 	}
 
-	private void applyExportToExistingRfc(ExportCi eCi, CmsRfcCI rfc) {
+	private void applyExportCiToTemplateRfc(ExportCi eCi, CmsRfcCI rfc) {
 		RfcUtil.bootstrapRfc(rfc, eCi.getName(), eCi.getType(), eCi.getAttributes(), OWNER_DESIGN);
 	}
 
