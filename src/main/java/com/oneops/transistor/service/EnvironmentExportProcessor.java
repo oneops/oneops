@@ -35,7 +35,7 @@ public class EnvironmentExportProcessor {
     private static final String IMPORT_ERROR_PLAT_COMP_ATTACH = "Platform/Component/Attachment/Monitor - ";
 
     private static final String ACCOUNT_CLOUD_CLASS = "account.Cloud";
-    private static final String DESIGN_MONITOR_CLASS = "catalog.Monitor";
+    private static final String MONITOR_CLASS = "manifest.Monitor";
 
     private static final String OWNER_MANIFEST = "manifest";
     private static final String ATTR_SECURE = "secure";
@@ -636,7 +636,7 @@ public class EnvironmentExportProcessor {
         if (monitors != null) {
             for (ExportCi monitorExp : compExpCi.getMonitors()) {
                 try {
-                    List<CmsRfcCI> existingMonitors = cmRfcMrgProcessor.getDfDjCiNakedLower(componentRfc.getNsPath(), DESIGN_MONITOR_CLASS, monitorExp.getName(), null);
+                    List<CmsRfcCI> existingMonitors = cmRfcMrgProcessor.getDfDjCiNakedLower(componentRfc.getNsPath(), MONITOR_CLASS, monitorExp.getName(), null);
                     if (!existingMonitors.isEmpty()) {
                         CmsRfcCI rfcCI = mergeRfcWithExportCi(existingMonitors.get(0), monitorExp, releaseNsPath);
                         cmRfcMrgProcessor.upsertCiRfc(rfcCI, userId);
