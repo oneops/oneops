@@ -44,6 +44,8 @@ public interface CmsManager {
 	List<CmsCIRelationAttribute> getCIRelationAttributes(long relId);
 	void flushCache();
 	CmsStuckDpmtCollection getStuckDpmts();
+	List<CmsCI> getPendingDeletePackCIs();
+	List<CmsCIRelation> getPendingDeletePackRelations();
 //	List<CmsStuckDpmt> getInProgressStuckDpmts();
 //	List<CmsStuckDpmt> getPausedStuckDpmts();
 	

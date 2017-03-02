@@ -34,7 +34,7 @@
     </bean>
 
     <tx:annotation-driven />
-	
+
 	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
 		<property name="dataSource" ref="oneopsCMSDS" />
 		<property name="configLocation" value="/WEB-INF/mybatis-config.xml" /> 
@@ -70,7 +70,26 @@
         <property name="relationMapper" ref="relationMapper" />
         <property name="ciMapper" ref="ciMapper" />
         <property name="utilMapper" ref="utilMapper" />
+        <property name="cmProcessor" ref="cmsCmProcessor" />
     </bean>
 
+	 <bean id="cmsCmProcessor" class="com.oneops.cms.cm.service.CmsCmProcessor">
+        <property name="ciMapper" ref="ciMapper"/>
+        <property name="utilMapper" ref="utilMapper"/>
+        <property name="mdProcessor" ref="cmsMdProcessor"/>
+    </bean>
+
+    <bean id="cmsMdProcessor" class="com.oneops.cms.md.service.CmsMdProcessor">
+        <property name="clazzMapper" ref="clazzMapper"/>
+        <property name="relationMapper" ref="relationMapper"/>
+        <property name="mdValidator" ref="cmsMdValidator"/>
+        <property name="cacheEnabled" value="${MD_CACHE_ENABLED:true}"/>
+    </bean>
+
+    <bean id="cmsMdValidator" class="com.oneops.cms.util.CmsMdValidator"/>
+
+    <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">
+        <property name="cmProcessor" ref="cmsCmProcessor"/>
+    </bean>
 
 </beans>
