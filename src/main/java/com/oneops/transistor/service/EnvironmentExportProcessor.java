@@ -67,13 +67,11 @@ public class EnvironmentExportProcessor {
         if (ci == null) {
             throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ENV_ID_ERROR_MSG + ciId);
         }
-        //export platforms
         DesignExportSimple des = new DesignExportSimple();
 
         List<CmsCIRelation> composedOfs;
         if (platformIds == null || platformIds.length == 0) {
-            //get the global vars
-            List<CmsCIRelation> globalVarRels = cmProcessor.getToCIRelations(ciId, FLAVOR.getGlobalVarRelation(), FLAVOR.getGlobalVarClass());
+            List<CmsCIRelation> globalVarRels = cmProcessor.getToCIRelations(ciId, FLAVOR.getGlobalVarRelation(), FLAVOR.getGlobalVarClass());     //get the global vars
             for (CmsCIRelation gvRel : globalVarRels) {
                 des.addVariable(gvRel.getFromCi().getCiName(), checkVar4Export(gvRel.getFromCi(), false));
             }
@@ -84,24 +82,16 @@ public class EnvironmentExportProcessor {
 
         for (CmsCIRelation composedOf : composedOfs) {
             CmsCI platform = composedOf.getToCi();
-
-            //export platform ci
-            PlatformExport pe = stripAndSimplify(PlatformExport.class, platform, FLAVOR.getOwner());
-
-
+            PlatformExport pe = stripAndSimplify(PlatformExport.class, platform, FLAVOR.getOwner()); 
+            des.addPlatformExport(pe); //export platform ci
+            
             //local vars
             List<CmsCIRelation> localVarRels = cmProcessor.getToCIRelations(platform.getCiId(), FLAVOR.getLocalVarRelation(), FLAVOR.getLocalVarClass());
-
             for (CmsCIRelation lvRel : localVarRels) {
                 pe.addVariable(lvRel.getFromCi().getCiName(), checkVar4Export(lvRel.getFromCi(), true));
             }
-
-            //components
-            addComponentsToPlatformExport(platform, pe);
-
-
-            addConsumesRelation(platform, pe);
-            des.addPlatformExport(pe);
+            addComponents(platform, pe);
+            addConsumesRelations(platform, pe);
         }
         return des;
     }
@@ -121,7 +111,7 @@ public class EnvironmentExportProcessor {
         }
     }
 
-    private void addConsumesRelation(CmsCI platform, PlatformExport pe) {
+    private void addConsumesRelations(CmsCI platform, PlatformExport pe) {
         List<CmsCIRelation> requiresRels = cmProcessor.getFromCIRelations(platform.getCiId(), FLAVOR.getConsumesRelation(), null);
         for (CmsCIRelation requires : requiresRels) {
             pe.addConsume(stripAndSimplify(ExportRelation.class, requires));
@@ -129,7 +119,7 @@ public class EnvironmentExportProcessor {
     }
 
 
-    private void addComponentsToPlatformExport(CmsCI platform, PlatformExport pe) {
+    private void addComponents(CmsCI platform, PlatformExport pe) {
         List<CmsCIRelation> requiresRels = cmProcessor.getFromCIRelations(platform.getCiId(), FLAVOR.getRequiresRelation(), null);
         for (CmsCIRelation requires : requiresRels) {
             CmsCI component = requires.getToCi();
@@ -287,9 +277,7 @@ public class EnvironmentExportProcessor {
         if (environment == null) {
             throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ENV_ID_ERROR_MSG + environmentId);
         }
-
         trUtil.verifyScope(environment, scope);
-
 
         String nsPath = environment.getNsPath() + "/" + environment.getCiName();
 
@@ -297,25 +285,27 @@ public class EnvironmentExportProcessor {
         if (openReleases.size() > 0) {
             throw new DesignExportException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
         }
-        // update environment attributes
-        updateCi(environment, ees.getEnvironment());
-        // consumes. Only update existing, ignore missing and extra
-        List<ExportRelation> consumes = ees.getConsumes();
+        updateCi(environment, ees.getEnvironment());  // update environment attributes
+        
+        
+        // consumes (Clouds)
         Map<String, CmsCIRelation> map = cmProcessor.getFromCIRelations(environmentId, FLAVOR.getConsumesRelation(), ACCOUNT_CLOUD_CLASS).stream().collect(Collectors.toMap(x -> x.getToCi().getCiName(), x -> x));
-        for (ExportRelation cloudRel : consumes) {
+        for (ExportRelation cloudRel : ees.getConsumes()) {  // consumes
             CmsCIRelation rel = map.remove(cloudRel.getName());
-            if (rel == null) { // need to add link to a cloud
-                logger.warn("There is no cloud:" + cloudRel.getName()); // this is error cloud doesn't exist 
-            } else {
+            if (rel != null) {
                 updateRelation(rel, cloudRel.getAttributes(), userId);
+            } else {
+                logger.warn("There is no cloud:" + cloudRel.getName()); // this is error cloud doesn't exist 
             }
+        }
+        if (map.size()>0) {
+            logger.warn("Environment has "+map.size()+" extra clouds that aren't a part of export");
         }
 
 
-        // relays
-        List<ExportCi> delivers = ees.getRelays();
+        // delivers (Relays)
         Map<String, CmsCIRelation> map1 = cmProcessor.getFromCIRelations(environmentId, "manifest.Delivers", "manifest.relay.email.Relay").stream().collect(Collectors.toMap(x -> x.getToCi().getCiName(), x -> x));
-        for (ExportCi deliver : delivers) {
+        for (ExportCi deliver : ees.getRelays()) {
             CmsCIRelation del = map1.remove(deliver.getName());
             if (del == null) {
                 addCi(nsPath, deliver);
