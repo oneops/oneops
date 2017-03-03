@@ -31,6 +31,7 @@ import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
@@ -229,11 +230,9 @@ public class CmsRfcProcessor {
 	 * @return the cms release
 	 */
 	public CmsRelease createRelease(CmsRelease release) {
-		
-		List<CmsRelease> existingReleases = getReleaseBy3(release.getNsPath(), null, "open");
-		if (existingReleases.size() > 0) {
-			return existingReleases.get(0);
-		}
+		CmsRelease openRelease = getOpenRelease(release);
+		if (openRelease != null)
+			return openRelease;
 		
 		long releaseId = djMapper.getNextDjId();
 		release.setReleaseId(releaseId);
@@ -258,9 +257,23 @@ public class CmsRfcProcessor {
 		
 		release.setReleaseName(release.getNsPath() + String.valueOf(releaseId));
 		
-		djMapper.createRelease(release);
+		try {
+			djMapper.createRelease(release);
+			openRelease = djMapper.getReleaseById(releaseId);
+		} catch (DuplicateKeyException e) {
+			logger.error("release record already exists, probably created by a concurrent transaction, ignoring DuplicateKeyException ", e);
+			openRelease = getOpenRelease(release);
+		}
 		
-		return djMapper.getReleaseById(releaseId);
+		return openRelease;
+	}
+
+	private CmsRelease getOpenRelease(CmsRelease release) {
+		List<CmsRelease> existingReleases = getReleaseBy3(release.getNsPath(), null, "open");
+		if (existingReleases.size() > 0) {
+			return existingReleases.get(0);
+		}
+		return null;
 	}
 
 	/**
