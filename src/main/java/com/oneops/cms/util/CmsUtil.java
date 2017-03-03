@@ -379,7 +379,7 @@ public class CmsUtil {
             }
         }
         if (includeAltNs!=null && includeAltNs.length()>0) {
-            List<CmsAltNs> altNsList = cmProcessor.getAltNsBy(ci.getCiId());
+            List<CmsAltNs> altNsList = cmProcessor.getAltNsByCiAndTag(ci.getCiId(), null);
             for (CmsAltNs altNs: altNsList){
                 if (includeAltNs.equalsIgnoreCase("*") || includeAltNs.equalsIgnoreCase(altNs.getTag())){
                     ciSimple.addAltNs(altNs.getTag(), altNs.getNsPath());
