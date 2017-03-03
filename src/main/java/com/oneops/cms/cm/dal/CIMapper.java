@@ -142,5 +142,6 @@ public interface CIMapper {
 										   @Param("altNs") String altNsPath,
 										   @Param("tag") String tag);
 
-	List<CmsAltNs> getAltNsBy(@Param("ciId") long ciCI);
+	List<CmsAltNs> getAltNsByCiAndTag(@Param("ciId") long ciId, @Param("tag") String tag);
+	List<CmsCI> getAltNsCisByTagClassNs(@Param("tag") String tag, @Param("className") String className, @Param("nsPath") String nsPath);
 }
