@@ -878,14 +878,6 @@ public class CmRestController extends AbstractRestController {
 		return  cmManager.getAltNsByCiAndTag(ciId, tag);
 	}
 
-	@RequestMapping(method = RequestMethod.GET, value = "/cm/simple/altNs/tags/{tag}")
-	@ResponseBody
-	public List<CmsCI> getAltNsCisByTag(@PathVariable String tag,
-									@RequestParam(value="ciClassName", required = false) String className,
-									@RequestParam(value = "altNsPath", required = false) String nsPath) throws DJException {
-		return cmManager.getCisByTagClassNs(tag, className, nsPath);
-	}
-
 	@RequestMapping(method = RequestMethod.DELETE, value = "/cm/simple/ci/{ciId}/ns/{nsId}/altNs")
 	@ResponseBody
 	public String getCiTags(@PathVariable long ciId, @PathVariable long nsId, 
