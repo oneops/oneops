@@ -1446,25 +1446,4 @@
 		and cno.ci_id = #{ciId}
 		and (#{tag}::varchar is null or nt.tag = #{tag})
 	</select>
-
-	<select  id="getAltNsCisByTagClassNs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCI">
-		SELECT 
-		ci.ci_id as ciId,
-		ci.class_id as ciClassId,
-		ci_ns.ns_path as nsPath,
-		ci.ci_name as ciName,
-		ci.ns_id as nsId,
-		md_class.class_name as ciClassName,
-		ci.ci_state_id as ciStateId
-		FROM ns_namespaces alt_ns, cm_ns_opt cno, ns_opt_tag nt, md_classes md_class, cm_ci ci, ns_namespaces ci_ns
-		where alt_ns.ns_id = cno.ns_id
-		and nt.tag_id = cno.tag_id
-		and ci.ci_id = cno.ci_id
-		and md_class.class_id = ci.class_id
-		and ci.ns_id = ci_ns.ns_id
-		and (#{nsPath}::varchar is null or alt_ns.ns_path = #{nsPath})
-		and (#{tag}::varchar is null or nt.tag = #{tag})
-		and (#{className}::varchar is null or md_class.class_name = #{className})
-	</select>
-
 </mapper>
