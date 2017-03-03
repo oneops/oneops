@@ -131,13 +131,16 @@ public interface CIMapper {
 
 	long deleteAltNs(@Param("nsId")long nsId, @Param("ciId")long ciId);
 
-	List<CmsCI> getCmCIByAltNsAndTag(@Param("ns") String path, @Param("clazzName") String clazzName,
+	List<CmsCI> getCmCIByAltNsAndTag(@Param("ns") String path, 
+                                     @Param("clazzName") String clazzName,
 									 @Param("shortClazz") String shortName,
 									 @Param("altNs") String altNsPath,
 									 @Param("tag") String tag);
 
 
-	List<CmsCI> getCmCIByAltNsAndTagNsLike(@Param("nsLike") String nsLike, @Param("ns") String path, @Param("clazzName") String clazzName,
+	List<CmsCI> getCmCIByAltNsAndTagNsLike(@Param("nsLike") String nsLike, 
+                                           @Param("ns") String ns, 
+                                           @Param("clazzName") String clazzName,
 										   @Param("shortClazz") String shortName,
 										   @Param("altNs") String altNsPath,
 										   @Param("tag") String tag);
