@@ -337,7 +337,7 @@ public class CMSClient {
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
-                if (dpmt.getContinueOnFailure()) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
+                if (dpmt.getContinueOnFailure() && !isDeleteWO(wo.getRfcCi().getRfcAction())) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
@@ -357,13 +357,17 @@ public class CMSClient {
         }
     }
 
+    private boolean isDeleteWO(String rfcAction) {
+        return "delete".equalsIgnoreCase(rfcAction);
+    }
+
     private void failAllManagedViaWorkOrders(CmsWorkOrderSimple wo) {
         try {
             List<CmsRfcCI> cis = cmsWoProvider.getRfcCIRelatives(wo.getRfcCi().getCiId(), "bom.ManagedVia", "to", null, "df");
             List<Long> list = cis.stream().map(CmsRfcCI::getRfcId).collect(Collectors.toList());
             List<CmsWorkOrder> pendingWos = cmsWoProvider.getWorkOrderIds(wo.getDeploymentId(), PENDING, null, null);
             for (CmsWorkOrder pendingWo : pendingWos) {
-                if (list.contains(pendingWo.getRfcId())) {
+                if (list.contains(pendingWo.getRfcId()) && !isDeleteWO(pendingWo.getRfcCi().getRfcAction())) {
                     pendingWo.setDpmtRecordState(FAILED);
                     CmsDpmtRecord pendingDpmtRec = new CmsDpmtRecord();
                     pendingDpmtRec.setDpmtRecordId(pendingWo.getDpmtRecordId());
