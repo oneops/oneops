@@ -18,8 +18,7 @@
 package com.oneops.cms.simple.domain;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.oneops.cms.cm.domain.CmsCIBasic;
 
@@ -33,6 +32,7 @@ public class CmsCISimple extends CmsCIBasic implements Serializable {
 	private long nsId;
 	private Map<String,String> ciAttributes = new HashMap<>();
 	private Map<String,Map<String,String>> attrProps = new HashMap<>();
+	private Map<String,Set<String>> altNs = new HashMap<>();
 	
 	
 	/**
@@ -94,7 +94,15 @@ public class CmsCISimple extends CmsCIBasic implements Serializable {
 	public void setAttrProps(Map<String, Map<String, String>> attrProps) {
 		this.attrProps = attrProps;
 	}
-	
+
+
+	/**
+	 * @return the altNs
+	 */
+	public Map<String, Set<String>> getAltNs() {
+		return altNs;
+	}
+
 	/**
 	 * 
 	 */
@@ -114,4 +122,24 @@ public class CmsCISimple extends CmsCIBasic implements Serializable {
 		}
 	}
 
+
+	/**
+	 * @param altNs map to set
+	 */
+	public void setAltNs(Map<String, Set<String>> altNs) {
+		this.altNs = altNs;
+	}
+
+	/**
+	 * Adds the CI attribute property.
+	 *
+	 * @param tag tag name
+	 *  @param altNsPath alternative ns
+	 */
+	public void addAltNs(String tag, String altNsPath) {
+		altNs.computeIfAbsent(tag, k -> new HashSet<>());
+		if (altNsPath != null) {
+			altNs.get(tag).add(altNsPath);
+		}
+	}
 }

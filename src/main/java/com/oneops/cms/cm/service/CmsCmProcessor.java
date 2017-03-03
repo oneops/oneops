@@ -2073,12 +2073,24 @@ public class CmsCmProcessor {
 		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ci.getCiId());
 	}
 
-	public List<CmsAltNs> getAltNsBy(long rfcCI){
-		return ciMapper.getAltNsBy(rfcCI);
+	public List<CmsAltNs> getAltNsBy(long ciId){
+		return ciMapper.getAltNsBy(ciId);
 	}
 
-	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag) {
-		return ciMapper.getCmCIByAltNsAndTag(nsPath, tag);
+	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath,
+											String clazzName,
+											String altNsPath, String tag,
+											boolean recursive) {
+
+		
+
+		CiClassNames names = parseClassName(clazzName);
+		if (recursive) {
+			String nsLike = CmsUtil.likefyNsPath(nsPath);
+			return ciMapper.getCmCIByAltNsAndTagNsLike(nsLike, nsPath, names.className, names.shortClassName, altNsPath, tag);
+		} else {
+			return ciMapper.getCmCIByAltNsAndTag(nsPath, names.className, names.shortClassName, altNsPath, tag);
+		}
 	}
 
 	public void deleteAltNs(long nsId, long ciId) {
