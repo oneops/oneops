@@ -524,8 +524,4 @@ public class CmsCmManagerImpl implements CmsCmManager {
 		return cmProcessor.getCmCIByAltNsAndTag(nsPath, clazzName, altNsPath, tag, recursive);
 	}
 
-	@Override
-	public List<CmsCI> getCisByTagClassNs(String tag, String className, String nsPath) {
-		return cmProcessor.getAltNsCisByTagClassNs(tag, className, nsPath);
-	}
 }

@@ -94,5 +94,4 @@ public interface CmsCmManager {
                                      String altNsPath, String tag,
                                      boolean recursive);
 	List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag);
-	List<CmsCI> getCisByTagClassNs(String tag, String className, String nsPath);
 }

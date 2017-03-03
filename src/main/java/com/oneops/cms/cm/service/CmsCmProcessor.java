@@ -2096,10 +2096,4 @@ public class CmsCmProcessor {
 	public void deleteAltNs(long nsId, long ciId) {
 		ciMapper.deleteAltNs(nsId, ciId);
 	}
-
-	public List<CmsCI> getAltNsCisByTagClassNs(String tag, String className, String nsPath) {
-		List<CmsCI> cis = ciMapper.getAltNsCisByTagClassNs(tag, className, nsPath);
-		populateAttrs(cis);
-		return cis;
-	}
 }
