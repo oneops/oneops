@@ -2073,8 +2073,8 @@ public class CmsCmProcessor {
 		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ci.getCiId());
 	}
 
-	public List<CmsAltNs> getAltNsBy(long ciId){
-		return ciMapper.getAltNsBy(ciId);
+	public List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag) {
+        return ciMapper.getAltNsByCiAndTag(ciId, tag);
 	}
 
 	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath,
@@ -2097,5 +2097,9 @@ public class CmsCmProcessor {
 		ciMapper.deleteAltNs(nsId, ciId);
 	}
 
-
+	public List<CmsCI> getAltNsCisByTagClassNs(String tag, String className, String nsPath) {
+		List<CmsCI> cis = ciMapper.getAltNsCisByTagClassNs(tag, className, nsPath);
+		populateAttrs(cis);
+		return cis;
+	}
 }
