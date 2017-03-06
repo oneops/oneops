@@ -172,6 +172,7 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="value", required = false) String valueType,
 			@RequestParam(value="getEncrypted", required = false) String getEncrypted,
 			@RequestParam(value="attrProps", required = false) String attrProps,
+			@RequestParam(value="includeAltNs", required = false)  String includeAltNs,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
 		
 		CmsCI ci = cmManager.getCiById(ciId);
@@ -181,7 +182,7 @@ public class CmRestController extends AbstractRestController {
 
 		scopeVerifier.verifyScope(scope, ci);
 
-		return cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null);
+		return cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null, includeAltNs);
 	}
 
 	@RequestMapping(value="/cm/simple/cis/{ciId}/states", method = RequestMethod.GET)
@@ -295,8 +296,9 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="attr", required = false)  String[] attrs,
 			@RequestParam(value="ids", required = false)  String ids,
 			@RequestParam(value="value", required = false)  String valueType,
+			@RequestParam(value="includeAltNs", required = false)  String includeAltNs,
 			@RequestParam(value="altNs", required = false)  String altNs,
-			@RequestParam(value="tag", required = false)  String tag,
+			@RequestParam(value="altNsTag", required = false)  String altNsTag,
 			@RequestParam(value="recursive", required = false)  Boolean recursive,
 			@RequestParam(value="getEncrypted", required = false) String getEncrypted,
 			@RequestParam(value="attrProps", required = false) String attrProps,
@@ -315,14 +317,15 @@ public class CmRestController extends AbstractRestController {
 	        }
 			ciSimpleList = new ArrayList<>();
 			for (CmsCI ci : cmManager.getCiByIdList(ciIds)) {
-				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null));
+				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null, includeAltNs));
 			}
 	        
 		} else {
 		
 			List<CmsCI> ciList;
-			if (altNs!=null || tag!=null){
-				ciList = cmManager.getCmCIByAltNsAndTag(altNs, tag);
+			if (altNs!=null || altNsTag!=null){
+				boolean nsRecursive = recursive != null;
+				ciList = cmManager.getCmCIByAltNsAndTag(nsPath, clazzName, altNs, altNsTag, nsRecursive);
 			} else if (recursive != null && recursive) {
 				ciList = cmManager.getCiBy3NsLike(nsPath, clazzName, ciName);
 			} else {	
@@ -330,7 +333,7 @@ public class CmRestController extends AbstractRestController {
 			}	
 			ciSimpleList = new ArrayList<>();
 			for (CmsCI ci : ciList) {
-				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null));
+				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null, includeAltNs));
 			}
 		}
 		
@@ -873,14 +876,6 @@ public class CmRestController extends AbstractRestController {
 			scopeVerifier.verifyScope(scope, baseCi);
 		}
 		return  cmManager.getAltNsByCiAndTag(ciId, tag);
-	}
-
-	@RequestMapping(method = RequestMethod.GET, value = "/cm/simple/altNs/tags/{tag}")
-	@ResponseBody
-	public List<CmsCI> getAltNsCisByTag(@PathVariable String tag,
-									@RequestParam(value="ciClassName", required = false) String className,
-									@RequestParam(value = "altNsPath", required = false) String nsPath) throws DJException {
-		return cmManager.getCisByTagClassNs(tag, className, nsPath);
 	}
 
 	@RequestMapping(method = RequestMethod.DELETE, value = "/cm/simple/ci/{ciId}/ns/{nsId}/altNs")
