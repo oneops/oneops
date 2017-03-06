@@ -337,7 +337,7 @@ public class CMSClient {
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
-                if (dpmt.getContinueOnFailure() && !isDeleteWO(wo.getRfcCi().getRfcAction())) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
+                if (dpmt.getContinueOnFailure() && !isDeleteWO(wo.getRfcCi().getRfcAction())) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck. We can't continue on failure however, if current order is delete RFC to prevent orphan instances. 
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
