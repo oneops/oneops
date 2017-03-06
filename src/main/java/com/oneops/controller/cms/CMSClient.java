@@ -337,7 +337,7 @@ public class CMSClient {
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
-                if (dpmt.getContinueOnFailure()) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck
+                if (dpmt.getContinueOnFailure() && !isDeleteWO(wo)) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck. We can't continue on failure however, if current order is delete RFC to prevent orphan instances. 
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
@@ -355,6 +355,10 @@ public class CMSClient {
             }
             logger.info("Client: put:update record id " + wo.getDpmtRecordId() + " to state " + newState);
         }
+    }
+
+    private boolean isDeleteWO(CmsWorkOrderSimple wo) {
+        return wo.getRfcCi()!=null && "delete".equalsIgnoreCase(wo.getRfcCi().getRfcAction());
     }
 
     private void failAllManagedViaWorkOrders(CmsWorkOrderSimple wo) {
