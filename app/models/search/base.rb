@@ -15,13 +15,16 @@ class Search::Base < ActiveResource::Base
     size         = options.delete(:size) || 9999
     from         = options.delete(:from) || 0
     sort         = options.delete(:sort) || []
-    query_string = options.delete(:query)
-    query        = build_common_query(options, options.delete(:nsPath))
-
-    query << {:query_string => query_string.is_a?(Hash) ? query_string : {:query => query_string}} if query_string.present?
+    as_is_query  = options.delete(:_query)
+    if as_is_query.blank?
+      query_string = options.delete(:query)
+      query        = build_common_query(options, options.delete(:nsPath))
+      query << {:query_string => query_string.is_a?(Hash) ? query_string : {:query => query_string}} if query_string.present?
+      as_is_query = {:bool => {:must => query}}
+    end
 
     search_params = {
-      :query => {:bool => {:must => query}},
+      :query => as_is_query,
       :sort  => sort,
       :size  => size,
       :from  => from
