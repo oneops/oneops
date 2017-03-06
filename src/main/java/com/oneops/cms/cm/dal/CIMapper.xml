@@ -1372,7 +1372,37 @@
 		{call cm_delete_alt_namespace(#{nsId}, #{ciId})}
 	</delete>
 
-
+	<select id="getCmCIByAltNsAndTagNsLike" parameterType="map" useCache="false" resultType="com.oneops.cms.cm.domain.CmsCI">
+		select
+		ci.ci_id as ciId,
+		ci.ci_name as ciName,
+		ci.class_id as ciClassId,
+		cl.class_name as ciClassName,
+		cl.impl as impl,
+		ci.ns_id as nsId,
+		ns.ns_path as nsPath,
+		ci.ci_goid as ciGoid,
+		ci.comments,
+		ci.ci_state_id as ciStateId,
+		st.state_name as ciState,
+		ci.last_applied_rfc_id as lastAppliedRfcId,
+		ci.created_by as createdBy,
+		ci.updated_by as updatedBy,
+		ci.created,
+		ci.updated
+		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+		and (#{clazzName}::varchar is null or cl.class_name = #{clazzName})
+		and (#{shortClazz}::varchar is null or cl.short_class_name = #{shortClazz})
+		and cno.ci_id = ci.ci_id
+		and ci.class_id = cl.class_id
+		and ci.ns_id = ns.ns_id
+		and ns1.ns_id = cno.ns_id
+		and nt.tag_id = cno.tag_id
+		and (#{tag}::varchar is null or nt.tag = #{tag})
+		and (#{altNs}::varchar is null or ns1.ns_path = #{altNs})
+		and ci.ci_state_id = st.ci_state_id
+	</select>
 
 	<select id="getCmCIByAltNsAndTag" parameterType="map" useCache="false" resultType="com.oneops.cms.cm.domain.CmsCI">
 	    select
@@ -1393,13 +1423,16 @@
 			ci.created,
 			ci.updated
 		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
-		where cno.ci_id = ci.ci_id
+		where (#{ns}::varchar is null or ns.ns_path = #{ns})
+			and (#{clazzName}::varchar is null or cl.class_name = #{clazzName})
+			and (#{shortClazz}::varchar is null or cl.short_class_name = #{shortClazz})
+			and cno.ci_id = ci.ci_id
 			and ci.class_id = cl.class_id
 			and ci.ns_id = ns.ns_id
 			and ns1.ns_id = cno.ns_id
 			and nt.tag_id = cno.tag_id
 			and (#{tag}::varchar is null or nt.tag = #{tag})
-			and (#{nsPath}::varchar is null or ns1.ns_path = #{nsPath})
+			and (#{altNs}::varchar is null or ns1.ns_path = #{altNs})
 			and ci.ci_state_id = st.ci_state_id
 	</select>
 
@@ -1413,25 +1446,4 @@
 		and cno.ci_id = #{ciId}
 		and (#{tag}::varchar is null or nt.tag = #{tag})
 	</select>
-
-	<select  id="getAltNsCisByTagClassNs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCI">
-		SELECT 
-		ci.ci_id as ciId,
-		ci.class_id as ciClassId,
-		ci_ns.ns_path as nsPath,
-		ci.ci_name as ciName,
-		ci.ns_id as nsId,
-		md_class.class_name as ciClassName,
-		ci.ci_state_id as ciStateId
-		FROM ns_namespaces alt_ns, cm_ns_opt cno, ns_opt_tag nt, md_classes md_class, cm_ci ci, ns_namespaces ci_ns
-		where alt_ns.ns_id = cno.ns_id
-		and nt.tag_id = cno.tag_id
-		and ci.ci_id = cno.ci_id
-		and md_class.class_id = ci.class_id
-		and ci.ns_id = ci_ns.ns_id
-		and (#{nsPath}::varchar is null or alt_ns.ns_path = #{nsPath})
-		and (#{tag}::varchar is null or nt.tag = #{tag})
-		and (#{className}::varchar is null or md_class.class_name = #{className})
-	</select>
-
 </mapper>

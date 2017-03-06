@@ -18,10 +18,7 @@
 package com.oneops.cms.util;
 
 
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
@@ -318,14 +315,14 @@ public class CmsUtil {
     }
 
     public CmsCISimple custCI2CISimple(CmsCI ci, String valueType, boolean getEncrypted) {
-        return custCI2CISimple(ci, valueType, null, getEncrypted);
+        return custCI2CISimple(ci, valueType, null, getEncrypted, null);
     }
 
-    public CmsCISimple custCI2CISimple(CmsCI ci, String valueType, String attrProps, boolean getEncrypted) {
+    public CmsCISimple custCI2CISimple(CmsCI ci, String valueType, String attrProps, boolean getEncrypted, String includeAltNs) {
         if (attrProps != null) {
-            return custCI2CISimpleLocal(ci, valueType, attrProps.split(","), getEncrypted);
+            return custCI2CISimpleLocal(ci, valueType, attrProps.split(","), getEncrypted, includeAltNs);
         } else {
-            return custCI2CISimpleLocal(ci, valueType, null, getEncrypted);
+            return custCI2CISimpleLocal(ci, valueType, null, getEncrypted, includeAltNs);
         }
 
     }
@@ -338,7 +335,7 @@ public class CmsUtil {
      * @param getEncrypted the get encrypted
      * @return the cms ci simple
      */
-    private CmsCISimple custCI2CISimpleLocal(CmsCI ci, String valueType, String[] attrProps, boolean getEncrypted) {
+    private CmsCISimple custCI2CISimpleLocal(CmsCI ci, String valueType, String[] attrProps, boolean getEncrypted, String includeAltNs) {
         if (ci == null) {
             return null;
         }
@@ -381,7 +378,14 @@ public class CmsUtil {
                 }
             }
         }
-
+        if (includeAltNs!=null && includeAltNs.length()>0) {
+            List<CmsAltNs> altNsList = cmProcessor.getAltNsByCiAndTag(ci.getCiId(), null);
+            for (CmsAltNs altNs: altNsList){
+                if (includeAltNs.equalsIgnoreCase("*") || includeAltNs.equalsIgnoreCase(altNs.getTag())){
+                    ciSimple.addAltNs(altNs.getTag(), altNs.getNsPath());
+                }
+            }
+        }
         return ciSimple;
     }
 

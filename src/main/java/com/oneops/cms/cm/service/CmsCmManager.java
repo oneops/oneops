@@ -88,7 +88,10 @@ public interface CmsCmManager {
 
     void createAltNs(CmsAltNs cmsAltNs, CmsCI ci);
     void deleteAltNs(long nsId, long ciId);
+
+    List<CmsCI> getCmCIByAltNsAndTag(String nsPath,
+                                     String clazzName,
+                                     String altNsPath, String tag,
+                                     boolean recursive);
 	List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag);
-	List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag);
-	List<CmsCI> getCisByTagClassNs(String tag, String className, String nsPath);
 }

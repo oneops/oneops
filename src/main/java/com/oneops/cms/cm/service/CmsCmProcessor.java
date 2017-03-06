@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.ns.service.CmsNsProcessor;
-
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -2074,21 +2073,27 @@ public class CmsCmProcessor {
 		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ci.getCiId());
 	}
 
-	public List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag){
-		return ciMapper.getAltNsByCiAndTag(ciId, tag);
+	public List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag) {
+        return ciMapper.getAltNsByCiAndTag(ciId, tag);
 	}
 
-	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath, String tag) {
-		return ciMapper.getCmCIByAltNsAndTag(nsPath, tag);
+	public List<CmsCI> getCmCIByAltNsAndTag(String nsPath,
+											String clazzName,
+											String altNsPath, String tag,
+											boolean recursive) {
+
+		
+
+		CiClassNames names = parseClassName(clazzName);
+		if (recursive) {
+			String nsLike = CmsUtil.likefyNsPath(nsPath);
+			return ciMapper.getCmCIByAltNsAndTagNsLike(nsLike, nsPath, names.className, names.shortClassName, altNsPath, tag);
+		} else {
+			return ciMapper.getCmCIByAltNsAndTag(nsPath, names.className, names.shortClassName, altNsPath, tag);
+		}
 	}
 
 	public void deleteAltNs(long nsId, long ciId) {
 		ciMapper.deleteAltNs(nsId, ciId);
-	}
-
-	public List<CmsCI> getAltNsCisByTagClassNs(String tag, String className, String nsPath) {
-		List<CmsCI> cis = ciMapper.getAltNsCisByTagClassNs(tag, className, nsPath);
-		populateAttrs(cis);
-		return cis;
 	}
 }
