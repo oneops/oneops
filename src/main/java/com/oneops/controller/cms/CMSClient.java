@@ -367,7 +367,7 @@ public class CMSClient {
             List<Long> list = cis.stream().map(CmsRfcCI::getRfcId).collect(Collectors.toList());
             List<CmsWorkOrder> pendingWos = cmsWoProvider.getWorkOrderIds(wo.getDeploymentId(), PENDING, null, null);
             for (CmsWorkOrder pendingWo : pendingWos) {
-                if (list.contains(pendingWo.getRfcId()) && !isDeleteWO(pendingWo.getRfcCi().getRfcAction())) {
+                if (list.contains(pendingWo.getRfcId())) {
                     pendingWo.setDpmtRecordState(FAILED);
                     CmsDpmtRecord pendingDpmtRec = new CmsDpmtRecord();
                     pendingDpmtRec.setDpmtRecordId(pendingWo.getDpmtRecordId());
