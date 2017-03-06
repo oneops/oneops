@@ -202,16 +202,18 @@ class ReportsController < ApplicationController
                     :sum   => lambda {|x| x.split('/')[2..3].join('/')},
                     :url   => lambda {|x| split = x.split('/'); assembly_transition_environment_path(split[0], split[1])}}
     elsif ns_path_depth == 3
+      # Assembly level.
       groupings << {:name  => :by_environment,
                     :label => 'Environment',
                     :path  => :by_ns,
-                    :sum   => lambda {|x| x.split('/')[3]},
-                    :url   => lambda {|x| assembly_transition_environment_path(x.split[2], x)}}
+                    :sum   => lambda {|x| x.split('/')[2..3].join('/')},
+                    :url   => lambda {|x| split = x.split('/'); assembly_transition_environment_path(split[0], split[1])}}
       groupings << {:name  => :by_platform,
                     :label => 'Platform',
                     :path  => :by_ns,
                     :sum   => lambda {|x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}"}}
     elsif ns_path_depth == 4
+      # Env level.
       groupings << {:name  => :by_platform,
                     :label => 'Platform',
                     :path  => :by_ns,
