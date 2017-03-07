@@ -1187,6 +1187,42 @@
 		  and (#{toShortClazzName}::varchar is null or to_mdc.short_class_name = #{toShortClazzName})
 	 </select>
 
+	 <select id="getCIRelationsByStateNsLike" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
+		select
+			cir.ci_relation_id as ciRelationId,
+			cir.ns_id as nsId,
+			ns.ns_path as nsPath,
+			cir.from_ci_id as fromCiId,
+			cir.relation_goid as relationGoid,
+			cir.relation_id as relationId,
+			mdr.relation_name as relationName,
+			cir.to_ci_id toCiId,
+			cir.ci_state_id as relationStateId,
+			cis.state_name as relationState,
+			cir.last_applied_rfc_id as lastAppliedRfcId,
+			cir.comments,
+			cir.created,
+			cir.updated
+		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, cm_ci from_ci, md_classes from_mdc, cm_ci to_ci, md_classes to_mdc, ns_namespaces ns
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns}) 
+		  and cir.ns_id = ns.ns_id
+		  and cir.ci_state_id = cis.ci_state_id
+		  and cis.state_name = #{ciState}
+		  and cir.relation_id = mdr.relation_id  
+		  <if test="relationNames != null &amp;&amp; !relationNames.isEmpty()">
+		  	  and mdr.relation_name in
+	          <foreach item="item" index="index" collection="relationNames" open="(" close=")" separator=", "> 
+		          #{item} 
+        	  </foreach>
+		  </if>
+	      
+		  and cir.from_ci_id = from_ci.ci_id
+		  and from_ci.class_id = from_mdc.class_id
+		  and (#{fromClazzName}::varchar is null or from_mdc.class_name = #{fromClazzName})
+		  and cir.to_ci_id = to_ci.ci_id
+		  and to_ci.class_id = to_mdc.class_id
+		  and (#{toClazzName}::varchar is null or to_mdc.class_name = #{toClazzName})
+	 </select>
 
 	 <select id="getFromCIRelationsByAttrs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
 		select
@@ -1445,5 +1481,87 @@
 		and nt.tag_id = cno.tag_id
 		and cno.ci_id = #{ciId}
 		and (#{tag}::varchar is null or nt.tag = #{tag})
+	</select>
+	
+	<select  id="getPlatformCiCount4PackTemplate" parameterType="map" useCache="false" resultType="long">
+		<bind name="attrListSize" value="platAttrList.size()" />
+		with platforms as (
+			select ci.ci_id
+			from cm_ci ci, md_classes md
+			where ci.class_id = md.class_id
+			  and md.class_name = #{platformClass}
+			  and exists(
+			    select 1 from (
+			    	select count(1) as count
+			  		from cm_ci_attributes attr, md_class_attributes mdattr
+			  		where attr.ci_id = ci.ci_id
+			  	  	  and attr.attribute_id = mdattr.attribute_id
+			  	  	  and (
+			  	  	  <foreach item="item" index="index" collection="platAttrList" open="(" close=")" separator="or"> 
+				 		  mdattr.attribute_name = #{item.attributeName} and attr.df_attribute_value ${item.condition} #{item.avalue}
+			  	  	  </foreach>
+			  	  	  )
+			    ) as t1
+			    where count = #{attrListSize}
+			  )
+		)
+		select count(1)
+		from platforms pl, cm_ci_relations rel, md_relations mdrel, cm_ci_relation_attributes attr, md_relation_attributes mdattr
+		where pl.ci_id = rel.from_ci_id
+		  and rel.relation_id = mdrel.relation_id
+		  and mdrel.relation_name = #{requiresRelation}
+		  and rel.ci_relation_id = attr.ci_relation_id
+		  and attr.attribute_id = mdattr.attribute_id
+		  and mdattr.attribute_name = 'template'
+		  and attr.df_attribute_value = #{tmplCiName}
+	</select>
+
+	<select  id="getPlatformRelCount4PackRel" parameterType="map" useCache="false" resultType="long">
+		<bind name="attrListSize" value="platAttrList.size()" />
+		with platforms as (
+			select ci.ci_id
+			from cm_ci ci, md_classes md
+			where ci.class_id = md.class_id
+			  and md.class_name = #{platformClass}
+			  and exists(
+			    select 1 from (
+			    	select count(1) as count
+			  		from cm_ci_attributes attr, md_class_attributes mdattr
+			  		where attr.ci_id = ci.ci_id
+			  	  	  and attr.attribute_id = mdattr.attribute_id
+			  	  	  and (
+			  	  	  <foreach item="item" index="index" collection="platAttrList" open="(" close=")" separator="or"> 
+				 		  mdattr.attribute_name = #{item.attributeName} and attr.df_attribute_value ${item.condition} #{item.avalue}
+			  	  	  </foreach>
+			  	  	  )
+			    ) as t1
+			    where count = #{attrListSize}
+			  )
+		)
+		select count(*) 
+		from (
+			select rel.to_ci_id ci_id, pl.ci_id pl_id
+			from platforms pl, cm_ci_relations rel, md_relations mdrel, cm_ci_relation_attributes attr, md_relation_attributes mdattr
+			where pl.ci_id = rel.from_ci_id
+			  and rel.relation_id = mdrel.relation_id
+			  and mdrel.relation_name = #{requiresRelation}
+			  and rel.ci_relation_id = attr.ci_relation_id
+			  and attr.attribute_id = mdattr.attribute_id
+			  and mdattr.attribute_name = 'template'
+			  and attr.df_attribute_value = #{fromTmplCiName}
+		) as from_cis,
+		   (select rel.to_ci_id ci_id, pl.ci_id pl_id
+			from platforms pl, cm_ci_relations rel, md_relations mdrel, cm_ci_relation_attributes attr, md_relation_attributes mdattr
+			where pl.ci_id = rel.from_ci_id
+			  and rel.relation_id = mdrel.relation_id
+			  and mdrel.relation_name = #{requiresRelation}
+			  and rel.ci_relation_id = attr.ci_relation_id
+			  and attr.attribute_id = mdattr.attribute_id
+			  and mdattr.attribute_name = 'template'
+			  and attr.df_attribute_value = #{toTmplCiName}
+		) as to_cis, cm_ci_relations rel
+		where from_cis.pl_id = to_cis.pl_id 
+		   and rel.from_ci_id = from_cis.ci_id
+		   and rel.to_ci_id = to_cis.ci_id
 	</select>
 </mapper>
