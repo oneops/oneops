@@ -23,18 +23,24 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.md.dal.ClazzMapper;
 import com.oneops.cms.md.dal.RelationMapper;
 import com.oneops.cms.md.domain.CmsClazz;
 import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.dal.UtilMapper;
+import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsStuckDpmtCollection;
 
 public class CmsManagerImpl implements CmsManager {
@@ -44,9 +50,13 @@ public class CmsManagerImpl implements CmsManager {
 	private CIMapper ciMapper;
 	//private NSMapper nsMapper;
 	private UtilMapper utilMapper;
+	private CmsCmProcessor cmProcessor;
 
 	private final AttrComparator attrComparator = new AttrComparator();	
-	
+
+	private static final String[] EXCLUDE_CLASSES_4_DELETE = {"mgmt.manifest.Qpath", "mgmt.manifest.Monitor", "mgmt.catalog.Monitor", 
+			"mgmt.manifest.Localvar", "mgmt.catalog.Localvar", "mgmt.manifest.Procedure", "mgmt.catalog.Policy", "mgmt.manifest.Policy"};
+
 	public void setClazzMapper(ClazzMapper clazzMapper) {
 		this.clazzMapper = clazzMapper;
 	}
@@ -195,6 +205,97 @@ public class CmsManagerImpl implements CmsManager {
 	public void flushCache() {
 		clazzMapper.flushCache();
 		relationMapper.flushCache();
+	}
+
+	@Override
+	public List<CmsCI> getPendingDeletePackCIs() {
+		List<CmsCI> packPendingDeleteCis = ciMapper.getCIbyStateNsLike(null, getPackNsLike(), null, CmsConstants.CI_STATE_PENDING_DELETION);
+		Set<String> excludeSet = Stream.of(EXCLUDE_CLASSES_4_DELETE).collect(Collectors.toSet());
+		List<CmsCI> packCisWithNoRef = packPendingDeleteCis.stream().
+						filter(tmpl -> !(excludeSet.contains(tmpl.getCiClassName())) && (getPlatformCis4PackTemplate(tmpl) == 0)).
+						collect(Collectors.toList());
+		if (packCisWithNoRef == null)  packCisWithNoRef = Collections.emptyList();
+		return packCisWithNoRef;
+	}
+
+	private String getPackNsLike() {
+		return "/public/%/packs/%";
+	}
+
+	private long getPlatformCis4PackTemplate(CmsCI templateCi) {
+		String nsPath = templateCi.getNsPath();
+		String[] nsElements = nsPath.split("/");
+		boolean isManifest = isManifest(nsElements);
+		String platformClass = platformClass(isManifest);
+		String requiresRelation = requiresRelation(isManifest);
+		List<AttrQueryCondition> attrList = getPackAttributeConditions(nsElements, isManifest);
+		return ciMapper.getPlatformCiCount4PackTemplate(platformClass, attrList, requiresRelation, templateCi.getCiName());
+	}
+
+	private String platformClass(boolean isManifest) {
+		return isManifest ? "manifest.Platform" : "catalog.Platform";
+	}
+
+	private List<AttrQueryCondition> getPackAttributeConditions(String[] nsElements, boolean isManifest) {
+		List<AttrQueryCondition> attrList = new ArrayList<>();
+		attrList.add(queryCondition("source", nsElements[1]));
+		attrList.add(queryCondition("pack", nsElements[3]));
+		attrList.add(queryCondition("version", nsElements[4]));
+		if (isManifest) {
+			attrList.add(queryCondition("availability", nsElements[5]));
+		}
+		return attrList;
+	}
+
+	private String requiresRelation(boolean isManifest) {
+		return isManifest ? CmsConstants.MANIFEST_REQUIRES : CmsConstants.BASE_REQUIRES;
+	}
+
+	private boolean isManifest(String[] nsElements) {
+		return (nsElements.length == 6);
+	}
+
+	private AttrQueryCondition queryCondition(String name, String value) {
+		AttrQueryCondition queryCondition = new AttrQueryCondition();
+		queryCondition.setAttributeName(name);
+		queryCondition.setAvalue(value);
+		queryCondition.setCondition("=");
+		return queryCondition;
+	}
+
+	@Override
+	public List<CmsCIRelation> getPendingDeletePackRelations() {
+		List<String> list = Stream.of(new String[]{"mgmt.manifest.DependsOn", "mgmt.catalog.DependsOn"}).collect(Collectors.toList());
+		List<CmsCIRelation> packRelationsWithNoRef = null;
+		List<CmsCIRelation> relations = ciMapper.getCIRelationsByStateNsLike(null, getPackNsLike(), list, CmsConstants.CI_STATE_PENDING_DELETION, null, null);
+		if (!relations.isEmpty()) {
+			cmProcessor.populateRelCis(relations, true, true);
+			packRelationsWithNoRef = relations.stream().
+					filter(rel -> (isRelationCisActive(rel) && getPlatformRels4PackRels(rel) == 0)).
+					collect(Collectors.toList());
+		}
+		if (packRelationsWithNoRef == null) 
+			packRelationsWithNoRef = Collections.emptyList();
+		return packRelationsWithNoRef;
+	}
+
+	private boolean isRelationCisActive(CmsCIRelation rel) {
+		return !CmsConstants.CI_STATE_PENDING_DELETION.equals(rel.getFromCi().getCiState()) && 
+				!CmsConstants.CI_STATE_PENDING_DELETION.equals(rel.getToCi().getCiState());
+	}
+
+	private long getPlatformRels4PackRels(CmsCIRelation relation) {
+		String nsPath = relation.getNsPath();
+		String[] nsElements = nsPath.split("/");
+		boolean isManifest = isManifest(nsElements);
+		String platformClass = platformClass(isManifest);
+		String requiresRelation = requiresRelation(isManifest);
+		List<AttrQueryCondition> attrList = getPackAttributeConditions(nsElements, isManifest);
+		return ciMapper.getPlatformRelCount4PackRel(platformClass, attrList, requiresRelation, relation.getFromCi().getCiName(), relation.getToCi().getCiName());
+	}
+
+	public void setCmProcessor(CmsCmProcessor cmProcessor) {
+		this.cmProcessor = cmProcessor;
 	}
 
 }

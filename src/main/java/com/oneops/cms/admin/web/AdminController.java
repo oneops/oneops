@@ -31,6 +31,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
 
 import com.oneops.cms.admin.service.CmsManager;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.md.domain.CmsClazz;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.util.domain.CmsStuckDpmtCollection;
@@ -108,7 +110,19 @@ public class AdminController {
 		CmsStuckDpmtCollection stuckDpmtColl=cmsManager.getStuckDpmts();
 		return new ModelAndView("stuckDpmtList","stuckDpmtColl", stuckDpmtColl);
 	}
-	
+
+	@RequestMapping(value="/packDeleteCis.do", method = RequestMethod.GET)
+	public ModelAndView getPendingDeleteCI(Model model) throws Exception {
+		List<CmsCI> ciList = cmsManager.getPendingDeletePackCIs();
+		return new ModelAndView("packDeleteCiList","ciList", ciList);
+	}
+
+	@RequestMapping(value="/packDeleteRelations.do", method = RequestMethod.GET)
+	public ModelAndView getPendingDeleteCIRelations(Model model) throws Exception {
+		List<CmsCIRelation> relList = cmsManager.getPendingDeletePackRelations();
+		return new ModelAndView("packDeleteRelationsList","relList", relList);
+	}
+
 	private ModelAndView getClassList() {
 		List<CmsClazz> clazzes=cmsManager.getClazzes();
 		return new ModelAndView("clazzList","clazzes", clazzes);
