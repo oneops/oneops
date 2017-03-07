@@ -2057,7 +2057,7 @@ public class CmsCmProcessor {
 	}
 
 
-	public void createAltNs(CmsAltNs cmsAltNs, CmsCI ci) {
+	public void createAltNs(CmsAltNs cmsAltNs, long ciId) {
 
 		CmsNamespace ns = null;
 		if (cmsAltNs.getNsId() != 0) {
@@ -2070,7 +2070,7 @@ public class CmsCmProcessor {
 			ns.setNsPath(cmsAltNs.getNsPath());
 			ns = cmsNsProcessor.createNs(ns);
 		}
-		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ci.getCiId());
+		ciMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), ciId);
 	}
 
 	public List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag) {
