@@ -2743,7 +2743,7 @@ CREATE OR REPLACE FUNCTION cm_delete_alt_namespace( p_ns_id bigint, p_ci_id bigi
   RETURNS bigint AS
 $BODY$
 BEGIN
-    delete from ci_ns_opt where ci_id= p_ci_id and ns_id=p_ns_id;    
+    delete from cm_ns_opt where ci_id= p_ci_id and ns_id=p_ns_id;    
     return p_ns_id;
 END;
 $BODY$
