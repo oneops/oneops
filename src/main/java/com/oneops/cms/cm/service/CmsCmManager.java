@@ -19,6 +19,7 @@ package com.oneops.cms.cm.service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -94,4 +95,6 @@ public interface CmsCmManager {
                                      String altNsPath, String tag,
                                      boolean recursive);
 	List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag);
+
+	void updateCiAltNs(long ciId, Map<String, Set<String>> altNs);
 }
