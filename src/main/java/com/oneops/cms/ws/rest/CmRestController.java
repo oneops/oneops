@@ -18,11 +18,7 @@
 package com.oneops.cms.ws.rest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -408,6 +404,7 @@ public class CmRestController extends AbstractRestController {
 		newCi.setCreatedBy(userId);
 		try {
 			CmsCI ci = cmManager.createCI(newCi);
+			updateAltNs(ci.getCiId(), ciSimple);
 			logger.debug(ci.getCiId());
 			return cmsUtil.custCI2CISimple(ci, valueType);
 		} catch (DataIntegrityViolationException dive) {
@@ -435,8 +432,16 @@ public class CmRestController extends AbstractRestController {
 		ciSimple.setCiId(ciId);
 		ciSimple.setUpdatedBy(userId);
 		CmsCI ci = cmManager.updateCI(cmsUtil.custCISimple2CI(ciSimple, valueType));
+		updateAltNs(ciSimple.getCiId(), ciSimple);
 		return cmsUtil.custCI2CISimple(ci, valueType);
 
+	}
+
+	private void updateAltNs(long ciId, CmsCISimple ciSimple) {
+		Map<String, Set<String>> altNs = ciSimple.getAltNs();
+		if (altNs !=null && altNs.size()!=0){
+			cmManager.updateCiAltNs(ciId, altNs);
+		}
 	}
 
 	@RequestMapping(method=RequestMethod.DELETE, value="/cm/simple/cis/{ciId}")
