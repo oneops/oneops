@@ -406,7 +406,9 @@ public class CmRestController extends AbstractRestController {
 			CmsCI ci = cmManager.createCI(newCi);
 			updateAltNs(ci.getCiId(), ciSimple);
 			logger.debug(ci.getCiId());
-			return cmsUtil.custCI2CISimple(ci, valueType);
+			CmsCISimple cmsCISimple = cmsUtil.custCI2CISimple(ci, valueType);
+			cmsCISimple.setAltNs(ciSimple.getAltNs());
+			return cmsCISimple;
 		} catch (DataIntegrityViolationException dive) {
 			if (dive instanceof DuplicateKeyException) {
 				throw new CIValidationException(CmsError.CMS_DUPCI_NAME_ERROR, dive.getMessage());
@@ -433,8 +435,9 @@ public class CmRestController extends AbstractRestController {
 		ciSimple.setUpdatedBy(userId);
 		CmsCI ci = cmManager.updateCI(cmsUtil.custCISimple2CI(ciSimple, valueType));
 		updateAltNs(ciSimple.getCiId(), ciSimple);
-		return cmsUtil.custCI2CISimple(ci, valueType);
-
+		CmsCISimple cmsCISimple = cmsUtil.custCI2CISimple(ci, valueType);
+		cmsCISimple.setAltNs(ciSimple.getAltNs());
+		return cmsCISimple;
 	}
 
 	private void updateAltNs(long ciId, CmsCISimple ciSimple) {
