@@ -2637,32 +2637,6 @@ ul.status div.description ul.status-actions li, div.release ul.status-actions li
   padding: 2px;
 }
 
-.status table {
-  margin:          0 auto;
-  width:           560px;
-  padding:         10px;
-  border-spacing:  0px;
-  border-width:    0px;
-  border-collapse: collapse;
-}
-
-.status table tr th {
-  font-weight:    bold;
-  text-align:     center;
-  padding:        5px;
-  border-spacing: 0px;
-  border-width:   1px;
-  border:         solid 1px #888;
-  background:     #aaa;
-  color:          #fff;
-}
-
-.status table tr td {
-  padding:        5px;
-  border-spacing: 0px;
-  border-width:   0px;
-}
-
 div.rfc-list, div.action-list {
 	clear: both;
 }
@@ -4044,6 +4018,7 @@ ul.log li.error {
 .report table {
   border: 1px solid #bbb;
   border-spacing: 0;
+  margin: 5px;
 }
 
 .report tr.total {
@@ -4326,6 +4301,14 @@ hr {
 
 .dl-horizontal.narrow dd {
   margin-left: 80px;
+}
+
+.dl-horizontal.narrowest dt {
+  width: 20px;
+}
+
+.dl-horizontal.narrowest dd {
+  margin-left: 30px;
 }
 
 .label-notice {
@@ -4631,6 +4614,15 @@ i.relation {
 .form-horizontal .form-actions {
   text-align: center;
   padding: 15px;
+}
+
+.status .well .form-actions {
+  margin: 0;
+  padding: 10px;
+}
+
+.status .well h5 {
+  margin-top: 0;
 }
 
 .btn-small .caret {

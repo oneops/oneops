@@ -18,41 +18,60 @@
         <div class="controls"><%= c.select :source, options_for_select(pack_sources, first_source), {}, :id => 'source_select' %></div>
       </div>
 
-      <% first_pack = packs[first_source].sort.first.last.last.last %>
       <div class="control-group">
         <% a = attributes_meta.detect { |m| m.attributeName == 'pack' } %>
         <%= c.label :pack, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
-        <div class="controls"><%= c.select :pack, grouped_options_for_select(packs[first_source], nil), { :prompt => 'Please select' }, :id => 'pack_select', :required => true %></div>
+        <div class="controls"><%= c.select :pack, grouped_options_for_select(packs[first_source], nil), {:prompt => 'Please select'}, :id => 'pack_select', :required => true %></div>
       </div>
 
       <div class="control-group">
         <% a = attributes_meta.detect { |m| m.attributeName == 'version' } %>
         <%= c.label :version, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
-        <div class="controls"><%= c.select :version, options_for_select(pack_versions[first_source][first_pack]), {}, :id => 'version_select' %></div>
+        <div class="controls"><%= c.select :version, '', {}, :id => 'version_select' %></div>
       </div>
 
       <script type="text/javascript">
         var pack_select_options = {};
         var version_select_options = {};
         <% pack_sources.each do |source| %>
-          pack_select_options['<%= source %>'] = '<%= escape_javascript(grouped_options_for_select(packs[source])) %>';
+          pack_select_options['<%= source %>'] = '<%= escape_javascript(grouped_options_for_select(packs[source], nil, {:prompt => 'Please select'})) %>';
           version_select_options['<%= source %>'] = {};
           <% pack_versions[source].each_pair do |pack, versions| %>
             version_select_options['<%= source %>']['<%= pack %>'] = '<%= escape_javascript(options_for_select(versions)) %>';
           <% end %>
         <% end %>
 
-        $("source_select").observe("change", function () {
-          $("pack_select").update(pack_select_options[this.value]);
-          $("version_select").update(version_select_options[this.value][$("pack_select").value]);
+        $j("#source_select").change(function () {
+          $j("#pack_select").html(pack_select_options[this.value]);
+          $j("#version_select").html("");
         });
 
-        $("pack_select").observe("change", function () {
-          $("version_select").update(version_select_options[$("source_select").value][this.value]);
+        $j("#pack_select").change(function () {
+          $j("#version_select").html(version_select_options[$j("#source_select").val()][this.value]);
         });
+
+        $j("#source_select, #pack_select, #version_select")
+            .change(function () {
+                      var source = $j("#source_select").val(),
+                          pack = $j("#pack_select").val(),
+                          version = $j("#version_select").val();
+                      if (source && pack && version) {
+                        var url = "<%= catalog_pack_path('~!~source~!~', '~!~pack~!~', '~!~version~!~') %>";
+                        $j.get(url.sub('~!~source~!~', source).sub('~!~pack~!~', pack).sub('~!~version~!~', version));
+                        $j("#pack_info_div").html("<%= escape_javascript(loading_indicator) %>");
+                        $j("#pack_info_div").closest(".category").show();
+                      }
+                      else {
+                        $j("#pack_info_div").closest(".category").hide();
+                      }
+                    });
       </script>
     <% end %>
   <% end %>
+</div>
+<div class="category hide">
+  <div class="name">Pack Info & Stats</div>
+  <div id="pack_info_div"></div>
 </div>
 <%= render 'cms/rfcs/properties', :rfc => @platform, :f => f %>
 

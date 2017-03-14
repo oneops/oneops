@@ -25,7 +25,8 @@ module ApplicationHelper
                 :timeline               => 'clock-o',
                 :history                => 'history',
                 :release                => 'tag',
-                :deployment             => 'cloud-upload'}
+                :deployment             => 'cloud-upload',
+                :compute                => 'server'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},

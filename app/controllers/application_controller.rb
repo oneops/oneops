@@ -393,6 +393,29 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def locate_pack_for_platform(platform)
+    attrs = platform.ciAttributes
+    locate_pack(attrs.source, attrs.pack)
+  end
+
+  def locate_pack(source, pack)
+    Cms::Ci.first(:params => {:nsPath       => "/public/#{source}/packs",
+                              :ciClassName  => 'mgmt.Pack',
+                              :ciName       => pack})
+  end
+
+  def locate_pack_version_for_platform(platform)
+    attrs = platform.ciAttributes
+    locate_pack_version(attrs.source, attrs.pack, attrs.version)
+  end
+
+  def locate_pack_version(source, pack, version)
+    Cms::Ci.first(:params => {:nsPath       => "/public/#{source}/packs/#{pack}",
+                              :ciClassName  => 'mgmt.Version',
+                              :ciName       => version,
+                              :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
+  end
+
   def locate_design_platform(qualifier, assembly, opts = {})
     Cms::DjCi.locate(qualifier, assembly_ns_path(assembly), 'catalog.Platform', opts)
   end
@@ -714,7 +737,7 @@ class ApplicationController < ActionController::Base
     return graph
   end
 
-  def packs_info
+  def packs_info(org = current_user.organization.name)
     pack_versions = {}
     packs         = {}
     pack_sources  = Cms::Ci.all(:params => {:nsPath => '/public', :ciClassName => 'mgmt.Source'}).map(&:ciName)
@@ -727,14 +750,19 @@ class ApplicationController < ActionController::Base
       m[source] << c
       m
     end
-    version_map = Cms::Ci.all(:params => {:nsPath      => '/public',
-                                          :ciClassName => 'mgmt.Version',
-                                          :recursive   => true}).inject({}) do |m, version|
-      enabled = version.ciAttributes.attributes['enabled']
-      unless enabled && enabled == 'false'
-        m[version.nsPath] ||= []
-        m[version.nsPath] << version.ciName
-      end
+    versions = Cms::Ci.all(:params => {:nsPath      => '/public',
+                                       :ciClassName => 'mgmt.Version',
+                                       :recursive   => true,
+                                       :attr        => 'enabled:neq:false'})
+    versions += Cms::Ci.all(:params => {:nsPath      => '/public',
+                                        :ciClassName => 'mgmt.Version',
+                                        :recursive   => true,
+                                        :attr        => 'enabled:eq:false',
+                                        :altNsTag    => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
+                                        :altNs       => organization_ns_path(org)})
+    version_map = versions.inject({}) do |m, version|
+      m[version.nsPath] ||= []
+      m[version.nsPath] << version.ciName
       m
     end
     pack_sources.each do |source|
@@ -757,14 +785,14 @@ class ApplicationController < ActionController::Base
     return pack_sources, pack_versions, packs
   end
 
-  def render_json_ci_response(ok, ci, errors = nil)
+  def render_json_ci_response(ok, ci, errors = nil, status = nil)
     errors = [errors] if errors.present? && !errors.is_a?(Array)
     if ok && ci.present?
       render :json => ci, :status => :ok
     elsif ci
-      render :json => {:errors => errors || ci.errors.full_messages}, :status => :unprocessable_entity
+      render :json => {:errors => errors || ci.errors.full_messages}, :status => status || :unprocessable_entity
     else
-      render :json => {:errors => errors || ['not found']}, :status => :not_found
+      render :json => {:errors => errors || ['not found']}, :status => status || :not_found
     end
   end
 
@@ -776,7 +804,7 @@ class ApplicationController < ActionController::Base
     respond_to do |format|
       format.html { redirect_to redirect_path, :alert => message }
       format.js   { render :js => "$j('.modal').modal('hide'); flash(null, 'Unauthorized access!')" }
-      format.json { render :json => message, :status => :unauthorized }
+      format.json { render :json => {:errors => [message]}, :status => :unauthorized }
     end
   end
 

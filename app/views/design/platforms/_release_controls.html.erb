@@ -1,5 +1,5 @@
 <li>
-  <%= link_confirm_busy('Discard Platform',
+  <%= link_confirm_busy('Discard Platform Changes',
                         :url     => discard_assembly_design_platform_path(@assembly, @platform),
                         :method  => :post,
                         :confirm => 'Discard platform changes?',
@@ -8,7 +8,7 @@
                         :class   => 'btn btn-danger') %>
 </li>
 <li>
-  <%= link_confirm_busy('Commit Platform',
+  <%= link_confirm_busy('Commit Platform Changes',
                         :url     => commit_assembly_design_platform_path(@assembly, @platform),
                         :method  => :post,
                         :confirm => 'Commit platform changes?',

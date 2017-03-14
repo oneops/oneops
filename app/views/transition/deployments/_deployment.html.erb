@@ -244,7 +244,7 @@
                        :checked_value   => true,
                        :unchecked_value => false,
                        :read_only       => deployment_state == 'canceled' || deployment_state == 'complete',
-                       :label           => 'continue on failure <code><strong>Use with caution!</strong></code><br><small>When checked deployment proceeds even if some work-orders fai.<br>(NOTE: This flag is <b>NOT</b> applicable for <b class="text-error">delete</b> work-orders.)</small>' %>
+                       :label           => 'continue on failure <code><strong>Use with caution!</strong></code><br><small>When checked deployment proceeds even if some work-orders fail.<br>(NOTE: This flag is <b>NOT</b> applicable for <b class="text-error">delete</b> work-orders.)</small>' %>
           </td>
         </tr>
         <% if deployment_persisted %>

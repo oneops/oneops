@@ -69,11 +69,22 @@ class Design::PlatformsController < Base::PlatformsController
 
   def create
     platform_hash = params[:cms_dj_ci].merge(:nsPath => assembly_ns_path(@assembly), :ciClassName => 'catalog.Platform')
-    platform_hash[:ciAttributes][:major_version] = 1
-    platform_hash[:ciAttributes][:description] ||= ''
+    attrs = platform_hash[:ciAttributes]
+    attrs[:major_version] = 1
+    attrs[:description] ||= ''
     attr_props = platform_hash.delete(:ciAttrProps)
-    @platform = Transistor.create_platform(@assembly.ciId, Cms::DjCi.build(platform_hash, attr_props))
-    ok = @platform.errors.empty?
+
+    @platform = Cms::DjCi.build(platform_hash, attr_props)
+    pack_ver = locate_pack_version_for_platform(@platform)
+
+    if pack_ver.blank?
+      @platform.errors.add(:base, 'Pack not found.')
+    elsif pack_ver.ciAttributes.enabled == 'false'
+      @platform.errors.add(:base, 'Pack is disabled.')
+    else
+      @platform = Transistor.create_platform(@assembly.ciId, @platform)
+    end
+    ok = @platform.errors.blank?
 
     save_platform_links if ok
 
@@ -82,13 +93,9 @@ class Design::PlatformsController < Base::PlatformsController
         if ok
           show
         else
-          if @platform
-            setup_linkable_platform_map
-            render :action => :new
-          else
-            flash[:error] = 'Failed to create platform.'
-            new
-          end
+          flash.now[:alert] = 'Failed to create platform.'
+          setup_linkable_platform_map
+          render :action => :new
         end
       end
 

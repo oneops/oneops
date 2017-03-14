@@ -38,5 +38,7 @@
 <%= organization_page_header('catalogs') %>
 <%= breadcrumb crumbs %>
 <%= page_title page_title_opts %>
+<% desc = @pack.ciAttributes.description %>
+<%= page_info desc if desc.present? %>
 
 <%= render 'base/shared/page_nav_pages', :items => tabs %>

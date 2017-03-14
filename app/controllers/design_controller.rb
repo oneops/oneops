@@ -1,4 +1,6 @@
 class DesignController < ApplicationController
+  PLATFORM_EXPORT_ATTRIBUTES = %w(description major_version pack source version)
+
   before_filter :find_assembly
   before_filter :find_latest_release, :only => [:show, :extract, :load]
   before_filter :check_open_release, :only => [:load]
@@ -141,7 +143,7 @@ class DesignController < ApplicationController
     return result if platforms.blank?
 
     result['platforms'] = platforms.sort_by {|p| p['name']}.inject({}) do |plats, p|
-      attrs = p['attributes']
+      attrs = p['attributes'].slice(*PLATFORM_EXPORT_ATTRIBUTES)
       plat = {'pack' => "#{attrs.delete('source')}/#{attrs.delete('pack')}:#{attrs.delete('version')}"}
       attrs.delete('description') if attrs['description'].blank?
       plat.merge!(attrs)
@@ -271,7 +273,6 @@ class DesignController < ApplicationController
 
     plats = data['platforms']
     if plats.present?
-      platform_md_attrs   = Cms::CiMd.look_up('catalog.Platform').mdAttributes.map(&:attributeName)
       attachment_md_attrs = Cms::CiMd.look_up('catalog.Attachment').mdAttributes.map(&:attributeName)
       monitor_md_attrs    = Cms::CiMd.look_up('catalog.Monitor').mdAttributes.map(&:attributeName)
       watched_by_md_attrs = Cms::RelationMd.look_up('catalog.WatchedBy').mdAttributes.map(&:attributeName)
@@ -284,7 +285,7 @@ class DesignController < ApplicationController
         pack_path = plat['pack']
         if pack_path =~ /^\w+\/[\w\-]+:\d+$/
           source, pack, version = pack_path.split(/\/|:/)
-          ci_attrs = plat.slice(*platform_md_attrs)
+          ci_attrs = plat.slice(*PLATFORM_EXPORT_ATTRIBUTES)
           ci_attrs = ci_attrs.merge(:source => source, :pack => pack, :version => version)
 
           platform_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Platform',
@@ -292,140 +293,151 @@ class DesignController < ApplicationController
                                          :ciName       => plat_name,
                                          :ciAttributes => ci_attrs})
 
-          platform_pack_ns_path = platform_pack_design_ns_path(platform_ci)
-          pack_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
-                                                    :ciClassName => 'mgmt.catalog.Platform'})
-          if pack_template
-            unless platform_ci.valid?
-              errors['platforms'][plat_name]['errors'] = platform_ci.errors.full_messages
-            end
+          attrs = platform_ci.ciAttributes
+          pack_ver = Cms::Ci.first(:params => {:nsPath      => "/public/#{attrs.source}/packs/#{attrs.pack}",
+                                               :ciClassName => 'mgmt.Version',
+                                               :ciName      => attrs.version})
 
-            result['platforms'] << ci_to_load(platform_ci)
-
-            transfer_if_present('links', plat, result['platforms'].last)
-
-            platform_ns_path = design_platform_ns_path(@assembly, platform_ci)
-            pack_ns_path = platform_pack_ns_path(platform_ci)
-
-            vars = plat['variables']
-            if vars.present?
-              result['platforms'].last['variables'] = {}
-              errors['platforms'][plat_name]['variables'] = {}
-              vars.each_pair do |var_name, value|
-                var_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Localvar',
-                                          :nsPath       => platform_ns_path,
-                                          :ciName       => var_name,
-                                          :ciAttributes => {:value => value}})
-                var_ci.add_policy_locations(pack_ns_path)
-                errors['platforms'][plat_name]['variables'][var_name] = {'errors' => var_ci.errors.full_messages} unless var_ci.valid?
-                result['platforms'].last['variables'][var_name] = value
+          if pack_ver.blank?
+            errors['platforms'][plat_name]['errors'] = ["Unknown platform pack [#{pack_path}]"]
+          elsif pack_ver.ciAttributes.enabled == 'false'
+            errors['platforms'][plat_name]['errors'] = ['Pack is disabled.']
+          else
+            platform_pack_ns_path = platform_pack_design_ns_path(platform_ci)
+            pack_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
+                                                      :ciClassName => 'mgmt.catalog.Platform'})
+            if pack_template
+              unless platform_ci.valid?
+                errors['platforms'][plat_name]['errors'] = platform_ci.errors.full_messages
               end
-            end
 
-            comps_by_template = plat['components']
-            if comps_by_template.present?
-              result['platforms'].last['components'] = []
-              errors['platforms'][plat_name]['components'] = {}
+              result['platforms'] << ci_to_load(platform_ci)
 
-              comps_by_template.each_pair do |template_and_class, comps|
-                errors['platforms'][plat_name]['components'][template_and_class] = {'errors' => []}
-                if template_and_class =~ /^[\w\.\-]+\/[\w\.-]+$/
-                  template, component_class = template_and_class.split('/')
-                  component_class    = "catalog.#{component_class}" unless component_class.start_with?('catalog.')
-                  component_class_md = Cms::CiMd.look_up!(component_class)
-                  if component_class_md && component_class_md.is_a?(Cms::CiMd)
-                    component_md_attrs = component_class_md.mdAttributes.map(&:attributeName)
+              transfer_if_present('links', plat, result['platforms'].last)
 
-                    component_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
-                                                                   :ciClassName => "mgmt.#{component_class}",
-                                                                   :ciName      => template})
-                    if component_template
-                      comps.each_pair do |comp_name, comp|
-                        errors_component = {}
-                        errors['platforms'][plat_name]['components'][template_and_class][comp_name] = errors_component
+              platform_ns_path = design_platform_ns_path(@assembly, platform_ci)
+              pack_ns_path = platform_pack_ns_path(platform_ci)
 
-                        component_attrs = comp.slice(*component_md_attrs)
-                        component_attrs = convert_json_attrs_to_string(component_attrs)
-                        component_ci    = Cms::DjCi.build({:ciClassName  => component_class,
-                                                           :nsPath       => platform_ns_path,
-                                                           :ciName       => comp_name,
-                                                           :ciAttributes => component_template.ciAttributes.attributes.merge(component_attrs)})
-                        component_ci.add_policy_locations(pack_ns_path)
-
-                        errors_component['errors'] = component_ci.errors.full_messages unless component_ci.valid?
-                        result['platforms'].last['components'] << ci_to_load(component_ci, :template => template, :attributes => component_attrs)
-
-                        result_component = result['platforms'].last['components'].last
-                        transfer_if_present('depends', comp, result_component)
-
-                        attachments = comp['attachments']
-                        if attachments.present?
-                          result_component['attachments'] = []
-                          errors_component['attachments'] = {}
-                          attachments.each do |attachment_name, attachment|
-                            errors_component['attachments'][attachment_name] = {}
-                            attachment_attrs = attachment.slice(*attachment_md_attrs)
-                            attachment_attrs = convert_json_attrs_to_string(attachment_attrs)
-                            attachment_ci    = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
-                                                                :nsPath       => platform_ns_path,
-                                                                :ciName       => attachment_name,
-                                                                :ciAttributes => attachment_attrs})
-                            attachment_ci.add_policy_locations(pack_ns_path)
-
-                            errors_component['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
-                            result_component['attachments'] << ci_to_load(attachment_ci, :attributes => attachment_attrs)
-                          end
-                        end
-
-                        monitors = comp['monitors']
-                        if monitors.present?
-                          result_component['monitors'] = []
-                          result_component['watchedBy'] = []
-                          errors_component['monitors'] = {}
-                          monitors.each do |monitor_name, monitor|
-                            errors_component['monitors'][monitor_name] = {}
-
-                            monitor_attrs    = convert_json_attrs_to_string(monitor.slice(*monitor_md_attrs))
-                            watched_by_attrs = convert_json_attrs_to_string(monitor.slice(*watched_by_md_attrs))
-
-                            monitor_template = monitor_name.start_with?("#{plat_name}-#{comp_name}-") &&
-                              Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
-                                                        :ciClassName => 'mgmt.catalog.Monitor',
-                                                        :ciName      => monitor_name.split('-').last})
-                            if monitor_template
-                              monitor_attrs.delete(:custom)
-                            else
-                              monitor_attrs.merge!(:custom => 'true')
-                              watched_by_attrs.merge!(:soure => 'design')
-                            end
-                            monitor_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Monitor',
-                                                          :nsPath       => platform_ns_path,
-                                                          :ciName       => monitor_name,
-                                                          :ciAttributes => monitor_template ? monitor_template.ciAttributes.attributes.merge(monitor_attrs) : monitor_attrs})
-                            monitor_ci.add_policy_locations(pack_ns_path)
-
-                            errors_component['monitors'][monitor_name]['errors'] = monitor_ci.errors.full_messages unless monitor_ci.valid?
-                            result_component['monitors'] << ci_to_load(monitor_ci, :attributes => monitor_attrs)
-                            result_component['watchedBy'] << {:name => monitor_name, :type => 'catalog.WatchedBy', :attributes => watched_by_attrs} if watched_by_attrs.present?
-                          end
-                        end
-                      end
-                    else
-                      errors['platforms'][plat_name]['components'][template_and_class] = "Unknown component template [#{template}]"
-                    end
-                  else
-                    errors['platforms'][plat_name]['components'][template_and_class] = "Unknown component class [#{component_class}]"
-                  end
-                else
-                  errors['platforms'][plat_name]['components'][template_and_class] = 'Invalid component template/type specification. Expected format: <template>/<class>'
+              vars = plat['variables']
+              if vars.present?
+                result['platforms'].last['variables'] = {}
+                errors['platforms'][plat_name]['variables'] = {}
+                vars.each_pair do |var_name, value|
+                  var_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Localvar',
+                                            :nsPath       => platform_ns_path,
+                                            :ciName       => var_name,
+                                            :ciAttributes => {:value => value}})
+                  var_ci.add_policy_locations(pack_ns_path)
+                  errors['platforms'][plat_name]['variables'][var_name] = {'errors' => var_ci.errors.full_messages} unless var_ci.valid?
+                  result['platforms'].last['variables'][var_name] = value
                 end
               end
+
+              comps_by_template = plat['components']
+              if comps_by_template.present?
+                result['platforms'].last['components'] = []
+                errors['platforms'][plat_name]['components'] = {}
+
+                comps_by_template.each_pair do |template_and_class, comps|
+                  errors['platforms'][plat_name]['components'][template_and_class] = {'errors' => []}
+                  if template_and_class =~ /^[\w\.\-]+\/[\w\.-]+$/
+                    template, component_class = template_and_class.split('/')
+                    component_class    = "catalog.#{component_class}" unless component_class.start_with?('catalog.')
+                    component_class_md = Cms::CiMd.look_up!(component_class)
+                    if component_class_md && component_class_md.is_a?(Cms::CiMd)
+                      component_md_attrs = component_class_md.mdAttributes.map(&:attributeName)
+
+                      component_template = Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
+                                                                     :ciClassName => "mgmt.#{component_class}",
+                                                                     :ciName      => template})
+                      if component_template
+                        comps.each_pair do |comp_name, comp|
+                          errors_component = {}
+                          errors['platforms'][plat_name]['components'][template_and_class][comp_name] = errors_component
+
+                          component_attrs = comp.slice(*component_md_attrs)
+                          component_attrs = convert_json_attrs_to_string(component_attrs)
+                          component_ci    = Cms::DjCi.build({:ciClassName  => component_class,
+                                                             :nsPath       => platform_ns_path,
+                                                             :ciName       => comp_name,
+                                                             :ciAttributes => component_template.ciAttributes.attributes.merge(component_attrs)})
+                          component_ci.add_policy_locations(pack_ns_path)
+
+                          errors_component['errors'] = component_ci.errors.full_messages unless component_ci.valid?
+                          result['platforms'].last['components'] << ci_to_load(component_ci, :template => template, :attributes => component_attrs)
+
+                          result_component = result['platforms'].last['components'].last
+                          transfer_if_present('depends', comp, result_component)
+
+                          attachments = comp['attachments']
+                          if attachments.present?
+                            result_component['attachments'] = []
+                            errors_component['attachments'] = {}
+                            attachments.each do |attachment_name, attachment|
+                              errors_component['attachments'][attachment_name] = {}
+                              attachment_attrs = attachment.slice(*attachment_md_attrs)
+                              attachment_attrs = convert_json_attrs_to_string(attachment_attrs)
+                              attachment_ci    = Cms::DjCi.build({:ciClassName  => 'catalog.Attachment',
+                                                                  :nsPath       => platform_ns_path,
+                                                                  :ciName       => attachment_name,
+                                                                  :ciAttributes => attachment_attrs})
+                              attachment_ci.add_policy_locations(pack_ns_path)
+
+                              errors_component['attachments'][attachment_name]['errors'] = attachment_ci.errors.full_messages unless attachment_ci.valid?
+                              result_component['attachments'] << ci_to_load(attachment_ci, :attributes => attachment_attrs)
+                            end
+                          end
+
+                          monitors = comp['monitors']
+                          if monitors.present?
+                            result_component['monitors'] = []
+                            result_component['watchedBy'] = []
+                            errors_component['monitors'] = {}
+                            monitors.each do |monitor_name, monitor|
+                              errors_component['monitors'][monitor_name] = {}
+
+                              monitor_attrs    = convert_json_attrs_to_string(monitor.slice(*monitor_md_attrs))
+                              watched_by_attrs = convert_json_attrs_to_string(monitor.slice(*watched_by_md_attrs))
+
+                              monitor_template = monitor_name.start_with?("#{plat_name}-#{comp_name}-") &&
+                                Cms::Ci.first(:params => {:nsPath      => platform_pack_ns_path,
+                                                          :ciClassName => 'mgmt.catalog.Monitor',
+                                                          :ciName      => monitor_name.split('-').last})
+                              if monitor_template
+                                monitor_attrs.delete(:custom)
+                              else
+                                monitor_attrs.merge!(:custom => 'true')
+                                watched_by_attrs.merge!(:soure => 'design')
+                              end
+                              monitor_ci = Cms::DjCi.build({:ciClassName  => 'catalog.Monitor',
+                                                            :nsPath       => platform_ns_path,
+                                                            :ciName       => monitor_name,
+                                                            :ciAttributes => monitor_template ? monitor_template.ciAttributes.attributes.merge(monitor_attrs) : monitor_attrs})
+                              monitor_ci.add_policy_locations(pack_ns_path)
+
+                              errors_component['monitors'][monitor_name]['errors'] = monitor_ci.errors.full_messages unless monitor_ci.valid?
+                              result_component['monitors'] << ci_to_load(monitor_ci, :attributes => monitor_attrs)
+                              result_component['watchedBy'] << {:name => monitor_name, :type => 'catalog.WatchedBy', :attributes => watched_by_attrs} if watched_by_attrs.present?
+                            end
+                          end
+                        end
+                      else
+                        errors['platforms'][plat_name]['components'][template_and_class] = "Unknown component template [#{template}]"
+                      end
+                    else
+                      errors['platforms'][plat_name]['components'][template_and_class] = "Unknown component class [#{component_class}]"
+                    end
+                  else
+                    errors['platforms'][plat_name]['components'][template_and_class] = 'Invalid component template/type specification. Expected format: <template>/<class>'
+                  end
+                end
+              end
+            else
+              errors['platforms'][plat_name][:errors] = ["Unknown platform pack [#{pack_path}]"]
             end
-          else
-            errors['platforms'][plat_name] = "Unknown platform pack [#{pack_path}]"
           end
         else
-          errors['platforms'][plat_name] = 'Invalid platform pack specification. Expected format: <source>/<pack>:<version>'
+          errors['platforms'][plat_name][:errors] = ['Invalid platform pack specification. Expected format: <source>/<pack>:<version>']
         end
       end
     end
