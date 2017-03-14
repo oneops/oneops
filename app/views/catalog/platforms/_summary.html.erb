@@ -20,13 +20,23 @@
   <% end %>
 <% end %>
 
+<%= section_panel 'Info & Stats', :width => 'double', :position => 'left' do %>
+  <div id="pack_info_div"><%= loading_indicator %></div>
+<% end %>
+
+<%= section_panel 'Visibility', :width => 'double', :position => 'left' do %>
+  <div id="pack_visibility_div"><%= loading_indicator %></div>
+<% end %>
+
 <div id="page_nav_diagram">
   <%= loading_indicator %>
-  <script>
-    <%= remote_function(:url    => @design ?
-                                     diagram_catalog_design_platform_path(@design, @platform, :size => '6,4') :
-                                     diagram_catalog_pack_platform_path(:id => @platform, :size => '6,4'),
-                        :method => :get) %>
-  </script>
 </div>
 
+<script>
+  <%= remote_function(:url    => catalog_pack_path(@platform.ciAttributes.source, @platform.ciAttributes.pack, @platform.ciAttributes.version),
+                      :method => :get) %>
+  <%= remote_function(:url    => @design ?
+                                   diagram_catalog_design_platform_path(@design, @platform, :size => '6,4') :
+                                   diagram_catalog_pack_platform_path(:id => @platform, :size => '6,4'),
+                      :method => :get) %>
+</script>

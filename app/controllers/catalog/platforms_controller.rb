@@ -52,6 +52,8 @@ class Catalog::PlatformsController < Base::PlatformsController
 
       # TODO - this is to address the inconsistency with capitalization in the "pack" attribute of "mgmt.*.Platform"
       @platform.ciAttributes.pack = @platform.ciName unless @platform.ciAttributes.pack == @platform.ciName
+
+      @pack = locate_pack_for_platform(@platform)
     end
   end
 end

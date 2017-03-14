@@ -107,6 +107,10 @@ class User < ActiveRecord::Base
     return @is_admin[org_id]
   end
 
+  def in_group?(name)
+    groups.where(:name => name).first
+  end
+
   def manages_access?(org_id = nil)
     org_id ||= organization_id
     return false unless org_id

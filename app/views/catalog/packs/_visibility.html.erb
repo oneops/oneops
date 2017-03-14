@@ -1,0 +1,181 @@
+<% allow_actions = @version.ciAttributes.admin_password_digest.present? && check_pack_owner_group_membership?(current_user) %>
+<ul class="status">
+  <li class="status-marker">
+    <div class="marker">
+      <% disabled = @version.ciAttributes.enabled == 'false'
+         org_visibility = @version.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG]
+         restricted = disabled && org_visibility.present? %>
+      <% if restricted %>
+        <%= marker('restricted', 'label-warning') %>
+      <% elsif disabled %>
+        <%= marker('disabled', 'label-important') %>
+      <% else %>
+        <%= marker('enabled', 'label-success') %>
+      <% end %>
+    </div>
+    <div class="description">
+      <% if allow_actions %>
+        <div class="menu dropdown">
+          <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
+          <ul class="dropdown-menu" role="menu">
+            <% if disabled || restricted %>
+              <li class="text-success"><%= link_to_function(icon('play', 'Enable in all organizations...', 'fa-fw'), "$j('#enable_pack_form').show(500)") %></a></li>
+            <% end %>
+            <% if !disabled || restricted %>
+              <li class="text-error"><%= link_to_function(icon('stop', 'Disable in all organizations...', 'fa-fw'), "$j('#disable_pack_form').show(500)") %></a></li>
+            <% end %>
+            <li><%= link_to_function(icon('tasks', 'Enable for selected organizations...', 'fa-fw'), "$j('#configure_pack_visibility_form').show(500)") %></a></li>
+            <li class="divider"></li>
+            <li><%= link_to_function(icon('key', 'Change admin password...', 'fa-fw'), "$j('#change_pack_password_form').show(500)") %></a></li>
+          </ul>
+        </div>
+      <% end %>
+
+      <dl class="dl-horizontal">
+        <% if restricted %>
+          <dt><%= icon('tasks', '', 'text-warning') %></dt>
+          <dd>Has <b>restricted</b> visibility, enabled for these organizations only:
+            <blockquote>
+              <ul>
+                <% org_visibility.sort.each do |ns| %>
+                  <li><%= ns.split('/')[1] %></li>
+                <% end %>
+              </ul>
+            </blockquote>
+          </dd>
+        <% elsif disabled %>
+          <dt><%= icon('stop', '', 'text-error') %></dt>
+          <dd>Is <b>disabled</b> for all organizations.</dd>
+        <% else %>
+          <dt><%= icon('play', '', 'text-success') %></dt>
+          <dd>Is <b>enabled</b> for all organizations.</dd>
+        <% end %>
+      </dl>
+      <% if allow_actions %>
+        <div id="enable_pack_form" class="hide well well-small">
+          <h5>Enable pack in all organizations</h5>
+          <%= form_tag catalog_pack_visibility_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+            <%= hidden_field_tag :enabled, 'true' %>
+            <div class="control-group">
+              <label class="control-label" for="password">Pack admin password</label>
+              <div class="controls">
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+              </div>
+            </div>
+            <div class="form-actions">
+              <%= link_to_function(icon('remove', 'Cancel', 'fa-fw'), "$j(this).closest('.well').hide(500)", :class => 'btn btn-small') %>
+              <%= button_tag((icon('play', 'Enable', 'fa-fw')), :disable_with => 'Saving...', :class => 'btn btn-small btn-success') %>
+            </div>
+          <% end %>
+        </div>
+        <div id="disable_pack_form" class="hide well well-small">
+          <h5>Disable pack in all organizations</h5>
+          <%= form_tag catalog_pack_visibility_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+            <%= hidden_field_tag :enabled, 'false' %>
+            <div class="control-group">
+              <label class="control-label" for="password">Pack admin password</label>
+              <div class="controls">
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+              </div>
+            </div>
+            <div class="form-actions">
+              <%= link_to_function(icon('remove', 'Cancel', 'fa-fw'), "$j(this).closest('.well').hide(500)", :class => 'btn btn-small') %>
+              <%= button_tag((icon('stop', 'Disable')), :disable_with => 'Saving...', :class => 'btn btn-small btn-danger') %>
+            </div>
+          <% end %>
+        </div>
+        <div id="change_pack_password_form" class="hide well well-small">
+          <%= form_tag catalog_pack_password_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+            <h5>Change pack admin password</h5>
+            <div class="control-group">
+              <label class="control-label" for="password">Current password</label>
+              <div class="controls">
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="new_password">New password</label>
+              <div class="controls">
+                <%= password_field_tag :new_password, nil, :class => 'input-large', :required => true %>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="confirm_password">Confirm password</label>
+              <div class="controls">
+                <%= password_field_tag :confirm_password, nil, :class => 'input-large', :required => true %>
+              </div>
+            </div>
+            <div class="form-actions">
+              <%= link_to_function(icon('remove', 'Cancel', 'fa-fw'), "$j(this).closest('.well').hide(500)", :class => 'btn btn-small') %>
+              <%= button_tag((icon('check', 'Save', 'fa-fw')), :disable_with => 'Saving...', :class => 'btn btn-small btn-success') %>
+            </div>
+          <% end %>
+        </div>
+        <div id="configure_pack_visibility_form" class="hide well well-small">
+          <%= form_tag catalog_pack_visibility_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+            <h5>Enable pack for selected organizations</h5>
+            <div class="control-group">
+              <label class="control-label" for="password">Pack admin password</label>
+              <div class="controls">
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+              </div>
+            </div>
+            <div class="control-group">
+              <label class="control-label" for="orgs">Organizations</label>
+              <div class="controls">
+                <%= text_area_tag :orgs, restricted ? org_visibility.map {|ns| ns.split('/')[1]}.sort.join(' ') : '', :class => 'input-large', :required => true, :rows => 5 %>
+              </div>
+            </div>
+            <div class="form-actions">
+              <%= link_to_function(icon('remove', 'Cancel', 'fa-fw'), "$j(this).closest('.well').hide(500)", :class => 'btn btn-small') %>
+              <%= button_tag((icon('check', 'Save', 'fa-fw')), :disable_with => 'Saving...', :class => 'btn btn-small btn-success') %>
+            </div>
+          <% end %>
+          <script>
+            $j("#configure_pack_visibility_form textarea#orgs")
+                .typeahead({
+                  items:     10,
+                  minLength: 2,
+                  source:    function (query, process) {
+                    this.lastTimestamp = new Date().getTime();
+                    var that = this;
+                    setTimeout(function () {
+                      if (new Date().getTime() - that.lastTimestamp > 400) {
+                        var el = that.$element;
+                        var query = el.val().substr(0, el.prop("selectionStart")).match(/(^|\W)[\w-]+$/);
+                        if (query) {
+                          return $j.get('<%= lookup_organization_path %>',
+                                        {name: query[0].match(/[\w-]+/)[0]},
+                                        function (data) {
+                                          return process(data);
+                                        });
+                        }
+                      }
+                    }, 500);
+                  },
+                  matcher:   function (item) {
+                    return true;
+                  },
+                  updater:   function (item) {
+                    var org = item.split(' ')[0];
+                    var el = this.$element;
+                    var val = el.val();
+                    var cursorAt = el.prop("selectionStart");
+                    var begining = val.substr(0, cursorAt).search(/\W[\w-]+$/) + 1;
+
+                    if (val.search(new RegExp("(^|\\W)" + org + "($|\\W)")) >= 0) {
+                      org = '';
+                    }
+
+                    setTimeout(function () {
+                      el[0].setSelectionRange(begining + org.length + 1, begining + org.length + 1);
+                    }, 10);
+                    return val.substr(0, begining) + org + (val.length > cursorAt ? '' : ' ') + val.substr(cursorAt);
+                  }
+                });
+          </script>
+        </div>
+      <% end %>
+    </div>
+  </li>
+</ul>

@@ -85,6 +85,9 @@ defaults: &defaults
 
   allow_create_orgs: <%= ENV['ALLOW_CREATE_ORGS'] || 'true' %>
 
+  pack_management_auth: '<%= ENV['PACK_MANAGEMENT_AUTH'] %>'
+
+
 development: &development
   <<: *defaults
 

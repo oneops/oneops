@@ -28,7 +28,7 @@
       <div id="organization_lookup_modal" class="modal hide">
         <div class="modal-header">
           <button class="close" data-dismiss="modal">&times;</button>
-          <h3>Find Organization</h3>
+          <h3>Find organization <small>(<b>Alt</b>+<b>o</b>)</small></h3>
         </div>
         <div class="modal-body" style="overflow:visible">
           <%= text_field_tag(:org_lookup, '', :id => 'org_lookup', :style => 'width: 97%', :autocomplete => 'off', :placeholder => 'Organization name') %>
@@ -76,7 +76,7 @@
         <% org_name = current_org && current_org.name %>
         <% if org_name.present? %>
           $j('#ci_lookup_modal .modal-body input')
-              .typeahead({items: 20,
+              .typeahead({items: 21,
                 minLength: 3,
                 source:  function (query, process) {
                   this.lastTimestamp = new Date().getTime();
@@ -93,11 +93,15 @@
                                       max_size:    20
                                     },
                                     function (data) {
-                                      return process(data.reduce(function (a, d) {
-                                                                   a.push(d.ciName + " " + d.ciClassName + " " + d.nsPath + " " + d.ciId);
-                                                                   return a;
-                                                                 },
-                                                                 []));
+                                      var results = data.reduce(function (a, d) {
+                                                                  a.push(d.ciName + " " + d.ciClassName + " " + d.nsPath + " " + d.ciId);
+                                                                  return a;
+                                                                },
+                                                                []);
+                                      if (results.length >= 20) {
+                                        results.push('...')
+                                      }
+                                      return process(results);
                                     });
                     }
                   }, 500);
@@ -106,12 +110,21 @@
                   return true;
                 },
                 highlighter: function (item) {
-                  var s = item.split(" ");
-                  return s[0] + " <small><em>" + s[1].split(".").last() + "</em> " + s[2].substring(<%= org_name.size + 1 %>) + "</small>";
+                  if (item == '...') {
+                    return "<small><em><small>showing top 20 results</small></em></small>"
+                  }
+                  else {
+                    var s = item.split(" ");
+                    return s[0] + " <small><em>" + s[1].split(".").last() + "</em> " + s[2].substring(<%= org_name.size + 1 %>) + "</small>";
+                  }
                 },
                 updater: function (item) {
-                  window.location = "/r/ci/" + item.split(" ").last();
-                  show_busy();
+                  if (item == '...') {
+                    return this.$element.val();
+                  } else {
+                    window.location = "/r/ci/" + item.split(" ").last();
+                    show_busy();
+                  }
                 }
               });
         <% end %>
@@ -338,7 +351,7 @@
                       if (event.altKey) {
                         if (event.keyCode == 68) {
                           modal = $j("#ci_lookup_modal");
-                          modal.find(".modal-header h3").html("Go To In Design <small>(<b>Alt</b>+<b>d</b>)</small>");
+                          modal.find(".modal-header h3").html("Go to ... in design <small>(<b>Alt</b>+<b>d</b>)</small>");
                           modal.find(".modal-body input#dto").val("d");
                           modal.modal("show").find(".modal-body input").focus();
 
@@ -346,7 +359,7 @@
                         }
                         else if (event.keyCode == 71) {
                           modal = $j("#ci_lookup_modal");
-                          modal.find(".modal-header h3").html("Go To <small>(<b>Alt</b>+<b>g</b>)</small>");
+                          modal.find(".modal-header h3").html("Go to ... <small>(<b>Alt</b>+<b>g</b>)</small>");
                           modal.find(".modal-body input#dto").val("");
                           modal.modal("show").find(".modal-body input").focus();
 
@@ -354,7 +367,7 @@
                         }
                         else if (event.keyCode == 84) {
                           modal = $j("#ci_lookup_modal");
-                          modal.find(".modal-header h3").html("Go To In Transition <small>(<b>Alt</b>+<b>t</b>)</small>");
+                          modal.find(".modal-header h3").html("Go to ... in transition <small>(<b>Alt</b>+<b>t</b>)</small>");
                           modal.find(".modal-body input#dto").val("t");
                           modal.modal("show").find(".modal-body input").focus();
 
@@ -362,7 +375,7 @@
                         }
                         else if (event.keyCode == 80) {
                           modal = $j("#ci_lookup_modal");
-                          modal.find(".modal-header h3").html("Go To In Operations <small>(<b>Alt</b>+<b>p</b>)</small>");
+                          modal.find(".modal-header h3").html("Go to ... in operations <small>(<b>Alt</b>+<b>p</b>)</small>");
                           modal.find(".modal-body input#dto").val("o");
                           modal.modal("show").find(".modal-body input").focus();
 

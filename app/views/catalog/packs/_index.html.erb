@@ -2,26 +2,35 @@
   <%= list(@packs,
            :toolbar => {:list_name => 'pack_list',
                         :sort_by   => [%w(Name name), %w(Category category), %w(Source source)],
-                        :filter_by => %w(name category source version)}) do |builder, pack| %>
-    <% pack_ci    = pack[:pack]
-       version_ci = pack[:version]
-       pack_name  = pack_ci.ciName
-       source     = pack_ci.nsPath.split('/')[2]
-       version    = version_ci.ciName
-       category   = pack_ci.ciAttributes.category %>
+                        :filter_by => %w(name category source version visibility)}) do |builder, pack| %>
+    <% pack_ci        = pack[:pack]
+       version_ci     = pack[:version]
+       pack_name      = pack_ci.ciName
+       source         = pack_ci.nsPath.split('/')[2]
+       version        = version_ci.ciName
+       category       = pack_ci.ciAttributes.category
+       disabled       = version_ci.ciAttributes.enabled == 'false'
+       restricted     = disabled && version_ci.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].present? %>
     <% builder.itemid version_ci.ciId %>
-    <% builder.attributes raw(%(name="#{pack_name}" category="#{category}" version="#{version}" source="#{source}")) %>
+    <% builder.attributes raw(%(name="#{pack_name}" category="#{category}" version="#{version}" source="#{source}" visibility="#{restricted ? 'restricted' : (disabled ? 'disabled' : 'enabled')}")) %>
     <% builder.status do %>
       <%= marker(category, 'label-info') %>
+      <% if disabled %>
+        <% if restricted %>
+          <%= marker('restricted', 'label-warning') %>
+        <% else %>
+          <%= marker('disabled', 'label-important') %>
+        <% end %>
+      <% end %>
     <% end %>
     <% builder.icon pack_image_url(source, pack_name, version) %>
     <% builder.top do %>
       <small class="muted"><%= source %> </small><%= pack_name %> <small class="muted">v.<%= version %></small>
     <% end %>
     <% builder.middle do %>
-      <%= link_to(icon(site_icon(:design),   'design'), catalog_pack_platform_path(source, pack_name, version, nil, pack_name)) %>&nbsp;&nbsp;|&nbsp;&nbsp;
-      <%= link_to(icon('cube', 'single'),               catalog_pack_platform_path(source, pack_name, version, 'single', pack_name)) %> &nbsp;&nbsp;|&nbsp;&nbsp;
-      <%= link_to(icon('cubes', 'redundant'),           catalog_pack_platform_path(source, pack_name, version, 'redundant', pack_name)) %>
+      <%= link_to(icon(site_icon(:design),                 'design'),    catalog_pack_platform_path(source, pack_name, version, nil, pack_name)) %>&nbsp;&nbsp;|&nbsp;&nbsp;
+      <%= link_to(icon(site_icon(:single_availability),    'single'),    catalog_pack_platform_path(source, pack_name, version, 'single', pack_name)) %> &nbsp;&nbsp;|&nbsp;&nbsp;
+      <%= link_to(icon(site_icon(:redundant_availability), 'redundant'), catalog_pack_platform_path(source, pack_name, version, 'redundant', pack_name)) %>
     <% end %>
     <% builder.bottom version_ci.ciAttributes.description.presence || pack_ci.ciAttributes.description %>
   <% end %>

@@ -248,6 +248,11 @@ Display::Application.routes.draw do
       resources :packs, :only => [:index]
 
       scope '/packs/:source/:pack/:version(/:availability)', :as => 'pack' do
+        get ''           => 'packs#show',       :as => ''
+        get 'stats'      => 'packs#stats',      :as => 'stats'
+        put 'visibility' => 'packs#visibility', :as => 'visibility'
+        put 'password'   => 'packs#password',   :as => 'password'
+
         resources :platforms, :only => [:show] do
           get 'diagram', :on => :member
 
@@ -257,6 +262,7 @@ Display::Application.routes.draw do
           resources :components, :only => [:index, :show] do
             resources :monitors, :only => [:index, :show]
           end
+
           resources :monitors, :only => [:show]
         end
       end
