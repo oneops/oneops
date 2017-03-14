@@ -304,7 +304,7 @@ public class CmRestController extends AbstractRestController {
 		
 		if (attrs != null) {
 			boolean nsRecursive = recursive != null;
-			ciSimpleList = getCISimpleByAttrs(nsPath, clazzName, attrs, valueType, nsRecursive);
+			ciSimpleList = getCISimpleByAttrs(nsPath, clazzName, attrs, valueType, nsRecursive, includeAltNs, altNs, altNsTag);
 		} else if (ids != null) {
 			String[] ciIdsAr = ids.split(",");
 	        List<Long> ciIds = new ArrayList<>();
@@ -370,18 +370,28 @@ public class CmRestController extends AbstractRestController {
 	}
 	
 	private List<CmsCISimple> getCISimpleByAttrs(
-			String nsPath,  
-			String clazzName, 
-			String[] attrs, 
+			String nsPath,
+			String clazzName,
+			String[] attrs,
 			String valueType,
-			boolean recursive){
+			boolean recursive, 
+			String includeAltNs,
+			String altNs,
+			String tag
+	){
 		
 		List<AttrQueryCondition> attrConds = cmsUtil.parseConditions(attrs); 
 
-		List<CmsCI> ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, recursive);
+		
+		List<CmsCI> ciList;
+		if (altNs!=null || tag!=null) {
+			ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, recursive, altNs, tag);
+		} else {
+			ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, recursive);
+		}
 		List<CmsCISimple> ciSimpleList = new ArrayList<>();
 		for (CmsCI ci : ciList) {
-			ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType));
+			ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, null, false, includeAltNs));
 		}
 		return ciSimpleList;
 	}
