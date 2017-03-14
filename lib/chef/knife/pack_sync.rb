@@ -70,17 +70,17 @@ class Chef
         @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Pack, ui)
       end
 
-      
+
       # safety measure: make sure no packs conflict in scope
       def validate_packs
         config[:pack_path] ||= Chef::Config[:pack_path]
         config[:version] ||= Chef::Config[:version]
-         
-        # keyed by group-name-version 
+
+        # keyed by group-name-version
         pack_map = {}
-         
+
         config[:pack_path].each do |dir|
-                    
+
           pack_file_pattern = "#{dir}/*.rb"
           files = Dir.glob(pack_file_pattern)
           files.each do |file|
@@ -99,9 +99,9 @@ class Chef
               pack_map[key] = "#{file}"
             end
           end
-        end  
+        end
       end
-           
+
 
       def run
         config[:pack_path] ||= Chef::Config[:pack_path]
@@ -112,7 +112,7 @@ class Chef
         comments += " #{config[:msg]}" if config[:msg]
 
         validate_packs
-        
+
         if config[:all]
           config[:pack_path].each do |dir|
             pack_file_pattern = "#{dir}/*.rb"
@@ -232,17 +232,17 @@ class Chef
         Dir.chdir initial_dir
       end
 
-      
+
       # default to knife.rb config's register attr for backwards compat
       def get_group (pack)
-        if !pack.group_id.empty? 
+        if !pack.group_id.empty?
           group_id = pack.group_id
         else
-          group_id = Chef::Config[:register]          
+          group_id = Chef::Config[:register]
         end
         return group_id
       end
-      
+
 
       def upload_template_from_file(file,comments)
         pack = packs_loader.load_from("packs", file)
@@ -331,7 +331,7 @@ class Chef
         relsHash
       end
 
-      def fix_delta_cms(pack) 
+      def fix_delta_cms(pack)
         nsPath = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}/#{pack.version}"
         cmsEnvs = ['_default'] + Cms::Ci.all(:params => {:nsPath => nsPath, :ciClassName => 'mgmt.Mode'}).map(&:ciName)
         cmsEnvs.each do |env|
@@ -473,10 +473,15 @@ class Chef
         end
 
         pack_version.comments = comments
-        pack_version.ciAttributes.enabled = pack.enabled
         pack_version.ciAttributes.description = pack.description
         pack_version.ciAttributes.commit = signature
-	pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest 
+
+        # Pack visibility is managed via pack browser admin functions in UI if admin password
+        # digest is set - so do not override here.
+        if pack_version.id.to_i > 0 && pack_version.ciAttributes.attributes['admin_password_digest'].blank?
+          pack_version.ciAttributes.enabled = pack.enabled
+          pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest
+        end
 
         Chef::Log.debug(pack_version.to_json)
         if save(pack_version)
@@ -1225,6 +1230,5 @@ class Chef
       end
       object ? object : false
     end
-
   end
 end
