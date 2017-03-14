@@ -97,4 +97,6 @@ public interface CmsCmManager {
 	List<CmsAltNs> getAltNsByCiAndTag(long ciId, String tag);
 
 	void updateCiAltNs(long ciId, Map<String, Set<String>> altNs);
+
+	List<CmsCI> getCiByAttributes(String nsPath, String clazzName, List<AttrQueryCondition> attrConds, boolean recursive, String altNs, String tag);
 }

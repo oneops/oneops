@@ -108,6 +108,12 @@ public class CmsCmManagerImpl implements CmsCmManager {
         return cmProcessor.getCiByAttributes(ns, clazz, attrs, recursive);
     }
 
+    
+    @Override
+    public List<CmsCI> getCiByAttributes(String ns, String clazz, List<AttrQueryCondition> attrs, boolean recursive, String altNs, String tag) {
+        return cmProcessor.getCiByAttributes(ns, clazz, attrs, recursive, altNs, tag);
+    }
+
 
     /* (non-Javadoc)
      * @see com.oneops.cms.cm.service.CmsCmManager#getCiById(long)
