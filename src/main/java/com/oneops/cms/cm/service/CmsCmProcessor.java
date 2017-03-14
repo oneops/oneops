@@ -589,6 +589,31 @@ public class CmsCmProcessor {
 		return ciList;
 	}
 
+
+	/**
+	 * Gets the ci by attributes.
+	 *
+	 * @param ns the ns
+	 * @param clazzName the clazz name
+	 * @param attrs the attrs
+	 * @param recursive the recursive
+	 * @return the ci by attributes
+	 */
+	public List<CmsCI> getCiByAttributes(String ns, String clazzName, List<AttrQueryCondition> attrs, boolean recursive, String altNs, String tag) {
+
+		qcm.convertConditions(attrs);
+
+		List<CmsCI> ciList = null;
+		if (recursive) {
+			String nsLike = CmsUtil.likefyNsPath(ns);
+			ciList = ciMapper.getCIbyAttributesNsLikeWithAltNs(ns, nsLike, clazzName, attrs, altNs, tag);
+		} else {
+			ciList = ciMapper.getCIbyAttributesWithAltNs(ns, clazzName, attrs, altNs, tag);
+		}
+		populateAttrs(ciList);
+		return ciList;
+	}
+
 	/**
 	 * Gets the ci by id list naked.
 	 *

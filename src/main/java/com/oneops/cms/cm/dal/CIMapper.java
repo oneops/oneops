@@ -60,6 +60,11 @@ public interface CIMapper {
 	List<CmsCI> getCIbyAttributes(@Param("ns") String ns, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList);
 	List<CmsCI> getCIbyAttributesNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList);
 
+
+	List<CmsCI> getCIbyAttributesWithAltNs(@Param("ns") String ns, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList, @Param("altNs")String altNs, @Param("tag")String tag);
+	List<CmsCI> getCIbyAttributesNsLikeWithAltNs(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList, @Param("altNs")String altNs, @Param("tag")String tag);
+
+
 	List<CmsCIAttribute> getCIAttrs(long ciId); 
 	List<CmsCIAttribute> getCIAttrsByCiIdList(@Param("ciIds") List<Long> ciIds);
 	List<CmsCIAttribute> getCIAttrsNaked(long ciId);

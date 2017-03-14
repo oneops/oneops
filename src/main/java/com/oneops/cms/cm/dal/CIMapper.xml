@@ -438,8 +438,87 @@
         </foreach> 
 	 </select>
 
-	
-	 <select id="getCIAttrs" parameterType="long" resultType="com.oneops.cms.cm.domain.CmsCIAttribute">
+
+	<select id="getCIbyAttributesWithAltNs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCI">
+		select
+		ci.ci_id as ciId,
+		ci.ci_name as ciName,
+		ci.class_id as ciClassId,
+		cl.class_name as ciClassName,
+		cl.impl as impl,
+		ci.ns_id as nsId,
+		ns.ns_path as nsPath,
+		ci.ci_goid as ciGoid,
+		ci.comments,
+		ci.ci_state_id as ciStateId,
+		st.state_name as ciState,
+		ci.last_applied_rfc_id as lastAppliedRfcId,
+		ci.created_by as createdBy,
+		ci.updated_by as updatedBy,
+		ci.created,
+		ci.updated
+		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
+		where (#{clazz}::varchar is null or cl.class_name = #{clazz})
+		and (#{ns}::varchar is null or ns.ns_path = #{ns})
+		and ci.class_id = cl.class_id
+		and ci.ns_id = ns.ns_id
+		and ci.ci_state_id = st.ci_state_id
+		and cno.ci_id = ci.ci_id
+		and ns1.ns_id = cno.ns_id
+		and nt.tag_id = cno.tag_id
+		and (#{tag}::varchar is null or nt.tag = #{tag})
+		and (#{altNs}::varchar is null or ns1.ns_path = #{altNs})
+
+		<foreach item="item" index="index" collection="attrList" open="and" separator="and">
+			exists (select 1 from cm_ci_attributes cia, md_class_attributes cla
+			where cia.ci_id = ci.ci_id
+			and cia.attribute_id = cla.attribute_id
+			and cla.attribute_name = #{item.attributeName}
+			and cia.df_attribute_value ${item.condition} #{item.avalue})
+		</foreach>
+	</select>
+
+	<select id="getCIbyAttributesNsLikeWithAltNs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCI">
+		select
+		ci.ci_id as ciId,
+		ci.ci_name as ciName,
+		ci.class_id as ciClassId,
+		cl.class_name as ciClassName,
+		cl.impl as impl,
+		ci.ns_id as nsId,
+		ns.ns_path as nsPath,
+		ci.ci_goid as ciGoid,
+		ci.comments,
+		ci.ci_state_id as ciStateId,
+		st.state_name as ciState,
+		ci.last_applied_rfc_id as lastAppliedRfcId,
+		ci.created_by as createdBy,
+		ci.updated_by as updatedBy,
+		ci.created,
+		ci.updated
+		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+		and (#{clazz}::varchar is null or cl.class_name = #{clazz})
+		and cno.ci_id = ci.ci_id
+		and ns1.ns_id = cno.ns_id
+		and nt.tag_id = cno.tag_id
+		and (#{tag}::varchar is null or nt.tag = #{tag})
+		and (#{altNs}::varchar is null or ns1.ns_path = #{altNs})
+		and ci.class_id = cl.class_id
+		and ci.ns_id = ns.ns_id
+		and ci.ci_state_id = st.ci_state_id
+		<foreach item="item" index="index" collection="attrList" open="and" separator="and">
+			exists (select 1 from cm_ci_attributes cia, md_class_attributes cla
+			where cia.ci_id = ci.ci_id
+			and cia.attribute_id = cla.attribute_id
+			and cla.attribute_name = #{item.attributeName}
+			and cia.df_attribute_value ${item.condition} #{item.avalue})
+		</foreach>
+	</select>
+
+
+
+	<select id="getCIAttrs" parameterType="long" resultType="com.oneops.cms.cm.domain.CmsCIAttribute">
 		select
 			ca.ci_attribute_id as ciAttributeId,
 			ca.attribute_id as attributeId,
