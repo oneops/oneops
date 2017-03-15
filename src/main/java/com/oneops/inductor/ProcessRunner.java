@@ -24,6 +24,8 @@ import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.apache.log4j.Logger;
 
+import com.oneops.cms.util.CmsConstants;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -160,6 +162,9 @@ public class ProcessRunner {
 			} catch (InterruptedException ie) {
 				ie.printStackTrace();
 			}
+		}
+		if (count > 1) {
+			result.getTagMap().put(CmsConstants.INDUCTOR_RETRIES, Integer.toString(count));
 		}
 		logger.info(logKey + " ### EXEC EXIT CODE: " + result.getResultCode());
 		return result;
