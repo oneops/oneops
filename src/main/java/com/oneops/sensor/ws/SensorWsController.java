@@ -37,10 +37,7 @@ import org.apache.log4j.Logger;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executors;
 
 /**
@@ -323,20 +320,14 @@ public class SensorWsController {
     /**
      * Gets the cis states.
      *
-     * @param ciIdsAr array of ci ids
+     * @param ciIdsString coma separated array of ci ids
      * @return the cis states
      */
     @RequestMapping(value = "/ops/states", method = RequestMethod.POST)
     @ResponseBody
     public List<Map<String, String>> getCisStatesPost(
-            @RequestBody Long[] ciIdsAr) {
-
-        List<Long> ciIds = new ArrayList<Long>();
-        for (Long ciId : ciIdsAr) {
-            ciIds.add(ciId);
-        }
-
-        return getCisStates(ciIds);
+            @RequestBody String ciIdsString) {
+        return getCisStatesGet(ciIdsString);
     }
 
     private List<Map<String, String>> getCisStates(List<Long> ciIds) {
