@@ -47,8 +47,7 @@ public class Version {
                     );
                 }
             } catch (IOException e) {
-                //
-                logger.error("Exception in getting the mainfest-info");
+                logger.error("Exception in getting the manifest-info", e);
             }
         }
     }
