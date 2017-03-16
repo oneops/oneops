@@ -23,6 +23,7 @@
         <httpclient.version>4.5.1</httpclient.version>
         <spring-retry.version>1.1.2.RELEASE</spring-retry.version>
         <postgresql.version>9.0-801.jdbc4</postgresql.version>
+        <gitTag>${version}</gitTag>
     </properties>
 
 
@@ -37,6 +38,16 @@
             <groupId>com.oneops</groupId>
             <artifactId>oo-commons</artifactId>
             <version>${libs.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>rxjava</artifactId>
+                    <groupId>io.reactivex</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>cassandra-thrift</artifactId>
+                    <groupId>org.apache.cassandra</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>commons-dbcp</groupId>
@@ -249,6 +260,16 @@
                     <target>1.8</target>
                     <debug>true</debug>
                     <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <gitTag>${gitTag}</gitTag>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
             <plugin>
