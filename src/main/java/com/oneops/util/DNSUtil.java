@@ -59,7 +59,7 @@ public class DNSUtil {
     public static List<String> resolveHosts(List<String> hosts,
                                             boolean hostResolve,
                                             boolean ipv4Only) {
-        List<String> ips = new ArrayList<String>();
+        List<String> ips = new ArrayList<>();
         // Resolve the host addresses if dnsResolve is true
         if (hostResolve) {
             for (String host : hosts) {

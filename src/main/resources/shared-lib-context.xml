@@ -10,5 +10,5 @@
     <!-- This context file just used to bootstrap the OneOps java config.
          Check com.oneops.config.OneOpsConfig for bean definitions.  -->
     <context:annotation-config/>
-    <context:component-scan base-package="com.oneops.config"/>
+    <context:component-scan base-package="com.oneops.config,com.oneops.util"/>
 </beans>
