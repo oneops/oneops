@@ -228,7 +228,9 @@ public class CMSClient {
             //CmsWorkOrderSimple wo = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/workorders/{dpmtRecId}?execorder={execOrder}", CmsWorkOrderSimple.class, dpmtRec.getDeploymentId(), dpmtRec.getDpmtRecordId(), execOrder));
         	
         	CmsWorkOrderSimple wo  = cmsWoProvider.getWorkOrderSimple(dpmtRec.getDpmtRecordId(), null, execOrder);
-        	logger.info("Time taked to get wo - " + (System.currentTimeMillis() - startTime)  + "ms; pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
+            final long woCreationtime = System.currentTimeMillis() - startTime;
+            wo.getSearchTags().put("woCrtTime",String.valueOf(woCreationtime));
+            logger.info("Time taked to get wo - " + woCreationtime + "ms; pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
         	
         	if (wo != null) {
 	        	decryptWo(wo);
