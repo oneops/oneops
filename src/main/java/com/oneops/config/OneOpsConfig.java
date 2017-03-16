@@ -86,8 +86,6 @@ public class OneOpsConfig {
         pspc.setIgnoreResourceNotFound(true);
         pspc.setIgnoreUnresolvablePlaceholders(true);
         pspc.setOrder(1);
-        // Resource[] resources = {new ClassPathResource("oneops-config.properties")};
-        // pspc.setLocations(resources);
         return pspc;
     }
 
