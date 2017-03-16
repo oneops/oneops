@@ -46,6 +46,7 @@ public class Version {
                             (k, v) -> buildInfo.put(k.toString(), v.toString())
                     );
                 }
+                logger.info("Version : "+buildInfo);
             } catch (IOException e) {
                 logger.error("Exception in getting the manifest-info", e);
             }
