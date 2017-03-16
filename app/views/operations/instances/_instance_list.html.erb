@@ -17,7 +17,7 @@
   end
    actions = @actions + @custom_actions
    sort_by = [%w(Name ciName), %w(Cloud cloud), %w(Health health), %w(Procedure procedureState), %w(State ciState)]
-   filter_by = %w(ciName cloud health procedureState ciState cloudPriority)
+   filter_by = %w(ciName cloud health procedureState ciState cloudPriority events)
    if @managed_via_health.present?
      sort_by << ['Managed Via Health', 'managedVia']
      filter_by << 'managedVia'
@@ -68,6 +68,7 @@
 <%= section_panel 'Instances', :width => 'triple', :position => 'right', :menu => menu do %>
   <%= ci_list(@instances, :toolbar => toolbar, :menu => list_menu) do |builder, target| %>
     <% ops_state           = target.opsState ? (target.opsState || 'unknown') : 'pending'
+       events              = ops_state != 'good' && @bad_state_events.present? && @bad_state_events[target.ciId]
        procedure           = @instance_procedures[target.ciId]
        managed_via_health  = ops_state == 'good' && @managed_via_health.present? && @managed_via_health[target.ciId]
        deployment_info     = @deployment_info && @deployment_info[target.ciId]
@@ -76,7 +77,7 @@
        deployed_to         = target.cloud
        primary             = deployed_to && deployed_to.relationAttributes.priority == '1'
        priority_name      = primary ? 'primary' : 'secondary' %>
-    <% builder.attributes %(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}") %>
+    <% builder.attributes %(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}" #{%(events="#{events.map{|e| e['name']}.join(',')}") if events.present?}) %>
     <% builder.target nil %>
     <% builder.selectable target.lastAppliedRfcId.to_i > 0 %>
     <% builder.icon :none if @component %>
@@ -95,7 +96,12 @@
     <% builder.bottom @component ? :none : link_to(target.nsPath, path_to_ns(target.nsPath)) %>
     <% builder.status do %>
       <%= status_marker('id', target.ciId)%>
-      <%= status_marker('health', ops_state, health_to_label(ops_state)) %>
+      <% if events %>
+        <%= content = events.sort_by {|e| -e['timestamp']}.inject('') {|c, e| c + "<span><strong>#{e['name']}</strong> reporting <strong class='#{health_to_text(e['state'])}'>#{e['state']}</strong> since #{time_ago_in_words(Time.at((e['timestamp'] || 0) /1000))}</span><br>"}
+            status_marker('health', events.size > 1 ? "#{events.size} events" : events.first['name'], health_to_label(ops_state), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Monitor Events', 'data-content' => content, 'data-trigger' => 'click', 'data-placement' => 'bottom') %>
+      <% else %>
+        <%= status_marker('health', ops_state, health_to_label(ops_state)) %>
+      <% end %>
       <% ip = ips_map[target.ciId] %>
       <%= status_marker('IP', ip) if ip.present? %>
       <%= status_marker('configuration', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
