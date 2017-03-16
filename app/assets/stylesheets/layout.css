@@ -1793,7 +1793,14 @@ img.authicon {
   font-size:    10px;
   text-align:   left;
   opacity:      1;
-  z-index:      5;
+  z-index:      10;
+}
+
+.list-body li .status .popover {
+  font-size: 12px;
+  left: 0 !important;
+  right: auto;
+  width: auto;
 }
 
 .list-body li .menu {

@@ -72,44 +72,19 @@ class Operations::InstancesController < ApplicationController
       end
 
       @instances.each do |i|
-        i.opsState   = @ops_states[i.ciId]
+        ops_state = @ops_states[i.ciId]
+        i.opsState   = ops_state
         i.cloud      = deployed_to_map[i.ciId]
         i.deployedTo = deployed_to_map[i.ciId].try(:toCi)
       end
     end
 
     respond_to do |format|
-      format.js do
-        if @instances.present?
-          managed_via_rels = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
-                                                           :recursive    => true,
-                                                           :relationName => 'bom.ManagedVia',
-                                                           :includeToCi  => true})
-          @managed_via = managed_via_rels.to_map_with_value {|r| [r.fromCiId, r.toCi]}
-          unless component_scope
-            @managed_via_health = managed_via_rels.inject({}) do |h, r|
-              h[r.fromCiId] = @ops_states[r.toCiId]
-              h
-            end
-            @deployment = Cms::Deployment.latest(:nsPath => scope_ns_path)
-            @deployment_info = Search::WorkOrder.state_info(@deployment) if @deployment
-          end
-
-          @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => @environment ? environment_bom_ns_path(@environment) : assembly_ns_path(@assembly),
-                                                                :recursive => true,
-                                                                :actions   => true,
-                                                                :state     => 'active,pending',
-                                                                :limit     => 1000}).inject({}) do |m, p|
-            p.actions.each {|a| m[a.ciId] = p}
-            m
-          end
-        else
-          @instance_procedures = {}
-        end
-
-        @actions = (@component && @instances.present?) ? @instances.first.meta.actions : [CustomAction.new('repair', 'repair', 'repair')]
-        load_custom_actions
+      format.html do
+        render_index(component_scope)
+        render 'operations/instances/_instance_list'
       end
+      format.js {render_index(component_scope)}
 
       format.json { render :json => @instances }
     end
@@ -341,6 +316,45 @@ class Operations::InstancesController < ApplicationController
                                                      :relationShortName => 'RealizedAs'})
 
     @component = @realized_as.fromCi if @realized_as && !@component
+  end
+
+  def render_index(component_scope)
+    if @instances.present?
+      managed_via_rels = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
+                                                       :recursive    => true,
+                                                       :relationName => 'bom.ManagedVia',
+                                                       :includeToCi  => true})
+      @managed_via = managed_via_rels.to_map_with_value {|r| [r.fromCiId, r.toCi]}
+      unless component_scope
+        @managed_via_health = managed_via_rels.inject({}) do |h, r|
+          h[r.fromCiId] = @ops_states[r.toCiId]
+          h
+        end
+        @deployment = Cms::Deployment.latest(:nsPath => scope_ns_path)
+        @deployment_info = Search::WorkOrder.state_info(@deployment) if @deployment
+      end
+
+      @instance_procedures = Cms::Procedure.all(:params => {:nsPath    => @environment ? environment_bom_ns_path(@environment) : assembly_ns_path(@assembly),
+                                                            :recursive => true,
+                                                            :actions   => true,
+                                                            :state     => 'active,pending',
+                                                            :limit     => 1000}).inject({}) do |m, p|
+        p.actions.each {|a| m[a.ciId] = p}
+        m
+      end
+
+      bad_state_instance_ids = @instances.inject([]) do |a, i|
+        ops_state = @ops_states[i.ciId]
+        a << i.ciId if ops_state.present? && ops_state != 'good'
+        a
+      end
+      @bad_state_events = Operations::Sensor.events_for_instances(bad_state_instance_ids).to_map_with_value {|e| [e.keys.first.to_i, e.values.first.values.flatten]}
+    else
+      @instance_procedures = {}
+    end
+
+    @actions = (@component && @instances.present?) ? @instances.first.meta.actions : [CustomAction.new('repair', 'repair', 'repair')]
+    load_custom_actions
   end
 
   def load_custom_actions

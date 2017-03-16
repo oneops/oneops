@@ -1,4 +1,4 @@
-class Operations::Sensor < ActiveResource::Base
+class Operations::Sensor < Cms::Base
   self.site         = Settings.events_site
   self.prefix       = '/sensor/rest/ops'
   self.element_name = ''
@@ -39,16 +39,11 @@ class Operations::Sensor < ActiveResource::Base
   def self.events_for_instances(instances)
     return {} if instances.blank?
     begin
-      get('events', {:ciIds => instances.join(',')})
-      # response = Operations::Sensor.post('events', {}, instances.to_json).body
-      # return JSON(response)
+      response = Operations::Sensor.post('events', {}, instances.to_json).body
+      return JSON(response)
     rescue Exception => e
       Rails.logger.warn "Failed to retrieve instances events: #{e}"
-      return {}
+      return []
     end
-  end
-
-  def self.custom_method_collection_url(method_name, options = {})
-    super.gsub(/.#{self.format.extension}/, '')
   end
 end

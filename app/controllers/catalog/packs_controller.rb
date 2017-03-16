@@ -81,7 +81,7 @@ class Catalog::PacksController < ApplicationController
     if password_digest == @version.ciAttributes.admin_password_digest
       orgs = params[:orgs]
       if orgs.present?
-        @version.altNs.attributes[ORG_VISIBILITY_ALT_NS_TAG] = orgs.split(/[\s,]/).uniq.map {|o| "/#{o}"}
+        @version.altNs.attributes[ORG_VISIBILITY_ALT_NS_TAG] = orgs.split(/[\s,]/).select(&:present?).uniq.map {|o| "/#{o}"}
         @version.ciAttributes.enabled = 'false'
       else
         @version.altNs.attributes[ORG_VISIBILITY_ALT_NS_TAG] = []
