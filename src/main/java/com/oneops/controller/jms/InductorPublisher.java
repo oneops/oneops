@@ -46,6 +46,7 @@ public class InductorPublisher {
     private static final String QUEUE_SUFFIX = ".ind-wo";
     private static final String SHARED_QUEUE = "shared" + QUEUE_SUFFIX;
     private static final String USE_SHARED_FLAG = "com.oneops.controller.use-shared-queue";
+    private static final String CONTROLLLER_VERSION_SEARCH_TAG = "cVersion";
     private static Logger logger = Logger.getLogger(InductorPublisher.class);
     final private Gson gson = new Gson();
     private final Object lock = new Object();
@@ -107,9 +108,9 @@ public class InductorPublisher {
         wo.getSearchTags().put(CmsConstants.REQUEST_ENQUE_TS, format.format(new Date()));
         //guarantee non empty-value for searchMap
         if (version != null && StringUtils.isNotBlank(version.getGitVersion())) {
-            wo.getSearchTags().put("ctrlrVersion", version.getGitVersion());
+            wo.getSearchTags().put(CONTROLLLER_VERSION_SEARCH_TAG, version.getGitVersion());
         } else {
-            wo.getSearchTags().put("ctrlrVersion", DEFAULT_VERSION);
+            wo.getSearchTags().put(CONTROLLLER_VERSION_SEARCH_TAG, DEFAULT_VERSION);
         }
         TextMessage message = session.createTextMessage(gson.toJson(wo));
         String corelationId = processId + "!" + execId + "!" + waitTaskName;
