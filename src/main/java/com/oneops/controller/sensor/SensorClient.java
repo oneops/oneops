@@ -94,7 +94,8 @@ public class SensorClient {
 					&& wo.getPayLoad().get("Environment").get(0).getCiAttributes().get("monitoring").equals("true")) {
 				
 				monPublisher.processMonitorWo(wo);
-			    logger.debug("Client: sesnor post: " + gson.toJson(wo));
+
+				if(logger.isDebugEnabled())logger.debug("Client: sensor post: " + gson.toJson(wo));
 			    
 			}
 		}

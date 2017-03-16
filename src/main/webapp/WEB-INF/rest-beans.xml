@@ -24,7 +24,8 @@
 			<property name="config" ref="ecvConfig"/>
 			<property name="authUtil" ref="authUtil"/>
 		</bean>
-	<import resource="classpath:security-config.xml"/>
+	   <import resource="classpath:security-config.xml"/>
+	   <import resource="classpath:shared-lib-context.xml"/>
 
 		<bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
 			    <property name="useDefaultSuffixPattern" value="false" />
