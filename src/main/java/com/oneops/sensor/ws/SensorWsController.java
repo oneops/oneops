@@ -247,13 +247,15 @@ public class SensorWsController {
     /**
      * Process open events.
      *
-     * @param ciIds the ci ids
+     * @param ciIdsAr the ci ids
      * @return the list
      */
     @RequestMapping(method = RequestMethod.POST, value = "/ops/events")
     @ResponseBody
     public List<Map<Long, Map<String, List<CiOpenEvent>>>> processOpenEvents(
-            @RequestBody List<Long> ciIds) {
+            @RequestBody Long[] ciIdsAr) {
+        List<Long> ciIds = new ArrayList<>();
+        Collections.addAll(ciIds, ciIdsAr);
         return getOpenEventsForList(ciIds);
     }
 
@@ -320,14 +322,16 @@ public class SensorWsController {
     /**
      * Gets the cis states.
      *
-     * @param ciIdsString coma separated array of ci ids
+     * @param ciIdsAr array of ci ids
      * @return the cis states
      */
     @RequestMapping(value = "/ops/states", method = RequestMethod.POST)
     @ResponseBody
     public List<Map<String, String>> getCisStatesPost(
-            @RequestBody String ciIdsString) {
-        return getCisStatesGet(ciIdsString);
+            @RequestBody Long[] ciIdsAr) {
+        List<Long> ciIds = new ArrayList<>();
+        Collections.addAll(ciIds, ciIdsAr);
+        return getCisStates(ciIds);
     }
 
     private List<Map<String, String>> getCisStates(List<Long> ciIds) {
