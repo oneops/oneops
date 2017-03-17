@@ -26,15 +26,19 @@ class RegistrationsController < Devise::RegistrationsController
     User.transaction do
       super
       ok = resource && resource.persisted?
-      raise ActiveRecord::Rollback unless ok
-      invitation.destroy if invitation
+      if ok
+        invitation.destroy if invitation
+      else
+        raise ActiveRecord::Rollback
+      end
     end
 
     if ok
+      session[:username] = current_user.username if current_user
       session[:omniauth] = nil unless resource.new_record?
-      flash.now[:notice] = "Signed up successfully."
+      flash.now[:notice] = 'Signed up successfully.'
     else
-      flash.now[:error] = "Failed to sign up."
+      flash.now[:error] = 'Failed to sign up.'
     end
   end
 
@@ -75,6 +79,10 @@ class RegistrationsController < Devise::RegistrationsController
     elsif action_name == 'create'
       resource.organization = Organization.create(organization)
     end
+  end
+
+  def after_sign_up_path_for(resource)
+    nil
   end
 
 

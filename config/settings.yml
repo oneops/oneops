@@ -34,13 +34,13 @@ defaults: &defaults
 
   # Controls the self-registration vs. invitation only registrations.
   # Only valid with authentication type 'database'.
-  invitations: false
+  invitations: <%= ENV['SIGN_UP_INVITATION'] || 'false' %>
 
   # Controls the user confirmation requirements after registrations.
-  confirmation: false
+  confirmation: <%= ENV['SIGN_UP_CONFIRMATION'] || 'false' %>
 
   # Prompt for EULA acceptance on every login session if missing
-  eula: true
+  eula: <%= ENV['EULA_CONFIRMATION'] || 'true' %>
 
   # Mailer
   host: <%= ENV['OO_HOSTNAME'] || 'my.oneops.com' %>
@@ -49,6 +49,10 @@ defaults: &defaults
 
   mail_perform_deliveries: false
   mail_delivery_method: <%= ENV['MAIL_DELIVERY_METHOD'] || 'smtp' %>
+
+  # JSON configuration of smtp settings as expected by action mailer, i.e.
+  # export SMTP_SETTINGS="'{\"port\":1234, \"address\":\"blah\"}'"
+  smtp_settings: <%= ENV['SMTP_SETTINGS'] || '' %>
   smtp_address: <%= ENV['SMTP_HOSTNAME'] || 'smtp' %>
 
   # Backend services
@@ -96,8 +100,8 @@ production: &production
   mail_perform_deliveries: true
 
   # overrides
-  invitations: true
-  confirmation: true
+  invitations: <%= ENV['SIGN_UP_INVITATION'] || 'false' %>
+  confirmation: <%= ENV['SIGN_UP_CONFIRMATION'] || 'true' %>
 
 enterprise: &enterprise
   <<: *defaults

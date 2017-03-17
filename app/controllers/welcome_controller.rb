@@ -1,5 +1,5 @@
 class WelcomeController < ApplicationController
-  skip_before_filter :authenticate_user!, :check_organization
+  skip_before_filter :authenticate_user!, :check_organization, :check_eula, :check_reset_password, :except => [:index]
   before_filter :check_signed_in, :except => [:api_docs]
   skip_filter *_process_action_callbacks.map(&:filter), :only => [:api_docs]
 

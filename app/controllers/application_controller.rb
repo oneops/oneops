@@ -592,8 +592,13 @@ class ApplicationController < ActionController::Base
       if current_user.username != session[:username]
         logger.error "Current username '#{current_user.username}' doesn't match session: #{session.inspect}"
         sign_out
-        flash[:alert] = 'Please verify your identity by signing in.'
-        redirect_to new_user_session_path
+        message = 'Please verify your identity by signing in.'
+        flash.now[:alert] = message
+        respond_to do |format|
+          format.html { redirect_to new_user_session_url}
+          format.js   { render :js => "window.location = '#{new_user_session_url}'" }
+          format.json { render :json => {:errors => [message]}, :status => :unauthorized }
+        end
         return
       end
 
@@ -605,7 +610,7 @@ class ApplicationController < ActionController::Base
           redirect_to new_user_session_path(:message => message)
         else
           flash[:error] = message
-          redirect_to new_user_session_path
+          redirect_to new_user_session_path, :status => :see_other
         end
       end
     end
@@ -617,7 +622,7 @@ class ApplicationController < ActionController::Base
       if user.reset_password_token?
         sign_out
         flash[:notice] = 'Please reset your password.'
-        redirect_to edit_password_url(user, :reset_password_token => user.reset_password_token)
+        redirect_to edit_password_url(user, :reset_password_token => user.reset_password_token), :status => :see_other
       end
     end
   end
@@ -645,7 +650,11 @@ class ApplicationController < ActionController::Base
 
   def check_eula
     return unless user_signed_in? && current_user.eula_accepted_at.blank?
-    redirect_to show_eula_account_profile_path
+    respond_to do |format|
+      format.html { redirect_to show_eula_account_profile_path}
+      format.js   { render :js => "window.location = '#{show_eula_account_profile_path}'" }
+      format.json { render :json => {:errors => ['EULA not accepted']}, :status => :unauthorized }
+    end
   end
 
   def check_organization
