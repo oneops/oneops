@@ -10,7 +10,7 @@
 
     <properties>
         <spring.version>4.1.5.RELEASE</spring.version>
-        <activiti.version>5.13</activiti.version>
+        <activiti.version>5.21.0</activiti.version>
         <junit.version>4.7</junit.version>
         <activemq.version>5.11.1</activemq.version>
         <libs.version>1.0.0</libs.version>
@@ -107,6 +107,7 @@
             <artifactId>activemq-runtime-config</artifactId>
             <version>${activemq.version}</version>
         </dependency>
+
         <dependency>
             <groupId>javax.activation</groupId>
             <artifactId>activation</artifactId>
@@ -230,6 +231,16 @@
             <artifactId>spring-test</artifactId>
             <version>4.1.5.RELEASE</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.2</version>
         </dependency>
     </dependencies>
 
