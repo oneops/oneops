@@ -10,7 +10,7 @@
 
     <properties>
         <spring.version>4.1.5.RELEASE</spring.version>
-        <activiti.version>5.21.0</activiti.version>
+        <activiti.version>5.19.0</activiti.version>
         <junit.version>4.7</junit.version>
         <activemq.version>5.11.1</activemq.version>
         <libs.version>1.0.0</libs.version>
