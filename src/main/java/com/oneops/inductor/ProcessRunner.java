@@ -163,9 +163,9 @@ public class ProcessRunner {
 				ie.printStackTrace();
 			}
 		}
-		if (count > 1) {
-			result.getTagMap().put(CmsConstants.INDUCTOR_RETRIES, Integer.toString(count));
-		}
+
+		//adding count to retry
+		result.getTagMap().put(CmsConstants.INDUCTOR_RETRIES, Integer.toString(count-1));
 		logger.info(logKey + " ### EXEC EXIT CODE: " + result.getResultCode());
 		return result;
 	}

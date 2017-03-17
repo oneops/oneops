@@ -29,6 +29,7 @@ import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,6 +50,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     private static final String BOM_CLASS_PREFIX = "bom\\.(.*\\.)*";
     private static final String FAIL_ON_DELETE_FAILURE_ATTR = "fail_on_delete_failure";
+    private static final String BASE_INSTALL_TIME = "bInstallTime";
     private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
     private Semaphore semaphore = null;
     private Config config = null;
@@ -118,7 +120,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 + wo.getRfcCi().getCiName() + " took: " + duration + "sec");
 
         setTotalExecutionTime(wo, endTime - startTime);
-        wo.getSearchTags().put(RESPONSE_ENQUE_TS,DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
+        wo.putSearchTag(RESPONSE_ENQUE_TS,DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
         return buildResponseMessage(wo, correlationId);
     }
 
@@ -191,7 +193,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      */
     private Map<String, String> buildResponseMessage(CmsWorkOrderSimple wo,
                                                      String correlationId) {
-
+        long t1 = System.currentTimeMillis();
         // state and resultCI gets set via chef response
         // serialize and send to controller
         String responseCode = "200";
@@ -203,6 +205,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             responseCode = "500";
         }
 
+        //TODO: Delete this code
         if ("replace".equals(wo.getRfcCi().getCiState())
                 && "delete".equals(wo.getRfcCi().getRfcAction())) {
             // Don't mask and log the wo text for replace::delete WOs
@@ -212,7 +215,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             // Mask secured fields before logging
             CmsUtil.maskSecuredFields(wo, CmsUtil.WORK_ORDER_TYPE);
             String logResponseText = gson.toJson(wo);
-
             // InductorLogSink will process this message
             logger.info("{ \"resultCode\": " + responseCode + ", "
                     + " \"JMSCorrelationID:\": \"" + correlationId + "\", "
@@ -223,6 +225,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         message.put("body", responseText);
         message.put("correlationID", correlationId);
         message.put("task_result_code", responseCode);
+        //currently logging the time , will log response time
+        logger.info("wo response time took  " +(System.currentTimeMillis()-t1));
         return message;
     }
 
@@ -279,6 +283,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     chefConfig = writeChefConfig(wo, cookbookPath);
                     writeChefRequest(wo, fileName);
                     result = pr.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, woRetryCount));
+                    //
                 }
             }
             String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
@@ -574,7 +579,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     return;
                 }
             }
-            wo.getSearchTags().put(CmsConstants.INDUCTOR_RSYNC_TIME, Double.toString(System.currentTimeMillis()-rsyncStartTime));
+            wo.putSearchTag(CmsConstants.INDUCTOR_RSYNC_TIME, Long.toString(System.currentTimeMillis()-rsyncStartTime));
         }
 
         // run the chef command
@@ -738,6 +743,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      */
     public void runBaseInstall(ProcessRunner pr, CmsWorkOrderSimple wo,
                                String host, String port, String logKey, String keyFile) {
+
+        long t1 = System.currentTimeMillis();
         // amazon public images use ubuntu user for ubuntu os
         String cloudName = wo.getCloud().getCiName();
         String osType = "";
@@ -838,6 +845,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         retryCount);
                 if (result.getResultCode() > 0) {
                     wo.setComments("failed : Replace the compute and retry the deployment");
+                    wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                     return;
                 }
             }
@@ -859,6 +867,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
+                wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                 return;
             }
         }
@@ -875,6 +884,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
+                wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                 return;
             }
         }
@@ -900,10 +910,11 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("failed : can't run install_base.sh");
+                wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                 return;
             }
         }
-
+        wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
     }
 
     /**
