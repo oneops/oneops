@@ -59,7 +59,17 @@ Display::Application.configure do
   # config.action_mailer.raise_delivery_errors = false
   config.action_mailer.perform_deliveries = Settings.mail_perform_deliveries
   config.action_mailer.delivery_method = Settings.mail_delivery_method.to_sym
-  config.action_mailer.smtp_settings = { :address => Settings.smtp_address, :enable_starttls_auto => false }
+  smtp_settings = {:address              => Settings.smtp_address,
+                   :enable_starttls_auto => false}
+  if Settings.smtp_settings.present?
+    begin
+      smtp_settings = JSON.parse(Settings.smtp_settings)
+    rescue Exception => e
+      puts smtp_settings
+      puts e
+    end
+  end
+  config.action_mailer.smtp_settings = smtp_settings
   config.action_mailer.default_url_options = { :host => Settings.host, :port => Settings.port, :protocol => Settings.protocol }
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to

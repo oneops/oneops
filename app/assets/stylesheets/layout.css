@@ -563,17 +563,17 @@ img.authicon {
   margin: 0;
 }
 
-#overlay div.controls input.button, #overlay div.controls button {
+#overlay div.controls td input.button, #overlay div.controls td button {
   height:    40px;
   font-size: 16px;
   min-width: 80px;
 }
 
-#overlay div.controls div.btn-group .dropdown-menu {
+#overlay div.controls td div.btn-group .dropdown-menu {
   text-align: left;
 }
 
-#overlay div.controls a.btn {
+#overlay div.controls td a.btn {
   font-size: 16px;
   height: 30px;
 }

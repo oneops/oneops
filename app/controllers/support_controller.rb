@@ -264,31 +264,9 @@ class SupportController < ReportsController
   private
 
   def authorize
-    auth_config = Settings.support_auth
-    if auth_config.blank?
-      unauthorized('Unavailable.')
-      return
-    end
-
-    begin
-      auth_json = JSON.parse(auth_config)
-    rescue Exception => e
-      auth_json = {'*' => auth_config}
-    end
-
-    user_groups = current_user.groups.pluck(:name).to_map
-    @permissions = {}
-    @permissions = auth_json.inject({}) do |h, (perm, groups)|
-      ok = (groups.is_a?(Array) ? groups : groups.to_s.split(',')).any? { |g| user_groups[g.strip] }
-      h[perm] = ok if ok
-      h
-    end
-
-    return if @permissions['*']
-
     action = action_name
     if action == 'show'
-      perm = @permissions.keys.first
+      perm = support_permissions.keys.first
     elsif action.start_with?('organization')
       perm = 'organization'
     elsif action.start_with?('user')
@@ -301,6 +279,6 @@ class SupportController < ReportsController
       perm = action
     end
 
-    unauthorized unless @permissions[perm]
+    unauthorized unless has_support_permission?(perm)
   end
 end

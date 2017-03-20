@@ -1,7 +1,7 @@
 <div class="wf">
   <div class="header">
     <div class="instance">
-      <%= @procedure.procedureName %>
+      <%= icon(site_icon!(:procedure)) %> <span class="type"><%= @procedure.procedureName %></span>
       <div class="status"><span id="procedure_state" class="highlight <%= @procedure.procedureState %>"><%= @procedure.procedureState.upcase %></span></div>
     </div>
     <div class="close"><i class="fa fa-lg fa-times"  onclick="close_procedure_overlay()"></i></div>

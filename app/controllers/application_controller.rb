@@ -39,7 +39,8 @@ class ApplicationController < ActionController::Base
                 :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
-                :graphvis_sub_ci_remote_images, :packs_info, :design_platform_ns_path
+                :graphvis_sub_ci_remote_images, :packs_info, :design_platform_ns_path,
+                :has_support_permission?
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -592,8 +593,13 @@ class ApplicationController < ActionController::Base
       if current_user.username != session[:username]
         logger.error "Current username '#{current_user.username}' doesn't match session: #{session.inspect}"
         sign_out
-        flash[:alert] = 'Please verify your identity by signing in.'
-        redirect_to new_user_session_path
+        message = 'Please verify your identity by signing in.'
+        flash.now[:alert] = message
+        respond_to do |format|
+          format.html { redirect_to new_user_session_url}
+          format.js   { render :js => "window.location = '#{new_user_session_url}'" }
+          format.json { render :json => {:errors => [message]}, :status => :unauthorized }
+        end
         return
       end
 
@@ -605,7 +611,7 @@ class ApplicationController < ActionController::Base
           redirect_to new_user_session_path(:message => message)
         else
           flash[:error] = message
-          redirect_to new_user_session_path
+          redirect_to new_user_session_path, :status => :see_other
         end
       end
     end
@@ -617,7 +623,7 @@ class ApplicationController < ActionController::Base
       if user.reset_password_token?
         sign_out
         flash[:notice] = 'Please reset your password.'
-        redirect_to edit_password_url(user, :reset_password_token => user.reset_password_token)
+        redirect_to edit_password_url(user, :reset_password_token => user.reset_password_token), :status => :see_other
       end
     end
   end
@@ -645,7 +651,11 @@ class ApplicationController < ActionController::Base
 
   def check_eula
     return unless user_signed_in? && current_user.eula_accepted_at.blank?
-    redirect_to show_eula_account_profile_path
+    respond_to do |format|
+      format.html { redirect_to show_eula_account_profile_path}
+      format.js   { render :js => "window.location = '#{show_eula_account_profile_path}'" }
+      format.json { render :json => {:errors => ['EULA not accepted']}, :status => :unauthorized }
+    end
   end
 
   def check_organization
@@ -1272,5 +1282,32 @@ class ApplicationController < ActionController::Base
         end
       end
     end
+  end
+
+  def support_permissions
+    return @permissions if @permissions
+
+    @permissions = {}
+    auth_config = Settings.support_auth
+    if auth_config.present?
+      begin
+        auth_json = JSON.parse(auth_config)
+      rescue Exception => e
+        auth_json = {'*' => auth_config}
+      end
+
+      user_groups = current_user.groups.pluck(:name).to_map
+      @permissions = auth_json.inject({}) do |h, (perm, groups)|
+        ok = (groups.is_a?(Array) ? groups : groups.to_s.split(',')).any? { |g| user_groups[g.strip] }
+        h[perm] = ok if ok
+        h
+      end
+    end
+    @permissions
+  end
+
+  def has_support_permission?(permission)
+    permissions = support_permissions
+    permissions['*'] || permissions[permission]
   end
 end

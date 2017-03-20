@@ -348,7 +348,8 @@ class Operations::InstancesController < ApplicationController
         a << i.ciId if ops_state.present? && ops_state != 'good'
         a
       end
-      @bad_state_events = Operations::Sensor.events_for_instances(bad_state_instance_ids).to_map_with_value {|e| [e.keys.first.to_i, e.values.first.values.flatten]}
+      events = Operations::Sensor.events_for_instances(bad_state_instance_ids)
+      @bad_state_events = events.to_map_with_value {|e| [e.keys.first.to_i, e.values.first.values.flatten]} if events.present?
     else
       @instance_procedures = {}
     end

@@ -1,4 +1,5 @@
 class Catalog::PacksController < ApplicationController
+  SUPPORT_PERMISSION_PACK_MANAGEMENT = 'pack_management'
   ORG_VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
   before_filter :authorize_pack_owner_group_membership, :only => [:visibility, :password]
@@ -8,13 +9,28 @@ class Catalog::PacksController < ApplicationController
 
 
   def index
-    pack_cis    = Cms::Ci.all(:params => {:nsPath      => '/public',
-                                          :ciClassName => 'mgmt.Pack',
-                                          :recursive   => true})
-    version_cis = Cms::Ci.all(:params => {:nsPath       => '/public',
-                                          :ciClassName  => 'mgmt.Version',
-                                          :recursive    => true,
-                                          :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
+    pack_cis = Cms::Ci.all(:params => {:nsPath      => '/public',
+                                       :ciClassName => 'mgmt.Pack',
+                                       :recursive   => true})
+    if check_pack_owner_group_membership?(current_user) || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
+      version_cis = Cms::Ci.all(:params => {:nsPath       => '/public',
+                                            :ciClassName  => 'mgmt.Version',
+                                            :recursive    => true,
+                                            :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
+    else
+      version_cis = Cms::Ci.all(:params => {:nsPath       => '/public',
+                                            :ciClassName  => 'mgmt.Version',
+                                            :recursive    => true,
+                                            :attr         => 'enabled:neq:false',
+                                            :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
+      version_cis += Cms::Ci.all(:params => {:nsPath       => '/public',
+                                             :ciClassName  => 'mgmt.Version',
+                                             :recursive    => true,
+                                             :attr         => 'enabled:eq:false',
+                                             :altNsTag     => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
+                                             :altNs        => organization_ns_path,
+                                             :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
+    end
 
     version_map = version_cis.inject({}) do |m, version|
       (m[version.nsPath] ||= []) << version
@@ -78,7 +94,7 @@ class Catalog::PacksController < ApplicationController
   def visibility
     ok = false
     password_digest = Digest::SHA512.hexdigest(params[:password])
-    if password_digest == @version.ciAttributes.admin_password_digest
+    if password_digest == @version.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
       orgs = params[:orgs]
       if orgs.present?
         @version.altNs.attributes[ORG_VISIBILITY_ALT_NS_TAG] = orgs.split(/[\s,]/).select(&:present?).uniq.map {|o| "/#{o}"}
@@ -102,7 +118,7 @@ class Catalog::PacksController < ApplicationController
   def password
     ok = false
     password_digest = Digest::SHA512.hexdigest(params[:password])
-    if password_digest == @version.ciAttributes.admin_password_digest
+    if password_digest == @version.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
       new_password = params[:new_password]
       if new_password.blank?
         @version.errors.add(:base, 'Invalid password/')

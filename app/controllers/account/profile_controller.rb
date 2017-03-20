@@ -1,8 +1,8 @@
 class Account::ProfileController < ApplicationController
   prepend_before_filter :allow_params_authentication!, :only => [:authentication_token]
-  skip_before_filter :check_username, :only => [:authentication_token]
-  skip_before_filter :check_eula, :only => [:show_eula, :accept_eula]
-  skip_before_filter :check_organization, :only => [:show, :update, :hide_wizard, :change_password, :organizations, :change_organization, :reset_authentication_token, :show_eula, :accept_eula]
+  skip_before_filter :check_username, :only => [:authentication_token, :session_preferences]
+  skip_before_filter :check_eula, :only => [:show_eula, :accept_eula, :session_preferences]
+  skip_before_filter :check_organization, :only => [:show, :update, :hide_wizard, :change_password, :organizations, :change_organization, :reset_authentication_token, :show_eula, :accept_eula, :session_preferences]
   layout false, :only => [:show_eula]
 
   def show
