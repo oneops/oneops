@@ -1,4 +1,5 @@
-<% allow_actions = @version.ciAttributes.admin_password_digest.present? && check_pack_owner_group_membership?(current_user) %>
+<% has_support_permission = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)
+   allow_actions = has_support_permission || (@version.ciAttributes.admin_password_digest.present? && check_pack_owner_group_membership?(current_user)) %>
 <ul class="status">
   <li class="status-marker">
     <div class="marker">
@@ -19,14 +20,14 @@
           <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
           <ul class="dropdown-menu" role="menu">
             <% if disabled || restricted %>
-              <li class="text-success"><%= link_to_function(icon('play', 'Enable in all organizations...', 'fa-fw'), "$j('#enable_pack_form').show(500)") %></a></li>
+              <li class="text-success"><%= link_to_function(icon('play', 'Enable in all organizations...', 'fa-fw'), "$j(this).closest('.description').find('.well').hide();$j('#enable_pack_form').show(500)") %></a></li>
             <% end %>
             <% if !disabled || restricted %>
-              <li class="text-error"><%= link_to_function(icon('stop', 'Disable in all organizations...', 'fa-fw'), "$j('#disable_pack_form').show(500)") %></a></li>
+              <li class="text-error"><%= link_to_function(icon('stop', 'Disable in all organizations...', 'fa-fw'), "$j(this).closest('.description').find('.well').hide();$j('#disable_pack_form').show(500)") %></a></li>
             <% end %>
-            <li><%= link_to_function(icon('tasks', 'Enable for selected organizations...', 'fa-fw'), "$j('#configure_pack_visibility_form').show(500)") %></a></li>
+            <li><%= link_to_function(icon('tasks', 'Enable for selected organizations...', 'fa-fw'), "$j(this).closest('.description').find('.well').hide();$j('#configure_pack_visibility_form').show(500)") %></a></li>
             <li class="divider"></li>
-            <li><%= link_to_function(icon('key', 'Change admin password...', 'fa-fw'), "$j('#change_pack_password_form').show(500)") %></a></li>
+            <li><%= link_to_function(icon('key', 'Change admin password...', 'fa-fw'), "$j(this).closest('.description').find('.well').hide();$j('#change_pack_password_form').show(500)") %></a></li>
           </ul>
         </div>
       <% end %>
@@ -59,7 +60,7 @@
             <div class="control-group">
               <label class="control-label" for="password">Pack admin password</label>
               <div class="controls">
-                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => !has_support_permission, :readonly => has_support_permission %>
               </div>
             </div>
             <div class="form-actions">
@@ -75,7 +76,7 @@
             <div class="control-group">
               <label class="control-label" for="password">Pack admin password</label>
               <div class="controls">
-                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => !has_support_permission, :readonly => has_support_permission %>
               </div>
             </div>
             <div class="form-actions">
@@ -90,7 +91,7 @@
             <div class="control-group">
               <label class="control-label" for="password">Current password</label>
               <div class="controls">
-                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => !has_support_permission, :readonly => has_support_permission %>
               </div>
             </div>
             <div class="control-group">
@@ -117,7 +118,7 @@
             <div class="control-group">
               <label class="control-label" for="password">Pack admin password</label>
               <div class="controls">
-                <%= password_field_tag :password, nil, :class => 'input-large', :required => true %>
+                <%= password_field_tag :password, nil, :class => 'input-large', :required => !has_support_permission, :readonly => has_support_permission %>
               </div>
             </div>
             <div class="control-group">
