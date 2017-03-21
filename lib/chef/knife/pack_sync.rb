@@ -476,10 +476,14 @@ class Chef
         pack_version.ciAttributes.description = pack.description
         pack_version.ciAttributes.commit = signature
 
-        # Pack visibility is managed via pack browser admin functions in UI if admin password
-        # digest is set - so do not override here.
-        if pack_version.id.to_i > 0 && pack_version.ciAttributes.attributes['admin_password_digest'].blank?
+        # "Seed" the pack admin digest and "enabled" flag for new pack only (first load)
+        # or the first time the pack admin password is set.
+        if pack_version.id.to_i == 0
+          # New pack (or version).
           pack_version.ciAttributes.enabled = pack.enabled
+          pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest
+        elsif pack_version.ciAttributes.attributes['admin_password_digest'].blank?
+          # Existing pack (or version) but admin password has not been set yet.
           pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest
         end
 
