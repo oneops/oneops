@@ -856,4 +856,8 @@ public abstract class AbstractOrderExecutor {
         }
         return rsynchFailed;
     }
+
+    protected void copySearchTagsFromResult(CmsWorkOrderSimpleBase wo, ProcessResult result) {
+        wo.getSearchTags().putAll(result.getTagMap());
+    }
 }

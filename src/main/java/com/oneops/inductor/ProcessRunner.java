@@ -24,6 +24,8 @@ import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.apache.log4j.Logger;
 
+import com.oneops.cms.util.CmsConstants;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -161,6 +163,9 @@ public class ProcessRunner {
 				ie.printStackTrace();
 			}
 		}
+
+		//adding count to retry
+		result.getTagMap().put(CmsConstants.INDUCTOR_RETRIES, Integer.toString(count-1));
 		logger.info(logKey + " ### EXEC EXIT CODE: " + result.getResultCode());
 		return result;
 	}

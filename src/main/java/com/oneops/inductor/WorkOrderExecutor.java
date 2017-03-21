@@ -23,11 +23,13 @@ import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsUtil;
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.beans.BeanUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,6 +50,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     private static final String BOM_CLASS_PREFIX = "bom\\.(.*\\.)*";
     private static final String FAIL_ON_DELETE_FAILURE_ATTR = "fail_on_delete_failure";
+    private static final String BASE_INSTALL_TIME = "bInstallTime";
     private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
     private Semaphore semaphore = null;
     private Config config = null;
@@ -117,7 +120,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 + wo.getRfcCi().getCiName() + " took: " + duration + "sec");
 
         setTotalExecutionTime(wo, endTime - startTime);
-        wo.getSearchTags().put(RESPONSE_ENQUE_TS,DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
+        wo.putSearchTag(RESPONSE_ENQUE_TS,DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
         return buildResponseMessage(wo, correlationId);
     }
 
@@ -190,7 +193,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      */
     private Map<String, String> buildResponseMessage(CmsWorkOrderSimple wo,
                                                      String correlationId) {
-
+        long t1 = System.currentTimeMillis();
         // state and resultCI gets set via chef response
         // serialize and send to controller
         String responseCode = "200";
@@ -202,6 +205,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             responseCode = "500";
         }
 
+        //TODO: Delete this code
         if ("replace".equals(wo.getRfcCi().getCiState())
                 && "delete".equals(wo.getRfcCi().getRfcAction())) {
             // Don't mask and log the wo text for replace::delete WOs
@@ -211,7 +215,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             // Mask secured fields before logging
             CmsUtil.maskSecuredFields(wo, CmsUtil.WORK_ORDER_TYPE);
             String logResponseText = gson.toJson(wo);
-
             // InductorLogSink will process this message
             logger.info("{ \"resultCode\": " + responseCode + ", "
                     + " \"JMSCorrelationID:\": \"" + correlationId + "\", "
@@ -222,6 +225,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         message.put("body", responseText);
         message.put("correlationID", correlationId);
         message.put("task_result_code", responseCode);
+        //currently logging the time , will log response time
+        logger.info("wo response time took  " +(System.currentTimeMillis()-t1));
         return message;
     }
 
@@ -278,6 +283,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     chefConfig = writeChefConfig(wo, cookbookPath);
                     writeChefRequest(wo, fileName);
                     result = pr.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, woRetryCount));
+                    //
                 }
             }
             String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
@@ -291,6 +297,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 logger.debug("setting to failed: " + wo.getDpmtRecordId());
                 wo.setDpmtRecordState(FAILED);
                 wo.setComments(comments);
+                setLocalRetries(result);
+                copySearchTagsFromResult(wo, result);
                 // only do for compute::remote add and update for pre-versioned
                 // classes
                 // does some remote stuff like resolv.conf, dns, java, nagios,
@@ -300,47 +308,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     && (rfcAction.equalsIgnoreCase(ADD) || rfcAction
                     .equalsIgnoreCase(UPDATE))) {
                 logger.info("classParts: " + classParts.length);
-                String host = null;
-                // set the result status
-                if (result.getResultMap().containsKey(config.getIpAttribute())) {
-                    host = result.getResultMap().get(config.getIpAttribute());
-                } else {
-                    logger.error("resultCi missing " + config.getIpAttribute());
-                    return;
-                }
-
-                String originalRfcAction = wo.getRfcCi().getRfcAction();
-                List<CmsRfcCISimple> ciList = new ArrayList<CmsRfcCISimple>();
-                CmsRfcCISimple manageViaCi = new CmsRfcCISimple();
-                manageViaCi.addCiAttribute(config.getIpAttribute(), host);
-                if (wo.getRfcCi().getCiAttributes().containsKey("proxy_map"))
-                    manageViaCi.addCiAttribute("proxy_map", wo.getRfcCi()
-                            .getCiAttributes().get("proxy_map"));
-
-                ciList.add(manageViaCi);
-                wo.payLoad.put(MANAGED_VIA, ciList);
-                wo.getRfcCi().setRfcAction(REMOTE);
-                setResultCi(result, wo);
-
-                // reset to state to failed
-                // gets set to complete only if all parts of install_base &
-                // remote are ok
-                wo.setDpmtRecordState(FAILED);
-                runWorkOrder(wo);
-
-                wo.getRfcCi().setRfcAction(originalRfcAction);
-                removeFile(chefConfig);
-
-                if (wo.getDpmtRecordState().equalsIgnoreCase(FAILED)) {
-                    // cleanup failed add
-                    if (originalRfcAction.equalsIgnoreCase(ADD))
-                        cleanupFailedCompute(result, wo);
-                    return;
-                }
-
-                logger.debug("setting to complete: " + wo.getDpmtRecordId());
-                wo.setDpmtRecordState(COMPLETE);
-                wo.setComments("done");
+                runComputeRemoteWorkOrder(wo, result, chefConfig); 
 
             } else {
                 // for delete/updates
@@ -360,6 +328,61 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     attempt + 1);
         }
 
+    }
+
+    private void runComputeRemoteWorkOrder(CmsWorkOrderSimple wo, ProcessResult result, String chefConfig) {
+        String host = null;
+        // set the result status
+        if (result.getResultMap().containsKey(config.getIpAttribute())) {
+            host = result.getResultMap().get(config.getIpAttribute());
+        } else {
+            logger.error("resultCi missing " + config.getIpAttribute());
+            return;
+        }
+
+        String originalRfcAction = wo.getRfcCi().getRfcAction();
+        List<CmsRfcCISimple> ciList = new ArrayList<CmsRfcCISimple>();
+        CmsRfcCISimple manageViaCi = new CmsRfcCISimple();
+        manageViaCi.addCiAttribute(config.getIpAttribute(), host);
+        if (wo.getRfcCi().getCiAttributes().containsKey("proxy_map"))
+            manageViaCi.addCiAttribute("proxy_map", wo.getRfcCi()
+                    .getCiAttributes().get("proxy_map"));
+
+        ciList.add(manageViaCi);
+        wo.payLoad.put(MANAGED_VIA, ciList);
+
+        setLocalRetries(result);
+
+        wo.getRfcCi().setRfcAction(REMOTE);
+        setResultCi(result, wo);
+
+        // reset to state to failed
+        // gets set to complete only if all parts of install_base &
+        // remote are ok
+        wo.setDpmtRecordState(FAILED);
+        runWorkOrder(wo);
+
+        wo.getRfcCi().setRfcAction(originalRfcAction);
+        removeFile(chefConfig);
+
+        if (wo.getDpmtRecordState().equalsIgnoreCase(FAILED)) {
+            // cleanup failed add
+            if (originalRfcAction.equalsIgnoreCase(ADD))
+                cleanupFailedCompute(result, wo);
+            return;
+        }
+
+        logger.debug("setting to complete: " + wo.getDpmtRecordId());
+        wo.setDpmtRecordState(COMPLETE);
+        wo.setComments("done");
+    }
+
+    private void setLocalRetries(ProcessResult result) {
+        Map<String, String> tagMap = result.getTagMap();
+        if (tagMap.containsKey(CmsConstants.INDUCTOR_RETRIES)) {
+            tagMap.put(CmsConstants.INDUCTOR_LOCAL_RETRIES, tagMap.get(CmsConstants.INDUCTOR_RETRIES));
+            tagMap.remove(CmsConstants.INDUCTOR_RETRIES);
+        }
     }
 
     /**
@@ -455,6 +478,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 logger.info("using port from " + config.getIpAttribute());
             }
 
+            long rsyncStartTime = System.currentTimeMillis();
             String[] rsyncCmdLineWithKey = rsyncCmdLine.clone();
             rsyncCmdLineWithKey[4] += "-p " + port + " -qi " + keyFile;
 
@@ -555,6 +579,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     return;
                 }
             }
+            wo.putSearchTag(CmsConstants.INDUCTOR_RSYNC_TIME, Long.toString(System.currentTimeMillis()-rsyncStartTime));
         }
 
         // run the chef command
@@ -609,6 +634,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
                     removeRemoteWorkOrder(wo, keyFile, processRunner);
                     removeFile(wo, keyFile);
+                    copySearchTagsFromResult(wo, result);
                     return;
                 }
                 // remove remote workorder for success and failure.
@@ -717,6 +743,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      */
     public void runBaseInstall(ProcessRunner pr, CmsWorkOrderSimple wo,
                                String host, String port, String logKey, String keyFile) {
+
+        long t1 = System.currentTimeMillis();
         // amazon public images use ubuntu user for ubuntu os
         String cloudName = wo.getCloud().getCiName();
         String osType = "";
@@ -817,6 +845,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         retryCount);
                 if (result.getResultCode() > 0) {
                     wo.setComments("failed : Replace the compute and retry the deployment");
+                    wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                     return;
                 }
             }
@@ -838,6 +867,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
+                wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                 return;
             }
         }
@@ -854,6 +884,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
+                wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                 return;
             }
         }
@@ -879,10 +910,11 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("failed : can't run install_base.sh");
+                wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
                 return;
             }
         }
-
+        wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
     }
 
     /**
@@ -1247,7 +1279,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             removeFile(filename);
     }
 
-
+    
     /**
      * setResultCi: uses the result map to set attributes of the resultCi
      *

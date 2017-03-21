@@ -177,13 +177,17 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
                 // WorkOrder
                 if (type.equals(WORK_ORDER_TYPE)) {
+                    long t = System.currentTimeMillis();
                     wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
+                    wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis()-t));
                     preProcess(wo);
                     wo.putSearchTag("rfcAction", wo.getAction());
                     responseMsgMap = workOrderExecutor.process(wo, correlationID);
                     // ActionOrder
                 } else if (type.equals(ACTION_ORDER_TYPE)) {
+                    long t = System.currentTimeMillis();
                     wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);
+                    wo.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis()-t));
                     preProcess(wo);
                     responseMsgMap = actionOrderExecutor.process(wo, correlationID);
                 } else {
