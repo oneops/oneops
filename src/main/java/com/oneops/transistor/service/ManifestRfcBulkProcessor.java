@@ -20,15 +20,13 @@ package com.oneops.transistor.service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.oneops.transistor.util.CloudUtil;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -56,8 +54,8 @@ import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.transistor.domain.ManifestRfcContainer;
-import com.oneops.transistor.domain.ManifestRootRfcContainer;
 import com.oneops.transistor.domain.ManifestRfcRelationTriplet;
+import com.oneops.transistor.domain.ManifestRootRfcContainer;
 import com.oneops.transistor.exceptions.TransistorException;
 
 
@@ -71,13 +69,15 @@ public class ManifestRfcBulkProcessor {
 	private CmsRfcProcessor rfcProcessor;
 	private CmsDJValidator djValidator;
 	private CmsRfcUtil rfcUtil;
-	//private ExpEvaluator expEval;
 	private TransUtil trUtil;
-	private CloudUtil cloudUtil;
 	
 	private static final String MGMT_MANIFEST_WATCHEDBY = "mgmt.manifest.WatchedBy";
 	private static final String MANIFEST_WATCHEDBY = "manifest.WatchedBy";
 	private static final String MANIFEST_MONITOR = "manifest.Monitor";
+	private static final String PACK_SOURCE_ATTRIBUTE = "source";
+	private static final String PACK_NAME_ATTRIBUTE = "pack";
+	private static final String PACK_VERSION_ATTRIBUTE = "version";
+	
 	
 	private static final Set<String> DUMMY_RELS = initSet();
 
@@ -118,22 +118,12 @@ public class ManifestRfcBulkProcessor {
 		this.rfcUtil = rfcUtil;
 	}
 
-    public void setCloudUtil(CloudUtil cloudUtil) {
-        this.cloudUtil = cloudUtil;
-    }
 
 	public void processDeletedPlatforms(Collection<CmsRfcCI> mfstPlats, CmsCI env, String nsPath, String userId) {
 		Set<String> newPlats = new HashSet<String>();
 		for (CmsRfcCI plat : mfstPlats) newPlats.add(plat.getCiName());
-
 		
 		List<CmsRfcRelation> existingEnv2Platrels = cmRfcMrgProcessor.getFromCIRelations(env.getCiId(), "manifest.ComposedOf", "manifest.Platform", null); 
-		/*List<CmsRfcCI> mfstExistingPlats = cmRfcMrgProcessor.getDfDjCi(nsPath, "manifest.Platform", null, null);
-		for (CmsRfcCI existingPlat : mfstExistingPlats) {
-			if (!newPlats.contains(existingPlat.getCiId())) {
-				cmRfcMrgProcessor.requestCiDelete(existingPlat.getCiId(), userId);
-			}
-		} */
 
 		for (CmsRfcRelation existingRel : existingEnv2Platrels) {
 			if (!newPlats.contains(existingRel.getToRfcCi().getCiName())) {
@@ -219,6 +209,11 @@ public class ManifestRfcBulkProcessor {
 		ManifestRfcContainer platformRfcs = new ManifestRfcContainer();
 		String platNsPath = nsPath + "/" + designPlatform.getCiName() + "/" + designPlatform.getAttribute("major_version").getDfValue();
 		logger.info("Started working on: " + platNsPath);
+		
+		String packSource = designPlatform.getAttribute(PACK_SOURCE_ATTRIBUTE).getDfValue(); 
+		String packName = designPlatform.getAttribute(PACK_NAME_ATTRIBUTE).getDfValue();
+		String packVersion = designPlatform.getAttribute(PACK_VERSION_ATTRIBUTE).getDfValue();
+		
 
 		String manifestAvailMode = null;
 		
@@ -252,9 +247,9 @@ public class ManifestRfcBulkProcessor {
 			throw new TransistorException(CmsError.TRANSISTOR_CANNOT_AVAILABILITY_MODE, err);
 		}
 		
-		String mgmtTemplNsPath = "/public/" + designPlatform.getAttribute("source").getDfValue() 
-								+ "/packs/" + designPlatform.getAttribute("pack").getDfValue()
-								+ "/" + designPlatform.getAttribute("version").getDfValue()
+		String mgmtTemplNsPath = "/public/" + packSource 
+								+ "/packs/" + packName
+								+ "/" + packVersion
 								+ "/" + manifestAvailMode;
 		
 		List<CmsCI> templatePlatforms = cmProcessor.getCiBy3(mgmtTemplNsPath, "mgmt.manifest.Platform", null);
@@ -279,8 +274,6 @@ public class ManifestRfcBulkProcessor {
 		
 		DesignPullContext context = new DesignPullContext();
 		context.userId = userId;
-		context.mgmtTmplNsPath = mgmtTemplNsPath;
-		context.env = env;
 		context.platNsPath = platNsPath;
 		context.envNsPath = nsPath;
 		context.availMode = manifestAvailMode;
@@ -304,6 +297,21 @@ public class ManifestRfcBulkProcessor {
 		processLocalVars(designPlatform.getCiId(), manifestPlatRfc.getCiId(),platNsPath, nsPath, userId, existingManifestCIs, existingManifestPlatRels, platformRfcs);
 		processClouds(env,manifestPlatRfc, platNsPath, nsPath, userId, existingManifestCIs, existingManifestPlatRels,platformRfcs);
 		
+		if (!packVersion.equals(manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE).getNewValue())) {
+			if (manifestPlat.getRfcAction() == null) {
+				// need to remove all attrs except version, otherwise the full rfc will be created
+				CmsRfcAttribute versionAttr = manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE); 
+				manifestPlat.getAttributes().clear();
+				manifestPlat.addAttribute(versionAttr);
+				manifestPlat.setRfcAction("update");
+			}
+			
+			manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE).setOldValue(manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE).getNewValue());
+			manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE).setNewValue(packVersion);
+		}
+
+		
+		
 		platformRfcs.setManifestPlatformRfc(manifestPlatRfc);
 		long  t2 = System.currentTimeMillis();
 		logger.info("Done creating rfc's for: " + manifestPlatRfc.getNsPath()+" completed in " +(t2-t1)+" milliseconds");
@@ -315,7 +323,7 @@ public class ManifestRfcBulkProcessor {
 		List<CmsRfcRelation> composedOfRels = cmRfcMrgProcessor.getToCIRelationsNaked(platformCiId, "manifest.ComposedOf", null, "manifest.Environment");
 		long releaseId = 0;
 		for (CmsRfcRelation composedOfRel : composedOfRels ) {
-			CmsRfcRelation newRfc = trUtil.cloneRfcRelation(composedOfRel);
+			CmsRfcRelation newRfc = TransUtil.cloneRfcRelation(composedOfRel);
 			newRfc.getAttribute("enabled").setNewValue("false");
 			newRfc.getAttribute("enabled").setOwner("manifest");
 			CmsRfcRelation rfc = cmRfcMrgProcessor.upsertRelationRfc(newRfc, userId);
@@ -328,7 +336,7 @@ public class ManifestRfcBulkProcessor {
 		long releaseId = 0;
 		List<CmsRfcRelation> composedOfRels = cmRfcMrgProcessor.getToCIRelationsNaked(platformCiId, "manifest.ComposedOf", null, "manifest.Environment");
 		for (CmsRfcRelation composedOfRel : composedOfRels) {
-			CmsRfcRelation newRfc = trUtil.cloneRfcRelation(composedOfRel);
+			CmsRfcRelation newRfc = TransUtil.cloneRfcRelation(composedOfRel);
 			newRfc.getAttribute("enabled").setNewValue("true");
 			newRfc.getAttribute("enabled").setOwner("manifest");
 			CmsRfcRelation rfc = cmRfcMrgProcessor.upsertRelationRfc(newRfc, userId);
@@ -432,7 +440,7 @@ public class ManifestRfcBulkProcessor {
 	
 	
 	public long setPlatformActive(long platCiId, String userId) {
-		CmsRfcCI plat = trUtil.cloneRfc(cmRfcMrgProcessor.getCiById(platCiId, "dj"));
+		CmsRfcCI plat = TransUtil.cloneRfc(cmRfcMrgProcessor.getCiById(platCiId, "dj"));
 		plat.getAttribute("is_active").setNewValue("true");
 		plat.getAttribute("is_active").setOwner("manifest");
 		cmRfcMrgProcessor.upsertCiRfc(plat, userId);
@@ -447,7 +455,7 @@ public class ManifestRfcBulkProcessor {
 			String platVersion = plat.getAttribute("major_version").getNewValue();
 			String otherPlatVersion = otherPlat.getAttribute("major_version").getNewValue();
 			if (!platVersion.equals(otherPlatVersion)) {
-				CmsRfcCI otherPlatRfc = trUtil.cloneRfc(otherPlat);
+				CmsRfcCI otherPlatRfc = TransUtil.cloneRfc(otherPlat);
 				otherPlatRfc.getAttribute("is_active").setNewValue("false");
 				otherPlatRfc.getAttribute("is_active").setOwner("manifest");
 				cmRfcMrgProcessor.upsertCiRfc(otherPlatRfc, userId);
@@ -1602,10 +1610,8 @@ public class ManifestRfcBulkProcessor {
 
 	private class DesignPullContext {
 		String userId;
-		String mgmtTmplNsPath;
 		String envNsPath;
 		String platNsPath;
-		CmsCI env;
 		String availMode;
 		Map<Long, CmsCI> existingManifestCIs;
 		Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels;
