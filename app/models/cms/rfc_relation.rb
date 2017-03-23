@@ -34,7 +34,13 @@ class Cms::RfcRelation < Cms::Relation
   end
 
   def ci_hash
-    return @ci_hash if @ci_hash
-    @ci_hash = comments.present? ? JSON.parse(comments) : {}
+    unless @ci_hash
+      begin
+        @ci_hash = comments.present? ? JSON.parse(comments) : {}
+      rescue Exception => e
+        @ci_hash = {}
+      end
+    end
+    return @ci_hash
   end
 end
