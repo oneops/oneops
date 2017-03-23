@@ -1152,11 +1152,9 @@ public class BomRfcBulkProcessor {
 	}
 
 	private void processManagedViaRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath, String user, ExistingRels existingRels, Long releaseId) {
-	    boolean disableBFS = false;
+	    
         CmsVar disableBFSVar = cmProcessor.getCmSimpleVar(DISABLE_BFS_VAR_NAME);
-        if (disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue())){
-            disableBFS = true;
-        }
+        boolean disableBFS = (disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue()));
 	    
 		long nsId = trUtil.verifyAndCreateNS(nsPath);
 		List<CmsLink> dependsOnlinks = cmRfcMrgProcessor.getLinks(nsPath, "bom.DependsOn");
