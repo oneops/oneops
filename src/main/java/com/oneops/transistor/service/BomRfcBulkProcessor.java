@@ -1176,7 +1176,7 @@ public class BomRfcBulkProcessor {
 				// lets find the path 
 				//List<String> pathClasses = getTraversalPath(mfstMngViaRel);
 				List<String> pathClasses = ENABLE_BFS_OPTIMIZATION?
-						getDpOnPathOptimized(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId()):
+						getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId()):
 						getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId());
 				if (pathClasses.size()==0) {
 					String err = "Can not traverse ManagedVia relation using DependsOn path from ci " + mfstMngViaRel.getFromCiId() + ", to ci " + mfstMngViaRel.getToCiId() + "\n";
@@ -1299,7 +1299,7 @@ public class BomRfcBulkProcessor {
 		return listOfTargets;
 	}
 
-	private List<String> getDpOnPathOptimized(long fromId, long endId) { // implement shortest path search (modified BFS)
+	private List<String> getDpOnPathBfs(long fromId, long endId) { // implement shortest path search (modified BFS)
 		Map<Long, String> idToClassNameMap = new HashMap<>();
 		Map<Long, Long> parents = new HashMap<>();
 		Queue<Long> queue = new LinkedList<>();
