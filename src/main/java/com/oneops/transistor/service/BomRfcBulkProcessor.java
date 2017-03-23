@@ -37,6 +37,7 @@ import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.transistor.exceptions.TransistorException;
 import org.apache.log4j.Logger;
 
@@ -62,6 +63,7 @@ public class BomRfcBulkProcessor {
     private static final int MAX_RECUSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "150"));
     private static final int MAX_NUM_OF_EDGES = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxEdges", "100000"));
     private static final String CONVERGE_RELATION_ATTRIBUTE = "converge";
+    private static final String DISABLE_BFS_VAR_NAME= "DISABLE_BFS";
     
 	private CmsCmProcessor cmProcessor;
 	private CmsMdProcessor mdProcessor;
@@ -1150,7 +1152,12 @@ public class BomRfcBulkProcessor {
 	}
 
 	private void processManagedViaRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath, String user, ExistingRels existingRels, Long releaseId) {
-
+	    boolean disableBFS = false;
+        CmsVar disableBFSVar = cmProcessor.getCmSimpleVar(DISABLE_BFS_VAR_NAME);
+        if (disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue())){
+            disableBFS = true;
+        }
+	    
 		long nsId = trUtil.verifyAndCreateNS(nsPath);
 		List<CmsLink> dependsOnlinks = cmRfcMrgProcessor.getLinks(nsPath, "bom.DependsOn");
 		//convert to map for traversing the path
@@ -1175,7 +1182,7 @@ public class BomRfcBulkProcessor {
 			for (CmsCIRelation mfstMngViaRel : mfstMngViaRels) {
 				// lets find the path 
 				//List<String> pathClasses = getTraversalPath(mfstMngViaRel);
-				List<String> pathClasses = ENABLE_BFS_OPTIMIZATION?
+				List<String> pathClasses = (ENABLE_BFS_OPTIMIZATION && !disableBFS)?
 						getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId()):
 						getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId());
 				if (pathClasses.size()==0) {
