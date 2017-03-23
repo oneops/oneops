@@ -26,7 +26,7 @@ module ApplicationHelper
                 :history                => 'history',
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
-                :procedure              => 'wrench',
+                :deployment             => 'cloud-upload',
                 :compute                => 'server'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
@@ -1173,7 +1173,7 @@ module ApplicationHelper
       if attr_value.blank?
         result << '&nbsp;'
       else
-        result << %(<pre class="changed">#{json && attr_value.present? ? JSON.pretty_unparse(attr_value) : attr_value}</pre>)
+        result << %(<pre class="changed">#{h(json && attr_value.present? ? JSON.pretty_unparse(attr_value) : attr_value)}</pre>)
       end
       if json && base_value.present?
         begin
@@ -1182,7 +1182,7 @@ module ApplicationHelper
           json = false
         end
       end
-      result << %(<pre class="original hide">#{json && base_value.present? ? JSON.pretty_unparse(base_value) : base_value}</pre>)
+      result << %(<pre class="original hide">#{h(json && base_value.present? ? JSON.pretty_unparse(base_value) : base_value)}</pre>)
       result << '</dd>'
     end
     result << '</dl>'

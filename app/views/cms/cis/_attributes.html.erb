@@ -131,8 +131,8 @@
                   <div class="title">Base Value Diff</div>
                   <% if base_value && base_value != attribute_value %>
                     <% json = data_type == 'hash' || data_type == 'array' || data_type == 'struct' %>
-                    <pre class="changed hide"><%= json && attribute_value.present? ? JSON.pretty_unparse(JSON.parse(attribute_value)) : attribute_value  %></pre>
-                    <pre class="original hide"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre>
+                    <pre class="changed hide"><%= h(json && attribute_value.present? ? JSON.pretty_unparse(JSON.parse(attribute_value)) : attribute_value) %></pre>
+                    <pre class="original hide"><%= h(json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value) %></pre>
                     <pre class="diff hide"></pre>
                   <% else %>
                     no changes

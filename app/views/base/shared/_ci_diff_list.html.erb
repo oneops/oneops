@@ -35,8 +35,8 @@
             <%= highlight(md_attribute ? md_attribute.description : attr) %>
             <%= icon(owner_map.attributes[md_attribute.attributeName] == owner_value ? 'lock' : 'unlock') if owner_map %>
           </td>
-          <td><pre class="changed"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
-          <td><pre class="original muted"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre></td>
+          <td><pre class="changed"><%= h(json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value) %></pre></td>
+          <td><pre class="original muted"><%= h(json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value) %></pre></td>
         </tr>
       <% end %>
       <% unless changes_only %>
