@@ -1154,7 +1154,8 @@ public class BomRfcBulkProcessor {
 	private void processManagedViaRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath, String user, ExistingRels existingRels, Long releaseId) {
 	    
         CmsVar disableBFSVar = cmProcessor.getCmSimpleVar(DISABLE_BFS_VAR_NAME);
-        boolean disableBFS = (disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue()));
+        boolean enableBFS = (!(disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue())) && ENABLE_BFS_OPTIMIZATION);
+        logger.info("Path calc BFS optimization enabled:"+enableBFS);
 	    
 		long nsId = trUtil.verifyAndCreateNS(nsPath);
 		List<CmsLink> dependsOnlinks = cmRfcMrgProcessor.getLinks(nsPath, "bom.DependsOn");
@@ -1180,7 +1181,7 @@ public class BomRfcBulkProcessor {
 			for (CmsCIRelation mfstMngViaRel : mfstMngViaRels) {
 				// lets find the path 
 				//List<String> pathClasses = getTraversalPath(mfstMngViaRel);
-				List<String> pathClasses = (ENABLE_BFS_OPTIMIZATION && !disableBFS)?
+				List<String> pathClasses = enableBFS?
 						getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId()):
 						getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId());
 				if (pathClasses.size()==0) {
