@@ -61,6 +61,11 @@ class Chef
              :long => "--reload",
              :description => "Remove the current pack before uploading"
 
+      option :verup,
+             :long => "--verup",
+             :description => "Creates new patch version for each change"
+
+             
       option :msg,
              :short => '-m MSG',
              :long => '--msg MSG',
@@ -242,9 +247,102 @@ class Chef
         end
         return group_id
       end
-      
 
       def upload_template_from_file(file,comments)
+        if config[:verup]
+          return upload_template_from_file_ver_update(file,comments)
+        else
+          return upload_template_from_file_no_verupdate(file,comments)
+        end     
+      end
+      
+      
+      def upload_template_from_file_ver_update(file,comments)
+        pack = packs_loader.load_from(Chef::Config[:pack_path], file)
+        pack.name.downcase!
+        source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
+        puts "source: #{source}"
+
+        unless ensure_path_exists(source)
+          return false
+        end
+
+        # default to the global knife version if not specified
+        circuit_version_parts = config[:version].split(".") 
+        major_version = circuit_version_parts.first
+        minor_version = (circuit_version_parts.size > 1) ?  circuit_version_parts[1]: '0'
+        
+        if !pack.version.empty?
+          pack_version_parts = pack.version.split(".") 
+          major_version = pack_version_parts.first
+          minor_version = (pack_version_parts.size > 1) ?  pack_version_parts[1]: '0'
+        end
+        pack.version("#{major_version}.#{minor_version}")
+
+        signature = Digest::MD5.hexdigest(pack.signature)
+
+        if pack.ignore
+          ui.info( "Ignoring pack #{pack.name} version #{pack.version}")
+          return true
+        end
+
+        # reload option is no longer available 
+        if config[:reload]
+          ui.error( "Reaload option is no longer available, all pack versions are immutable.If you need to force new patch version, change the pack description and do a pack sync.")
+          return true
+        end  
+        
+        # If pack signature matches but reload option is not set - bail
+        if check_pack_version(pack,signature)
+          return true
+        end
+
+        ui.info( "Uploading pack #{pack.name}")
+        Log.debug(pack.to_yaml)
+
+        # First, check to see if anything from CMS need to
+        # flip to pending_deletion
+        fix_delta_cms(pack)
+
+        # setup pack version namespace first
+        pack_version = setup_pack_version(pack,comments,'')
+        if pack_version.nil?
+          ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}")
+          return false
+        end
+        # Upload design template
+        design_resources = pack.design_resources
+
+        Chef::Log.debug([pack.name.capitalize,'mgmt.catalog',design_resources,comments].to_yaml)
+        ns = "#{source}/#{pack.name}/#{pack.version}"
+        upload_template(ns,pack.name,'mgmt.catalog',pack,'_default',design_resources,comments)
+        gen_doc(ns,pack)
+        # Upload manifest templates
+        pack.environments.each do |name,env|
+          environment_resources = pack.environment_resources(name)
+          #template_name = [pack.name.capitalize,name].join('-')
+          template_name = pack.name
+          package = 'mgmt.manifest'
+          Chef::Log.debug([template_name,'mgmt.manifest',environment_resources,comments].to_yaml)
+          mode = setup_mode(pack,name,comments)
+          if mode.nil?
+            ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version} environment mode #{name}")
+            return false
+          end
+          upload_template(ns+"/#{name}",template_name,'mgmt.manifest',pack,name,environment_resources,comments)
+
+        end
+        ui.info( "Uploaded pack #{pack.name}")
+        pack_version = setup_pack_version(pack,comments,signature)
+        if pack_version.nil?
+          ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}")
+          return false
+        end
+        return true
+      end
+
+      
+      def upload_template_from_file_no_verupdate(file,comments)
         pack = packs_loader.load_from("packs", file)
         pack.name.downcase!
         source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
@@ -315,8 +413,8 @@ class Chef
           return false
         end
         return true
-      end
-
+      end      
+      
       private
 
       def parse_pack_relations(relations)
@@ -398,7 +496,7 @@ class Chef
       end
     end
 
-    def fix_ci_from_cms(pack, env = '_default',relations,environments)
+    def fix_ci_from_cms(pack, env, relations,environments)   
       scope = (env == '_default') ? '' : "/#{env}"
       cms_resources = Cms::Ci.all( :params => { :nsPath => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}/#{pack.version}#{scope}"})
 
@@ -423,7 +521,43 @@ class Chef
       end
     end
 
-    def check_pack_version(pack,signature)
+    def check_pack_version(pack, signature)
+      if config[:verup]
+        return check_pack_version_ver_update(pack, signature)
+      else
+        return check_pack_version_no_ver_update(pack,signature)
+      end     
+    end  
+      
+    def check_pack_version_ver_update(pack, signature)
+       cms_pack_versions = Cms::Ci.all(:params => {:nsPath => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}", :ciClassName => 'mgmt.Version'})
+
+      # patch_versions is an array of of patch versions for the given major.minor of the pack
+      # we need to get the latest patch version and get signature (commit attribute) to compare with the loading pack signature 
+           
+       latest_patch_and_commit = cms_pack_versions.inject([-1, nil]) do |r, ci_v|
+         major, minor, patch = ci_v.ciName.split('.').map(&:to_i)
+         minor ||= 0
+         patch ||= 0
+         pack.version == "#{major}.#{minor}" && patch > r[0] ? [patch, ci_v.ciAttributes.attributes['commit']] : r
+       end
+  
+       if latest_patch_and_commit[1] == signature
+         ui.info("Pack #{pack.name} version #{pack.version} matches signature #{signature}, will skip.")
+         return true
+       else
+         if latest_patch_and_commit[0] == -1
+           ui.info("No patches found for ack #{pack.name} version #{pack.version}, starting at patch 0.")
+         else
+           ui.warn("Pack #{pack.name} version #{pack.version} signature is different from file signature #{signature}, will bump patch.")
+         end
+         pack.version("#{pack.version}.#{latest_patch_and_commit[0] + 1}")
+         return false
+       end
+    end   
+    
+    
+    def check_pack_version_no_ver_update(pack,signature)
       source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       pack_version = Cms::Ci.first( :params => { :nsPath => "#{source}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version })
       if pack_version.nil?
@@ -439,7 +573,7 @@ class Chef
         end
       end
     end
-
+    
     def setup_pack_version(pack,comments,signature)
       source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       pack_ci = Cms::Ci.first( :params => { :nsPath => "#{source}", :ciClassName => 'mgmt.Pack', :ciName => pack.name })
@@ -476,7 +610,7 @@ class Chef
         pack_version.ciAttributes.enabled = pack.enabled
         pack_version.ciAttributes.description = pack.description
         pack_version.ciAttributes.commit = signature
-	pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest 
+	      pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest 
 
         Chef::Log.debug(pack_version.to_json)
         if save(pack_version)
