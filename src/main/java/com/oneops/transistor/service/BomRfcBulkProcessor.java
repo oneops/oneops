@@ -17,34 +17,17 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
-
-import com.oneops.cms.exceptions.CIValidationException;
-import com.oneops.cms.exceptions.ExceptionConsolidator;
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
-import com.oneops.cms.cm.domain.CmsLink;
+import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
+import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.md.domain.CmsClazz;
 import com.oneops.cms.md.domain.CmsClazzAttribute;
 import com.oneops.cms.md.domain.CmsRelation;
@@ -54,7 +37,11 @@ import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.transistor.exceptions.TransistorException;
+import org.apache.log4j.Logger;
+
+import java.util.*;
 
 public class BomRfcBulkProcessor {
 	static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
@@ -72,9 +59,11 @@ public class BomRfcBulkProcessor {
     private static final String BOM_REALIZED_RELATION_NAME = "base.RealizedAs";
     private static final String BOM_DEPENDS_ON_RELATION_NAME = "bom.DependsOn";
     private static final String BOM_MANAGED_VIA_RELATION_NAME = "bom.ManagedVia";
-    private static final int MAX_RECUSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "50"));
+    private static final boolean ENABLE_BFS_OPTIMIZATION = Boolean.valueOf(System.getProperty("com.oneops.transistor.bfsOptimization", "true"));
+    private static final int MAX_RECUSION_DEPTH = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxRecursion", "150"));
     private static final int MAX_NUM_OF_EDGES = Integer.valueOf(System.getProperty("com.oneops.transistor.MaxEdges", "100000"));
     private static final String CONVERGE_RELATION_ATTRIBUTE = "converge";
+    private static final String DISABLE_BFS_VAR_NAME= "DISABLE_BFS";
     
 	private CmsCmProcessor cmProcessor;
 	private CmsMdProcessor mdProcessor;
@@ -1163,7 +1152,11 @@ public class BomRfcBulkProcessor {
 	}
 
 	private void processManagedViaRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath, String user, ExistingRels existingRels, Long releaseId) {
-
+	    
+        CmsVar disableBFSVar = cmProcessor.getCmSimpleVar(DISABLE_BFS_VAR_NAME);
+        boolean enableBFS = (!(disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue())) && ENABLE_BFS_OPTIMIZATION);
+        logger.info("Path calc BFS optimization enabled:"+enableBFS);
+	    
 		long nsId = trUtil.verifyAndCreateNS(nsPath);
 		List<CmsLink> dependsOnlinks = cmRfcMrgProcessor.getLinks(nsPath, "bom.DependsOn");
 		//convert to map for traversing the path
@@ -1177,7 +1170,7 @@ public class BomRfcBulkProcessor {
 			}
 			dependsOnMap.get(link.getFromCiId()).get(link.getToClazzName()).add(link.getToCiId());
 		}
-		
+		long counter = 0;
 		
 		Set<String> relRfcGoids = new HashSet<String>();
 		for (CmsCIRelation mfstCiRel : mfstCiRels) {
@@ -1188,7 +1181,9 @@ public class BomRfcBulkProcessor {
 			for (CmsCIRelation mfstMngViaRel : mfstMngViaRels) {
 				// lets find the path 
 				//List<String> pathClasses = getTraversalPath(mfstMngViaRel);
-				List<String> pathClasses = getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId());
+				List<String> pathClasses = enableBFS?
+						getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId()):
+						getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId());
 				if (pathClasses.size()==0) {
 					String err = "Can not traverse ManagedVia relation using DependsOn path from ci " + mfstMngViaRel.getFromCiId() + ", to ci " + mfstMngViaRel.getToCiId() + "\n";
 					err += mfstMngViaRel.getComments();
@@ -1229,6 +1224,7 @@ public class BomRfcBulkProcessor {
 										
 										//managedVia.setValidated(true);
 										createBomRelationRfc(managedVia,existingRels,releaseId);
+										counter++;
 										relRfcGoids.add(managedVia.getRelationGoid());
 										//cmRfcMrgProcessor.upsertRfcRelationNoCheck(managedVia, user, "dj");
 									}
@@ -1240,6 +1236,7 @@ public class BomRfcBulkProcessor {
 				}
 			}
 		}
+		logger.info("Bom ManagedVia Relation Counter:"+ counter);
 	};
 
 	private void processSecuredByRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath,  String user, ExistingRels existingRels, Long releaseId) {
@@ -1306,6 +1303,39 @@ public class BomRfcBulkProcessor {
 			}	
 		}
 		return listOfTargets;
+	}
+
+	private List<String> getDpOnPathBfs(long fromId, long endId) { // implement shortest path search (modified BFS)
+		Map<Long, String> idToClassNameMap = new HashMap<>();
+		Map<Long, Long> parents = new HashMap<>();
+		Queue<Long> queue = new LinkedList<>();
+		parents.put(fromId, null);
+		queue.add(fromId);
+
+		while (!queue.isEmpty()) {
+			Long current = queue.poll();
+
+			if (current == endId) {
+				List<String> pathClasses = new LinkedList<>();
+				do {
+					if (idToClassNameMap.containsKey(current)) {
+						pathClasses.add(0, idToClassNameMap.get(current));
+					}
+				} while ((current = parents.get(current)) != null);
+				return pathClasses;
+			}
+			List<CmsCIRelation> dependsOnRelations = cmProcessor.getFromCIRelations(current, null, "DependsOn", null);
+			for (CmsCIRelation dependsOnRelation : dependsOnRelations) {
+				CmsCI toCi = dependsOnRelation.getToCi();
+				idToClassNameMap.put(toCi.getCiId(), toCi.getCiClassName());
+				if (!parents.containsKey(toCi.getCiId())) {
+					parents.put(toCi.getCiId(), current);
+					queue.add(toCi.getCiId());
+				}
+			}
+		}
+		logger.warn("Path wasn't found"); // path wasn't found??? 
+		return new ArrayList<>();
 	}
 
 	private List<String> getDpOnPath(long fromId, long endId) {
