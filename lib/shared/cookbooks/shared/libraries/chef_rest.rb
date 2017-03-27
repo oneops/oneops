@@ -72,7 +72,7 @@ class Chef
           end
         }
       end
-      exit_with_error "error message: #{headers.message} .. error code: #{headers.code} .. #{url}" if headers.code.start_with?("4") || headers.code.start_with?("5")
+      exit_with_error "error message: #{headers.message} .. error code: #{headers.code} .. #{url}" if headers.code.to_i >= 400
       headers_h
     end
 
@@ -282,6 +282,12 @@ class Chef
           parts_details.push({'slot' => last_slot + 1, 'start' => byte_start, 'end' => '', size => size})
         end
       end
+
+      end_part = parts_details[parts_details.length-1]
+      end_part_end = end_part['end'] == '' ? end_part['start'].to_i + end_part['size'].to_i - 1: end_part['end']
+      end_part['end'] = end_part_end
+      parts_details[parts_details.length-1] = end_part
+      
       parts_details
     end
   end
