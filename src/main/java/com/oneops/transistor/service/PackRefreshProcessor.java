@@ -88,7 +88,7 @@ public class PackRefreshProcessor {
         this.djValidator = djValidator;
     }
 
-    public long refreshPack(long platformId ,String userId, String scope){
+    public long refreshPack(long platformId, String packVersion, String userId, String scope){
         CmsCI designPlatform = cmProcessor.getCiById(platformId);
         if(designPlatform == null){
             String errMsg = "Can not find platform for id = " + platformId + ";";
@@ -96,6 +96,14 @@ public class PackRefreshProcessor {
             throw new TransistorException(CmsError.TRANSISTOR_CANNOT_CORRESPONDING_OBJECT, errMsg);
         }
 
+        if (packVersion != null) {
+	        // lets set the new pack version on the platform, will update it in RFC on updatePackDigest step
+	        designPlatform.getAttribute("version").setDfValue(packVersion);
+	        designPlatform.getAttribute("version").setDjValue(packVersion);
+        } else {
+        	packVersion = designPlatform.getAttribute("version").getDfValue();
+        }
+        
         String designPlatformNsPath = designPlatform.getNsPath() + "/_design/" + designPlatform.getCiName();
         if (rfcProcessor.getRfcCountByNs(designPlatformNsPath) > 0) {
             throw new TransistorException(DesignExportException.DJ_OPEN_RELEASE_FOR_NAMESPACE_ERROR, OPEN_RELEASE_ERROR_MSG);
@@ -121,6 +129,7 @@ public class PackRefreshProcessor {
         context.userId = userId;
         context.existingCatalogPlatRels = existingCatalogPlatRels;
         context.templatePlatform = templatePlatform;
+        context.newPackVersion = packVersion;
         context.designPlatform = designPlatform;
 
         processPlatform(context);
@@ -296,8 +305,9 @@ public class PackRefreshProcessor {
         List<CmsCI> versions = cmProcessor.getCiBy3(nsPrefix, "mgmt.Version", designPlatform.getAttribute("version").getDfValue());
         for (CmsCI version: versions) {
             String digest = version.getAttribute("commit").getDfValue();
-            CmsRfcCI plat = trUtil.cloneRfc(cmRfcMrgProcessor.getCiById(designPlatform.getCiId(), "dj"));
+            CmsRfcCI plat = TransUtil.cloneRfc(cmRfcMrgProcessor.getCiById(designPlatform.getCiId(), "dj"));
             plat.getAttribute("pack_digest").setNewValue(digest);
+            plat.getAttribute("version").setNewValue(context.newPackVersion);
             cmRfcMrgProcessor.upsertCiRfc(plat, context.userId);
         }
     }
@@ -642,6 +652,7 @@ public class PackRefreshProcessor {
         String userId;
         String designPlatformNsPath;
         String releaseNsPath;
+        String newPackVersion;
         CmsCI templatePlatform;
         CmsCI designPlatform;
     }

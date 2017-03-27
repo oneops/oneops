@@ -44,7 +44,7 @@ public interface DesignManager {
 	public DesignExportSimple exportDesign(long assemblyId, Long[] platformIds, String scope);
 	public long importDesign(long assemblyId, String userId, String scope, DesignExportSimple des);
 	public void updateOwner(long assemblyId);
-    public long refreshPack(long platformId, String userId, String scope);
+    public long refreshPack(long platformId, String packVersion, String userId, String scope);
     public CmsRfcRelationSimple createComponent(long platId, CmsRfcRelationSimple relSimple, String userId, String scope);
 	
 

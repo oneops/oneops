@@ -297,7 +297,7 @@ public class ManifestRfcBulkProcessor {
 		processLocalVars(designPlatform.getCiId(), manifestPlatRfc.getCiId(),platNsPath, nsPath, userId, existingManifestCIs, existingManifestPlatRels, platformRfcs);
 		processClouds(env,manifestPlatRfc, platNsPath, nsPath, userId, existingManifestCIs, existingManifestPlatRels,platformRfcs);
 		
-		if (!packVersion.equals(manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE).getNewValue())) {
+		if (manifestPlat != null && !packVersion.equals(manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE).getNewValue())) {
 			if (manifestPlat.getRfcAction() == null) {
 				// need to remove all attrs except version, otherwise the full rfc will be created
 				CmsRfcAttribute versionAttr = manifestPlat.getAttribute(PACK_VERSION_ATTRIBUTE); 

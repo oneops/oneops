@@ -858,10 +858,23 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
 		if (userId == null) userId = "oneops-system";
-		long releaseId = dManager.refreshPack(platId ,userId ,scope);
+		long releaseId = dManager.refreshPack(platId, null, userId ,scope);
 		return toReleaseMap(releaseId);
 	}
 	
+	@RequestMapping(value="platforms/{platId}/packs/versions/{packSemVer}", method = RequestMethod.PUT)
+	@ResponseBody
+	public Map<String,Long> platformPackVersionUpgared(
+			@PathVariable long platId,
+			@PathVariable String packSemVer,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+		long releaseId = dManager.refreshPack(platId, packSemVer, userId ,scope);
+		return toReleaseMap(releaseId);
+	}
+
 	
 	private Set<Long> toSet(String longString) {
 		Set<Long> longs = null;
