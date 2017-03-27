@@ -266,6 +266,8 @@ class Chef
           return false
         end
 
+        signature = Digest::MD5.hexdigest(pack.signature)
+        
         # default to the global knife version if not specified
         circuit_version_parts = config[:version].split(".") 
         major_version = circuit_version_parts.first
@@ -277,8 +279,6 @@ class Chef
           minor_version = (pack_version_parts.size > 1) ?  pack_version_parts[1]: '0'
         end
         pack.version("#{major_version}.#{minor_version}")
-
-        signature = Digest::MD5.hexdigest(pack.signature)
 
         if pack.ignore
           ui.info( "Ignoring pack #{pack.name} version #{pack.version}")
@@ -352,14 +352,14 @@ class Chef
           return false
         end
 
+        signature = Digest::MD5.hexdigest(pack.signature)
+        
         # default to the global knife version if not specified
         version = config[:version].split(".").first
         if !pack.version.empty?
           version = pack.version.split(".").first
         end
         pack.version(version)
-
-        signature = Digest::MD5.hexdigest(pack.signature)
 
         if pack.ignore
           ui.info( "Ignoring pack #{pack.name} version #{pack.version}")
