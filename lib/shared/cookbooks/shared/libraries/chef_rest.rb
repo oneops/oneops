@@ -282,12 +282,6 @@ class Chef
           parts_details.push({'slot' => last_slot + 1, 'start' => byte_start, 'end' => '', size => size})
         end
       end
-
-      end_part = parts_details[parts_details.length-1]
-      end_part_end = end_part['end'] == '' ? end_part['start'].to_i + end_part['size'].to_i - 1: end_part['end']
-      end_part['end'] = end_part_end
-      parts_details[parts_details.length-1] = end_part
-      
       parts_details
     end
   end
