@@ -415,12 +415,13 @@ ruby_block 'setup nagios' do
   end
 end
 
+
 if is_new_compute
   include_recipe 'compute::ssh_key_file_rm'
 else
   if ostype =~ /windows/
     perf_dir = '/opt/oneops/perf'
-
+	    
     #grant permissions to all subfolders and files to SYSTEM
     directory perf_dir do
       rights :modify, 'SYSTEM'
@@ -429,7 +430,7 @@ else
       inherits false
       action :create
     end
-
+  
     ps_code = "
     $Path = '#{perf_dir}'
     $acl = Get-Acl $Path
@@ -461,17 +462,7 @@ else
     service 'perf-agent' do
       action [ :stop, :disable ]
     end
-  end
-end
 
-case node.platform
-when "redhat","centos","fedora","suse"
-  template '/etc/init.d/nagios' do
-  cookbook 'monitor'
-  source 'nagios_init.erb'
-  owner 'root'
-  group 'root'
-  mode 0755
   end
-  `/etc/init.d/nagios restart`
+
 end
