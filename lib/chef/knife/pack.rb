@@ -792,7 +792,16 @@ class Chef
     alias :reset :trigger
 
     def signature
-      require 'digest/md5'
+      Digest::MD5.hexdigest(self.class.flatten(to_hash))
+    end
+
+    def self.flatten(o, seed = '')
+      return o.sort_by{|e| e.first.to_s}.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Hash)
+      return o.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Array)
+      "#{seed}|#{o.to_s}"
+    end    
+    
+    def signature_
       Digest::MD5.hexdigest( sigflat self.to_hash )
     end
 
