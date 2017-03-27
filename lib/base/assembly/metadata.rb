@@ -32,7 +32,7 @@ attribute 'owner',
           }
 
 attribute 'tags',
-          :description => 'Miscelaneous Tags',
+          :description => 'Miscellaneous Tags',
           :data_type   => 'hash',
           :default     => '{}',
           :format      => {
