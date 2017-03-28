@@ -37,6 +37,9 @@ public final class CmsConstants {
 	public static final String EXECUTION_TIME = "executionTime";
 	public static final String LOCAL_WAIT_TIME = "localWaitTime";
 	public static final String TOTAL_TIME = "totalTime";
+	public static final String INDUCTOR_LOCAL_RETRIES = "inductorLocalRetries";
+	public static final String INDUCTOR_RETRIES = "inductorRetries";
+	public static final String INDUCTOR_RSYNC_TIME = "rsyncTime";
 	public static final String SEARCH_TS_PATTERN =  "yyyy-MM-dd'T'HH:mm:ss.SSS";
 	
 	//starting to put some relation constants 

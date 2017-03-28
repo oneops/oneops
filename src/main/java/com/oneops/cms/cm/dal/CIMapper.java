@@ -78,6 +78,7 @@ public interface CIMapper {
 	List<CmsCIRelation> getCIRelations(@Param("nsPath") String nsPath, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
 	List<CmsCIRelation> getCIRelationsByState(@Param("nsPath") String nsPath, @Param("relationName") String relationName, @Param("ciState") String ciState, @Param("fromClazzName") String fromClazzName, @Param("toClazzName") String toClazzName);
 	List<CmsCIRelation> getCIRelationsNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromClazzName") String fromClazzName, @Param("fromShortClazzName") String fromShortClazzName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
+	List<CmsCIRelation> getCIRelationsByStateNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("relationNames") List<String> relationNames, @Param("ciState") String ciState, @Param("fromClazzName") String fromClazzName, @Param("toClazzName") String toClazzName);
 	
 	List<CmsCIRelation> getFromCIRelations(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName);
 	List<CmsCIRelation> getFromCIRelationsByToClassAndCiName(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName,@Param("toCiName") String toCiName);
@@ -151,4 +152,11 @@ public interface CIMapper {
 										   @Param("tag") String tag);
 
 	List<CmsAltNs> getAltNsByCiAndTag(@Param("ciId") long ciId, @Param("tag") String tag);
+
+	long getPlatformCiCount4PackTemplate(@Param("platformClass") String platformClass, @Param("platAttrList") List<AttrQueryCondition> platformAttrList,
+			@Param("requiresRelation") String requiresRelation, @Param("tmplCiName") String tmplCiName);
+
+	long getPlatformRelCount4PackRel(@Param("platformClass") String platformClass, @Param("platAttrList") List<AttrQueryCondition> platformAttrList,
+			@Param("requiresRelation") String requiresRelation, @Param("fromTmplCiName") String fromTmplCiName, 
+			@Param("toTmplCiName") String toTmplCiName);
 }
