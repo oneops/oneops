@@ -88,7 +88,7 @@ public class CmsManagerImpl implements CmsManager {
 			thisAttrs = clazzMapper.getClazzAttrs(clazz.getClassId());
 		}
 
-		Map<String,CmsClazzAttribute> attrsMap = new HashMap<String, CmsClazzAttribute>();
+		Map<String,CmsClazzAttribute> attrsMap = new HashMap<>();
 			
 		for (CmsClazzAttribute attr : thisAttrs) {
 			attr.setInherited(isSuperClass);
@@ -104,7 +104,7 @@ public class CmsManagerImpl implements CmsManager {
 			}
 		}
 		
-		return new ArrayList<CmsClazzAttribute>(attrsMap.values());
+		return new ArrayList<>(attrsMap.values());
 
 	}
 	
