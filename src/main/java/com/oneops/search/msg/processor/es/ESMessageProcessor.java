@@ -99,7 +99,7 @@ public class ESMessageProcessor implements MessageProcessor {
                     break;
             }
         } catch (Exception e) {
-            logger.error(">>>>>>>>Error in processMessage() ESMessageProcessor for type :" + msgType + "::" + ExceptionUtils.getMessage(e), e);
+            logger.error(">>>>>>>>Error in processMessage() ESMessageProcessor for type :" + msgType+ "::msgId :"+ msgId +"::" + ExceptionUtils.getMessage(e), e);
         }
     }
 
@@ -122,7 +122,7 @@ public class ESMessageProcessor implements MessageProcessor {
                 logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES.");
             }
         } catch (Exception e) {
-            logger.error(">>>>>>>>Error in deleteMessage() ESMessageProcessorfor type :" + msgType + "::" + ExceptionUtils.getMessage(e), e);
+            logger.error(">>>>>>>>Error in deleteMessage() ESMessageProcessorfor type :" + msgType+ " ::msgId :"+ msgId +"::" + ExceptionUtils.getMessage(e), e);
         }
     }
 }
