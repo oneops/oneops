@@ -1329,7 +1329,7 @@ public class BomRfcBulkProcessor {
 				} while ((current = parents.get(current)) != null);
 				return pathClasses;
 			}
-			List<CmsCIRelation> dependsOnRelations = map.get(current);
+			List<CmsCIRelation> dependsOnRelations = map.containsKey(current) ? map.get(current) : new ArrayList<>();
 			for (CmsCIRelation dependsOnRelation : dependsOnRelations) {
 				CmsCI toCi = dependsOnRelation.getToCi();
 				idToClassNameMap.put(toCi.getCiId(), toCi.getCiClassName());
@@ -1345,7 +1345,7 @@ public class BomRfcBulkProcessor {
 
 	private List<String> getDpOnPath(long fromId, long endId, Map<Long, List<CmsCIRelation>> map) {
 		List<String> pathClasses = new ArrayList<String>();
-		List<CmsCIRelation> dponRels = map.get(fromId);
+        List<CmsCIRelation> dponRels = map.containsKey(fromId) ? map.get(fromId) : new ArrayList<>();
 		for (CmsCIRelation dponRel : dponRels) {
 			if (dponRel.getToCi().getCiId() == endId) {
 				pathClasses.add(dponRel.getToCi().getCiClassName());
