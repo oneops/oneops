@@ -80,10 +80,11 @@ class Design::PlatformsController < Base::PlatformsController
     if pack_ver.blank?
       @platform.errors.add(:base, 'Pack not found.')
     elsif pack_ver.ciAttributes.enabled == 'false'
-      @platform.errors.add(:base, 'Pack is disabled.')
-    else
-      @platform = Transistor.create_platform(@assembly.ciId, @platform)
+      visibility = pack_ver.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG]
+      @platform.errors.add(:base, 'Pack is disabled.') unless visibility.present? && visibility.include?(organization_ns_path)
     end
+
+    @platform = Transistor.create_platform(@assembly.ciId, @platform) if @platform.errors.blank?
     ok = @platform.errors.blank?
 
     save_platform_links if ok
