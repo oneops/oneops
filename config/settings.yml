@@ -91,6 +91,9 @@ defaults: &defaults
 
   pack_management_auth: '<%= ENV['PACK_MANAGEMENT_AUTH'] %>'
 
+  # Metadata cache entries expiration in minutes
+  md_cache_expiration_timeout: <%= ENV['MD_CACHE_EXPIRATION_TIMEOUT'] || (30 * 24 * 60) %>
+
 
 development: &development
   <<: *defaults

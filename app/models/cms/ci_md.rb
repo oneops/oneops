@@ -5,6 +5,10 @@ class Cms::CiMd < Cms::Base
   cattr_accessor :md_cache
   self.md_cache = {}
 
+  cattr_accessor :expiration_timeout
+  self.expiration_timeout = Settings.md_cache_expiration_timeout
+  self.expiration_timeout = (self.expiration_timeout && self.expiration_timeout > 0 ? self.expiration_timeout : 1).minutes
+
   def find_or_create_resource_for_collection(name)
     case name
       when :mdAttributes
@@ -18,8 +22,15 @@ class Cms::CiMd < Cms::Base
     key = ci_class_name.present? ? "Cms::CiMd:ci_class_name=#{ci_class_name}" : 'Cms::CiMd:all'
     md = nil
     begin
-      #md = Rails.cache.read(key)
-      md = md_cache[key]
+      #md_wrapper = Rails.cache.read(key)
+      md_wrapper = md_cache[key]
+      if md_wrapper
+        if Time.now > md_wrapper[:expires_at]
+          md_cache.delete(key)
+        else
+          md = md_wrapper[:md]
+        end
+      end
     rescue Exception => e
       Rails.logger.warn "Reading ci metadata '#{ci_class_name}' from cache failed: #{e}"
       md = nil
@@ -32,8 +43,9 @@ class Cms::CiMd < Cms::Base
       else
         md = all(:params => {:package => ci_class_name})
       end
-      #Rails.cache.write(key, md) if md
-      md_cache[key] = md
+      md_wrapper = {:md => md, :expires_at => Time.now + expiration_timeout}
+      #Rails.cache.write(key, md_wrapper) if md_wrapper
+      md_cache[key] = md_wrapper
     end
     return md
   end
