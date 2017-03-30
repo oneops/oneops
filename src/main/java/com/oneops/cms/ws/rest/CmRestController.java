@@ -19,9 +19,16 @@ package com.oneops.cms.ws.rest;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.oneops.cms.cm.domain.CmsAltNs;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -265,24 +272,74 @@ public class CmRestController extends AbstractRestController {
 	}
 
 
-	@RequestMapping(value="/cm/simple/cis/list", method = RequestMethod.POST)
-	@ResponseBody
-	public List<CmsCISimple> getCIcByIds(
-			@RequestBody Long[] ciIdsAr) {
-		
-		List<Long> ciIds = new ArrayList<>();
-        for (Long ciId : ciIdsAr) {
-            ciIds.add(Long.valueOf(ciId));
+    @RequestMapping(value = "/cm/simple/cis/list", method = RequestMethod.POST)
+    @ResponseBody
+    public List<CmsCISimple> getCIcByIds(
+            @RequestBody CiListRequest request,
+            @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+        List<CmsCI> ciList = cmManager.getCiByIdList(request.getIds());
+        for (CmsCI ci : ciList) {
+            scopeVerifier.verifyScope(scope, ci);
         }
-        List<CmsCISimple> ciSimpleList = new ArrayList<>();
-		for (CmsCI ci : cmManager.getCiByIdList(ciIds)) {
-			ciSimpleList.add(cmsUtil.custCI2CISimple(ci, "df", false));
-		}
-		return ciSimpleList;
-	}
 
-			
-	
+        return buildCiSimpleList(ciList, request.attrProps(), false, request.altNsTag());
+    }
+
+    @JsonDeserialize(using = CiListRequestDeserializer.class)
+    static class CiListRequest {
+        private List<Long> ids;
+        private String attrProps;
+        private String altNsTag;
+
+        CiListRequest(List<Long> ids) {
+            this.ids = ids;
+        }
+
+        CiListRequest(List<Long> ids, String attrProps, String altNsTag) {
+            this.ids = ids;
+            this.attrProps = attrProps;
+            this.altNsTag = altNsTag;
+        }
+
+        List<Long> getIds() {
+            return ids;
+        }
+
+        String attrProps() {
+            return attrProps;
+        }
+
+        String altNsTag() {
+            return altNsTag;
+        }
+    }
+
+    static class CiListRequestDeserializer extends JsonDeserializer<CiListRequest> {
+        @Override
+        public CiListRequest deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException {
+            JsonNode node = jsonParser.getCodec().readTree(jsonParser);
+            if (node.getNodeType() == JsonNodeType.ARRAY) {
+                return new CiListRequest(getIds(node));
+            }
+            else {
+                JsonNode attrProps = node.get("attrProps");
+                JsonNode altNsTag = node.get("includeAltNs");
+                return new CiListRequest(getIds(node.get("ids")),
+                        attrProps == null ? null :attrProps.asText(),
+                        altNsTag == null ? null : altNsTag.asText());
+            }
+        }
+
+        private List<Long> getIds(JsonNode node) {
+            List<Long> ids = new ArrayList<>();
+            Iterator<JsonNode> idNodes = node.elements();
+            while (idNodes.hasNext()) {
+                ids.add(idNodes.next().asLong());
+            }
+            return ids;
+        }
+    }
+
 	@RequestMapping(value="/cm/simple/cis", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CmsCISimple> getCISimpleQuery(
@@ -291,7 +348,6 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="ciName", required = false) String ciName,
 			@RequestParam(value="attr", required = false)  String[] attrs,
 			@RequestParam(value="ids", required = false)  String ids,
-			@RequestParam(value="value", required = false)  String valueType,
 			@RequestParam(value="includeAltNs", required = false)  String includeAltNs,
 			@RequestParam(value="altNs", required = false)  String altNs,
 			@RequestParam(value="altNsTag", required = false)  String altNsTag,
@@ -303,44 +359,50 @@ public class CmRestController extends AbstractRestController {
 		List<CmsCISimple> ciSimpleList;
 		
 		if (attrs != null) {
+            scopeVerifier.verifyScope(scope, nsPath);
 			boolean nsRecursive = recursive != null;
-			ciSimpleList = getCISimpleByAttrs(nsPath, clazzName, attrs, valueType, nsRecursive, includeAltNs, altNs, altNsTag);
+			List<AttrQueryCondition> attrConds = cmsUtil.parseConditions(attrs);
+			List<CmsCI> ciList;
+			if (altNs != null || altNsTag != null) {
+                ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, nsRecursive, altNs, altNsTag);
+            } else {
+                ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, nsRecursive);
+            }
+			ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, altNsTag);
 		} else if (ids != null) {
 			String[] ciIdsAr = ids.split(",");
 	        List<Long> ciIds = new ArrayList<>();
 	        for (String ciId : ciIdsAr) {
 	            ciIds.add(Long.valueOf(ciId));
 	        }
-			ciSimpleList = new ArrayList<>();
-			for (CmsCI ci : cmManager.getCiByIdList(ciIds)) {
-				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null, includeAltNs));
-			}
-	        
+
+            List<CmsCI> ciList = cmManager.getCiByIdList(ciIds);
+            for (CmsCI ci : ciList) {
+                scopeVerifier.verifyScope(scope, ci);
+            }
+
+            ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, includeAltNs);
 		} else {
-		
-			List<CmsCI> ciList;
-			if (altNs!=null || altNsTag!=null){
-				boolean nsRecursive = recursive != null;
-				ciList = cmManager.getCmCIByAltNsAndTag(nsPath, clazzName, altNs, altNsTag, nsRecursive);
-			} else if (recursive != null && recursive) {
-				ciList = cmManager.getCiBy3NsLike(nsPath, clazzName, ciName);
-			} else {	
-				ciList = cmManager.getCiBy3(nsPath, clazzName, ciName);
-			}	
-			ciSimpleList = new ArrayList<>();
-			for (CmsCI ci : ciList) {
-				ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, attrProps, getEncrypted != null, includeAltNs));
-			}
-		}
-		
-		if (scope != null) {
-			for (CmsCISimple ci : ciSimpleList) {
-				scopeVerifier.verifyScope(scope, ci);
-			}
-		}
-		
+            scopeVerifier.verifyScope(scope, nsPath);
+            List<CmsCI> ciList;
+            if (altNs != null || altNsTag != null) {
+                ciList = cmManager.getCmCIByAltNsAndTag(nsPath, clazzName, altNs, altNsTag, recursive != null);
+            } else if (recursive != null && recursive) {
+                ciList = cmManager.getCiBy3NsLike(nsPath, clazzName, ciName);
+            } else {
+                ciList = cmManager.getCiBy3(nsPath, clazzName, ciName);
+            }
+            ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, includeAltNs);
+        }
+
 		return ciSimpleList;
 	}
+
+    private List<CmsCISimple> buildCiSimpleList(List<CmsCI> ciList, String attrProps, boolean getEncrypted, String altNsTag) {
+        return ciList.stream()
+                .map(ci -> cmsUtil.custCI2CISimple(ci, "df", attrProps, getEncrypted, altNsTag))
+                .collect(Collectors.toList());
+    }
 
 	@RequestMapping(value="/cm/simple/cis/count", method = RequestMethod.GET)
 	@ResponseBody
@@ -368,36 +430,8 @@ public class CmRestController extends AbstractRestController {
 			return result;
 		}
 	}
-	
-	private List<CmsCISimple> getCISimpleByAttrs(
-			String nsPath,
-			String clazzName,
-			String[] attrs,
-			String valueType,
-			boolean recursive, 
-			String includeAltNs,
-			String altNs,
-			String tag
-	){
-		
-		List<AttrQueryCondition> attrConds = cmsUtil.parseConditions(attrs); 
 
-		
-		List<CmsCI> ciList;
-		if (altNs!=null || tag!=null) {
-			ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, recursive, altNs, tag);
-		} else {
-			ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, recursive);
-		}
-		List<CmsCISimple> ciSimpleList = new ArrayList<>();
-		for (CmsCI ci : ciList) {
-			ciSimpleList.add(cmsUtil.custCI2CISimple(ci, valueType, null, false, includeAltNs));
-		}
-		return ciSimpleList;
-	}
 
-	
-	
 	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/cis")
 	@ResponseBody
 	public CmsCISimple createCISimple(
