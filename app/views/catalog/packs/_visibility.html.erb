@@ -164,7 +164,7 @@
                     var cursorAt = el.prop("selectionStart");
                     var begining = val.substr(0, cursorAt).search(/\W[\w-]+$/) + 1;
 
-                    if (val.search(new RegExp("(^|\\W)" + org + "($|\\W)")) >= 0) {
+                    if (val.search(new RegExp("(^|[^\\w-])" + org + "($|[^\\w-])")) >= 0) {
                       org = '';
                     }
 
