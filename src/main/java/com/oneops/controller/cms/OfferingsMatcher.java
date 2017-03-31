@@ -52,7 +52,7 @@ public class OfferingsMatcher {
             Expression expression = exprParser.parseExpression(criteria);
             StandardEvaluationContext context = new StandardEvaluationContext();
             context.setRootObject(cmsRfcCISimple);
-            boolean match = expression.getValue(context, Boolean.class);
+            boolean match = (boolean) expression.getValue(context, Boolean.class);
             if (match){
                 offerings.add(ci);
             }

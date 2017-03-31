@@ -401,12 +401,13 @@ public class CmsWoProvider {
         }
 
         if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-            throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
-                    "Can not find pack template for manifest component id=" + manifestCiId + "; name - " + workOrder.getPayLoad().get("RealizedAs").get(0).getCiName());
-        }
-
-        processPayLoadDef(workOrder, manifestToTemplateMap.get(manifestCiId), cloudVars, globalVars, localVars);
-
+            //throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
+        	//Don't throw an exception in case no pack component could be found.
+        	//If this is the case - pack component was removed and this should be a delete WO
+        	logger.warn("Can not find pack template for manifest component id=" + manifestCiId + "; name - " + workOrder.getPayLoad().get("RealizedAs").get(0).getCiName());
+        } else {
+        	processPayLoadDef(workOrder, manifestToTemplateMap.get(manifestCiId), cloudVars, globalVars, localVars);
+        }	
 
         //from here all payloads are default ones unless overriden by the custom payload definitions
         //put proxy
