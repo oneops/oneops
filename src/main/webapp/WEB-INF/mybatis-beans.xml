@@ -84,6 +84,7 @@
         <property name="clazzMapper" ref="clazzMapper" />
         <property name="relationMapper" ref="relationMapper" />
         <property name="mdValidator" ref="cmsMdValidator" />
+        <property name="cacheEnabled" value="${CONTROLLER_MD_CACHE_ENABLED:true}"/>
     </bean>
 	
 	<bean id="cmsNsProcessor" class="com.oneops.cms.ns.service.CmsNsProcessor">
@@ -196,5 +197,9 @@
 	</bean>
 	
 	<bean id="exprParser" class="org.springframework.expression.spel.standard.SpelExpressionParser" />
-    
+
+    <bean id="controllerCache" class="com.oneops.controller.cms.ControllerCache">
+		<property name="mdProcessor" ref="cmsMdProcessor"/>
+		<property name="cmsCmProcessor" ref="cmsCmProcessor" />
+   	</bean>
 </beans>

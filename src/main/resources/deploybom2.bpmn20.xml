@@ -58,7 +58,7 @@
       <startEvent id="pwoStart" name="Start"></startEvent>
 	  <sequenceFlow id="pwoflow1" name="" sourceRef="pwoStart" targetRef="pwoGetAndSubmitWo"></sequenceFlow>
 
-      <serviceTask id="pwoGetAndSubmitWo" name="GetAndSubmitWo" activiti:async="true" activiti:expression="#{woDispatcher.getAndDispatch(execution, dpmtrec)}"></serviceTask>
+      <serviceTask id="pwoGetAndSubmitWo" name="GetAndSubmitWo" activiti:async="true" activiti:exclusive="false" activiti:expression="#{woDispatcher.getAndDispatch(execution, dpmtrec)}"></serviceTask>
       <sequenceFlow id="pwoflow4" name="" sourceRef="pwoGetAndSubmitWo" targetRef="pwoSubmitCheck"></sequenceFlow>
 
 	  <exclusiveGateway id="pwoSubmitCheck" name="SubmitCheck"></exclusiveGateway>
