@@ -368,7 +368,7 @@ public class CmRestController extends AbstractRestController {
             } else {
                 ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, nsRecursive);
             }
-			ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, altNsTag);
+			ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, altNsTag == null ? includeAltNs : altNsTag);
 		} else if (ids != null) {
 			String[] ciIdsAr = ids.split(",");
 	        List<Long> ciIds = new ArrayList<>();
@@ -392,7 +392,7 @@ public class CmRestController extends AbstractRestController {
             } else {
                 ciList = cmManager.getCiBy3(nsPath, clazzName, ciName);
             }
-            ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, includeAltNs);
+            ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, altNsTag == null ? includeAltNs : altNsTag);
         }
 
 		return ciSimpleList;
