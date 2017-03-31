@@ -282,7 +282,7 @@ public class CmRestController extends AbstractRestController {
             scopeVerifier.verifyScope(scope, ci);
         }
 
-        return buildCiSimpleList(ciList, request.attrProps(), false, request.altNsTag());
+        return buildCiSimpleList(ciList, "df", request.attrProps(), false, request.altNsTag());
     }
 
     @JsonDeserialize(using = CiListRequestDeserializer.class)
@@ -348,6 +348,7 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value="ciName", required = false) String ciName,
 			@RequestParam(value="attr", required = false)  String[] attrs,
 			@RequestParam(value="ids", required = false)  String ids,
+			@RequestParam(value="value", required = false)  String valueType,
 			@RequestParam(value="includeAltNs", required = false)  String includeAltNs,
 			@RequestParam(value="altNs", required = false)  String altNs,
 			@RequestParam(value="altNsTag", required = false)  String altNsTag,
@@ -368,7 +369,7 @@ public class CmRestController extends AbstractRestController {
             } else {
                 ciList = cmManager.getCiByAttributes(nsPath, clazzName, attrConds, nsRecursive);
             }
-			ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, altNsTag == null ? includeAltNs : altNsTag);
+			ciSimpleList = buildCiSimpleList(ciList, valueType, attrProps, getEncrypted != null, altNsTag == null ? includeAltNs : altNsTag);
 		} else if (ids != null) {
 			String[] ciIdsAr = ids.split(",");
 	        List<Long> ciIds = new ArrayList<>();
@@ -381,7 +382,7 @@ public class CmRestController extends AbstractRestController {
                 scopeVerifier.verifyScope(scope, ci);
             }
 
-            ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, includeAltNs);
+            ciSimpleList = buildCiSimpleList(ciList, valueType, attrProps, getEncrypted != null, includeAltNs);
 		} else {
             scopeVerifier.verifyScope(scope, nsPath);
             List<CmsCI> ciList;
@@ -392,15 +393,15 @@ public class CmRestController extends AbstractRestController {
             } else {
                 ciList = cmManager.getCiBy3(nsPath, clazzName, ciName);
             }
-            ciSimpleList = buildCiSimpleList(ciList, attrProps, getEncrypted != null, altNsTag == null ? includeAltNs : altNsTag);
+            ciSimpleList = buildCiSimpleList(ciList, valueType, attrProps, getEncrypted != null, altNsTag == null ? includeAltNs : altNsTag);
         }
 
 		return ciSimpleList;
 	}
 
-    private List<CmsCISimple> buildCiSimpleList(List<CmsCI> ciList, String attrProps, boolean getEncrypted, String altNsTag) {
+    private List<CmsCISimple> buildCiSimpleList(List<CmsCI> ciList, String valueType, String attrProps, boolean getEncrypted, String altNsTag) {
         return ciList.stream()
-                .map(ci -> cmsUtil.custCI2CISimple(ci, "df", attrProps, getEncrypted, altNsTag))
+                .map(ci -> cmsUtil.custCI2CISimple(ci, valueType == null ? "df" : valueType, attrProps, getEncrypted, altNsTag))
                 .collect(Collectors.toList());
     }
 
