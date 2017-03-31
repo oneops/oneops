@@ -236,11 +236,14 @@ public class ManifestManagerImpl implements ManifestManager {
 		CmsRfcCI rootRfc = null;
 		if(manifestPlatformRfcs.getRootRfcRelTouple().getRfcCI() != null){
 			rootRfc = rfcProcessor.createAndfetchRfcCINoCheck(manifestPlatformRfcs.getRootRfcRelTouple().getRfcCI(), userId);
-			if(rootRfc.getCiState() == null){
-				rootRfc.setCiState("default");
-			}
+		} else if (manifestPlatformRfcs.getManifestPlatformRfc().getRfcAction() != null){
+			rootRfc = rfcProcessor.createAndfetchRfcCINoCheck(manifestPlatformRfcs.getManifestPlatformRfc(), userId);
 		}else{
 			rootRfc = manifestPlatformRfcs.getManifestPlatformRfc();
+		}
+
+		if(rootRfc.getCiState() == null){
+			rootRfc.setCiState("default");
 		}
 		
 		for(CmsRfcRelation toRfcRelation : manifestPlatformRfcs.getRootRfcRelTouple().getToRfcRelation()){
@@ -387,9 +390,13 @@ public class ManifestManagerImpl implements ManifestManager {
     }
 
     private String getSourcePackVersion(CmsCI plat) {
+    	// pack version should be in semver format like 1.0.1 but in legacy packs it could be still just single number
+    	// if the major version is different - we need to remove the old platform, 
+    	// if only minor and patch version are different we can do update inline
+    	String[] packVersion = plat.getAttribute("version").getDjValue().split("\\.");
         return plat.getAttribute("source").getDjValue() +
                  ":" + plat.getAttribute("pack").getDjValue() +
-                 ":" + plat.getAttribute("version").getDjValue();
+                 ":" + packVersion[0];
     }
 
     private boolean hasOpenManifestRelease(String nsPath) {

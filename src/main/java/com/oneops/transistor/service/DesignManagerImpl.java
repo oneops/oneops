@@ -117,8 +117,8 @@ public class DesignManagerImpl implements DesignManager {
 	}
 
 	@Override
-	public long refreshPack(long platformId, String userId, String scope) {
-		return packRefreshProcessor.refreshPack(platformId, userId, scope);
+	public long refreshPack(long platformId, String packVersion, String userId, String scope) {
+		return packRefreshProcessor.refreshPack(platformId, packVersion, userId, scope);
 	}
 
 	@Override

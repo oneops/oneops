@@ -35,7 +35,6 @@
 		<property name="djValidator" ref="cmsDjValidator" />
         <property name="trUtil" ref="trUtil" />
         <property name="rfcUtil" ref="rfcUtil" />
-		<property name="cloudUtil" ref="cloudUtil" />
     </bean>
     
 
