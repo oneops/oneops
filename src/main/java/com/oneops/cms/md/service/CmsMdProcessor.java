@@ -25,6 +25,7 @@ import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsMdValidator;
 import com.oneops.cms.util.CmsUtil;
+
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -52,7 +53,7 @@ public class CmsMdProcessor {
     final private Map<String, CmsClazz> mdClazzCache = new ConcurrentHashMap<>();
     final private Map<Integer, CmsClazz> mdClazzCacheById = new ConcurrentHashMap<>();
     final private Map<String, CmsRelation> mdRelationCache = new ConcurrentHashMap<>();
-    final private Map<Integer, CmsRelation> mdRelationCacheById = new ConcurrentHashMap<>();
+    final private Map<Long, CmsRelation> mdRelationCacheById = new ConcurrentHashMap<>();
     final private Map<Integer, List<CmsClazzRelation>> clazzRelCache = new ConcurrentHashMap<>();
 
     static {
@@ -409,7 +410,8 @@ public class CmsMdProcessor {
             relation.setMdAttributes(relationMapper.getRelationAttrs(relation.getRelationId()));
             if (cacheEnabled) {
                 mdRelationCache.put(relationName, relation);
-                mdRelationCacheById.put(relation.getRelationId(), relation);
+                Integer relId = relation.getRelationId();
+                mdRelationCacheById.put(relId.longValue(), relation);
             }
         }
         return relation;
@@ -435,7 +437,8 @@ public class CmsMdProcessor {
         if (relation != null) {
             relation.setMdAttributes(relationMapper.getRelationAttrs(relation.getRelationId()));
             if (cacheEnabled) {
-                mdRelationCacheById.put(relation.getRelationId(), relation);
+                Integer relId = relation.getRelationId();
+                mdRelationCacheById.put(relId.longValue(), relation);
                 mdRelationCache.put(relation.getRelationName(), relation);
             }
         }
