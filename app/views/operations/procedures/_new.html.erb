@@ -20,7 +20,7 @@
 
     <% arglist              = @procedure.arglist
        prompt_configuration = arglist.present? && JSON.parse(arglist).present?
-       target_count         = @target_ids.size
+       target_count         = @target_ids.blank? ? 0 : @target_ids.size
        prompt_execution     = @target_ids.present? && target_count > 1 %>
     <% if prompt_configuration || prompt_execution %>
       <div class="main ">
