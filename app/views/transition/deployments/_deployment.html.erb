@@ -47,7 +47,7 @@
       <%= section_panel('Plan',
                         :width                => 'full',
                         :collapseable_content => true) do %>
-        <ul class="execOrder">
+        <ul class="execOrder" data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) if @deployment.persisted? %>">
           <% @rfc_cis.group_by(&:execOrder).sort.each do |exec_order, order_rfcs| %>
             <li id="step_<%= exec_order %>" class="execOrder">
               <div class="stage">

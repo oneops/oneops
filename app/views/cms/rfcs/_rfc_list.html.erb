@@ -8,7 +8,7 @@
        m[key] << r
        m
      end %>
-  <div class="rfc-list accordion" id="<%= random_dom_id %>">
+  <div class="rfc-list accordion" id="<%= random_dom_id %>" data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) if @deployment && @deployment.persisted? %>">
     <% rfc_cis.group_by(&:execOrder).sort.each do |exec_order, step_rfcs| %>
       <div class="step">
         <% step_duration = @time_stats && @time_stats[:steps] && @time_stats[:steps][exec_order] %>
