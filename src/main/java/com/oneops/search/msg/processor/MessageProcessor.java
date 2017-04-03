@@ -27,7 +27,7 @@ import java.lang.reflect.Type;
  */
 public interface MessageProcessor {
     Gson GSON = new Gson();
-    Gson GSON_ES = new GsonBuilder().registerTypeAdapter(String.class, (JsonDeserializer<String>) (jsonElement, type, jsonDeserializationContext) -> jsonElement.toString()).setDateFormat(CmsConstants.SEARCH_TS_PATTERN).create();
+    Gson GSON_ES = new GsonBuilder().setDateFormat(CmsConstants.SEARCH_TS_PATTERN).create();
 
 
     /**
