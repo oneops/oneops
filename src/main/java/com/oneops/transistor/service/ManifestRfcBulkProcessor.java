@@ -742,6 +742,7 @@ public class ManifestRfcBulkProcessor {
 
 	private void mergeMonitorRelations(Map<String, Edge> monitorEdges, MergeResult mrgMap, CmsRfcCI manifestPlat, 
 			DesignPullContext context, ManifestRfcContainer platformRfcs) {
+		logger.info("processing monitors for platform " + manifestPlat.getCiName());
 		List<CmsRfcRelation> existingMonitorRelations = cmRfcMrgProcessor.getCIRelations(context.platNsPath, MANIFEST_WATCHEDBY, null, null, MANIFEST_MONITOR, null);
 		Map<String, CmsRfcRelation> existingMonitorsMap = existingMonitorRelations.stream().
 				collect(Collectors.toMap(reln->reln.getToRfcCi().getCiName(), Function.identity()));
@@ -750,6 +751,7 @@ public class ManifestRfcBulkProcessor {
 
 		monitorEdges.values().stream().forEach(edge -> {
 			CmsCIRelation tmplRelation = edge.templateRel;
+			Set<String> processedManifests = new HashSet<>();
 			if (!edge.userRels.isEmpty()) {
 				for (CmsCIRelation designRelation : edge.userRels) {
 					CmsRfcCI monitorFromRfc = null;
@@ -762,21 +764,26 @@ public class ManifestRfcBulkProcessor {
 						monitorFromRfc = cmRfcMrgProcessor.getCiById(manifestFromCiId, "df");
 					}
 					processMonitor(tmplRelation, designRelation, manifestPlat, context, platformRfcs, monitorFromRfc, existingMonitorsMap, rfcNames);
-
+					processedManifests.add(monitorFromRfc.getCiName());
 				}
 			}
-			else if (tmplRelation != null) {
+
+			if (tmplRelation != null) {
 				long templateFromCiId = tmplRelation.getFromCiId();
 				if (mrgMap.templateIdsMap.containsKey(templateFromCiId)) {
 					mrgMap.templateIdsMap.get(templateFromCiId).forEach(manifestCiId -> {
 						CmsRfcCI monitorFromRfc = cmRfcMrgProcessor.getCiById(manifestCiId, "df");
-						processMonitor(tmplRelation, null, manifestPlat, context, platformRfcs, monitorFromRfc, existingMonitorsMap, rfcNames);
+						if (!processedManifests.contains(monitorFromRfc.getCiName())) {
+							processMonitor(tmplRelation, null, manifestPlat, context, platformRfcs, monitorFromRfc, existingMonitorsMap, rfcNames);
+						}
 					});
 				}
 
 				if (mrgMap.rfcMap.containsKey(templateFromCiId)) {
 					mrgMap.rfcMap.get(templateFromCiId).forEach(manifestFromRfc -> {
-						processMonitor(tmplRelation, null, manifestPlat, context, platformRfcs, manifestFromRfc, existingMonitorsMap, rfcNames);
+						if (!processedManifests.contains(manifestFromRfc.getCiName())) {
+							processMonitor(tmplRelation, null, manifestPlat, context, platformRfcs, manifestFromRfc, existingMonitorsMap, rfcNames);
+						}
 					});
 				}
 
@@ -786,11 +793,17 @@ public class ManifestRfcBulkProcessor {
 		//remove obsolete monitors
 		existingMonitorsMap.values().stream().
 			filter(this::canMonitorBeDeleted).
-			forEach(obsoleteMonitor -> cmRfcMrgProcessor.requestCiDelete(obsoleteMonitor.getToRfcCi().getCiId(), context.userId));
+			forEach(obsoleteMonitor -> {
+				CmsRfcCI monitor = obsoleteMonitor.getToRfcCi();
+				logger.info("delete monitor ci [" + monitor.getCiId() + "] " + monitor.getCiName() + " in " + monitor.getNsPath());
+				cmRfcMrgProcessor.requestCiDelete(monitor.getCiId(), context.userId);
+			});
 	}
 
 	private boolean canMonitorBeDeleted(CmsRfcRelation watchedByRel) {
-		//don't allow deletion of custom monitor directly added in transition
+		//monitors are eligible for deletion only if there are deleted from pack for pack monitors
+		//in case of custom monitors, if they are added in design and deleted from design then they can be deleted
+		//to support backward compatibility don't allow deletion of custom monitors directly added in transition
 		boolean isCustomMonitor = isCustomMonitor(watchedByRel.getToRfcCi());
 		return (!isCustomMonitor || (isCustomMonitor && isMonitorSourceDesign(watchedByRel)));
 	}
