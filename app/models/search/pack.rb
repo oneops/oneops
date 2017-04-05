@@ -49,6 +49,7 @@ class Search::Pack < Search::Base
           :cloud => {
             :terms => {
               :field => 'workorder.cloud.ciAttributes.location.keyword',
+              :size  => 99,
             }
           }
         }
