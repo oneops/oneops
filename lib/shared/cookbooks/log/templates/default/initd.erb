@@ -5,24 +5,24 @@
 #
 # processname: logstash-forwarder
 # pidfile: /var/run/lumberjack.pid
- 
+
 # source function library
 . /etc/rc.d/init.d/functions
- 
+
 PROG_DIR='/usr/local/bin'
-PROG="$PROG_DIR/logstash-forwarder -spool-size 100 -log-to-syslog"
 NAME='logstash-forwarder'
+PROG="$PROG_DIR/$NAME"
 CONFIG="/etc/customlogs/logstash-forwarder/$NAME.conf"
 LOCKFILE="/var/lock/subsys/$NAME"
 PIDFILE="/var/run/log-agent.pid"
 OUTPUT_LOGFILE="/var/log/$NAME/output.log"
- 
+
 if [ ! -x $PROG ]
 then
  echo "$NAME: $PROG does not exist. " && failure
  exit 5
 fi
- 
+
 start() {
  status_quiet
  STATUS=$?
@@ -41,7 +41,7 @@ start() {
  echo -n "Starting $NAME: "
  OUTPUT_DIR=$(dirname $OUTPUT_LOGFILE)
  [ -d "$OUTPUT_DIR" ] || mkdir "$OUTPUT_DIR"
- nohup "$PROG" -config="$CONFIG" >"$OUTPUT_LOGFILE" 2>&1 &
+ nohup "$PROG" -config="$CONFIG" -spool-size 100 >"$OUTPUT_LOGFILE" 2>&1 &
  RETVAL=$?
  PID=$!
  if [ $RETVAL -eq 0 ]
@@ -86,7 +86,7 @@ start() {
   return 1
  fi
 }
- 
+
 stop() {
  status_quiet
  STATUS=$?
@@ -113,7 +113,7 @@ stop() {
   return 1
  fi
 }
- 
+
 status() {
  if [ ! -s "$PIDFILE" ]
  then
@@ -130,12 +130,12 @@ status() {
   return 2
  fi
 }
- 
+
 status_quiet() {
  status >/dev/null 2>&1
  return $?
 }
- 
+
 case "$1" in
  start)
   start
