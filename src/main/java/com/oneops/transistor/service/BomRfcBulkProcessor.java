@@ -1166,7 +1166,7 @@ public class BomRfcBulkProcessor {
 	    
         CmsVar disableBFSVar = cmProcessor.getCmSimpleVar(DISABLE_BFS_VAR_NAME);
         boolean enableBFS = (!(disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue())) && ENABLE_BFS_OPTIMIZATION);
-        logger.info("Path calc BFS optimization enabled:"+enableBFS);
+        logger.info(nsPath + " >>> Path calc BFS optimization: "+enableBFS);
 	    
 		long nsId = trUtil.verifyAndCreateNS(nsPath);
 		List<CmsLink> dependsOnlinks = cmRfcMrgProcessor.getLinks(nsPath, "bom.DependsOn");
@@ -1183,7 +1183,11 @@ public class BomRfcBulkProcessor {
 		}
 		long counter = 0;
 		long lengthSum = 0;
-		long lengthCounter = 0;  
+		long lengthCounter = 0;
+		long leafTime = 0;
+		long leafCalls = 0;
+		long dpOnPathTime = 0;
+		long dpOnPathCalls = 0;
 		
 		Set<String> relRfcGoids = new HashSet<String>();
 		Map<Long, List<CmsCIRelation>> managedViaMap = null;
@@ -1194,7 +1198,9 @@ public class BomRfcBulkProcessor {
 			
 			
 			if (managedViaMap==null){
+				long time = System.currentTimeMillis();
 				managedViaMap = cmProcessor.getCIRelations(mfstCi.getNsPath(), null, "ManagedVia", null, null).stream().collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
+				logger.info(nsPath + " >>>  getCiRelations, time spent - " + (System.currentTimeMillis() - time));
 			}
 			
 			List<CmsCIRelation> mfstMngViaRels = managedViaMap.containsKey(mfstCi.getCiId())?managedViaMap.get(mfstCi.getCiId()):new ArrayList<>();
@@ -1202,9 +1208,12 @@ public class BomRfcBulkProcessor {
 			for (CmsCIRelation mfstMngViaRel : mfstMngViaRels) {
 				// lets find the path 
 				//List<String> pathClasses = getTraversalPath(mfstMngViaRel);
+				long time = System.currentTimeMillis();
 				List<String> pathClasses = enableBFS?
 						getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId(), depOnFromMap):
 						getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId(), depOnFromMap);
+				dpOnPathTime+=System.currentTimeMillis()-time;
+				dpOnPathCalls++;
 				lengthCounter++;
 				lengthSum+=pathClasses.size();
 				if (pathClasses.size()==0) {
@@ -1220,7 +1229,11 @@ public class BomRfcBulkProcessor {
 					LinkedList<String> path = new LinkedList<String>();
 					path.addAll(pathClasses);
 					if (bomRfc.rfc != null) {
+						long startTime = System.currentTimeMillis();
+						leafCalls++;
 						List<Long> targets = getLeafsByPath(bomRfc.rfc.getCiId(), path,mfstMngViaRel.getToCiId(), dependsOnMap);
+						leafTime += (System.currentTimeMillis()-startTime);
+
 						Map<Long, BomRfc> targetMap = new HashMap<Long, BomRfc>();
 						for (BomRfc targetBom :  bomsMap.get(mfstMngViaRel.getToCiId())) {
 							targetMap.put(targetBom.rfc.getCiId(), targetBom);
@@ -1259,9 +1272,8 @@ public class BomRfcBulkProcessor {
 				}
 			}
 		}
-		logger.info("Bom ManagedVia Relation Counter:"+ counter);
-		logger.info("Avg length:"+(double)lengthSum/lengthCounter);
-	};
+		logger.info(nsPath + " >>> dpOnPath time: "+dpOnPathTime+" Calls: "+dpOnPathCalls+" leafsByPath time: " +  leafTime+ " calls: "+ leafCalls +" Relation Counter:"+ counter+" Avg path length:"+(double)lengthSum/lengthCounter);
+	}
 
 	private void processSecuredByRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath,  String user, ExistingRels existingRels, Long releaseId) {
 		
