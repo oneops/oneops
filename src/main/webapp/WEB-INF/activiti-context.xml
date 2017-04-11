@@ -47,6 +47,7 @@
   <bean id="wfController" class="com.oneops.controller.workflow.WorkflowController">
    	<property name="runtimeService" ref="runtimeService" />
     <property name="notifier" ref="deploymentNotifier" />
+    <property name="controllerCache" ref="controllerCache" />
   </bean>
   	
 
