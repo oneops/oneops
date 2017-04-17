@@ -213,3 +213,5 @@ insert into ns_opt_tag (tag_id, tag) values (1, 'InitialTag');
 --- adding dj_deployment flags 
 ALTER TABLE kloopzcm.dj_deployment ADD COLUMN flags integer DEFAULT 0 NOT NULL;
 
+ALTER TABLE kloopzcm.dj_rfc_ci ADD COLUMN hint TEXT;
+

@@ -946,6 +946,18 @@ ALTER FUNCTION dj_complete_deployment(bigint)
 CREATE OR REPLACE FUNCTION dj_create_rfc_ci(p_rfc_id bigint, p_release_id bigint, p_ci_id bigint, p_ns_id bigint, p_class_id integer, p_ci_name character varying, p_ci_goid character varying, p_action_id integer, p_exec_order integer, p_last_rfc_id bigint, p_comments character varying, p_created_by character varying)
   RETURNS void AS
 $BODY$
+BEGIN
+    perform dj_create_rfc_ci(p_rfc_id, p_release_id, p_ci_id, p_ns_id, p_class_id, p_ci_name, p_ci_goid, p_action_id, p_exec_order, p_last_rfc_id, p_comments, p_created_by, null);
+END;
+$BODY$
+  LANGUAGE plpgsql VOLATILE
+  COST 100;
+ALTER FUNCTION dj_create_rfc_ci(bigint, bigint, bigint, bigint, integer, character varying, character varying, integer, integer, bigint, character varying, character varying) OWNER TO :user;
+
+
+CREATE OR REPLACE FUNCTION dj_create_rfc_ci(p_rfc_id bigint, p_release_id bigint, p_ci_id bigint, p_ns_id bigint, p_class_id integer, p_ci_name character varying, p_ci_goid character varying, p_action_id integer, p_exec_order integer, p_last_rfc_id bigint, p_comments character varying, p_created_by character varying, p_hint text)
+  RETURNS void AS
+$BODY$
 DECLARE 
     l_name_exists integer;
 BEGIN
@@ -964,9 +976,9 @@ BEGIN
 
    INSERT INTO dj_rfc_ci(
             rfc_id, release_id, ci_id, ns_id, class_id, ci_name, ci_goid, 
-            action_id, execution_order, is_active_in_release, last_rfc_id, comments, created_by)
+            action_id, execution_order, is_active_in_release, last_rfc_id, comments, created_by, hint)
     VALUES (p_rfc_id, p_release_id, p_ci_id, p_ns_id, p_class_id, p_ci_name, p_ci_goid, 
-            p_action_id, p_exec_order, true, p_last_rfc_id, p_comments, p_created_by);
+            p_action_id, p_exec_order, true, p_last_rfc_id, p_comments, p_created_by, p_hint);
 
 	INSERT INTO cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
         	VALUES (nextval('event_pk_seq'), p_rfc_id, 'rfc_ci' , 100);
@@ -974,7 +986,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION dj_create_rfc_ci(bigint, bigint, bigint, bigint, integer, character varying, character varying, integer, integer, bigint, character varying, character varying) OWNER TO :user;
+ALTER FUNCTION dj_create_rfc_ci(bigint, bigint, bigint, bigint, integer, character varying, character varying, integer, integer, bigint, character varying, character varying, text) OWNER TO :user;
 
 -- Function: dj_create_rfc_relation(bigint, bigint, bigint, bigint, bigint, bigint, integer, character varying, bigint, bigint, integer, integer, bigint, character varying, character varying)
 
