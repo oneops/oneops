@@ -661,24 +661,51 @@ public class CmsCmRfcMrgProcessor {
 
         CmsCI ci = cmProcessor.getCiByIdNaked(ciId);
         if (ci != null) {
-            CmsRfcCI rfcCi = new CmsRfcCI();
-            rfcCi.setCiId(ci.getCiId());
-            rfcCi.setCiClassName(ci.getCiClassName());
-            rfcCi.setCiClassId(ci.getCiClassId());
+            CmsRfcCI rfcCi = newRfcCi(ci, releaseType, execOrder, userId);
+            return createRfc(rfcCi, userId);
+        } else {
+            return null;
+        }
+    }
 
-            rfcCi.setCiName(ci.getCiName());
-            rfcCi.setNsPath(ci.getNsPath());
-            rfcCi.setCiGoid(ci.getCiGoid());
-            rfcCi.setComments(ci.getComments());
-            rfcCi.setCreated(ci.getCreated());
-            rfcCi.setExecOrder(execOrder);
-            rfcCi.setReleaseType(releaseType);
+    private CmsRfcCI newRfcCi(CmsCI ci, String releaseType, int execOrder, String userId) {
+        CmsRfcCI rfcCi = new CmsRfcCI();
+        rfcCi.setCiId(ci.getCiId());
+        rfcCi.setCiClassName(ci.getCiClassName());
+        rfcCi.setCiClassId(ci.getCiClassId());
 
-            rfcCi.setRfcAction("update");
-            rfcCi.setCreatedBy(userId);
-            rfcCi.setUpdatedBy(userId);
-            long newRfcId = rfcProcessor.createRfcCI(rfcCi, userId);
-            return rfcProcessor.getRfcCIById(newRfcId);
+        rfcCi.setCiName(ci.getCiName());
+        rfcCi.setNsPath(ci.getNsPath());
+        rfcCi.setCiGoid(ci.getCiGoid());
+        rfcCi.setComments(ci.getComments());
+        rfcCi.setCreated(ci.getCreated());
+        rfcCi.setExecOrder(execOrder);
+        rfcCi.setReleaseType(releaseType);
+
+        rfcCi.setRfcAction("update");
+        rfcCi.setCreatedBy(userId);
+        rfcCi.setUpdatedBy(userId);
+        return rfcCi;
+    }
+
+    private CmsRfcCI createRfc(CmsRfcCI rfcCi, String userId) {
+        long newRfcId = rfcProcessor.createRfcCI(rfcCi, userId);
+        return rfcProcessor.getRfcCIById(newRfcId);
+    }
+
+    public CmsRfcCI createDummyUpdateRfcWithHint(long ciId, String hint, String releaseType, int execOrder, String userId) {
+
+        //first lets check if there is an rfc already
+        CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiId(ciId);
+        if (existingRfc != null) {
+            return existingRfc;
+        }
+
+        CmsCI ci = cmProcessor.getCiByIdNaked(ciId);
+        if (ci != null) {
+            CmsRfcCI rfcCi = newRfcCi(ci, releaseType, execOrder, userId);
+            rfcCi.setHint(hint);
+            return createRfc(rfcCi, userId);
         } else {
             return null;
         }

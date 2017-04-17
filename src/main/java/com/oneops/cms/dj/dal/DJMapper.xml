@@ -131,7 +131,7 @@
      <!-- DJ RFC CIs -->
 
 	 <insert id="createRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="CALLABLE">
-	    {call dj_create_rfc_ci(#{rfcId} ,#{releaseId}, #{ciId}, #{nsId}, #{ciClassId}, #{ciName}, #{ciGoid}, #{rfcActionId}, #{execOrder}, #{lastAppliedRfcId}, #{comments}, #{createdBy})}
+	    {call dj_create_rfc_ci(#{rfcId} ,#{releaseId}, #{ciId}, #{nsId}, #{ciClassId}, #{ciName}, #{ciGoid}, #{rfcActionId}, #{execOrder}, #{lastAppliedRfcId}, #{comments}, #{createdBy}, #{hint})}
 	 </insert> 
 
 	 <update id="updateRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="CALLABLE">	     
@@ -171,6 +171,7 @@
 		    rci.last_rfc_id as lastAppliedRfcId,
 		    r.release_type as releaseType,
 		    rci.comments,
+		    rci.hint,
 		    rci.created_by as createdBy,
 		    rci.updated_by as updatedBy, 
 		    rci.created_by as rfcCreatedBy,
@@ -206,6 +207,7 @@
 		    rci.last_rfc_id lastAppliedRfcId, 
 		    r.release_type as releaseType,
 		    rci.comments,
+		    rci.hint,
 		    rci.created_by as createdBy,
 		    rci.updated_by as updatedBy, 
 		    rci.created_by as rfcCreatedBy,
