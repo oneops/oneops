@@ -27,7 +27,6 @@ public class OpsBaseEvent extends BasicEvent{
 	private String name;
 	private long count;
 	private String type;
-	private String source;
 	private int coolOff;
 
 	//NEW |EXISTING
@@ -50,12 +49,6 @@ public class OpsBaseEvent extends BasicEvent{
 	}
 	public void setName(String name) {
 		this.name = name;
-	}
-	public String getSource() {
-		return source;
-	}
-	public void setSource(String source) {
-		this.source = source;
 	}
 	public long getCount() {
 		return count;
