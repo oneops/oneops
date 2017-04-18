@@ -15,9 +15,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'uri'
 
 filter = nil
 override_version = nil
+if node[:platform] =~ /windows/
+  user = 'oneops'
+  group = 'Administrators'
+else
+  user = 'root'
+  group = 'root'
+end
 if node.workorder.has_key?('arglist')
   args = ::JSON.parse(node.workorder.arglist)
   compl_list = args["name"]
@@ -70,33 +78,57 @@ sec_list.each do |security|
   end
   Chef::Log.info("name : #{name}, curr_version : #{curr_version}, version to apply : #{version}")
 
-  script_file = "#{name}-#{version}"
+  if node[:platform] =~ /windows/
+    uri = URI.parse(url)
+    ext = File.extname(uri.to_s)
+    script_file = "#{name}-#{version}#{ext}"
+    win_cmd = "/tmp/#{script_file}"
+  else
+    script_file = "#{name}-#{version}"
+  end
+
   remote_file "/tmp/#{script_file}" do
     source url
-    owner "root"
-    group "root"
+    owner user
+    group group
     mode "0755"
   end
 
-  ruby_block 'run_script' do
-    block do
-      Chef::Log.info("Executing script /tmp/#{script_file}")
-      cmd = Mixlib::ShellOut.new("/tmp/#{script_file} #{curr_version} #{version}", :live_stream => Chef::Log::logger, :user => "root")
-      cmd.run_command
-      cmd.error!
+  if node[:platform] =~ /windows/
+
+    #Usually compliance PS scripts require elevation, so executing them via Scheduled Task
+    ps_script = "#{Chef::Config[:file_cache_path]}/cookbooks/os/files/windows/Run-Script.ps1"
+    if ext == '.ps1'
+      ps_cmd = "#{ps_script} -ExeFile 'powershell.exe' -ArgList '-NonInteractive -NoProfile -ExecutionPolicy Bypass -File /tmp/#{script_file}' -Timeout 180"
+    else
+      ps_cmd = "#{ps_script} -ExeFile '/tmp/#{script_file}' -Timeout 180"
     end
-  end
+
+    powershell_script 'run_script' do
+      code ps_cmd
+    end
+
+  else
+    ruby_block 'run_script' do
+      block do
+        Chef::Log.info("Executing script /tmp/#{script_file}")
+        cmd = Mixlib::ShellOut.new("/tmp/#{script_file} #{curr_version} #{version}", :live_stream => Chef::Log::logger, :user => user)
+        cmd.run_command
+        cmd.error!
+      end
+    end
+  end #if node[:platform] =~ /windows/
 
   if !filter.nil?
     filter.delete(name)
   end
-  
+
   if version.downcase == 'delete'
     appliedMap[name] = '0'
   else
     appliedMap[name] = version
   end
-  
+
 end
 
 if (!filter.nil? && !filter.empty?)
