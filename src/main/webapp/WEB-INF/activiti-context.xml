@@ -29,9 +29,23 @@
     <property name="databaseType" value="postgres" />
     <property name="transactionManager" ref="actTransactionManager" />
     <property name="databaseSchemaUpdate" value="true" />
-    <property name="jobExecutorActivate" value="true" />
+    <property name="jobExecutorActivate" value="false" />
+    <property name="asyncExecutorEnabled" value="true" />
+    <property name="asyncExecutorActivate" value="true" />
+    <property name="asyncExecutor" ref="asyncExecutor" />
 	<property name="deploymentResources" value="classpath*:*.bpmn20.xml" />
 	<property name="history" value="none" />
+  </bean>
+  
+  <bean id="asyncExecutor" class="org.activiti.engine.impl.asyncexecutor.DefaultAsyncJobExecutor">
+    <property name="corePoolSize" value="10" />
+    <property name="maxPoolSize" value="15" />
+    <property name="keepAliveTime" value="3000" />
+    <property name="queueSize" value="400" />
+    <property name="maxTimerJobsPerAcquisition" value="2" />
+    <property name="maxAsyncJobsDuePerAcquisition" value="2" />
+    <property name="defaultAsyncJobAcquireWaitTimeInMillis" value="1000" />
+    <property name="defaultTimerJobAcquireWaitTimeInMillis" value="1000" />
   </bean>
   
   <bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
