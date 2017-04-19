@@ -18,7 +18,6 @@
 package com.oneops.ecv.health;
 
 
-import com.oneops.ecv.health.IHealth;
 
 import java.util.Comparator;
 
