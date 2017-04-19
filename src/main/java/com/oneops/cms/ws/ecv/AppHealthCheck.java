@@ -31,15 +31,19 @@ public class AppHealthCheck implements IHealthCheck {
     private static Logger logger = Logger.getLogger(AppHealthCheck.class);
 
     @Autowired
-     private CmsMdManager mdManager;
+    private CmsMdManager mdManager;
+
+    @Autowired
+    private Health okHealth;
+
     private static final int DEFAULT_CID = Integer.valueOf(System.getProperty("cms.defaultClassId", "100"));
 
     @Override
     public IHealth getHealth() {
-        IHealth health = Health.FAILED_HEALTH;
+        IHealth health ;
         try {
             CmsClazz clazz = mdManager.getClazz(DEFAULT_CID);
-            health = Health.OK_HEALTH;
+            health = okHealth;
         } catch (Throwable e) {
             logger.error("Exception occurred determining health", e);
             health = new Health(HttpStatus.INTERNAL_SERVER_ERROR.value(), Boolean.FALSE, e.getMessage(), getName());

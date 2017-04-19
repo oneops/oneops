@@ -24,6 +24,7 @@
         <saaj-impl.version>1.3.2</saaj-impl.version>
         <neethi.version>2.0.4</neethi.version>
         <jettison.version>1.2</jettison.version>
+        <gitTag>${version}</gitTag>
     </properties>
 
     <dependencies>
@@ -177,6 +178,16 @@
                     <target>1.8</target>
                     <!--debug>true</debug-->
                     <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <gitTag>${gitTag}</gitTag>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>
