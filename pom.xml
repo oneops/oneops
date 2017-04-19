@@ -27,6 +27,7 @@
 		<testng.version>6.1.1</testng.version>
 		<mockito-all.version>1.8.4</mockito-all.version>
 		<guava.version>19.0</guava.version>
+    <gitTag>${version}</gitTag>
 	</properties>
 
 	<dependencies>
@@ -194,6 +195,11 @@
 				<version>2.1.1</version>
                 <configuration>
                     <packagingExcludes>WEB-INF/lib/servlet-api-2.5-20081211.jar</packagingExcludes>
+          <archive>
+            <manifestEntries>
+              <gitTag>${gitTag}</gitTag>
+            </manifestEntries>
+          </archive>
                 </configuration>
 			</plugin>
                 	<plugin>
