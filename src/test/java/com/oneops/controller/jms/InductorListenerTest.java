@@ -19,27 +19,25 @@ package com.oneops.controller.jms;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.oneops.controller.sensor.SensorClient;
+import com.oneops.controller.util.ControllerUtil;
+import com.oneops.controller.workflow.WorkflowController;
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.oneops.controller.sensor.SensorClient;
-import com.oneops.controller.util.ControllerUtil;
-import com.oneops.controller.workflow.WorkflowController;
-
 
 public class InductorListenerTest {
-	
-	private static ApplicationContext context ;
+
+	private static ApplicationContext context;
 	private InductorListener listener;
-	
+
 	@BeforeClass
-	/** use sprint to inject conn factory */
-	public void setUp(){
+	/** use spring to inject conn factory */
+	public void setUp() {
 		context = new ClassPathXmlApplicationContext("**/test-app-context.xml");
 		//load instance of listener, with dependencies injected
 		listener = (InductorListener) context
@@ -53,10 +51,10 @@ public class InductorListenerTest {
 		listener.setSensorClient(sensorClient);
 
 	}
-	
+
 	@Test
 	/** test the message impl */
-	public void testListening() throws JMSException  {
+	public void testListening() throws JMSException {
 		try {
 			listener.init();
 
@@ -72,20 +70,19 @@ public class InductorListenerTest {
 			listener.cleanup();
 			listener.getConnectionStats();
 		} catch (JMSException e) {
-			System.out.println("CAUTH EXCEPTION "+ e.getMessage() );
+			System.out.println("CAUTH EXCEPTION " + e.getMessage());
 			e.printStackTrace();
 			throw e;
 		}
-	
+
 	}
-	
+
 	@Test
 	/** test with message where JMSException is forced to happend
 	 * but we effectively are asserting it must get swallowed*/
-	public void testBadMessage() throws Exception{
+	public void testBadMessage() throws JMSException {
 		TextMessage message = mock(TextMessage.class);
-		when (message.getText()).thenThrow(new JMSException("mock-force"));
+		when(message.getJMSCorrelationID()).thenThrow(new JMSException("mock-force"));
 		listener.onMessage(message);
 	}
-
 }

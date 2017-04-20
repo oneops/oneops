@@ -16,98 +16,99 @@
  *******************************************************************************/
 package com.oneops.controller.jms;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.jms.JMSException;
-
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsUtil;
-import com.oneops.util.SearchPublisher;
 import com.oneops.util.MessageData;
+import com.oneops.util.SearchPublisher;
+import java.util.HashMap;
+import java.util.Map;
+import javax.jms.JMSException;
+import org.apache.log4j.Logger;
 
 /**
  * JMS publisher class which publishes both work-orders and action-orders
  * to the search stream queue.
- * 
- * @author ranand
  *
+ * @author ranand
  */
 public class WoPublisher {
-	
-	private static Logger logger = Logger.getLogger(WoPublisher.class);
-	
-	private SearchPublisher searchPublisher; 
-    final private Gson gson = new Gson();
 
-	private boolean isPubEnabled =true;
-    
+  private static Logger logger = Logger.getLogger(WoPublisher.class);
+  final private Gson gson = new Gson();
+  private SearchPublisher searchPublisher;
+  private boolean isPubEnabled = true;
 
-    /**
-     *
-     * @throws JMSException
-     */
-    public void init() throws JMSException {
-        logger.info(">>>>WOPublisher initialized... searchEnabled " + isPubEnabled);
+
+  /**
+   *
+   * @throws JMSException
+   */
+  public void init() throws JMSException {
+    logger.info(">>>>WOPublisher initialized... searchEnabled " + isPubEnabled);
+  }
+
+  /**
+   *
+   * @param workOrder
+   * @throws JMSException
+   */
+  public void publishMessage(CmsWorkOrderSimpleBase cmsWoSimpleBase, String type, String id)
+      throws JMSException {
+    if (isPubEnabled) {
+      long t1 = System.currentTimeMillis();
+      cmsWoSimpleBase = CmsUtil.maskSecuredFields(cmsWoSimpleBase, type);
+      String payload = gson.toJson(cmsWoSimpleBase);
+      Map<String, String> headers = new HashMap<>(2);
+      headers.put("type", getType(type));
+      headers.put("msgId", id);
+      MessageData data = new MessageData(payload, headers);
+      searchPublisher.publish(data);
+      if (cmsWoSimpleBase instanceof CmsWorkOrderSimple) {
+        logger.info("WO published to search stream queue for RfcId: "
+            + ((CmsWorkOrderSimple) cmsWoSimpleBase).getRfcId() + " took " + (
+            System.currentTimeMillis() - t1));
+      } else if (cmsWoSimpleBase instanceof CmsActionOrderSimple) {
+        logger.info("AO published to search stream queue for procedureId/actionId: "
+            + ((CmsActionOrderSimple) cmsWoSimpleBase).getProcedureId() + "/"
+            + ((CmsActionOrderSimple) cmsWoSimpleBase).getActionId() + " took " + (
+            System.currentTimeMillis() - t1));
+      }
+    } else {
+      logger.warn(
+          ">>>WOPublisher is disabled, the current value of environment variable IS_SEARCH_ENABLED "
+              + isPubEnabled);
+    }
+  }
+
+
+  /**
+   *
+   * @param type
+   * @return
+   */
+  private String getType(String type) {
+    if (CmsUtil.WORK_ORDER_TYPE.equals(type)) {
+      return "workorder";
+    } else if (CmsUtil.ACTION_ORDER_TYPE.equals(type)) {
+      return "actionorder";
     }
 
-    /**
-     * 
-     * @param workOrder
-     * @throws JMSException
-     */
-    public void publishMessage(CmsWorkOrderSimpleBase cmsWoSimpleBase,String type,String id) throws JMSException {
-    	if(isPubEnabled){
-			cmsWoSimpleBase = CmsUtil.maskSecuredFields(cmsWoSimpleBase, type);
-			String payload = gson.toJson(cmsWoSimpleBase);
-			Map<String, String> headers = new HashMap<String, String>();
-			headers.put("type", getType(type));
-			headers.put("msgId", id);
-			MessageData data = new MessageData(payload, headers);
-			searchPublisher.publish(data);
-			if (cmsWoSimpleBase instanceof CmsWorkOrderSimple) {
-				logger.info("WO published to search stream queue for RfcId: "
-						+ ((CmsWorkOrderSimple) cmsWoSimpleBase).getRfcId());
-			} else if (cmsWoSimpleBase instanceof CmsActionOrderSimple) {
-				logger.info("AO published to search stream queue for procedureId/actionId: "
-						+ ((CmsActionOrderSimple) cmsWoSimpleBase).getProcedureId() + "/"
-						+ ((CmsActionOrderSimple) cmsWoSimpleBase).getActionId());
-			}
-    	}else {
-			logger.warn(">>>WOPublisher is disabled, the current value of environment variable IS_SEARCH_ENABLED " + isPubEnabled);
-		}
-    }
-    
-    
-	/**
-	 * 
-	 * @param type
-	 * @return
-	 */
-	private String getType(String type) {
-    	if(CmsUtil.WORK_ORDER_TYPE.equals(type))
-    		return "workorder";
-    	else if(CmsUtil.ACTION_ORDER_TYPE.equals(type))
-    		return "actionorder";
-    	
-		return null;
-	}
+    return null;
+  }
 
-	public void setSearchPublisher(SearchPublisher asyncSearchPublisher) {
-		this.searchPublisher = asyncSearchPublisher;
-	}
+  public void setSearchPublisher(SearchPublisher asyncSearchPublisher) {
+    this.searchPublisher = asyncSearchPublisher;
+  }
 
-	public boolean isPubEnabled() {
-		return isPubEnabled;
-	}
+  public boolean isPubEnabled() {
+    return isPubEnabled;
+  }
 
-	public void setPubEnabled(boolean pubEnabled) {
-		isPubEnabled = pubEnabled;
-	}
+  public void setPubEnabled(boolean pubEnabled) {
+    isPubEnabled = pubEnabled;
+  }
 
 }
