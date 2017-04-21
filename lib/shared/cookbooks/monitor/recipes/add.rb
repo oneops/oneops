@@ -407,7 +407,9 @@ ruby_block 'setup nagios' do
       else
         `chown -R nagios:nagios /etc/nagios /opt/oneops/perf`
         # restart nagios & forwarder
-        `/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
+	# Not required to restart the perf-agent and forwarder as the perf-agent recovers
+	# TODO: IF clause needs to be removed .      
+        #`/etc/init.d/nagios restart && /etc/init.d/perf-agent restart`
       end
 
     end
