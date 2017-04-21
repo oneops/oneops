@@ -14,7 +14,7 @@
         <property name="url" value="jdbc:postgresql://${CMS_DB_HOST}/kloopzdb?autoReconnect=true&amp;ApplicationName=controller-${ONEOPS_COMPUTE_CI_ID:0}" />
         <property name="username" value="${CMS_DB_USER}" />
         <property name="password" value="${CMS_DB_PASS}" />
-        <property name="maxActive" value="20" />
+        <property name="maxActive" value="${C_POOL_SIZE:20}" />
         <property name="maxIdle" value="5" />
         <property name="testOnBorrow" value="true" />
         <property name="validationQuery" value="select 1" />
