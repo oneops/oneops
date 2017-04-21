@@ -41,7 +41,7 @@ public class Config {
 
     private Properties properties = new Properties();
     //using it to avoid synchronized , calls on the getProp.
-    private HashMap<String, String> internal_props = new HashMap<String, String>();
+    private HashMap<String, String> internal_props = new HashMap<>();
     private String localConfigDir;
     private String localConfigFile;
 
@@ -103,7 +103,7 @@ public class Config {
         try {
             save();
         } catch (IOException e) {
-            ECV_LOGGER.error("Exception occured while persisting the state of ecv. ");
+            ECV_LOGGER.error("Exception occurred while persisting the state of ecv. ");
             throw new ConfigException(" Error while persisting the property",e);
         }
     }

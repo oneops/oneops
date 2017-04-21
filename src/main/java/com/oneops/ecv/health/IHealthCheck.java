@@ -26,14 +26,14 @@ public interface IHealthCheck {
      *
      * @return true
      */
-    public IHealth getHealth();
+    IHealth getHealth();
 
     /**
      * Returns a unique name for the health check(may be CacheCheck)
      *
      * @return unique name.
      */
-    public String getName();
+    String getName();
 
 
 }

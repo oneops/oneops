@@ -18,10 +18,15 @@
 package com.oneops.ecv.health;
 
 
+import org.springframework.beans.factory.annotation.Autowired;
+
 public class DefaultHealthCheck implements IHealthCheck {
+    @Autowired
+    private Health okHealth;
+
     @Override
     public IHealth getHealth() {
-        return Health.OK_HEALTH;
+        return okHealth;
     }
 
     @Override

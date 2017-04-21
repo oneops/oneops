@@ -18,6 +18,9 @@
 package com.oneops.ecv.health;
 
 
+import com.oneops.util.Version;
+import org.springframework.beans.factory.annotation.Autowired;
+
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -26,13 +29,13 @@ import javax.servlet.http.HttpServletResponse;
 public class Health implements IHealth {
 
 
-    public static final Health OK_HEALTH = new Health();
-    public static final Health FAILED_HEALTH = new Health(HttpServletResponse.SC_SERVICE_UNAVAILABLE, Boolean.FALSE);
-    public static final Health OFFLINE_HEALTH = new Health(HttpServletResponse.SC_SERVICE_UNAVAILABLE, Boolean.FALSE, "MarkedOffline", "Offline");
     private int statusCode = HttpServletResponse.SC_OK;
     private boolean isOKstatus = Boolean.TRUE;
     private String message;
     private String name;
+
+    @Autowired
+    private transient Version version;
 
     public Health() {
         this.name = this.getClass().getName();
@@ -43,6 +46,7 @@ public class Health implements IHealth {
         this.message = message;
         this.name = name;
     }
+
 
     public Health(String message) {
         this.message = message;
@@ -83,12 +87,20 @@ public class Health implements IHealth {
     }
 
     @Override
+    public String getVersion() {
+        if (version != null)
+            return version.getGitVersion();
+        return VERSION;
+    }
+
+    @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Health{");
         sb.append("statusCode=").append(statusCode);
         sb.append(", isOKstatus=").append(isOKstatus);
         sb.append(", message='").append(message).append('\'');
         sb.append(", name='").append(name).append('\'');
+        sb.append(", version='").append(getVersion()).append('\'');
         sb.append('}');
         return sb.toString();
     }

@@ -18,7 +18,10 @@
 package com.oneops.ecv.health;
 
 
+
 public interface IHealth {
+
+    String VERSION ="0.0.0";
 
     int getStatusCode();
 
@@ -31,7 +34,12 @@ public interface IHealth {
      *
      * @return unique name.
      */
-    public String getName();
+     String getName();
 
+    /**
+     * @see com.oneops.util.Version
+      * @return version of code for app
+     */
+     String getVersion();
 
 }
