@@ -50,6 +50,7 @@ public class CmsRfcCIBasic implements Serializable{
 	private Date rfcUpdated;
 	private Date created;
 	private Date updated;
+	private String hint;
 	
 	/**
 	 * Gets the ci state.
@@ -463,6 +464,14 @@ public class CmsRfcCIBasic implements Serializable{
 	 */
 	public String getImpl() {
 		return impl;
+	}
+
+	public String getHint() {
+		return hint;
+	}
+
+	public void setHint(String hint) {
+		this.hint = hint;
 	}
 	
 }
