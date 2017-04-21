@@ -435,6 +435,7 @@ CREATE TABLE kloopzcm.dj_rfc_ci (
                 comments VARCHAR(2000),
                 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                hint TEXT,
                 CONSTRAINT dj_rfc_ci_pk PRIMARY KEY (rfc_id)
 );
 
