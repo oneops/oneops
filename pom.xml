@@ -17,8 +17,9 @@
      <geronimo-servlet_3.0_spec.version>1.0</geronimo-servlet_3.0_spec.version>
      <cmsdal.version>1.0.4</cmsdal.version>
      <libs.version>1.0.0</libs.version>
-       <testng.version>6.9.10</testng.version>
-       <mockito-all.version>1.9.5</mockito-all.version>
+     <testng.version>6.9.10</testng.version>
+     <mockito-all.version>1.9.5</mockito-all.version>
+      <gitTag>${version}</gitTag>
    </properties>
   
   <dependencies>
@@ -106,6 +107,16 @@
           <target>1.8</target>
         </configuration>
       </plugin>
+        <plugin>
+            <artifactId>maven-war-plugin</artifactId>
+            <configuration>
+                <archive>
+                    <manifestEntries>
+                        <gitTag>${gitTag}</gitTag>
+                    </manifestEntries>
+                </archive>
+            </configuration>
+        </plugin>
     </plugins>
   </build>
 </project>
