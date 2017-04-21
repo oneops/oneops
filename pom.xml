@@ -27,6 +27,7 @@
         <mockrunner.version>0.3.1</mockrunner.version>
         <awaitility.version>1.7.0</awaitility.version>
         <guava.version>16.0.1</guava.version>
+        <gitTag>${version}</gitTag>
     </properties>
 
     <dependencies>
@@ -177,6 +178,16 @@
                     <target>1.8</target>
                     <debug>true</debug>
                     <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <gitTag>${gitTag}</gitTag>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
         </plugins>
