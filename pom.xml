@@ -9,7 +9,7 @@
     <name>${project.artifactId}</name>
     <description>DAQ</description>
     <properties>
-        <gson.version>1.7.1</gson.version>
+        <gson.version>2.7</gson.version>
         <hector-core.version>0.8.0-3</hector-core.version>
         <jee.javax-servlet-api.version>2.5</jee.javax-servlet-api.version>
         <libs.version>1.0.0</libs.version>
@@ -22,6 +22,7 @@
         <apache.maven-surefire-plugin.version>2.17</apache.maven-surefire-plugin.version>
         <apache.maven-shade-plugin.version>2.3</apache.maven-shade-plugin.version>
         <codehaus.jackson.version>1.8.11</codehaus.jackson.version>
+        <gitTag>${version}</gitTag>
     </properties>
     <dependencies>
         <!-- =============================================================== -->
