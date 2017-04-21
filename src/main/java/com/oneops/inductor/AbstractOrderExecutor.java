@@ -140,7 +140,7 @@ public abstract class AbstractOrderExecutor {
 
     protected void processStubbedCloud(CmsWorkOrderSimpleBase wo) {
         try {
-            TimeUnit.SECONDS.sleep(config.getStubResponseTimeInSeconds());
+            TimeUnit.SECONDS.sleep(getStubSleepTime(wo));
         } catch (InterruptedException e) {
             //Sleep for response.
         }
@@ -154,9 +154,9 @@ public abstract class AbstractOrderExecutor {
         }
     }
 
-
-
-
+    protected long getStubSleepTime(CmsWorkOrderSimpleBase wo) {
+        return config.getStubResponseTimeInSeconds();
+    }
 
     /**
      * Set the local wait time for local work-order/action-order
