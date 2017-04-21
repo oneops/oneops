@@ -123,7 +123,7 @@ when "chef"
   if ostype =~ /windows/
     if !File.exists?('c:/opscode/chef/embedded/bin/chef-client')
       start_time = Time.now.to_i
-      ec = system("c:/programdata/chocolatey/choco.exe install -y --allow-downgrade --allowEmptyChecksums chef-client -version 12.11.18")
+      ec = system("c:/programdata/chocolatey/choco.exe install -y --no-progress --allow-downgrade --allowEmptyChecksums chef-client -version 12.11.18")
       if !ec || ec.nil?
         puts "choco install result #{$?}"
         exit 1
