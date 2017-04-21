@@ -16,26 +16,29 @@
  *******************************************************************************/
 package com.oneops.controller.jms;
 
+import com.google.gson.Gson;
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.util.Version;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import javax.jms.*;
-
-import com.oneops.util.Version;
+import javax.jms.Connection;
+import javax.jms.DeliveryMode;
+import javax.jms.Destination;
+import javax.jms.JMSException;
+import javax.jms.MessageProducer;
+import javax.jms.Session;
+import javax.jms.TextMessage;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.util.IndentPrinter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
-import com.oneops.cms.simple.domain.CmsActionOrderSimple;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.cms.util.CmsConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -49,7 +52,6 @@ public class InductorPublisher {
     private static final String CONTROLLLER_VERSION_SEARCH_TAG = "cVersion";
     private static Logger logger = Logger.getLogger(InductorPublisher.class);
     final private Gson gson = new Gson();
-    private final Object lock = new Object();
     @Autowired
     Version version;
     //private long timeToLive;
@@ -145,7 +147,9 @@ public class InductorPublisher {
         String woCorelationId = processId + execId;
         woPublisher.publishMessage(wo, woType, woCorelationId);
 
-        logger.debug("Published: " + message.getText());
+        if (logger.isDebugEnabled()) {
+            logger.debug("Published: " + message.getText());
+        }
     }
 
     private MessageProducer newMessageProducer(String queueName) throws JMSException {
@@ -197,8 +201,5 @@ public class InductorPublisher {
         this.woPublisher = woPublisher;
     }
 
-//	public void setTimeToLive(long timeToLive) {
-//		this.timeToLive = timeToLive;
-//	}
 
 }

@@ -16,6 +16,35 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import com.google.gson.Gson;
+import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.antenna.domain.NotificationType;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.ops.domain.CmsActionOrder;
+import com.oneops.cms.cm.ops.domain.CmsOpsAction;
+import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
+import com.oneops.cms.cm.ops.domain.OpsActionState;
+import com.oneops.cms.cm.ops.domain.OpsProcedureState;
+import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
+import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.crypto.CmsCrypto;
+import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDpmtRecord;
+import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.exceptions.CmsBaseException;
+import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.CmsUtil;
+import com.oneops.controller.util.ControllerUtil;
+import com.oneops.controller.workflow.WorkflowController;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,11 +55,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
-import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.domain.*;
-import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -45,28 +69,6 @@ import org.springframework.retry.policy.SimpleRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-
-import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.ops.domain.CmsActionOrder;
-import com.oneops.cms.cm.ops.domain.CmsOpsAction;
-import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
-import com.oneops.cms.cm.ops.domain.OpsActionState;
-import com.oneops.cms.cm.ops.domain.OpsProcedureState;
-import com.oneops.cms.crypto.CmsCrypto;
-import com.oneops.cms.exceptions.CmsBaseException;
-import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.simple.domain.CmsActionOrderSimple;
-import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.CmsUtil;
-import com.oneops.controller.util.ControllerUtil;
-import com.oneops.controller.workflow.WorkflowController;
 
 /**
  * The Class CMSClient.
@@ -117,11 +119,11 @@ public class CMSClient {
     public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
 	}
-	
+
 	public void setControllerUtil(ControllerUtil controllerUtil) {
 		this.controllerUtil = controllerUtil;
 	}
-    
+
 	public void setCmsWoProvider(CmsWoProvider cmsWoProvider) {
 		this.cmsWoProvider = cmsWoProvider;
 	}
@@ -185,24 +187,21 @@ public class CMSClient {
         CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
         Integer execOrder = (Integer) exec.getVariable(EXEC_ORDER);
         long startTime = System.currentTimeMillis();
-        logger.info("Geting work orders for dpmt id = " + dpmt.getDeploymentId() + " step #" + execOrder);
         try {
             // if not - resubmit them, this is not normal situation but sometimes activiti completes subprocess
             // without calling final step, not sure how or why
-            //wos = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/workorderids?execorder={execOrder}&state=inprogress&limit={limit}", CmsWorkOrderSimple[].class, dpmt.getDeploymentId(), execOrder, this.stepWoLimit));
             List<CmsWorkOrderSimple> recList = null;
-            recList = cmsWoProvider.getWorkOrderIdsSimple(dpmt.getDeploymentId(), "inprogress", execOrder, this.stepWoLimit);  
+            boolean pendingList = false;
+            recList = cmsWoProvider.getWorkOrderIdsSimple(dpmt.getDeploymentId(), "inprogress", execOrder, this.stepWoLimit);
             if (recList.size() == 0) {
+              pendingList= true;
             	recList = cmsWoProvider.getWorkOrderIdsSimple(dpmt.getDeploymentId(), "pending", execOrder, this.stepWoLimit);
-                //wos = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/workorderids?execorder={execOrder}&state=pending&limit={limit}", CmsWorkOrderSimple[].class, dpmt.getDeploymentId(), execOrder, this.stepWoLimit));
             }
-
-            logger.info("Got " + recList.size() + " work order ids for dpmt id = " + dpmt.getDeploymentId() + " step #" + execOrder);
-            logger.info("Time taken " + (System.currentTimeMillis() - startTime) + "ms;");
+            logger.info(dpmt.getDeploymentId()+"-"+execOrder +" Got workOrderIds size: " + recList.size()
+                + " took " +(System.currentTimeMillis()-startTime) +"ms pendingList "+ pendingList );
             exec.setVariable("dpmtrecs", recList);
-            logger.info("Set activiti variable dpmtrecs");
         } catch (CmsBaseException e) {
-            logger.error("CmsException :" + dpmt.getDeploymentId() + " :+execOrder" + execOrder, e);
+            logger.error(dpmt.getDeploymentId()+"-"+execOrder +" CmsException :", e);
             String descr = dpmt.getDescription();
             if (descr == null) {
                 descr = "";
@@ -226,12 +225,12 @@ public class CMSClient {
         long startTime = System.currentTimeMillis();
         try {
             //CmsWorkOrderSimple wo = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "dj/simple/deployments/{deploymentId}/workorders/{dpmtRecId}?execorder={execOrder}", CmsWorkOrderSimple.class, dpmtRec.getDeploymentId(), dpmtRec.getDpmtRecordId(), execOrder));
-        	
+
         	CmsWorkOrderSimple wo  = cmsWoProvider.getWorkOrderSimple(dpmtRec.getDpmtRecordId(), null, execOrder);
             final long woCreationtime = System.currentTimeMillis() - startTime;
             wo.getSearchTags().put("woCrtTime",String.valueOf(woCreationtime));
             logger.info("Time taked to get wo - " + woCreationtime + "ms; pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
-        	
+
         	if (wo != null) {
 	        	decryptWo(wo);
 	        	CmsWorkOrderSimple strippedWo = controllerUtil.stripWO(wo);
@@ -339,7 +338,7 @@ public class CMSClient {
             dpmtRec.setComments(wo.getComments());
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
-                if (dpmt.getContinueOnFailure() && !isDeleteWO(wo)) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck. We can't continue on failure however, if current order is delete RFC to prevent orphan instances. 
+                if (dpmt.getContinueOnFailure() && !isDeleteWO(wo)) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck. We can't continue on failure however, if current order is delete RFC to prevent orphan instances.
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
@@ -388,17 +387,17 @@ public class CMSClient {
 
     private void completeWO(CmsWorkOrderSimple woSimple) {
         try {
-        	CmsWorkOrderSimple responseWo = controllerUtil.stripWO(woSimple, true); 
+        	CmsWorkOrderSimple responseWo = controllerUtil.stripWO(woSimple, true);
         	CmsWorkOrder wo = cmsUtil.custSimple2WorkOrder(responseWo);
         	cmsDpmtProcessor.completeWorkOrder(wo);
             logger.info(">>>>>>>>>>>>>>>>>>>>>completed wo " + wo.getDpmtRecordId() + "! Rfc_Id = " + wo.getRfcId());
-            
+
         } catch (CmsBaseException ce) {
             logger.error(ce.getMessage(), ce);
             throw ce;
-        } 
+        }
     }
-    
+
     /**
      * Sets the dpmt process id.
      *
@@ -421,7 +420,7 @@ public class CMSClient {
 			logger.error("CmsBaseException in updateDeployment", e);
 			e.printStackTrace();
 			throw e;
-		}	
+		}
     }
 
 
@@ -434,7 +433,7 @@ public class CMSClient {
      * @throws InterruptedException
      */
     public void updateDpmtState(DelegateExecution exec, CmsDeployment dpmt, String newState) {
-        
+
         if (dpmt.getDeploymentState().equalsIgnoreCase("active")) {
             CmsDeployment clone = new CmsDeployment();
             BeanUtils.copyProperties(dpmt, clone);
@@ -452,7 +451,7 @@ public class CMSClient {
         }
         // lets do the retries here
         logger.info("Client: put:update deployment " + dpmt.getDeploymentId() + " state to " + dpmt.getDeploymentState());
-        
+
         try {
             dpmt.setFlagsToNull();
         	cmsDpmtProcessor.updateDeployment(dpmt);
@@ -461,7 +460,7 @@ public class CMSClient {
 			logger.error("CmsBaseException in updateDeployment", e);
 			e.printStackTrace();
 			throw e;
-		}	
+		}
     }
 
 
@@ -477,7 +476,7 @@ public class CMSClient {
             Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
             if (autoPauseExecOrders != null && autoPauseExecOrders.contains(newExecOrder)) {
                 logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + newExecOrder);
-                CmsDeployment clone = new CmsDeployment(); // cannot update existing instance need to clone deployment first 
+                CmsDeployment clone = new CmsDeployment(); // cannot update existing instance need to clone deployment first
                 clone.setDeploymentId(dpmt.getDeploymentId());
                 clone.setDeploymentState(PAUSED);
                 clone.setUpdatedBy(ONEOPS_SYSTEM_USER);
@@ -514,7 +513,7 @@ public class CMSClient {
             }
             exec.setVariable("cmsaos", aoList);
             if (exec.getVariable("procanchor") == null) {
-                CmsCI procAnchorCI = cmsCmProcessor.getCiById(proc.getCiId()); 
+                CmsCI procAnchorCI = cmsCmProcessor.getCiById(proc.getCiId());
                 		//retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "/cm/cis/{ciId}", CmsCI.class, proc.getCiId()));
                 exec.setVariable("procanchor", procAnchorCI);
             }
@@ -546,7 +545,7 @@ public class CMSClient {
 			logger.error("CmsBaseException in updateProcedureState", e);
 			e.printStackTrace();
 			throw e;
-		}	
+		}
     }
 
 
@@ -618,7 +617,7 @@ public class CMSClient {
         //CmsCISimple[] envs = retryTemplate.execute(retryContext -> restTemplate.getForObject(serviceUrl + "/cm/simple/cis?ciClassName=manifest.Environment&nsPath={envNsPath}&ciName={envName}", CmsCISimple[].class, envNsPath, envName));
 
         List<CmsCI> envs = cmsCmProcessor.getCiBy3(envNsPath, "manifest.Environment", envName);
-        
+
         CmsCISimple env = null;
         if (envs.size() > 0) {
             env = cmsUtil.custCI2CISimple(envs.get(0), "df") ;
