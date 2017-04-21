@@ -17,6 +17,30 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
+import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
+import static com.oneops.cms.util.CmsConstants.RESPONSE_ENQUE_TS;
+import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
+import static com.oneops.inductor.InductorConstants.ADD;
+import static com.oneops.inductor.InductorConstants.ADD_FAIL_CLEAN;
+import static com.oneops.inductor.InductorConstants.AFTER_ATTACHMENT;
+import static com.oneops.inductor.InductorConstants.ATTACHMENT;
+import static com.oneops.inductor.InductorConstants.BEFORE_ATTACHMENT;
+import static com.oneops.inductor.InductorConstants.COMPLETE;
+import static com.oneops.inductor.InductorConstants.COMPUTE;
+import static com.oneops.inductor.InductorConstants.DELETE;
+import static com.oneops.inductor.InductorConstants.EXTRA_RUN_LIST;
+import static com.oneops.inductor.InductorConstants.FAILED;
+import static com.oneops.inductor.InductorConstants.KNOWN;
+import static com.oneops.inductor.InductorConstants.LOG;
+import static com.oneops.inductor.InductorConstants.LOGGED_BY;
+import static com.oneops.inductor.InductorConstants.MONITOR;
+import static com.oneops.inductor.InductorConstants.ONEOPS_USER;
+import static com.oneops.inductor.InductorConstants.REMOTE;
+import static com.oneops.inductor.InductorConstants.REPLACE;
+import static com.oneops.inductor.InductorConstants.TEST_HOST;
+import static com.oneops.inductor.InductorConstants.UPDATE;
+import static com.oneops.inductor.InductorConstants.WATCHED_BY;
+
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.oneops.cms.dj.domain.RfcHint;
@@ -26,22 +50,23 @@ import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsUtil;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.*;
-import java.util.concurrent.Semaphore;
-import java.util.stream.Collectors;
-
-import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
-import static com.oneops.cms.util.CmsConstants.RESPONSE_ENQUE_TS;
-import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
-import static com.oneops.inductor.InductorConstants.*;
 
 /**
  * WorkOrder specific processing
@@ -1330,24 +1355,23 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     }
 
-    protected long getStubSleepTime(CmsWorkOrderSimpleBase woBase) {
-	    long sleepTime = 0;
-	    if (woBase instanceof CmsWorkOrderSimple) {
-		    Map<String, String> envVars = config.getEnvVars();
-		    if (envVars != null) {
-			    CmsWorkOrderSimple wo = (CmsWorkOrderSimple)woBase;
-			    String className = wo.getRfcCi().getCiClassName();
-			    String var = STUB_RESP_COMPONENT_PREFIX + wo.getAction() + "." + className;
-			    if (envVars.containsKey(var)) {
-				    sleepTime = Integer.valueOf(envVars.get(var)) + randomGenerator.nextInt(config.getStubResponseTimeInSeconds());
-				}
-			    logger.info("sleep for stub cloud, class : " + className + " action : " + wo.getAction() + " time : " + sleepTime);
-			}
-		}
-		if (sleepTime == 0) {
-			return super.getStubSleepTime(woBase);
-	    }
-		return sleepTime;
+    protected long getStubSleepTime(CmsWorkOrderSimpleBase wo) {
+        long sleepTime = 0;
+        Map<String, String> envVars = config.getEnvVars();
+        if (envVars != null) {
+            String className = wo.getClassName();
+            String var = STUB_RESP_COMPONENT_PREFIX + wo.getAction() + "." + className;
+            if (envVars.containsKey(var)) {
+                sleepTime = Integer.valueOf(envVars.get(var)) + randomGenerator
+                    .nextInt(config.getStubResponseTimeInSeconds());
+            }
+            logger.info("sleep for stub cloud, class : " + className + " action : " + wo.getAction()
+                + " time : " + sleepTime);
+        }
+        if (sleepTime == 0) {
+            return super.getStubSleepTime(wo);
+        }
+        return sleepTime;
     }
 
 
