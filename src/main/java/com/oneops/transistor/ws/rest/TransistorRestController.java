@@ -272,6 +272,26 @@ public class TransistorRestController extends AbstractRestController {
 		}
 	}
 
+
+	@RequestMapping(value="/assemblies/{assemblyId}/lockUserChangedAttributes", method = RequestMethod.GET)
+	@ResponseBody
+	public Long lockUserChangedAttributes(
+			@PathVariable long assemblyId,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+
+		if (userId == null) userId = "oneops-system";
+		try {
+			long startTime = System.currentTimeMillis();
+			long updateCount = dManager.lockUserChangedAttributes(assemblyId, scope);
+			logger.info("Assembly "+assemblyId+" user modified attribute locking time - "+ (System.currentTimeMillis()-startTime)+" ms");
+			return updateCount;
+		}  catch (Exception te) {
+			logger.error("Unexpected error while locking user modified attributes", te);
+			throw te;
+		}
+	}
+
 	@RequestMapping(value="/assemblies/{assemblyId}/export", method = RequestMethod.GET)
 	@ResponseBody
 	public DesignExportSimple exportDesign(

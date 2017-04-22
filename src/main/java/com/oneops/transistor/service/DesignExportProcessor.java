@@ -1,16 +1,5 @@
 package com.oneops.transistor.service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
@@ -27,11 +16,11 @@ import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.transistor.exceptions.DesignExportException;
-import com.oneops.transistor.export.domain.ComponentExport;
-import com.oneops.transistor.export.domain.DesignExportSimple;
-import com.oneops.transistor.export.domain.ExportCi;
-import com.oneops.transistor.export.domain.ExportRelation;
-import com.oneops.transistor.export.domain.PlatformExport;
+import com.oneops.transistor.export.domain.*;
+
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class DesignExportProcessor {
 	
@@ -902,4 +891,41 @@ public class DesignExportProcessor {
 				platform.getAttribute("version").getNewValue();
 	}
 
+	public long lockUserChangedAttributes(long assemblyId, String scope) {
+        CmsCI assembly = cmProcessor.getCiById(assemblyId);
+        if (assembly == null) {
+            throw new DesignExportException(DesignExportException.CMS_NO_CI_WITH_GIVEN_ID_ERROR, BAD_ASSEMBLY_ID_ERROR_MSG + assemblyId);
+        }
+        trUtil.verifyScope(assembly, scope);
+        long counter = 0;
+		List<CmsCIRelation> composedOfs = cmProcessor.getFromCIRelations(assemblyId, COMPOSED_OF_RELATION, DESIGN_PLATFORM_CLASS);
+		for (CmsCIRelation composedOf : composedOfs) {
+			CmsCI platform = composedOf.getToCi();
+			String packNsPath = getPackNsPath(platform);
+			List<CmsCIRelation> requiresRels = cmProcessor.getFromCIRelations(platform.getCiId(), REQUIRES_RELATION, null);
+			for (CmsCIRelation requires : requiresRels) {
+				CmsCI component = requires.getToCi();
+				String templateName = requires.getAttribute("template").getDjValue();
+				List<CmsCI> mgmtComponents = cmProcessor.getCiBy3(packNsPath, MGMT_PREFIX + component.getCiClassName(), templateName);
+				CmsCI template = mgmtComponents.get(0);
+				boolean needUpdate = false;
+				for (Map.Entry<String, CmsCIAttribute> entry : component.getAttributes().entrySet()) {
+					String key = entry.getKey();
+					CmsCIAttribute actualAttribute = entry.getValue();
+					CmsCIAttribute templateAttribute = template.getAttribute(key);
+					if (templateAttribute.getDfValue()==null && actualAttribute.getDfValue()==null) continue;
+					if ((templateAttribute.getDfValue()==null || "null".equals(templateAttribute.getDfValue())) && actualAttribute.getDfValue()!=null && actualAttribute.getDfValue().trim().isEmpty()) continue; // null in template is actually being translated into empty string because of the not null constraint on attribute value, so ignore those as well  
+					if (!actualAttribute.getDfValue().equals(templateAttribute.getDfValue()) && !OWNER_DESIGN.equals(actualAttribute.getOwner())){
+						counter ++;
+                        actualAttribute.setOwner(OWNER_DESIGN);
+                        needUpdate = true;
+                    }
+				}
+				if (needUpdate) {
+					cmProcessor.updateCI(component);
+				}
+			}
+		}
+		return counter;
+	}
 }
