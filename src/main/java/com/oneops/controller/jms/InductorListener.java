@@ -57,6 +57,7 @@ import org.apache.log4j.Logger;
 public class InductorListener implements MessageListener {
 
   private static final Logger logger = Logger.getLogger(InductorListener.class);
+  private static final String OK_RESPONSE = "200";
   final private Gson gson = new Gson();
   private final String ctrlrQueueName = "controller.response";
   private Connection connection = null;
@@ -113,7 +114,6 @@ public class InductorListener implements MessageListener {
   public void init() throws JMSException {
 
     connection = connFactory.createConnection();
-    //session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
     // lets make it transactional
     session = connection.createSession(true, Session.SESSION_TRANSACTED);
     Queue controllerQueue = session.createQueue(ctrlrQueueName);
@@ -141,11 +141,9 @@ public class InductorListener implements MessageListener {
         }
         try {
           processResponseMessage((TextMessage) message);
-          //session.commit();
         } catch (ActivitiException ae) {
           logger.error("ActivityException in onMessage ", ae);
           logger.error("Will retry in 10 seconds \n" + ((TextMessage) message).getText());
-          //session.rollback();
           throw ae;
         }
       }
@@ -155,6 +153,7 @@ public class InductorListener implements MessageListener {
   }
 
   private void processResponseMessage(TextMessage msg) throws JMSException {
+    long startTime = System.currentTimeMillis();
     String corelationId = msg.getJMSCorrelationID();
     if (corelationId == null) {
       corelationId = msg.getStringProperty("task_id");
@@ -170,29 +169,23 @@ public class InductorListener implements MessageListener {
     }
 
     String type = msg.getStringProperty("type");
-    Map<String, Object> params = new HashMap<String, Object>();
-
-    logger.info(
-        "Got inductor response with JMSCorrelationID: " + corelationId + " result " + woTaskResult);
-
+    Map<String, Object> params = new HashMap<>();
     //noinspection UnusedAssignment
     CmsWorkOrderSimpleBase wo = null;
     CmsWorkOrderSimple strippedWo = null;
 
     if ("opsprocedure".equalsIgnoreCase(type)) {
       wo = gson.fromJson(((TextMessage) msg).getText(), CmsActionOrderSimple.class);
-      logger.info("Action ci_id = " + ((CmsActionOrderSimple) wo).getCiId());
     } else if ("deploybom".equalsIgnoreCase(type)) {
       wo = gson.fromJson(((TextMessage) msg).getText(), CmsWorkOrderSimple.class);
       strippedWo = controllerUtil.stripWO((CmsWorkOrderSimple) wo);
-      if (woTaskResult.equalsIgnoreCase("200")) {
+      if (woTaskResult.equalsIgnoreCase(OK_RESPONSE)) {
         try {
           sensorClient.processMonitors((CmsWorkOrderSimple) wo);
         } catch (SensorClientException e) {
           logger.error("Exception occurred in creating monitors",e);
         }
       }
-      logger.info("WorkOrder rfc_id = " + ((CmsWorkOrderSimple) wo).getRfcId());
     } else {
       throw new JMSException("the type property of the received msg is unknown - " + type);
     }
@@ -208,12 +201,13 @@ public class InductorListener implements MessageListener {
     } else {
       params.put("wostate", "failed");
     }
-
-    setWoTimeStamps(wo);
-
     String woCorelationId = processId + executionId;
     wfController.pokeSubProcess(processId, executionId, params);
+    final long processTime = System.currentTimeMillis() - startTime;
+    wo.getSearchTags().put("cProcessTime",String.valueOf(processTime));
+    setWoTimeStamps(wo);
     woPublisher.publishMessage(wo, type, woCorelationId);
+    logger.info("Processed iResponse with id "+ corelationId + " result" + woTaskResult+" took(ms) " +processTime);
 
   }
 

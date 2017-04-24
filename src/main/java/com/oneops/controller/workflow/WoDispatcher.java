@@ -171,7 +171,7 @@ public class WoDispatcher {
 			} else {
 				cmsClient.updateWoState(exec, dpmtRec, CMSClient.FAILED);
 				//this is really a hack I need to release the stack here for process to get to syncWait node, but I also need something to poke it
-				//if all WOs for the stap failed nothing will poke the syncWait
+				//if all WOs for the step failed nothing will poke the syncWait
 				if (((Integer)exec.getVariable(NR_OF_INSTANCES)).intValue() == ((Integer)exec.getVariable(LOOP_COUNTER)).intValue() + 1) {
 					pokeSubProcAsync(exec.getProcessInstanceId(), exec.getId(), exec.getVariables());
 				}
