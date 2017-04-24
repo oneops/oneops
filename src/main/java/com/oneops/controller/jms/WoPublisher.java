@@ -77,9 +77,7 @@ public class WoPublisher {
             System.currentTimeMillis() - t1));
       }
     } else {
-      logger.warn(
-          ">>>WOPublisher is disabled, the current value of environment variable IS_SEARCH_ENABLED "
-              + isPubEnabled);
+      logger.warn(">>>WOPublisher is disabled<IS_SEARCH_ENABLED>"+ isPubEnabled);
     }
   }
 
@@ -95,7 +93,6 @@ public class WoPublisher {
     } else if (CmsUtil.ACTION_ORDER_TYPE.equals(type)) {
       return "actionorder";
     }
-
     return null;
   }
 

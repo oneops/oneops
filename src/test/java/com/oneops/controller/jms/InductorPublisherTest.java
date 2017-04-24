@@ -16,11 +16,14 @@
  *******************************************************************************/
 package com.oneops.controller.jms;
 
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -58,6 +61,27 @@ public class InductorPublisherTest {
 		publisher.publishMessage(processId, execId, workOrder, "xWaiting-task-name", "x-deployment");
 		
 	}
+
+	@Test
+  public void getCtxtId(){
+    CmsActionOrderSimple ao = new CmsActionOrderSimple();
+    ao.setProcedureId(1234);
+    ao.setActionId(456);
+    ao.setCiId(789);
+    Assert.assertEquals("a-1234-456-789",publisher.getCtxtId(ao));
+  }
+  @Test
+  public void getCtxtIdForDeployment(){
+    CmsWorkOrderSimple wo = new CmsWorkOrderSimple();
+    wo.setDeploymentId(1234);
+    CmsRfcCISimple rfc = new CmsRfcCISimple();
+    rfc.setRfcId(456);
+    rfc.setCiId(789);
+    rfc.setExecOrder(5);
+    wo.rfcCi=rfc;
+    Assert.assertEquals("d-1234-456-5-789",publisher.getCtxtId(wo));
+  }
+
 	@Test (priority=2)
 	/** dump stats and close conn */
 	public void cleanupTest() throws Exception{

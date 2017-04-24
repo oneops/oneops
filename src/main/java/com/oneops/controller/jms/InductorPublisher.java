@@ -115,7 +115,7 @@ public class InductorPublisher {
             wo.getSearchTags().put(CONTROLLLER_VERSION_SEARCH_TAG, DEFAULT_VERSION);
         }
         TextMessage message = session.createTextMessage(gson.toJson(wo));
-        String corelationId = processId + "!" + execId + "!" + waitTaskName;
+        String corelationId = processId + "!" + execId + "!" + waitTaskName+"!"+getCtxtId(wo);
         message.setJMSCorrelationID(corelationId);
         message.setStringProperty("task_id", corelationId);
         message.setStringProperty("type", woType);
@@ -134,22 +134,31 @@ public class InductorPublisher {
             }
         }).send(message);
 
-        if (wo instanceof CmsWorkOrderSimple) {
-
-            logger.info("Posted wo for the inductor dpmtId=" + ((CmsWorkOrderSimple) wo).getDeploymentId()
-                    + "; rfcId=" + ((CmsWorkOrderSimple) wo).getRfcId()
-                    + "; step=" + ((CmsWorkOrderSimple) wo).rfcCi.getExecOrder());
-
-        } else if (wo instanceof CmsActionOrderSimple) {
-            logger.info("Posted action order for the inductor ciId=" + ((CmsActionOrderSimple) wo).getCiId());
-        }
-
         String woCorelationId = processId + execId;
         woPublisher.publishMessage(wo, woType, woCorelationId);
 
         if (logger.isDebugEnabled()) {
             logger.debug("Published: " + message.getText());
         }
+
+        logger.info("Posted message with id "+ corelationId +" to q: "+queueName);
+
+    }
+
+    protected String getCtxtId(CmsWorkOrderSimpleBase wo) {
+      String ctxtId = "";
+      if (wo instanceof CmsWorkOrderSimple) {
+        CmsWorkOrderSimple woSimple = CmsWorkOrderSimple.class.cast(wo);
+        ctxtId = "d-" + woSimple.getDeploymentId()
+            + "-" + woSimple.rfcCi.getRfcId()
+            + "-" + woSimple.rfcCi.getExecOrder()
+            + "-" + woSimple.rfcCi.getCiId();
+
+      } else if (wo instanceof CmsActionOrderSimple) {
+        CmsActionOrderSimple ao = CmsActionOrderSimple.class.cast(wo);
+        ctxtId = "a-" + ao.getProcedureId() + "-" + ao.getActionId() + "-" + ao.getCiId();
+      }
+      return ctxtId;
     }
 
     private MessageProducer newMessageProducer(String queueName) throws JMSException {
