@@ -309,6 +309,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     && (rfcAction.equalsIgnoreCase(ADD) || rfcAction
                     .equalsIgnoreCase(UPDATE))) {
                 logger.info("classParts: " + classParts.length);
+                copySearchTagsFromResult(wo, result);
                 runComputeRemoteWorkOrder(wo, result, chefConfig); 
 
             } else {
