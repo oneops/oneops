@@ -1,105 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:util="http://www.springframework.org/schema/util"
+  xmlns:mvc="http://www.springframework.org/schema/mvc"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+  <mvc:annotation-driven content-negotiation-manager="contentNegotiationManager">
+    <mvc:path-matching suffix-pattern="false"/>
+  </mvc:annotation-driven>
+
+  <bean id="contentNegotiationManager"
+    class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+    <property name="favorPathExtension" value="false"/>
+  </bean>
+
+  <import resource="classpath:ecv-beans.xml"/>
+  <import resource="classpath:security-config.xml"/>
+  <bean id="defaultHealthCheck" class="com.oneops.cms.ws.ecv.AppHealthCheck"/>
+  <bean id="defaultHealthChecker" class="com.oneops.ecv.health.HealthCheckerImpl">
+    <property name="healthChecksToRun">
+      <util:list id="beanList">
+        <ref bean="defaultHealthCheck"/>
+      </util:list>
+    </property>
+  </bean>
+  <bean id="statusController" class="com.oneops.ecv.ws.StatusController">
+    <property name="healthChecker" ref="defaultHealthChecker"/>
+    <property name="config" ref="ecvConfig"/>
+    <property name="authUtil" ref="authUtil"/>
+  </bean>
+
+  <!-- import mybatis staff  -->
+  <import resource="mybatis-beans.xml"/>
+
+  <!-- Enable annotation scanning. -->
+  <context:component-scan base-package="com.oneops.cms.ws.rest"/>
 
 
-    <import resource="classpath:ecv-beans.xml"/>
-    <import resource="classpath:security-config.xml"/>
-    <bean id="defaultHealthCheck" class="com.oneops.cms.ws.ecv.AppHealthCheck"/>
-    <bean id="defaultHealthChecker" class="com.oneops.ecv.health.HealthCheckerImpl">
-        <property name="healthChecksToRun">
-            <util:list id="beanList">
-                <ref bean="defaultHealthCheck"/>
-            </util:list>
-        </property>
-    </bean>
-    <bean id="statusController" class="com.oneops.ecv.ws.StatusController">
-        <property name="healthChecker" ref="defaultHealthChecker"/>
-        <property name="config" ref="ecvConfig"/>
-        <property name="authUtil" ref="authUtil"/>
-    </bean>
+  <bean id="scopeVerifier" class="com.oneops.cms.ws.rest.util.CmsScopeVerifier"/>
 
-    <!-- import mybatis staff  -->
-    <import resource="mybatis-beans.xml"/>
+  <bean id="mdRestController" class="com.oneops.cms.ws.rest.MdRestController">
+    <property name="mdManager" ref="cmsMdManager"/>
+  </bean>
 
-    <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
-        <property name="useDefaultSuffixPattern" value="false"/>
-    </bean>
+  <bean id="cmRestController" class="com.oneops.cms.ws.rest.CmRestController">
+    <property name="cmManager" ref="cmsCmManager"/>
+    <property name="opsManager" ref="opsManager"/>
+    <property name="scopeVerifier" ref="scopeVerifier"/>
+  </bean>
 
-    <!-- Enable annotation scanning. -->
-    <context:component-scan base-package="com.oneops.cms.ws.rest"/>
+  <bean id="djRestController" class="com.oneops.cms.ws.rest.DjRestController">
+    <property name="djManager" ref="cmsDjManager"/>
+    <property name="scopeVerifier" ref="scopeVerifier"/>
+  </bean>
 
-    <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
-    <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
+  <bean id="cmDjMergeController" class="com.oneops.cms.ws.rest.CmDjMergeController">
+    <property name="cmdjManager" ref="cmsCmDjManager"/>
+    <property name="djManager" ref="cmsDjManager"/>
+    <property name="scopeVerifier" ref="scopeVerifier"/>
+  </bean>
 
-    <bean id="marshallingXMLHttpMessageConverter"
-          class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
-        <property name="marshaller" ref="oxmMarshaller"/>
-        <property name="unmarshaller" ref="oxmMarshaller"/>
-        <property name="supportedMediaTypes" value="application/xml"/>
+  <bean id="dpmtRestController" class="com.oneops.cms.ws.rest.DpmtRestController">
+    <property name="djManager" ref="cmsDjManager"/>
+    <property name="scopeVerifier" ref="scopeVerifier"/>
+  </bean>
 
-    </bean>
+  <bean id="nsRestController" class="com.oneops.cms.ws.rest.NsRestController">
+    <property name="nsManager" ref="cmsNsManager"/>
+  </bean>
 
-
-    <!-- Define the JSON converter which is used to convert the Objects <-> JSON. -->
-    <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
-        <property name="supportedMediaTypes" value="application/json"/>
-    </bean>
-
-    <!-- Required for REST services in order to bind the return value to the ResponseBody. -->
-    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
-        <!-- property name="useDefaultSuffixPattern" value="false" / -->
-        <property name="messageConverters">
-            <util:list id="beanList">
-                <ref bean="jsonMessageConverter"/>
-                <ref bean="marshallingXMLHttpMessageConverter"/>
-            </util:list>
-        </property>
-    </bean>
-
-    <bean id="scopeVerifier" class="com.oneops.cms.ws.rest.util.CmsScopeVerifier"/>
-
-    <bean id="mdRestController" class="com.oneops.cms.ws.rest.MdRestController">
-        <property name="mdManager" ref="cmsMdManager"/>
-    </bean>
-
-    <bean id="cmRestController" class="com.oneops.cms.ws.rest.CmRestController">
-        <property name="cmManager" ref="cmsCmManager"/>
-        <property name="opsManager" ref="opsManager"/>
-        <property name="scopeVerifier" ref="scopeVerifier"/>
-    </bean>
-
-    <bean id="djRestController" class="com.oneops.cms.ws.rest.DjRestController">
-        <property name="djManager" ref="cmsDjManager"/>
-        <property name="scopeVerifier" ref="scopeVerifier"/>
-    </bean>
-
-    <bean id="cmDjMergeController" class="com.oneops.cms.ws.rest.CmDjMergeController">
-        <property name="cmdjManager" ref="cmsCmDjManager"/>
-        <property name="djManager" ref="cmsDjManager"/>
-        <property name="scopeVerifier" ref="scopeVerifier"/>
-    </bean>
-
-    <bean id="dpmtRestController" class="com.oneops.cms.ws.rest.DpmtRestController">
-        <property name="djManager" ref="cmsDjManager"/>
-        <property name="scopeVerifier" ref="scopeVerifier"/>
-    </bean>
-
-    <bean id="nsRestController" class="com.oneops.cms.ws.rest.NsRestController">
-        <property name="nsManager" ref="cmsNsManager"/>
-    </bean>
-
-    <bean id="mdCacheFilter" class="com.oneops.cms.ws.rest.filter.AdapterCacheFilter">
-        <constructor-arg name="ttl" value="${MD_CACHE_VAR_TTL:3}"/>
-        <constructor-arg name="cacheSize" value="${MD_CACHE_VAR_SIZE:10}"/>
-        <constructor-arg name="mdManager" ref="cmsMdManager"/>
-        <constructor-arg name="cmManager" ref="cmsCmManager"/>
-        <constructor-arg name="cacheEnabled" value="${MD_CACHE_ENABLED:true}"/>
-    </bean>
+  <bean id="mdCacheFilter" class="com.oneops.cms.ws.rest.filter.AdapterCacheFilter">
+    <constructor-arg name="ttl" value="${MD_CACHE_VAR_TTL:3}"/>
+    <constructor-arg name="cacheSize" value="${MD_CACHE_VAR_SIZE:10}"/>
+    <constructor-arg name="mdManager" ref="cmsMdManager"/>
+    <constructor-arg name="cmManager" ref="cmsCmManager"/>
+    <constructor-arg name="cacheEnabled" value="${MD_CACHE_ENABLED:true}"/>
+  </bean>
 
 </beans>
