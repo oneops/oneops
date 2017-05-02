@@ -2434,29 +2434,33 @@ $BODY$
 ALTER FUNCTION cms_acquire_lock(character varying, character varying, integer)
   OWNER TO :user;
 
--- Function: cms_set_var(character varying, text, character varying)
+-- Function: cms_set_var(character varying, text, character varying, character varying)
 
 -- DROP FUNCTION cms_set_var(character varying, text, character varying);
 
-CREATE OR REPLACE FUNCTION cms_set_var(p_var_name character varying, p_var_value text, p_updated_by character varying)
+CREATE OR REPLACE FUNCTION cms_set_var(p_var_name character varying, p_var_value text, p_criteria character varying, p_updated_by character varying)
   RETURNS void AS
 $BODY$
 DECLARE
-    l_var_cnt integer;
+    l_var_id integer;
 BEGIN
 
     -- first lets check if we have a var record
-    select into l_var_cnt count(1) from cms_vars where var_name = p_var_name;
+    select into l_var_id var_id
+    from cms_vars
+    where var_name = p_var_name
+     and ((p_criteria is null and criteria is null) or criteria = p_criteria);
 
-    if l_var_cnt = 0 then
-	insert into cms_vars(var_id, var_name, var_value, updated_by, created, updated)
-	values (nextval('cm_pk_seq'), p_var_name, p_var_value, p_updated_by, now(), now());
+    if l_var_id is null then
+	insert into cms_vars(var_id, var_name, var_value, criteria, updated_by, created, updated)
+	values (nextval('cm_pk_seq'), p_var_name, p_var_value, p_criteria, p_updated_by, now(), now());
     else 
     	update cms_vars
     	set var_value = p_var_value,
+            criteria = p_criteria,
     	    updated_by = p_updated_by,
     	    updated = now()
-    	where var_name = p_var_name;     
+    	where var_id = l_var_id;
     	    
     end if;
 
@@ -2465,7 +2469,7 @@ END;
 $BODY$
   LANGUAGE plpgsql VOLATILE
   COST 100;
-ALTER FUNCTION cms_set_var(character varying, text, character varying)
+ALTER FUNCTION cms_set_var(character varying, text, character varying, character varying)
   OWNER TO :user;
 
   

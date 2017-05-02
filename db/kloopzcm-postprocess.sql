@@ -216,3 +216,18 @@ ALTER TABLE kloopzcm.dj_deployment ADD COLUMN flags integer DEFAULT 0 NOT NULL;
 -- Used for provinding hints to recipe or work order execution (eg. propogate to).
 ALTER TABLE kloopzcm.dj_rfc_ci ADD COLUMN hint TEXT;
 
+ALTER TABLE kloopzcm.cms_vars ALTER COLUMN var_name TYPE character varying(200);
+ALTER TABLE kloopzcm.cms_vars ADD COLUMN criteria character varying(200);
+
+DROP INDEX cms_vars_idx;
+
+CREATE UNIQUE INDEX cms_vars_idx1
+ ON kloopzcm.cms_vars
+ ( var_name, criteria )
+ WHERE criteria IS NOT NULL;
+
+CREATE UNIQUE INDEX cms_vars_idx2
+ ON kloopzcm.cms_vars
+ ( var_name )
+ WHERE criteria IS NULL;
+
