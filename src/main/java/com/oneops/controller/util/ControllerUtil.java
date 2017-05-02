@@ -34,6 +34,7 @@ public class ControllerUtil {
         	}
         }
         strippedWo.setAdditionalInfo(wo.getAdditionalInfo());
+        strippedWo.setConfig(wo.getConfig());
         return strippedWo;
     }
 

@@ -45,6 +45,9 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import com.oneops.cms.util.domain.CmsVar;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -452,9 +455,22 @@ public class CmsWoProvider {
         //add matching compliance objects
         workOrder.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(workOrder));
 
+        addVarsForConfig(workOrder);
+
         return workOrder;
     }
 
+    private void addVarsForConfig(CmsWorkOrder workOrder) {
+        String clazz = cmsUtil.getShortClazzName(workOrder.getRfcCi().getCiClassName());
+        List<CmsVar> vars = cmProcessor.getCmVarByLongestMatchingCriteria(clazz + ".%", workOrder.getRfcCi().getNsPath());
+        if (vars != null && !vars.isEmpty()) {
+            Map<String, String> varMap = vars.stream().collect(Collectors.toMap(var -> {
+                    return StringUtils.substringAfter(var.getName(), clazz + ".");
+                }, 
+                CmsVar::getValue));
+            workOrder.setConfig(varMap);
+        }
+    }
 
     private List<CmsRfcCI> getRequiredOfferings(CmsWorkOrder workOrder) {
 
