@@ -24,11 +24,9 @@
 		<hector-core.version>0.8.0-3</hector-core.version>
 		<cmsdal.version>1.0.4</cmsdal.version>
 		<libs.version>1.0.0</libs.version>
-		<com.springsource.javax.annotation.version>1.0.0</com.springsource.javax.annotation.version>
 		<gson.version>2.2.2</gson.version>
 		<xbean-spring.version>3.7</xbean-spring.version>
 		<slf4j-log4j12.version>1.6.1</slf4j-log4j12.version>
-		<com.springsource.javax.jms.version>1.1.0</com.springsource.javax.jms.version>
 		<jstl.version>1.2</jstl.version>
 		<mockrunner.version>0.3.1</mockrunner.version>
 		<commons-collections4.version>4.0</commons-collections4.version>
@@ -133,16 +131,6 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>${slf4j-log4j12.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.annotation</groupId>
-			<artifactId>com.springsource.javax.annotation</artifactId>
-			<version>${com.springsource.javax.annotation.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.jms</groupId>
-			<artifactId>com.springsource.javax.jms</artifactId>
-			<version>${com.springsource.javax.jms.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>javax.servlet</groupId>
