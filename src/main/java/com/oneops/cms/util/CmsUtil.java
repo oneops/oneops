@@ -863,6 +863,7 @@ public class CmsUtil {
                 }
             }
         }
+        wos.setConfig(wo.getConfig());
         return wos;
     }
 
@@ -890,6 +891,7 @@ public class CmsUtil {
         }
 
         wo.setAdditionalInfo(wos.getAdditionalInfo());
+        wo.setConfig(wos.getConfig());
         return wo;
     }
 

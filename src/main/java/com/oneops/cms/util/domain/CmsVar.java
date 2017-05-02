@@ -32,6 +32,7 @@ public class CmsVar implements Serializable {
 	private int id;			
 	private String name;			
 	private String value;			
+	private String criteria;
 	private Date created;
 	private Date updated;
 	
@@ -113,6 +114,14 @@ public class CmsVar implements Serializable {
 	 */
 	public void setUpdated(Date updated) {
 		this.updated = updated;
+	}
+
+	public String getCriteria() {
+		return criteria;
+	}
+
+	public void setCriteria(String criteria) {
+		this.criteria = criteria;
 	}
 
 	

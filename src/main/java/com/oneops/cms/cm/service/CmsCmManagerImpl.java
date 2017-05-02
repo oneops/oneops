@@ -500,9 +500,8 @@ public class CmsCmManagerImpl implements CmsCmManager {
     }
 
     @Override
-    public void updateCmSimpleVar(String varName, String varValue,
-                                  String updatedBy) {
-        cmProcessor.updateCmSimpleVar(varName, varValue, updatedBy);
+    public void updateCmSimpleVar(String varName, String varValue, String criteria, String updatedBy) {
+        cmProcessor.updateCmSimpleVar(varName, varValue, criteria, updatedBy);
     }
 
     @Override

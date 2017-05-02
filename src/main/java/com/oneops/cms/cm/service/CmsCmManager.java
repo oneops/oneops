@@ -84,7 +84,7 @@ public interface CmsCmManager {
 	
 	Map<Long,List<Long>> getEnvState(long envId);
 	
-	void updateCmSimpleVar(String varName,String varValue,String updatedBy);
+	void updateCmSimpleVar(String varName, String varValue, String criteria, String updatedBy);
 	CmsVar getCmSimpleVar(String varName);
 
     void createAltNs(CmsAltNs cmsAltNs, CmsCI ci);

@@ -24,9 +24,17 @@
 		from cms_vars cv
 		where cv.var_name = #{name}
 	 </select>
-	 
-	 <update id="updateCmSimpleVar" parameterType="string" statementType="CALLABLE">
-	    {call cms_set_var(#{name}, #{value}, #{updatedBy})}
+
+	 <select id="getCmVarByLongestMatchingCriteria" parameterType="map" resultType="com.oneops.cms.util.domain.CmsVar">
+	    SELECT DISTINCT ON (var_name) var_name AS name, var_value AS value
+		    FROM cms_vars cv
+		    WHERE cv.var_name LIKE #{name}
+		     AND #{criteria} LIKE (cv.criteria || '%')
+		    ORDER BY cv.var_name, criteria desc;
+	 </select>
+
+	 <update id="updateCmSimpleVar" parameterType="map" statementType="CALLABLE">
+	    {call cms_set_var(#{name}, #{value}, #{criteria}, #{updatedBy})}
 	 </update> 
 	 
 	 <select id="getCmsStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
