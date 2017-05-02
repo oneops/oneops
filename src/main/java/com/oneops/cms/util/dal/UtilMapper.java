@@ -27,8 +27,10 @@ import com.oneops.cms.util.domain.CmsVar;
 public interface UtilMapper {
 	boolean acquireLock(@Param("lockName") String lockName, @Param("processId") String processId, @Param("staleTimeout") int staleTimeout);
 	void releaseLock(@Param("lockName") String lockName, @Param("processId") String processId);
-	void updateCmSimpleVar(@Param("name") String varName,@Param("value") String varValue,@Param("updatedBy") String updatedBy);
+	void updateCmSimpleVar(@Param("name") String varName, @Param("value") String varValue, 
+			@Param("criteria") String criteria, @Param("updatedBy") String updatedBy);
 	CmsVar getCmSimpleVar(@Param("name") String varName);
+	List<CmsVar> getCmVarByLongestMatchingCriteria(@Param("name") String varNameLike, @Param("criteria") String criteria);
 	List<CmsStuckDpmt> getCmsStuckDpmts();
 	List<CmsStuckDpmt> getInProgressStuckDpmts();
 	List<CmsStuckDpmt> getPausedStuckDpmts();

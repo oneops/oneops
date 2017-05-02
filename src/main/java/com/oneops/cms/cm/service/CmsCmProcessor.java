@@ -1992,9 +1992,8 @@ public class CmsCmProcessor {
 	 * @param varValue
 	 * @param updatedBy
 	 */
-	public void updateCmSimpleVar(String varName, String varValue,
-			String updatedBy) {
-		utilMapper.updateCmSimpleVar(varName, varValue, updatedBy);
+	public void updateCmSimpleVar(String varName, String varValue, String criteria, String updatedBy) {
+		utilMapper.updateCmSimpleVar(varName, varValue, criteria, updatedBy);
 	}
 	
 	/**
@@ -2005,6 +2004,9 @@ public class CmsCmProcessor {
 		return utilMapper.getCmSimpleVar(varName);
 	}
 
+	public List<CmsVar> getCmVarByLongestMatchingCriteria(String varNameLike, String criteria) {
+		return utilMapper.getCmVarByLongestMatchingCriteria(varNameLike, criteria);
+	}
 
 	/**
 	 * get ci links (simple call to get relations without extra info)
