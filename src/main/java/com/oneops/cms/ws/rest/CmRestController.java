@@ -875,7 +875,7 @@ public class CmRestController extends AbstractRestController {
 			@RequestParam(value = "value" , required = true) String varValue,
 			@RequestHeader(value="X-Cms-User", required = false)  String user){
 		if (varName != null && varValue != null) {
-			cmManager.updateCmSimpleVar(varName, varValue, user!=null?user:"oneops-system");
+			cmManager.updateCmSimpleVar(varName, varValue, null, user!=null?user:"oneops-system");
 	        return "cms var '"+ varName + "' updated";
 		}
 		return "";
@@ -886,7 +886,7 @@ public class CmRestController extends AbstractRestController {
 	@ResponseBody
 	public String updateCmComplexVar(@RequestHeader(value="X-Cms-User", required = false)  String user,
 			@RequestBody CmsVar cmsVar){
-			cmManager.updateCmSimpleVar(cmsVar.getName(), cmsVar.getValue(), user!=null?user:"oneops-system");
+			cmManager.updateCmSimpleVar(cmsVar.getName(), cmsVar.getValue(),cmsVar.getCriteria(), user!=null?user:"oneops-system");
 			return "cms var '"+ cmsVar.getName() + "' updated";
 		
 	}
