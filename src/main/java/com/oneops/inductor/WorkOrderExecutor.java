@@ -231,22 +231,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             responseCode = "500";
         }
 
-        //TODO: Delete this code
-        if ("replace".equals(wo.getRfcCi().getCiState())
-                && "delete".equals(wo.getRfcCi().getRfcAction())) {
-            // Don't mask and log the wo text for replace::delete WOs
-            logger.info("{ \"resultCode\": " + responseCode + ", "
-                    + " \"JMSCorrelationID:\": \"" + correlationId + " }");
-        } else {
-            // Mask secured fields before logging
-            CmsUtil.maskSecuredFields(wo, CmsUtil.WORK_ORDER_TYPE);
-            String logResponseText = gson.toJson(wo);
-            // InductorLogSink will process this message
-            logger.info("{ \"resultCode\": " + responseCode + ", "
-                    + " \"JMSCorrelationID:\": \"" + correlationId + "\", "
-                    + "\"responseWorkorder\": " + logResponseText + " }");
-        }
-
         Map<String, String> message = new HashMap<String, String>();
         message.put("body", responseText);
         message.put("correlationID", correlationId);
