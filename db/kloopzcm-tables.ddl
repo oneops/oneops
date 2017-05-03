@@ -19,11 +19,12 @@ CREATE TABLE kloopzcm.dj_approval_states (
 
 CREATE TABLE kloopzcm.cms_vars (
                 var_id BIGINT NOT NULL,
-                var_name VARCHAR(64) NOT NULL,
+                var_name VARCHAR(200) NOT NULL,
                 var_value TEXT NOT NULL,
                 updated_by VARCHAR(200),
                 created TIMESTAMP NOT NULL,
                 updated TIMESTAMP NOT NULL,
+                criteria VARCHAR(200),
                 CONSTRAINT cms_vars_pk PRIMARY KEY (var_id)
 );
 
