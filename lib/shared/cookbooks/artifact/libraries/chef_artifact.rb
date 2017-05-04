@@ -218,6 +218,8 @@ class Chef
       #   Chef::Artifact.artifact_download_url_for(node, "com.myartifact:my-artifact:1.0.1:tgz")
       #     => "http://my-nexus:8081/nexus/service/local/artifact/maven/redirect?g=com.myartifact&a=my-artifact&v=1.0.1&e=tgz&r=my_repo"
       #
+      # Note added condition to use `content` URL for non-snapshot artifacts
+      # to support parallel downloads
       # @param  node [Chef::Node]
       # @param  source [String] colon separated Nexus location
       # 
@@ -225,12 +227,63 @@ class Chef
       def artifact_download_url_for(node, source)
         # TODO: Move this method into the nexus-cli
         config = data_bag_config_for(node, source)
-        group_id, artifact_id, version, extension, classifier = source.split(':')
-        query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}&c=#{classifier}"
-        uri_for_url = URI(config['url'])
         nexus_path = config['path']
+        group_id, artifact_id, version, extension, classifier = source.split(':')
+        uri_for_url = URI(config['url'])
         builder = uri_for_url.scheme =~ /https/ ? URI::HTTPS : URI::HTTP
-        builder.build(:host => uri_for_url.host, :port => uri_for_url.port, :path => "#{nexus_path}/service/local/artifact/maven/redirect", :query => query_string).to_s
+        is_content_path_enabled = use_content_path node
+        query_string = "g=#{group_id}&a=#{artifact_id}&v=#{version}&e=#{extension}&r=#{config['repository']}&c=#{classifier}"
+        if is_content_path_enabled
+          if version.downcase.include? 'snapshot'
+            builder.build(:host => uri_for_url.host, :port => uri_for_url.port, :path => "#{nexus_path}/service/local/artifact/maven/redirect", :query => query_string).to_s
+          else
+            ##
+            Chef::Log.info "g-#{group_id} a-#{artifact_id} v-#{version} e-#{extension} c-#{classifier} repo  #{config['repository']} url #{config['url']} path #{config['path']}"
+            gav_path=get_gav_path(group_id, artifact_id, version)
+            f_name = get_download_fname(artifact_id, version, classifier, extension)
+            if nexus_path ==''
+              content_url="#{config['repository']}/#{gav_path}/#{f_name}"
+              builder.build(:host => uri_for_url.host, :port => uri_for_url.port, :path => "/#{content_url}").to_s
+            else
+              # remove leading trailing /
+              path = nexus_path.gsub(/^\//, '')
+              path = "#{path.gsub(/\/$/, '')}/content/repositories/#{config['repository']}"
+              content_path = "#{path}/#{gav_path}"
+              content_url = "#{content_path}/#{f_name}"
+              Chef::Log.info "download url #{content_url}"
+              builder.build(:host => uri_for_url.host, :port => uri_for_url.port, :path => "/#{content_url}").to_s
+            end
+          end
+        else
+          builder.build(:host => uri_for_url.host, :port => uri_for_url.port, :path => "#{nexus_path}/service/local/artifact/maven/redirect", :query => query_string).to_s
+        end
+      end
+
+      def use_content_path(node)
+        if node['workorder'].has_key?('config') && !node['workorder']['config'].empty?
+          config = node['workorder']['config']
+          if config.has_key?('use_content_path') && !config['use_content_path'].empty? && config['use_content_path'] == 'true'
+            return true
+          else
+            return false
+          end
+        end
+        return false
+      end
+
+
+      def get_gav_path(group_id, artifact_id, version)
+        gav_path="#{group_id.gsub('.', '/')}/#{artifact_id}/#{version}"
+      end
+
+      def get_download_fname (artifact_id, version, classifier, extension)
+        f_name ="#{artifact_id}-#{version}"
+        if classifier.nil?
+          f_name = "#{f_name}.#{extension}"
+        else
+          f_name = "#{f_name}-#{classifier}.#{extension}"
+        end
+
       end
 
       # Makes a call to Nexus and parses the returned XML to return
