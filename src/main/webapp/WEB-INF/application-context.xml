@@ -9,7 +9,6 @@
     <import resource="mybatis-beans.xml"/>
 
 	<bean id="expEval" class="com.oneops.transistor.util.ExpEvaluator"/>
-	
 	<!--bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
 
 	<bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil"/-->

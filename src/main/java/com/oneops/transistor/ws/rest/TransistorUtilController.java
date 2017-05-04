@@ -20,6 +20,8 @@ package com.oneops.transistor.ws.rest;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.oneops.mybatis.Stats;
+import com.oneops.mybatis.StatsPlugin;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -156,7 +158,22 @@ public class TransistorUtilController extends AbstractRestController {
 
 		return result;
 	}
-	
+
+
+	@RequestMapping(value="/mybatis/stats", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Stats> getStats() {
+		return StatsPlugin.getStatsMap();
+	}
+
+	@RequestMapping(value="/mybatis/stats/clear", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Stats> clearStats() {
+		StatsPlugin.getStatsMap().clear();
+		return getStats();
+	}
+
+
 	private CmsRfcCISimple getTestPlat() {
 		
 		CmsRfcCISimple platRfcSimple = new CmsRfcCISimple();
