@@ -27,8 +27,9 @@ class Chef
       end
     end
 
-    class PackSync < Chef::Knife
+    VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
+    class PackSync < Chef::Knife
       banner "knife pack sync PACK (options)"
 
       option :all,
@@ -65,7 +66,7 @@ class Chef
              :long => "--semver",
              :description => "Creates new patch version for each change"
 
-             
+
       option :msg,
              :short => '-m MSG',
              :long => '--msg MSG',
@@ -112,6 +113,7 @@ class Chef
         config[:pack_path] ||= Chef::Config[:pack_path]
         config[:register] ||= Chef::Config[:register]
         config[:version] ||= Chef::Config[:version]
+        config[:semver] ||= ENV['SEMVER'].present?
 
         comments = "#{ENV['USER']}:#{$0}"
         comments += " #{config[:msg]}" if config[:msg]
@@ -123,27 +125,24 @@ class Chef
             pack_file_pattern = "#{dir}/*.rb"
             files = Dir.glob(pack_file_pattern)
             files.each do |file|
-              if !upload_template_from_file(file,comments)
+              unless upload_template_from_file(file, comments)
                 ui.error("exiting")
                 exit 1
               end
             end
           end
-
-        else
-          if @name_args.empty?
-            ui.error "You must specify the pack name or use the --all option."
-            exit 1
-          end
+        elsif @name_args.present?
           @name_args.each do |pack|
             file = [pack,'rb'].join('.')
-            if !upload_template_from_file(file,comments)
+            unless upload_template_from_file(file, comments)
               ui.error("exiting")
               exit 1
             end
           end
+        else
+          ui.error "You must specify the pack name or use the --all option."
+          exit 1
         end
-
       end
 
 
@@ -248,17 +247,17 @@ class Chef
         return group_id
       end
 
-      def upload_template_from_file(file,comments)
-        if config[:semver]
-          return upload_template_from_file_ver_update(file,comments)
-        else
-          return upload_template_from_file_no_verupdate(file,comments)
-        end     
-      end
-      
-      def upload_template_from_file_ver_update(file,comments)
+      def upload_template_from_file(file, comments)
         pack = packs_loader.load_from(Chef::Config[:pack_path], file)
         pack.name.downcase!
+        if config[:semver] || (pack.version.present? && pack.version.include?('.'))
+          return upload_template_from_file_ver_update(pack,comments)
+        else
+          return upload_template_from_file_no_verupdate(pack,comments)
+        end
+      end
+
+      def upload_template_from_file_ver_update(pack, comments)
         source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
         puts "source: #{source}"
 
@@ -267,14 +266,14 @@ class Chef
         end
 
         signature = Digest::MD5.hexdigest(pack.signature)
-        
+
         # default to the global knife version if not specified
-        circuit_version_parts = config[:version].split(".") 
+        circuit_version_parts = config[:version].split('.')
         major_version = circuit_version_parts.first
         minor_version = (circuit_version_parts.size > 1) ?  circuit_version_parts[1]: '0'
-        
-        if !pack.version.empty?
-          pack_version_parts = pack.version.split(".") 
+
+        if pack.version.present?
+          pack_version_parts = pack.version.split('.')
           major_version = pack_version_parts.first
           minor_version = (pack_version_parts.size > 1) ?  pack_version_parts[1]: '0'
         end
@@ -285,12 +284,12 @@ class Chef
           return true
         end
 
-        # reload option is no longer available 
+        # reload option is no longer available
         if config[:reload]
           ui.error( "Reaload option is no longer available, all pack versions are immutable.If you need to force new patch version, change the pack description and do a pack sync.")
           return true
-        end  
-        
+        end
+
         # If pack signature matches but reload option is not set - bail
         if check_pack_version(pack,signature)
           return true
@@ -341,10 +340,8 @@ class Chef
         return true
       end
 
-      
-      def upload_template_from_file_no_verupdate(file,comments)
-        pack = packs_loader.load_from("packs", file)
-        pack.name.downcase!
+
+      def upload_template_from_file_no_verupdate(pack, comments)
         source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
         puts "source: #{source}"
 
@@ -353,7 +350,7 @@ class Chef
         end
 
         signature = Digest::MD5.hexdigest(pack.signature)
-        
+
         # default to the global knife version if not specified
         version = config[:version].split(".").first
         if !pack.version.empty?
@@ -413,8 +410,8 @@ class Chef
           return false
         end
         return true
-      end      
-      
+      end
+
       private
 
       def parse_pack_relations(relations)
@@ -496,7 +493,7 @@ class Chef
       end
     end
 
-    def fix_ci_from_cms(pack, env, relations,environments)   
+    def fix_ci_from_cms(pack, env, relations,environments)
       scope = (env == '_default') ? '' : "/#{env}"
       cms_resources = Cms::Ci.all( :params => { :nsPath => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}/#{pack.version}#{scope}"})
 
@@ -526,23 +523,22 @@ class Chef
         return check_pack_version_ver_update(pack, signature)
       else
         return check_pack_version_no_ver_update(pack,signature)
-      end     
-    end  
-      
-    def check_pack_version_ver_update(pack, signature)
-       cms_pack_versions = Cms::Ci.all(:params => {:nsPath => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}", :ciClassName => 'mgmt.Version'})
+      end
+    end
 
-      # patch_versions is an array of of patch versions for the given major.minor of the pack
-      # we need to get the latest patch version and get signature (commit attribute) to compare with the loading pack signature 
-           
-       latest_patch_and_commit = cms_pack_versions.inject([-1, nil]) do |r, ci_v|
+    def check_pack_version_ver_update(pack, signature)
+      # Need to get the latest patch version and get signature (commit attribute) to compare with the loading pack signature
+      latest_patch_and_commit = Cms::Ci.all(:params => {:nsPath       => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}",
+                                                        :ciClassName  => 'mgmt.Version',
+                                                        :includeAltNs => VISIBILITY_ALT_NS_TAG}).inject([-1, nil]) do |r, ci_v|
          major, minor, patch = ci_v.ciName.split('.').map(&:to_i)
          minor ||= 0
          patch ||= 0
-         pack.version == "#{major}.#{minor}" && patch > r[0] ? [patch, ci_v.ciAttributes.attributes['commit']] : r
+         pack.version == "#{major}.#{minor}" && patch > r[0] ? [patch, ci_v] : r
        end
-  
-       if latest_patch_and_commit[1] == signature
+
+       latest_patch = latest_patch_and_commit[1]
+       if latest_patch && latest_patch.ciAttributes.attributes['commit'] == signature
          ui.info("Pack #{pack.name} version #{pack.version} matches signature #{signature}, will skip.")
          return true
        else
@@ -552,11 +548,15 @@ class Chef
            ui.warn("Pack #{pack.name} version #{pack.version} signature is different from file signature #{signature}, will bump patch.")
          end
          pack.version("#{pack.version}.#{latest_patch_and_commit[0] + 1}")
+         if latest_patch
+           pack.enabled(latest_patch.ciAttributes.attributes['enabled'] != 'false')
+           pack.visibility(latest_patch.altNs.attributes[VISIBILITY_ALT_NS_TAG])
+         end
          return false
        end
-    end   
-    
-    
+    end
+
+
     def check_pack_version_no_ver_update(pack,signature)
       source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       pack_version = Cms::Ci.first( :params => { :nsPath => "#{source}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version })
@@ -573,16 +573,16 @@ class Chef
         end
       end
     end
-    
+
     def setup_pack_version(pack,comments,signature)
       source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
       pack_ci = Cms::Ci.first( :params => { :nsPath => "#{source}", :ciClassName => 'mgmt.Pack', :ciName => pack.name })
       if pack_ci.nil?
         ui.info( "Creating pack #{pack.name}")
-        unless pack_ci = build('Cms::Ci', :nsPath => "#{source}", :ciClassName => 'mgmt.Pack', :ciName => pack.name )
-          ui.error("Could not create pack #{pack.name}")
-          return false
-        end
+        pack_ci = build('Cms::Ci',
+                        :nsPath => "#{source}",
+                        :ciClassName => 'mgmt.Pack',
+                        :ciName => pack.name )
       else
         ui.info("Updating pack #{pack.name}")
       end
@@ -595,13 +595,17 @@ class Chef
 
       Chef::Log.debug(pack_ci.to_json)
       if save(pack_ci)
-        pack_version = Cms::Ci.first( :params => { :nsPath => "#{source}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version })
+        pack_version = Cms::Ci.first(:params => {:nsPath => "#{source}/#{pack.name}",
+                                                 :ciClassName => 'mgmt.Version',
+                                                 :ciName => pack.version})
         if pack_version.nil?
           ui.info( "Creating pack #{pack.name} version #{pack.version}")
-          unless pack_version = build('Cms::Ci', :nsPath => "#{source}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version )
-            ui.error("Could not create pack #{pack.name} version #{pack.version}")
-            return false
-          end
+          pack_version = build('Cms::Ci',
+                               :nsPath       => "#{source}/#{pack.name}",
+                               :ciClassName  => 'mgmt.Version',
+                               :ciName       => pack.version,
+                               :ciAttributes => {:enabled => pack.enabled},
+                               :altNs        => {VISIBILITY_ALT_NS_TAG => pack.visibility})
         else
           ui.info("Updating pack #{pack.name} version #{pack.version}")
         end
@@ -609,17 +613,6 @@ class Chef
         pack_version.comments = comments
         pack_version.ciAttributes.description = pack.description
         pack_version.ciAttributes.commit = signature
-        
-        # "Seed" the pack admin digest and "enabled" flag for new pack only (first load)
-        # or the first time the pack admin password is set.
-        if pack_version.id.to_i == 0
-          # New pack (or version).
-          pack_version.ciAttributes.enabled = pack.enabled
-          pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest
-        elsif pack_version.ciAttributes.attributes['admin_password_digest'].blank?
-          # Existing pack (or version) but admin password has not been set yet.
-          pack_version.ciAttributes.admin_password_digest = pack.admin_password_digest
-        end
 
         Chef::Log.debug(pack_version.to_json)
         if save(pack_version)
@@ -641,10 +634,10 @@ class Chef
       mode = Cms::Ci.first( :params => { :nsPath => "#{source}/#{pack.name}/#{pack.version}", :ciClassName => 'mgmt.Mode', :ciName => env })
       if mode.nil?
         ui.info( "Creating pack #{pack.name} version #{pack.version} environment mode #{env}")
-        unless mode = build('Cms::Ci', :nsPath => "#{source}/#{pack.name}/#{pack.version}", :ciClassName => 'mgmt.Mode', :ciName => env )
-          ui.error("Could not create pack #{pack.name} version #{pack.version} environment mode #{env}")
-          return false
-        end
+        mode = build('Cms::Ci',
+                     :nsPath      => "#{source}/#{pack.name}/#{pack.version}",
+                     :ciClassName => 'mgmt.Mode',
+                     :ciName      => env)
       else
         ui.info("Updating pack #{pack.name} version #{pack.version} environment mode #{env}")
       end
@@ -752,14 +745,16 @@ class Chef
 
         if relation.nil?
           ui.info( "Creating resource #{resource_name} for #{template_name}")
-          relation = build('Cms::Relation',   :relationName => 'mgmt.Requires',
+          relation = build('Cms::Relation',
+                           :relationName => 'mgmt.Requires',
                            :nsPath => nspath,
                            :fromCiId => platform.id
           )
           ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => resource_name })
           if ci.nil?
             relation.toCiId = 0
-            relation.toCi = build('Cms::Ci',  :nsPath => nspath,
+            relation.toCi = build('Cms::Ci',
+                                  :nsPath => nspath,
                                   :ciClassName => ciClassName,
                                   :ciName => resource_name
             )
@@ -783,7 +778,7 @@ class Chef
           ui.debug("Updating resource #{resource_name} for template #{template_name}")
         end
 
-        Log.debug("PRE-ATTRIBUTE: " + relation.inspect)
+        Log.debug('PRE-ATTRIBUTE: ' + relation.inspect)
 
         relation.comments = comments
         relation.toCi.comments = comments
@@ -834,7 +829,8 @@ class Chef
           relation_new = relation_list.find {|d| d.fromCiId == children[relation[:from_resource]] && d.toCiId == children[relation[:to_resource]]}
           if relation_new.nil?
             ui.info( "Creating relation #{relation[:relation_name]} between #{relation[:from_resource]} and #{relation[:to_resource]}")
-            relation_new = build('Cms::Relation', :relationName => relationName,
+            relation_new = build('Cms::Relation',
+                                 :relationName => relationName,
                                  :nsPath => nspath,
                                  :fromCiId => children[relation[:from_resource]],
                                  :toCiId => children[relation[:to_resource]]
@@ -869,7 +865,8 @@ class Chef
             depends_on = depends_on_list.find {|d| d.fromCiId == children[resource_name]  && d.toCiId == children[do_class]}
             if depends_on.nil?
               ui.info( "Creating depends on between #{resource_name} and #{do_class}")
-              depends_on = build('Cms::Relation', :relationName => relationName,
+              depends_on = build('Cms::Relation',
+                                 :relationName => relationName,
                                  :nsPath => nspath,
                                  :fromCiId => children[resource_name],
                                  :toCiId => children[do_class]
@@ -907,7 +904,8 @@ class Chef
             managed_via = managed_via_list.select {|d| d.toCi.ciId == children[mv_class]}.first unless managed_via_list.nil?
             if managed_via.nil?
               ui.info( "Creating managed via between #{resource_name} and #{mv_class}")
-              managed_via = build('Cms::Relation', :relationName => relationName,
+              managed_via = build('Cms::Relation',
+                                  :relationName => relationName,
                                   :nsPath => nspath,
                                   :fromCiId => children[resource_name],
                                   :toCiId => children[mv_class]
@@ -950,7 +948,8 @@ class Chef
           if iaas.nil?
             ui.error("Could not find target Iaas pack for serviced by between platform and #{iaas_pack[:pack]} version #{iaas_pack[:version]} in #{iaas_path}, skipping it")
           else
-            serviced_by = build('Cms::Relation', :relationName => relationName,
+            serviced_by = build('Cms::Relation',
+                                :relationName => relationName,
                                 :nsPath => nspath,
                                 :fromCiId => platform.ciId,
                                 :toCiId => iaas.ciId
@@ -981,7 +980,8 @@ class Chef
           entrypoint = entrypoint_list.select {|d| d.toCi.ciId == children[resource_name]}.first unless entrypoint_list.nil?
           if entrypoint.nil?
             ui.info( "Creating entrypoint between platform and #{resource_name}")
-            entrypoint = build('Cms::Relation', :relationName => relationName,
+            entrypoint = build('Cms::Relation',
+                               :relationName => relationName,
                                :nsPath => nspath,
                                :fromCiId => platform.ciId,
                                :toCiId => children[resource_name]
@@ -1025,7 +1025,8 @@ class Chef
             if iaas.nil?
               ui.error("Could not find target Iaas pack for serviced by between #{resource_name} and #{iaas_pack[:pack]} version #{iaas_pack[:version]} in #{iaas_path}, skipping it")
             else
-              serviced_by = build('Cms::Relation', :relationName => relationName,
+              serviced_by = build('Cms::Relation',
+                                  :relationName => relationName,
                                   :nsPath => nspath,
                                   :fromCiId => children[resource_name],
                                   :toCiId => iaas.ciId
@@ -1062,14 +1063,16 @@ class Chef
 
           if relation.nil?
             ui.info( "Creating monitor #{monitor_name} for #{resource_name}")
-            relation = build('Cms::Relation',   :relationName => relationName,
+            relation = build('Cms::Relation',
+                             :relationName => relationName,
                              :nsPath => nspath,
                              :fromCiId => children[resource_name]
             )
             ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => monitor_name })
             if ci.nil?
               relation.toCiId = 0
-              relation.toCi = build('Cms::Ci',  :nsPath => nspath,
+              relation.toCi = build('Cms::Ci',
+                                    :nsPath => nspath,
                                     :ciClassName => ciClassName,
                                     :ciName => monitor_name
               )
@@ -1127,14 +1130,16 @@ class Chef
           }).select { |r| r.toCi.ciName == payload_name }.first
           if relation.nil?
             ui.info( "Creating payload #{payload_name} for #{resource_name}")
-            relation = build('Cms::Relation',   :relationName => relationName,
+            relation = build('Cms::Relation',
+                             :relationName => relationName,
                              :nsPath => nspath,
                              :fromCiId => children[resource_name]
             )
-            ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => payload_name })
+            ci = Cms::Ci.first(:params => {:nsPath => nspath, :ciClassName => ciClassName, :ciName => payload_name})
             if ci.nil?
               relation.toCiId = 0
-              relation.toCi = build('Cms::Ci',  :nsPath => nspath,
+              relation.toCi = build('Cms::Ci',
+                                    :nsPath => nspath,
                                     :ciClassName => ciClassName,
                                     :ciName => payload_name
               )
@@ -1188,14 +1193,16 @@ class Chef
         }).select { |r| r.toCi.ciName == procedure_name }.first
         if relation.nil?
           ui.info( "Creating procedure #{procedure_name} for environment #{env}")
-          relation = build('Cms::Relation',   :relationName => relationName,
+          relation = build('Cms::Relation',
+                           :relationName => relationName,
                            :nsPath => nspath,
                            :fromCiId => platform.id
           )
           ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => procedure_name })
           if ci.nil?
             relation.toCiId = 0
-            relation.toCi = build('Cms::Ci',  :nsPath => nspath,
+            relation.toCi = build('Cms::Ci',
+                                  :nsPath => nspath,
                                   :ciClassName => ciClassName,
                                   :ciName => procedure_name
             )
@@ -1251,14 +1258,16 @@ class Chef
         }).select { |r| r.fromCi.ciName == variable_name }.first
         if relation.nil?
           ui.info( "Creating variable #{variable_name} for environment #{env}")
-          relation = build('Cms::Relation',   :relationName => relationName,
+          relation = build('Cms::Relation',
+                           :relationName => relationName,
                            :nsPath => nspath,
                            :toCiId => platform.id
           )
           ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => variable_name })
           if ci.nil?
             relation.fromCiId = 0
-            relation.fromCi = build('Cms::Ci', :nsPath => nspath,
+            relation.fromCi = build('Cms::Ci',
+                                    :nsPath => nspath,
                                     :ciClassName => ciClassName,
                                     :ciName => variable_name
             )
@@ -1305,7 +1314,8 @@ class Chef
         ci = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => ciClassName, :ciName => policy_name })
 
         if ci.nil?
-          ci = build('Cms::Ci', :nsPath => nspath,
+          ci = build('Cms::Ci',
+                     :nsPath => nspath,
                      :ciClassName => ciClassName,
                      :ciName => policy_name)
 

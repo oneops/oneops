@@ -60,7 +60,8 @@ class Chef
       @category = ''
       @version = ''
       @admin_password_digest = ''
-      @group_id = ''      
+      @visibility = []
+      @group_id = ''
       @ignore = false
       @enabled = true
       @type = ''
@@ -138,14 +139,22 @@ class Chef
       )
     end
 
+    def visibility(arg = nil)
+      set_or_return(
+        :visibility,
+        arg,
+        :kind_of => Array, :default => []
+      )
+    end
+
     def group_id(arg=nil)
       set_or_return(
         :group_id,
         arg,
         :kind_of => String
       )
-    end    
-    
+    end
+
     def version(arg=nil)
       set_or_return(
         :version,
@@ -244,8 +253,8 @@ class Chef
         :kind_of => Hash
       )
 
-    end   
- 
+    end
+
     def environment_resources(environment)
       @resources.reject do |n,r|
         if envs = r[:only]
@@ -445,7 +454,7 @@ class Chef
             :only => { :kind_of => Array },
             :description => { :kind_of => String },
             :owner => { :kind_of => String },
-            :arguments => { :kind_of => Hash },	    
+            :arguments => { :kind_of => Hash },
             :definition => { :kind_of => String }
           }
         )
@@ -799,8 +808,8 @@ class Chef
       return o.sort_by{|e| e.first.to_s}.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Hash)
       return o.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Array)
       "#{seed}|#{o.to_s}"
-    end    
-    
+    end
+
     def signature_
       Digest::MD5.hexdigest( sigflat self.to_hash )
     end
