@@ -26,6 +26,10 @@ public class Stats{
         return maxTime;
     }
 
+    public Double getAverage(){
+        return maxTime==0?0:(double)totalTime/noOfCalls;
+
+    }
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("{");

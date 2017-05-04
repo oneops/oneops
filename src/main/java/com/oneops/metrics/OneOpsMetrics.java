@@ -18,21 +18,28 @@
 package com.oneops.metrics;
 
 import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.jvm.*;
+import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.oneops.metrics.es.ElasticsearchReporter;
-
+import com.oneops.mybatis.Stats;
+import com.oneops.mybatis.StatsPlugin;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import javax.annotation.PostConstruct;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-
-import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * OneOps metrics service is responsible for bootstrapping OneOps metrics
@@ -74,11 +81,36 @@ public class OneOpsMetrics {
         logger.info("Initializing OneOps metrics system...");
         addMetricsListener();
         addJvmMetrics();
+        addIbatisMetrics();
         addMetricsReporters();
         Set<String> metrics = ooMetricsRegistry.getNames();
         logger.info("Start collecting " + metrics.size() + " metrics, " + metrics + "  for OneOps system.");
         Set<String> healthChecks = ooHealthRegistry.getNames();
         logger.info("OneOps health checks (" + healthChecks.size() + "): " + healthChecks);
+    }
+
+    private void addIbatisMetrics() {
+      ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+      int initialDelay = 10;
+      //scheduled with ibatis
+      //getMap and register all meters with id and avg time .
+      Runnable task = () -> {
+        Map<String, Stats> metrics = StatsPlugin.getStatsMap();
+        try {
+          metrics.entrySet().parallelStream().map((e) -> {
+            ooMetricsRegistry.register(e.getKey(), (Gauge<Long>) e.getValue()::getNoOfCalls);
+            ooMetricsRegistry
+                .register(e.getKey() + "_avg", (Gauge<Double>) e.getValue()::getAverage);
+            return 1;
+          }).count();
+        } catch (Exception e) {
+          logger.warn("There was an error in reporting ");
+        }
+        if (logger.isDebugEnabled()) {
+          logger.debug("Finished reporting metrics for ibatis" + metrics.size());
+        }
+      };
+      executor.scheduleAtFixedRate(task, initialDelay, 30, TimeUnit.SECONDS);
     }
 
     /**
@@ -115,7 +147,7 @@ public class OneOpsMetrics {
         if (getB("reporter.es", false)) {
             try {
                 logger.info("OneOps metrics elastic search reporting is enabled!");
-                esReporter = ElasticsearchReporter.forRegistry(ooMetricsRegistry).build();
+                esReporter = ElasticsearchReporter.forRegistry(ooMetricsRegistry).build(getSearchHost());
                 esReporter.start(getI("reporter.timeout", 60), TimeUnit.SECONDS);
             } catch (IOException e) {
                 logger.error("Can't start elastic search reporting.", e);
@@ -180,5 +212,11 @@ public class OneOpsMetrics {
 
     public ConsoleReporter getConsoleReporter() {
         return consoleReporter;
+    }
+
+    public String[] getSearchHost() {
+      String host = env.getProperty("es.host","localhost:9200");
+      logger.info("Using search  "+host);
+       return new String[]{host};
     }
 }

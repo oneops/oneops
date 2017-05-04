@@ -317,6 +317,7 @@ public class MetricsElasticsearchModule extends Module {
         json.writeStringField("env", defaultString(ENV.get("ONEOPS_ENVIRONMENT")));
         json.writeStringField("cloud", defaultString(ENV.get("ONEOPS_CLOUD")));
         json.writeStringField("dc", defaultString(ENV.get("DATACENTER")));
+        json.writeStringField("status", defaultString(ENV.get("ONEOPS_CLOUD_ADMINSTATUS")));
         if (OO_CLOUD_DETAILS) {
             json.writeStringField("hostname", HOST.getHostName());
             json.writeStringField("tenant", defaultString(ENV.get("ONEOPS_CLOUD_TENANT")));
