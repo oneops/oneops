@@ -16,7 +16,7 @@ class Cms::Ci < Cms::Base
   before_validation :validate_ci
 
   def self.valid_ci_name_regexp(ci_class_name = nil)
-    "(?=[a-zA-Z])[a-zA-Z0-9\\-#{'_' unless strict_ci_name(ci_class_name)}]{1,32}"
+    "(?=[a-zA-Z])[a-zA-Z0-9\\-#{'_' unless strict_ci_name(ci_class_name)}]#{ci_class_name.end_with?('.Monitor') ? '{1,99}' : '{1,32}'}"
   end
 
   def self.valid_ci_name_message(ci_class_name = nil)
@@ -303,8 +303,8 @@ class Cms::Ci < Cms::Base
   end
 
   def check_pattern(pattern, value)
-    pattern = "^" + pattern unless pattern.start_with?("^")
-    pattern = pattern + "$" unless pattern.ends_with?("$")
+    pattern = "^#{pattern}" unless pattern.start_with?('^')
+    pattern = "#{pattern}$" unless pattern.ends_with?('$')
     pattern.is_a?(Array) ? (pattern.any? {|e| value == (e.is_a?(Array) ? e.last : e)}) : value =~ /#{pattern}/
   end
 

@@ -13,8 +13,12 @@ class Catalog::PlatformsController < Base::PlatformsController
   def show
     respond_to do |format|
       format.html do
-        build_component_groups
-        @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if @design && Settings.check_policy_compliance
+        @components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                      :direction         => 'from',
+                                                      :relationShortName => 'Requires',
+                                                      :includeToCi       => true,
+                                                      :attrProps         => 'owner'}).map(&:toCi)
+        @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
       end
 
       format.json do

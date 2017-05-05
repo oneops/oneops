@@ -24,11 +24,11 @@
                :page_options  => page_options,
                :page_sublabel => "created by #{@platform.createdBy}" %>
 
-<%= page_info "Managed by platform pack #{highlight(@platform.ciAttributes.pack)} #{highlight(@platform.ciAttributes.version)} provided by source #{highlight(@platform.ciAttributes.source)}" %>
+<%= page_info "Managed by pack #{highlight(@platform.ciAttributes.pack)} ver.#{highlight(@platform.ciAttributes.version)} provided by #{highlight(@platform.ciAttributes.source)}" %>
 
 <%= items = [{:label => 'summary', :template => 'summary', :selected => true},
              {:label => 'configuration', :template => 'configuration'},
              {:label => 'variables', :url => assembly_design_platform_variables_path(@assembly, @platform)},
              {:label => 'diff', :url => diff_assembly_design_platform_path(@assembly, @platform, :committed => params[:committed], :changes_only => params[:changes_only])}]
-    items << {:label => 'release', :template => 'release'} if @rfcs && @rfcs.values.map(&:size).sum > 0
+    items << {:label => 'release', :template => 'release'} if @rfcs && @rfcs.values.map(&:size).sum > 0 || @platform.rfcAction.present?
     render 'base/shared/page_nav_pages', :items => items %>

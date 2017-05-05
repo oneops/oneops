@@ -28,13 +28,12 @@ class Design::PlatformsController < Base::PlatformsController
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
 
         @release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly))
-        @rfcs = @release.releaseState == 'open' ? Transistor.design_platform_rfcs(@platform.ciId) : {}
+        @rfcs = @release.releaseState == 'open' ? Transistor.design_platform_rfcs(@platform.ciId, :attrProps => 'owner') : {}
 
 
         unless @platform.rfcAction == 'add'
-          @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
-                                                       :ciClassName => 'mgmt.Version',
-                                                       :ciName      => @platform.ciAttributes.version})
+          @pack_versions = Cms::Ci.all(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
+                                                   :ciClassName => 'mgmt.Version'})
           @platform_detail = Cms::CiDetail.find(@platform.ciId)
         end
 
@@ -200,7 +199,6 @@ class Design::PlatformsController < Base::PlatformsController
       # The last condition below is to ensure that we include current component as diff when it is not required by
       # the pack (lower bound of cardinality constraint is zero) even it did not override any defaults when added by user.
       if !changes_only || component_diff.present? || r.relationAttributes.constraint.split('..').first.to_i == 0
-        Rails.logger.info "+++++ #{component.to_yaml}"
         component.diffCi = pack_component
         component.diffAttributes = component_diff
         m << component
@@ -274,9 +272,27 @@ class Design::PlatformsController < Base::PlatformsController
   def pack_refresh
     if Cms::Rfc.count(design_platform_ns_path(@assembly, @platform)).values.sum > 0
       ok = false
-      message = 'Pull Pack is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull '
+      message = 'Pull Pack is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull.'
     else
       ok, message = Transistor.pack_refresh(@platform.ciId)
+    end
+
+    respond_to do |format|
+      format.html do
+        flash[:error] = message unless ok
+        redirect_to :action => :show
+      end
+
+      format.json {render_json_ci_response(ok, @platform, ok ? nil : [message])}
+    end
+  end
+
+  def pack_update
+    if Cms::Rfc.count(design_platform_ns_path(@assembly, @platform)).values.sum > 0
+      ok = false
+      message = 'Pack Update is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack update.'
+    else
+      ok, message = Transistor.pack_update(@platform.ciId, params[:version])
     end
 
     respond_to do |format|

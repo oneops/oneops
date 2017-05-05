@@ -1020,7 +1020,7 @@ module ApplicationHelper
         availability = platform.nsPath.split('/').last
         bc_label     = icon(availability == 'redundant' ? 'cubes' : 'cube', "#{availability} availability")
       end
-      "#{platform.ciName} #{content_tag(:sub, "ver. #{platform.ciAttributes.major_version}", :class => 'label label-success')} #{content_tag(:sub, bc_label)}"
+      "#{platform.ciName} #{content_tag(:sub, "ver. #{platform.ciAttributes.version}", :class => 'label label-success')} #{content_tag(:sub, bc_label)}"
     else
       active = platform.ciAttributes.attributes.has_key?(:is_active) && platform.ciAttributes.is_active == 'false' ? false : true
       "#{platform.ciName} #{content_tag(:sub, "ver. #{platform.ciAttributes.major_version}", :class => "label #{'label-success' if active}")}"
@@ -1295,5 +1295,9 @@ module ApplicationHelper
             catalog_pack_platform_path(source, pack_name, version, availability, pack_name),
             :class => 'doc-link',
             :title => 'go to pack page')
+  end
+
+  def expandable_content(options = {}, &block)
+    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, capture(&block), :class => 'hide'))
   end
 end

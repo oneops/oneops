@@ -32,4 +32,8 @@ class Cms::RfcCi < Cms::Ci
       super
     end
   end
+
+  def attrOwner
+    attributes[:ciAttrProps] && ciAttrProps.attributes['owner']
+  end
 end

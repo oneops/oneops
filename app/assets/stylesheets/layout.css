@@ -2593,6 +2593,11 @@ ul.status .alert {
 	margin-left: 18px;
 }
 
+ul.status dl dd > .alert {
+	margin-left: 0;
+  padding: 5px 10px;
+}
+
 .section.single ul.status div.description {
 	width:	270px;
 	margin:	10px 0px 10px 20px;
@@ -2626,7 +2631,7 @@ ul.status div.description ul:not(.dropdown-menu) li > i {
 	padding-right: 5px;
 }
 
-ul.status div.description ul:not(.dropdown-menu) li ul {
+ul.status div.description ul:not(.dropdown-menu) li ul:not(.dropdown-menu) {
   margin-left: 15px;
 }
 
@@ -2637,7 +2642,7 @@ ul.status div.description ul.status-actions, div.release ul.status-actions {
   list-style-image: none;
 }
 
-ul.status div.description ul.status-actions li, div.release ul.status-actions li {
+ul.status div.description ul.status-actions > li, div.release ul.status-actions > li {
 	float: left;
 	position: relative;
   display: inline;

@@ -1,20 +1,23 @@
 <% rfcs = @rfcs ? @rfcs.values.flatten : []
-   change_count = rfcs.size %>
+   change_count = rfcs.size
+   change_count += 1 if @platform.rfcAction.present? %>
 <% if change_count > 0 %>
   <div class="marker"><%= status_marker('release', "#{change_count} #{'change'.pluralize(change_count)}", action_to_label(@platform.rfcAction.presence || 'update')) %></div>
   <div class="description">
     <ul class="status-items">
       <li>
-        <%= icon('star', ' ', 'fa-fw') %>There are <strong><%= "#{change_count} #{'change'.pluralize(change_count)}" %></strong>
+        <%= icon('star', ' ', 'fa-fw') %>There <%= change_count > 1 ? 'are' : 'is' %> <strong><%= "#{change_count} #{'change'.pluralize(change_count)}" %></strong>
         pending for this platform in the open release <%= link_to(@release.releaseId, path_to_release(@release)) %>
         created <strong><%= time_ago_in_words(@release.created_timestamp) %></strong>
       </li>
       <li>
-        <% latest_rfc = rfcs.inject(rfcs.first) {|l, r| r.rfcUpdated > l.rfcUpdated ? r : l}
-           latest_user = latest_rfc.rfcUpdatedBy || latest_rfc.rfcCreatedBy %>
-        <%= icon('clock-o', ' ', 'fa-fw') %>Last change in this platform was
-        <strong><%= time_ago_in_words(latest_rfc.rfc_updated_timestamp) %></strong>
-        <%= raw(" by <strong>#{latest_user}</strong>") if latest_user %>
+        <% latest_rfc = rfcs.inject(rfcs.first) {|l, r| r.rfcUpdated > l.rfcUpdated ? r : l} %>
+        <% if latest_rfc %>
+          <% latest_user = latest_rfc.rfcUpdatedBy || latest_rfc.rfcCreatedBy %>
+          <%= icon('clock-o', ' ', 'fa-fw') %>Last change in this platform was
+          <strong><%= time_ago_in_words(latest_rfc.rfc_updated_timestamp) %></strong>
+          <%= raw(" by <strong>#{latest_user}</strong>") if latest_user %>
+        <% end %>
       </li>
     </ul>
     <ul class="status-actions">

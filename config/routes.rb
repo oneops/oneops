@@ -247,7 +247,10 @@ Display::Application.routes.draw do
 
       resources :packs, :only => [:index]
 
-      scope '/packs/:source/:pack/:version(/:availability)', :as => 'pack' do
+      scope '/packs/:source/:pack(/:version)(/:availability)',
+            :as => 'pack',
+            :constraints => {:version => /\d+(\.\d+(\.\d+)?)?/,
+                             :availability => /single|redundant/} do
         get ''           => 'packs#show',       :as => ''
         get 'stats'      => 'packs#stats',      :as => 'stats'
         put 'visibility' => 'packs#visibility', :as => 'visibility'
@@ -312,6 +315,7 @@ Display::Application.routes.draw do
           get  'diff',            :on => :member
           get  'history',         :on => :member
           put  'pack_refresh',    :on => :member
+          put  'pack_update',     :on => :member
           post 'commit',          :on => :member
           post 'discard',         :on => :member
 
@@ -380,6 +384,8 @@ Display::Application.routes.draw do
           get  'diagram',      :on => :member
           get  'search',       :on => :member
           get  'extract',      :on => :member
+          get  'load',         :on => :member
+          put  'load',         :on => :member
 
           resources :variables, :only => [:index, :show, :edit, :update] do
             put 'lock',    :on => :collection

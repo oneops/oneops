@@ -1,4 +1,7 @@
 <%= section_panel 'Release Details', :width => 'double', :position => 'right' do %>
   <%= render 'cms/releases/edit', :release => release %>
-  <%= render 'base/release/release_diff_list', :rfc_cis => release.rfc_cis, :rfc_relations => release.rfc_relations %>
+  <%= render 'base/release/release_diff_list',
+             :rfc_cis       => release.rfc_cis,
+             :rfc_relations => release.rfc_relations,
+             :owner         => 'manifest' %>
 <% end %>

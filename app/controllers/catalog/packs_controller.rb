@@ -27,29 +27,32 @@ class Catalog::PacksController < ApplicationController
                                              :ciClassName  => 'mgmt.Version',
                                              :recursive    => true,
                                              :attr         => 'enabled:eq:false',
-                                             :altNsTag     => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
-                                             :altNs        => organization_ns_path,
-                                             :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
-    end
-
-    version_map = version_cis.inject({}) do |m, version|
-      (m[version.nsPath] ||= []) << version
-      m
+                                             :altNsTag     => ORG_VISIBILITY_ALT_NS_TAG,
+                                             :altNs        => organization_ns_path})
     end
 
     respond_to do |format|
       format.html { redirect_to catalog_path(:anchor => 'packs') }
       format.js do
-        @packs = pack_cis.inject([]) do |a, pack|
-          (version_map["#{pack.nsPath}/#{pack.ciName}"] || []).each { |version| a << {:pack => pack, :version => version} }
-          a
+        pack_map = pack_cis.to_map {|p| "#{p.nsPath}/#{p.ciName}"}
+
+        @packs = version_cis.inject({}) do |h, version|
+          h[version.nsPath] ||= {:pack => pack_map[version.nsPath], :versions => []}
+          h[version.nsPath][:versions] << version
+          h
         end
+        @packs = @packs.values
       end
 
       format.json do
         source_pack_map = pack_cis.inject({}) do |m, pack|
           root, public, source = pack.nsPath.split('/')
           (m[source] ||= []) << pack
+          m
+        end
+
+        version_map = version_cis.inject({}) do |m, version|
+          (m[version.nsPath] ||= []) << version
           m
         end
 
@@ -67,8 +70,6 @@ class Catalog::PacksController < ApplicationController
   end
 
   def show
-    @pack  = locate_pack(params[:source], params[:pack])
-
     respond_to do |format|
       format.js do
         @stats = Search::Pack.count_stats(params[:source], params[:pack], params[:version]) if @version
@@ -82,11 +83,10 @@ class Catalog::PacksController < ApplicationController
   end
 
   def stats
-    counts = Search::Pack.count_stats(@platform.ciAttributes.source, @platform.ciAttributes.pack, @platform.ciAttributes.version)
-    if counts
-      render :json => {:count => counts}
-    else
-      render :json => {:errors => ['Failed to fetch stats.']}, :status => :internal_server_error
+    @stats = Search::Pack.count_stats(params[:source], params[:pack], params[:version])
+    respond_to do |format|
+      format.js
+      format.json { render :json => @stats ? {:count => @stats} : {:errors => ['Failed to fetch stats.']}, :status => :internal_server_error }
     end
   end
 
@@ -94,7 +94,7 @@ class Catalog::PacksController < ApplicationController
   def visibility
     ok = false
     password_digest = Digest::SHA512.hexdigest(params[:password])
-    if password_digest == @version.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
+    if password_digest == @pack.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
       orgs = params[:orgs]
       if orgs.present?
         @version.altNs.attributes[ORG_VISIBILITY_ALT_NS_TAG] = orgs.split(/[\s,]/).select(&:present?).uniq.map {|o| "/#{o}"}
@@ -118,24 +118,24 @@ class Catalog::PacksController < ApplicationController
   def password
     ok = false
     password_digest = Digest::SHA512.hexdigest(params[:password])
-    if password_digest == @version.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
+    if password_digest == @pack.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
       new_password = params[:new_password]
       if new_password.blank?
-        @version.errors.add(:base, 'Invalid password/')
+        @pack.errors.add(:base, 'Invalid password/')
       elsif new_password != params[:confirm_password]
-        @version.errors.add(:base, 'Passwords do not match.')
+        @pack.errors.add(:base, 'Passwords do not match.')
       else
-        @version.ciAttributes.admin_password_digest = Digest::SHA512.hexdigest(new_password)
-        ok = execute(@version, :save)
+        @pack.ciAttributes.admin_password_digest = Digest::SHA512.hexdigest(new_password)
+        ok = execute(@pack, :save)
         flash.now[:notice] = 'Updated pack admin password.'
       end
     else
-      @version.errors.add(:base, 'Invalid pack admin password.')
+      @pack.errors.add(:base, 'Invalid pack admin password.')
     end
 
     respond_to do |format|
       format.js {render :action => :visibility}
-      format.json { render_json_ci_response(ok, @version) }
+      format.json { render_json_ci_response(ok, @pack) }
     end
   end
 
@@ -149,11 +149,13 @@ class Catalog::PacksController < ApplicationController
   private
 
   def find_pack_version
-    @version = locate_pack_version(params[:source], params[:pack], params[:version])
+    @pack    = locate_pack(params[:source], params[:pack])
+    version = params[:version]
+    @version = locate_pack_version(params[:source], params[:pack], version) if version.present?
   end
 
   def authorize_pack_owner_group_membership
-    unless check_pack_owner_group_membership?
+    unless has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT) || check_pack_owner_group_membership?
       unauthorized
       return
     end
