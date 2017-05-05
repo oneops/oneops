@@ -34,6 +34,7 @@ import com.oneops.util.Version;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -100,7 +101,7 @@ public class OneOpsMetrics {
     int initialDelay = 10;
     //scheduled with ibatis
     //getMap and register all meters with id and avg time .
-    Runnable task = () -> {
+    Runnable registerMetrics = () -> {
       Map<String, Stats> metrics = StatsPlugin.getStatsMap();
       try {
         metrics.entrySet().parallelStream().map((e) -> {
@@ -108,9 +109,14 @@ public class OneOpsMetrics {
           if (m.getCount()!=e.getValue().getNoOfCalls()){
             ooMetricsRegistry.meter(e.getKey()).mark(e.getValue().getNoOfCalls()-m.getCount());
           }
-          if (!ooMetricsRegistry.getNames().contains(e.getKey() + "_avg")) {
+          final SortedSet<String> registeredMetrics = ooMetricsRegistry.getNames();
+          if (!registeredMetrics.contains(e.getKey() + "_avg")) {
             ooMetricsRegistry
                 .register(e.getKey() + "_avg", (Gauge<Double>) e.getValue()::getAverage);
+          }
+          if (!registeredMetrics.contains(e.getKey() + "_max")) {
+            ooMetricsRegistry
+                .register(e.getKey() + "_max", (Gauge<Long>) e.getValue()::getMaxTime);
           }
           return 1;
         }).count();
@@ -121,7 +127,7 @@ public class OneOpsMetrics {
         logger.debug("Finished reporting metrics for ibatis" + metrics.size());
       }
     };
-    executor.scheduleAtFixedRate(task, initialDelay, 60, TimeUnit.SECONDS);
+    executor.scheduleAtFixedRate(registerMetrics, initialDelay, 60, TimeUnit.SECONDS);
   }
 
   /**
