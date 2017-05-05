@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -45,9 +46,10 @@ import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 
 public class MetricsElasticsearchModule extends Module {
 
-    public static final Version VERSION = new Version(1, 0, 0, "", "metrics-elasticsearch-reporter", "metrics-elasticsearch-reporter");
+  public static final Version VERSION = new Version(1, 0, 0, "", "metrics-elasticsearch-reporter", "metrics-elasticsearch-reporter");
 
-    private static class GaugeSerializer extends StdSerializer<JsonGauge> {
+
+  private static class GaugeSerializer extends StdSerializer<JsonGauge> {
         private final String timestampFieldname;
 
         private GaugeSerializer(String timestampFieldname) {
@@ -265,8 +267,10 @@ public class MetricsElasticsearchModule extends Module {
     private final TimeUnit rateUnit;
     private final TimeUnit durationUnit;
     private final String timestampFieldname;
+    public static Map<String, String> context = new HashMap<>(2);
 
-    // OneOps meta data initialization
+
+  // OneOps meta data initialization
     static {
         try {
             ENV = System.getenv();
@@ -281,7 +285,6 @@ public class MetricsElasticsearchModule extends Module {
         this.rateUnit = rateUnit;
         this.durationUnit = durationUnit;
         this.timestampFieldname = timestampFieldname;
-
     }
 
     @Override
@@ -318,6 +321,8 @@ public class MetricsElasticsearchModule extends Module {
         json.writeStringField("cloud", defaultString(ENV.get("ONEOPS_CLOUD")));
         json.writeStringField("dc", defaultString(ENV.get("DATACENTER")));
         json.writeStringField("status", defaultString(ENV.get("ONEOPS_CLOUD_ADMINSTATUS")));
+        json.writeStringField("version", defaultString(context.get("oo.version")));
+        json.writeStringField("appName", defaultString(context.get("appName")));
         if (OO_CLOUD_DETAILS) {
             json.writeStringField("hostname", HOST.getHostName());
             json.writeStringField("tenant", defaultString(ENV.get("ONEOPS_CLOUD_TENANT")));
