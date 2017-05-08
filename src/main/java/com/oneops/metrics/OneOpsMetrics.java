@@ -97,19 +97,19 @@ public class OneOpsMetrics {
   }
 
   private void addIbatisMetrics() {
-    ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+    ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     int initialDelay = 10;
     //scheduled with ibatis
     //getMap and register all meters with id and avg time .
     Runnable registerMetrics = () -> {
       Map<String, Stats> metrics = StatsPlugin.getStatsMap();
       try {
-        metrics.entrySet().parallelStream().map((e) -> {
+        final SortedSet<String> registeredMetrics = ooMetricsRegistry.getNames();
+        final long count = metrics.entrySet().parallelStream().map((e) -> {
           Meter m = ooMetricsRegistry.meter(e.getKey());
-          if (m.getCount()!=e.getValue().getNoOfCalls()){
-            ooMetricsRegistry.meter(e.getKey()).mark(e.getValue().getNoOfCalls()-m.getCount());
+          if (m.getCount() != e.getValue().getNoOfCalls()) {
+            ooMetricsRegistry.meter(e.getKey()).mark(e.getValue().getNoOfCalls() - m.getCount());
           }
-          final SortedSet<String> registeredMetrics = ooMetricsRegistry.getNames();
           if (!registeredMetrics.contains(e.getKey() + "_avg")) {
             ooMetricsRegistry
                 .register(e.getKey() + "_avg", (Gauge<Double>) e.getValue()::getAverage);
@@ -120,6 +120,7 @@ public class OneOpsMetrics {
           }
           return 1;
         }).count();
+
       } catch (Exception e) {
         logger.warn("There was an error in reporting metrics", e);
       }
@@ -127,6 +128,7 @@ public class OneOpsMetrics {
         logger.debug("Finished reporting metrics for ibatis" + metrics.size());
       }
     };
+
     executor.scheduleAtFixedRate(registerMetrics, initialDelay, 60, TimeUnit.SECONDS);
   }
 
