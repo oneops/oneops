@@ -18,7 +18,24 @@
  */
 package com.oneops.metrics.es;
 
-import com.codahale.metrics.*;
+import static com.codahale.metrics.MetricRegistry.name;
+import static com.oneops.metrics.es.JsonMetrics.JsonCounter;
+import static com.oneops.metrics.es.JsonMetrics.JsonGauge;
+import static com.oneops.metrics.es.JsonMetrics.JsonHistogram;
+import static com.oneops.metrics.es.JsonMetrics.JsonMeter;
+import static com.oneops.metrics.es.JsonMetrics.JsonMetric;
+import static com.oneops.metrics.es.JsonMetrics.JsonTimer;
+import static com.oneops.metrics.es.MetricsElasticsearchModule.BulkIndexOperationHeader;
+
+import com.codahale.metrics.Clock;
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.Metric;
+import com.codahale.metrics.MetricFilter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.ScheduledReporter;
 import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -26,27 +43,31 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.oneops.metrics.es.percolation.Notifier;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static com.codahale.metrics.MetricRegistry.name;
-import static com.oneops.metrics.es.JsonMetrics.*;
-import static com.oneops.metrics.es.MetricsElasticsearchModule.BulkIndexOperationHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ElasticsearchReporter extends ScheduledReporter {
+  private static int ES_CONNECT_RETRIES = Integer.valueOf(System.getProperty("search.retryCount", "5"));
 
-    public static Builder forRegistry(MetricRegistry registry) {
+  private static int SLEEP_BEFORE_RETRY_IN_MILLIS = Integer.valueOf(System.getProperty("search.sleepMS", "1000"));
+
+  public static Builder forRegistry(MetricRegistry registry) {
         return new Builder(registry);
     }
 
@@ -65,8 +86,9 @@ public class ElasticsearchReporter extends ScheduledReporter {
         private MetricFilter percolationFilter;
         private int timeout = 1000;
         private String timestampFieldname = "@timestamp";
+        private Map<String, String> context;
 
-        private Builder(MetricRegistry registry) {
+      private Builder(MetricRegistry registry) {
             this.registry = registry;
             this.clock = Clock.defaultClock();
             this.prefix = null;
@@ -183,8 +205,14 @@ public class ElasticsearchReporter extends ScheduledReporter {
             this.timestampFieldname = fieldName;
             return this;
         }
-
-        public ElasticsearchReporter build() throws IOException {
+      /**
+       * Configure the name of the timestamp field, defaults to '@timestamp'
+       */
+      public Builder ctxt(Map<String,String> context) {
+        this.context = context;
+        return this;
+      }
+        public ElasticsearchReporter build(String[] hosts) throws IOException {
             return new ElasticsearchReporter(registry,
                     hosts,
                     timeout,
@@ -198,7 +226,7 @@ public class ElasticsearchReporter extends ScheduledReporter {
                     filter,
                     percolationFilter,
                     percolationNotifier,
-                    timestampFieldname);
+                    timestampFieldname,context);
         }
     }
 
@@ -217,10 +245,9 @@ public class ElasticsearchReporter extends ScheduledReporter {
     private String currentIndexName;
     private SimpleDateFormat indexDateFormat = null;
     private boolean checkedForIndexTemplate = false;
-
     public ElasticsearchReporter(MetricRegistry registry, String[] hosts, int timeout,
                                  String index, String indexDateFormat, int bulkSize, Clock clock, String prefix, TimeUnit rateUnit, TimeUnit durationUnit,
-                                 MetricFilter filter, MetricFilter percolationFilter, Notifier percolationNotifier, String timestampFieldname) throws MalformedURLException {
+                                 MetricFilter filter, MetricFilter percolationFilter, Notifier percolationNotifier, String timestampFieldname,Map<String,String> context) throws MalformedURLException {
         super(registry, "elasticsearch-reporter", filter, rateUnit, durationUnit);
         this.hosts = hosts;
         this.index = index;
@@ -245,6 +272,7 @@ public class ElasticsearchReporter extends ScheduledReporter {
         // auto closing means, that the objectmapper is closing after the first write call, which does not work for bulk requests
         objectMapper.configure(JsonGenerator.Feature.AUTO_CLOSE_JSON_CONTENT, false);
         objectMapper.configure(JsonGenerator.Feature.AUTO_CLOSE_TARGET, false);
+
         objectMapper.registerModule(new MetricsElasticsearchModule(rateUnit, durationUnit, timestampFieldname));
         writer = objectMapper.writer();
         checkForIndexTemplate();
@@ -345,7 +373,7 @@ public class ElasticsearchReporter extends ScheduledReporter {
         }
 
         Map<String, Object> input = objectMapper.readValue(connection.getInputStream(), Map.class);
-        List<String> matches = new ArrayList<String>();
+        List<String> matches = new ArrayList<>();
         if (input.containsKey("matches") && input.get("matches") instanceof List) {
             List<Map<String, String>> foundMatches = (List<Map<String, String>>) input.get("matches");
             for (Map<String, String> entry : foundMatches) {
@@ -376,9 +404,7 @@ public class ElasticsearchReporter extends ScheduledReporter {
     private void closeConnection(HttpURLConnection connection) throws IOException {
         connection.getOutputStream().close();
         connection.disconnect();
-
         // we have to call this, otherwise out HTTP data does not get send, even though close()/disconnect was called
-        // Ceterum censeo HttpUrlConnection esse delendam
         if (connection.getResponseCode() != 200) {
             LOGGER.error("Reporting returned code {} {}: {}", connection.getResponseCode(), connection.getResponseMessage());
         }
@@ -411,27 +437,33 @@ public class ElasticsearchReporter extends ScheduledReporter {
 
     /**
      * Open a new HttpUrlConnection, in case it fails it tries for the next host in the configured list
+     *  We use search fqdn , if the exception is there we will retry ). Now just using a fixed sleep
+     *  //TODO add a more generic support for hosts array*
      */
-    private HttpURLConnection openConnection(String uri, String method) {
-        for (String host : hosts) {
-            try {
-                URL templateUrl = new URL("http://" + host  + uri);
-                HttpURLConnection connection = ( HttpURLConnection ) templateUrl.openConnection();
-                connection.setRequestMethod(method);
-                connection.setConnectTimeout(timeout);
-                connection.setUseCaches(false);
-                if (method.equalsIgnoreCase("POST") || method.equalsIgnoreCase("PUT")) {
-                    connection.setDoOutput(true);
-                }
-                connection.connect();
+    private HttpURLConnection openConnection(String uri, String method){
+      for (int j = 0; j < ES_CONNECT_RETRIES ; ++j )
+        try {
+          URL templateUrl = new URL("http://" + hosts[0] + uri);
+          HttpURLConnection connection = (HttpURLConnection) templateUrl.openConnection();
+          connection.setRequestMethod(method);
+          connection.setConnectTimeout(timeout);
+          connection.setUseCaches(false);
+          if (method.equalsIgnoreCase("POST") || method.equalsIgnoreCase("PUT")) {
+            connection.setDoOutput(true);
+          }
+          connection.connect();
 
-                return connection;
-            } catch (IOException e) {
-                LOGGER.error("Error connecting to {}: {}", host, e);
-            }
+          return connection;
+        } catch (IOException e) {
+          try {
+
+            TimeUnit.MILLISECONDS.sleep(SLEEP_BEFORE_RETRY_IN_MILLIS);
+          } catch (InterruptedException e1) {
+            Thread.currentThread().interrupt();
+          }
+          LOGGER.error("Error connecting to {}: {}; "+(j+1) +" Attempt failed  of  " +ES_CONNECT_RETRIES, hosts[0], e);
         }
-
-        return null;
+      return null;
     }
 
     /**

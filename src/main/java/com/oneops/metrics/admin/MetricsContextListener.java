@@ -22,6 +22,8 @@ import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.servlet.InstrumentedFilter;
 import com.codahale.metrics.servlets.HealthCheckServlet;
 import com.codahale.metrics.servlets.MetricsServlet;
+import com.oneops.metrics.es.MetricsElasticsearchModule;
+import com.oneops.util.Version;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.context.support.WebApplicationContextUtils;
@@ -58,6 +60,10 @@ public class MetricsContextListener implements ServletContextListener {
     @Autowired
     private HealthCheckRegistry ooHealthRegistry;
 
+    @Autowired
+    private Version version;
+
+
     @Override
     public void contextInitialized(ServletContextEvent sce) {
         logger.info("Initializing the Metrics Servlet Context Listener.");
@@ -74,6 +80,8 @@ public class MetricsContextListener implements ServletContextListener {
         context.setAttribute(DURATION_UNIT, getDurationUnit());
         context.setAttribute(ALLOWED_ORIGIN, getAllowedOrigin());
         context.setAttribute(HEALTH_CHECK_EXECUTOR, getExecutorService());
+        MetricsElasticsearchModule.context.put("appName", context.getServletContextName());
+        MetricsElasticsearchModule.context.put("oo.version",version.getGitVersion());
     }
 
     @Override
