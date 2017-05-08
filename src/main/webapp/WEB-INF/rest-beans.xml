@@ -6,16 +6,8 @@
   xmlns:mvc="http://www.springframework.org/schema/mvc"
   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-  <mvc:annotation-driven content-negotiation-manager="contentNegotiationManager">
-    <mvc:path-matching suffix-pattern="false"/>
-  </mvc:annotation-driven>
-
-  <bean id="contentNegotiationManager"
-    class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
-    <property name="favorPathExtension" value="false"/>
-  </bean>
 
   <import resource="classpath:ecv-beans.xml"/>
   <import resource="classpath:security-config.xml"/>
@@ -36,9 +28,40 @@
   <!-- import mybatis staff  -->
   <import resource="mybatis-beans.xml"/>
 
+  <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
+    <property name="useDefaultSuffixPattern" value="false"/>
+  </bean>
+
   <!-- Enable annotation scanning. -->
   <context:component-scan base-package="com.oneops.cms.ws.rest"/>
 
+  <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
+  <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
+
+  <bean id="marshallingXMLHttpMessageConverter"
+    class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
+    <property name="marshaller" ref="oxmMarshaller"/>
+    <property name="unmarshaller" ref="oxmMarshaller"/>
+    <property name="supportedMediaTypes" value="application/xml"/>
+
+  </bean>
+
+
+  <!-- Define the JSON converter which is used to convert the Objects <-> JSON. -->
+  <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+    <property name="supportedMediaTypes" value="application/json"/>
+  </bean>
+
+  <!-- Required for REST services in order to bind the return value to the ResponseBody. -->
+  <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+    <!-- property name="useDefaultSuffixPattern" value="false" / -->
+    <property name="messageConverters">
+      <util:list id="beanList">
+        <ref bean="jsonMessageConverter"/>
+        <ref bean="marshallingXMLHttpMessageConverter"/>
+      </util:list>
+    </property>
+  </bean>
 
   <bean id="scopeVerifier" class="com.oneops.cms.ws.rest.util.CmsScopeVerifier"/>
 
