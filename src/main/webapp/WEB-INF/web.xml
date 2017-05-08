@@ -5,14 +5,6 @@
          id="WebApp_ID" version="2.5">
     <display-name>transistor</display-name>
 
-    <context-param>
-        <param-name>contextConfigLocation</param-name>
-        <param-value>/WEB-INF/rest-beans.xml</param-value>
-    </context-param>
-
-    <listener>
-        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
-    </listener>
 
     <servlet>
         <servlet-name>RestServlet</servlet-name>
@@ -28,6 +20,32 @@
         <url-pattern>/rest/*</url-pattern>
     </servlet-mapping>
 
+    <!-- OneOps Metrics Configuration -->
+    <context-param>
+        <description>Root Application Context</description>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>WEB-INF/rest-beans.xml</param-value>
+    </context-param>
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+
+    <listener>
+        <description>Context Listener for OneOps Metrics</description>
+        <display-name>oneops-metrics-listener</display-name>
+        <listener-class>com.oneops.metrics.admin.MetricsContextListener</listener-class>
+    </listener>
+
+    <servlet>
+        <description>OneOps metrics main admin servlet</description>
+        <servlet-name>oneops-metrics</servlet-name>
+        <servlet-class>com.codahale.metrics.servlets.AdminServlet</servlet-class>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>oneops-metrics</servlet-name>
+        <url-pattern>/admin/*</url-pattern>
+    </servlet-mapping>
     <!-- Spring Security -->
     <filter>
         <filter-name>springSecurityFilterChain</filter-name>
