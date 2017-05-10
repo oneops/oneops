@@ -18,8 +18,10 @@
 package com.oneops.metrics;
 
 import com.codahale.metrics.*;
+import com.mockrunner.mock.web.MockServletContext;
 import com.oneops.config.OneOpsConfig;
 
+import com.oneops.util.Version;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
@@ -40,7 +42,8 @@ import static org.testng.Assert.assertTrue;
  *
  * @author Suresh G
  */
-@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = {OneOpsConfig.class})
+@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = {OneOpsConfig.class,
+    Version.class, MockServletContext.class})
 public class OneOpsMetricsTest extends AbstractTestNGSpringContextTests {
 
     public static final String METRIC_PREFIX = "oneops.test";
