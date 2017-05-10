@@ -204,6 +204,7 @@ public class DjRestController extends AbstractRestController {
 	@ResponseBody
 	public CmsRfcCISimple getRfcById(
 			@PathVariable long rfcId,
+			@RequestParam(value="attrProps", required = false) String attrProps,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
 		CmsRfcCI rfc = djManager.getRfcCIById(rfcId);
@@ -211,7 +212,7 @@ public class DjRestController extends AbstractRestController {
         										"There is no rfc with this id");
 		scopeVerifier.verifyScope(scope, rfc);
 		
-		return cmsUtil.custRfcCI2RfcCISimple(rfc);
+		return cmsUtil.custRfcCI2RfcCISimple(rfc, attrProps == null ? null : attrProps.split(","));
 	}
 	
 	
@@ -239,7 +240,8 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="ciId", required = false) Long ciId,
 			@RequestParam(value="nsPath", required = false) String nsPath,
             @RequestParam(value="altNsPath", required = false) String altNsPath, 
-            @RequestParam(value="tag", required = false) String tag, 
+            @RequestParam(value="tag", required = false) String tag,
+			@RequestParam(value="attrProps", required = false) String attrProps,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcCISimple> rfcSimpleList = new ArrayList<>();
@@ -260,7 +262,7 @@ public class DjRestController extends AbstractRestController {
 		if (rfcList != null) {
 			for (CmsRfcCI rfc : rfcList) {
 				scopeVerifier.verifyScope(scope, rfc);
-				rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc));
+				rfcSimpleList.add(cmsUtil.custRfcCI2RfcCISimple(rfc, attrProps == null ? null : attrProps.split(",")));
 			}
 		}
 
@@ -320,7 +322,8 @@ public class DjRestController extends AbstractRestController {
 	@ResponseBody
 	public CmsRfcRelationSimple getRfcRelationById(
 			@PathVariable long rfcId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+			@RequestParam(value="attrProps", required = false) String attrProps,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
 		
 		CmsRfcRelation rfc = djManager.getRfcRelationById(rfcId);
 		
@@ -329,7 +332,7 @@ public class DjRestController extends AbstractRestController {
 
 		scopeVerifier.verifyScope(scope, rfc);
 		
-		return cmsUtil.custRfcRel2RfcRelSimple(rfc);
+		return cmsUtil.custRfcRel2RfcRelSimple(rfc, attrProps == null ? null : attrProps.split(","));
 	}
 
 	@RequestMapping(value="/dj/rfc/relations/{rfcId}", method = RequestMethod.GET)
@@ -357,7 +360,8 @@ public class DjRestController extends AbstractRestController {
 			@RequestParam(value="fromCiId", required = false) Long fromCiId,
 			@RequestParam(value="toCiId", required = false) Long toCiId,
 			@RequestParam(value="ciId", required = false) Long ciId,
-            @RequestParam(value="nsPath", required = false) String nsPath, 
+            @RequestParam(value="nsPath", required = false) String nsPath,
+			@RequestParam(value="attrProps", required = false) String attrProps,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		List<CmsRfcRelationSimple> relSimpleList = new ArrayList<>();
@@ -377,7 +381,7 @@ public class DjRestController extends AbstractRestController {
 		if (relList != null) {
 			for (CmsRfcRelation rel : relList) {
 				scopeVerifier.verifyScope(scope, rel);
-				relSimpleList.add(cmsUtil.custRfcRel2RfcRelSimple(rel));
+				relSimpleList.add(cmsUtil.custRfcRel2RfcRelSimple(rel, attrProps == null ? null : attrProps.split(",")));
 			}
 		}
 		
