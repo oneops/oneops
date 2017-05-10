@@ -86,6 +86,7 @@
 		<property name="designExpProcessor" ref="designExpProcessor" />
 		<property name="catalogProcessor" ref="catalogProcessor" />
 		<property name="packRefreshProcessor" ref="packRefreshProcessor" />
+		<property name="packUpdateProcessor" ref="packUpdateProcessor" />
 		<property name="environmentExpProcessor" ref="environmentExpProcessor"/>
     </bean>
 
@@ -168,6 +169,15 @@
 		<property name="trUtil" ref="trUtil" />
 	</bean>
 	
+	<bean id="packUpdateProcessor" class="com.oneops.transistor.service.PackUpdateProcessor" >
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="designRfcProcessor" ref="designRfcProcessor" />
+		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="trUtil" ref="trUtil" />
+		<property name="rfcUtil" ref="rfcUtil" />
+	</bean>
+
 	<bean id="cloudUtil" class="com.oneops.transistor.util.CloudUtil">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />

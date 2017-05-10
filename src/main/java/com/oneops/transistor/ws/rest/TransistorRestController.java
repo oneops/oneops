@@ -817,14 +817,19 @@ public class TransistorRestController extends AbstractRestController {
     @ResponseBody
     public Map<String, List<?>> getPlatformRfcs(
             @PathVariable long platId,
+			@RequestParam(value="attrProps", required = false) String attrProps,
             @RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
         if (userId == null) userId = "oneops-system";
 
 		Map<String, List<?>> rfcs = dManager.getPlatformRfcs(platId, userId, scope);
-		rfcs.put("cis", rfcs.get("cis").stream().map(rfc -> util.custRfcCI2RfcCISimple((CmsRfcCI) rfc)).collect(Collectors.toList()));
-		rfcs.put("relations", rfcs.get("relations").stream().map(rfc -> util.custRfcRel2RfcRelSimple((CmsRfcRelation) rfc)).collect(Collectors.toList()));
+		rfcs.put("cis", rfcs.get("cis").stream()
+				.map(rfc -> util.custRfcCI2RfcCISimple((CmsRfcCI) rfc, attrProps == null ? null : attrProps.split(",")))
+				.collect(Collectors.toList()));
+		rfcs.put("relations", rfcs.get("relations").stream()
+				.map(rfc -> util.custRfcRel2RfcRelSimple((CmsRfcRelation) rfc, attrProps == null ? null : attrProps.split(",")))
+				.collect(Collectors.toList()));
 		return rfcs;
     }
 
@@ -891,7 +896,7 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
 		if (userId == null) userId = "oneops-system";
-		long releaseId = dManager.refreshPack(platId, packSemVer, userId ,scope);
+		long releaseId = dManager.updateFromPack(platId, packSemVer, userId, scope);
 		return toReleaseMap(releaseId);
 	}
 

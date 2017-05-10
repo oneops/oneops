@@ -33,6 +33,7 @@ public class DesignManagerImpl implements DesignManager {
 	private DesignExportProcessor designExpProcessor;
 	private CatalogProcessor catalogProcessor;
 	private PackRefreshProcessor packRefreshProcessor;
+	private PackUpdateProcessor packUpdateProcessor;
 	private EnvironmentExportProcessor environmentExpProcessor;
 
 	public void setEnvironmentExpProcessor(EnvironmentExportProcessor environmentExpProcessor) {
@@ -53,6 +54,10 @@ public class DesignManagerImpl implements DesignManager {
 
 	public void setPackRefreshProcessor(PackRefreshProcessor packRefreshProcessor) {
 		this.packRefreshProcessor = packRefreshProcessor;
+	}
+
+	public void setPackUpdateProcessor(PackUpdateProcessor packUpdateProcessor) {
+		this.packUpdateProcessor = packUpdateProcessor;
 	}
 
 	@Override
@@ -124,6 +129,11 @@ public class DesignManagerImpl implements DesignManager {
 	@Override
 	public long refreshPack(long platformId, String packVersion, String userId, String scope) {
 		return packRefreshProcessor.refreshPack(platformId, packVersion, userId, scope);
+	}
+
+	@Override
+	public long updateFromPack(long platformId, String packVersion, String userId, String scope) {
+		return packUpdateProcessor.updateFromPack(platformId, packVersion, userId, scope);
 	}
 
 	@Override

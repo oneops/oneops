@@ -43,9 +43,13 @@ public class ExpEvaluator {
 
 	
 	private void processValue(String attrName, String exp, Map<String,CmsRfcAttribute> attributes) {
-		String targetAttr = exp.substring(exp.indexOf("("), exp.lastIndexOf(")"));
-		
-		attributes.get(attrName).setNewValue(attributes.get(targetAttr).getNewValue());
+		int beginIndex = exp.indexOf("(");
+		if (beginIndex == -1) return;
+
+		int endIndex = exp.lastIndexOf(")");
+		if (endIndex < beginIndex) return;
+
+		attributes.get(attrName).setNewValue(attributes.get(exp.substring(beginIndex, endIndex)).getNewValue());
 		
 	}
 }
