@@ -54,15 +54,19 @@ public final class CmsConstants {
 	public static final String BASE_REQUIRES = "base.Requires";
 
 	//catalog relations
+	public static final String CATALOG_DEPENDS_ON = "catalog.DependsOn";
 	public static final String CATALOG_ESCORTED_BY = "catalog.EscortedBy";
 	public static final String CATALOG_WATCHED_BY = "catalog.WatchedBy";
+	public static final String CATALOG_VALUE_FOR = "catalog.ValueFor";
 
-	//manifest
+	//manifest relations
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
 
-	//mgmt
+	//mgmt relations
 	public static final String MGMT_CATALOG_WATCHEDBY = "mgmt.catalog.WatchedBy";
+	public static final String MGMT_CATALOG_DEPENDS_ON = "mgmt.catalog.DependsOn";
+	public static final String MGMT_CATALOG_VALUE_FOR = "mgmt.catalog.ValueFor";
 
 	//attributes
 	public static final String ATTR_VALUE_TYPE_DF = "df";
@@ -81,6 +85,16 @@ public final class CmsConstants {
 	//class-names
 	//account
 	public static final String ACCOUNT_CLOUD_CLASS = "account.Cloud";
+
+	//mgmt
+	public static final String MGMT_PACK_VERSION_CLASS = "mgmt.Version";
+	public static final String MGMT_CATALOG_PLATFORM_CLASS = "mgmt.catalog.Platform";
+	public static final String MGMT_CATALOG_MONITOR_CLASS = "mgmt.catalog.Monitor";
+	public static final String MGMT_CATALOG_LOCALVAR_CLASS = "mgmt.catalog.Localvar";
+
+	//catalog
+	public static final String CATALOG_LOCALVAR_CLASS = "catalog.Localvar";
+
 	//manifest
 	public static final String MONITOR_CLASS = "manifest.Monitor";
 	public static final String ZONE_CLASS = "cloud.Zone";
@@ -93,7 +107,7 @@ public final class CmsConstants {
 	public static final String CATALOG = "catalog";
 
 
-    public static final String CLOUDSERVICEPREFIX = "cloud.service";
+	public static final String CLOUDSERVICEPREFIX = "cloud.service";
 	public static final String MANAGED_VIA = "ManagedVia";
 	public static final String DEPENDS_ON = "DependsOn";
 	public static final String SECURED_BY = "SecuredBy";

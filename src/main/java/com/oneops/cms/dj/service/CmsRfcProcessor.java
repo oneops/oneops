@@ -1078,6 +1078,9 @@ public class CmsRfcProcessor {
 		
 		for (CmsRfcAttribute attr : rel.getAttributes().values()){
 			attr.setRfcId(rel.getRfcId());
+			if (attr.getNewValue() == null) {
+				attr.setNewValue("");
+			}
 			djMapper.upsertRfcRelationAttribute(attr);
 		}
 		return rel.getRfcId();
