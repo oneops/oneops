@@ -19,9 +19,11 @@ package com.oneops.config;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
+import com.mockrunner.mock.web.MockServletContext;
 import com.oneops.cassandra.ClusterBootstrap;
 import com.oneops.config.OneOpsConfig;
 
+import com.oneops.util.Version;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -38,7 +40,8 @@ import static org.testng.Assert.assertNotNull;
  *
  * @author Suresh G
  */
-@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = {OneOpsConfig.class})
+@ContextConfiguration(loader = AnnotationConfigContextLoader.class, classes = {OneOpsConfig.class,
+    Version.class, MockServletContext.class})
 public class OneOpsConfigTest extends AbstractTestNGSpringContextTests {
 
     @Autowired
