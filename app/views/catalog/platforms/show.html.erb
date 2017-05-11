@@ -12,6 +12,7 @@
 
      tabs << {:label => 'variables', :url => catalog_design_platform_variables_path(@design, @platform)}
    else
+     pack_ver = @platform.ciAttributes.version
      if @platform.ciClassName.end_with?('catalog.Platform')
        doc_anchor = 'design'
        bc_label   = icon(site_icon('design'), 'design')
@@ -22,7 +23,7 @@
      end
      page_title_opts = {:page_icon     => platform_image_url(@platform),
                         :page_kind     => 'Platform Pack',
-                        :page_label    => "#{@platform.ciName} #{content_tag(:sub, content_tag(:span, "ver. #{@platform.ciAttributes.version}", :class => 'label label-success'))} #{content_tag(:sub, content_tag(:small, bc_label))}",
+                        :page_label    => "#{@platform.ciName} #{content_tag(:sub, content_tag(:span, "ver. #{pack_ver}", :class => 'label label-success'))} #{content_tag(:sub, content_tag(:small, bc_label))}",
                         :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => doc_anchor),
                         :page_sublabel => @platform.ciAttributes.description}
 
@@ -33,6 +34,7 @@
 
      tabs << {:label => 'variables', :url => catalog_pack_platform_variables_path(:platform_id => @platform.ciId)}
      tabs << {:label => 'policies',  :url => catalog_pack_platform_policies_path(:platform_id => @platform.ciId)}
+     tabs << {:label => 'diff',      :url => diff_catalog_pack_platforms_path(params[:source], params[:pack], params[:version], params[:availability])} if pack_ver.include?('.')
    end %>
 
 <%= organization_page_header('catalogs') %>

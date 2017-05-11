@@ -3,7 +3,7 @@ class Catalog::PacksController < ApplicationController
   ORG_VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
   before_filter :authorize_pack_owner_group_membership, :only => [:visibility, :password]
-  before_filter :find_pack_version, :only => [:show, :visibility, :password]
+  before_filter :find_pack_version, :only => [:show, :visibility, :password, :diff]
 
   helper_method :check_pack_owner_group_membership?
 
@@ -139,10 +139,133 @@ class Catalog::PacksController < ApplicationController
     end
   end
 
-  def check_pack_owner_group_membership?(user = current_user)
-    auth_group = Settings.pack_management_auth
-    # 'pack_management_auth' is assumed to the name of the user group whose memebers are allowed to manage pack visibility.
-    auth_group.present? && user.in_group?(auth_group)
+  def diff
+    return if request.format.html?
+
+    source        = params[:source]
+    pack_name     = params[:pack]
+    version       = params[:version]
+    availability  = params[:availability]
+    platform      = locate_pack_platform(pack_name, source, pack_name, version, availability)
+    other_version = params[:other_version]
+
+    if platform.blank?
+      not_found("pack version #{version} not found.")
+      return
+    end
+
+    if other_version.present?
+      other_platform = locate_pack_platform(pack_name, source, pack_name, other_version, availability)
+      if other_platform.blank?
+        not_found("other_depends pack version #{other_version} not found.")
+        return
+      end
+
+      platform_pack_ns_path       = platform_pack_design_ns_path(platform)
+      other_platform_pack_ns_path = platform_pack_design_ns_path(other_platform)
+
+      @diff = []
+
+      # Compare components.
+      other_components = Cms::Relation.all(:params => {:ciId              => other_platform.ciId,
+                                                       :direction         => 'from',
+                                                       :relationShortName => 'Requires'})
+      other_components_map = other_components.to_map {|r| r.toCi.ciName}
+      other_components_id_map = other_components.map(&:toCi).to_map(&:ciId)
+
+      components = Cms::Relation.all(:params => {:ciId              => platform.ciId,
+                                                 :direction         => 'from',
+                                                 :relationShortName => 'Requires'})
+      components_id_map = components.map(&:toCi).to_map(&:ciId)
+      components.inject(@diff) do |diff, r|
+        component       = r.toCi
+        other_requires  = other_components_map.delete(component.ciName)
+        process_ci_diff(component, other_requires && other_requires.toCi, diff)
+        process_relation_diff(r, other_requires, diff)
+        diff
+      end
+      other_components_map.values.inject(@diff) do |diff, r|
+        component = r.toCi
+        component.ciState = 'delete'
+        diff << component
+      end
+
+      # Compare variables.
+      other_var_map = Cms::Relation.all(:params => {:ciId              => other_platform.ciId,
+                                                    :direction         => 'to',
+                                                    :relationShortName => 'ValueFor',
+                                                    :includeFromCi     => true,
+                                                    :includeToCi       => false}).map(&:fromCi).to_map(&:ciName)
+      Cms::Relation.all(:params => {:ciId              => platform.ciId,
+                                    :direction         => 'to',
+                                    :relationShortName => 'ValueFor',
+                                    :includeFromCi     => true,
+                                    :includeToCi       => false}).inject(@diff) do |diff, r|
+        variable       = r.fromCi
+        other_variable = other_var_map.delete(variable.ciName)
+        process_ci_diff(variable, other_variable, diff)
+        diff
+      end
+      other_var_map.values.inject(@diff) do |diff, variable|
+        variable.ciState = 'delete'
+        diff << variable
+      end
+
+      # Compare dependsOn relations.
+      other_depends_map = Cms::Relation.all(:params => {:nsPath            => other_platform_pack_ns_path,
+                                                        :relationShortName => 'DependsOn',
+                                                        :includeFromCi     => false,
+                                                        :includeToCi       => false}).to_map { |r| "#{other_components_id_map[r.fromCiId].ciName}**#{other_components_id_map[r.toCiId].ciName}" }
+      Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
+                                    :relationShortName => 'DependsOn',
+                                    :includeFromCi     => false,
+                                    :includeToCi       => false}).inject(@diff) do |diff, r|
+        fromc_ci      = components_id_map[r.fromCiId]
+        to_ci         = components_id_map[r.toCiId]
+        other_depends = other_depends_map.delete("#{fromc_ci.ciName}**#{to_ci.ciName}")
+        r.fromCi = fromc_ci
+        r.toCi   = to_ci
+        process_relation_diff(r, other_depends, diff)
+        diff
+      end
+      other_depends_map.values.inject(@diff) do |diff, r|
+        r.relationState = 'delete'
+        diff << r
+      end
+
+      # Compare monitors.
+      other_monitors_map = Cms::Relation.all(:params => {:nsPath            => other_platform_pack_ns_path,
+                                                         :relationShortName => 'WatchedBy',
+                                                         :includeFromCi     => false,
+                                                         :includeToCi       => true}).
+        to_map {|r| "#{other_components_id_map[r.fromCiId].ciName}**#{r.toCi.ciName}"}
+
+      Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
+                                    :relationShortName => 'WatchedBy',
+                                    :includeFromCi     => false,
+                                    :includeToCi       => true}).inject(@diff) do |diff, r|
+        monitor          = r.toCi
+        component        = components_id_map[r.fromCiId]
+        other_watched_by = other_monitors_map.delete("#{component.ciName}**#{monitor.ciName}")
+        other_monitor    = other_watched_by && other_watched_by.toCi
+        monitor.component = component
+        r.fromCi = component
+        process_ci_diff(monitor, other_monitor, diff)
+        process_relation_diff(r, other_watched_by, diff) if other_watched_by
+        diff
+      end
+      other_monitors_map.values.inject(@diff) do |diff, r|
+        monitor           = r.toCi
+        monitor.ciState   = 'delete'
+        monitor.component = other_components_id_map[r.fromCiId]
+        diff << monitor
+      end
+    end
+
+    respond_to do |format|
+      format.js
+      format.json {render :json => @diff}
+    end
   end
 
 
@@ -159,5 +282,33 @@ class Catalog::PacksController < ApplicationController
       unauthorized
       return
     end
+  end
+
+  def process_ci_diff(target, base, diffs)
+    if base
+      attr_diff = calculate_attr_diff(target, base)
+      return if attr_diff.blank?
+
+      target.ciState        = 'update'
+      target.diffCi         = base
+      target.diffAttributes = attr_diff
+    else
+      target.ciState = 'add'
+    end
+    diffs << target
+  end
+
+  def process_relation_diff(target, base, diffs)
+    if base
+      attr_diff = calculate_attr_diff(target, base)
+      return if attr_diff.blank?
+
+      target.relationState  = 'update'
+      target.diffRelation   = base
+      target.diffAttributes = attr_diff
+    else
+      target.relationState = 'add'
+    end
+    diffs << target
   end
 end

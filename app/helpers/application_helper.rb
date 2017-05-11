@@ -1274,12 +1274,14 @@ module ApplicationHelper
   end
 
   def platform_doc_link(platform, label, opts = {})
-    asset_url = Settings.asset_url.presence || 'cms/'
     ci_attrs  = platform.ciAttributes
-    pack      = ci_attrs.pack
-    anchor    = opts[:anchor]
+    pack_doc_link(ci_attrs.source, ci_attrs.pack, ci_attrs.version, label, opts)
+  end
+
+  def pack_doc_link(source, pack, version, label, opts = {})
+    anchor = opts[:anchor]
     link_to(raw(label),
-            "#{asset_url}public/#{ci_attrs.source}/packs/#{pack}/#{ci_attrs.version}/#{pack}.html#{"##{anchor}" if anchor.present?}",
+            "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
             :class  => 'doc-link',
             :title  => 'go to documentation')

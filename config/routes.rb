@@ -230,6 +230,7 @@ Display::Application.routes.draw do
         resources :platforms, :only => [:index, :show] do
           get 'diagram', :on => :member
 
+
           resources :variables, :controller => 'local_variables', :only => [:index, :show]
 
           resources :components, :only => [:index, :show] do
@@ -251,13 +252,15 @@ Display::Application.routes.draw do
             :as => 'pack',
             :constraints => {:version => /\d+(\.\d+(\.\d+)?)?/,
                              :availability => /single|redundant/} do
-        get ''           => 'packs#show',       :as => ''
-        get 'stats'      => 'packs#stats',      :as => 'stats'
-        put 'visibility' => 'packs#visibility', :as => 'visibility'
-        put 'password'   => 'packs#password',   :as => 'password'
+        get ''                      => 'packs#show',       :as => ''
+        get 'stats'                 => 'packs#stats',      :as => 'stats'
+        put 'visibility'            => 'packs#visibility', :as => 'visibility'
+        put 'password'              => 'packs#password',   :as => 'password'
+        get 'diff(/:other_version)' => 'packs#diff',       :as => 'diff', :constraints => {:other_version => /\d+(\.\d+(\.\d+)?)?/}
 
         resources :platforms, :only => [:show] do
           get 'diagram', :on => :member
+          get 'diff',    :on => :collection
 
           resources :variables, :controller => 'local_variables', :only => [:index, :show]
           resources :policies, :only => [:index, :show]

@@ -43,8 +43,4 @@ class Cms::RfcRelation < Cms::Relation
     end
     return @ci_hash
   end
-
-  def attrOwner
-    attributes[:relationAttrProps] && relationAttrProps.attributes['owner']
-  end
 end

@@ -310,6 +310,60 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def load
+    if request.put?
+      loaded = false
+
+      @preview = params[:preview] == 'true'
+      data_file = params[:data_file]
+      @data_string = (data_file && data_file.read).presence || params[:data]
+
+      begin
+        assembled_data, @data_string, @errors = assemble_load_data(@data_string)
+      rescue Exception => e
+        @errors = ["Failed to assemble configuration file - unexpected import data. #{e}"]
+      end
+
+      if assembled_data
+        begin
+          load_data, @errors = convert_load_data(assembled_data)
+        rescue Exception => e
+          @errors = ["Failed to parse configuration file - unexpected data structure. #{e}"]
+        end
+
+        if load_data && !@preview
+          loaded, message = Transistor.import_design(@assembly, load_data)
+          @errors = [message] unless loaded
+        end
+      end
+
+      respond_to do |format|
+        format.html do
+          if loaded
+            flash[:notice] = 'Successfully loaded design.'
+            redirect_to assembly_design_url(@assembly)
+          end
+        end
+
+        format.json do
+            if @errors.blank?
+              render(:json => assembled_data, :status => :ok)
+            else
+              render(:json   => (assembled_data || {}).merge(:errors => @errors),
+                     :status => @preview ? :ok : :unprocessable_entity)
+            end
+        end
+
+        if @preview
+          format.yaml do
+            render :text => @errors.blank? ? assembled_data : (assembled_data || {}).merge(:errors => @errors).to_yaml,
+                   :content_type => 'text/data_string'
+          end
+        end
+      end
+    end
+  end
+
 
   private
 

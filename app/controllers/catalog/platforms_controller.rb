@@ -1,6 +1,6 @@
 class Catalog::PlatformsController < Base::PlatformsController
   before_filter :find_parent
-  before_filter :find_platform, :except => [:index]
+  before_filter :find_platform, :except => [:index, :diff]
 
   def index
     @platforms = Cms::Relation.all(:params => {:ciId              => @design.ciId,
@@ -33,6 +33,12 @@ class Catalog::PlatformsController < Base::PlatformsController
     end
   end
 
+  def diff
+    respond_to do |format|
+      format.html { render '_diff' }
+      format.js
+    end
+  end
 
   private
 

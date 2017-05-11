@@ -1,37 +1,61 @@
-<% owner_value = defined?(owner) && owner %>
-<%= ci_list(cis,
-            :class => 'ci-diff',
-            :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created)],
-                         :filter_by => %w(ciClass ciName diffAttributes),
-                         :compact   => false}) do |builder, target| %>
-  <% diff_attrs = target.diffAttributes
-     diff_attribute_desc = diff_attrs.map do |a|
-       attr = a['attribute']
-       mda = target.meta.md_attribute(attr)
-       mda ? mda.description : attr
+<% owner_value = defined?(owner) && owner
+   show_changes_only = defined?(changes_only) ? changes_only : true
+   items = []
+   items += cis if defined?(cis)
+   items += relations if defined?(relations)
+%>
+<%= list(items,
+         :class   => 'ci-diff',
+         :toolbar => {:sort_by   => [%w(Class diffClass), %w(Name diffName), %w(Type diffType), %w(Created created)],
+                      :filter_by => %w(diffClass diffName diffType diffAttributes),
+                      :compact   => false}) do |builder, target| %>
+  <% ci = target.is_a?(Cms::Ci)
+     diff_attrs = target.attributes[:diffAttributes]
+     if diff_attrs.present?
+       diff_attribute_desc = diff_attrs.map do |a|
+              attr = a['attribute']
+              mda = target.meta.md_attribute(attr)
+              mda ? mda.description : attr
+            end
      end %>
-  <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" ciClass="#{target.ciClassName.split('.').last}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
+  <% if ci %>
+    <% state = target.ciState
+       attributes = target.ciAttributes %>
+    <% builder.attributes raw(%(diffType="ci" diffName="#{target.ciName}" created="#{target.created}" diffClass="#{target.ciClassName.split('.').last}" diffAttributes="#{diff_attribute_desc.join('+') if diff_attrs.present?}")) %>
+    <% builder.icon ci_image_url(target) %>
+  <% else %>
+    <% state = target.relationState
+       attributes = target.relationAttributes %>
+    <% builder.attributes raw(%(diffType="relation" diffName="#{target.relationName}" created="#{target.created}" diffClass="#{target.relationName.split('.').last}" diffAttributes="#{diff_attribute_desc.join('+') if diff_attrs.present?}")) %>
+  <% end %>
   <% builder.target nil %>
-  <% builder.icon ci_image_url(target) %>
   <% builder.menu :none %>
+  <% builder.status marker(state, action_to_label(state)) if state.present? && state != 'default'  %>
   <% builder.top do %>
-    <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
-    <span class="topdesc">
-      <%= highlight("- #{target.component.ciName} ") if target.respond_to?(:component) %>
-      <% if diff_attrs.present? %>
-        <span class="pull-right">
-          <%= link_to_function(raw("#{pluralize(diff_attrs.size, 'difference')}&nbsp;#{icon('angle-down', '', 'fa-lg')}"),
-                               "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)") %>
-        </span>
+    <% if ci %>
+      <small class="muted"><%= target.ciClassName.split('.').last.downcase %></small>
+      <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
+      <% if target.respond_to?(:component) %>
+        <span class="topdesc"><%= content_tag(:b, "- #{target.component.ciName} ") %></span>
       <% end %>
-
-    </span>
+    <% else %>
+      <%= icon('link', nil, 'relation') %>
+      <%= target.fromCi.ciName if target.fromCi %>
+      <span class="topdesc"><%= target.relationName.split('.').last %></span>
+      <%= target.toCi.ciName if target.toCi %>
+    <% end %>
+    <% if diff_attrs.present? %>
+      <small class="pull-right">
+        <%= link_to_function(raw("#{pluralize(diff_attrs.size, 'difference')}&nbsp;#{icon('angle-down', '', 'fa-lg')}"),
+                             "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)") %>
+      </small>
+    <% end %>
   <% end %>
   <% builder.middle do %>
-    <% if diff_attrs.present? || !changes_only %>
+    <% if diff_attrs.present? || !show_changes_only %>
       <table class="table table-condensed table-bordered">
         <% diff_attribute_map = {}
-           owner_map = target.attrOwner %>
+           owner_map = owner_value && target.attrOwner %>
         <% diff_attrs.each do |diff| %>
           <% attr = diff['attribute'].to_s
              diff_attribute_map[attr] = diff
@@ -42,22 +66,22 @@
              base_value = diff['base_value'] %>
           <tr class="diff-container">
             <td>
-              <%= highlight(md_attribute ? md_attribute.description : attr) %>
+              <%= content_tag(:b, md_attribute ? md_attribute.description : attr) %>
               <%= icon(owner_map.attributes[md_attribute.attributeName] == owner_value ? 'lock' : 'unlock') if owner_map %>
             </td>
             <td><pre class="changed"><%= h(json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value) %></pre></td>
             <td><pre class="original muted"><%= h(json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value) %></pre></td>
           </tr>
         <% end %>
-        <% unless changes_only %>
-          <% target.ciAttributes.attributes.keys.sort.each do |attr| %>
+        <% unless show_changes_only %>
+          <% attributes.attributes.keys.sort.each do |attr| %>
             <% unless diff_attribute_map[attr] %>
               <% md_attribute = target.meta.md_attribute(attr)
                  data_type = md_attribute.dataType
                  json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
-                 value = target.ciAttributes.attributes[attr] %>
+                 value = attributes.attributes[attr] %>
               <tr class="no-diff muted">
-                <td><em><%= highlight(md_attribute ? md_attribute.description : "! #{attr}") %></em></td>
+                <td><em><%= content_tag(:b, md_attribute ? md_attribute.description : "! #{attr}") %></em></td>
                 <td><pre><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
                 <td><pre class="muted"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
               </tr>
@@ -67,6 +91,7 @@
       </table>
     <% end %>
   <% end %>
+  <% builder.bottom nil %>
 <% end %>
 
 <script>

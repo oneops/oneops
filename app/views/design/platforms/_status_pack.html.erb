@@ -1,8 +1,9 @@
 <% open_changes        = @rfcs.values.map(&:size).sum > 0 || @platform.rfcAction.present?
-   pack_major_version  = @platform.ciAttributes.version.split('.').first
-   pack_minor_versions = @pack_versions.select {|v| v.ciName == pack_major_version || v.ciName.start_with?("#{pack_major_version}.")}
-   plat_digest         = @platform.ciAttributes.pack_digest
-   current_version     = @platform.ciAttributes.version
+   platform_attributes = @platform.ciAttributes
+   pack_major_version  = platform_attributes.version.split('.').first
+   pack_minor_versions = pack_versions(platform_attributes.source, platform_attributes.pack, pack_major_version)
+   plat_digest         = platform_attributes.pack_digest
+   current_version     = platform_attributes.version
    current_verion_ci   = pack_minor_versions.find {|v| v.ciName == current_version}
    pack_digest         = current_verion_ci && current_verion_ci.ciAttributes.commit
    last_pack_pull_info = @platform_detail.attributes[:attributes].pack_digest
@@ -20,9 +21,9 @@
         r[:latest_minor_ci] = v_ci
         r[:latest_minor_version] = v
        end
-       if v[1] == semantic_versions[1] && v[2] > r[:latest_patch_version][2]
+       if v[1] == r[:latest_patch_version][1] && v[2] > r[:latest_patch_version][2]
         r[:latest_patch_ci] = v_ci
-        r[:latest_patch] = v
+        r[:latest_patch_version] = v
        end
        r
      end
@@ -47,15 +48,18 @@
         <% if latest_patch_version_ci == current_verion_ci %>
           Up to date with latest patch version
           <% if latest_minor_version_ci != current_verion_ci && latest_minor_version_ci != latest_patch_version_ci %>
-            but newer minor version <strong><%= latest_minor_version_ci.ciName %></strong> is available since
-            <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
+            but newer minor version <strong><%= latest_minor_version_ci.ciName %></strong>
+            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => platform_attributes.version, :other_version => latest_minor_version_ci.ciName), :target => '_blank') %>)
+            is available since <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
           <% end %>
         <% else %>
-          Newer patch version <strong><%= latest_patch_version_ci.ciName %></strong> is available since
-          <strong><%= time_ago_in_words(latest_patch_version_ci.updated_timestamp) %></strong>
+          Newer patch version <strong><%= latest_patch_version_ci.ciName %></strong>
+          (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => platform_attributes.version, :other_version => latest_patch_version_ci.ciName), :target => '_blank') %>)
+          is available since <strong><%= time_ago_in_words(latest_patch_version_ci.updated_timestamp) %></strong>
           <% if latest_minor_version_ci != latest_patch_version_ci %>
-            and newer minor version <strong><%= latest_minor_version_ci.ciName %></strong> is available since
-            <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
+            and newer minor version <strong><%= latest_minor_version_ci.ciName %></strong>
+            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => platform_attributes.version, :other_version => latest_minor_version_ci.ciName), :target => '_blank') %>)
+            is available since <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
           <% end %>
         <% end %>
       <% else %>
@@ -86,88 +90,85 @@
           This platform can be <strong>updated</strong> with latest changes from the pack.
         <% end %>
       <% end %>
-      <div class="alert alert-info">
-        <%= icon('book') %>
-        <small>
-          <% if semver %>
-            Select <strong>Pull Pack</strong> to update this platform with changes from the <strong>latest <em>patch</em></strong>
-            version of the pack (same <em>minor</em> version).
-            Or select <strong>Change Pack Version</strong> to update this platform with changes from a
-            <%= expandable_content do %>
-              specifically selected version of the pack.
-              You can either upgrade or downgrade to any available version (<em>minor</em> and/or <em>patch</em>) of this pack.
-            <% end %>
-          <% else %>
-            <strong>Pull Pack</strong> will update this platform with latest changes in the pack.
-            By pulling the pack all <strong><em>unlocked</em></strong> attributes will be updated with
-            <%= expandable_content do %>
-              pack new default values.
-              Additionally, new pack-required components, variables, attachments will be added and removed ones will be marked for deletion.<br/>
-              All resulting changes will be added to design release and you will have a chance to review the changes before committing
-              or discarding them (by committing/discarding the whole design release or changes for this platform only).
-            <% end %>
-          <% end %>
-        </small>
-      </div>
     </dd>
-
-    <% if has_design?(@assembly.ciId) %>
-      <ul class="status-actions">
-        <% if semver %>
-          <li>
-            <% if latest_patch_version_ci %>
-              <%= link_to_function(icon('magnet', 'Pull Pack'),
-                                   open_changes ? '' : "pack_update('#{latest_patch_version_ci.ciName}')",
-                                   :class => "btn info #{'disabled' if open_changes}") %>
-            <% else %>
-              <%= link_to_function(icon('magnet', 'Force Pull Pack'),
-                                   open_changes ? '' : "pack_update('#{latest_patch_version_ci.ciName}')",
-                                   :class => "btn inverse #{'disabled' if open_changes}") %>
-            <% end %>
-          </li>
-          <% if pack_minor_versions.size > 1 %>
-            <li>
-              <div class="btn-group">
-                <a class="btn btn-primary dropdown-toggle <%= 'disabled' if open_changes %>" data-toggle="dropdown" href="#">
-                  <span><%= icon('repeat') %> Change Pack Version</span> <span class="caret"></span>
-                </a>
-                <% unless open_changes %>
-                  <ul class="dropdown-menu drop-down">
-                    <li class="disabled" style="border-bottom: 1px solid #bbb">
-                      <a>Choose pack version to<br/>upgrade or downgrade to:</a>
-                    </li>
-                    <% pack_minor_versions.sort_by { |v| s = v.ciName.split('.'); -(s[1].to_i * 100000 + s[2].to_i) }.each do |v| %>
-                      <% if v.ciName == current_version %>
-                        <li class="disabled"><%= link_to_function(v.ciName, '') %></li>
-                      <% else %>
-                        <li><%= link_to_function(v.ciName, "pack_update('#{v.ciName}')") %></li>
-                      <% end %>
-                    <% end %>
-                  </ul>
-                <% end %>
-              </div>
-            </li>
-          <% end %>
-        <% else %>
-          <li>
-            <% if open_changes %>
-              <% if on_latest_commit %>
-                <%= button(icon('magnet', 'Force Pull Pack'), nil, 'inverse disabled') %>
-              <% else %>
-                <%= button(icon('magnet', 'Pull Pack'), nil, 'info disabled') %>
+    <dt>&nbsp;</dt>
+    <dd>
+      <% if has_design?(@assembly.ciId) %>
+        <div class="alert alert-info">
+          <%= icon('book') %>
+          <small>
+            <% if semver %>
+              Select <strong>Pull Pack</strong> to update this platform with changes from the <strong>latest <em>patch</em></strong>
+              version of the pack (same <em>minor</em> version).
+              Or select <strong>Change Pack Version</strong> to update this platform with changes from a
+              <%= expandable_content do %>
+                specifically selected version of the pack.
+                You can either upgrade or downgrade to any available version (<em>minor</em> and/or <em>patch</em>) of this pack.
               <% end %>
             <% else %>
-              <%= link_confirm_busy(on_latest_commit ? button('Force Pull Pack', nil, 'inverse') : button('Pull Pack', nil, 'info'),
-                                    :url     => pack_refresh_assembly_design_platform_path(@assembly, @platform),
-                                    :method  => :put,
-                                    :remote => false,
-                                    :confirm => 'Pull latest pack changes?',
-                                    :busy    => 'Pulling latest pack changes ...') %>
+              <strong>Pull Pack</strong> will update this platform with latest changes in the pack.
+              By pulling the pack all <strong><em>unlocked</em></strong> attributes will be updated with
+              <%= expandable_content do %>
+                pack new default values.
+                Additionally, new pack-required components, variables, attachments will be added and removed ones will be marked for deletion.<br/>
+                All resulting changes will be added to design release and you <b>will have a chance to review</b> the changes before committing
+                or discarding them (by committing/discarding the whole design release or changes for this platform only).
+              <% end %>
             <% end %>
-          </li>
-        <% end %>
-      </ul>
-    <% end %>
+          </small>
+        </div>
+        <ul class="inline">
+          <% if semver %>
+            <li>
+              <% force = latest_patch_version_ci == current_verion_ci %>
+              <%= link_to_function(icon('magnet', "#{'Force ' if force}Pull Pack (#{latest_patch_version_ci.ciName})"),
+                                   open_changes ? '' : "pack_update('#{latest_patch_version_ci.ciName}')",
+                                   :class => "btn btn-#{force ? 'inverse' : 'info'} #{'disabled' if open_changes}") %>
+            </li>
+            <% if pack_minor_versions.size > 1 %>
+              <li>
+                <div class="btn-group">
+                  <a class="btn btn-primary dropdown-toggle <%= 'disabled' if open_changes %>" data-toggle="dropdown" href="#">
+                    <span><%= icon('repeat') %> Change Pack Version</span> <span class="caret"></span>
+                  </a>
+                  <% unless open_changes %>
+                    <ul class="dropdown-menu drop-down">
+                      <li class="disabled" style="border-bottom: 1px solid #bbb">
+                        <a>Choose pack version to<br/>upgrade or downgrade to:</a>
+                      </li>
+                      <% pack_minor_versions.each do |v| %>
+                        <% if v.ciName == current_version %>
+                          <li class="disabled"><%= link_to_function(v.ciName, '') %></li>
+                        <% else %>
+                          <li><%= link_to_function(v.ciName, "pack_update('#{v.ciName}')") %></li>
+                        <% end %>
+                      <% end %>
+                    </ul>
+                  <% end %>
+                </div>
+              </li>
+            <% end %>
+          <% else %>
+            <li>
+              <% if open_changes %>
+                <% if on_latest_commit %>
+                  <%= button(icon('magnet', 'Force Pull Pack'), nil, 'inverse disabled') %>
+                <% else %>
+                  <%= button(icon('magnet', 'Pull Pack'), nil, 'info disabled') %>
+                <% end %>
+              <% else %>
+                <%= link_confirm_busy(on_latest_commit ? button('Force Pull Pack', nil, 'inverse') : button('Pull Pack', nil, 'info'),
+                                      :url     => pack_refresh_assembly_design_platform_path(@assembly, @platform),
+                                      :method  => :put,
+                                      :remote => false,
+                                      :confirm => 'Pull latest pack changes?',
+                                      :busy    => 'Pulling latest pack changes ...') %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </dd>
    </dl>
 </div>
 
@@ -187,7 +188,7 @@
       <small>
         By updating the pack version all <strong><em>unlocked</em></strong> attributes will be updated with pack new default values.
         Additionally, new pack-required components, variables, attachments will be added and removed ones will be marked for deletion.
-        All resulting changes will be added to design release and you will have a chance to review the changes before committing
+        All resulting changes will be added to design release and you <b>will have a chance to review</b> the changes before committing
         or discarding them (by committing/discarding the whole design release or changes for this platform only).
       </small>
     </p>

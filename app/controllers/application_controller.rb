@@ -39,7 +39,7 @@ class ApplicationController < ActionController::Base
                 :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
-                :graphvis_sub_ci_remote_images, :packs_info, :design_platform_ns_path,
+                :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
                 :has_support_permission?
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
@@ -182,7 +182,7 @@ class ApplicationController < ActionController::Base
 
   def ci_resource
     # Should be overwritten by subclasses.
-    raise Exception.new("Controller #{self.class.name} did not define ci resource.")
+    raise Exception.new("Controller #{self.class.name} did not define target resource.")
   end
 
   def locate_proxy(qualifier, ns_path)
@@ -471,19 +471,19 @@ class ApplicationController < ActionController::Base
     end
   end
 
-  def calculate_ci_diff(ci, base_ci)
-    base_attrs = base_ci ? base_ci.ciAttributes.attributes : {}
-    attrs      = ci.ciAttributes
-    diff       = []
-    ci.meta.attributes[:mdAttributes].each do |a|
+  def calculate_attr_diff(target, base)
+    attributes_key = target.is_a?(Cms::Ci) ? :ciAttributes : :relationAttributes
+    base_attrs     = base ? base.send(attributes_key).attributes : {}
+    attrs          = target.send(attributes_key).attributes
+    target.meta.attributes[:mdAttributes].inject([]) do |diff, a|
       attr_name       = a.attributeName
-      attr_value      = attrs.attributes[attr_name]
+      attr_value      = attrs[attr_name]
       pack_attr_value = base_attrs[attr_name]
       unless attr_value == pack_attr_value || ((attr_value.nil? || attr_value.empty?) && (pack_attr_value.nil? || pack_attr_value.empty?))
         diff << {:attribute => attr_name, :value => attr_value, :base_value => pack_attr_value}
       end
+      diff
     end
-    diff
   end
 
   def execute(model, operation, *args)
@@ -793,6 +793,35 @@ class ApplicationController < ActionController::Base
       m
     end
     return pack_sources, pack_versions, packs
+  end
+
+  def pack_versions(source, pack_name, major_version = nil)
+    pack_ns_path = "/public/#{source}/packs/#{pack_name}"
+    if check_pack_owner_group_membership?(current_user) || has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)
+      versions = Cms::Ci.all(:params => {:nsPath       => pack_ns_path,
+                                          :ciClassName  => 'mgmt.Version',
+                                          :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
+    else
+      versions = Cms::Ci.all(:params => {:nsPath       => pack_ns_path,
+                                          :ciClassName  => 'mgmt.Version',
+                                          :recursive    => true,
+                                          :attr         => 'enabled:neq:false',
+                                          :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
+      versions += Cms::Ci.all(:params => {:nsPath      => pack_ns_path,
+                                           :ciClassName => 'mgmt.Version',
+                                           :recursive   => true,
+                                           :attr        => 'enabled:eq:false',
+                                           :altNsTag    => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
+                                           :altNs       => organization_ns_path})
+    end
+    versions = versions.select {|v| v.ciName == major_version || v.ciName.start_with?("#{major_version}.")} if major_version.present?
+    versions.sort_by { |v| s = v.ciName.split('.'); -(s[1].to_i * 100000 + s[2].to_i) }
+  end
+
+  def check_pack_owner_group_membership?(user = current_user)
+    auth_group = Settings.pack_management_auth
+    # 'pack_management_auth' is assumed to the name of the user group whose memebers are allowed to manage pack visibility.
+    auth_group.present? && user.in_group?(auth_group)
   end
 
   def render_json_ci_response(ok, ci, errors = nil, status = nil)

@@ -1,11 +1,6 @@
 class Operations::InstancesController < ApplicationController
   include ::RfcHistory
 
-  NOTIFICATION_RANGES       = %w(day week month)
-  NOTIFICATION_RANGE_LENGTH = HashWithIndifferentAccess.new(:day   => 60 * 60 * 24,
-                                                            :week  => 60 * 60 * 24 * 7,
-                                                            :month => 60 * 60 * 24 * 31)
-
   before_filter :find_parents, :except => [:state]
   before_filter :find_instance, :except => [:index, :state, :destroy]
 
