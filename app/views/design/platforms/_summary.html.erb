@@ -55,7 +55,7 @@
 <%= section_panel 'Status', :width => 'double', :position => 'left' do %>
   <ul class="status">
     <li class="status-marker"><%= render 'status_release' %></li>
-    <% if @pack_version %>
+    <% unless @platform.rfcAction == 'add' %>
       <li class="status-marker"><%= render 'status_pack' %></li>
     <% end %>
   </ul>

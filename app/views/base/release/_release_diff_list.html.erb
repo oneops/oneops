@@ -11,7 +11,8 @@
      rfc_cis_map = rfc_cis.to_map { |c| "#{c.ciName}***#{c.ciClassName}" }
      rfc_relations_with_no_rfc_cis = (rfc_relations || []).reject do |r|
        rfc_cis_map["#{r.ci_hash['toCiName']}***#{r.ci_hash['toCiClass']}"] || rfc_cis_map["#{r.ci_hash['fromCiName']}***#{r.ci_hash['fromCiClass']}"]
-     end %>
+     end
+     owner_value = defined?(owner) && owner %>
   <%= list(rfc_cis + rfc_relations_with_no_rfc_cis,
            :class   => 'release-diff',
            :toolbar => {:list_name => 'release_rfc_list',
@@ -27,7 +28,9 @@
          mda = meta.md_attribute(attr)
          mda ? mda.description : attr
        end
-       rfc_ci_relations = ci && rfc_relations_map["#{target.ciName}***#{target.ciClassName}"] %>
+       rfc_ci_relations = ci && rfc_relations_map["#{target.ciName}***#{target.ciClassName}"]
+       owner_map = owner_value && (ci ? target.attributes[:ciAttrProps] : target.attributes[:relationAttrProps]).attributes[:owner]
+       owner_map = owner_value && target.attrOwner %>
     <% builder.itemid rfc_id %>
     <% builder.attributes raw(%(rfcName="#{ci ? target.ciName : target.relationName}" created="#{target.created}" rfcClass="#{(ci ? target.ciClassName : target.relationName).split('.').last}" namespace="#{target.nsPath}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
     <% builder.target nil %>
@@ -55,8 +58,7 @@
         <% end %>
         <% if diff_attrs.present? %>
           <span class="topdesc pull-right">
-            <small><%= pluralize(diff_attrs.size, 'change') %>&nbsp;</small>
-            <%= link_to_function(icon('angle-down', '', 'fa-lg'),
+            <%= link_to_function(raw("#{content_tag(:small, pluralize(target.rfcAction == 'add' ? diff_attrs.size : base_attrs.size, 'change'))}&nbsp;#{icon('angle-down', '', 'fa-lg')}"),
                                  "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)") %>
           </span>
         <% end %>
@@ -81,11 +83,18 @@
                    data_type = md_attribute.dataType
                    json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
                    base_value = base_attrs[attr] %>
-                <tr class="attribute"><td colspan="2"><%= md_attribute ? md_attribute.description : attr %></td></tr>
-                <tr class="diff-container">
-                  <td><pre class="changed"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
-                  <td><pre class="original muted"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre></td>
-                </tr>
+                <% if base_value || target.rfcAction == 'add' %>
+                  <tr class="attribute">
+                    <td colspan="2">
+                      <%= md_attribute ? md_attribute.description : attr %>
+                      <%= icon(owner_map.attributes[md_attribute.attributeName] == owner_value ? 'lock' : 'unlock') if owner_map %>
+                    </td>
+                  </tr>
+                  <tr class="diff-container">
+                    <td><pre class="changed"><%= json && value.present? ? JSON.pretty_unparse(JSON.parse(value)) : value %></pre></td>
+                    <td><pre class="original muted"><%= json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value %></pre></td>
+                  </tr>
+                <% end %>
               <% end %>
             </table>
           </div>
@@ -97,7 +106,7 @@
           <div class="tab-pane" id="rfc_<%= rfc_id %>_relations">
             <% rfc_ci_relations.each do |r| %>
               <div class="category">
-                <div class="name"><%= r.relationName.split('.').last %></div>
+                <div class="name"><%= rfc_action_icon(r.rfcAction) %> <%= r.relationName.split('.').last %></div>
                 <%= rfc_properties(r) %>
                 <%= rfc_attributes(r) %>
               </div>

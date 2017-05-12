@@ -61,6 +61,10 @@ class Cms::Relation < Cms::Base
     self.get(:count, options)
   end
 
+  def attrOwner
+    attributes[:relationAttrProps] && relationAttrProps.attributes['owner']
+  end
+
 
   private
 

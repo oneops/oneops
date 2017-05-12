@@ -1,5 +1,5 @@
 <% has_support_permission = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)
-   allow_actions = has_support_permission || (@version.ciAttributes.admin_password_digest.present? && check_pack_owner_group_membership?(current_user)) %>
+   allow_actions = has_support_permission || (@pack.ciAttributes.admin_password_digest.present? && check_pack_owner_group_membership?(current_user)) %>
 <ul class="status">
   <li class="status-marker">
     <div class="marker">
@@ -54,7 +54,7 @@
       </dl>
       <% if allow_actions %>
         <div id="enable_pack_form" class="hide well well-small">
-          <h5>Enable pack in all organizations</h5>
+          <h5>Enable pack version <%= params[:version] %> in all organizations</h5>
           <%= form_tag catalog_pack_visibility_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
             <%= hidden_field_tag :enabled, 'true' %>
             <div class="control-group">
@@ -70,7 +70,7 @@
           <% end %>
         </div>
         <div id="disable_pack_form" class="hide well well-small">
-          <h5>Disable pack in all organizations</h5>
+          <h5>Disable pack version <%= params[:version] %> in all organizations</h5>
           <%= form_tag catalog_pack_visibility_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
             <%= hidden_field_tag :enabled, 'false' %>
             <div class="control-group">
@@ -114,7 +114,7 @@
         </div>
         <div id="configure_pack_visibility_form" class="hide well well-small">
           <%= form_tag catalog_pack_visibility_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
-            <h5>Enable pack for selected organizations</h5>
+            <h5>Enable pack version <%= params[:version] %> for selected organizations</h5>
             <div class="control-group">
               <label class="control-label" for="password">Pack admin password</label>
               <div class="controls">

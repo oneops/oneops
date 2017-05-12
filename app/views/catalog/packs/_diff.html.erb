@@ -1,0 +1,35 @@
+<% dom_id = random_dom_id %>
+<% version_dropdown = capture do %>
+  <div class="btn-group">
+    <a id="<%= dom_id %>" class="btn btn-small dropdown-toggle" data-toggle="dropdown" href="#">
+      <span><%= params[:other_version].presence || 'choose version' %></span>&nbsp; <span class="caret"></span>
+    </a>
+    <ul class="dropdown-menu drop-down">
+      <li class="disabled" style="border-bottom: 1px solid #bbb">
+        <a>Choose pack version to compare:</a>
+      </li>
+      <% pack_versions(params[:source], params[:pack]).each do |v| %>
+        <li><%= link_to_function(v.ciName, %(diff_pack_versions(this, "#{v.ciName}"))) %></li>
+      <% end %>
+    </ul>
+  </div>
+
+<% end %>
+<%= section_panel "Differences with version #{raw(version_dropdown)}", :width => 'triple' do %>
+  <div id="pack_version_diff">
+    Please select a pack version to compare this version (<%= params[:version] %>) with...
+  </div>
+<% end %>
+
+<script>
+  window.diff_pack_versions = function(source, version) {
+    $j("#pack_version_diff").html("<%= escape_javascript(loading_indicator) %>");
+    $j(source).parents(".btn-group").find(".btn span:first-child").html(version);
+    $j.get("<%= catalog_pack_diff_path(params[:source], params[:pack], params[:version], params[:availability]) %>",
+           {other_version: version});
+  };
+  <% other_version = params[:other_version] %>
+  <% if other_version.present? %>
+    diff_pack_versions("<%= dom_id %>", "<%= other_version %>");
+  <% end %>
+</script>

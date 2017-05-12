@@ -30,8 +30,4 @@ class Cms::DjCi < Cms::RfcCi
   def records(state = nil)
     get(:records, state && {:state => state}).map {|r| Cms::DeploymentRecord.new(r, true)}
   end
-
-  def attrOwner
-    attributes[:ciAttrProps] && ciAttrProps.attributes['owner']
-  end
 end

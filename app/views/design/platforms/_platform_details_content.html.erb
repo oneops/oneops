@@ -56,8 +56,8 @@
                           pack = $j("#pack_select").val(),
                           version = $j("#version_select").val();
                       if (source && pack && version) {
-                        var url = "<%= catalog_pack_path('~!~source~!~', '~!~pack~!~', '~!~version~!~') %>";
-                        $j.get(url.sub('~!~source~!~', source).sub('~!~pack~!~', pack).sub('~!~version~!~', version));
+                        var url = "<%= catalog_pack_path('~!~source~!~', '~!~pack~!~', '0.0.0') %>";
+                        $j.get(url.sub('~!~source~!~', source).sub('~!~pack~!~', pack).sub('0.0.0', version));
                         $j("#pack_info_div").html("<%= escape_javascript(loading_indicator) %>");
                         $j("#pack_info_div").closest(".category").show();
                       }

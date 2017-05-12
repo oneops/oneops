@@ -56,6 +56,14 @@ class SupportController < ReportsController
         response.headers['oneops-list-offset']      = offset.to_s
         render :json => @organizations
       end
+
+      format.any do
+        response.headers['oneops-list-total-count'] = total.to_s
+        response.headers['oneops-list-page-size']   = @organizations.size.to_s
+        response.headers['oneops-list-offset']      = offset.to_s
+        render :text => @organizations.map {|o| "#{o.id},#{o.name},#{o.created_at},#{o.full_name}"}.join("\n")
+      end
+
     end
   end
 
@@ -75,7 +83,8 @@ class SupportController < ReportsController
                                            :relationShortName => 'DeployedTo',
                                            :direction         => 'to',
                                            :groupBy           => 'ciId').values.sum
-      @counts = {'admin'    => @organization.teams.where(:name => Team::ADMINS).first.users.size,
+      admins = @organization.teams.where(:name => Team::ADMINS).first
+      @counts = {'admin'    => admins ? admins.users.size : 0,
                  'team'     => @organization.teams.size,
                  'cloud'    => cloud_count,
                  'asembly'  => assembly_count,

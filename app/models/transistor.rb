@@ -64,9 +64,9 @@ class Transistor < ActiveResource::Base
     return id
   end
 
-  def self.design_platform_rfcs(platform_id)
+  def self.design_platform_rfcs(platform_id, opts = {})
     begin
-      rfcs = get("platforms/#{platform_id}/rfcs", {})
+      rfcs = get("platforms/#{platform_id}/rfcs", opts)
       rfcs['cis'] = rfcs['cis'].map {|rfc| Cms::RfcCi.new(rfc, true)}
       rfcs['relations'] = rfcs['relations'].map {|rfc| Cms::RfcRelation.new(rfc, true)}
       return rfcs
@@ -99,6 +99,15 @@ class Transistor < ActiveResource::Base
       return JSON.parse(put("platforms/#{platform_id}/pack_refresh", {}).body)['releaseId']
     rescue Exception => e
       message = handle_exception(e, "Failed to peform pack refresh for platform '#{platform_id}'.")
+      return nil, message
+    end
+  end
+
+  def self.pack_update(platform_id, version)
+    begin
+      return JSON.parse(put("platforms/#{platform_id}/packs/versions/#{version}", {}).body)['releaseId']
+    rescue Exception => e
+      message = handle_exception(e, "Failed to peform pack update for platform '#{platform_id}', version '#{version}'.")
       return nil, message
     end
   end
@@ -169,8 +178,7 @@ class Transistor < ActiveResource::Base
         result.toCi.errors.add(:base, error)
       end
     else
-      Rails.logger.info "====== #{requires_rel.errors.full_messages}"
-      Rails.logger.info "====== #{requires_rel.toCi.errors.full_messages}"
+      Rails.logger.info "Create component validation failed: #{requires_rel.errors.full_messages}; #{requires_rel.toCi.errors.full_messages}"
     end
     return result
   end

@@ -1,31 +1,44 @@
 <%= section_panel 'Components', :width => 'single', :position => 'right' do %>
-  <%= grouped_ci_list(@component_groups) do |group_builder, group| %>
-    <% group_items = group[:items] %>
-    <% group_builder.icon ci_class_image_url(group[:class_name]) %>
-    <% group_builder.title group[:template_name] %>
-
-    <% group_builder.menu do %>
-      <% if group_items.present? %>
-        <span class="label label-count"><%= group_items.size %></span>
-      <% end %>
+  <%= ci_list(@components,
+              :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created)],
+                           :filter_by => %w(ciClass ciName),
+                           :compact   => false}) do |builder, target| %>
+    <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" ciClass="#{target.ciClassName.split('.').last}")) %>
+    <% builder.target nil %>
+    <% builder.icon ci_image_url(target) %>
+    <% builder.menu :none %>
+    <% builder.top do %>
+      <span class="topname">
+        <%= link_to(target.ciName, @design ?
+                                     catalog_design_platform_component_path(@design, @platform, target) :
+                                     catalog_pack_platform_component_path(:platform_id => @platform, :id => target)) %>
+      </span>
     <% end %>
-
-    <%= group_builder.items(group_items) do |item_builder, ci| %>
-      <% item_builder.attributes raw(%(ciName="#{ci.ciName}")) %>
-      <% item_builder.target link_to('', @design ?
-                                           catalog_design_platform_component_path(@design, @platform, ci) :
-                                           catalog_pack_platform_component_path(:platform_id => @platform, :id => ci)) %>
-      <% item_builder.icon :none %>
+    <% builder.middle do %>
+      <%= render 'cms/cis/important', :ci => target %>
+    <% end %>
+    <% builder.bottom :none %>
+    <% builder.status do %>
+      <% if @policy_compliance %>
+        <% violate_count = @policy_compliance[target.ciId] %>
+        <% if violate_count == 0 %>
+          <%= status_marker('policy', 'passed', 'label-success') %>
+        <% else %>
+          <%= status_marker('policy', "#{violate_count} failed", 'label-important') %>
+        <% end %>
+      <% end %>
     <% end %>
   <% end %>
 <% end %>
 
-<%= section_panel 'Info & Stats', :width => 'double', :position => 'left' do %>
-  <div id="pack_info_div"><%= loading_indicator %></div>
-<% end %>
+<% unless @design %>
+  <%= section_panel 'Info & Stats', :width => 'double', :position => 'left' do %>
+    <div id="pack_info_div"><%= loading_indicator %></div>
+  <% end %>
 
-<%= section_panel 'Visibility', :width => 'double', :position => 'left' do %>
-  <div id="pack_visibility_div"><%= loading_indicator %></div>
+  <%= section_panel 'Visibility', :width => 'double', :position => 'left' do %>
+    <div id="pack_visibility_div"><%= loading_indicator %></div>
+  <% end %>
 <% end %>
 
 <div id="page_nav_diagram">

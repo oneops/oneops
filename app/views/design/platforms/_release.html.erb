@@ -16,6 +16,11 @@
     <li>
   </ul>
   <div class="release">
-    <%= render 'base/release/release_diff_list', :rfc_cis => @rfcs['cis'], :rfc_relations => @rfcs['relations'] %>
+    <% rfc_cis = @rfcs['cis']
+       rfc_cis << @platform if @platform.rfcAction.present?%>
+    <%= render 'base/release/release_diff_list',
+               :rfc_cis       => rfc_cis,
+               :rfc_relations => @rfcs['relations'],
+               :owner         => 'design' %>
   </div>
 <% end %>

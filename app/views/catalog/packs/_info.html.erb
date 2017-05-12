@@ -5,61 +5,23 @@
   <dd>Created <b><%= time_ago_in_words(@version.created_timestamp) %></b></dd>
   <dt><%= icon(site_icon(:deployment)) %></dt>
   <dd>
-    <% if @stats.blank? %>
-      <strong class="text-error">Failed to load operation stats!</strong>
-    <% elsif @stats[:all][:org] > 0 %>
-        Operation stats
-      <div class="report">
-        <table style="width:96%">
-          <tr>
-            <th style="width:20%">Used in</th>
-            <th style="width:40%" class="metric">All</th>
-            <th style="width:40%" class="metric">Production</th>
-          </tr>
-          <tr>
-            <td><%= icon(site_icon(:organization)) %> organizations</td>
-            <td class="metric"><%= @stats[:all][:org] %></td>
-            <td class="metric"><%= @stats[:prod][:org] %></td>
-          </tr>
-          <tr>
-            <td><%= icon(site_icon(:assembly)) %> assemblies</td>
-            <td class="metric"><%= @stats[:all][:assembly] %></td>
-            <td class="metric"><%= @stats[:prod][:assembly] %></td>
-          </tr>
-          <tr>
-            <td><%= icon(site_icon(:transition)) %> environments</td>
-            <td class="metric"><%= @stats[:all][:environment] %></td>
-            <td class="metric"><%= @stats[:prod][:environment] %></td>
-          </tr>
-          <% %w(single redundant).each do |availability| %>
-            <% key = "platform_#{availability}".to_sym
-               plat_count = @stats[:all][key].to_i %>
-            <% if plat_count > 0 %>
-              <tr>
-                <td><%= icon(site_icon("#{availability}_availability".to_sym)) %> <em><%= availability %></em> platforms</td>
-                <td class="metric"><%= plat_count %></td>
-                <td class="metric"><%= @stats[:prod][key].to_i %></td>
-              </tr>
-            <% end %>
-          <% end %>
-          <tr>
-            <td><%= icon(site_icon(:compute)) %> computes</td>
-            <td class="metric"><%= @stats[:all][:compute] %></td>
-            <td class="metric"><%= @stats[:prod][:compute] %></td>
-          </tr>
-          <tr>
-            <td><%= icon(site_icon(:cloud)) %> clouds</td>
-            <td class="metric">
-              <%= raw @stats[:all][:cloud].keys.map { |c| c.split('/').last }.sort.join(', ') %>
-            </td>
-            <td class="metric">
-              <%= raw @stats[:prod][:cloud].keys.map { |c| c.split('/').last }.sort.join(', ') %>
-            </td>
-          </tr>
-        </table>
-      </div>
-    <% else %>
-      <strong class="text-warning">No operation stats found.</strong>
-    <% end %>
+    Operation stats
+    <% version = params[:version]
+       dom_id = random_dom_id %>
+    <div class="btn-group pull-right" id="<%= dom_id %>">
+      <%= link_to(icon('check', "ver. #{version}"), catalog_pack_stats_path(params[:source], params[:pack], params[:version]), :remote => true, :class => 'btn btn-mini active') %>
+      <%= link_to(icon('', 'all versions'), catalog_pack_stats_path(params[:source], params[:pack]), :remote => true, :class => 'btn btn-mini') %>
+    </div>
+    <script>
+      $j("#<%= dom_id %> .btn").click(function() {
+        var button = $j(this);
+        button.parent().find("i.fa-check").removeClass("fa-check");
+        button.siblings('.btn').removeClass("active");
+        button.addClass("active");
+        button.find("i.fa").addClass('fa-check');
+      });
+
+    </script>
+    <%= render 'stats' %>
   </dd>
 </dl>

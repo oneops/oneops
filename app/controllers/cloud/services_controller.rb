@@ -249,7 +249,7 @@ class Cloud::ServicesController < ApplicationController
     @diff = provides_rels.inject([]) do |m, r|
       service  = r.toCi
       template = locate_cloud_service_template(service)
-      diff     = calculate_ci_diff(service, template)
+      diff     = calculate_attr_diff(service, template)
       unless changes_only && diff.blank?
         service.diffCi = template
         service.diffAttributes = diff

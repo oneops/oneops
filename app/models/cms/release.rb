@@ -56,11 +56,11 @@ class Cms::Release < Cms::Base
   end
 
   def rfc_cis
-    @rfc_cis ||= Cms::RfcCi.all( :params => { :releaseId => self.releaseId })
+    @rfc_cis ||= Cms::RfcCi.all(:params => {:releaseId => self.releaseId, :attrProps => 'owner'})
   end
 
   def rfc_relations
     return @rfc_relations if @rfc_relations
-    @rfc_relations = Cms::RfcRelation.all( :params => { :releaseId => self.releaseId })
+    @rfc_relations = Cms::RfcRelation.all(:params => {:releaseId => self.releaseId, :attrProps => 'owner'})
   end
 end

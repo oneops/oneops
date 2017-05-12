@@ -195,7 +195,18 @@ class Base::PlatformsController < ApplicationController
       group_id  = "#{r.relationAttributes.template}_#{@platform.ciId}"
       component = r.toCi
       component.add_policy_locations(pack_ns_path) if Settings.check_policy_compliance
-      group_map[group_id][:items] << component
+      group = group_map[group_id]
+      unless group
+        # Must be due to deleted component template.
+        group = {:id            => group_id,
+                 :template_name => r.relationAttributes.template,
+                 :class_name    => component.ciClassName,
+                 :cardinality   => r.relationAttributes.constraint,
+                 :obsolete      => true,
+                 :items         => []}
+        group_map[group_id] = group
+      end
+      group[:items] << component
       component
     end
 

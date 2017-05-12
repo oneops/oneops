@@ -28,15 +28,10 @@ class Design::PlatformsController < Base::PlatformsController
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
 
         @release = Cms::Release.latest(:nsPath => assembly_ns_path(@assembly))
-        @rfcs = @release.releaseState == 'open' ? Transistor.design_platform_rfcs(@platform.ciId) : {}
+        @rfcs = @release.releaseState == 'open' ? Transistor.design_platform_rfcs(@platform.ciId, :attrProps => 'owner') : {}
 
 
-        unless @platform.rfcAction == 'add'
-          @pack_version    = Cms::Ci.first(:params => {:nsPath      => "/public/#{@platform.ciAttributes.source}/packs/#{@platform.ciAttributes.pack}",
-                                                       :ciClassName => 'mgmt.Version',
-                                                       :ciName      => @platform.ciAttributes.version})
-          @platform_detail = Cms::CiDetail.find(@platform.ciId)
-        end
+        @platform_detail = Cms::CiDetail.find(@platform.ciId) unless @platform.rfcAction == 'add'
 
         render(:action => :show)
       end
@@ -185,24 +180,22 @@ class Design::PlatformsController < Base::PlatformsController
     pack_components = Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
                                                     :relationShortName => 'Requires',
                                                     :includeFromCi     => false,
-                                                    :includeToCi       => true}).inject({}) do |m, r|
-      m[r.toCi.ciName] = r.toCi
-      m
-    end
+                                                    :includeToCi       => true}).map(&:toCi).to_map(&:ciName)
 
+    component_id_map = {}
     @diff = clazz.all(:params => {:ciId              => @platform.ciId,
                                   :direction         => 'from',
                                   :relationShortName => 'Requires',
                                   :attrProps         => 'owner'}).inject([]) do |m, r|
-      component      = r.toCi
-      pack_component = pack_components[r.relationAttributes.template]
-      component_diff = calculate_ci_diff(component, pack_component)
+      component                        = r.toCi
+      component_id_map[component.ciId] = component
+      pack_component                   = pack_components[r.relationAttributes.template]
+      diff                             = calculate_attr_diff(component, pack_component)
       # The last condition below is to ensure that we include current component as diff when it is not required by
       # the pack (lower bound of cardinality constraint is zero) even it did not override any defaults when added by user.
-      if !changes_only || component_diff.present? || r.relationAttributes.constraint.split('..').first.to_i == 0
-        Rails.logger.info "+++++ #{component.to_yaml}"
-        component.diffCi = pack_component
-        component.diffAttributes = component_diff
+      if !changes_only || diff.present? || r.relationAttributes.constraint.split('..').first.to_i == 0
+        component.diffCi         = pack_component
+        component.diffAttributes = diff
         m << component
       end
       m
@@ -212,10 +205,7 @@ class Design::PlatformsController < Base::PlatformsController
     pack_variables = Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
                                                    :relationShortName => 'ValueFor',
                                                    :includeFromCi     => true,
-                                                   :includeToCi       => false}).inject({}) do |m, r|
-      m[r.fromCi.ciName] = r.fromCi
-      m
-    end
+                                                   :includeToCi       => false}).map(&:fromCi).to_map(&:ciName)
     clazz.all(:params => {:ciId              => @platform.ciId,
                           :direction         => 'to',
                           :relationShortName => 'ValueFor',
@@ -224,16 +214,39 @@ class Design::PlatformsController < Base::PlatformsController
                           :attrProps         => 'owner'}).inject(@diff) do |m, r|
       variable      = r.fromCi
       pack_variable = pack_variables[variable.ciName]
-      variable_diff = calculate_ci_diff(variable, pack_variable)
+      diff          = calculate_attr_diff(variable, pack_variable)
       # The last condition below is to ensure that we include current variable as diff when it was in the pack
       # even it does not have any attributes (namely, 'value') set.
-      if !changes_only || variable_diff.present? || !pack_variable
+      if !changes_only || diff.present? || !pack_variable
         variable.diffCi         = pack_variable
-        variable.diffAttributes = variable_diff
+        variable.diffAttributes = diff
         m << variable
       end
       m
 
+    end
+
+    # Compare monitors.
+    pack_monitors = Cms::Relation.all(:params => {:nsPath            => platform_pack_ns_path,
+                                                  :relationShortName => 'WatchedBy',
+                                                  :includeFromCi     => false,
+                                                  :includeToCi       => true}).map(&:toCi).to_map(&:ciName)
+    clazz.all(:params => {:nsPath            => design_platform_ns_path(@assembly, @platform),
+                          :relationShortName => 'WatchedBy',
+                          :includeFromCi     => false,
+                          :includeToCi       => true,
+                          :attrProps         => 'owner'}).inject(@diff) do |m, r|
+      monitor      = r.toCi
+      component    = component_id_map[r.fromCiId]
+      pack_monitor = pack_monitors[monitor.ciName.sub("#{@platform.ciName}-#{component.ciName}-", '')]
+      diff         = calculate_attr_diff(monitor, pack_monitor)
+      if !changes_only || diff.present? || !pack_monitor
+        monitor.diffCi         = pack_monitor
+        monitor.diffAttributes = diff
+        monitor.component      = component
+        m << monitor
+      end
+      m
     end
 
     # There are no attachments in the pack so all attachments are added to diff.
@@ -243,9 +256,9 @@ class Design::PlatformsController < Base::PlatformsController
                           :includeToCi       => true,
                           :attrProps         => 'owner'}).inject(@diff) do |m, r|
       attachment = r.toCi
-      set_component(attachment, r.fromCi)
       attachment.diffCi         = nil
-      attachment.diffAttributes = calculate_ci_diff(attachment, Cms::Ci.build(:ciClassName => 'catalog.Attachment'))
+      attachment.diffAttributes = calculate_attr_diff(attachment, Cms::Ci.build(:ciClassName => 'catalog.Attachment'))
+      attachment.component      = component_id_map[r.fromCiId]
       @diff << attachment
     end
 
@@ -274,9 +287,27 @@ class Design::PlatformsController < Base::PlatformsController
   def pack_refresh
     if Cms::Rfc.count(design_platform_ns_path(@assembly, @platform)).values.sum > 0
       ok = false
-      message = 'Pull Pack is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull '
+      message = 'Pull Pack is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack pull.'
     else
       ok, message = Transistor.pack_refresh(@platform.ciId)
+    end
+
+    respond_to do |format|
+      format.html do
+        flash[:error] = message unless ok
+        redirect_to :action => :show
+      end
+
+      format.json {render_json_ci_response(ok, @platform, ok ? nil : [message])}
+    end
+  end
+
+  def pack_update
+    if Cms::Rfc.count(design_platform_ns_path(@assembly, @platform)).values.sum > 0
+      ok = false
+      message = 'Pack Update is not allowed with pending platform changes in the current release. Please commit or discard  current platform changes before proceeding with pack update.'
+    else
+      ok, message = Transistor.pack_update(@platform.ciId, params[:version])
     end
 
     respond_to do |format|
@@ -383,9 +414,5 @@ class Design::PlatformsController < Base::PlatformsController
     end
 
     return ok
-  end
-
-  def set_component(ci, component)
-    ci.component = Cms::Ci.new(:ciId => component.ciId, :ciClassName => component.ciClassName, :ciName => component.ciName)
   end
 end

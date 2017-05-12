@@ -1,6 +1,6 @@
 class Catalog::PlatformsController < Base::PlatformsController
   before_filter :find_parent
-  before_filter :find_platform, :except => [:index]
+  before_filter :find_platform, :except => [:index, :diff]
 
   def index
     @platforms = Cms::Relation.all(:params => {:ciId              => @design.ciId,
@@ -13,8 +13,12 @@ class Catalog::PlatformsController < Base::PlatformsController
   def show
     respond_to do |format|
       format.html do
-        build_component_groups
-        @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if @design && Settings.check_policy_compliance
+        @components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+                                                      :direction         => 'from',
+                                                      :relationShortName => 'Requires',
+                                                      :includeToCi       => true,
+                                                      :attrProps         => 'owner'}).map(&:toCi)
+        @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
       end
 
       format.json do
@@ -29,6 +33,12 @@ class Catalog::PlatformsController < Base::PlatformsController
     end
   end
 
+  def diff
+    respond_to do |format|
+      format.html { render '_diff' }
+      format.js
+    end
+  end
 
   private
 
