@@ -92,6 +92,16 @@ public class Config {
 	private @Value("${debug_mode}")
 	String debugMode;
 
+
+	// Enable jmx metrics
+	private @Value("${enable_jmx:true}")
+	boolean isJMXEnabled;
+
+
+	// Enable auto shutdown
+	private @Value("${autoShutDown:false}")
+	boolean isAutoShutDown;
+
 	private @Value("${initial_user:unset}")
 	String initialUser;
 
@@ -102,14 +112,7 @@ public class Config {
 	private @Value("${rsync_timeout:30}")
 	int rsyncTimeout;
 
-    /**
-     * The list of clouds, whose resources are already decommissioned or removed.
-     * Inductor will mark those work-order (no action orders) execution result as
-     * success (0) regardless of the execution outcome for the clouds listed in
-     * this (shutdown.clouds) inductor property. Spring EPL default value is empty string.
-     */
-    @Value("#{'${shutdown.clouds:}'.toLowerCase().split(',')}")
-    private List<String> clouds;
+
 
 	/**
 	 * The list of clouds which are marked to be in stub mode.
@@ -118,6 +121,15 @@ public class Config {
 	 */
 	@Value("#{'${stub.clouds:}'.toLowerCase().split(',')}")
 	private List<String> stubbedCloudsList;
+
+    /**
+     * The list of clouds, whose resources are already decommissioned or removed.
+     * Inductor will mark those work-order (no action orders) execution result as
+     * success (0) regardless of the execution outcome for the clouds listed in
+     * this (shutdown.clouds) inductor property. Spring EPL default value is empty string.
+     */
+    @Value("#{'${shutdown.clouds:}'.toLowerCase().split(',')}")
+    private List<String> clouds;
 
 	/**
 	 * Default to fail; Config should be provided to make the resultCode '1' as failure.
@@ -133,7 +145,8 @@ public class Config {
 	@Value("${stub.responseTimeInSeconds:5}")
 	private int stubResponseTimeInSeconds;
 
-
+  @Value("${autoShutDownThreshold:99.99}")
+  private double autoShutDownThreshold;
 	/**
 	 * List of bom classes, whose process result status needs to keep intact.
 	 * By default <b>bom.Fqdn</b>,<b>bom.Lb</b> are added to this list as it
@@ -626,6 +639,22 @@ public class Config {
 		return stubResultCode;
 	}
 
+	public boolean isJMXEnabled() {
+		return isJMXEnabled;
+	}
+
+	public void setJMXEnabled(boolean JMXEnabled) {
+		isJMXEnabled = JMXEnabled;
+	}
+
+
+	public boolean isAutoShutDown() {
+		return isAutoShutDown;
+	}
+
+	public void setAutoShutDown(boolean autoShutDown) {
+		isAutoShutDown = autoShutDown;
+	}
 
 	@Override
 	public String toString() {
@@ -649,6 +678,9 @@ public class Config {
 		sb.append(", bomClasses=" + bomClasses);
 		sb.append(", rfcActions=" + rfcActions);
 		sb.append(", cmdTimeout=" + cmdTimeout);
+		sb.append(", autoShutDownThreshold=" + autoShutDownThreshold);
+    sb.append(", isJMXEnabled=" + isJMXEnabled);
+		sb.append(", isAutoShutDown=" + isAutoShutDown);
 		sb.append(", stubbedCloudsList=" + stubbedCloudsList);
 		sb.append(", stubResponseTimeInSeconds=" + stubResponseTimeInSeconds);
 		sb.append(", stubResultCode=" + stubResultCode);
@@ -656,4 +688,8 @@ public class Config {
 		sb.append('}');
 		return sb.toString();
 	}
+
+  public double getAutoShutDownThreshold() {
+    return autoShutDownThreshold;
+  }
 }

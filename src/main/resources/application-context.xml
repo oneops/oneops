@@ -100,6 +100,9 @@
 
 	<bean id="statCollector" class="com.oneops.inductor.StatCollector" init-method="init" destroy-method="close">
 		<property name="statFileName" value="${STAT_FILE:/var/log/inductor-stat.log}" />
+    <property name="metrics" ref="metricRegistry"></property>
+    <property name="listenerContainer" ref="listenerContainer"></property>
+
 	</bean>
 
 </beans>
