@@ -124,7 +124,7 @@ public class Listener implements MessageListener, ApplicationContextAware {
     }
 
     /**
-     * check for free space - shutdown listener and gracefully exit if full
+     * check for free space - shutdownshutdown listener and gracefully exit if full
      */
     @SuppressWarnings("static-access")
     private void checkFreeSpace() {
