@@ -41,6 +41,7 @@ import static com.oneops.inductor.InductorConstants.TEST_HOST;
 import static com.oneops.inductor.InductorConstants.UPDATE;
 import static com.oneops.inductor.InductorConstants.WATCHED_BY;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.oneops.cms.dj.domain.RfcHint;
@@ -80,6 +81,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     private Config config = null;
 
     private String STUB_RESP_COMPONENT_PREFIX = "stub.respTime.";
+    private MetricRegistry registry;
 
     public WorkOrderExecutor(Config config, Semaphore semaphore) {
         super(config);
@@ -1360,4 +1362,11 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     }
 
 
+    public void setRegistry(MetricRegistry registry) {
+        this.registry = registry;
+    }
+
+    public MetricRegistry getRegistry() {
+        return registry;
+    }
 }
