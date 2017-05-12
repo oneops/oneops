@@ -95,5 +95,9 @@
 		<constructor-arg ref="config"/>
 	</bean>
 
+	<bean id="statCollector" class="com.oneops.inductor.StatCollector" init-method="init" destroy-method="close">
+		<property name="statFileName" value="${STAT_FILE:/var/log/inductor-stat.log}" />
+	</bean>
+
 </beans>
 
