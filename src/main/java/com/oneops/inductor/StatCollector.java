@@ -65,7 +65,7 @@ public class StatCollector {
             .scheduleWithFixedDelay(this::shutDown, delayInSecs, delayInSecs, TimeUnit.SECONDS);
       }
 
-      statChannel = FileChannel.open(Paths.get(statFileName), StandardOpenOption.WRITE);
+      statChannel = FileChannel.open(Paths.get(statFileName), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
       logger.info("initializing StatCollector file : " + statFileName);
     } catch (IOException e) {
       logger.error("Error while creating stat file " + statFileName, e);
