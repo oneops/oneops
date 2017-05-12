@@ -68,6 +68,7 @@ public abstract class AbstractOrderExecutor {
     protected String[] sshInteractiveCmdLine = null;
     protected Random randomGenerator = new Random();
     private Config config = null;
+    protected StatCollector inductorStat;
 
     public AbstractOrderExecutor(Config config) {
         this.config = config;
@@ -850,14 +851,23 @@ public abstract class AbstractOrderExecutor {
             ProcessResult result = processRunner.executeProcessRetry(ctx);
             if (result.getResultCode() > 0) {
                 logger.error(ctx.getLogKey() + " FATAL: " + generateRsyncErrorMessage(result.getResultCode(), ctx.getHost()));
-                removeFile(ctx.getWo(), ctx.getKeyFile());
+                handleRsyncFailure(ctx.getWo(), ctx.getKeyFile());;
                 rsynchFailed = true;
             }
         }
         return rsynchFailed;
     }
 
+    protected void handleRsyncFailure(CmsWorkOrderSimpleBase wo, String keyFile) {
+        inductorStat.addRsyncFailed();
+        removeFile(wo, keyFile);
+    }
+
     protected void copySearchTagsFromResult(CmsWorkOrderSimpleBase wo, ProcessResult result) {
         wo.getSearchTags().putAll(result.getTagMap());
     }
+
+	public void setInductorStat(StatCollector inductorStat) {
+		this.inductorStat = inductorStat;
+	}
 }
