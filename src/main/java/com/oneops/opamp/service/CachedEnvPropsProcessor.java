@@ -1,9 +1,13 @@
 package com.oneops.opamp.service;
 
+import static java.lang.Long.parseLong;
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.util.domain.CmsVar;
 
 import java.util.concurrent.TimeUnit;
@@ -27,8 +31,11 @@ import java.util.concurrent.TimeUnit;
  *******************************************************************************/
 public class CachedEnvPropsProcessor extends EnvPropsProcessor {
     private LoadingCache<String, Boolean> variables;
+    //cached for long types
+    private LoadingCache<String, Long> varCache;
     private int ttlInSeconds = 30;
     private int maxSize = 100;
+    private static final String MD_CACHE_STATUS_VAR = "MD_UPDATE_TIMESTAMP";
 
     public void setTtlInSeconds(int ttlInSeconds) {
         this.ttlInSeconds = ttlInSeconds;
@@ -51,10 +58,43 @@ public class CachedEnvPropsProcessor extends EnvPropsProcessor {
                                 return repairStatus != null && Boolean.TRUE.toString().equals(repairStatus.getValue());
                             }
                         });
+
+        this.varCache = CacheBuilder.newBuilder()
+            .maximumSize(maxSize)
+            .expireAfterWrite(ttlInSeconds, SECONDS)
+            .initialCapacity(1)
+            .build(new CacheLoader<String, Long>() {
+                @Override
+                public Long load(String key) throws Exception {
+                    CmsVar cacheStatus = cmProcessor.getCmSimpleVar(key);
+                    if (cacheStatus != null) {
+                        return parseLong(cacheStatus.getValue());
+                    }
+                    return 0L;
+                }
+            });
     }
 
     @Override
     public boolean getBooleanVariable(String key) {
         return variables.getUnchecked(key);
     }
+
+    @Override
+    public long getLongVariable(String key) {
+        return varCache.getUnchecked(key);
+    }
+    private long lastUpdatedTs;
+
+
+    @Override
+    public void refreshMdCache() {
+        long updateTs = getLongVariable(MD_CACHE_STATUS_VAR);
+        if (updateTs > lastUpdatedTs) {
+            lastUpdatedTs = updateTs;
+            getMdProcessor().invalidateCache();
+        }
+    }
+
+
 }
