@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:p="http://www.springframework.org/schema/p"
 	xmlns:context="http://www.springframework.org/schema/context"
 	xmlns:amq="http://activemq.apache.org/schema/core"
@@ -12,7 +12,9 @@
                            http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd">
 
 	<!-- spring 3+ way to get config -->
-	<context:annotation-config />
+	<!-- Common lib components -->
+
+  <bean id="metricRegistry" class="com.codahale.metrics.MetricRegistry"></bean>
 	<bean id="propertyPlaceholderConfigurer"
         class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
@@ -38,7 +40,6 @@
 		userName="${amq.zone}"
 		password="${amq.authkey}" 
 		/>
-
 	<!-- JMS Producer Configuration -->
 	<bean id="jmsProducerConnectionFactory"
 		class="org.springframework.jms.connection.CachingConnectionFactory"
@@ -63,6 +64,7 @@
         <property name="config" ref="config"/>
 		<property name="workOrderExecutor" ref="workOrderExecutor"/>
 		<property name="actionOrderExecutor" ref="actionOrderExecutor"/>
+     <property name="registry" ref="metricRegistry"/>
     </bean>
 
     <!-- and this is the message listener container -->
@@ -80,12 +82,15 @@
 		<constructor-arg index="0" ref="config"/>
 		<constructor-arg index="1" ref="semaphore"/>
 		<property name="processRunner" ref="processRunner"/>
+    	<property name="registry" ref="metricRegistry"/>
+    	<property name="inductorStat" ref="statCollector"/>
 	</bean>
 
 	<bean id="actionOrderExecutor" class="com.oneops.inductor.ActionOrderExecutor" >
 		<constructor-arg index="0" ref="config"/>
 		<constructor-arg index="1" ref="semaphore"/>
 		<property name="processRunner" ref="processRunner"/>
+		<property name="inductorStat" ref="statCollector"/>
 	</bean>
 
 	<bean id="semaphore" class="java.util.concurrent.Semaphore">
@@ -93,6 +98,13 @@
 	</bean>
 	<bean id="processRunner" class="com.oneops.inductor.ProcessRunner">
 		<constructor-arg ref="config"/>
+	</bean>
+
+	<bean id="statCollector" class="com.oneops.inductor.StatCollector" init-method="init" destroy-method="close">
+		<property name="statFileName" value="${STAT_FILE:/var/log/inductor-stat.log}" />
+    <property name="metrics" ref="metricRegistry"></property>
+    <property name="listenerContainer" ref="listenerContainer"></property>
+
 	</bean>
 
 </beans>

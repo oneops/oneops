@@ -41,6 +41,7 @@ import static com.oneops.inductor.InductorConstants.TEST_HOST;
 import static com.oneops.inductor.InductorConstants.UPDATE;
 import static com.oneops.inductor.InductorConstants.WATCHED_BY;
 
+import com.codahale.metrics.MetricRegistry;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import com.oneops.cms.dj.domain.RfcHint;
@@ -49,7 +50,6 @@ import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
-import com.oneops.cms.util.CmsUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
@@ -81,6 +81,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     private Config config = null;
 
     private String STUB_RESP_COMPONENT_PREFIX = "stub.respTime.";
+    private MetricRegistry registry;
 
     public WorkOrderExecutor(Config config, Semaphore semaphore) {
         super(config);
@@ -536,7 +537,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 ProcessResult result = processRunner.executeProcessRetry(
                         new ExecutionContext(wo, cmdLine, logKey, retryCount));
                 if (result.getResultCode() > 0) {
-
                     if (DELETE.equals(wo.getRfcCi().getRfcAction())) {
                         List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
                         if (managedViaRfcs != null && managedViaRfcs.size() > 0
@@ -555,7 +555,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
                     }
 
-                    removeFile(wo, keyFile);
+                    handleRsyncFailure(wo, keyFile);
                     return;
                 }
             }
@@ -572,8 +572,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 ProcessResult result = processRunner.executeProcessRetry(
                         new ExecutionContext(wo, cmdLine, logKey, retryCount));
                 if (result.getResultCode() > 0) {
+                    inductorStat.addRsyncFailed();
                     wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
-                    removeFile(wo, keyFile);
+                    handleRsyncFailure(wo, keyFile);
                     return;
                 }
             }
@@ -590,7 +591,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         new ExecutionContext(wo, cmdLine, logKey, retryCount));
                 if (result.getResultCode() > 0) {
                     wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
-                    removeFile(wo, keyFile);
+                    handleRsyncFailure(wo, keyFile);
                     return;
                 }
             }
@@ -628,6 +629,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
                 // set the result status
                 if (result.getResultCode() != 0) {
+                    inductorStat.addWoFailed();
                     // mark as complete when rfc and managed_via is DELETE
                     if (DELETE.equals(wo.getRfcCi().getRfcAction())) {
                         List<CmsRfcCISimple> managedViaRfcs = wo.getPayLoad().get(MANAGED_VIA);
@@ -1360,4 +1362,11 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     }
 
 
+    public void setRegistry(MetricRegistry registry) {
+        this.registry = registry;
+    }
+
+    public MetricRegistry getRegistry() {
+        return registry;
+    }
 }
