@@ -82,13 +82,15 @@
 		<constructor-arg index="0" ref="config"/>
 		<constructor-arg index="1" ref="semaphore"/>
 		<property name="processRunner" ref="processRunner"/>
-    <property name="registry" ref="metricRegistry"/>
+    	<property name="registry" ref="metricRegistry"/>
+    	<property name="inductorStat" ref="statCollector"/>
 	</bean>
 
 	<bean id="actionOrderExecutor" class="com.oneops.inductor.ActionOrderExecutor" >
 		<constructor-arg index="0" ref="config"/>
 		<constructor-arg index="1" ref="semaphore"/>
 		<property name="processRunner" ref="processRunner"/>
+		<property name="inductorStat" ref="statCollector"/>
 	</bean>
 
 	<bean id="semaphore" class="java.util.concurrent.Semaphore">

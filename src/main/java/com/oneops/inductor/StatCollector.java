@@ -9,6 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.text.DecimalFormat;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -37,6 +38,7 @@ public class StatCollector {
   @Autowired
   private Config config;
   private DefaultMessageListenerContainer listenerContainer;
+  private DecimalFormat format;
 
   public static FileChannel getStatChannel() {
     return statChannel;
@@ -63,13 +65,15 @@ public class StatCollector {
             .scheduleWithFixedDelay(this::shutDown, delayInSecs, delayInSecs, TimeUnit.SECONDS);
       }
 
-      statChannel = FileChannel.open(Paths.get(statFileName), StandardOpenOption.WRITE);
+      statChannel = FileChannel.open(Paths.get(statFileName), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
       logger.info("initializing StatCollector file : " + statFileName);
     } catch (IOException e) {
       logger.error("Error while creating stat file " + statFileName, e);
     }
     rsyncFailed = metrics.meter(name(INDUCTOR, "rsyncFailure"));
     woFailed = metrics.meter(name(INDUCTOR, "woFailure"));
+    format = new DecimalFormat();
+    format.setMaximumFractionDigits(2);
     statScheduler
         .scheduleWithFixedDelay(this::writeStat, delayInSecs, delayInSecs, TimeUnit.SECONDS);
   }
@@ -98,8 +102,8 @@ public class StatCollector {
   public void writeStat() {
     try {
       String statMsg =
-          "Inductor Stat - | failed_count=" + woFailed.getOneMinuteRate() + ", rsync_count="
-              + rsyncFailed.getOneMinuteRate();
+          "Inductor Stat - | failed_count=" + format.format(woFailed.getOneMinuteRate()) + ", rsync_count="
+              + format.format(rsyncFailed.getOneMinuteRate()) + "\n";
       appendStat(statMsg);
     } catch (IOException e) {
       logger.error("Error while writing stat", e);
