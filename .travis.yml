@@ -1,8 +1,0 @@
-before_install: 
-  - TRAVIS_USERNAME=`echo $TRAVIS_REPO_SLUG | sed 's/\/.*//'`
-  - git clone https://github.com/$TRAVIS_USERNAME/cmsdal.git $TRAVIS_USERNAME/cmsdal
-  - cd $TRAVIS_USERNAME/cmsdal 
-  - mvn clean install -Dmaven.test.skip=true
-  - cd ../..
-language: java
-jdk: oraclejdk8
