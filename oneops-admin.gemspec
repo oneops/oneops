@@ -4,7 +4,7 @@ require 'version'
 
 Gem::Specification.new do |s|
   s.name        = 'oneops-admin'
-  s.version     = '1.0.0'
+  s.version     = '1.0.0' # This should also be taken form the parent pom.xml, but don't want to break anything.
   s.license     = 'Apache-2.0'
   s.author      = 'OneOps'
   s.email       = 'support@oneops.com'
@@ -42,7 +42,7 @@ Gem::Specification.new do |s|
   s.add_dependency "azure_mgmt_resources", '= 0.1.1'
   s.add_dependency "azure", '= 0.6.4'
   s.add_dependency "fog-vsphere", '= 1.5.1'
-  s.add_dependency "fog-openstack", '= 0.1.11'  
+  s.add_dependency "fog-openstack", '= 0.1.11'
   s.add_dependency "crack", '= 0.4.3'
   s.add_dependency "rack", '= 1.6.4'
 
@@ -50,5 +50,5 @@ Gem::Specification.new do |s|
   s.add_dependency "fog-aliyun", '= 0.1.0'
   s.bindir       = 'bin'
   s.require_path = 'lib'
-  s.files        = %w() + ["oneops-admin.gemspec"] + ["Gemfile"] + Dir.glob(".chef/**/*") + Dir.glob("lib/**/*") + ["target/inductor-#{Inductor::VERSION}.jar"] + Dir.glob('bin/**/*')
+  s.files        = %w() + ["oneops-admin.gemspec"] + ["Gemfile"] + Dir.glob(".chef/**/*") + Dir.glob("lib/**/*") + ["#{Inductor::JAR}"] + Dir.glob('bin/**/*')
 end
