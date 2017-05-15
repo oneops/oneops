@@ -28,6 +28,29 @@ class Design::LocalVariablesController < Base::VariablesController
     end
   end
 
+  def destroy
+    begin
+      pack_var = Cms::Ci.locate(@variable.ciName, platform_pack_design_ns_path(@platform), 'mgmt.catalog.Localvar')
+    rescue Cms::Ci::NotFoundException => e
+      pack_var = nil
+    end
+    ok = pack_var.blank? || pack_var.ciState == 'pending_deletion'
+    if pack_var && pack_var.ciState != 'pending_deletion'
+      message = 'This variable is defined in the pack. It can not be deleted.'
+      @variable.errors.add(:base, message)
+      respond_to do |format|
+        format.js do
+          flash[:error] = message
+          render :js => ''
+        end
+        format.json { render_json_ci_response(ok, @variable) }
+      end
+      return
+    end
+
+    super
+  end
+
 
   protected
 

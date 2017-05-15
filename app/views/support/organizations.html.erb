@@ -14,9 +14,13 @@
 
     <% end %>
     <% builder.middle do %>
-      <strong><%= org.team_count %></strong> <%= 'team'.pluralize(org.team_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
-      <strong><%= org.user_count %></strong> <%= 'user'.pluralize(org.user_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
-      <strong><%= org.group_count %></strong> <%= 'group'.pluralize(org.group_count) %>
+      <strong><%= org.team_count %></strong> <%= 'team'.pluralize(org.team_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+      <strong><%= org.user_count %></strong> <%= 'user'.pluralize(org.user_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+      <strong><%= org.group_count %></strong> <%= 'group'.pluralize(org.group_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+      <strong><%= org.admin_count %></strong> <%= 'admin'.pluralize(org.admin_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
+      <% if org.owner.present? %>
+        <span>owner: <%= org.owner %></span>
+      <% end %>
     <% end %>
     <% builder.bottom do %>
       created <%= time_ago_in_words(org.created_at) %>

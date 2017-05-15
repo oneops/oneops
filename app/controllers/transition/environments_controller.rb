@@ -297,68 +297,22 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
   end
 
   def extract
-    collapse = params[:collapse]
-    collapse = false if collapse == 'false'
     respond_to do |format|
-      format.json do
-        render :json => export_environment(collapse, params[:platform_id])
-      end
-
-      format.yaml do
-        render :text => export_environment(collapse, params[:platform_id]).to_yaml, :content_type => 'text/data_string'
-      end
+      format.json { render :json => process_extract }
+      format.yaml { render :text => process_extract.to_yaml, :content_type => 'text/data_string' }
     end
   end
 
   def load
-    if request.put?
-      loaded = false
+    data_file = params[:data_file]
+    loaded, message = Transistor.import_design(@assembly, (data_file && data_file.read).presence || params[:data])
 
-      @preview = params[:preview] == 'true'
-      data_file = params[:data_file]
-      @data_string = (data_file && data_file.read).presence || params[:data]
-
-      begin
-        assembled_data, @data_string, @errors = assemble_load_data(@data_string)
-      rescue Exception => e
-        @errors = ["Failed to assemble configuration file - unexpected import data. #{e}"]
-      end
-
-      if assembled_data
-        begin
-          load_data, @errors = convert_load_data(assembled_data)
-        rescue Exception => e
-          @errors = ["Failed to parse configuration file - unexpected data structure. #{e}"]
-        end
-
-        if load_data && !@preview
-          loaded, message = Transistor.import_design(@assembly, load_data)
-          @errors = [message] unless loaded
-        end
-      end
-
-      respond_to do |format|
-        format.html do
-          if loaded
-            flash[:notice] = 'Successfully loaded design.'
-            redirect_to assembly_design_url(@assembly)
-          end
-        end
-
-        format.json do
-            if @errors.blank?
-              render(:json => assembled_data, :status => :ok)
-            else
-              render(:json   => (assembled_data || {}).merge(:errors => @errors),
-                     :status => @preview ? :ok : :unprocessable_entity)
-            end
-        end
-
-        if @preview
-          format.yaml do
-            render :text => @errors.blank? ? assembled_data : (assembled_data || {}).merge(:errors => @errors).to_yaml,
-                   :content_type => 'text/data_string'
-          end
+    respond_to do |format|
+      format.json do
+        if loaded
+          render(:json => @environment, :status => :ok)
+        else
+          render(:json   => {:errors => [message]}, :status => :unprocessable_entity)
         end
       end
     end
@@ -616,8 +570,17 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def process_extract
+    platform_ids = params[:platform_id]
+    params[:raw].blank? ? export_environment(params[:collapse] == 'false' ? false : true, platform_ids) : export_environment_raw(platform_ids)
+  end
+
+  def export_environment_raw(platform_id = nil)
+    Transistor.export_environment(@environment, platform_id && [platform_id])
+  end
+
   def export_environment(collapse, platform_id = nil)
-    data   = Transistor.export_environment(@environment, platform_id && [platform_id])
+    data   = export_environment_raw(platform_id)
     result = {}
 
     environment = data['environment']['attributes'].delete_blank

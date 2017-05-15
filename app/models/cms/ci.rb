@@ -77,6 +77,7 @@ class Cms::Ci < Cms::Base
   end
 
   def self.list(ids)
+    return [] if ids.blank?
     JSON.parse(post(:list, {}, ids).body)
   end
 

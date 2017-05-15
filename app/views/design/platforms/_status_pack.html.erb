@@ -49,16 +49,16 @@
           Up to date with latest patch version
           <% if latest_minor_version_ci != current_verion_ci && latest_minor_version_ci != latest_patch_version_ci %>
             but newer minor version <strong><%= latest_minor_version_ci.ciName %></strong>
-            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => platform_attributes.version, :other_version => latest_minor_version_ci.ciName), :target => '_blank') %>)
+            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => latest_minor_version_ci.ciName, :other_version => platform_attributes.version), :target => '_blank') %>)
             is available since <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
           <% end %>
         <% else %>
           Newer patch version <strong><%= latest_patch_version_ci.ciName %></strong>
-          (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => platform_attributes.version, :other_version => latest_patch_version_ci.ciName), :target => '_blank') %>)
+          (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => latest_patch_version_ci.ciName, :other_version => platform_attributes.version), :target => '_blank') %>)
           is available since <strong><%= time_ago_in_words(latest_patch_version_ci.updated_timestamp) %></strong>
           <% if latest_minor_version_ci != latest_patch_version_ci %>
             and newer minor version <strong><%= latest_minor_version_ci.ciName %></strong>
-            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => platform_attributes.version, :other_version => latest_minor_version_ci.ciName), :target => '_blank') %>)
+            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => latest_minor_version_ci.ciName, :other_version => platform_attributes.version), :target => '_blank') %>)
             is available since <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
           <% end %>
         <% end %>
@@ -110,7 +110,7 @@
               By pulling the pack all <strong><em>unlocked</em></strong> attributes will be updated with
               <%= expandable_content do %>
                 pack new default values.
-                Additionally, new pack-required components, variables, attachments will be added and removed ones will be marked for deletion.<br/>
+                Additionally, new pack-required components, variables, monitors will be added and removed ones will be marked for deletion.<br/>
                 All resulting changes will be added to design release and you <b>will have a chance to review</b> the changes before committing
                 or discarding them (by committing/discarding the whole design release or changes for this platform only).
               <% end %>
@@ -187,7 +187,7 @@
       <%= icon('book') %>
       <small>
         By updating the pack version all <strong><em>unlocked</em></strong> attributes will be updated with pack new default values.
-        Additionally, new pack-required components, variables, attachments will be added and removed ones will be marked for deletion.
+        Additionally, new pack-required components, variables, monitors will be added and removed ones will be marked for deletion.
         All resulting changes will be added to design release and you <b>will have a chance to review</b> the changes before committing
         or discarding them (by committing/discarding the whole design release or changes for this platform only).
       </small>
