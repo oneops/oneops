@@ -29,21 +29,44 @@ class SupportController < ReportsController
   end
 
   def organizations
-    name      = "%#{params[:name]}%"
     page_size = (params[:size].presence || (request.format.json? ? 100 : 9999999)).to_i
     offset    = (params[:offset].presence || 0).to_i
     sort      = params[:sort].presence || 'organizations.name ASC'
-    scope     = Organization.where('organizations.name ILIKE ?', name)
+    name      = params[:name]
+    scope     = Organization
+
+    scope = scope.where('organizations.name ILIKE ?', "%#{name}%") if name.present?
 
     total = scope.count
-    @organizations = scope.limit(page_size).offset(offset).order(sort).
-      joins(:teams).
-      select('organizations.*, count(distinct teams.id) as team_count').
-      joins('LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id').
-      select('organizations.*, count(distinct teams_users.user_id) as user_count').
-      joins('LEFT OUTER JOIN groups_teams ON teams.id = groups_teams.team_id').
-      select('organizations.*, count(distinct groups_teams.group_id) as group_count').
-      group('organizations.id').all
+
+    if total > 0
+      scope = scope.limit(page_size).offset(offset)
+      @organizations = scope.order(sort).
+        joins(:teams).
+        joins('LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id').
+        joins('LEFT OUTER JOIN groups_teams ON teams.id = groups_teams.team_id').
+        select('organizations.*').
+        select('count(distinct teams.id) as team_count').
+        select('count(distinct teams_users.user_id) as user_count').
+        select('count(distinct groups_teams.group_id) as group_count').
+        select("0 as admin_count, '' as owner").
+        group('organizations.id').all
+
+      if @organizations.present?
+        org_owners = Cms::Ci.list(@organizations.map(&:cms_id)).to_map_with_value {|o| [o['ciId'], o['ciAttributes']['owner']]}
+        @organizations.each {|o| o.owner = org_owners[o.cms_id]}
+        admin_counts = scope.
+          joins(:teams).
+          joins("LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id AND teams.name = '#{Team::ADMINS}'").
+          select('organizations.id, count(distinct teams_users.user_id) as admin_count').
+          group('organizations.id').all.to_map(&:id)
+        @organizations.each do |o|
+          o.admin_count = admin_counts[o.id].admin_count
+        end
+      end
+    else
+      @organizations = []
+    end
 
     respond_to do |format|
       format.html
@@ -51,22 +74,24 @@ class SupportController < ReportsController
       format.js
 
       format.json do
-        response.headers['oneops-list-total-count'] = total.to_s
-        response.headers['oneops-list-page-size']   = @organizations.size.to_s
-        response.headers['oneops-list-offset']      = offset.to_s
-        render :json => @organizations
+        add_pagination_response_headers(total, @organizations.size, offset)
+        render :json => @organizations.to_json(:methods => :owner)
       end
 
       format.any do
-        response.headers['oneops-list-total-count'] = total.to_s
-        response.headers['oneops-list-page-size']   = @organizations.size.to_s
-        response.headers['oneops-list-offset']      = offset.to_s
-        render :text => @organizations.map {|o| "#{o.id},#{o.name},#{o.created_at},#{o.full_name}"}.join("\n")
+        add_pagination_response_headers(total, @organizations.size, offset)
+        keys = %w(id name full_name created_at owner team_count user_count group_count admin_count)
+        delimiter = params[:delimiter].presence || ','
+        csv = keys.join(delimiter) << "\n"
+        @organizations.each do |o|
+          csv << keys.inject([]) {|a, k| a << o.attributes[k]}.join(delimiter) << "\n"
+        end
+        render :text => csv
       end
-
     end
   end
 
+  # delimiter
   def organization
     org_name   = params[:name]
     @organization = Organization.where(:name => org_name).first
@@ -289,5 +314,9 @@ class SupportController < ReportsController
     end
 
     unauthorized unless has_support_permission?(perm)
+  end
+
+  def add_pagination_headers
+
   end
 end

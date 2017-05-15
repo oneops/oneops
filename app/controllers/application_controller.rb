@@ -1248,12 +1248,14 @@ class ApplicationController < ActionController::Base
 
 
   def set_pagination_response_headers(data)
-    return unless data
-    response.headers['oneops-list-total-count'] = (data.info[:total] || 0).to_s
-    response.headers['oneops-list-page-size']   = (data.info[:size] || 0).to_s
-    response.headers['oneops-list-offset']      = (data.info[:offset] || 0).to_s
+    add_pagination_response_headers(data.info[:total], data.info[:size], data.info[:offset]) if data
   end
 
+  def add_pagination_response_headers(total_count, page_size, offset)
+    response.headers['oneops-list-total-count'] = total_count.to_s
+    response.headers['oneops-list-page-size']   = page_size.to_s
+    response.headers['oneops-list-offset']      = offset.to_s
+  end
 
   def ci_image_url(ci)
     ci_class_image_url(ci.ciClassName)
