@@ -52,7 +52,9 @@ public class ESIndexer implements Indexer{
 		if (id != null) indexQueryBuilder.withId(String.valueOf(id));
 		IndexQuery query = indexQueryBuilder.withType(type).withSource(message).build();
 		String docId = template.index(query);
-		logger.info("Indexed message id  " + docId + " of type " + type+ " index:"+ index);
+		if (logger.isDebugEnabled()) {
+			logger.debug("Indexed message id  " + docId + " of type " + type+ " index:"+ index);
+		}
 	}
 
 
