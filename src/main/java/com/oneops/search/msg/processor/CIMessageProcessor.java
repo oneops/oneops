@@ -108,51 +108,13 @@ public class CIMessageProcessor implements MessageProcessor {
         } else {
             message = GSON_ES.toJson(simpleCI);
         }
-        JsonParser parser = new JsonParser();
-        JsonElement jsonElement = parser.parse(message);
-        if (jsonElement.isJsonObject()) {
-            expand(jsonElement.getAsJsonObject());
-        }
-        indexer.index(String.valueOf(simpleCI.getCiId()), "ci", GSON_ES.toJson(jsonElement));
-
+		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
         relationMessageProcessor.processRelationForCi(message);
     }
 
-    private void expand(JsonObject asJsonObject) {
-        expand(asJsonObject, 0);
-    }
 
 
-    private JsonObject expand(JsonObject currentElement, int level) {
-        JsonObject expandedObject = null;
-        Map<String, JsonElement> exp = new HashMap<>();
-        for (Map.Entry<String, JsonElement> entry : currentElement.entrySet()) {
-            JsonElement value = entry.getValue();
-            if (value.isJsonPrimitive()) {
-                String valueAsString = value.getAsString();
-                if (valueAsString.endsWith("}") && valueAsString.startsWith("{") && valueAsString.length() > 2) {
-                    try {
-                        JsonElement object = new JsonParser().parse(valueAsString);
-                        if (expandedObject == null) {
-                            expandedObject = new JsonObject();
-                        }
-                        expandedObject.add(entry.getKey(), object);
-                    } catch (Exception ignore) {
-                    }
-                }
-            } else if (value.isJsonObject() && !(level > EXPANSION_LEVEL_MAX)) {
-                JsonObject expandedObjectReturn = expand(value.getAsJsonObject(), level + 1); // expand recursively
-                if (expandedObjectReturn != null) {
-                    exp.put(entry.getKey() + EXPJSON_SUFFIX, expandedObjectReturn);
-                }
-            }
-        }
-        for (Map.Entry<String, JsonElement> element : exp.entrySet()) {
-            currentElement.add(element.getKey(), element.getValue());
-        }
-        return expandedObject;
-    }
-
+  
     /**
      * @param ci
      * @return
