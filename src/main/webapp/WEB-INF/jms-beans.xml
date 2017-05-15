@@ -88,7 +88,7 @@
 		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
 		<property name="connectionFactory" ref="jmsFactory" />
 		<property name="maxConcurrentConsumers" value="${controller.wo.max_consumers:2}" />
-		<property name="concurrentConsumers" value="${controller.wo.max_consumers:2}" />
+		<property name="concurrentConsumers" value="${controller.wo.concurrentConsumers:2}" />
 		<property name="destination" ref="woQueue" />
 		<property name="messageListener" ref="cmsListener" />
 		<property name="sessionTransacted" value="true"/>
@@ -98,7 +98,7 @@
 		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
 		<property name="connectionFactory" ref="jmsFactory" />
 		<property name="maxConcurrentConsumers" value="${controller.ao.max_consumers:2}" />
-		<property name="concurrentConsumers" value="${controller.ao.max_consumers:2}" />
+		<property name="concurrentConsumers" value="${controller.ao.concurrentConsumers:2}" />
 		<property name="destination" ref="aoQueue" />
 		<property name="messageListener" ref="cmsListener" />
 		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
@@ -111,7 +111,7 @@
 		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
 		<property name="connectionFactory" ref="jmsFactory" />
 		<property name="maxConcurrentConsumers" value="${controller.response.max_consumers:2}" />
-		<property name="concurrentConsumers" value="${controller.response.max_consumers:2}" />
+		<property name="concurrentConsumers" value="${controller.response.concurrentConsumers:2}" />
 		<property name="destination" ref="indRespQueue" />
 		<property name="messageListener" ref="inductorListener" />
 		<property name="sessionTransacted" value="true"/>
