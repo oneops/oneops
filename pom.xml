@@ -31,7 +31,7 @@
     <jackson-mapper-asl.version>1.8.11</jackson-mapper-asl.version>
     <xbean-spring.version>3.7</xbean-spring.version>
     <rxjava.version>1.0.14</rxjava.version>
-    <gitTag>${version}</gitTag>
+    <gitTag>${project.version}</gitTag>
   </properties>
 
   <dependencies>
