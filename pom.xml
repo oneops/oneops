@@ -19,7 +19,7 @@
      <libs.version>1.0.0</libs.version>
      <testng.version>6.9.10</testng.version>
      <mockito-all.version>1.9.5</mockito-all.version>
-      <gitTag>${version}</gitTag>
+      <gitTag>${project.version}</gitTag>
    </properties>
   
   <dependencies>
