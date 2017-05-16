@@ -36,6 +36,8 @@ class User < ActiveRecord::Base
              :timeoutable
   end
 
+  BLACKLIST_FOR_SERIALIZATION.concat([:authentication_token, :session_token, :eula_accepted_at, :show_wizard, :organization_id])
+
   validates_presence_of   :username
   validates_uniqueness_of :username, :case_sensitive => false
 
@@ -283,6 +285,7 @@ class User < ActiveRecord::Base
   def last_sign_in_at_for_current_org
     last_sign_in_at_for_org(organization_id)
   end
+
 
   protected
 
