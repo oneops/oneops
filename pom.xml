@@ -22,7 +22,7 @@
         <apache.maven-surefire-plugin.version>2.17</apache.maven-surefire-plugin.version>
         <apache.maven-shade-plugin.version>2.3</apache.maven-shade-plugin.version>
         <codehaus.jackson.version>1.8.11</codehaus.jackson.version>
-        <gitTag>${version}</gitTag>
+        <gitTag>${project.version}</gitTag>
     </properties>
     <dependencies>
         <!-- =============================================================== -->
