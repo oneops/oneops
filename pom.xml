@@ -27,7 +27,7 @@
         <mockrunner.version>0.3.1</mockrunner.version>
         <awaitility.version>1.7.0</awaitility.version>
         <guava.version>16.0.1</guava.version>
-        <gitTag>${version}</gitTag>
+        <gitTag>${project.version}</gitTag>
     </properties>
 
     <dependencies>
