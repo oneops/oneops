@@ -245,6 +245,7 @@ attribute 'env_profile',
           :default => '',
           :format => {
               :help => 'Send notifications only for matching environment profile regex. Ex: Prod|prod|stage. Leave empty to send for all environment profiles',
+              :filter => {'all' => {'visible' => 'filter_enabled:eq:true'}},
               :category => '3.Filtering',
               :order => 4
           }
