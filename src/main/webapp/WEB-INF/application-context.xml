@@ -87,7 +87,7 @@
     <bean id="antennaListenerContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
         <property name="connectionFactory" ref="jmsFactory"/>
         <property name="maxConcurrentConsumers" value="${antenna.max_consumers:15}"/>
-        <property name="concurrentConsumers" value="${antenna.max_consumers:15}"/>
+        <property name="concurrentConsumers" value="${antenna.concurrentConsumers:15}"/>
         <property name="destination" ref="inbound"/>
         <property name="messageListener" ref="antennaListener"/>
         <!--property name="sessionAcknowledgeMode" value="2"/-->
