@@ -460,28 +460,28 @@ $BODY$
 DECLARE
     l_cm_ci cm_ci%ROWTYPE;
     l_cm_rel cm_ci_relations%ROWTYPE;    
+    l_ns_like bigint[];
 BEGIN
 
+    select array(select ns_id from ns_namespaces
+        where ns_path like (select ns_path || '%' from ns_namespaces where ns_id = p_ns_id)) into l_ns_like;
+
     for l_cm_ci in 
-	select * from cm_ci
-	where ns_id in (
-		select ns_id from ns_namespaces 
-		where ns_path like (select ns_path || '%' from ns_namespaces where ns_id = p_ns_id))
-	and ci_state_id = 200
-	order by ci_id
+	    select * from cm_ci
+	    where ns_id = ANY(l_ns_like)
+	    and ci_state_id = 200
+	    order by ci_id
     loop
-	perform cm_delete_ci(l_cm_ci.ci_id, true, p_user);	
+	    perform cm_delete_ci(l_cm_ci.ci_id, true, p_user);	
     end loop;
 
     for l_cm_rel in 
-	select * from cm_ci_relations
-	where ns_id in (
-		select ns_id from ns_namespaces 
-		where ns_path like (select ns_path || '%' from ns_namespaces where ns_id = p_ns_id))
-	and ci_state_id = 200
-	order by ci_relation_id
+	    select * from cm_ci_relations
+	    where ns_id = ANY(l_ns_like)
+	    and ci_state_id = 200
+	    order by ci_relation_id
     loop
-	perform cm_delete_relation(l_cm_rel.ci_relation_id, true);	
+	    perform cm_delete_relation(l_cm_rel.ci_relation_id, true);	
     end loop;
 
 END;
