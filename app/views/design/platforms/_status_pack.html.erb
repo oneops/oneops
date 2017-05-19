@@ -40,7 +40,7 @@
 <div class="description">
   <dl class="dl-horizontal">
     <dt><%= icon('flag-checkered', '', 'fa-fw') %></dt>
-    <dd>Using pack version <strong><%= current_version %><%= ".#{plat_digest[0..4]}..." unless semver %></strong></dd>
+    <dd>Using pack version <strong><%= current_version %><%= ".#{plat_digest[0..4]}..." unless semver || plat_digest.blank? %></strong></dd>
 
     <dt><%= icon('magnet', '', 'fa-fw') %></dt>
     <dd>

@@ -13,7 +13,7 @@ gem 'coffee-rails', '~> 4.0.1'
 gem 'logstasher', '0.6.5'
 gem 'ruby-graphviz', :require => 'graphviz'
 
-gem 'json', '1.8.1'
+gem 'json', '1.8.6'
 gem 'pg', '0.17.0'
 gem 'devise', '3.5.4'
 gem 'devise_ldap_authenticatable', '0.6.1'
