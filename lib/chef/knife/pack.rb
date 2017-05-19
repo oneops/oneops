@@ -59,7 +59,6 @@ class Chef
       @description = ''
       @category = ''
       @version = ''
-      @admin_password_digest = ''
       @visibility = []
       @group_id = ''
       @ignore = false
@@ -131,14 +130,6 @@ class Chef
       )
     end
 
-    def admin_password_digest(arg=nil)
-      set_or_return(
-        :admin_password_digest,
-        arg,
-        :kind_of => String
-      )
-    end
-
     def visibility(arg = nil)
       set_or_return(
         :visibility,
@@ -161,6 +152,10 @@ class Chef
         arg,
         :kind_of => String
       )
+    end
+
+    def semver?
+      @version.present? && @version.include?('.')
     end
 
     def ignore(arg=nil)
@@ -548,36 +543,33 @@ class Chef
     def to_hash
       env_run_lists_without_default = @env_run_lists.dup
       env_run_lists_without_default.delete("_default")
-      result = {
-        "name" => @name,
-        "description" => @description,
-        "category" => @category,
-	"admin_password_digest" => @admin_password_digest,
-        "version" => @version,
-        "ignore" => @ignore,
-        "enabled" => @enabled,
-        "type" => @type,
-	"platform" => @platform,
-	"services" => @services,
-        "environments" => @environments,
-        "resources" => @resources,
-        'json_class' => self.class.name,
-        "default_attributes" => @default_attributes,
+      {
+        "name"                => @name,
+        "description"         => @description,
+        "category"            => @category,
+        "version"             => @version,
+        "enabled"             => @enabled,
+        "type"                => @type,
+        "platform"            => @platform,
+        "services"            => @services,
+        "environments"        => @environments,
+        "resources"           => @resources,
+        'json_class'          => self.class.name,
+        "default_attributes"  => @default_attributes,
         "override_attributes" => @override_attributes,
-        "depends_on" => @depends_on,
-        "managed_via" => @managed_via,
-        "serviced_bys" => @serviced_bys,
-        "entrypoints" => @entrypoints,
-        "procedures" => @procedures,
-        "variables" => @variables,
-        "policies" => @policies,
-        "chef_type" => "pack",
-        "run_list" => run_list,
-        "owner" => @owner,
-        "relations" => @relations,
-        "env_run_lists" => env_run_lists_without_default
+        "depends_on"          => @depends_on,
+        "managed_via"         => @managed_via,
+        "serviced_bys"        => @serviced_bys,
+        "entrypoints"         => @entrypoints,
+        "procedures"          => @procedures,
+        "variables"           => @variables,
+        "policies"            => @policies,
+        "chef_type"           => "pack",
+        "run_list"            => run_list,
+        "owner"               => @owner,
+        "relations"           => @relations,
+        "env_run_lists"       => env_run_lists_without_default
       }
-      result
     end
 
     # Serialize this object as a hash
@@ -589,7 +581,6 @@ class Chef
       description(o.description)
       owner(o.owner)
       category(o.category)
-      admin_password_digest(o.admin_password_digest)
       version(o.version)
       ignore(o.ignore)
       enabled(o.enabled)
@@ -617,7 +608,6 @@ class Chef
       pack.name(o["name"])
       pack.description(o["description"])
       pack.category(o["category"])
-      pack.admin_password_digest(o["admin_password_digest"])
       pack.version(o["version"])
       pack.ignore(o["ignore"])
       pack.enabled(o["enabled"])
@@ -805,43 +795,9 @@ class Chef
     end
 
     def self.flatten(o, seed = '')
-      return o.sort_by{|e| e.first.to_s}.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Hash)
-      return o.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Array)
+      return o.sort_by {|e| e.first.to_s}.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Hash)
+      return o.inject(seed) { |s, e| flatten(e, s) } if o.is_a?(Array)
       "#{seed}|#{o.to_s}"
     end
-
-    def signature_
-      Digest::MD5.hexdigest( sigflat self.to_hash )
-    end
-
-    def sigflat(body)
-      if body.class == Mash
-        arr = []
-        body.each do |key, value|
-          arr << "#{sigflat key}=>#{sigflat value}"
-        end
-        body = arr
-      end
-      if body.class == Hash
-        arr = []
-        body.each do |key, value|
-          arr << "#{sigflat key}=>#{sigflat value}"
-        end
-        body = arr
-      end
-      if body.class == Array
-        str = ''
-        body.map! do |value|
-          sigflat value
-        end.sort!.each do |value|
-          str << value
-        end
-      end
-      if body.class != String
-        body = body.to_s << body.class.to_s
-      end
-      body
-    end
-
   end
 end
