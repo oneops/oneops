@@ -91,12 +91,7 @@ class Chef
           files = Dir.glob(pack_file_pattern)
           files.each do |file|
             pack = packs_loader.load_from("packs", file)
-            version = config[:version].split(".").first
-            if !pack.version.empty?
-              version = pack.version.split(".").first
-            end
-            key = get_group(pack) + '-' + pack.name.downcase + '-' + version
-
+            key = "#{get_group(pack)}**#{pack.name.downcase}**#{pack.version.presence || config[:version].split('.').first}"
             if pack_map.has_key?(key)
               puts "error: conflict of pack group-name-version: #{key} #{file} to #{pack_map[key]}"
               puts "no packs loaded."
@@ -145,57 +140,45 @@ class Chef
         end
       end
 
-
       def get_remote_dir
-        if !@remote_dir.nil?
-          return @remote_dir
+        unless @remote_dir
+          conn       = get_connection
+          env_bucket = Chef::Config[:environment_name]
+
+          @remote_dir = conn.directories.get(env_bucket)
+          if @remote_dir.nil?
+            @remote_dir = conn.directories.create(:key => env_bucket)
+            ui.debug "created #{env_bucket}"
+          end
         end
-
-        conn = get_connection
-        env_bucket = Chef::Config[:environment_name]
-
-        @remote_dir = conn.directories.get env_bucket
-        if @remote_dir.nil?
-          @remote_dir = conn.directories.create :key => env_bucket
-          ui.debug "created #{env_bucket}"
-        end
-        ui.info "remote_dir:\n #{@remote_dir.inspect}"
-
+        @remote_dir
       end
 
       def get_connection
-
-        if !@object_store_connection.nil?
-          return @object_store_connection
-        end
+        return @object_store_connection if @object_store_connection
         object_store_provider = Chef::Config[:object_store_provider]
 
         case object_store_provider
-          when "OpenStack"
-            conn = Fog::Storage.new({
-                                        :provider            => object_store_provider,
-                                        :openstack_username  => Chef::Config[:object_store_user],
-                                        :openstack_api_key   => Chef::Config[:object_store_pass],
-                                        :openstack_auth_url  => Chef::Config[:object_store_endpoint]
-                                    })
-          when "Local"
-            conn = Fog::Storage.new({
-                                        :provider    => object_store_provider,
-                                        :local_root  => Chef::Config[:object_store_local_root]
-                                    })
+          when 'OpenStack'
+            @object_store_connection = Fog::Storage.new({
+                                                          :provider           => object_store_provider,
+                                                          :openstack_username => Chef::Config[:object_store_user],
+                                                          :openstack_api_key  => Chef::Config[:object_store_pass],
+                                                          :openstack_auth_url => Chef::Config[:object_store_endpoint]
+                                                        })
+          when 'Local'
+            @object_store_connection = Fog::Storage.new({
+                                                          :provider   => object_store_provider,
+                                                          :local_root => Chef::Config[:object_store_local_root]
+                                                        })
+          else
+            raise Exception.new("unsupported object_store_provider: #{object_store_provider}")
         end
 
-        if conn.nil?
-          ui.info "unsupported provider: #{object_store_provider}"
-          exit 1
-        end
-        @object_store_connection = conn
-
-        return conn
+        return @object_store_connection
       end
 
       def gen_doc(ns,pack)
-
         if !Chef::Config.has_key?("object_store_provider") ||
             Chef::Config[:object_store_provider].nil? || Chef::Config[:object_store_provider].empty?
           ui.info "skipping doc - no object_store_provider"
@@ -211,7 +194,7 @@ class Chef
           ["#{pack.name}.md","#{pack.name}.png"].each do |file|
             remote_file = ns  + '/' + file
             local_file = doc_dir + '/' + file
-            if !File.exists?(local_file)
+            unless File.exists?(local_file)
               ui.warn "missing local file: #{local_file}"
               next
             end
@@ -224,13 +207,13 @@ class Chef
             end
             # remove first slash in ns path
             remote_file = remote_file[1..-1]
-            ui.info "doc: #{local_file} remote: #{remote_file}"
+            ui.info "doc: #{local_file}   =>   remote: #{remote_file}"
             obj = { :key => remote_file, :body => content }
             if remote_file =~ /\.html/
               obj['content_type'] = 'text/html'
             end
 
-            file = @remote_dir.files.create obj
+            file = remote_dir.files.create obj
           end
         end
         Dir.chdir initial_dir
@@ -250,93 +233,69 @@ class Chef
       def upload_template_from_file(file, comments)
         pack = packs_loader.load_from(Chef::Config[:pack_path], file)
         pack.name.downcase!
-        if config[:semver] || (pack.version.present? && pack.version.include?('.'))
-          return upload_template_from_file_ver_update(pack,comments)
+        if config[:semver] || pack.semver?
+          return upload_template_from_file_ver_update(pack, comments)
         else
-          return upload_template_from_file_no_verupdate(pack,comments)
+          return upload_template_from_file_no_verupdate(pack, comments)
         end
       end
 
       def upload_template_from_file_ver_update(pack, comments)
-        source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
-        puts "source: #{source}"
-
-        unless ensure_path_exists(source)
-          return false
-        end
-
-        signature = Digest::MD5.hexdigest(pack.signature)
-
-        # default to the global knife version if not specified
-        circuit_version_parts = config[:version].split('.')
-        major_version = circuit_version_parts.first
-        minor_version = (circuit_version_parts.size > 1) ?  circuit_version_parts[1]: '0'
-
-        if pack.version.present?
-          pack_version_parts = pack.version.split('.')
-          major_version = pack_version_parts.first
-          minor_version = (pack_version_parts.size > 1) ?  pack_version_parts[1]: '0'
-        end
-        pack.version("#{major_version}.#{minor_version}")
-
         if pack.ignore
           ui.info( "Ignoring pack #{pack.name} version #{pack.version}")
           return true
         end
 
-        # reload option is no longer available
+        source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
+        return false unless ensure_path_exists(source)
+
         if config[:reload]
-          ui.error( "Reaload option is no longer available, all pack versions are immutable.If you need to force new patch version, change the pack description and do a pack sync.")
+          ui.warn( "Reload option is no longer available in semver mode, all pack versions are immutable. If you need to force new patch version, force a change to the content of pack file (i.e. pack description) and do a pack sync.")
+        end
+
+        # If pack signature matches nothing to do.
+        signature = check_pack_version_ver_update(pack)
+        unless signature
+          # Documentation could have been updated, reload it just in case.
+          gen_doc("#{source}/#{pack.name}/#{pack.version}", pack)
           return true
         end
 
-        # If pack signature matches but reload option is not set - bail
-        if check_pack_version(pack,signature)
-          return true
-        end
+        Chef::Log.debug(pack.to_yaml)
 
-        ui.info( "Uploading pack #{pack.name}")
-        Log.debug(pack.to_yaml)
+        version_ci = setup_pack_version(pack, comments, signature)
+        return false unless version_ci
 
-        # First, check to see if anything from CMS need to
-        # flip to pending_deletion
-        fix_delta_cms(pack)
+        begin
+          # Upload design template
+          design_resources = pack.design_resources
+          Chef::Log.debug([pack.name.capitalize, 'mgmt.catalog', design_resources, comments].to_yaml)
+          ns = "#{source}/#{pack.name}/#{pack.version}"
+          upload_template(ns, pack.name, 'mgmt.catalog', pack, '_default', design_resources, comments)
+          gen_doc(ns, pack)
 
-        # setup pack version namespace first
-        pack_version = setup_pack_version(pack,comments,'')
-        if pack_version.nil?
-          ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}")
-          return false
-        end
-        # Upload design template
-        design_resources = pack.design_resources
-
-        Chef::Log.debug([pack.name.capitalize,'mgmt.catalog',design_resources,comments].to_yaml)
-        ns = "#{source}/#{pack.name}/#{pack.version}"
-        upload_template(ns,pack.name,'mgmt.catalog',pack,'_default',design_resources,comments)
-        gen_doc(ns,pack)
-        # Upload manifest templates
-        pack.environments.each do |name,env|
-          environment_resources = pack.environment_resources(name)
-          #template_name = [pack.name.capitalize,name].join('-')
-          template_name = pack.name
-          package = 'mgmt.manifest'
-          Chef::Log.debug([template_name,'mgmt.manifest',environment_resources,comments].to_yaml)
-          mode = setup_mode(pack,name,comments)
-          if mode.nil?
-            ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version} environment mode #{name}")
-            return false
+          # Upload manifest templates
+          pack.environments.each do |name, env|
+            environment_resources = pack.environment_resources(name)
+            template_name = pack.name
+            Chef::Log.debug([template_name, 'mgmt.manifest', environment_resources, comments].to_yaml)
+            unless setup_mode(pack, name, comments)
+              raise Exception.new("Unable to setup namespace for pack #{pack.name} version #{pack.version} environment mode #{name}")
+            end
+            upload_template(ns+"/#{name}", template_name, 'mgmt.manifest', pack, name, environment_resources, comments)
           end
-          upload_template(ns+"/#{name}",template_name,'mgmt.manifest',pack,name,environment_resources,comments)
-
-
+        rescue Exception => e
+          ui.error(e.message)
+          ui.info('Attempting to clean up...')
+          begin
+            version_ci.destroy
+          rescue Exception
+            ui.warn("Failed to clean up pack #{pack.name} version #{pack.version}!")
+          end
+          raise e
         end
-        ui.info( "Uploaded pack #{pack.name}")
-        pack_version = setup_pack_version(pack,comments,signature)
-        if pack_version.nil?
-          ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}")
-          return false
-        end
+
+        ui.info("Uploaded pack #{pack.name} version #{pack.version}")
         return true
       end
 
@@ -364,9 +323,7 @@ class Chef
         end
 
         # If pack signature matches but reload option is not set - bail
-        if !config[:reload] && check_pack_version(pack,signature)
-          return true
-        end
+        return true if !config[:reload] && check_pack_version_no_ver_update(pack, signature)
 
         ui.info( "Uploading pack #{pack.name}")
         Log.debug(pack.to_yaml)
@@ -518,44 +475,64 @@ class Chef
       end
     end
 
-    def check_pack_version(pack, signature)
-      if config[:semver]
-        return check_pack_version_ver_update(pack, signature)
+    def check_pack_version_ver_update(pack)
+      all_versions = Cms::Ci.all(:params => {:nsPath       => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}",
+                                             :ciClassName  => 'mgmt.Version',
+                                             :includeAltNs => VISIBILITY_ALT_NS_TAG})
+      major, minor, patch = (pack.version.blank? ? config[:version] : pack.version).split('.')
+      minor = '0' if minor.blank?
+
+      # Need to filter version for the same major and find latest patch version for the same minor.
+      latest_patch = nil
+      latest_patch_number = -1
+      versions = all_versions.select do |ci_v|
+        split = ci_v.ciName.split('.')
+        if major == split[0] && minor == split[1] && split[2].to_i > latest_patch_number
+          latest_patch = ci_v
+          latest_patch_number = split[2].to_i
+        end
+        major == split[0]
+      end
+
+      if versions.size > 0
+        version_ci = latest_patch || versions.sort_by(&:ciName).last
+        # Carry over 'enable' and 'visibility' from the latest patch or latest version overall.
+        pack.enabled(version_ci.ciAttributes.attributes['enabled'] != 'false')
+        pack.visibility(version_ci.altNs.attributes[VISIBILITY_ALT_NS_TAG])
+      end
+
+      if patch.present?
+        # Check to make sure version does not already exist.
+        version = "#{major}.#{minor}.#{patch}"
+        if versions.find {|ci_v| ci_v.ciName == version}
+          ui.warn("Pack #{pack.name} version #{pack.version} explicitly specified but it already exists, ignore it - will SKIP pack loading, but will try to update docs.")
+          return nil
+        else
+          pack.version(version)
+          ui.info("Pack #{pack.name} version #{pack.version} explicitly specified and it does not exist yet, will load.")
+          return pack.signature
+        end
       else
-        return check_pack_version_no_ver_update(pack,signature)
+        ui.info("Pack #{pack.name} version #{pack.version} - patch version is not explicitly specified, continue with checking for latest patch version for it.")
+      end
+
+      if latest_patch
+        pack.version(latest_patch.ciName)
+        signature = Digest::MD5.hexdigest(pack.signature)
+        if latest_patch.ciAttributes.attributes['commit'] == signature
+          ui.info("Pack #{pack.name} latest patch version #{latest_patch.ciName} matches signature (#{signature}), will skip pack loading, but will try to update docs.")
+          return nil
+        else
+          ui.warn("Pack #{pack.name} latest patch version #{latest_patch.ciName} signature is different from new pack signature #{signature}, will increment patch version and load.")
+          pack.version("#{major}.#{minor}.#{latest_patch.ciName.split('.')[2].to_i + 1}")
+          return pack.signature
+        end
+      else
+        ui.info("No patches found for #{pack.name} version #{major}.#{minor}, start at patch 0 and load.")
+        pack.version("#{major}.#{minor}.0")
+        return pack.signature
       end
     end
-
-    def check_pack_version_ver_update(pack, signature)
-      # Need to get the latest patch version and get signature (commit attribute) to compare with the loading pack signature
-      latest_patch_and_commit = Cms::Ci.all(:params => {:nsPath       => "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs/#{pack.name}",
-                                                        :ciClassName  => 'mgmt.Version',
-                                                        :includeAltNs => VISIBILITY_ALT_NS_TAG}).inject([-1, nil]) do |r, ci_v|
-         major, minor, patch = ci_v.ciName.split('.').map(&:to_i)
-         minor ||= 0
-         patch ||= 0
-         pack.version == "#{major}.#{minor}" && patch > r[0] ? [patch, ci_v] : r
-       end
-
-       latest_patch = latest_patch_and_commit[1]
-       if latest_patch && latest_patch.ciAttributes.attributes['commit'] == signature
-         ui.info("Pack #{pack.name} version #{pack.version} matches signature #{signature}, will skip.")
-         return true
-       else
-         if latest_patch_and_commit[0] == -1
-           ui.info("No patches found for ack #{pack.name} version #{pack.version}, starting at patch 0.")
-         else
-           ui.warn("Pack #{pack.name} version #{pack.version} signature is different from file signature #{signature}, will bump patch.")
-         end
-         pack.version("#{pack.version}.#{latest_patch_and_commit[0] + 1}")
-         if latest_patch
-           pack.enabled(latest_patch.ciAttributes.attributes['enabled'] != 'false')
-           pack.visibility(latest_patch.altNs.attributes[VISIBILITY_ALT_NS_TAG])
-         end
-         return false
-       end
-    end
-
 
     def check_pack_version_no_ver_update(pack,signature)
       source = "#{Chef::Config[:nspath]}/#{get_group(pack)}/packs"
@@ -620,13 +597,11 @@ class Chef
           return pack_version
         else
           ui.error("Could not save pack #{pack.name} version #{pack.version}")
-          return false
         end
-        ui.info("Successfuly saved pack #{pack.name}")
       else
         ui.error("Could not save pack #{pack.name}")
-        return false
       end
+      return false
     end
 
     def setup_mode(pack,env,comments)

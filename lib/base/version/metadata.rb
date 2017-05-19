@@ -38,3 +38,14 @@ attribute 'commit',
             :category => '1.Global',
             :order    => 3
           }
+
+# This is temporary until we migrate this digest to the mgmt.Pack for live data.  Will remove right after.
+attribute 'admin_password_digest',
+          :description => 'Admin Password Digest',
+          :default     => '',
+          :format      => {
+            :help     => 'Key to be entered while doing pack admin changes',
+            :filter   => {'all' => {'visible' => 'false'}},
+            :category => '1.Global',
+            :order    => 4
+          }
