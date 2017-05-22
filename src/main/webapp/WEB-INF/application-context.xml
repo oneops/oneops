@@ -41,7 +41,7 @@
                 <entry key="maxReconnectAttempts" value="-1"/>
                 <entry key="backup" value="false"/>
                 <entry key="randomize" value="false"/>
-                <entry key="jms.prefetchPolicy.queuePrefetch" value="10"/>
+                <entry key="jms.prefetchPolicy.queuePrefetch" value="1"/>
                 <entry key="jms.redeliveryPolicy.maximumRedeliveries" value="10000"/>
                 <entry key="jms.redeliveryPolicy.initialRedeliveryDelay" value="3000"/>
                 <entry key="jms.redeliveryPolicy.useExponentialBackOff" value="true"/>
