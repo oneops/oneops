@@ -205,7 +205,8 @@ public class ManifestRfcBulkProcessor {
 	}	
 	
 	public ManifestRfcContainer processPlatform(CmsCI designPlatform, CmsCI env, String nsPath, String userId, String availMode) {
-		long  t1 = System.currentTimeMillis();
+		Timing t = new Timing();
+		t.start();
 		ManifestRfcContainer platformRfcs = new ManifestRfcContainer();
 		String platNsPath = nsPath + "/" + designPlatform.getCiName() + "/" + designPlatform.getAttribute("major_version").getDfValue();
 		logger.info("Started working on: " + platNsPath);
@@ -313,10 +314,8 @@ public class ManifestRfcBulkProcessor {
 		
 		
 		platformRfcs.setManifestPlatformRfc(manifestPlatRfc);
-		long  t2 = System.currentTimeMillis();
-		logger.info("Done creating rfc's for: " + manifestPlatRfc.getNsPath()+" completed in " +(t2-t1)+" milliseconds");
+		t.stop("Done creating rfc's for: " + manifestPlatRfc.getNsPath()+" completed in ");
 		return platformRfcs;
-
 	}
 	
 	public long disablePlatform(long platformCiId, String userId) {
@@ -582,15 +581,33 @@ public class ManifestRfcBulkProcessor {
 		return iaasRfc;
 	}
 	
-	
+	private static class Timing{
+		private long start;
+
+		public Timing() {
+			start();
+		}
+
+		public void start(){
+			start=System.currentTimeMillis();
+		}
+		public void stop(String message){
+			logger.info(message+ " -- "+(System.currentTimeMillis()-start));
+			start();
+		}
+	}
 	
 	private CmsRfcCI processTouple(CmsCI templatePlatform, CmsCI designPlatform, CmsRfcCI existingManifestPlat, 
 			DesignPullContext context, ManifestRfcContainer platformRfcs) {
-		
+		Timing t= new Timing();
 		List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
-		List<CmsCIRelation> userRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
+		t.stop("Template relationship load");
 		
+		List<CmsCIRelation> userRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
+		t.stop("User relationship load");
+
 		List<CmsRfcRelation> existingDependsOnRels = cmRfcMrgProcessor.getDfDjRelations("manifest.DependsOn", null, context.platNsPath, null, null, null);
+		t.stop("Depends relationship load");
 		
 		List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
 		Map<String, Edge> edges = new HashMap<String, Edge>();
@@ -625,10 +642,13 @@ public class ManifestRfcBulkProcessor {
 			templInternalRels.addAll(ciRels);
 			
 		}
+		t.stop("ciRel collection");
 		
 		List<CmsCIRelation> designInternalRels = new ArrayList<CmsCIRelation>();
 		List<CmsCIRelation> designEscortRels = new ArrayList<CmsCIRelation>();
 		List<CmsCIRelation> designMonitorRels = new ArrayList<CmsCIRelation>();
+		
+		
 		for (CmsCIRelation userRel : userRels) {
 			String key = trUtil.getLongShortClazzName(designPlatform.getCiClassName()) + "-Requires-" + userRel.getAttribute("template").getDfValue();
 			if (edges.containsKey(key)) {
@@ -661,6 +681,7 @@ public class ManifestRfcBulkProcessor {
 				designMonitorRels.addAll(ciRelationsMap.get(CmsConstants.CATALOG_WATCHED_BY));
 			}
 		}
+		t.stop("Relations map");
 		
 		CmsRfcCI manifestPlatform = null;
 		if (existingManifestPlat == null) {
@@ -687,11 +708,20 @@ public class ManifestRfcBulkProcessor {
 		
 		Set<Long> deletedCiIds = procesPlatformDeletions(manifestPlatform, mrgResult.templateIdsMap, context.userId);
 		platformRfcs.getDeleteCiIdList().addAll(deletedCiIds);
+		t.stop("process edges");
+		
 		
 		processMonitors(designPlatform, designToTemplateCiMap, mrgResult, templInternalRels, designMonitorRels, manifestPlatform, context, platformRfcs);
+		t.stop("total monitors processing");
+		
 		Set<String> newRels = processPackInterRelations(templInternalRels, mrgResult.templateIdsMap, mrgResult.rfcMap, manifestPlatform, context, platformRfcs);
+		t.stop("pack relations processing");
+		
 		newRels.addAll(processPlatformInterRelations(designInternalRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap, context,platformRfcs));
+		t.stop("plat relations processing");
+		
 		processEscortRelations(designEscortRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap, context, platformRfcs);
+		t.stop("escort relations processing");
 		
 		for (CmsRfcRelation existingDpOn : existingDependsOnRels) {
 			if (!newRels.contains(existingDpOn.getRelationGoid())) {
@@ -701,8 +731,10 @@ public class ManifestRfcBulkProcessor {
 				}
 			}
 		}
+		t.stop("existing relations");
 
 		processEntryPoint(templatePlatform, manifestPlatform, mrgResult.templateIdsMap, mrgResult.rfcMap, context, platformRfcs);
+		t.stop("process entry points");
 		//TODO change this to use env attribute
 		return manifestPlatform;
 	}
@@ -751,12 +783,16 @@ public class ManifestRfcBulkProcessor {
 	private void mergeMonitorRelations(Map<String, Edge> monitorEdges, MergeResult mrgMap, CmsRfcCI manifestPlat, 
 			DesignPullContext context, ManifestRfcContainer platformRfcs) {
 		logger.info("processing monitors for platform " + manifestPlat.getCiName());
+		Timing t= new Timing();
+		t.start();
 		List<CmsRfcRelation> existingMonitorRelations = cmRfcMrgProcessor.getCIRelations(context.platNsPath, MANIFEST_WATCHEDBY, null, null, MANIFEST_MONITOR, null);
 		Map<String, CmsRfcRelation> existingMonitorsMap = existingMonitorRelations.stream().
 				collect(Collectors.toMap(reln->reln.getToRfcCi().getCiName(), Function.identity()));
 
+		t.stop("-- monitors load");
 		List<String> rfcNames = platformRfcs.getRfcList().stream().map(CmsRfcCI::getCiName).collect(Collectors.toList());
-
+		
+		t.start();
 		monitorEdges.values().stream().forEach(edge -> {
 			CmsCIRelation tmplRelation = edge.templateRel;
 			Set<String> processedManifests = new HashSet<>();
@@ -797,7 +833,7 @@ public class ManifestRfcBulkProcessor {
 
 			}
 		});
-
+		t.stop("-- monitors processing");
 		//remove obsolete monitors
 		existingMonitorsMap.values().stream().
 			filter(this::canMonitorBeDeleted).
@@ -806,6 +842,7 @@ public class ManifestRfcBulkProcessor {
 				logger.info("delete monitor ci [" + monitor.getCiId() + "] " + monitor.getCiName() + " in " + monitor.getNsPath());
 				cmRfcMrgProcessor.requestCiDelete(monitor.getCiId(), context.userId);
 			});
+		t.stop("-- obsolete monitors removal");
 	}
 
 	private boolean canMonitorBeDeleted(CmsRfcRelation watchedByRel) {
