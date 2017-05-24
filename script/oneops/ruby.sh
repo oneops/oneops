@@ -8,6 +8,8 @@ then
 	echo 'gem: --no-document' >> /root/.gemrc
 fi
 
+yum -y install ruby-devel
+
 gem update --system 2.6.1
 gem install json -v 1.8.3
 gem install bundler
