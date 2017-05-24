@@ -20,3 +20,10 @@ If you're using Windows and [Chocolatey](http://chocolatey.org/), you can instal
 ```
 choco install packer
 ```
+### So how do I run this thing?
+
+After you clone this repo you can start packing things by running:
+```
+sh build-oneops.sh
+```
+Yes that's all to it!  If everything works [packer](https://packer.io) will output a box file that can be imported into Vagrant.
