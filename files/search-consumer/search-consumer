@@ -1,0 +1,120 @@
+#!/bin/bash
+# chkconfig: 2345 99 01
+# Description:    Oneops Search consumer.
+# Processname: search
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+prog="search-consumer"
+pidfile="/var/run/search-consumer.pid"
+#progcmd="java -Dpidfile=$pidfile -jar -Dindex.name=cms-all -Dnodes=localhost:9300 -Damq.pass=amqpass /opt/oneops-search/search.jar -Dcluster.name=oneops -DKLOOPZ_AMQ_HOST=localhost -Dsearch.maxConsumers=10"
+progcmd="/opt/oneops-search/start-consumer.sh"
+lock="/var/lock/subsys/search-consumer"
+logfile="/opt/oneops-search/log/search-consumer.log"
+
+WriteLog()
+{
+    echo "`date`: $@" >> $logfile
+}
+
+LogInfo()
+{
+    echo "$@"
+    WriteLog "INFO: $@"
+}
+
+LogWarning()
+{
+    echo "$@"
+    WriteLog "WARNING: $@"
+}
+
+start()
+{
+    if [ -f $pidfile ] && checkpid `cat $pidfile`; then
+        action "$prog is already running." /bin/false
+        exit 0
+    fi
+
+    WriteLog "Starting $prog"
+
+    daemon "$progcmd"
+     
+    usleep 1000
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+        touch "$lock"
+        action "Starting $prog" /bin/true
+    else
+        action "Starting $prog" /bin/false
+    fi
+
+    WriteLog "Started $prog"
+
+    return $RETVAL
+}
+
+stop()
+{
+    WriteLog "Stopping $prog"
+    SCPID=`cat "$pidfile"  2>/dev/null `
+    if [ -n "$SCPID" ]; then
+        /bin/kill "$SCPID" >/dev/null 2>&1
+        ret=$?
+        if [ $ret -eq 0 ]; then
+            STOPTIMEOUT=60
+            while [ $STOPTIMEOUT -gt 0 ]; do
+                /bin/kill -0 "$SCPID" >/dev/null 2>&1 || break
+                sleep 1
+                let STOPTIMEOUT=${STOPTIMEOUT}-1
+            done
+            if [ $STOPTIMEOUT -eq 0 ]; then
+                echo "Timeout error occurred trying to stop $prog Daemon"
+                ret=1
+                action $"Stopping $prog: " /bin/false
+                LogInfo "Timeout error occurred trying to stop $prog Daemon pid($SCPID)"
+            else
+                rm -f "$lock"
+                action $"Stopping $prog: " /bin/true
+                WriteLog "INFO: $prog Daemon Stopped pid($SCPID)"
+            fi
+        else
+            action $"Stopping $prog: " /bin/false
+            WriteLog "WARNING: $prog Daemon Stop Failed pid($SCPID)"
+        fi
+    else
+        ret=1
+        action $"Stopping $prog: " /bin/false
+    fi
+    return $ret
+}
+
+restart()
+{
+    LogInfo "Restart Initiated"
+    stop
+    start
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    restart
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

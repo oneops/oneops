@@ -1,0 +1,176 @@
+#!/bin/bash
+# chkconfig: 2345 99 01
+# Description:    Cassandra Server.
+# Processname: cassandra
+# Config: /opt/cassandra/conf/cassandra.yaml
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+prog="Cassandra"
+pidfile="/var/run/cassandra.pid"
+progbin="/opt/cassandra/bin"
+lock="/var/lock/subsys/cassandra"
+logfile="/opt/cassandra/log/service-cassandra.log"
+
+WriteLog()
+{
+    echo "`date`: $@" >> $logfile
+}
+
+LogInfo()
+{
+    echo "$@"
+    WriteLog "INFO: $@"
+}
+
+LogWarning()
+{
+    echo "$@"
+    WriteLog "WARNING: $@"
+}
+
+start()
+{
+    if [ -f $pidfile ] && checkpid `cat $pidfile`; then
+        action "$prog is already running." /bin/false
+        exit 0
+    fi
+
+    WriteLog "Starting $prog"
+
+    daemon "$progbin/cassandra" -p $pidfile >> $logfile 2>&1
+    usleep 500000
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+        touch "$lock"
+        action "Starting $prog" /bin/true
+    else
+        action "Starting $prog" /bin/false
+    fi
+
+    WriteLog "Started $prog"
+
+    return $RETVAL
+}
+
+stop()
+{
+    $progbin/nodetool -h localhost disablethrift
+    $progbin/nodetool -h localhost disablegossip
+    $progbin/nodetool -h localhost drain
+    WriteLog "Stopping $prog"
+    CASSIEPID=`cat "$pidfile"  2>/dev/null `
+    if [ -n "$CASSIEPID" ]; then
+        /bin/kill "$CASSIEPID" >/dev/null 2>&1
+        ret=$?
+        if [ $ret -eq 0 ]; then
+            STOPTIMEOUT=60
+            while [ $STOPTIMEOUT -gt 0 ]; do
+                /bin/kill -0 "$CASSIEPID" >/dev/null 2>&1 || break
+                sleep 1
+                let STOPTIMEOUT=${STOPTIMEOUT}-1
+            done
+            if [ $STOPTIMEOUT -eq 0 ]; then
+                echo "Timeout error occurred trying to stop $prog Daemon"
+                ret=1
+                action $"Stopping $prog: " /bin/false
+                LogInfo "Timeout error occurred trying to stop $prog Daemon pid($CASSIEPID)"
+            else
+                rm -f "$lock"
+                action $"Stopping $prog: " /bin/true
+                WriteLog "INFO: $prog Daemon Stopped pid($CASSIEPID)"
+            fi
+        else
+            action $"Stopping $prog: " /bin/false
+            WriteLog "WARNING: $prog Daemon Stop Failed pid($CASSIEPID)"
+        fi
+    else
+        ret=1
+        action $"Stopping $prog: " /bin/false
+    fi
+    return $ret
+}
+
+restart()
+{
+    LogInfo "Restart Initiated"
+    stop
+    start
+}
+
+ring()
+{
+    $progbin/nodetool -h localhost ring
+}
+
+info()
+{
+    $progbin/nodetool -h localhost info
+}
+
+netstats()
+{
+    $progbin/nodetool -h localhost netstats
+}
+
+repair()
+{
+    LogInfo "Starting Repair"
+    $progbin/nodetool -h localhost repair
+    LogInfo "Completed Repair"
+}
+
+cleanup()
+{
+    LogInfo "Starting Cleanup"
+    $progbin/nodetool -h localhost cleanup
+    LogInfo "Completed Cleanup"
+}
+
+version()
+{
+    $progbin/nodetool -h localhost version
+}
+
+# See how we were called.
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  status)
+    status cassandra
+    ;;
+  restart)
+    restart
+    ;;
+  ring)
+    ring
+    ;;
+  info)
+    info
+    ;;
+  netstats)
+    netstats
+    ;;
+  repair)
+    repair
+    ;;
+  cleanup)
+    cleanup
+    ;;
+  version)
+    version
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart|ring|info|netstats|repair|cleanup|version}"
+    exit 1
+esac
+
+exit $?

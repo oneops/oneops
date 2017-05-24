@@ -1,0 +1,120 @@
+#!/bin/bash
+# chkconfig: 2345 99 01
+# Description:    Oneops Search consumer.
+# Processname: search
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+prog="display"
+pidfile="/var/run/display.pid"
+progcmd="/opt/oneops/start-display.sh"
+lock="/var/lock/subsys/display"
+logfile="/opt/oneops/log/display.log"
+rundir="/opt/oneops"
+
+WriteLog()
+{
+    echo "`date`: $@" >> $logfile
+}
+
+LogInfo()
+{
+    echo "$@"
+    WriteLog "INFO: $@"
+}
+
+LogWarning()
+{
+    echo "$@"
+    WriteLog "WARNING: $@"
+}
+
+start()
+{
+    if [ -f $pidfile ] && checkpid `cat $pidfile`; then
+        action "$prog is already running." /bin/false
+        exit 0
+    fi
+
+    WriteLog "Starting $prog"
+    
+    source  /usr/local/rvm/scripts/rvm
+    cd "$rundir"
+    daemon "$progcmd" >> "$logfile"
+     
+    usleep 1000
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+        touch "$lock"
+	WriteLog $RETVAL
+        action "Starting $prog" /bin/true
+    else
+        action "Starting $prog" /bin/false
+    fi
+
+    WriteLog "Started $prog"
+
+    return $RETVAL
+}
+
+stop()
+{
+    WriteLog "Stopping $prog"
+    SCPID=`cat "$pidfile"  2>/dev/null `
+    if [ -n "$SCPID" ]; then
+        /bin/kill "$SCPID" >/dev/null 2>&1
+        ret=$?
+        if [ $ret -eq 0 ]; then
+            STOPTIMEOUT=10
+            while [ $STOPTIMEOUT -gt 0 ]; do
+                /bin/kill -0 "$SCPID" >/dev/null 2>&1 || break
+                sleep 1
+                let STOPTIMEOUT=${STOPTIMEOUT}-1
+            done
+            if [ $STOPTIMEOUT -eq 0 ]; then
+                echo "Timeout error occurred trying to stop $prog Daemon killing it"
+                /bin/kill -9 "$SCPID" >/dev/null 2>&1 || break
+  		rm -f "$lock"
+                action $"Stopping $prog: " /bin/true
+                WriteLog "INFO: $prog Daemon Stopped pid($SCPID)"
+            fi
+        else
+            action $"Stopping $prog: " /bin/false
+            WriteLog "WARNING: $prog Daemon Stop Failed pid($SCPID)"
+        fi
+    else
+        ret=1
+        action $"Stopping $prog: " /bin/false
+    fi
+    return $ret
+}
+
+restart()
+{
+    LogInfo "Restart Initiated"
+    stop
+    start
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+    start
+    ;;
+  stop)
+    stop
+    ;;
+  restart)
+    restart
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?
