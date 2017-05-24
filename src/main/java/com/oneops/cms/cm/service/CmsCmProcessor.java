@@ -1922,7 +1922,7 @@ public class CmsCmProcessor {
 	 * @param nsPath nsPath of the relation
 	 * @return the count from ci relations group by ns
 	 */
-	public Map<Long, Long> getCounCIRelationsGroupByFromCiId(
+	public Map<Long, Long> getCountCIRelationsGroupByFromCiId(
 			String relationName, String shortRelName, String toClazzName, String nsPath) {
 		if (StringUtils.isBlank(toClazzName) && isBomRelation(relationName) && CmsUtil.isOrgLevel(nsPath)) {
 			String nsLike = CmsUtil.likefyNsPathWithBom(nsPath);
