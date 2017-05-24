@@ -1939,5 +1939,15 @@ public class CmsUtilTest {
 
 	}
 
+	@Test
+	public void nsPathOrgCheck() {
+		assertTrue(CmsUtil.isOrgLevel("/test-org/"));
+		assertTrue(CmsUtil.isOrgLevel("/test-org"));
+		assertFalse(CmsUtil.isOrgLevel("/test-org/a1"));
+		assertFalse(CmsUtil.isOrgLevel("/test-org/a2/"));
+		assertFalse(CmsUtil.isOrgLevel("/test-org/a2/dev"));
+		assertFalse(CmsUtil.isOrgLevel("/test-org/a2/dev/"));
+                assertFalse(CmsUtil.isOrgLevel("test-org"));
+	}
 
 }

@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.ns.service.CmsNsProcessor;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
@@ -50,6 +52,7 @@ import com.oneops.cms.util.QueryConditionMapper;
 import com.oneops.cms.util.dal.UtilMapper;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
+import static com.oneops.cms.util.CmsConstants.*;
 
 /**
  * The Class CmsCmProcessor.
@@ -67,8 +70,12 @@ public class CmsCmProcessor {
 	private CmsMdProcessor mdProcessor;
 	private QueryConditionMapper qcm = new QueryConditionMapper();
 	private Gson gson = new Gson();
+	private Set<String> bomRelations = new HashSet<>();
 
-	
+	public CmsCmProcessor() {
+		bomRelations.add(BASE_REALIZED_AS);
+	}
+
 	/**
 	 * Sets the md processor.
 	 *
@@ -1917,8 +1924,18 @@ public class CmsCmProcessor {
 	 */
 	public Map<Long, Long> getCounCIRelationsGroupByFromCiId(
 			String relationName, String shortRelName, String toClazzName, String nsPath) {
+		if (StringUtils.isBlank(toClazzName) && isBomRelation(relationName) && CmsUtil.isOrgLevel(nsPath)) {
+			String nsLike = CmsUtil.likefyNsPathWithBom(nsPath);
+			return parseStatsQueryResultGroupByCiId(ciMapper.getCountCIRelationsByNSLikeAndRelName(relationName, shortRelName, nsLike));
+		}
+		else {
 			String nsLike = CmsUtil.likefyNsPath(nsPath);
 			return parseStatsQueryResultGroupByCiId(ciMapper.getCountCIRelationsByNSLikeGroupByFromCiId(relationName, shortRelName, toClazzName, nsPath, nsLike));
+		}
+	}
+
+	private boolean isBomRelation(String relationName) {
+		return (relationName != null && bomRelations.contains(relationName));
 	}
 
 	/**

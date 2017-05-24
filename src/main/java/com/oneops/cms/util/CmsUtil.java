@@ -84,6 +84,14 @@ public class CmsUtil {
 		}
 	}
 
+    public static String likefyNsPathWithBom(String queryParam) {
+		if (queryParam.endsWith("/")) {
+			return queryParam.replace("_","\\_") + "%bom/%";
+		} else {
+			return queryParam.replace("_","\\_") + "%/bom/%";
+		}
+	}
+
 	public static String likefyNsPathWithoutEndingSlash(String queryParam) {
 		if (queryParam.endsWith("/") && queryParam.length() > 1) {
 			return queryParam.substring(0, queryParam.length()-1).replace("_","\\_") + "%";
@@ -124,6 +132,21 @@ public class CmsUtil {
 		else {
 			return nsPath + "/" + suffix;
 		}
+	}
+
+	public static boolean isOrgLevel(String nsPath) {
+		String trimmedPath = null;
+		if (nsPath.length() > 1) {
+			if (nsPath.endsWith("/")) {
+				trimmedPath = nsPath.substring(1, nsPath.length() - 1);
+			}
+			else {
+				trimmedPath = nsPath.substring(1);
+			}
+			String[] parts = trimmedPath.split("/");
+			return parts.length == 1;
+		}
+		return false;
 	}
 
     /**

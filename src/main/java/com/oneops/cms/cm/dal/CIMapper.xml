@@ -928,6 +928,17 @@
 		group by cir.from_ci_id   
 	 </select>
 
+	 <select id="getCountCIRelationsByNSLikeAndRelName" parameterType="map" resultType="hashmap">
+		select cir.from_ci_id as ci_id, count(1) as cnt
+		from cm_ci_relations cir, md_relations mdr, ns_namespaces ns
+		where (ns.ns_path like #{nsLike})
+		    and cir.ns_id = ns.ns_id
+			and (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
+		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
+		    and cir.relation_id = mdr.relation_id
+		group by cir.from_ci_id
+	 </select>
+
 	 <select id="getCountCIRelationsByNSLikeGroupByToCiId" parameterType="map" resultType="hashmap">
 		select cir.to_ci_id as ci_id, count(1) as cnt
 		from cm_ci_relations cir, md_relations mdr, cm_ci cc, md_classes mdc, ns_namespaces ns
