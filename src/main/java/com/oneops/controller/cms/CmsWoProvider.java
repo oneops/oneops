@@ -80,6 +80,7 @@ public class CmsWoProvider {
     private CmsUtil cmsUtil;
     private OfferingsMatcher offeringMatcher;
     private ExpressionEvaluator expressionEvaluator;
+	private ControllerCache controllerCache;
 
     /**
      * Sets the cms util.
@@ -171,8 +172,7 @@ public class CmsWoProvider {
      * @return the action orders
      */
     public List<CmsActionOrder> getActionOrders(long procedureId, OpsProcedureState state, Integer execOrder) {
-
-
+        checkControllerCache();
         List<CmsActionOrder> aorders = opsMapper.getActionOrders(procedureId, state, execOrder);
         for (CmsActionOrder ao : aorders) {
             CmsCI ci = cmProcessor.getCiById(ao.getCiId());
@@ -331,6 +331,7 @@ public class CmsWoProvider {
     }
 
     public CmsWorkOrderSimple getWorkOrderSimple(long dpmtRecordId, String state, Integer execOrder) {
+        checkControllerCache();
         CmsWorkOrder wo = getWorkOrder(dpmtRecordId, state, execOrder);
         if (wo != null) {
             return cmsUtil.custWorkOrder2Simple(wo);
@@ -338,6 +339,12 @@ public class CmsWoProvider {
             return null;
         }
     }
+
+    private void checkControllerCache() {
+		if (controllerCache != null) {
+			controllerCache.invalidateMdCacheIfRequired();
+		}
+	}
 
     public CmsWorkOrder getWorkOrder(long dpmtRecordId, String state, Integer execOrder) {
 
@@ -909,5 +916,9 @@ public class CmsWoProvider {
     public void setExpressionEvaluator(ExpressionEvaluator expressionEvaluator) {
         this.expressionEvaluator = expressionEvaluator;
     }
+
+	public void setControllerCache(ControllerCache controllerCache) {
+		this.controllerCache = controllerCache;
+	}
 
 }

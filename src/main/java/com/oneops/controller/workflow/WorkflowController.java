@@ -20,7 +20,6 @@ import com.oneops.antenna.domain.NotificationSeverity;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.controller.cms.ControllerCache;
 import com.oneops.controller.cms.DeploymentNotifier;
 import org.activiti.engine.ActivitiException;
 import org.activiti.engine.ActivitiObjectNotFoundException;
@@ -64,8 +63,6 @@ public class WorkflowController {
 	}
 
 	private DeploymentNotifier notifier;
-
-	private ControllerCache controllerCache;
 	
 	/**
 	 * Sets the runtime service.
@@ -84,7 +81,6 @@ public class WorkflowController {
 	 * @return the string
 	 */
 	public String startDpmtProcess(String processKey, Map<String,Object> params){
-		checkControllerCache();
 		CmsDeployment dpmt = (CmsDeployment)params.get("dpmt");
 		String processId = dpmt.getProcessId();
 		if (processId == null) {
@@ -151,12 +147,6 @@ public class WorkflowController {
 		}
 		//return null;
 	};
-	
-	private void checkControllerCache() {
-		if (controllerCache != null) {
-			controllerCache.invalidateMdCacheIfRequired();
-		}
-	}
 
 	/**
 	 * Start release process.
@@ -180,7 +170,7 @@ public class WorkflowController {
 	 * @return the string
 	 */
 	public String startOpsProcess(String processKey, Map<String,Object> params){
-		checkControllerCache();
+
 		logger.info("starting process for " + processKey + " with params: " + params.toString());
 		ProcessInstance pi = runtimeService.startProcessInstanceByKey(processKey, params);
 		logger.info("started process with id - " + pi.getId());
@@ -448,9 +438,5 @@ public class WorkflowController {
         CmsWorkOrderSimple wo = params.get("wo") instanceof CmsWorkOrderSimple ? ((CmsWorkOrderSimple) params.get("wo")) : null;
         return (wo != null) ? true : false;
     }
-
-	public void setControllerCache(ControllerCache controllerCache) {
-		this.controllerCache = controllerCache;
-	}
 
 }

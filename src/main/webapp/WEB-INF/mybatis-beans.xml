@@ -189,6 +189,7 @@
 	    <property name="colProcessor" ref="colProcessor" />
 	    <property name="offeringMatcher" ref="offeringMatcher" />
 		<property name="expressionEvaluator" ref="expressionEvaluator" />
+		<property name="controllerCache" ref="controllerCache" />
 	</bean>
 	
 	<bean id="expressionEvaluator" class="com.oneops.controller.cms.ExpressionEvaluator">
