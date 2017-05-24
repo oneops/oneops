@@ -43,6 +43,11 @@ end
 def gen_gemfile_and_install (gems, dsl, ostype, log_level)
 
     rubygems_proxy = ENV['rubygems_proxy']
+
+    if rubygems_proxy.nil? && File.file?('/opt/oneops/rubygems_proxy')
+      rubygems_proxy = File.read('/opt/oneops/rubygems_proxy').chomp
+    end
+
     gemfile_content = "source 'https://rubygems.org'\n"
 	  if !rubygems_proxy.nil?
 	    gemfile_content = "source '#{rubygems_proxy}'\n"
