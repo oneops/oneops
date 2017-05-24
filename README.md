@@ -27,3 +27,11 @@ After you clone this repo you can start packing things by running:
 sh build-oneops.sh
 ```
 Yes that's all to it!  If everything works [packer](https://packer.io) will output a box file that can be imported into Vagrant.
+
+This tool depends on [OneOps Build](https://github.com/oneops/oneops-build-converter) of which you can get most up-to-date by running:
+
+```
+sh build-oneops.sh -f
+```
+
+This will clean up everything and pull the latest [OneOps Build](https://github.com/oneops/oneops-build-converter) into the workspace.
