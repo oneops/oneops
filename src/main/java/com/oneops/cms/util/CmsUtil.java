@@ -139,12 +139,13 @@ public class CmsUtil {
 		if (nsPath.length() > 1) {
 			if (nsPath.endsWith("/")) {
 				trimmedPath = nsPath.substring(1, nsPath.length() - 1);
-			}
-			else {
+          } else if (nsPath.startsWith("/")) {
 				trimmedPath = nsPath.substring(1);
 			}
-			String[] parts = trimmedPath.split("/");
-			return parts.length == 1;
+          if (trimmedPath != null && trimmedPath.split("/").length == 1) {
+              return true;
+          }
+
 		}
 		return false;
 	}
