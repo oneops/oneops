@@ -131,14 +131,16 @@ class Chef
       if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
         `c:\\opscode\\chef\\embedded\\bin\\gem install parallel -v 1.3.3`
       else
-        `gem install parallel -v 1.3.3`
-     end
+        require 'rubygems'
 
-	  if $?.to_i != 0
-		Chef::Log.fatal("Failure installing gem 'parallel'")
-        return nil
-	  end
-			
+        begin
+          gem 'parallel'
+        rescue Gem::LoadError
+          system("gem install parallel -v 1.3.3")
+          Gem.clear_paths
+        end
+      end
+      
       require 'parallel'
 
       download_start = Time.now

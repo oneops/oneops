@@ -126,7 +126,15 @@ class Chef
       Chef::Log.info("Fetching in #{parts.length} parts")
       Chef::Log.info("Part details: #{pp parts.inspect}")
       # todo.. resume mode
-      install_gem_output = `gem install parallel -v 1.3.3` #install parallel gem
+      require 'rubygems'
+
+      begin
+        gem 'parallel'
+      rescue Gem::LoadError
+        system("gem install parallel -v 1.3.3")
+        Gem.clear_paths
+      end
+
       require 'parallel'
 
       download_start = Time.now
