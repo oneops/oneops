@@ -77,7 +77,7 @@ public interface CmsCmManager {
 	long getCountToCIRelationsByNS(long toId,String relationName, String shortRelName, String toClazzName, String toNsPath, boolean recursive);
 	Map<String, Long> getCountFromCIRelationsGroupByNs(long fromId, String relationName, String shortRelName, String toClazzName, String toNsPath);
 	Map<String, Long> getCountToCIRelationsGroupByNs(long toId, String relationName, String shortRelName, String toClazzName, String toNsPath);
-	Map<Long, Long> getCountCIRelationsGroupByFromCiId(String relationName, String shortRelName, String toClazzName, String nsPath);
+	Map<Long, Long> getCounCIRelationsGroupByFromCiId(String relationName, String shortRelName, String toClazzName, String nsPath);
 	Map<Long, Long> getCounCIRelationsGroupByToCiId(String relationName, String shortRelName, String fromClazzName, String nsPath);
 	
 	

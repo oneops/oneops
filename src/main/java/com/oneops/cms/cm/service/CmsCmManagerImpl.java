@@ -344,10 +344,10 @@ public class CmsCmManagerImpl implements CmsCmManager {
     }
 
     @Override
-    public Map<Long, Long> getCountCIRelationsGroupByFromCiId(
+    public Map<Long, Long> getCounCIRelationsGroupByFromCiId(
             String relationName, String shortRelName, String toClazzName,
             String nsPath) {
-        return cmProcessor.getCountCIRelationsGroupByFromCiId(relationName, shortRelName, toClazzName, nsPath);
+        return cmProcessor.getCounCIRelationsGroupByFromCiId(relationName, shortRelName, toClazzName, nsPath);
     }
 
     @Override
