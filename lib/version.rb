@@ -11,7 +11,7 @@ module Inductor
     artifactId = XPath.first(doc, '//artifactId').text
     if !artifactId.nil? and artifactId.eql? 'oneops-parent'
       version = XPath.first(doc, '//version').text
-      jar = "../inductor/target/inductor-#{version}.jar"
+      jar = "target/inductor-#{version}.jar"
     end
   end
   JAR = jar
