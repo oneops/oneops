@@ -1,37 +1,22 @@
-## Welcome to GitHub Pages
+## OneOps Packer 
 
-You can use the [editor on GitHub](https://github.com/sleepyorion/oneops-packer/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+[packer.io](https://www.packer.io/) + [OneOps Build](https://github.com/oneops/oneops-build-converter) = OneOps Single Stand Alone Instance
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+This project required [packer.io](https://www.packer.io) therefore it must be installed on machine that is going to be running this tool.
 
-### Markdown
+### packer.io
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Packer is easy to use and automates the creation of any type of machine image. It embraces modern configuration management by encouraging you to use automated scripts to install and configure the software within your Packer-made images. Packer brings machine images into the modern age, unlocking untapped potential and opening new opportunities.
 
-```markdown
-Syntax highlighted code block
+#### [Install Packer](https://www.packer.io/intro/getting-started/install.html)
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+Homebrew
+If you're using OS X and [Homebrew](https://brew.sh), you can install Packer by running:
 ```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/sleepyorion/oneops-packer/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+$ brew install packer
+```
+Chocolatey
+If you're using Windows and [Chocolatey](http://chocolatey.org/), you can install Packer by running:
+```
+choco install packer
+```
