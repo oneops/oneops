@@ -76,6 +76,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     private static final String BOM_CLASS_PREFIX = "bom\\.(.*\\.)*";
     private static final String FAIL_ON_DELETE_FAILURE_ATTR = "fail_on_delete_failure";
     private static final String BASE_INSTALL_TIME = "bInstallTime";
+    private static final String REBOOT_RUN_LIST = "recipe[shared::reboot_vm]";
     private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
     private Semaphore semaphore = null;
     private Config config = null;
@@ -199,7 +200,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         }
     }
 
-
     protected List<String> getExtraRunListClasses(CmsWorkOrderSimple wo) {
         List<CmsRfcCISimple> extraRunListRfc = wo.getPayLoadEntry(EXTRA_RUN_LIST);
         //get distinct class names as there could be multiple entries for same class name
@@ -241,16 +241,17 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         return message;
     }
 
+
     /**
      * Runs work orders on the inductor box, ex compute::add
      */
-    private void runLocalWorkOrder(ProcessRunner pr, CmsWorkOrderSimple wo,
+    private void runLocalWorkOrder(CmsWorkOrderSimple wo,
                                    String appName, String logKey, String fileName, String cookbookPath)
             throws JsonSyntaxException {
-        runLocalWorkOrder(pr, wo, appName, logKey, fileName, cookbookPath, 1);
+        runLocalWorkOrder(wo, appName, logKey, fileName, cookbookPath, 1);
     }
 
-    private void runLocalWorkOrder(ProcessRunner pr, CmsWorkOrderSimple wo,
+    private void runLocalWorkOrder(CmsWorkOrderSimple wo,
                                    String appName, String logKey, String fileName,
                                    String cookbookPath, int attempt) throws JsonSyntaxException {
 
@@ -278,7 +279,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             setLocalWaitTime(wo);
             ProcessResult result;
             try {
-                result = pr.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, woRetryCount));
+                result = processRunner.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, woRetryCount));
             } finally {
                 semaphore.release();
             }
@@ -293,7 +294,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     wo.getRfcCi().setRfcAction(ADD);
                     chefConfig = writeChefConfig(wo, cookbookPath);
                     writeChefRequest(wo, fileName);
-                    result = pr.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, woRetryCount));
+                    result = processRunner.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, woRetryCount));
                     //
                 }
             }
@@ -336,10 +337,18 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             Thread.currentThread().interrupt();
             logger.info("thread " + Thread.currentThread().getId()
                     + " waiting for semaphore was interrupted.");
-            runLocalWorkOrder(pr, wo, appName, logKey, fileName, cookbookPath,
-                    attempt + 1);
+            runLocalWorkOrder(wo, appName, logKey, fileName, cookbookPath, attempt + 1);
         }
 
+    }
+
+    private ProcessResult runLocalWorkOrderWithCommand(CmsWorkOrderSimple wo, String logKey, String fileName, 
+            String cookbookPath, List<String> additionalCmdList) {
+        String chefConfig = writeChefConfig(wo, cookbookPath);
+        writeChefRequest(wo, fileName);
+        String[] cmd = buildChefSoloCmd(fileName, chefConfig, isDebugEnabled(wo), additionalCmdList);
+        ProcessResult result = processRunner.executeProcessRetry(new ExecutionContext(wo, cmd, logKey, 1));
+        return result;
     }
 
     private void runComputeRemoteWorkOrder(CmsWorkOrderSimple wo, ProcessResult result, String chefConfig) {
@@ -517,7 +526,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
                 logger.info(logKey + " ### BASE INSTALL");
                 wo.setComments("");
-                runBaseInstall(processRunner, wo, host, port, logKey, keyFile);
+                runBaseInstall(wo, host, port, logKey, keyFile);
                 if (!wo.getComments().isEmpty()) {
                     logger.info(logKey + " failed base install.");
                     return;
@@ -624,8 +633,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     + remoteCmd);
             int woRetryCount = getRetryCountForWorkOrder(wo);
             if (!host.equals(TEST_HOST)) {
-                ProcessResult result = processRunner.executeProcessRetry(
-                        new ExecutionContext(wo, cmd, logKey, woRetryCount));
+                ProcessResult result = executeWorkOrderRemote(new ExecutionContext(wo, cmd, logKey, woRetryCount), fileName, cookbookPath);
 
                 // set the result status
                 if (result.getResultCode() != 0) {
@@ -663,10 +671,38 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             removeFile(wo, keyFile);
 
         } else {
-            runLocalWorkOrder(processRunner, wo, appName, logKey, fileName, cookbookPath);
+            runLocalWorkOrder(wo, appName, logKey, fileName, cookbookPath);
         }
         if (!isDebugEnabled(wo))
             removeFile(fileName);
+    }
+
+    private ProcessResult executeWorkOrderRemote(ExecutionContext executionContext, String fileName, String cookbookPath) {
+        ProcessResult result = processRunner.executeProcessRetry(executionContext);
+        //if the vm is rebooting execute reboot_vm as a local workorder and then retry
+        if (result.isRebooting()) {
+            String logKey = executionContext.getLogKey();
+            logger.info(logKey + " executing reboot_vm as local workorder");
+            List<String> cmdList = new ArrayList<>();
+            cmdList.add("-o");
+            cmdList.add(REBOOT_RUN_LIST);
+            ProcessResult rebootResult = runLocalWorkOrderWithCommand((CmsWorkOrderSimple)executionContext.getWo(), 
+                    executionContext.getLogKey(), fileName, cookbookPath, cmdList);
+            if (rebootResult.getResultCode() != 0) {
+                logger.info(logKey + " reboot_vm failed " + rebootResult.getResultCode());
+            }
+            else {
+                logger.info(logKey + " exectuing workorder again after reboot_vm");
+                result = processRunner.executeProcessRetry(executionContext);
+            }
+        }
+        return result;
+    }
+
+    private String[] buildChefSoloCmd(String fileName, String chefConfig, boolean debug, List<String> additionalArgs) {
+        List<String> cmd = buildDefaultChefSolo(fileName, chefConfig, debug);
+        cmd.addAll(additionalArgs);
+        return cmd.toArray(new String[cmd.size()]);
     }
 
     private boolean isPropagationUpdate(CmsWorkOrderSimple wo) {
@@ -768,7 +804,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      * @param logKey
      * @param keyFile
      */
-    public void runBaseInstall(ProcessRunner pr, CmsWorkOrderSimple wo,
+    public void runBaseInstall(CmsWorkOrderSimple wo,
                                String host, String port, String logKey, String keyFile) {
 
         long t1 = System.currentTimeMillis();
@@ -824,7 +860,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
         // retry initial ssh 10x slow hypervisors hosts
         if (!host.equals(TEST_HOST)) {
-            ProcessResult result = pr.executeProcessRetry(cmd, logKey, 10);
+            ProcessResult result = processRunner.executeProcessRetry(cmd, logKey, 10);
             if (result.getResultCode() > 0) {
                 wo.setComments("failed : can't:" + prepCmdline);
                 return;
@@ -868,7 +904,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
             cmd = (String[]) ArrayUtils.addAll(cmdTmp, repoCmdList.toArray());
             if (!host.equals(TEST_HOST)) {
-                ProcessResult result = pr.executeProcessRetry(cmd, logKey,
+                ProcessResult result = processRunner.executeProcessRetry(cmd, logKey,
                         retryCount);
                 if (result.getResultCode() > 0) {
                     wo.setComments("failed : Replace the compute and retry the deployment");
@@ -890,7 +926,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                         user + "@" + host + ":/home/" + user + "/"
                                 + cookbookPath});
         if (!host.equals(TEST_HOST)) {
-            ProcessResult result = pr.executeProcessRetry(deploy, logKey,
+            ProcessResult result = processRunner.executeProcessRetry(deploy, logKey,
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
@@ -907,7 +943,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                 new String[]{cookbook,
                         user + "@" + host + ":/home/" + user + "/shared"});
         if (!host.equals(TEST_HOST)) {
-            ProcessResult result = pr.executeProcessRetry(deploy, logKey,
+            ProcessResult result = processRunner.executeProcessRetry(deploy, logKey,
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":" + port));
@@ -933,7 +969,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         cmd = (String[]) ArrayUtils.addAll(cmdTmp, proxyList);
 
         if (!host.equals(TEST_HOST)) {
-            ProcessResult result = pr.executeProcessRetry(cmd, logKey,
+            ProcessResult result = processRunner.executeProcessRetry(cmd, logKey,
                     retryCount);
             if (result.getResultCode() > 0) {
                 wo.setComments("failed : can't run install_base.sh");

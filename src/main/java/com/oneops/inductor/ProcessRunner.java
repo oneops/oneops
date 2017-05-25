@@ -139,16 +139,8 @@ public class ProcessRunner {
 			logger.info(logKey + "cmd took: " + duration + " ms");
 
 			if (result.isRebooting()) {
-				result.setResultCode(0);
-				long sleepSec = 60L;
-				logger.info(logKey + " rebooting ... sleeping " + sleepSec
-						+ " sec...");
-				try {
-					Thread.sleep(sleepSec * 1000L);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				count--;
+				logger.info(logKey + " rebooting flag is set");
+				return result;
 			}
 
 			count++;
