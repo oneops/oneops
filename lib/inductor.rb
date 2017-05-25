@@ -524,7 +524,8 @@ class Inductor < Thor
   end
   
   def self.jar
-    File.expand_path("../target/inductor-1.1.0.jar", File.dirname(__FILE__))
+    inductor_file=Dir.glob("#{source_root}/../target/inductor*.jar")[0].to_s
+    File.expand_path(inductor_file)
   end
 
   @kernel_type = `uname -s`.downcase.chomp("\n").strip
