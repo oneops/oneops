@@ -106,4 +106,5 @@ EOL
 chown postgres:postgres /var/lib/pgsql/9.2/data/pg_hba.conf
 
 systemctl enable postgresql-9.2
+systemctl start postgresql-9.2
 

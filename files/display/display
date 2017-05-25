@@ -42,7 +42,7 @@ start()
 
     WriteLog "Starting $prog"
     
-    source  /usr/local/rvm/scripts/rvm
+    #source  /usr/local/rvm/scripts/rvm
     cd "$rundir"
     daemon "$progcmd" >> "$logfile"
      
