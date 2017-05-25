@@ -112,8 +112,6 @@ public class Config {
 	private @Value("${rsync_timeout:30}")
 	int rsyncTimeout;
 
-
-
 	/**
 	 * The list of clouds which are marked to be in stub mode.
 	 * Inductor will mark those work-order and action orders execution result as
@@ -177,6 +175,10 @@ public class Config {
 	 */
 	@Value("${env_vars:}")
 	private String env;
+
+	// max number of reboots that can happen in a single workorder execution
+	private @Value("${reboot_limit:5}")
+	int rebootLimit;
 
 	/**
 	 * Env vars read from {@link #env}. This will get initialized in ${@link #init()}
@@ -692,4 +694,12 @@ public class Config {
   public double getAutoShutDownThreshold() {
     return autoShutDownThreshold;
   }
+
+public int getRebootLimit() {
+	return rebootLimit;
+}
+
+public void setRebootLimit(int rebootLimit) {
+	this.rebootLimit = rebootLimit;
+}
 }

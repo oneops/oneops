@@ -680,21 +680,29 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     private ProcessResult executeWorkOrderRemote(ExecutionContext executionContext, String fileName, String cookbookPath) {
         ProcessResult result = processRunner.executeProcessRetry(executionContext);
         //if the vm is rebooting execute reboot_vm as a local workorder and then retry
-        if (result.isRebooting()) {
-            String logKey = executionContext.getLogKey();
-            logger.info(logKey + " executing reboot_vm as local workorder");
+        int rebootCount = 0;
+        String logKey = executionContext.getLogKey();
+        while (result.isRebooting() && rebootCount < config.getRebootLimit()) {
+            rebootCount++;
+            logger.info(logKey + " executing reboot_vm as local workorder, reboot count " + rebootCount);
+
             List<String> cmdList = new ArrayList<>();
             cmdList.add("-o");
             cmdList.add(REBOOT_RUN_LIST);
+
             ProcessResult rebootResult = runLocalWorkOrderWithCommand((CmsWorkOrderSimple)executionContext.getWo(), 
                     executionContext.getLogKey(), fileName, cookbookPath, cmdList);
             if (rebootResult.getResultCode() != 0) {
                 logger.info(logKey + " reboot_vm failed " + rebootResult.getResultCode());
+                return rebootResult;
             }
             else {
-                logger.info(logKey + " exectuing workorder again after reboot_vm");
+                logger.info(logKey + " executing workorder again after reboot_vm");
                 result = processRunner.executeProcessRetry(executionContext);
             }
+        }
+        if (rebootCount > 0) {
+            logger.info(logKey + " number of reboots attempted : " + rebootCount);
         }
         return result;
     }
