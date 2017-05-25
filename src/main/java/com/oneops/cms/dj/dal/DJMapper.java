@@ -45,10 +45,18 @@ public interface DJMapper {
 	int deleteRelease(long releaseId);
 	void commitRelease(@Param("releaseId") long releaseId,@Param("setDfValue") Boolean setDfValue,@Param("newCiState") Integer newCiState, @Param("delete4real") boolean delete4real, @Param("userId") String userId, @Param("desc") String desc);
 	
+	
 	void createRfcCI(CmsRfcCI rfcCi);
+	void createRfcLog(CmsRfcCI rfcCi);
 	int rmRfcCIfromRelease(long rfcId);
-	int updateRfcCI(CmsRfcCI rfcCi);
-	void upsertRfcCIAttribute(CmsRfcAttribute attr);
+
+	void updateRfcCI(CmsRfcCI rfcCI);
+	void updateRfcLog(CmsRfcCI rfcCI);
+	
+
+	void insertRfcCIAttribute(CmsRfcAttribute attr);
+	void updateRfcCIAttribute(CmsRfcAttribute attr);
+	
 	CmsRfcCI getRfcCIById(long rfcId);
 	CmsRfcCI getOpenRfcCIByCiId(long ciId);
 	List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds);
@@ -64,8 +72,15 @@ public interface DJMapper {
 	List<CmsRfcAttribute> getRfcCIAttributesByRfcIdList(@Param("rfcIds") Set<Long> rfcIds);
     
     void createRfcRelation(CmsRfcRelation rel);
+    void createRfcRelationLog(CmsRfcRelation rel);
 	int rmRfcRelationfromRelease(long rfcId);
 	int updateRfcRelation(CmsRfcRelation rel);
+	void updateRfcRelationLog(CmsRfcRelation rel);
+	void insertRfcRelationAttribute(CmsRfcAttribute attr);
+
+	void updateRfcRelationAttribute(CmsRfcAttribute attr);
+	
+	@Deprecated
 	void upsertRfcRelationAttribute(CmsRfcAttribute attr);
 	CmsRfcRelation getRfcRelationById(long rfcId);
 	CmsRfcRelation getOpenRfcRelationByCiRelId(long ciRelationId);

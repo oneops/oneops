@@ -130,20 +130,43 @@
 
      <!-- DJ RFC CIs -->
 
-	 <insert id="createRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="CALLABLE">
-	    {call dj_create_rfc_ci(#{rfcId} ,#{releaseId}, #{ciId}, #{nsId}, #{ciClassId}, #{ciName}, #{ciGoid}, #{rfcActionId}, #{execOrder}, #{lastAppliedRfcId}, #{comments}, #{createdBy}, #{hint})}
-	 </insert> 
 
-	 <update id="updateRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="CALLABLE">	     
-	     {call dj_update_rfc_ci(#{rfcId}, #{ciName}, #{execOrder}, #{comments}, #{updatedBy}, #{releaseId})}
-	 </update> 
+	<insert id="createRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="PREPARED">
+  	INSERT INTO dj_rfc_ci(rfc_id, release_id, ci_id, ns_id, class_id, ci_name, ci_goid, action_id, execution_order, is_active_in_release, last_rfc_id, comments, created_by, hint)
+    VALUES (#{rfcId} ,#{releaseId}, #{ciId}, #{nsId}, #{ciClassId}, #{ciName}, #{ciGoid}, #{rfcActionId}, #{execOrder}, true, #{lastAppliedRfcId}, #{comments}, #{createdBy}, #{hint})
+	</insert>
+	
+	<insert id="createRfcLog"  parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="PREPARED">
+		INSERT INTO cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+        	VALUES (nextval('event_pk_seq'), #{rfcId} , 'rfc_ci' , 100)
+	</insert>
+	
+	<update id="updateRfcCI" parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="PREPARED">
+		update dj_rfc_ci
+   	    set ci_name = coalesce(#{ciName}, ci_name),
+   	      release_id = coalesce(NULLIF(#{releaseId}, 0), release_id),
+       	  execution_order = coalesce(#{execOrder}, execution_order),
+	        comments = coalesce(#{comments}, comments),
+	        updated_by = coalesce(#{updatedBy}, updated_by),
+	        updated = now()
+	     where rfc_id = #{rfcId};
+	</update>
+	<insert id="updateRfcLog"  parameterType="com.oneops.cms.dj.domain.CmsRfcCI" statementType="PREPARED">
+	  	INSERT INTO cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+		VALUES (nextval('event_pk_seq'), #{rfcId}, 'rfc_ci' , 200);
+	</insert>
 
-	 <update id="rmRfcCIfromRelease" parameterType="long" statementType="CALLABLE">
+
+
+	<update id="rmRfcCIfromRelease" parameterType="long" statementType="CALLABLE">
 	    {call dj_rm_rfc_ci(#{value})}
-	 </update> 
+	 </update>
 
-	 <update id="rmRfcRelationfromRelease" parameterType="long" statementType="CALLABLE">
-	    {call dj_rm_rfc_rel(#{value})}
+	<update id="rmRfcRelationfromRelease" parameterType="long" statementType="PREPARED">
+		update dj_rfc_relation
+		set is_active_in_release = false,
+			updated = now()
+		where rfc_id = #{value};
 	 </update> 
 
 
@@ -546,9 +569,29 @@
     </select>
 
 
-	 <insert id="upsertRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
-	    {call dj_upsert_rfc_ci_attr(#{rfcId} ,#{attributeId}, #{newValue}, #{owner}, #{comments}, #{rfcAttributeId,jdbcType=BIGINT, mode=OUT})}
-	 </insert> 
+
+	<insert id="insertRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
+        INSERT INTO dj_rfc_ci_attributes(
+		    rfc_attr_id, rfc_id, attribute_id, old_attribute_value, new_attribute_value, owner, comments)
+		VALUES (#{rfcAttributeId}, #{rfcId}, #{attributeId}, null,  #{newValue}, #{owner}, #{comments})
+	</insert>
+
+
+	<update id="updateRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
+		update dj_rfc_ci_attributes 
+		set new_attribute_value = #{newValue},
+			old_attribute_value = (	select cia.df_attribute_value 
+		from cm_ci_attributes cia, dj_rfc_ci rfci
+		where cia.ci_id = rfci.ci_id
+		  and rfci.rfc_id = #{rfcId}
+		  and cia.attribute_id = #{attributeId}),
+			owner = #{owner}
+			comments = coalesce(#{comments},comments)
+		where rfc_id = #{rfcId} and attribute_id = #{attributeId};
+	</update>
+
+
+
 	
 	
 	 <select id="getRfcCIAttributes" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcAttribute">
@@ -587,19 +630,58 @@
 
      <!-- DJ RFC Relations -->
 
-	 <insert id="createRfcRelation" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="CALLABLE">
-	    {call dj_create_rfc_relation(#{rfcId} ,#{releaseId}, #{nsId}, #{ciRelationId}, #{fromRfcId}, #{fromCiId}, #{relationId}, #{relationGoid}, #{toRfcId}, #{toCiId}, #{rfcActionId}, #{execOrder}, #{lastAppliedRfcId}, #{comments}, #{createdBy})}
+	 <insert id="createRfcRelation" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="PREPARED">
+           INSERT INTO dj_rfc_relation(
+            rfc_id, release_id, ns_id, ci_relation_id, from_rfc_id, from_ci_id, relation_id, relation_goid, 
+            to_ci_id, to_rfc_id, action_id, execution_order, is_active_in_release, last_rfc_id, comments, created_by)
+   		   VALUES (#{rfcId}, #{releaseId}, #{nsId},  #{ciRelationId}, #{fromRfcId}, #{fromCiId}, #{relationId}, #{relationGoid}, 
+            #{toCiId}, #{toRfcId},#{rfcActionId},  #{execOrder}, true, #{lastAppliedRfcId}, #{comments}, #{createdBy}); 
 	 </insert> 
+	
+	<insert id="createRfcRelationLog" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="PREPARED">
+		    INSERT INTO cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+    		VALUES (nextval('event_pk_seq'), #{rfcId}, 'rfc_relation' , 100);
+	</insert>
 
-	 <update id="updateRfcRelation" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="CALLABLE">
-	    {call dj_update_rfc_relation(#{rfcId}, #{execOrder}, #{comments}, #{updatedBy}, #{releaseId})}
-	 </update> 
+	<update id="updateRfcRelation" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="PREPARED">
+           update dj_rfc_relation
+    set execution_order = coalesce(#{execOrder},execution_order),
+        release_id = coalesce(#{releaseId}, release_id),
+        comments = coalesce(#{comments},comments),
+        updated_by = coalesce(#{updatedBy}, updated_by),
+        updated = now()
+    where rfc_id = #{rfcId};
+	 </update>
+
+	<update id="updateRfcRelationLog" parameterType="com.oneops.cms.dj.domain.CmsRfcRelation" statementType="PREPARED">
+		   INSERT INTO cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+         VALUES (nextval('event_pk_seq'), #{rfcId}, 'rfc_relation' , 200);
+	</update>
+
+
+	<insert id="insertRfcRelationAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="PREPARED">
+	    INSERT INTO dj_rfc_relation_attributes(
+		    rfc_attr_id, rfc_id, attribute_id, old_attribute_value, new_attribute_value, owner, comments) 
+		    VALUES (#{rfcAttributeId}, #{rfcId}, #{attributeId},(select cra.df_attribute_value 
+		from  dj_rfc_relation rfc, cm_ci_relations cr, cm_ci_relation_attributes cra
+		where rfc.rfc_id = #{rfcId}
+		  and cr.from_ci_id = rfc.from_ci_id
+		  and cr.relation_id = rfc.relation_id
+		  and cr.to_ci_id = rfc.to_ci_id
+		  and cra.ci_relation_id = cr.ci_relation_id
+		  and cra.attribute_id = #{attributeId}), #{newValue}, #{owner}, #{comments})
+	</insert>
+
+	<update id="updateRfcRelationAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="PREPARED">
+		update dj_rfc_relation_attributes
+		set new_attribute_value = #{newValue},
+	    owner = #{owner},
+	    comments = coalesce(#{comments},comments)
+		where rfc_id = #{rfcId} 
+         and attribute_id = #{attributeId}
+	</update>
+	
 	 
-
-	 <insert id="upsertRfcRelationAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
-	    {call dj_upsert_rfc_rel_attr(#{rfcId} ,#{attributeId}, #{newValue}, #{owner}, #{comments}, #{rfcAttributeId,jdbcType=BIGINT, mode=OUT})}
-	 </insert> 
-
 	 <select id="getRfcRelationById" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
 		SELECT rfr.rfc_id as rfcId, 
 			   rfr.release_id as releaseId,
