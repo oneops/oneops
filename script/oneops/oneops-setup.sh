@@ -38,9 +38,9 @@ sed -i 's/.*install_build_srvr.*/echo Skipping artifact build/' oneops_build.sh
 # patch existing scripts
 sed -i 's/tar.*xzvf.*oneops-continuous.*gz//' oneops_build.sh
 sed -i 's/.*cms-db-pkg-continuous.*tar.*gz//' init_db.sh
-sed -i 's/cd.*OO_HOME\/dist\/cms-db-pkg.*//' init_db.sh
+sed -i 's/cd.*OO_HOME\/dist\/cms-db-pkg$//' init_db.sh
 sed -i 's/cp.*single_db_schemas.*sql/cp \$OO_HOME\/dist\/oneops\/dist\/single_db_schemas.sql \/var\/lib\/pgsql\/single_db_schemas.sql/' init_db.sh
-sed -i 's/cd.*OO_HOME\/dist\/oneops\/dist\/db/cd \$OO_HOME\/dist\/oneops\/dist/' init_db.sh
+sed -i 's/cd.*OO_HOME\/dist\/cms-db-pkg\/db/cd \$OO_HOME\/dist\/oneops\/dist/' init_db.sh
 sed -i 's/mv.*dist.*app.*gz .*gz/mv $OO_HOME\/dist\/app.tar.gz \/opt\/oneops\/app.tar.gz/' deploy_display.sh
 sed -i 's/cp.*dist.*dist.*amq-config.*\/activemq.*tar.*gz/cp $OO_HOME\/dist\/amq-config.tar.gz  \/opt\/activemq\/amq-config.tar.gz/' deploy_amq.sh
 sed -i 's/cp.*dist.*dist.*amqplugin.*\/activemq.*fat.*jar/cp $OO_HOME\/dist\/amqplugin-fat.jar  \/opt\/activemq\/lib\/amqplugin-fat.jar/' deploy_amq.sh
