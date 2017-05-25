@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.oneops.mybatis.Stats;
+import com.oneops.mybatis.StatsPlugin;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -89,6 +91,20 @@ public class NsRestController {
 		Map<String,String> result = new HashMap<>();
 		result.put("result","OK");
 		return result;
+	}
+
+
+	@RequestMapping(value="/mybatis/stats", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Stats> getStats() {
+		return StatsPlugin.getStatsMap();
+	}
+
+	@RequestMapping(value="/mybatis/stats/clear", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Stats> clearStats() {
+		StatsPlugin.getStatsMap().clear();
+		return getStats();
 	}
 	
 	

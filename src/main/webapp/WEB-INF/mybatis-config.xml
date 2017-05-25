@@ -15,7 +15,9 @@
         <typeAlias alias="mdrelation" type="com.oneops.cms.md.domain.CmsRelation"/>
         <typeAlias alias="mdrelattr" type="com.oneops.cms.md.domain.CmsRelationAttribute"/>
     </typeAliases>
-
+    <plugins>
+        <plugin interceptor="com.oneops.mybatis.StatsPlugin"/>
+    </plugins>
     <mappers>
         <mapper resource="com/oneops/cms/md/dal/ClazzMapper.xml"/>
         <mapper resource="com/oneops/cms/md/dal/RelationMapper.xml"/>
