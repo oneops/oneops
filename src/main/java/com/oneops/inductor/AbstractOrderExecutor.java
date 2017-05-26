@@ -362,9 +362,7 @@ public abstract class AbstractOrderExecutor {
     protected void updateProxyListBash(ArrayList<String> proxyList,
                                        String jsonProxyHash) {
 
-        JsonReader reader = new JsonReader(new StringReader(jsonProxyHash));
-        reader.setLenient(true);
-        HashMap<String, String> proxyMap = gson.fromJson(reader,
+        Map<String, String> proxyMap = gson.fromJson(jsonProxyHash,
                 Map.class);
 
         if (proxyMap != null) {
@@ -384,9 +382,8 @@ public abstract class AbstractOrderExecutor {
     protected void updateProxyList(ArrayList<String> proxyList,
                                    String jsonProxyHash) {
 
-        JsonReader reader = new JsonReader(new StringReader(jsonProxyHash));
-        reader.setLenient(true);
-        HashMap<String, String> proxyMap = gson.fromJson(reader,
+
+        Map<String, String> proxyMap = gson.fromJson(jsonProxyHash,
                 Map.class);
         if (proxyMap != null) {
             for (String key : proxyMap.keySet()) {

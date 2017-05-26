@@ -1009,13 +1009,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      * @param os
      */
     private ArrayList<String> getRepoListFromMap(String jsonReposMap, String os) {
-
-        JsonReader reader = new JsonReader(new StringReader(jsonReposMap));
-        reader.setLenient(true);
-
-        HashMap<String, String> repoMap = gson.fromJson(reader, HashMap.class);
+        Map<String, String> repoMap = gson.fromJson(jsonReposMap, Map.class);
         ArrayList<String> repos = new ArrayList<>();
-
         if (repoMap != null && repoMap.containsKey(os))
             repos.add(repoMap.get(os));
 
