@@ -28,6 +28,13 @@
     </bean>
 
     <tx:annotation-driven />
+
+
+
+    <bean id="batchSqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+        <constructor-arg index="0" ref="sqlSessionFactory" />
+        <constructor-arg index="1" value="BATCH" />
+    </bean>
 	
 	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
 		<property name="dataSource" ref="oneopsCMSDS" />
@@ -36,37 +43,44 @@
 	
 	<bean id="clazzMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.md.dal.ClazzMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>	
 
 	<bean id="nsMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.ns.dal.NSMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>	
 
 	<bean id="relationMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.md.dal.RelationMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>	
 
 	<bean id="ciMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.cm.dal.CIMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>	
 
 	<bean id="djMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.dj.dal.DJMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>	
     
   	<bean id="dpmtMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.dj.dal.DJDpmtMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>	
     
     <bean id="utilMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
         <property name="mapperInterface" value="com.oneops.cms.util.dal.UtilMapper" />
-        <property name="sqlSessionFactory" ref="sqlSessionFactory" />        
+        <property name="sqlSessionTemplate" ref="batchSqlSession"/>
+        <!--<property name="sqlSessionFactory" ref="sqlSessionFactory" />        -->
     </bean>
     
    	<bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>

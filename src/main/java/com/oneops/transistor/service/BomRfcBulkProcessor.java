@@ -169,11 +169,14 @@ public class BomRfcBulkProcessor {
 			//process vars
 			processVars(boms, cloudVars, globalVars, localVars);
 			logger.info(nsPath + " >>> " + platformCi.getCiName() + ", starting creating rfcs");
+
+			
 			long bomCreationStartTime = System.currentTimeMillis();
 			ExistingRels existingRels = new ExistingRels(nsPath);
 			Map<String, CmsCI> existingCIs = getExistingCis(bindingRel.getToCiId(), nsPath);
+			logger.info("existing load:"+(System.currentTimeMillis()-bomCreationStartTime));
 			Map<String, CmsRfcCI> existingRFCs = getOpenRFCs(nsPath);
-
+			logger.info("open load:"+(System.currentTimeMillis()-bomCreationStartTime));
 			maxExecOrder = createBomRfcsAndRels(boms, nsPath, bindingRel, startExecOrder, isPartial, userId, existingRels, existingCIs, existingRFCs, releaseId);
 
 			logger.info(nsPath + " >>> " + platformCi.getCiName() + ", Done with main RFCs and relations, time spent - " + (System.currentTimeMillis() - bomCreationStartTime));
@@ -479,11 +482,13 @@ public class BomRfcBulkProcessor {
 		Set<Long> bomCiIds = new HashSet<Long>();
 		Map<Long, List<String>> manifestPropagations = new HashMap<Long, List<String>>();
 		long timeTakenByPropagation = 0;
+		logger.info("Starting insert");
 		long rfcInsertStartTime = System.currentTimeMillis();
 		//now lets create rfcs
 		int realExecOrder = startExecOrder;
 		int numberOfRFCs = 0;
 		List<CmsRfcCI> replacedComputes = new ArrayList<CmsRfcCI>();
+		long upsert = 0;
 		for (int i=startExecOrder; i<=maxExecOrder; i++) {
 			boolean incOrder = false;
 			if (orderedMap.containsKey(i)) {
@@ -495,11 +500,15 @@ public class BomRfcBulkProcessor {
 					boolean rfcCreated = false;
 					if (priorityMap.containsKey(shortClazzName)) {
 						bom.execOrder = priorityMap.get(shortClazzName);
+						upsert-=System.currentTimeMillis();
 						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, nsPath, bindingRel, releaseId, userId, existingRels);
+						upsert+=System.currentTimeMillis();
 						if (rfcCreated && realExecOrder == 1) incOrder = true;
 					} else {
 						//bom.execOrder = realExecOrder;
+						upsert-=System.currentTimeMillis();
 						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, nsPath, bindingRel, releaseId, userId, existingRels);
+						upsert+=System.currentTimeMillis();
 						if (rfcCreated && bom.rfc != null) {
 							//if rfc was created, lets check if any propagation is required
 							if(bom.rfc.getCiClassName().equals("bom.Compute") 
@@ -533,6 +542,7 @@ public class BomRfcBulkProcessor {
 			}
 			if (incOrder) realExecOrder++;
 		}
+		logger.info(">>> Upsert total time - " + upsert);
 		
 		logger.info(">>> Inserted " + numberOfRFCs + " rfcs; time spent - "+(System.currentTimeMillis()-rfcInsertStartTime));
 
@@ -641,7 +651,7 @@ public class BomRfcBulkProcessor {
 		}
 		if (increaseMaxOrder) maxExecOrder++;
 		
-		logger.info(nsPath + " >>> Total time taken by propagation in seconds: " + timeTakenByPropagation/1000);
+		logger.info(nsPath + " >>> Total time taken by propagation in ms: " + timeTakenByPropagation);
 		return maxExecOrder;
 	}
 
@@ -727,13 +737,13 @@ public class BomRfcBulkProcessor {
 	private void propagateUpdate(long bomCiId, long manifestId,
 			Map<Long, List<String>> manifestPropagations, String userId, Set<Long> propagations) {
 		List<String> targetManifestCiNames = manifestPropagations.get(manifestId);
-		List<CmsCIRelation> rels  = cmProcessor.getAllCIRelations(bomCiId);// all bom relations for this bom ci
 		
 		if (targetManifestCiNames == null) {
 			logger.info("nothing to propagate for bomCiId: " + bomCiId + " and manifestCiId: " + manifestId);
 			return;
 		}
 		
+		List<CmsCIRelation> rels  = cmProcessor.getAllCIRelations(bomCiId);// all bom relations for this bom ci
 		for (String targetCiName : targetManifestCiNames) {
 			for (CmsCIRelation rel : rels) {
 				if (! rel.getRelationName().equals("bom.DependsOn")) {
@@ -910,9 +920,9 @@ public class BomRfcBulkProcessor {
 			rfc.setRfcAction("add");
 
 			if (rfc.getRfcId() == 0) {
-				rfcProcessor.createBomRfc(rfc);
+				rfcProcessor.createRfc(rfc);
 			} else {
-				rfcProcessor.updateBomRfc(rfc, existingRfc);
+				rfcProcessor.updateRfc(rfc, existingRfc);
 			}
 		} else {
 			//need to figure out delta and create update rfc
@@ -920,9 +930,9 @@ public class BomRfcBulkProcessor {
 				
 				rfc.setIsActiveInRelease(true);
 				if (rfc.getRfcId() == 0) {
-					rfcProcessor.createBomRfc(rfc);
+					rfcProcessor.createRfc(rfc);
 				} else {
-					rfcProcessor.updateBomRfc(rfc, existingRfc);
+					rfcProcessor.updateRfc(rfc, existingRfc);
 				}
 				/*
 				if(rfc.getCiClassName().equals("bom.Compute") 
@@ -977,9 +987,9 @@ public class BomRfcBulkProcessor {
 			rfc.setRfcAction("add");
 
 			if (rfc.getRfcId() == 0) {
-				rfcProcessor.createBomRfcRelation(rfc);
+				rfcProcessor.createRfcRelationRaw(rfc);
 			} else {
-				rfcProcessor.updateBomRfcRelation(rfc, existingRels.getOpenRelRfc(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
+				rfcProcessor.updateRfcRelation(rfc, existingRels.getOpenRelRfc(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
 			}
 		} else {
 			//need to figure out delta and create update rfc
@@ -988,9 +998,9 @@ public class BomRfcBulkProcessor {
 				rfc.setIsActiveInRelease(true);
 				rfc.setRfcAction("update");
 				if (rfc.getRfcId() == 0) {
-					rfcProcessor.createBomRfcRelation(rfc);
+					rfcProcessor.createRfcRelationRaw(rfc);
 				} else {
-					rfcProcessor.updateBomRfcRelation(rfc, existingRels.getOpenRelRfc(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
+					rfcProcessor.updateRfcRelation(rfc, existingRels.getOpenRelRfc(rfc.getRelationName(), rfc.getFromCiId(), rfc.getToCiId()));
 				}
 			}
 		}
