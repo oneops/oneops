@@ -7,7 +7,7 @@
  	<!--cache /-->
 	 
 	 <insert id="createNamespace" parameterType="com.oneops.cms.ns.domain.CmsNamespace" statementType="CALLABLE">
-	    {call ns_create_namespace(#{nsPath}, #{nsId,jdbcType=BIGINT, mode=OUT})}
+	    {call ns_create_namespace(#{nsPath})}
 	 </insert> 
 
 	 <update id="vacuumNamespace" parameterType="map" statementType="CALLABLE">
