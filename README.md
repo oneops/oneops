@@ -5,6 +5,14 @@
 
 ## Requirements
 
+A number of tools the typical development tools are required including
+
+- git
+- JDK 8
+- Ruby
+
+In addition Packer is needed and details follow below.
+
 ### packer.io
 
 This project required [packer.io](https://www.packer.io) therefore it must be
