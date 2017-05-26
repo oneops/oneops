@@ -1,29 +1,27 @@
 <% open_changes        = @rfcs.values.map(&:size).sum > 0 || @platform.rfcAction.present?
    platform_attributes = @platform.ciAttributes
-   pack_major_version  = platform_attributes.version.split('.').first
-   pack_minor_versions = pack_versions(platform_attributes.source, platform_attributes.pack, pack_major_version)
    plat_digest         = platform_attributes.pack_digest
    current_version     = platform_attributes.version
-   current_verion_ci   = pack_minor_versions.find {|v| v.ciName == current_version}
+   current_verion_ci   = @pack_version
    pack_digest         = current_verion_ci && current_verion_ci.ciAttributes.commit
    last_pack_pull_info = @platform_detail.attributes[:attributes].pack_digest
    semantic_versions   = current_version.split('.').map(&:to_i)
-   semver              = semantic_versions.size == 3 || pack_minor_versions.size > 1   # Either this platform already on semver or there are packs (with same major versions) with semver loaded.
+   semver              = semantic_versions.size == 3 || @pack_minor_versions.size > 1   # Either this platform already on semver or there are packs (with same major versions) with semver loaded.
    if semver
      semantic_versions << 0 << 0 if semantic_versions.size < 3
-     info = pack_minor_versions.inject({:latest_patch_ci => current_verion_ci,
-                                        :latest_patch_version => semantic_versions,
-                                        :latest_minor_ci => current_verion_ci,
-                                        :latest_minor_version => semantic_versions}) do |r, v_ci|
+     info = @pack_minor_versions.inject({:latest_patch_ci      => current_verion_ci,
+                                         :latest_patch_version => semantic_versions,
+                                         :latest_minor_ci      => current_verion_ci,
+                                         :latest_minor_version => semantic_versions}) do |r, v_ci|
        v = v_ci.ciName.split('.').map(&:to_i)
        v << 0 << 0 if v.size < 3
        if v[1] > r[:latest_minor_version][1] || (v[1] == r[:latest_minor_version][1] && v[2] > r[:latest_minor_version][2])
-        r[:latest_minor_ci] = v_ci
-        r[:latest_minor_version] = v
+         r[:latest_minor_ci]      = v_ci
+         r[:latest_minor_version] = v
        end
        if v[1] == r[:latest_patch_version][1] && v[2] > r[:latest_patch_version][2]
-        r[:latest_patch_ci] = v_ci
-        r[:latest_patch_version] = v
+         r[:latest_patch_ci]      = v_ci
+         r[:latest_patch_version] = v
        end
        r
      end
@@ -125,7 +123,7 @@
                                    open_changes ? '' : "pack_update('#{latest_patch_version_ci.ciName}')",
                                    :class => "btn btn-#{force ? 'inverse' : 'info'} #{'disabled' if open_changes}") %>
             </li>
-            <% if pack_minor_versions.size > 1 %>
+            <% if @pack_minor_versions.size > 1 %>
               <li>
                 <div class="btn-group">
                   <a class="btn btn-primary dropdown-toggle <%= 'disabled' if open_changes %>" data-toggle="dropdown" href="#">
@@ -136,7 +134,7 @@
                       <li class="disabled" style="border-bottom: 1px solid #bbb">
                         <a>Choose pack version to<br/>upgrade or downgrade to:</a>
                       </li>
-                      <% pack_minor_versions.each do |v| %>
+                      <% @pack_minor_versions.each do |v| %>
                         <% if v.ciName == current_version %>
                           <li class="disabled"><%= link_to_function(v.ciName, '') %></li>
                         <% else %>

@@ -33,6 +33,14 @@ class Design::PlatformsController < Base::PlatformsController
 
         @platform_detail = Cms::CiDetail.find(@platform.ciId) unless @platform.rfcAction == 'add'
 
+        platform_attributes = @platform.ciAttributes
+        source              = platform_attributes.source
+        pack_name           = platform_attributes.pack
+        version             = platform_attributes.version
+
+        @pack_minor_versions = pack_versions(source, pack_name, version.split('.').first)
+        @pack_version = @pack_minor_versions.find {|v| v.ciName == version} || locate_pack_version(source, pack_name, version)
+
         render(:action => :show)
       end
 
