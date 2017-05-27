@@ -1,75 +1,31 @@
-# OneOps Packer
+# OneOps Vagrant
 
-[packer.io](https://www.packer.io/) + [OneOps Build](https://github.com/oneops/oneops-build-converter) = OneOps Single Stand Alone Instance
-
+[packer.io](https://www.packer.io/) + [OneOps Build](https://github.com/oneops/oneops) = OneOps Single Stand Alone Instance
 
 ## Requirements
 
-A number of tools the typical development tools are required including
+The following tools are required for building OneOps Vagrant box:
 
 - git
 - JDK 8
 - Ruby
+- [Packer][1]
 
-In addition Packer is needed and details follow below.
-
-### packer.io
-
-This project required [packer.io](https://www.packer.io) therefore it must be
-installed on machine that is going to be running this tool.
-
-Packer is easy to use and automates the creation of any type of machine
-image. It embraces modern configuration management by encouraging you to use
-automated scripts to install and configure the software within your Packer-made
-images. Packer brings machine images into the modern age, unlocking untapped
-potential and opening new opportunities.
-
-Install following the [official instructions](https://www.packer.io/intro/getting-started/install.html) or
-if you're using OS X and [Homebrew](https://brew.sh), you can install Packer by running:
-
-```
-$ brew install packer
-```
-
-If you're using Windows and [Chocolatey](http://chocolatey.org/), you can install Packer by running:
-```
-choco install packer
-```
 ## Initial Setup
 
-First clone the repository.
-
-Then init and update the submodule for the oneops-build-converter
-
-```
-cd oneops-packer
-git submodule update --init oneops-build-converter/
-```
-
-Now you should have all the source code in place.
+The Vagrant process depends on the full build being run, but the Vagrant image is not built by default in the main build because it takes 10+ minutes. Make sure from the main build you have at least run `mvn clean package`. This will ensure artifacts required by the Vagrant build are in place.
 
 ## Building
 
-Simply run:
+You can use Maven to build the Vagrant box:
 
-```
-sh build-oneops.sh
-```
+`mvn clean package`
 
-Yes that's all to it!  If everything works [packer](https://packer.io) will
-output a box file that can be imported into Vagrant.
+Alternatively you can use the `build.sh` script that Maven uses directly:
 
-This tool depends on
-[OneOps Build](https://github.com/oneops/oneops-build-converter) of which you
-can get most up-to-date by running:
+`./build.sh`
 
-```
-sh build-oneops.sh -f
-```
-
-This will clean up everything and pull the latest
-[OneOps Build](https://github.com/oneops/oneops-build-converter) into the
-workspace.
+Once the OneOps Vagrant box is created, you and added it to your collection of boxes:
 
 ```
 vagrant box add -f --name oneops target/oneops-centos73-${version}.box
@@ -77,7 +33,7 @@ vagrant box add -f --name oneops target/oneops-centos73-${version}.box
 
 This will place the just created box in ~/.vagrant.d/boxes
 
-Vagrantfile you will need looks something like:
+You need a Vagrantfile that looks like this:
 
 ```
 Vagrant.configure(2) do |config|
@@ -101,3 +57,7 @@ Vagrant.configure(2) do |config|
   end
 end
 ```
+
+And then you can use standard Vagrant commands to start the VM.s
+
+[1]: https://www.packer.io
