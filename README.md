@@ -72,7 +72,7 @@ This will clean up everything and pull the latest
 workspace.
 
 ```
-vagrant box add --name oneops target/*.box
+vagrant box add -f --name oneops target/oneops-centos73-${version}.box
 ```
 
 This will place the just created box in ~/.vagrant.d/boxes
