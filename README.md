@@ -1,4 +1,4 @@
-# OneOps Packer 
+# OneOps Packer
 
 [packer.io](https://www.packer.io/) + [OneOps Build](https://github.com/oneops/oneops-build-converter) = OneOps Single Stand Alone Instance
 
@@ -24,7 +24,7 @@ automated scripts to install and configure the software within your Packer-made
 images. Packer brings machine images into the modern age, unlocking untapped
 potential and opening new opportunities.
 
-Install following the [official instructions](https://www.packer.io/intro/getting-started/install.html) or 
+Install following the [official instructions](https://www.packer.io/intro/getting-started/install.html) or
 if you're using OS X and [Homebrew](https://brew.sh), you can install Packer by running:
 
 ```
@@ -70,3 +70,34 @@ sh build-oneops.sh -f
 This will clean up everything and pull the latest
 [OneOps Build](https://github.com/oneops/oneops-build-converter) into the
 workspace.
+
+```
+vagrant box add --name oneops target/*.box
+```
+
+This will place the just created box in ~/.vagrant.d/boxes
+
+Vagrantfile you will need looks something like:
+
+```
+Vagrant.configure(2) do |config|
+
+ config.vm.box = "oneops"
+
+ # Use the vagrant-cachier plugin, if installed, to cache downloaded packages
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.scope = :box
+  end
+
+  config.vm.network "forwarded_port", guest: 3001, host: 3003
+  config.vm.network "forwarded_port", guest: 3000, host: 9090
+  config.vm.network "forwarded_port", guest: 8080, host: 9091
+  config.vm.network "forwarded_port", guest: 8161, host: 8166
+
+ config.vm.provider "virtualbox" do |vb|
+   vb.gui = false
+   vb.memory = 6144
+   vb.customize ["modifyvm", :id, "--cpuexecutioncap", "70"]
+  end
+end
+```
