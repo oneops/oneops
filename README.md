@@ -9,7 +9,7 @@ The following tools are required for building OneOps Vagrant box:
 - git
 - JDK 8
 - Ruby
-- [Packer][1]
+- [Packer][1] . if you have downloaded binary, `packer` should be in path(export PATH=$PATH:/PATH_TO_PACKER).
 
 ## Initial Setup
 
