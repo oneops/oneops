@@ -13,8 +13,9 @@
   <dependencies>
     <dependency>
       <groupId>com.oneops</groupId>
-      <artifactId>oneops</artifactId>
+      <artifactId>distribution</artifactId>
       <version>${project.version}</version>
+      <classifier>oneops</classifier>
       <type>tar.gz</type>
     </dependency>
   </dependencies>
@@ -30,7 +31,15 @@
             </goals>
             <configuration>
               <outputDirectory>${project.build.directory}</outputDirectory>
-              <includeArtifactIds>oneops</includeArtifactIds>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>com.oneops</groupId>
+                  <artifactId>distribution</artifactId>
+                  <version>${project.version}</version>
+                  <classifier>oneops</classifier>
+                  <type>tar.gz</type>
+                </artifactItem>                
+              </artifactItems>
             </configuration>
           </execution>
         </executions>
@@ -48,7 +57,7 @@
             <configuration>
               <executable>./build.sh</executable>
               <arguments>
-                <argument>${basedir}/target/oneops-${project.version}.tar.gz</argument>
+                <argument>${basedir}/target/distribution-${project.version}-oneops.tar.gz</argument>
               </arguments>
             </configuration>
           </execution>
