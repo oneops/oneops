@@ -573,7 +573,7 @@
 	<insert id="insertRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
         INSERT INTO dj_rfc_ci_attributes(
 		    rfc_attr_id, rfc_id, attribute_id, old_attribute_value, new_attribute_value, owner, comments)
-		VALUES (#{rfcAttributeId}, #{rfcId}, #{attributeId}, null,  #{newValue}, #{owner}, #{comments})
+		VALUES (nextval('dj_pk_seq'), #{rfcId}, #{attributeId}, null,  #{newValue}, #{owner}, #{comments})
 	</insert>
 
 
@@ -585,7 +585,7 @@
 		where cia.ci_id = rfci.ci_id
 		  and rfci.rfc_id = #{rfcId}
 		  and cia.attribute_id = #{attributeId}),
-			owner = #{owner}
+			owner = #{owner},
 			comments = coalesce(#{comments},comments)
 		where rfc_id = #{rfcId} and attribute_id = #{attributeId};
 	</update>
@@ -662,7 +662,7 @@
 	<insert id="insertRfcRelationAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="PREPARED">
 	    INSERT INTO dj_rfc_relation_attributes(
 		    rfc_attr_id, rfc_id, attribute_id, old_attribute_value, new_attribute_value, owner, comments) 
-		    VALUES (#{rfcAttributeId}, #{rfcId}, #{attributeId},(select cra.df_attribute_value 
+		    VALUES (nextval('dj_pk_seq'), #{rfcId}, #{attributeId},(select cra.df_attribute_value
 		from  dj_rfc_relation rfc, cm_ci_relations cr, cm_ci_relation_attributes cra
 		where rfc.rfc_id = #{rfcId}
 		  and cr.from_ci_id = rfc.from_ci_id

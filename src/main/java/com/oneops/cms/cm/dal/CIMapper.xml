@@ -48,11 +48,11 @@
 	</update>
 
 	<insert id="addRelationAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIRelationAttribute" statementType="CALLABLE">
-	    {call cm_add_ci_rel_attribute(#{ciRelationId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, false, #{ciRelationAttributeId,jdbcType=BIGINT, mode=OUT})}
+	    {call cm_add_ci_rel_attribute(#{ciRelationId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, false)}
 	 </insert> 
 
     <insert id="addRelationAttributeAndPublish" parameterType="com.oneops.cms.cm.domain.CmsCIRelationAttribute" statementType="CALLABLE">
-       {call cm_add_ci_rel_attribute(#{ciRelationId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, true, #{ciRelationAttributeId,jdbcType=BIGINT, mode=OUT})}
+       {call cm_add_ci_rel_attribute(#{ciRelationId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, true)}
     </insert>
 
 	 <update id="updateCIRelationAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIRelationAttribute" statementType="CALLABLE">
