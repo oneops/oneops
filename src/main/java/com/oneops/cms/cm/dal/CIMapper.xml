@@ -27,11 +27,11 @@
 	 </update> 
 
 	 <insert id="addCIAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIAttribute" statementType="CALLABLE">
-	    {call cm_add_ci_attribute(#{ciId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, false, #{ciAttributeId,jdbcType=BIGINT, mode=OUT})}
+	    {call cm_add_ci_attribute(#{ciId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, false)}
 	 </insert> 
 
     <insert id="addCIAttributeAndPublish" parameterType="com.oneops.cms.cm.domain.CmsCIAttribute" statementType="CALLABLE">
-       {call cm_add_ci_attribute(#{ciId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, true, #{ciAttributeId,jdbcType=BIGINT, mode=OUT})}
+       {call cm_add_ci_attribute(#{ciId}, #{attributeId}, #{dfValue}, #{djValue}, #{owner}, #{comments}, true)}
     </insert>
 
 	 <update id="updateCIAttribute" parameterType="com.oneops.cms.cm.domain.CmsCIAttribute" statementType="CALLABLE">
