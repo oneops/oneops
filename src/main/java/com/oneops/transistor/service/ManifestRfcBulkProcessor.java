@@ -742,7 +742,10 @@ public class ManifestRfcBulkProcessor {
 	private void processMonitors(CmsCI designPlatform, Map<CmsCI, CmsCI> designToTemplateCiMap, MergeResult mrgMap, List<CmsCIRelation> templRels, 
 			List<CmsCIRelation> designMonitorRels, CmsRfcCI manifestPlat, DesignPullContext context, ManifestRfcContainer platformRfcs) {
 
-		List<CmsCIRelation> templMonitorRels = templRels.stream().filter(rel -> MGMT_MANIFEST_WATCHEDBY.equals(rel.getRelationName())).collect(Collectors.toList());
+		List<CmsCIRelation> templMonitorRels = templRels.stream().
+				filter(rel -> MGMT_MANIFEST_WATCHEDBY.equals(rel.getRelationName()) && 
+						!(CmsConstants.CI_STATE_PENDING_DELETION.equals(rel.getToCi().getCiState()))).
+				collect(Collectors.toList());
 		Map<String, CmsCI> templateMonitorMap = new HashMap<>();
 
 		Map<String, Edge> monitorEdges = new HashMap<>();
