@@ -59,6 +59,7 @@ public class CloudUtil {
      * @throws TransistorException if not all services are configured in clouds.
      * */
     public void check4missingServices(Set<Long> platformIds) {
+
         Set<String> errors = new HashSet<>(platformIds.size());
         Map<String, Set<String>> cloudServices = new HashMap<>();
         for (long manifestPlatformId : platformIds) {

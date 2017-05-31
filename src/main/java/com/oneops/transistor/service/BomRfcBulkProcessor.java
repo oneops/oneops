@@ -18,7 +18,11 @@
 package com.oneops.transistor.service;
 
 import com.google.gson.Gson;
-import com.oneops.cms.cm.domain.*;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.cm.domain.CmsLink;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -38,13 +42,20 @@ import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
-import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.transistor.exceptions.TransistorException;
-
-import org.apache.log4j.Logger;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
+import org.apache.log4j.Logger;
 
 public class BomRfcBulkProcessor {
 	static Logger logger = Logger.getLogger(BomRfcBulkProcessor.class);
@@ -1184,10 +1195,8 @@ public class BomRfcBulkProcessor {
 	}
 
 	private void processManagedViaRels(List<CmsCIRelation> mfstCiRels, Map<Long, List<BomRfc>> bomsMap, String nsPath, String user, ExistingRels existingRels, Long releaseId, Map<Long, List<CmsCIRelation>> depOnFromMap) {
-	    
-        CmsVar disableBFSVar = cmProcessor.getCmSimpleVar(DISABLE_BFS_VAR_NAME);
-        boolean enableBFS = (!(disableBFSVar !=null && "true".equalsIgnoreCase(disableBFSVar.getValue())) && ENABLE_BFS_OPTIMIZATION);
-        logger.info(nsPath + " >>> Path calc BFS optimization: "+enableBFS);
+
+		logger.info(nsPath + " >>> Path calc BFS optimization");
 	    
 		long nsId = trUtil.verifyAndCreateNS(nsPath);
 		List<CmsLink> dependsOnlinks = cmRfcMrgProcessor.getLinks(nsPath, "bom.DependsOn");
@@ -1223,16 +1232,13 @@ public class BomRfcBulkProcessor {
 				managedViaMap = cmProcessor.getCIRelations(mfstCi.getNsPath(), null, "ManagedVia", null, null).stream().collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 				logger.info(nsPath + " >>>  getCiRelations, time spent - " + (System.currentTimeMillis() - time));
 			}
-			
 			List<CmsCIRelation> mfstMngViaRels = managedViaMap.containsKey(mfstCi.getCiId())?managedViaMap.get(mfstCi.getCiId()):new ArrayList<>();
 
 			for (CmsCIRelation mfstMngViaRel : mfstMngViaRels) {
 				// lets find the path 
 				//List<String> pathClasses = getTraversalPath(mfstMngViaRel);
 				long time = System.currentTimeMillis();
-				List<String> pathClasses = enableBFS?
-						getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId(), depOnFromMap):
-						getDpOnPath(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId(), depOnFromMap);
+				List<String> pathClasses = getDpOnPathBfs(mfstMngViaRel.getFromCiId(), mfstMngViaRel.getToCiId(), depOnFromMap);
 				dpOnPathTime+=System.currentTimeMillis()-time;
 				dpOnPathCalls++;
 				lengthCounter++;

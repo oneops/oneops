@@ -201,7 +201,8 @@ public class PackRefreshProcessor {
 
     private void processMonitors(List<CmsCIRelation> templInternalRels, Map<Long, List<CmsRfcCI>> templateIdsMap, RefreshContext context) {
 
-        List<CmsCIRelation> existingDesignMonitors = cmProcessor.getCIRelations(context.designPlatformNsPath, CATALOG_WATCHED_BY, null, null, CATALOG_MONITOR_CLASS);
+        List<CmsCIRelation> existingDesignMonitors = cmProcessor.
+            getCIRelations(context.designPlatformNsPath, CATALOG_WATCHED_BY, null, null, CATALOG_MONITOR_CLASS);
         //ignore custom monitors
         Map<Long, List<CmsCIRelation>> existingDesignMonitorMap = existingDesignMonitors.stream().
                 filter(relation -> !(isCustomMonitor(relation.getToCi()))).
