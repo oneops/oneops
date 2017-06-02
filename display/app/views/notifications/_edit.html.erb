@@ -1,0 +1,7 @@
+<%= section_panel 'Details', :width => 'double' do %>
+  <%= render 'base/shared/edit_form',
+             {:resource   => @notification,
+              :content    => 'notification_details_content',
+              :form_url   => notification_path(@notification),
+              :cancel_url => notifications_path} %>
+<% end %>

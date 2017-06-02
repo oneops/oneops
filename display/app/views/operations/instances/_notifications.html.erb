@@ -1,0 +1,17 @@
+<%= section_panel 'Availability (%)', :width => 'triple', :position => 'left' do %>
+  <%= render 'availability_graph', :availability => @availability, :legend => true %>
+<% end %>
+
+<%= section_panel 'Notifications', :width => 'triple', :position => 'left' do %>
+  <% if @notifications %>
+    <%= render 'base/shared/graph_bar', :data => @histogram, :height => 100 %>
+    <%= more_link = link_to(icon('bar-chart', 'more...'),
+                          notification_reports_path(:ns_path => @instance.nsPath,
+                                                    :period  => 'today',
+                                                    :query   => @instance.ciId))
+        notification_list @notifications,
+                          :new_link => more_link %>
+  <% else %>
+    Notifications data not available
+  <% end %>
+<% end %>

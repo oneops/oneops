@@ -1,0 +1,31 @@
+if (!window.toggle_rfc_tab) {
+  window.toggle_rfc_tab = function (source, rfcId, tabName) {
+    source = $j(source);
+    var ul = source.parents(".accordion-toggle").find('.nav'),
+        contentDiv = source.parents(".accordion-group").find(".accordion-inner"),
+        tab = contentDiv.find(".tab-pane.rfc-" + tabName);
+    ul.find("li").removeClass('active');
+    if (tab.is(":visible")) {
+      contentDiv.hide(300);
+    }
+    else {
+      source.parent("li").addClass('active');
+      contentDiv.find("> .tab-pane").hide();
+      tab.show();
+      contentDiv.show(300);
+      if (tabName == 'changes') {
+        if (!tab.hasClass('.calculated')) {
+          tab.find(".diff-container").prettyTextDiff({cleanup: true, diffContainer: ".changed"});
+          tab.addClass('.calculated')
+        }
+      }
+      else if (tabName == 'log' && !tab.html()) {
+        tab.html('<%= escape_javascript(loading_indicator) %>');
+        var url = source.parents("[data-log-url]").data('log-url');
+        if (url) {
+          $j.get(url, {rfcId: rfcId});
+        }
+      }
+    }
+  };
+}

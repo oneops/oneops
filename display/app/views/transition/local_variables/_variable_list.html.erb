@@ -1,0 +1,18 @@
+<% menu = [{:id => 'lock', :label => 'Lock', :url => lock_assembly_transition_environment_platform_variables_path(@assembly, @environment, @platform), :method => :put, :param_name => 'ciIds'},
+           {:id => 'unlock', :label => 'Unlock', :url => unlock_assembly_transition_environment_platform_variables_path(@assembly, @environment, @platform), :method => :put, :param_name => 'ciIds'}] %>
+<%= section_panel 'Variables', :width => 'single' do %>
+  <%= ci_list(@variables, :menu => menu) do |builder, target| %>
+    <% builder.target link_to('', edit_assembly_transition_environment_platform_variable_path(@assembly, @environment, @platform, target), :remote => true) %>
+    <% builder.middle do %>
+      <% if target.ciAttributes.attributes['secure'] == 'true' %>
+        <%= icon('lock') if target.ciAttrProps.owner.attributes['encrypted_value'] == 'manifest' %>
+        <%= icon('key', '*******') %>
+      <% else %>
+        <%= icon('lock') if target.ciAttrProps.owner.attributes['value'] == 'manifest' %>
+        <%= target.ciAttributes.value %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div id="variable_details"></div>

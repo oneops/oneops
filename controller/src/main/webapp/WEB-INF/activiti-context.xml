@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans   http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+  <import resource="/cmsclient-beans.xml"/>
+  <!--import resource="/sensorclient-beans.xml"/-->
+  <import resource="/antennaclient-beans.xml"/>
+
+  <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource">
+    <property name="driverClassName" value="org.postgresql.Driver" />
+    <property name="url" value="jdbc:postgresql://${ACTIVITI_DB_HOST}/activitidb?autoReconnect=true&amp;ApplicationName=controller-${ONEOPS_COMPUTE_CI_ID:0}" />
+    <property name="username" value="${ACTIVITI_DB_USER}" />
+    <property name="password" value="${ACTIVITI_DB_PASS}" />
+    <property name="maxActive" value="50" />
+    <property name="maxIdle" value="25" />
+    <property name="testOnBorrow" value="true" />
+    <property name="validationQuery" value="select 1" />
+    <property name="initialSize" value="25" />
+    <!--property name="defaultAutoCommit" value="false" /-->
+  </bean>
+
+  <bean id="actTransactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    <property name="dataSource" ref="dataSource" />
+  </bean>
+  
+  <bean id="processEngineConfiguration" class="org.activiti.spring.SpringProcessEngineConfiguration">
+    <property name="dataSource" ref="dataSource" />
+    <property name="databaseType" value="postgres" />
+    <property name="transactionManager" ref="actTransactionManager" />
+    <property name="databaseSchemaUpdate" value="true" />
+    <property name="jobExecutorActivate" value="false" />
+    <property name="asyncExecutorEnabled" value="true" />
+    <property name="asyncExecutorActivate" value="true" />
+    <property name="asyncExecutor" ref="asyncExecutor" />
+	<property name="deploymentResources" value="classpath*:*.bpmn20.xml" />
+	<property name="history" value="none" />
+  </bean>
+  
+  <bean id="asyncExecutor" class="org.activiti.engine.impl.asyncexecutor.DefaultAsyncJobExecutor">
+    <property name="corePoolSize" value="10" />
+    <property name="maxPoolSize" value="15" />
+    <property name="keepAliveTime" value="3000" />
+    <property name="queueSize" value="400" />
+    <property name="maxTimerJobsPerAcquisition" value="2" />
+    <property name="maxAsyncJobsDuePerAcquisition" value="2" />
+    <property name="defaultAsyncJobAcquireWaitTimeInMillis" value="1000" />
+    <property name="defaultTimerJobAcquireWaitTimeInMillis" value="1000" />
+  </bean>
+  
+  <bean id="processEngine" class="org.activiti.spring.ProcessEngineFactoryBean">
+    <property name="processEngineConfiguration" ref="processEngineConfiguration" />
+  </bean>
+  
+  <bean id="repositoryService" factory-bean="processEngine" factory-method="getRepositoryService" />
+  <bean id="runtimeService" factory-bean="processEngine" factory-method="getRuntimeService" />
+  <bean id="taskService" factory-bean="processEngine" factory-method="getTaskService" />
+  <bean id="historyService" factory-bean="processEngine" factory-method="getHistoryService" />
+  <bean id="managementService" factory-bean="processEngine" factory-method="getManagementService" />
+
+  <bean id="wfController" class="com.oneops.controller.workflow.WorkflowController">
+   	<property name="runtimeService" ref="runtimeService" />
+    <property name="notifier" ref="deploymentNotifier" />
+  </bean>
+  	
+
+</beans>

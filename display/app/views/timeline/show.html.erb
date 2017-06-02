@@ -1,0 +1,19 @@
+<% if @environment %>
+  <%= assembly_page_header(@assembly, 'transition') %>
+  <%= breadcrumb [{:label => @assembly.ciName, :kind => 'transition', :link => assembly_transition_path(@assembly)},
+                  {:icon  => ci_image_url(@environment),
+                   :label => breadcrumb_environment_label,
+                   :kind  => 'Environment',
+                   :link  => assembly_transition_environment_path(@assembly, @environment)}] %>
+
+  <%= page_title({:page_kind     => 'Timeline',
+                  :page_label    => breadcrumb_environment_label,
+                  :page_sublabel => "created by #{@environment.createdBy}"}) %>
+<% else %>
+  <%= assembly_page_header(@assembly, 'design') %>
+  <%= page_title({:page_kind     => 'Design',
+                  :page_label    => link_to(@assembly.ciName, assembly_path(@assembly)),
+                  :page_sublabel => "created by #{@assembly.createdBy}"}) %>
+<% end %>
+
+<%= render 'timeline' %>

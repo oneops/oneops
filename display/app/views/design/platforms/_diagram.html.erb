@@ -1,0 +1,9 @@
+<%= section_panel 'Diagram',
+                  :width    => 'double',
+                  :position => 'left',
+                  :menu     => @diagram && [link_to(icon('expand'),
+                                                    diagram_assembly_design_platform_path(@assembly, @platform, :size => '11,8'),
+                                                    :target => '_blank',
+                                                    :class  => 'btn btn-mini')] do %>
+  <%= render 'base/platforms/diagram' %>
+<% end %>

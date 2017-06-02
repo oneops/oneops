@@ -1,0 +1,63 @@
+<ul class="inline">
+  <% current_org = current_user.organization %>
+  <% if current_org && current_org.persisted? %>
+    <li>
+      <div class="dropdown">
+        <%= link_to(organizations_account_profile_path, :remote => true, :class => 'dropdown-toggle', 'data-toggle' => 'dropdown') do %>
+          <%= icon('sitemap') %>
+          <%= current_user.organization.name %> <%= icon('caret-down') %>
+        <% end %>
+        <ul class="org_dropdown dropdown-menu">
+          <li style="text-align:center"><a><i class="fa-spinner fa-spin"></i></a></li>
+        </ul>
+      </div>
+    </li>
+  <% end %>
+  <% unless Settings.eula && current_user.eula_accepted_at.blank?  %>
+    <li>
+      <%= link_to(raw("#{icon('user')} #{current_user.username}"), account_profile_path) %>
+    </li>
+    <% if current_org %>
+      <li>
+        <%= link_to(icon('search'), search_organization_path) %>
+      </li>
+      <li class="favorites-dropdown">
+        <a class="dropdown-toggle" data-toggle="dropdown"><%= icon('bookmark') %></a>
+        <%= render 'layouts/favorites_dropdown' %>
+      </li>
+    <% end %>
+  <% end %>
+  <% chat_url = Settings.support_chat_url %>
+  <li><%= link_to(icon('comments'), chat_url, :target => '_blank') if chat_url.present? %></li>
+  <li><%= link_to(icon('sign-out'), destroy_user_session_path) %></li>
+</ul>
+
+<% if current_user.organization_id.present? && current_user.organization %>
+  <script>
+    window.toggleFavorite = function (source, id) {
+      var favoriteEl = $j(source);
+      var icon = favoriteEl.find("i");
+      if (icon) {
+        var url, type, text;
+        if (icon.hasClass("fa-bookmark-o")) {
+          url = "<%= favorites_path(:org_name => current_user.organization.name) %>";
+          type = "POST";
+          text = "Remove favorite";
+        }
+        else {
+          url = "<%= favorite_path(:id => 'xxx') %>".gsub("xxx", id);
+          type = "DELETE";
+          text = 'Mark favorite';
+        }
+        $j.ajax({url:      url,
+                 type:    type,
+                 data:    {ciId: id},
+                 success: function () {
+                   icon.toggleClass("fa-bookmark fa-bookmark-o");
+                   favoriteEl.find(".text").html(text);
+                 }
+                });
+      }
+    };
+  </script>
+<% end %>

@@ -1,0 +1,11 @@
+<%= organization_page_header('settings') %>
+<%= page_title :page_kind => 'Organization', :page_label => current_user.organization.name %>
+<%= page_info @organization.full_name %>
+
+<%= tabs = [{:label => 'profile', :template => 'profile', :selected => true},
+                    {:label => 'teams', :url => organization_teams_path, :reload => true},
+                    {:label => 'users', :url => organization_users_path},
+                    {:label => 'environments', :url => organization_environments_path},
+                    {:label => 'notifications', :url => notifications_path}]
+    tabs << {:label => 'policies', :url => organization_policies_path(:policy => params[:policy])} if Settings.policy_management
+    render 'base/shared/page_nav_pages', :items => tabs %>

@@ -1,0 +1,40 @@
+<%= section_panel 'Email Notifications', :width => 'triple', :position => 'left' do %>
+  <% watches = current_user.watches %>
+  <% if watches.blank? %>
+    You are not watching any assemblies and environments.
+  <% else %>
+    <p>
+      You are watching these assemblies and environments by receiving email notifications about deployment and operation events.
+    </p>
+    <hr/>
+    <% menu = [{:id => 'unwatch',
+                :label => icon('eye-slash', 'Stop watching', 'fa-fw'),
+                :url => watch_path(:index => true),
+                :method => :delete,
+                :param_name => 'ciIds'}] %>
+    <%= grouped_list(@watches,
+             :menu => menu,
+             :toolbar => {:list_name => 'profile_ci_watch',
+                          :sort_by   => nil,
+                          :filter_by => %w(ciName nsPath ciClass)}) do |group_builder, group| %>
+      <% items = group[:items] %>
+      <% group_builder.icon ci_class_image_url('account.Organization') %>
+      <% group_builder.title group[:organization] %>
+      <% group_builder.menu do %>
+        <span class="label label-count"><%= items.size %></span>
+      <% end %>
+      <%= group_builder.items(items.sort_by(&:ci_name)) do |item_builder, ci_proxy| %>
+        <% item_builder.itemid ci_proxy.ci_id %>
+        <% item_builder.attributes raw(%(ciName="#{ci_proxy.ci_name}" nsPath="#{ci_proxy.ns_path}" ciClass="#{ci_proxy.ci_class_name.split('.').last}")) %>
+        <% item_builder.target link_to('', redirect_ci_path(ci_proxy.ci_id)) %>
+        <% ci_class_name = ci_proxy.ci_class_name %>
+        <% item_builder.icon ci_class_image_url(ci_class_name) %>
+        <% item_builder.top do %>
+          <span class="topname"><%= ci_proxy.ci_name %></span>
+          <span class="topdesc"><%= ci_class_name.split('.').last.downcase %></span>
+        <% end %>
+        <% item_builder.middle link_to(ci_proxy.ns_path, path_to_ns(ci_proxy.ns_path)) %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

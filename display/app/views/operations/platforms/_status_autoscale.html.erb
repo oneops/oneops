@@ -1,0 +1,26 @@
+<% status = @platform.ciAttributes.autoscale == 'true' ? 'enabled' : 'disabled'
+   enabled = status == 'enabled' %>
+<div class="marker">
+  <%= status_marker('autoscale', status, state_to_label(status)) %>
+</div>
+<div class="description">
+  <% if has_operations?(@assembly.ciId) %>
+    <div class="menu dropdown">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
+      <ul class="dropdown-menu" role="menu">
+        <% if enabled %>
+          <li class="text-error"><%= link_to(icon('expand', 'Disable autoscale', 'fa-fw'), autoscale_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'disable'), :method => :put, :remote => true) %></li>
+        <% else %>
+          <li class="text-success"><%= link_to(icon('expand', 'Enable autoscale', 'fa-fw'), autoscale_assembly_operations_environment_platform_path(@assembly, @environment, @platform, :status => 'enable'), :method => :put, :remote => true) %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <dl class="dl-horizontal">
+    <dt class="text-<%= enabled ? 'success' : 'error' %>"><%= icon('clock-o') %></dt>
+    <dd>
+      Autoscale <%= highlight(status) %>
+      <%= time_ago_in_words(Time.at(@platform_detail.attributes[:attributes].autoscale.updated/1000)) if @platform_detail %>
+    </dd>
+  </dl>
+</div>

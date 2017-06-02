@@ -1,0 +1,13 @@
+<%= organization_page_header if user_signed_in? %>
+
+<%= page_title :page_icon => 'dashboard', :page_kind => 'Organization Dashboard', :page_label => current_user.organization.name %>
+
+<%= page_info current_user.organization.full_name || '&nbsp;' %>
+
+<%= items = [{:label => 'summary',     :template => 'summary', :selected => true},
+             {:label => 'deployments', :url => deployments_organization_path},
+             {:label => 'procedures',  :url => procedures_organization_path},
+             {:label => 'reports',     :url => reports_organization_path(params)},
+             {:label => 'health',      :url => health_organization_path},
+             {:label => icon('search'), :id => 'search', :template => 'base/search/search'}]
+    render 'base/shared/page_nav_pages', :items => items %>

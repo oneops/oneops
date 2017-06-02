@@ -1,0 +1,42 @@
+<% busy_with = []
+   busy_with << with if defined?(with) && with %>
+<div <%= raw(%(id="#{modal_id}")) if defined?(modal_id) %> class="modal hide fade">
+  <div class="modal-header">
+    <button class="close" data-dismiss="modal">&times;</button>
+    <h3><%= defined?(confirm) && confirm.present? ? confirm : 'Are you sure?' %></h3>
+  </div>
+  <div class="modal-body">
+    <p>
+      <% comment_name = defined?(comment) ? comment : nil %>
+      <% if comment_name %>
+        <% comment_id = "#{comment_name}_#{modal_id}"
+           busy_with << "'#{comment_name}='+escape($j('##{comment_id}').val())" %>
+        <%= label_tag comment_name, 'Comment' %>
+        <%= text_area_tag comment_id, '', :class => 'comment', :placeholder => 'Enter comments...' %>
+      <% end %>
+    </p>
+    <% body_text = defined?(body) ? body : nil %>
+    <% if body_text %>
+      <%= raw(body_text) %>
+    <% end %>
+  </div>
+
+  <div class="modal-footer">
+    <%= link_to_function('Cancel', 'hide_modal()', :class => 'btn btn-large btn-danger') %>
+    <% method_option = (defined?(method) == 'local-variable' ? method : :get)
+       busy_message  = defined?(busy) && busy.present? %>
+    <% if defined?(remote) && remote == false %>
+      <%= link_to('Ok',
+                  url,
+                  :method  => method_option,
+                  :remote  => false,
+                  :class   => 'btn btn-large btn-success',
+                  :onclick => "show_busy(#{"'#{escape_javascript(busy)}'" if busy_message})") %>
+    <% else %>
+      <%= busy_options = {:url => url, :method => method_option, :class => 'btn btn-large btn-success'}
+          busy_options[:with]    = busy_with.join("+'&'+") if busy_with
+          busy_options[:message] = busy if busy_message
+          link_busy('Ok', busy_options) %>
+    <% end %>
+  </div>
+</div>

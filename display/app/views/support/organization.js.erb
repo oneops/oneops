@@ -1,0 +1,10 @@
+<% if request.delete? %>
+  hide_modal();
+  <% if @organization.errors.blank? %>
+    window.location.reload();
+  <% end %>
+<% else %>
+  <% if @organization %>
+    $j("#delete_organization_modal").html("<%= escape_javascript(render('organization')) %>").modal('show');
+  <% end %>
+<% end %>

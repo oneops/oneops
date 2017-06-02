@@ -1,0 +1,13 @@
+<%= section_panel 'Monitor Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @monitor,
+              :content  => 'cms/cis/ci',
+              :form_url => assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, @monitor)}) %>
+<% end %>
+<%= section_panel 'Advanced Configuration', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @watched_by_rel,
+              :content  => 'cms/relations/attributes',
+              :content_locals => {:only => %w(docUrl notifyOnlyOnStateChange)},
+              :form_url => update_watched_by_assembly_transition_environment_platform_component_monitor_path(@assembly, @environment, @platform, @component, @monitor)}) %>
+<% end %>

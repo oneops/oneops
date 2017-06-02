@@ -1,0 +1,9 @@
+<% member_count = @group.members.size %>
+$j("#group_details")
+    .html("<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                        :url     => account_group_path(@group),
+                                        :method  => :delete,
+                                        :confirm => 'Confirm Delete',
+                                        :body    => "Group '#{@group.name}' has #{pluralize(member_count, 'member')}. Delete this group?")) %>");
+
+$j("#group_details .modal").modal({backdrop: "static"});

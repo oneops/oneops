@@ -1,0 +1,18 @@
+<div class="control-group">
+  <%= f.label :email, 'Email', :class => 'control-label' %>
+  <div class="controls">
+    <%= f.email_field :email %>
+  </div>
+</div>
+<div class="control-group">
+  <%= f.label :name, 'Name', :class => 'control-label' %>
+  <div class="controls">
+    <%= f.text_field :name %>
+  </div>
+</div>
+<div class="control-group">
+  <%= f.label :show_wizard, 'Guidance Wizard', :class => 'control-label' %>
+  <div class="controls">
+    <%= f.check_box :show_wizard %><%= f.label :show_wizard, '(check if you want to see guidance wizard)', :class => 'help-inline' %>
+  </div>
+</div>

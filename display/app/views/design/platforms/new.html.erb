@@ -1,0 +1,16 @@
+<%= assembly_page_header(@assembly, 'design') %>
+
+<%= breadcrumb [{:label => 'design', :link => assembly_design_path(@assembly)}] %>
+
+<%= page_title :page_icon => ci_image_url(@platform), :page_kind => 'Platform', :page_label => 'Create' %>
+
+<%= page_info "Create new platform by selecting one of the available packs, then configure the components inside the platform according to your needs." %>
+
+<%= section_panel "Platform Details" do %>
+  <%= render('base/shared/edit_form',
+             {:resource   => @platform,
+              :content    => 'platform_details_content',
+              :cancel_url => assembly_design_path(@assembly),
+              :form_url   => {:action => :create},
+              :remote     => false}) %>
+<% end %>

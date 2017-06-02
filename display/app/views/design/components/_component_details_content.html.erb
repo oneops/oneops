@@ -1,0 +1,3 @@
+<%= hidden_field_tag :template_name, @template_name if @component.new_record? %>
+<%= render('cms/cis/ci', :ci => @component, :f => f) %>
+<%= render('base/components/peer_depends_on', :peers => @linkable_sibling_map) if @linkable_sibling_map.present? %>

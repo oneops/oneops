@@ -1,0 +1,36 @@
+<% dom_id = defined?(id) == 'local-variable' ? id : random_dom_id %>
+<div id="<%= dom_id %>" class="btn-group radio">
+  <% if defined?(builder) %>
+    <%= builder.hidden_field attribute_name, attribute_value %>
+  <% else %>
+    <%= hidden_field_tag attribute_name, attribute_value %>
+  <% end %>
+  <% options.each do |o| %>
+    <% option_value = o[:value]
+       selected = option_value == attribute_value %>
+    <a class="btn <%= btn_class if defined?(btn_class) %> <%= 'active' if selected %>" data-radio-value="<%= option_value %>">
+      <i class="fa fa-fw <%= selected ? 'fa-check-square-o' : 'fa-square-o' %>"></i> <%= o[:label] %>
+    </a>
+  <% end %>
+</div>
+<script type="text/javascript">
+  $j("#<%= dom_id %> .btn").click(function() {
+    var btn = $j(this);
+    if (!btn.hasClass('disabled')) {
+      var parent = btn.parents('.radio');
+      var oldActiveBtn = parent.find(".btn");
+      oldActiveBtn.removeClass('active');
+      var oldActiveIcon = oldActiveBtn.find("i.fa-check-square-o");
+      oldActiveIcon.removeClass('fa-check-square-o');
+      oldActiveIcon.addClass('fa-square-o');
+
+      btn.addClass('active');
+      var nowActiveIcon = btn.find("i.fa-square-o");
+      nowActiveIcon.removeClass('fa-square-o');
+      nowActiveIcon.addClass('fa-check-square-o');
+
+      var input = parent.find("input[type=hidden]");
+      input.val(btn.attr('data-radio-value')).trigger("change");
+    }
+  });
+</script>

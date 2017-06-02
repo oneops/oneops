@@ -1,0 +1,372 @@
+<div class="graph-line" id="<%= graph_id %>">
+  <div class="plot"></div>
+  <div class="legend"></div>
+</div>
+
+<script>
+  if (!window.buildLineGraph) {
+    window.buildLineGraph = function (graphId, metrics) {
+      var plotContainer = $j("#" + graphId + " .plot"),
+          availableWidth = plotContainer.width(),
+          availableHeight = plotContainer.height() || (availableWidth * 0.5),
+          margin = {top: 10, right: 0, bottom: 30, left: 45},
+          plotWidth = availableWidth - margin.left - margin.right,
+          plotHeight = availableHeight - margin.top - margin.bottom,
+          colors = d3.scale.category10();
+
+      var xScale = d3.time.scale().range([0, plotWidth]),
+          yScale = d3.scale.linear().range([plotHeight, 0]);
+
+      var xAxis = d3.svg.axis()
+          .scale(xScale)
+          .orient("bottom")
+          .ticks(6)
+          .tickSize(-plotHeight, 0);
+
+      var yAxis = d3.svg.axis()
+          .scale(yScale)
+          .orient("left")
+          .ticks(6)
+          .tickSize(-plotWidth, 0)
+          .tickFormat(d3.format("3.3s"));
+
+      var graphDiv = d3.select("#" + graphId),
+          plotDiv = graphDiv.select(".plot"),
+          legendDiv = graphDiv.select(".legend");
+
+      var svg = plotDiv.append("svg")
+          .attr("width", availableWidth)
+          .attr("height", availableHeight)
+          .append("g")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      svg.append("g")
+          .attr("class", "x axis")
+          .attr("transform", "translate(0," + plotHeight + ")");
+
+      svg.append("g")
+          .attr("class", "y axis");
+
+      svg.append("text")
+          .attr("class", "na")
+          .attr("text-anchor", "middle")
+          .attr("alignment-baseline", "middle")
+          .attr("x", plotWidth / 2)
+          .attr("y", plotHeight / 2)
+          .style("font-size", "100px")
+          .style("font-weight", "bold")
+          .style("fill", "#fdd")
+          .style("stroke", "#ccc")
+          .text("N/A");
+
+      var zoomRect = svg.append("rect")
+          .attr("width", 0)
+          .attr("height", 0)
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("class", "zoom-rect");
+
+      svg.append("clipPath")
+          .attr("id", "clip")
+          .append("rect")
+          .attr("width", plotWidth)
+          .attr("height", plotHeight);
+
+      var metricG = svg.append("g")
+          .selectAll("g.metric").data(metrics)
+          .enter().append("g")
+          .classed('metric', true);
+
+      metricG.append("path")
+          .classed("metric", true)
+          .attr("clip-path", "url(#clip)")
+          .style("stroke", function (d) {return colors(d.name)});
+
+      var levelG = metricG.selectAll("line.level").data(function(d) {return d.levels})
+          .enter().append("g")
+          .classed("level", true);
+      levelG.append("line")
+          .classed("level", true)
+          .style("stroke", function (d) {return colors(d.metric)})
+          .attr("x1", 0)
+          .attr("x2", plotWidth);
+      levelG.append("circle")
+          .classed("level", true)
+          .style("fill", function (d) {return d.color})
+          .attr("cx", -5)
+          .attr("r", 4)
+          .on("mouseout", function(d) {
+                      levelLabel.style("visibility", 'hidden');
+                    })
+          .on("mouseover", function(d) {
+                      levelLabel.style("visibility", 'visible')
+                          .attr("y", function() {return Math.max(yScale(d.value) - 5, 5)})
+                          .text(function () {return d.label});
+                    });
+
+      var levelLabel = svg.append("text")
+          .style("visibility", "hidden")
+          .attr("text-anchor", "middle")
+          .attr("x", plotWidth / 2);
+
+      var zoomRectPos = [-1, -1],
+          zoomXDomain = null,
+          zoomYDomain = null,
+          drag = d3.behavior.drag()
+              .on("drag",
+                  function () {
+                    focus.style("display", "none");
+                    var pos = d3.mouse(this);
+                    pos = [Math.max(Math.min(plotWidth, pos[0]), 0), Math.max(Math.min(plotHeight, pos[1]), 0)];
+                    if (pos[0] < zoomRectPos[0]) {
+                      zoomRect.attr("transform", "translate(" + (pos[0]) + "," + zoomRectPos[1] + ")");
+                    }
+                    if (pos[1] < zoomRectPos[1]) {
+                      zoomRect.attr("transform", "translate(" + (pos[0]) + "," + pos[1] + ")");
+                    }
+                    if (pos[1] < zoomRectPos[1] && pos[0] > zoomRectPos[0]) {
+                      zoomRect.attr("transform", "translate(" + (zoomRectPos[0]) + "," + pos[1] + ")");
+                    }
+
+                    if (zoomRectPos[0] == -1) {
+                      zoomRectPos = pos;
+                      zoomRect.attr("transform", "translate(" + zoomRectPos[0] + "," + zoomRectPos[1] + ")");
+                    }
+
+                    zoomRect
+                        .attr("width", Math.abs(zoomRectPos[0] - pos[0]))
+                        .attr("height", Math.abs(zoomRectPos[1] - pos[1]));
+                  })
+              .on("dragend",
+                  function () {
+                    focus.style("display", null);
+
+                    if (zoomRectPos[0] == -1) {
+                      return;
+                    }
+
+                    var zoomArea = {},
+                        pos = d3.mouse(this),
+                        x1 = xScale.invert(zoomRectPos[0]),
+                        x2 = xScale.invert(Math.max(0, Math.min(plotWidth, pos[0])));
+
+                    if (x1 < x2) {
+                      zoomArea.x1 = x1;
+                      zoomArea.x2 = x2;
+                    } else {
+                      zoomArea.x1 = x2;
+                      zoomArea.x2 = x1;
+                    }
+
+                    var y1 = yScale.invert(Math.max(0, Math.min(plotHeight, pos[1])));
+                    var y2 = yScale.invert(zoomRectPos[1]);
+
+                    if (x1 < x2) {
+                      zoomArea.y1 = y1;
+                      zoomArea.y2 = y2;
+                    } else {
+                      zoomArea.y1 = y2;
+                      zoomArea.y2 = y1;
+                    }
+
+                    zoomRectPos = [-1, -1];
+
+                    zoomRect
+                        .attr("width", 0)
+                        .attr("height", 0)
+                        .attr("x", zoomRectPos[0])
+                        .attr("y", zoomRectPos[1]);
+
+                    zoomXDomain = zoomArea.x1 > zoomArea.x2 ? [zoomArea.x2, zoomArea.x1] : [zoomArea.x1, zoomArea.x2];
+                    zoomYDomain = zoomArea.y1 > zoomArea.y2 ? [zoomArea.y2, zoomArea.y1] : [zoomArea.y1, zoomArea.y2];
+                    render(true);
+                  });
+
+      var focus = svg.append("g")
+          .attr("class", "focus");
+
+      focus.append("line")
+          .attr("class", "x-hover-line")
+          .attr("y1", 0)
+          .attr("y2", plotHeight);
+
+      focus.append("text")
+          .attr("y", plotHeight + 25);
+
+      var xData,
+          bisectDate = d3.bisector(function (d) {
+            return d[0]
+          }).left;
+
+
+      svg.append("rect")
+          .attr("width", plotWidth)
+          .attr("height", plotHeight)
+          .style({"fill": "none", "pointer-events": "all"})
+          .call(drag)
+          .on("mouseout",
+              function () {
+                legendDiv.selectAll(".value").style("display", 'none');
+                focus.style("display", 'none');
+              })
+          .on("mouseover",
+              function () {
+                focus.style("display", null);
+                legendDiv.selectAll(".value").style("display", null).text("");
+                xData = plotDiv.selectAll("g.metric").data()[0].data;
+              })
+          .on("mousemove",
+              function () {
+                var rawX = xScale.invert(d3.mouse(this)[0]),
+                    xIndex = bisectDate(xData, rawX),
+                    x = xData[Math.min(xIndex, xData.length -1)][0],
+                    xPos = xScale(x);
+                legendDiv.selectAll(".metric:not(.disabled) .value")
+                    .text(function (d) {
+                            if (d.data[xIndex]) {
+                              return " " + d.data[xIndex][1]
+                            }
+                          });
+                focus.attr("transform", "translate(" + xPos + ",0)");
+                focus.select("text")
+                    .attr("text-anchor", xPos < plotWidth / 2 ? "start" : "end")
+                    .text(function () {return x.toLocaleString()});
+              })
+          .on("dblclick",
+              function () {
+                zoomXDomain = null;
+                zoomYDomain = null;
+                render(true);
+              });
+
+      var legendLi = legendDiv.append('table').selectAll("tr")
+          .data(metrics)
+          .enter().append("tr")
+          .attr("class", "metric");
+
+      legendLi.append("td").append('i')
+          .attr("class", "fa fa-check on-off")
+          .on("click",
+              function (d) {
+                d.enabled = !d.enabled;
+                render(false);
+                $j("#" + graphId).trigger("metricselection", {metrics: metrics});
+              });
+
+      legendLi.append("td").append("div")
+          .attr("class", "swatch")
+          .style('background-color', function (d) {
+                   return colors(d.name)
+                 });
+
+      legendLi.append("td").append("span")
+          .attr("class", "label")
+          .text(function (d) {
+                  return d.name
+                })
+          .on("click",
+              function (d) {
+                var metrics = plotDiv.selectAll("g.metric").data();
+                var enabled = metrics.find(function (m) {
+                  return (m.name != d.name && m.enabled)
+                });
+                metrics.forEach(function (m) {
+                  m.enabled = m.name == d.name || !enabled;
+                });
+                render(false);
+                $j("#" + graphId).trigger("metricselection", {metrics: metrics});
+              });
+
+      legendLi.append("td").selectAll(".level").data(function(d) {return d.levels})
+          .enter().append("div")
+          .classed("level", true)
+          .style('background', function(d) {return d.color});
+
+      legendLi.append("td")
+          .style("text-align", "right")
+          .append("span")
+          .attr("class", "value");
+
+      var line = d3.svg.line()
+          .interpolate("monotone")
+          .x(function (d) {
+               return xScale(d[0]);
+             })
+          .y(function (d) {
+               return yScale(d[1]);
+             });
+
+      var render = function (runTransition, metrics) {
+        if (metrics) {
+          plotDiv.selectAll("g.metric").data(metrics);
+          legendDiv.selectAll(".metric").data(metrics);
+          legendDiv.selectAll(".metric .value").data(metrics);
+          zoomXDomain = null;
+          zoomYDomain = null;
+        }
+        else {
+          metrics = plotDiv.selectAll("g.metric").data();
+        }
+
+        if (zoomXDomain && zoomYDomain) {
+          xScale.domain(zoomXDomain);
+          yScale.domain(zoomYDomain);
+        }
+        else {
+          var minX = null,
+              maxX = null,
+              minY = null,
+              maxY = null,
+              hasDisabled = false;
+          for (var metric, i = 0; i < metrics.length; i++) {
+            metric = metrics[i];
+            if (metric.enabled) {
+              minX = minX ? Math.min(minX, metric.data.first()[0]) : metric.data.first()[0];
+              maxX = maxX ? Math.min(maxX, metric.data.last()[0]) : metric.data.last()[0];
+              minY = minY ? Math.min(minY, metric.yDomain[0]) : metric.yDomain[0];
+              maxY = maxY ? Math.max(maxY, metric.yDomain[1]) : metric.yDomain[1];
+            }
+            else {
+              hasDisabled = true;
+            }
+          }
+          xScale.domain([minX, maxX]);
+          yScale.domain([hasDisabled ? 0.95 * minY : 0, 1.05 * maxY]);
+        }
+
+        var domain = xScale.domain(),
+            na = (domain[0].getTime() == domain[1].getTime());
+        var t = d3.select("#" + graphId);
+        if (runTransition) {
+          t = t.transition().duration(750);
+        }
+        t.selectAll(".legend .metric")
+            .attr("class", function (d) {
+                    return "metric " + (d.enabled ? "" : "disabled")
+                  });
+        t.select(".plot .x.axis")
+            .call(xAxis);
+        t.select(".plot .y.axis")
+            .call(yAxis);
+        t.selectAll(".plot line.level")
+            .attr("y1", function(d) {return yScale(d.value)})
+            .attr("y2", function(d) {return yScale(d.value)})
+            .style("visibility", na ? "hidden" : "visible");
+        t.selectAll(".plot circle.level")
+            .attr("cy", function(d) {return yScale(d.value)})
+            .style("visibility", na ? "hidden" : "visible");
+        t.select("text.na")
+            .style("visibility", na ? "visible" : "hidden");
+
+        t.selectAll(".plot g.metric")
+            .style("visibility", function (d) {return (d.enabled ? "visible" : "hidden")})
+            .select("path.metric")
+            .attr("d", function (d) {return line(d.data)});
+      };
+
+      render(false, metrics);
+
+      return render;
+    };
+  }
+</script>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:sec="http://www.springframework.org/schema/security"
+	xsi:schemaLocation="
+      http://www.springframework.org/schema/security
+      http://www.springframework.org/schema/security/spring-security.xsd
+      http://www.springframework.org/schema/beans
+      http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<beans:bean id="springSecurityFilterChain" class="org.springframework.security.web.FilterChainProxy">
+	</beans:bean>
+	<!-- Rest authentication entry point configuration -->
+	<beans:bean id="authenticationEntryPoint"
+				class="com.oneops.security.APIAuthenticationEntryPoint" />
+
+
+    <http  use-expressions="true" create-session="stateless" entry-point-ref="authenticationEntryPoint" >
+		<access-denied-handler ref="acessDeniedHandler" />
+		<intercept-url pattern="/rest/ecv/**" method="GET" access="permitAll"  />
+        <intercept-url pattern="/rest/ecv/status/**" method="PUT" access="hasRole('ROLE_SYSTEM')" />
+        <intercept-url pattern="/rest/**"  access="${API_ACESS_CONTROL:permitAll}" />
+        <custom-filter ref="basicAuthenticationFilter"
+        position="BASIC_AUTH_FILTER" />
+
+    </http>
+	<beans:bean id="acessDeniedHandler"
+				class="com.oneops.security.handler.AccessDeniedHandler">
+	</beans:bean>
+    <beans:bean id="basicAuthenticationFilter"
+          class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
+        <beans:property name="authenticationManager" ref="authenticationManager" />
+        <beans:property name="authenticationEntryPoint" ref="authenticationEntryPoint"/>
+    </beans:bean>
+
+
+	<!-- Authentication manager -->
+	<authentication-manager alias="authenticationManager">
+		<authentication-provider>
+			<user-service>
+				<user name="${API_USER}" password="${API_SECRET}" authorities="ROLE_API" />
+				<user name="${ECV_USER}" password="${ECV_SECRET}" authorities="ROLE_SYSTEM" />
+			</user-service>
+		</authentication-provider>
+	</authentication-manager>
+
+	<!-- Enable the annotations for defining the secure role -->
+
+</beans:beans>

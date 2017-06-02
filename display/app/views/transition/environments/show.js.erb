@@ -1,0 +1,8 @@
+$j("#page_nav_summary").html('<%= escape_javascript(render('summary')) %>');
+$j("#page_nav_configuration").html('<%= escape_javascript(render('configuration')) %>');
+$j("#page_alert").html("<%= escape_javascript(page_alert) %>");
+if ((getHashParam('#') || '').indexOf('summary') > 0) {
+  setHashParam('#', 'summary');
+}
+hide_modal();
+unblock('container');

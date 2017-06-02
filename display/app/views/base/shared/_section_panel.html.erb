@@ -1,0 +1,33 @@
+<% hide_content_x = defined?(hide_content) %>
+<div <%= "id=#{id}" if defined?(id) == 'local-variable' && id.present? %> class="section rounded <%= width %> <%= position %>">
+  <% if title.present? || menu.present? %>
+    <div class="section-heading rounded-top">
+      <div class="section-title"><%= raw(title) if title.present? %></div>
+      <div class="menu">
+        <% if menu.present? %>
+          <div class="btn-group">
+            <% menu.each do |menu_item| %>
+              <% if menu_item.is_a?(Hash) && menu_item.has_key?(:display) && menu_item.has_key?(:link) %>
+                <%= link_to(menu_item.delete(:display), menu_item.delete(:link), menu_item.merge(:class => 'btn btn-mini')) %>
+              <% else %>
+                <%= menu_item %>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+        <%= link_to_function(icon(hide_content_x ? 'caret-down' : 'caret-up'),
+                             '$j(this).find("i").toggleClass("fa-caret-up fa-caret-down").parents(".section").find(".section-content").toggle(500)',
+                             :class => 'content-toggle') if defined?(collapseable_content) && collapseable_content %>
+      </div>
+    </div>
+  <% end %>
+  <div class="section-content <%= width %> <%= 'hide' if hide_content_x %>">
+    <%= body if defined?(body) %>
+    <% if defined?(url) %>
+      <%= loading_indicator %>
+      <script>
+        <%= remote_function(:url => url, :method => defined?(method) == 'local-variable' ? method : :get) %>
+      </script>
+    <% end %>
+  </div>
+</div>

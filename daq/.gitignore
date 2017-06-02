@@ -1,0 +1,34 @@
+#Eclipse project files
+.classpath
+.project
+.settings/
+
+*.iml
+
+## Directory-based project format:
+.idea/
+
+# Java files
+*.class
+
+.pydevproject
+.classpath
+key/*
+log/*
+target/*
+tmp/*
+.settings/org.eclipse.wst.common.project.facet.core.xml
+.project
+.oneops
+.settings/
+/target
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.oneops

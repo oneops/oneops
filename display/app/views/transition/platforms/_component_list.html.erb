@@ -1,0 +1,35 @@
+<%= ci_list(@components,
+            :menu    => has_transition?(@assembly.ciId) && [{:id => 'touch', :label => 'Touch', :url => touch_assembly_transition_environment_platform_components_path(@assembly, @environment, @platform), :method => :post, :param_name => 'componentCiIds'}],
+            :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created)],
+                         :filter_by => %w(ciClass ciName),
+                         :compact   => false}) do |builder, target| %>
+  <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" ciClass="#{target.ciClassName.split('.').last}")) %>
+  <% builder.target nil %>
+  <% builder.icon ci_image_url(target) %>
+  <% builder.top do %>
+    <span class="topname"><%= link_to(target.ciName, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, target)) %></span>
+  <% end %>
+  <% if target.ciAttributes.attributes.present? %>
+    <% builder.middle do %>
+      <%= render 'cms/cis/important', :ci => target %>
+    <% end %>
+  <% end %>
+  <% builder.bottom :none %>
+  <% builder.status do %>
+    <% if @policy_compliance %>
+      <% violate_count = @policy_compliance[target.ciId] %>
+      <% if violate_count == 0 %>
+        <%= status_marker('policy', 'passed', 'label-success') %>
+      <% else %>
+        <%= status_marker('policy', "#{violate_count} failed", 'label-important') %>
+      <% end %>
+    <% end %>
+    <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.rfcAction.present? %>
+  <% end %>
+  <% builder.menu do |ci| %>
+    <%= link_to(icon('refresh', ' Touch'),
+                touch_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, ci),
+                :method => :post,
+                :remote => true) if @environment && ci.rfcAction.blank? %>
+  <% end %>
+<% end %>

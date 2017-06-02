@@ -1,0 +1,49 @@
+<div class="monitor_metric">
+  <div class="header btn" onclick="toggle_metrics_struct($(this).up('div.monitor_metric'), event.altKey)">
+    <span class="name"><%= metric_name %></span> <%= icon('caret-down') %>
+    <%= link_to_function icon_button('trash','Delete','mini'), %(delete_metrics_struct_entry($(this).up("div.monitor_metric"))), :class => 'pull-right' %>
+  </div>
+  <div style="display:none" class="body">
+    <table>
+      <tr>
+        <th colspan="2">Name</th>
+        <th>Unit</th>
+      </tr>
+      <tr>
+        <td colspan="2"><%= text_field_tag("metric_#{metric_name}", metric_name, :class => 'name', :required => true, :onchange => 'metrics_struct_changed(this);') %></td>
+        <td><%= text_field_tag("metric_#{metric_name}_unit", metric['unit'], :class => 'unit', :onchange => 'metrics_struct_changed(this);') %></td>
+      </tr>
+      <tr>
+        <th colspan="3">Description</th>
+      </tr>
+      <tr>
+        <td colspan="3"><%= text_area_tag("metric_#{metric_name}_description", metric['description'], :class => 'description', :onchange => 'metrics_struct_changed(this);') %></td>
+      </tr>
+      <tr>
+        <th>DS Type</th>
+        <th>Display</th>
+        <th>Display Group</th>
+      </tr>
+      <tr>
+        <td>
+          <%= select_tag("metric_#{metric_name}_dstype",
+                         options_for_select([%w(GAUGE GAUGE), %w(DERIVE DERIVE)], metric['dstype'].presence || 'GAUGE'),
+                         :class    => 'dstype',
+                         :onchange => 'metrics_struct_changed(this);') %>
+        </td>
+        <td>
+          <%= select_tag("metric_#{metric_name}_display",
+                         options_for_select([%w(Yes true), %w(No false)], metric['display'].presence || 'true'),
+                         :class    => 'display',
+                         :onchange => 'metrics_struct_changed(this);') %>
+        </td>
+        <td>
+          <%= text_field_tag("metric_#{metric_name}_display_group",
+                             metric['display_group'],
+                             :class    => 'display-group',
+                             :onchange => 'metrics_struct_changed(this);') %>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>

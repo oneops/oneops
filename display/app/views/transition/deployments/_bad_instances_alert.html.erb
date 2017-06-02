@@ -1,0 +1,7 @@
+<div class="well well-small text-error">
+  <i class="fa fa-2x fa-exclamation"></i>&nbsp;&nbsp;
+  There <%= count > 1 ? 'are' : 'is' %> <%= pluralize(count, 'work order') %> relying on instance(s) in bad state.
+  You are advised <strong>NOT</strong> to proceed with deployment until all instances are healthy.
+  <%= link_to('Click here', assembly_operations_environment_path(@assembly, @environment, :anchor => 'health')) %>
+  to review the list of instances in bad state.
+</div>

@@ -1,0 +1,242 @@
+<% graph_id = "graph_#{random_dom_id}" %>
+<div id="<%= graph_id %>" class="graph-bar"></div>
+<script>
+  (function() {
+  var data = {};
+  data = <%= raw(data.to_json) %>;
+
+  var labels = data.labels || {},
+      groupings = data.groupings || [{name: 'grouping', label: ''}],
+      yUnit = ((data.units && data.units.y) || ""),
+      bars = [],
+      maxY = 0,
+      bar,
+      barSegment,
+      offset,
+      grouping,
+      barGrouping,
+      barGroupings;
+  var colors = groupings.reduce(function(c, g) {
+    if (g.colors) {
+      c[g.name] = function(name) {
+        return g.colors[name] || 'gray'
+      }
+    }
+    else {
+      c[g.name] = d3.scale.category10();
+    }
+    return c;
+  }, {});
+
+  var numberFormat = d3.format(','),
+      yTickFormat = d3.format('s');
+
+  for(var i = 0, len = data.x.length; i < len; i++) {
+    bar = data.y[i];
+    if (typeof(bar) == 'number') {
+      bars.push({x: data.x[i], y: {grouping: [{label: labels.y, x: data.x[i], value: bar, offset: 0, color: colors['grouping'](0)}]}});
+      maxY = Math.max(maxY, bar);
+    }
+    else {
+      barGroupings = {};
+      for (var k = 0, len2 = groupings.length; k < len2; k++) {
+        grouping = groupings[k].name;
+        barGrouping = bar[grouping];
+        offset = 0;
+        for (var j = 0, len3 = barGrouping.length; j < len3; j++) {
+          barSegment = barGrouping[j];
+          barSegment.offset = offset;
+          barSegment.color = colors[grouping](barSegment.label);
+          barSegment.x = data.x[i];
+          offset += barSegment.value;
+        }
+        maxY = Math.max(maxY, offset);
+        barGroupings[grouping] = barGrouping;
+      }
+      bars.push({x: data.x[i], y: barGroupings});
+    }
+  }
+  groupings.current = groupings[0].name;
+
+
+  var availableWidth = $j("#<%= graph_id %>").width(),
+      margin = 20,
+      width = availableWidth - 2 * margin;
+  <% if defined?(height) %>
+    height = <%= height %> - 2 * margin;
+  <% else %>
+    height = availableWidth * 0.5 - 2 * margin;
+  <% end %>
+
+  var graphDiv = d3.select("#<%= graph_id %>");
+
+  if (data.title) {
+    graphDiv.append("span")
+        .classed('title', true)
+        .text(data.title);
+  }
+
+  if (groupings.length > 1) {
+    graphDiv.append("div")
+        .attr("class", "btn-group")
+        .attr("data-toggle", "buttons-radio")
+        .selectAll("button")
+        .data(groupings)
+        .enter()
+        .append("button")
+        .classed("btn btn-small", true)
+        .classed("active", function (d) {
+                   return d.name == groupings.current
+                 })
+        .attr("value", function (d) {
+                return d.name
+              })
+        .html(function (d) {
+                return d.label
+              })
+        .on("click", function (d) {
+              if (d.name != groupings.current && !this.disabled) {
+                groupings.current = this.value;
+                changeGrouping();
+              }
+            });
+  }
+
+  var svg = graphDiv.append("svg")
+      .attr("width", width + 3 * margin)
+      .attr("height", height + 4 * margin)
+      .append("g")
+      .attr("transform", "translate(" + 2 * margin + "," + margin + ")");
+
+  var x = d3.scale.ordinal()
+      .rangeRoundBands([0, width], .1)
+      .domain(data.x);
+
+  var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("bottom");
+
+  xAxis = svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+
+  xAxis.selectAll("text")
+      .style("text-anchor", "end")
+      .attr("transform", function (d) {
+              return "rotate(-45)";
+            })
+      .attr("dx", -10)
+      .attr("dy", -5)
+      .on("mouseover", showBarTooltip)
+      .on("mouseout", hideTooltip);
+
+   xAxis.append("text")
+      .attr("x", width / 2)
+      .attr("y", 3 * margin - 3)
+      .attr("font-size", "14")
+      .style("text-anchor", "middle")
+      .text(labels.x || '');
+
+  var y = d3.scale.linear()
+      .range([height, 0])
+      .domain([0, maxY]);
+
+  var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("left")
+      .ticks(height / 20)
+      .tickFormat(function(d) {return yTickFormat(d)});
+
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(yAxis)
+      .append("text")
+      .attr("x", -height / 2)
+      .attr("y", -1.5 * margin)
+      .attr("font-size", "14")
+      .style("text-anchor", "middle")
+      .attr("transform", function(d) {return "rotate(-90)"})
+      .text(labels.y || '');
+
+  svg.selectAll("g.bar")
+      .data(bars)
+      .enter().append("g")
+      .attr('class', 'bar');
+
+  function changeGrouping(initial) {
+    var segments = svg.selectAll("g.bar")
+        .selectAll('rect');
+
+    var duration = 1000,
+        delay = initial ? 0 : duration;
+
+    if (!initial) {
+      segments.transition()
+          .duration(duration)
+          .attr("y", height)
+          .attr("height", 0);
+    }
+
+    segments = segments.data(function (d) {return d.y[groupings.current]});
+    segments.enter().append("rect")
+        .attr('class', 'bar-segment')
+        .style("fill", function (d) {return d.color})
+        .attr("x", function (d) {return x(d.x)})
+        .attr("width", x.rangeBand())
+        .attr("y", height)
+        .attr("height", 0)
+        .on("mouseover", showBarSegmentTooltip)
+        .on("mouseout", hideTooltip);
+
+    segments.exit().transition().delay(delay).remove();
+
+    segments.transition()
+        .delay(delay)
+        .style("fill", function (d) {return d.color})
+        .transition()
+        .duration(duration)
+        .attr("y", function (d) {
+                return y(d.value + d.offset);
+              })
+        .attr("height", function (d) {
+                return height - y(d.value);
+              });
+    $j("#<%= graph_id %>").trigger('groupingChanged', groupings.current);
+  }
+  changeGrouping(true);
+
+  var tooltip = d3.select("body")
+      .append("div")
+      .classed("sunburst-tooltip", true)
+      .style("opacity", 0);
+
+  function showBarTooltip(x) {
+    var d = bars.find(function(b) {return b.x == x});
+    var html = "<p>" + d.x + "</p><hr/><table class='table table-condensed borderless'>" +
+        d.y[groupings.current].map(function (dd) {
+          return "<tr style='color:" + dd.color + "'><td>" + dd.label + ":</td><td style='text-align:right'>" + numberFormat(dd.value) + " " + yUnit + "</td></tr>"
+        })
+        .reverse().join("") + "</table>";
+    tooltip.html(html)
+        .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
+        .transition()
+        .duration(200)
+        .style({opacity: 0.8});
+  }
+
+  function showBarSegmentTooltip(d) {
+    tooltip.html(d.label + ": " + numberFormat(d.value) + " " + yUnit)
+        .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
+        .transition()
+        .duration(200)
+        .style({opacity: 0.8});
+  }
+
+  function hideTooltip() {
+    tooltip.transition()
+        .duration(500)
+        .style("opacity", 0);
+  }
+  }());
+</script>

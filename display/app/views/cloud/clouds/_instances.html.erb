@@ -1,0 +1,54 @@
+<% menu = %w(all good notify unhealthy overutilized underutilized).map {|state| link_busy(state, :url => instances_cloud_path(@cloud, :instances_state => state), :remote => true, :class => "btn btn-mini #{'active' if params[:instances_state] == state}")} %>
+<%= section_panel 'Instances', :id => 'instances_section', :width => 'double', :position => 'right', :menu => menu do %>
+  <% procedure_params = {:ciId           => @cloud.ciId,
+                         :direction      => 'to',
+                         :relationName   => 'base.DeployedTo',
+                         :procedureCiId  => 0,
+                         :procedureState => 'active',
+                         :actionName     => 'repair'}
+     list_menu = [:id         => 'repair',
+                  :label      => 'Repair',
+                  :url        => prepare_operations_procedures_path(procedure_params),
+                  :method     => :post,
+                  :param_name => 'actionCiIds'] %>
+  <%= ci_list(@instances,
+              :toolbar => {:list_name => 'cloud_instances',
+                           :sort_by   => [%w(Name ciName), %w(Created created), %w(Namespace nsPath), %w(Procedure procedureState)],
+                           :filter_by => %w(ciName nsPath procedureState)},
+              :menu => list_menu) do |builder, target| %>
+    <% root, org, assembly, env, area, platform = target.nsPath.split('/')
+       procedure = @instance_procedures[target.ciId] %>
+    <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" nsPath="#{target.nsPath}" procedureState="#{procedure ? 'active' : 'idle'}") %>
+    <% path_to_ci = path_to_ci(target)
+       builder.target link_to('', path_to_ci) %>
+    <% builder.top do %>
+      <span class="topname"><%= link_to(target.ciName, path_to_ci) %></span>
+      <span class="topdesc"><%= target.nsPath.gsub('/bom', '') %></span>
+    <% end %>
+    <% builder.middle do %>
+      <%= render 'cms/cis/important', :ci => target %>
+    <% end %>
+    <% builder.bottom target.nsPath %>
+    <% if current_user.has_operations?(assembly) %>
+      <% builder.menu do |ci| %>
+        <% target.meta.actions.each do |action| %>
+          <% procedure_params[:actionName]  = action.actionName
+             procedure_params[:actionCiIds] = [ci.ciId] %>
+          <%= link_to(icon('', action.actionName), new_operations_procedure_path(procedure_params), :remote => true) %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <% builder.status do %>
+      <%= status_marker('health', target.opsState, health_to_label(target.opsState)) %>
+      <% if procedure %>
+        <%= action = procedure.actions.find {|a| a.ciId == target.ciId}
+            content =  "#{icon('wrench', '', 'fa-fw')} #{action.actionName}<br>"
+            content << "#{icon('user', '', 'fa-fw')} #{procedure.createdBy}<br>"
+            content << "#{icon('clock-o', '', 'fa-fw')} #{time_ago_in_words(Time.at(action.updated/1000))}<br>"
+            content << link_to('View', edit_operations_procedure_path(procedure), :remote => true, :class => 'btn btn-mini btn-info')
+            status_marker('procedure', 'active', state_to_label('active'), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Active Procedure', 'data-trigger' => 'click', 'data-content' => content, 'data-placement' => 'top') %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

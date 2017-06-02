@@ -1,0 +1,59 @@
+<%= builder.hidden_field attribute_name %>
+<% build_options = attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : {}
+   div_id = "#{attribute_name}_#{Time.now.to_i}_div"%>
+<div id="<%= div_id %>" class="build_options" >
+  <table class="table">
+  	 <tr>
+      <td>Source Directory</td>
+      <td><%= text_field_tag "build_options_srcdir", build_options['srcdir'], :class => 'srcdir', :onchange => 'build_options_struct_changed(this);' %></td>
+    </tr>
+    <tr>
+      <td>Version</td>
+      <td><%= text_field_tag "build_options_version",   build_options['version'],   :class => 'version',   :onchange => 'build_options_struct_changed(this);' %></td>
+    </tr>
+    <tr>
+      <td>Prefix</td>
+      <td><%= text_field_tag "build_options_prefix",    build_options['prefix'],    :class => 'prefix',    :onchange => 'build_options_struct_changed(this);' %></td>
+    </tr>
+    <tr>
+      <td>Configure</td>
+      <td><%= text_area_tag "build_options_configure", build_options['configure'], :class => 'configure', :onchange => 'build_options_struct_changed(this);' %></td>
+    </tr>
+  </table>
+</div>
+<script type="text/javascript">
+  if (typeof(update_build_options_struct_raw_value) == "undefined") {
+    window.build_options_struct_changed = function(input) {
+      update_build_options_struct_raw_value($(input).up("div.build_options"));
+    };
+
+    window.update_build_options_struct_raw_value = function(build_options_div) {
+      build_options_div.up("form").setAttribute('data-dirty', true);
+      var build_options = {'srcdir':    build_options_div.down("input.srcdir").value,
+      							'version':   build_options_div.down("input.version").value,
+                           'prefix':    build_options_div.down("input.prefix").value,
+                           'configure': build_options_div.down("textarea.configure").value};
+      build_options_div.previous("input").value = Object.toJSON(build_options);
+    };
+
+    window.toggle_build_options_struct = function(on) {
+      var div = $("<%= div_id %>").up("div.controls").up("div");
+      if (on) {
+        div.show();
+      }
+      else {
+        div.hide();
+      }
+    };
+  }
+
+  $j(function() {
+    $("<%= div_id %>").up("form").down("select#cms_dj_ci_ciAttributes_install_type").observe("change", function() {
+      toggle_build_options_struct(this.value == "build");
+    });
+
+    <% unless ci.ciAttributes.install_type == 'build' %>
+      toggle_build_options_struct(false);
+    <% end %>
+  });
+</script>

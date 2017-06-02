@@ -1,0 +1,12 @@
+<% @procedure.log_data.each_pair do |action_id, log| %>
+  var logDiv = $j("#action_log_<%= action_id %> .accordion-inner");
+  <% if log.present? %>
+    logDiv.find(".log-body ul.log").html("<%= escape_javascript(render('cms/log_content', :log => log)) %>");
+    log_auto_scroll(logDiv);
+    log_filter(logDiv);
+  <% else %>
+    if (logDiv.find(".log-body ul.log li i.fa-spin")[0]) {
+      logDiv.find(".log-body ul.log").html("");
+    }
+  <% end %>
+<% end %>

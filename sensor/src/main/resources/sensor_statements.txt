@@ -1,0 +1,10 @@
+
+cpu-high; insert into OpsEvent select ciId, 'cpu' as name, 'open' as state, count(1) as cnt from PerfEvent.win:time(1 min) where metrics('cpu') > thresholds('cpu') group by ciId having count(1) > 0 output first every 3 minutes;OpsEventListener
+cpu-low-basic; insert into OpsEvent select ciId, 'cpu' as name, 'under' as state, count(1) as cnt from PerfEvent.win:time(1 min) where metrics('cpu') <= thresholds('cpu') group by ciId having count(1) > 0 output first every 3 minutes;BasicListener
+cpu-low-ops; select cpuover.ciId as ciId, 'cpu' as name, 'close' as state from pattern [every cpuover=OpsEvent(name = 'cpu', state = 'open') -> OpsEvent(ciId = cpuover.ciId and name = 'cpu' and state = 'under')];OpsEventListener
+mem-high; insert into OpsEvent select ciId, 'mem' as name, 'open' as state, count(1) as cnt from PerfEvent.win:time(1 min) where metrics('mem') > thresholds('mem') group by ciId having count(1) > 0 output first every 3 minutes;OpsEventListener
+#heartbeat; insert into OpsEvent select lastEvent.ciId as ciId, 'heartbeat' as name, 'open' as state, 1L as cnt from pattern [every lastEvent=PerfEvent -> (timer:interval(3 sec) and not PerfEvent(ciId = lastEvent.ciId))];OpsEventListener
+#select * from OpsEvent;OpsEventListener
+
+
+cpu-low-ops; select cpuover.ciId as ciId, 'cpu' as name, 'close' as state from pattern [every cpuover=OpsEvent(name = 'cpu', state = 'open') -> OpsEvent(ciId = cpuover.ciId and name = 'cpu' and state = 'under')];OpsEventListener

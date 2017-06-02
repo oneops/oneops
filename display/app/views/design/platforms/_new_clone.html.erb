@@ -1,0 +1,28 @@
+<div id="platform_clone_modal" class="modal hide">
+  <div class="modal-header">
+  	<h3>Copy platform <%= @platform.ciName %></h3>
+  </div>
+  <div class="modal-body form-horizontal">
+    <div class="control-group">
+      <%= label_tag :to_assembly_id, 'Destination Assembly', :class => 'control-label' %>
+      <div class="controls">
+        <%= select_tag :to_assembly_id, options_from_collection_for_select(@assemblies, :ciId, :ciName, @assembly.ciId), :prompt => 'Pick destination assembly' %>
+      </div>
+    </div>
+    <div class="control-group">
+       <%= label_tag :ciName, 'New Platform Name', :class => 'control-label' %>
+       <div class="controls">
+         <%= text_field_tag :to_ci_name, @platform.ciName, :required => true, :pattern => Cms::Ci.valid_ci_name_regexp(@platform.ciClassName) %>
+       </div>
+   	</div>
+  </div>
+
+  <div class="modal-footer">
+	<%= link_to_function('cancel', 'hide_modal()', :class => 'btn btn-large btn-danger') %>
+    <% busy_options = {:url    => clone_assembly_design_platform_path(@assembly, @platform),
+                             :method => :post,
+                             :with   => "'to_assembly_id='+$j('select#to_assembly_id').val()+'&to_ci_name='+$j('input[type=text]#to_ci_name').val()",
+                             :class  => 'btn btn-large btn-success'} %>
+    <%= link_busy('ok', busy_options) %>
+  </div>
+</div>

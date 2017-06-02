@@ -1,0 +1,46 @@
+<%= assembly_page_header(@assembly, 'design') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)}] %>
+
+<%= page_title({:page_kind => 'Design Load', :page_icon => 'import'}) %>
+
+<%= page_info 'Update design by loading design configuration in <em>YAML</em> or <em>JSON</em> format' %>
+
+<% if @errors.present? %>
+  <div class="alert alert-danger error-messages">
+    <h5>Please correct the following errors:</h5>
+    <%= render 'base/shared/pretty', :data => @errors %>
+  </div>
+<% elsif @preview %>
+  <div class="alert alert-success">
+    <h5>Design configuration successfully validated.</h5>
+  </div>
+<% end %>
+<%= form_tag load_assembly_design_path(@assembly), :method => :put, :multipart => true, :class => 'form-horizontal' do %>
+  <fieldset>
+    <div class="control-group">
+      <label class="control-label">Specify design configuration <em>YAML</em> or <em>JSON</em> file</label>
+      <div class="controls">
+        <%= render 'base/shared/input_file', :field_name => :data_file %>
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="control-label">or</label>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Directly paste design <em>YAML</em> or <em>JSON</em> configuration here</label>
+      <div class="controls">
+        <%= text_area_tag(:data, @data_string, :rows => 20, :style => 'width:95%') %>
+      </div>
+    </div>
+    <%= hidden_field_tag(:preview) %>
+  </fieldset>
+  <div class="form-actions">
+    <%= button_tag(icon('thumbs-up', 'Validate Only'),
+                   :onclick => '$j(this).parents("form").find("#preview").val("true")',
+                   :class   => 'btn',
+                   :data    => {:disable_with => '<i class="fa fa-thumbs-up"></i> Please wait ...'}) %>
+    <%= button_tag(icon('upload', 'Load'),
+                   :class => 'btn btn-success',
+                   :data  => {:disable_with => '<i class="fa fa-upload"></i> Please wait ...'}) %>
+  </div>
+<% end %>

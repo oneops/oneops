@@ -1,0 +1,73 @@
+<% if @assembly %>
+  <%= assembly_page_header(@assembly, controller.class.name.deconstantize.downcase) %>
+  <% bcs = []
+     if in_design?
+       bcs << {:label => @assembly.ciName, :kind => 'design', :link => assembly_design_path(@assembly)}
+       if @platform
+         bcs << {:icon  => platform_image_url(@platform),
+                 :label => breadcrumb_platform_label(@platform),
+                 :kind  => 'Platform',
+                 :link  => assembly_design_platform_path(@assembly, @platform)}
+         if @component
+           bcs << {:icon  => ci_image_url(@component),
+                   :label => @component.ciName,
+                   :kind  => @component.ciClassName.split('.').last,
+                   :link  => edit_assembly_design_platform_component_path(@assembly, @platform, @component)}
+         end
+       end
+     elsif in_transition?
+       bcs << {:label => @assembly.ciName, :kind => 'transition', :link => assembly_transition_path(@assembly)}
+       if @environment
+         bcs << {:icon  => ci_image_url(@environment),
+                 :label => breadcrumb_environment_label(@environment),
+                 :kind  => 'Environment',
+                 :link  => assembly_transition_environment_path(@assembly, @environment)}
+         if @platform
+           bcs << {:icon  => platform_image_url(@platform),
+                   :label => breadcrumb_platform_label(@platform),
+                   :kind  => 'Platform',
+                   :link  => assembly_transition_environment_platform_path(@assembly, @environment, @platform)}
+           if @component
+             bcs << {:icon  => ci_image_url(@component),
+                     :label => @component.ciName,
+                     :kind  => @component.ciClassName.split('.').last,
+                     :link  => edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component)}
+           end
+         end
+       end
+     elsif in_operations?
+       bcs << {:label => @assembly.ciName, :kind => 'operations', :link => assembly_operations_path(@assembly)}
+       if @environment
+         bcs << {:icon  => ci_image_url(@environment),
+                 :label => breadcrumb_environment_label(@environment),
+                 :kind  => 'Environment',
+                 :link  => assembly_operations_environment_path(@assembly, @environment)}
+         if @platform
+           bcs << {:icon  => platform_image_url(@platform),
+                   :label => breadcrumb_platform_label(@platform),
+                   :kind  => 'Platform',
+                   :link  => assembly_operations_environment_platform_path(@assembly, @environment, @platform)}
+           if @component
+             bcs << {:icon  => ci_image_url(@component),
+                     :label => @component.ciName,
+                     :kind  => @component.ciClassName.split('.').last,
+                     :link  => assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, @component)}
+           end
+         end
+       end
+     end %>
+  <%= breadcrumb bcs %>
+<% else %>
+  <%= organization_page_header %>
+<% end %>
+
+
+<%= page_title :page_kind  => "History for #{@ci.ciClassName.split('.').last}",
+               :page_icon  => 'History',
+               :page_label => @ci.ciName %>
+
+<%= page_info 'View change history' %>
+
+<div class="triple">
+  <%= render 'base/shared/ci_history', :ci => @ci, :rfc_cis => @rfc_cis, :rfc_relations => @rfc_relations %>
+</div>

@@ -1,0 +1,62 @@
+<% if @rfc %>
+  <% ns_split = @rfc.nsPath.split('/')
+     env_ns = ns_split[0..-4].join('/')
+     deployment_id = params[:id] %>
+  <h4>
+    <span style="float: right">
+      Deployment
+      <%= link_to(deployment_id, redirect_deployment_path(deployment_id)) %>
+    </span>
+    <%= image_tag(ci_class_image_url(@rfc.ciClassName)) %>
+    <%= @rfc.ciClassName.split('.', 2).last %>
+    <%= link_to(@rfc.ciName, path_to_ci(@rfc)) %>
+  </h4>
+  <h4>
+    <%= image_tag(ci_class_image_url('manifest.Platform')) %> Platform
+    <%= link_to("#{ns_split[-2]} ver.#{ns_split[-1]}", path_to_ns(@rfc.nsPath.sub('/bom/', '/manifest/'))) %>
+  </h4>
+  <h4>
+    <%= image_tag(ci_class_image_url('manifest.Environment')) %> Environment
+    <%= link_to(env_ns, path_to_ns(env_ns)) %>
+  </h4>
+<% end %>
+<%= render 'cms/log_data', :log_data => @log_data %>
+
+<script>
+  window.log_line_selected = function(source, event) {
+    var lineNumber = source.id.substr(1);
+    var li = $j(source);
+    var selected = li.hasClass('selected');
+
+    if (event.ctrlKey || event.metaKey) {
+      var hash = window.location.hash;
+      if (selected) {
+        window.location.hash = hash.replace(new RegExp(",?" + lineNumber), "");
+      }
+      else {
+        window.location.hash = hash + "," + lineNumber;
+      }
+      li.toggleClass('selected');
+    }
+    else {
+      li.parents(".log").find("li.selected").removeClass('selected');
+      if (selected) {
+        window.location.hash = '';
+      }
+      else {
+        window.location.hash = lineNumber;
+        li.addClass('selected');
+      }
+    }
+  };
+
+  window.location.hash.substr(1).split(',').forEach(function(l) {
+    if (l) {
+      $j("#L" + l).addClass('selected');
+    }
+  });
+  var l = $j(".log .selected")[0];
+  if (l) {
+    l.scrollIntoView(true);
+  }
+</script>

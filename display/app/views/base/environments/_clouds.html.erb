@@ -1,0 +1,104 @@
+<% div_id = random_dom_id %>
+<div class="category">
+  <div class="name">Clouds</div>
+  <div class="control-group">
+    <% if @environment.persisted? %>
+      <div class="alert alert-info">
+        <p>
+          Cloud configuration below is used for <b>new platforms only</b>. To change cloud configuration for existing
+          platforms use the platform transition page.
+        </p>
+        <% if @environment.ciClassName == 'manifest.Environment' && @environment.persisted? %>
+          <p>
+            An existing cloud can be removed (i.e. select 'Not Used') only when it has no deployed instances
+            and environment has no open release and no new deployment has been generated, pending  or in-progress.
+          </p>
+        <% end %>
+      </div>
+    <% end %>
+
+  </div>
+  <div id="<%= div_id %>">
+    <% consumes_meta      = Cms::RelationMd.look_up('base.Consumes')
+       existing_cloud_map = @clouds.to_map {|c| c.toCiId}
+       available_clouds   = @available_clouds.select {|c| c.ciAttributes.adminstatus == 'active' || existing_cloud_map[c.ciId]} %>
+    <% available_clouds.each do |cloud| %>
+      <% name_prefix    = "clouds[#{cloud.ciId}]"
+         existing_cloud = existing_cloud_map[cloud.ciId] %>
+      <div class="control-group <%= 'hide' if @environment.persisted? && !existing_cloud && @clouds.present? %>">
+        <%= f.label name_prefix,
+                    link_to(cloud.ciName, '#', :rel => 'tooltip', :title => cloud.ciAttributes.description),
+                    :class => 'control-label' %>
+        <div class="controls">
+          <% radio_options = [{:label => 'Primary', :value => '1'},
+                              {:label => 'Secondary', :value => '2'}]
+             if @environment.ciClassName == 'account.Environment' || @environment.new_record? || !existing_cloud ||
+               !((@release && @release.releaseState == 'open') || (@bom_release && @bom_release.releaseState == 'open'))
+               radio_options << {:label => 'Not Used', :value => '0'}
+             end %>
+          <%= render 'cms/cis/radio',
+                     :attribute_name  => "#{name_prefix}[priority]",
+                     :attribute_value => existing_cloud ? existing_cloud.relationAttributes.priority : '0',
+                     :options         => radio_options,
+                     :id              => "cloud_#{cloud.ciId}_priority" %>
+          <div class="consumes-attributes <%= 'hide' unless existing_cloud %>">
+            <div class="control-group">
+              <% md_attribute   = consumes_meta.md_attribute('dpmt_order')
+                 attribute_name = "#{name_prefix}[dpmt_order]" %>
+              <%= label_tag attribute_name,
+                            link_to(md_attribute.description, '#', :rel => 'tooltip', :title => "#{md_attribute.options[:help]}"),
+                            :class => 'control-label' %>
+              <div class="controls">
+                <%= number_field_tag attribute_name,
+                                     existing_cloud ? existing_cloud.relationAttributes.attributes['dpmt_order'] : md_attribute.defaultValue,
+                                     :id       => "cloud_#{cloud.ciId}_dpmt_order",
+                                     :class    => 'input-mini',
+                                     :step     => 1,
+                                     :disabled => !existing_cloud %>
+              </div>
+            </div>
+            <div class="control-group">
+              <% md_attribute   = consumes_meta.md_attribute('pct_scale')
+                 attribute_name = "#{name_prefix}[pct_scale]" %>
+              <%= label_tag attribute_name,
+                            link_to(md_attribute.description, '#', :rel => 'tooltip', :title => "#{md_attribute.options[:help]}"),
+                            :class => 'control-label' %>
+              <div class="controls">
+                <%= number_field_tag attribute_name,
+                                     existing_cloud ? existing_cloud.relationAttributes.attributes['pct_scale'] : md_attribute.defaultValue,
+                                     :id       => "cloud_#{cloud.ciId}_pct_scale",
+                                     :class    => 'input-mini',
+                                     :min      => 1,
+                                     :disabled => !existing_cloud %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    <% if @environment.persisted? && @clouds.size < available_clouds.size %>
+      <div class="control-group">
+        <div class="controls">
+          <div class="accordion-heading">
+            <%= link_to_function('Show all clouds', "$j('##{div_id} .control-group').show(300);$j(this).hide()", :class => 'btn accordion-toggle') %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+  $j("#<%= div_id %> .radio input[type=hidden]").bind("change", function (e) {
+    var target = e.target;
+    var el = $j(target).parents(".controls").find(".consumes-attributes");
+    if (target.value == '0') {
+      el.find("input").attr('disabled', 'true');
+      el.hide(300);
+    }
+    else {
+      el.find("input").removeAttr('disabled');
+      el.show(300);
+    }
+  });
+</script>

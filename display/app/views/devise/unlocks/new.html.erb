@@ -1,0 +1,30 @@
+<%= title 'Resend unlock instructions' %>
+
+<div id="signin">
+  <%= section_panel "Resend unlock instructions" do %>
+
+    <%= form_for(resource, :as => resource_name, :url => unlock_path(resource_name), :html => {:method => :post, :class => "form-horizontal"}) do |f| %>
+      <%= devise_error_messages! %>
+
+      <div class="control-group">
+        <%= f.label :email, :class => "control-label" %>
+        <div class="controls">
+          <%= f.email_field :email %>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="controls">
+          <%= f.submit "Resend unlock instructions", :class => "btn btn-large btn-success" %>
+          <br>
+          <br>
+          ... or <strong><%= link_to "Sign in", new_session_path(resource_name) %></strong>
+        </div>
+      </div>
+
+      <div id="shared-links" class="control-group">
+        <%= render :partial => "devise/shared/links" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

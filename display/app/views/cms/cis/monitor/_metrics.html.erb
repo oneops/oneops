@@ -1,0 +1,87 @@
+<% metrics = attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : {} %>
+<%= builder.hidden_field attribute_name %>
+<div class="monitor_metrics">
+  <table>
+    <% metrics.keys().sort.each do |metric_name| %>
+      <tr><td><%= render 'cms/cis/monitor/metric', :metric_name => metric_name, :metric => metrics[metric_name] %></td></tr>
+    <% end %>
+  </table>
+</div>
+<%= link_to_function(icon('plus', 'Add'), 'new_metrics_struct_entry(this)', :class => 'btn btn-mini', :style => 'display:none') %>
+<script type="text/javascript">
+  var new_metrics_struct_entry_html = "<%= escape_javascript(render('cms/cis/monitor/metric',
+                                                                       :metric_name => '',
+                                                                       :metric      => {'unit' => '', 'dscription' => ''})) %>";
+
+  if (!window.toggle_metrics_struct) {
+    window.toggle_metrics_struct = function(metric_div, all) {
+      all ? toggle_metrics_struct_all_entries(metric_div) : toggle_metrics_struct_entry(metric_div);
+    };
+
+    window.toggle_metrics_struct_all_entries = function(source) {
+      var metricDiv = $j(source);
+      var show = !metricDiv.find("div.body").is(":visible");
+      metricDiv.parents("div.monitor_metrics").find("div.monitor_metric .body").toArray().each(function (div) {
+        show ? $j(div).show() : div.hide();
+      });
+      if (show) {
+        metricDiv.find("input")[0].focus();
+      }
+    };
+
+    window.toggle_metrics_struct_entry = function(source) {
+      var metricDiv = $j(source);
+      metricDiv.find('.header i').toggleClass('fa-caret-down fa-caret-up');
+      var body = metricDiv.find("div.body");
+      var visible = body.is(":visible");
+      body.toggle();
+      if (!visible) {
+        body.find("input")[0].focus();
+      }
+    };
+
+    window.new_metrics_struct_entry = function(source) {
+      var metricsDiv = $j(source).siblings("div.monitor_metrics");
+      metricsDiv.append(new_metrics_struct_entry_html);
+      var newMetricDiv = metricsDiv.find("div.monitor_metric").last();
+      newMetricDiv.find("input")[0].focus();
+      toggle_metrics_struct_entry(newMetricDiv);
+    };
+
+    window.delete_metrics_struct_entry = function (source) {
+      var metricDiv = $j(source);
+      var metricsDiv = metricDiv.parents("div.monitor_metrics");
+      metricDiv.remove();
+      update_metrics_struct_raw_value(metricsDiv);
+    };
+
+    window.metrics_struct_changed = function (source) {
+      update_metrics_struct_raw_value($j(source).parents("div.monitor_metrics"));
+    };
+
+    window.update_metrics_struct_raw_value = function (metricsDiv) {
+      metricsDiv.parents("form").attr("data-dirty", true);
+      var metrics = metricsDiv.find("div.monitor_metric").toArray()
+          .reduce(function (m, div) {
+                    var metricDiv = $j(div);
+                    var name = metricDiv.find("input.name").val();
+                    metricDiv.find(".header .name").html(name);
+                    if (name) {
+                      m[name] = {'unit': metricDiv.find(".unit").val(),
+                        'dstype':        metricDiv.find(".dstype").val(),
+                        'display':       metricDiv.find(".display").val(),
+                        'display_group': metricDiv.find(".display-group").val(),
+                        'description':   metricDiv.find(".description").val()};
+                    }
+                    return m;
+                  },
+                  {}
+      );
+      var newValue = Object.toJSON(metrics);
+      var metricsField = metricsDiv.prev("input");
+      if (newValue != metricsField.val()) {
+        metricsField.val(newValue).trigger("change");
+      }
+    };
+  }
+</script>

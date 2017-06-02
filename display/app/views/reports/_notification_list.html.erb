@@ -1,0 +1,11 @@
+<%= section_panel (@histogram && @histogram[:title]) || 'Counts', :width => 'double', :position => 'right' do %>
+  <% if @histogram %>
+    <%= render 'base/shared/graph_bar', :data => @histogram %>
+  <% else %>
+    <%= falied_loading_indicator('Failed to retrieve notification counts') %>
+  <% end %>
+<% end %>
+<%= section_panel 'Notifications', :width => 'double', :position => 'right' do %>
+  <%= notification_list([], :paginate => {:url => request.url, :size => @size}) do |builder, notification| %>
+  <% end %>
+<% end %>

@@ -1,0 +1,27 @@
+The following user is requesting access to organization '<%= @organization.name %>' in OneOps:
+<br/>
+<p>
+<table>
+  <tr>
+    <td>User email:&nbsp;</td>
+    <td><%= @user.email %></td>
+  </tr>
+  <tr>
+    <td>User full name:&nbsp;</td>
+    <td><%= @user.name %></td>
+  </tr>
+  <tr>
+    <td>Username:&nbsp;</td>
+    <td><%= @user.username %></td>
+  </tr>
+  <% if @message.present? %>
+    <tr>
+      <td>Message:&nbsp;</td>
+      <td><%= @message %></td>
+    </tr>
+  <% end %>
+</table>
+<p/>
+<br/>
+<br/>
+<%= link_to('Click here', edit_organization_url(@organization.name, :anchor => 'users')) %> to manage users and teams for organization '<%= @organization.name %>' in OneOps.

@@ -1,0 +1,50 @@
+#!/bin/bash
+# description: OneOps Inductor Status Start Stop Restart
+# chkconfig: 234 20 80
+
+default_location="/opt/oneops/inductor_env.sh"
+source $default_location
+
+if [ -z "${INDUCTOR_HOME}" ]; then
+  echo "need to setup env var INDUCTOR_HOME or put in $default_location"
+  exit 1
+fi
+
+cd $INDUCTOR_HOME
+
+current_user=`id -nu`
+
+# default to root
+run_as_user="root"
+if [ -f "user" ]; then
+  run_as_user=$(<user)
+fi
+
+case $1 in
+        start)
+                ;;
+        stop)
+                ;;
+        restart)
+                ;;
+        status)
+                ;;
+        check)
+                ;;
+        start_logstash_forwarder)
+                ;;               
+        stop_logstash_forwarder)
+                ;;               
+        restart_logstash_forwarder)
+                ;;
+        status_logstash_forwarder)
+                ;;               
+        check_logstash_forwarder)
+                ;;
+        *)
+                echo "Usage: $0 {start|stop|restart|check|status and with _logstash_forwarder suffix}"
+                exit 2
+        ;;
+esac
+
+su -l $run_as_user -c "cd $INDUCTOR_HOME ; inductor $1"

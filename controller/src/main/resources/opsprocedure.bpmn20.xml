@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:activiti="http://activiti.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.oneops.com/controller">
+  <process id="opsprocedure" name="Ops Procedure execution process" isExecutable="true">
+
+    <startEvent id="execStart" name="Start Ops Procedure execution"/>
+        <sequenceFlow id="f1" name="" sourceRef="execStart" targetRef="ackStart"/>
+
+        <receiveTask id="ackStart" name="ackStart"/>
+        <sequenceFlow id="f2" name="" sourceRef="ackStart" targetRef="getaos"/>
+    
+        <serviceTask id="getaos" name="Retrieve Action order list" activiti:expression="#{cmsClient.getActionOrders(execution)}"/>
+        <sequenceFlow id="f3" name="" sourceRef="getaos" targetRef="aoListCheck"/>
+    
+        <exclusiveGateway id="aoListCheck" name="aoListCheck action"/>
+        <sequenceFlow id="pfailedFlow" name="Get AOs failed" sourceRef="aoListCheck" targetRef="updateProc">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${!proc.getProcedureState().toString().equals("active")}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="paoFlow" name="Process Action order Flow" sourceRef="aoListCheck" targetRef="pwo">
+            <conditionExpression xsi:type="tFormalExpression">${cmsaos.size()>0}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="doneFlow" name="All Done Flow" sourceRef="aoListCheck" targetRef="updateProc">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${cmsaos.size()==0 && execOrder>proc.getMaxExecOrder()}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="skipFlow" name="Skip Step Flow" sourceRef="aoListCheck" targetRef="incExecOrderAction">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${cmsaos.size()==0 && execOrder<=proc.getMaxExecOrder()}]]></conditionExpression>
+        </sequenceFlow>
+    
+        <subProcess id="pwo" name="Process Action Order">
+            <multiInstanceLoopCharacteristics isSequential="false">
+                <loopDataInputRef>cmsaos</loopDataInputRef>
+                <inputDataItem name="wo"/>
+            </multiInstanceLoopCharacteristics>
+
+            <startEvent id="pwoStart" name="Start process action order"/>
+                <sequenceFlow id="p1" name="" sourceRef="pwoStart" targetRef="paoSubmitAo"/>
+
+                <serviceTask id="paoSubmitAo" name="Submit Action order" activiti:async="true" activiti:expression="#{inductorPublisher.publishMessage(execution, &quot;paoWaitResponse&quot;, &quot;opsprocedure&quot;)}"/>
+                <sequenceFlow id="p2" name="" sourceRef="paoSubmitAo" targetRef="paoSetAoInProgress"/>
+
+                <serviceTask id="paoSetAoInProgress" name="Set Action order state to InProgress" activiti:expression="#{cmsClient.updateActionOrderState(execution, wo, &quot;inprogress&quot;)}"/>
+                <sequenceFlow id="p3" name="" sourceRef="paoSetAoInProgress" targetRef="paoWaitResponse"/>
+
+                <receiveTask id="paoWaitResponse" name="WaitResponse"/>
+                <sequenceFlow id="p4" name="" sourceRef="paoWaitResponse" targetRef="paoUpdateAoState"/>
+
+               	<serviceTask id="paoUpdateAoState" name="Update Action order state" activiti:expression="#{cmsClient.updateActionOrderState(execution, wo, wostate)}"/>
+                <sequenceFlow id="p5" name="" sourceRef="paoUpdateAoState" targetRef="subSync"/>
+
+				<receiveTask id="subSync" name="subSync" ></receiveTask>
+      			<sequenceFlow id="p6" name="" sourceRef="subSync" targetRef="pwoEnd"></sequenceFlow>
+      			
+            <endEvent id="pwoEnd" name="End process work order"/>
+        </subProcess>
+        <sequenceFlow id="aoProcCheck" name="Procedure satus check" sourceRef="pwo" targetRef="procStatusCheck"/>
+
+        <exclusiveGateway id="procStatusCheck" name="Procedure satus check"/>
+        <sequenceFlow id="stillActiveFlow" name="Procedure still active flow" sourceRef="procStatusCheck" targetRef="incExecOrderAction">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${proc.getProcedureState().toString().equals("active")}]]></conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="procFailedFlow" name="Procedure failed flow" sourceRef="procStatusCheck" targetRef="updateProc">
+            <conditionExpression xsi:type="tFormalExpression"><![CDATA[${!proc.getProcedureState().toString().equals("active")}]]></conditionExpression>
+        </sequenceFlow>
+
+        <serviceTask id="incExecOrderAction" name="incExecOrder" activiti:expression="#{cmsClient.incExecOrder(execution)}"/>
+        <sequenceFlow id="backLoop" name="Back loop" sourceRef="incExecOrderAction" targetRef="getaos"/>
+    
+        <serviceTask id="updateProc" name="Update Procedure state" activiti:expression="#{cmsClient.updateProcedureState(execution, proc)}"/>
+        <sequenceFlow id="endFlow" name="The end flow" sourceRef="updateProc" targetRef="execEnd"/>
+
+    <endEvent id="execEnd" name="End Ops Procedure execution"/>
+
+  </process>
+</definitions>

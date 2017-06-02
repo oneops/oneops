@@ -1,0 +1,24 @@
+<% app_subnav(items.each {|item| item[:function] = "show_page('" + item[:template] + "', this)"}) %>
+<div id="app_subnav_pages" style="display:none">
+  <% items.each do |item| %>
+    <div id="app_subnav_page_<%= item[:template] %>"><%= render item[:template] %></div>
+  <% end %>
+</div>
+<script type="text/javascript">
+  window.show_page = function(name, link) {
+    <% items.each do |item| %>
+      $("app_subnav_page_<%= item[:template] %>").hide();
+    <% end %>
+    $("app_subnav_page_" + name).show();
+    if (link) {
+      link = $(link);
+      link.addClassName('selected');
+      link.up("li").siblings().each(function(other_link) {
+        other_link.down("a").removeClassName('selected');
+      });
+    }
+  };
+
+  show_page("<%= items.detect {|item| item[:selected] }[:template] %>");
+  $("app_subnav_pages").show();
+</script>

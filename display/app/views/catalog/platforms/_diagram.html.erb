@@ -1,0 +1,11 @@
+<%= section_panel 'Component Diagram',
+                  :width    => 'double',
+                  :position => 'left',
+                  :menu     => @diagram && [link_to(icon('expand', 'Full'),
+                                                    @design ?
+                                                        diagram_catalog_design_platform_path(@design, @platform, :size => '11,8') :
+                                                        diagram_catalog_pack_platform_path(:id => @platform, :size => '11,8'),
+                                                    :target => '_blank',
+                                                    :class  => 'btn btn-mini')] do %>
+  <%= render 'base/platforms/diagram' %>
+<% end %>

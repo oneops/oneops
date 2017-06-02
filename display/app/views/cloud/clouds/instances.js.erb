@@ -1,0 +1,3 @@
+$j("#instances_section").html("<%= escape_javascript(render('instances')) %>");
+replace_state("<%= edit_cloud_path(@cloud, :instances_state => params[:instances_state], :anchor => 'operations') %>");
+hide_busy();

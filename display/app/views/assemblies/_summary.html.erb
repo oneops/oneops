@@ -1,0 +1,60 @@
+<div class="section">
+  <%= render 'base/cost/cost_summary' %>
+  <%= render 'base/notifications/notifications_summary' %>
+</div>
+
+<%= section_panel('Design', :width => 'single', :position => 'right') do %>
+  <% if @catalog.nil? %>
+    <%= icon('cog') %> Proceed to <%= link_to(highlight('design', 'info'), assembly_design_path(@assembly.ciId)) %>  your assembly
+  <% elsif @catalog.releaseState == 'open' %>
+    Open design release created <%= highlight(time_ago_in_words(@catalog.created_timestamp)) %> by <%= highlight(@catalog.createdBy) %>
+  <% elsif @catalog.releaseState == 'closed' %>
+    Last design release commited <%= highlight(time_ago_in_words(@catalog.updated_timestamp)) %> by <%= highlight(@catalog.commitedBy) %>
+  <% elsif @catalog.releaseState == 'canceled' %>
+    Last design release cancelled <%= highlight(time_ago_in_words(@catalog.updated_timestamp)) %> by <%= highlight(@catalog.commitedBy) %>
+  <% end %>
+<% end %>
+
+<%= section_panel('Environments', :width => 'single', :position => 'right') do %>
+  <% if @environments.blank? %>
+    <%= icon('cog') %> Proceed to <%= highlight(link_to('transition', assembly_transition_path(@assembly))) %> to create an environment.
+  <% else %>
+    <% watched_map = current_user.watches.where(:ci_class_name => 'manifest.Environment').inject({}) { |m, a| m[a.ci_id] = true; m } %>
+    <%= ci_list(@environments,
+                :menu    => [{:id => 'watch',   :label => 'Watch',  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
+                             {:id => 'unwatch', :label => 'Ignore', :url => watch_path, :method => :delete, :param_name => 'ciIds'}],
+                :toolbar => {:list_name => 'assembly_environments',
+                             :sort_by   => [%w(Name ciName), %w(Profile profile), %w(Created created), %w(Watching watch)],
+                             :filter_by => %w(ciName profile)}) do |builder, target| %>
+      <% profile = target.ciAttributes.profile
+         watching = watched_map[target.ciId] %>
+      <% builder.attributes %(ciName="#{target.ciName}" profile="#{target.ciAttributes.profile}" created="#{target.created}" watch="#{watching ? 0 : 1}") %>
+      <% builder.target link_to('', assembly_operations_environment_path(@assembly, target)) %>
+      <% builder.icon :none %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+        <span class="topdesc">
+          <%= icon('cloud') %>
+          <% target.clouds.each do |r| %>
+            <% c = r.toCi %>
+            &nbsp;<%= link_to(c.ciName, edit_cloud_path(c)) %>&nbsp;
+          <% end %>
+        </span>
+      <% end %>
+      <% builder.middle do %>
+        <%= link_to(icon(site_icon('transition'), 'transition'), assembly_transition_environment_path(@assembly, target)) %>&nbsp;&nbsp;
+        <%= link_to(icon(site_icon('operations'), 'operations'), assembly_operations_environment_path(@assembly, target)) %>
+      <% end %>
+      <% builder.status do %>
+        <% availability = target.ciAttributes.availability %>
+        <div class="marker" title="<%= availability %> availability">
+          <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+        </div>
+        <%= marker(profile, 'label-info') if profile.present? %>
+        <%= marker('autorepair', 'label-success') if target.ciAttributes.autorepair == 'true' %>
+        <%= marker('autoscale', 'label-success')  if target.ciAttributes.autoscale == 'true' && target.ciAttributes.availability == 'redundant' %>
+        <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>

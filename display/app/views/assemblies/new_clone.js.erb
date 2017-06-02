@@ -1,0 +1,5 @@
+if ($("assembly_clone_modal")) {
+  $("assembly_clone_modal").remove();
+}
+
+render_modal("assembly_clone_modal", "<%= escape_javascript(render('new_clone')) %>");

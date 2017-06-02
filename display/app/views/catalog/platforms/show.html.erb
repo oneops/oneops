@@ -1,0 +1,46 @@
+<% tabs = [{:label => 'summary', :template => 'summary', :selected => true}]
+   if @design
+     page_title_opts = {:page_icon     => platform_image_url(@platform),
+                        :page_kind     => 'Platform',
+                        :page_label    => @platform.ciName,
+                        :doc_link      => platform_pack_link(@platform) +
+                                          platform_doc_link(@platform, icon('book'), :anchor => 'design'),
+                        :page_sublabel => @platform.ciAttributes.description}
+
+     crumbs = [{:label => icon(site_icon(:design), 'designs'), :link => catalog_path(:anchor => 'designs')}]
+     crumbs << {:label => @design.ciName, :kind => 'design', :link => catalog_design_path(@design)}
+
+     tabs << {:label => 'variables', :url => catalog_design_platform_variables_path(@design, @platform)}
+   else
+     pack_ver = @platform.ciAttributes.version
+     if @platform.ciClassName.end_with?('catalog.Platform')
+       doc_anchor = 'design'
+       bc_label   = icon(site_icon('design'), 'design')
+     else
+       doc_anchor   = 'transition'
+       availability = params[:availability]
+       bc_label     = icon(availability == 'redundant' ? 'cubes' : 'cube', "#{availability} availability")
+     end
+     page_title_opts = {:page_icon     => platform_image_url(@platform),
+                        :page_kind     => 'Platform Pack',
+                        :page_label    => "#{@platform.ciName} #{content_tag(:sub, content_tag(:span, "ver. #{pack_ver}", :class => 'label label-success'))} #{content_tag(:sub, content_tag(:small, bc_label))}",
+                        :doc_link      => platform_doc_link(@platform, icon('book'), :anchor => doc_anchor),
+                        :page_sublabel => @platform.ciAttributes.description}
+
+     crumbs = [{:label => icon(site_icon(:pack), 'packs'),
+                :link => catalog_path(:anchor => 'packs')},
+               {:kind  => 'source',
+                :label => @platform.ciAttributes.source}]
+
+     tabs << {:label => 'variables', :url => catalog_pack_platform_variables_path(:platform_id => @platform.ciId)}
+     tabs << {:label => 'policies',  :url => catalog_pack_platform_policies_path(:platform_id => @platform.ciId)}
+     tabs << {:label => 'diff',      :url => diff_catalog_pack_platforms_path(params[:source], params[:pack], params[:version], params[:availability])} if pack_ver.include?('.')
+   end %>
+
+<%= organization_page_header('catalogs') %>
+<%= breadcrumb crumbs %>
+<%= page_title page_title_opts %>
+<% desc = (@pack || @platform).ciAttributes.description %>
+<%= page_info desc if desc.present? %>
+
+<%= render 'base/shared/page_nav_pages', :items => tabs %>

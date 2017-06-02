@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<!-- TO BE IMPLEMENTED -->
+<suite name="FoundationSuite">
+   <test verbose="5" name="daq_commonTest" >
+
+    </test>
+</suite>
+
+

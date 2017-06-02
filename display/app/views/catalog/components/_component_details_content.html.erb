@@ -1,0 +1,6 @@
+<%= render 'cms/cis/ci', :ci => @component, :f => f %>
+<%= render('base/components/peer_depends_on', :peers => @linkable_sibling_map, :read_only => true) if @linkable_sibling_map.present? %>
+<% scale_relations = @depends_on_relations && @depends_on_relations.reject { |r| r.relationAttributes.flex != 'true' } %>
+<% if scale_relations.present? %>
+	<%= render 'base/components/scale', :scale_relations => scale_relations, :ci => @component, :f => f %>
+<% end %>

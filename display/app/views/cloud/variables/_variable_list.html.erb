@@ -1,0 +1,16 @@
+<% write_access = has_cloud_services?(@cloud.ciId) %>
+<%= section_panel 'Variables',
+                  :width => 'single',
+                  :menu  => write_access ? [:display => icon('plus', 'Add'), :link => new_cloud_variable_path(@cloud), :remote => true] : nil do %>
+  <%= ci_list(@variables, :new_link => write_access ? link_to('Add Variable...', new_cloud_variable_path(@cloud), :remote => true) : nil) do |builder, target| %>
+    <% builder.target link_to('', edit_cloud_variable_path(@cloud, target), :remote => true) %>
+    <% builder.icon :none %>
+    <% builder.middle target.ciAttributes.attributes['secure'] == 'true' ? icon('key', '*******') : target.ciAttributes.value  %>
+    <% if write_access %>
+      <% builder.menu do |ci| %>
+        <%= link_to(icon('trash', ' Delete'), cloud_variable_path(@cloud, ci), :remote => true, :method => :delete, :confirm => "Delete variable '#{ci.ciName}'?") %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id='variable_details'></div>

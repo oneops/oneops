@@ -1,0 +1,16 @@
+.DS_store
+.pydevproject
+.classpath
+.class*
+.spring*
+.settings/*
+key/*
+log/*
+target/*
+tmp/*
+.settings/org.eclipse.wst.common.project.facet.core.xml
+.project
+dependency-reduced-pom.xml
+*.gem
+/target
+Gemfile.lock

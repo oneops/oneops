@@ -1,0 +1,38 @@
+<%= section_panel 'Details', :width => 'double', :position => 'right' do %>
+  <ul class="status">
+    <li class="status-marker">
+      <div class="marker">
+        <%= deployment_state_icon(@procedure.procedureState) %>
+      </div>
+      <div class="description">
+        <ul>
+          <li><%= icon('info-circle') %>
+            procedure <%= highlight("#{@procedure.procedureName} (#{@procedure.procedureId})") %> is
+            in <span class="label label-marker <%= state_to_label(@procedure.procedureState) %>"><%= @procedure.procedureState %></span> state
+          </li>
+          <li><%= icon('star') %> submitted by <%= highlight(@procedure.createdBy, 'info') %> <%= highlight(time_ago_in_words(@procedure.created_timestamp)) %></li>
+          <li><%= icon('sort-numeric-asc') %> total of <%= highlight(@procedure.actions.size) %> actions </li>
+          <li><%= icon('bars') %> arguments: <strong><%= @procedure.arglist.presence || 'none' %></strong></li>
+          <li><%= icon('clock-o') %> last activity was <strong><%= time_ago_in_words(@procedure.updated_timestamp) %> (<%= @procedure.updated_timestamp.localtime.strftime('%m/%d/%Y %H:%M') %>)</strong></li>
+          <% if @procedure.procedureState == 'complete' %>
+            <li><%= icon('clock-o') %> duration was <strong><%= ((@procedure.updated_timestamp - @procedure.created_timestamp) / 60).round %> minutes</strong></li>
+          <% end %>
+        </ul>
+      </div>
+    </li>
+  </ul>
+
+  <%= render 'action_list' %>
+
+  <ul class="inline">
+    <% if @procedure.procedureState == 'active' %>
+      <li><%= link_to('view', url_for(:action => :edit), :remote => true, :class => 'btn btn-info') %></li>
+    <% elsif @procedure.procedureState == 'pending' %>
+      <li><%= render 'update_status', :label => 'discard', :status => 'discarded', :message => 'discarding...', :style => 'danger' %></li>
+      <li><%= render 'update_status', :label => 'execute', :status => 'active',    :message => 'executing...',  :style => 'success' %></li>
+    <% elsif @procedure.procedureState == 'failed' %>
+      <li><%= render 'update_status', :label => 'cancel', :status => 'canceled', :message => 'canceling...', :style => 'danger' %></li>
+      <li><%= render 'update_status', :label => 'retry',  :status => 'active',   :message => 'retrying...',  :style => 'success' %></li>
+    <% end %>
+  </ul>
+<% end %>

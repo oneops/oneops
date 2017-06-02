@@ -1,0 +1,23 @@
+<% write_access = has_cloud_compliance?(@cloud.ciId)
+   can_add = write_access && @available_compliance_classes.present?
+   new_url = can_add && new_cloud_compliance_path(@cloud, :compliance_class => @available_compliance_classes.first.className) %>
+<%= section_panel('Compliances',
+                  :width => 'single',
+                  :menu  => can_add ? [{:display => icon('plus', 'Add Compliance'), :link => new_url, :remote => true}] : nil) do %>
+  <%= ci_list(@compliances, :new_link => can_add ? link_to(icon('plus', 'Add Compliance...'), new_url, :remote => true) : nil) do |builder, target| %>
+    <% builder.target link_to('', edit_cloud_compliance_path(@cloud, target), :remote => true) %>
+    <% builder.icon :none %>
+    <% builder.middle target.ciAttributes.description  %>
+    <% if write_access %>
+      <% builder.menu do |ci| %>
+        <%= link_to(icon('trash', ' Delete'), cloud_compliance_path(@cloud, ci), :remote => true, :method => :delete, :confirm => "Delete compliance '#{ci.ciName}'?") %>
+      <% end %>
+    <% end %>
+    <% builder.status do %>
+      <% status = target.ciAttributes.enabled == 'true' ? 'enabled' : 'disabled' %>
+      <%= marker(status, state_to_label(status)) %>
+      <%= icon('star', '', 'fa-lg') if target.ciAttributes.approval == 'true' %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id='compliance_details'></div>

@@ -1,0 +1,24 @@
+<%= section_panel 'Procedures', :id => 'section_control_procedures', :width => 'single' do %>
+  <%= ci_list(@procedure_cis.map(&:toCi)) do |builder, target| %>
+    <% builder.target link_to('', new_operations_procedure_path(:procedureCiId => target.ciId, :ciId => @platform.ciId), :remote => true) if current_user.has_operations?(@assembly.ciId) %>
+    <% builder.middle target.ciAttributes.description %>
+    <% builder.bottom :none %>
+    <% builder.menu :none %>
+  <% end %>
+<% end %>
+
+<%= section_panel 'History', :id => 'section_control_history', :width => 'double' do %>
+  <%= list(@procedures, :toolbar => {:sort_by => [%w(Name procedureName), %w(Created created)], :filter_by => %w(procedureName)}) do |builder, procedure| %>
+    <% builder.itemid procedure.procedureId %>
+    <% builder.attributes raw(%(procedureName="#{procedure.procedureName}" created="#{procedure.created}")) %>
+    <% builder.target link_to('', edit_operations_procedure_path(procedure), :remote => true) %>
+    <% builder.top do %>
+      <span class="topname"><%= procedure.procedureName %></span>
+      <span class="topdesc"><%= time_ago_in_words(procedure.created_timestamp) %></span>
+    <% end %>
+    <% builder.status do %>
+      <%= marker(procedure.procedureState, state_to_label(procedure.procedureState)) %>
+    <% end %>
+    <% builder.bottom "submitted by #{procedure.createdBy}" %>
+  <% end %>
+<% end %>

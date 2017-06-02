@@ -1,0 +1,6 @@
+$j("#search_result_list").html("<%= escape_javascript(render('base/search/search_result_list')) %>");
+replace_state(window.location.protocol + "//" +
+              window.location.host +
+              window.location.pathname +
+              "?<%= URI.parse(request.url).query %>" +
+              window.location.hash);

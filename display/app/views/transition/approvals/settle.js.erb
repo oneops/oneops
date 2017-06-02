@@ -1,0 +1,8 @@
+<% if @deployment.deploymentState == 'pending' %>
+  refresh_deployment_status();
+<% else %>
+  $j.ajax({
+    url:  "<%= edit_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
+    type: 'GET'
+  });
+<% end %>

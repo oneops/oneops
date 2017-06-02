@@ -1,0 +1,4 @@
+<a class="pull-right" onclick="$j(this).siblings('.report').find('tr.total, tr.subtotal, tr.subsubtotal').toggle(300)">
+  <%= icon('star-half-o', 'Toggle totals') %>
+</a>
+<%= render 'compute_table', :data => @data %>

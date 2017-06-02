@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<notification-rule-list>
+    <!-- notification-rule>
+        <source>deployment</source>
+    </notification-rule>
+    <notification-rule>
+        <source>cm_ci</source>
+        <clazz>Tomcat</clazz>
+    </notification-rule>
+    <notification-rule>
+        <source>cm_ci_rel</source>
+        <clazz>HAproxy</clazz>
+    </notification-rule -->
+</notification-rule-list>

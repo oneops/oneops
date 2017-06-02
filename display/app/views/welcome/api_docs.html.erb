@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <%= render 'layouts/head_icons' %>
+  <title>OneOps API Docs</title>
+
+  <%= stylesheet_link_tag 'swagger-ui', :media => 'all' %>
+  <%= javascript_include_tag 'swagger-ui' %>
+</head>
+<body>
+  <%= render 'swagger_ui/swagger_ui', :discovery_url => '/apidocs/api-docs.json' %>
+</body>
+</html>

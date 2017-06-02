@@ -1,0 +1,54 @@
+<%= organization_page_header('clouds') %>
+
+<%= crumbs = [{:label => 'clouds', :link => clouds_path},
+              {:icon  => ci_image_url(@cloud),
+               :label => @cloud.ciName,
+               :kind  => 'Cloud',
+               :link  => edit_cloud_path(@cloud)}]
+    crumbs << {:icon  => ci_image_url(@zone),
+               :label => @zone.ciName,
+               :kind  => 'Zone',
+               :link  => path_to_ci(@zone)} if @zone
+    breadcrumb crumbs %>
+
+<%= page_title :page_kind => 'Service', :page_label => 'Add' %>
+<%= page_info "Add new service to #{@zone ? 'zone' : 'cloud'}." %>
+
+<%= section_panel 'Configuration', :width => 'double', :position => 'left' do %>
+  <div class="form-horizontal">
+    <div class="ciAttributes">
+      <div class="category">
+        <div class="name">Select Type</div>
+        <div class="control-group">
+          <% if @zone %>
+            <%= label_tag :zone_service_class, 'Service', :class => 'control-label' %>
+            <div class="controls"><%= select_tag :zone_service_class, grouped_options_for_select([['', [['Choose zone service...', '']]]] + @service_classes, @zone_service_class), :id => 'service_select', :required => true %></div>
+          <% else %>
+            <%= label_tag :mgmt_ci_id, 'Service', :class => 'control-label' %>
+            <div class="controls"><%= select_tag :mgmt_ci_id, grouped_options_for_select([['', [['Choose service...', '']]]] + @service_classes, @mgmt_ci_id), :id => 'service_select', :required => true %></div>
+          <% end %>
+        </div>
+        <script type="text/javascript">
+          $j("#service_select").on("change", function () {
+            $j("#service_details").html('<%= escape_javascript(loading_indicator) %>');
+            <% if @zone %>
+              $j.ajax({url: "<%= new_cloud_zone_service_path(@cloud, @zone) %>", data: {zoneServiceClass: this.value}});
+            <% else %>
+              $j.ajax({url: "<%= new_cloud_service_path(@cloud) %>", data: {mgmtCiId: this.value}});
+            <% end %>
+          });
+        </script>
+      </div>
+    </div>
+  </div>
+  <div id="service_details">
+    <% if @service %>
+      <%= render 'base/shared/edit_form',
+                 {:resource   => @service,
+                  :content    => 'service_details_content',
+                  :remote     => false,
+                  :form_url   => @zone ? cloud_zone_services_path(@cloud, @zone) : cloud_services_path(@cloud),
+                  :cancel_url => @zone ? path_to_ci(@zone) : edit_cloud_path(@cloud)} %>
+    <% end %>
+  </div>
+<% end %>

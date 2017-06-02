@@ -1,0 +1,549 @@
+<% deployment_persisted = @deployment && !@deployment.new_record?
+   env_comments = @environment.comments
+   error_prefix = 'ERROR:BOM:' %>
+<div class="wf">
+  <div class="header">
+    <div class="instance">
+      <%= icon(site_icon!(:deployment)) %> <span class="type">Deployment</span> <%= deployment_persisted ? @deployment.id : '' %>
+      <div class="status">
+        <% deployment_state = @deployment ? (@deployment.deploymentState.presence || 'new') : 'generating' %>
+        <%= content_tag(:span, deployment_state.upcase, :id => 'deployment_state', :class => "highlight #{deployment_state}") %>
+      </div>
+      <div class="scope">
+        <%= icon(site_icon!(:assembly)) %> Assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
+        <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> Environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %>
+        <% if @release %>
+          <b> > </b>&nbsp; <%= icon(site_icon!(:release)) %> Release <%= link_to(@release.parentReleaseId, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
+        <% end %>
+
+      </div>
+    </div>
+    <div class="close" onclick="close_deployment_overlay()"><%= icon('remove', '', 'fa-lg') %></div>
+    <% if deployment_persisted %>
+      <div class="close" onclick="refresh_deployment_status(true)"><%= icon('refresh', '', 'fa-lg') %></div>
+    <% elsif !@deployment %>
+      <div class="close" onclick="refresh_compile_status()"><%= icon('refresh', '', 'fa-lg') %></div>
+    <% end %>
+    <%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %>
+    <% if deployment_persisted && @deployment.comments.present? %>
+      <div class="comments">
+        <hr>
+        <%= icon('comments') %> <%= @deployment.comments %>
+      </div>
+    <% end %>
+  </div>
+  <% bad_ops_state_count = 0 %>
+  <div class="main">
+    <div class="problems alert alert-danger hide"></div>
+    <% if @deployment %>
+      <% if @state_history %>
+        <%= section_panel('History',
+                          :width                => 'full',
+                          :hide_content         => true,
+                          :collapseable_content => true) do %>
+          <div id="overlay_deployment_history"><%= render 'state_history' %></div>
+        <% end %>
+      <% end %>
+      <%= section_panel('Plan',
+                        :width                => 'full',
+                        :collapseable_content => true) do %>
+        <ul class="execOrder" data-log-url="<%= log_data_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) if @deployment.persisted? %>">
+          <% @rfc_cis.group_by(&:execOrder).sort.each do |exec_order, order_rfcs| %>
+            <li id="step_<%= exec_order %>" class="execOrder">
+              <div class="stage">
+                <span>step</span>
+                <strong><%= exec_order %></strong>
+                <% unless exec_order == 1 %>
+                  <% if deployment_state == 'new' %>
+                    <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => false %>
+                  <% elsif deployment_state != 'canceled' %>
+                    <% exec_order_paused = @deployment.attributes['autoPauseExecOrders'].try(:include?, (exec_order)) ? true : false %>
+                    <% rfcs_states = order_rfcs.map{|rfcs| @deployment_rfc_cis_info.try(:[], rfcs.rfcId).try(:[], :state)} %>
+                    <% exec_order_enabled = rfcs_states.all?{|rfcs_state| rfcs_state == 'pending'} %>
+                    <% if exec_order_enabled %>
+                      <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => exec_order_paused %>
+                    <% end %>
+                  <% end %>
+                <% end %>
+                <div class="duration"></div>
+              </div>
+              <ul class="manifest">
+                <% order_rfcs.group_by {|rfc| rfc.nsPath}.sort.each do |ns_path, ns_rfcs| %>
+                  <% platform_id = ns_path.split('/bom/').last %>
+                  <% ns_rfcs.group_by {|rfc| rfc.ciClassName}.sort.each do |component_class, class_rfcs| %>
+                    <% component_type = component_class.split('.').last %>
+                    <% class_rfcs.group_by {|rfc| rfc.ciName.split('-')[0..-3].join('-')}.sort.each do |component, component_rfcs| %>
+                      <% component_rfcs.group_by { |rfc| rfc.ciName.split('-')[-2].to_i }.sort.each do |cloud_id, cloud_rfcs| %>
+                        <% ops_state_alerts = {}
+                           cloud_rfcs.each do |rfc|
+                             alert_info = {}
+                             instance_state = @ops_states[rfc.ciId]
+                             alert_info[:instance] = {:ciId => rfc.ciId, :state => instance_state} if instance_state.present? && instance_state != 'good'
+
+                             managed_via_relation = @managed_via[rfc.ciId]
+                             if managed_via_relation
+                               managed_via_ci_id = managed_via_relation.toCiId
+                               managed_via_state = @ops_states[managed_via_ci_id]
+                               alert_info[:managed_via] = {:ciId   => managed_via_ci_id,
+                                                           :ciName => JSON.parse(managed_via_relation.comments)['toCiName'],
+                                                           :state  => managed_via_state} if managed_via_state.present? && managed_via_state != 'good'
+                             end
+
+                             ops_state_alerts[rfc.rfcId] = alert_info if alert_info.present?
+                           end %>
+                        <li class="manifest">
+                          <div class="component rounded shadow white" onclick="if (event.target.tagName.toUpperCase() != 'A') $j(this).next().toggle(300)">
+                            <div class="info">
+                              <% platform = @platforms[platform_id]
+                                 version  = platform.ciAttributes.major_version
+                                 active   = platform.ciAttributes.attributes.has_key?(:is_active) && platform.ciAttributes.is_active == 'false' ? false : true
+                                 primary  = @priority["#{"#{platform.ciName}/#{version}"}/#{cloud_id}"] == '1' %>
+                              <% if ops_state_alerts.present? %>
+                                <i class="fa fa-2x fa-exclamation text-error"></i>
+                              <% end %>
+                              <%= image_tag ci_class_image_url(component_class), :alt => component_type %>
+                              <div class="name ellipsis"><%= link_to(component, edit_assembly_transition_environment_platform_component_path(@assembly, @environment, platform, component)) %></div>
+                              <div class="platform ellipsis">
+                                <%= platform.ciAttributes.pack %> <%= highlight(platform.ciName) %>
+                                <%= highlight("v#{version}", active ? 'success' : '') if platform.ciAttributes.attributes.has_key?(:major_version) %>
+                              </div>
+                            </div>
+                            <div class="cloud ellipsis">
+                              <% cloud = @clouds[cloud_id] %>
+                              <%= marker(primary ? 'primary' : 'secondary',  primary ? 'label-info' : '')%>
+                              <br/>
+                              <%= icon('cloud', link_to(cloud ? link_to(cloud.ciName, edit_cloud_path(cloud)) : cloud_id)) %>
+                            </div>
+                            <div class="counts">
+                              <table>
+                                <tr>
+                                  <td style="text-align:right">
+                                    <%= raw(cloud_rfcs.group_by(&:rfcAction).sort.map {|action, rfcs| "#{rfc_action_icon(action)} #{rfcs.size}"}.join(' | ')) %>
+                                  </td>
+                                </tr>
+                                <tr class="status_summary">
+                                  <td style="text-align:right">
+                                    <% if deployment_persisted %>
+                                      <% grouped_rfcs = cloud_rfcs.group_by do |rfc|
+                                           info = @deployment_rfc_cis_info[rfc.rfcId]
+                                           (info ? info[:state] : nil) || 'complete'
+                                         end
+                                         status_summary = grouped_rfcs.sort.map do |status, rfcs|
+                                           "#{rfc_state_icon(status)} #{rfcs.size}"
+                                         end %>
+                                      <%= raw(status_summary.join(' | ')) %>
+                                    <% end %>
+                                  </td>
+                                </tr>
+                              </table>
+                            </div>
+                          </div>
+                          <ul class="rfc hide">
+                          <% cloud_rfcs.each do |rfc| %>
+                              <% state = 'pending'
+                                 rfc_id = rfc.rfcId
+                                 if deployment_persisted
+                                   info  = @deployment_rfc_cis_info[rfc_id]
+                                   state = (info ? info[:state] : nil) || 'complete'
+                                 end %>
+                            <% deployment_record = deployment_persisted && @deployment_rfc_cis_info[rfc_id] %>
+                            <li class="rfc" data-bom-rfc-id="<%= rfc_id %>" data-rfc-exec-order="<%= exec_order %>" data-deployment-record-id="<%= deployment_record[:recordId] if deployment_record %>">
+                              <div class="accordion-group">
+                                <div class="accordion-heading">
+                                  <div class="accordion-toggle" onclick="$j('#rfc_details_<%= rfc_id %>').toggle(300)">
+                                    <span>
+                                      <%= rfc_action_icon(rfc.rfcAction, 'fa-lg') %>&nbsp;&nbsp;
+                                      <strong>
+                                        <% if state == 'complete' && rfc.rfcAction == 'delete' %>
+                                          <%= rfc.ciName %>
+                                        <% else %>
+                                          <%= link_to(rfc.ciName, path_to_ci(rfc)) %>
+                                        <% end %>
+                                      </strong>
+                                    </span>
+                                    <ul class="nav inline pull-right">
+                                      <li><%= link_to_function('Changes', "toggle_rfc_tab(this, '#{rfc_id}', 'changes')") %></li>
+                                      <% if deployment_persisted %>
+                                        <li class="log-tab-trigger" style="display:none"><%= link_to_function('Log', "toggle_rfc_tab(this, '#{rfc_id}', 'log')") %></li>
+                                        <li></li>
+                                      <% end %>
+                                      <li>
+                                        <small class="rfc-duration"><%= link_to_function('', "toggle_rfc_tab(this, '#{rfc_id}', 'stats')") %></small>
+                                        <span class="rfc-state"><%= rfc_state_icon(state, 'fa-lg') %></span>
+                                      </li>
+                                    </ul>
+                                  </div>
+                                </div>
+                                <% if deployment_persisted %>
+                                  <% if deployment_record %>
+                                    <div class="wo-comments alert hide"></div>
+                                  <% else %>
+                                    <div class="wo-comments alert alert-info">
+                                      This work-order successfully completed in prior deployment.
+                                    </div>
+                                  <% end %>
+                                <% end %>
+                                <div class="accordion-inner" data-rfc-id="<%= rfc_id %>" style="display:none">
+                                  <div class="tab-pane rfc-changes">
+                                    <%= rfc_properties(rfc) %>
+                                    <%= rfc_attributes(rfc) %>
+                                  </div>
+                                  <% if deployment_persisted %>
+                                    <div class="tab-pane rfc-log" id="rfc_<%= rfc_id %>_tab_log"></div>
+                                    <div class="tab-pane rfc-stats"></div>
+                                  <% end %>
+                                </div>
+                                <% ops_state_alert = ops_state_alerts[rfc_id] %>
+                                <% if ops_state_alert %>
+                                  <% bad_ops_state_count += 1 %>
+                                  <div class="text-error well well-small">
+                                    <%= icon('exclamation', '', 'fa-lg') %>&nbsp;&nbsp;
+                                    <% instance_state_alert = ops_state_alert[:instance]
+                                       managed_via_alert = ops_state_alert[:managed_via] %>
+                                    <% if instance_state_alert %>
+                                      Underlying instance <%= link_to(highlight(rfc.ciName), redirect_ci_path(rfc.ciId)) %> is in <%= highlight(instance_state_alert[:state]) %> state.
+                                    <% end %>
+                                    <% if managed_via_alert %>
+                                      Managing instance <%= link_to(highlight(managed_via_alert[:ciName]), redirect_ci_path(managed_via_alert[:ciId])) %> is in <%= highlight(managed_via_alert[:state]) %> state.
+                                    <% end %>
+                                  </div>
+                                <% end %>
+                              </div>
+                            </li>
+                          <% end %>
+                        </ul>
+                        </li>
+                      <% end %>
+                    <% end %>
+                  <% end %>
+                <% end %>
+              </ul>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    <% elsif @environment.ciState == 'locked' %>
+      <div class="problems alert alert-warning">
+        Generating deployment plan. You can view deployment plan and start deployment after plan generation is done.
+      </div>
+      <div style="text-align: center; padding: 50px 0"><%= icon('refresh', '', 'fa-spin fa-4x') %></div>
+    <% else env_comments.present? && env_comments.start_with?(error_prefix) %>
+      <div class="problems alert alert-danger"><%= env_comments.sub(/^#{error_prefix}/, '') %></div>
+      <div class="text-error" style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
+    <% end %>
+  </div>
+  <% if @deployment %>
+    <div class="controls">
+      <%= render('bad_instances_alert', :count => bad_ops_state_count) if bad_ops_state_count > 0 %>
+      <table>
+        <tr>
+          <td colspan="2">
+            <%= render 'cms/cis/checkbox',
+                       :attribute_name  => 'continueOnFailure',
+                       :attribute_value => @deployment.continueOnFailure,
+                       :checked_value   => true,
+                       :unchecked_value => false,
+                       :read_only       => deployment_state == 'canceled' || deployment_state == 'complete',
+                       :label           => 'continue on failure <code><strong>Use with caution!</strong></code><br><small>When checked deployment proceeds even if some work-orders fail.<br>(NOTE: This flag is <b>NOT</b> applicable for <b class="text-error">delete</b> work-orders.)</small>' %>
+          </td>
+        </tr>
+        <% if deployment_persisted %>
+          <tr id="controls_failed" <%= 'style=display:none' unless deployment_state == 'failed' %>>
+            <td><%= render 'transition/deployments/action', :action => 'cancel' %></td>
+            <td><%= render 'transition/deployments/action', :action => 'retry' %></td>
+          </tr>
+          <tr id="controls_active" <%= 'style=display:none' unless deployment_state == 'active' %>>
+            <td style="text-align: center">
+              <%= render 'transition/deployments/action', :action => 'pause' %>
+              <small>To cancel deployment you must pause it first and then wait for all in-progress steps to finish.</small>
+            </td>
+          </tr>
+          <tr id="controls_paused" <%= 'style=display:none' unless deployment_state == 'paused' %>>
+            <td><%= render 'transition/deployments/action', :action => 'cancel' %></td>
+            <td><%= render 'transition/deployments/action', :action => 'resume' %></td>
+          </tr>
+          <tr id="controls_pausing" <%= 'style=display:none' if deployment_state == 'pausing' || deployment_state == 'active' %>>
+            <td style="text-align: center">
+              <small>To cancel or resume deployment you must wait for all in-progress steps to finish.</small>
+            </td>
+          </tr>
+          <tr id="controls_pending" <%= 'style=display:none' unless deployment_state == 'pending' %>>
+            <%= render 'pending_approvals' if @approvals.present? %>
+          </tr>
+        <% elsif @deployment %>
+          <% if @override %>
+            <% if @override[:SIMULTANEOUS_DEPLOYMENT_TO_ALL_PRIMARY] %>
+              <% overide_plats = @override[:SIMULTANEOUS_DEPLOYMENT_TO_ALL_PRIMARY][:platforms].map {|p| p.gsub('/', ' ver.')} %>
+              <tr>
+                <td colspan="2">
+                  <div class="alert alert-danger">
+                    <i class="fa fa-2x fa-warning"><b>WARNING</b></i><br/>
+                    This deployment plan will execute simultaneous deployments to active primary clouds for
+                    <% if overide_plats.size == 1 %>
+                      platform <em><%= overide_plats.first %></em>.
+                    <% else %>
+                      <%= pluralize(overide_plats.size, 'platform') %>
+                      (<em><%= overide_plats[0..1].join(', ') %>
+                      <% if overide_plats.size > 2 %>
+                        , <%= expandable_content(:content => overide_plats[2..-1].join(', ')) %>
+                      <% end %>
+                      </em>).
+                    <% end %>
+                    It appears that deployment order was NOT configured properly for clouds used by <%= overide_plats.size > 1 ? 'these plaforms' : 'this platform' %>. <br/>
+                    It is <b>strongly advised NOT TO PROCEED</b> with this deployment as it is <b>likely to result in operation
+                    outage</b> for your application.  Instead, discard this deployment plan and configure appropriate deployment order
+                    for your primary clouds in each platform.
+                    If you decide to ignore this warning and to proceed with deployment you must enter your password below to acknowledge
+                    potential adverse consenquences of executing this deployment plan.
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+            <tr>
+              <td colspan="2">
+                <label>Enter password to acknowledge warning if still proceeding with deployment</label>
+                <%= password_field_tag(:override_password, nil, :placeholder => 'your password', :oninput => "$j('#controls_new .deploy-action button').attr('disabled', !this.value.length);") %>
+              </td>
+            </tr>
+          <% end %>
+          <tr id="controls_new">
+            <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
+            <td><%= render 'transition/deployments/action',
+                           :action => 'deploy',
+                           :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %></td>
+          </tr>
+        <% end %>
+      </table>
+    </div>
+  <% end %>
+  <div class="footer">
+  	<% if @deployment %>
+  	  Close will NOT cancel or interrupt or discard the deployment.&nbsp;
+  	<% end %>
+
+  	<%= link_to_function 'Close', 'close_deployment_overlay()', :class => 'btn' %>
+  </div>
+</div>
+
+<script type="text/javascript">
+  <% if !@deployment && @environment.ciState == 'locked'%>
+    window.refresh_compile_status = function() {
+      <%= remote_function(:url    => compile_status_assembly_transition_environment_deployments_path(@assembly, @environment),
+                          :method => :get) %>
+    };
+    refresh_compile_status();
+  <% elsif deployment_persisted %>
+    window.deployment_state = "<%= @deployment.deploymentState %>";
+
+    window.refresh_deployment_status = function(allSteps) {
+      var step = null;
+      if (!allSteps) {
+        try {
+          var finalStates = ['complete', 'failed', 'canceled'];
+          step = $j(".wf .main .rfc-state i").toArray()
+              .reduce(function (s, el) {
+                        var stateIcon = $j(el);
+                        var state = stateIcon.attr("alt");
+                        if (state && !finalStates.include((state))) {
+                          var rfcStep = parseInt(stateIcon.parents(".rfc").attr('data-rfc-exec-order'));
+                          return (rfcStep > 0 && s) ? Math.min(s, parseInt(rfcStep)) : (s || rfcStep);
+                        }
+                        return s;
+                      }, null);
+        }
+        catch (e) {
+          console.log("Faield to deduce current deployment step.");
+          console.log(e);
+        }
+      }
+
+      if (step) {
+        disable_autopause(step);
+      }
+
+      $j.ajax({
+        url:  "<%= status_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
+        type: "POST",
+        data: {
+          current_state:         window.deployment_state,
+          exec_order:            step,
+          deployment_record_ids: $j.map($j("li.rfc:has(.tab-pane.rfc-log:visible)"),
+                                        function (el) {
+                                          return el.getAttribute("data-deployment-record-id");
+                                        })
+        }
+      });
+    };
+
+    window.disable_autopause = function(step) {
+      $j("#autopause_" + step).remove();
+      $j('label[for="autopause_'+ step.id +'"]').hide();
+    };
+
+    window.settle_pending_approvals = function (link, state, disable_message, expiration) {
+      var approvals = $j("input[name^=approvalId][value!='']");
+      if (approvals.length > 0) {
+        $j(link).parents(".btn-group").find(".btn").addClass('disabled').html(disable_message);
+        $j.ajax({
+          url:  "<%= settle_assembly_transition_environment_deployment_approvals_path(@assembly, @environment, @deployment) %>",
+          type: "PUT",
+          data: approvals.toArray().map(function(e) {return "approvals[]approvalId=" +  e.value}).join('&') +
+            "&state=" + state +
+            "&expiresIn=" + expiration +
+            "&comments=" + encodeURI($j("#pending_deployment_comments").val())
+        });
+      }
+    };
+
+    refresh_deployment_status(true);
+    var statusPollingStates = ['active', 'pending', 'pausing', 'paused'];
+    if (statusPollingStates.indexOf("<%= @deployment.deploymentState %>") >= 0) {
+      var timer = setInterval(refresh_deployment_status, 5000);
+    }
+  <% end %>
+
+
+  var rfcStateIconMap = {};
+  <% %w(pending inprogress complete failed canceled).each do |state| %>
+    rfcStateIconMap['<%= state %>'] = "<%= escape_javascript(rfc_state_icon(state)) %>";
+  <% end %>
+
+  window.overlay_scroll_into_view = function() {
+    $j("#overlay")[0].scrollIntoView();
+  };
+
+  <%= render 'cms/rfcs/rfc' %>
+
+  <% if deployment_persisted && deployment_state != 'failed' %>
+    $j('.autopause :checkbox, input#continueOnFailure').change(function () {
+      var autoPause = $j('.autopause input:checkbox:checked').map(function() {return this.value;});
+      $j.ajax({
+        url:  "<%= assembly_transition_environment_deployment_path(@assembly, @environment, @deployment) %>",
+        traditional: true,
+        type: "PUT",
+        data: {"cms_deployment[autoPauseExecOrders][]": autoPause.length == 0 ? [] : autoPause.toArray(),
+               "cms_deployment[continueOnFailure]": $j('input#continueOnFailure').val()}
+      });
+    });
+  <% else %>
+    var deployForm = $j("#controls_new, #controls_failed").find("form.deploy-action");
+    deployForm.submit(function () {
+      $j('.autopause input:checkbox:checked').each(function () {
+        deployForm.append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value + " />");
+      });
+      <% if @override %>
+        deployForm.find("input#cms_deployment_override_password").val($j("#override_password").val());
+      <% end %>
+      $j("input#cms_deployment_continueOnFailure").val($j('input#continueOnFailure').val());
+    });
+  <% end %>
+
+  setTimeout(overlay_scroll_into_view, 100);
+
+  window.refresh_status_results = function (deployment_state, deployment_info) {
+    if (statusPollingStates.indexOf(deployment_state) < 0) {
+      stop_deployment_polling();
+    }
+
+    window.deployment_state = deployment_state;
+
+    $j(".wf tr[id^=controls_]").hide();
+    $j("#controls_" + deployment_state).show();
+
+    var deploymentStateEl = $j("#deployment_state");
+    deploymentStateEl.html(deployment_state.toUpperCase());
+    deploymentStateEl[0].className = "highlight " + deployment_state.toLowerCase();
+
+    var problems = [];
+    var continueOnFailureCheckBox = $j(".check-box:has(input#continueOnFailure)");
+
+    $j.each(deployment_info, function (rfcId, info) {
+      var rfcState = info['state'],
+          rfcFailed = rfcState == 'failed',
+          rfcLi = $j(".wf .main li.rfc[data-bom-rfc-id=" + rfcId + "]");
+
+      rfcLi.find(".rfc-state").html(rfcStateIconMap[rfcState]);
+
+      if (!['pending', 'canceled'].include((rfcState))) {
+        rfcLi.find(".log-tab-trigger").show();
+      }
+
+      if (rfcFailed && deployment_state != 'failed' && continueOnFailureCheckBox[0]  && !continueOnFailureCheckBox.hasClass('disabled')) {
+        continueOnFailureCheckBox.addClass("disabled");
+      }
+
+      var commentsDiv = rfcLi.find(".wo-comments");
+      var rfcComments = info['comments'];
+      if (rfcComments) {
+        if (rfcFailed) {
+          commentsDiv.html('<%= escape_javascript(icon('exclamation-triangle', '', 'fa-lg')) %>&nbsp;&nbsp;');
+          commentsDiv.toggleClass("alert-danger", rfcFailed);
+          problems.push(rfcComments);
+        }
+        else {
+          commentsDiv.html('');
+          commentsDiv.toggleClass("alert-info",   !rfcFailed);
+        }
+        commentsDiv.append(rfcComments || '');
+        commentsDiv.show();
+      }
+      else {
+        commentsDiv.hide();
+      }
+    });
+
+    var problemsDiv = $j(".wf .main .problems");
+    if (problems.length) {
+      problemsDiv.html(problems.uniq().join("<br>")).show();
+    }
+    else {
+      problemsDiv.hide();
+    }
+
+    $j(".wf .main li.manifest").toArray().each(
+        function (component_li) {
+          component_li = $j(component_li);
+          var status_counts = component_li.find("li.rfc .rfc-state i").toArray()
+              .reduce(
+              function (counts_map, rfc_state) {
+                var status = rfc_state.getAttribute("alt");
+                counts_map[status] = (counts_map[status] || 0) + 1;
+                return counts_map;
+              }, {});
+          var counts = [];
+          $j.each(status_counts, function (status, count) {
+            counts.push(rfcStateIconMap[status] + " " + count);
+          });
+          component_li.find("tr.status_summary td").html(counts.join(" | "));
+        }
+    );
+  };
+
+  window.stop_deployment_polling = function() {
+    if (typeof(timer) != "undefined") {
+      clearInterval(timer);
+    }
+  };
+
+  window.close_deployment_overlay = function () {
+    stop_deployment_polling();
+    window.location.replace(window.location.href.split("#")[0]);
+    Effect.SlideUp('overlay', {duration: 0.3});
+    unblock('container');
+  };
+
+  window.onkeydown =  function(e) {
+    if (e.shiftKey || e.controlKey || e.metaKey || e.altKey) {
+      return true;
+    }
+
+    if (e.keyCode == 27) {        // escape
+      if (Element.visible('overlay')) {
+        close_deployment_overlay();
+        return false;
+      }
+    }
+
+    return true;
+  };
+</script>

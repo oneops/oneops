@@ -1,0 +1,3 @@
+<% if @environment.errors.blank? %>
+  document.location.href = "<%= assembly_transition_environment_path(@assembly, @environment) %>";
+<% end %>

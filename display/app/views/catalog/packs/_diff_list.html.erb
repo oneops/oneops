@@ -1,0 +1,1 @@
+<%= render 'base/shared/ci_diff_list', @diff.group_by {|e| e.is_a?(Cms::Ci) ? :cis : :relations} %>

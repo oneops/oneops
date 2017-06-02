@@ -1,0 +1,17 @@
+hide_modal();
+<% if @release.releaseState == 'open' %>
+  <% if @warnings.present? %>
+    var modal = $j("#restore_release_warnings_modal"),
+        ul = modal.find('.modal-body ul');
+    ul.html('');
+    <% @warnings.each do |w| %>
+      ul.append("<li><%= escape_javascript(w)%></li>");
+    <% end %>
+    modal.find('.modal-footer').html("<%= escape_javascript(link_to_function('Review release', %(hide_modal();window.location = "#{path_to_release(@release)}"), :class => 'btn')) %>");
+    render_modal('restore_release_warnings_modal');
+  <% else %>
+    window.location = '<%= path_to_release(@release) %>';
+  <% end %>
+<% else %>
+  flash(null, null, "Restore release request resulted in no changes to the curret <%= @environment ? 'environment' : 'design' %>.");
+<% end %>

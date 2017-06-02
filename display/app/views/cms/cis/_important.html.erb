@@ -1,0 +1,54 @@
+<% attr_props      = ci.attributes[:attrProps] || ci.attributes[:ciAttrProps]
+   locked_attrs    = attr_props && attr_props.attributes[:owner]
+   owner_value     = @environment ? 'manifest' : 'design'
+   important_attrs = ci.meta.attributes[:mdAttributes].inject([]) { |a, attr| a << attr if (locked_attrs && locked_attrs.attributes[attr.attributeName] == owner_value) || attr.options[:important]; a }
+   ci_attrs        = ci.attributes[:ciAttributes] %>
+<% if important_attrs.present? && ci_attrs.present? %>
+  <dl class="<%= defined?(list_class) ? list_class : '' %>">
+  <% important_attrs.sort_by { |a| "#{a.options.has_key?(:category) ? a.options[:category] : '~'}|#{a.options.has_key?(:order) ? a.options[:order] : 999}" }.each do |a|  %>
+      <% name  = a.attributeName
+         value = ci_attrs.attributes[name] %>
+  		<dt title="<%= a.description %>">
+        <%= icon('lock') if locked_attrs && locked_attrs.attributes[name] == owner_value %>
+        <%= a.description %>
+      </dt>
+  		<dd>
+        <% if a.dataType == 'hash' || a.dataType == 'array' %>
+          <% if value.present? %>
+            <%
+               begin
+                 parsed = JSON.parse(value)
+               rescue Exception => e
+                 parsed = value
+               end
+            %>
+            <% if parsed.is_a?(Hash) %>
+              <table>
+                <% parsed.each_pair do |k, v| %>
+                  <tr>
+                    <td title="<%= k %>"><%= k %>:</td>
+                    <td>&nbsp;</td>
+                    <td title="<%= v %>"><%= v %></td>
+                  </tr>
+                <% end %>
+              </table>
+            <% elsif parsed.is_a?(Array) %>
+              <table>
+                <% parsed.each do |v| %>
+                  <tr><td title="<%= v %>"><%= v %></td></tr>
+                <% end %>
+              </table>
+            <% else %>
+              <em class="text-error"><%= parsed %></em>
+            <% end %>
+          <% else %>
+            &nbsp;
+          <% end %>
+        <% else %>
+          <%= truncate(value, 256).presence || raw('&nbsp;') %>
+        <% end %>
+      </dd>
+  <% end %>
+  </dl>
+<% end %>
+

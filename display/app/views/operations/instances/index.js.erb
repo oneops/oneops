@@ -1,0 +1,14 @@
+<% if @component %>
+  $j("#page_nav_summary").html("<%= escape_javascript(render('instance_list')) %>");
+  replace_state("<%= assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, @component, :instances_state => params[:instances_state], :anchor => 'summary') %>");
+<% elsif @platform %>
+  $j("#page_nav_health").html("<%= escape_javascript(render('instance_list')) %>");
+  replace_state("<%= assembly_operations_environment_platform_path(@assembly, @environment, @platform, :instances_state => params[:instances_state], :anchor => 'health') %>");
+<% elsif @environment %>
+  $j("#page_nav_health").html("<%= escape_javascript(render('instance_list')) %>");
+  replace_state("<%= assembly_operations_environment_path(@assembly, @environment, :instances_state => params[:instances_state], :anchor => 'health') %>");
+<% else %>
+  $j("#page_nav_health").html("<%= escape_javascript(render('instance_list')) %>");
+  replace_state("<%= assembly_path(@assembly, :instances_state => params[:instances_state], :anchor => 'health') %>");
+<% end %>
+hide_busy();

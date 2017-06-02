@@ -1,0 +1,29 @@
+---
+driver_plugin: vagrant
+
+platforms:
+- name: centos-6.3
+  driver_config:
+    box: opscode-centos-6.3
+    box_url: http://opscode-vm.s3.amazonaws.com/vagrant/opscode_centos-6.3_chef-11.2.0.box
+
+suites:
+- name: default
+  run_list: ["recipe[artifact_test]"]
+  attributes: 
+    artifact_test:
+      version: "1.2.3"
+      location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
+- name: forcing
+  run_list: ["recipe[artifact_test::default]", "recipe[artifact_test::force_install]"]
+  attributes: 
+    artifact_test:
+      version: "1.2.3"
+      location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
+- name: file
+  run_list: ["recipe[artifact_test::file]"]
+- name : nexus-file
+  run_list: ["recipe[artifact_test::file]"]
+  attributes:
+    artifact_test:
+      file_url: "com.test:mytest:1.0.0:tgz"

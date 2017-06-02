@@ -1,0 +1,53 @@
+<% clone = params[:export].blank? %>
+<div id="assembly_clone_modal" class="modal hide fade">
+  <div class="modal-header">
+    <h3><%= clone ? "Copy assembly #{@assembly.ciName}" : "Save assembly #{@assembly.ciName} to catalog" %></h3>
+  </div>
+  <div class="modal-body form-horizontal">
+    <% if @release && @release.releaseState == 'open' %>
+      <div class="alert alert-block alert-info attention">
+        <strong>Heads up!</strong>
+        You have open design release with pending changes.
+        <% review_button = link_to('Review Changes', assembly_design_path(@assembly, :anchor => 'releases'), :class => 'btn btn-mini btn-primary') %>
+        <% if clone %>
+          All pending changes will be included in your new assembly.
+          <p><%= review_button %> to commit or discard the release if you do not want to include them in the new catalog.</p>
+        <% else %>
+          All pending changes will not be saved to your new catalog.
+          <p><%= review_button %> before commit.</p>
+        <% end %>
+      </div>
+    <% end %>
+    <% if clone %>
+      <div class="control-group">
+        <%= label_tag :to_org, 'Organization', :class => 'control-label' %>
+        <div class="controls">
+          <%= orgs = (current_user.teams.joins(:organization).where('teams.name = ? OR teams.manages_access', Team::ADMINS).pluck('organizations.name') +
+                      current_user.teams_via_groups.joins(:organization).where('teams.name = ? OR teams.manages_access', Team::ADMINS).pluck('organizations.name')).uniq.sort
+              select_tag :to_org, options_for_select(orgs, current_user.organization.name), :required => true %>
+        </div>
+      </div>
+    <% end %>
+    <div class="control-group">
+      <%= label_tag :ciName, clone ? 'New Assembly Name' : 'New Catalog Name', :class => 'control-label' %>
+      <div class="controls">
+        <%= text_field_tag :ciName, '', :required => true, :pattern => Cms::Ci.valid_ci_name_regexp('account.Assembly') %>
+      </div>
+    </div>
+    <div class="control-group">
+      <%= label_tag :description, 'Description', :class => 'control-label' %>
+      <div class="controls">
+        <%= text_area_tag :description, '', :required => true %>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <%= link_to_function('cancel', 'hide_modal()', :class => 'btn btn-danger btn-large') %>
+    <% busy_options = {:url    => clone_assembly_path(@assembly),
+                       :method => :post,
+                       :with   => "'to_org='+$j('#assembly_clone_modal #to_org').val()+'&ciName='+$j('#assembly_clone_modal #ciName').val()+'&description='+$j('#assembly_clone_modal #description').val()#{"+'&export=#{params[:export]}'" unless clone}",
+                       :class  => 'btn btn-success btn-large'} %>
+    <%= link_busy('ok', busy_options) %>
+  </div>
+</div>

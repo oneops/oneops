@@ -1,0 +1,2 @@
+$j(".org_dropdown").html("<%= escape_javascript(render('layouts/organization_dropdown_items')) %>")
+    .parent().find('a.dropdown-toggle').attr('href', '#').removeAttr('data-remote');

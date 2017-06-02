@@ -1,0 +1,7 @@
+log_level :info
+sandbox_path "/opt/gw-packer/current/.chef/cache"
+file_cache_path "/opt/gw-packer/current/.chef/cache"
+file_backup_path "/opt/gw-packer/current/.chef/cache"
+cookbook_path "/opt/gw-packer/current/components/cookbooks"
+cache_options({ :path => "/opt/gw-packer/current/.chef/cache", :skip_expires => true })
+

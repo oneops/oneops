@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="FoundationSuite">
+    <test verbose="5" name="ServerTests">
+        <packages>
+            <package name="com.oneops.antenna.senders.aws"/>
+            <package name="com.oneops.antenna.service"/>
+            <package name="com.oneops.antenna.ws"/>
+            <package name="com.oneops.antenna.jms"/>
+            <package name="com.oneops.antenna.subscriptions"/>
+            <package name="com.oneops.antenna.domain"/>
+            <package name="com.oneops.antenna.senders.generic"/>
+        </packages>
+    </test>
+</suite>

@@ -1,0 +1,61 @@
+<% retry_class = '' %>
+<ol class="log">
+  <% log_data.each_with_index do |e, index| %>
+    <% message = e['message'].gsub(/^.*cmd out:/, '')
+       if message =~ /ERROR:|FATAL:/
+         class_name = 'error'
+       elsif message =~ /WARN:/
+         class_name = 'warning'
+       elsif message =~ /INFO:/
+         class_name = 'info'
+       else
+         class_name = ''
+       end
+       if message == 'retry #: 1'
+         retry_class = 'retry-1'
+       elsif message == 'retry #: 2'
+         retry_class = 'retry-2'
+       end
+    %>
+    <li id="L<%= index + 1 %>" class="<%= retry_class %>" onclick="log_line_selected(this, event)"> <span class="<%= class_name %>"><%= message %></span></li>
+  <% end %>
+</ol>
+
+<script>
+  window.log_line_selected = function(source, event) {
+    var lineNumber = source.id.substr(1);
+    var li = $j(source);
+    var selected = li.hasClass('selected');
+
+    if (event.ctrlKey || event.metaKey) {
+      var hash = window.location.hash;
+      if (selected) {
+        window.location.hash = hash.replace(new RegExp(",?" + lineNumber), "");
+      }
+      else {
+        window.location.hash = hash + "," + lineNumber;
+      }
+      li.toggleClass('selected');
+    }
+    else {
+      li.parents(".log").find("li.selected").removeClass('selected');
+      if (selected) {
+        window.location.hash = '';
+      }
+      else {
+        window.location.hash = lineNumber;
+        li.addClass('selected');
+      }
+    }
+  };
+
+  window.location.hash.substr(1).split(',').forEach(function(l) {
+    if (l) {
+      $j("#L" + l).addClass('selected');
+    }
+  });
+  var l = $j(".log .selected")[0];
+  if (l) {
+    l.scrollIntoView(true);
+  }
+</script>

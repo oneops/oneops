@@ -1,0 +1,5 @@
+<% if @ci %>
+  $j("#ci_watch_<%= @ci.ciId %>").html("<%= escape_javascript(render('watch', :ci => @ci)) %>");
+<% else %>
+  window.location.reload();
+<% end %>

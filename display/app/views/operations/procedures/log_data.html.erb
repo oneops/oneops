@@ -1,0 +1,15 @@
+<h4>
+  Procedure:
+  <%= @procedure.procedureName %> (<%= @procedure.procedureId %>)
+  <%= @procedure.nsPath %>
+  <br/>
+</h4>
+
+<% @procedure.log_data.each_pair do |action_id, log_data| %>
+  <% aid = action_id.to_i
+     action = @procedure.actions.find {|a| a.actionId == aid} %>
+  <% if action %>
+    <h5>Action: <%= action.actionName %> (<%= action.actionId %>)</h5>
+  <% end %>
+  <%= render 'cms/log_data', :log_data => log_data %>
+<% end %>

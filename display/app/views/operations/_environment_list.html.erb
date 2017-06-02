@@ -1,0 +1,60 @@
+<% watched_map = current_user.watches.where(:ci_class_name => 'manifest.Environment').inject({}) {|m, a| m[a.ci_id] = true; m} %>
+<%= ci_list(@environments,
+            :menu     => [{:id => 'watch',   :label => icon('eye',  'Watch',  'fa-fw'), :url => watch_path, :method => :post, :param_name => 'ciIds'},
+                          {:id => 'unwatch', :label => icon('eye-slash', 'Ignore', 'fa-fw'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}],
+            :toolbar  => {:list_name => 'operations_environments',
+                          :sort_by   => [%w(Name ciName), %w(Profile profile), %w(Created created), %w(Watching watch)],
+                          :filter_by => %w(ciName profile)}) do |builder, target| %>
+  <% disabled_platforms_count = target.platforms.reject{ |e| e.relationAttributes.enabled == 'true' }.count
+     profile                  = target.ciAttributes.profile
+     watching                 = watched_map[target.ciId] %>
+  <% builder.attributes %(ciName="#{target.ciName}" profile="#{target.ciAttributes.profile}" created="#{target.created}" watch="#{watching ? 0 : 1}") %>
+  <% builder.target link_to('', assembly_operations_environment_path(@assembly, target)) %>
+  <% builder.icon :none %>
+  <% builder.top do %>
+		<span class="topname"><%= target.ciName %></span>
+		<span class="topdesc"><%= target.ciAttributes.subdomain %>
+   			<% desc = target.ciAttributes.description
+            if desc.present? %>
+   			  | <%= desc %>
+   			<% end %>
+		</span>
+  <% end %>
+  <% builder.middle do %>
+    <%= icon('cloud', nil, 'fa-lg muted') %>
+    &nbsp;&nbsp;&nbsp;primary: <strong><%= target.clouds.select {|r| r.relationAttributes.priority.to_i == 1}.map {|r| r.toCi.ciName}.sort.join(', ') %></strong>
+    <% secondary_clouds = target.clouds.select {|r| r.relationAttributes.priority.to_i == 2}.map {|r| r.toCi.ciName}.sort %>
+    <% if secondary_clouds.present? %>
+      &nbsp;&nbsp;&nbsp;secondary: <strong><%= secondary_clouds.join(', ') %></strong>
+    <% end %>
+  <% end %>
+  <% builder.status do %>
+    <% availability = target.ciAttributes.availability %>
+    <div class="marker" title="<%= availability %> availability">
+      <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+    </div>
+    <%= marker(profile, 'label-info') if profile.present? %>
+    <% if disabled_platforms_count == 0 %>
+      <%= status_marker('platforms', 'enabled', 'label-success') %>
+    <% elsif disabled_platforms_count == target.platforms.count %>
+      <%= status_marker('platforms', 'disabled') %>
+    <% else %>
+      <%= status_marker('platforms', 'partial', 'label-success') %>
+    <% end %>
+    <% if target.deployment %>
+      <% if %w(active failed).index(target.deployment.deploymentState) %>
+        <% deployment = target.deployment.deploymentState %>
+      <% else %>
+        <% deployment = target.bom_release ? 'pending' : target.deployment.deploymentState %>
+      <% end %>
+      <%= status_marker('deployment', deployment, state_to_label(deployment)) %>
+    <% else %>
+      <%= status_marker('deployment', 'pending', 'label-info') if target.bom_release %>
+    <% end %>
+    <%= target.ciAttributes.autorepair == 'true' ? status_marker('autorepair', 'enabled', 'label-success') : status_marker('autorepair', 'disabled') %>
+    <%= target.ciAttributes.autoscale == 'true' ? status_marker('autoscale', 'enabled', 'label-success') : status_marker('autoscale', 'disabled') if target.ciAttributes.availability == 'redundant' %>
+    <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
+  <% end %>
+<% end %>
+
+

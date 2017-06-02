@@ -1,0 +1,31 @@
+<%= assembly_page_header(@assembly, 'operations') %>
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'operations', :link => assembly_operations_path(@assembly)},
+                {:icon  => ci_image_url(@environment),
+                 :label => breadcrumb_environment_label,
+                 :kind  => 'Environment',
+                 :link  => assembly_operations_environment_path(@assembly, @environment)}] %>
+
+<%= page_title :page_icon     => platform_image_url(@platform),
+               :page_kind     => "#{@platform.ciAttributes.pack.capitalize} Platform",
+               :page_label    => breadcrumb_platform_label,
+               :doc_link      => platform_pack_link(@platform) +
+                                 platform_doc_link(@platform, icon('book'), :anchor => 'operations'),
+               :page_sublabel => "created by #{@platform.createdBy}" %>
+
+<%= page_info do %>
+  <%= @platform.ciName %>.<%= @environment.ciAttributes.subdomain %>&nbsp;&nbsp;&nbsp;
+  <% if @clouds.present? %>
+    <br/>
+    <%= icon('cloud') %>
+    <% @clouds.group_by {|c| c.relationAttributes.priority}.to_a.sort_by(&:first).each do |priority, clouds| %>
+      <%= priority == '1' ? 'primary' : raw(' |&nbsp; secondary') %>
+      <%= raw clouds.map {|c| content_tag(:strong, link_to(c.toCi.ciName, edit_cloud_path(c.toCiId)))}.join(', ') %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                      {:label => 'graph', :url => graph_assembly_operations_environment_platform_path(@assembly, @environment, @platform)},
+                      {:label => 'health', :url => assembly_operations_environment_platform_instances_path(@assembly, @environment, @platform, :instances_state => params[:instances_state] || 'unhealthy,notify')},
+                      {:label => 'procedures', :template => 'procedures'}] %>

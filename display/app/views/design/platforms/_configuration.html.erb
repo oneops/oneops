@@ -1,0 +1,34 @@
+<%= section_panel 'Platform Details', :width => 'double', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             :resource   => @platform,
+             :content    => 'platform_details_content',
+             :read_only  => !has_design?(@assembly.ciId),
+             :form_url   => assembly_design_platform_path(@assembly, @platform),
+             :cancel_url => assembly_design_platform_path(@assembly, @platform)) %>
+<% end %>
+
+<% if @links_from.present? %>
+  <%= section_panel 'Linked From', :width => 'single', :position => 'right' do %>
+    <%= ci_list @links_from do |builder, target| %>
+      <% builder.target link_to('', assembly_design_platform_path(@assembly, target)) %>
+      <% builder.icon platform_image_url(target) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @links_to.present? %>
+  <%= section_panel 'Linked To', :width => 'single', :position => 'right' do %>
+    <%= ci_list @links_to do |builder, target| %>
+      <% builder.target link_to('', assembly_design_platform_path(@assembly, target)) %>
+      <% builder.icon platform_image_url(target) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>

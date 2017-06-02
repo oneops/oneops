@@ -1,0 +1,49 @@
+<%= section_panel 'Attributes', :width => 'double', :position => 'left' do %>
+  <%= render 'service_details' %>
+<% end %>
+
+<% if has_cloud_services?(@cloud.ciId) %>
+  <% actions = @service.meta.actions %>
+  <% if actions.present? %>
+    <%= section_panel 'Actions', :width => 'single', :position => 'right' do %>
+      <div class="btn-group">
+        <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
+          Choose Action To Execute
+          <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+          <% actions.each do |action| %>
+            <li onclick="$j(this).parents('.btn-group').find('.dropdown-toggle').dropdown('toggle');">
+              <% procedure_params = {:ciId              => @cloud.ciId,
+                                      :direction         => 'from',
+                                      :relationName      => 'base.Provides',
+                                      :actionCiIds       => [@service.ciId],
+                                      :procedureCiId     => 0,
+                                      :procedureState    => 'active',
+                                      :actionCiClassName => @service.ciClassName,
+                                      :actionName        => action.actionName} %>
+              <%= link_to(new_operations_procedure_path(procedure_params), :remote => true) do %>
+                <%= highlight(action.actionName) %>
+                <div class="description"><small><%= action.description %></small></div>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @zone_services.present? %>
+  <%= section_panel 'Zone Services', :width => 'single', :position => 'right' do %>
+    <%= ci_list @zone_services do |builder, target| %>
+      <% zone = target.nsPath.split('/')[4] %>
+      <% builder.target link_to('', edit_cloud_zone_service_path(@cloud, zone, target)) %>
+      <% builder.icon ci_class_image_url('cloud.Zone') %>
+      <% builder.top do %>
+        <span class="topname"><%= zone %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>

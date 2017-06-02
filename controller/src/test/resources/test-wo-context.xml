@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:jms="http://www.springframework.org/schema/jms"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/jms http://www.springframework.org/schema/jms/spring-jms-3.0.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+		
+	<bean id="dpmtMapper" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.cms.dj.dal.DJDpmtMapper" />
+	</bean>
+	
+	<bean id="cmsCmRfcMrgProcessor" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.cms.dj.service.CmsCmRfcMrgProcessor" />
+	</bean>
+	
+	<bean id="cmsCmProcessor" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.cms.cm.service.CmsCmProcessor" />
+	</bean>
+	
+	<bean id="djMapper" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.cms.dj.dal.DJMapper" />
+	</bean>
+	
+	<bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
+	
+	<bean id="opsMapper" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.cms.cm.ops.dal.OpsMapper" />
+	</bean>
+	
+	<bean id="colProcessor" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.cms.collections.CollectionProcessor" />
+	</bean>
+	
+	<bean id="offeringMatcher" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.controller.cms.OfferingsMatcher" />
+	</bean>
+
+	<bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">
+    	<property name="cmProcessor" ref="cmsCmProcessor" />
+    	<property name="rfcUtil" ref="rfcUtil" />
+    </bean>
+    
+	<bean id="cmsWoProvider" class="com.oneops.controller.cms.CmsWoProvider">
+		<property name="dpmtMapper" ref="dpmtMapper" />
+		<property name="cmrfcProcessor" ref="cmsCmRfcMrgProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="djMapper" ref="djMapper" />
+	    <property name="rfcUtil" ref="rfcUtil" />
+	    <property name="cmsUtil" ref="cmsUtil" />
+	    <property name="opsMapper" ref="opsMapper" />
+	    <property name="colProcessor" ref="colProcessor" />
+	    <property name="offeringMatcher" ref="offeringMatcher" />
+		<property name="expressionEvaluator" ref="expressionEvaluator" />
+	</bean>
+	
+	<bean id="expressionEvaluator" class="com.oneops.controller.cms.ExpressionEvaluator">
+		<property name="cmsUtil" ref="cmsUtil" />
+		<property name="exprParser" ref="exprParser" />
+	</bean>
+	
+	<bean id="exprParser" class="org.springframework.expression.spel.standard.SpelExpressionParser" />
+	
+</beans>

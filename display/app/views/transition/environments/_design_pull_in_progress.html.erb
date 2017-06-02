@@ -1,0 +1,9 @@
+<div class="alert alert-info">
+  <%= icon('spinner fa-spin') %> Design pull is in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>.
+</div>
+<script>
+  setTimeout(function () {
+               $j.get("<%= pull_status_assembly_transition_environment_path(@assembly, @environment) %>");
+             },
+             10000);
+</script>

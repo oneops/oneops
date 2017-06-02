@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="FoundationSuite">
+  <test verbose="5" name="ServerTests">
+   <packages>
+       <package name="com.oneops.controller.cms"/>
+       <package name="com.oneops.controller.jms"/>
+       <package name="com.oneops.controller.web"/>
+       <package name="com.oneops.controller.workflow"/>
+   </packages>
+  </test>
+</suite>

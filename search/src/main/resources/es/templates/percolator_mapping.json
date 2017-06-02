@@ -1,0 +1,24 @@
+{
+  ".percolator": {
+    "dynamic_templates": [
+      {
+        "string_fields": {
+          "mapping": {
+            "index": "analyzed",
+            "omit_norms": true,
+            "type": "string",
+            "fields": {
+              "keyword": {
+                "ignore_above": 256,
+                "index": "not_analyzed",
+                "type": "string"
+              }
+            }
+          },
+          "match_mapping_type": "string",
+          "match": "*"
+        }
+      }
+    ]
+  }
+}

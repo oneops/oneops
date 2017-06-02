@@ -1,0 +1,7 @@
+<%= organization_page_header if user_signed_in? %>
+
+<%= page_title :page_kind => 'Organization', :page_label => current_user.organization.name %>
+
+<%= page_info 'Search configuration by scope, class and attribute' %>
+
+<%= render 'base/search/search' %>

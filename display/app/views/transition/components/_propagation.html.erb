@@ -1,0 +1,29 @@
+<p>
+  <code><strong>Use with caution!</strong></code>
+  Propagation configuration is an advanced option and generally should not be changed.
+</p>
+<table class="table scale">
+  <thead>
+    <tr>
+      <th>Component</th>
+      <th>Propagate</th>
+    </tr>
+  </thead>
+  <tbody>
+  <%= fields_for :depends_on do |dors_f| %>
+    <% @depends_on_relations.each do |dor| %>
+      <%= dors_f.fields_for dor.toCiId.to_s, dor do |dor_f| %>
+        <tr>
+          <td><%= dor.toCi.ciName %></td>
+            <%= dor_f.hidden_field :toCiId %>
+            <% rel_attrs = dor.relationAttributes %>
+            <%= dor_f.fields_for :relationAttributes, rel_attrs do |dor_attr_f| %>
+              <% rel_attrs.propagate_to = 'none' unless rel_attrs.respond_to?('propagate_to') %>
+              <td class="controls"><%= dor_attr_f.select :propagate_to, options_for_select(%w(none both from to), rel_attrs.propagate_to) %></td>
+            <% end %>
+        </tr>
+      <% end %>
+    <% end %>
+  <% end %>
+  </tbody>
+</table>

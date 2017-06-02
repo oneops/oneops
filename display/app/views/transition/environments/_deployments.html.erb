@@ -1,0 +1,6 @@
+<%= section_panel 'Deployments', :width => 'single', :position => 'left' do %>
+  <%= deployment_list([], :paginate => {:url  => assembly_transition_environment_deployments_path(@assembly, @environment),
+                                        :size => 10}) %>
+<% end %>
+
+<div id="deployment_details"></div>

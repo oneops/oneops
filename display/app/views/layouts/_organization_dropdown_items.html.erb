@@ -1,0 +1,22 @@
+<%= content_for :general_org_links do %>
+  <li><%= link_to_function(icon(site_icon('search'), content_tag(:small, 'Find organization...'), 'fa-fw'), '$j("#organization_lookup_modal").modal("show").find("input").focus()') %></li>
+  <li><%= link_to(icon(site_icon('organization'), content_tag(:small, 'Manage your organizations'), 'fa-fw'), account_profile_path(:anchor => 'organizations')) %></li>
+<% end %>
+<%= yield :general_org_links %>
+<% orgs = current_user.organizations.order(:name) %>
+<% if orgs.present? %>
+  <li class="divider"></li>
+  <% orgs.each do |org| %>
+    <li>
+      <%= link_to(change_organization_account_profile_path(:org_id => org.id), :method => :put) do %>
+        <%= icon(current_user.organization_id == org.id ? 'ok' : '', nil, 'fa-fw') %> <%= org.name %>
+        <% if org.full_name.present? %>
+          <br/>
+          <small style="margin-left:40px"><%= org.full_name %></small>
+        <% end %>
+      <% end %>
+    </li>
+  <% end %>
+  <li class="divider"></li>
+  <%= yield :general_org_links %>
+<% end %>

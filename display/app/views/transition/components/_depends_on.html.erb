@@ -1,0 +1,19 @@
+<% scale_relations = @depends_on_relations && @depends_on_relations.reject { |r| r.relationAttributes.flex != 'true' } %>
+<% if scale_relations.present? %>
+  <%= section_panel 'Scaling' do %>
+    <%= render 'base/shared/edit_form',
+               {:resource   => @component,
+                :content    => 'scaling',
+                :form_url   => update_depends_on_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component),
+                :cancel_url => depends_on_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component)} %>
+  <% end %>
+<% end %>
+<% if @depends_on_relations.present? %>
+  <%= section_panel 'Propagation' do %>
+    <%= render 'base/shared/edit_form',
+               {:resource   => @component,
+                :content    => 'propagation',
+                :form_url   => update_depends_on_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component),
+                :cancel_url => depends_on_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component)} %>
+  <% end %>
+<% end %>

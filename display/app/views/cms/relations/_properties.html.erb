@@ -1,0 +1,34 @@
+<div class="relationProperties">
+  <p>
+    <%= f.label :ciRelationId, "Id: " + relation.id.to_s %>
+  </p>
+
+  <p>
+    <%= f.label :relationName, "Relation Name: " + relation.relationName %>
+    <%= f.hidden_field :relationName %>
+  </p>
+
+  <p>
+    <%= f.label :nsPath, "Namespace:" + relation.nsPath %>
+    <br/>
+    <%= f.hidden_field :nsPath %>
+  </p>
+
+  <p>
+    <%= f.label :fromCiId, "From Ci:" + relation.fromCiId.to_s %>
+    <br/>
+    <%= f.hidden_field :fromCiId %>
+  </p>
+
+  <p>
+    <%= f.label :toCiId, "To Ci: " + relation.toCiId.to_s %>
+    <br/>
+    <%= f.hidden_field :toCiId %>
+  </p>
+
+  <% if f.object.comments? %>
+    <p>
+      <%= f.object.comments %>
+    </p>
+  <% end %>
+</div>

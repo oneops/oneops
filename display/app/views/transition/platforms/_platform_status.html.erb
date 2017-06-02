@@ -1,0 +1,50 @@
+<% enabled    = @composed_of.relationAttributes.enabled == 'true'
+   active     = !@platform.ciAttributes.attributes.has_key?(:is_active) || @platform.ciAttributes.is_active == 'true'
+   rfc_action = @platform.respond_to?(:rfcAction) && @platform.rfcAction %>
+<ul class="status">
+  <li class="status-marker">
+    <div class="marker">
+      <% if enabled %>
+        <%= marker('active', 'label-success') %>
+      <% else %>
+        <%= marker('inactive', '') %>
+      <% end %>
+      <%= marker('disabled', 'label-important') unless @composed_of.relationAttributes.enabled == 'true' %>
+    </div>
+    <div class="description">
+      <ul class="status-items">
+        <li><%= icon('play') %> Platform is <%= highlight(active ? 'active' : 'inactive') %></li>
+        <li><%= icon('power-off') %> Platform is <%= highlight(enabled ? 'enabled' : 'disabled') %></li>
+      </ul>
+      <% if has_transition?(@assembly.ciId) %>
+        <ul class="status-actions">
+          <% unless active %>
+            <li>
+              <%= link_to icon('eject', 'Terminate'),
+                          assembly_transition_environment_platform_path(@assembly, @environment, @platform),
+                          :method => :delete,
+                          :remote => true,
+                          :class  => 'btn btn-danger' %>
+            </li>
+            <% if enabled %>
+              <li>
+                <%= link_to icon('play', 'Activate'),
+                            activate_assembly_transition_environment_platform_path(@assembly, @environment, @platform),
+                            :remote => true,
+                            :class  => 'btn btn-success' %>
+              </li>
+            <% end %>
+          <% end %>
+          <% unless rfc_action == 'delete' %>
+            <li>
+              <%= link_to enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
+                          toggle_assembly_transition_environment_platform_path(@assembly, @environment, @platform),
+                          :remote => true,
+                          :class  => "btn btn-#{enabled ? 'danger' : 'success'}" %>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  </li>
+</ul>

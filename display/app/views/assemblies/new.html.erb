@@ -1,0 +1,12 @@
+<%= organization_page_header('assemblies') %>
+
+<%= page_title :page_kind => 'Assembly', :page_label => 'New Assembly' %>
+<%= page_info 'Create New Assembly' %>
+
+<%= section_panel 'New Assembly', :width => 'double', :position => 'left' do %>
+  <%= render 'base/shared/edit_form', {:resource   => @assembly,
+                                       :content    => 'new_assembly_details',
+                                       :remote     => false,
+                                       :form_url   => assemblies_path,
+                                       :cancel_url => assemblies_path} %>
+<% end %>

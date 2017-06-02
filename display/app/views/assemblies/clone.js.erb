@@ -1,0 +1,5 @@
+<% if @new_ci.blank? %>
+  hide_modal();
+<% else %>
+  window.location.href = "<%= path_to_ci(@new_ci) %>";
+<% end %>

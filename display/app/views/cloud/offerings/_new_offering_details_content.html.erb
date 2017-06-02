@@ -1,0 +1,3 @@
+<%= render 'cms/cis/properties', :ci => @offering, :f => f, :read_only => true %>
+<%= render 'cms/cis/attributes', :ci => @offering, :f => f %>
+<%= hidden_field_tag :mgmtCiId, @mgmt_offering_ci_id if @mgmt_offering_ci_id.present? %>

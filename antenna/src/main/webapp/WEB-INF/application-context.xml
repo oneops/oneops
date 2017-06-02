@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:amq="http://activemq.apache.org/schema/core"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                           http://activemq.apache.org/schema/core 
+                           http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd
+                           http://www.springframework.org/schema/util
+                           http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- Enable auto scanning & annotation config -->
+    <context:annotation-config/>
+    <context:component-scan base-package="com.oneops.antenna.cache,
+                                          com.oneops.antenna.senders.slack"/>
+
+    <!-- Common lib components -->
+    <import resource="classpath:shared-lib-context.xml"/>
+    <import resource="classpath:security-config.xml"/>
+    <!-- Mybatis components  -->
+    <import resource="mybatis-beans.xml"/>
+
+    <amq:queue id="inbound" physicalName="NOTIFICATIONS"/>
+
+    <!-- AMQ broker connector URI-->
+    <bean id="amqBrokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="host" value="${KLOOPZ_AMQ_HOST:kloopzmq}"/>
+        <property name="port" value="61616"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="${AMQ_DNS_RESOLVE:true}"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="100"/>
+                <entry key="maxReconnectDelay" value="5000"/>
+                <entry key="maxReconnectAttempts" value="-1"/>
+                <entry key="backup" value="false"/>
+                <entry key="randomize" value="false"/>
+                <entry key="jms.prefetchPolicy.queuePrefetch" value="1"/>
+                <entry key="jms.redeliveryPolicy.maximumRedeliveries" value="10000"/>
+                <entry key="jms.redeliveryPolicy.initialRedeliveryDelay" value="3000"/>
+                <entry key="jms.redeliveryPolicy.useExponentialBackOff" value="true"/>
+                <entry key="jms.redeliveryPolicy.backOffMultiplier" value="2"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <bean id="jmsFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="#{amqBrokerURI.build()}"/>
+        <property name="userName" value="${AMQ_USER}"/>
+        <property name="password" value="${KLOOPZ_AMQ_PASS}"/>
+    </bean>
+
+    <bean id="gson" class="com.google.gson.Gson"/>
+
+    <!--bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoOpenSSLImpl" init-method="init" /-->
+    <bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoDES" init-method="init"/>
+    <bean id="sbrService" class="com.oneops.antenna.subscriptions.SubscriberService"/>
+
+    <bean id="snsSender" class="com.oneops.antenna.senders.aws.SNSService"/>
+    <bean id="eSender" class="com.oneops.antenna.senders.aws.EmailService"/>
+    <bean id="urlSender" class="com.oneops.antenna.senders.generic.HTTPMsgService"/>
+    <bean id="slackSender" class="com.oneops.antenna.senders.slack.SlackService"/>
+    <bean id="xmppSender" class="com.oneops.antenna.senders.generic.XMPPMsgService">
+        <property name="botName" value="OneOpsAntenna"/>
+        <property name="timeout" value="4000"/>
+    </bean>
+
+    <bean id="defaultSystemSubscriber" class="com.oneops.antenna.domain.URLSubscriber">
+        <property name="name" value="default"/>
+        <property name="dispatchMethod" value="SYNC"/>
+        <property name="userName" value="${NOTIFICATION_SYSTEM_USER}"/>
+        <property name="url" value="${KLOOPZ_NOTIFY_URL:http://api:3000/notify}"/>
+        <property name="password" value="${KLOOPZ_NOTIFY_PASS}"/>
+        <property name="timeout" value="5000"/>
+    </bean>
+
+    <bean id="dispatcher" class="com.oneops.antenna.service.Dispatcher"/>
+    <bean id="antennaListener" class="com.oneops.antenna.jms.AntennaListener"/>
+
+    <!-- and this is the message listener container -->
+    <bean id="antennaListenerContainer" class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="jmsFactory"/>
+        <property name="maxConcurrentConsumers" value="${antenna.max_consumers:15}"/>
+        <property name="concurrentConsumers" value="${antenna.concurrentConsumers:15}"/>
+        <property name="destination" ref="inbound"/>
+        <property name="messageListener" ref="antennaListener"/>
+        <!--property name="sessionAcknowledgeMode" value="2"/-->
+        <property name="sessionTransacted" value="true"/>
+    </bean>
+
+</beans>

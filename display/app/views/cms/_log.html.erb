@@ -1,0 +1,80 @@
+<% dom_id = random_dom_id %>
+<div id="<%= dom_id %>" class="log-header">
+  <div class="pull-right">
+    <% if defined?(auto_scroll_toggle) && auto_scroll_toggle %>
+      <a class="auto-scroll btn btn-mini active" data-toggle="button" onclick="$j(this).find('i.fa-check').toggle()">
+        <i class="fa fa-check"></i> <i class="fa fa-angle-double-down"></i> Auto Scroll
+      </a>
+    <% end %>
+    <a class="btn btn-mini copy"><%= icon('files-o', '', 'fa-lg') %></i></a>
+    <% if defined?(refresh) && refresh %>
+      <a class="btn btn-mini" onclick="<%= refresh %>"><i class="fa fa-refresh fa-lg"></i></a>
+    <% end %>
+    <% if defined?(url) && url.present? %>
+      <div class="btn-group">
+        <% url_to_formatted = url.sub('.text', '') %>
+        <%= link_to(icon('external-link fa-lg'), url_to_formatted, :target => '_blank', :class => 'btn btn-mini') %>
+        <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></a>
+        <ul class="dropdown-menu">
+          <li><%= link_to('raw', url, :target => '_blank') %></li>
+          <li><%= link_to('formatted', url_to_formatted, :target => '_blank') %></li>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="btn-group log-level" data-toggle="buttons-radio">
+    <a class="btn btn-mini btn-info    level-all active" onclick="log_filter_click(this)"><i class="fa fa-check"></i> All</a>
+    <a class="btn btn-mini btn-success level-info"       onclick="log_filter_click(this)"><i class="fa"></i> Info+</a>
+    <a class="btn btn-mini btn-warning level-warning"    onclick="log_filter_click(this)"><i class="fa"></i> Warnings+</a>
+    <a class="btn btn-mini btn-danger  level-error"      onclick="log_filter_click(this)"><i class="fa"></i> Errors</a>
+  </div>
+</div>
+<div class="log-body" title="Press Cmd+C / Ctrl+C to copy to clipboard" data-toggle="tooltip" data-trigger="manual">
+  <ul class="log unstyled">
+    <%= render('cms/log_content', :log => log) if defined?(log) && log.present? %>
+  </ul>
+</div>
+<script>
+  copyToClipboard("#<%= dom_id %> a:has(.fa-files-o)",
+                  function() {
+                    return $j("#<%= dom_id %>").parent().find(".log-body ul.log")[0];
+                  });
+
+  if (!window.log_auto_scroll) {
+    window.log_auto_scroll = function (parent) {
+      parent = $j(parent);
+      if (parent.find(".auto-scroll").hasClass("active")) {
+        var logBody = parent.find(".log-body")[0];
+        logBody.scrollTop = logBody.scrollHeight;
+      }
+    };
+
+    window.log_filter = function (parent) {
+      parent = $(parent);
+      var logHeader = parent.find(".log-header");
+      var logUl = parent.find(".log-body ul");
+      logHeader.find(".log-level i.fa").removeClass("fa-check");
+      logHeader.find(".log-level a.btn.active i.fa").addClass("fa-check");
+      logUl.find("li").hide();
+      if (logHeader.find(".level-info").hasClass('active')) {
+        logUl.find("li.info, li.warning, li.error").show();
+      }
+      else if (logHeader.find(".level-warning").hasClass('active')) {
+        logUl.find("li.warning, li.error").show();
+      }
+      else if (logHeader.find(".level-error").hasClass('active')) {
+        logUl.find("li.error").show();
+      }
+      else {
+        logUl.find("li").show();
+      }
+    };
+
+    window.log_filter_click = function (button) {
+      setTimeout(function () {
+        log_filter($j(button).parents(".log-header").parent());
+      }, 0);
+    };
+  }
+</script>

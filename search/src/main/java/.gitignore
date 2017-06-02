@@ -1,0 +1,14 @@
+*~
+.DS_Store
+*.class
+sensor/.classpath
+sensor/.project
+sensor/.settings
+sensor/target/
+sensor/build/
+sensor-test/.classpath
+sensor-test/.project
+sensor-test/.settings
+sensor-test/target/
+sensor-tes/build/
+~

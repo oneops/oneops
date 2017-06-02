@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:amq="http://activemq.apache.org/schema/core"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:elasticsearch="http://www.springframework.org/schema/data/elasticsearch"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/jms
+                           http://www.springframework.org/schema/jms/spring-jms-3.0.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                           http://activemq.apache.org/schema/core 
+                           http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd
+                           http://www.springframework.org/schema/util
+                           http://www.springframework.org/schema/util/spring-util.xsd
+                           http://www.springframework.org/schema/data/elasticsearch 
+                           http://www.springframework.org/schema/data/elasticsearch/spring-elasticsearch-1.0.xsd">
+
+	<context:annotation-config />
+
+	<bean id="propertyPlaceholderConfigurer"
+        class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="ignoreResourceNotFound" value="true"/>
+        <property name="ignoreUnresolvablePlaceholders" value="true" />
+        <property name="systemPropertiesMode" value="2"/>
+        <property name="locations">
+                <list>
+                	<value>classpath:listener.properties</value>
+                    <value>classpath:search.properties</value>
+                    <value>classpath:es/elasticsearch.properties</value>
+                </list>
+        </property>
+    </bean>
+    
+	<amq:queue id="inbound" physicalName="${amq.in_queue}" />
+    <amq:queue id="dlq" physicalName="ActiveMQ.DLQ" />
+	
+	<!-- AMQ broker connector URI-->
+    <bean id="amqBrokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="host" value="${KLOOPZ_AMQ_HOST:kloopzmq}"/>
+        <property name="port" value="61616"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="${AMQ_DNS_RESOLVE:true}"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="1000"/>
+                <entry key="maxReconnectDelay" value="30000"/>
+                <entry key="maxReconnectAttempts" value="-1"/>
+                <entry key="backup" value="false"/>
+                <entry key="randomize" value="false"/>
+                <entry key="jms.prefetchPolicy.queuePrefetch" value="10"/>
+                <entry key="jms.redeliveryPolicy.maximumRedeliveries" value="10000"/>
+                <entry key="jms.redeliveryPolicy.initialRedeliveryDelay" value="3000"/>
+                <entry key="jms.redeliveryPolicy.useExponentialBackOff" value="true"/>
+                <entry key="jms.redeliveryPolicy.backOffMultiplier" value="2"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <bean id="jmsFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="#{amqBrokerURI.build()}"/>
+        <property name="userName" value="${amq.user}" />
+        <property name="password" value="${amq.pass}" />
+    </bean>
+	
+	<bean id="messageListener" class="com.oneops.search.listener.SearchListener">
+		<property name="msgProcessor" ref="esMessageProcessor"/>
+	</bean>
+    <bean id="dlqMessageListener" class="com.oneops.search.listener.DlqListener">
+        <property name="msgProcessor">
+            <bean class="com.oneops.search.msg.processor.es.DLQMessageProcessor"/>
+        </property>
+    </bean>
+
+	<!-- listener container -->
+	<bean id="listenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsFactory" />
+		<property name="maxConcurrentConsumers" value="${search.maxConsumers:2}" />
+		<property name="concurrentConsumers" value="${search.maxConsumers:2}" />
+		<property name="destination" ref="inbound" />
+		<property name="messageListener" ref="messageListener" />
+		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
+		<property name="sessionAcknowledgeMode" value="2"/>
+	</bean>
+
+    <bean id="dlqListenerContainer"
+          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="jmsFactory" />
+        <property name="maxConcurrentConsumers" value="${search.maxConsumers:1}" />
+        <property name="concurrentConsumers" value="${search.maxConsumers:1}" />
+        <property name="destination" ref="dlq" />
+        <property name="messageListener" ref="dlqMessageListener" />
+        <!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
+        <property name="sessionAcknowledgeMode" value="2"/>
+    </bean>
+
+    <context:component-scan base-package="com.oneops.search" />
+    
+    
+	<bean id="esMessageProcessor" class="com.oneops.search.msg.processor.es.ESMessageProcessor"/>
+	
+	<elasticsearch:transport-client id="client" cluster-nodes="${nodes}" cluster-name="${cluster.name}" client-transport-ping-timeout="15s"/>
+
+    <bean name="elasticsearchTemplate" class="org.springframework.data.elasticsearch.core.ElasticsearchTemplate">
+        <constructor-arg name="client" ref="client"/>
+    </bean>
+    
+    <bean name="indexer" class="com.oneops.search.msg.index.impl.ESIndexer">
+    	<property name="indexName" value="${index.name}" />
+    	<property name="template" ref="elasticsearchTemplate"/>
+    </bean>
+    
+
+    <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil" />
+	
+</beans>
+

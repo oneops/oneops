@@ -1,0 +1,3 @@
+log_level :info
+file_cache_path "/tmp"
+cookbook_path "/home/oneops/components/cookbooks"

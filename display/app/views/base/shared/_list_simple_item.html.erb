@@ -1,0 +1,5 @@
+<% item_id = builder[:itemid] %>
+<li id="item_<%= item_id %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, <%= item_id %>)" <%= builder[:attributes] %> <%= raw(%(style="display:none")) if collapse %>>
+   <div class="target"><%= builder[:target] if builder[:target]%></div>
+	<div class="simple"><%= builder[:simple] if builder[:simple]%></div>
+</li>

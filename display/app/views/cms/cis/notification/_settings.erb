@@ -1,0 +1,54 @@
+<%= builder.hidden_field attribute_name %>
+<% settings = attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : {}
+   div_id = "#{attribute_name}_#{Time.now.to_i}_div"%>
+<div id="<%= div_id %>" class="notification_settings" >
+  <table class="table">
+  	 <tr>
+      <td>Endpoint</td>
+      <td><%= text_field_tag "settings_endpoint", settings['endpoint'], :class => 'endpoint', :onchange => 'settings_struct_changed(this);' %></td>
+    </tr>
+    <tr>
+      <td>Access Key</td>
+      <td><%= text_field_tag "settings_access",   settings['access'],   :class => 'access',   :onchange => 'settings_struct_changed(this);' %></td>
+    </tr>
+    <tr>
+      <td>Secure Key</td>
+      <td><%= text_field_tag "settings_secure",    settings['secure'],    :class => 'secure',    :onchange => 'settings_struct_changed(this);' %></td>
+    </tr>
+  </table>
+</div>
+<script type="text/javascript">
+  if (typeof(update_settings_struct_raw_value) == "undefined") {
+    window.settings_struct_changed = function(input) {
+      update_settings_struct_raw_value($(input).up("div.notification_settings"));
+    };
+
+    window.update_settings_struct_raw_value = function(settings_div) {
+      settings_div.up("form").setAttribute('data-dirty', true);
+      var settings = {'endpoint':    settings_div.down("input.endpoint").value,
+      							'access':   settings_div.down("input.access").value,
+                           'secure':    settings_div.down("input.secure").value};
+      settings_div.previous("input").value = Object.toJSON(settings);
+    };
+
+    window.toggle_settings_struct = function(on) {
+      var div = $("<%= div_id %>").up("div.controls").up("div");
+      if (on) {
+        div.show();
+      }
+      else {
+        div.hide();
+      }
+    };
+  }
+
+  $j(function() {
+    $("<%= div_id %>").up("form").down("select#cms_ci_ciAttributes_protocol").observe("change", function() {
+      toggle_settings_struct(this.value == "sns");
+    });
+
+    <% unless ci.ciAttributes.protocol == 'sns' %>
+      toggle_settings_struct(false);
+    <% end %>
+  });
+</script>

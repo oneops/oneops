@@ -1,0 +1,32 @@
+<%= section_panel 'Status', :id => 'status_section', :width => 'double', :position => 'left' do %>
+  <%= render :partial => 'status' %>
+<% end %>
+
+<%= render 'base/cost/cost_summary', :width => 'single', :position => 'right' %>
+
+<%= section_panel 'Platforms', :id => 'platforms_list', :width => 'single', :position => 'right' do %>
+  <% ci_relation_map = @platforms.inject({}) { |map, r| map[r.toCiId] = r; map } %>
+  <%= ci_list(@platforms.map(&:toCi)) do |builder, target| %>
+    <% relation = ci_relation_map[target.ciId] %>
+    <% builder.target link_to('', assembly_operations_environment_platform_path(@assembly, @environment, target)) %>
+    <% builder.icon platform_image_url(target) %>
+    <% enabled = relation.relationAttributes.enabled == 'true' %>
+    <% active = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true %>
+    <% builder.status do %>
+      <% availability = target.ciAttributes.availability %>
+      <div class="marker" title="<%= availability %> availability">
+        <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+      </div>
+      <%= status_marker('version', "#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
+      <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
+      <%= marker('disabled', 'label-important') unless enabled %>
+      <%= instance_marker(@platform_clouds, target) %>
+    <% end %>
+    <% builder.top do %>
+      <span class="topname"><%= target.ciName %></span>
+    <% end %>
+    <% builder.middle target.ciAttributes.description %>
+  <% end %>
+<% end %>
+
+<%= render 'base/notifications/notifications_summary' %>

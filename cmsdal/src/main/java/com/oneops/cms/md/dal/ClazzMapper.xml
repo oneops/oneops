@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.md.dal.ClazzMapper">
+
+ 	<!--cache flushInterval="600000" size="256"/-->
+ 	
+ 	<update id="flushCache" flushCache="true" />
+ 	 
+    <select id="getNextClassId" useCache="false" resultType="int">
+       select nextval('md_pk_seq')
+    </select>
+
+	 <insert id="createClazz" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazz" statementType="CALLABLE" >
+	    {call md_create_class(#{classId}, #{className}, #{shortClassName}, #{superClassId}, #{impl}, #{isNamespace}, #{flags}, #{accessLevel}, #{description} , #{extFormat})}
+	 </insert>
+	
+    <update id="updateClazz" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazz" statementType="CALLABLE">
+       {call md_update_class(#{classId}, #{shortClassName}, #{superClassId}, #{impl}, #{isNamespace}, #{flags}, #{accessLevel}, #{description} , #{extFormat})}
+    </update>
+
+    <delete id="deleteClazz" flushCache="true" parameterType="map" statementType="CALLABLE">
+       {call md_delete_class(#{clazzId}, #{deleteAll})}
+    </delete>
+
+	<!-- Start - md_class_attribute mappings -->
+	 <insert id="addClazzAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAttribute" statementType="CALLABLE">
+	    {call md_add_class_attribute(#{classId}, #{attributeName}, #{dataType}, #{isMandatory}, #{isInheritable}, #{isEncrypted}, #{isImmutable}, #{forceOnDependent}, #{defaultValue}, #{valueFormat}, #{description})}
+	 </insert>
+
+    <update id="updateClazzAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAttribute" statementType="CALLABLE">
+       {call md_update_class_attribute(#{attributeId}, #{attributeName}, #{dataType}, #{isMandatory}, #{isInheritable}, #{isEncrypted}, #{isImmutable}, #{forceOnDependent}, #{defaultValue}, #{valueFormat}, #{description})}
+    </update>
+
+    <update id="deleteClazzAttribute" flushCache="true" parameterType="map" statementType="CALLABLE">
+           {call md_delete_class_attribute(#{attrId}, #{deleteAll} ) }
+    </update>
+	<!-- End - md_class_attribute mappings -->
+
+    <insert id="addClazzAction" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAction" statementType="CALLABLE">
+       {call md_add_class_action(#{classId}, #{actionName}, #{isInheritable}, #{description}, #{arguments})}
+    </insert>
+
+    <update id="updateClazzAction" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAction" statementType="CALLABLE">
+       {call md_update_class_action(#{actionId}, #{actionName}, #{isInheritable}, #{description}, #{arguments})}
+    </update>
+
+    <update id="deleteClazzAction" flushCache="true" parameterType="int" statementType="CALLABLE">
+           {call md_delete_class_action(#{value})}
+    </update>
+
+	 <select id="getClazz" parameterType="string" resultType="com.oneops.cms.md.domain.CmsClazz">
+	    select 
+			cl.class_id as classId,
+			cl.class_name as className,
+			cl.short_class_name as shortClassName,
+			cl.super_class_id as superClassId,
+			sup.class_name as superClassName,
+			cl.access_level as accessLevel,
+			cl.impl as impl,
+			cl.is_namespace as isNamespace,
+			cl.flags as flags,
+			cl.description,
+			cl.created,
+			cl.format as extFormat
+		from md_classes cl
+		left join md_classes sup on sup.class_id = cl.super_class_id
+		where cl.class_name = #{value}
+	 </select>
+
+	 <select id="getClazzesByPackage" parameterType="string" resultType="com.oneops.cms.md.domain.CmsClazz">
+	    select 
+			cl.class_id as classId,
+			cl.class_name as className,
+			cl.short_class_name as shortClassName,
+			cl.super_class_id as superClassId,
+			sup.class_name as superClassName,
+			cl.access_level as accessLevel,
+			cl.impl as impl,
+			cl.is_namespace as isNamespace,
+			cl.flags as flags,
+			cl.description,
+			cl.created,
+			cl.format
+		from md_classes cl
+		left join md_classes sup on sup.class_id = cl.super_class_id
+		where cl.class_name like #{value}
+	 </select>
+
+
+	 <select id="getClazzes" resultType="com.oneops.cms.md.domain.CmsClazz">
+	    select 
+			cl.class_id as classId,
+			cl.class_name as className,
+			cl.short_class_name as shortClassName,
+			cl.super_class_id as superClassId,
+			cl.access_level as accessLevel,
+			cl.impl as impl,
+			cl.is_namespace as isNamespace,
+			cl.flags as flags,
+			cl.description,
+			cl.created,
+			cl.format
+		from md_classes cl
+		order by cl.class_name
+	 </select>
+
+	 <select id="getSubClazzes" parameterType="string" resultType="string">
+	    select 
+			cl.class_name as className,
+		from md_classes cl
+		where cl.super_class_id in (select sup.class_id from md_classes sup where sup.class_name = #{value}) 
+	 </select>
+
+
+	 <select id="getClazzById" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazz">
+	    select 
+			cl.class_id as classId,
+			cl.class_name as className,
+			cl.short_class_name as shortClassName,
+			cl.super_class_id as superClassId,
+			sup.class_name as superClassName,
+			cl.access_level as accessLevel,
+			cl.impl as impl,
+			cl.is_namespace as isNamespace,
+			cl.flags as flags,
+			cl.description,
+			cl.created,
+			cl.format
+		from md_classes cl
+		left join md_classes sup on sup.class_id = cl.super_class_id
+		where cl.class_id = #{value}
+	 </select>
+
+	
+	 <select id="getClazzAttrs" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzAttribute">
+		select 
+			ca.attribute_id as attributeId,
+			ca.class_id as classId,
+			ca.attribute_name as attributeName,
+			ca.data_type as dataType,
+			ca.is_mandatory as isMandatory,
+			ca.is_inheritable as isInheritable,
+			ca.is_encrypted as isEncrypted,
+			ca.is_immutable as isImmutable,
+			ca.force_on_dependent as forceOnDependent,
+			ca.default_value as defaultValue,
+			ca.value_format as valueFormat,
+			ca.description,
+			ca.created,
+			ca.updated
+		from md_class_attributes ca
+		where ca.class_id =  #{value}  
+	</select>
+
+	 <select id="getInheritableClazzAttrs" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzAttribute">
+		select 
+			ca.attribute_id as attributeId,
+			ca.class_id as classId,
+			ca.attribute_name as attributeName,
+			ca.data_type as dataType,
+			ca.is_mandatory as isMandatory,
+			ca.is_inheritable as isInheritable,
+			ca.is_encrypted as isEncrypted,
+			ca.is_immutable as isImmutable,
+			ca.force_on_dependent as forceOnDependent,
+			ca.default_value as defaultValue,
+			ca.value_format as valueFormat,
+			ca.description,
+			ca.created,
+			ca.updated
+		from md_class_attributes ca
+		where ca.class_id =  #{value}
+		and ca.is_inheritable = true  
+	</select>
+
+	 <select id="getFromClazzRelations" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId, 
+				fromcl.class_name as fromClassName, 
+				clr.relation_id as relationId, 
+				r.relation_name as relationName, 
+				clr.to_class_id as toClassId, 
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong, 
+				clr.link_type as linkType, 
+				clr.description,
+				r.created 
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.from_class_id = #{value}
+			and clr.from_class_id = fromcl.class_id
+			and clr.relation_id = r.relation_id
+			and clr.to_class_id = tocl.class_id
+	 </select>
+
+	 <select id="getToClazzRelations" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId, 
+				fromcl.class_name as fromClassName, 
+				clr.relation_id as relationId, 
+				r.relation_name as relationName, 
+				clr.to_class_id as toClassId, 
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong, 
+				clr.link_type as linkType, 
+				clr.description,
+				r.created 
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.to_class_id = #{value}
+			and clr.from_class_id = fromcl.class_id
+			and clr.relation_id = r.relation_id
+			and clr.to_class_id = tocl.class_id
+	 </select>
+
+    <select id="getCountCiOfClazz" parameterType="int" resultType="long">
+       select count(*)
+       from cm_ci ci
+       where class_id = #{value}
+    </select>
+
+    <select id="getClazzActions" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzAction">
+       select
+           ca.action_id as actionId,
+		   ca.class_id as classId,
+           ca.action_name as actionName,
+           ca.is_inheritable as isInheritable,
+           ca.description,
+           ca.arguments,
+           ca.created,
+           ca.updated
+       from md_class_actions ca
+       where ca.class_id =  #{value}
+   </select>
+
+    <select id="getInheritableClazzActions" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzAction">
+       select
+           ca.action_id as actionId,
+		   ca.class_id as classId,
+           ca.action_name as actionName,
+           ca.is_inheritable as isInheritable,
+           ca.description,
+           ca.created,
+           ca.updated
+       from md_class_actions ca
+       where ca.class_id =  #{value}
+       and ca.is_inheritable = true
+   </select>
+
+</mapper>

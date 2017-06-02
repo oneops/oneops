@@ -1,0 +1,26 @@
+<% if Settings.show_cost %>
+  <% if @environment
+       summary_url = cost_assembly_operations_environment_path(@assembly, @environment)
+       ns_path     = environment_ns_path(@environment)
+     elsif @assembly
+       summary_url = cost_assembly_path(@assembly)
+       ns_path     = assembly_ns_path(@assembly)
+     else
+       summary_url = cost_organization_path
+       ns_path     = organization_ns_path
+     end
+     menu = [link_to(icon('bar-chart fa-lg'),
+                     cost_reports_path(:ns_path => ns_path),
+                     :class => 'btn btn-mini')]
+     menu << link_to(icon('refresh'), summary_url, :remote => true, :class => 'btn btn-mini') if Rails.env.shared?
+  %>
+  <%= section_panel 'Cost',
+                    :width    => defined?(width) ? width : 'double',
+                    :position => defined?(position) ? position : 'left',
+                    :menu     => menu do %>
+    <div class="cost-summary"><%= loading_indicator %></div>
+    <script>
+      <%= remote_function(:url => summary_url, :method => :get) %>
+    </script>
+  <% end %>
+<% end %>

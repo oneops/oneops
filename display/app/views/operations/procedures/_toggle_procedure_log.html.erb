@@ -1,0 +1,27 @@
+<script type="text/javascript">
+  if (!window.toggleProcedureLog) {
+    window.toggleProcedureLog = function (source, refresh) {
+      var logTab = $j(source).parents('.accordion-group').find('.accordion-body[id^="action_log_"]');
+      if (logTab) {
+        var procedureId = logTab.attr("procedureId"),
+            actionId    = logTab.attr("actionId");
+        if (!logTab.find(".log")[0]) {
+          var html = "<%= escape_javascript(render 'cms/log',
+                                                   :log => [],
+                                                   :auto_scroll_toggle => true,
+                                                   :url => log_data_operations_procedures_path(:procedure_id => 999, :format => :text),
+                                                   :refresh => 'toggleProcedureLog(this, true)') %>";
+          html = html.replace(/procedure_id=999/g, "procedure_id=" + procedureId+ "&action_ids[]=" + actionId);
+          logTab.find(".accordion-inner").html(html);
+          logTab.find(".log").html('<li>' + '<%= escape_javascript(loading_indicator) %>' + '</li>');
+        }
+        if (refresh || !logTab.is(":visible")) {
+          $j.get("<%= log_data_operations_procedures_path %>", {procedure_id: procedureId, "action_ids[]": actionId});
+        }
+        if (!refresh) {
+          logTab.toggle(300);
+        }
+      }
+    }
+  }
+</script>

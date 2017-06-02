@@ -1,0 +1,36 @@
+<%= section_panel 'Monitors', :width => 'single' do %>
+  <% menu = [{:id => 'compare_overalayed', :label => 'Combine charts', :url => charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :range => @range, :aggregate => 'overlay'), :method => :get, :param_name => 'ids'},
+             {:id => 'compare_stacked',    :label => 'Stack charts',   :url => charts_assembly_operations_environment_platform_component_instance_monitors_path(@assembly, @environment, @platform, @component, @instance, :range => @range, :aggregate => 'stack'),   :method => :get, :param_name => 'ids'},] %>
+  <%= ci_list(@monitors.sort_by(&:ciName), :menu => menu) do |builder, target| %>
+    <% ci_attrs = target.ciAttributes
+       enabled = ci_attrs.enable == 'true'
+       status = enabled ? 'enabled' : 'disabled'
+       show_path = assembly_operations_environment_platform_component_instance_monitor_path(@assembly, @environment, @platform, @component, @instance, target) %>
+    <% builder.target link_to('', show_path, :remote => true) %>
+    <% builder.icon :none %>
+    <% builder.status do %>
+      <%= marker(status, state_to_label(status)) %>
+      <%= marker('custom', 'label-info') if is_custom_monitor?(target) %>
+      <% events = @events[target.ciId] %>
+      <% if events.present? %>
+        <% events.each_pair do |name, ee| %>
+          <%= marker(name,
+                     health_to_label(name),
+                     'data-toggle'    => 'popover',
+                     'data-html'      => true,
+                     'data-title'     => 'Threshold Events',
+                     'data-trigger'   => 'click',
+                     'data-content'   => ee.inject('') {|c, e| c + "<div><strong>#{e['name']}</strong> #{time_ago_in_words(Time.at(e['timestamp'] / 1000))}</div>"},
+                     'data-placement' => 'right') %>
+        <% end %>
+      <% end %>
+      <%= icon('heartbeat', nil, 'fa-lg') if ci_attrs.heartbeat == 'true' %>
+      <%= icon('arrows-v', nil, 'fa-lg') if ci_attrs.thresholds.present? && ci_attrs.thresholds.size > 10 %>
+    <% end %>
+    <% builder.top do %>
+      <span class="topname"><%= ci_attrs.description.presence || target.ciName %> </span>
+    <% end %>
+    <% builder.bottom :none %>
+  <% end %>
+<% end %>
+<div id="monitor_details"></div>

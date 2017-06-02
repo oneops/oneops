@@ -1,0 +1,4 @@
+$j("#announcements_section .section-content").html("<%= escape_javascript(render('announcements')) %>");
+<% if request.put? %>
+  $j("#site_announcements").html("<%= escape_javascript(render('layouts/site_announcements', :announcements => @announcements)) %>");
+<% end %>

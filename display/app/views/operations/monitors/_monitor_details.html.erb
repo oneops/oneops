@@ -1,0 +1,8 @@
+<%= render 'chart_section' %>
+<%= section_panel 'Configuration', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @monitor,
+              :content  => 'monitor_details_content',
+              :read_only => true}) %>
+<% end %>
+

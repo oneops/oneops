@@ -1,0 +1,73 @@
+<% read_only_x = (defined?(read_only) && read_only)
+   editable = !read_only_x && ci.name_editable?
+   persisted = ci.persisted? %>
+<%= f.hidden_field :ciId if persisted %>
+<%= f.hidden_field :ciClassName %>
+<%= f.hidden_field :nsPath %>
+<% if persisted %>
+  <dl class="dl-horizontal">
+    <% unless editable %>
+      <dt>Name</dt>
+      <dd><%= ci.ciName %></dd>
+    <% end %>
+    <dt>Id</dt>
+    <dd><%= ci.ciId %></dd>
+    <dt>Namespace</dt>
+    <dd><%= ci.nsPath %></dd>
+    <% unless editable %>
+      <dt>Created</dt>
+      <dd><%= time_ago_in_words(ci.created_timestamp) %><%= raw(" by #{ci.createdBy}") if ci.createdBy %></dd>
+      <% unless ci.created == ci.updated %>
+        <dt>Updated</dt>
+        <dd><%= time_ago_in_words(ci.updated_timestamp) %><%= raw(" by #{ci.updatedBy}") if ci.updatedBy %></dd>
+      <% end %>
+    <% end %>
+    <% if ci.is_a?(Cms::DjCi) && controller.action_methods.include?('history') && ci.rfcAction != 'add'  %>
+      <dt>History</dt>
+      <dd><%= link_to('View history of committed changes', url_for(:action => :history, :id => ci)) %></dd>
+    <% end %>
+    <% if Settings.check_policy_compliance %>
+      <dt>Policy Compliance</dt>
+      <dd class="ci-policy-check">
+        <%= loading_indicator('Checking...') %>
+        <script>
+          $j.ajax({
+            url:  "<%= policy_violations_ci_path %>",
+            type: 'POST',
+            data: {"<%= ci.is_a?(Cms::DjCi) ? 'cms_dj_ci' : 'cms_ci' %>": <%= raw(ci.attributes.to_json) %>,
+                   locations: <%= raw(ci.policy_locations.to_json) %>}
+          });
+        </script>
+      </dd>
+    <% end %>
+  </dl>
+  <% if ci.respond_to?(:rfcId) && ci.rfcId.to_i > 0 %>
+    <div class="category">
+      <div class="name">Request For Change</div>
+      <dl class="dl-horizontal">
+        <dt>Action</dt>
+        <dd><div class="inline-block"><%= marker(ci.rfcAction, action_to_label(ci.rfcAction)) %></div></dd>
+        <dt>Created</dt>
+        <dd><%= time_ago_in_words(ci.rfc_created_timestamp) %> by <%= ci.rfcCreatedBy %></dd>
+        <% unless ci.rfcCreated == ci.rfcUpdated %>
+          <dt>Updated</dt>
+          <dd><%= time_ago_in_words(ci.rfc_updated_timestamp) %><%= raw(" by #{ci.rfcUpdatedBy}") if ci.rfcUpdatedBy %></dd>
+        <% end %>
+        <dt>Diff to base</dt>
+        <dd><%= link_to_function('Show', 'toggleBaseDiff(this)') %></dd>
+      </dl>
+    </div>
+  <% end %>
+<% end %>
+<% if editable %>
+  <div class="control-group" style="margin-top: 10px">
+    <%= f.label :ciName, 'Name', :class => 'control-label' %>
+    <div class="controls"><%= f.text_field :ciName, :class => 'input-xlarge', :required => true, :pattern => Cms::Ci.valid_ci_name_regexp(ci.ciClassName) %>
+      <span class="help-block"><%= Cms::Ci.valid_ci_name_message(ci.ciClassName) %></span>
+    </div>
+  </div>
+<% else %>
+  <div>
+    <%= f.hidden_field :ciName %>
+  </div>
+<% end %>
