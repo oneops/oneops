@@ -11,7 +11,7 @@
 	 </insert> 
 		
 	 <insert id="createDpmtApproval" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
-	    {call dj_create_dpmt_approval(#{deploymentId}, #{governCiId}, #{governCiJson}, #{expiresIn},#{approvalId,jdbcType=BIGINT, mode=OUT})}
+	    {call dj_create_dpmt_approval(#{deploymentId}, #{governCiId}, #{governCiJson}, #{expiresIn})}
 	 </insert> 
 
 	 <update id="dpmtApprove" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">

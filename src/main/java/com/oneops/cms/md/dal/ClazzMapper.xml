@@ -26,7 +26,7 @@
 
 	<!-- Start - md_class_attribute mappings -->
 	 <insert id="addClazzAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAttribute" statementType="CALLABLE">
-	    {call md_add_class_attribute(#{classId}, #{attributeName}, #{dataType}, #{isMandatory}, #{isInheritable}, #{isEncrypted}, #{isImmutable}, #{forceOnDependent}, #{defaultValue}, #{valueFormat}, #{description}, #{attributeId,jdbcType=INTEGER, mode=OUT})}
+	    {call md_add_class_attribute(#{classId}, #{attributeName}, #{dataType}, #{isMandatory}, #{isInheritable}, #{isEncrypted}, #{isImmutable}, #{forceOnDependent}, #{defaultValue}, #{valueFormat}, #{description})}
 	 </insert>
 
     <update id="updateClazzAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAttribute" statementType="CALLABLE">
@@ -39,7 +39,7 @@
 	<!-- End - md_class_attribute mappings -->
 
     <insert id="addClazzAction" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAction" statementType="CALLABLE">
-       {call md_add_class_action(#{classId}, #{actionName}, #{isInheritable}, #{description}, #{arguments}, #{actionId,jdbcType=INTEGER, mode=OUT})}
+       {call md_add_class_action(#{classId}, #{actionName}, #{isInheritable}, #{description}, #{arguments})}
     </insert>
 
     <update id="updateClazzAction" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzAction" statementType="CALLABLE">

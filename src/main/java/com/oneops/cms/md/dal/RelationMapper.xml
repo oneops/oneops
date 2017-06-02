@@ -25,7 +25,7 @@
     </update>
 
 	 <insert id="addRelationAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsRelationAttribute" statementType="CALLABLE">
-	    {call md_add_relation_attribute(#{relationId}, #{attributeName}, #{dataType}, #{isMandatory}, #{defaultValue}, #{valueFormat}, #{description}, #{attributeId,jdbcType=INTEGER, mode=OUT})}
+	    {call md_add_relation_attribute(#{relationId}, #{attributeName}, #{dataType}, #{isMandatory}, #{defaultValue}, #{valueFormat}, #{description})}
 	 </insert>
 
     <update id="updateRelationAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsRelationAttribute" statementType="CALLABLE">
@@ -37,7 +37,7 @@
     </update>
 
     <insert id="addRelationTarget" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzRelation" statementType="CALLABLE">
-       {call md_add_relation_target(#{relationId}, #{fromClassId}, #{toClassId}, #{isStrong}, #{linkType}, #{description}, #{linkId,jdbcType=INTEGER, mode=OUT})}
+       {call md_add_relation_target(#{relationId}, #{fromClassId}, #{toClassId}, #{isStrong}, #{linkType}, #{description})}
     </insert>
 
     <update id="deleteRelationTarget" flushCache="true" parameterType="int" statementType="CALLABLE">
