@@ -13,7 +13,11 @@
     <div class="menu">
       <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
       <ul class="dropdown-menu">
-        <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+        <% if menu.start_with?('<li>') %>
+          <%= raw menu %>
+        <% else %>
+          <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+        <% end %>
       </ul>
     </div>
   <% end %>

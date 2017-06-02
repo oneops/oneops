@@ -211,6 +211,20 @@ class SupportController < ReportsController
     super
   end
 
+  def deployment_to_all_primary_check
+    ok = true
+    doc = MiscDoc.deployment_to_all_primary_check
+    doc_hash = doc.document
+    if request.put?
+      doc_hash.clear if params[:clear] || params[:delete_all]
+      delete = params[:delete]
+      (delete.is_a?(Array) ? delete : [delete]).each {|ns| doc_hash.delete(ns)} if delete.present?
+      add = params[:add]
+      (add.is_a?(Array) ? add : [add]).each {|ns| doc_hash[ns] = true} if add.present?
+      ok = doc.save
+    end
+    render_json_ci_response(ok, doc)
+  end
 
   protected
 

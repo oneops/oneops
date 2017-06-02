@@ -1,6 +1,127 @@
 <% allow_actions = in_transition? && has_transition?(@assembly.ciId)
-   in_operations = in_operations? %>
-<ul class="status">
+   in_operations = in_operations?
+   warning = @clouds.select {|r| r.relationAttributes.adminstatus != 'offline' && r.relationAttributes.priority == '1'}
+       .group_by {|r| r.relationAttributes.dpmt_order}.size < 2  %>
+<% if warning %>
+  <div class="alert alert-danger">
+    <i class="fa fa-warning"><b>WARNING!</b></i>
+    Current deployment order configuration is <b>unsafe and inadvisble</b> - all operating primary clouds have the
+    same deployment order. Such configuration <b>may result in operation outage</b> for your application
+    during deployments to all primary clouds. It is <b>strongly advised to change</b> cloud configuration
+    to ensure that all primary clouds do not have the same deployment order.
+  </div>
+<% end %>
+<%= list(@clouds,
+         :list_name => 'platform_clouds',
+         :toolbar   => {:sort_by   => [%w(Name ciName), %w(Priority priority), %w(Status status)],
+                        :filter_by => %w(ciName priority status)}) do |builder, cloud| %>
+  <% cloud_id       = cloud.toCi.ciId
+     cloud_name     = cloud.toCi.ciName
+     status         = cloud.relationAttributes.adminstatus
+     priority       = cloud.relationAttributes.priority
+     primary        = priority == '1'
+     priority_label = primary ? 'primary' : 'secondary' %>
+  <% builder.itemid cloud.toCiId %>
+  <% builder.attributes raw(%(ciName="#{cloud_name}" priority="#{priority_label}" status="#{status}")) %>
+  <% builder.target nil %>
+  <% builder.status do %>
+    <%= marker(priority_label, primary ? 'label-info' : '') %>
+    <%= status_marker('status', status, cloud_admin_status_label(status)) %>
+  <% end %>
+  <% builder.top do %>
+    <span class="topdesc"><%= icon('cloud') %></span>
+    <span class="topname"><%= link_to(cloud_name, edit_cloud_path(cloud_id)) %></span>
+  <% end %>
+  <% builder.middle do %>
+    <dl class="dl-horizontal cloud-configuration">
+      <% if primary %>
+        <dt><%= icon('level-up', '', 'text-info') %></dt>
+        <dd>Cloud <%= cloud_name %> is <%= highlight('primary') %>.</dd>
+      <% else %>
+        <dt><%= icon('level-down') %></dt>
+        <dd>Cloud <%= cloud_name %> is <%= highlight('secondary') %>.</dd>
+      <% end %>
+      <% if status == 'active' %>
+        <dt><%= icon('cloud-upload', '', 'text-success') %></dt>
+        <dd>Administrative status of cloud <%= cloud_name %> is <%= highlight(status) %>.</dd>
+        <dt><%= icon('play', '', 'text-success') %></dt>
+        <dd>All transition and operations activity to this cloud is <%= highlight('enabled') %>.</dd>
+      <% elsif status == 'inactive' %>
+        <dt><%= icon('pause', '', 'text-error') %></dt>
+        <dd>
+          All transition and operations activity to this cloud is <%= highlight('ignored') %>.
+          Any existing instances running in this cloud will not be affected.
+        </dd>
+      <% else %>
+        <dt><%= icon('cloud-download', '', 'muted') %></dt>
+        <dd>Administrative status of cloud <%= cloud_name %> is <%= highlight(status) %>.</dd>
+      <% end %>
+      <dt><%= icon('sort-numeric-asc') %></dt>
+      <dd id="dpmt_order_<%= cloud_id %>">
+        <% dpmt_order = cloud.relationAttributes.attributes['dpmt_order'] || cloud.meta.mdAttributes.find { |a| a.attributeName == 'dpmt_order' }.defaultValue.to_i %>
+        Cloud deployment order is <%= highlight(dpmt_order) %>
+        <div class="hide well well-small">
+          <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+            <%= hidden_field_tag :cloud_id, cloud_id %>
+            <%= number_field_tag 'attributes[dpmt_order]', dpmt_order, :class => 'input-mini', :step => 1 %>
+            <%= button_tag((icon('check', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
+            <%= link_to_function(icon('remove', 'Cancel'), "$j('#dpmt_order_#{cloud_id} > div').hide(500)", :class => 'btn btn-danger') %>
+          <% end %>
+        </div>
+      </dd>
+      <dt><%= icon('sort-amount-asc') %></dt>
+      <dd id="pct_scale_<%= cloud_id %>">
+        <% pct_scale = cloud.relationAttributes.attributes['pct_scale'] || cloud.meta.mdAttributes.find { |a| a.attributeName == 'pct_scale' }.defaultValue.to_i %>
+        Cloud scale at <%= highlight(pct_scale) %>%
+        <div class="hide well well-small">
+          <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+            <%= hidden_field_tag :cloud_id, cloud_id %>
+            <div class="input-append">
+              <%= number_field_tag 'attributes[pct_scale]', pct_scale, :class => 'input-mini', :min => 1 %>
+              <span class="add-on">%</span>
+            </div>
+            <%= button_tag((icon('check', 'Save')), :disable_with => 'Saving...', :class => 'btn btn-success') %>
+            <%= link_to_function(icon('remove', 'Cancel'), "$j('#pct_scale_#{cloud_id} > div').hide(500)", :class => 'btn btn-danger') %>
+          <% end %>
+        </div>
+      </dd>
+      <% if in_operations %>
+        <dt><%= icon('server') %></dt>
+        <dd id="cloud_ips_<%= cloud.toCiId %>">
+          <%= link_to_function('Compute IPs...', 'fetchPlatformIPs(this)') %>
+          <span class="ips hide"></span>
+        </dd>
+      <% end %>
+    </dl>
+    <% if cloud.toCi.ciAttributes.adminstatus == 'offline' %>
+      <div class="alert alert-danger pull-left">
+        <%= icon('exclamation-triangle') %> This cloud is <strong>offline</strong> globally for the whole organization.
+      </div>
+    <% end %>
+  <% end %>
+  <% if allow_actions %>
+    <% builder.menu do %>
+      <% if primary %>
+        <li><%= link_to_function(icon('level-down', 'Make Secondary', 'fa-fw'), "make_cloud_secondary(#{cloud_id})") %></a></li>
+      <% else %>
+        <li class="text-info"><%= link_to_function(icon('level-up', 'Make Primary', 'fa-fw'), "make_cloud_primary(#{cloud_id})") %></a></li>
+      <% end %>
+      <% if status == 'active' %>
+        <li class="text-error"><%= link_to_function(icon('pause', 'Ignore', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'inactive')") %></li>
+        <li class="text-warning">  <%= link_to_function(icon('cloud-download', 'Shutdown', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'offline')") %></li>
+      <% elsif status == 'inactive' %>
+        <li class="text-success"><%= link_to_function(icon('cloud-upload', 'Activate', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'active')") %></li>
+        <li class="text-warning">  <%= link_to_function(icon('cloud-download', 'Shutdown', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'offline')") %></li>
+      <% elsif status == 'offline' %>
+        <li class="text-success"><%= link_to_function(icon('cloud-upload', 'Start', 'fa-fw'), "change_cloud_status(#{cloud_id}, 'active')") %></li>
+      <% end %>
+      <li><%= link_to_function(icon('sort-numeric-asc', 'Change deployment order', 'fa-fw'), "$j('#dpmt_order_#{cloud_id} > div').show(500)") %></a></li>
+      <li><%= link_to_function(icon('sort-amount-asc', 'Change scale percentage', 'fa-fw'), "$j('#pct_scale_#{cloud_id} > div').show(500)") %></a></li>
+    <% end %>
+  <% end %>
+<% end %>
+<% if false %>
+  <ul class="status">
 	<% @clouds.each do |cloud| %>
 		<% cloud_id = cloud.toCi.ciId
        status   = cloud.relationAttributes.adminstatus
@@ -106,6 +227,7 @@
 	  </li>
   <% end %>
 </ul>
+<% end %>
 
 <% if allow_actions %>
   <% primary_clouds = @clouds.select { |c| c.relationAttributes.priority == '1' }

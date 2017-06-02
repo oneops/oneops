@@ -1,4 +1,4 @@
-  class Transition::DeploymentsController < ApplicationController
+class Transition::DeploymentsController < ApplicationController
   before_filter :find_assembly_and_environment, :except => [:log_data, :time_stats, :progress]
   before_filter :find_deployment, :only => [:status, :show, :edit, :update, :time_stats, :progress]
 
@@ -128,20 +128,31 @@
 
   def compile_status
     if @environment.ciState != 'locked' && (@environment.comments.blank? || !@environment.comments.start_with?('ERROR:'))
-      @release = Cms::ReleaseBom.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
+      find_open_bom_release
       if @release
         # Deployment might have been already started in a separate browser session.
-        @deployment  = Cms::Deployment.latest(:releaseId => @release.releaseId)
+        @deployment = Cms::Deployment.latest(:releaseId => @release.releaseId)
         @deployment = Cms::Deployment.build(:releaseId => @release.releaseId) unless @deployment && @deployment.deploymentState == 'active'
         load_bom_release_data
+
         @manifest = Cms::Release.find(@release.parentReleaseId)
+        check_for_override
       end
     end
   end
 
   def create
-    @deployment = Cms::Deployment.build(params[:cms_deployment])
-    ok = execute(@deployment, :save)
+    deployment_hash   = params[:cms_deployment]
+    override_password = deployment_hash.delete(:override_password)
+    @deployment       = Cms::Deployment.build(deployment_hash)
+    ok                = true
+
+    if check_for_override
+      ok = current_user.authenticate(override_password)
+      @deployment.errors.add(:base, 'invalid password, you must provide valid password to proceed') unless ok
+    end
+
+    ok = execute(@deployment, :save) if ok
 
     respond_to do |format|
       format.js do
@@ -152,7 +163,7 @@
           load_bom_release_data
           render :action => :edit
         else
-          flash[:error] = "Failed to deploy: #{@deployment.errors.full_messages}"
+          flash[:error] = "Failed to create deployment: #{@deployment.errors.full_messages.join(';')}."
           render :js => ''
         end
       end
@@ -305,6 +316,10 @@
     @ops_states = Operations::Sensor.states((@rfc_cis.map(&:ciId) + @managed_via.values.map(&:toCiId)).uniq)
   end
 
+  def find_open_bom_release
+    @release = Cms::ReleaseBom.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
+  end
+
   def load_bom_release_data
     load_deployment_states
     load_clouds_and_platforms
@@ -339,11 +354,36 @@
       ["#{platform.ciName}/#{platform.ciAttributes.major_version}", platform]
     end
 
-    @priority = Cms::DjRelation.all(:params => {:nsPath            => environment_manifest_ns_path(@environment),
-                                                :fromClassName     => 'manifest.Platform',
-                                                :relationShortName => 'Consumes',
-                                                :recursive         => true}).to_map_with_value do |r|
-      ["#{r.nsPath.split('/', 6).last}/#{r.toCiId}", r.relationAttributes.priority]
+    platform_consumes = Cms::DjRelation.all(:params => {:nsPath            => environment_manifest_ns_path(@environment),
+                                                        :fromClassName     => 'manifest.Platform',
+                                                        :relationShortName => 'Consumes',
+                                                        :recursive         => true})
+    @primary_clouds = platform_consumes.
+      select {|r| r.relationAttributes.adminstatus != 'offline' && r.relationAttributes.priority == '1'}.
+      group_by {|r| r.nsPath.split('/', 6).last}
+    @priority = platform_consumes.to_map_with_value {|r| ["#{r.nsPath.split('/', 6).last}/#{r.toCiId}", r.relationAttributes.priority]}
+  end
+
+  def check_for_override
+    doc = MiscDoc.deployment_to_all_primary_check.document
+    ns_path = @environment.nsPath
+    return unless doc['*'] || doc.any? {|k, v| (ns_path.start_with?(k) || /#{k}/.match(ns_path)) && v}
+
+    platforms = []
+    find_open_bom_release unless @release
+    load_bom_release_data unless @rfc_cis
+    @rfc_cis.group_by {|rfc| rfc.nsPath.split('/bom/').last}.each do |p, rfcs|
+      primary_clouds = @primary_clouds[p]
+      if primary_clouds.size > 1
+        cloud_map = primary_clouds.to_map(&:toCiId)
+        deployment_order = rfcs.inject({}) do |h, rfc|
+          cloud = cloud_map[rfc.ciName.split('-')[-2].to_i]
+          h[cloud.relationAttributes.dpmt_order] = true if cloud
+          h
+        end
+        platforms << p if deployment_order.size == 1
+      end
     end
+    @override = {:SIMULTANEOUS_DEPLOYMENT_TO_ALL_PRIMARY => {:platforms => platforms}} if platforms.present?
   end
 end

@@ -29,6 +29,14 @@ class Transistor < ActiveResource::Base
     end
   end
 
+  def self.import_environment(env, data)
+    begin
+      return JSON.parse(post("environments/#{env.ciId}/import", {}, data.to_json).body)['result'] == 'success'
+    rescue Exception => e
+      return false, handle_exception(e, 'Failed to import environment:')
+    end
+  end
+
   def self.export_catalog(design_id)
     get("catalogs/#{design_id}/export")
   end
