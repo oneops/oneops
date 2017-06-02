@@ -137,9 +137,15 @@ public class CmsDpmtProcessor {
 				createDeployment(dpmt);
 			}
 		}
-		logger.info("Created new deployment, dpmtId = " + dpmt.getDeploymentId());
 		
-		return dpmtMapper.getDeployment(dpmt.getDeploymentId());
+		// retrieve deployment from the db to fetch deploymentID
+		existingDpmts = dpmtMapper.findLatestDeploymentByReleaseId(dpmt.getReleaseId(), null);
+		if (existingDpmts.size()==1) {
+			dpmt = existingDpmts.get(0);
+		}
+
+		logger.info("Created new deployment, dpmtId = " + dpmt.getDeploymentId());
+		return dpmt;
 	}
 	
 	private void createDeployment(CmsDeployment dpmt) {
