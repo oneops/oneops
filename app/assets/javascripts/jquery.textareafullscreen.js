@@ -32,7 +32,7 @@
         relocate($editor);
 
         $el.focus();
-        $el[0].setSelectionRange();
+        $el[0].setSelectionRange(0, 0);
         if (!isFullscreen()) {
             $editor.css('opacity', 1);
         }

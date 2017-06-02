@@ -57,7 +57,7 @@ module ApplicationHelper
   end
 
   def organization_home
-    current_user.organization_id? ? content_tag(:div, link_to(current_user.organization.name, organization_path).html_safe, :class => "title_text" ) : ''
+    current_user.organization ? content_tag(:div, link_to(current_user.organization.name, organization_path).html_safe, :class => "title_text" ) : ''
   end
 
   def app_nav(items)
@@ -75,7 +75,7 @@ module ApplicationHelper
 
   def organization_title
     content_for(:title) { organization_home }
-    content_for(:title_clean) {"#{current_user.organization_id? ? current_user.organization.name : ''} | OneOps" }
+    content_for(:title_clean) {"#{current_user.organization ? current_user.organization.name : ''} | OneOps" }
   end
 
   def root_page_header(selected = nil)
@@ -92,7 +92,7 @@ module ApplicationHelper
   end
 
   def organization_page_header(selected = nil)
-    return unless user_signed_in? && current_user.organization_id.present?
+    return unless user_signed_in? && current_user.organization
 
     organization_title
     menu_items = []
@@ -879,7 +879,7 @@ module ApplicationHelper
   end
 
   def wizard
-    return unless user_signed_in? && current_user.organization_id.present? && current_user.show_wizard?
+    return unless user_signed_in? && current_user.organization && current_user.show_wizard?
 
     assembly = if @assembly && @assembly.persisted?
       @assembly.is_a?(Cms::Ci) ? @assembly : (@assembly.is_a?(Cms::Relation) ? @assembly.toCi : nil)
@@ -1300,6 +1300,6 @@ module ApplicationHelper
   end
 
   def expandable_content(options = {}, &block)
-    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, capture(&block), :class => 'hide'))
+    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
   end
 end

@@ -1939,7 +1939,6 @@ img.authicon {
 
 .list-body li .content .middle a:link, .list-body li .content .middle a:active, .list-body li .content .middle a:visited {
   text-decoration: none;
-/*  color:           #333;*/
 }
 
 .list-body li .content .middle a:hover {
@@ -1951,7 +1950,7 @@ img.authicon {
 	height: 30px;
 }
 
-.list-body li .content .middle a i {
+.list-body li .content .middle a:not(.btn) i {
   color: #333;
 }
 
@@ -2576,6 +2575,9 @@ ul.status div.description .menu .dropdown-menu:after {
   display: block;
 }
 
+ul.status div.description .menu .dropdown-menu > li > a {
+  color: inherit;
+}
 ul.status div.description .menu .dropdown-menu > li > a {
   color: inherit;
 }
@@ -4706,4 +4708,21 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 .text-black {
   color: black;
+}
+
+.list-body li .content .middle dl.dl-horizontal.cloud-configuration {
+  width: 95%;
+}
+
+.list-body li .content .middle dl.dl-horizontal.cloud-configuration dt {
+  width: 35px;
+}
+
+.list-body li .content .middle dl.dl-horizontal.cloud-configuration dd {
+  margin-left: 45px;
+  white-space: normal;
+}
+
+.dropdown-menu > li > a {
+  color: inherit;
 }

@@ -305,7 +305,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
 
   def load
     data_file = params[:data_file]
-    loaded, message = Transistor.import_design(@assembly, (data_file && data_file.read).presence || params[:data])
+    loaded, message = Transistor.import_environment(@environment, (data_file && data_file.read).presence || params[:data])
 
     respond_to do |format|
       format.json do

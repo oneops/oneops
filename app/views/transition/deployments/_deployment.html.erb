@@ -271,6 +271,41 @@
             <%= render 'pending_approvals' if @approvals.present? %>
           </tr>
         <% elsif @deployment %>
+          <% if @override %>
+            <% if @override[:SIMULTANEOUS_DEPLOYMENT_TO_ALL_PRIMARY] %>
+              <% overide_plats = @override[:SIMULTANEOUS_DEPLOYMENT_TO_ALL_PRIMARY][:platforms].map {|p| p.gsub('/', ' ver.')} %>
+              <tr>
+                <td colspan="2">
+                  <div class="alert alert-danger">
+                    <i class="fa fa-2x fa-warning"><b>WARNING</b></i><br/>
+                    This deployment plan will execute simultaneous deployments to active primary clouds for
+                    <% if overide_plats.size == 1 %>
+                      platform <em><%= overide_plats.first %></em>.
+                    <% else %>
+                      <%= pluralize(overide_plats.size, 'platform') %>
+                      (<em><%= overide_plats[0..1].join(', ') %>
+                      <% if overide_plats.size > 2 %>
+                        , <%= expandable_content(:content => overide_plats[2..-1].join(', ')) %>
+                      <% end %>
+                      </em>).
+                    <% end %>
+                    It appears that deployment order was NOT configured properly for clouds used by <%= overide_plats.size > 1 ? 'these plaforms' : 'this platform' %>. <br/>
+                    It is <b>strongly advised NOT TO PROCEED</b> with this deployment as it is <b>likely to result in operation
+                    outage</b> for your application.  Instead, discard this deployment plan and configure appropriate deployment order
+                    for your primary clouds in each platform.
+                    If you decide to ignore this warning and to proceed with deployment you must enter your password below to acknowledge
+                    potential adverse consenquences of executing this deployment plan.
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+            <tr>
+              <td colspan="2">
+                <label>Enter password to acknowledge warning if still proceeding with deployment</label>
+                <%= password_field_tag(:override_password, nil, :placeholder => 'your password', :oninput => "$j('#controls_new .deploy-action button').attr('disabled', !this.value.length);") %>
+              </td>
+            </tr>
+          <% end %>
           <tr id="controls_new">
             <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
             <td><%= render 'transition/deployments/action',
@@ -392,13 +427,15 @@
     });
   <% else %>
     var deployForm = $j("#controls_new, #controls_failed").find("form.deploy-action");
-  console.log(deployForm);
-    deployForm.submit(function() {
-              $j('.autopause input:checkbox:checked').each(function() {
-                deployForm.append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value +" />");
-              });
-              $j("input#cms_deployment_continueOnFailure").val($j('input#continueOnFailure').val());
-            });
+    deployForm.submit(function () {
+      $j('.autopause input:checkbox:checked').each(function () {
+        deployForm.append("<input type='hidden' name='cms_deployment[autoPauseExecOrders][]' value=" + this.value + " />");
+      });
+      <% if @override %>
+        deployForm.find("input#cms_deployment_override_password").val($j("#override_password").val());
+      <% end %>
+      $j("input#cms_deployment_continueOnFailure").val($j('input#continueOnFailure').val());
+    });
   <% end %>
 
   setTimeout(overlay_scroll_into_view, 100);

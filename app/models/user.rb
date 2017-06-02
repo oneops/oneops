@@ -16,24 +16,20 @@ class User < ActiveRecord::Base
 
   if Settings.authentication == 'ldap'
     before_save :get_ldap_info
-  end
-
-  case Settings.authentication
-    when 'ldap'
-      devise :ldap_authenticatable,
-             :registerable,
-             :trackable,
-             :timeoutable
-    else
-      devise :database_authenticatable,
-             :confirmable,
-             :lockable,
-             :recoverable,
-             :registerable,
-             :rememberable,
-             :trackable,
-             :validatable,
-             :timeoutable
+    devise :ldap_authenticatable,
+           :registerable,
+           :trackable,
+           :timeoutable
+  else
+    devise :database_authenticatable,
+           :confirmable,
+           :lockable,
+           :recoverable,
+           :registerable,
+           :rememberable,
+           :trackable,
+           :validatable,
+           :timeoutable
   end
 
   BLACKLIST_FOR_SERIALIZATION.concat([:authentication_token, :session_token, :eula_accepted_at, :show_wizard, :organization_id])
@@ -86,6 +82,10 @@ class User < ActiveRecord::Base
     self.organization = org
     team_users.joins(:team).where("teams.organization_id" => org.id).update_all(last_sign_in_at: DateTime.now)
     save
+  end
+
+  def authenticate(password)
+    password.present? && (Settings.authentication == 'ldap' ? valid_ldap_authentication?(password) : valid_password?(password))
   end
 
   def favorite(ci_id)

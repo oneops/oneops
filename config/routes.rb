@@ -52,6 +52,8 @@ Display::Application.routes.draw do
       get  'users'
       get  'user'
       get  'cost'
+      get 'deployment_to_all_primary_check'
+      put 'deployment_to_all_primary_check'
 
       get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
