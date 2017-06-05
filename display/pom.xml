@@ -8,7 +8,8 @@
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>display</artifactId>
-  <name>OneOps :: Display</name><build>
+  <name>OneOps :: Display</name>
+  <build>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
