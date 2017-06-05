@@ -6,7 +6,7 @@
    else
      search_by_ip_opts = {:package        => '*',
                           'class-name'    => 'Compute',
-                          'query'         => '<IP>'}
+                          'query'         => 'IP'}
    end
    locals = {:quick_filters => {'Compute Instances by IP...' => {:filters => search_by_ip_opts,
                                                                  :run     => false},
