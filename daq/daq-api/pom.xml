@@ -5,28 +5,28 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>daq-parent</artifactId>
-    <version>1.0.0</version>
+    
     <relativePath>../pom.xml</relativePath>
-  </parent>
+  <version>1.0.5-SNAPSHOT</version></parent>
   <groupId>com.oneops</groupId>
   <artifactId>daq-api</artifactId>
   <packaging>war</packaging>
 
-  <dependencies>
+  <name>OneOps :: Daq-api</name><dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>daq-common</artifactId>
-      <version>${project.version}</version>
+      
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
-      <version>${spring.version}</version>
+      
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-oxm</artifactId>
-      <version>${spring.version}</version>
+      
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
@@ -37,23 +37,13 @@
     <dependency>
       <groupId>org.testng</groupId>
       <artifactId>testng</artifactId>
-      <version>${testng.version}</version>
+      
       <scope>test</scope>
     </dependency>
   </dependencies>
   <build>
-    <finalName>daq-api-1.0.0</finalName>
     <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <debug>true</debug>
-          <encoding>UTF-8</encoding>
-        </configuration>
-      </plugin>
+      
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <configuration>

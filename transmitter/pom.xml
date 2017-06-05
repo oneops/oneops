@@ -1,57 +1,44 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.oneops</groupId>
+    <artifactId>oneops-parent</artifactId>
+    <version>1.0.5-SNAPSHOT</version>
+  </parent>
 
     <groupId>com.oneops</groupId>
     <artifactId>transmitter</artifactId>
     <packaging>war</packaging>
-    <version>1.0.0</version>
-    <name>transmitter</name>
+    <name>OneOps :: Transmitter</name>
     <url>http://maven.apache.org</url>
 
     <properties>
-        <spring.version>4.1.5.RELEASE</spring.version>
-        <junit.version>4.7</junit.version>
-        <activemq.version>5.11.1</activemq.version>
-        <postgresql.version>9.3-1104-jdbc4</postgresql.version>
-        <gson.version>1.6</gson.version>
-        <slf4j-api.version>1.6.1</slf4j-api.version>
-        <slf4j-simple.version>1.6.1</slf4j-simple.version>
-        <xstream.version>1.4.8</xstream.version>
-        <jstl-impl.version>1.2</jstl-impl.version>
-        <servlet-api.version>2.5</servlet-api.version>
-        <libs.version>1.0.0</libs.version>
-        <simple-xml.version>2.6.6</simple-xml.version>
-        <cmsdal.version>1.0.4</cmsdal.version>
-        <mockito-all.version>1.8.4</mockito-all.version>
-        <mockrunner.version>0.3.1</mockrunner.version>
-        <awaitility.version>1.7.0</awaitility.version>
-        <guava.version>16.0.1</guava.version>
-        <gitTag>${project.version}</gitTag>
-    </properties>
+        
+        <gitTag>${project.version}</gitTag></properties>
 
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -62,43 +49,43 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-runtime-config</artifactId>
-            <version>${activemq.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.jayway.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-orm</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-oxm</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.thoughtworks.xstream</groupId>
             <artifactId>xstream</artifactId>
-            <version>${xstream.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>xpp3_min</artifactId>
@@ -109,17 +96,17 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j-api.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j-simple.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.glassfish.web</groupId>
             <artifactId>jstl-impl</artifactId>
-            <version>${jstl-impl.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>jsp-api</artifactId>
@@ -130,56 +117,46 @@
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
-            <version>${servlet-api.version}</version>
+            
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.oneops</groupId>
             <artifactId>oo-commons</artifactId>
-            <version>${libs.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.simpleframework</groupId>
             <artifactId>simple-xml</artifactId>
-            <version>${simple-xml.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.oneops.cms</groupId>
             <artifactId>cmsdal</artifactId>
-            <version>${cmsdal.version}</version>
+            
             <optional>false</optional>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
-            <version>${mockito-all.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.mockrunner</groupId>
             <artifactId>mockrunner</artifactId>
-            <version>${mockrunner.version}</version>
+            
             <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
-        <finalName>transmitter</finalName>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <debug>true</debug>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
+            
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>

@@ -6,25 +6,22 @@
     <parent>
         <groupId>com.oneops</groupId>
         <artifactId>daq-parent</artifactId>
-        <version>1.0.0</version>
+        
         <relativePath>../pom.xml</relativePath>
-    </parent>
+    <version>1.0.5-SNAPSHOT</version></parent>
     <groupId>com.oneops</groupId>
     <artifactId>daq-common</artifactId>
     <packaging>jar</packaging>
-    <properties>
-        <activemq.version>5.11.1</activemq.version>
-    </properties>
-    <dependencies>
+    <name>OneOps :: Daq-common</name><dependencies>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-beans</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-pool</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>

@@ -1,92 +1,84 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.oneops</groupId>
+    <artifactId>oneops-parent</artifactId>
+    <version>1.0.5-SNAPSHOT</version>
+  </parent>
 
   <groupId>com.oneops</groupId>
   <artifactId>cms-admin</artifactId>
   <packaging>war</packaging>
-  <version>1.0.0</version>
-  <name>cms-admin Maven Webapp</name>
+  <name>OneOps :: Cms-admin</name>
   <url>http://maven.apache.org</url>
-
-  <properties>
-     <spring.version>4.1.5.RELEASE</spring.version>
-     <junit.version>4.7</junit.version>
-      <activiti-engine.version>5.13</activiti-engine.version>
-      <activiti-spring.version>5.13</activiti-spring.version>
-      <log4j.version>1.2.16</log4j.version>
-      <commons-dbcp.version>1.4</commons-dbcp.version>
-      <postgresql.version>9.3-1104-jdbc4</postgresql.version>
-      <jstl-impl.version>1.2</jstl-impl.version>
-      <cmsdal.version>1.0.4</cmsdal.version>
-  </properties>
 
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
+      
       <scope>test</scope>
     </dependency>
    	<dependency>
         <groupId>log4j</groupId>
         <artifactId>log4j</artifactId>
-        <version>${log4j.version}</version>
+        
     </dependency>
 	<dependency>
 	  <groupId>org.activiti</groupId>
 	  <artifactId>activiti-engine</artifactId>
-   	  <version>${activiti-engine.version}</version>
+   	  
 	</dependency>
 	<dependency>
 	  <groupId>org.activiti</groupId>
 	  <artifactId>activiti-spring</artifactId>
-   	  <version>${activiti-spring.version}</version>
+   	  
 	</dependency>
   	<dependency>
   		<groupId>commons-dbcp</groupId>
   		<artifactId>commons-dbcp</artifactId>
-  		<version>${commons-dbcp.version}</version>
+  		
   	</dependency>
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-beans</artifactId>
-        <version>${spring.version}</version>
+        
     </dependency>
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-context</artifactId>
-        <version>${spring.version}</version>
+        
     </dependency>
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-core</artifactId>
-        <version>${spring.version}</version>
+        
     </dependency>
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-jdbc</artifactId>
-        <version>${spring.version}</version>
+        
     </dependency>
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-webmvc</artifactId>
-        <version>${spring.version}</version>
+        
     </dependency>
     <dependency>
         <groupId>org.springframework</groupId>
         <artifactId>spring-web</artifactId>
-        <version>${spring.version}</version>
+        
     </dependency>
   	<dependency>
   		<groupId>org.postgresql</groupId>
   		<artifactId>postgresql</artifactId>
-  		<version>${postgresql.version}</version>
+  		
   	</dependency>
   	<dependency>
   		<groupId>org.glassfish.web</groupId>
   		<artifactId>jstl-impl</artifactId>
-  		<version>${jstl-impl.version}</version>
+  		
   		<exclusions>
   			<exclusion>
   				<artifactId>jsp-api</artifactId>
@@ -97,33 +89,15 @@
   	<dependency>
   		<groupId>com.oneops.cms</groupId>
   		<artifactId>cmsdal</artifactId>
-  		<version>${cmsdal.version}</version>
+  		
   		<optional>false</optional>
   	</dependency>
   </dependencies>
   
-   <repositories>
-     <repository>
-         <id>org.activiti</id>
-         <name>activiti workflo engine repo</name>
-         <url>https://maven.alfresco.com/nexus/content/repositories/activiti</url>
-     </repository>
-   </repositories>
-  
   
   <build>
-    <finalName>cms-admin</finalName>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <debug>true</debug>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
+            
            <plugin>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-maven-plugin</artifactId>
