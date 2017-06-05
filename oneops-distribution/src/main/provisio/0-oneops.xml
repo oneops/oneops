@@ -1,0 +1,39 @@
+<assembly outputDirectory="${basedir}/target/distribution-${project.version}-oneops">
+  <artifactSet to="oneops/dist">
+    <artifact id="com.oneops.cms:adapter:war:${project.version}" as="adapter.war"/>
+    <artifact id="com.oneops:antenna:war:${project.version}" as="antenna.war"/>
+    <artifact id="com.oneops:cms-admin:war:${project.version}" as="cms-admin.war"/>
+    <artifact id="com.oneops:controller:war:${project.version}" as="controller.war"/>
+    <artifact id="com.oneops:opamp:war:${project.version}" as="opamp.war"/>
+    <artifact id="com.oneops:sensor:war:${project.version}" as="sensor.war"/>
+    <artifact id="com.oneops:transistor:war:${project.version}" as="transistor.war"/>
+    <artifact id="com.oneops:transmitter:war:${project.version}" as="transmitter.war"/>
+    <artifact id="com.oneops:display:tar.gz:${project.version}" as="app.tar.gz"/>
+    <artifact id="com.oneops:daq-api:war:${project.version}" as="daq-api-1.0.0.war"/>
+    <artifact id="com.oneops:db-schema:tar.gz:${project.version}" as="db.tar.gz"/>
+    <artifact id="com.oneops:daq-common:${project.version}" as="daq-common-1.0.0.jar">
+      <exclusion id="*:*"/>
+    </artifact>
+    <artifact id="com.oneops:daq-collector:${project.version}" as="daq-collector-1.0.0.jar">
+      <exclusion id="*:*"/>
+    </artifact>
+    <artifact id="com.oneops:search:${project.version}" as="search.jar">
+      <exclusion id="*:*"/>
+    </artifact>
+    <artifact id="com.oneops:inductor:${project.version}" as="inductor-1.1.0.jar">
+      <exclusion id="*:*"/>
+    </artifact>
+  </artifactSet>
+  <artifactSet to="/">
+    <artifact id="com.oneops:amqplugin:tar.gz:${project.version}">
+      <unpack useRoot="true"/>
+    </artifact>
+    <artifact id="com.oneops:amqplugin:tar.gz:${project.version}">
+      <unpack useRoot="true"/>
+    </artifact>
+    <artifact id="com.oneops:oneops-admin:tar.gz:${project.version}">
+      <unpack useRoot="true"/>
+    </artifact>
+  </artifactSet>
+  <archive name="distribution-${project.version}-oneops.tar.gz" classifier="oneops"/>
+</assembly>

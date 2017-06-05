@@ -1,0 +1,11 @@
+<runtime>
+  <archive
+    prefix="oneops/dist/"
+    name="${basedir}/target/${project.artifactId}-${project.version}.tar.gz"/>
+  <fileSet to="/">
+    <file path="${basedir}/target/amqplugin-${project.version}-fat.jar"
+      as="amqplugin-fat.jar"/>
+    <file path="${basedir}/target/amqplugin-${project.version}-amq-config.tar.gz"
+      as="amq-config.tar.gz"/>
+   </fileSet>
+</runtime>

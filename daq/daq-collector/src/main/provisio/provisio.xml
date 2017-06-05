@@ -1,0 +1,15 @@
+<runtime>
+  <archive
+    prefix="oneops/dist/"
+    name="${basedir}/target/${project.artifactId}-${project.version}.tar.gz"/>
+  <fileSet to="/">
+     <directory path="${basedir}/target">
+       <include>daq-collector*.jar</include>
+     </directory>
+   </fileSet>
+   <artifactSet to="/">
+     <artifact id="com.oneops:daq-common:${project.version}">
+       <exclusion id="*:*"/>
+     </artifact>
+   </artifactSet>
+</runtime>
