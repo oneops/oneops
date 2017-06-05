@@ -11,6 +11,6 @@
   <packaging>provisio</packaging>
   <name>OneOps :: Distribution</name>
   <properties>
-    <tarballVersion>continuous</tarballVersion>
+    <tarballVersion>${project.version}</tarballVersion>
   </properties>
 </project>
