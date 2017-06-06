@@ -8,8 +8,8 @@
       <%= f.hidden_field :releaseId %>
       <%= f.hidden_field :nsPath, :value => @release.nsPath %>
       <%= f.hidden_field :continueOnFailure %>
-      <%= f.hidden_field :comments, :value => @manifest.description + (@override ? " #{@override.keys.join(' ')}" : '') %>
-      <%= f.hidden_field :ops, :value => warning if defined?(warning) && warning %>
+      <%= f.hidden_field :comments, :value => "#{@manifest.description}#{" #{@override.keys.join(' ')}" if @override}" %>
+      <%= f.hidden_field :ops, :value => warning if defined?(warning) && warning %>ye
       <%= f.hidden_field :override_password, :value => '' if @override %>
       <%= f.button((icon('check', 'Deploy')), :data => {:disable_with => 'Deploying...'}, :class => 'btn btn-success', :name => 'deploy', :disabled => @override) %>
     <% end %>
