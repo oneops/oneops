@@ -1,0 +1,11 @@
+<%= locals = {:resource => @service,
+              :content  => 'service_details_content',
+              :remote   => false}
+    if @service.new_record?
+      locals[:form_url] = services_path
+    else
+      locals[:form_url]    = service_path
+      locals[:destroy_url] = service_path
+    end
+    locals[:cancel_url] = services_path
+    render 'base/shared/edit_form', locals %>

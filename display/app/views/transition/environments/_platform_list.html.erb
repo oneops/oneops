@@ -1,0 +1,90 @@
+<% has_transition  = has_transition?(@assembly.ciId)
+   ci_relation_map = @platforms.to_map(&:toCiId) %>
+<%= ci_list(@platforms.map(&:toCi),
+            :menu => has_transition &&
+                     [{:id => 'enable',  :label => 'Enable', :function => 'enable_transition_assembly', :param_name => 'platformCiIds'},
+                      {:id => 'disable',  :label => 'Disable', :function => 'disable_transition_assembly', :param_name => 'platformCiIds'}],
+            :toolbar => {:sort_by   => [%w(Name ciName), %w(Created created), %w(Status status)],
+                         :filter_by => %w(ciName status)}) do |builder, target| %>
+  <% relation   = ci_relation_map[target.ciId]
+     rfc_action = target.respond_to?(:rfcAction) && target.rfcAction
+     enabled    = relation.relationAttributes.enabled == 'true'
+     active     = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true %>
+  <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}") %>
+  <% builder.target link_to('', assembly_transition_environment_platform_path(@assembly, @environment, target)) %>
+  <% builder.status do %>
+    <% availability = target.ciAttributes.availability %>
+    <div class="marker" title="<%= availability %> availability">
+      <%= icon(availability == 'redundant' ? 'cubes' : 'cube', '', 'fa-lg fa-fw') %>
+    </div>
+	  <%= status_marker('version',"#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
+    <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if rfc_action %>
+    <%= marker('disabled','label-important') unless enabled %>
+    <%= instance_marker(@platform_clouds, target) %>
+  <% end %>
+  <% if has_transition %>
+    <% builder.menu do |ci| %>
+      <% unless active %>
+        <%= link_to icon('eject', 'Terminate'),
+                    assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                    :title        => 'Terminate',
+                    :method       => :delete,
+                    :disable_with => 'wait...',
+                    :remote       => true %>
+        <% if enabled %>
+        		<%= link_to icon('play', 'Activate'),
+                      activate_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                      :title        => 'Activate',
+                      :disable_with => 'wait...',
+                      :remote       => true %>
+        <% end %>
+      <% end %>
+      <% unless rfc_action == 'delete' %>
+        <%= caption = enabled ? 'Disable' : 'Enable'
+            link_busy enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
+              { :url          => toggle_assembly_transition_environment_platform_path(@assembly, @environment, ci),
+                :class        => 'toggle-platform',
+                :title        => caption,
+                :disable_with => 'wait...',
+                :remote       => true } %>
+      <% end %>
+    <% end %>
+  <% end %>
+  <% builder.icon platform_image_url(target) %>
+  <% builder.top do %>
+    <span class="topname"><%= target.ciName %></span>
+  <% end %>
+  <% builder.middle target.ciAttributes.description %>
+<% end %>
+
+<script>
+  window.enable_transition_assembly = function (actionId, platformCiIds) {
+    window.platform_ids = $j.map(platformCiIds, function (i) {
+      return "platformCiIds[]=" + i;
+    }).join("&");
+
+    render_modal("enable_transition_assembly",
+                 "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                               {:modal_id => 'enable_transition_assembly',
+                                                :url => enable_assembly_transition_environment_path,
+                                                :method => :put,
+                                                :confirm => 'Enable?',
+                                                :body    => 'Enable platforms?',
+                                                :with    => 'window.platform_ids'})) %>");
+  };
+
+  window.disable_transition_assembly = function (actionId, platformCiIds) {
+    window.platform_ids = $j.map(platformCiIds, function (i) {
+      return "platformCiIds[]=" + i;
+    }).join("&");
+
+    render_modal("disable_transition_assembly",
+                 "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                                               {:modal_id => 'disable_transition_assembly',
+                                                :url => disable_assembly_transition_environment_path,
+                                                :method => :put,
+                                                :confirm => 'Disable?',
+                                                :body    => 'Disable platforms?',
+                                                :with    => 'window.platform_ids'})) %>");
+  }
+</script>

@@ -1,0 +1,41 @@
+<%= section_panel 'Organizations',
+                  :width => 'double',
+                  :menu => [link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")', :class => 'btn btn-mini')] do %>
+  <%= list(current_user.organizations.joins(:teams).select('organizations.*, count(teams.id) as team_count').group('organizations.id').all,
+           :new_link => link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")'),
+           :toolbar  => {:sort_by => [%w(Name name), %w(Created created)], :filter_by => %w(name)}) do |builder, org| %>
+    <% builder.itemid org.id %>
+    <% builder.attributes raw(%(name="#{org.name}" created="#{org.created_at}")) %>
+    <% builder.target link_to('', change_organization_account_profile_path(:org_id => org.id), :method => :put) %>
+    <% builder.top org.name %>
+    <% builder.middle do %>
+      <strong><%= org.team_count %></strong> <%= 'team'.pluralize(org.team_count) %>
+    <% end %>
+    <% builder.bottom do %>
+      created <%= time_ago_in_words(org.created_at) %>
+    <% end %>
+
+    <% builder.menu do %>
+      <% if org.users.count > 1 %>
+        <%= link_to(icon('times', 'Leave'), leave_account_organization_path(org), :method => :delete, :remote => true, :confirm => "Leave organization #{org.name}?") %>
+      <% else %>
+        <%= link_to(account_organization_path(org), :method => :delete, :remote => true, :confirm => "Permanently delete organization #{org.name}?") do %>
+          <span class="text-error"><%= icon('trash', 'Delete') %></span>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<% if Settings.allow_create_orgs %>
+  <%= section_panel 'New Organization', :width => 'single' do %>
+    <span class="help-block">
+      <p class="text-info">
+        <%= icon('info-circle') %>
+        Before creating a new organization first consider joining an existing organization. You can search organizatons
+        to view public profile and to request access.
+      </p>
+      <%= link_to(icon('plus', 'New Organization'), new_account_organization_path, :remote => true, :class => 'btn btn-small') %>
+    </span>
+  <% end %>
+  <div id="new_organization_modal" class="modal hide"></div>
+<% end %>

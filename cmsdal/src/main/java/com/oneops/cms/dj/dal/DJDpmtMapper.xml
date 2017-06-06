@@ -1,0 +1,633 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.dj.dal.DJDpmtMapper">
+
+ 	 <!--cache/-->
+	 <insert id="createDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
+	    {call dj_deploy_release(#{releaseId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{flags},#{autoPauseExecOrdersVal})}
+	 </insert> 
+		
+	 <insert id="createDpmtApproval" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
+	    {call dj_create_dpmt_approval(#{deploymentId}, #{governCiId}, #{governCiJson}, #{expiresIn})}
+	 </insert> 
+
+	 <update id="dpmtApprove" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
+	    {call dj_dpmt_approve(#{approvalId}, #{updatedBy}, #{expiresIn}, #{comments})}
+	 </update> 
+	
+	 <update id="retryDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
+	    {call dj_retry_deployment(#{deploymentId}, #{updatedBy}, #{description}, #{comments})}
+	 </update> 
+
+	 <update id="cancelDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
+	    {call dj_cancel_deployment(#{deploymentId}, #{updatedBy}, #{description}, #{comments})}
+	 </update> 
+
+	 <update id="completeDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
+	    {call dj_complete_deployment(#{deploymentId})}
+	 </update> 
+
+	 <update id="updDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
+	    {call dj_upd_deployment(#{deploymentId}, #{deploymentState}, #{updatedBy}, #{description}, #{comments}, #{processId}, #{autoPauseExecOrdersVal}, #{flags})}
+	 </update> 
+
+	 <update id="updDpmtRecordState" parameterType="com.oneops.cms.dj.domain.CmsDpmtRecord" statementType="CALLABLE">
+	    {call dj_upd_dpmt_record_state(#{dpmtRecordId}, #{dpmtRecordState}, #{comments})}
+	 </update> 
+
+	 <update id="updDpmtApproval" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
+	    {call dj_dpmt_upd_approvla_rec(#{approvalId}, #{updatedBy}, #{expiresIn}, #{comments}, #{state})}
+	 </update> 
+
+	 <update id="resetFailedRecords" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
+	    {call dj_reset_failed_records(#{deploymentId})}
+	 </update> 
+
+	 <select id="getDeployment" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   ds.state_name as deploymentState,
+			   d.process_id as processId, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   (select max(execution_order) from dj_rfc_ci rci, dj_deployment_rfc drfc
+			    where drfc.deployment_id = d.deployment_id
+			      and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
+			   d.auto_pause_exec_orders as autoPauseExecOrdersVal,
+			   d.created,
+			   d.updated
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where d.deployment_id = #{value}
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id	 
+	 </select>
+
+	 <select id="countDeployment" parameterType="map" useCache="false" resultType="long">
+		SELECT count(1)
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where ns.ns_path = #{nsPath}
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+	    and (#{state}::varchar is null or ds.state_name = #{state})
+			 
+	 </select>
+
+	 <select id="countDeploymentRecursive" parameterType="map" useCache="false" resultType="long">
+		SELECT count(1)
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		and (#{state}::varchar is null or ds.state_name = #{state})	 
+	 </select>
+
+	 <select id="countDeploymentGroupByNs" parameterType="map" useCache="false" resultType="hashmap">
+		SELECT ns.ns_path as path, count(1) as cnt
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		and (#{state}::varchar is null or ds.state_name = #{state})
+		group by ns.ns_path	 
+	 </select>
+
+
+	 <select id="findDeployment" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   ds.state_name as deploymentState,
+			   d.process_id as processId, 
+			   d.created,
+			   d.updated 
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where ns.ns_path = #{nsPath}
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		and (#{state}::varchar is null or ds.state_name = #{state})	 
+	 </select>
+
+	<select id="findDeploymentRecursive" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   ds.state_name as deploymentState,
+			   d.process_id as processId, 
+			   d.created,
+			   d.updated 
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		and (#{state}::varchar is null or ds.state_name = #{state})	 
+	 </select>
+
+	 <select id="findLatestDeployment" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   ds.state_name as deploymentState, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   d.process_id as processId,
+			   d.created,
+			   d.updated 
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where d.deployment_id = (select max(d1.deployment_id) from dj_deployment d1, ns_namespaces ns1, dj_deployment_states ds1
+		                         where d1.ns_id = ns1.ns_id
+		                         and ns1.ns_path = #{nsPath}
+		                         and d1.state_id = ds1.state_id
+		                         and (#{state}::varchar is null or ds1.state_name = #{state}))
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+	 </select>
+
+	 <select id="findLatestDeploymentRecursive" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   ds.state_name as deploymentState, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   d.process_id as processId,
+			   d.created,
+			   d.updated 
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where d.deployment_id in (select max(d1.deployment_id) from dj_deployment d1, ns_namespaces ns1, dj_deployment_states ds1
+		                         where d1.ns_id = ns1.ns_id
+		                         and (ns1.ns_path like #{nsLike} or ns1.ns_path = #{ns})
+		                         and d1.state_id = ds1.state_id
+		                         and (#{state}::varchar is null or ds1.state_name = #{state})
+		                         group by ns1.ns_path)
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+	 </select>
+
+
+	 <select id="findDeploymentByReleaseId" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   ds.state_name as deploymentState, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+   			   d.flags,
+			   d.ops,
+			   d.process_id as processId,
+			   d.created,
+			   d.updated 
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where d.release_id = #{releaseId}
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		and (#{state}::varchar is null or ds.state_name = #{state})	 
+	 </select>
+
+	 <select id="findLatestDeploymentByReleaseId" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId, 
+			   d.release_id as releaseId, 
+			   ns.ns_path as nsPath, 
+			   ds.state_name as deploymentState, 
+			   d.created_by as createdBy,
+			   d.updated_by as updatedBy,
+			   d.description,
+			   d.comments,
+			   d.flags,
+			   d.ops,
+			   d.process_id as processId,
+			   d.created,
+			   d.updated 
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where d.deployment_id = (select max(d1.deployment_id) from dj_deployment d1, dj_deployment_states ds1
+		                         where d1.release_id = #{releaseId}
+		                         and d1.state_id = ds1.state_id
+		                         and (#{state}::varchar is null or ds1.state_name = #{state}))
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+	 </select>
+
+	 <select id="getDeploymentRecord" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  deployment_rfc_id as dpmtRecordId,
+				deployment_id as deploymentId, 
+				rfc_id as rfcId, 
+				state_name as dpmtRecordState, 
+				comments, 
+				created, 
+				updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs
+		where dr.deployment_rfc_id = #{value}
+		and dr.state_id = drs.state_id  
+	 </select>
+
+
+	 <select id="getDeploymentRecords" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  deployment_rfc_id as dpmtRecordId, 
+				deployment_id as deploymentId, 
+				rfc_id as rfcId, 
+				state_name as dpmtRecordState, 
+				comments, 
+				created, 
+				updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs
+		where dr.deployment_id = #{value}
+		and dr.state_id = drs.state_id  
+	 </select>
+
+	 <select id="getDeploymentRecordCis" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{value}
+		and dr.state_id = drs.state_id  
+		and dr.rfc_id = rci.rfc_id
+	 </select>
+
+	<select id="getDeploymentRecordCisByListOfIds" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId,
+		dr.deployment_id as deploymentId,
+		dr.rfc_id as rfcId,
+		drs.state_name as dpmtRecordState,
+		dr.comments,
+		dr.created,
+		dr.updated
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_rfc_id in
+		<foreach item="item" index="index" collection="list" open="(" close=")" separator=", ">
+			#{item}
+		</foreach>
+		and dr.deployment_id = #{value}
+		and dr.state_id = drs.state_id
+		and dr.rfc_id = rci.rfc_id
+	</select>
+
+	<select id="getDeploymentRecordRelations" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_relation rci
+		where dr.deployment_id = #{value}
+		and dr.state_id = drs.state_id  
+		and dr.rfc_id = rci.rfc_id
+	 </select>
+
+	 <select id="getDeploymentRecordsByState" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+			 and dr.state_id = drs.state_id  
+	  	     and (#{state}::varchar is null or drs.state_name = #{state})
+			 and dr.rfc_id = rci.rfc_id
+	  	     and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+  	     order by rci.execution_order
+	 </select>
+
+	 <select id="getDeploymentRecordsUpdatedAfter" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId,
+				dr.deployment_id as deploymentId,
+				dr.rfc_id as rfcId,
+				drs.state_name as dpmtRecordState,
+				dr.comments,
+				dr.created,
+				dr.updated
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+			 and dr.state_id = drs.state_id
+			 and dr.rfc_id = rci.rfc_id
+	  	     and dr.updated > #{timestamp}
+	 </select>
+
+	 <select id="getDeploymentRecordsCountByState" parameterType="map" useCache="false" resultType="long">
+		select  count(1) 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+			 and dr.state_id = drs.state_id  
+	  	     and (#{state}::varchar is null or drs.state_name = #{state})
+			 and dr.rfc_id = rci.rfc_id
+	  	     and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+	 </select>
+
+
+	 <select id="getDeploymentRecordsByCiId" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtRecord">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where rci.ci_id = #{ciId}
+			 and dr.rfc_id = rci.rfc_id
+			 and dr.state_id = drs.state_id  
+	  	     and (#{state}::varchar is null or drs.state_name = #{state})
+	 </select>
+
+
+	 <select id="getWorkOrders" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsWorkOrder">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+			 and dr.state_id = drs.state_id  
+	  	     and (#{state}::varchar is null or drs.state_name = #{state})
+			 and dr.rfc_id = rci.rfc_id
+	  	     and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+  	     order by rci.execution_order
+	 </select>
+
+	 <select id="getWorkOrder" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsWorkOrder">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where  dr.deployment_rfc_id = #{dpmtRecordId}
+			 and dr.state_id = drs.state_id  
+	  	     and (#{state}::varchar is null or drs.state_name = #{state})
+			 and dr.rfc_id = rci.rfc_id
+	  	     and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+	 </select>
+
+	 <select id="getWorkOrdersLimited" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsWorkOrder">
+		select  dr.deployment_rfc_id as dpmtRecordId, 
+				dr.deployment_id as deploymentId, 
+				dr.rfc_id as rfcId, 
+				drs.state_name as dpmtRecordState, 
+				dr.comments, 
+				dr.created, 
+				dr.updated 
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+			 and dr.state_id = drs.state_id  
+	  	     and (#{state}::varchar is null or drs.state_name = #{state})
+			 and dr.rfc_id = rci.rfc_id
+	  	     and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+  	     order by rci.execution_order
+  	     limit #{limit}
+	 </select>
+
+
+	<select id="getDeploymentRfcCIs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
+		SELECT 
+			rci.rfc_id as rfcId, 
+			rci.release_id as releaseId, 
+			rci.ci_id as ciId, 
+			rci.ns_id as nsId,
+			ns.ns_path as nsPath, 
+			rci.class_id as ciClassId,
+			cl.class_name as ciClassName,
+			cl.impl as impl, 
+			rci.ci_name as ciName, 
+			rci.ci_goid as ciGoid, 
+		    rci.action_id as rfcActionId,
+		    a.action_name as rfcAction, 
+		    rci.execution_order as execOrder, 
+		    rci.is_active_in_release as isActiveInRelease,
+		    rci.last_rfc_id lastAppliedRfcId, 
+		    rci.comments, 
+		    rci.created
+        FROM dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a
+        where dr.deployment_id = #{deploymentId} 
+		  and dr.state_id = drs.state_id  
+		  and (#{state}::varchar is null or drs.state_name = #{state})
+		  and dr.rfc_id = rci.rfc_id
+	  	  and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+          and rci.ns_id = ns.ns_id
+          and rci.class_id = cl.class_id
+          and rci.action_id = a.action_id
+        order by rci.execution_order
+	 </select>
+
+	 <select id="getDeploymentStateHist" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent">
+		select dsh.hist_id as eventId,
+			   dsh.deployment_id as deploymentId,
+		       old.state_name as oldState,
+		       new.state_name as newState,
+		       dsh.updated_by as updatedBy,
+		       dsh.description,
+		       dsh.comments,
+		       dsh.ops,
+		       dsh.updated
+		from dj_deployment_state_hist dsh
+		left outer join dj_deployment_states old
+		on dsh.old_state_id = old.state_id, dj_deployment_states new
+		where dsh.deployment_id = #{value}
+		and dsh.new_state_id = new.state_id
+		order by hist_id
+	 </select>
+
+	 <select id="getToCiIdsForDeployment" parameterType="map" useCache="false" resultType="long">
+		select distinct rr.to_ci_id
+		from dj_rfc_ci rc, dj_rfc_relation rr, md_relations r , dj_deployment_rfc drc, dj_deployment_rfc_states drcs
+		where drc.deployment_id = #{deploymentId}
+		and rc.rfc_id = drc.rfc_id
+		and drc.state_id = drcs.state_id
+		and drcs.state_name = #{state}
+		and rc.ci_id = rr.from_ci_id
+		and rr.relation_id = r.relation_id 
+		and r.relation_name = #{relName}
+		union
+		select cr.to_ci_id
+		from dj_rfc_ci rc, cm_ci_relations cr, md_relations r , dj_deployment_rfc drc, dj_deployment_rfc_states drcs
+		where drc.deployment_id = #{deploymentId}
+		and rc.rfc_id = drc.rfc_id
+		and drc.state_id = drcs.state_id
+		and drcs.state_name = #{state}
+		and rc.ci_id = cr.from_ci_id
+		and cr.relation_id = r.relation_id 
+		and r.relation_name = #{relName}
+	 </select>
+
+	 <select id="getToCiIdsForRelease" parameterType="map" useCache="false" resultType="long">
+		select distinct rr.to_ci_id
+		from dj_rfc_ci rc, dj_rfc_relation rr, md_relations r
+		where rc.release_id = #{releaseId}
+		and rc.is_active_in_release = true
+		and rc.ci_id = rr.from_ci_id
+		and rr.relation_id = r.relation_id 
+		and r.relation_name = #{relName}
+		union
+		select cr.to_ci_id
+		from dj_rfc_ci rc, cm_ci_relations cr, md_relations r 
+		where rc.release_id = #{releaseId}
+		and rc.is_active_in_release = true
+		and rc.ci_id = cr.from_ci_id
+		and cr.relation_id = r.relation_id 
+		and r.relation_name = #{relName}
+	 </select>
+
+	 <select id="getToCiIdsForReleasePending" parameterType="map" useCache="false" resultType="long">
+		select distinct rr.to_ci_id
+		from dj_rfc_ci rc, dj_rfc_relation rr, md_relations r
+		where rc.release_id = #{releaseId}
+		and rc.is_active_in_release = true
+		and not exists (select 1 from dj_deployment_rfc drfc where drfc.rfc_id = rc.rfc_id and drfc.state_id = 200)
+		and rc.ci_id = rr.from_ci_id
+		and rr.relation_id = r.relation_id 
+		and r.relation_name = #{relName}
+		union
+		select cr.to_ci_id
+		from dj_rfc_ci rc, cm_ci_relations cr, md_relations r 
+		where rc.release_id = #{releaseId}
+		and rc.is_active_in_release = true
+		and not exists (select 1 from dj_deployment_rfc drfc where drfc.rfc_id = rc.rfc_id and drfc.state_id = 200)
+		and rc.ci_id = cr.from_ci_id
+		and cr.relation_id = r.relation_id 
+		and r.relation_name = #{relName}
+	 </select>
+
+
+	 <select id="getDpmtApprovals" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtApproval">
+		select 	a.approval_id as approvalId,
+			a.deployment_id as deploymentId,
+			a.govern_ci_id as governCiId,
+			a.govern_ci as governCiJson,
+			a.state_id as stateId,
+			ast.state_name as state,
+			a.updated_by as updatedBy,
+			a.created as created,
+			a.updated as updated,
+			a.expires_in as expiresIn,
+			a.comments as comments,
+			not (expires_in = -1 or ((extract(epoch from updated) + (expires_in * 60)) - extract(epoch from now()) > 0)) as isExpired
+		from dj_dpmt_approvals a, dj_approval_states ast
+		where a.deployment_id = #{value}
+		  and a.state_id = ast.state_id
+  	 </select>
+  	 
+	 <select id="getDpmtApproval" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtApproval">
+		select 	a.approval_id as approvalId,
+			a.deployment_id as deploymentId,
+			a.govern_ci_id as governCiId,
+			a.govern_ci as governCiJson,
+			a.state_id as stateId,
+			ast.state_name as state,
+			a.updated_by as updatedBy,
+			a.created as created,
+			a.updated as updated,
+			a.expires_in as expiresIn,
+			a.comments as comments,
+			not (expires_in = -1 or ((extract(epoch from updated) + (expires_in * 60)) - extract(epoch from now()) > 0)) as isExpired
+		from dj_dpmt_approvals a, dj_approval_states ast
+		where a.approval_id = #{value}
+		  and a.state_id = ast.state_id
+  	 </select>
+
+	<select id="getDeploymentsByNsPath" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineDeployment">
+		select d.deployment_id as deploymentId,
+			d.release_id as releaseId,
+			ns.ns_path as nsPath,
+			ds.state_name as deploymentState,
+			d.process_id as processId,
+			d.created_by as createdBy,
+			d.updated_by as updatedBy,
+			d.description,
+			d.comments,
+ 		    d.flags,
+			d.ops,
+			rel.parent_release_id as parentReleaseId,
+			d.created,
+			d.updated
+		from dj_deployment d, dj_releases rel, ns_namespaces ns, dj_deployment_states ds
+		where d.ns_id = ns.ns_id
+		  and ns.ns_path like #{dpmtNsLike}
+		  and d.release_id = rel.release_id
+		  and d.state_id = ds.state_id
+		  and (#{dpmtOffset}::bigint is null or d.deployment_id ${order.aboveOperator} #{dpmtOffset})
+		order by d.deployment_id ${order.sort}
+		limit coalesce(#{limit},10)
+	</select>
+
+	 <select id="getDeploymentsByFilter" parameterType="com.oneops.cms.util.TimelineQueryParam" useCache="false" resultType="com.oneops.cms.dj.domain.TimelineDeployment">
+		select d.deployment_id as deploymentId,
+			d.release_id as releaseId,
+			ns.ns_path as nsPath,
+			ds.state_name as deploymentState,
+			d.process_id as processId,
+			d.created_by as createdBy,
+			d.updated_by as updatedBy,
+			d.description,
+			d.comments,
+		    d.flags,
+			d.ops,
+			rel.parent_release_id as parentReleaseId,
+			d.created,
+			d.updated
+		from dj_deployment d, dj_releases rel, ns_namespaces ns, dj_deployment_states ds
+		where d.deployment_id in (
+				select distinct dj.deployment_id
+				from dj_deployment_rfc dj, dj_rfc_ci rfc, md_classes md, ns_namespaces ns
+				where dj.rfc_id = rfc.rfc_id
+				  and rfc.ns_id = ns.ns_id
+				  and ns.ns_path like #{dpmtNsLike}
+				  and rfc.class_id = md.class_id
+				  and (
+				       (#{wildcardFilter}::varchar is null or rfc.ci_name like #{wildcardFilter})
+				       or
+				       (#{dpmtClassFilter}::varchar is null or (lower(md.class_name) like lower(#{dpmtClassFilter})))
+				       or
+				       (#{dpmtNsLikeWithFilter}::varchar is null or rfc.ns_id in (select ns_id from ns_namespaces where ns_path like #{dpmtNsLikeWithFilter}))
+				      )
+				  and (#{dpmtOffset}::bigint is null or dj.deployment_id ${order.aboveOperator} #{dpmtOffset})
+				order by dj.deployment_id ${order.sort}
+				limit coalesce(#{limit},10)
+		)
+		and d.release_id = rel.release_id
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		order by d.deployment_id ${order.sort}
+	 </select>
+
+</mapper>

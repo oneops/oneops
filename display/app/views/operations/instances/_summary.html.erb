@@ -1,0 +1,90 @@
+<%= section_panel 'Status', :id => 'overview_status_section', :width => 'double', :position => 'left' do %>
+  <%= render('base/shared/edit_form',
+             {:resource => @instance,
+              :content  => 'cms/cis/properties',
+             :read_only => true}) %>
+  <hr/>
+	<%= render 'status' %>
+<% end %>
+
+<% if current_user.has_operations?(@assembly.ciId) %>
+  <%= section_panel 'Actions', :width => 'single', :position => 'right' do %>
+    <div class="btn-group">
+      <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
+        Choose Action To Execute
+        <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu">
+        <% (@instance.meta.actions + @custom_actions).each do |action| %>
+          <li onclick="$j(this).parents('.btn-group').find('.dropdown-toggle').dropdown('toggle');">
+            <% procedure_params = {:ciId              => @instance.ciId,
+                                   :procedureCiId     => 0,
+                                   :procedureState    => 'active',
+                                   :actionCiClassName => @instance.ciClassName,
+                                   :actionName        => action.actionName}
+               procedure_params[:attachmentCiId] = action.actionId if action.is_a?(Operations::InstancesController::CustomAction) %>
+            <%= link_to(new_operations_procedure_path(procedure_params), :remote => true) do %>
+              <% if action.is_a?(Operations::InstancesController::CustomAction) %>
+                <%= highlight(action.description) %>
+                <div class="description"><small>Custom action</small></div>
+              <% else %>
+                <%= highlight(action.actionName) %>
+                <div class="description"><small><%= action.description %></small></div>
+              <% end %>
+            <% end %>
+          </li>
+        <% end %>
+        <% if @instance.respond_to?(:ciState) && has_operations?(@assembly.ciId) %>
+          <li class="divider"></li>
+          <% if @instance.ciState == 'default' %>
+            <li><%= render 'replace_link', :type => 'link' %></li>
+          <% elsif @instance.ciState == 'replace' %>
+            <li><%= render 'undo_replace_link', :type => 'link' %></li>
+          <% end %>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>
+
+<%= section_panel 'Availability (%)', :width => 'single', :position => 'right' do %>
+  <div class="availability-summary"><%= loading_indicator %></div>
+  <script>
+    <%= remote_function(:url => availability_assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance), :method => :get) %>
+  </script>
+<% end %>
+
+<%= section_panel 'Important Attributes', :width => 'double', :position => 'left' do %>
+  <%= render 'cms/cis/important', :ci => @instance %>
+<% end %>
+
+<%= section_panel 'Action History', :id => 'overview_timeline_section', :width => 'triple', :position => 'left' do %>
+	<% if @history_procedures.present? %>
+	  <table id="timeline" class="rfc table table-striped table-bordered table-condensed">
+      <tbody>
+        <% @history_procedures.sort_by(&:procedureId).reverse.each do |procedure| %>
+        	<% procedure.actions.reject { |a| a.ciId != @instance.ciId }.each do |action| %>
+          <tr>
+            <td>
+              <div class="accordion-group">
+                <div class="accordion-heading">
+                  <a class="accordion-toggle" onclick="toggleProcedureLog(this)">
+                    <%= highlight(action.actionName) %> by <%= procedure.createdBy %> <%= highlight(action.actionState,action.actionState) %> <strong><%= time_ago_in_words(Time.at(action.updated/1000)) %></strong>
+                    <span class="pull-right"><%= highlight(Time.at(procedure.created/1000).to_s(:db)) %></span>
+                  </a>
+                </div>
+                <div id="action_log_<%= action.actionId %>" class="accordion-body hide" procedureId="<%= procedure.procedureId %>" actionId="<%= action.actionId %>">
+                  <div class="accordion-inner"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          <% end %>
+        <% end %>
+      </tbody>
+    </table>
+	<% end %>
+<% end %>
+
+<%= render :partial => 'operations/procedures/toggle_procedure_log' %>
+

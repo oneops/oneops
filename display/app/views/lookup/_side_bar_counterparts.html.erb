@@ -1,0 +1,103 @@
+<% groups           = [{:items => []}]
+   ci_name          = @ci.ciName
+   ci_class_name    = @ci.ciClassName
+   ci_ns_path_split = @ci.nsPath.split('/')
+   env              = ci_ns_path_split[3]
+   if target_dto == 'design'
+     if ci_class_name == 'catalog.Platform'
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(c.ciName, path_to_ci(c)) if c.ciId != @ci.ciId && c.ciClassName.start_with?('catalog.')
+         a
+       end
+       groups << {:title => 'Other platforms', :items => items} if items.present?
+     elsif ci_class_name.start_with?('catalog.')
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(c.nsPath.split('/').last, path_to_ci(c)) if c.ciId != @ci.ciId && c.ciClassName.start_with?('catalog.')
+         a
+       end
+       groups << {:title => "#{context_nav_name_label(ci_name)} component in", :items => items} if items.present?
+     end
+   else
+     if ci_class_name == 'manifest.Environment'
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(c.ciName, path_to_ci(c, target_dto)) unless c.ciId == @ci.ciId
+         a
+       end
+       groups << {:title => 'Other environments', :items => items} if items.present?
+     elsif ci_class_name == 'catalog.Platform'
+       @counterparts.group_by { |c| c.ciAttributes.major_version }.to_a.sort_by { |c| c.first }.each do |ver, cc|
+         items = cc.inject([]) do |a, c|
+           ns_path_split = c.nsPath.split('/')
+           a << link_to(ns_path_split[3], path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name && ns_path_split[4] == 'manifest'
+           a
+         end
+         groups << {:title => "#{context_nav_name_label(ci_name)} <small class='muted'>ver.#{ver}</small> in environment", :items => items} if items.present?
+       end
+     elsif ci_class_name == 'manifest.Platform'
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[3]}/#{ci_name} <small class='muted'>ver.#{c.ciAttributes.major_version}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.ciName == ci_name
+         a
+       end
+       groups << {:title => "#{context_nav_name_label(ci_name)} platform in other environments", :items => items} if items.present?
+
+       items = @counterparts.inject([]) do |a, c|
+         a << link_to(raw("#{c.ciName} <small class='muted'>ver.#{c.ciAttributes.major_version}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && c.nsPath.split('/')[3] == env
+         a
+       end
+       groups << {:title => 'Other platforms in this environment', :items => items} if items.present?
+     elsif ci_class_name.start_with?('catalog.')
+       platform = ci_ns_path_split[4]
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[3]}/#{platform} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if ns_path_split[4] == 'manifest' && ns_path_split[5] == platform
+         a
+       end
+       groups << {:title => "#{context_nav_name_label(ci_name)} in", :items => items} if items.present?
+     elsif ci_class_name.start_with?('manifest.')
+       platform = ci_ns_path_split[5]
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[3]}/#{ns_path_split[5]} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && ns_path_split[5] == platform
+         a
+       end
+       groups << {:title => "#{context_nav_name_label(ci_name)} component in other environments", :items => items} if items.present?
+
+       items = @counterparts.inject([]) do |a, c|
+         ns_path_split = c.nsPath.split('/')
+         a << link_to(raw("#{ns_path_split[5]} <small class='muted'>ver.#{ns_path_split[6]}</small>"), path_to_ci(c, target_dto)) if c.ciId != @ci.ciId && ns_path_split[3] == env
+         a
+       end
+       groups << {:title => "#{context_nav_name_label(ci_name)} component in other platforms", :items => items} if items.present?
+     end
+   end
+%>
+<% if groups.present? %>
+  <% groups.each do |g| %>
+    <% items = g[:items] %>
+    <% if items.present? %>
+      <% title = g[:title] %>
+      <% if title.present? %>
+        <li class="indent minor">
+          <%= link_to_function(raw("#{icon('caret-down', title)}"), 'toggleSidebarInlineSelectionList(this)') %>
+          <ul class="hide submenu">
+            <% items.sort.each do |item| %>
+              <li><%= raw(item) %></li>
+            <% end %>
+          </ul>
+        </li>
+      <% end %>
+    <% end %>
+  <% end %>
+<% else %>
+<% end %>
+
+<script>
+  if (!window.toggleSidebarInlineSelectionList) {
+    window.toggleSidebarInlineSelectionList = function (source) {
+      var s = $j(source);
+      s.parent().find("ul.submenu").toggle();
+      s.find("i").toggleClass("fa-caret-down fa-caret-up");
+    }
+  }
+</script>

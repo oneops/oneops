@@ -1,0 +1,27 @@
+<% if resource.persisted? %>
+  <div id="signin">
+    <%= section_panel "Registration Successful" do %>
+
+      <div class="clearfix">
+        <p>Welcome and thank you for registering.</p>
+        <% if Settings.confirmation %>
+          <p>We have sent you email with a confirmation link to validate your email address. Please check your email and
+            click on the confirmation link to validate your account.</p>
+          <% if Rails.env.development? || Rails.env.shared? %>
+            DEVELOPERS:
+            Click <%= link_to 'here', user_confirmation_path(:confirmation_token => resource.confirmation_token) %> to
+            skip the email and force the confirmation.
+          <% end %>
+          <br/>
+          <div id="shared-links" class="clearfix">
+            <%= render :partial => 'devise/shared/links' %>
+          </div>
+        <% else %>
+          <p><%= link_to button('Continue', 'large btn-primary'), root_path %></p>
+        <% end %>
+      </div>
+    <% end %>
+    </div>
+<% else %>
+  <%= render :template => 'registrations/new' %>
+<% end %>

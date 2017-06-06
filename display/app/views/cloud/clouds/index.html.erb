@@ -1,0 +1,9 @@
+<%= organization_page_header('clouds') %>
+<%= page_title :page_kind => 'Clouds', :page_label => nil %>
+<%= page_info 'Manage clouds' %>
+
+<%= section_panel "Clouds #{count_marker(@clouds.size)}",
+                  :id   => 'cloud_list', :width => 'triple',
+                  :menu => manages_access? ? [{:display => icon('plus', 'Add Cloud'), :link => new_cloud_path}] : nil do %>
+<%= render 'cloud_list' %>
+<% end %>

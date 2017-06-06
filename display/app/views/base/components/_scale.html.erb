@@ -1,0 +1,53 @@
+<table class="table scale">
+  <thead>
+    <tr>
+      <th>Component</th>
+      <th>% Deploy</th>
+      <th>Current</th>
+      <th>Min</th>
+      <th>Max</th>
+      <th>Step Up</th>
+      <th>Step Down</th>
+    </tr>
+  </thead>
+  <tbody>
+  <%= fields_for :depends_on do |dors_f| %>
+    <% scale_relations.each do |dor| %>
+      <%= dors_f.fields_for dor.toCiId.to_s, dor do |dor_f| %>
+        <% if dor.relationAttributes.flex == 'true' %>
+          <tr>
+            <td><%= dor.toCi.ciName %></td>
+              <%= dor_f.hidden_field :toCiId %>
+              <%= dor_f.fields_for :relationAttributes, dor.relationAttributes do |dor_attr_f| %>
+                <td class="controls"><%= dor_attr_f.number_field :pct_dpmt, :min => 1, :max => 100, :class => 'span1' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :current, :min => dor.relationAttributes.min, :max => dor.relationAttributes.max, :class => 'span1 scale-current' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :min, :min => 1, :max => dor.relationAttributes.max, :class => 'span1 scale-min', :onchange => 'scale_adjust_min_max(this)' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :max, :min => dor.relationAttributes.min, :class => 'span1 scale-max', :onchange => 'scale_adjust_min_max(this)' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :step_up, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :step_down, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
+
+                <% %w(pct_dpmt current min max step_up step_down).each do |attr_prop| %>
+                  <%= hidden_field_tag "#{dor_f.object_name}[relationAttrProps][owner][#{attr_prop}]", dor.relationAttrProps.owner.attributes[attr_prop] %>
+                <% end %>
+              <% end %>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+  </tbody>
+</table>
+<script>
+  if (!window.scale_adjust_min_max) {
+    window.scale_adjust_min_max = function(el) {
+      var parent = $j(el).parents("tr");
+      var currentEl = parent.find(".scale-current"),
+          minEl     = parent.find(".scale-min"),
+          maxEl     = parent.find(".scale-max");
+      currentEl.attr('min', minEl.val());
+      currentEl.attr('max', maxEl.val());
+      minEl.attr('max', maxEl.val());
+      maxEl.attr('min', Math.max(minEl.val(), maxEl.attr('min')));
+    }
+  }
+</script>

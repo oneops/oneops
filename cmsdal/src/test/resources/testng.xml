@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="unit-oneops">
+	<test verbose="5" name="unit">
+	  <packages>
+	     <package name="com.oneops.cms.crypto"/>		      
+	     <package name="com.oneops.cms.util"/>		      
+	     <package name="com.oneops.cms.domain"/>		      
+	     <package name="com.oneops.cms.cm.domain"/>		
+	     <package name="com.oneops.cms.cm.service"/>		      
+	           
+	     <package name="com.oneops.cms.cm.ops.domain"/>		      
+	     <package name="com.oneops.cms.dj.domain"/>
+		  <package name="com.oneops.cms.dj.service"/>
+		  <package name="com.oneops.cms.md.domain"/>		      
+	     <package name="com.oneops.cms.ns.domain"/>		      
+	     <package name="com.oneops.cms.ops.domain"/>
+	     <package name="com.oneops.cms.simple.domain"/>		      
+	     <package name="com.oneops.cms.util.domain"/>		      
+	  </packages>
+	</test>
+</suite>

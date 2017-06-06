@@ -1,0 +1,225 @@
+<% ips_map = @instances.inject({}) do |h, ci|
+     compute = (ci.ciClassName.end_with?('.Compute') && ci) || (@managed_via && @managed_via[ci.ciId])
+     if compute
+       attrs = compute.ciAttributes.attributes
+       h[ci.ciId] = attrs['private_ip'].presence || attrs['public_ip']
+     end
+     h
+   end
+
+   menu = %w(good notify unhealthy overutilized underutilized).map do |state|
+    selected_states = params[:instances_state]
+    selected = selected_states == 'all' || selected_states.include?(state)
+    link_to_function(icon(selected ? 'check-square-o' : 'square-o', state),
+                     'filter_instances_by_health(this)',
+                     :class => "btn btn-mini #{'active' if selected}",
+                     :instance_state => state)
+  end
+   actions = @actions + @custom_actions
+   sort_by = [%w(Name ciName), %w(Cloud cloud), %w(Health health), %w(Procedure procedureState), %w(State ciState)]
+   filter_by = %w(ciName cloud health procedureState ciState cloudPriority events)
+   if @managed_via_health.present?
+     sort_by << ['Managed Via Health', 'managedVia']
+     filter_by << 'managedVia'
+   end
+   if @deployment_info.present?
+     sort_by << ['Deployment Status', 'deployment']
+     filter_by << 'deployment'
+   end
+   unless @component
+     sort_by << ['Component Type', 'componentType']
+     filter_by << 'componentType'
+     unless @platform
+       sort_by << ['Namespace', 'nsPath']
+       filter_by << 'nsPath'
+     end
+   end
+   list_name = if @component
+                 'component_instances'
+               elsif @platform
+                 'platform_instances'
+               elsif @environment
+                 'environment_instances'
+               else
+                 'assembly_instances'
+               end
+   toolbar = {:list_name => list_name,
+              :sort_by   => sort_by,
+              :filter_by => filter_by}
+
+   has_operations = has_operations?(@assembly.try(:ciId))
+
+   list_menu = []
+   if actions.present? && has_operations
+     list_menu += actions.map { |a| {:id       => a.actionId,
+                                     :label    => a.is_a?(Operations::InstancesController::CustomAction) ? a.description : a.actionName,
+                                     :function => 'prepare_action'} }
+   end
+   if ips_map.present?
+     list_menu << nil if list_menu.size > 0
+     list_menu << {:id => 'instance_ips', :label => 'list of IPs...', :function => 'instance_ips'}
+   end
+   if has_operations
+     list_menu << nil if list_menu.size > 0
+     list_menu << {:id => 'bulk_replace',      :label => 'replace',      :function => 'bulk_replace'}
+     list_menu << {:id => 'bulk_undo_replace', :label => 'undo replace', :function => 'bulk_replace'}
+   end
+%>
+<%= section_panel 'Instances', :width => 'triple', :position => 'right', :menu => menu do %>
+  <%= ci_list(@instances, :toolbar => toolbar, :menu => list_menu) do |builder, target| %>
+    <% ops_state           = target.opsState ? (target.opsState || 'unknown') : 'pending'
+       events              = ops_state != 'good' && @bad_state_events.present? && @bad_state_events[target.ciId]
+       procedure           = @instance_procedures[target.ciId]
+       managed_via_health  = ops_state == 'good' && @managed_via_health.present? && @managed_via_health[target.ciId]
+       deployment_info     = @deployment_info && @deployment_info[target.ciId]
+       deployment_state    = deployment_info && deployment_info[:state]
+       deployment_comments = deployment_info && deployment_info[:comments]
+       deployed_to         = target.cloud
+       primary             = deployed_to && deployed_to.relationAttributes.priority == '1'
+       priority_name      = primary ? 'primary' : 'secondary' %>
+    <% builder.attributes raw(%(ciName="#{target.ciName}" cloud="#{deployed_to && deployed_to.toCi.ciName}" health="#{ops_state}" procedureState="#{procedure ? 'active' : 'idle'}" managedVia="#{managed_via_health}" deployment="#{deployment_state}" ciState="#{target.ciState}" cloudPriority="#{priority_name}" componentType="#{target.ciClassName}" nsPath="#{target.nsPath}" events="#{events.map{|e| e['name']}.join(',') if events.present?}")) %>
+    <% builder.target nil %>
+    <% builder.selectable target.lastAppliedRfcId.to_i > 0 %>
+    <% builder.icon :none if @component %>
+    <% builder.top do %>
+      <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
+      <% if deployed_to %>
+        <span class="topdesc">
+          <small class="<%= 'text-info' if primary %>"><%= icon('cloud', priority_name) %></small>
+        </span>
+        <small><%= link_to(deployed_to.toCi.ciName, edit_cloud_path(deployed_to.toCi.ciId)) %></small>
+      <% end %>
+    <% end %>
+    <% builder.middle do %>
+      <%= render 'cms/cis/important', :ci => target %>
+    <% end %>
+    <% builder.bottom @component ? :none : link_to(target.nsPath, path_to_ns(target.nsPath)) %>
+    <% builder.status do %>
+      <%= status_marker('id', target.ciId)%>
+      <% if events %>
+        <%= content = events.sort_by {|e| -e['timestamp']}.inject('') {|c, e| c + "<span><strong>#{e['name']}</strong> reporting <strong class='#{health_to_text(e['state'])}'>#{e['state']}</strong> since #{time_ago_in_words(Time.at((e['timestamp'] || 0) /1000))}</span><br>"}
+            status_marker('health', events.size > 1 ? "#{events.size} events" : events.first['name'], health_to_label(ops_state), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Monitor Events', 'data-content' => content, 'data-trigger' => 'click', 'data-placement' => 'bottom') %>
+      <% else %>
+        <%= status_marker('health', ops_state, health_to_label(ops_state)) %>
+      <% end %>
+      <% ip = ips_map[target.ciId] %>
+      <%= status_marker('IP', ip) if ip.present? %>
+      <%= status_marker('configuration', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
+      <%= status_marker('state', target.ciState, state_to_label(target.ciState)) unless target.ciState == 'default' %>
+      <%= status_marker('managed via', managed_via_health, health_to_label(managed_via_health)) if managed_via_health.present? %>
+      <%= status_marker('deployment', deployment_state, state_to_label(deployment_state), 'data-toggle' => deployment_comments.present? && 'popover', 'data-title' => 'Deployment Comments', 'data-trigger' => 'click', 'data-content' => deployment_comments, 'data-placement' => 'top') if deployment_state.present? %>
+      <% if procedure %>
+        <%= action = procedure.actions.find {|a| a.ciId == target.ciId}
+            content =  "#{icon('wrench', '', 'fa-fw')} #{action.actionName}<br>"
+            content << "#{icon('user', '', 'fa-fw')} #{procedure.createdBy}<br>"
+            content << "#{icon('clock-o', '', 'fa-fw')} #{time_ago_in_words(Time.at(action.updated/1000))}<hr>"
+            content << link_to('View', edit_operations_procedure_path(procedure), :remote => true, :class => 'btn btn-mini btn-info')
+            status_marker('procedure', 'active', state_to_label('active'), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Active Procedure', 'data-trigger' => 'click', 'data-content' => content, 'data-placement' => 'top') %>
+      <% end %>
+    <% end %>
+    <% if actions.blank? && has_operations %>
+      <% builder.menu do |ci| %>
+        <% ci.meta.actions.each do |action| %>
+          <%= link_to(icon('', action.actionName),
+                      new_operations_procedure_path({:ciId              => ci.ciId,
+                                                     :procedureCiId     => 0,
+                                                     :actionCiClassName => ci.ciClassName,
+                                                     :actionName        => action.actionName,
+                                                     :procedureState    => 'active'}),
+                      :remote => true) %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<script>
+  var procedureNames = {};
+  var actionNames = {};
+  var customActionsNames = {};
+  <% @actions.each do |action| %>
+    actionNames["<%= action.actionId %>"] = "<%= action.actionName %>";
+    procedureNames["<%= action.actionId %>"] = "<%= action.actionName %>";
+  <% end %>
+  <% @custom_actions.each do |action| %>
+    customActionsNames["<%= action.actionId %>"] = "<%= action.actionName %>";
+    procedureNames["<%= action.actionId %>"]     = "<%= action.description %>";
+  <% end %>
+
+  <% if actions.present? && has_operations %>
+    window.prepare_action = function(actionId, instance_ids) {
+      var data = {actionCiIds:    instance_ids,
+                  procedureName:  procedureNames[actionId],
+                  procedureCiId:  0,
+                  procedureState: "active"};
+      <% if @component %>
+        data["ciId"] = "<%= @component.ciId %>";
+        data["actionCiClassName"] = "<%= @component.ciClassName %>";
+        data["relationName"] = "base.RealizedAs";
+      <% elsif @platform %>
+        data["ciId"] = "<%= @platform.ciId %>";
+        data["relationName"] = "manifest.Requires,base.RealizedAs";
+      <% elsif @environment %>
+        data["ciId"] = "<%= @environment.ciId %>";
+        data["relationName"] = "manifest.ComposedOf,manifest.Requires,base.RealizedAs";
+      <% elsif @assembly %>
+        data["ciId"] = "<%= @assembly.ciId %>";
+        data["relationName"] = "base.RealizedIn,manifest.ComposedOf,manifest.Requires,base.RealizedAs";
+      <% end %>
+      var actionName = actionNames[actionId];
+      if (actionName) {
+        data["actionName"] = actionName;
+      }
+      else {
+        data["attachmentCiId"] = actionId;
+        data["actionName"]     = customActionsNames[actionId];
+      }
+      $j.ajax({url: "<%= prepare_operations_procedures_path %>", type: 'POST', data: data});
+    };
+
+    var instanceIps = JSON.parse('<%= sanitize(ips_map.to_json) %>');
+    window.instance_ips = function(type, instanceIds) {
+      var ip;
+      var ips = instanceIds.reduce(function(h, ciId) {
+        ip = instanceIps[ciId];
+        if (ip) {
+          h.push(ip)
+        }
+        return h;
+      }, []);
+      if (ips.length) {
+        showCopyToClipboardModal('IP List', ips.uniq().join(' '));
+      }
+    };
+
+    window.bulk_replace = function(type, instance_ids) {
+      <% dialog_options = {:url => state_assembly_operations_instances_path(@assembly), :method => :put} %>
+      window.bulk_replace_ids = $j.map(instance_ids, function(i) {return "ids[]=" + i;}).join("&");
+      if (type == "bulk_replace") {
+        <% dialog_options[:modal_id] = random_dom_id %>
+        render_modal("<%= dialog_options[:modal_id] %>",
+                     "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                     dialog_options.merge({:confirm => 'Replace?',
+                                           :body    => 'This will mark selected instances for replacement in OneOps. Your cloud resources will not be affected immediately. To completely execute the replacement you will need to force a deployment.',
+                                           :with    => "'state=replace&'+window.bulk_replace_ids"}))) %>");
+      }
+      else {
+        <% dialog_options[:modal_id] = random_dom_id %>
+        render_modal("<%= dialog_options[:modal_id] %>",
+                     "<%= escape_javascript(render('base/shared/confirm_busy_block',
+                       dialog_options.merge({:confirm => 'Undo Replace?',
+                                             :body    => 'This will mark selected instances back to the default state in OneOps and will undo the pending replacement.',
+                                             :with    => "'state=default&'+window.bulk_replace_ids"}))) %>");
+      }
+    };
+  <% end %>
+
+  window.filter_instances_by_health = function(target) {
+    var btn = $j(target);
+    btn.toggleClass('active');
+    btn.find("i").toggleClass("fa-check-square-o fa-square-o");
+
+    var states = btn.parents('.btn-group').find(".btn.active").toArray().map(function(b) {return b.getAttribute("instance_state")});
+    $j.get("<%= url_for %>", {instances_state: states.join(",")});
+  };
+</script>

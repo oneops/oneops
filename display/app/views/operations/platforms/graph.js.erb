@@ -1,0 +1,5 @@
+<% if @instances.count > 50 %>
+	$j("#page_nav_graph").html("<%= escape_javascript(render('base/shared/graph_radial', :data => @graph, :width => 930)) %>");
+<% else %>
+	$j("#page_nav_graph").html("<%= escape_javascript(render('base/shared/graph_tree', :data => @graph, :width => 930, :height => 930)) %>");
+<% end %>

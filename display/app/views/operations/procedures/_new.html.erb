@@ -1,0 +1,117 @@
+<%= form_for @procedure,
+             :url  => operations_procedures_path,
+             :html => {:method => :post, :remote => true, :class => 'form-horizontal'} do |f| %>
+  <%= error_messages_for(@procedure) %>
+
+  <%= f.hidden_field :ciId %>
+  <%= f.hidden_field :procedureName %>
+  <%= f.hidden_field :procedureState %>
+  <%= f.hidden_field :procedureCiId %>
+  <%= f.hidden_field :definition %>
+
+  <div class="wf">
+    <div class="header">
+      <div class="instance">
+        <%= icon(site_icon!(:procedure)) %> <span class="type"><%= @procedure.procedureName %></span>
+        <div class="status"><%= content_tag(:span, 'NEW', :class => 'highlight new') %></div>
+      </div>
+      <div class="close"><i class="fa fa-lg fa-times" onclick="close_procedure_overlay()"></i></div>
+    </div>
+
+    <% arglist              = @procedure.arglist
+       prompt_configuration = arglist.present? && JSON.parse(arglist).present?
+       target_count         = @target_ids.blank? ? 0 : @target_ids.size
+       prompt_execution     = @target_ids.present? && target_count > 1 %>
+    <% if prompt_configuration || prompt_execution %>
+      <div class="main ">
+        <% if prompt_configuration %>
+          <div class="control-group category">
+            <div class="name">Configuration</div>
+            <%= label_tag :arglist, 'Arguments', :class => 'control-label' %>
+            <div class="controls ciAttributes">
+              <% fixed_keys = true
+                 arg_md = @procedure.argMd
+                 if arg_md.present?
+                   fixed_keys = arg_md.values.to_map_with_value {|a| [a['name'], a['description']]}
+                 end
+              %>
+              <%= render 'cms/cis/hash_attribute',
+                         :attribute_name  => 'arglist',
+                         :attribute_value => arglist,
+                         :fixed_keys      => fixed_keys,
+                         :builder         => f %>
+            </div>
+          </div>
+        <% end %>
+        <% if  prompt_execution %>
+          <% min_roll_at = (100.0 / target_count).ceil %>
+          <div class="category">
+            <div class="name">Execution Flow</div>
+            <div class="control-group">
+              <%= label_tag :roll_at, 'Step size', :class => 'control-label' %>
+              <div class="controls">
+                <div class="input-append">
+                  <%= number_field_tag :roll_at, target_count > 3 ? 25 : 50, :min => min_roll_at, :max => 100, :class => 'input-mini' %>
+                  <span class="add-on">%</span>
+                </div>
+                <div class="btn-group">
+                  <% [10, 20, 25, 33, 50, 100].each do |r| %>
+                    <%= link_to_function("#{r}%", %($j(this).parents(".controls").find(".input-append input").val("#{r}")), :class => 'btn') if r >= min_roll_at %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <div class="control-group">
+              <%= label_tag :critical, 'Stop on failure', :class => 'control-label' %>
+              <div class="controls">
+                <%= render 'cms/cis/checkbox',
+                           :attribute_name  => :critical,
+                           :attribute_value => 'true' %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <div class="controls">
+      <table>
+        <tr>
+          <td><%= button_tag 'Cancel', :type => 'button', :onclick => 'close_procedure_overlay()', :class => 'btn' %></td>
+          <td><%= f.button 'Start', :class => 'btn btn-success', :data => {:disable_with => 'Starting...'} %></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+<% end %>
+
+<script>
+  window.close_procedure_overlay = function () {
+    if (typeof(timer) != "undefined") {
+      clearInterval(timer);
+    }
+    Effect.SlideUp('overlay', { duration: 0.3 });
+    unblock('container');
+  };
+
+  window.onkeydown =  function(e) {
+    if (e.shiftKey || e.controlKey || e.metaKey || e.altKey) {
+      return true;
+    }
+
+    if (e.keyCode == 27) {        // escape
+      if (Element.visible('overlay')) {
+        close_procedure_overlay();
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  setTimeout(function() {
+    var overlay = $j("#overlay")
+    overlay.find('a[rel=tooltip]').tooltip();
+    overlay[0].scrollIntoView();
+  }, 100);
+</script>

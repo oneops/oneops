@@ -1,0 +1,32 @@
+* {margin:0; padding:0; outline:0}
+#tablewrapper {width:900px; margin:0 auto}
+#tableheader {height:55px}
+.search {float:left; padding:5px 5px 0px 0px}
+#tableheader select {float:left; font-size:12px; width:125px; padding:2px 4px 4px}
+#tableheader input {float:left; font-size:12px; width:225px; padding:2px 4px 4px; margin-left:4px}
+.details {float:right; padding-top:12px}
+.details div {float:left; margin-left:15px; font-size:12px}
+.tinytable {width:979px; border-left:1px solid #c6d5e1; border-top:1px solid #c6d5e1; border-bottom:none}
+.tinytable th {background:url(/images/tinytable/header-bg.gif) repeat-x; text-align:left; color:#cfdce7; border:1px solid #aaaaaa; border-right:none}
+.tinytable th h3 {font-size:14px; margin: 0px; padding:5px 10px; line-height: 14px}
+.tinytable td {padding:4px 6px 6px; border-bottom:1px solid #c6d5e1; border-right:1px solid #c6d5e1}
+.tinytable .head h3 {background:url(/images/tinytable/sort.gif) 7px center no-repeat; cursor:pointer; padding-left:18px}
+.tinytable .desc, .sortable .asc {background:url(/images/tinytable/header-selected-bg.gif)}
+.tinytable .desc h3 {background:url(/images/tinytable/desc.gif) 7px center no-repeat; cursor:pointer; padding-left:18px}
+.tinytable .asc h3 {background:url(/images/tinytable/asc.gif) 7px  center no-repeat; cursor:pointer; padding-left:18px}
+.tinytable .head:hover, .tinytable .desc:hover, .tinytable .asc:hover {color:#fff}
+.tinytable .evenrow td {background:#fff}
+.tinytable .oddrow td {background:#ecf2f6}
+.tinytable td.evenselected {background:#ecf2f6}
+.tinytable td.oddselected {background:#dce6ee}
+.tinytable tfoot {background:#fff; font-weight:bold}
+.tinytable tfoot td {padding:6px 8px 8px}
+#tablefooter {height:15px; margin-top:20px}
+#tablenav {float:left}
+#tablenav i {cursor:pointer; font-size: 16px; margin-right: 10px; vertical-align: -6px}
+#tablenav div {float:left; margin-right:15px}
+#tablelocation {float:left; font-size:12px}
+#tablelocation select {margin-right:3px}
+#tablelocation div {float:left; margin-left:15px}
+#tablefooter div.page {margin-top:2px; font-style:italic; float:right}
+#selectedrow td {background:#c6d5e1}

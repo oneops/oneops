@@ -1,0 +1,17 @@
+<% if data.present? %>
+  <% builder_x = defined?(builder) && builder %>
+  <% if data.is_a?(Hash) %>
+    <dl>
+      <% data.each_pair do |k, v| %>
+        <dt title="<%= k %>"><%= k %>:</dt>
+        <dd><%= render 'base/shared/pretty', :data => v, :builder => builder_x %></dd>
+      <% end %>
+    </dl>
+  <% elsif data.is_a?(Array) %>
+    <% data.each do |e| %>
+      <%= render 'base/shared/pretty', :data => e, :builder => builder_x %> <br/>
+    <% end %>
+  <% else %>
+    <%= builder_x ? builder_x.call(data) : data %>
+  <% end %>
+<% end %>

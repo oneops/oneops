@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <!-- changes from the defaults -->
+        <setting name="lazyLoadingEnabled" value="false"/>
+    </settings>
+
+    <mappers>
+        <mapper resource="com/oneops/cms/transmitter/dal/EventMapper.xml"/>
+        <mapper resource="com/oneops/cms/util/dal/UtilMapper.xml"/>
+        <mapper resource="com/oneops/cms/dj/dal/DJDpmtMapper.xml"/>
+        <mapper resource="com/oneops/cms/dj/dal/DJMapper.xml"/>
+        <mapper resource="com/oneops/cms/cm/ops/dal/OpsMapper.xml"/>
+        <mapper resource="com/oneops/cms/cm/dal/CIMapper.xml"/>
+    </mappers>
+
+</configuration>

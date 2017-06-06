@@ -1,0 +1,6 @@
+<%= render('base/shared/edit_form',
+           {:resource   => @offering,
+            :content    => 'new_offering_details_content',
+            :read_only  => !has_cloud_services?(@cloud.ciId),
+            :cancel_url => cloud_service_offerings_path(@cloud, @service),
+            :form_url   => cloud_service_offerings_path(@cloud, @service)}) %>

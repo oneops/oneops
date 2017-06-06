@@ -1,0 +1,16 @@
+<% if @availability %>
+  <% data = availability.inject([]) do |d, a|
+       total  = a[:total].to_f
+       states = a[:states]
+       slices = states.keys.sort.inject([]) do |s, state|
+         duration = states[state]
+         s << {:name => state, :value => duration, :label => "#{state}: #{number_with_precision(100 * duration / total, :precision => 2)}%"}
+       end
+       d << {:title  => a[:label],
+             :label  => a[:availability] && number_with_precision(100 * a[:availability], :precision => 2),
+             :slices => slices}
+     end %>
+  <%= render 'base/shared/graph_donut', :data => {:data => data, :legend => ops_state_legend}, :legend => legend %>
+<% else %>
+  <%= falied_loading_indicator('Data not availalbe') %>
+<% end %>

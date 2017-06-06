@@ -1,0 +1,23 @@
+<% sorted_platforms = platforms.sort_by do |p|
+    begin
+      "#{p.ciName}#{p.ciAttributes.major_version}"
+    rescue Exception => e
+      Rails.logger.warn "Bad platform data (#{e}) for: #{p.inspect}"
+      raise e
+    end
+   end %>
+<% sorted_platforms.each do |platform| %>
+  <tr>
+    <td>
+      <%= render 'cms/cis/checkbox',
+                 :attribute_name  => 'deploy_platforms[]',
+                 :attribute_value => '',
+                 :unchecked_value => platform.ciId,
+                 :checked_value   => '',
+                 :label           => platform.ciName %>
+    </td>
+    <td>
+      <%= status_marker('version',"#{platform.ciAttributes.major_version}", platform.ciAttributes.is_active == 'true' ? 'label-success' : '') %>
+    </td>
+  </tr>
+<% end %>

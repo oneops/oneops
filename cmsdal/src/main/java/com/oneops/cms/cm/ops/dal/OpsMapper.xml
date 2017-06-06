@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.cm.ops.dal.OpsMapper">
+
+
+    <select id="getNextCmOpsProcedureId" useCache="false" resultType="long">
+       select nextval('dj_pk_seq')
+    </select>
+
+	 <insert id="createCmsOpsProcedure" parameterType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure" statementType="CALLABLE">
+	    {call cm_create_ops_procedure(#{procedureId}, #{procedureName} ,#{ciId}, #{procedureState}, #{arglist},
+	                                  #{createdBy}, #{definition}, #{procedureCiId})}
+	 </insert> 
+
+    <insert id="createCmsOpsAction" parameterType="com.oneops.cms.cm.ops.domain.CmsOpsAction" statementType="CALLABLE">
+        {call cm_create_ops_action(#{actionName} ,#{procedureId}, #{ciId}, #{actionState}, #{execOrder}, #{isCritical}, #{extraInfo}, #{arglist}, #{payLoadDef})}
+    </insert>
+
+    <update id="updateCmsOpsProcedureState" parameterType="map" statementType="CALLABLE">
+       {call cm_update_ops_procedure_state(#{procedureId}, #{state})}
+    </update>
+
+    <update id="updateCmsOpsActionState" parameterType="map" statementType="CALLABLE">
+       {call cm_update_ops_action_state(#{actionId}, #{state})}
+    </update>
+
+    <select id="isActiveOpsProcedureExistForCi" parameterType="long" statementType="CALLABLE" resultType="boolean">
+       {call cm_is_ops_procedure_active_for_ci(#{value})}
+    </select>
+
+    <select id="isOpenedReleaseExistForCi" parameterType="long" resultType="boolean">
+       select count(1) > 0  
+	   from dj_rfc_ci a, dj_releases b 
+	   where b.release_id=a.release_id 
+	     and b.release_state_id = 100 
+	     and a.ci_id = #{value}
+    </select>
+
+    <select id="isActiveDeploymentExistForNsPath" parameterType="string" resultType="boolean">
+		select count(1) > 0
+		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
+		where ns.ns_path = #{value}
+		and d.ns_id = ns.ns_id
+		and d.state_id = ds.state_id
+		and ds.state_name = 'active'    
+	</select>
+
+    <select id="getCmsOpsProcedure" parameterType="long" resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
+       select
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.proc_name as procedureName,
+           p.arglist as arglist,
+           p.state_id as procedureStateId,
+           s.state_name as procedureState,
+           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
+		   p.created_by as createdBy,
+		   p.proc_ci_id as procedureCiId,
+		   p.created,
+           p.updated
+       from cm_ops_procedures p, cm_ops_proc_state s
+       where p.ops_proc_id = #{value}
+          and p.state_id = s.state_id
+    </select>
+
+    <select id="getCmsOpsProcedureWithDefinition" parameterType="long" resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
+       select
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.proc_name as procedureName,
+           p.arglist as arglist,
+           p.state_id as procedureStateId,
+           s.state_name as procedureState,
+           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
+		   p.created_by as createdBy,
+		   p.definition as definition,
+		   p.proc_ci_id as procedureCiId,
+		   p.created,
+           p.updated
+       from cm_ops_procedures p, cm_ops_proc_state s
+       where p.ops_proc_id = #{value}
+          and p.state_id = s.state_id
+    </select>
+
+    <select id="getProcedureForCi" parameterType="map" resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
+       select
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.proc_name as procedureName,
+           p.arglist as arglist,
+           p.state_id as procedureStateId,
+           s.state_name as procedureState,
+           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
+		   p.created_by as createdBy,
+		   p.created,
+           p.updated
+       from cm_ops_procedures p, cm_ops_proc_state s
+       where p.ci_id = #{ciId}
+          and p.state_id = s.state_id
+          and (#{name}::varchar is null or p.proc_name = #{name})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_id in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item.id}</foreach>)
+        </if>
+       order by ops_proc_id desc
+       limit coalesce(#{limit},10)   
+    </select>
+
+    <select id="getProcedureForCiByAction" parameterType="map" resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
+           select
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.proc_name as procedureName,
+           p.arglist as arglist,
+           p.state_id as procedureStateId,
+           s.state_name as procedureState,
+           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
+		   p.created_by as createdBy,
+		   p.created,
+           p.updated
+       from cm_ops_procedures p, cm_ops_proc_state s, cm_ops_actions oa
+       where oa.ci_id = #{ciId}
+	  and oa.ops_proc_id = p.ops_proc_id
+          and p.state_id = s.state_id
+          and (#{name}::varchar is null or p.proc_name = #{name})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_name in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item}</foreach>)
+        </if>
+       order by p.ops_proc_id desc
+       limit coalesce(#{limit},10)   
+    </select>
+
+
+    <select id="getProcedureForNamespace" parameterType="map" resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
+       select
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.proc_name as procedureName,
+           p.arglist as arglist,
+           p.state_id as procedureStateId,
+           s.state_name as procedureState,
+           n.ns_path as nsPath,
+           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
+		   p.created_by as createdBy,
+		   p.created,
+           p.updated
+       from cm_ops_procedures p, cm_ops_proc_state s, cm_ci c, ns_namespaces n
+       where p.ci_id = c.ci_id
+          and p.state_id = s.state_id
+          and c.ns_id = n.ns_id
+          and n.ns_path = #{nspath}
+          and (#{name}::varchar is null or p.proc_name = #{name})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_name in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item}</foreach>)
+        </if>
+    </select>
+    <select id="getProcedureForNamespaceLike" parameterType="map"  resultType="com.oneops.cms.cm.ops.domain.CmsOpsProcedure">
+       select
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.proc_name as procedureName,
+           p.arglist as arglist,
+           p.state_id as procedureStateId,
+           s.state_name as procedureState,
+           n.ns_path as nsPath,
+           (select max(exec_order) from cm_ops_actions a where a.ops_proc_id = p.ops_proc_id ) as maxExecOrder,
+		   p.created_by as createdBy,
+		   p.created,
+           p.updated
+       from cm_ops_procedures p, cm_ops_proc_state s, cm_ci c, ns_namespaces n
+       where p.ci_id = c.ci_id
+          and p.state_id = s.state_id
+          and c.ns_id =  n.ns_id
+          and (n.ns_path like #{nsLike} or n.ns_path = #{ns})
+          and (#{name}::varchar is null or p.proc_name = #{name})
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+            and (s.state_name in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item}</foreach>)
+        </if>
+          limit coalesce(#{limit},10)   
+    </select>
+
+
+    <select id="getCmsOpsActionById" parameterType="long" resultType="com.oneops.cms.cm.ops.domain.CmsOpsAction">
+       select
+           p.ops_action_id as actionId,
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.action_name as actionName,
+           p.arglist as arglist,
+           p.payload as payLoadDef,
+           p.state_id as actionStateId,
+           s.state_name as actionState,
+           p.exec_order as execOrder,
+           p.is_critical as isCritical,
+           p.extra_info as extraInfo,
+           p.created,
+           p.updated
+       from cm_ops_actions p, cm_ops_action_state s
+       where p.ops_action_id = #{value}
+          and p.state_id = s.state_id
+    </select>
+
+
+    <select id="getCmsOpsActions" parameterType="long" resultType="com.oneops.cms.cm.ops.domain.CmsOpsAction">
+       select
+           p.ops_action_id as actionId,
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.action_name as actionName,
+           p.arglist as arglist,
+           p.payload as payLoadDef,
+           p.state_id as actionStateId,
+           s.state_name as actionState,
+           p.exec_order as execOrder,
+           p.is_critical as isCritical,
+           p.extra_info as extraInfo,
+           p.created,
+           p.updated
+       from cm_ops_actions p, cm_ops_action_state s
+       where p.ops_proc_id = #{value}
+          and p.state_id = s.state_id
+    </select>
+
+    <select id="getCmsOpsActionsForCi" parameterType="map" resultType="com.oneops.cms.cm.ops.domain.CmsOpsAction">
+       select
+           p.ops_action_id as actionId,
+           p.ops_proc_id as procedureId,
+           p.ci_id as ciId,
+           p.action_name as actionName,
+           p.arglist as arglist,
+           p.payload as payLoadDef,
+           p.state_id as actionStateId,
+           s.state_name as actionState,
+           p.exec_order as execOrder,
+           p.is_critical as isCritical,
+           p.extra_info as extraInfo,
+           p.created,
+           p.updated
+       from cm_ops_actions p, cm_ops_action_state s
+       where p.ops_proc_id =  #{procedureId}
+       	  and p.ci_id = #{ciId}
+          and p.state_id = s.state_id
+    </select>
+
+
+    <select id="getActionOrders" parameterType="map" useCache="false" resultType="com.oneops.cms.cm.ops.domain.CmsActionOrder">
+       select  a.ops_action_id as actionId,
+               a.ops_proc_id as procId,
+               a.ci_id as ciId,
+               a.action_name as actionName,
+               a.arglist as arglist,
+               a.payload as payLoadDef,
+               a.state_id as actionStateId,
+               s.state_name as actionState,
+               a.exec_order as execOrder,
+               a.is_critical as isCritical,
+               a.extra_info as extraInfo,
+               a.created,
+               a.updated,
+               p.created_by as createdBy
+       from cm_ops_actions a, cm_ops_action_state s,cm_ops_procedures p 
+       where a.ops_proc_id = #{procedureId} and  p.ops_proc_id =  a.ops_proc_id
+             and a.state_id = s.state_id 
+             and (#{state}::varchar is null or s.state_name = #{state})
+             and (#{execOrder}::smallint is null or a.exec_order = #{execOrder})
+          order by a.exec_order
+    </select>
+
+    <select id="getCmsOpsProceduresCountForCiFromTime" parameterType="map" resultType="long">
+       select count(*)           
+       from cm_ops_procedures p, cm_ops_proc_state s
+       where p.ci_id = #{ciId}
+          and (#{name}::varchar is null or p.proc_name = #{name})
+          and p.state_id = s.state_id
+          and p.created >= #{timestamp}
+        <if test="stateList != null &amp;&amp; !stateList.isEmpty()">
+           and (s.state_id in <foreach item="item" index="index" collection="stateList" open="(" close=")" separator=", ">#{item.id}</foreach>)
+        </if>
+    </select>
+
+</mapper>

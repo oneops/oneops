@@ -1,0 +1,63 @@
+<div class="inner rounded">
+  <%= link_confirm_busy(icon('times'),
+                        :url     => hide_wizard_account_profile_path,
+                        :method  => :put,
+                        :remote  => true,
+                        :class   => 'close',
+                        :confirm => 'The wizard will be deactivated. You can reenable it from your user profile (click on your email address in the top navigation menu).') %>
+  <ul class="steps">
+    <li class="alert alert-info account">
+         <span class="step-title alert-heading"><%= link_to('Account', edit_organization_path) %></span>
+         <ul class="tasks">
+           <li class="task"><%= link_to('create clouds',  is_admin? ? clouds_path : '#') %></li>
+           <li class="task"><%= link_to('create assembly', is_admin? ? new_assembly_path : '#') %></li>
+         </ul>
+         <span class="step-number">1</span>
+    </li>
+    <li class="alert alert-info design">
+        <span class="step-title alert-heading"><%= assembly ? link_to('Design', assembly_design_path(assembly)) : 'Design' %></span>
+        <ul class="tasks">
+          <li class="task"><%= assembly ? link_to('create platform', new_assembly_design_platform_path(assembly))  : 'create platform' %></li>
+          <li class="task"><%= assembly ? link_to('commit design', assembly_design_path(assembly, :anchor => 'releases')) : 'commit design' %></li>
+        </ul>
+        <span class="step-number">2</span>
+    </li>
+    <li class="alert alert-info transition">
+         <span class="step-title alert-heading"><%= assembly ? link_to('Transition', assembly_transition_path(assembly)) : 'Transition' %></span>
+         <ul class="tasks">
+           <li class="task"><%= assembly ? link_to('create environment', assembly_transition_path(assembly)) : 'create environment' %></li>
+           <li class="task"><%= environment ? link_to('deploy to cloud', assembly_transition_environment_path(assembly, environment, :anchor => 'releases')) : 'deploy to cloud' %></li>
+         </ul>
+         <span class="step-number">3</span>
+    </li>
+    <li class="alert alert-info operate">
+         <span class="step-title alert-heading"><%= assembly ? link_to('Operate', environment ? assembly_operations_environment_path(assembly, environment) : assembly_operations_path(assembly)) : 'Operate' %></span>
+         <ul class="tasks">
+           <li class="task"><%= environment ? link_to('view status',         assembly_operations_environment_path(assembly, environment)) : 'view status' %></li>
+           <li class="task"><%= environment ? link_to('control environment', assembly_operations_environment_path(assembly, environment)) : 'control environment' %></li>
+         </ul>
+         <span class="step-number">4</span>
+    </li>
+  </ul>
+
+  <script type="text/javascript">
+    $j(function(){
+      var path = location.pathname;
+      var step;
+      if (path.indexOf("design") >= 0) {
+        step = $$("#wizard li.design").first();
+      }
+      else if(path.indexOf("transition") >= 0) {
+        step = $$("#wizard li.transition").first();
+      }
+      else if(path.indexOf("operations") >= 0) {
+        step = $$("#wizard li.operate").first();
+      }
+      else {
+        step = $$("#wizard li.account").first();
+      }
+      step.removeClassName("alert-info");
+      step.addClassName("alert-success");
+    });
+  </script>
+</div>

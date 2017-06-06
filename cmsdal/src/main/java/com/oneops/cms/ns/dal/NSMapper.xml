@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.ns.dal.NSMapper">
+
+ 	<!--cache /-->
+	 
+	 <insert id="createNamespace" parameterType="com.oneops.cms.ns.domain.CmsNamespace" statementType="CALLABLE">
+	    {call ns_create_namespace(#{nsPath})}
+	 </insert> 
+
+	 <update id="vacuumNamespace" parameterType="map" statementType="CALLABLE">
+	    {call cm_vac_ns(#{nsId}, #{userId})}
+	 </update> 
+	 
+	 <select id="getNamespace" parameterType="string" resultType="com.oneops.cms.ns.domain.CmsNamespace">
+		select ns.ns_id as nsId, ns.ns_path as nsPath, ns.created
+		from ns_namespaces ns where ns.ns_path = #{value}
+	 </select>
+
+	 <select id="getNamespaceLike" parameterType="string" resultType="com.oneops.cms.ns.domain.CmsNamespace">
+		select ns.ns_id as nsId, ns.ns_path as nsPath, ns.created
+		from ns_namespaces ns where ns.ns_path like #{value} || '%'
+	 </select>
+
+	 <select id="getNamespaceById" parameterType="long" resultType="com.oneops.cms.ns.domain.CmsNamespace">
+		select ns.ns_id as nsId, ns.ns_path as nsPath, ns.created
+		from ns_namespaces ns where ns.ns_id = #{value}
+	 </select>
+
+	 <delete id="deleteNamespace" parameterType="string" statementType="CALLABLE">
+	    {call ns_delete_namespace(#{nsPath})}
+	 </delete>
+
+	 <select id="lockNamespace" parameterType="string" resultType="long">
+	    select ns.ns_id from ns_namespaces ns where ns.ns_path = #{value} for update
+	 </select> 
+
+</mapper>

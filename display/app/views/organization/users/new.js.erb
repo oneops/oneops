@@ -1,0 +1,3 @@
+var modal = $j("#organization_user_modal");
+modal.html("<%= escape_javascript(render('organization/users/add_user')) %>");
+modal.modal('show');

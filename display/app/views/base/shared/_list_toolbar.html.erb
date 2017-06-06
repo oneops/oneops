@@ -1,0 +1,291 @@
+<% sort_by   = toolbar[:sort_by]
+   filter_by = toolbar[:filter_by]
+   quick_filters = toolbar[:quick_filters] %>
+<div class="list-toolbar <%= 'hide' if pagination %>" list-name="<%= toolbar[:list_name] || controller.class.to_s.gsub(/\W/, '_') %>" filters="<%= filter_by.join(',') if filter_by %>">
+  <% if sort_by %>
+    <div class="btn-group sort pull-left">
+      <a class="btn btn-mini sort-indicator" onclick="toggle_order(this)"><%= icon('sort', content_tag(:span, 'Sort')) %></a>
+      <a class="btn btn-mini dropdown-toggle" data-toggle="dropdown" href="#"><%= icon('caret-down') %></a>
+      <ul class="dropdown-menu">
+        <% sort_by.each do |attr| %>
+          <li><%= link_to_function attr.first, "sort_selected(this, '#{attr.last}', '#{attr.first}')" %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <% compact = toolbar[:compact] %>
+  <%= link_to_function(compact ? icon('angle-double-down', content_tag(:span, 'Expand')) : icon('angle-double-up', content_tag(:span, 'Collapse')),
+                       'toggle_compact(this)',
+                       :class => 'btn btn-mini',
+                       :style => 'margin-left:10px') unless compact.nil? %>
+  <% if menu.present? %>
+    <div class="btn-group menu pull-right">
+      <button class="btn btn-mini" onclick="select_all_items(this)" title="Select All"><i class="fa fa-lg fa-check-square-o"></i></button>
+      <button class="btn btn-mini" onclick="unselect_all_items(this)" title="Unselect All"><i class="fa fa-lg fa-square-o"></i></button>
+      <a class="btn btn-mini" data-toggle="dropdown" href="#"><%= icon('cog', 'Action', 'fa-lg') %> <%= icon('caret-down') %></a>
+      <ul class="dropdown-menu">
+        <% menu.each do |i| %>
+          <% if i.blank? %>
+            <li class="divider"></li>
+          <% else %>
+            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}"))) %>'><%= raw i[:label] %></a></li>
+          <% end %>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+  <% if filter_by %>
+    <div class="filter">
+      <% unless pagination %>
+        <small><span class="badge badge-info list-count-marker">8</span></small>
+      <% end %>
+      <%= text_field_tag(:filter_list_field, '', :class => 'list-toolbar-filter input-medium search-query', :placeholder => 'type to filter...', (pagination ? :onchnage : :onkeyup) => "filter_changed(this, false)") %>
+      <i class="fa fa-times-circle" onclick="filter_changed(this, true)"></i>
+    </div>
+  <% end %>
+  <% if quick_filters.present? %>
+    <div class="quick-filters">
+      <ul>
+        <% quick_filters.each do |qf| %>
+          <li class="<%= 'active' if qf[:selected] %>" data-filter-value="<%= qf[:value] %>">
+            <%= link_to_function(qf[:label], %(apply_list_quick_filter(this, "#{escape_javascript(qf[:value])}"))) %>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+</div>
+<script type="text/javascript">
+  if (!window.sort_selected) {
+    window.sort_selected = function(source, attr, label) {
+      var indicator = $j(source).closest(".list-toolbar").find(".sort-indicator");
+      var current_attr = indicator.attr("sort-by");
+      if (current_attr == attr) {
+        toggle_order(indicator);
+      }
+      else {
+        indicator.attr("sort-by", attr);
+        indicator.find("i").removeClass("fa-sort").addClass("fa-sort-amount-asc").removeClass("fa-flip-vertical");
+        indicator.find("span").html(" " + label);
+        var listDiv = indicator.closest(".list-toolbar").parent();
+        if (!listDiv.hasClass('list-paginated')) {
+          sort_list(listDiv.find(".list-body > ul")[0], current_attr ? [attr, current_attr] : [attr], false);
+        }
+      }
+
+      if (localStorage) {
+        var prefix = LOCAL_STORAGE_KEY_PREFIX + indicator.closest(".list-toolbar").attr("list-name") + "_list_";
+        localStorage.setItem(prefix + "sort_attribute", attr);
+        localStorage.setItem(prefix + "sort_label", label);
+        localStorage.setItem(prefix + "sort_desc", indicator.find("i").hasClass("fa-flip-vertical"));
+      }
+      listDiv.trigger('sortChanged');
+    };
+
+
+    window.toggle_order = function(button) {
+      button = $j(button);
+      if (button.prop('disabled')) {
+        return;
+      }
+
+      var icon = button.find("i");
+      if (icon.hasClass("fa-sort-amount-asc")) {
+        icon.toggleClass("fa-flip-vertical");
+        var desc = icon.hasClass("fa-flip-vertical");
+        var toolbar = button.closest(".list-toolbar");
+        var listDiv = toolbar.parent();
+        if (!listDiv.hasClass('list-paginated')) {
+          sort_list(listDiv.find(".list-body ul")[0], [icon.closest(".sort-indicator").attr("sort-by")], desc);
+        }
+        if (localStorage) {
+          localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + toolbar.attr("list-name") + "_list_sort_desc", desc);
+        }
+        listDiv.trigger('sortChanged');
+      }
+    };
+
+    window.get_list_sort = function(list) {
+      list = $j(list);
+      return {
+        field: list.find(".sort-indicator").attr("sort-by"),
+        order: list.find(".sort-indicator .fa-flip-vertical").length > 0 ? 'desc' : 'asc'
+      }
+    }
+  }
+
+  if (!window.invoke_list_menu_item) {
+    window.invoke_list_menu_item = function(source, menu_item_id, function_name, url, method, param_name) {
+      if ($j(source).hasClass('disabled')) return;
+
+      var ids = selected_item_ids(source);
+      if (ids.length == 0) return;
+
+      if (function_name) {
+        window[function_name](menu_item_id, ids);
+      }
+      else if (url) {
+        var data = {};
+        data[param_name || "ciIds"] = ids;
+        $j.ajax({url: url, type: (method || "GET"), data: data});
+        clear_current_list_item($j(source).parents('.list').find('.list-body ul')[0]);
+      }
+    };
+
+    window.enable_list_menu = function(list) {
+      list.find(".list-toolbar .menu li").removeClass("disabled");
+    };
+
+    window.disable_list_menu = function(list) {
+      list.find(".list-toolbar .menu li").addClass("disabled");
+    };
+  }
+
+  if (!window.filter_changed) {
+    window.filter_changed = function(el, clear) {
+      var listDiv = $j(el).closest(".list");
+      var filterField = listDiv.find(".list-toolbar-filter");
+
+      if (clear) {
+        filterField.val("");
+      }
+
+      var filterValue = filterField.val();
+      if (localStorage) {
+        var prefix = LOCAL_STORAGE_KEY_PREFIX + el.up(".list-toolbar").getAttribute("list-name") + "_list_";
+        localStorage.setItem(prefix + "filter", filterValue);
+      }
+
+      apply_list_filter(listDiv, filterValue)
+    };
+
+    window.set_list_filter = function(list, value) {
+      if (list) {
+        list = $j(list);
+        list.find(".list-toolbar-filter").val(value);
+        apply_list_filter(list, value);
+      }
+    };
+
+    window.apply_list_filter = function(list, value) {
+      if (!list.hasClass('list-paginated')) {
+        filter_list(list.find(".list-body ul"), list.find(".list-toolbar").attr("filters").split(","), value);
+      }
+      update_filter_marker(list);
+
+      list.find(".quick-filters li").toArray().forEach(function(e) {
+        var li = $j(e);
+        if (value == li.attr('data-filter-value')) {
+          li.addClass('active');
+        }
+        else {
+          li.removeClass('active');
+        }
+      });
+
+      list.trigger('filterChanged');
+    };
+
+    window.get_list_filter = function(list) {
+      list = $j(list);
+      return {
+        fields: list.find(".list-toolbar").attr("filters").split(","),
+        value:  list.find(".list-toolbar-filter").val()
+      }
+    }
+
+    window.apply_list_quick_filter = function(source, value) {
+      source = $j(source);
+      var li = source.parents("li");
+      set_list_filter(source.parents(".list")[0], value);
+      li.siblings("li").removeClass('active');
+      li.addClass('active');
+    }
+  }
+
+  if (!window.list_toolbar_init) {
+    window.list_toolbar_init = function(list, name) {
+      list = $j(list);
+      var prefix = LOCAL_STORAGE_KEY_PREFIX + list.find(".list-toolbar").attr("list-name") + "_list_";
+      if (localStorage) {
+        var attr = localStorage.getItem(prefix + "sort_attribute");
+        if (attr) {
+          var label = localStorage.getItem(prefix + "sort_label");
+          var desc = localStorage.getItem(prefix + "sort_desc") == 'true';
+          var link = $j(list).find(".sort-indicator")[0];
+          if (link) {
+            sort_selected(link, attr, label);
+            if (desc) {
+              toggle_order(link);
+            }
+          }
+        }
+
+        var filter_field = list.find(".list-toolbar-filter");
+        var filtersFields = list.find(".list-toolbar").attr("filters");
+        if (filtersFields) {
+          var taItems = filtersFields.split(",");
+          filter_field.typeahead({items: 15,
+                                  source:  function(query, process) {
+                                    var split = query.split(/:|=/);
+                                    var val = split.length > 1 ? split[1] : split[0];
+                                    var items = taItems.map(function(i) {return i + "=" + val;});
+                                    items.unshift(val);
+                                    return items;
+                                  },
+                                  matcher: function (item) {
+                                    return true;
+                                  },
+                                  sorter: function(items) {
+                                    var query = this.query;
+                                    return items.sort(function(a, b) {
+                                      if (a == query){
+                                        return -1;
+                                      }
+                                      else if (b == query) {
+                                        return 1;
+                                      }
+                                      else {
+                                        return a.localeCompare(b);
+                                      }
+                                    });
+                                  },
+                                  highlighter: function (item) {
+                                    var split = item.split('=');
+                                    return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
+                                  },
+                                  updater: function (item) {
+                                    setTimeout(function () {
+                                      filter_changed(filter_field[0]);
+                                    }, 10);
+                                    return item;
+                                  }});
+        }
+        else {
+          filter_field.on('keydown', function(event) {
+            if (event.keyCode == 13) {
+              filter_changed(filter_field[0]);
+            }
+          });
+        }
+      }
+      // Uncomment to reset last filter on reload.
+      //      var filter = localStorage.getItem(prefix + "filter");
+      //      if (filter) {
+      //          filter_field.val(filter);
+      //          filter_changed(filter_field[0]);
+      //      }
+      update_filter_marker(list);
+      if (list.find(".btn i.fa-angle-double-down").length) {
+        list.find(".list-body > ul > li .middle").hide();
+      }
+    };
+
+    window.update_filter_marker = function(list) {
+      list = $j(list);
+      // Can not rely on ':visible' selector because of racing condition.
+      var count = list.find(".list-body > ul > li:not(.group-header)").not(function(i, e) {return e.style.display == 'none'}).length;
+      list.find(".list-count-marker").html(count);
+    }
+  }
+</script>

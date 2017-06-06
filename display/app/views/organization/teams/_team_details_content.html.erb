@@ -1,0 +1,87 @@
+<div class="control-group">
+  <%= f.label :name, 'Name*', :class => 'control-label' %>
+  <div class="controls" editable="<%= @team.name != Team::ADMINS %>">
+    <%= f.text_field :name, :class => 'input-xlarge', :required => true, :placeholder => 'Name' %>
+  </div>
+</div>
+<div class="control-group">
+  <%= f.label :description, 'Description', :class => 'control-label' %>
+  <div class="controls"><%= f.text_field :description, :class => 'input-xlarge text', :placeholder => 'Description', :rows => 5 %></div>
+</div>
+<% unless resource.name == Team::ADMINS %>
+  <div class="category">
+    <div class="name">Access Management</div>
+    <div class="control-group">
+      <label class="control-label">Manage Access</label>
+      <div class="controls">
+        <%= render 'cms/cis/checkbox',
+                   :builder         => f,
+                   :attribute_name  => :manages_access,
+                   :attribute_value => @team.manages_access,
+                   :checked_value   => true,
+                   :unchecked_value => false %>
+        <span class="help-block"><%= icon(site_icon(:manages_access), '', 'fa-lg text-error') %>
+          When checked and this team is assigned to a cloud or an assembly it allows team members to manage other team
+          assignments. Additionally, when checked it allows team members to create new clouds and assemblies.
+        </span>
+      </div>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Organization Scope</label>
+      <div class="controls">
+        <%= render 'cms/cis/checkbox',
+                   :builder         => f,
+                   :attribute_name  => :org_scope,
+                   :attribute_value => @team.org_scope,
+                   :checked_value   => true,
+                   :unchecked_value => false %>
+        <span class="help-block"><%= icon(site_icon(:org_scope), '', 'fa-lg text-error') %>
+          When checked this team will automatically have access to all assemblies and clouds in the organization
+          (without the need to assign it explicitly and governed by the permissions specified below
+        </span>
+      </div>
+    </div>
+  </div>
+  <div class="category">
+    <div class="name">Cloud Permissions</div>
+    <div class="control-group">
+      <label class="control-label">Allow Modification In</label>
+      <div class="controls">
+        <div class="btn-group">
+          <% %w(cloud_services cloud_compliance cloud_support).each do |area| %>
+            <%= render 'cms/cis/checkbox',
+                       :builder         => f,
+                       :attribute_name  => area,
+                       :attribute_value => @team.send(area),
+                       :checked_value   => true,
+                       :unchecked_value => false,
+                       :label           => area.gsub('cloud_', ''),
+                       :label_icon      => site_icon(area) %>
+            <br>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="category">
+    <div class="name">Assembly Permissions</div>
+    <div class="control-group">
+      <label class="control-label">Allow Modification In</label>
+      <div class="controls">
+        <div class="btn-group">
+          <% %w(design transition operations).each do |area| %>
+            <%= render 'cms/cis/checkbox',
+                       :builder         => f,
+                       :attribute_name  => area,
+                       :attribute_value => @team.send(area),
+                       :checked_value   => true,
+                       :unchecked_value => false,
+                       :label           => area,
+                       :label_icon      => site_icon(area) %>
+            <br>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>

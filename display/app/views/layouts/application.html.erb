@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <%= render 'layouts/head_icons' %>
+  <title><%= content_for?(:title_clean) ? yield(:title_clean) : 'OneOps' %></title>
+
+  <%= stylesheet_link_tag 'application', :media => 'all' %>
+  <%= javascript_include_tag 'application' %>
+  <%= csrf_meta_tag %>
+</head>
+<body>
+  <% user_signed_in  = user_signed_in?
+     current_org     = user_signed_in && current_user.organization
+     show_sidebar    = session[:sidebar].blank? || session[:sidebar] == 'true'
+     sidebar_theme   = session[:sidebar_theme].presence || 'dark' %>
+    <div id="container" class="<%= 'sidebar-visible' if show_sidebar %>">
+      <div id="overlay" style="display:none" class="rounded-bottom shadow"></div>
+      <div id="busy_modal" class="modal hide">
+        <div class="modal-header">
+          <h3>Please wait</h3>
+        </div>
+        <div class="modal-body" style="text-align: center">
+          <div class="message" style="margin-bottom: 20px"></div>
+          <i class="fa fa-refresh fa-2x fa-spin"></i>
+        </div>
+      </div>
+
+      <div id="organization_lookup_modal" class="modal hide">
+        <div class="modal-header">
+          <button class="close" data-dismiss="modal">&times;</button>
+          <h3>Find organization <small>(<b>Alt</b>+<b>o</b>)</small></h3>
+        </div>
+        <div class="modal-body" style="overflow:visible">
+          <%= text_field_tag(:org_lookup, '', :id => 'org_lookup', :style => 'width: 97%', :autocomplete => 'off', :placeholder => 'Organization name') %>
+        </div>
+      </div>
+      <script>
+        $j("#organization_lookup_modal input")
+            .typeahead({
+              items:     10,
+              minLength: 2,
+              source:    function (query, process) {
+                this.lastTimestamp = new Date().getTime();
+                var that = this;
+                setTimeout(function () {
+                  if (new Date().getTime() - that.lastTimestamp > 400) {
+                    return $j.get('<%= lookup_organization_path %>',
+                                  {name: query},
+                                  function (data) {
+                                    return process(data);
+                                  });
+                  }
+                }, 500);
+              },
+              updater:   function (item) {
+                window.location = '/' + item.split(' ')[0];
+                show_busy();
+              }
+            });
+      </script>
+
+      <div id="ci_lookup_modal" class="modal hide">
+        <div class="modal-header">
+          <button class="close" data-dismiss="modal">&times;</button>
+          <h3>Go to</h3>
+        </div>
+        <div class="modal-body" style="overflow:visible">
+          <div class="input-append">
+            <%= hidden_field_tag :dto  %>
+            <%= text_field_tag(:ci_lookup, '', :id => 'org_lookup', :style => 'width: 92%', :autocomplete => 'off', :placeholder => 'name') %>
+            <span class="add-on"><i class="fa fa-times-circle" onclick="$j(this).parents('div').find('input').val('')"></i></span>
+          </div>
+        </div>
+      </div>
+      <script>
+        <% org_name = current_org && current_org.name %>
+        <% if org_name.present? %>
+          $j('#ci_lookup_modal .modal-body input')
+              .typeahead({items: 21,
+                minLength: 3,
+                source:  function (query, process) {
+                  this.lastTimestamp = new Date().getTime();
+                  var that = this;
+                  setTimeout(function() {
+                    if (new Date().getTime() - that.lastTimestamp > 400) {
+                      return $j.get('<%= ci_lookup_lookup_path %>',
+                                    {
+                                      org:         "<%= org_name %>",
+                                      assembly:    "<%= @assembly && @assembly.ciName %>",
+                                      environment: "<%= @environment && @environment.ciName %>",
+                                      dto        : that.$element.siblings("input#dto").val(),
+                                      query:       query,
+                                      max_size:    20
+                                    },
+                                    function (data) {
+                                      var results = data.reduce(function (a, d) {
+                                                                  a.push(d.ciName + " " + d.ciClassName + " " + d.nsPath + " " + d.ciId);
+                                                                  return a;
+                                                                },
+                                                                []);
+                                      if (results.length >= 20) {
+                                        results.push('...')
+                                      }
+                                      return process(results);
+                                    });
+                    }
+                  }, 500);
+                },
+                matcher: function(item) {
+                  return true;
+                },
+                highlighter: function (item) {
+                  if (item == '...') {
+                    return "<small><em><small>showing top 20 results</small></em></small>"
+                  }
+                  else {
+                    var s = item.split(" ");
+                    return s[0] + " <small><em>" + s[1].split(".").last() + "</em> " + s[2].substring(<%= org_name.size + 1 %>) + "</small>";
+                  }
+                },
+                updater: function (item) {
+                  if (item == '...') {
+                    return this.$element.val();
+                  } else {
+                    window.location = "/r/ci/" + item.split(" ").last();
+                    show_busy();
+                  }
+                }
+              });
+        <% end %>
+      </script>
+
+      <div id="copy_to_clipboard_modal" class="modal hide">
+        <div class="modal-header">
+          <button class="close" data-dismiss="modal">&times;</button>
+          <h3></h3>
+        </div>
+        <div class="modal-body" style="overflow:visible">
+        </div>
+        <div class="modal-footer">
+          <a class="btn" data-dismiss="modal"><%= icon('files-o', 'Copy to clipboard') %></a>
+        </div>
+      </div>
+      <script>
+        copyToClipboard($j("#copy_to_clipboard_modal .modal-footer .btn")[0],
+                        function() {
+                          return $j("#copy_to_clipboard_modal .modal-body")[0];
+                        });
+      </script>
+
+      <%= render('layouts/flash_error') %>
+      <% content_for :flash do %>
+        <div id="flash">
+          <% [:notice, :alert, :error].each do |name| %>
+            <div id="flash_<%= name %>" style='display:none' class="rounded-bottom shadow flash">
+              <button class="close" onclick="$j(this).parent().hide(500);">&times;</button>
+              <div class="content"></div>
+            </div>
+          <% end %>
+          <%= javascript_tag "document.observe('dom:loaded', function() {flash('#{escape_javascript(flash[:notice])}', '#{escape_javascript(flash[:error])}', '#{escape_javascript(flash[:alert])}')})" if flash[:error] || flash[:notice] || flash[:alert] %>
+        </div>
+      <% end %>
+
+      <% if user_signed_in %>
+        <div class="top-nav" data-spy="affix" data-offset="0">
+          <div id="header" class="<%= 'hide' if show_sidebar %>">
+            <div class="sidebar-toggle">
+              <%= link_to_function(icon('bars'), 'toggleSidebar()') %>
+            </div>
+            <%= render 'layouts/brand' %>
+            <div id="ajax"><%= image_tag('ajax_busy.gif', :class => 'ajax_busy', :style => 'display:none') %></div>
+            <div id="user_nav" class="rounded-bottom">
+              <%= render :partial => 'layouts/user_nav' %>
+            </div>
+          </div>
+
+          <div id="title_bar" class="rounded black-static">
+            <div id="title">
+              <%= yield(:title) %>
+            </div>
+            <div id="app_nav">
+              <%= yield(:app_nav) %>
+            </div>
+          </div>
+          <div id="title_underbar" class="shadow">
+            <div id="app_subnav">
+              <%= yield(:app_subnav) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="scaffold">
+          <% if user_signed_in %>
+            <% must_accept_eula = Settings.eula && current_user.eula_accepted_at.blank?%>
+            <div class="sidebar affix <%= sidebar_theme %> <%= 'hide' unless show_sidebar %>">
+              <div class="header">
+                <div class="logo">
+                  <%= render 'layouts/brand' %>
+                </div>
+                <div class="controls">
+                  <%= link_to_function(icon('tint'), 'toggleSidebarTheme()') %>
+                  <%= link_to_function(icon('thumb-tack', '', show_sidebar ? '' : 'fa-rotate-270'), 'toggleSidebarPin()') %>
+                  <%= link_to_function(icon('times'), 'toggleSidebar()') %>
+                </div>
+              </div>
+              <div class="profile">
+                <ul class="menu">
+                  <% unless must_accept_eula %>
+                    <li><%= link_to(icon('user', current_user.username), account_profile_path) %></li>
+                    <% if current_org && current_org.persisted? %>
+                      <li class="favorites-dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown">
+                          <%= icon('bookmark', 'Favorites') %> <%= icon('caret-right', '', 'pull-right') %>
+                        </a>
+                        <%= render('layouts/favorites_dropdown') %>
+                      </li>
+                    <% end %>
+                  <% end %>
+                  <li>
+                    <%= link_to(organizations_account_profile_path,
+                                :remote       => true,
+                                :class        => 'dropdown-toggle',
+                                'data-toggle' => 'dropdown') do %>
+                      <%= raw("#{icon('sitemap', current_org ? current_org.name : content_tag(:em, 'organizations', :class => 'muted'))} #{icon('caret-right', '', 'pull-right')}") %>
+                    <% end %>
+                    <ul class="org_dropdown dropdown-menu">
+                      <li style="text-align:center"><a><i class="fa-spinner fa-spin"></i></a></li>
+                    </ul>
+                  </li>
+                  <li><%= link_to(icon('sign-out', 'Signout'), destroy_user_session_path) %></li>
+                </ul>
+              </div>
+              <div class="main">
+                <%= render 'layouts/sidebar_menu' %>
+              </div>
+            </div>
+          <% end %>
+          <div id="page_container">
+            <%= yield :flash %>
+            <div id="page_header_container">
+              <% if current_user.eula_accepted_at? %>
+                <div id="page_header">
+                  <div id="site_announcements">
+                    <%= render 'layouts/site_announcements', :announcements => MiscDoc.announcements %>
+                  </div>
+                  <div id="org_announcement">
+                    <%= render 'layouts/announcement', :announcement => current_org && current_org.announcement %>
+                  </div>
+                  <% wiz = wizard %>
+                  <% if wiz.present? %>
+                    <div id="wizard" class="rounded"><%= wizard %></div>
+                  <% end %>
+
+                  <div id="page_box" class="rounded">
+                    <% if content_for?(:breadcrumb) %>
+                      <div id="breadcrumb">
+                        <%= yield(:breadcrumb) %>
+                      </div>
+                    <% end %>
+
+                    <% if content_for?(:page_title) %>
+                      <div id="page_title">
+                        <%= yield(:page_title) %>
+                      </div>
+                    <% end %>
+
+                    <% if content_for?(:page_info) %>
+                      <div id="page_info">
+                        <%= yield(:page_info) %>
+                      </div>
+                    <% end %>
+                    <div id="page_alert"><%= page_alert %></div>
+                  </div>
+
+                  <% if content_for?(:page_nav) %>
+                    <div id="page_bar">
+                      <div id="page_nav">
+                        <%= yield(:page_nav) %>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+
+            <div id="main" class="rounded-bottom">
+              <%= yield %>
+            </div>
+            <%= render 'layouts/footer', :general_actions => general_site_links %>
+          </div>
+        </div>
+      <% else %>
+        <%= yield :flash %>
+        <div id="main" class="rounded-bottom">
+          <%= yield %>
+        </div>
+        <%= render 'layouts/footer', :general_actions => general_site_links %>
+      <% end %>
+    </div>
+  <script>
+    var local_storage_key_sidebar_pin   = LOCAL_STORAGE_KEY_PREFIX + "sidebar_pin",
+        local_storage_key_sidebar_theme = LOCAL_STORAGE_KEY_PREFIX + "sidebar_theme";
+
+    window.toggleSidebar = function() {
+      var sideBar   = $j(".sidebar"),
+          headerBar = $j("#header");
+
+      if (sideBar.is(":visible")) {
+        sideBar.hide(500);
+        headerBar.show(500);
+        $j("#container").switchClass('sidebar-visible', '', 500);
+      }
+      else {
+        sideBar.show(500);
+        headerBar.hide(500);
+        $j("#container").switchClass('', 'sidebar-visible', 500);
+      }
+    };
+
+    window.toggleSidebarPin = function() {
+      var pinIcon = $j('.sidebar').find(".controls .fa-thumb-tack");
+      var pin = pinIcon.hasClass("fa-rotate-270");
+      if (pin) {
+        localStorage.setItem(local_storage_key_sidebar_pin, 'true');
+        pinIcon.removeClass("fa-rotate-270");
+      }
+      else {
+        localStorage.setItem(local_storage_key_sidebar_pin, 'false');
+        pinIcon.addClass("fa-rotate-270");
+      }
+      $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar: "" + pin}}});
+    };
+
+    var SIDEBAR_THEMES = ['dark', 'light', 'blue'];
+    window.toggleSidebarTheme = function(theme) {
+      var current = localStorage.getItem(local_storage_key_sidebar_theme) || SIDEBAR_THEMES[0],
+          newOne = (theme && SIDEBAR_THEMES[SIDEBAR_THEMES.indexOf(theme)]) ||
+              SIDEBAR_THEMES[(SIDEBAR_THEMES.indexOf(current) + 1) % SIDEBAR_THEMES.length];
+      $j(".sidebar").removeClass(current).addClass(newOne);
+      localStorage.setItem(local_storage_key_sidebar_theme, newOne);
+
+      if (newOne != "<%= sidebar_theme %>") {
+        $j.ajax({url: "<%= session_preferences_account_profile_path %>", type: 'PUT', data: {preferences: {sidebar_theme: newOne}}});
+      }
+    };
+
+    <% if user_signed_in %>
+      $j("body").on('keydown',
+                    function (event) {
+                      var modal;
+                      if (event.altKey) {
+                        if (event.keyCode == 68) {
+                          modal = $j("#ci_lookup_modal");
+                          modal.find(".modal-header h3").html("Go to ... in design <small>(<b>Alt</b>+<b>d</b>)</small>");
+                          modal.find(".modal-body input#dto").val("d");
+                          modal.modal("show").find(".modal-body input").focus();
+
+                          event.preventDefault();
+                        }
+                        else if (event.keyCode == 71) {
+                          modal = $j("#ci_lookup_modal");
+                          modal.find(".modal-header h3").html("Go to ... <small>(<b>Alt</b>+<b>g</b>)</small>");
+                          modal.find(".modal-body input#dto").val("");
+                          modal.modal("show").find(".modal-body input").focus();
+
+                          event.preventDefault();
+                        }
+                        else if (event.keyCode == 84) {
+                          modal = $j("#ci_lookup_modal");
+                          modal.find(".modal-header h3").html("Go to ... in transition <small>(<b>Alt</b>+<b>t</b>)</small>");
+                          modal.find(".modal-body input#dto").val("t");
+                          modal.modal("show").find(".modal-body input").focus();
+
+                          event.preventDefault();
+                        }
+                        else if (event.keyCode == 80) {
+                          modal = $j("#ci_lookup_modal");
+                          modal.find(".modal-header h3").html("Go to ... in operations <small>(<b>Alt</b>+<b>p</b>)</small>");
+                          modal.find(".modal-body input#dto").val("o");
+                          modal.modal("show").find(".modal-body input").focus();
+
+                          event.preventDefault();
+                        }
+                        else if (event.keyCode == 79) {
+                          modal = $j("#organization_lookup_modal");
+                          modal.modal("show").find(".modal-body input").focus();
+                          event.preventDefault();
+                        }
+                      }
+                    });
+      <% if session[:sidebar].nil? %>
+        setTimeout(function() {
+          if (localStorage.getItem(local_storage_key_sidebar_pin) == 'false') {
+            toggleSidebar();
+            toggleSidebarPin();
+          }
+          toggleSidebarTheme(localStorage.getItem(local_storage_key_sidebar_theme));
+        }, 100);
+      <% end %>
+    <% end %>
+  </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<% cms = @source == 'cms'
+   if cms
+     search_by_ip_opts = {'attr-name'     => 'private_ip',
+                          'attr-operator' => 'eq',
+                          'attr-value'    => ''}
+   else
+     search_by_ip_opts = {:package        => '*',
+                          'class-name'    => 'Compute',
+                          'query'         => 'IP'}
+   end
+   locals = {:quick_filters => {'Compute Instances by IP...' => {:filters => search_by_ip_opts,
+                                                                 :run     => false},
+                                'All FQDNs'                  => {:filters => {:package        => 'bom',
+                                                                              'class-name'    => 'Fqdn',
+                                                                              'attr-name'     => '',
+                                                                              'attr-operator' => '',
+                                                                              'attr-value'    => ''},
+                                                                 :run     => true}}} %>
+<%= render(cms ? 'base/search/search_cms' : 'base/search/search_es', locals.merge(local_assigns)) %>

@@ -1,0 +1,76 @@
+<% unhealthy_count = ops_states.reject { |ci,state| state == 'good' }.count %>
+<% healthy_count =  instance_count - unhealthy_count %>
+<% if instance_count == 0 %>
+	<li class="status-marker">
+		<div class="marker">
+      <% status = @bom_release ? 'pending' : 'disabled' %>
+			<%= status_marker('health', status, state_to_label(status)) %>
+		</div>
+		<div class="description">
+			<ul>
+				<li><%= icon('eye-slash') %> <%= class_name %> has <%= highlight('NO') %> deployed component instances</li>
+				<li><%= icon('info-circle') %> Health monitoring will begin when component instances are deployed</li>
+			</ul>
+		</div>
+	</li>
+<% elsif unhealthy_count > 0 %>
+	<% unhealthy = ops_states.select { |ci,state| state == 'unhealthy' }.count %>
+	<% overutilized = ops_states.select { |ci,state| state == 'overutilized' }.count %>
+	<% underutilized = ops_states.select { |ci,state| state == 'underutilized' }.count %>
+	<% notify = ops_states.select { |ci,state| state == 'notify' }.count %>
+	<li class="status-marker">
+		<div class="marker">
+			<% if unhealthy > 0 %>
+				<%= status_marker('health', 'unhealthy', health_to_label('unhealthy')) %>
+			<% elsif overutilized > 0 %>
+				<%= status_marker('health', 'overutilized', health_to_label('overutilized')) %>
+			<% elsif underutilized > 0 %>
+				<%= status_marker('health', 'underutilized', health_to_label('underutilized')) %>
+			<% elsif notify > 0 %>
+				<%= status_marker('health', 'notify', health_to_label('notify')) %>
+			<% end %>
+		</div>
+		<div class="description">
+			<ul>
+				<% if unhealthy > 0 %>
+					<li><%= icon('exclamation-triangle') %> Found <%= count_marker(unhealthy) %> instances that are <%= highlight('unhealthy','important')  %></li>
+				<% end %>
+				<% if overutilized > 0 %>
+					<li><%= icon('expand') %> Found <%= count_marker(overutilized) %> instances that are <%= highlight('overutilized','warning') %></li>
+				<% end %>
+				<% if underutilized > 0 %>
+					<li><%= icon('copress') %> Found <%= count_marker(underutilized) %> instances that are <%= highlight('underutilized','notice') %></li>
+				<% end %>
+				<% if notify > 0 %>
+					<li><%= icon('exclamation-circle') %> Found <%= count_marker(notify) %> instances that are <%= highlight('notify','info') %></li>
+				<% end %>
+				<li><%= icon('eye') %> <%= class_name %> has total of <%= count_marker(healthy_count) %> healthy component instances</li>
+			</ul>
+		</div>
+	</li>
+<% elsif ops_states.size == 0 && instance_count > 0 %>
+  <li class="status-marker">
+ 		<div class="marker">
+ 			<%= status_marker('health', 'unknown', health_to_label('unknown')) %>
+ 		</div>
+ 		<div class="description">
+ 			<ul>
+ 				<li><%= icon('exclamation-triangle') %> Failed to retrieve health info</li>
+ 			</ul>
+ 		</div>
+ 	</li>
+<% else %>
+	<li class="status-marker">
+		<div class="marker">
+			<%= status_marker('health', 'good', health_to_label('good')) %>
+		</div>
+		<div class="description">
+			<ul>
+				<li><%= icon('check') %> All instances are in <%= highlight('good', 'success') %> health</li>
+				<li><%= icon('eye') %> <%= class_name %> has total of <%= highlight(healthy_count) %> healthy component instances</li>
+			</ul>
+		</div>
+	</li>
+<% end %>
+
+

@@ -1,0 +1,5 @@
+<% %w(design transition operations).each do |area| %>
+  $j("#app_nav .<%= area %> .dropdown-menu").html("<%= escape_javascript(render('counterparts', :target_dto => area)) %>");
+  $j('#app_nav .<%= area %> a.dropdown-toggle').attr('href', '#').removeAttr('data-remote');
+  $j(".sidebar ul.menu .<%= area %>.more").replaceWith("<%= escape_javascript(render('lookup/side_bar_counterparts', :target_dto => area).presence || ' ') %>");
+<% end %>

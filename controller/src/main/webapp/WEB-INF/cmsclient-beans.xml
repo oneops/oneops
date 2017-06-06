@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<context:annotation-config />
+
+	<!--context:component-scan base-package="com.oneops.controller.cms" /-->
+    <import resource="/sensorclient-beans.xml"/>
+
+	<!-- import mybatis staff  -->
+    <import resource="/mybatis-beans.xml"/>
+
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
+
+	<bean id="envPropertyConfigurer"
+	class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+	  <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_FALLBACK"/>
+	  <property name="searchSystemEnvironment" value="true"/>
+	</bean>
+		
+	 <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" >
+		<property name="supportedMediaTypes" value="application/json" />
+	 </bean>
+
+	<bean class="org.springframework.web.client.RestTemplate" id="woRestTemplate">
+		<constructor-arg>
+	 		<bean class="org.springframework.http.client.HttpComponentsClientHttpRequestFactory">
+	 			<property name="readTimeout" value="300000" />
+	 		</bean>
+		</constructor-arg>
+		<property name="messageConverters">
+			<list>
+			   <ref bean="jsonMessageConverter" />
+			</list>  
+		</property>  
+	</bean> 
+
+
+
+    <!--bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoOpenSSLImpl" init-method="init" /-->
+    <bean id="cmsCrypto" class="com.oneops.cms.crypto.CmsCryptoDES" init-method="init" />
+    <bean id="controllerUtil" class="com.oneops.controller.util.ControllerUtil" />
+    
+  	<bean id="cmsClient" class="com.oneops.controller.cms.CMSClient">
+       	<property name="restTemplate" ref="woRestTemplate" />
+       	<property name="serviceUrl" value="http://${CMS_API_HOST:localhost}:8080/adapter/rest/" />
+       	<property name="transUrl" value="http://${CMS_API_HOST:localhost}:8080/transistor/rest/" />
+        <property name="cmsCrypto" ref="cmsCrypto" />
+        <property name="stepWoLimit" value="${CONTROLLER_WO_LIMIT:100}" />
+		<property name="deploymentNotifier" ref="deploymentNotifier" />
+        <property name="cmsWoProvider" ref="cmsWoProvider" />
+        <property name="cmsCmProcessor" ref="cmsCmProcessor" />
+        <property name="opsProcedureProcessor" ref="procProcessor" />
+        <property name="cmsDpmtProcessor" ref="cmsDpmtProcessor" />
+        <property name="controllerUtil" ref="controllerUtil" />
+        <property name="cmsUtil" ref="cmsUtil" />
+   	</bean>
+
+	<bean id="deploymentNotifier" class="com.oneops.controller.cms.DeploymentNotifier">
+		<property name="antennaClient" ref="antennaClient">
+		</property>
+		<property name="serviceUrl" value="http://${CMS_API_HOST:localhost}:8080/adapter/rest/"/>
+		<property name="restTemplate" ref="woRestTemplate" />
+   	</bean>
+
+</beans>

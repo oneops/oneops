@@ -1,0 +1,14 @@
+<div class="modal-header">
+  <button class="close" data-dismiss="modal">&times;</button>
+  <h3>New Organization</h3>
+</div>
+<%= form_tag(account_organizations_path, :remote => true, :class => 'form-inline') do %>
+  <div class="modal-body">
+    <%= label_tag :name, 'Name', :class => 'control-label' %>
+    <%= text_field_tag :name, '', :class => 'input-xlarge', :required => true, :placeholder => 'Organization name...', :pattern => Cms::Ci.valid_ci_name_regexp('account.Organization') %>
+  </div>
+  <div class="modal-footer">
+  	<button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
+    <%= submit_tag 'Save', :class => 'btn btn-success btn-large' %>
+  </div>
+<% end %>

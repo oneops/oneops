@@ -1,0 +1,32 @@
+<%= section_panel 'New Offering', :width => 'double', :position => 'left' do %>
+  <div class="form-horizontal">
+    <div class="ciAttributes">
+      <div class="category">
+        <div class="name">Select From Available Offerings</div>
+          <div class="control-group">
+            <%= label_tag :mgmt_offering_ci_id, 'Offering', :class => 'control-label' %>
+            <div class="controls">
+              <%= select_tag :mgmt_offering_ci_id,
+                             options_for_select([['Choose offering...', '']] + @available_offerings.map {|o| [o.ciName, o.ciId]}, @mgmt_offering_ci_id),
+                             :id => 'offering_select',
+                             :required => true %>
+            </div>
+          </div>
+          <script type="text/javascript">
+            $j("#offering_select").on("change", function () {
+              if (this.value) {
+                $j("#new_offering_details").html('<%= escape_javascript(loading_indicator) %>');
+                $j.ajax({
+                  url:  "<%= new_cloud_service_offering_path(@cloud, @service) %>",
+                  data: {mgmtOfferingCiId: this.value}
+                });
+              }
+            });
+          </script>
+        </div>
+    </div>
+  </div>
+  <div id="new_offering_details">
+    <%= render('new_offering_details') if @offering %>
+  </div>
+<% end %>

@@ -1,0 +1,5 @@
+<div>
+  <%= render 'cms/cis/properties',  :ci => ci, :f => f %>
+  <%= render 'cms/cis/attributes',  :ci => ci, :f => f %>
+  <%= render 'cms/rfcs/properties', :rfc => ci, :f => f if ci.is_a?(Cms::DjCi) %>
+</div>

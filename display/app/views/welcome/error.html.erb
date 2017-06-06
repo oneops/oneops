@@ -1,0 +1,18 @@
+<%= organization_page_header if user_signed_in? %>
+
+<div class="error-message">
+  <h1>We're sorry, but something went wrong.</h1>
+
+  <% report_problem_url = Settings.report_problem_url %>
+  <% if report_problem_url.present? %>
+    <p>
+      Use <strong><%= link_to('this link', report_problem_url) %></strong> to report this incident.
+      Please provide all important details concerning this problem when filing a corresponding issue.
+    </p>
+  <% end %>
+  <br/>
+  <% if @message.present? %>
+    <div class="alert alert-error"><%= @message %></div>
+  <% end %>
+
+</div>

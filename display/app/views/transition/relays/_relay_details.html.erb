@@ -1,0 +1,7 @@
+<%= section_panel 'Relay Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             :resource    => @relay,
+             :content     => 'cms/cis/ci',
+             :form_url    => assembly_transition_environment_relay_path(@assembly, @environment, @relay),
+             :destroy_url => assembly_transition_environment_relay_path(@assembly, @environment, @relay)) %>
+<% end %>

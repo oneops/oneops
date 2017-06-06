@@ -1,0 +1,26 @@
+<%= section_panel 'Pending Platform Changes', :width => 'triple', :position => 'left' do %>
+  <ul class="status">
+    <li class="status-marker">
+      <div class="description">
+        <div class="alert alert-info">
+          This list shows the pending release changes <strong>for this platform only</strong>.
+          Discard and Commit actions will apply only to these platform changes.
+          Other pending release changes <strong>will not be affected</strong>.
+        </div>
+        <% if has_design?(@assembly.ciId) %>
+          <ul class="status-actions inline-block">
+            <%= render 'release_controls' %>
+          </ul>
+        <% end %>
+      </div>
+    <li>
+  </ul>
+  <div class="release">
+    <% rfc_cis = @rfcs['cis']
+       rfc_cis << @platform if @platform.rfcAction.present?%>
+    <%= render 'base/release/release_diff_list',
+               :rfc_cis       => rfc_cis,
+               :rfc_relations => @rfcs['relations'],
+               :owner         => 'design' %>
+  </div>
+<% end %>

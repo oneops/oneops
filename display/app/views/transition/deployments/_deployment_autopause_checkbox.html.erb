@@ -1,0 +1,6 @@
+<% paused ||= false %>
+<span class="autopause">
+  <%= check_box_tag "autopause_#{exec_order}", exec_order, paused %>
+  <%= label_tag "autopause_#{exec_order}", '' %>
+</span>
+

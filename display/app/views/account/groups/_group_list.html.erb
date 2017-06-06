@@ -1,0 +1,39 @@
+<%= section_panel 'User Groups',
+                  :width => 'single',
+                  :menu  => [link_to(icon('plus', 'Add'), new_account_group_path, :remote => true, :class => 'btn btn-mini')] do %>
+  <%= list(@groups,
+           :new_link => link_to(icon('plus', 'Add Group...'), new_account_group_path, :remote => true),
+           :toolbar  => {:list_name => 'group_list',
+                         :sort_by   => [%w(Name name), %w(Created created)],
+                         :filter_by => %w(name)}) do |builder, group| %>
+    <% group_admin = group.admin?
+       user_count  = @member_counts[group.id].member_count.to_i %>
+    <% builder.itemid "group_#{group.id}" %>
+    <% builder.attributes raw(%(name="#{group.name}" created="#{group.created_at}")) %>
+    <% builder.target link_to('', edit_account_group_path(group), :remote => true) %>
+    <% builder.top do %>
+      <span class="topname"><%= group.name %></span>
+      <span class="topdesc"><%= truncate(group.description, 20) if group.description.present? %></span>
+    <% end %>
+    <% builder.middle do %>
+      <%= raw "#{highlight(user_count)} #{'user'.pluralize(user_count)}" if user_count > 0 %>
+      <% counts     = @team_counts[group.id]
+         team_count = counts ? counts.team_count.to_i : 0 %>
+      <% if team_count > 0 %>
+        | <%= raw "#{highlight(team_count)} #{'team'.pluralize(team_count)}" %>
+        <% org_count = counts ? counts.org_count.to_i : 0 %>
+        | <%= raw "#{highlight(org_count)} #{'organization'.pluralize(org_count)}" %>
+      <% end %>
+    <% end %>
+    <% builder.bottom raw("created #{time_ago_in_words(group.created_at)} by #{group.created_by}") %>
+    <% builder.status do %>
+      <%= marker('admin', 'label-info') if group_admin %>
+    <% end %>
+    <% builder.menu do %>
+      <%= link_to(icon('times', 'Leave'), account_group_member_path(group, current_user.id), :method => :delete, :remote => true, :confirm => "Leave group #{group.name}?") if user_count > 1 %>
+      <%= link_to(icon('trash', 'Delete'), confirm_delete_account_group_path(group), :method => :get, :remote => true) if group_admin %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id="group_details"></div>
+<div id="confirm_group_delete_modal"></div>

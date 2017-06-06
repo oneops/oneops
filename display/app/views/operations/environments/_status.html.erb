@@ -1,0 +1,9 @@
+<ul class="status">
+	<%= render 'status_platforms' %>
+	<%= render 'status_deployment' %>
+  <%= render 'base/shared/status_health',
+             :class_name     => 'Environment',
+             :instance_count => @deloyed_to_rels.size,
+             :ops_states     => @ops_states,
+             :bom_release    => @bom_release %>
+</ul>

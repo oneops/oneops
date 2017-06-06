@@ -1,0 +1,4 @@
+$j("#log_details").html("<%= escape_javascript(render('log_details')) %>");
+<% unless request.method == 'GET' %>
+  $j("#page_alert").html("<%= escape_javascript(page_alert) %>");
+<% end %>

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:amq="http://activemq.apache.org/schema/core"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+			http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+			http://activemq.apache.org/schema/core
+            http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd">
+
+
+	<amq:queue id="woQueue" physicalName="CONTROLLER.WO" />
+	<amq:queue id="aoQueue" physicalName="CONTROLLER.AO" />
+	<amq:queue id="indRespQueue" physicalName="controller.response" />
+	
+	<bean id="propertyConfigurer"
+	class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+	  <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_FALLBACK"/>
+	  <property name="searchSystemEnvironment" value="true"/>
+	</bean>
+	
+	<bean id="amqBrokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="host" value="${KLOOPZ_AMQ_HOST:kloopzmq}"/>
+        <property name="port" value="61616"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="${AMQ_DNS_RESOLVE:true}"/>
+        <property name="transportOptions">
+            <map>
+                <entry key="initialReconnectDelay" value="100"/>
+				<entry key="maxReconnectDelay"     value="5000"/>
+                <entry key="jms.prefetchPolicy.queuePrefetch" value="1"/>
+                <entry key="jms.redeliveryPolicy.initialRedeliveryDelay" value="10000"/>
+                <entry key="jms.redeliveryPolicy.redeliveryDelay" value="${JMS_REDELIVERY_DELAY:10000}"/>
+                <entry key="jms.redeliveryPolicy.maximumRedeliveries" value="${JMS_MAX_REDELIVERIES:6}"/>
+            </map>
+        </property>
+    </bean>
+	
+	<!-- A JMS connection factory for ActiveMQ -->
+	<bean id="jmsFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+    	<property name="brokerURL" value="#{amqBrokerURI.build()}" />
+    	<property name="userName" value="superuser" />
+    	<property name="password">
+    		<value>${KLOOPZ_AMQ_PASS}</value>
+    	</property>
+  	</bean>
+
+    <!-- A POJO that implements the JMS message listener -->
+    <bean id="cmsListener" class="com.oneops.controller.jms.CmsListener">
+    	<property name="wfController" ref="wfController" />
+		<property name="notifier" ref="deploymentNotifier"/>
+    </bean>
+
+
+	<bean id="woPublisher" class="com.oneops.controller.jms.WoPublisher" init-method="init">
+		<property name="searchPublisher" ref="searchPublisher" />
+        <property name="pubEnabled" value="${IS_SEARCH_ENABLED:true}" ></property>
+	</bean>
+
+
+    <bean id="inductorListener" class="com.oneops.controller.jms.InductorListener" >
+    	<property name="wfController" ref="wfController" />
+    	<property name="woPublisher" ref="woPublisher" />
+    	<property name="sensorClient" ref="sensorClient" />
+    	<property name="controllerUtil" ref="controllerUtil" />
+    </bean>
+
+    <bean id="inductorPublisher" class="com.oneops.controller.jms.InductorPublisher" init-method="init" destroy-method="cleanup">
+    	<property name="connFactory" ref="jmsFactory" />
+    	<property name="woPublisher" ref="woPublisher" />
+    </bean>
+
+    <bean id="monPublisher" class="com.oneops.sensor.client.MonitorPublisher" init-method="init" destroy-method="cleanup">
+    	<property name="connectionFactory" ref="jmsFactory" />
+    </bean>
+
+
+    <bean id="woDispatcher" class="com.oneops.controller.workflow.WoDispatcher">
+    	<property name="inductorPublisher" ref="inductorPublisher" />
+    	<property name="wfController" ref="wfController" />
+    	<property name="cmsClient" ref="cmsClient" />
+    	<property name="sensorClient" ref="sensorClient" />
+    </bean>
+
+
+	<bean id="woListenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsFactory" />
+		<property name="maxConcurrentConsumers" value="${controller.wo.max_consumers:2}" />
+		<property name="concurrentConsumers" value="${controller.wo.concurrentConsumers:2}" />
+		<property name="destination" ref="woQueue" />
+		<property name="messageListener" ref="cmsListener" />
+		<property name="sessionTransacted" value="true"/>
+	</bean>
+
+	<bean id="aoListenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsFactory" />
+		<property name="maxConcurrentConsumers" value="${controller.ao.max_consumers:2}" />
+		<property name="concurrentConsumers" value="${controller.ao.concurrentConsumers:2}" />
+		<property name="destination" ref="aoQueue" />
+		<property name="messageListener" ref="cmsListener" />
+		<!-- Value = javax.jms.Session.CLIENT_ACKNOWLEDGE -->
+		<!--property name="sessionAcknowledgeMode" value="2"/-->
+		<property name="sessionTransacted" value="true"/>
+	</bean>
+
+
+	<bean id="indRespListenerContainer"
+		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+		<property name="connectionFactory" ref="jmsFactory" />
+		<property name="maxConcurrentConsumers" value="${controller.response.max_consumers:2}" />
+		<property name="concurrentConsumers" value="${controller.response.concurrentConsumers:2}" />
+		<property name="destination" ref="indRespQueue" />
+		<property name="messageListener" ref="inductorListener" />
+		<property name="sessionTransacted" value="true"/>
+	</bean>
+	
+	<bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
+		<property name="transport" value="failover" />
+		<property name="protocol" value="tcp" />
+		<property name="host" value="${SEARCH_AMQ_HOST:searchmq}" />
+		<property name="port" value="61616" />
+		<property name="keepAlive" value="true" />
+		<property name="dnsResolve" value="true" />
+		<property name="transportOptions">
+			<map>
+				<entry key="initialReconnectDelay" value="100" />
+				<entry key="maxReconnectDelay" value="5000" />
+				<entry key="maxReconnectAttempts" value="-1" />
+				<entry key="randomize" value="false" />
+				<entry key="timeout" value="${SEARCH_PUBLISH_TIMEOUT:3000}" />
+			</map>
+		</property>
+	</bean>
+
+	<bean id="searchmqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+		<property name="brokerURL" value="#{searchBrokerURI.build()}" />
+		<property name="userName" value="${SEARCHMQ_USER}" />
+		<property name="password" value="${SEARCHMQ_PASS}" />
+	</bean>
+	
+	<bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
+		<property name="asyncConnFactory" ref="searchmqFactory" />
+		<property name="syncConnFactory" ref="jmsFactory" />
+		<property name="searchSender" ref="searchJmsSender" />
+		<property name="searchPublishAsync" value="${SEARCH_PUBLISH_ASYNC:false}" />
+	</bean>
+	
+	<bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+		<constructor-arg value="${CONTROLLER_SEARCH_PUBLISH_POOLSIZE:50}"/>
+		<property name="name" value="controller-search-publish" />
+		<property name="shortName" value="controller" />
+		<property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}" />
+		<property name="scanFolder" value="${CONTROLLER_SEARCH_RETRY_DIR:/opt/oneops/controller/search/retry}" />
+	</bean>
+
+</beans>

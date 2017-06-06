@@ -1,0 +1,27 @@
+<p><%= render 'cms/cis/ci', :ci => @environment, :f => f %></p>
+<% if @environment.new_record? && @environment.ciClassName == 'manifest.Environment' %>
+  <div class="controls">
+    <div class="accordion" id="platform_availability_section">
+      <div class="accordion-group">
+        <div class="accordion-heading">
+          <a class="accordion-toggle btn" onclick="$j('#platform_availability_inner').toggle(300)">Availability by Platform...</a>
+        </div>
+        <div id="platform_availability_inner" class="hide">
+          <div class="accordion-inner">
+            <% @design_platforms.each do |p| %>
+              <div class="control-group">
+                <%= select_name = "platform_availability[#{p.ciId}]"
+                    label_tag select_name, "#{p.ciName} (Ver. #{p.ciAttributes.major_version})", :class => 'control-label' %>
+                <div class="controls">
+                  <%= select_tag select_name, options_for_select(@environment.meta.attributes[:mdAttributes].detect { |m| m.attributeName == 'availability' }.options[:form][:options_for_select]), :prompt => 'Environment based', :class => 'input-large' %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%= render 'base/environments/clouds', :f => f %>

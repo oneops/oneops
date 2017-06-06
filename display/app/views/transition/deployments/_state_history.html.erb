@@ -1,0 +1,104 @@
+<% comments = nil
+   approvals = @approvals || [] %>
+<% state_events = @state_history.sort_by(&:created)
+   state_events.each_with_index do |event, i| %>
+  <% new_comment = event.comments.present? && comments != event.comments
+     state_approvals = []
+     prev_updated = i > 0 ? state_events[i - 1].updated : 0
+     if event.newState == 'pending'
+       state_approvals = approvals.select {|a| a.created > prev_updated && (!@state_history[i + 1] || a.created <= @state_history[i + 1].updated)}
+     end
+     expandable = new_comment || state_approvals.present? %>
+  <div class="accordion-group">
+    <div class="accordion-heading">
+      <div class="accordion-toggle" <%= raw %(onclick="$j('#deployment_state_event_#{event.eventId}').toggle(300);$j(this).find('i').toggleClass('fa-caret-down fa-caret-up')") if expandable %>>
+        <%= highlight(Time.at(event.updated/1000).to_s(:db)) %>
+        <%= highlight(event.newState, event.newState) %>
+        <% if event.updatedBy.present? %>
+          by <%= highlight(event.updatedBy, 'info') %>
+          <% if new_comment %>
+            <%= icon('comment') %> <%= truncate(event.comments, 30) %>
+          <% end %>
+          <%= icon('caret-down', '', 'pull-right') if expandable %>
+        <% end %>
+      </div>
+    </div>
+    <% if expandable %>
+      <div id="deployment_state_event_<%= event.eventId %>" class="hide">
+        <div class="accordion-inner">
+          <% if new_comment %>
+            <% comments = event.comments %>
+            <%= event.comments %><br/>
+          <% end %>
+
+          <% if state_approvals.present? %>
+            <b>Approvals</b>
+            <table class="table table-condensed">
+              <% approvals_by_cloud = state_approvals.group_by {|a| a.govern_ci.nsPath} %>
+              <% approvals_by_cloud.keys.sort.each do |ns_path| %>
+                <% cloud = ns_path.split('/')[3] %>
+                <% approvals_by_govern_ci = approvals_by_cloud[ns_path].group_by{|a| a.govern_ci.ciName} %>
+                <% approvals_by_govern_ci.keys.sort.each do |govern_ci_name| %>
+                  <% approvals_by_govern_ci[govern_ci_name].sort_by {|a| a.created}.each do |a| %>
+                    <tr>
+                      <td><%= cloud %></td>
+                      <td><%= link_to(highlight(a.govern_ci.ciName), path_to_ci(a.govern_ci)) %></td>
+                      <% if a.state == 'approved' %>
+                        <% next_event = state_events[i + 1] %>
+                        <% if (a.updated + a.expiresIn * 60 * 1000) > (next_event ? next_event.updated : Time.now.to_f * 1000) %>
+                          <td class="text-success">
+                            <%= icon('check') %>
+                            <b><%= a.state %></b>
+                          </td>
+                          <td>
+                            @ <b><%= Time.at(a.updated/1000).to_s(:db) %></b> by <b><%= a.updatedBy %></b>
+                            <br/>valid till <b><%= Time.at(a.updated/1000 + a.expiresIn * 60).to_s(:db) %></b>
+                            <% if a.comments.present? %>
+                              <br/><%= icon('comment') %> <%= a.comments %>
+                            <% end %>
+                          </td>
+                        <% else %>
+                          <td class="text-warning">
+                            <%= icon('moon-o') %>
+                            <b>expired</b>
+                          </td>
+                          <td>
+                            @ <b><%= Time.at(a.updated/1000 + a.expiresIn * 60).to_s(:db) %></b>
+                            <br/>approved @ <b><%= Time.at(a.updated/1000).to_s(:db) %></b> by <b><%= a.updatedBy %></b>
+                            <% if a.comments.present? %>
+                              <br/><%= icon('comment') %> <%= a.comments %>
+                            <% end %>
+                          </td>
+                        <% end %>
+                      <% elsif a.state == 'pending' %>
+                        <td class="text-info">
+                          <%= icon('clock-o') %>
+                          <b><%= a.state %></b>
+                        </td>
+                      <% elsif a.state == 'rejected' %>
+                        <td class="text-error">
+                          <%= icon('ban') %>
+                          <b><%= a.state %></b>
+                        </td>
+                        <td>
+                          @ <b><%= Time.at(a.updated/1000).to_s(:db) %></b> by <b><%= a.updatedBy %></b>
+                          <% if a.comments.present? %>
+                            <br/><%= icon('comment') %> <%= a.comments %>
+                          <% end %>
+                        </td>
+                      <% else %>
+                        <td>
+                          <b><%= a.state %></b>
+                        </td>
+                      <% end %>
+                    </tr>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </table>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+<% end %>

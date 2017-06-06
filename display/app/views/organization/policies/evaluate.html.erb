@@ -1,0 +1,49 @@
+<%= organization_page_header('organization') %>
+<% if @policy %>
+  <%= breadcrumb [{:label => 'policies',
+                   :link  => edit_organization_path(:anchor => 'policies')},
+                  {:icon  => ci_image_url(@policy),
+                   :label => @policy.ciName,
+                   :kind  => 'policy',
+                   :link  => path_to_ci(@policy)}] %>
+<% else %>
+  <%= breadcrumb [{:icon  => ci_class_image_url('account.Organization'),
+                   :label => current_user.organization.name,
+                   :kind  => 'Organization',
+                   :link  => edit_organization_path}] %>
+<% end %>
+
+<%= page_title :page_icon  => ci_image_url(@policy),
+               :page_kind  => 'Policy Evaluation' %>
+
+
+<%= section_panel 'Query', :width => 'single', :position => 'left' do %>
+  <%= form_tag @policy ? evaluate_organization_policy_path(@policy) : evaluate_organization_policies_path,
+               :remote => true,
+               :method => :get do %>
+    <div class="filter-group">
+      <div class="name">Namespace</div>
+      <%= text_field_tag :ns_path, @ns_path, :class => '', :placeholder => 'Namespace', :pattern => "#{search_ns_path.gsub('/', '\/')}(\/|\w|-)*" %>
+      <div class="filter" style="padding-left: 5%">
+        <div class="name">Query Conditions</div>
+        <%= text_area_tag :query, @query, :class => '', :rows => 10, :placeholder => 'Query' %>
+      </div>
+      <div class="filter">
+        <div class="name">Actions</div>
+        <%= link_to_function(icon('play', 'Evaluate'), '$j(this).parents("form").submit()', :class => 'btn btn-success') %>
+        <%= link_to_function(icon('floppy-o', 'Save as New Policy...'), 'save_query_as_policy(this)', :class => 'btn btn-primary', :style => 'margin-top:10px') %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+<div id="evaluate_result_list">
+  <%= render('evaluate_result_list') unless @cis.nil? && @error.nil? %>
+</div>
+<script>
+  $j("#evaluate_result_list").parent().find('textarea').textareafullscreen({overlay: true, maxWidth: '80%', maxHeight: '80%'});
+
+  window.save_query_as_policy = function(source) {
+    var query = $j(source).parents("form").find("textarea").val();
+    window.location.href = "<%= edit_organization_path %>?policy[ciAttributes][query]=" + encodeURI(query) + "#policies/policy_item/new_policy_item";
+  }
+</script>

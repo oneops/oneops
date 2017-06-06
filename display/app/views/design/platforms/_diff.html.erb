@@ -1,0 +1,18 @@
+<% committed    = params[:committed] == 'true'
+   changes_only = params[:changes_only] != 'false'
+   menu = [link_busy(icon(committed ? 'check-square-o' : 'square-o', 'committed'),
+                     :url          => diff_assembly_design_platform_path(@assembly, @platform, :committed => !committed, :changes_only => changes_only),
+                     :remote       => true,
+                     'data-toggle' => 'button',
+                     :class        => "btn btn-mini #{'active' if committed}"),
+           link_busy(icon(changes_only ? 'check-square-o' : 'square-o', 'changes only'),
+                                :url          => diff_assembly_design_platform_path(@assembly, @platform, :committed => committed, :changes_only => !changes_only),
+                                :remote       => true,
+                                'data-toggle' => 'button',
+                                :class        => "btn btn-mini #{'active' if changes_only}")] %>
+<%= section_panel 'Differences with Pack', :width => 'triple', :menu => menu do %>
+  <%= render 'base/shared/ci_diff_list',
+             :cis          => @diff,
+             :owner        => 'design',
+             :changes_only => changes_only %>
+<% end %>

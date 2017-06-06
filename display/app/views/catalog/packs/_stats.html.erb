@@ -1,0 +1,55 @@
+<div class="report" id="pack_operation_stats" style="margin-top:10px">
+  <% if @stats.blank? %>
+    <strong class="text-error">Failed to load operation stats!</strong>
+  <% elsif @stats[:all][:org] > 0 %>
+    <table>
+    <tr>
+      <th style="width:20%">Used in</th>
+      <th style="width:40%" class="metric">All</th>
+      <th style="width:40%" class="metric">Production</th>
+    </tr>
+    <tr>
+      <td><%= icon(site_icon(:organization)) %> organizations</td>
+      <td class="metric"><%= @stats[:all][:org] %></td>
+      <td class="metric"><%= @stats[:prod][:org] %></td>
+    </tr>
+    <tr>
+      <td><%= icon(site_icon(:assembly)) %> assemblies</td>
+      <td class="metric"><%= @stats[:all][:assembly] %></td>
+      <td class="metric"><%= @stats[:prod][:assembly] %></td>
+    </tr>
+    <tr>
+      <td><%= icon(site_icon(:transition)) %> environments</td>
+      <td class="metric"><%= @stats[:all][:environment] %></td>
+      <td class="metric"><%= @stats[:prod][:environment] %></td>
+    </tr>
+    <% %w(single redundant).each do |availability| %>
+      <% key = "platform_#{availability}".to_sym
+         plat_count = @stats[:all][key].to_i %>
+      <% if plat_count > 0 %>
+        <tr>
+          <td><%= icon(site_icon("#{availability}_availability".to_sym)) %> <em><%= availability %></em> platforms</td>
+          <td class="metric"><%= plat_count %></td>
+          <td class="metric"><%= @stats[:prod][key].to_i %></td>
+        </tr>
+      <% end %>
+    <% end %>
+    <tr>
+      <td><%= icon(site_icon(:compute)) %> computes</td>
+      <td class="metric"><%= @stats[:all][:compute] %></td>
+      <td class="metric"><%= @stats[:prod][:compute] %></td>
+    </tr>
+    <tr>
+      <td><%= icon(site_icon(:cloud)) %> clouds</td>
+      <td class="metric">
+        <%= raw @stats[:all][:cloud].keys.map { |c| c.split('/').last }.sort.join(', ') %>
+      </td>
+      <td class="metric">
+        <%= raw @stats[:prod][:cloud].keys.map { |c| c.split('/').last }.sort.join(', ') %>
+      </td>
+    </tr>
+  </table>
+  <% else %>
+    <strong class="text-warning">No operation stats found.</strong>
+  <% end %>
+</div>

@@ -1,0 +1,28 @@
+<% list_id = "procedure_action_list_#{@procedure.procedureId}" %>
+<div class="action-list accordion" id="<%= list_id %>">
+  <% @procedure.actions.group_by(&:execOrder).sort.each do |exec_order, step_actions| %>
+    <div class="category" style="width: 100%">
+      <div class="name">Step <%= exec_order %></div>
+      <% step_actions.each do |action| %>
+        <div class="accordion-group">
+          <div class="accordion-heading">
+            <div class="accordion-toggle" onclick="toggleProcedureLog(this)">
+              <%= action.ci.nsPath.split('/')[2..-1].join('/') %> |
+              <strong><%= link_to(action.ci.ciName, path_to_ci(action.ci)) %></strong>
+              <span class="pull-right">
+                <strong><%= action.actionName == 'user-custom-attachment' ? @procedure.procedureName : action.actionName %></strong>&nbsp;&nbsp;
+                <span id="action_state_indicator_<%= action.actionId %>"><%= rfc_state_icon(action.actionState || 'complete', 'fa-lg') %></span>
+              </span>
+            </div>
+          </div>
+          <div id="action_log_<%= action.actionId %>" class="accordion-body hide" procedureId="<%= @procedure.procedureId %>" actionId="<%= action.actionId %>">
+            <div class="accordion-inner"></div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<%= render :partial => 'toggle_procedure_log' %>
+

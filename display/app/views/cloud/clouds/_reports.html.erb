@@ -1,0 +1,6 @@
+<%= section_panel 'Compute Report', :width => 'triple', :position => 'left' do %>
+  <%= render('base/shared/graph_sunburst',
+             :data_url => compute_reports_path(:grouping => 'cloud', :cloud => @cloud),
+             :email      => true,
+             :table_view => true) %>
+<% end %>

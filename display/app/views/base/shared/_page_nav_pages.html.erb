@@ -1,0 +1,81 @@
+<script>
+  window.addEventListener("hashchange", function() {
+    var page = getHashParam("#");
+    if (page && !$j("#page_link_" + page + " a.selected")[0]) {
+      show_page(page, null, true);
+    }
+  });
+</script>
+
+<% content_for(:page_nav) do %>
+  <ul id="page_links">
+    <% items.each do |item| %>
+      <li id="page_link_<%= item[:id] || item[:label] %>">
+        <% selected = item[:selected] ? 'selected' : '' %>
+        <% if item[:link] %>
+          <%= link_to(item[:label], item[:link], :class => selected) %>
+        <% else %>
+          <%= link_to_function(item[:label], "show_page('#{item[:id] || item[:label]}', null, null, event.shiftKey || event.altKey || event.metaKey)", :class => selected) %>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+<% end %>
+
+<div id="page_nav_pages" style="display:none">
+  <% items.each do |item| %>
+    <div id="page_nav_<%= item[:id] || item[:label] %>">
+      <% if item[:template] %>
+        <%= render item[:template] if item[:template] %>
+      <% elsif item[:html] %>
+        <%= item[:html] %>
+      <% elsif item[:url] %>
+        <%= loading_indicator %>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+
+<script type="text/javascript">
+  window.show_page = function(name, url, keepHash, force_reload) {
+    if (!name) {
+      return;
+    }
+
+    var selected_page = $("page_nav_" + name);
+    if (url) {
+      if (!selected_page) {
+        window.location = url;
+        return;
+      }
+    }
+
+    if (!keepHash) {
+      window.location.hash = "#" + name;
+    }
+
+    var link = "page_link_" + name;
+    link = $(link);
+    link.down("a").addClassName('selected');
+    link.siblings().each(function(other_link) {
+      other_link.down("a").removeClassName('selected');
+    });
+
+    <% items.each do |item| %>
+      $("page_nav_<%= item[:id] || item[:label] %>").hide();
+      <% if item[:url] %>
+      	selected_page.page_reload = <%= item[:reload] ? true : false %>;
+        if (name == "<%= item[:id] || item[:label] %>" && (force_reload || selected_page.page_reload || !selected_page.content_loaded)) {
+          <%= remote_function :url => item[:url], :method => :get %>
+          selected_page.content_loaded = true;
+        }
+      <% end %>
+    <% end %>
+    selected_page.show();
+  };
+
+  <% selected = items.detect {|item| item[:selected]} %>
+  show_page(getHashParam("#") || "<%= selected[:id] || selected[:label] %>", null, true);
+
+  $("page_nav_pages").show();
+</script>

@@ -1,0 +1,69 @@
+<% has_design = has_design?(@assembly.ciId) %>
+<%= section_panel 'Components', :width => 'single', :position => 'right' do %>
+  <%= grouped_ci_list(@component_groups) do |group_builder, group| %>
+    <% group_items = group[:items] %>
+    <% group_builder.icon ci_class_image_url(group[:class_name]) %>
+    <% group_builder.title group[:template_name] %>
+    <% group_builder.menu do %>
+      <% group_items.select(&:rfcAction).group_by(&:rfcAction).each do |action, count| %>
+        <span class="label <%= action_to_label(action) %> label-count"><%= count.size %></span>
+      <% end %>
+      <% norfc = group_items.reject(&:rfcAction).size %>
+      <% if norfc > 0 %>
+        <span class="label label-count"><%= norfc %></span>
+      <% end %>
+      <% if has_design %>
+        <% if !group[:obsolete] && group[:cardinality].max > group_items.size %>
+          <%= link_to(content_tag(:button, icon('plus'), :class => 'btn btn-mini'), new_assembly_design_platform_component_path(@assembly, @platform, :template_name => group[:template_name]), :disable_with => 'wait...') %>
+        <% else %>
+          <%= content_tag(:button, content_tag(:i, '', :class => 'fa fa-ban transparent'), :class => 'btn btn-mini disabled') %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <%= group_builder.items(group_items) do |item_builder, ci| %>
+      <% item_builder.attributes raw(%(ciName="#{ci.ciName}")) %>
+      <% item_builder.target link_to('', edit_assembly_design_platform_component_path(@assembly, @platform, ci)) %>
+      <% item_builder.icon :none %>
+      <% if @policy_compliance %>
+        <% item_builder.status do %>
+          <% violate_count = @policy_compliance[ci.ciId] %>
+          <% if violate_count == 0 %>
+            <%= status_marker('policy', 'passed', 'label-success') %>
+          <% else %>
+            <%= status_marker('policy', "#{violate_count} failed", 'label-important') %>
+          <% end %>
+        <% end %>
+      <% end %>
+      <% if ci.ciAttributes.attributes.present? %>
+        <% item_builder.middle do %>
+          <%= render 'cms/cis/important', :ci => ci %>
+        <% end %>
+      <% end %>
+      <% if has_design %>
+        <% item_builder.menu do |target| %>
+          <%= link_to icon('trash', ' Delete'),
+                      assembly_design_platform_component_path(@assembly, @platform, target),
+                      :method  => :delete,
+                      :confirm => 'Confirm delete?' if in_design? && target.rfcAction != 'delete' && group_items.size > group[:cardinality].min %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<%= section_panel 'Status', :width => 'double', :position => 'left' do %>
+  <ul class="status">
+    <li class="status-marker"><%= render 'status_release' %></li>
+    <% unless @platform.rfcAction == 'add' %>
+      <li class="status-marker"><%= render 'status_pack' %></li>
+    <% end %>
+  </ul>
+<% end %>
+
+<div id="page_nav_diagram">
+  <%= section_panel 'Diagram',
+                    :width    => 'double',
+                    :position => 'left',
+                    :url      => diagram_assembly_design_platform_path(@assembly, @platform, :size => '6,4') %>
+</div>

@@ -1,0 +1,23 @@
+<%= section_panel 'Teams', :width => 'single',
+                  :menu           => (is_admin? ? [link_to(icon('plus', 'Add'), new_organization_team_path, :remote => true, :class => 'btn btn-mini')] : nil) do %>
+  <%= list(@teams,
+           :new_link => (is_admin? ? link_to('Add Team...', new_organization_team_path, :remote => true) : nil),
+           :toolbar  => {:sort_by => [%w(Name team_name), %w(Created created)], :filter_by => %w(team_name)}) do |builder, team| %>
+    <% builder.itemid team.id %>
+    <% builder.attributes raw(%(team_name="#{team.name}" created="#{team.created_at}")) %>
+    <% builder.target link_to('', edit_organization_team_path(team), :remote => true) %>
+    <% user_count = @user_count[team.id] || 0
+       group_count = @group_count[team.id] || 0 %>
+    <% builder.top do %>
+      <span class="topname"><%= team.name %></span><br/>
+      <span class="topdesc">
+        <%= status_marker(icon('user'), user_count, user_count > 0 ? 'label-info' : '') %>
+        <%= status_marker(icon('users'), group_count, group_count > 0 ? 'label-info' : '') %>
+      </span>
+    <% end %>
+    <% builder.middle team.description %>
+    <% builder.bottom raw("created #{time_ago_in_words(team.created_at)}") %>
+    <% builder.status team_list_permission_marking(team) %>
+  <% end %>
+<% end %>
+<div id="team_details"></div>

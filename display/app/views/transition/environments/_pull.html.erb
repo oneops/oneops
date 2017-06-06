@@ -1,0 +1,40 @@
+<div id="platform_availability_modal" class="modal hide">
+  <div class="modal-header">
+  	<h3>Choose Platform Availability</h3>
+  </div>
+  <div class="modal-body form-horizontal">
+    <% @design_platforms.each do |p| %>
+      <div class="control-group">
+        <%= select_name = "platform_availability[#{p.ciId}]"
+            label_tag select_name, "#{p.ciName} (Ver. #{p.ciAttributes.major_version})", :class => 'control-label' %>
+        <div class="controls">
+          <%= select_tag select_name, options_for_select(@environment.meta.attributes[:mdAttributes].detect { |m| m.attributeName == 'availability' }.options[:form][:options_for_select], @environment.ciAttributes.availability), :prompt => 'Environment based', :class => 'platform_availability_select' %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="modal-footer">
+    <table>
+      <tr>
+        <td><%= link_to_function('cancel', 'hide_modal()', :class => 'btn red-inverse') %></td>
+        <td>
+          <% busy_options = {:url    => pull_assembly_transition_environment_path(@assembly, @environment, :async => true),
+                             :method => :post,
+                             :with   => 'platform_availability_pull_params()',
+                             :class  => 'btn green-inverse'} %>
+          <%= link_busy('ok', busy_options) %></td>
+      </tr>
+    </table>
+  </div>
+</div>
+<script type="text/javascript">
+  window.platform_availability_pull_params = function () {
+    var params = "";
+    var selects = $$("select.platform_availability_select");
+    for (var i = 0; i < selects.length; i++) {
+      params += selects[i].name + "=" + selects[i].value + "&"
+    }
+    return params;
+  }
+</script>

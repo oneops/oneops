@@ -1,0 +1,5 @@
+sandbox_path "<%= "#{@home}/sandbox" %>"
+file_cache_path "<%= "#{@home}/cache" %>"
+file_backup_path "<%= "#{@home}/backup" %>"
+cookbook_path "<%= "#{@inductor}/packer/components/cookbooks" %>"
+cache_options({ :path => "<%= "#{@home}/cache" %>", :skip_expires => true })

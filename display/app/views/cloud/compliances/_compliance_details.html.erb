@@ -1,0 +1,9 @@
+<%= section_panel 'Compliance Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource    => @compliance,
+              :content     => 'cms/cis/ci',
+              :read_only   => !has_cloud_compliance?(@cloud.ciId),
+              :cancel_url  => cloud_compliances_path(@cloud),
+              :form_url    => cloud_compliance_path(@cloud, @compliance),
+              :destroy_url => cloud_compliance_path(@cloud, @compliance)}) %>
+<% end %>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.oneops.com/controller">
+  <process id="deploybom2" name="deploybom2" isExecutable="true">
+    <startEvent id="MainStart" name="Start"></startEvent>
+    <sequenceFlow id="flow1" name="" sourceRef="MainStart" targetRef="ackStart"></sequenceFlow>
+
+    <receiveTask id="ackStart" name="ackStart"></receiveTask>
+    <sequenceFlow id="flow2" name="" sourceRef="ackStart" targetRef="setDpmtProcId"></sequenceFlow>
+
+    <serviceTask id="setDpmtProcId" name="setDpmtProcId" activiti:expression="#{cmsClient.setDpmtProcessId(execution, dpmt)}"></serviceTask>
+    <sequenceFlow id="flow2check4pause" name="" sourceRef="setDpmtProcId" targetRef="checkForPause"></sequenceFlow>
+
+    <serviceTask id="checkForPause" name="checkForPause" activiti:expression="#{cmsClient.checkDpmt(execution)}"></serviceTask>
+    <sequenceFlow id="toSplit" name="toSplit" sourceRef="checkForPause" targetRef="egCheckForPause"></sequenceFlow>
+
+    <exclusiveGateway id="egCheckForPause" name="egCheckForPause"></exclusiveGateway>
+    <sequenceFlow id="dpmtStillActive" name="dpmtStillActive" sourceRef="egCheckForPause" targetRef="getwos">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${dpmt.getDeploymentState().equalsIgnoreCase("active")}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="dpmtPaused" name="dpmtPaused" sourceRef="egCheckForPause" targetRef="dpmtPauseWait">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${dpmt.getDeploymentState().equalsIgnoreCase("paused")}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="dpmtNotActive" name="dpmtNotActive" sourceRef="egCheckForPause" targetRef="updateDpmt">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${!dpmt.getDeploymentState().equalsIgnoreCase("active")&&!dpmt.getDeploymentState().equalsIgnoreCase("paused")}]]></conditionExpression>
+    </sequenceFlow>
+    
+    <receiveTask id="dpmtPauseWait" name="dpmtPauseWait" ></receiveTask>
+    <sequenceFlow id="flowToGetWo" name="" sourceRef="dpmtPauseWait" targetRef="checkForPause"></sequenceFlow>
+    
+    
+    <serviceTask id="getwos" name="getwos" activiti:expression="#{cmsClient.getWorkOrderIds(execution)}"></serviceTask>
+    <sequenceFlow id="flow3" name="" sourceRef="getwos" targetRef="woListCheck"></sequenceFlow>
+    
+    <exclusiveGateway id="woListCheck" name="woListCheck"></exclusiveGateway>
+    <sequenceFlow id="pwoFlow" name="pwoFlow" sourceRef="woListCheck" targetRef="pwo">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${dpmtrecs.size()>0}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="allDoneFlow" name="allDoneFlow" sourceRef="woListCheck" targetRef="updateDpmt">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${dpmtrecs.size()==0 && execOrder>dpmt.getMaxExecOrder()}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="nextStepFlow" name="nextStepFlow" sourceRef="woListCheck" targetRef="incExecOrder">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${dpmtrecs.size()==0 && execOrder<=dpmt.getMaxExecOrder() && dpmt.getDeploymentState().equalsIgnoreCase("active")}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="getWoFailedFlow" name="getWoFailedFlow" sourceRef="woListCheck" targetRef="updateDpmt">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${!dpmt.getDeploymentState().equalsIgnoreCase("active")}]]></conditionExpression>
+    </sequenceFlow>
+
+    <serviceTask id="incExecOrder" name="incExecOrder" activiti:expression="#{cmsClient.incExecOrder(execution)}"></serviceTask>
+    <sequenceFlow id="backLoop" name="backLoop" sourceRef="incExecOrder" targetRef="checkForPause"></sequenceFlow>
+
+    
+    <subProcess id="pwo" name="processWO">
+      <multiInstanceLoopCharacteristics isSequential="false">
+        <loopDataInputRef>dpmtrecs</loopDataInputRef>
+        <inputDataItem name="dpmtrec"></inputDataItem>
+      </multiInstanceLoopCharacteristics>
+
+      <startEvent id="pwoStart" name="Start"></startEvent>
+	  <sequenceFlow id="pwoflow1" name="" sourceRef="pwoStart" targetRef="pwoGetAndSubmitWo"></sequenceFlow>
+
+      <serviceTask id="pwoGetAndSubmitWo" name="GetAndSubmitWo" activiti:async="true" activiti:exclusive="false" activiti:expression="#{woDispatcher.getAndDispatch(execution, dpmtrec)}"></serviceTask>
+      <sequenceFlow id="pwoflow4" name="" sourceRef="pwoGetAndSubmitWo" targetRef="pwoSubmitCheck"></sequenceFlow>
+
+	  <exclusiveGateway id="pwoSubmitCheck" name="SubmitCheck"></exclusiveGateway>
+	    <sequenceFlow id="pwoSubmitSuccess" name="SubmitSuccess" sourceRef="pwoSubmitCheck" targetRef="pwoWaitResponse">
+	      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${wostate.equalsIgnoreCase("submitted")}]]></conditionExpression>
+	    </sequenceFlow>
+	    <sequenceFlow id="pwoSubmitFailed" name="SubmitFailed" sourceRef="pwoSubmitCheck" targetRef="subSync">
+	      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${!wostate.equalsIgnoreCase("submitted")}]]></conditionExpression>
+	    </sequenceFlow>
+
+      <receiveTask id="pwoWaitResponse" name="WaitResponse" ></receiveTask>
+      <sequenceFlow id="pwoflow5" name="" sourceRef="pwoWaitResponse" targetRef="pwoUpdateWoState"></sequenceFlow>
+
+      <serviceTask id="pwoUpdateWoState" name="UpdateWoState" activiti:expression="#{cmsClient.updateWoState(execution, wo, wostate)}"></serviceTask>
+      <sequenceFlow id="pwoflow6" name="" sourceRef="pwoUpdateWoState" targetRef="subSync"></sequenceFlow>
+
+      <receiveTask id="subSync" name="subSync" ></receiveTask>
+      <sequenceFlow id="pwoflow7" name="" sourceRef="subSync" targetRef="pwoEnd"></sequenceFlow>
+
+      <endEvent id="pwoEnd" name="End"></endEvent>
+    </subProcess>
+
+    <sequenceFlow id="toSubJoined" name="toSubJoined" sourceRef="pwo" targetRef="subJoined"></sequenceFlow>
+
+    <receiveTask id="subJoined" name="subJoined" ></receiveTask>
+
+    <sequenceFlow id="toDpmtCheck" name="toDpmtCheck" sourceRef="subJoined" targetRef="dpmtStatusCheck"></sequenceFlow>
+
+    <exclusiveGateway id="dpmtStatusCheck" name="dpmtStatusCheck"></exclusiveGateway>
+    <sequenceFlow id="stillActiveFlow" name="stillActiveFlow" sourceRef="dpmtStatusCheck" targetRef="checkForPause">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${dpmt.getDeploymentState().equalsIgnoreCase("active")}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="dpmtFailedFlow" name="dpmtFailedFlow" sourceRef="dpmtStatusCheck" targetRef="updateDpmt">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${!dpmt.getDeploymentState().equalsIgnoreCase("active")}]]></conditionExpression>
+    </sequenceFlow>
+    
+    <serviceTask id="updateDpmt" name="updateDpmt" activiti:expression="#{cmsClient.updateDpmtState(execution, dpmt, &quot;complete&quot;)}"></serviceTask>
+    <sequenceFlow id="endFlow" name="endFlow" sourceRef="updateDpmt" targetRef="mainEnd"></sequenceFlow>
+
+    <endEvent id="mainEnd" name="End"></endEvent>
+
+  </process>
+</definitions>

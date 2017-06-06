@@ -1,0 +1,20 @@
+<defs>
+	<filter id="dropshadow" height="130%">
+		<feGaussianBlur in="SourceAlpha" stdDeviation="4"/>
+			<!-- stdDeviation is how much to blur -->
+			<feOffset dx="0" dy="0" result="offsetblur"/>
+				<!-- how much to offset -->
+				<feMerge>
+					<feMergeNode/>
+						<!-- this contains the offset blurred image -->
+						<feMergeNode in="SourceGraphic"/>
+							<!-- this contains the element that the filter is applied to -->
+				</feMerge>
+	</filter>
+	<linearGradient id="grayscale" x1="0%" y1="0%" x2="0%" y2="100%">
+		<stop offset="0%" style="stop-color:#ffffff;
+		stop-opacity:1"/>
+			<stop offset="100%" style="stop-color:#dcdcdc;
+			stop-opacity:1"/>
+	</linearGradient>
+</defs>

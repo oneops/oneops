@@ -1,0 +1,436 @@
+<% dom_id = random_dom_id %>
+<div class="ciAttributes" id="<%= dom_id %>">
+  <% ci_attributes   = ci.ciAttributes
+     base_attrs      = ci.respond_to?(:ciBaseAttributes) && ci.ciBaseAttributes
+     attr_owner      = ci.respond_to?(:attrOwner) && ci.attrOwner
+     attr_owner_name = ci.respond_to?(:ciAttrProps) ? :ciAttrProps : :attrProps if attr_owner
+     meta_attributes = ci.meta.attributes[:mdAttributes] %>
+  <%= f.fields_for :ciAttributes, ci_attributes do |c| %>
+    <% if defined?(only)
+         only_map = only.inject({}) {|m, name| m[name.to_s] = name; m}
+         meta_attributes = meta_attributes.select {|a| only_map.include?(a.attributeName)}
+       end %>
+    <% meta_attributes.group_by { |a| a.options.has_key?(:category) ? a.options[:category] : 'Attributes' }.sort.each do |category, attribute_list| %>
+      <div class="category">
+      	<div class="name"><%= category.split('.').last %></div>
+    		<% attribute_list.sort_by {|a| a.options.has_key?(:order) ? a.options[:order] : 999 }.each do |a| %>
+          <% ci_attributes.attributes[a.attributeName] = a.defaultValue unless ci_attributes.attributes.include?(a.attributeName)
+             required  = a.isMandatory ? true : nil
+             read_only = ci.respond_to?(:ciId) && ci.ciId.to_i > 0 && a.options.has_key?(:editable) && !a.options[:editable] %>
+  		   	<div class="control-group" editable="<%= !read_only %>">
+            <%= c.label a.attributeName,
+                        link_to("#{a.description}#{'*' if a.isMandatory}", '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{a.options[:help].presence || a.description}"),
+                        :class => "control-label #{'sticky' if attr_owner} #{'required' if required}" %>
+            <% if attr_owner %>
+              <div class="input-prepend lock-container">
+                <%= render 'cms/cis/sticky',
+                           :name      => "#{f.object_name}[#{attr_owner_name}][owner][#{a.attributeName}]",
+                           :value     => attr_owner.attributes[a.attributeName],
+                           :read_only => read_only && !ci.ciClassName.start_with?('catalog.') %>
+              </div>
+            <% end %>
+            <div class="controls" editable="<%= !read_only %>">
+              <% pattern         = a.options[:pattern]
+                 pattern         = "(#{pattern})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present?
+                 attribute_value = ci_attributes.send(a.attributeName)
+                 data_type       = a.dataType
+                 form_options    = a.options[:form]
+                 prompt          = form_options && form_options[:prompt]
+                 placeholder     = prompt.presence || (a.isMandatory && attribute_value.blank? ? 'this field is required' : nil) %>
+              <% case data_type %>
+              <% when 'enum' %>
+                <%= c.select a.attributeName, options_for_select(eval(a.valueFormat), attribute_value), :class => 'select-xlarge' %>
+              <% when 'code' %>
+                <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder %>
+              <% when 'boolean' %>
+                <%= render 'cms/cis/checkbox',
+                           :attribute_name  => a.attributeName,
+                           :attribute_value => attribute_value,
+                           :builder         => c,
+                           :id => "#{a.attributeName}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>
+              <% when 'text' %>
+                <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern, :'data-raw-url' => ci.persisted? ? lookup_ci_attribute_path(ci.ciId, a.attributeName) : '' %>
+              <% when 'struct' %>
+                <%= render "cms/cis/#{ci.ciClassName.split('.').last.downcase}/#{a.attributeName.downcase}",
+                               :attribute_name  => a.attributeName,
+                               :attribute_value => attribute_value,
+                               :ci              => ci,
+                               :builder         => c,
+                               :options         => a.options %>
+              <% when 'array' %>
+                <%= render 'cms/cis/array_attribute',
+                           :attribute_name  => a.attributeName,
+                           :attribute_value => attribute_value,
+                           :pattern         => pattern,
+                           :prompt          => prompt,
+                           :builder         => c %>
+              <% when 'hash' %>
+              	<% allow_add = a.options.include?(:allow_add) ? a.options[:allow_add] : true %>
+              	<% allow_delete = a.options.include?(:allow_delete) ? a.options[:allow_delete] : true %>
+                <%= render 'cms/cis/hash_attribute',
+                           :attribute_name  => a.attributeName,
+                           :attribute_value => attribute_value,
+                           :fixed_keys      => a.options[:fixed_keys],
+                           :allow_add       => allow_add,
+                           :allow_delete    => allow_delete,
+                           :pattern         => pattern,
+                           :prompt          => prompt,
+                           :builder         => c %>
+              <% else %>
+                <% if a.isEncrypted %>
+                  <div class="input-append">
+                  <%= c.password_field(a.attributeName,
+                                       :value        => attribute_value,
+                                       :class        => 'input-xlarge encrypted',
+                                       :autocomplete => 'off',
+                                       :required     => required,
+                                       :placeholder  => placeholder) %>
+                  <span class="check-box add-on <%= 'muted' if attribute_value == '--ENCRYPTED--' %>">
+                    <small><%= icon('square-o', 'show typing', 'show-typing fa-lg fa-fw') %></small>
+                  </span>
+                </div>
+                <% else %>
+                  <% if form_options.present? %>
+                    <% case form_options[:field] %>
+                      <% when 'textarea' %>
+                        <%= c.text_area a.attributeName, :class => 'input-xlarge text', :required => required, :placeholder => placeholder, :pattern => pattern, :'data-raw-url' => ci.persisted? ? lookup_ci_attribute_path(ci.ciId, a.attributeName) : '' %>
+                      <% when 'checkbox' %>
+                        <% if form_options[:multiple] == 'true' %>
+                          <%= render 'cms/cis/multiselect',
+                                     :attribute_name     => a.attributeName,
+                                     :attribute_value    => attribute_value,
+                                     :options_for_select => form_options[:options_for_select],
+                                     :builder            => c %>
+                        <% else %>
+                          <%= render 'cms/cis/checkbox',
+                                     :attribute_name  => a.attributeName,
+                                     :attribute_value => attribute_value,
+                                     :builder         => c,
+                                     :id => "#{a.attributeName}_#{(ci.respond_to?(:ciId) && ci.ciId) || 0}" %>
+                        <% end %>
+                      <% when 'select' %>
+                        <%= c.select(a.attributeName, options_for_select(form_options[:options_for_select], attribute_value), {}, :class => 'select-xlarge') %>
+                      <% else %>
+                        <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern %>
+                      <% end %>
+                  <% else %>
+                    <%= c.text_field a.attributeName, :class => 'input-xlarge', :required => required, :placeholder => placeholder, :pattern => pattern %>
+                  <% end %>
+                <% end %>
+              <% end %>
+              <% if a.options.has_key?(:tip) %>
+                <% tip = a.options[:tip] %>
+                <% if tip.present? %>
+                  <span class="help-block"><%= a.options[:tip] %></span>
+                <% end %>
+              <% end %>
+
+              <% if base_attrs %>
+                <% base_value = ci.ciBaseAttributes.attributes[a.attributeName] %>
+                <div class="diff-container hide">
+                  <div class="title">Base Value Diff</div>
+                  <% if base_value && base_value != attribute_value %>
+                    <% json = data_type == 'hash' || data_type == 'array' || data_type == 'struct' %>
+                    <pre class="changed hide"><%= h(json && attribute_value.present? ? JSON.pretty_unparse(JSON.parse(attribute_value)) : attribute_value) %></pre>
+                    <pre class="original hide"><%= h(json && base_value.present? ? JSON.pretty_unparse(JSON.parse(base_value)) : base_value) %></pre>
+                    <pre class="diff hide"></pre>
+                  <% else %>
+                    no changes
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+		    <% end %>
+	    </div>
+    <% end %>
+  <% end %>
+</div>
+<script type="text/javascript">
+  $j('#<%= dom_id %> .control-label a').tooltip();
+  $j('#<%= dom_id %> .controls textarea').textareafullscreen({overlay: true, maxWidth: '80%', maxHeight: '80%'});
+
+  var encrypted_inputs = $j("#<%= dom_id %> input.encrypted");
+  encrypted_inputs.on('keypress paste', function(e) {
+    var parent = $j(e.target).parents(".controls"),
+        span = parent.find("span.check-box"),
+        input = parent.find("input.encrypted");
+    if (input.val() == '--ENCRYPTED--') {
+      input.val('');
+    }
+    span.removeClass('muted');
+  });
+
+  encrypted_inputs.on('click', function(e) {
+    this.select();
+  });
+
+  encrypted_inputs.on('focusout', function(e) {
+    var input = $j(e.target),
+        cb = input.parents(".controls").find('i.show-typing');
+    setTimeout(function() {
+      if (!input.is(":focus")) {
+        input.attr('type', 'password');
+        cb.removeClass('fa-check-square-o').addClass('fa-square-o');
+      }
+    }, 1000);
+  });
+
+  $j("#<%= dom_id %> i.show-typing").parents('span').click(function(e) {
+    var target = $j(this),
+        input  = target.parents(".controls").find("input.encrypted");
+    if (input.val() == '--ENCRYPTED--') {
+      return;
+    }
+
+    var cb = target.find('i.show-typing');
+    if (cb.hasClass('fa-square-o')) {
+      input.attr('type', 'text');
+      cb.addClass('fa-check-square-o').removeClass('fa-square-o');
+    }
+    else {
+      input.attr('type', 'password');
+      cb.addClass('fa-square-o').removeClass('fa-check-square-o');
+    }
+    input.select();
+  });
+
+  var filters = {};
+  <% ci.meta.attributes[:mdAttributes].each do |a| %>
+    <% filter = a.options[:filter] %>
+    <%# This is just an example:   filter = {"new" => {"editable" => "scm:neq:git", "visible" => "scm:eq:svn"}, "edit" => {"visible" => "scm:eq:svn"}} if a.attributeName == 'repository' %>
+    <%# This is just an example:   filter = {"all" => {"editable" =>  "autorepair:eq:true"}} if a.attributeName == 'autoscale' %>
+
+    <%# filter = {"all" => {"visible" => "size:eq: M && (ostype:eq:redhat-6.4 || ostype : eq : redhat-6.2 )", "editable" => "ostype:neq:redhat-6.2"}} if a.attributeName == 'image_id' %>
+    <% if filter.present? %>
+      filters["<%= a.attributeName %>"] = <%= raw(filter.to_json) %>;
+    <% end %>
+  <% end %>
+
+  var idPrefix = "#<%= f.object_name %>_ciAttributes_";
+
+  var toggleAttrVisible = function(name, visible) {
+    var controlGroup = $j("#<%= dom_id %> .control-group:has(" + idPrefix + name + ")");
+    controlGroup[visible ? "show" : "hide"]();
+    var controlDiv = controlGroup.parents(".category");
+    var hasVisible = controlDiv.find(".control-group").toArray().some(function (el) {
+      return el.style.display != 'none';
+    });
+    controlDiv[hasVisible ? "show" : "hide"]();
+  };
+
+  var toggleAttrEditable = function(name, editable) {
+    var controlDiv = $j("#<%= dom_id %> .controls:has(" + idPrefix + name + ")");
+    controlDiv.attr("editable", "" + editable);
+    var editFormDiv = controlDiv.parents(".edit_form");
+    var editForm    = editFormDiv.find(".editing");
+    if (editForm.length) {
+      disable_edit(editFormDiv[0].id);
+      enable_edit(editFormDiv[0].id);
+    }
+  };
+
+  var commited = <%= ci.commited? ? 'true' : 'false' %>;
+  $j.each(Object.keys(filters), function(i, attr) {
+    var filter = filters[attr],
+        scope  = commited ? (filter['edit'] || filter['all']) : (filter['new'] || filter['all']);
+    if (scope) {
+      $j.each({"visible": toggleAttrVisible, "editable": toggleAttrEditable},
+        function(behaviour, fn) {
+          var behaviourDef = scope[behaviour];
+          if (behaviourDef) {
+            if (behaviourDef == 'false') {
+              fn(attr, false);
+            }
+            else {
+              try {
+                var watchElements = [];
+                var evalExpr = behaviourDef.split(/\s*(\&\&|\|\|)\s*/).map(function (condition) {
+                  var watchExpr = condition.split(':');
+                  if (watchExpr.length > 2) {
+                    var attr     = watchExpr[0].gsub(/^\s*(\(\s*)+\s*/, ''),
+                        operator = watchExpr[1].trim(),
+                        value    = watchExpr[2].gsub(/\s*(\)\s*)+\s*$/, '');
+                    var watchId = idPrefix + attr.trim();
+                    watchElements.push(watchId);
+                    return watchExpr[0].gsub(attr, "encodeURI($j('" + watchId + "').val()) ") +
+                        (operator.trim().toLowerCase() == 'eq' ? "== " : "!= ") +
+                        watchExpr[2].gsub(value, "'" + encodeURI(value.trim()) + "'");
+                  }
+                  else {
+                    return watchExpr;
+                  }
+                }).join(' ');
+                var toggleFn = function () {
+                  fn(attr, eval(evalExpr));
+                };
+                $j(watchElements.join(", ")).change(toggleFn);
+                toggleFn();
+              } catch (e) {
+                console.log('Failed to configure filter for: ' + behaviourDef);
+                console.log(e);
+              }
+            }
+          }
+        }
+      );
+    }
+  });
+
+  if (!window.toggleBaseDiff) {
+    window.toggleBaseDiff = function(source) {
+      var link = $j(source),
+          form = link.parents("form"),
+          containers = form.find(".ciAttributes .diff-container");
+      link.html(containers.is(":visible") ? "Show" : "Hide");
+      containers.toggle();
+      containers = form.find(".ciAttributes .diff-container:not(.calculated)");
+      setTimeout(function() {
+        containers.prettyTextDiff({cleanup: true});
+        containers.find(".diff").show();
+        containers.addClass('calculated');
+      }, 100);
+    };
+
+    var oneopsVariableCache = {};
+    window.variableTypeahead = function(target) {
+      var container = $j(target).closest("div.ciAttributes");
+      var lookupUrl = container.attr("data-oneops-variable-lookup");
+      if (!lookupUrl) {
+        return;
+      }
+
+      container.find("input[type=text], textarea")
+          .typeahead({
+                       items: 30,
+                       minLength: 3,
+                       source: function (query, process) {
+                         var containerId = container[0].id;
+                         var element = this.$element;
+                         var stringAtCursor = element.val().substr(0, element.prop("selectionStart"));
+                         var match = stringAtCursor.match(/\$OO[^}]*}?$/);
+                         if (match) {
+                           element.attr('autocomplete', 'off');
+                           this.matchString = match[0];
+                           this.matchVarType = this.matchString.substr(4).split('{')[0].toUpperCase();
+                           this.matchVarName = this.matchString.split(/[{}\s]/)[1];
+                           if (this.matchVarType &&
+                               !"GLOBAL".startsWith(this.matchVarType) &&
+                               !"LOCAL".startsWith(this.matchVarType) &&
+                               !"CLOUD".startsWith(this.matchVarType)) {
+                             this.matchVarName = this.matchVarName || this.matchVarType;
+                             this.matchVarType = null;
+                           }
+                           this.matchVarName = this.matchVarName && this.matchVarName.toLowerCase();
+
+                           if (this.matchString.length == 0) {
+                             return [];
+                           }
+
+                           var varCache = oneopsVariableCache[containerId];
+                           if (varCache) {
+                             return varCache;
+                           }
+
+                           var oneopsVarTypeaheadFn = function(name, type, value) {
+                             this.name  = name;
+                             this.type  = type;
+                             this.value = value;
+                           };
+                           oneopsVarTypeaheadFn.prototype.toString = function() {
+                             return this.name + "|" + this.type;
+                           };
+
+                           oneopsVariableCache[containerId] = varCache = [];
+                           $j.get(lookupUrl,
+                                  {},
+                                  function (data) {
+                                    for (var scope in data) {
+                                      varCache = data[scope].reduce(function (a, v) {
+                                        a.push(new oneopsVarTypeaheadFn(v.name, v.type, v.value));
+                                        return a;
+                                      }, varCache);
+                                    }
+                                    return process(varCache);
+                                  });
+                           return ['loading...'];
+                         }
+                         else {
+                           this.matchString = this.matchVarName = null;
+                           return [];
+                         }
+                       },
+                       matcher: function (item) {
+                         return item == 'loading...' ||
+                                ((!this.matchVarType || item.type.startsWith(this.matchVarType)) &&
+                                 (!this.matchVarName || item.name.toLowerCase().indexOf(this.matchVarName) >= 0));
+                       },
+                       sorter: function(items) {
+                         var matchString = this.matchVarName;
+                         return items.sort(function(a, b) {
+                           return (matchString ? (a.name.indexOf(matchString) - b.name.indexOf(matchString)) : a.type.localeCompare(b.type)) || a.name.localeCompare(b.name);
+                         });
+                       },
+                       updater: function (item) {
+                         if (item == 'loading...') {
+                           return null;
+                         }
+                         var element = this.$element;
+                         var val = element.val();
+
+                         var split = item.split("|");
+                         var replacement = "$OO_" + split[1] + "{" + split[0] + "}";
+
+                         var cursorAt = element.prop("selectionStart");
+                         var matchStartAt = val.substr(0, cursorAt).lastIndexOf(this.matchString);
+
+                         var putCursorAt = matchStartAt + replacement.length;
+                         setTimeout(function () {
+                           element[0].setSelectionRange(putCursorAt, putCursorAt);
+                         }, 10);
+
+                         var tail = val.substr(cursorAt);
+                         var leftover = tail.match(/^[^}\s]*}?/);
+                         if (leftover) {
+                           tail = tail.substr(leftover[0].length);
+                         }
+                         return val.substr(0, matchStartAt) + replacement + tail;
+                       },
+                       highlighter: function (item) {
+                         if (item == 'loading...') {
+                           return item;
+                         }
+                         else {
+                           return item.type + ": " + item.name + (item.value ? (" <small>(" + item.value.truncate(15) + ")</small>") : "");
+                         }
+                       }
+                     });
+
+      container.find(".tx-editor .tx-toolbar")
+          .prepend('<a class="tx-btn insert-var hide" title="insert variable"><i class="fa fa-code"></i></a>')
+          .find(".insert-var")
+          .click(function (e) {
+                   var textarea = $j(e.target).parents(".tx-editor").find("textarea");
+                   var val = textarea.val();
+                   var cursorAt = textarea.prop("selectionStart");
+                   textarea.val(val.substr(0, cursorAt) + "$OO_" + val.substr(cursorAt));
+                   textarea[0].setSelectionRange(cursorAt + 4, cursorAt + 4);
+                   setTimeout(function () {
+                     textarea.typeahead("lookup").focus();
+                   }, 100);
+                 });
+    }
+  }
+
+  <% var_lookup_params = {}
+     var_lookup_params[:assembly_id]    = @assembly.ciId    if @assembly && @assembly.persisted?
+     var_lookup_params[:environment_id] = @environment.ciId if @environment && @environment.persisted?
+     var_lookup_params[:platform_id]    = @platform.ciId    if @platform && @platform.persisted? && (@component || @attachment) %>
+  <% if var_lookup_params.present? %>
+  (function() {
+    var ciAttrDiv = $j("#<%= dom_id %>");
+    ciAttrDiv.attr("data-oneops-variable-lookup", "<%= variables_lookup_path(var_lookup_params) %>");
+    variableTypeahead(ciAttrDiv);
+  })();
+  <% end %>
+</script>

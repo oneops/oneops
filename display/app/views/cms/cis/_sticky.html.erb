@@ -1,0 +1,10 @@
+<% owner_value = @environment ? 'manifest' : 'design' %>
+<% content = capture do %>
+  <i class="fa fa-<%= value == owner_value ? 'lock' : 'unlock' %>"></i>
+  <%= hidden_field_tag name, value, 'data-owner-value' => owner_value %>
+<% end %>
+<% if defined?(read_only) && read_only %>
+  <span class="lock add-on"><%= content %></span>
+<% else %>
+  <a class="lock add-on" onclick="toggleAttrPropOwner(this)"><%= content %></a>
+<% end %>

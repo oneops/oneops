@@ -1,0 +1,34 @@
+<div id="ci_watch_<%= ci.ciId %>">
+  <%= section_panel 'Email Notifications', :width => 'single', :position => 'right' do %>
+    <% watching = current_user.watches.where(:ci_id => ci.ciId).first %>
+    <div class="btn-group">
+      <% if watching %>
+        <%= link_to_function icon('eye', 'Watching'), "toggleCiWatch(false, #{ci.ciId})", :class => 'btn' %>
+      <% else %>
+        <%= link_to_function icon('eye-slash',  'Ignoring'),  "toggleCiWatch(true, #{ci.ciId})", :class => 'btn' %>
+      <% end %>
+      <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+        <span class="caret"></span>
+      </a>
+      <ul class="dropdown-menu">
+        <% if watching %>
+          <li><%= link_to icon('eye',  'Watch'),  '#', :class => 'disabled' %></li>
+          <li><%= link_to_function icon('eye-slash', 'Ignore'), "toggleCiWatch(false, #{ci.ciId})" %></li>
+        <% else %>
+          <li><%= link_to_function icon('eye',  'Watch'),  "toggleCiWatch(true, #{ci.ciId})" %></li>
+          <li><%= link_to icon('eye-slash', 'Ignore'), '#', :class => 'disabled' %></li>
+        <% end %>
+      </ul>
+    </div>
+    <hr>
+    Opt to receive email notifications about deployment and operation events for <strong><%= ci.ciName %></strong>.
+  <% end %>
+</div>
+
+<script>
+  if (!window.toggleCiWatch) {
+    window.toggleCiWatch = function(watch, id) {
+      $j.ajax({url: "<%= watch_path %>", type: watch ? "POST" : "DELETE", data: {ciId: id}});
+    }
+  }
+</script>

@@ -1,0 +1,11 @@
+<%= section_panel('Attachments', :width => 'single') do %>
+  <%= ci_list(@attachments) do |builder, target| %>
+    <% edit_path = edit_assembly_transition_environment_platform_component_attachment_path(@assembly, @environment, @platform, @component, target) %>
+    <% builder.target link_to('', edit_path, :remote => true) %>
+    <% builder.middle target.ciAttributes.source %>
+    <% builder.menu do |ci| %>
+      <%= link_to(icon('edit', 'edit'), edit_path, :remote => true) %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id="attachment_details"></div>

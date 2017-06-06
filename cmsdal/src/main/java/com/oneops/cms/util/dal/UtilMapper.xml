@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.util.dal.UtilMapper">
+
+	 <select id="acquireLock" parameterType="map" statementType="CALLABLE" resultType="boolean">
+	    {call cms_acquire_lock(#{lockName}, #{processId}, #{staleTimeout})}
+	 </select>
+
+	 <delete id="releaseLock" parameterType="map">
+	    delete from cms_lock
+	    where lock_name = #{lockName} and locked_by = #{processId}
+	 </delete> 
+	 
+	 <select id="getCmSimpleVar" parameterType="string" resultType="com.oneops.cms.util.domain.CmsVar">
+	    select 
+			cv.var_id as id,
+			cv.var_name as name,
+			cv.var_value as value,
+			cv.updated_by as updatedBy,
+			cv.created as created,
+			cv.updated as updated 
+		from cms_vars cv
+		where cv.var_name = #{name}
+	 </select>
+
+	 <select id="getCmVarByLongestMatchingCriteria" parameterType="map" resultType="com.oneops.cms.util.domain.CmsVar">
+	    SELECT DISTINCT ON (var_name) var_name AS name, var_value AS value
+		    FROM cms_vars cv
+		    WHERE cv.var_name LIKE #{name}
+		     AND #{criteria} LIKE (cv.criteria || '%')
+		    ORDER BY cv.var_name, criteria desc;
+	 </select>
+
+	 <update id="updateCmSimpleVar" parameterType="map" statementType="CALLABLE">
+	    {call cms_set_var(#{name}, #{value}, #{criteria}, #{updatedBy})}
+	 </update> 
+	 
+	 <select id="getCmsStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
+	 	select * from (
+			select d.deployment_id as deploymentId, 
+			round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack, 
+			max(dr.updated) as stuckAt
+			from dj_deployment d, dj_deployment_rfc dr
+			where d.state_id = 100 
+			and d.deployment_id = dr.deployment_id
+			and dr.state_id in (200,300) 
+			and not exists (select 1 from dj_deployment_rfc where deployment_id = d.deployment_id and state_id = 100)
+			group by d.deployment_id
+			) as aggr where stuckMinsBack > 10
+	 </select>
+	 
+	 <select id="getInProgressStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
+	 	select * from (
+	 	    select d.deployment_id as deploymentId, 
+	 	    round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack, 
+        	max(dr.updated) as stuckAt 
+        	from dj_deployment d, dj_deployment_rfc dr
+        	where d.state_id = 100
+        	and d.deployment_id = dr.deployment_id
+        	group by d.deployment_id) as aggr where stuckMinsBack > 7
+	 </select>
+	 
+	 <select id="getPausedStuckDpmts" resultType="com.oneops.cms.util.domain.CmsStuckDpmt">
+	 	select * from (
+	 	select d.deployment_id as deploymentId, 
+	 	round((extract(epoch from (now() - max(dr.updated))) / 60)) as stuckMinsBack, 
+        max(dr.updated) as stuckAt 
+        from dj_deployment d, dj_deployment_rfc dr
+        where d.state_id = 500
+        and d.deployment_id = dr.deployment_id
+        and dr.state_id = 100
+        group by d.deployment_id) as aggr where stuckMinsBack > 7
+	 </select>
+	
+</mapper>

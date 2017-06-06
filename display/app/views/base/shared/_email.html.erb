@@ -1,0 +1,47 @@
+<div id="email_modal" class="modal hide fade">
+  <div class="modal-header">
+    <h3><%= title %></h3>
+  </div>
+  <div class="modal-body">
+    <form class="form-horizontal">
+      <div class="control-group">
+        <%= label_tag :recipients, 'Mail To:', :class => 'control-label' %>
+        <div class="controls">
+          <%= email_field_tag :recipients, '', :required => true, :multiple => true %>
+        </div>
+      </div>
+      <div class="control-group">
+        <%= label_tag :note, 'Note:', :class => 'control-label' %>
+        <div class="controls">
+          <%= text_area_tag :note, '' %>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-footer">
+    <%= link_to_function(raw(icon('times', 'cancel')), 'hide_modal()', :class => 'btn btn-danger') %>
+    <% if defined?(function) %>
+      <%= link_to_function(raw(icon('envelope', 'ok')), 'emailFormOk()', :class => 'btn btn-success') %>
+    <% elsif defined?(url) %>
+      <% busy_options = {:url    => url,
+                         :method => :get,
+                         :with   => "'recipients='+$j('#email_modal #recipients').val()",
+                         :class  => 'btn btn-success'} %>
+      <%= link_busy(raw(icon('envelope', 'ok')), busy_options) %>
+    <% end %>
+  </div>
+</div>
+<script>
+  $j('#email_modal input#recipients').focus();
+
+  function emailFormOk() {
+    if ($j("#email_modal form")[0].checkValidity()) {
+      hide_modal();
+      <%= function %>($j('#email_modal input#recipients').val(), $j('#email_modal #note').val());
+    }
+    else {
+      $j('#email_modal input#recipients').focus();
+    }
+  }
+</script>

@@ -1,0 +1,27 @@
+<ul class="dropdown-menu">
+  <% favs = current_user.favorites.where(:organization_id => current_user.organization_id).order(:ci_name) %>
+  <% if favs.present? %>
+    <% fav_groups = favs.group_by { |f| f.ci_class_name.split('.').last } %>
+    <% fav_groups.each do |ci_class, group| %>
+      <li class="dropdown-submenu">
+        <a class="dropdown-toggle" data-toggle="dropdown">
+          <%= image_tag(ci_class_image_url(group.first.ci_class_name), :class => 'icon') %> <%= ci_class %>
+        </a>
+        <ul class="dropdown-menu">
+          <% group.each do |favorite| %>
+            <li>
+              <%= link_to(favorite_path(favorite.ci_id), :method => :get) do %>
+                <%= favorite.ci_name %><br>
+                <small style="margin-left:10px"><%= favorite.ns_path %></small>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </li>
+    <% end %>
+    <li class="divider"></li>
+  <% else %>
+    <li><%= link_to_function('No favorites stored', '') %></li>
+  <% end %>
+  <li><%= link_to(content_tag(:small, 'Manage favorites...'), account_profile_path(:anchor => 'favorites')) %></li>
+</ul>

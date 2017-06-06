@@ -1,0 +1,17 @@
+<% write_access = has_cloud_services?(@cloud.ciId)
+   new_url      = write_access && new_cloud_zone_path(@cloud) %>
+<%= section_panel('Zone',
+                  :width => 'single',
+                  :menu  => new_url && [{:display => icon('plus', 'Add Zone'), :link => new_url, :remote => true}]) do %>
+  <%= ci_list(@zones, :new_link => new_url && link_to(icon('plus', 'Add Zone...'), new_url, :remote => true)) do |builder, target| %>
+    <% builder.target link_to('', edit_cloud_zone_path(@cloud, target), :remote => true) %>
+    <% description = target.ciAttributes.description %>
+    <% builder.middle description if description.present? %>
+    <% if write_access %>
+      <% builder.menu do |ci| %>
+        <%= link_to(icon('trash', ' Delete'), cloud_zone_path(@cloud, ci), :remote => true, :method => :delete, :confirm => "Delete zone '#{ci.ciName}'?") %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<div id='zone_details'></div>

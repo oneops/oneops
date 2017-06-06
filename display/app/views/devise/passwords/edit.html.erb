@@ -1,0 +1,29 @@
+<%= title 'Change Password' %>
+<% if resource.errors.present? %>
+  <div class="alert alert-error"><%= resource.errors.full_messages.join('<br/>').html_safe %></div>
+<% end %>
+<div id="signin">
+  <%= section_panel 'Change Password' do %>
+    <%= render 'layouts/brand' %>
+    <%= form_for(resource, :as => resource_name, :url => password_path(resource_name), :html => {:method => :put, :class => 'form-horizontal'}) do |f| %>
+      <%= f.hidden_field :reset_password_token %>
+      <div class="control-group">
+        <%= f.label :password, :class => 'control-label' %>
+        <div class="controls">
+          <%= f.password_field :password, :class => 'input-medium' %>
+        </div>
+      </div>
+      <div class="control-group">
+        <%= f.label :password_confirmation, 'Confirm Password', :class => 'control-label' %>
+        <div class="controls">
+          <%= f.password_field :password_confirmation, :class => 'input-medium' %>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="controls">
+          <%= f.submit "Change My Password", :class => "btn btn-large btn-success" %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

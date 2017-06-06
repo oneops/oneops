@@ -1,0 +1,19 @@
+<li>
+  <%= link_confirm_busy('Discard Platform Changes',
+                        :url     => discard_assembly_design_platform_path(@assembly, @platform),
+                        :method  => :post,
+                        :confirm => 'Discard platform changes?',
+                        :body    => 'This will discard all pending changes <strong>for this platform only</strong>. Other changes in the current design release will <strong>not</strong> be affected.',
+                        :busy    => 'Discarding platform changes...',
+                        :class   => 'btn btn-danger') %>
+</li>
+<li>
+  <%= link_confirm_busy('Commit Platform Changes',
+                        :url     => commit_assembly_design_platform_path(@assembly, @platform),
+                        :method  => :post,
+                        :confirm => 'Commit platform changes?',
+                        :body    => 'This will commit all pending changes <strong>only for this platform</strong> in a separate release. Other current release changes will be rolled over to a new design release.',
+                        :busy    => 'Committing platform changes...',
+                        :comment => :desc,
+                        :class   => 'btn btn-success') %>
+</li>

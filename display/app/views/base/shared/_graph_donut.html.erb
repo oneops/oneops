@@ -1,0 +1,143 @@
+<% graph_id = "graph_#{random_dom_id}" %>
+<div id="<%= graph_id %>" class="graph-donuts"></div>
+<script>
+  setTimeout(function() {
+    var data = <%= raw(data.to_json) %>;
+
+    var colors = function(legend) {
+      if (legend) {
+        var colorMap = legend.reduce(function(c, e) {c[e.name] = e.color; return c;}, {});
+        return function(name) {
+          return colorMap[name];
+        }
+      }
+      else {
+        return d3.scale.category10();
+      }
+    }(data.legend);
+
+    var numberFormat = d3.format(',');
+
+    var donuts = data.data,
+        donutCount = donuts.length,
+        graphDiv = d3.select("#<%= graph_id %>"),
+        totalWidth = $j("#<%= graph_id %>").width(),
+        margin = 5,
+        legendWidth = 0;
+
+    <% if legend %>
+      donutCount++;
+    <% end %>
+
+    var radius = (totalWidth - legendWidth - (donutCount + 1) * 2 * margin) / donutCount / 2,
+        innerRadius = radius * 0.7;
+    var arc = d3.svg.arc()
+        .outerRadius(radius)
+        .innerRadius(innerRadius);
+
+    var pie = d3.layout.pie()
+        .sort(null)
+        .value(function(d) { return d.value; });
+
+    var tooltip = d3.select("body")
+      .append("div")
+      .classed("sunburst-tooltip", true)
+      .style("opacity", 0);
+
+    tooltip.showCoreTooltip = function(d) {
+      tooltip.html(d.slices.map(function(dd) {return "<p style='color:" + colors(dd.name) + "'>" + dd.label + "</p>"}).join(""))
+          .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
+          .transition()
+          .duration(200)
+          .style({opacity: 0.8});
+    };
+
+    tooltip.showSliceTooltip = function(d) {
+      tooltip.html(d.data.label || (d.data.name + " " + numberFormat(d.data.value)))
+          .style({left: d3.event.pageX + "px", top: d3.event.pageY - 28 + "px"})
+          .transition()
+          .duration(200)
+          .style({opacity: 0.8});
+    };
+
+    tooltip.hideTooltip = function() {
+      tooltip.transition()
+          .duration(500)
+          .style("opacity", 0);
+    };
+
+    var svg = graphDiv.selectAll(".donut")
+        .data(donuts)
+        .enter().append("svg")
+          .attr("class", "donut")
+          .attr("width", radius * 2)
+          .attr("height", radius * 2 + 20)
+          .style({'margin-left': margin, 'margin-right': margin})
+        .append("g")
+        .attr("transform", "translate(" + radius + "," + radius + ")");
+
+    svg.selectAll(".arc")
+        .data(function(d) { return pie(d.slices); })
+        .enter().append("path")
+          .attr("class", "arc")
+          .attr("d", arc)
+          .style('stroke', 'white')
+          .style("fill", function(d) {return colors(d.data.name); })
+          .on("mouseover", tooltip.showSliceTooltip)
+          .on("click", tooltip.showSliceTooltip)
+          .on("mouseout", tooltip.hideTooltip);
+
+    var core = svg.append("g")
+        .on("mouseover", tooltip.showCoreTooltip)
+        .on("click", tooltip.showCoreTooltip)
+        .on("mouseout", tooltip.hideTooltip);
+
+    core.append("circle")
+        .attr("r", innerRadius)
+        .style("fill", "transparent");
+
+    core.append("text")
+        .attr("dy", innerRadius * 0.25)
+        .style({fill: "#000", 'font-weight': 600, 'font-size': innerRadius * 0.6, "text-anchor": "middle"})
+        .text(function(d) { return d.label; });
+
+    svg.append("text")
+        .attr("dy", radius + 16)
+        .style({fill: "#777", 'font-weight': 500, 'font-size': 16, "text-anchor": "middle"})
+        .text(function(d) { return d.title; });
+
+    <% if legend %>
+      if (!data.legend) {
+        data.legend = {};
+        data.data.forEach(function (d) {
+          d.slices.forEach(function (s) {
+            data.legend[s.name] = name;
+          })
+        });
+        data.legend = Object.keys(data.legend).map(function(name) {return {name: name}});
+      }
+
+      var swatchSize = radius * 2 / data.legend.length - 2;
+
+      var legend = graphDiv.append("svg")
+            .attr("class", "legend")
+            .attr("width", radius * 2)
+            .attr("height", radius * 2)
+            .selectAll("g")
+            .data(data.legend)
+            .enter().append("g")
+              .attr("transform", function(d, i) { return "translate(0," + i * (swatchSize + 2) + ")"; });
+
+      legend.append("rect")
+              .attr("width", swatchSize)
+              .attr("height", swatchSize)
+              .style("fill", function(d) {return colors(d.name)});
+
+      legend.append("text")
+          .attr("x", swatchSize + 4)
+          .attr("y", swatchSize * 0.6)
+          .style({'font-size': swatchSize * 0.6})
+          .text(function(d) {return d.name});
+    <% end %>
+  }, 100);
+</script>

@@ -1,0 +1,2 @@
+$j("#pack_version_diff").html("<%= escape_javascript(render('diff_list')) %>");
+replace_state("<%= url_for(:other_version => params[:other_version]) %>");

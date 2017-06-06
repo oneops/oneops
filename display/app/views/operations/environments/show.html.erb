@@ -1,0 +1,23 @@
+<%= assembly_page_header(@assembly, 'operations') %>
+
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'operations', :link => assembly_operations_path(@assembly)}] %>
+
+<%= page_title :page_icon     => "#{@environment.ciAttributes.availability}_availability",
+               :page_kind     => 'Environment',
+               :page_label    => breadcrumb_environment_label,
+               :page_sublabel => "created by #{@environment.createdBy}" %>
+
+<%= info = ''
+    if @clouds.present?
+      info += "#{'cloud'.pluralize(@clouds.size)} <strong>#{@clouds.map(&:toCi).map { |c| link_to(c.ciName, edit_cloud_path(c)) }.join(', ')}</strong> - "
+    end
+    info += "#{'availability'} <strong>#{@environment.ciAttributes.attributes['availability']}</strong>"
+    info += " - subdomain <strong>#{@environment.ciAttributes.subdomain}</strong>"
+    page_info info %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                      {:label => 'graph',      :url => graph_assembly_operations_environment_path(@assembly, @environment), :reload => true},
+                      {:label => 'health',     :url => assembly_operations_environment_instances_path(@assembly, @environment, :instances_state => params[:instances_state] || 'unhealthy,notify')},
+                      {:label => 'procedures', :url => operations_procedures_path(:ciId => @environment.ciId), :reload => true},
+                      {:label => icon('search'), :id => 'search', :template => 'search'}] %>

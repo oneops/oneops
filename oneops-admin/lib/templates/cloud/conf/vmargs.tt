@@ -1,0 +1,1 @@
+<%="-Djavax.net.ssl.trustStore=#{@amq_truststore_location} " if !@amq_truststore_location.empty?%><%=@additional_java_args%>

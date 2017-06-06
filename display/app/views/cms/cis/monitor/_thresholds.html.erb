@@ -1,0 +1,211 @@
+<% thresholds             = attribute_value.present? ? ActiveSupport::JSON.decode(attribute_value) : {}
+   thresholds_div_id      = random_dom_id
+   metrics_changed_div_id = "#{thresholds_div_id}_metrics_changed"
+   metrics_absent_div_id  = "#{thresholds_div_id}_metrics_absent"
+   thresholds_help_div_id = "#{thresholds_div_id}_thresholds_help"
+   metrics                = ActiveSupport::JSON.decode(ci.ciAttributes.metrics)
+   metric_names           = metrics.keys.sort
+   metric_units           = metric_names.inject({}) { |h, n| h[n] = metrics[n]['unit']; h }
+   buckets                = {'1m' => 1, '5m' => 5, '15m' => 15, '1h' => 60, '6h' => 360, '1d' => 1440} %>
+<div id="<%= metrics_changed_div_id %>" class="alert alert-danger alert-block hide">
+  There are unsaved metric definition changes.  You can not edit thresholds until current monitor changes are saved.
+</div>
+<div id="<%= metrics_absent_div_id %>" class="alert alert-block <%= 'hide' if metric_names.present? %>">
+  At least one metric must be defined above in order to set up any thresholds.
+</div>
+<%= builder.hidden_field attribute_name %>
+<div id="<%= thresholds_div_id %>" class="monitor_thresholds <%= 'hide' if metric_names.blank? %>">
+  <div id="<%= thresholds_help_div_id %>" class="alert alert-block instructions">
+    <p>
+    Setting the <em>state</em> to <strong>unhealthy</strong> in the threshold definition or enabling the <strong>heartbeat</strong>
+    works in conjuction with the <strong>autorepair</strong> option for the environment. When autorepair is enabled
+    threshold violation will cause an automatic repair action against the affected instance.
+    </p>
+    <p>
+    Setting the <em>state</em> to <strong>over-utilized</strong> or <strong>under-utilized</strong> in the threshold definition
+    works in conjuction with the <strong>autoscaling</strong> option for the environment. When autoscaling is enabled
+    threshold violation will cause an automatic deployment that will add/remove instances to your platform
+    governed by your platform scaling parameters.
+    </p>
+  </div>
+  <table>
+    <% thresholds.keys().sort.each do |threshold_name| %>
+      <tr>
+        <td>
+          <%= threshold = thresholds[threshold_name]
+              threshold['bucket'] = buckets[threshold['bucket']]
+              render 'cms/cis/monitor/threshold', :threshold_name => threshold_name, :threshold => threshold, :metrics => metric_names %>
+        </td>
+      </tr>
+    <% end %>
+  </table>
+  <%= link_to_function(icon('plus', 'Add'), "new_thresholds_struct_entry($(this).up('div.monitor_thresholds'))", :class => 'btn btn-mini', :style => 'display:none') %>
+</div>
+<script type="text/javascript">
+  var threshold_buckets = JSON.parse("<%= raw(escape_javascript(Hash[buckets.to_a.map(&:reverse)].to_json)) %>");
+  var metric_units      = JSON.parse("<%= raw(escape_javascript(metric_units.to_json)) %>");
+  var new_thresholds_struct_entry_html = "<%= escape_javascript(render('cms/cis/monitor/threshold',
+                                                                       :threshold_name => '',
+                                                                       :threshold      => {'trigger' => {}, 'reset' => {}},
+                                                                       :metrics        => metric_names)) %>";
+
+  if (!window.toggle_thresholds_struct) {
+    window.toggle_thresholds_struct = function(threshold_div, all) {
+      all ? toggle_thresholds_struct_all_entries(threshold_div) : toggle_thresholds_struct_entry(threshold_div);
+    };
+
+    window.toggle_thresholds_struct_all_entries = function(threshold_div) {
+      var show = !$(threshold_div).down("div.body").visible();
+      $$("#" + threshold_div.up("div.monitor_thresholds").id + " div.monitor_threshold").each(function(div) {
+        show ? div.down("div.body").show() : div.down("div.body").hide();
+      });
+      if (show) {
+        threshold_div.down("input").focus();
+      }
+    };
+
+    window.toggle_thresholds_struct_entry = function(threshold_div) {
+      $j(threshold_div).find('.header i').toggleClass('fa-caret-down fa-caret-up');
+      var body = $(threshold_div).down("div.body");
+      body.toggle();
+      if (body.visible()) {
+        threshold_div.down("input").focus();
+      }
+    };
+
+    window.new_thresholds_struct_entry = function(thresholds_div) {
+      thresholds_div.insert(new_thresholds_struct_entry_html);
+      var new_threshold_div = thresholds_div.childElements().last();
+      new_threshold_div.down("input").focus();
+      toggle_thresholds_struct_entry(new_threshold_div);
+      metric_chaged(new_threshold_div.down("select.metric"));
+    };
+
+    window.delete_thresholds_struct_entry = function(threshold_div) {
+      var thresholds_div = threshold_div.up("div.monitor_thresholds");
+      threshold_div.remove();
+      update_thresholds_struct_raw_value(thresholds_div);
+    };
+
+
+    window.thresholds_struct_changed = function(input) {
+      update_thresholds_struct_raw_value($(input).up("div.monitor_thresholds"));
+    };
+
+    window.bucket_chaged = function(bucket_el) {
+      bucket_el = $(bucket_el);
+      var threshold_div = bucket_el.up("div.monitor_threshold");
+      normalize_duration_and_numocc(bucket_el, threshold_div.down(".trigger input.duration"), threshold_div.down(".trigger input.numocc"));
+      normalize_duration_and_numocc(bucket_el, threshold_div.down(".reset input.duration"), threshold_div.down(".reset input.numocc"));
+      thresholds_struct_changed(bucket_el);
+      filter_stats(bucket_el);
+    };
+
+    window.filter_stats = function(bucketEl) {
+      bucketEl = $j(bucketEl);
+      var statEl = bucketEl.closest("table").find("select.stat"),
+          opts = statEl.find("option[value!=avg]");
+      if (parseInt(bucketEl.val()) <= 5) {
+        opts.attr('disabled', 'disabled');
+      }
+      else {
+        opts.removeAttr('disabled');
+      }
+    };
+
+    window.metric_chaged = function(metric_el) {
+      metric_el = $j(metric_el);
+      var threshold_div = $j(metric_el.parents("div.monitor_threshold")[0]);
+      threshold_div.find(".unit").html(metric_units[metric_el.val()]);
+      thresholds_struct_changed(metric_el[0]);
+    };
+
+    window.duration_changed = function(duration_el) {
+      duration_el = $j(duration_el);
+      normalize_duration_and_numocc(duration_el.parents("div.monitor_threshold").find(".bucket")[0], duration_el[0], duration_el.parents("tr").find(".numocc")[0]);
+      thresholds_struct_changed(duration_el[0]);
+    };
+
+    window.normalize_duration_and_numocc = function(bucket_el, duration_el, numocc_el) {
+      var bucket    = parseInt(bucket_el.value);
+      var duration  = Math.ceil(parseInt(duration_el.value) / bucket) * bucket;
+      var maxNumocc = Math.floor(duration / bucket);
+      duration_el.min   = bucket;
+      duration_el.step  = bucket;
+      duration_el.value = duration;
+      numocc_el.max     = maxNumocc;
+      numocc_el.value   = Math.min(parseInt(numocc_el.value), maxNumocc);
+    };
+
+    window.update_thresholds_struct_raw_value = function(thresholds_div) {
+      thresholds_div.up("form").setAttribute('data-dirty', true);
+      var field = thresholds_div.previous("input");
+      var threshold_divs = $$("#" + thresholds_div.id + " div.monitor_threshold");
+      if (threshold_divs && threshold_divs.length > 0) {
+        var thresholds = {};
+        for (var i = 0; i < threshold_divs.length; i++) {
+          var threshold_div = threshold_divs[i];
+          var name = threshold_div.down("div.main input.name[type=text]").value;
+
+          if (name) {
+            threshold_div.down(".header .name").update(name);
+
+            var bucket = parseInt(threshold_div.down("div.main select.bucket").value);
+            var threshold = {'bucket': threshold_buckets[bucket],
+              'stat':   threshold_div.down("div.main select.stat").value,
+              'metric': threshold_div.down("div.main select.metric").value,
+              'state':  threshold_div.down("div.main select.state").value};
+
+            for (var section in {"trigger": true, "reset": true}) {
+              var row = threshold_div.down("." + section);
+              threshold[section] = {'operator': row.down("select.operator").value,
+                'value':    parseInt(row.down("input.value[type=text]").value),
+                'duration': parseInt(row.down("input.duration").value),
+                'numocc':   parseInt(row.down("input.numocc").value)};
+            }
+
+            threshold['cooloff'] = parseInt(threshold_div.down("div.cooloff").down("input.cooloff").value);
+
+            thresholds[name] = threshold;
+          }
+        }
+        field.value = Object.toJSON(thresholds);
+      }
+      else {
+        field.value = "{}";
+      }
+    };
+  }
+
+  $j("#cms_dj_ci_ciAttributes_metrics").bind("change", function() {
+    var thresholdDiv = $j("#<%= thresholds_div_id %>"),
+        controlGroupDiv = thresholdDiv.parents(".control-group")[0];
+
+    if (!controlGroupDiv.id) {
+      controlGroupDiv.id = "<%= random_dom_id %>";
+    }
+    disable_edit(controlGroupDiv.id);
+
+    $j("#<%= metrics_changed_div_id %>").show();
+    $j("#<%= thresholds_help_div_id %>").hide();
+
+    // Min json is '{"x":{...}}'
+    if ($j("#cms_dj_ci_ciAttributes_metrics").val().length > 8) {
+      $j("#<%= metrics_absent_div_id %>").hide();
+      thresholdDiv.show();
+    }
+    else {
+      $j("#<%= metrics_absent_div_id %>").show();
+      thresholdDiv.hide();
+    }
+  });
+
+  $j("#<%= thresholds_div_id %> select.bucket").each(function() {filter_stats(this)});
+  $j("#<%= thresholds_div_id %> select.metric").each(function() {metric_chaged(this)});
+
+  $j("#<%= thresholds_div_id %>").parents("form").bind('beforeSave', function() {
+    $j("#<%= thresholds_div_id %> div.monitor_threshold").each(function() {
+      toggle_thresholds_struct(this);
+    });
+  });
+</script>

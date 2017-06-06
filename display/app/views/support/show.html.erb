@@ -1,0 +1,22 @@
+<h2>Support Operations</h2>
+<br/>
+<% all_perms = @permissions['*']
+   links = []
+   links << link_to(icon('bullhorn', 'Announcements',  'fa-fw'), announcements_support_path)  if all_perms || @permissions['announcement']
+   links << link_to(icon('sitemap',  'Organizations',  'fa-fw'), organizations_support_path)  if all_perms || @permissions['organization']
+   links << link_to(icon('user',     'Users',          'fa-fw'), user_support_path)           if all_perms || @permissions['user']
+   links << link_to(icon('server',   'Compute Report', 'fa-fw'), compute_report_support_path) if all_perms || @permissions['compute_report']
+   if all_perms || @permissions['cost']
+     links << link_to(icon('money', 'Cost Report', 'fa-fw'),
+                      cost_support_path(:start_date => Date.today.last_month.beginning_of_month,
+                                        :end_date   => Date.today.last_month.end_of_month,
+                                        :interval   => 'month',
+                                        :tags       => ['pillar']))
+   end
+
+   links << link_to(icon('search', 'Search', 'fa-fw'), search_support_path) if all_perms || @permissions['search'] %>
+<ul class="support-functions nav nav-tabs nav-stacked">
+  <% links.each do |link| %>
+    <li><%= link %></li>
+  <% end %>
+</ul>

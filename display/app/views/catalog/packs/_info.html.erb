@@ -1,0 +1,27 @@
+<dl class="dl-horizontal narrowest">
+  <dt><%= icon(site_icon(:user)) %></dt>
+  <dd>Owned by <b><%= @pack.ciAttributes.owner.presence || 'unknown' %></b></dd>
+  <dt><%= icon('clock-o') %></dt>
+  <dd>Created <b><%= time_ago_in_words(@version.created_timestamp) %></b></dd>
+  <dt><%= icon(site_icon(:deployment)) %></dt>
+  <dd>
+    Operation stats
+    <% version = params[:version]
+       dom_id = random_dom_id %>
+    <div class="btn-group pull-right" id="<%= dom_id %>">
+      <%= link_to(icon('check', "ver. #{version}"), catalog_pack_stats_path(params[:source], params[:pack], params[:version]), :remote => true, :class => 'btn btn-mini active') %>
+      <%= link_to(icon('', 'all versions'), catalog_pack_stats_path(params[:source], params[:pack]), :remote => true, :class => 'btn btn-mini') %>
+    </div>
+    <script>
+      $j("#<%= dom_id %> .btn").click(function() {
+        var button = $j(this);
+        button.parent().find("i.fa-check").removeClass("fa-check");
+        button.siblings('.btn').removeClass("active");
+        button.addClass("active");
+        button.find("i.fa").addClass('fa-check');
+      });
+
+    </script>
+    <%= render 'stats' %>
+  </dd>
+</dl>

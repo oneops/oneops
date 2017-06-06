@@ -1,0 +1,12 @@
+<% platform_selection = capture do %>
+  <%= render 'transition/select_deploy_platforms', :platforms => defined?(platforms) ? platforms : nil %>
+<% end %>
+<%= link_confirm_busy(button('Commit & Deploy', defined?(button_size) && button_size, 'success'),
+                      :url     => commit_assembly_transition_environment_path(@assembly, @environment),
+                      :name    => 'commit_and_deploy',
+                      :method  => :post,
+                      :confirm => 'Commit and generate deployment plan?',
+                      :body    => platform_selection,
+                      :with    => "'exclude_platforms='+deploy_platform_exclude_list()",
+                      :busy    => 'Committing changes...',
+                      :comment => :desc) %>

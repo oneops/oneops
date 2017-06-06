@@ -1,0 +1,59 @@
+<% add_link = nil
+   manages_access = manages_access_for_cloud?(@cloud.ciId)
+   if manages_access
+     team_ids     = @teams.map(&:id)
+     teams_to_add = current_user.organization.teams.where('teams.name <> ? AND NOT teams.org_scope AND (teams.manages_access OR teams.cloud_services OR teams.cloud_compliance OR teams.cloud_support)', Team::ADMINS)
+     teams_to_add = teams_to_add.where('teams.id NOT IN (?)', team_ids) if team_ids.present?
+     teams_to_add = teams_to_add.all
+     add_link     = teams_to_add.present? && link_to_function(icon('plus', 'Add Teams...'), '$j("#teams_modal").modal("show")')
+   end %>
+<%= section_panel 'Teams',
+                  :width => 'double',
+                  :menu => (add_link ? [{:display => icon('plus', 'Add Team'), :link => add_link}] : nil) do %>
+  <%= list(@teams,
+           :new_link => add_link,
+           :toolbar  => {:sort_by => [%w(Name name), %w(Created created)], :filter_by => %w(name)}) do |builder, team| %>
+    <% builder.itemid team.id %>
+    <% builder.attributes raw(%(name="#{team.name}" created="#{team.created_at}")) %>
+    <% builder.target link_to('', "#{edit_organization_path}#teams") if is_admin? %>
+    <% builder.top do %>
+      <%= team.name %>
+      <span class="topdesc"><%= team_list_permission_marking(team) %></span>
+    <% end %>
+    <% builder.menu do %>
+      <%= link_to(icon('trash', 'Remove'), update_teams_cloud_path(@cloud, 'remove' => [team.id]), :method => :put, :remote => true) if manages_access %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if add_link %>
+  <div id="teams_modal" class="modal hide">
+    <div class="modal-header">
+      <button class="close" data-dismiss="modal">&times;</button>
+      <h3>Teams</h3>
+    </div>
+    <%= form_tag(update_teams_cloud_url(@cloud), :method => :put, :remote => true, :class => 'form-inline') do %>
+      <div class="modal-body">
+        <div class="teams">
+          <% teams_to_add.each do |team| %>
+            <label>
+              <a class="btn">
+                <%= check_box_tag('add[]', team.id, false) %>
+                <%= team.name %>
+              </a>
+            </label>
+          <% end %>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
+        <%= submit_tag 'Save', :class => 'btn btn-success btn-large' %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+<script>
+  $j('.teams :checkbox').on('change', function () {
+    $j('input[type="submit"]').prop('disabled', !$j('.teams :checkbox:checked').length);
+  }).change();
+</script>

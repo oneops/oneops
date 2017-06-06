@@ -1,0 +1,5 @@
+<% if @offering %>
+  $j("#new_offering_details").html("<%= escape_javascript(render('new_offering_details')) %>");
+<% else %>
+  $j("#offering_details").html("<%= escape_javascript(render('new')) %>");
+<% end %>

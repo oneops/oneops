@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/util
+                           http://www.springframework.org/schema/util/spring-util.xsd
+                           ">
+
+    <context:annotation-config/>
+    <context:property-placeholder location="classpath:sink.properties"/>
+
+    <bean id="daqCluster" class="com.oneops.cassandra.ClusterBootstrap">
+        <property name="hostPort" value="${DAQ_DB:daq}:9160"/>
+    </bean>
+
+    <bean name="perfDataAccessor" class="com.oneops.ops.dao.PerfDataAccessor" init-method="init">
+        <property name="clusterName" value="PerfAndLogCluster"/>
+        <property name="keyspaceName" value="mdb"/>
+        <property name="clusterBootstrap" ref="daqCluster"/>
+    </bean>
+
+    <bean name="perfDao" class="com.oneops.daq.dao.PerfDao">
+        <property name="perfDataAccessor" ref="perfDataAccessor"/>
+    </bean>
+
+    <bean name="perfController" class="com.oneops.daq.web.PerfController">
+        <property name="perfDao" ref="perfDao"/>
+        <property name="perfDataAccessor" ref="perfDataAccessor"/>
+    </bean>
+
+    <bean id="defaultHealthCheck" class="com.oneops.ecv.health.DefaultHealthCheck"/>
+    <bean id="defaultHealthChecker" class="com.oneops.ecv.health.HealthCheckerImpl">
+        <property name="healthChecksToRun">
+            <util:list id="beanList">
+                <ref bean="defaultHealthCheck"/>
+            </util:list>
+        </property>
+    </bean>
+    <bean id="statusController" class="com.oneops.ecv.ws.StatusController">
+        <property name="healthChecker" ref="defaultHealthChecker"/>
+        <property name="config" ref="ecvConfig"/>
+        <property name="authUtil" ref="authUtil"/>
+    </bean>
+    <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
+        <property name="useDefaultSuffixPattern" value="false"/>
+    </bean>
+
+    <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
+    <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
+
+    <bean id="marshallingXMLHttpMessageConverter"
+          class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
+        <property name="marshaller" ref="oxmMarshaller"/>
+        <property name="unmarshaller" ref="oxmMarshaller"/>
+        <property name="supportedMediaTypes" value="application/xml"/>
+    </bean>
+
+    <!-- Define the JSON converter which is used to convert Objects <-> JSON. -->
+    <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+        <property name="supportedMediaTypes" value="application/json"/>
+    </bean>
+
+    <!-- Required for REST services in order to bind the return value to the ResponseBody. -->
+    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+        <!-- property name="useDefaultSuffixPattern" value="false" / -->
+        <property name="messageConverters">
+            <util:list id="beanList">
+                <ref bean="jsonMessageConverter"/>
+                <ref bean="marshallingXMLHttpMessageConverter"/>
+            </util:list>
+        </property>
+    </bean>
+</beans>

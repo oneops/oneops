@@ -1,0 +1,59 @@
+<%= section_panel 'Component Configuration' do %>
+  <%= render 'base/shared/edit_form',
+             {:resource => @component,
+              :content  => 'component_details_content',
+              :remote   => false,
+              :form_url => assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, @component)} %>
+<% end %>
+
+<% if @component.persisted? && (@template.requires.relationAttributes.services.present? ||
+                                @requires.relationAttributes.attributes[:services].present?) %>
+  <%= section_panel 'Cloud Services', :position => 'right', :width => 'single' do %>
+    <div id="component_services"><%= render 'base/components/services' %></div>
+  <% end %>
+<% end %>
+
+<% if @depends_on_relations.present? %>
+  <%= section_panel "#{@component.ciClassName.split('.').last} Depends On", :id => 'relations_to', :width => 'single', :position => 'right' do %>
+    <%= ci_list @depends_on_relations.map(&:toCi) do |builder, target| %>
+      <% builder.target link_to('', edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, target)) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @dependents.present? %>
+  <%= section_panel "Depends On #{@component.ciClassName.split('.').last}", :id => 'relations_from', :width => 'single', :position => 'right' do %>
+    <%= ci_list @dependents do |builder, target| %>
+      <% builder.target link_to('', edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, target)) %>
+      <% builder.top do %>
+        <span class="topname"><%= target.ciName %></span>
+      <% end %>
+      <% builder.bottom :none %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<% if @environment.ciAttributes.codpmt == 'true' %>
+  <%= section_panel 'Continuous Deploy URL', :position => 'right', :width => 'single' do %>
+    <span><%= deploy_assembly_transition_environment_platform_component_url(@assembly.ciName, @environment.ciName, "#{@platform.ciName}!#{@platform.ciAttributes.major_version}", @component.ciName) %></span>
+  <% end %>
+<% end %>
+
+
+<%= section_panel 'Help', :position => 'right', :width => 'single' do %>
+  <div>
+    <p><%= icon('book') %> <%= ci_doc_link(@component, 'Click here for documentation', :anchor => 'design') %></p>
+    <% if @template.requires.relationAttributes.has_key?(:help) %>
+      <p><%= raw(@template.requires.relationAttributes.help) %></p>
+    <% end %>
+    <p><strong>Hint!</strong> Look for attribute specific help information by hovering over the attribute names.</p>
+  </div>
+<% end %>
+
+<div id="update_depends_on">
+  <%= render 'depends_on' %>
+</div>

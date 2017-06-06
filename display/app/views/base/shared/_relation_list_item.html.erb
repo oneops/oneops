@@ -1,0 +1,37 @@
+<li id="item_<%= item.ciRelationId %>">
+ 
+ <div class="target" id="id_<%= item.ciRelationId %>"><%= builder[:target] %></div>
+ 
+ <% status = builder[:status] %>
+   <% if status %>
+    <% unless status == :none %>
+      <div class="status">
+        <%= status %>
+      </div>
+    <% end %>
+
+  <% elsif item.respond_to?(:rfcAction) && item.rfcAction %>
+    <div class="status">
+      <%= status_marker('release', item.rfcAction, action_to_label(item.rfcAction)) %>
+    </div>
+  <% end %>
+
+  <div class="content">
+    <div class="top">
+      <% if builder[:icon] %>
+        <%= image_tag(builder[:icon], :class => 'icon') %>
+      <% end %>
+      <% if builder[:top] %>
+        <%= builder[:top] %>
+      <% end %>
+    </div>
+    <% if builder[:middle] %>
+      <div class="middle"><%= builder[:middle] %></div>
+    <% else %>
+
+    <% end %>
+    <% if builder[:bottom] %>
+      <div class="bottom"><%= builder[:bottom] %></div>
+    <% end %>
+  </div>
+</li>

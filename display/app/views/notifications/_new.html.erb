@@ -1,0 +1,29 @@
+<%= section_panel 'Details', :width => 'double' do %>
+  <div class="form-horizontal">
+    <div class="ciAttributes">
+      <div class="control-group">
+        <%= label_tag :notification_type, 'Type', :class => 'control-label' %>
+        <div class="controls">
+          <%= select_tag :notification_type,
+                         options_from_collection_for_select(@available_types, :className, :className, @notification_type),
+                         :id       => 'notification_type_select',
+                         :class    => 'select-xlarge',
+                         :required => true,
+                         :prompt   => 'Choose...' %>
+        </div>
+      </div>
+      <script type="text/javascript">
+        $j("#notification_type_select").on("change", function () {
+          $j.ajax({url: "<%= new_notification_path %>", data: {notification_type: this.value}});
+        });
+      </script>
+    </div>
+  </div>
+  <% if @notification %>
+    <%= render 'base/shared/edit_form',
+               {:resource   => @notification,
+                :content    => 'notification_details_content',
+                :form_url   => notifications_path,
+                :cancel_url => notifications_path} %>
+  <% end %>
+<% end %>

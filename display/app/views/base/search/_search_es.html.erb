@@ -1,0 +1,202 @@
+<%= section_panel 'Search Conditions', :id => 'search_filter_section', :width => 'single', :position => 'left' do %>
+  <form onsubmit="updateSearchResultList(); return false">
+    <div class="filter-group">
+      <div class="name">Query</div>
+      <% if defined?(query) %>
+        <input type="hidden" class="query" value="<%= query %>">
+      <% else %>
+        <div class="filter">
+          <textarea class="query"><%= params[:query] %></textarea>
+          <i class="fa fa-times-circle-o fa-lg" onclick="$j(this).siblings('textarea').val('')"></i>
+        </div>
+      <% end %>
+
+      <div class="filter">
+        <div class="name">
+          <%= link_to_function(raw("Filters #{icon('caret-down')}"),
+                               '$j(this).parents(".filter").find(".sub-filter").toggle();$j(this).find("i").toggleClass("fa-caret-down").toggleClass("fa-caret-up")') %>
+        </div>
+        <% if defined?(ns_path) %>
+          <input type="hidden" class="nspath" value="<%= ns_path %>">
+        <% else %>
+          <div class="sub-filter hide">
+            <div class="name">Namespace</div>
+            <div class="input-append">
+              <input type="text" class="nspath" value="<%= params[:nspath] || search_ns_path %>" pattern="<%= search_ns_path.gsub('/', '\/') %>(\/|\w|-)*">
+              <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
+            </div>
+          </div>
+        <% end %>
+
+        <% if defined?(class_name) %>
+          <input type="hidden" class="class-name" value="<%= class_name %>">
+        <% else %>
+          <div class="sub-filter hide">
+            <div class="name">Class</div>
+            <div class="input-prepend">
+              <input type="text" class="class-name" value="<%= params[:class_name] %>">
+              <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('')"></i>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <% if quick_filters.present? %>
+        <div class="filter quick">
+          <div class="name">
+            <%= link_to_function(raw("Quick Search #{icon('caret-down')}"),
+                                 '$j(this).parents(".filter").find(".btn").toggle();$j(this).find("i").toggleClass("fa-caret-down").toggleClass("fa-caret-up")') %>
+          </div>
+          <% quick_filters.keys.sort.each do |q| %>
+            <a class="btn btn-small btn-<%= quick_filters[q][:run] ? 'success' : 'info' %>" style="display:none"><%= q %></a>
+          <% end %>
+        </div>
+      <% end %>
+
+      <hr/>
+      <button class="btn btn-success" style="width:60%">Run</button>
+    </div>
+  </form>
+<% end %>
+
+<div id="search_result_list">
+  <%= render :partial => 'base/search/search_result_list' if @search_results %>
+</div>
+
+<script>
+  var searchFilterSection = $j("#search_filter_section");
+
+  var updateSearchResultList = function () {
+    var nsPath = searchFilterSection.find("input.nspath").val(),
+        className = searchFilterSection.find("input.class-name").val(),
+        query = searchFilterSection.find(".query").val();
+    $j.ajax({
+              url:      "<%= url_for(:controller => params[:controller], :action => 'search') %>",
+              method:   'GET',
+              data:     {ns_path: nsPath, class_name: className, query: query},
+              complete: hide_busy
+            });
+    show_busy();
+  };
+
+  <% if quick_filters.present? %>
+  var searchQuickFilters = <%= raw(quick_filters.to_json) %>;
+  searchFilterSection.find(".quick .btn").click(function () {
+    var quickFilter = searchQuickFilters[$j(this).html()];
+    var filters = quickFilter.filters;
+
+    var pkg = filters['package'],
+        className = filters['class-name'];
+    if (className) {
+      searchFilterSection.find("input.class-name[type=text]").val((pkg ? pkg + '.' : '') + className);
+    }
+
+    var query = filters['query'];
+
+    if (!query) {
+      query = '';
+      var attrName = filters['attr-name'],
+          attrValue = filters['attr-value'],
+          attrOperator = filters['attr-operator'];
+      if (attrOperator == 'neq') {
+        query = 'NOT ' + query;
+      }
+      if (attrName) {
+        query += 'ciAttributes.' + attrName + ":" + (attrValue || "<VALUE>");
+      }
+      else if(attrValue) {
+        query += attrValue;
+      }
+    }
+
+    searchFilterSection.find("textarea.query").val(query || '');
+
+    if (quickFilter.run) {
+      updateSearchResultList();
+    }
+  });
+  <% end %>
+
+
+  <% if params[:class_name].present? || params[:query].present? %>
+  updateSearchResultList();
+  <% end %>
+
+  searchFilterSection.find('input.class-name')
+      .typeahead({
+                   items:   15,
+                   source: <%= raw Cms::CiMd.look_up.map(&:className).reject {|c| c.start_with?('base.')}.to_json %>,
+                   matcher: function (item) {
+                     return item.toLowerCase().indexOf(this.query.toLowerCase()) >= 0;
+                   }
+                 });
+
+  searchFilterSection.find("textarea.query")
+      .typeahead({
+                   items:       15,
+                   minLength:   13,
+                   source:      function (query, process) {
+                     var element = this.$element;
+                     var stringAtCursor = element.val().substr(0, element.prop("selectionStart"));
+                     var match = stringAtCursor.match(/(^|\W)ciAttributes\.[\w-]*$/);
+                     if (match) {
+                       this.matchString = match[0].substr(match[0].lastIndexOf('.') + 1);
+                       var className = searchFilterSection.find("input.class-name").val();
+                       if (this.matchString.length == 0 && !className) {
+                         return [];
+                       }
+                       else if (this.sourceCache) {
+                         return this.sourceCache[className] || this.sourceCache['*'];
+                       }
+                       else {
+                         this.sourceCache = {'*': []};
+                         var sourceCache = this.sourceCache;
+                         $j.get('<%= lookup_attr_name_metadata_path %>',
+                                {},
+                                function (data) {
+                                  for (var c in data) {
+                                    sourceCache[c] = [];
+                                    data[c].each(function (attr) {
+                                      sourceCache[c].push(attr);
+                                      sourceCache['*'].push(attr + " " + c);
+                                    });
+                                  }
+                                  return process(sourceCache[className] || sourceCache['*']);
+                                });
+                         return ['loading...'];
+                       }
+                     }
+                     else {
+                       return [];
+                     }
+                   },
+                   matcher:     function (item) {
+                     return item == 'loading...' || item.split(' ')[0].toLowerCase().indexOf(this.matchString) >= 0;
+                   },
+                   sorter: function(items) {
+                     var matchString = this.matchString;
+                     return items.sort(function(a, b) {
+                       return (a.indexOf(matchString) - b.indexOf(matchString)) || a.localeCompare(b);
+                     });
+                   },
+                   updater:     function (item) {
+                     if (item == 'loading...') {
+                       return null;
+                     }
+
+                     var attr = item.split(' ')[0];
+                     var element = this.$element;
+                     var val = element.val();
+                     var cursorAt = element.prop("selectionStart");
+                     var lastDot = val.substr(0, cursorAt).lastIndexOf('.');
+                     setTimeout(function () {
+                       element[0].setSelectionRange(lastDot + attr.length + 2, lastDot + attr.length + 2);
+                     }, 10);
+                     return val.substr(0, lastDot) + '.' + attr + ':' + val.substr(cursorAt);
+                   },
+                   highlighter: function (item) {
+                     var split = item.split(' ');
+                     return split[0] + ((split.length > 1 ? " - <small>" + split[1] + "</small>" : ""));
+                   }
+                 });
+</script>

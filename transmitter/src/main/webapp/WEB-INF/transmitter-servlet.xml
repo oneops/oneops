@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:util="http://www.springframework.org/schema/util"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
+						http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/util
+						http://www.springframework.org/schema/util/spring-util.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+  <context:annotation-config/>
+  <context:component-scan base-package="com.oneops.util"/>
+    <bean id="defaultHealthCheck" class="com.oneops.ecv.health.DefaultHealthCheck"/>
+    <bean id="defaultHealthChecker" class="com.oneops.ecv.health.HealthCheckerImpl">
+        <property name="healthChecksToRun">
+            <util:list id="beanList">
+                <ref bean="defaultHealthCheck"/>
+            </util:list>
+        </property>
+    </bean>
+
+    <bean id="statusController" class="com.oneops.ecv.ws.StatusController">
+        <property name="healthChecker" ref="defaultHealthChecker"/>
+        <property name="config" ref="ecvConfig"/>
+        <property name="authUtil" ref="authUtil"/>
+    </bean>
+  <bean id="okHealth" class="com.oneops.ecv.health.Health" />
+  <bean id="failedHealth" class="com.oneops.ecv.health.Health" >
+    <constructor-arg name="statusCode" value="503"></constructor-arg>
+    <constructor-arg name="isOKstatus" value="false"></constructor-arg>
+  </bean>
+  <bean id="offlineHealth" class="com.oneops.ecv.health.Health" >
+    <constructor-arg name="statusCode" value="503"></constructor-arg>
+    <constructor-arg name="isOKstatus" value="false"></constructor-arg>
+    <constructor-arg name="message" value="MarkedOffline"></constructor-arg>
+    <constructor-arg name="name" value="Offline"></constructor-arg>
+  </bean>
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
+
+    <bean id="oneopsCMSDS" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <property name="url" value="jdbc:postgresql://${CMS_DB_HOST}/kloopzdb?autoReconnect=true&amp;ApplicationName=transmitter-${ONEOPS_COMPUTE_CI_ID:0}"/>
+        <property name="username" value="${CMS_DB_USER}"/>
+        <property name="password" value="${CMS_DB_PASS}"/>
+        <property name="maxActive" value="10"/>
+        <property name="maxIdle" value="5"/>
+        <property name="testOnBorrow" value="true"/>
+        <property name="validationQuery" value="select 1"/>
+        <property name="initialSize" value="5"/>
+        <property name="defaultAutoCommit" value="false"/>
+    </bean>
+
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+        <property name="dataSource" ref="oneopsCMSDS"/>
+        <property name="configLocation" value="/WEB-INF/mybatis-config.xml"/>
+    </bean>
+
+    <bean id="viewResolver"
+          class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="prefix">
+            <value>/WEB-INF/jsp/</value>
+        </property>
+        <property name="suffix">
+            <value>.jsp</value>
+        </property>
+    </bean>
+
+    <bean id="amqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL"
+                  value="failover:(tcp://${KLOOPZ_AMQ_HOST:kloopzmq}:61616?keepAlive=true)?initialReconnectDelay=100"/>
+        <property name="userName" value="${AMQ_USER}"/>
+        <property name="password" value="${KLOOPZ_AMQ_PASS}"/>
+    </bean>
+
+    <!-- AMQ broker connector URI-->
+    <bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="host" value="${SEARCH_AMQ_HOST:searchmq}"/>
+        <property name="port" value="61616"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="true"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="100"/>
+                <entry key="maxReconnectDelay" value="5000"/>
+                <entry key="maxReconnectAttempts" value="-1"/>
+                <entry key="randomize" value="false"/>
+                <entry key="timeout" value="3000"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <bean id="searchmqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="#{searchBrokerURI.build()}"/>
+        <property name="userName" value="${SEARCHMQ_USER}"/>
+        <property name="password" value="${SEARCHMQ_PASS}"/>
+    </bean>
+
+    <bean id="notificationConfig" class="com.oneops.cms.transmitter.NotificationConfigurator" init-method="init"/>
+
+    <bean id="antennaClient" class="com.oneops.antenna.client.JMSTransmitter"
+          init-method="init" destroy-method="destroy">
+        <property name="scanFolder" value="${TRANSMITTER_ANTENNA_RETRY_DIR:/opt/oneops/transmitter/antenna/retry}"/>
+        <property name="connFactory" ref="amqFactory"/>
+        <property name="searchPublisher" ref="searchPublisher"/>
+    </bean>
+
+    <bean id="parentEvenReader" class="com.oneops.cms.transmitter.BaseEventReader" abstract="true">
+        <property name="sessionFactory" ref="sqlSessionFactory"/>
+        <property name="varCacheTTLInSeconds" value="${VAR_CACHE_TTL:30}"/>
+        <property name="varCacheMaxSize" value="${VAR_CACHE_SIZE:10}"/>
+    </bean>
+
+    <bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init"
+          destroy-method="cleanup" parent="parentEvenReader"/>
+    <bean id="ciEventReader" class="com.oneops.cms.transmitter.CIEventReader" init-method="init"
+          destroy-method="cleanup" parent="parentEvenReader"/>
+
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_FALLBACK"/>
+        <property name="searchSystemEnvironment" value="true"/>
+    </bean>
+
+    <bean id="eventPublisher" class="com.oneops.cms.transmitter.EventPublisher">
+        <property name="antennaClient" ref="antennaClient"/>
+        <property name="notificationConfig" ref="notificationConfig"/>
+        <property name="cmsPublisher" ref="cmsPublisher"/>
+        <property name="searchPublisher" ref="searchSender"/>
+        <property name="publishControllerEventsAsync" value="${SEARCH_PUBLISH_ASYNC:false}"/>
+    </bean>
+
+    <bean id="cmsPublisher" class="com.oneops.cms.transmitter.CmsPublisher" init-method="init" destroy-method="cleanup">
+        <property name="connFactory" ref="amqFactory"/>
+    </bean>
+
+    <bean id="searchSender" class="com.oneops.cms.transmitter.SearchSender">
+        <property name="searchPublisher" ref="searchPublisher"/>
+    </bean>
+
+    <bean id="searchPublisher" class="com.oneops.util.SearchPublisher" init-method="init" destroy-method="destroy">
+        <property name="connFactory" ref="searchmqFactory"/>
+        <property name="searchSender" ref="searchJmsSender"/>
+        <property name="searchPublishAsync" value="${SEARCH_PUBLISH_ASYNC:true}"/>
+    </bean>
+
+    <bean id="searchJmsSender" class="com.oneops.util.SearchJmsSender" init-method="init" destroy-method="destroy">
+        <constructor-arg value="${TRANSMITTER_SEARCH_PUBLISH_POOLSIZE:50}"/>
+        <property name="name" value="transmitter-search-publish"/>
+        <property name="shortName" value="transmitter"/>
+        <property name="backlogThreshold" value="${SEARCH_WARN_MSG_THRESHOLD:10}"/>
+        <property name="scanFolder" value="${TRANSMITTER_SEARCH_RETRY_DIR:/opt/oneops/transmitter/search/retry}"/>
+    </bean>
+
+    <bean id="scheduler" class="com.oneops.cms.transmitter.MainScheduler" destroy-method="cleanup">
+        <property name="eventPublisher" ref="eventPublisher"/>
+        <property name="controllerEventReader" ref="controllerEventReader"/>
+        <property name="ciEventReader" ref="ciEventReader"/>
+    </bean>
+
+    <bean name="pubController" class="com.oneops.cms.transmitter.web.PubController" init-method="init">
+        <property name="scheduler" ref="scheduler"/>
+    </bean>
+
+    <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
+    <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
+
+    <bean id="marshallingXMLHttpMessageConverter"
+          class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
+        <property name="marshaller" ref="oxmMarshaller"/>
+        <property name="unmarshaller" ref="oxmMarshaller"/>
+        <property name="supportedMediaTypes" value="application/xml"/>
+    </bean>
+
+    <!-- Define the JSON converter which is used to convert Objects <-> JSON. -->
+    <bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter">
+        <property name="supportedMediaTypes" value="application/json"/>
+    </bean>
+
+    <!-- Required for REST services in order to bind the return value to the ResponseBody. -->
+    <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+        <property name="messageConverters">
+            <util:list id="beanList">
+                <ref bean="jsonMessageConverter"/>
+                <ref bean="marshallingXMLHttpMessageConverter"/>
+            </util:list>
+        </property>
+    </bean>
+</beans>

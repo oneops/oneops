@@ -1,0 +1,21 @@
+<%= assembly_page_header(@assembly, 'transition') %>
+
+<%= breadcrumb [{:label => @assembly.ciName, :kind => 'transition', :link => assembly_transition_path(@assembly)}] %>
+
+<%= page_title({:page_icon     => "#{@environment.ciAttributes.availability}_availability",
+                :page_kind     => 'Environment',
+                :page_label    => breadcrumb_environment_label,
+                :page_sublabel => "created by #{@environment.createdBy}"}) %>
+
+<%= info = ''
+    info += "#{'cloud'.pluralize(@clouds.size)} <strong>#{@clouds.map(&:toCi).map { |c| link_to(c.ciName, edit_cloud_path(c)) }.join(', ')}</strong> - " if @clouds.present?
+    info += "availability <strong>#{@environment.ciAttributes.attributes['availability']}</strong> - subdomain <strong>#{@environment.ciAttributes.subdomain}</strong>"
+    page_info info %>
+
+<%= render 'base/shared/page_nav_pages',
+           :items => [{:label => 'summary', :template => 'summary', :selected => true},
+                      {:label => 'configuration', :template => 'configuration', :selected => true},
+                      {:label => 'variables', :url => assembly_transition_environment_variables_path(@assembly, @environment)},
+                      {:label => 'relays', :url => assembly_transition_environment_relays_path(@assembly, @environment)},
+                      {:label => 'timeline', :url => assembly_transition_environment_timeline_path(@assembly, @environment)},
+                      {:label => icon('search'), :id => 'search', :template => 'search'}] %>

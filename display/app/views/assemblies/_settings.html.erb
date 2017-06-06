@@ -1,0 +1,35 @@
+<%= section_panel 'Attributes', :width => 'double', :position => 'left' do %>
+  <div id="assembly_configuration"><%= render 'configuration' %></div>
+<% end %>
+
+<%= render 'watch/watch', :ci => @assembly if @assembly.persisted? %>
+<%= section_panel 'Help', :width => 'single', :position => 'right' do %>
+  <% if @assembly.new? %>
+    <strong>Assembly</strong> is an area where you manage the delivery of your services supported by common applications and infrastructure.
+    After creating an assembly you will be redirected to the <strong>design</strong> area where you can add and configure one or more platforms and build up your service architecture.
+    Commiting the design will create a baseline configuration which you can use to deploy to one or more environments in the <strong>transition</strong> area. You can customize the configuration in each environment if needed.
+    Lastly you can use the <strong>operations</strong> area to ensure your services are operating at expected levels.
+  <% else %>
+    <ul class="unstyled">
+      <li><%= icon('th-list') %> Go back to the <%= link_to(highlight('list', 'info'), assemblies_path) %> of assemblies</li>
+      <li><%= icon('cog') %> Proceed to <%= link_to(highlight('design', 'info'), assembly_design_path(@assembly.ciId)) %>  your assembly</li>
+    </ul>
+  <% end %>
+<% end %>
+
+<% if manages_access_for_assembly?(@assembly.ciId) %>
+  <%= section_panel 'Delete Assembly', :width => 'single', :position => 'right' do %>
+    <% if @instance_count > 0 %>
+      <%= icon_button('trash', ' Delete', 'danger disabled') %>
+    <% else %>
+      <%= link_confirm_busy(icon_button('trash', ' Delete', 'danger'),
+                            :url     => assembly_path(@assembly),
+                            :body    => raw('<p>Click OK to permanently delete this assembly.</p>
+                                             <p><strong class="label label-important">WARNING: All configuration will be PERMANENTLY lost.</strong></p>'),
+                            :method  => :delete,
+                            :remote  => true,
+                            :busy    => "Deleting assembly '#{@assembly.ciName}'",
+                            :confirm => 'Delete this assembly?') %>
+    <% end %>
+  <% end %>
+<% end %>

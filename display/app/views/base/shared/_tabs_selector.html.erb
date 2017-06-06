@@ -1,0 +1,7 @@
+<div class="tabs_selector">
+  <ul>
+    <% tabs.each do |tab| %>
+      <li id="tab_selector_<%= tab[:tab_id] %>" onclick="show_tab('<%= tab[:tab_id] %>', '<%= tab[:link] %>')"><%= tab[:label] %></li>
+    <% end %>
+  </ul>
+</div>

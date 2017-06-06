@@ -1,0 +1,9 @@
+<% %w(replace_after_minutes replace_after_repairs).each do |a| %>
+  <% meta = @platform.meta.md_attribute(a) %>
+  <div class="control-group">
+    <%= label_tag a, link_to(meta.description, '#', :tabindex => '-1', :rel => 'tooltip', :title => "#{meta.options[:help]}"), :class => 'control-label' %>
+    <div class="controls">
+      <%= number_field_tag a, @platform.ciAttributes.attributes[a], :class => 'input-small', :min => 1 %>
+    </div>
+  </div>
+<% end %>

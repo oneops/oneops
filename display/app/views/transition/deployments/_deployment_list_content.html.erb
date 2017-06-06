@@ -1,0 +1,3 @@
+<%= render_deployment_list_content(@deployments) do |builder, deployment| %>
+  <% builder.target link_to('', assembly_transition_environment_deployment_path(@assembly, @environment, deployment), :remote => true) %>
+<% end %>

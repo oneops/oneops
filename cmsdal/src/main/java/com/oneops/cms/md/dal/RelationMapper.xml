@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.oneops.cms.md.dal.RelationMapper">
+	
+	<!--cache flushInterval="600000" size="256"/-->
+
+	<update id="flushCache" flushCache="true" />
+
+    <select id="getNextRelationId" useCache="false" resultType="int">
+       select nextval('md_pk_seq')
+    </select>
+
+	 <insert id="createRelation" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsRelation" statementType="CALLABLE" >
+	    {call md_create_relation(#{relationId}, #{relationName}, #{shortRelationName}, #{description})}
+	 </insert>
+
+    <update id="updateRelation" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsRelation" statementType="CALLABLE">
+       {call md_update_relation(#{relationId}, #{relationName}, #{shortRelationName}, #{description})}
+    </update>
+
+    <update id="deleteRelation" flushCache="true" parameterType="map" statementType="CALLABLE">
+       {call md_delete_relation(#{relationId}, #{deleteAll})}
+    </update>
+
+	 <insert id="addRelationAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsRelationAttribute" statementType="CALLABLE">
+	    {call md_add_relation_attribute(#{relationId}, #{attributeName}, #{dataType}, #{isMandatory}, #{defaultValue}, #{valueFormat}, #{description})}
+	 </insert>
+
+    <update id="updateRelationAttribute" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsRelationAttribute" statementType="CALLABLE">
+       {call md_update_relation_attribute(#{attributeId}, #{relationId}, #{attributeName}, #{dataType}, #{isMandatory}, #{defaultValue}, #{valueFormat}, #{description})}
+    </update>
+
+    <update id="deleteRelationAttribute" flushCache="true" parameterType="map" statementType="CALLABLE">
+       {call md_delete_relation_attribute(#{attrId}, #{deleteAll})}
+    </update>
+
+    <insert id="addRelationTarget" flushCache="true" parameterType="com.oneops.cms.md.domain.CmsClazzRelation" statementType="CALLABLE">
+       {call md_add_relation_target(#{relationId}, #{fromClassId}, #{toClassId}, #{isStrong}, #{linkType}, #{description})}
+    </insert>
+
+    <update id="deleteRelationTarget" flushCache="true" parameterType="int" statementType="CALLABLE">
+       {call md_delete_relation_target(#{value})}
+    </update>
+
+ 	 <!--cache/-->
+	
+	 <select id="getRelation" parameterType="string" resultType="com.oneops.cms.md.domain.CmsRelation">
+	    select 
+			rl.relation_id as relationId,
+			rl.relation_name as relationName,
+			rl.short_relation_name as shortRelationName,
+			rl.description,
+			rl.created 
+		from md_relations rl
+		where rl.relation_name = #{value}
+	 </select>
+
+	 <select id="getRelationById" parameterType="long" resultType="com.oneops.cms.md.domain.CmsRelation">
+	    select 
+			rl.relation_id as relationId,
+			rl.relation_name as relationName,
+			rl.short_relation_name as shortRelationName,
+			rl.description,
+			rl.created 
+		from md_relations rl
+		where rl.relation_id = #{value}
+	 </select>
+
+	
+	 <select id="getAllRelations" resultType="com.oneops.cms.md.domain.CmsRelation">
+	    select 
+			rl.relation_id as relationId,
+			rl.relation_name as relationName,
+			rl.short_relation_name as shortRelationName,
+			rl.description,
+			rl.created 
+		from md_relations rl
+	 </select>
+
+
+	 <select id="getRelationAttrs" parameterType="int" resultType="com.oneops.cms.md.domain.CmsRelationAttribute">
+		select 
+			ra.attribute_id as attributeId,
+			ra.relation_id as relationId,
+			ra.attribute_name as attributeName,
+			ra.data_type as dataType,
+			ra.is_mandatory as isMandatory,
+			ra.is_encrypted as isEncrypted,
+			ra.default_value as defaultValue,
+			ra.value_format as valueFormat,
+			ra.description,
+			ra.created,
+			ra.updated
+		from md_relation_attributes ra
+		where ra.relation_id = #{value}  
+	</select>
+	
+	<select id="getTargets" parameterType="int" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId, 
+				fromcl.class_name as fromClassName, 
+				clr.relation_id as relationId, 
+				r.relation_name as relationName, 
+				clr.to_class_id as toClassId, 
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong, 
+				clr.link_type as linkType, 
+				clr.description,
+				r.created 
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.relation_id = #{value}
+			and clr.from_class_id = fromcl.class_id
+			and clr.relation_id = r.relation_id
+			and clr.to_class_id = tocl.class_id
+	 </select>
+
+	<select id="getAllTargets" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId,
+				fromcl.class_name as fromClassName,
+				clr.relation_id as relationId,
+				r.relation_name as relationName,
+				clr.to_class_id as toClassId,
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong,
+				clr.link_type as linkType,
+				clr.description,
+				r.created
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.from_class_id = fromcl.class_id
+			and clr.relation_id = r.relation_id
+			and clr.to_class_id = tocl.class_id
+	</select>
+
+
+	<!--select id="_getTargetsStrict" parameterType="map" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId, 
+				fromcl.class_name as fromClassName, 
+				clr.relation_id as relationId, 
+				r.relation_name as relationName, 
+				clr.to_class_id as toClassId, 
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong, 
+				clr.link_type as linkType, 
+				clr.description,
+				r.created 
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.relation_id = #{relationId}
+			and clr.from_class_id = fromcl.class_id
+			and clr.from_class_id in (#{fromClassId},100)
+			and clr.relation_id = r.relation_id
+			and clr.to_class_id = tocl.class_id
+			and clr.to_class_id in (#{toClassId}, 100)
+	 </select-->
+
+	<select id="getTargetsStrict" parameterType="map" resultType="com.oneops.cms.md.domain.CmsClazzRelation">
+		select  clr.link_id as linkId,
+				clr.from_class_id as fromClassId, 
+				fromcl.class_name as fromClassName, 
+				clr.relation_id as relationId, 
+				r.relation_name as relationName, 
+				clr.to_class_id as toClassId, 
+				tocl.class_name as toClassName,
+				clr.is_strong as isStrong, 
+				clr.link_type as linkType, 
+				clr.description,
+				r.created 
+		from md_class_relations clr, md_relations r, md_classes fromcl, md_classes tocl
+		where clr.relation_id = #{relationId}
+		  	and r.relation_id = clr.relation_id
+		    and fromcl.class_id = #{fromClassId}
+			and clr.from_class_id in (#{fromClassId},200)
+			and tocl.class_id = #{toClassId}
+			and clr.to_class_id in (#{toClassId}, 200)
+	 </select>
+
+
+    <select id="getCountCiOfRelation" parameterType="int" resultType="long">
+       select count(*)
+       from cm_ci_relations ci
+       where relation_id = #{value}
+    </select>
+
+</mapper>

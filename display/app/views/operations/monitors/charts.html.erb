@@ -1,0 +1,20 @@
+<%= breadcrumb [{:icon  => 'assembly',
+                 :label => @assembly.ciName,
+                 :kind  => 'Assembly',
+                 :link  => assembly_operations_path(@assembly)},
+                {:icon  => breadcrumb_environment_icon,
+                 :label => breadcrumb_environment_label,
+                 :kind  => 'Environment',
+                 :link  => assembly_operations_environment_path(@assembly, @environment)},
+                {:icon  => platform_image_url(@platform),
+                 :label => breadcrumb_platform_label,
+                 :kind  => 'Platform',
+                 :link  => assembly_operations_environment_platform_path(@assembly, @environment, @platform)},
+                {:icon  => ci_image_url(@component),
+                 :label => @instance.ciName,
+                 :kind  => @component.ciName,
+                 :link  => assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, @instance)}] %>
+
+<div style="width:80%">
+  <%= render 'charts' %>
+</div>

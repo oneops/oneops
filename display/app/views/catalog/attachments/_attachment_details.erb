@@ -1,0 +1,7 @@
+<%= section_panel 'Attachment Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource  => @attachment,
+              :content   => 'cms/cis/ci',
+              :read_only => true,
+              :form_url  => catalog_design_platform_component_attachment_path(@design, @platform, @component, @attachment)}) %>
+<% end %>

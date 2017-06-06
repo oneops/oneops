@@ -1,0 +1,44 @@
+<li id="item_<%= item.deploymentId %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, <%= item.deploymentId %>)"
+    <%= builder[:attributes] || %(deploymentId="#{item.deploymentId}" created="#{item.created}" createdBy="#{item.createdBy}" deploymentState="#{item.deploymentState}") %> <%= raw(%(style="display:none")) if collapse %>>
+  <div class="target"><%= builder[:target] %></div>
+	<div class="status">
+		<% if builder[:status] %>
+			<%= builder[:status] %>
+		<% else %>
+      <% if item.respond_to?(:deploymentState) %>
+        <%= marker(item.deploymentState, state_to_label(item.deploymentState)) %>
+      <% end %>
+    <% end %>
+    <%= status_marker(icon('user'), item.createdBy, 'label-info') if item.createdBy %>
+  </div>
+
+  <% menu = builder[:menu] %>
+  <% if menu.present? %>
+    <div class="menu">
+      <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
+      <ul class="dropdown-menu">
+        <%= raw "<li>#{menu.gsub(/<\/a>\s+<a\s+/, '</a></li><li><a ')}</li>" %>
+      </ul>
+    </div>
+  <% end %>
+
+	<div class="content">
+		<%= image_tag(builder[:icon]) if (builder.has_key?(:icon) && builder[:icon] != :none) %>
+		<div class="top">
+			<% if builder[:top] %>
+				<%= builder[:top] %>
+			<% else %>
+				<span class="topname"><%= item.deploymentId %></span>
+				<span class="topdesc"><%= time_ago_in_words(item.created_timestamp) %></span>
+			<% end %>
+		</div>
+		<% middle = builder[:middle]
+       if middle %>
+		  <div class="middle"><%= middle %></div>
+		<% end %>
+    <% bottom = builder[:bottom]
+       if bottom %>
+      <div class="bottom"><%= bottom %></div>
+    <% end %>
+	</div>
+</li>

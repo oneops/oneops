@@ -1,0 +1,97 @@
+<%= render 'cms/cis/properties', :ci => @platform, :f => f, :read_only => @platform.persisted? %>
+<div class="ciAttributes">
+  <% new_record = @platform.new_record?
+     fields = [:description]
+     fields << :major_version unless new_record %>
+  <%= render 'cms/cis/attributes', :ci => @platform, :f => f, :only => fields %>
+
+  <%= f.fields_for :ciAttributes, @platform.ciAttributes do |c| %>
+    <% if new_record %>
+      <%= c.hidden_field :major_version %>
+
+      <% attributes_meta = @platform.meta.attributes[:mdAttributes]
+         pack_sources, pack_versions, packs = packs_info
+         first_source = pack_sources.sort.first %>
+      <div class="control-group">
+        <% a = attributes_meta.detect { |m| m.attributeName == 'source' } %>
+        <%= c.label :source, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+        <div class="controls"><%= c.select :source, options_for_select(pack_sources, first_source), {}, :id => 'source_select' %></div>
+      </div>
+
+      <div class="control-group">
+        <% a = attributes_meta.detect { |m| m.attributeName == 'pack' } %>
+        <%= c.label :pack, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+        <div class="controls"><%= c.select :pack, grouped_options_for_select(packs[first_source], nil), {:prompt => 'Please select'}, :id => 'pack_select', :required => true %></div>
+      </div>
+
+      <div class="control-group">
+        <% a = attributes_meta.detect { |m| m.attributeName == 'version' } %>
+        <%= c.label :version, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
+        <div class="controls"><%= c.select :version, '', {}, :id => 'version_select' %></div>
+      </div>
+
+      <script type="text/javascript">
+        var pack_select_options = {};
+        var version_select_options = {};
+        <% pack_sources.each do |source| %>
+          pack_select_options['<%= source %>'] = '<%= escape_javascript(grouped_options_for_select(packs[source], nil, {:prompt => 'Please select'})) %>';
+          version_select_options['<%= source %>'] = {};
+          <% pack_versions[source].each_pair do |pack, versions| %>
+            version_select_options['<%= source %>']['<%= pack %>'] = '<%= escape_javascript(options_for_select(versions)) %>';
+          <% end %>
+        <% end %>
+
+        $j("#source_select").change(function () {
+          $j("#pack_select").html(pack_select_options[this.value]);
+          $j("#version_select").html("");
+        });
+
+        $j("#pack_select").change(function () {
+          $j("#version_select").html(version_select_options[$j("#source_select").val()][this.value]);
+        });
+
+        $j("#source_select, #pack_select, #version_select")
+            .change(function () {
+                      var source = $j("#source_select").val(),
+                          pack = $j("#pack_select").val(),
+                          version = $j("#version_select").val();
+                      if (source && pack && version) {
+                        var url = "<%= catalog_pack_path('~!~source~!~', '~!~pack~!~', '0.0.0') %>";
+                        $j.get(url.sub('~!~source~!~', source).sub('~!~pack~!~', pack).sub('0.0.0', version));
+                        $j("#pack_info_div").html("<%= escape_javascript(loading_indicator) %>");
+                        $j("#pack_info_div").closest(".category").show();
+                      }
+                      else {
+                        $j("#pack_info_div").closest(".category").hide();
+                      }
+                    });
+      </script>
+    <% end %>
+  <% end %>
+</div>
+<div class="category hide">
+  <div class="name">Pack Info & Stats</div>
+  <div id="pack_info_div"></div>
+</div>
+<%= render 'cms/rfcs/properties', :rfc => @platform, :f => f %>
+
+<% if @linkable_platform_map.present? %>
+  <div class="category">
+    <div class="name">Dependency</div>
+  </div>
+  <div class="control-group">
+    <label class="control-label">Connects To Platforms</label>
+
+    <div class="controls">
+      <% @linkable_platform_map.to_a.sort_by {|p, linked| "#{linked.blank?}|#{p.ciName}"}.each do |(p, linked)| %>
+        <%= render 'cms/cis/checkbox',
+                   :attribute_name  => 'links_to[]',
+                   :attribute_value => linked ? p.ciId : '',
+                   :unchecked_value => nil,
+                   :checked_value   => p.ciId,
+                   :label           => p.ciName %>
+        <br/>
+      <% end %>
+    </div>
+  </div>
+<% end %>

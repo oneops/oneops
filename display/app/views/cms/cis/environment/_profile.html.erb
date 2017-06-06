@@ -1,0 +1,16 @@
+<% if @profiles.blank? && attribute_value.blank? %>
+  <div class="alert">
+    No environment profiles found in your organization.
+    <% if is_admin? %>
+      <%= link_to('Click here', edit_organization_path(:anchor => 'environments'), :class => '') %> to manage environment profiles.
+    <% end %>
+  </div>
+<% else %>
+  <% if is_admin? %>
+    <%= builder.select attribute_name, options_for_select(@profiles.map(&:ciName), attribute_value), :include_blank => attribute_value.blank? %>
+  <% else %>
+    <%= builder.hidden_field attribute_name %>
+    <div class="btn disabled"><%= attribute_value %></div>
+  <% end %>
+<% end %>
+

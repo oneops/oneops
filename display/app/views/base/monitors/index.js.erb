@@ -1,0 +1,5 @@
+$j("#page_nav_monitors").html("<%= escape_javascript(render('monitor_list')) %>");
+<% unless request.method == 'GET' %>
+  setHashParam('list_item', null);
+  $j("#page_alert").html("<%= escape_javascript(page_alert) %>");
+<% end %>

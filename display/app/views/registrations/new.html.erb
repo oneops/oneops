@@ -1,0 +1,81 @@
+<%= title 'Sign Up' %>
+<div id="signin">
+  <%= section_panel 'Welcome to OneOps - Sign up' do %>
+    <% if session[:omniauth] %>
+      <div class="alert alert-success alert-block">
+        <h4><%= session[:omniauth][:provider].capitalize %> <%= icon("#{session[:omniauth][:provider]}-sign") %> authentication successful!</h4>
+        <br/>
+
+        <p>We need some additional information to complete your registration:</p>
+
+        <p><%= icon('envelope-alt') %> The <strong>email</strong> address will be your unique identifier.</p>
+
+        <p><%= icon('sitemap') %> The <strong>organization</strong> is required to manage your cloud applications and collaborate with other users.</p>
+      </div>
+      <br/>
+    <% end %>
+
+    <%= render 'layouts/brand' %>
+    <%= form_for(resource, :as => resource_name, :url => registration_path(resource_name), :html => {:class => 'form-horizontal'}) do |f| %>
+      <%= error_messages_for(resource) %>
+
+      <div class="control-group">
+        <%= f.label :email, :class => 'control-label' %>
+        <div class="controls">
+          <%= f.email_field :email, :class => 'medium', :required => true, :value => session[:omniauth] ? session[:omniauth][:info][:email] : '', :placeholder => 'Enter email address...' %>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <%= f.label :username, :class => 'control-label' %>
+        <div class="controls">
+          <%= f.text_field :username, :class => 'medium', :required => true, :value => session[:omniauth] ? session[:omniauth][:info][:email].split('@').first : '', :placeholder => 'Enter username...' %>
+        </div>
+      </div>
+
+      <% if resource.password_required? %>
+        <div class="control-group">
+          <%= f.label :password, :class => 'control-label' %>
+          <div class="controls">
+            <%= f.password_field :password, :class => 'medium', :required => true, :placeholder => 'Enter password...' %>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <%= f.label 'Password confirm', :class => 'control-label' %>
+          <div class="controls">
+            <%= f.password_field :password_confirmation, :class => 'medium', :required => true, :placeholder => 'Confirm password...' %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="control-group">
+        <%= f.label :name, :class => 'control-label' %>
+        <div class="controls">
+          <%= f.text_field :name, :class => 'medium', :placeholder => 'Enter your name...' %>
+        </div>
+      </div>
+
+      <% if Settings.invitations %>
+        <div class="control-group">
+          <%= label_tag :token, "Invitation Token", :class => 'control-label' %>
+          <div class="controls">
+            <%= text_field_tag :token, params[:token], :class => 'medium', :required => true, :placeholder => 'Enter token...' %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="control-group">
+        <div class="controls">
+          <%= f.submit "Sign up", :class => "btn btn-large btn-success" %>
+          ... or <strong><%= link_to "Sign in", new_session_path(resource_name) %></strong>
+        </div>
+      </div>
+
+      <div id="shared-links" class="control-group">
+        <%= render :partial => "devise/shared/links" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+

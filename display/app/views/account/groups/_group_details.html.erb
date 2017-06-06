@@ -1,0 +1,75 @@
+<% new_record = @group.new_record? %>
+<%= section_panel 'Group Details', :width => 'double', :position => 'right' do %>
+  <%= render('base/shared/edit_form',
+             {:resource    => @group,
+              :content     => 'group_details_content',
+              :read_only   => !new_record && !@group.is_admin?(current_user),
+              :cancel_url  => account_groups_path,
+              :form_url    => new_record ? account_groups_path : account_group_path(@group)}) %>
+<% end %>
+
+<% unless new_record %>
+	<% menu = (@group.is_admin?(current_user) ? [link_to_function(icon('plus','Add'), 'new_group_member_dialog()', :remote => true, :class => 'btn btn-mini')] : nil) %>
+	<%= section_panel icon('user', 'Group Members'), :width => 'double', :position => 'right', :menu => menu do %>
+		<div id="group_members">
+			<%= render('account/group_members/members') %>
+		</div>
+	<% end %>
+	<div id="group_member_details" class="modal hide">
+    <div class="modal-header">
+      <button class="close" data-dismiss="modal">&times;</button>
+      <h3>Add Member to Group '<%= @group.name %>'</h3>
+    </div>
+    <%= form_tag(account_group_members_path(@group), :remote => true, :class => 'form-inline') do %>
+      <div class="modal-body" style="height:250px; overflow-x: hidden">
+        <%= label_tag :username, 'Username', :class => 'control-label' %>
+        <%= text_field_tag :username, '', :class => 'input-xlarge', :required => true, :autocomplete => 'off', :placeholder => 'Enter username...' %>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
+        <%= submit_tag 'Add Member', :class => 'btn btn-success btn-large' %>
+      </div>
+    <% end %>
+	</div>
+  <%= section_panel icon('sitemap', 'Team Participation'), :width => 'double', :position => 'right', :menu => menu do %>
+    <%= list(@group.teams.includes(:organization).all,
+             :toolbar  => {:list_name => 'group_teams',
+                           :sort_by => [%w(Team team), %w(Organization organization)],
+                           :filter_by => %w(team organization)}) do |builder, team| %>
+      <% builder.itemid team.id %>
+      <% builder.attributes raw(%(team="#{team.name}" organization="#{team.organization.name}")) %>
+      <% builder.target link_to('', edit_organization_team_path(team), :remote => true) %>
+      <% builder.top do %>
+        <span class="topname"><%= team.name %></span>
+        <span class="topdesc"><%= team.organization.name %></span>
+      <% end %>
+      <% builder.bottom raw("created #{time_ago_in_words(team.created_at)}") %>
+      <% builder.status do %>
+        <%= marker('design', team.design? ? 'label-success' : '') %>
+        <%= marker('transition', team.transition? ? 'label-success' : '') %>
+        <%= marker('operations', team.operations? ? 'label-success' : '') %>
+        <%= icon('sitemap') if team.org_scope %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+<script>
+  window.new_group_member_dialog = function() {
+    $j("#group_member_details input#username").val('');
+    $j("#group_member_details").modal("show");
+  };
+
+  var userLookupFn = function (query, process) {
+    return $j.get('<%= user_lookup_path %>',
+        {login: query},
+        function (data) {
+          return process(data);
+        });
+  };
+
+  var updaterFn = function(item) {
+    return item.split(' ')[0];
+  };
+
+  $j('#group_member_details input#username').typeahead({source: userLookupFn, updater: updaterFn});
+</script>

@@ -1,0 +1,4 @@
+$("page_nav_variables").update("<%= escape_javascript(render('variable_list')) %>");
+<% unless request.method == "GET" %>
+  $("page_alert").update("<%= escape_javascript(page_alert) %>");
+<% end %>

@@ -1,0 +1,5 @@
+<% if @to_platform.blank? %>
+  hide_modal();
+<% else %>
+  window.location.href = "<%= assembly_design_platform_path(@to_assembly, @to_platform) %>";
+<% end %>
