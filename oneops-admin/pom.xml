@@ -8,11 +8,11 @@
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-admin</artifactId>
-  <name>OneOps :: Oneops-admin</name><dependencies>
+  <name>OneOps :: Oneops-admin</name>
+  <dependencies>
     <dependency>
       <groupId>com.oneops</groupId>
       <artifactId>inductor</artifactId>
-      
     </dependency>
   </dependencies>
   <build>
@@ -49,7 +49,7 @@
                 <argument>oneops-admin.gemspec</argument>
               </arguments>
             </configuration>
-          </execution>    
+          </execution>
         </executions>
       </plugin>
     </plugins>

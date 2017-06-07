@@ -1,5 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.oneops</groupId>
@@ -11,99 +11,81 @@
   <packaging>war</packaging>
   <name>OneOps :: Transistor</name>
   <url>http://maven.apache.org</url>
-  
-   <properties>
-     
-      <gitTag>${project.version}</gitTag></properties>
-  
+  <properties>
+    <gitTag>${project.version}</gitTag>
+  </properties>
   <dependencies>
-   	<dependency>
-   		<groupId>commons-dbcp</groupId>
-   		<artifactId>commons-dbcp</artifactId>
-   		
-   	</dependency>
-   	<dependency>
-   		<groupId>org.codehaus.jackson</groupId>
-   		<artifactId>jackson-mapper-asl</artifactId>
-   		
-   	</dependency>
-
-   	<dependency>
-   		<groupId>org.springframework</groupId>
-   		<artifactId>spring-oxm</artifactId>
-   		
-   	</dependency>
     <dependency>
-        <groupId>org.springframework</groupId>
-        <artifactId>spring-webmvc</artifactId>
-        
+      <groupId>commons-dbcp</groupId>
+      <artifactId>commons-dbcp</artifactId>
     </dependency>
-
     <dependency>
-    	<groupId>com.thoughtworks.xstream</groupId>
-    	<artifactId>xstream</artifactId>
-    	
-    	<exclusions>
-  			<exclusion>
-  				<artifactId>xpp3_min</artifactId>
-  				<groupId>xpp3</groupId>
-  			</exclusion>
-  		</exclusions>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
     </dependency>
-   	<dependency>
-   		<groupId>org.apache.geronimo.specs</groupId>
-   		<artifactId>geronimo-servlet_3.0_spec</artifactId>
-   		
-   	</dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-oxm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.thoughtworks.xstream</groupId>
+      <artifactId>xstream</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>xpp3_min</artifactId>
+          <groupId>xpp3</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.geronimo.specs</groupId>
+      <artifactId>geronimo-servlet_3.0_spec</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.jcraft</groupId>
       <artifactId>jsch</artifactId>
-      
     </dependency>
     <dependency>
-    	<groupId>com.oneops.cms</groupId>
-    	<artifactId>cmsdal</artifactId>
-    	
-    	<optional>false</optional>
+      <groupId>com.oneops.cms</groupId>
+      <artifactId>cmsdal</artifactId>
+      <optional>false</optional>
     </dependency>
     <dependency>
       <groupId>com.oneops</groupId>
       <artifactId>oo-commons</artifactId>
-      
     </dependency>
-      <dependency>
-          <groupId>org.springframework</groupId>
-          <artifactId>spring-test</artifactId>
-          
-          <scope>test</scope>
-      </dependency>
-      <dependency>
-          <groupId>org.testng</groupId>
-          <artifactId>testng</artifactId>
-          
-          <scope>test</scope>
-      </dependency>
-      <dependency>
-          <groupId>org.mockito</groupId>
-          <artifactId>mockito-all</artifactId>
-          
-          <scope>test</scope>
-      </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testng</groupId>
+      <artifactId>testng</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-all</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
-
   <build>
     <plugins>
-      
-        <plugin>
-            <artifactId>maven-war-plugin</artifactId>
-            <configuration>
-                <archive>
-                    <manifestEntries>
-                        <gitTag>${gitTag}</gitTag>
-                    </manifestEntries>
-                </archive>
-            </configuration>
-        </plugin>
+      <plugin>
+        <artifactId>maven-war-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <gitTag>${gitTag}</gitTag>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>

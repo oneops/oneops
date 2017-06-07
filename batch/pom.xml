@@ -8,4 +8,5 @@
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>batch</artifactId>
-<name>OneOps :: Batch</name></project>
+  <name>OneOps :: Batch</name>
+</project>

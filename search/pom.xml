@@ -1,5 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.oneops</groupId>
@@ -11,16 +11,15 @@
   <packaging>jar</packaging>
   <name>OneOps :: Search</name>
   <description>OneOps search</description>
-  
   <build>
     <sourceDirectory>src/main/java</sourceDirectory>
     <outputDirectory>build</outputDirectory>
     <resources>
       <resource>
-          <directory>src/main/resources</directory>
-          <includes>
-              <include>**/*</include>
-          </includes>
+        <directory>src/main/resources</directory>
+        <includes>
+          <include>**/*</include>
+        </includes>
       </resource>
     </resources>
     <plugins>
@@ -39,150 +38,126 @@
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.oneops.search.listener.SearchListener</mainClass>
                 </transformer>
-                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                  	<resource>META-INF/spring.handlers</resource>
-                  </transformer>
-                  <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
-                    <resource>META-INF/spring.schemas</resource>
-                 </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.handlers</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/spring.schemas</resource>
+                </transformer>
               </transformers>
               <filters>
-	            <filter>
-	              <artifact>*:*</artifact>
-	              <excludes>
-	                <exclude>META-INF/*.SF</exclude>
-	                <exclude>META-INF/*.DSA</exclude>
-	                <exclude>META-INF/*.RSA</exclude>
-	              </excludes>
-	            </filter>
-	         </filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
       </plugin>
-      
     </plugins>
   </build>
-
   <properties>
-	  <skipTests>true</skipTests>
-	  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	  </properties>
-
+    <skipTests>true</skipTests>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
   <dependencies>
-	  <dependency>
-		  <groupId>org.apache.httpcomponents</groupId>
-		  <artifactId>fluent-hc</artifactId>
-		  
-	  </dependency>
-	
-	<dependency>
-    	<groupId>junit</groupId>
-    	<artifactId>junit</artifactId>
-    	
-    	<scope>test</scope>
-	</dependency>
-   	<dependency>
-   		<groupId>org.slf4j</groupId>
-   		<artifactId>slf4j-api</artifactId>
-   		
-   	</dependency>	
-   	<dependency>
-        <groupId>log4j</groupId>
-        <artifactId>log4j</artifactId>
-        
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>fluent-hc</artifactId>
     </dependency>
     <dependency>
-		<groupId>org.slf4j</groupId>
-		<artifactId>slf4j-log4j12</artifactId>
-		
-	</dependency>
-   	<dependency>
-		<groupId>com.google.code.gson</groupId>
-		<artifactId>gson</artifactId>
-		
-	</dependency>				
-	<dependency>
-		<groupId>org.apache.activemq</groupId>
-		<artifactId>activemq-client</artifactId>
-		
-		<exclusions>
-			<exclusion>
-				<artifactId>slf4j-api</artifactId>
-				<groupId>org.slf4j</groupId>
-			</exclusion>
-		</exclusions>
-	</dependency>
-	<dependency>
-		  <groupId>org.apache.activemq</groupId>
-		  <artifactId>activemq-runtime-config</artifactId>
-		  
-	</dependency>
-	<dependency>
-		<groupId>org.springframework</groupId>
-		<artifactId>spring-beans</artifactId>
-		
-	</dependency>
-	<dependency>
-		<groupId>org.springframework</groupId>
-		<artifactId>spring-context</artifactId>
-		
-	</dependency>
-	<dependency>
-		<groupId>org.springframework</groupId>
-		<artifactId>spring-core</artifactId>
-		
-	</dependency>
-	<dependency>
-		<groupId>org.springframework</groupId>
-		<artifactId>spring-jms</artifactId>
-		
-	</dependency>
-	<dependency>
-	    <groupId>org.elasticsearch</groupId>
-	    <artifactId>elasticsearch</artifactId>
-	    
-	</dependency>
-	<dependency>
-		<groupId>javax.jms</groupId>
-		<artifactId>com.springsource.javax.jms</artifactId>
-		
-	</dependency>	
-	<dependency>
-		<groupId>org.apache.xbean</groupId>
-		<artifactId>xbean-spring</artifactId>
-		
-	</dependency>
-	<dependency>
-    	<groupId>org.springframework.data</groupId>
-    	<artifactId>spring-data-elasticsearch</artifactId>
-    	
-	</dependency>
-	<dependency>
-		<groupId>com.oneops.cms</groupId>
-		<artifactId>cmsdal</artifactId>
-		
-	</dependency>
-	<dependency>
-        <groupId>commons-httpclient</groupId>
-        <artifactId>commons-httpclient</artifactId>
-        
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
-	<dependency>
-		<groupId>com.oneops</groupId>
-		<artifactId>oo-commons</artifactId>
-		
-	</dependency>
-	<dependency>
-		<groupId>org.apache.lucene</groupId>
-		<artifactId>lucene-core</artifactId>
-		<version>4.10.4</version>
-	</dependency>
-	<dependency>
-		<groupId>org.apache.lucene</groupId>
-		<artifactId>lucene-analyzers-common</artifactId>
-		<version>4.10.4</version>
-	</dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-client</artifactId>
+      <exclusions>
+        <exclusion>
+          <artifactId>slf4j-api</artifactId>
+          <groupId>org.slf4j</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.activemq</groupId>
+      <artifactId>activemq-runtime-config</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-beans</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jms</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>javax.jms</groupId>
+      <artifactId>com.springsource.javax.jms</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.xbean</groupId>
+      <artifactId>xbean-spring</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.data</groupId>
+      <artifactId>spring-data-elasticsearch</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.oneops.cms</groupId>
+      <artifactId>cmsdal</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.oneops</groupId>
+      <artifactId>oo-commons</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-core</artifactId>
+      <version>4.10.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-analyzers-common</artifactId>
+      <version>4.10.4</version>
+    </dependency>
   </dependencies>
-  
 </project>
