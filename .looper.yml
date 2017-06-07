@@ -1,0 +1,8 @@
+tools:
+  jdk: 8u101
+  maven: 3.5.0
+flows:
+  default:
+    - (name mvn clean package) mvn clean package
+  pr:
+    call: default
