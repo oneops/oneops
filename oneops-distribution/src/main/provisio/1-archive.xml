@@ -1,0 +1,43 @@
+<assembly outputDirectory="${basedir}/target/distribution-${project.version}-archive">
+  <artifactSet to="oneops/dist">
+    <artifact id="com.oneops.cms:adapter:tar.gz:${project.version}"
+      as="oneops-adapter-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:antenna:tar.gz:${project.version}"
+      as="oneops-antenna-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:cms-admin:tar.gz:${project.version}"
+      as="oneops-cms-admin-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:controller:tar.gz:${project.version}"
+      as="oneops-controller-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:daq-api:tar.gz:${project.version}"
+      as="oneops-daq-api-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:daq-collector:tar.gz:${project.version}"
+      as="oneops-daq-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:opamp:tar.gz:${project.version}"
+      as="oneops-opamp-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:sensor:tar.gz:${project.version}"
+      as="oneops-sensor-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:transistor:tar.gz:${project.version}"
+      as="oneops-transistor-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:transmitter:tar.gz:${project.version}"
+      as="oneops-transmitter-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:search:tar.gz:${project.version}"
+      as="oneops-search-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:inductor:tar.gz:${project.version}"
+      as="oneops-inductor-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:amqplugin:tar.gz:${project.version}"
+      as="oneops-amq-plugin-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:display:tar.gz:${project.version}"
+      as="oneops-display-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:batch:tar.gz:${project.version}"
+      as="oneops-batch-${tarballVersion}.tar.gz"/>
+      <artifact id="com.oneops:db-schema:tar.gz:${project.version}"
+        as="oneops-db-schema-${tarballVersion}.tar.gz"/>
+    <artifact id="com.oneops:oneops-admin:tar.gz:${project.version}"
+      as="oneops-admin-${tarballVersion}.tar.gz"/>
+  </artifactSet>
+  <fileSet to="oneops/dist">
+    <file path="${basedir}/target/distribution-${project.version}-oneops.tar.gz"
+      as="oneops-${tarballVersion}.tar.gz"/>
+  </fileSet>
+  <archive name="distribution-${project.version}-archive.tar.gz" classifier="archive"/>
+</assembly>

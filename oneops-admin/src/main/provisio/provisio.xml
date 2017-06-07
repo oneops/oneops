@@ -1,0 +1,10 @@
+<runtime>
+  <archive
+    prefix="oneops/dist/"
+    name="${basedir}/target/${project.artifactId}-${project.version}.tar.gz"/>
+  <fileSet to="/">
+     <directory path="${basedir}">
+       <include>oneops-admin-*.gem</include>
+     </directory>
+   </fileSet>
+</runtime>
