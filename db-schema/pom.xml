@@ -8,4 +8,4 @@
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>db-schema</artifactId>
-</project>
+<name>OneOps :: Db-schema</name></project>

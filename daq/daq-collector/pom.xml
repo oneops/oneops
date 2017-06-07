@@ -5,25 +5,19 @@
     <parent>
         <groupId>com.oneops</groupId>
         <artifactId>daq-parent</artifactId>
-        <version>1.0.0</version>
+        
         <relativePath>../pom.xml</relativePath>
-    </parent>
+    <version>1.0.5-SNAPSHOT</version></parent>
     <groupId>com.oneops</groupId>
     <artifactId>daq-collector</artifactId>
     <packaging>jar</packaging>
-    <name>${project.artifactId}</name>
+    <name>OneOps :: Daq-collector</name>
     <description>perf and log data aquisition - daq for short</description>
-    <properties>
-        <logback.version>0.9.15</logback.version>
-        <activemq.version>5.11.1</activemq.version>
-        <com.springsource.javax.jms.version>1.1.0</com.springsource.javax.jms.version>
-        <visualization-datasource.version>1.0.2</visualization-datasource.version>
-    </properties>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>daq-common</artifactId>
-            <version>${project.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
@@ -39,13 +33,13 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jms</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-pool</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -56,7 +50,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -67,7 +61,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-runtime-config</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -84,12 +78,12 @@
         <dependency>
             <groupId>javax.jms</groupId>
             <artifactId>com.springsource.javax.jms</artifactId>
-            <version>${com.springsource.javax.jms.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.google.visualization</groupId>
             <artifactId>visualization-datasource</artifactId>
-            <version>${visualization-datasource.version}</version>
+            
             <scope>test
             </scope>
         </dependency>

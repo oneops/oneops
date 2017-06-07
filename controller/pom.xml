@@ -1,43 +1,33 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.oneops</groupId>
+    <artifactId>oneops-parent</artifactId>
+    <version>1.0.5-SNAPSHOT</version>
+  </parent>
     <groupId>com.oneops</groupId>
     <artifactId>controller</artifactId>
     <packaging>war</packaging>
-    <version>1.0.0</version>
-    <name>controller Maven Webapp</name>
+    <name>OneOps :: Controller</name>
     <url>http://maven.apache.org</url>
 
     <properties>
-        <spring.version>4.1.5.RELEASE</spring.version>
-        <activiti.version>5.19.0</activiti.version>
-        <junit.version>4.7</junit.version>
-        <activemq.version>5.11.1</activemq.version>
-        <libs.version>1.0.0</libs.version>
-        <commons-dbcp.version>1.4</commons-dbcp.version>
-        <cmsdal.version>1.0.4</cmsdal.version>
-        <xstream.version>1.4.8</xstream.version>
-        <testng.version>6.1.1</testng.version>
-        <mockito-all.version>1.8.4</mockito-all.version>
-        <mockrunner.version>0.3.1</mockrunner.version>
-        <httpclient.version>4.5.1</httpclient.version>
-        <spring-retry.version>1.1.2.RELEASE</spring-retry.version>
-        <postgresql.version>9.0-801.jdbc4</postgresql.version>
-        <gitTag>${project.version}</gitTag>
-    </properties>
+        
+        <gitTag>${project.version}</gitTag></properties>
 
 
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.oneops</groupId>
             <artifactId>oo-commons</artifactId>
-            <version>${libs.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>rxjava</artifactId>
@@ -52,7 +42,7 @@
         <dependency>
             <groupId>commons-dbcp</groupId>
             <artifactId>commons-dbcp</artifactId>
-            <version>${commons-dbcp.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
@@ -62,22 +52,22 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-oxm</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jms</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
 
         <dependency>
@@ -87,14 +77,14 @@
         </dependency>
 
         <dependency>
-            <groupId>postgresql</groupId>
+            <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -105,7 +95,7 @@
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-runtime-config</artifactId>
-            <version>${activemq.version}</version>
+            
         </dependency>
 
         <dependency>
@@ -121,23 +111,23 @@
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-engine</artifactId>
-            <version>${activiti.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-engine</artifactId>
-            <version>${activiti.version}</version>
+            
             <classifier>sources</classifier>
         </dependency>
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-spring</artifactId>
-            <version>${activiti.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.activiti</groupId>
             <artifactId>activiti-spring</artifactId>
-            <version>${activiti.version}</version>
+            
             <classifier>sources</classifier>
         </dependency>
         <dependency>
@@ -148,17 +138,17 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-orm</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-tx</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
 
         <dependency>
@@ -184,18 +174,18 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>${httpclient.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.oneops.cms</groupId>
             <artifactId>cmsdal</artifactId>
-            <version>${cmsdal.version}</version>
+            
             <optional>false</optional>
         </dependency>
         <dependency>
             <groupId>com.thoughtworks.xstream</groupId>
             <artifactId>xstream</artifactId>
-            <version>${xstream.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>xpp3_min</artifactId>
@@ -206,25 +196,25 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
-            <version>${mockito-all.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.mockrunner</groupId>
             <artifactId>mockrunner</artifactId>
-            <version>${mockrunner.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
-            <version>${spring-retry.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -246,28 +236,11 @@
           <url>http://mvnrepository.com/artifact</url>
       </repository>
     </repositories-->
-    <repositories>
-        <repository>
-            <id>org.activiti</id>
-            <name>activiti workflow engine repo</name>
-            <url>https://maven.alfresco.com/nexus/content/repositories/activiti</url>
-        </repository>
-    </repositories>
 
 
     <build>
-        <finalName>controller</finalName>
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                    <debug>true</debug>
-                    <encoding>UTF-8</encoding>
-                </configuration>
-            </plugin>
+            
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
                 <configuration>

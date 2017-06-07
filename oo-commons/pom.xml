@@ -1,11 +1,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.oneops</groupId>
+    <artifactId>oneops-parent</artifactId>
+    <version>1.0.5-SNAPSHOT</version>
+  </parent>
     <groupId>com.oneops</groupId>
     <artifactId>oo-commons</artifactId>
     <packaging>jar</packaging>
-    <name>commons</name>
-    <version>1.0.0</version>
+    <name>OneOps :: Oo-commons</name>
     <description>Oneops shared packages</description>
 
     <build>
@@ -30,13 +34,7 @@
         </testResources>
 
         <plugins>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
+            
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
@@ -48,60 +46,40 @@
     </build>
 
     <properties>
-        <spring.version>4.1.5.RELEASE</spring.version>
-        <slf4j.version>1.6.1</slf4j.version>
-        <junit.version>4.7</junit.version>
-        <metrics.version>3.0.2</metrics.version>
-        <metrics.es.version>2.0</metrics.es.version>
-        <testng.version>6.8.8</testng.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <activemq.version>5.11.1</activemq.version>
-        <org.springframework.security.version>3.2.8.RELEASE</org.springframework.security.version>
-        <cassandra-thrift.version>0.8.2</cassandra-thrift.version>
-        <cmsdal.version>1.0.4</cmsdal.version>
-        <hector-core.version>0.8.0-3</hector-core.version>
-        <jackson-mapper-asl.version>1.8.3</jackson-mapper-asl.version>
-        <gson.version>1.7.1</gson.version>
-        <cglib.version>3.1</cglib.version>
-        <jackson-databind.version>2.3.2</jackson-databind.version>
-        <commons-codec.version>1.9</commons-codec.version>
-        <!--Bumping spring-data to release version compatible with es 1.1.1 -->
-        <rxjava.version>1.0.14</rxjava.version>
-        <awaitility.version>1.7.0</awaitility.version>
-        <guava.version>19.0</guava.version>
-        <mockrunner.version>0.3.1</mockrunner.version>
-    </properties>
+        
+        <!--Bumping spring-data to release version compatible with es 1.1.1 --></properties>
 
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.apache.cassandra</groupId>
             <artifactId>cassandra-thrift</artifactId>
-            <version>${cassandra-thrift.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.oneops.cms</groupId>
             <artifactId>cmsdal</artifactId>
-            <version>${cmsdal.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>me.prettyprint</groupId>
             <artifactId>hector-core</artifactId>
-            <version>${hector-core.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
             <artifactId>jackson-mapper-asl</artifactId>
-            <version>${jackson-mapper-asl.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-client</artifactId>
-            <version>${activemq.version}</version>
+            
             <exclusions>
                 <exclusion>
                     <artifactId>slf4j-api</artifactId>
@@ -112,79 +90,79 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>${gson.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-            <version>${spring.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>cglib</groupId>
             <artifactId>cglib</artifactId>
-            <version>${cglib.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-            <version>${metrics.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-healthchecks</artifactId>
-            <version>${metrics.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
-            <version>${metrics.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-json</artifactId>
-            <version>${metrics.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-servlets</artifactId>
-            <version>${metrics.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.codahale.metrics</groupId>
             <artifactId>metrics-servlet</artifactId>
-            <version>${metrics.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>io.reactivex</groupId>
             <artifactId>rxjava</artifactId>
-            <version>${rxjava.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
+            
         </dependency>
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.activemq</groupId>
             <artifactId>activemq-runtime-config</artifactId>
-            <version>${activemq.version}</version>
+            
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -196,48 +174,48 @@
         <dependency>
             <groupId>com.jayway.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>${testng.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>${spring.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
+            
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>${commons-codec.version}</version>
+            
         </dependency>
 
         <!--Spring Security -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-            <version>${org.springframework.security.version}</version>
+            
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-config</artifactId>
-            <version>${org.springframework.security.version}</version>
+            
         </dependency>
       <dependency>
         <groupId>com.mockrunner</groupId>
         <artifactId>mockrunner</artifactId>
-        <version>${mockrunner.version}</version>
+        
         <scope>test</scope>
       </dependency>
 

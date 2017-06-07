@@ -8,11 +8,11 @@
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-admin</artifactId>
-  <dependencies>
+  <name>OneOps :: Oneops-admin</name><dependencies>
     <dependency>
       <groupId>com.oneops</groupId>
       <artifactId>inductor</artifactId>
-      <version>${project.version}</version>
+      
     </dependency>
   </dependencies>
   <build>
