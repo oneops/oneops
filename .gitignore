@@ -8,3 +8,6 @@ work/
 *.ipr
 *.iws
 .vagrant/
+Gemfile.lock
+vendor/
+dependency-reduced-pom.xml
