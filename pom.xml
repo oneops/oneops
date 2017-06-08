@@ -681,6 +681,7 @@
             <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>install</goals>
             <tagNameFormat>@{project.version}</tagNameFormat>
+            <useReleaseProfile>false</useReleaseProfile>
           </configuration>
         </plugin>
         <plugin>
