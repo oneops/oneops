@@ -15,7 +15,6 @@
   </scm>
 
   <properties>
-    <libs.version>${project.version}</libs.version>
     <skip.unit.tests>false</skip.unit.tests>
     <XmlSchema.version>1.4.7</XmlSchema.version>
     <activemq.version>5.11.1</activemq.version>
@@ -85,7 +84,7 @@
     <xbean-spring.version>3.7</xbean-spring.version>
     <xml-resolver.version>1.2</xml-resolver.version>
     <xstream.version>1.4.8</xstream.version>
-    <cmsdal.version>${libs.version}</cmsdal.version>
+    <cmsdal.version>${project.version}</cmsdal.version>
     <activiti-engine.version>5.19.0</activiti-engine.version>
     <activiti-spring.version>5.19.0</activiti-spring.version>
     <activiti.version>5.19.0</activiti.version>
@@ -504,7 +503,7 @@
       <dependency>
         <groupId>com.oneops</groupId>
         <artifactId>oo-commons</artifactId>
-        <version>${libs.version}</version>
+        <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>org.codehaus.jackson</groupId>
