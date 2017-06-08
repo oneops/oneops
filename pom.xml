@@ -1,10 +1,19 @@
 <?xml version="1.0"?>
-<project>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
   <version>1.0.5-SNAPSHOT</version>
   <packaging>pom</packaging>
+  <name>OneOps</name>
+  <url>http://oneops.com</url>
+  <scm>
+    <connection>scm:git:git://github.com/oneops/oneops.git</connection>
+    <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
+    <url>https://github.com/oneops/oneops</url>
+    <tag>HEAD</tag>
+  </scm>
+
   <properties>
     <libs.version>${project.version}</libs.version>
     <skip.unit.tests>false</skip.unit.tests>
@@ -668,6 +677,15 @@
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>2.5.3</version>
+          <configuration>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <goals>install</goals>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>2.19.1</version>
           <configuration>
@@ -789,7 +807,7 @@
     </plugins>
   </build>
   <repositories>
-    <!-- We should use stanard specification JARs -->
+    <!-- We should use standard specification JARs -->
     <repository>
       <id>com.springsource.repository.bundles.release</id>
       <name>SpringSource Enterprise Bundle Repository - SpringSource Bundle Releases</name>
