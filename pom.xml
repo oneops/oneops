@@ -19,9 +19,7 @@
     <XmlSchema.version>1.4.7</XmlSchema.version>
     <activemq.version>5.11.1</activemq.version>
     <antlr-runtime.version>3.2</antlr-runtime.version>
-    <apache.maven-compiler-plugin.version>2.3.2</apache.maven-compiler-plugin.version>
     <apache.maven-shade-plugin.version>2.3</apache.maven-shade-plugin.version>
-    <apache.maven-surefire-plugin.version>2.17</apache.maven-surefire-plugin.version>
     <awaitility.version>1.7.0</awaitility.version>
     <aws-java-sdk.version>1.10.27</aws-java-sdk.version>
     <bcprov-jdk16.version>1.46</bcprov-jdk16.version>
