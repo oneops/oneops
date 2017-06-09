@@ -31,8 +31,6 @@
     <cglib-nodep.version>2.2</cglib-nodep.version>
     <cglib.version>3.1</cglib.version>
     <codehaus.jackson.version>1.8.11</codehaus.jackson.version>
-    <com.springsource.javax.annotation.version>1.0.0</com.springsource.javax.annotation.version>
-    <com.springsource.javax.jms.version>1.1.0</com.springsource.javax.jms.version>
     <commons-codec.version>1.9</commons-codec.version>
     <commons-collections4.version>4.0</commons-collections4.version>
     <commons-dbcp.version>1.4</commons-dbcp.version>
@@ -217,11 +215,7 @@
         <artifactId>simple-xml</artifactId>
         <version>${simple-xml.version}</version>
       </dependency>
-      <dependency>
-        <groupId>javax.jms</groupId>
-        <artifactId>com.springsource.javax.jms</artifactId>
-        <version>${com.springsource.javax.jms.version}</version>
-      </dependency>
+
       <dependency>
         <groupId>org.mybatis</groupId>
         <artifactId>mybatis-spring</artifactId>
@@ -248,11 +242,7 @@
         <artifactId>junit</artifactId>
         <version>${junit.version}</version>
       </dependency>
-      <dependency>
-        <groupId>javax.annotation</groupId>
-        <artifactId>com.springsource.javax.annotation</artifactId>
-        <version>1.0.0</version>
-      </dependency>
+
       <dependency>
         <groupId>org.apache.neethi</groupId>
         <artifactId>neethi</artifactId>
