@@ -9,7 +9,7 @@
   <url>http://oneops.com</url>
   <scm>
     <connection>scm:git:https://github.com/oneops/oneops.git</connection>
-    <developerConnection>scm:git:https://github.com:oneops/oneops.git</developerConnection>
+    <developerConnection>scm:git:https://github.com/oneops/oneops.git</developerConnection>
     <url>https://github.com/oneops/oneops</url>
     <tag>HEAD</tag>
   </scm>
