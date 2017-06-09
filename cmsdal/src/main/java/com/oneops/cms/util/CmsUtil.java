@@ -580,17 +580,19 @@ public class CmsUtil {
         rfc.setHint(rfcSimple.getHint());
 
         for (String attrSimpleName : rfcSimple.getCiAttributes().keySet()) {
-            CmsRfcAttribute attr = new CmsRfcAttribute();
-            attr.setAttributeName(attrSimpleName);
-            attr.setNewValue(rfcSimple.getCiAttributes().get(attrSimpleName));
-            rfc.addAttribute(attr);
+            rfc.addAttribute(new CmsRfcAttribute(attrSimpleName, rfcSimple.getCiAttributes().get(attrSimpleName)));
         }
 
         if (rfcSimple.getCiAttrProps() != null) {
             for (String attrProp : rfcSimple.getCiAttrProps().keySet()) {
                 if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
                     for (String attrName : rfcSimple.getCiAttrProps().get(attrProp).keySet()) {
-                        rfc.getAttribute(attrName).setOwner(rfcSimple.getCiAttrProps().get(attrProp).get(attrName));
+                        CmsRfcAttribute rfcAttribute = rfc.getAttribute(attrName);
+                        if (rfcAttribute == null) {
+                            rfcAttribute = new CmsRfcAttribute(attrName);
+                            rfc.addAttribute(rfcAttribute);
+                        }
+                        rfcAttribute.setOwner(rfcSimple.getCiAttrProps().get(attrProp).get(attrName));
                     }
                 }
             }
