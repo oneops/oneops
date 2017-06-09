@@ -15,6 +15,10 @@
   </scm>
 
   <properties>
+    <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
     <skip.unit.tests>false</skip.unit.tests>
     <XmlSchema.version>1.4.7</XmlSchema.version>
     <activemq.version>5.11.1</activemq.version>
