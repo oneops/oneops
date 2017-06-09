@@ -91,14 +91,6 @@
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
     <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>com.springsource.javax.annotation</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.jms</groupId>
-      <artifactId>com.springsource.javax.jms</artifactId>
-    </dependency>
-    <dependency>
       <groupId>me.prettyprint</groupId>
       <artifactId>hector-core</artifactId>
     </dependency>
