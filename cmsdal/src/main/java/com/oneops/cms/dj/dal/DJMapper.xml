@@ -1166,6 +1166,7 @@
           and rfr.action_id = a.action_id
           and rfr.ns_id = ns.ns_id
           and (#{nsPath}::varchar is null or ns.ns_path = #{nsPath})
+		 <if test="fromClazzName != null">
           and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
           			  where rci1.release_id = rfr.release_id 
           			   and rci1.ci_id = rfr.from_ci_id 
@@ -1175,7 +1176,9 @@
           	              where ci.ci_id = rfr.from_ci_id
           	                and ci.class_id = cl2.class_id
           	                and (#{fromClazzName}::varchar is null or cl2.class_name = #{fromClazzName}))
-          	   )               		   
+          	   )
+		 </if>
+		 <if test="toClazzName != null">
           and (exists(select 1 from dj_rfc_ci rci1, md_classes cl1 
           			  where rci1.release_id = rfr.release_id 
           			   and rci1.ci_id = rfr.to_ci_id 
@@ -1186,7 +1189,8 @@
           	                and ci.class_id = cl2.class_id
           			   		and (#{toClazzName}::varchar is null or cl2.class_name = #{toClazzName}))
           	                
-          	   )               		   
+          	   )
+		 </if>
 	 </select>
 
 
