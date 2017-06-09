@@ -8,8 +8,8 @@
   <name>OneOps</name>
   <url>http://oneops.com</url>
   <scm>
-    <connection>scm:git:git://github.com/oneops/oneops.git</connection>
-    <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
+    <connection>scm:git:https://github.com/oneops/oneops.git</connection>
+    <developerConnection>scm:git:https://github.com:oneops/oneops.git</developerConnection>
     <url>https://github.com/oneops/oneops</url>
     <tag>HEAD</tag>
   </scm>
@@ -804,17 +804,5 @@
       </plugin>
     </plugins>
   </build>
-  <repositories>
-    <!-- We should use standard specification JARs -->
-    <repository>
-      <id>com.springsource.repository.bundles.release</id>
-      <name>SpringSource Enterprise Bundle Repository - SpringSource Bundle Releases</name>
-      <url>http://repository.springsource.com/maven/bundles/release</url>
-    </repository>
-    <repository>
-      <id>com.springsource.repository.bundles.external</id>
-      <name>SpringSource Enterprise Bundle Repository - External Bundle Releases</name>
-      <url>http://repository.springsource.com/maven/bundles/external</url>
-    </repository>
-  </repositories>
+  
 </project>
