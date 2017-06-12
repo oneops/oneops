@@ -23,23 +23,25 @@ class TransitionController < ApplicationController
     # then we fall back to old inefficient way from CMS.
 
     manifest_releases = nil
-    begin
-      manifest_releases = Cms::Release.search_latest_by_ns(@environments.map {|e| environment_manifest_ns_path(e)}).to_map(&:nsPath)
-    rescue Exception => e
-    end
-
-    bom_ns_paths = @environments.map { |e| environment_bom_ns_path(e) }
-
     bom_releases = nil
-    begin
-      bom_releases = Cms::Release.search(:nsPath => bom_ns_paths, :releaseState => 'open').to_map(&:nsPath)
-    rescue Exception => e
-    end
-
     deployments = nil
-    begin
-      deployments = Cms::Deployment.search_latest_by_ns(bom_ns_paths).to_map(&:nsPath)
-    rescue Exception => e
+    if @manifest.present?
+      bom_ns_paths = @environments.map {|e| environment_bom_ns_path(e)}
+
+      begin
+        manifest_releases = Cms::Release.search_latest_by_ns(@environments.map {|e| environment_manifest_ns_path(e)}).to_map(&:nsPath)
+      rescue Exception => e
+      end
+
+      begin
+        bom_releases = Cms::Release.search(:nsPath => bom_ns_paths, :releaseState => 'open').to_map(&:nsPath)
+      rescue Exception => e
+      end
+
+      begin
+        deployments = Cms::Deployment.search_latest_by_ns(bom_ns_paths).to_map(&:nsPath)
+      rescue Exception => e
+      end
     end
 
     @environments.each do |e|
