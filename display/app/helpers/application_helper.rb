@@ -1279,12 +1279,16 @@ module ApplicationHelper
   end
 
   def pack_doc_link(source, pack, version, label, opts = {})
-    anchor = opts[:anchor]
     link_to(raw(label),
-            "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}",
+            pack_doc_url(source, pack, version, opts),
             :target => '_blank',
             :class  => 'doc-link',
             :title  => 'go to documentation')
+  end
+
+  def pack_doc_url(source, pack, version, opts = {})
+    anchor = opts[:anchor]
+    "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}"
   end
 
   def platform_pack_link(platform, label = icon(site_icon(:pack)))
@@ -1301,5 +1305,13 @@ module ApplicationHelper
 
   def expandable_content(options = {}, &block)
     raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
+  end
+
+  def pack_version_text_class(version_ci)
+    if version_ci.ciAttributes.enabled == 'false'
+      version_ci.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].present? ? 'text-warning' : 'text-error'
+    else
+      ''
+    end
   end
 end

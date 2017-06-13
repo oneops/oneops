@@ -1,11 +1,24 @@
 <dl class="dl-horizontal narrowest">
+  <dt><%= icon('archive') %></dt>
+  <dd>Pack
+    <%= link_to(catalog_pack_platform_path(params[:source], params[:pack], params[:version], params[:availability], params[:pack])) do %>
+      <b><%= params[:pack] %></b> ver.<b><%= params[:version] %></b>
+    <% end %>
+    provided by <em><%= params[:source] %></em> circuit</dd>
   <dt><%= icon(site_icon(:user)) %></dt>
   <dd>Owned by <b><%= @pack.ciAttributes.owner.presence || 'unknown' %></b></dd>
   <dt><%= icon('clock-o') %></dt>
   <dd>Created <b><%= time_ago_in_words(@version.created_timestamp) %></b></dd>
+  <dt><%= icon('book') %></dt>
+  <dd><%= link_to(raw("Documentation & notes #{icon('external-link')}"), pack_doc_url(params[:source], params[:pack], params[:version], :anchor => params[:availability].blank? ? 'design' : 'transition'), :target => '_blank') %></dd>
+  <% desc = @pack.ciAttributes.description %>
+  <% if desc.present? %>
+    <dt><%= icon('comment') %></dt>
+    <dd><%= desc %></dd>
+  <% end %>
   <dt><%= icon(site_icon(:deployment)) %></dt>
   <dd>
-    Operation stats
+    Operations stats:
     <% version = params[:version]
        dom_id = random_dom_id %>
     <div class="btn-group pull-right" id="<%= dom_id %>">
