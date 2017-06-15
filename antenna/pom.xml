@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>17.06.07-06-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>antenna</artifactId>
@@ -67,14 +67,7 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-log4j12</artifactId>
     </dependency>
-    <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>com.springsource.javax.annotation</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>javax.jms</groupId>
-      <artifactId>com.springsource.javax.jms</artifactId>
-    </dependency>
+
     <dependency>
       <groupId>com.oneops.cms</groupId>
       <artifactId>cmsdal</artifactId>

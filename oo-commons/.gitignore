@@ -1,0 +1,12 @@
+*~
+*.class
+.classpath
+target
+build
+idea
+tests
+.project
+.DS_Store
+.DS_Store?
+.settings
+*.iml

@@ -1,0 +1,12 @@
+*~
+.DS_Store
+*.class
+.classpath
+.project
+*.iml
+.settings/
+/target
+.oneops*
+~
+.idea
+*.iml

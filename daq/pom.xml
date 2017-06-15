@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>1.0.5-SNAPSHOT</version>
+    <version>17.06.07-06-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>daq-parent</artifactId>
@@ -113,7 +113,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>${apache.maven-surefire-plugin.version}</version>
         <configuration>
           <suiteXmlFiles>
             <suiteXmlFile>target/test-classes/testng.xml</suiteXmlFile>
