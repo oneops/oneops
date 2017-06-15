@@ -3,18 +3,22 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.06.07-04-SNAPSHOT</version>
+  <version>17.06.07-05-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
-  <scm>
-    <connection>scm:git:https://github.com/oneops/oneops.git</connection>
-    <developerConnection>scm:git:https://github.com/oneops/oneops.git</developerConnection>
+ <scm>
+    <connection>scm:git:git://github.com/oneops/oneops.git</connection>
+    <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
     <url>https://github.com/oneops/oneops</url>
     <tag>HEAD</tag>
   </scm>
 
   <properties>
+    <project.build.outputEncoding>UTF-8</project.build.outputEncoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
     <skip.unit.tests>false</skip.unit.tests>
     <XmlSchema.version>1.4.7</XmlSchema.version>
     <activemq.version>5.11.1</activemq.version>
