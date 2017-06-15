@@ -6,7 +6,7 @@
         <artifactId>daq-parent</artifactId>
         
         <relativePath>../pom.xml</relativePath>
-    <version>17.06.07-03-SNAPSHOT</version></parent>
+    <version>17.06.07-06-SNAPSHOT</version></parent>
     <groupId>com.oneops</groupId>
     <artifactId>daq-collector</artifactId>
     <packaging>jar</packaging>
@@ -67,17 +67,6 @@
                     <groupId>org.slf4j</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>com.springsource.javax.annotation</artifactId>
-            <version>1.0.0</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.jms</groupId>
-            <artifactId>com.springsource.javax.jms</artifactId>
-            
         </dependency>
         <dependency>
             <groupId>com.google.visualization</groupId>

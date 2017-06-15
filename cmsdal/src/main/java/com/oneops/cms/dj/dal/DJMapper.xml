@@ -571,11 +571,14 @@
 
 
 	<insert id="insertRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
-        INSERT INTO dj_rfc_ci_attributes(
-		    rfc_attr_id, rfc_id, attribute_id, old_attribute_value, new_attribute_value, owner, comments)
-		VALUES (nextval('dj_pk_seq'), #{rfcId}, #{attributeId}, null,  #{newValue}, #{owner}, #{comments})
+		INSERT INTO dj_rfc_ci_attributes(
+		rfc_attr_id, rfc_id, attribute_id, old_attribute_value, new_attribute_value, owner, comments)
+		VALUES (nextval('dj_pk_seq'), #{rfcId}, #{attributeId}, (	select cia.df_attribute_value
+		from cm_ci_attributes cia, dj_rfc_ci rfci
+		where cia.ci_id = rfci.ci_id
+		and rfci.rfc_id = #{rfcId}
+		and cia.attribute_id = #{attributeId}),  #{newValue}, #{owner}, #{comments})
 	</insert>
-
 
 	<update id="updateRfcCIAttribute" parameterType="com.oneops.cms.dj.domain.CmsRfcAttribute" statementType="CALLABLE">
 		update dj_rfc_ci_attributes 
