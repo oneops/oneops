@@ -177,8 +177,11 @@ public class BomRfcBulkProcessor {
 			for(BomRfc bom : boms) {
 				bom.mfstCi = trUtil.cloneCI(bom.mfstCi);
 			}	
-			//process vars
-			processVars(boms, cloudVars, globalVars, localVars);
+
+			List<CmsCI> attachments = cmProcessor.getCIRelations(platformCi.getNsPath(),"manifest.EscortedBy", null, null, null).stream().map(CmsCIRelation::getToCi).collect(Collectors.toList());
+			// get attachments to verify attachments variables too`
+			processVars(boms, attachments, cloudVars, globalVars, localVars);
+
 			logger.info(nsPath + " >>> " + platformCi.getCiName() + ", starting creating rfcs");
 
 			
@@ -262,10 +265,13 @@ public class BomRfcBulkProcessor {
 		return null;
 	}
 
-	private void processVars(List<BomRfc> boms, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
+	private void processVars(List<BomRfc> boms, List<CmsCI> attachments, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
         ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,cmsUtil.getCountOfErrorsToReport());
 		for (BomRfc bom : boms) {
 			ec.invokeChecked(()-> trUtil.processAllVars(bom.mfstCi, cloudVars, globalVars, localVars));
+		}
+		for (CmsCI att: attachments){
+			ec.invokeChecked(()-> trUtil.processAllVars(att, cloudVars, globalVars, localVars));
 		}
 		ec.rethrowExceptionIfNeeded();
 	}
