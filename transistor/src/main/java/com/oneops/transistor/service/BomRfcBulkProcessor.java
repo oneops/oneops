@@ -180,7 +180,7 @@ public class BomRfcBulkProcessor {
 
 			String platNs = platformCi.getNsPath();
 			List<CmsCI> cisToValidate = boms.stream().map(t->t.mfstCi).collect(Collectors.toList()) ; // collect bomCis
-			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.EscortedBy")); // get attachments
+			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.EscortedBy")); // get attachments 
 			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.WatchedBy")); // get monitors
 			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.LoggedBy")); // get LoggedBy
 
