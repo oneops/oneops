@@ -52,7 +52,7 @@ import com.oneops.cms.util.TimelineQueryParam;
 public class CmsRfcProcessor {
 	static Logger logger = Logger.getLogger(CmsRfcProcessor.class);
 
-	private static final String RFCNAMEREGEX = "[a-zA-Z0-9\\-]*";
+	private static final String RFCNAMEREGEX = "[a-zA-Z0-9_\\-]+";
 	private static final String OPEN = "open";
 	private static final String PENDING = "pending";
     private static Pattern rfcNamePattern = Pattern.compile(RFCNAMEREGEX);	
