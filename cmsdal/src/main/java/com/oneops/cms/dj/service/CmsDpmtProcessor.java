@@ -130,7 +130,12 @@ public class CmsDpmtProcessor {
 		} else  {
 			if (needApprovalForNewDpmt(dpmt)) {
 				dpmt.setDeploymentState(DPMT_STATE_PENDING);
+
 				createDeployment(dpmt);
+				existingDpmts = dpmtMapper.findLatestDeploymentByReleaseId(dpmt.getReleaseId(), null);
+				if (existingDpmts.size()==1) {
+					dpmt = existingDpmts.get(0);
+				}
 				needApproval(dpmt); // to cerate approval for this deployment
 			} else {
 				dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
@@ -224,6 +229,7 @@ public class CmsDpmtProcessor {
 
 	
 	private boolean needApproval(CmsDeployment dpmt) {
+		logger.info("creating deployment record");
 		boolean needApproval = false;
 		
 		List<Long>	cloudIds = dpmtMapper.getToCiIdsForDeployment(dpmt.getDeploymentId(), "pending", "base.DeployedTo");
