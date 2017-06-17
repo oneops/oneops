@@ -184,7 +184,7 @@ public class BomRfcBulkProcessor {
 			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.WatchedBy")); // get monitors
 			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.LoggedBy")); // get LoggedBy
 
-			processVars(cisToValidate, cloudVars, globalVars, localVars);
+			processAndValidateVars(cisToValidate, cloudVars, globalVars, localVars);
 
 			logger.info(nsPath + " >>> " + platformCi.getCiName() + ", starting creating rfcs");
 
@@ -273,10 +273,10 @@ public class BomRfcBulkProcessor {
 		return null;
 	}
 
-	private void processVars(List<CmsCI> cis, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
+	void processAndValidateVars(List<CmsCI> cis, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
         ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,cmsUtil.getCountOfErrorsToReport());
 		for (CmsCI ci : cis) {
-			ec.invokeChecked(()-> trUtil.processAllVars(ci, cloudVars, globalVars, localVars));
+			ec.invokeChecked(()-> cmsUtil.processAllVars(ci, cloudVars, globalVars, localVars));
 		}
 		ec.rethrowExceptionIfNeeded();
 	}
