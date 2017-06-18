@@ -45,7 +45,7 @@ public class CmsRfcBasicAttribute implements Serializable{
 	 * Convenience constructor for a typical operation of adding a RFC attribute specified by name
 	 * with a given value.
 	 */
-	CmsRfcBasicAttribute(String attributeName, String newValue) {
+	public CmsRfcBasicAttribute(String attributeName, String newValue) {
 		this.attributeName = attributeName;
 		this.newValue = newValue;
 	}

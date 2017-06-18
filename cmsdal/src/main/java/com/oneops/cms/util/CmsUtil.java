@@ -834,17 +834,19 @@ public class CmsUtil {
 
 
         for (String attrSimpleName : relationSimple.getRelationAttributes().keySet()) {
-            CmsRfcAttribute attr = new CmsRfcAttribute();
-            attr.setAttributeName(attrSimpleName);
-            attr.setNewValue(relationSimple.getRelationAttributes().get(attrSimpleName));
-            relation.addAttribute(attr);
+            relation.addAttribute(new CmsRfcAttribute(attrSimpleName, relationSimple.getRelationAttributes().get(attrSimpleName)));
         }
 
         if (relationSimple.getRelationAttrProps() != null) {
             for (String attrProp : relationSimple.getRelationAttrProps().keySet()) {
                 if (attrProp.equalsIgnoreCase(ATTR_PROP_OWNER)) {
                     for (String attrName : relationSimple.getRelationAttrProps().get(attrProp).keySet()) {
-                        relation.getAttribute(attrName).setOwner(relationSimple.getRelationAttrProps().get(attrProp).get(attrName));
+                        CmsRfcAttribute rfcAttribute = relation.getAttribute(attrName);
+                        if (rfcAttribute == null) {
+                            rfcAttribute = new CmsRfcAttribute(attrName);
+                            relation.addAttribute(rfcAttribute);
+                        }
+                        rfcAttribute.setOwner(relationSimple.getRelationAttrProps().get(attrProp).get(attrName));
                     }
                 }
             }

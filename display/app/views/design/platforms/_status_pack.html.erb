@@ -1,5 +1,6 @@
 <% open_changes        = @rfcs.values.map(&:size).sum > 0 || @platform.rfcAction.present?
    platform_attributes = @platform.ciAttributes
+   pack_url_params     = {:source => platform_attributes.source, :pack => platform_attributes.pack, :id => platform_attributes.pack}
    plat_digest         = platform_attributes.pack_digest
    current_version     = platform_attributes.version
    current_verion_ci   = @pack_version
@@ -38,7 +39,7 @@
 <div class="description">
   <dl class="dl-horizontal">
     <dt><%= icon('flag-checkered', '', 'fa-fw') %></dt>
-    <dd>Using pack version <strong><%= current_version %><%= ".#{plat_digest[0..4]}..." unless semver || plat_digest.blank? %></strong></dd>
+    <dd>Using pack version <strong><%= link_to(current_version, catalog_pack_platform_path(pack_url_params.merge(:version => current_version))) %><%= ".#{plat_digest[0..4]}..." unless semver || plat_digest.blank? %></strong></dd>
 
     <dt><%= icon('magnet', '', 'fa-fw') %></dt>
     <dd>
@@ -46,18 +47,18 @@
         <% if latest_patch_version_ci == current_verion_ci %>
           Up to date with latest patch version
           <% if latest_minor_version_ci != current_verion_ci && latest_minor_version_ci != latest_patch_version_ci %>
-            but newer minor version <strong><%= latest_minor_version_ci.ciName %></strong>
-            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => latest_minor_version_ci.ciName, :other_version => platform_attributes.version), :target => '_blank') %>)
-            is available since <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
+            but newer minor version <strong><%= link_to(latest_minor_version_ci.ciName, catalog_pack_platform_path(pack_url_params.merge(:version => latest_minor_version_ci.ciName))) %></strong>
+            is available since <strong><%= time_ago_in_words(latest_minor_version_ci.created_timestamp) %></strong>
+            (<%= link_to('compare', catalog_pack_diff_path(pack_url_params.merge(:version => latest_minor_version_ci.ciName, :other_version => platform_attributes.version)), :target => '_blank') %>)
           <% end %>
         <% else %>
-          Newer patch version <strong><%= latest_patch_version_ci.ciName %></strong>
-          (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => latest_patch_version_ci.ciName, :other_version => platform_attributes.version), :target => '_blank') %>)
-          is available since <strong><%= time_ago_in_words(latest_patch_version_ci.updated_timestamp) %></strong>
+          Newer patch version <strong><%= link_to(latest_patch_version_ci.ciName, catalog_pack_platform_path(pack_url_params.merge(:version => latest_patch_version_ci.ciName))) %></strong>
+          is available since <strong><%= time_ago_in_words(latest_patch_version_ci.created_timestamp) %></strong>
+          (<%= link_to('compare', catalog_pack_diff_path(pack_url_params.merge(:version => latest_patch_version_ci.ciName, :other_version => platform_attributes.version)), :target => '_blank') %>)
           <% if latest_minor_version_ci != latest_patch_version_ci %>
-            and newer minor version <strong><%= latest_minor_version_ci.ciName %></strong>
-            (<%= link_to('compare', catalog_pack_diff_path(:source => platform_attributes.source, :pack => platform_attributes.pack, :version => latest_minor_version_ci.ciName, :other_version => platform_attributes.version), :target => '_blank') %>)
-            is available since <strong><%= time_ago_in_words(latest_minor_version_ci.updated_timestamp) %></strong>
+            and newer minor version <strong><%= link_to(latest_minor_version_ci.ciName, catalog_pack_platform_path(pack_url_params.merge(:version => latest_minor_version_ci.ciName))) %></strong>
+            is available since <strong><%= time_ago_in_words(latest_minor_version_ci.created_timestamp) %></strong>
+            (<%= link_to('compare', catalog_pack_diff_path(pack_url_params.merge(:version => latest_minor_version_ci.ciName, :other_version => platform_attributes.version)), :target => '_blank') %>)
           <% end %>
         <% end %>
       <% else %>
@@ -65,7 +66,7 @@
           Up to date with latest pack version
         <% else %>
           Newer pack version <strong><%= platform_pack_link(@platform, "#{current_version}.#{pack_digest[0..4]}...") %></strong>
-          is available since <strong><%= time_ago_in_words(current_verion_ci.updated_timestamp) %></strong>
+          is available since <strong><%= time_ago_in_words(current_verion_ci.created_timestamp) %></strong>
         <% end %>
       <% end %>
     </dd>
@@ -96,11 +97,11 @@
           <%= icon('book') %>
           <small>
             <% if semver %>
-              Select <strong>Pull Pack</strong> to update this platform with changes from the <strong>latest <em>patch</em></strong>
+              Select <strong>Pull Pack</strong> to update this platform with changes from the <strong><em>latest patch</em></strong>
               version of the pack (same <em>minor</em> version).
-              Or select <strong>Change Pack Version</strong> to update this platform with changes from a
+              Or select
               <%= expandable_content do %>
-                specifically selected version of the pack.
+                <strong>Change Pack Version</strong> to update this platform with changes from a specifically selected version of the pack.
                 You can either upgrade or downgrade to any available version (<em>minor</em> and/or <em>patch</em>) of this pack.
               <% end %>
             <% else %>

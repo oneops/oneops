@@ -512,44 +512,6 @@ public class CmsRfcProcessor {
 	}
 
 
-	public void createRfcRaw(Collection<CmsRfcCI> rfcCis) {
-		for (CmsRfcCI rfcCi:rfcCis) {
-			if (rfcCi.getCiId() == 0) {
-				rfcCi.setCiId(djMapper.getNextCiId());
-			}
-
-			rfcCi.setRfcId(djMapper.getNextDjId());
-
-			if (rfcCi.getCiGoid() == null) {
-				rfcCi.setCiGoid(String.valueOf(rfcCi.getNsId()) + '-' + String.valueOf(rfcCi.getCiClassId()) + '-' + String.valueOf(rfcCi.getCiId()));
-			}
-
-			int rfcActionId = CmsRfcAction.valueOf(rfcCi.getRfcAction()).getId();
-			rfcCi.setRfcActionId(rfcActionId);
-
-		}
-		for (CmsRfcCI rfcCi:rfcCis) {
-			djMapper.createRfcCI(rfcCi);
-		}
-		for (CmsRfcCI rfcCi:rfcCis) {
-			djMapper.createRfcLog(rfcCi);
-
-		}
-
-		for (CmsRfcCI rfcCi:rfcCis) {
-			for (CmsRfcAttribute attr : rfcCi.getAttributes().values()) {
-				if (attr.getNewValue() == null) {
-					attr.setNewValue("");
-				}
-				attr.setRfcId(rfcCi.getRfcId());
-			}
-			for (CmsRfcAttribute attr : rfcCi.getAttributes().values()) {
-				djMapper.insertRfcCIAttribute(attr);
-			}
-		}
-	}
-	
-
 	public void createRfcRaw(CmsRfcCI rfcCi) {
 		if (rfcCi.getCiId() == 0) {
 			rfcCi.setCiId(djMapper.getNextCiId());
@@ -572,49 +534,10 @@ public class CmsRfcProcessor {
 				attr.setNewValue("");
 			}	
 			attr.setRfcId(rfcCi.getRfcId());
-		}
-		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()) {
 			djMapper.insertRfcCIAttribute(attr);
 		}  
 	}
-	
-	
-	public void createRfcRelationsRaw(Collection<CmsRfcRelation> relations) {
-		for (CmsRfcRelation rel : relations) {
-			if (rel.getRelationGoid() == null) {
-				rel.setRelationGoid(String.valueOf(rel.getFromCiId()) + '-' + String.valueOf(rel.getRelationId()) + '-' + String.valueOf(rel.getToCiId()));
-			}
 
-			if (rel.getCiRelationId() == 0) {
-				rel.setCiRelationId(djMapper.getNextCiId());
-			}
-
-			int rfcActionId = CmsRfcAction.valueOf(rel.getRfcAction()).getId();
-			rel.setRfcActionId(rfcActionId);
-			rel.setRfcId(djMapper.getNextDjId());
-		}
-		
-		for (CmsRfcRelation rel : relations) {
-			djMapper.createRfcRelation(rel);
-		}
-
-		for (CmsRfcRelation rel : relations) {
-			djMapper.createRfcRelationLog(rel);
-		}
-
-		for (CmsRfcRelation rel : relations) {
-			for (CmsRfcAttribute attr : rel.getAttributes().values()) {
-				attr.setRfcId(rel.getRfcId());
-			}
-		}
-		
-		for (CmsRfcRelation rel : relations) {
-			for (CmsRfcAttribute attr : rel.getAttributes().values()) {
-				djMapper.insertRfcRelationAttribute(attr);
-			}
-		}
-	}
-	
 
 	public long createRfcRelationRaw(CmsRfcRelation rel) {
 		//assumption here that client may already validate this relation so no need for double work
@@ -634,9 +557,10 @@ public class CmsRfcProcessor {
 		djMapper.createRfcRelationLog(rel);
 		
 		for (CmsRfcAttribute attr : rel.getAttributes().values()){
+			if (attr.getNewValue() == null) {
+				attr.setNewValue("");
+			}
 			attr.setRfcId(rel.getRfcId());
-		}
-		for (CmsRfcAttribute attr : rel.getAttributes().values()) {
 			djMapper.insertRfcRelationAttribute(attr);
 		}
 		return rel.getRfcId();
@@ -657,12 +581,12 @@ public class CmsRfcProcessor {
 		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
 			CmsRfcAttribute existingAttr = existingRfcCi.getAttribute(attr.getAttributeName());
 			attr.setRfcId(rfcCi.getRfcId());
-			if (existingAttr==null){
+			if (existingAttr == null) {
 				if (attr.getNewValue() == null) {
 					attr.setNewValue("");
 				}
 				djMapper.insertRfcCIAttribute(attr);
-			} else if(!(djValidator.rfcAttrsEqual(attr, existingAttr))) {
+			} else if (!(djValidator.rfcAttrsEqual(attr, existingAttr))) {
 				if (attr.getNewValue() == null) {
 					attr.setNewValue(existingAttr.getNewValue());
 				}
@@ -673,17 +597,22 @@ public class CmsRfcProcessor {
 	}
 
 	public long updateRfcRelation(CmsRfcRelation relation, CmsRfcRelation existingRelation) {
-		
 		djMapper.updateRfcRelation(relation);
 		djMapper.updateRfcRelationLog(relation);
 		for (CmsRfcAttribute attr : relation.getAttributes().values()){
 			CmsRfcAttribute existingAttr = existingRelation.getAttribute(attr.getAttributeName());
 			attr.setRfcId(relation.getRfcId());
-			if (existingAttr==null){
+			if (existingAttr == null) {
+				if (attr.getNewValue() == null) {
+					attr.setNewValue("");
+				}
 				djMapper.insertRfcRelationAttribute(attr);
-			} else if(!(djValidator.rfcAttrsEqual(attr, existingAttr))) {
+			} else if (!(djValidator.rfcAttrsEqual(attr, existingAttr))) {
+				if (attr.getNewValue() == null) {
+					attr.setNewValue(existingAttr.getNewValue());
+				}
 				djMapper.updateRfcRelationAttribute(attr);
-			}	
+			}
 		}
 		return relation.getRfcId();
 	}
@@ -1314,10 +1243,7 @@ public class CmsRfcProcessor {
 		List<CmsRfcBasicAttribute> attrList = new ArrayList<CmsRfcBasicAttribute>();
 		
 		for (String attrName : attrs.keySet()) {
-			CmsRfcBasicAttribute attr = new CmsRfcBasicAttribute();
-			attr.setAttributeName(attrName);
-			attr.setNewValue(attrs.get(attrName));
-			attrList.add(attr);
+			attrList.add(new CmsRfcBasicAttribute(attrName, attrs.get(attrName)));
 		}
 		
 		List<CmsRfcRelation> relList = djMapper.getOpenFromRfcRelationByAttrs(fromCiId, relName, shortRelName, targetClassName, attrList);
@@ -1335,18 +1261,14 @@ public class CmsRfcProcessor {
 	 * @param attrs the attrs
 	 * @return the open to rfc relation by attrs
 	 */
-	public List<CmsRfcRelation> getOpenToRfcRelationByAttrs
-	(Long toCiId, String relName, String shortRelName, String targetClassName, Map<String,String> attrs) {
+	public List<CmsRfcRelation> getOpenToRfcRelationByAttrs(Long toCiId, String relName, String shortRelName, String targetClassName, Map<String,String> attrs) {
 	
 	List<CmsRfcBasicAttribute> attrList = new ArrayList<CmsRfcBasicAttribute>();
-	
+
 	for (String attrName : attrs.keySet()) {
-		CmsRfcBasicAttribute attr = new CmsRfcBasicAttribute();
-		attr.setAttributeName(attrName);
-		attr.setNewValue(attrs.get(attrName));
-		attrList.add(attr);
+		attrList.add(new CmsRfcBasicAttribute(attrName, attrs.get(attrName)));
 	}
-	
+
 	List<CmsRfcRelation> relList = djMapper.getOpenToRfcRelationByAttrs(toCiId, relName, shortRelName, targetClassName, attrList);
 	populateRfcRelationAttributes(relList);
 	return relList;
@@ -1641,7 +1563,7 @@ public class CmsRfcProcessor {
     	if (rfcCis.size() == 0) {
     		return;
     	}
-    	Map<Long, CmsRfcCI> rfcMap = new HashMap<Long, CmsRfcCI>();
+    	Map<Long, CmsRfcCI> rfcMap = new HashMap<>();
         for (CmsRfcCI rfcCi : rfcCis) {
         	rfcMap.put(rfcCi.getRfcId(), rfcCi);
         }
@@ -1677,7 +1599,7 @@ public class CmsRfcProcessor {
     	if (rfcRels.size() == 0) {
     		return;
     	}
-        Map<Long, CmsRfcRelation> relRfcMap = new HashMap<Long, CmsRfcRelation>();
+        Map<Long, CmsRfcRelation> relRfcMap = new HashMap<>();
     	for (CmsRfcRelation rel : rfcRels) {
     		relRfcMap.put(rel.getRfcId(), rel);
     	}
@@ -1853,7 +1775,7 @@ public class CmsRfcProcessor {
 
 	public List<TimelineRelease> getReleaseByFilter(TimelineQueryParam queryParam) {
 		String filter = queryParam.getWildcardFilter();
-		List<TimelineRelease> releases = null;
+		List<TimelineRelease> releases;
 		if (!StringUtils.isBlank(filter)) {
 			releases = getReleaseByFilterInternal(queryParam);
 		}
@@ -1864,12 +1786,11 @@ public class CmsRfcProcessor {
 	}
 
 	private List<TimelineRelease> getReleaseByFilterInternal(TimelineQueryParam queryParam) {
-		List<TimelineRelease> releases = null;
 		addFilters(queryParam);
 		getMatchingNamespaces4Timeline(queryParam);
 
-		releases = djMapper.getReleaseByFilter(queryParam);
-		Long endRelId = null;
+		List<TimelineRelease> releases = djMapper.getReleaseByFilter(queryParam);
+		Long endRelId;
 		if (QueryOrder.ASC.equals(queryParam.getOrder())) {
 			endRelId = releases.stream().map(TimelineRelease::getReleaseId).max(Long::compare).orElse(null);
 		}
