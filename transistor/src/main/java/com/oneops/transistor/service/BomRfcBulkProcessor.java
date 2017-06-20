@@ -176,9 +176,16 @@ public class BomRfcBulkProcessor {
 			// if it was modified outside - the changes will not be reset
 			for(BomRfc bom : boms) {
 				bom.mfstCi = trUtil.cloneCI(bom.mfstCi);
-			}	
-			//process vars
-			processVars(boms, cloudVars, globalVars, localVars);
+			}
+
+			String platNs = platformCi.getNsPath();
+			List<CmsCI> cisToValidate = boms.stream().map(t->t.mfstCi).collect(Collectors.toList()) ; // collect bomCis
+			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.EscortedBy")); // get attachments 
+			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.WatchedBy")); // get monitors
+			cisToValidate.addAll(collectToCisByNsAndRelationName(platNs, "manifest.LoggedBy")); // get LoggedBy
+
+			processAndValidateVars(cisToValidate, cloudVars, globalVars, localVars);
+
 			logger.info(nsPath + " >>> " + platformCi.getCiName() + ", starting creating rfcs");
 
 			
@@ -237,7 +244,11 @@ public class BomRfcBulkProcessor {
 		logger.info(nsPath + ">>> Done with " + platformCi.getCiName() + ", cloud - " + bindingRel.getToCi().getCiName() + ", Time to process - " + timeTook + " ms.");
 		return maxExecOrder;
 	}
-	
+
+	private List<CmsCI> collectToCisByNsAndRelationName(String ns, String relationName) {
+		return cmProcessor.getCIRelations(ns, relationName, null, null, null).stream().map(CmsCIRelation::getToCi).collect(Collectors.toList());
+	}
+
 	private boolean isPartialDeployment(String manifestNs) {
 		List<CmsCIRelation> dependsOns = cmProcessor.getCIRelationsNaked(manifestNs, "manifest.DependsOn", null, null, null);
 		
@@ -262,10 +273,10 @@ public class BomRfcBulkProcessor {
 		return null;
 	}
 
-	private void processVars(List<BomRfc> boms, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
+	void processAndValidateVars(List<CmsCI> cis, Map<String,String> cloudVars, Map<String,String> globalVars, Map<String,String> localVars) {
         ExceptionConsolidator ec = CIValidationException.consolidator(CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF,cmsUtil.getCountOfErrorsToReport());
-		for (BomRfc bom : boms) {
-			ec.invokeChecked(()-> trUtil.processAllVars(bom.mfstCi, cloudVars, globalVars, localVars));
+		for (CmsCI ci : cis) {
+			ec.invokeChecked(()-> cmsUtil.processAllVars(ci, cloudVars, globalVars, localVars));
 		}
 		ec.rethrowExceptionIfNeeded();
 	}
