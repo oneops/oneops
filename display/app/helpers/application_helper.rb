@@ -340,7 +340,11 @@ module ApplicationHelper
     block << content_tag(:span, sanitize(page_kind), :class => 'page_kind') if page_kind
     doc_link = options[:doc_link]
     if options[:page_label]
-      block << content_tag(:span, raw("#{sanitize(options[:page_label])}"), :class => 'page_label')
+      if options[:page_label_url]
+        block << link_to(raw("#{sanitize(options[:page_label])}"), options[:page_label_url], :class => 'page_label')
+      else
+        block << content_tag(:span, raw("#{sanitize(options[:page_label])}"), :class => 'page_label')
+      end
       block << fav
       block << doc_link if doc_link.present?
     end
@@ -1279,12 +1283,16 @@ module ApplicationHelper
   end
 
   def pack_doc_link(source, pack, version, label, opts = {})
-    anchor = opts[:anchor]
     link_to(raw(label),
-            "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}",
+            pack_doc_url(source, pack, version, opts),
             :target => '_blank',
             :class  => 'doc-link',
             :title  => 'go to documentation')
+  end
+
+  def pack_doc_url(source, pack, version, opts = {})
+    anchor = opts[:anchor]
+    "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}"
   end
 
   def platform_pack_link(platform, label = icon(site_icon(:pack)))
@@ -1301,5 +1309,33 @@ module ApplicationHelper
 
   def expandable_content(options = {}, &block)
     raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
+  end
+
+  def pack_version_text_class(version_ci, org_ns_path = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT) ? nil : organization_ns_path)
+    if version_ci.ciAttributes.enabled == 'false'
+      visibility = version_ci.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG]
+      if org_ns_path.blank?
+        visibility.present? ? 'text-warning' : 'text-error'
+      else
+        visibility.try(:include?, organization_ns_path) ? '' : 'text-error'
+      end
+    else
+      'text-success'
+    end
+  end
+
+  def pack_version_label_class(version_ci)
+    pack_version_text_class(version_ci).sub('text-', 'label-').sub('-error', '-important')
+  end
+
+  def pack_version_list(versions, org_ns_path)
+    versions = versions.sort {|a, b| b.ciName <=> a.ciName}
+    builder  = lambda {|vv| vv.map {|v| link_to(v.ciName, catalog_pack_platform_path(params[:source], params[:pack], v.ciName, params[:availability], params[:pack]), :class => pack_version_text_class(v, org_ns_path))}.join(', ')}
+    result   = builder.call(versions[0..14])
+    if versions.size > 15
+      result += ', '
+      result += expandable_content(:content => capture(versions[15..-1], &builder))
+    end
+    result
   end
 end

@@ -13,12 +13,13 @@ class Catalog::PlatformsController < Base::PlatformsController
   def show
     respond_to do |format|
       format.html do
-        @components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
+        @components        = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                       :direction         => 'from',
                                                       :relationShortName => 'Requires',
                                                       :includeToCi       => true,
                                                       :attrProps         => 'owner'}).map(&:toCi)
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
+        @versions = locate_pack_versions(params[:source], params[:pack]) unless @design
       end
 
       format.json do
@@ -64,6 +65,7 @@ class Catalog::PlatformsController < Base::PlatformsController
       @platform.ciAttributes.pack = @platform.ciName unless @platform.ciAttributes.pack == @platform.ciName
 
       @pack = locate_pack_for_platform(@platform)
+      @version = locate_pack_version_for_platform(@platform)
     end
   end
 end

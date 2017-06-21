@@ -1,0 +1,9 @@
+<% desc = (@pack || @platform).ciAttributes.description
+   show_versions = @versions && @versions.size > 1 %>
+<%= page_info do %>
+  <%= "#{desc}#{'<br>' if show_versions}" if desc.present? && desc.size > @pack.ciName.size %>
+  <% if show_versions %>
+    <br><b>Versions: </b>
+    <%= render 'catalog/packs/pack_version_list', :versions => @versions %>
+  <% end %>
+<% end %>

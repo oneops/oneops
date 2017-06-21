@@ -33,18 +33,20 @@ class OperationsController < ApplicationController
     # We try to get deployment and bom release data from ES for performance reasons. But if it fails (ES is unavailable)
     # then we fall back to old inefficient way from CMS.
 
-    bom_ns_paths = @environments.map { |e| environment_bom_ns_path(e) }
+    bom_ns_paths = @environments.map {|e| environment_bom_ns_path(e)}
 
     bom_releases = nil
-    begin
-      bom_releases = Cms::Release.search(:nsPath => bom_ns_paths, :releaseState => 'open').to_map(&:nsPath)
-    rescue Exception => e
-    end
-
     deployments = nil
-    begin
-      deployments = Cms::Deployment.search_latest_by_ns(bom_ns_paths).to_map(&:nsPath)
-    rescue Exception => e
+    if @environments.present?
+      begin
+        bom_releases = Cms::Release.search(:nsPath => bom_ns_paths, :releaseState => 'open').to_map(&:nsPath)
+      rescue Exception => e
+      end
+
+      begin
+        deployments = Cms::Deployment.search_latest_by_ns(bom_ns_paths).to_map(&:nsPath)
+      rescue Exception => e
+      end
     end
 
     @environments.each do |e|

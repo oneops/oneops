@@ -50,7 +50,6 @@ public class PackUpdateProcessor {
     private DesignRfcProcessor designRfcProcessor;
     private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
     private TransUtil trUtil;
-    private CmsRfcUtil rfcUtil;
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
@@ -66,10 +65,6 @@ public class PackUpdateProcessor {
 
     public void setTrUtil(TransUtil trUtil) {
         this.trUtil = trUtil;
-    }
-
-    public void setRfcUtil(CmsRfcUtil rfcUtil) {
-        this.rfcUtil = rfcUtil;
     }
 
     public void setCmRfcMrgProcessor(CmsCmRfcMrgProcessor cmRfcMrgProcessor) {
@@ -203,7 +198,7 @@ public class PackUpdateProcessor {
         existingRelMap.values().stream()
                 .filter(r -> !"user".equalsIgnoreCase(r.getAttribute("source").getDfValue()))
                 .forEach(r -> {
-                    CmsRfcRelation rfc = rfcUtil.mergeRfcRelAndCiRel(null, r, null);
+                    CmsRfcRelation rfc = new CmsRfcRelation(r, context.user);
                     rfc.setRfcAction("delete");
                     submitRfcRelation(rfc, context);
                 });
