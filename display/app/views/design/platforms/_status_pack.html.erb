@@ -87,6 +87,8 @@
       <% else %>
         <% if (semver && latest_patch_version_ci != current_verion_ci) || (!semver && !on_latest_commit) %>
           This platform can be <strong>updated</strong> with latest changes from the pack.
+        <% else %>
+          If <em>necessary</em> this platform can be rolled back to a previous version (patch and/or minor) of the pack
         <% end %>
       <% end %>
     </dd>
