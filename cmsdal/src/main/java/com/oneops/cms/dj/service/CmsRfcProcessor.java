@@ -512,6 +512,42 @@ public class CmsRfcProcessor {
 	}
 
 
+	/**
+	 * This implementation optimizes DB performance by ordering inserts based on the underlying tables.
+	 * Delegating (in a loop) to a 'reateRfcRaw(CmsRfcCI rfcCi)' below will result in inferior
+	 * performance due to "jumping around" from table to table during multiple rfc inserts.
+	 */
+	public void createRfcRaw(Collection<CmsRfcCI> rfcCis) {
+		for (CmsRfcCI rfcCi : rfcCis) {
+			if (rfcCi.getCiId() == 0) {
+				rfcCi.setCiId(djMapper.getNextCiId());
+			}
+
+			rfcCi.setRfcId(djMapper.getNextDjId());
+
+			if (rfcCi.getCiGoid() == null) {
+				rfcCi.setCiGoid(String.valueOf(rfcCi.getNsId()) + '-' + String.valueOf(rfcCi.getCiClassId()) + '-' + String.valueOf(rfcCi.getCiId()));
+			}
+
+			int rfcActionId = CmsRfcAction.valueOf(rfcCi.getRfcAction()).getId();
+			rfcCi.setRfcActionId(rfcActionId);
+
+		}
+
+		for (CmsRfcCI rfcCi : rfcCis) {
+			djMapper.createRfcCI(rfcCi);
+		}
+
+		for (CmsRfcCI rfcCi : rfcCis) {
+			djMapper.createRfcLog(rfcCi);
+		}
+
+		for (CmsRfcCI rfcCi : rfcCis) {
+			insertRfcCIAttributes(rfcCi.getAttributes().values(), rfcCi.getRfcId());
+		}
+	}
+
+
 	public void createRfcRaw(CmsRfcCI rfcCi) {
 		if (rfcCi.getCiId() == 0) {
 			rfcCi.setCiId(djMapper.getNextCiId());
@@ -529,13 +565,50 @@ public class CmsRfcProcessor {
 		djMapper.createRfcCI(rfcCi);
 		djMapper.createRfcLog(rfcCi);
 
-		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
+		insertRfcCIAttributes(rfcCi.getAttributes().values(), rfcCi.getRfcId());
+	}
+
+	private void insertRfcCIAttributes(Collection<CmsRfcAttribute> rfcAttributes, long rfcId) {
+		for (CmsRfcAttribute attr : rfcAttributes){
 			if (attr.getNewValue() == null) {
 				attr.setNewValue("");
-			}	
-			attr.setRfcId(rfcCi.getRfcId());
+			}
+			attr.setRfcId(rfcId);
 			djMapper.insertRfcCIAttribute(attr);
-		}  
+		}
+	}
+
+	/**
+	 * This implementation optimizes DB performance by ordering inserts based on the underlying tables.
+	 * Delegating (in a loop) to a 'createRfcRelationRaw(CmsRfcRelation rel)' below will result in inferior
+	 * performance due to "jumping around" from table to table during multiple rfc inserts.
+	 */
+	public void createRfcRelationsRaw(Collection<CmsRfcRelation> relations) {
+		for (CmsRfcRelation rel : relations) {
+			if (rel.getRelationGoid() == null) {
+				rel.setRelationGoid(String.valueOf(rel.getFromCiId()) + '-' + String.valueOf(rel.getRelationId()) + '-' + String.valueOf(rel.getToCiId()));
+			}
+
+			if (rel.getCiRelationId() == 0) {
+				rel.setCiRelationId(djMapper.getNextCiId());
+			}
+
+			int rfcActionId = CmsRfcAction.valueOf(rel.getRfcAction()).getId();
+			rel.setRfcActionId(rfcActionId);
+			rel.setRfcId(djMapper.getNextDjId());
+		}
+
+		for (CmsRfcRelation rel : relations) {
+			djMapper.createRfcRelation(rel);
+		}
+
+		for (CmsRfcRelation rel : relations) {
+			djMapper.createRfcRelationLog(rel);
+		}
+
+		for (CmsRfcRelation rel : relations) {
+			insertRfcRelationAttributes(rel.getAttributes().values(), rel.getRfcId());
+		}
 	}
 
 
@@ -555,18 +628,21 @@ public class CmsRfcProcessor {
 		rel.setRfcId(djMapper.getNextDjId());
 		djMapper.createRfcRelation(rel);
 		djMapper.createRfcRelationLog(rel);
-		
-		for (CmsRfcAttribute attr : rel.getAttributes().values()){
+
+		insertRfcRelationAttributes(rel.getAttributes().values(), rel.getRfcId());
+		return rel.getRfcId();
+	}
+
+	private void insertRfcRelationAttributes(Collection<CmsRfcAttribute> rfcAttributes, long rfcId) {
+		for (CmsRfcAttribute attr : rfcAttributes){
 			if (attr.getNewValue() == null) {
 				attr.setNewValue("");
 			}
-			attr.setRfcId(rel.getRfcId());
+			attr.setRfcId(rfcId);
 			djMapper.insertRfcRelationAttribute(attr);
 		}
-		return rel.getRfcId();
 	}
-	
-	
+
 	/**
 	 * Update the Bom rfc no verification.
 	 *
