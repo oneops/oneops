@@ -52,12 +52,13 @@ class Search::Base < ActiveResource::Base
             }
           }
         }
-      }
+      },
+      :size => 0
     }
 
     result = nil
     begin
-      path = "#{index}/_search?search_type=count"
+      path = "#{index}/_search"
       data   = JSON.parse(Search::Base.post(path, {}, search_params.to_json).body)
       result = data['aggregations']['group_by_ns']['buckets'].map do |bucket|
         bucket['latest']['hits']['hits'][0]['_source']

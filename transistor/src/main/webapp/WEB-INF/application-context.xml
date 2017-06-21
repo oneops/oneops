@@ -175,7 +175,6 @@
 		<property name="designRfcProcessor" ref="designRfcProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
 		<property name="trUtil" ref="trUtil" />
-		<property name="rfcUtil" ref="rfcUtil" />
 	</bean>
 
 	<bean id="cloudUtil" class="com.oneops.transistor.util.CloudUtil">

@@ -1,5 +1,5 @@
-<% source  = params[:source]
-   pack    = @pack.ciName
+<% source = params[:source]
+   pack_name = @pack.ciName
    version = @version.ciName
    availability = params[:availability]
    if availability.blank?
@@ -8,19 +8,20 @@
    else
      doc_anchor = 'transition'
      bc_label   = icon(availability == 'redundant' ? 'cubes' : 'cube', "#{availability} availability")
-   end %>
+   end
+%>
 
 <%= organization_page_header('catalogs') %>
 <%= breadcrumb [{:label => icon(site_icon(:pack), 'packs'),
                  :link  => catalog_path(:anchor => 'packs')},
                 {:kind  => 'source',
                  :label => source}] %>
-<%= page_title(:page_icon     => pack_image_url(source, pack, version),
-               :page_kind     => 'Platform Pack',
-               :page_label    => "#{pack} #{content_tag(:sub, content_tag(:span, "ver. #{version}", :class => 'label label-success'))} #{content_tag(:sub, content_tag(:small, bc_label))}",
-               :doc_link      => pack_doc_link(source, pack, version, icon('book'), :anchor => doc_anchor),
-               :page_sublabel => @pack.ciAttributes.description) %>
-<% desc = @pack.ciAttributes.description %>
-<%= page_info desc if desc.present? %>
+<%= page_title(:page_icon      => pack_image_url(source, pack_name, version),
+               :page_kind      => 'Platform Pack',
+               :page_label     => "#{pack_name} #{content_tag(:sub, content_tag(:span, "ver. #{version}", :class => "label #{pack_version_label_class(@version,)}"))} #{content_tag(:sub, content_tag(:small, bc_label))}",
+               :page_label_url => catalog_pack_platform_path(source, pack_name, version, availability, pack_name),
+               :doc_link       => pack_doc_link(source, pack_name, version, icon('book'), :anchor => doc_anchor),
+               :page_sublabel  => @pack.ciAttributes.description) %>
+<%= render 'pack_page_info' %>
 
 <%= render('diff') %>
