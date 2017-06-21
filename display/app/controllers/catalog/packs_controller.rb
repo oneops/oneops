@@ -3,40 +3,19 @@ class Catalog::PacksController < ApplicationController
   ORG_VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
   before_filter :authorize_pack_owner_group_membership, :only => [:visibility, :password]
+  before_filter :load_packs_and_versions, :only => [:index, :versions]
   before_filter :find_pack_version, :only => [:show, :visibility, :password, :diff]
 
   helper_method :check_pack_owner_group_membership?
 
 
   def index
-    pack_cis = Cms::Ci.all(:params => {:nsPath      => '/public',
-                                       :ciClassName => 'mgmt.Pack',
-                                       :recursive   => true})
-    if check_pack_owner_group_membership?(current_user) || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
-      version_cis = Cms::Ci.all(:params => {:nsPath       => '/public',
-                                            :ciClassName  => 'mgmt.Version',
-                                            :recursive    => true,
-                                            :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
-    else
-      version_cis = Cms::Ci.all(:params => {:nsPath       => '/public',
-                                            :ciClassName  => 'mgmt.Version',
-                                            :recursive    => true,
-                                            :attr         => 'enabled:neq:false',
-                                            :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
-      version_cis += Cms::Ci.all(:params => {:nsPath       => '/public',
-                                             :ciClassName  => 'mgmt.Version',
-                                             :recursive    => true,
-                                             :attr         => 'enabled:eq:false',
-                                             :altNsTag     => ORG_VISIBILITY_ALT_NS_TAG,
-                                             :altNs        => organization_ns_path})
-    end
-
     respond_to do |format|
       format.html { redirect_to catalog_path(:anchor => 'packs') }
       format.js do
-        pack_map = pack_cis.to_map {|p| "#{p.nsPath}/#{p.ciName}"}
+        pack_map = @pack_cis.to_map {|p| "#{p.nsPath}/#{p.ciName}"}
 
-        @packs = version_cis.inject({}) do |h, version|
+        @packs = @version_cis.inject({}) do |h, version|
           h[version.nsPath] ||= {:pack => pack_map[version.nsPath], :versions => []}
           h[version.nsPath][:versions] << version
           h
@@ -45,16 +24,8 @@ class Catalog::PacksController < ApplicationController
       end
 
       format.json do
-        source_pack_map = pack_cis.inject({}) do |m, pack|
-          root, public, source = pack.nsPath.split('/')
-          (m[source] ||= []) << pack
-          m
-        end
-
-        version_map = version_cis.inject({}) do |m, version|
-          (m[version.nsPath] ||= []) << version
-          m
-        end
+        source_pack_map = @pack_cis.group_by {|p| p.nsPath.split('/')[-2]}
+        version_map = @version_cis.group_by(&:nsPath)
 
         packs = source_pack_map.keys.inject({}) do |m, source|
           m[source] = source_pack_map[source].to_map_with_value do |pack|
@@ -67,6 +38,24 @@ class Catalog::PacksController < ApplicationController
         render :json => {:packs => packs}
       end
     end
+  end
+
+  def versions
+    org_ns_path     = organization_ns_path
+    source_pack_map = @pack_cis.group_by {|p| p.nsPath.split('/')[-2]}
+    version_map     = @version_cis.group_by(&:nsPath)
+
+    packs = source_pack_map.keys.inject({}) do |m, source|
+      m[source] = source_pack_map[source].to_map_with_value do |pack|
+        pack_name = pack.ciName
+        pack.versions = (version_map["#{pack.nsPath}/#{pack_name}"] || []).
+          sort_by(&:ciName).
+          to_map_with_value {|v| [v.ciName, !!(v.ciAttributes.enabled != 'false' || v.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path))]}
+        [pack_name, pack]
+      end
+      m
+    end
+    render :json => packs
   end
 
   def show
@@ -110,7 +99,7 @@ class Catalog::PacksController < ApplicationController
     end
 
     respond_to do |format|
-      format.js
+      format.js {render :action => :show}
       format.json { render_json_ci_response(ok, @version) }
     end
   end
@@ -134,26 +123,29 @@ class Catalog::PacksController < ApplicationController
     end
 
     respond_to do |format|
-      format.js {render :action => :visibility}
+      format.js {render :action => :show}
       format.json { render_json_ci_response(ok, @pack) }
     end
   end
 
   def diff
-    return if request.format.html?
+    source       = params[:source]
+    pack_name    = params[:pack]
+    version      = params[:version]
+    availability = params[:availability]
 
-    source        = params[:source]
-    pack_name     = params[:pack]
-    version       = params[:version]
-    availability  = params[:availability]
-    platform      = locate_pack_platform(pack_name, source, pack_name, version, availability)
-    other_version = params[:other_version]
+    if request.format.html?
+      @versions = locate_pack_versions(source, pack_name)
+      return
+    end
 
+    platform = locate_pack_platform(pack_name, source, pack_name, version, availability)
     if platform.blank?
       not_found("pack version #{version} not found.")
       return
     end
 
+    other_version = params[:other_version]
     if other_version.present?
       other_platform = locate_pack_platform(pack_name, source, pack_name, other_version, availability)
       if other_platform.blank?
@@ -270,6 +262,16 @@ class Catalog::PacksController < ApplicationController
 
 
   private
+
+  def load_packs_and_versions
+    @pack_cis    = Cms::Ci.all(:params => {:nsPath      => '/public',
+                                          :ciClassName => 'mgmt.Pack',
+                                          :recursive   => true})
+    @version_cis = Cms::Ci.all(:params => {:nsPath       => '/public',
+                                          :ciClassName  => 'mgmt.Version',
+                                          :recursive    => true,
+                                          :includeAltNs => ORG_VISIBILITY_ALT_NS_TAG})
+  end
 
   def find_pack_version
     @pack    = locate_pack(params[:source], params[:pack])

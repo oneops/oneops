@@ -268,7 +268,11 @@
             </td>
           </tr>
           <tr id="controls_pending" <%= 'style=display:none' unless deployment_state == 'pending' %>>
-            <%= render 'pending_approvals' if @approvals.present? %>
+            <% if @approvals.present? %>
+              <%= render 'pending_approvals' %>
+            <% else %>
+              <td colspan="2"><%= render 'transition/deployments/action', :action => 'cancel' %></td>
+            <% end %>
           </tr>
         <% elsif @deployment %>
           <% if @override %>

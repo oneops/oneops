@@ -1,0 +1,8 @@
+<% if versions.present? %>
+  <% _, _, source, _, pack = versions.first.nsPath.split('/') %>
+  <% org_ns_path = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT) ? nil : organization_ns_path
+     sorted_versions = versions.sort {|a, b| b.ciName <=> a.ciName}
+     builder = lambda {|vv| vv.map {|v| link_to(content_tag(:b, v.ciName), catalog_pack_platform_path(source, pack, v.ciName, params[:availability], pack), :class => pack_version_text_class(v, org_ns_path))}.join(', ')} %>
+  <%= raw builder.call(sorted_versions[0..14]) %><%= raw(", #{expandable_content(:content => raw(builder.call(sorted_versions[15..-1])))}") if sorted_versions.size > 15 %>
+<% end %>
+
