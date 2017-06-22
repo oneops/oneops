@@ -388,7 +388,7 @@ public class ManifestManagerImpl implements ManifestManager {
 			rfcProcessor.createRfcRelationNoCheck(rfcRelation, userId);
 		}
 		
-		for(CmsCI delCiId:manifestPlatformRfcs.getDeleteCiList()){
+		for(long delCiId:manifestPlatformRfcs.getDeleteCiIdList()){
 			ManifestRfcBulkProcessor.Context manifestContext = manifestRfcProcessor.new Context();
 			manifestContext.user = userId;
 			manifestContext.nsPath = rootRfc.getReleaseNsPath();
@@ -396,7 +396,7 @@ public class ManifestManagerImpl implements ManifestManager {
 			manifestRfcProcessor.requestCiDeleteCascadeNoRelsRfcs(delCiId, 0, manifestContext);
 		}
 		
-		for(CmsRfcRelation delRelation:manifestPlatformRfcs.getRfcDeleteRelationList()){
+		for(CmsCIRelation delRelation:manifestPlatformRfcs.getDeleteRelationList()){
 			cmRfcMrgProcessor.requestRelationDelete(delRelation.getCiRelationId(), userId);
 		}
 		long  t2= System.currentTimeMillis();

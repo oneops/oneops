@@ -20,7 +20,7 @@ package com.oneops.transistor.domain;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 
@@ -31,8 +31,8 @@ public class ManifestRfcContainer {
 	ManifestRootRfcContainer rootRfcRelTouple = new ManifestRootRfcContainer();
 	List<CmsRfcCI> rfcList = new ArrayList<CmsRfcCI>();;
 	List<CmsRfcRelation> rfcRelationList = new ArrayList<CmsRfcRelation>();
-	List<CmsCI> deleteCiList = new ArrayList<>();
-	List<CmsRfcRelation> rfcDeleteRelationList = new ArrayList<CmsRfcRelation>();
+	List<Long> deleteCiIdList = new ArrayList<>();
+	List<CmsCIRelation> deleteRelationList = new ArrayList<CmsCIRelation>();
 	List<ManifestRootRfcContainer> rfcRelToupleList = new ArrayList<ManifestRootRfcContainer>();
 	List<ManifestRfcRelationTriplet> rfcRelTripletList = new ArrayList<>();
 
@@ -68,20 +68,20 @@ public class ManifestRfcContainer {
 		this.rfcRelationList = rfcRelationList;
 	}
 
-	public List<CmsRfcRelation> getRfcDeleteRelationList() {
-		return rfcDeleteRelationList;
+	public List<CmsCIRelation> getDeleteRelationList() {
+		return deleteRelationList;
 	}
 
-	public void setRfcDeleteRelationList(List<CmsRfcRelation> rfcDeleteRelationList) {
-		this.rfcDeleteRelationList = rfcDeleteRelationList;
+	public void setDeleteRelationList(List<CmsCIRelation> deleteRelationList) {
+		this.deleteRelationList = deleteRelationList;
 	}
 
-	public List<CmsCI> getDeleteCiList() {
-		return deleteCiList;
+	public List<Long> getDeleteCiIdList() {
+		return deleteCiIdList;
 	}
 
-	public void setDeleteCiList(List<CmsCI> deleteCiList) {
-		this.deleteCiList = deleteCiList;
+	public void setDeleteCiIdList(List<Long> deleteCiIdList) {
+		this.deleteCiIdList = deleteCiIdList;
 	}
 
 	public List<ManifestRootRfcContainer> getRfcRelToupleList() {

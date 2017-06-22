@@ -17,10 +17,7 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
@@ -151,7 +148,9 @@ public class ManifestRfcBulkProcessor {
 		}
 	}
 
-
+	void requestCiDeleteCascadeNoRelsRfcs(long ciId, int execOrder, Context context) {
+		this.requestCiDeleteCascadeNoRelsRfcs(cmProcessor.getCiByIdNaked(ciId), execOrder, context);
+	}
 
 	void requestCiDeleteCascadeNoRelsRfcs(CmsCI ci, int execOrder, Context context) {
 		if (ci == null  || context.processed.contains(ci.getCiId())) return;
@@ -674,7 +673,7 @@ public class ManifestRfcBulkProcessor {
 		List<CmsCIRelation> userRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
 		t.stop("User relationship load");
 
-		List<CmsRfcRelation> existingDependsOnRels = cmRfcMrgProcessor.getDfDjRelations("manifest.DependsOn", null, context.platNsPath, null, null, null);
+		List<CmsCIRelation> existingDependsOnRels = cmProcessor.getCIRelations(context.platNsPath, "manifest.DependsOn", null,  null, null);
 		t.stop("Depends relationship load");
 		
 		List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
@@ -786,8 +785,8 @@ public class ManifestRfcBulkProcessor {
 		
 		MergeResult mrgResult = procesEdges(edges, manifestPlatform, context, platformRfcs);
 		
-		Set<CmsCI> deletedCiIds = procesPlatformDeletions(manifestPlatform, mrgResult.templateIdsMap, context.userId);
-		platformRfcs.getDeleteCiList().addAll(deletedCiIds);
+		Set<Long> deletedCis = procesPlatformDeletions(manifestPlatform, mrgResult.templateIdsMap, context.userId);
+		platformRfcs.getDeleteCiIdList().addAll(deletedCis);
 		t.stop("process edges");
 		
 		
@@ -803,11 +802,11 @@ public class ManifestRfcBulkProcessor {
 		processEscortRelations(designEscortRels, mrgResult.designIdsMap, mrgResult.rfcDesignMap, context, platformRfcs);
 		t.stop("escort relations processing");
 		
-		for (CmsRfcRelation existingDpOn : existingDependsOnRels) {
+		for (CmsCIRelation existingDpOn : existingDependsOnRels) {
 			if (!newRels.contains(existingDpOn.getRelationGoid())) {
-				if (!(deletedCiIds.contains(existingDpOn.getFromCiId()) ||  deletedCiIds.contains(existingDpOn.getToCiId()))) {
+				if (!(deletedCis.contains(existingDpOn.getFromCiId()) ||  deletedCis.contains(existingDpOn.getToCiId()))) {
 					logger.info("Deleting an existing relation: " + existingDpOn.getRelationGoid());
-					platformRfcs.getRfcDeleteRelationList().add(existingDpOn);
+					platformRfcs.getDeleteRelationList().add(existingDpOn);
 				}
 			}
 		}
@@ -1039,16 +1038,16 @@ public class ManifestRfcBulkProcessor {
 		return newRelsGoids;
 	}
 
-	private Set<CmsCI> procesPlatformDeletions(CmsRfcCI manifestPlatform, Map<Long, List<Long>> newIdsMap, String userId) {
+	private Set<Long> procesPlatformDeletions(CmsRfcCI manifestPlatform, Map<Long, List<Long>> newIdsMap, String userId) {
 		Set<Long> newCiIds = new HashSet<Long>();
-		Set<CmsCI> deletedCiIds = new HashSet<>();
+		Set<Long> deletedCiIds = new HashSet<>();
 		for (List<Long> manifestComponentCis : newIdsMap.values()) {
 			newCiIds.addAll(manifestComponentCis);
 		}
 		List<CmsCIRelation> oldManifestRels = cmProcessor.getFromCIRelationsNakedNoAttrs(manifestPlatform.getCiId(), null, "Requires", null);
 		for (CmsCIRelation oldRels : oldManifestRels) {
 			if (!newCiIds.contains(oldRels.getToCiId())) {
-				deletedCiIds.add(oldRels.getToCi());
+				deletedCiIds.add(oldRels.getToCiId());
 				//cmRfcMrgProcessor.requestCiDelete(oldRels.getToCiId(), userId);
 			}
 		}
