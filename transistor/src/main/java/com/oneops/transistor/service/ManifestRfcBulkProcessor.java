@@ -1466,34 +1466,6 @@ public class ManifestRfcBulkProcessor {
 		mergeRfc.setCreatedBy(context.userId);
 		mergeRfc.setUpdatedBy(context.userId);
 
-//		for (CmsRfcCI rfc :context.existingRfcCi){
-//			if (rfc.getCiName().equals(mergeRfc.getCiName()) && rfc.getCiClassName().equals(mergeRfc.getCiClassName())) {
-//				mergeRfc.setCiId(rfc.getCiId());
-//				mergeRfc.setRfcId(rfc.getRfcId());
-//
-//				for (CmsCI ci:context.existingManifestCIs.values()){
-//					if (ci.getCiName().equals(mergeRfc.getCiName()) && ci.getCiClassName().equals(mergeRfc.getCiClassName())) {
-//						//mergeRfc.setCiId(ci.getCiId());
-//						for (String attrName : ci.getAttributes().keySet()) {
-//							CmsCIAttribute existingAttr = ci.getAttribute(attrName);
-//							if (existingAttr != null && existingAttr.getOwner() != null && existingAttr.getOwner().equalsIgnoreCase("manifest")) {
-//								mergeRfc.getAttributes().remove(attrName);
-//							}
-//						}
-//						return mergeRfc;
-//					}
-//				}
-//				//
-//				for (String attrName : rfc.getAttributes().keySet()) {
-//					CmsRfcAttribute existingAttr = rfc.getAttribute(attrName);
-//					if (existingAttr != null && existingAttr.getOwner() != null && existingAttr.getOwner().equalsIgnoreCase("manifest")) {
-//						rfc.getAttributes().remove(attrName);
-//					}
-//				}
-//				return mergeRfc;
-//			}
-//		}
-//		
 		for (CmsCI ci:context.existingManifestCIs.values()){
 			if (ci.getCiName().equals(mergeRfc.getCiName()) && ci.getCiClassName().equals(mergeRfc.getCiClassName())) {
 				mergeRfc.setCiId(ci.getCiId());
