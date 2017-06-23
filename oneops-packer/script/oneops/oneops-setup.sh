@@ -1,6 +1,8 @@
 
 echo '==> Configuring OneOps for vagrant'
 
+source /etc/profile.d/rvm.sh
+
 mkdir -p /home/oneops
 
 mv /tmp/oneops-continuous.tar.gz /home/oneops/oneops-continuous.tar.gz
