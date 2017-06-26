@@ -257,6 +257,8 @@ Display::Application.routes.draw do
             :constraints => {:version => /\d+(\.\d+(\.\d+)?)?/,
                              :availability => /single|redundant/} do
         get ''                      => 'packs#show',       :as => ''
+        put ''                      => 'packs#update',     :as => 'update'
+        get 'versions'              => 'packs#versions',   :as => 'versions'
         get 'stats'                 => 'packs#stats',      :as => 'stats'
         put 'visibility'            => 'packs#visibility', :as => 'visibility'
         put 'password'              => 'packs#password',   :as => 'password'

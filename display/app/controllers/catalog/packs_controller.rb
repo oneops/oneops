@@ -3,13 +3,13 @@ class Catalog::PacksController < ApplicationController
   ORG_VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
   before_filter :authorize_pack_owner_group_membership, :only => [:visibility, :password]
-  before_filter :load_packs_and_versions, :only => [:index, :versions]
-  before_filter :find_pack_version, :only => [:show, :visibility, :password, :diff]
+  before_filter :find_pack_version, :only => [:show, :update, :visibility, :password, :diff]
 
   helper_method :check_pack_owner_group_membership?
 
 
   def index
+    load_packs_and_versions
     respond_to do |format|
       format.html { redirect_to catalog_path(:anchor => 'packs') }
       format.js do
@@ -41,21 +41,28 @@ class Catalog::PacksController < ApplicationController
   end
 
   def versions
-    org_ns_path     = organization_ns_path
-    source_pack_map = @pack_cis.group_by {|p| p.nsPath.split('/')[-2]}
-    version_map     = @version_cis.group_by(&:nsPath)
+    org_ns_path = organization_ns_path
+    pack_name = params[:pack]
+    if pack_name.present?
+      source         = params[:source]
+      @pack          = locate_pack(source, pack_name)
+      @pack.versions = build_pack_version_map(locate_pack_versions(source, pack_name), org_ns_path)
+      render :json => @pack
+    else
+      load_packs_and_versions
+      source_pack_map = @pack_cis.group_by {|p| p.nsPath.split('/')[-2]}
+      version_map     = @version_cis.group_by(&:nsPath)
 
-    packs = source_pack_map.keys.inject({}) do |m, source|
-      m[source] = source_pack_map[source].to_map_with_value do |pack|
-        pack_name = pack.ciName
-        pack.versions = (version_map["#{pack.nsPath}/#{pack_name}"] || []).
-          sort_by(&:ciName).
-          to_map_with_value {|v| [v.ciName, !!(v.ciAttributes.enabled != 'false' || v.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path))]}
-        [pack_name, pack]
+      packs = source_pack_map.keys.inject({}) do |m, source|
+        m[source] = source_pack_map[source].to_map_with_value do |pack|
+          pack_name = pack.ciName
+          pack.versions = build_pack_version_map(version_map["#{pack.nsPath}/#{pack_name}"] || [], org_ns_path)
+          [pack_name, pack]
+        end
+        m
       end
-      m
+      render :json => packs
     end
-    render :json => packs
   end
 
   def show
@@ -65,9 +72,34 @@ class Catalog::PacksController < ApplicationController
       end
 
       format.json do
-        @version.pack = @pack
-        render_json_ci_response(@version.present?, @version)
+        if @version
+          @version.pack = @pack
+          render_json_ci_response(@version.present?, @version)
+        else
+          render_json_ci_response(@pack.present?, @pack)
+        end
       end
+    end
+  end
+
+  def update
+    ok  = false
+    admin_password = params[:password]
+    password_digest = admin_password && Digest::SHA512.hexdigest(admin_password)
+    if password_digest == @pack.ciAttributes.admin_password_digest || has_support_permission?(SUPPORT_PERMISSION_PACK_MANAGEMENT)
+      %w(owner description).each do |attr|
+        value = params[attr]
+        @pack.ciAttributes.attributes[attr] = value if value
+      end
+      ok = execute(@pack, :save)
+      flash.now[:error] = 'Failed to update pack info.' unless ok
+    else
+      @pack.errors.add(:base, 'Invalid pack admin password.')
+    end
+
+    respond_to do |format|
+      format.js {render :action => :show}
+      format.json { render_json_ci_response(ok, @pack) }
     end
   end
 
@@ -116,7 +148,7 @@ class Catalog::PacksController < ApplicationController
       else
         @pack.ciAttributes.admin_password_digest = Digest::SHA512.hexdigest(new_password)
         ok = execute(@pack, :save)
-        flash.now[:notice] = 'Updated pack admin password.'
+        flash.now[:notice] = 'Updated pack admin password.' if ok
       end
     else
       @pack.errors.add(:base, 'Invalid pack admin password.')
@@ -312,5 +344,10 @@ class Catalog::PacksController < ApplicationController
       target.relationState = 'add'
     end
     diffs << target
+  end
+
+  def build_pack_version_map(versions, org_ns_path)
+    versions.sort_by(&:ciName).
+    to_map_with_value {|v| [v.ciName, !!(v.ciAttributes.enabled != 'false' || v.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path))]}
   end
 end
