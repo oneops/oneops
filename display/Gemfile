@@ -1,6 +1,7 @@
 source 'http://rubygems.org'
 
 gem 'rails', '4.1.10'
+gem 'rails-observers', '0.1.2'
 gem 'activeresource', '4.0.0', :require => 'active_resource'
 
 # Use SCSS for stylesheets
@@ -48,11 +49,7 @@ gem 'net-http-persistent', '2.9.4'
 gem 'activeresource-persistent', '0.2.0', :require => 'active_resource/persistent'
 
 # environment specific gems
-group :development do
-  gem 'quiet_assets'
-end
-
-group :shared do
+group :shared, :development do
   gem 'quiet_assets'
   gem 'awesome_print', :platforms => :mingw
 end
