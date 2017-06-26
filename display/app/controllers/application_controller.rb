@@ -416,11 +416,6 @@ class ApplicationController < ActionController::Base
     locate_pack_version(attrs.source, attrs.pack, attrs.version)
   end
 
-  def locate_pack_version_for_platform(platform)
-    attrs = platform.ciAttributes
-    locate_pack_version(attrs.source, attrs.pack, attrs.version)
-  end
-
   def locate_pack_version(source, pack, version)
     Cms::Ci.first(:params => {:nsPath       => "/public/#{source}/packs/#{pack}",
                               :ciClassName  => 'mgmt.Version',
