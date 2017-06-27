@@ -317,6 +317,8 @@ public class ManifestManagerImpl implements ManifestManager {
 			
 			if("manifest.Entrypoint".equals(rfcRelation.getRelationName())){
 				rfcRelation.setFromCiId(rootRfc.getCiId());
+				rfcRelation.setFromRfcId(rootRfc.getRfcId());
+				rfcRelation.setFromRfcCi(rootRfc);
 			}
 			rfcRelation.setReleaseId(context.ensureReleaseId());
 //			rfcRelation.setValidated(true);
@@ -343,6 +345,8 @@ public class ManifestManagerImpl implements ManifestManager {
 				
 				if("manifest.Requires".equals(rfcRel.getRelationName()) && rfcRel.getFromCiId() == 0){
 					rfcRel.setFromCiId(rootRfc.getCiId());
+					rfcRel.setFromRfcCi(rootRfc);
+					rfcRel.setFromRfcId(rootRfc.getRfcId());
 				}
 				rfcRel.setToCiId(newRfc.getCiId());
 				rfcRel.setToRfcId(newRfc.getRfcId());
