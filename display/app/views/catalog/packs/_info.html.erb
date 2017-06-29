@@ -1,4 +1,4 @@
-<% has_support_permission = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)
+<% edit = defined?(read_only) ? !read_only : false
    desc = @pack.ciAttributes.description
    org_ns_path = organization_ns_path
    enabled = @version.ciAttributes.enabled != 'false' || @version.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path)
@@ -14,9 +14,9 @@
   <dd>Added <b><%= time_ago_in_words(@version.created_timestamp) %></b></dd>
   <dt><%= icon(site_icon(:user)) %></dt>
   <dd>
-    Owned by <b><%= @pack.ciAttributes.owner.presence || 'unknown' %></b>
-    <%= link_to_function(icon('edit'), "$j(this).closest('.section').find('.well').hide();$j('#update_pack_info').show(500)") if has_support_permission %>
-    <% if has_support_permission %>
+    Owned by <b><%= @pack.ciAttributes.owner.presence || '?' %></b>
+    <% if edit %>
+      <%= link_to_function(icon('edit'), "$j(this).closest('.section').find('.well').hide();$j('#update_pack_info').show(500)") %>
       <div id="update_pack_info" class="hide well well-small">
         <%= form_tag catalog_pack_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
           <h5>Update pack info</h5>

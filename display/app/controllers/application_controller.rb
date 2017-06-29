@@ -789,7 +789,7 @@ class ApplicationController < ActionController::Base
           pack_versions[source][pack.ciName] = versions.sort.reverse
           category = pack.ciAttributes.category
           ch[category] = [] unless ch.include?(category)
-          ch[category] << [pack.ciAttributes.description, pack.ciName]
+          ch[category] << pack.ciName
         end
         ch
       end
