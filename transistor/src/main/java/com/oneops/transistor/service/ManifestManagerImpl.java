@@ -252,7 +252,7 @@ public class ManifestManagerImpl implements ManifestManager {
 
 		if(rootRfc.getCiState() == null){
 			rootRfc.setCiState("default");
-		}
+		}  
 		
 		Context context = new Context();
 		context.user = userId;
