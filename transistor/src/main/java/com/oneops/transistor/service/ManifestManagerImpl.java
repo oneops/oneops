@@ -254,7 +254,7 @@ public class ManifestManagerImpl implements ManifestManager {
 			rootRfc.setCiState("default");
 		}  
 		
-		Context context = new Context();
+		Context context = new Context();                                            
 		context.user = userId;
 		context.nsPath = rootRfc.getReleaseNsPath();
 		context.nsId = rootRfc.getNsId();
