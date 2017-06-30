@@ -1,28 +1,31 @@
 <%= f.fields_for :ci, @organization.ci do |ci_f| %>
   <%= render 'cms/cis/attributes', :ci => @organization.ci, :f => ci_f %>
 <% end %>
-<div class="category">
-  <div class="name">Functions</div>
-  <% [[:services, 'Offers services?'], [:assemblies, 'Manages assemblies?'], [:catalogs, 'Provides design catalogs']].each do |name, label| %>
-    <div class="control-group">
-      <%= f.label name, label, :class => 'control-label' %>
-      <div class="controls">
-        <%= render 'cms/cis/checkbox',
-                   :builder         => f,
-                   :attribute_name  => name,
-                   :attribute_value => @organization.send(name),
-                   :checked_value   => true,
-                   :unchecked_value => false %>
+<% has_support_permission = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT) %>
+<% if has_support_permission %>
+  <div class="category">
+    <div class="name">Functions</div>
+    <% [[:services, 'Offers services?'], [:assemblies, 'Manages assemblies?'], [:catalogs, 'Provides design catalogs']].each do |name, label| %>
+      <div class="control-group">
+        <%= f.label name, label, :class => 'control-label' %>
+        <div class="controls">
+          <%= render 'cms/cis/checkbox',
+                     :builder         => f,
+                     :attribute_name  => name,
+                     :attribute_value => @organization.send(name),
+                     :checked_value   => true,
+                     :unchecked_value => false %>
+        </div>
       </div>
-    </div>
-  <% end %>
-</div>
+    <% end %>
+  </div>
+<% end %>
 <div class="category">
   <div class="name">Announcement</div>
   <div class="control-group">
     <%= f.label 'announcement', 'Announcement', :class => 'control-label' %>
     <div class="controls">
-      <%= f.text_area 'announcement', :class => 'input-xlarge text' %>
+      <%= f.text_area 'announcement', :class => 'input-xlarge text', :rows => 10 %>
     </div>
   </div>
 </div>

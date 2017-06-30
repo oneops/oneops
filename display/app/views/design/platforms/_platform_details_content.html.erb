@@ -11,11 +11,12 @@
 
       <% attributes_meta = @platform.meta.attributes[:mdAttributes]
          pack_sources, pack_versions, packs = packs_info
-         first_source = pack_sources.sort.first %>
+         pack_sources = pack_sources.sort_by {|s| -packs[s].sum {|p| p.last.size}}
+         first_source = pack_sources.include?('oneops') ? 'oneops' : pack_sources.first %>
       <div class="control-group">
         <% a = attributes_meta.detect { |m| m.attributeName == 'source' } %>
         <%= c.label :source, a.description + (a.isMandatory ? '*' : ''), :class => 'control-label' %>
-        <div class="controls"><%= c.select :source, options_for_select(pack_sources, first_source), {}, :id => 'source_select' %></div>
+        <div class="controls"><%= c.select :source, options_for_select(pack_sources.map {|s| ["#{s} (#{pluralize(packs[s].sum {|p| p.last.size}, 'pack')})", s]}, first_source), {}, :id => 'source_select' %></div>
       </div>
 
       <div class="control-group">
@@ -68,6 +69,11 @@
       </script>
     <% end %>
   <% end %>
+</div>
+<div>
+  <blockquote><code><%= icon('exclamation', 'HINT', 'fa-lg') %></code> Can't find a particular pack or version here? Use
+    <b><%= link_to('pack browser', catalog_path) %></b> to verify that it is loaded and <b>enabled</b>,
+    to find out pack owner and general info, or simply to learn details about pack configuration and design.</blockquote>
 </div>
 <div class="category hide">
   <div class="name">Pack Info & Stats</div>

@@ -248,13 +248,17 @@ Display::Application.routes.draw do
         end
       end
 
-      resources :packs, :only => [:index]
+      resources :packs, :only => [:index] do
+        get 'versions', :on => :collection
+      end
 
       scope '/packs/:source/:pack(/:version)(/:availability)',
             :as => 'pack',
             :constraints => {:version => /\d+(\.\d+(\.\d+)?)?/,
                              :availability => /single|redundant/} do
         get ''                      => 'packs#show',       :as => ''
+        put ''                      => 'packs#update',     :as => 'update'
+        get 'versions'              => 'packs#versions',   :as => 'versions'
         get 'stats'                 => 'packs#stats',      :as => 'stats'
         put 'visibility'            => 'packs#visibility', :as => 'visibility'
         put 'password'              => 'packs#password',   :as => 'password'
