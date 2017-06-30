@@ -33,12 +33,10 @@
 
 <% unless @design %>
   <%= section_panel 'Info & Stats', :width => 'double', :position => 'left' do %>
-    <div id="pack_info_div"><%= loading_indicator %></div>
+    <div id="pack_info_div"><%= render('catalog/packs/info', :read_only => !has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)) %></div>
   <% end %>
 
-  <%= section_panel 'Visibility', :width => 'double', :position => 'left' do %>
-    <div id="pack_visibility_div"><%= loading_indicator %></div>
-  <% end %>
+    <div id="pack_visibility_div"><%= render('catalog/packs/visibility') %></div>
 <% end %>
 
 <div id="page_nav_diagram">
@@ -46,8 +44,6 @@
 </div>
 
 <script>
-  <%= remote_function(:url    => catalog_pack_path(@platform.ciAttributes.source, @platform.ciAttributes.pack, @platform.ciAttributes.version),
-                      :method => :get) %>
   <%= remote_function(:url    => @design ?
                                    diagram_catalog_design_platform_path(@design, @platform, :size => '6,4') :
                                    diagram_catalog_pack_platform_path(:id => @platform, :size => '6,4'),
