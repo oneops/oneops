@@ -1961,33 +1961,38 @@ public class CmsRfcProcessor {
 		String nsPath = platformRfc.getNsPath()+"/_design/"+platformRfc.getCiName();
 		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
 		CmsRelease newRelease = cloneRelease(release);
-		
-		
 
-		List<CmsRfcCI> cmsRfcCIs = getOpenRfcCIByClazzAndName(nsPath, null, null);
-		List<CmsRfcRelation> cmsRfcRelations = getOpenRfcRelationsByNs(nsPath);
-		
-		if (cmsRfcCIs.size()>0 || cmsRfcRelations.size()>0){
-			touchNewRelease(newRelease);
-			newRelease.setReleaseState("canceled");
-			updateRelease(newRelease);
-		}
-		for (CmsRfcCI cmsRfcCI : cmsRfcCIs) {
-			cmsRfcCI.setReleaseId(newRelease.getReleaseId());
-			updateRfcCI(cmsRfcCI);
-		}
-		
-		for (CmsRfcRelation relation : cmsRfcRelations) {
-			relation.setReleaseId(newRelease.getReleaseId());
-			updateRfcRelation(relation);
-		}
+        long releaseId = release.getReleaseId();
+        List<CmsRfcCI> rfcList = getRfcCIBy3(releaseId, true, null);
+        List<CmsRfcRelation> rfcRelationList = getRfcRelationByReleaseId(releaseId);
 
-			// clean up redundant old release since all the rfcs and rfcrelations were moved to a new discarded release
-		long releaseId = release.getReleaseId();
-		if (getRfcCIBy3(releaseId, true, null).size() == 0 && getRfcRelationByReleaseId(releaseId).size() == 0) {
-			logger.info("No release because rfc count is 0. Cleaning up release.");
-			deleteRelease(releaseId);
-		}
-		return newRelease.getReleaseId();
+
+        for (CmsRfcCI rfc : rfcList) {
+            if (nsPath.equals(rfc.getNsPath()) || platformRfc.getCiId()==rfc.getCiId()) {
+                continue;
+            }
+            touchNewRelease(newRelease);
+            rfc.setReleaseId(newRelease.getReleaseId());
+			djMapper.updateRfcCI(rfc);
+			djMapper.updateRfcLog(rfc);
+        }
+        
+        for (CmsRfcRelation relation : rfcRelationList) {
+            if (nsPath.equals(relation.getNsPath()) || (relation.getToCiId()!=null && platformRfc.getCiId() == relation.getToCiId()) || (relation.getFromCiId()!=null && platformRfc.getCiId() == relation.getFromCiId())) {
+                continue;
+            }
+            touchNewRelease(newRelease);
+            relation.setReleaseId(newRelease.getReleaseId());
+			djMapper.updateRfcRelation(relation);
+			djMapper.updateRfcRelationLog(relation);
+        }
+        
+        release.setReleaseState("canceled");
+        updateRelease(release);
+        if (newRelease.getReleaseId() != 0) { // set release state to cancelled if new release was created
+            newRelease.setReleaseState("open");
+            updateRelease(newRelease);
+        }
+        return newRelease.getReleaseId();
 	}
 }
