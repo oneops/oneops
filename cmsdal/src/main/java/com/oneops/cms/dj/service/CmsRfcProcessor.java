@@ -1960,7 +1960,7 @@ public class CmsRfcProcessor {
 		djMapper.deleteAltNs(nsId, rfcId);
 	}
 
-	public long discardReleaseForPlatform(CmsRfcCI platformRfc) {
+	public long discardReleaseForPlatform(CmsRfcCI platformRfc, String user) {
 		String nsPath = platformRfc.getNsPath()+"/_design/"+platformRfc.getCiName();
 		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
 		CmsRelease newRelease = cloneRelease(release);
@@ -1989,10 +1989,10 @@ public class CmsRfcProcessor {
 			djMapper.updateRfcRelation(relation);
 			djMapper.updateRfcRelationLog(relation);
         }
-        
+        release.setCommitedBy(user); 
         release.setReleaseState("canceled");
         updateRelease(release);
-        if (newRelease.getReleaseId() != 0) { // set release state to cancelled if new release was created
+        if (newRelease.getReleaseId() != 0) { // set release state to open if new release was created
             newRelease.setReleaseState("open");
             updateRelease(newRelease);
         }

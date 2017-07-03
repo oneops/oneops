@@ -677,9 +677,9 @@ public class DesignRfcProcessor {
         return map;
     }
 
-    public long discardReleaseForPlatform(long platId) {
+    public long discardReleaseForPlatform(long platId, String user) {
 		CmsRfcCI platformRfc= cmRfcMrgProcessor.getCiById(platId);
-        return rfcProcessor.discardReleaseForPlatform(platformRfc);
+        return rfcProcessor.discardReleaseForPlatform(platformRfc, user);
     }
 
 
