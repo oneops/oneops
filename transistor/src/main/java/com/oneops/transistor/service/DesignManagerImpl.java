@@ -143,8 +143,8 @@ public class DesignManagerImpl implements DesignManager {
 
 
 	@Override
-	public long discardReleaseForPlatform(long platId, String userId) {
-		return designRfcProcessor.discardReleaseForPlatform(platId);
+	public long discardReleaseForPlatform(long platId, String user) {
+		return designRfcProcessor.discardReleaseForPlatform(platId, user);
 	}
 
 	@Override

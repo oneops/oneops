@@ -17,34 +17,27 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
-import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
+import com.google.gson.Gson;
+import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.*;
+import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.ns.domain.CmsNamespace;
 import com.oneops.cms.ns.service.CmsNsProcessor;
+import com.oneops.cms.util.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
 import org.springframework.dao.DuplicateKeyException;
 
-import com.google.gson.Gson;
-import com.oneops.cms.cm.dal.CIMapper;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
-import com.oneops.cms.dj.dal.DJMapper;
-import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.ns.domain.CmsNamespace;
-import com.oneops.cms.util.CIValidationResult;
-import com.oneops.cms.util.CmsConstants;
-import com.oneops.cms.util.CmsDJValidator;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.CmsUtil;
-import com.oneops.cms.util.QueryOrder;
-import com.oneops.cms.util.TimelineQueryParam;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * The Class CmsRfcProcessor.
@@ -1965,5 +1958,44 @@ public class CmsRfcProcessor {
 
 	public void deleteAltNs(long nsId, long rfcId) {
 		djMapper.deleteAltNs(nsId, rfcId);
+	}
+
+	public long discardReleaseForPlatform(CmsRfcCI platformRfc, String user) {
+		String nsPath = platformRfc.getNsPath()+"/_design/"+platformRfc.getCiName();
+		CmsRelease release = getCurrentOpenRelease(platformRfc.getReleaseNsPath());
+		CmsRelease newRelease = cloneRelease(release);
+
+        long releaseId = release.getReleaseId();
+        List<CmsRfcCI> rfcList = getRfcCIBy3(releaseId, true, null);
+        List<CmsRfcRelation> rfcRelationList = getRfcRelationByReleaseId(releaseId);
+
+
+        for (CmsRfcCI rfc : rfcList) {
+            if (nsPath.equals(rfc.getNsPath()) || platformRfc.getCiId()==rfc.getCiId()) {
+                continue;
+            }
+            touchNewRelease(newRelease);
+            rfc.setReleaseId(newRelease.getReleaseId());
+			djMapper.updateRfcCI(rfc);
+			djMapper.updateRfcLog(rfc);
+        }
+        
+        for (CmsRfcRelation relation : rfcRelationList) {
+            if (nsPath.equals(relation.getNsPath()) || (relation.getToCiId()!=null && platformRfc.getCiId() == relation.getToCiId()) || (relation.getFromCiId()!=null && platformRfc.getCiId() == relation.getFromCiId())) {
+                continue;
+            }
+            touchNewRelease(newRelease);
+            relation.setReleaseId(newRelease.getReleaseId());
+			djMapper.updateRfcRelation(relation);
+			djMapper.updateRfcRelationLog(relation);
+        }
+        release.setCommitedBy(user); 
+        release.setReleaseState("canceled");
+        updateRelease(release);
+        if (newRelease.getReleaseId() != 0) { // set release state to open if new release was created
+            newRelease.setReleaseState("open");
+            updateRelease(newRelease);
+        }
+        return newRelease.getReleaseId();
 	}
 }
