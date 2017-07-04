@@ -112,6 +112,7 @@
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
+    <module>oneops-packer</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -798,5 +799,5 @@
       </plugin>
     </plugins>
   </build>
-  
+
 </project>
