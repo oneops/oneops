@@ -17,23 +17,12 @@
  *******************************************************************************/
 package com.oneops.cms.dj.service;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsLink;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
+import com.oneops.cms.dj.domain.CIRelative;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
@@ -46,6 +35,19 @@ import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import org.apache.log4j.Logger;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * The Class CmsCmRfcMrgProcessor.
@@ -517,9 +519,9 @@ public class CmsCmRfcMrgProcessor {
      * @param cmAttrValue the cm attr value
      * @return the ci by id
      */
-    public List<CmsRfcCI> getCiByIdList(List<Long> ciIds, String cmAttrValue) {
+    public List<CmsRfcCI> getCiByIdList(List<Long> ciIds, String cmAttrValue, Long releaseId) {
         List<CmsCI> ciList = cmProcessor.getCiByIdList(ciIds);
-        List<CmsRfcCI> rfcList = rfcProcessor.getOpenRfcCIByCiIdList(ciIds);
+        List<CmsRfcCI> rfcList = rfcProcessor.getOpenRfcCIByCiIdList(ciIds, releaseId);
 
         if (cmAttrValue == null) cmAttrValue = "df";
         Map<Long, Cis> rfcciMap = buildCiMap(ciList, rfcList);
@@ -833,6 +835,54 @@ public class CmsCmRfcMrgProcessor {
         return getFromCIRelationsByAttrs(fromId, relationName, shortRelationName, toClazzName, cmAttrValue, null);
     }
 
+    public Map<String, List<CmsRfcCI>> getFromRelativesByMultiRelations(long fromId, long releaseId, List<String> relationNames, String cmAttrValue) {
+        if (cmAttrValue == null) cmAttrValue = "df";
+        List<CIRelative> relatives = rfcProcessor.getFromRelativesByMultiRelationNames(fromId, releaseId, relationNames, null);
+        return getMergedRelatives(relationNames, relatives, releaseId, cmAttrValue);
+    }
+
+    public Map<String, List<CmsRfcCI>> getToRelativesByMultiRelations(long toId, long releaseId, List<String> relationNames, String cmAttrValue) {
+        if (cmAttrValue == null) cmAttrValue = "df";
+        List<CIRelative> relatives = rfcProcessor.getToRelativesByMultiRelationNames(toId, releaseId, relationNames, null);
+        return getMergedRelatives(relationNames, relatives, releaseId, cmAttrValue);
+    }
+
+    private Map<String, List<CmsRfcCI>> getMergedRelatives(List<String> relationNames, List<CIRelative> relatives, long releaseId, String cmAttrValue) {
+        Map<Long, CIRelative> rfcRelatives = relatives.stream().
+                filter(r -> "rfc".equals(r.getType())).
+                collect(Collectors.toMap(CIRelative::getCiRelationId, Function.identity()));
+        Set<Long> ciSet = new HashSet<>();
+        List<CIRelative> mergedRelatives = new ArrayList<>();
+        relatives.stream().
+                filter(r -> !("ci".equals(r.getType()) && rfcRelatives.containsKey(r.getCiRelationId()))).
+                forEach(r -> {
+                    ciSet.add(r.getRelCiId());
+                    mergedRelatives.add(r);
+                });
+
+        List<CmsRfcCI> cmRfcList = getCiByIdList(ciSet.stream().collect(Collectors.toList()), cmAttrValue, releaseId);
+        Map<Long, CmsRfcCI> resolvedCis = cmRfcList.stream().collect(Collectors.toMap(CmsRfcCI::getCiId, Function.identity()));
+
+        Map<String, List<CmsRfcCI>> map = new HashMap<>();
+        for (CIRelative relative : mergedRelatives) {
+            if (map.containsKey(relative.getRelationName())) {
+                map.get(relative.getRelationName()).add(resolvedCis.get(relative.getRelCiId()));
+            }
+            else {
+                List<CmsRfcCI> list = new ArrayList<>();
+                list.add(resolvedCis.get(relative.getRelCiId()));
+                map.put(relative.getRelationName(), list);
+            }
+        }
+
+        relationNames.stream().forEach(r -> {
+            if (!map.containsKey(r)) {
+                map.put(r, Collections.emptyList());
+            }
+        });
+        return map;
+    }
+
     /**
      * gets the ci relations by nsPath
      */
@@ -1140,7 +1190,7 @@ public class CmsCmRfcMrgProcessor {
                 toCiIds.add(rel.getToCiId());
             }
             Map<Long, CmsRfcCI> ciMap = new HashMap<>();
-            for (CmsRfcCI rfc : getCiByIdList(new ArrayList<>(toCiIds), cmAttrValue)) {
+            for (CmsRfcCI rfc : getCiByIdList(new ArrayList<>(toCiIds), cmAttrValue, null)) {
                 ciMap.put(rfc.getCiId(), rfc);
             }
             for (CmsRfcRelation rel : rels) {
@@ -1153,7 +1203,7 @@ public class CmsCmRfcMrgProcessor {
                 fromCiIds.add(rel.getFromCiId());
             }
             Map<Long, CmsRfcCI> ciMap = new HashMap<>();
-            for (CmsRfcCI ci : getCiByIdList(new ArrayList<>(fromCiIds), cmAttrValue)) {
+            for (CmsRfcCI ci : getCiByIdList(new ArrayList<>(fromCiIds), cmAttrValue, null)) {
                 ciMap.put(ci.getCiId(), ci);
             }
             for (CmsRfcRelation rel : rels) {

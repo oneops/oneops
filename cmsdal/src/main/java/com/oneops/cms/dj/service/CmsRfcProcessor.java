@@ -811,13 +811,13 @@ public class CmsRfcProcessor {
 		int toIndex = ids.size() > (fromIndex + CHUNK_SIZE) ? fromIndex + CHUNK_SIZE : ids.size();
 		List<Long> subList = ids.subList(fromIndex, toIndex);
 		while (subList.size() == CHUNK_SIZE) {
-			rfcs.addAll(djMapper.getOpenRfcCIByCiIdList(subList));
+			rfcs.addAll(djMapper.getOpenRfcCIByCiIdList(subList, null));
 			fromIndex += CHUNK_SIZE;
 			toIndex = ids.size() > (fromIndex + CHUNK_SIZE) ? fromIndex + CHUNK_SIZE : ids.size();
 			subList = ids.subList(fromIndex, toIndex);
 		}
 		if (subList.size() >0) {
-			rfcs.addAll(djMapper.getOpenRfcCIByCiIdList(subList));
+			rfcs.addAll(djMapper.getOpenRfcCIByCiIdList(subList, null));
 		}
 		return rfcs;
 	}
@@ -827,7 +827,7 @@ public class CmsRfcProcessor {
 	 * @param ids - List of the ci id
 	 * @return the open rfc ci by ci id
 	 */
-	public List<CmsRfcCI> getOpenRfcCIByCiIdList(List<Long> ids) {
+	public List<CmsRfcCI> getOpenRfcCIByCiIdList(List<Long> ids, Long releaseId) {
 		List<CmsRfcCI> rfcs = new ArrayList<CmsRfcCI>();
 		if (ids == null || ids.size() == 0) {
 			return rfcs;
@@ -836,7 +836,7 @@ public class CmsRfcProcessor {
 		int toIndex = ids.size() > (fromIndex + CHUNK_SIZE) ? fromIndex + CHUNK_SIZE : ids.size();
 		List<Long> subList = ids.subList(fromIndex, toIndex);
 		while (subList.size() == CHUNK_SIZE) {
-			List<CmsRfcCI> chunk = djMapper.getOpenRfcCIByCiIdList(subList);
+			List<CmsRfcCI> chunk = djMapper.getOpenRfcCIByCiIdList(subList, releaseId);
 			populateRfcCIAttributesSimple(chunk);
 			rfcs.addAll(chunk);
 			fromIndex += CHUNK_SIZE;
@@ -844,7 +844,7 @@ public class CmsRfcProcessor {
 			subList = ids.subList(fromIndex, toIndex);
 		}
 		if (subList.size() >0) {
-			List<CmsRfcCI> chunk = djMapper.getOpenRfcCIByCiIdList(subList);
+			List<CmsRfcCI> chunk = djMapper.getOpenRfcCIByCiIdList(subList, releaseId);
 			populateRfcCIAttributesSimple(chunk);
 			rfcs.addAll(chunk);
 		}
@@ -1998,4 +1998,13 @@ public class CmsRfcProcessor {
         }
         return newRelease.getReleaseId();
 	}
+
+	public List<CIRelative> getFromRelativesByMultiRelationNames(Long fromId, Long releaseId, List<String> relationNames, List<String> shortRelNames) {
+		return djMapper.getFromRelativesByMultiRelationNames(fromId, releaseId, relationNames, shortRelNames);
+	}
+
+	public List<CIRelative> getToRelativesByMultiRelationNames(Long toId, Long releaseId, List<String> relationNames, List<String> shortRelNames) {
+		return djMapper.getToRelativesByMultiRelationNames(toId, releaseId, relationNames, shortRelNames);
+	}
+
 }

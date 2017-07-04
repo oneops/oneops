@@ -18,6 +18,7 @@
 package com.oneops.cms.dj.dal;
 
 import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.dj.domain.CIRelative;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
@@ -26,10 +27,11 @@ import com.oneops.cms.dj.domain.CmsRfcLink;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.ibatis.annotations.Param;
 
 /**
  * The Interface DJMapper.
@@ -84,7 +86,7 @@ public interface DJMapper {
 
   CmsRfcCI getOpenRfcCIByCiId(long ciId);
 
-  List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds);
+  List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds, @Param("releaseId") Long releaseId);
 
   List<CmsRfcCI> getRfcCIBy3(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("ciId") Long ciId);
@@ -229,4 +231,11 @@ public interface DJMapper {
       @Param("ciId") Long ciId);
 
   List<CmsAltNs> getAltNsBy(@Param("rfcId") long rfcCI);
+
+  List<CIRelative> getFromRelativesByMultiRelationNames(@Param("fromId") Long fromId, @Param("releaseId") Long releaseId,
+                                                        @Param("relationNames") List<String> relationNames, @Param("shortRelNames") List<String> shortRelNames);
+
+  List<CIRelative> getToRelativesByMultiRelationNames(@Param("toId") Long toId, @Param("releaseId") Long releaseId,
+                                                      @Param("relationNames") List<String> relationNames, @Param("shortRelNames") List<String> shortRelNames);
+
 }

@@ -88,6 +88,11 @@ public interface CIMapper {
 	List<CmsCIRelation> getFromCIRelationsByMultiRelationNames(@Param("fromId") long fromId, @Param("relationNames") List<String> relationNames, @Param("shortRelNames") List<String> shortRelNames);
 
 	//List<CmsCIRelation> getFromCIRelationsShortName(@Param("fromId") long fromId, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName);
+
+	List<CIRelativeWrapper> getFromCIRelativesByMultipleRelations(
+            @Param("fromId") long fromId, 
+            @Param("pairs") List<ClassRelationPair> pairs);
+
 	long getCountFromCIRelationsByNS(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath);
 	long getCountFromCIRelationsByNSLike(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
 	List<Map<String,Object>> getCountFromCIRelationsByNSLikeGroupByNs(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
