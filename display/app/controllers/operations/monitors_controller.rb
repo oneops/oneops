@@ -148,10 +148,16 @@ class Operations::MonitorsController < Base::MonitorsController
         m
       end
       groups.values.each do |group|
-        group[:series].each {|metric| group[:data] << chart_data_map[metric]}
+        group[:series].each do |metric|
+          group[:data] << (chart_data_map[metric] ||
+                          {:header => {:ci_id  => group[:ci_id],
+                                       :metric => metric,
+                                       :start  => group[:start_time],
+                                       :step   => group[:step]},
+                           :data   => []})
+          end
       end
     end
-
     return groups.values
   end
 end
