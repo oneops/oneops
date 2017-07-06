@@ -2,8 +2,10 @@
   <%= icon('spinner fa-spin') %> Design pull is in progress, started <strong><%= time_ago_in_words(@environment.updated_timestamp) %></strong>.
 </div>
 <script>
+  // First poll in 5 sec, 10 sec thereafter.
+  window.design_pull_refresh_interval = window.design_pull_refresh_interval ? 10000 : 5000;
   setTimeout(function () {
                $j.get("<%= pull_status_assembly_transition_environment_path(@assembly, @environment) %>");
              },
-             10000);
+             window.design_pull_refresh_interval);
 </script>
