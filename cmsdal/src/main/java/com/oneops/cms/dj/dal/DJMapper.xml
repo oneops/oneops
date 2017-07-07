@@ -283,6 +283,7 @@
 		         #{item} 
         	</foreach> 
           and rci.release_id = r.release_id
+		  and (#{releaseId}::bigint is null or r.release_id = #{releaseId})
           and r.release_state_id = rs.release_state_id
           and rs.state_name = 'open'
           and rci.is_active_in_release = true
@@ -915,6 +916,84 @@
           and rfr.action_id = a.action_id
           and rfr.ns_id = ns.ns_id
  	 </select>
+
+	 <select id="getFromRelativesByMultiRelationNames" parameterType="map" resultType="com.oneops.cms.dj.domain.CIRelative">
+		select
+		mdr.relation_name as relationName,
+		cir.relation_id as relationId,
+		cir.ci_relation_id as ciRelationId,
+		cir.to_ci_id as relCiId,
+		'ci' as type
+		from cm_ci_relations cir, md_relations mdr, ns_namespaces ns
+		where cir.from_ci_id = #{fromId}
+		<if test="relationNames != null &amp;&amp; !relationNames.isEmpty()">
+			and mdr.relation_name in  <foreach item="item" index="index" collection="relationNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		<if test="shortRelNames != null &amp;&amp; !shortRelNames.isEmpty()">
+			and mdr.short_relation_name in <foreach item="item" index="index" collection="shortRelNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		and cir.relation_id = mdr.relation_id
+		union
+		select
+		rel.relation_name as relationName,
+		rfr.relation_id as relationId,
+		rfr.ci_relation_id as ciRelationId,
+		rfr.to_ci_id as relCiId,
+		'rfc' as type
+		from dj_rfc_relation rfr, md_relations rel, dj_releases r, dj_release_states rs
+		where rfr.release_id = r.release_id
+		and (#{releaseId}::bigint is null or r.release_id = #{releaseId})
+		and r.release_state_id = rs.release_state_id
+		and rs.state_name = 'open'
+		and rfr.is_active_in_release = true
+		and rfr.from_ci_id = #{fromId}
+		and rfr.relation_id = rel.relation_id
+		<if test="relationNames != null &amp;&amp; !relationNames.isEmpty()">
+			and rel.relation_name in  <foreach item="item" index="index" collection="relationNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		<if test="shortRelNames != null &amp;&amp; !shortRelNames.isEmpty()">
+			and rel.short_relation_name in <foreach item="item" index="index" collection="shortRelNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+	 </select>
+
+	 <select id="getToRelativesByMultiRelationNames" parameterType="map" resultType="com.oneops.cms.dj.domain.CIRelative">
+		select
+		rel.relation_name as relationName,
+		rfr.relation_id as relationId,
+		rfr.ci_relation_id as ciRelationId,
+		rfr.from_ci_id as relCiId,
+		'rfc' as type
+		from dj_rfc_relation rfr, md_relations rel, dj_releases r, dj_release_states rs
+		where rfr.release_id = r.release_id
+		and (#{releaseId}::bigint is null or r.release_id = #{releaseId})
+		and r.release_state_id = rs.release_state_id
+		and rs.state_name = 'open'
+		and rfr.is_active_in_release = true
+		and rfr.to_ci_id = #{toId}
+		and rfr.relation_id = rel.relation_id
+		<if test="relationNames != null &amp;&amp; !relationNames.isEmpty()">
+			and rel.relation_name in  <foreach item="item" index="index" collection="relationNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		<if test="shortRelNames != null &amp;&amp; !shortRelNames.isEmpty()">
+			and rel.short_relation_name in <foreach item="item" index="index" collection="shortRelNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		union
+		select
+		mdr.relation_name as relationName,
+		cir.relation_id as relationId,
+		cir.ci_relation_id as ciRelationId,
+		cir.from_ci_id as relCiId,
+		'ci' as type
+		from cm_ci_relations cir, md_relations mdr, ns_namespaces ns
+		where cir.to_ci_id = #{toId}
+		<if test="relationNames != null &amp;&amp; !relationNames.isEmpty()">
+			and mdr.relation_name in  <foreach item="item" index="index" collection="relationNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		<if test="shortRelNames != null &amp;&amp; !shortRelNames.isEmpty()">
+			and mdr.short_relation_name in <foreach item="item" index="index" collection="shortRelNames" open="(" close=")" separator=", "> #{item} </foreach>
+		</if>
+		and cir.relation_id = mdr.relation_id
+	 </select>
 
 	 <select id="getOpenFromRfcRelationByTargetClass" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcRelation">
 		SELECT rfr.rfc_id as rfcId, 

@@ -52,6 +52,7 @@ public final class CmsConstants {
 	public static final String BASE_PLACED_IN = "base.PlacedIn";
 	public static final String BASE_CONSUMES = "base.Consumes";
 	public static final String BASE_REQUIRES = "base.Requires";
+	public static final String BASE_ENTRYPOINT = "base.Entrypoint";
 
 	//catalog relations
 	public static final String CATALOG_DEPENDS_ON = "catalog.DependsOn";
@@ -62,6 +63,8 @@ public final class CmsConstants {
 	//manifest relations
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
+	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
+	public static final String MANIFEST_LOGGED_BY = "manifest.LoggedBy";
 
 	//mgmt relations
 	public static final String MGMT_CATALOG_WATCHEDBY = "mgmt.catalog.WatchedBy";
@@ -99,6 +102,8 @@ public final class CmsConstants {
 	public static final String MONITOR_CLASS = "manifest.Monitor";
 	public static final String ZONE_CLASS = "cloud.Zone";
 	public static final String CLOUD_CLASS = "account.Cloud";
+	public static final String MANIFEST_LOG_CLASS = "manifest.Log";
+	public static final String MANIFEST_ATTACHMENT_CLASS = "manifest.Attachment";
 
 	public static final String CATALOG_MONITOR_CLASS = "catalog.Monitor";
 
@@ -106,12 +111,15 @@ public final class CmsConstants {
 	public static final String MANIFEST = "manifest";
 	public static final String CATALOG = "catalog";
 
+	public static final String BOM_MANAGED_VIA = "bom.ManagedVia";
+	public static final String BOM_DEPENDS_ON = "bom.DependsOn";
 
 	public static final String CLOUDSERVICEPREFIX = "cloud.service";
 	public static final String MANAGED_VIA = "ManagedVia";
 	public static final String DEPENDS_ON = "DependsOn";
 	public static final String SECURED_BY = "SecuredBy";
 	public static final String SERVICED_BY = "ServicedBy";
+	public static final String REALIZED_AS = "RealizedAs";
 
 	public static final String ESCORTED_BY = "EscortedBy";
 }

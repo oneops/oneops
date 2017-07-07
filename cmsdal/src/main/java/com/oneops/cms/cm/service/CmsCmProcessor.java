@@ -1041,6 +1041,19 @@ public class CmsCmProcessor {
 		return relList;
 	}
 
+	public Map<String, List<CIRelativeWrapper>> getFromCIRelativesByMultiRelations(long fromId, List<ClassRelationPair> pairs) {
+		List<CIRelativeWrapper> relList = ciMapper.getFromCIRelativesByMultipleRelations(fromId, pairs);
+		List<CmsCI> ciList = relList.stream().map(CIRelativeWrapper::getRelCi).collect(Collectors.toList());
+		populateAttrs(ciList);
+		Map<String, List<CIRelativeWrapper>> map = relList.stream().collect(Collectors.groupingBy(CIRelativeWrapper::getRelationName));
+		pairs.stream().forEach(r -> {
+			if (!map.containsKey(r.getRelationName())) {
+				map.put(r.getRelationName(), Collections.emptyList());
+			}
+		});
+		return map;
+	}
+
 	private List<CmsCIRelation> getFromCIRelationsNakedLocal(long fromId,
 			String relationName, String shortRelName, String toClazzName) {
 		
@@ -1707,8 +1720,11 @@ public class CmsCmProcessor {
 	 * @return the template obj for manifest obj
 	 */
 	public CmsCI getTemplateObjForManifestObj(CmsCI manifestCi, CmsCI env) {
-		
-		List<CmsCIRelation> boxList = getToCIRelations(manifestCi.getCiId(), "manifest.Requires", null);
+		return getTemplateObjForManifestObj(manifestCi.getCiId(), manifestCi.getCiClassName(), env);
+	}
+
+	public CmsCI getTemplateObjForManifestObj(long manifestId, String manifestClassName, CmsCI env) {
+		List<CmsCIRelation> boxList = getToCIRelations(manifestId, "manifest.Requires", null);
 		CmsCI box = null;
 		String template = null;
 		CmsCI templateCi = null;
@@ -1722,25 +1738,24 @@ public class CmsCmProcessor {
 		} else {
 			avail = box.getAttribute("availability").getDfValue();
 		}
-		
-		if (box != null && template != null) {
-			String mgmtTemplNsPath = "/public/" + box.getAttribute("source").getDfValue() 
-									+ "/packs/" + box.getAttribute("pack").getDfValue()
-									+ "/" + box.getAttribute("version").getDfValue()
-									+ "/" + avail;
 
-			List<CmsCI> templateCis = getCiBy3(mgmtTemplNsPath, "mgmt." +  manifestCi.getCiClassName(), template);
+		if (box != null && template != null) {
+			String mgmtTemplNsPath = "/public/" + box.getAttribute("source").getDfValue()
+					+ "/packs/" + box.getAttribute("pack").getDfValue()
+					+ "/" + box.getAttribute("version").getDfValue()
+					+ "/" + avail;
+
+			List<CmsCI> templateCis = getCiBy3(mgmtTemplNsPath, "mgmt." +  manifestClassName, template);
 			if (templateCis.size() >0 ) {
 				templateCi = templateCis.get(0);
 			}
 
 		} else {
 			throw new CmsException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
-                                "Can not figure out template for manifest ciId - " + manifestCi.getCiId());
+					"Can not figure out template for manifest ciId - " + manifestId);
 		}
 
 		return templateCi;
-		
 	}
 
 	
