@@ -1330,8 +1330,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         if (isDebugEnabled(wo)) {
             logLevel = "debug";
         }
-        return writeChefConfig(Long.toString(wo.getRfcCi().getCiId()),
-                cookbookRelativePath, logLevel);
+        return writeChefConfig(Long.toString(wo.getRfcCi().getCiId()), 
+                cookbookRelativePath, wo.getCloud().getCiName(), wo.getServices(), logLevel);
     }
 
 

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.06.07-09-SNAPSHOT</version>
+  <version>17.06.07-10-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -112,6 +112,7 @@
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
+    <module>oneops-packer</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -798,5 +799,5 @@
       </plugin>
     </plugins>
   </build>
-  
+
 </project>

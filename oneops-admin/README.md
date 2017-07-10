@@ -8,7 +8,7 @@ Oneops admin gem consist of 2 gems.
 
 Pre-requisites
 -----
-The `inductor.jar` artefact is required for the gem to build correctly. See [oneops/inductor](https://github.com/oneops/inductor).
+The `inductor.jar` artifact is required for the gem to build correctly. See [oneops/inductor](https://github.com/oneops/inductor).
 
 Build
 -----
