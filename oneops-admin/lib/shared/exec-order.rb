@@ -37,12 +37,10 @@ end
 puts "os: #{ostype}" if log_level == "debug"
 
 prefix_root = ''
-prefix_bin = ''
 file_cache_path = '/tmp'
 ci = json_context.split("/").last.gsub(".json","")
 if ostype =~ /windows/
   prefix_root = 'c:/cygwin64'
-  prefix_bin = 'c:/opscode/chef/embedded/bin/'
   impl = 'oo::chef-12.11.18'
   json_context = prefix_root + json_context
   file_cache_path = "C:/tmp/#{ci}"
