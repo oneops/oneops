@@ -1,13 +1,58 @@
+<% edit = defined?(read_only) ? !read_only : false
+   desc = @pack.ciAttributes.description
+   org_ns_path = organization_ns_path
+   enabled = @version.ciAttributes.enabled != 'false' || @version.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path)
+   label_class = enabled ? 'text-success' : 'text-error' %>
 <dl class="dl-horizontal narrowest">
-  <dt><%= icon(site_icon(:user)) %></dt>
-  <dd>Owned by <b><%= @pack.ciAttributes.owner.presence || 'unknown' %></b></dd>
+  <dt><%= icon('archive') %></dt>
+  <dd>Pack
+    <%= link_to(catalog_pack_platform_path(params[:source], params[:pack], params[:version], params[:availability], params[:pack])) do %>
+      <b><%= params[:pack] %></b> ver.<b><%= params[:version] %></b>
+    <% end %>
+    provided by <em><%= params[:source] %></em> circuit</dd>
   <dt><%= icon('clock-o') %></dt>
-  <dd>Created <b><%= time_ago_in_words(@version.created_timestamp) %></b></dd>
+  <dd>Added <b><%= time_ago_in_words(@version.created_timestamp) %></b></dd>
+  <dt><%= icon(site_icon(:user)) %></dt>
+  <dd>
+    Owned by <b><%= @pack.ciAttributes.owner.presence || '?' %></b>
+    <% if edit %>
+      <%= link_to_function(icon('edit'), "$j(this).closest('.section').find('.well').hide();$j('#update_pack_info').show(500)") %>
+      <div id="update_pack_info" class="hide well well-small">
+        <%= form_tag catalog_pack_path(params[:source], params[:pack], params[:version]), :method => :put, :remote => true, :class => 'form-horizontal' do %>
+          <h5>Update pack info</h5>
+          <div class="control-group">
+            <label class="control-label" for="owner">Owner</label>
+            <div class="controls">
+              <%= text_field_tag :owner, @pack.ciAttributes.owner, :class => 'input-large', :required => true %>
+            </div>
+          </div>
+          <div class="control-group">
+            <label class="control-label" for="description">Description</label>
+            <div class="controls">
+              <%= text_area_tag :description, desc, :class => 'input-large', :required => false, :rows => 5 %>
+            </div>
+          </div>
+          <div class="form-actions">
+            <%= link_to_function(icon('remove', 'Cancel', 'fa-fw'), "$j(this).closest('.well').hide(500)", :class => 'btn btn-small') %>
+            <%= button_tag((icon('check', 'Save', 'fa-fw')), :disable_with => 'Saving...', :class => 'btn btn-small btn-success') %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </dd>
+  <% if desc.present? && desc.size > @pack.ciName.size %>
+    <dt><%= icon('comment') %></dt>
+    <dd><%= desc %></dd>
+  <% end %>
+  <dt><%= icon('book') %></dt>
+  <dd><%= link_to(raw("Documentation & notes #{icon('external-link')}"), pack_doc_url(params[:source], params[:pack], params[:version], :anchor => params[:availability].blank? ? 'design' : 'transition'), :target => '_blank') %></dd>
+  <dt><%= icon("toggle-#{enabled ? 'on' : 'off'}", nil, label_class) %></dt>
+  <dd>This version is <b><%= content_tag(:span, enabled ? 'enabled' : 'disabled', :class => label_class) %></b> for organization <b><%= current_user.organization.name %></b></dd>
   <dt><%= icon(site_icon(:deployment)) %></dt>
   <dd>
-    Operation stats
+    Operations stats:
     <% version = params[:version]
-       dom_id = random_dom_id %>
+       dom_id  = random_dom_id %>
     <div class="btn-group pull-right" id="<%= dom_id %>">
       <%= link_to(icon('check', "ver. #{version}"), catalog_pack_stats_path(params[:source], params[:pack], params[:version]), :remote => true, :class => 'btn btn-mini active') %>
       <%= link_to(icon('', 'all versions'), catalog_pack_stats_path(params[:source], params[:pack]), :remote => true, :class => 'btn btn-mini') %>
@@ -22,6 +67,6 @@
       });
 
     </script>
-    <%= render 'stats' %>
+    <%= render 'catalog/packs/stats' %>
   </dd>
 </dl>

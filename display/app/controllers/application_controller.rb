@@ -40,7 +40,7 @@ class ApplicationController < ActionController::Base
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
                 :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
-                :has_support_permission?
+                :has_support_permission?, :organization_ns_path
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -403,6 +403,12 @@ class ApplicationController < ActionController::Base
     Cms::Ci.first(:params => {:nsPath       => "/public/#{source}/packs",
                               :ciClassName  => 'mgmt.Pack',
                               :ciName       => pack})
+  end
+
+  def locate_pack_versions(source, pack)
+    Cms::Ci.all(:params => {:nsPath       => "/public/#{source}/packs/#{pack}",
+                            :ciClassName  => 'mgmt.Version',
+                            :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
   end
 
   def locate_pack_version_for_platform(platform)
@@ -783,7 +789,7 @@ class ApplicationController < ActionController::Base
           pack_versions[source][pack.ciName] = versions.sort.reverse
           category = pack.ciAttributes.category
           ch[category] = [] unless ch.include?(category)
-          ch[category] << [pack.ciAttributes.description, pack.ciName]
+          ch[category] << pack.ciName
         end
         ch
       end
@@ -795,25 +801,20 @@ class ApplicationController < ActionController::Base
     return pack_sources, pack_versions, packs
   end
 
+  # Returns only pack versions enabled for current org.
   def pack_versions(source, pack_name, major_version = nil)
     pack_ns_path = "/public/#{source}/packs/#{pack_name}"
-    if check_pack_owner_group_membership?(current_user) || has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)
-      versions = Cms::Ci.all(:params => {:nsPath       => pack_ns_path,
-                                          :ciClassName  => 'mgmt.Version',
-                                          :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
-    else
-      versions = Cms::Ci.all(:params => {:nsPath       => pack_ns_path,
-                                          :ciClassName  => 'mgmt.Version',
-                                          :recursive    => true,
-                                          :attr         => 'enabled:neq:false',
-                                          :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
-      versions += Cms::Ci.all(:params => {:nsPath      => pack_ns_path,
-                                           :ciClassName => 'mgmt.Version',
-                                           :recursive   => true,
-                                           :attr        => 'enabled:eq:false',
-                                           :altNsTag    => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
-                                           :altNs       => organization_ns_path})
-    end
+    versions = Cms::Ci.all(:params => {:nsPath       => pack_ns_path,
+                                        :ciClassName  => 'mgmt.Version',
+                                        :recursive    => true,
+                                        :attr         => 'enabled:neq:false',
+                                        :includeAltNs => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG})
+    versions += Cms::Ci.all(:params => {:nsPath      => pack_ns_path,
+                                         :ciClassName => 'mgmt.Version',
+                                         :recursive   => true,
+                                         :attr        => 'enabled:eq:false',
+                                         :altNsTag    => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
+                                         :altNs       => organization_ns_path})
     versions = versions.select {|v| v.ciName == major_version || v.ciName.start_with?("#{major_version}.")} if major_version.present?
     versions.sort_by { |v| s = v.ciName.split('.'); -(s[1].to_i * 100000 + s[2].to_i) }
   end

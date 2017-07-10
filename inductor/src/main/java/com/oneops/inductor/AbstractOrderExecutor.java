@@ -312,8 +312,8 @@ public abstract class AbstractOrderExecutor {
      * @param logLevel
      * @return
      */
-    protected String writeChefConfig(String ci, String cookbookRelativePath,
-                                     String logLevel) {
+    protected String writeChefConfig(String ci, String cookbookRelativePath, String cloudName, 
+    		Map<String, Map<String, CmsCISimple>> cloudServices, String logLevel) {
         String filename = "/tmp/chef-" + ci;
 
         String cookbookDir = config.getCircuitDir();
@@ -325,8 +325,24 @@ public abstract class AbstractOrderExecutor {
         String sharedDir = config.getCircuitDir().replace("packer",
                 "shared/cookbooks");
 
-        String content = "cookbook_path [\"" + cookbookDir + "\",\""
-                + sharedDir + "\"]\n";
+        Set<String> cookbookPaths = new HashSet<>();
+        cookbookPaths.add(cookbookDir);
+        cookbookPaths.add(sharedDir);
+        
+        if (cloudServices != null) {
+        	for (String serviceName : cloudServices.keySet()) { // for each service
+        		CmsCISimple serviceCi = cloudServices.get(serviceName).get(cloudName);
+        		if (serviceCi != null) {
+        			String serviceClassName = serviceCi.getCiClassName();
+        	        String serviceCookbookCircuit = getCookbookPath(serviceClassName);
+        	        if (! serviceCookbookCircuit.equals(cookbookRelativePath)) { 
+        	        	cookbookPaths.add(config.getCircuitDir().replace("packer", serviceCookbookCircuit) + "/components/cookbooks");
+        	        }
+        		}
+        	}
+        }
+        String content = "cookbook_path " + gson.toJson(cookbookPaths) + "\n";
+
         content += "lockfile \"" + filename + ".lock\"\n";
         content += "file_cache_path \"/tmp\"\n";
         content += "log_level :" + logLevel + "\n";

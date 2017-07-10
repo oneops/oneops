@@ -203,19 +203,23 @@ class Transition::DeploymentsController < ApplicationController
     if @deployment.deploymentState == 'pending' && (approving || deployment_state == 'canceled')
       comments = cms_deployment[:comments]
       load_approvals
-      approvals_to_settle = @approvals.select {|a| a.state == 'pending'}.map do |a|
-        {:approvalId   => a.approvalId,
-         :deploymentId => @deployment.deploymentId,
-         :state        => approving ? 'approved' : 'rejected',
-         :expiresIn    => 1,
-         :comments     => "#{'!! ' if approving}#{comments}"}
-      end
+      if @approvals.present?
+        approvals_to_settle = @approvals.select {|a| a.state == 'pending'}.map do |a|
+          {:approvalId   => a.approvalId,
+           :deploymentId => @deployment.deploymentId,
+           :state        => approving ? 'approved' : 'rejected',
+           :expiresIn    => 1,
+           :comments     => "#{'!! ' if approving}#{comments}"}
+        end
 
-      if approvals_to_settle.present?
-        ok, message = Cms::DeploymentApproval.settle(approvals_to_settle)
-        @deployment.errors.add(:base, message) unless ok
+        if approvals_to_settle.present?
+          ok, message = Cms::DeploymentApproval.settle(approvals_to_settle)
+          @deployment.errors.add(:base, message) unless ok
+        else
+          ok = true
+        end
       else
-        ok = true
+        ok = execute(@deployment, :update_attributes, cms_deployment)
       end
     else
       ok = execute(@deployment, :update_attributes, cms_deployment)
@@ -366,7 +370,7 @@ class Transition::DeploymentsController < ApplicationController
 
   def check_for_override
     doc = MiscDoc.deployment_to_all_primary_check.document
-    ns_path = @environment.nsPath
+    ns_path = environment_manifest_ns_path(@environment)
     return unless doc['*'] || doc.any? {|k, v| (ns_path.start_with?(k) || /#{k}/.match(ns_path)) && v}
 
     platforms = []

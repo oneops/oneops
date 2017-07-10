@@ -1,7 +1,7 @@
 <% allow_actions = in_transition? && has_transition?(@assembly.ciId)
    in_operations = in_operations?
-   warning = @clouds.select {|r| r.relationAttributes.adminstatus != 'offline' && r.relationAttributes.priority == '1'}
-       .group_by {|r| r.relationAttributes.dpmt_order}.size < 2  %>
+   primary_operating_clouds = @clouds.select {|r| r.relationAttributes.adminstatus != 'offline' && r.relationAttributes.priority == '1'}
+   warning = primary_operating_clouds.size > 1 && primary_operating_clouds  .group_by {|r| r.relationAttributes.dpmt_order}.size < 2  %>
 <% if warning %>
   <div class="alert alert-danger">
     <i class="fa fa-warning"><b>WARNING!</b></i>
