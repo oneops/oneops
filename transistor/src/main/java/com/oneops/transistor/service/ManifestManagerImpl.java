@@ -180,6 +180,13 @@ public class ManifestManagerImpl implements ManifestManager {
         
         long envReleaseId = populateParentRelease(env, nsPath);
         logger.info("Pull design for  " + nsPath + " completed in  " + (System.currentTimeMillis() - t1) + " millis (releaseId " + envReleaseId + ")");
+
+		List<CmsRelease> manifestReleases = rfcProcessor.getLatestRelease(nsPath, "open");
+		if (manifestReleases.size()>0) {
+			CmsRelease release = manifestReleases.get(0);
+			release.setDescription("Pull design completed in "+(System.currentTimeMillis() - t1) + " ms");
+			rfcProcessor.updateRelease(release);
+		}
         return envReleaseId;
     }
 
