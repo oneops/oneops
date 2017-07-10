@@ -1,4 +1,5 @@
-<table class="table scale">
+<% dom_id = random_dom_id %>
+<table class="table scale" id="<%= dom_id %>">
   <thead>
     <tr>
       <th>Component</th>
@@ -21,8 +22,8 @@
               <%= dor_f.fields_for :relationAttributes, dor.relationAttributes do |dor_attr_f| %>
                 <td class="controls"><%= dor_attr_f.number_field :pct_dpmt, :min => 1, :max => 100, :class => 'span1' %></td>
                 <td class="controls"><%= dor_attr_f.number_field :current, :min => dor.relationAttributes.min, :max => dor.relationAttributes.max, :class => 'span1 scale-current' %></td>
-                <td class="controls"><%= dor_attr_f.number_field :min, :min => 1, :max => dor.relationAttributes.max, :class => 'span1 scale-min', :onchange => 'scale_adjust_min_max(this)' %></td>
-                <td class="controls"><%= dor_attr_f.number_field :max, :min => dor.relationAttributes.min, :class => 'span1 scale-max', :onchange => 'scale_adjust_min_max(this)' %></td>
+                <td class="controls"><%= dor_attr_f.number_field :min, :min => 1, :max => dor.relationAttributes.max, :class => 'span1 scale-min', :onchange => "scale_adjust_min_max('#{dom_id}')" %></td>
+                <td class="controls"><%= dor_attr_f.number_field :max, :min => dor.relationAttributes.min, :class => 'span1 scale-max', :onchange => "scale_adjust_min_max('#{dom_id}')" %></td>
                 <td class="controls"><%= dor_attr_f.number_field :step_up, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
                 <td class="controls"><%= dor_attr_f.number_field :step_down, :min => 1, :max => dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i > 1 ? dor.relationAttributes.max.to_i - dor.relationAttributes.min.to_i : 1, :class => 'span1' %></td>
 
@@ -39,8 +40,8 @@
 </table>
 <script>
   if (!window.scale_adjust_min_max) {
-    window.scale_adjust_min_max = function(el) {
-      var parent = $j(el).parents("tr");
+    window.scale_adjust_min_max = function(parentId) {
+      var parent = $j("#" + parentId);
       var currentEl = parent.find(".scale-current"),
           minEl     = parent.find(".scale-min"),
           maxEl     = parent.find(".scale-max");
@@ -48,6 +49,8 @@
       currentEl.attr('max', maxEl.val());
       minEl.attr('max', maxEl.val());
       maxEl.attr('min', Math.max(minEl.val(), maxEl.attr('min')));
+      currentEl.val(Math.min(maxEl.val(), Math.max(minEl.val(), currentEl.val())));
     }
   }
+  scale_adjust_min_max('<%= dom_id %>');
 </script>

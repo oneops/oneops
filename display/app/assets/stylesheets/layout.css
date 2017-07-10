@@ -3975,6 +3975,10 @@ label a input[type=checkbox] {
   width:           60px;
 }
 
+ul.log > li {
+  word-break: break-all;
+}
+
 ul.log li.info {
   color: green;
 }

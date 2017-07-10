@@ -33,7 +33,7 @@
 
 <% unless @design %>
   <%= section_panel 'Info & Stats', :width => 'double', :position => 'left' do %>
-    <div id="pack_info_div"><%= render('catalog/packs/info') %></div>
+    <div id="pack_info_div"><%= render('catalog/packs/info', :read_only => !has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)) %></div>
   <% end %>
 
     <div id="pack_visibility_div"><%= render('catalog/packs/visibility') %></div>
