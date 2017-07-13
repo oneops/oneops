@@ -116,6 +116,7 @@ public class CmsRfcUtil {
 			
 			if (rfcCi.getCiName() == null) rfcCi.setCiName(ci.getCiName());
 			if (rfcCi.getNsPath() == null) rfcCi.setNsPath(ci.getNsPath());
+			if (rfcCi.getNsId() == 0) rfcCi.setNsId(ci.getNsId());
 			if (rfcCi.getCiGoid() == null) rfcCi.setCiGoid(ci.getCiGoid());
 			if (rfcCi.getComments() == null) rfcCi.setComments(ci.getComments());
 			
