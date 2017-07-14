@@ -1,6 +1,6 @@
 <% ci_id = item.ciId %>
 <li id="item_<%= ci_id %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, <%= ci_id %>)"
-    <%= builder[:attributes] || %(ciId="#{ci_id.to_s.rjust(20, '0')}" ciName="#{item.ciName}" created="#{item.created}") %> <%= raw(%(style="display:none")) if collapse %>>
+    <%= builder[:attributes] || %(ciId="#{ci_id.to_s.rjust(20, '0')}" ciName="#{item.ciName}" created="#{item.created}" updated="#{item.updated}") %> <%= raw(%(style="display:none")) if collapse %>>
   <div class="target" id="id_<%= item.ciName %>"><%= builder[:target] %></div>
 
   <% status = builder[:status] %>
@@ -68,7 +68,7 @@
         <% else %>
           <% if item.is_a?(Cms::RfcCi) %>
             <% if item.rfcAction %>
-              last modified
+              <%= item.rfcAction == 'add' ? 'added' : 'modified' %>
               <% if item.rfcUpdated %>
                 <% updated_by = item.rfcUpdatedBy || item.rfcCreatedBy %>
                 <%= time_ago_in_words(item.rfc_updated_timestamp) %> <%= "by #{updated_by}" if updated_by %>
@@ -76,7 +76,11 @@
                 <%= time_ago_in_words(item.rfc_created_timestamp) %> <%= "by #{item.rfcCreatedBy}" if item.rfcCreateddBy %>
               <% end %>
             <% else %>
-              last commit <%= time_ago_in_words(item.updated_timestamp) %> <%= "by #{item.createdBy}" if item.createdBy %>
+              <% if item.updated == item.created %>
+                created <%= time_ago_in_words(item.created_timestamp) %> <%= "by #{item.createdBy}" if item.createdBy %>
+              <% else %>
+                last commit <%= time_ago_in_words(item.updated_timestamp) %> <%= "by #{item.updatedBy}" if item.updatedBy %>
+              <% end %>
             <% end %>
           <% else %>
             created <%= time_ago_in_words(item.created_timestamp) %> <%= "by #{item.createdBy}" if item.createdBy %>

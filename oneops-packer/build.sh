@@ -2,7 +2,7 @@
 
 export ONEOPS_ARCHIVE=$1
 export PACKER_CACHE_DIR=$HOME/.packer/cache
-export ONEOPS_VERSION=$(mvn help:evaluate -Dexpression=project.version|grep -v '\[INFO\]')
+export ONEOPS_VERSION=$(mvn -q -N -Dexec.executable="echo" -Dexec.args='${project.version}' exec:exec)
 
 if [ -z $ONEOPS_ARCHIVE ]
 then

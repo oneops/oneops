@@ -14,7 +14,13 @@
 <%= list(@clouds,
          :list_name => 'platform_clouds',
          :toolbar   => {:sort_by   => [%w(Name ciName), %w(Priority priority), %w(Status status)],
-                        :filter_by => %w(ciName priority status)}) do |builder, cloud| %>
+                        :filter_by => %w(ciName priority status),
+                        :quick_filters => [{:label => 'All', :value => '', :selected => true},
+                                           {:label => 'Primary', :value => 'priority=primary'},
+                                           {:label => 'Secondary', :value => 'priority=secondary'},
+                                           {:label => 'Active', :value => 'status=active'},
+                                           {:label => 'Inactive', :value => 'status=inactive'},
+                                           {:label => 'Offline', :value => 'status=offline'}]}) do |builder, cloud| %>
   <% cloud_id       = cloud.toCi.ciId
      cloud_name     = cloud.toCi.ciName
      status         = cloud.relationAttributes.adminstatus

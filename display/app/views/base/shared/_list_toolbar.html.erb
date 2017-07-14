@@ -279,6 +279,11 @@
       if (list.find(".btn i.fa-angle-double-down").length) {
         list.find(".list-body > ul > li .middle").hide();
       }
+
+      var quick_filter_value = list.find(".quick-filters li.active").attr('data-filter-value');
+      if (quick_filter_value) {
+        set_list_filter(list, quick_filter_value);
+      }
     };
 
     window.update_filter_marker = function(list) {

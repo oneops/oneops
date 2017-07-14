@@ -1516,8 +1516,7 @@ img.authicon {
 .list-toolbar {
   float:         left;
   width:         100%;
-  margin:        0;
-  padding:       0px 0px 0px 0px;
+  padding:       0px 0px 5px 0px;
   border-top:    none;
   border-bottom: solid 1px #eee;
   clear:         both;
@@ -1545,7 +1544,14 @@ img.authicon {
   position:    relative;
   float:       right;
   white-space: nowrap;
-  margin:      0px 5px 10px 5px;
+  margin:      0px 5px 0px 5px;
+}
+
+.list-toolbar div.quick-filters {
+  position:    relative;
+  float:       right;
+  white-space: nowrap;
+  margin:      0px 5px 0px 5px;
 }
 
 .list-toolbar div.filter input.list-toolbar-filter {
@@ -1770,7 +1776,7 @@ img.authicon {
   float:      left;
   position:   relative;
   min-width:  50%;
-  max-width:  75%;
+  max-width:  90%;
   margin:     2px 5px;
   font-size:  10px;
   text-align: left;
@@ -1960,7 +1966,7 @@ img.authicon {
   line-height:       15px;
   margin:            5px 2px 0px 2px;
   color:             #888;
-  opacity:           0.5;
+  opacity:           0.9;
   white-space:       nowrap;
   overflow:          hidden;
   text-overflow:     ellipsis;
