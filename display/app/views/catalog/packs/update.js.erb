@@ -1,0 +1,6 @@
+<% if @pack.errors.present? %>
+  flash(null, "<%= escape_javascript(@pack.errors.full_messages.join(' ')) %>");
+<% else %>
+  $j("#pack_info_div").html("<%= escape_javascript(render('info', :read_only => !has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT))) %>");
+  $j("#pack_visibility_div").html("<%= escape_javascript(render('visibility')) %>");
+<% end %>

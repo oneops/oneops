@@ -1,6 +1,1 @@
-<% if @pack.errors.present? %>
-  flash(null, "<%= escape_javascript(@version.errors.full_messages.join(' ')) %>");
-<% else %>
-  $j("#pack_info_div").html("<%= escape_javascript(render('info')) %>");
-  $j("#pack_visibility_div").html("<%= escape_javascript(render('visibility')) %>");
-<% end %>
+$j("#pack_info_div").html("<%= escape_javascript(render('info')) %>");
