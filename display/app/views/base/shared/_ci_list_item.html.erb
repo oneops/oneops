@@ -1,6 +1,6 @@
 <% ci_id = item.ciId %>
 <li id="item_<%= ci_id %>" <%= "group_id=#{group[:id]}" if group.present? %> onclick="mark_current_list_item(this, <%= ci_id %>)"
-    <%= builder[:attributes] || %(ciId="#{ci_id.to_s.rjust(20, '0')}" ciName="#{item.ciName}" created="#{item.created}") %> <%= raw(%(style="display:none")) if collapse %>>
+    <%= builder[:attributes] || %(ciId="#{ci_id.to_s.rjust(20, '0')}" ciName="#{item.ciName}" created="#{item.created}" updated="#{item.updated}") %> <%= raw(%(style="display:none")) if collapse %>>
   <div class="target" id="id_<%= item.ciName %>"><%= builder[:target] %></div>
 
   <% status = builder[:status] %>
