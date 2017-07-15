@@ -59,7 +59,7 @@ public class ESMessageProcessor implements MessageProcessor {
 
 
     public void processMessage(String message, String msgType, String msgId) {
-        if (StringUtils.isNotBlank(message)) {
+        if (StringUtils.isNotBlank(message) && !"null".equalsIgnoreCase(message)) {
             processMessageInt(message, msgType, msgId);
         } else if (StringUtils.isNotBlank(msgType) && StringUtils.isNotBlank(msgId)) {
             deleteMessage(msgType, msgId);
@@ -117,9 +117,11 @@ public class ESMessageProcessor implements MessageProcessor {
                     object.add("timestamp", new JsonPrimitive(new Date().getTime()));
                     object.add("ciId", new JsonPrimitive(msgId));
                     indexer.indexEvent("ci_delete", object.toString());
+                } else if ("cm_ci_rel".equals(msgType)){
+                    msgType = "relation";
                 }
-                indexer.getTemplate().delete(indexer.getIndexName(), msgType, msgId);
-                logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES.");
+                indexer.getTemplate().delete(indexer.getIndexByType(msgType), msgType, msgId);
+                logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES index:"+indexer.getIndexByType(msgType));
             }
         } catch (Exception e) {
             logger.error(">>>>>>>>Error in deleteMessage() ESMessageProcessorfor type :" + msgType+ " ::msgId :"+ msgId +"::" + ExceptionUtils.getMessage(e), e);
