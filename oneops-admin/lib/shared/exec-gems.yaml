@@ -113,6 +113,9 @@ chef-12.11.18:
       - ffi-yajl
       - 2.2.3
     -
+      - rest-client
+      - 1.6.7
+    -
       - ms_rest
       - 0.1.1
     -
