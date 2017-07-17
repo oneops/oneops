@@ -569,10 +569,7 @@ public class CmsRfcProcessor {
 	}
 
 	private void insertRfcCIAttributes(Collection<CmsRfcAttribute> rfcAttributes, long rfcId) {
-		for (CmsRfcAttribute attr : rfcAttributes){
-			if (attr.getNewValue() == null) {
-				attr.setNewValue("");
-			}
+		for (CmsRfcAttribute attr : rfcAttributes) {
 			attr.setRfcId(rfcId);
 			djMapper.insertRfcCIAttribute(attr);
 		}
@@ -658,9 +655,6 @@ public class CmsRfcProcessor {
 			CmsRfcAttribute existingAttr = existingRfcCi.getAttribute(attr.getAttributeName());
 			attr.setRfcId(rfcCi.getRfcId());
 			if (existingAttr == null) {
-				if (attr.getNewValue() == null) {
-					attr.setNewValue("");
-				}
 				djMapper.insertRfcCIAttribute(attr);
 			} else if (!(djValidator.rfcAttrsEqual(attr, existingAttr))) {
 				if (attr.getNewValue() == null) {
