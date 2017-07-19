@@ -145,7 +145,8 @@ case "$1" in
        		echo -n "Stopping nagios: "
 
        		pid_nagios
-          killall -u nagios; sleep 2
+                  killall -u nagios; sleep 2
+                  killall5 -u nagios; sleep 2
        		#killproc_nagios nagios
        		# now we have to wait for nagios to exit and remove its
        		# own NagiosRunFile, otherwise a following "start" could
@@ -165,6 +166,7 @@ case "$1" in
        		    echo ''
 		          echo 'Warning - nagios did not exit in a timely manner - Killing it'
        		    killall -9 -u nagios
+                      killall5 -9 -u nagios
        		else
        		    echo 'done.'
        		fi
