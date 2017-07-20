@@ -216,11 +216,11 @@ class Search::Cost < Search::Base
     result     = nil
     start_date = start_date.to_date
     end_date   = end_date.to_date
+    end_date += 1.day if interval == 'day'
     ranges     = [[start_date, start_date.send("next_#{interval}").send("beginning_of_#{interval}").to_date]]
     while ranges.last.last < end_date
       ranges << [ranges.last.last, ranges.last.last + 1.send(interval)]
     end
-    ranges.last[-1] = (end_date + 1.day)
     search_params = {
       :query => cost_query_conditions(ns_path, start_date, end_date),
       :_source => %w(ciId),
