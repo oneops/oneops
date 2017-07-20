@@ -97,7 +97,6 @@ killallproc_nagios ()
             elif [ "$1" == "force" ]; then
                   echo "executing killall -9 -u nagios"
                   killall -9 -u nagios
-                  sleep 2
             fi
       fi
 }
