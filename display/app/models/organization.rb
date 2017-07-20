@@ -1,7 +1,10 @@
 class Organization < ActiveRecord::Base
   has_many :teams, :dependent => :destroy
+  has_one :admin_team, -> {where(:name => Team::ADMINS)}, :class_name => Team
   has_many :users, -> {uniq}, :through => :teams
+  has_many :admin_users, :through => :admin_team, :source => :users
   has_many :groups, -> {uniq}, :through => :teams
+  has_many :group_users, :through => :groups, :source => :users
   has_many :ci_proxies, :dependent => :destroy
 
   validates_presence_of :name
