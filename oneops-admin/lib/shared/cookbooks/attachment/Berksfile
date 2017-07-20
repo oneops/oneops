@@ -1,0 +1,7 @@
+source "http://localhost:65535/"
+# Did not want to link the berks file to outside link https://supermarket.chef.io so it is set up to listen
+# to a random unused port.
+metadata
+
+# The shared is needed but wont work without a dummy metadata.rb file placed in it. 
+cookbook "shared", "~> 0.0.1", path: "../shared"

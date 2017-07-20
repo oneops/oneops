@@ -1,29 +1,81 @@
----
-driver_plugin: vagrant
 
+driver:
+  name: vagrant
+  customize:
+    memory: 2048
+    cpuexecutioncap: 70
 platforms:
-- name: centos-6.3
-  driver_config:
-    box: opscode-centos-6.3
-    box_url: http://opscode-vm.s3.amazonaws.com/vagrant/opscode_centos-6.3_chef-11.2.0.box
+  -
+    name: centos-6.8
+
+provisioner:
+  name: chef_solo
+  cookbook_files_glob: "**/*"
+  require_chef_omnibus: 11.18.12
+  script: "bootstrap.sh"
+  solo_rb:
+    verify_api_cert: true
+    ssl_verify_mode: :verify_peer
+    log_level: :info
 
 suites:
-- name: default
-  run_list: ["recipe[artifact_test]"]
-  attributes: 
-    artifact_test:
-      version: "1.2.3"
-      location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
-- name: forcing
-  run_list: ["recipe[artifact_test::default]", "recipe[artifact_test::force_install]"]
-  attributes: 
-    artifact_test:
-      version: "1.2.3"
-      location: "/tmp/kitchen-chef-solo/cookbooks/artifact/fixtures/artifact_test-1.2.3.tgz"
-- name: file
-  run_list: ["recipe[artifact_test::file]"]
-- name : nexus-file
-  run_list: ["recipe[artifact_test::file]"]
-  attributes:
-    artifact_test:
-      file_url: "com.test:mytest:1.0.0:tgz"
+  -
+    attributes:
+      artifact:
+        install_dir: "/app/standalone"
+        restart: "\nbash \u0027restart_app\u0027 do\nuser \u0027app\u0027\ngroup \u0027app\u0027\n  code \u003c\u003c-EXEC\n   java -jar /app/standalone/current/standalone-2.59.jar \u0026\n  EXEC\n  returns 0\nend\n\n\n"
+        should_expand: "false"
+        as_group: "app"
+        configure": "directory \"/log/logmon/\" do\n  owner \u0027app\u0027\n  group \u0027app\u0027\n  mode \u0027755\u0027\n  action :create\nend\n"
+        repository": "pangaea_releases"
+        version: "2.59"
+        url: "http://nexus.stage.walmart.com/nexus/service/local/repositories/pangaea_releases/content/com/walmart/platform/paasdemos/standalone/2.59/standalone-2.59-jar-with-dependencies.jar"
+        path: "/nexus"
+        environment: "{}"
+        password: ""
+        as_user: "app"
+        checksum: ""
+        location: "http://nexus.stage.walmart.com/nexus/service/local/repositories/pangaea_releases/content/com/walmart/platform/paasdemos/standalone/2.59/standalone-2.59-jar-with-dependencies.jar"
+        persist: "[]"
+        username: ""
+        migrate: ""
+      java:
+        flavor: "oracle"
+        install_dir: "/usr/lib/jvm"
+        jrejdk: "server-jre"
+        sysdefault: "true"
+        version: "8"
+        uversion: ""
+        enable_jce: "false"
+        binpath: ""
+      app_name: "java"
+      workorder:
+        rfcCi:
+          ciName: "artifact-38147036-1"
+        cloud:
+          ciName: "qa-dfw1"
+        services:
+          mirror:
+            qa-dfw1:
+              ciAttributes:
+                mirrors: "{\n              \"apache\":\"http://repos.walmart.com/mirrored-assets/apache.mirrors.pair.com/\",\n              \"couchbase\":\"https://nexus.prod.walmart.com/nexus/content/repositories/thirdparty/com/couchbase/server/couchbase-server-enterprise/\",\n              \"sterling\":\"https://nexus.prod.walmart.com/nexus/content/repositories/pangaea_releases/com/walmartlabs/pangaea/services/sterling/\",\n              \"tibco\":\"https://nexus.prod.walmart.com/nexus/content/groups/public/com/walmart/platform/tibco/ems/tib_ems/\",\n\t            \"rvm\":\"http://nexus.prod.walmart.com/nexus/content/repositories/thirdparty/org/ruby-lang/rvm/1.25.32/rvm-1.25.32.tar.gz\",\n              \"php\":\"http://repos.walmart.com/mirrored-assets/php\",\n              \"es\":\"http://nexus.prod.walmart.com/nexus/content/groups/public/org/elasticsearch\",\n              \"glusterfs\":\"http://repos.walmart.com/mirrored-assets/gluster\",\n              \"lola\":\"http://ops-cdc-repo-mirror00.bfd.walmart.com/mrepo/teams-x86_64/RPMS.dare/\",\n              \"solr\":\"http://gec-maven-nexus.walmart.com/nexus/content/groups/public/org/apache/solr/\",\n              \"solr-monitor\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/pangaea_releases/com/walmart/fl/monitor/solr\",\n              \"mysql\":\"http://repos.walmart.com/mysql\",\n              \"datastax-enterprise\":\"http://nexus.prod.walmart.com/nexus/content/groups/public/datastax/enterprise\",\n              \"datastax-community\":\"http://nexus.prod.walmart.com/nexus/content/repositories/datastax/\",\n              \"etcd\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/thirdparty/coreos/etcd/v$version/etcd-v$version-$arch.$extn\",\n              \"jdk\":\"https://nexus.prod.walmart.com/nexus/content/groups/public/$flavor/$jrejdk/$version/\",\n              \"docker\":\"http://repos.walmart.com/mirrored-assets/dockerproject.org/$releasever/\",\n              \"graylog\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/thirdparty/org/graylog/\",\n              \"jinja-template\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/thirdparty/com/walmartlabs/platform/jinja.template_config/4.1-1/jinja.template_config-4.1-1-x86_64.rpm\",\n\t            \"dotnetcli\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/certs/org/dotnet/core/dotnet-core/1.0/dotnet-core-1.0-linux64.tar.gz\",\n              \"nodejs\":\"http://gec-maven-nexus.walmart.com/nexus/service/local/repositories/thirdparty/content/org/node/\",\n              \"chocopkg\":\"http://hazr11171044a1.cloud.wal-mart.com/api/v2/package/chocolatey/0.10.3\",\n              \"chocorepo\":\"http://hazr11171044a1.cloud.wal-mart.com/chocolatey/\",\n              \"nagios-windows\":\"https://nexus.stage.walmart.com/nexus/content/repositories/thirdparty/nagios/nagios/3.5.1/nagios-3.5.1.tar.gz\",\n              \"logstash\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/thirdparty/net/sf/logstash\",\n              \"kubernetes\":\"http://store.oneops.walmart.com\",\n              \"mssql_2014_enterprise\":\"https://nexus.stage.walmart.com/nexus/content/repositories/thirdparty/mssql/walmart/server/mssql/2014-SP2/mssql-2014-SP2.zip\",\n              \"maven\":\"http://gec-maven-nexus.walmart.com/nexus/content/repositories/thirdparty/maven/maven/3.3.3/maven-3.3.3.tar\"\n            }"
+          maven:
+            qa-dfw1:
+              ciAttributes:
+                username: "gecnexus"
+                password: "Walmart!"
+                url: "https://nexus.stage.walmart.com/nexus/"
+                repository: "pangaea_snapshots"
+
+
+
+    name: artifact
+    run_list:
+      - recipe[java::add]
+      - recipe[artifact::add]
+    veridier:
+      inspec_tests:
+        - test/integration/artifact/serverspec
+# Kitchen yaml is very picky about the file path and name of your serverspec test file
+# The path must match [COOKBOOK]/test/integration/[SUITES]/serverspec/*_spec.rb
+# Globbing pattern to match files is "serverspec/*/*_spec.rb"
