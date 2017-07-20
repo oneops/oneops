@@ -466,18 +466,3 @@ else
     end
   end
 end
-file '/etc/init.d/nagios' do
-  action :delete
-  only_if { File.exist? '/etc/init.d/nagios' }
-end
-case node.platform
-when "redhat","centos","fedora","suse"
-  template '/etc/init.d/nagios' do
-  cookbook 'monitor'
-  source 'nagios_init.erb'
-  owner 'root'
-  group 'root'
-  mode 0755
-  end
-  `/etc/init.d/nagios restart`
-end
