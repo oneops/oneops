@@ -37,6 +37,7 @@ suites:
 
     name: attachment
     run_list:
+      - recipe[kitchen-test-helper]
       - recipe[attachment::ondemand]
     veridier:
       inspec_tests:
