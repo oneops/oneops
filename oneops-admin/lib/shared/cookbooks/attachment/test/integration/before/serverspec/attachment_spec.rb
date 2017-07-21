@@ -1,7 +1,7 @@
-require 'serverspec'
+require 'spec_helper'
 
 describe file('/tmp/download_file') do
-  puts "I am running"
+  puts "------before-------"
   it { should exist }
   it { should be_executable }
 end
