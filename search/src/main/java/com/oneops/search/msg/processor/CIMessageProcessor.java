@@ -128,7 +128,7 @@ public class CIMessageProcessor implements MessageProcessor {
             try {
                 SearchResponse response = client.prepareSearch("cms-2*")
                         .setTypes("workorder")
-                        .setQuery(queryStringQuery(String.valueOf(ciId)).field("rfcCi.ciId"))
+                        .setQuery(queryStringQuery("rfcCi.ciId:"+ciId+" AND dpmtRecordState:complete"))
                         .addSort("searchTags.responseDequeTS", SortOrder.DESC)
                         .setSize(1)
                         .execute()
