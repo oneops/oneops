@@ -68,11 +68,13 @@ import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 @Controller
 public class CmRestController extends AbstractRestController {
 
+
 	private CmsUtil cmsUtil;
 	private CmsCmManager cmManager;
 	private OpsManager opsManager;
-	private CmsScopeVerifier scopeVerifier; 
-	
+	private CmsScopeVerifier scopeVerifier;
+	private static final boolean ENABLE_FORCE_EXECUTION = Boolean.valueOf(System.getProperty("adapter.proc.forceExecution", "false"));
+
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
@@ -734,6 +736,10 @@ public class CmRestController extends AbstractRestController {
     	}
     	try {
 	    	procedure.setCreatedBy(user);
+	    	if(ENABLE_FORCE_EXECUTION){
+	    		  logger.info("Executing forcefully procedure "+procedure.getProcedureName() +" on ciId " +procedure.getCiId() );
+					procedure.setForceExecution(true);
+			}
 			return opsManager.submitProcedure(procedure);
     	} catch (OpsException oe) {
     		logger.error(oe);

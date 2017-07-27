@@ -299,6 +299,10 @@ Display::Application.routes.draw do
         get  'health'
       end
 
+      collection do
+        get 'tags'
+      end
+
       resources :instances, :controller => 'operations/instances', :only => [:index]
 
       # Design.

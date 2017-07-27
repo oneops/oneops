@@ -43,4 +43,5 @@ public interface ManifestManager {
         return threadName + "-env-" + envId;
     }
 
+    void rollbackOpenRelease(long envId);
 }

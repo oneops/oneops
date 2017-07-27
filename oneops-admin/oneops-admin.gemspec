@@ -21,7 +21,7 @@ Gem::Specification.new do |s|
   s.add_dependency "activeresource", '= 4.0.0'
   s.add_dependency "activemodel", '= 4.1.10'
   s.add_dependency "ffi", '= 1.9.10'
-  s.add_dependency "fog", '= 1.37.0'
+  s.add_dependency "fog", '= 1.38.0'
   s.add_dependency "aws-s3", '= 0.6.3'
   s.add_dependency "chef", '= 11.18.12'
   s.add_dependency "ohai", '= 7.4.1'

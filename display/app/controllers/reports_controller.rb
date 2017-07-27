@@ -159,36 +159,27 @@ class ReportsController < ApplicationController
                     :sum   => lambda {|x| x.split('/', 4)[1..2].join('/')},
                     :url   => lambda {|x| assembly_path(x)}}
 
-      tags = params[:tags]
-      if tags.present?
-        orgs = Search::Base.search('/cms-all/ci',
-                                   :nsPath               => '/',
-                                   'ciClassName.keyword' => 'account.Organization',
-                                   :_source              => %w(ciName ciAttributes.tags ciAttributes.owner),
-                                   :size                 => 99999,
-                                   :_timeout             => 30,
-                                   :_silent              => true)
-        return unless orgs
+      orgs = Search::Base.search('/cms-all/ci',
+                                 :nsPath               => '/',
+                                 'ciClassName.keyword' => 'account.Organization',
+                                 :_source              => %w(ciName ciAttributes.tags ciAttributes.owner),
+                                 :size                 => 99999,
+                                 :_timeout             => 30,
+                                 :_silent              => true)
+      return unless orgs
 
-        assemblies = Search::Base.search('/cms-all/ci',
-                                         :nsPath               => '/*',
-                                         'ciClassName.keyword' => 'account.Assembly',
-                                         :_source              => %w(ciName nsPath ciAttributes.tags ciAttributes.owner),
-                                         :size                 => 99999,
-                                         :_timeout             => 30,
-                                         :_silent              => true)
-        return unless assemblies
+      assemblies = Search::Base.search('/cms-all/ci',
+                                       :nsPath               => '/*',
+                                       'ciClassName.keyword' => 'account.Assembly',
+                                       :_source              => %w(ciName nsPath ciAttributes.tags ciAttributes.owner),
+                                       :size                 => 99999,
+                                       :_timeout             => 30,
+                                       :_silent              => true)
+      return unless assemblies
 
-        @tag_info = AssemblyTag.new(orgs, assemblies)
+      @tag_info = AssembliesController::AssemblyTag.new(orgs, assemblies)
 
-        tags.each do |tag|
-          groupings << {:name  => tag.to_sym,
-                        :label => tag,
-                        :path  => :by_ns,
-                        :sum   => lambda {|x| r, org, assembly = x.split('/', 4); @tag_info.get(org, assembly, tag)},
-                        :url   => lambda {|x| split = x.split(' - '); split[1] ? path_to_ns(split[0]) : nil}}
-        end
-      end
+      add_tag_groupings(groupings, params[:tags])
     elsif ns_path_depth == 2
       # Org level.
       groupings << {:name  => :by_assembly,
@@ -201,6 +192,10 @@ class ReportsController < ApplicationController
                     :path  => :by_ns,
                     :sum   => lambda {|x| x.split('/')[2..3].join('/')},
                     :url   => lambda {|x| split = x.split('/'); assembly_transition_environment_path(split[0], split[1])}}
+
+      @tag_info = AssembliesController::AssemblyTag.new([current_user.organization.ci], locate_assemblies)
+
+      add_tag_groupings(groupings, params[:tags])
     elsif ns_path_depth == 3
       # Assembly level.
       groupings << {:name  => :by_environment,
@@ -212,6 +207,8 @@ class ReportsController < ApplicationController
                     :label => 'Platform',
                     :path  => :by_ns,
                     :sum   => lambda {|x| ns_split = x.split('/'); "#{ns_split[-2]} ver.#{ns_split[-1]}"}}
+
+      @tag_info = AssembliesController::AssemblyTag.new([current_user.organization.ci], [locate_assembly(ns_path_split[2])])
     elsif ns_path_depth == 4
       # Env level.
       groupings << {:name  => :by_platform,
@@ -313,6 +310,22 @@ class ReportsController < ApplicationController
           render :json => {:errors => ['Failed to fetch cost data']}, :status => :internal_server_error
         end
       end
+    end
+  end
+
+  def add_tag_groupings(groupings, tags)
+    return if tags.blank?
+
+    tags.each do |tag|
+      groupings << {:name  => tag.to_sym,
+                    :label => tag,
+                    :path  => :by_ns,
+                    :sum   => lambda {|x| r, org, assembly = x.split('/', 4); @tag_info.get(org, assembly, tag)},
+                    :url   => lambda do |x|
+                      split = x.split(' -> ')
+                      split[1] ? path_to_ns(split[0]) : nil
+                    end
+      }
     end
   end
 
@@ -628,42 +641,6 @@ class ReportsController < ApplicationController
   class LeafNode < Hash
     def initialize(data)
       data.each_pair { |k, v| self[k] = v }
-    end
-  end
-
-  class AssemblyTag < Hash
-    def initialize(orgs, assemblies)
-      @orgs = orgs.to_map {|o| o['ciName']}
-      @assemblies = assemblies.to_map {|a| "#{a['nsPath']}/#{a['ciName']}"}
-    end
-
-    def get(org, assembly, tag)
-      key = "/#{org}/#{assembly}"
-      self[key] ||= parse_tags(@assemblies[key] || {})
-      result = self[key][:tags][tag]
-      return result if result.present?
-
-      self[org] ||= parse_tags(@orgs[org] || {})
-      result = self[org][:tags][tag]
-      return result if result.present?
-
-      return "#{key} - #{self[key][:owner] || self[org][:owner] || '???'}"
-    end
-
-
-    private
-
-    def parse_tags(org_or_assembley)
-      attrs = org_or_assembley['ciAttributes'] || {}
-      tags = attrs['tags']
-      unless tags.is_a?(Hash)
-        begin
-          tags = tags ? JSON.parse(tags) : {}
-        rescue
-          tags = {}
-        end
-      end
-      {:tags => tags, :owner => attrs['owner']}
     end
   end
 end
