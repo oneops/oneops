@@ -16,82 +16,161 @@ provisioner:
   solo_rb:
     verify_api_cert: true
     ssl_verify_mode: :verify_peer
-    log_level: :info
+    log_level: :debug
 
 suites: 
   -
-    name: ondemand
+#    name: ondemand
+#    run_list:
+#      - recipe[kitchen-test-helper]
+#      - recipe[attachment::ondemand]
+#    veridier:
+#      inspec_tests:
+#        - test/integration/ondemand/serverspec
+#    attributes:
+#      workorder:
+#        payLoad:
+#          EscortedBy:
+#            -
+#              ciAttributes:
+#                priority: 1
+#                source: ""
+#                path: "/tmp/download_file"
+#                run_on_action: "[]"
+#                run_on: "before-add,after-add,on-demand"
+#                content: >
+#                  echo "testing 123"
+#              ciName: "test"
+#    name: after
+#    run_list:
+#      - recipe[kitchen-test-helper]
+#      - recipe[attachment::after]
+#    veridier:
+#      inspec_tests:
+#        - test/integration/after/serverspec
+#    attributes:
+#      workorder:
+#        payLoad:
+#          EscortedBy:
+#            -
+#              ciAttributes:
+#                priority: 1
+#                source: ""
+#                path: "/tmp/download_file"
+#                run_on_action: "[]"
+#                run_on: "before-add,after-add,on-demand"
+#                content: >
+#                  echo "testing 123"
+#              ciName: "test"
+#    name: before
+#    run_list:
+#      - recipe[kitchen-test-helper]
+#      - recipe[attachment::before]
+#    veridier:
+#      inspec_tests:
+#        - test/integration/before/serverspec
+#    attributes:
+#      workorder:
+#        rfcCi:
+#          rfcAction: "add"
+#          ciClassName: "bom.Volume"
+#        ci:
+#          ciClassName: "manifest.Attachment"
+#        actionName: "user-custom-attachment"
+#        payLoad:
+#          EscortedBy:
+#            -
+#              ciAttributes:
+#                priority: 1
+#                source: ""
+#                path: "/tmp/download_file"
+#                attribute_to_look: 0
+#                run_on_action: "[]"
+#                run_on: "before-add,after-add,on-demand"
+#                content: >
+#                  echo "testing 123"
+#              ciName: "test"
+#    name: remote_before
+#    run_list:
+#      - recipe[kitchen-test-helper]
+#      - recipe[attachment::before]
+#    veridier:
+#      inspec_tests:
+#        - test/integration/remote_before/serverspec
+#    attributes:
+#      workorder:
+#        rfcCi:
+#          rfcAction: "add"
+#          ciClassName: "bom.Volume"
+#        ci:
+#          ciClassName: "manifest.Attachment"
+#        actionName: "user-custom-attachment"
+#        payLoad:
+#          EscortedBy:
+#            -
+#              ciAttributes:
+#                priority: 1
+#                source: "https://github.com/CodyLeeWhite/testscript/blob/master/test.sh"
+#                path: "/tmp/download_file"
+#                attribute_to_look: 0
+#                run_on_action: "[]"
+#                run_on: "before-add,after-add,on-demand"
+#                content: >
+#                  echo "testing 123"
+#              ciName: "test"
+    name: remote_ondemand
     run_list:
       - recipe[kitchen-test-helper]
       - recipe[attachment::ondemand]
     veridier:
       inspec_tests:
-        - test/integration/ondemand/serverspec
-    attributes:
-      workorder:
-        payLoad:
-          EscortedBy:
-            -
-              ciAttributes:
-                priority: 1
-                source: ""
-                path: "/tmp/download_file"
-                run_on_action: "[]"
-                run_on: "before-add,after-add,on-demand"
-                content: >
-                  echo "testing 123"
-              ciName: "test"
-    name: after
-    run_list:
-      - recipe[kitchen-test-helper]
-      - recipe[attachment::after]
-    veridier:
-      inspec_tests:
-        - test/integration/after/serverspec
-    attributes:
-      workorder:
-        payLoad:
-          EscortedBy:
-            -
-              ciAttributes:
-                priority: 1
-                source: ""
-                path: "/tmp/download_file"
-                run_on_action: "[]"
-                run_on: "before-add,after-add,on-demand"
-                content: >
-                  echo "testing 123"
-              ciName: "test"
-    name: before
-    run_list:
-      - recipe[kitchen-test-helper]
-      - recipe[attachment::before]
-    veridier:
-      inspec_tests:
-        - test/integration/before/serverspec
+        - test/integration/remote_ondemand/serverspec
     attributes:
       workorder:
         rfcCi:
           rfcAction: "add"
           ciClassName: "bom.Volume"
-        ci:
-          ciClassName: "manifest.Attachment"
-        actionName: "user-custom-attachment"
         payLoad:
           EscortedBy:
             -
               ciAttributes:
                 priority: 1
-                source: ""
-                path: "/tmp/download_file"
-                attribute_to_look: 0
+                source: "https://github.com/CodyLeeWhite/testscript/blob/master/test.sh"
+                path: "/face/download_file"
                 run_on_action: "[]"
                 run_on: "before-add,after-add,on-demand"
-                content: >
-                  echo "testing 123"
+                headers: ""
+                basic_auth_user: ""
+                basic_auth_password: ""
+                content: ""
               ciName: "test"
-
-
+#    name: remote_after
+#    run_list:
+#      - recipe[kitchen-test-helper]
+#      - recipe[attachment::after]
+#    veridier:
+#      inspec_tests:
+#        - test/integration/remote_after/serverspec
+#    attributes:
+#      workorder:
+#        rfcCi:
+#          rfcAction: "add"
+#          ciClassName: "bom.Volume"
+#        payLoad:
+#          EscortedBy:
+#            -
+#              ciAttributes:
+#                priority: 1
+#                source: "https://github.com/CodyLeeWhite/testscript/blob/master/test.sh"
+#                path: "/tmp/download_file"
+#                run_on_action: "[]"
+#                run_on: "before-add,after-add,on-demand"
+#                headers: ""
+#                basic_auth_user: ""
+#                basic_auth_password: ""
+#                content: >
+#                  echo "testing 123"
+#              ciName: "test"
 
 # Kitchen yaml is very picky about the file path and name of your serverspec test file
 # The path must match [COOKBOOK]/test/integration/[SUITES]/serverspec/*_spec.rb
