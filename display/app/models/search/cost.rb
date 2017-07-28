@@ -302,10 +302,11 @@ class Search::Cost < Search::Base
     end
 
     begin
-      # data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)
+      # data = JSON.parse(post('/v2-*/_search', {}, search_params.to_json).body)
+      # Rails.logger.info "=== #{data.to_yaml}"
       # return data
 
-      data = JSON.parse(post('/cost-2*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      data = JSON.parse(post('/cost-20*/_search', {}, search_params.to_json).body)['aggregations']
       unit = data['unit']['buckets'][0]
       result = {:buckets    => data['time_histogram']['buckets'],
                 :start_date => start_date,
@@ -373,11 +374,9 @@ class Search::Cost < Search::Base
   private
 
   def self.cost_query_conditions(ns_path, start_date, end_date)
-    {
-      :bool => {:must => [{:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}},
-                          {:range => {'date' => {:gte => start_date, :lte => end_date, :format => "yyyy-MM-dd"}}},
-                          {:range => {'cost' => {:gt => 0}}}]
-      }
-    }
+    conditions = [{:range => {'date' => {:gte => start_date, :lte => end_date, :format => 'yyyy-MM-dd'}}},
+                 {:range => {'cost' => {:gt => 0}}}]
+    conditions << {:wildcard => {'nsPath.keyword' => "#{ns_path}#{'/' unless ns_path.last == '/'}*"}} unless ns_path.blank? || ns_path == '/'
+    return {:bool => {:must => conditions}}
   end
 end

@@ -161,24 +161,6 @@ class ReportsController < ApplicationController
                     :sum   => lambda {|x| x.split('/', 4)[1..2].join('/')},
                     :url   => lambda {|x| assembly_path(x)}}
 
-      orgs = Search::Base.search('/cms-all/ci',
-                                 :nsPath               => '/',
-                                 'ciClassName.keyword' => 'account.Organization',
-                                 :_source              => %w(ciName ciAttributes.tags ciAttributes.owner),
-                                 :size                 => 99999,
-                                 :_timeout             => 30,
-                                 :_silent              => true)
-      return unless orgs
-
-      assemblies = Search::Base.search('/cms-all/ci',
-                                       :nsPath               => '/*',
-                                       'ciClassName.keyword' => 'account.Assembly',
-                                       :_source              => %w(ciName nsPath ciAttributes.tags ciAttributes.owner),
-                                       :size                 => 99999,
-                                       :_timeout             => 30,
-                                       :_silent              => true)
-      return unless assemblies
-
       add_tag_groupings(groupings, @tags)
     elsif ns_path_depth == 2
       # Org level.
