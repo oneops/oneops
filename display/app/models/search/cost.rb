@@ -212,15 +212,15 @@ class Search::Cost < Search::Base
     return result
   end
 
-  def self.cost_time_histogram(ns_path, start_date, end_date, interval)
+  def self.cost_time_histogram(ns_path, start_date, end_date, interval, tags = nil)
     result     = nil
     start_date = start_date.to_date
     end_date   = end_date.to_date
+    end_date += 1.day if interval == 'day'
     ranges     = [[start_date, start_date.send("next_#{interval}").send("beginning_of_#{interval}").to_date]]
     while ranges.last.last < end_date
       ranges << [ranges.last.last, ranges.last.last + 1.send(interval)]
     end
-    ranges.last[-1] = (end_date + 1.day)
     search_params = {
       :query => cost_query_conditions(ns_path, start_date, end_date),
       :_source => %w(ciId),
@@ -242,7 +242,7 @@ class Search::Cost < Search::Base
                 :field => 'nsPath.keyword',
                 :order => {'cost' => 'desc'},
                 # :order => {'_term' => 'asc'},
-                :size  => 9999
+                :size  => 99999
               },
               :aggs  => {
                 :cost => {
@@ -282,11 +282,30 @@ class Search::Cost < Search::Base
       :size    => 0
     }
 
+    if tags.present?
+      aggs = search_params[:aggs][:time_histogram][:aggs]
+      tags.each do |t|
+        aggs["by_#{t}"] = {
+          :terms => {
+            :field => "tags.#{t}.keyword",
+            :order => {'cost' => 'desc'},
+            # :order => {'_term' => 'asc'},
+            :size => 99999
+          },
+          :aggs => {
+            :cost => {
+              :sum => {:field => 'cost'}
+            }
+          }
+        }
+      end
+    end
+
     begin
       # data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)
       # return data
 
-      data = JSON.parse(post('/cost-*/ci/_search', {}, search_params.to_json).body)['aggregations']
+      data = JSON.parse(post('/cost-2*/ci/_search', {}, search_params.to_json).body)['aggregations']
       unit = data['unit']['buckets'][0]
       result = {:buckets    => data['time_histogram']['buckets'],
                 :start_date => start_date,
