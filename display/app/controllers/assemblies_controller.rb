@@ -277,7 +277,7 @@ class AssembliesController < ApplicationController
   end
 
   def authorize_update
-    unauthorized unless @assembly && manages_access_for_assembly?(@assembly.ciId)
+    unauthorized unless @assembly && (manages_access_for_assembly?(@assembly.ciId) || (action_name == 'update' && has_design?))
   end
 
   def load_assembly_list
