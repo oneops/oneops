@@ -49,9 +49,9 @@ public class NSMessageProcessor {
 	public void processNSDeleteMsg(String nsId){
 		logger.info("Processing ns delete event for nsId " + nsId);
 		//Fetch and delete CIs for given nsId
-		fetchAndDeleteRecords("ci", nsId);
+		fetchAndDeleteRecords("ci", "cms-all", nsId);
 		//Fetch and delete releases for given nsId
-		fetchAndDeleteRecords("release", nsId);
+		fetchAndDeleteRecords("release", "cms-weekly",nsId);
 	}
 
 	/**
@@ -59,8 +59,7 @@ public class NSMessageProcessor {
 	 * @param type
 	 * @param nsId
 	 */
-	private void fetchAndDeleteRecords(String type, String nsId) {
-		String index = indexer.getIndexByType(type);
+	private void fetchAndDeleteRecords(String type, String index, String nsId) {
 		SearchResponse scrollResp = client.prepareSearch(index)
                 .setSearchType(SearchType.SCAN)
                 .setTypes(type)
