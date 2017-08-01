@@ -11,6 +11,27 @@ require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
 
 Bundler.setup(:default)
 
+class MetadataWithGrouping < Chef::Cookbook::Metadata
+  attr_accessor :groupings
+
+  def initialize
+    @groupings = Mash.new
+    super
+  end
+
+  def grouping(name, options)
+    validate(
+        options,
+        {
+            :title => { :kind_of => String },
+            :description => { :kind_of => String }
+        }
+    )
+    @groupings[name] = options
+    @groupings[name]
+  end
+end
+
 class Chef
   class Knife
     class ModelSync < Chef::Knife::CookbookMetadata
@@ -118,7 +139,7 @@ class Chef
         config[:version] ||= Chef::Config[:version]
         config[:version] ||='1.0.0'
         ui.info("Processing metadata for #{cookbook} from #{file}")
-        md = Chef::Cookbook::Metadata.new
+        md = MetadataWithGrouping.new
         md.name(cookbook.capitalize)
         md.from_file(file)
         Chef::Log.debug(md.to_yaml)
