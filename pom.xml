@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.06.07-07-SNAPSHOT</version>
+  <version>17.08.02-01-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -71,8 +71,6 @@
     <saaj-impl.version>1.3.2</saaj-impl.version>
     <servlet-api.version>2.5</servlet-api.version>
     <simple-xml.version>2.6.6</simple-xml.version>
-    <slf4j-log4j12.version>1.6.1</slf4j-log4j12.version>
-    <slf4j-simple.version>1.6.1</slf4j-simple.version>
     <smack.version>3.2.1</smack.version>
     <spring-data-elasticsearch.version>1.0.4.RELEASE</spring-data-elasticsearch.version>
     <spring-retry.version>1.1.2.RELEASE</spring-retry.version>
@@ -88,9 +86,6 @@
     <activiti-spring.version>5.19.0</activiti-spring.version>
     <activiti.version>5.19.0</activiti.version>
     <slf4j.version>1.6.1</slf4j.version>
-    <slf4j-api.version>1.6.1</slf4j-api.version>
-    <slf4j-log4j12>1.6.1</slf4j-log4j12>
-    <slf4j.simple.version>1.6.1</slf4j.simple.version>
   </properties>
   <modules>
     <module>adapter</module>
@@ -112,6 +107,7 @@
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
+    <module>oneops-packer</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -267,7 +263,7 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-simple</artifactId>
-        <version>1.6.1</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>org.activiti</groupId>
@@ -403,7 +399,7 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.6.1</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>org.activiti</groupId>
@@ -624,7 +620,7 @@
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-log4j12</artifactId>
-        <version>1.6.1</version>
+        <version>${slf4j.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-pool</groupId>
@@ -798,5 +794,5 @@
       </plugin>
     </plugins>
   </build>
-  
+
 </project>

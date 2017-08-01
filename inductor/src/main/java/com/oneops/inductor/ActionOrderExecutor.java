@@ -477,7 +477,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
             logLevel = "debug";
         }
         return writeChefConfig(Long.toString(ao.getCi().getCiId()),
-                cookbookRelativePath, logLevel);
+                cookbookRelativePath, ao.getCloud().getCiName(), ao.getServices(), logLevel);
     }
 
 

@@ -9,6 +9,9 @@
 # Source networking configuration.
 . /etc/sysconfig/network
 
+# source rvm
+. /etc/profile.d/rvm.sh
+
 prog="display"
 pidfile="/var/run/display.pid"
 progcmd="/opt/oneops/start-display.sh"

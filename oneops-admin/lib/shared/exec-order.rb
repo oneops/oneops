@@ -36,8 +36,14 @@ end
 
 puts "os: #{ostype}" if log_level == "debug"
 
+prefix_root = ''
+file_cache_path = '/tmp'
+ci = json_context.split("/").last.gsub(".json","")
 if ostype =~ /windows/
-  impl = "oo::chef-12.11.18"
+  prefix_root = 'c:/cygwin64'
+  impl = 'oo::chef-12.11.18'
+  json_context = prefix_root + json_context
+  file_cache_path = "C:/tmp/#{ci}"
 end
 
 def gen_gemfile_and_install (gems, dsl, ostype, log_level)
@@ -49,9 +55,9 @@ def gen_gemfile_and_install (gems, dsl, ostype, log_level)
     end
 
     gemfile_content = "source 'https://rubygems.org'\n"
-	  if !rubygems_proxy.nil?
-	    gemfile_content = "source '#{rubygems_proxy}'\n"
-	  end
+    if !rubygems_proxy.nil?
+      gemfile_content = "source '#{rubygems_proxy}'\n"
+    end
     gems.each do |gem_set|
       if gem_set.size > 1
         gemfile_content += "gem '#{gem_set[0]}', '#{gem_set[1]}'\n"
@@ -177,23 +183,12 @@ when "chef"
     gen_gemfile_and_install(gem_list, dsl, ostype, log_level)
   end
 
-  # used to create specific chef config for cookbook_path and lockfile
-  ci = json_context.split("/").last.gsub(".json","")
 
-  if ostype =~ /windows/
-    chef_config = "c:/cygwin64/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
-    json_context = "c:/cygwin64" + json_context
-  else
-    chef_config = "/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
-  end
+  chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
 
   additionalCookbooks = ''
   if ! service_cookbooks.empty?
-	if ostype =~ /windows/
-		additionalCookbooks = service_cookbooks.split(",").map { |e| "\"c:/cygwin64#{e}\"" }.join(', ')
-	else
-		additionalCookbooks = service_cookbooks.split(",").map { |e| "\"#{e}\"" }.join(', ')			
-	end
+    additionalCookbooks = service_cookbooks.split(",").map { |e| "\"#{prefix_root}#{e}\"" }.join(', ')
   end
 
   # generate chef_config 
@@ -201,13 +196,9 @@ when "chef"
     cookbook_full_path = chef_config.gsub("/chef-#{ci}.rb","")
     # when using alternate cookbooks include base cookbooks
     if cookbook_path.empty?
-     	config_content = 'cookbook_path "'+cookbook_full_path+"\""
+      config_content = 'cookbook_path "'+cookbook_full_path+"\""
     else
-      if ostype =~ /windows/
-        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"c:/cygwin64/home/oneops/shared/cookbooks\""
-      else
-        config_content = "cookbook_path [\"#{cookbook_full_path}\",\"/home/oneops/shared/cookbooks\""
-      end
+      config_content = "cookbook_path [\"#{cookbook_full_path}\",\"#{prefix_root}/home/oneops/shared/cookbooks\""
 
       if ! additionalCookbooks.empty?
           config_content += "," + additionalCookbooks
@@ -219,21 +210,25 @@ when "chef"
     config_content += "log_level :#{log_level}\n"
     config_content += "formatter :#{formatter}\n"
     config_content += "verify_api_cert true\n"
-    config_content += "file_cache_path \"/tmp\"\n"
-    config_content += "lockfile \"/tmp/#{ci}.lock\"\n"
+    config_content += "file_cache_path \"#{file_cache_path}\"\n"
+    config_content += "lockfile \"#{file_cache_path}/#{ci}.lock\"\n"
 
-	  ['http','https','no'].each do |proxy|
-  	  proxy_key = proxy + "_proxy"
+    ['http','https','no'].each do |proxy|
+      proxy_key = proxy + "_proxy"
       if ENV[proxy_key]
         config_content += "#{proxy_key} \""+ENV[proxy_key]+"\"\n"
       end
+    end
+
+    if ostype =~ /windows/
+      config_content += "node_name \"#{ci}\"\n"
     end
 
     puts "chef_config: #{chef_config}"
     File.open(chef_config, 'w') {|f| f.write(config_content) }
 
   if ostype =~ /windows/
-    cmd = "c:/opscode/chef/embedded/bin/chef-solo.bat -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
+    cmd = "c:/opscode/chef/embedded/bin/chef-client.bat --local-mode -c #{chef_config} -j #{json_context}"
   else
     bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
     cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
