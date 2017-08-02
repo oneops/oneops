@@ -248,6 +248,10 @@ public class CmsUtil {
             for (Entry<String, String> secAttr : rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
                 if ("true".equals(secAttr.getValue())) {
                     rfcCI.getCiAttributes().put(secAttr.getKey(), MASK);
+                    String ciBaseAttributeName = rfcCI.getCiBaseAttributes().get(secAttr.getKey());
+                    if (! StringUtils.isEmpty(ciBaseAttributeName)) {
+                    	rfcCI.getCiBaseAttributes().put(secAttr.getKey(), MASK);
+                    }
                 }
             }
         }
