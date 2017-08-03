@@ -6,12 +6,21 @@
 
 <%= section_panel 'Platforms', :id => 'platforms_list', :width => 'single', :position => 'right' do %>
   <% ci_relation_map = @platforms.inject({}) { |map, r| map[r.toCiId] = r; map } %>
-  <%= ci_list(@platforms.map(&:toCi)) do |builder, target| %>
-    <% relation = ci_relation_map[target.ciId] %>
+  <%= ci_list(@platforms.map(&:toCi),
+              :toolbar => {:sort_by       => [%w(Name ciName), %w(Created created), %w(Status status)],
+                           :filter_by     => %w(ciName status ops_status),
+                           :quick_filters => @platform_clouds.blank? ?
+                                                 nil :
+                                                 [{:label => 'All', :value => ''},
+                                                  {:label => 'Deployed', :value => 'ops_status=deployed', :selected => true},
+                                                  {:label => 'Disabled', :value => 'status=disabled'}]}) do |builder, target| %>
+    <% relation = ci_relation_map[target.ciId]
+       enabled = relation.relationAttributes.enabled == 'true'
+       active = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true
+       instance_info_marker, instance_count = instance_marker(@platform_clouds, target) %>
+    <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}" ops_status="#{instance_count > 0 ? 'deployed' : ''}") %>
     <% builder.target link_to('', assembly_operations_environment_platform_path(@assembly, @environment, target)) %>
     <% builder.icon platform_image_url(target) %>
-    <% enabled = relation.relationAttributes.enabled == 'true' %>
-    <% active = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true %>
     <% builder.status do %>
       <% availability = target.ciAttributes.availability %>
       <div class="marker" title="<%= availability %> availability">
@@ -20,7 +29,7 @@
       <%= status_marker('version', "#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
       <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
       <%= marker('disabled', 'label-important') unless enabled %>
-      <%= instance_marker(@platform_clouds, target) %>
+      <%= instance_info_marker %>
     <% end %>
     <% builder.top do %>
       <span class="topname"><%= target.ciName %></span>

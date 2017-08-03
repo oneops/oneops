@@ -398,7 +398,7 @@ module ApplicationHelper
 
   def ci_list(ci_collection, options = {}, &block)
     options[:toolbar] = nil if ci_collection.blank?
-    options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:sort_by => [%w(Name ciName), %w(Created created)], :filter_by => %w(ciName ciId)}})
+    options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:sort_by => [%w(Name ciName), %w(Created created), %w(Updated updated)], :filter_by => %w(ciName ciId)}})
     render(:partial => 'base/shared/list', :locals => {:list_content => ListItemBuilder.build_list_item_content(ci_collection, self, options, &block), :options => options})
   end
 
@@ -798,7 +798,8 @@ module ApplicationHelper
       total += count
       a + "#{cloud.toCi.ciName} - <strong class='#{state_to_text(status)}'>#{count}</strong><br>"
     end
-    status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {})
+    return status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {}),
+           total
   end
 
   def cloud_marker(cloud, primary, status)
@@ -1308,6 +1309,17 @@ module ApplicationHelper
 
   def expandable_content(options = {}, &block)
     raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
+  end
+
+  def expandable_list(items, options = {})
+    separator     = options[:separator] || ', '
+    visible_count = options[:visible_count] || 2
+    html = items[0..visible_count].join(separator)
+    if items.size > visible_count
+      html << separator
+      html << expandable_content(:content => items[(visible_count + 1)..-1].join(separator), :label => options[:label])
+    end
+    raw(html)
   end
 
   def pack_version_text_class(version_ci, org_ns_path = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT) ? nil : organization_ns_path)

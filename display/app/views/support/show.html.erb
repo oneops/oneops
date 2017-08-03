@@ -11,7 +11,7 @@
                       cost_support_path(:start_date => Date.today.last_month.beginning_of_month,
                                         :end_date   => Date.today.last_month.end_of_month,
                                         :interval   => 'month',
-                                        :tags       => ['pillar']))
+                                        :tags       => %w(costcenter VP dept pillar)))
    end
 
    links << link_to(icon('search', 'Search', 'fa-fw'), search_support_path) if all_perms || @permissions['search'] %>

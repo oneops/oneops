@@ -142,10 +142,12 @@ class ReportsController < ApplicationController
       end
     end
 
-    groupings = [{:name => :by_service, :label => 'Service Type'}]
+    @tags          = params[:tags]
+    groupings     = [{:name => :by_service, :label => 'Service Type'}]
     ns_path_split = @ns_path.split('/')
     ns_path_depth = ns_path_split.size
     groupings << {:name => :by_cloud, :label => 'Cloud', :url => lambda {|x| edit_cloud_path(x)}} if ns_path_depth > 1
+
     if ns_path_depth == 0
       # Cross-org.
       groupings << {:name  => :by_organization,
@@ -159,36 +161,7 @@ class ReportsController < ApplicationController
                     :sum   => lambda {|x| x.split('/', 4)[1..2].join('/')},
                     :url   => lambda {|x| assembly_path(x)}}
 
-      tags = params[:tags]
-      if tags.present?
-        orgs = Search::Base.search('/cms-all/ci',
-                                   :nsPath               => '/',
-                                   'ciClassName.keyword' => 'account.Organization',
-                                   :_source              => %w(ciName ciAttributes.tags ciAttributes.owner),
-                                   :size                 => 99999,
-                                   :_timeout             => 30,
-                                   :_silent              => true)
-        return unless orgs
-
-        assemblies = Search::Base.search('/cms-all/ci',
-                                         :nsPath               => '/*',
-                                         'ciClassName.keyword' => 'account.Assembly',
-                                         :_source              => %w(ciName nsPath ciAttributes.tags ciAttributes.owner),
-                                         :size                 => 99999,
-                                         :_timeout             => 30,
-                                         :_silent              => true)
-        return unless assemblies
-
-        @tag_info = AssemblyTag.new(orgs, assemblies)
-
-        tags.each do |tag|
-          groupings << {:name  => tag.to_sym,
-                        :label => tag,
-                        :path  => :by_ns,
-                        :sum   => lambda {|x| r, org, assembly = x.split('/', 4); @tag_info.get(org, assembly, tag)},
-                        :url   => lambda {|x| split = x.split(' - '); split[1] ? path_to_ns(split[0]) : nil}}
-        end
-      end
+      add_tag_groupings(groupings, @tags)
     elsif ns_path_depth == 2
       # Org level.
       groupings << {:name  => :by_assembly,
@@ -201,6 +174,8 @@ class ReportsController < ApplicationController
                     :path  => :by_ns,
                     :sum   => lambda {|x| x.split('/')[2..3].join('/')},
                     :url   => lambda {|x| split = x.split('/'); assembly_transition_environment_path(split[0], split[1])}}
+
+      add_tag_groupings(groupings, @tags)
     elsif ns_path_depth == 3
       # Assembly level.
       groupings << {:name  => :by_environment,
@@ -221,7 +196,7 @@ class ReportsController < ApplicationController
                     :url   => lambda {|x| ns_split = x.split('/'); assembly_transition_environment_platform_path(ns_split[2], ns_split[3], x.sub(' ver.', '!'))}}
     end
 
-    data = Search::Cost.cost_time_histogram(@ns_path, @start_date, @end_date, @interval)
+    data = Search::Cost.cost_time_histogram(@ns_path, @start_date, @end_date, @interval, @tags)
     if data
       x, y = data[:buckets].inject([[],[]]) do |xy, time_bucket|
         case @interval
@@ -314,6 +289,10 @@ class ReportsController < ApplicationController
         end
       end
     end
+  end
+
+  def add_tag_groupings(groupings, tags)
+    tags.each {|tag| groupings << {:name => "by_#{tag}".to_sym, :label => tag}} if tags.present?
   end
 
 
@@ -628,42 +607,6 @@ class ReportsController < ApplicationController
   class LeafNode < Hash
     def initialize(data)
       data.each_pair { |k, v| self[k] = v }
-    end
-  end
-
-  class AssemblyTag < Hash
-    def initialize(orgs, assemblies)
-      @orgs = orgs.to_map {|o| o['ciName']}
-      @assemblies = assemblies.to_map {|a| "#{a['nsPath']}/#{a['ciName']}"}
-    end
-
-    def get(org, assembly, tag)
-      key = "/#{org}/#{assembly}"
-      self[key] ||= parse_tags(@assemblies[key] || {})
-      result = self[key][:tags][tag]
-      return result if result.present?
-
-      self[org] ||= parse_tags(@orgs[org] || {})
-      result = self[org][:tags][tag]
-      return result if result.present?
-
-      return "#{key} - #{self[key][:owner] || self[org][:owner] || '???'}"
-    end
-
-
-    private
-
-    def parse_tags(org_or_assembley)
-      attrs = org_or_assembley['ciAttributes'] || {}
-      tags = attrs['tags']
-      unless tags.is_a?(Hash)
-        begin
-          tags = tags ? JSON.parse(tags) : {}
-        rescue
-          tags = {}
-        end
-      end
-      {:tags => tags, :owner => attrs['owner']}
     end
   end
 end
