@@ -349,11 +349,11 @@
         t.select(".plot .y.axis")
             .call(yAxis);
         t.selectAll(".plot line.level")
-            .attr("y1", function(d) {return yScale(d.value)})
-            .attr("y2", function(d) {return yScale(d.value)})
+            .attr("y1", function(d) {return na ? 0 : yScale(d.value)})
+            .attr("y2", function(d) {return na ? 0 : yScale(d.value)})
             .style("visibility", na ? "hidden" : "visible");
         t.selectAll(".plot circle.level")
-            .attr("cy", function(d) {return yScale(d.value)})
+            .attr("cy", function(d) {return na ? 0 : yScale(d.value)})
             .style("visibility", na ? "hidden" : "visible");
         t.select("text.na")
             .style("visibility", na ? "visible" : "hidden");
@@ -361,7 +361,7 @@
         t.selectAll(".plot g.metric")
             .style("visibility", function (d) {return (d.enabled ? "visible" : "hidden")})
             .select("path.metric")
-            .attr("d", function (d) {return line(d.data)});
+            .attr("d", function (d) {return na ? "" : line(d.data)});
       };
 
       render(false, metrics);

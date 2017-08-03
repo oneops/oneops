@@ -464,7 +464,5 @@ else
     service 'perf-agent' do
       action [ :stop, :disable ]
     end
-
   end
-
 end

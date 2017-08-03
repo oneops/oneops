@@ -40,27 +40,36 @@ class SupportController < ReportsController
     total = scope.count
 
     if total > 0
-      scope = scope.limit(page_size).offset(offset)
-      @organizations = scope.order(sort).
-        joins(:teams).
-        joins('LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id').
-        joins('LEFT OUTER JOIN groups_teams ON teams.id = groups_teams.team_id').
-        select('organizations.*').
-        select('count(distinct teams.id) as team_count').
-        select('count(distinct teams_users.user_id) as user_count').
-        select('count(distinct groups_teams.group_id) as group_count').
-        select("0 as admin_count, '' as owner").
-        group('organizations.id').all
+      scope = scope.limit(page_size).offset(offset).order(sort)
+      @organizations = scope.select("organizations.*, 0 as team_count, 0 as user_count, 0 as group_count, 0 as admin_count, '' as owner").all
 
       if @organizations.present?
         org_owners = Cms::Ci.list(@organizations.map(&:cms_id)).to_map_with_value {|o| [o['ciId'], o['ciAttributes']['owner']]}
-        @organizations.each {|o| o.owner = org_owners[o.cms_id]}
-        admin_counts = scope.
+
+        counts = Organization.
+          select('organizations.id').
+          select('count(distinct teams_users.user_id) as user_count').
+          select('count(distinct teams.id) as team_count').
+          select('count(distinct groups_teams.group_id) as group_count').
+          from("(#{scope.to_sql}) AS organizations").
           joins(:teams).
-          joins("LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id AND teams.name = '#{Team::ADMINS}'").
-          select('organizations.id, count(distinct teams_users.user_id) as admin_count').
+          joins('LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id').
+          joins('LEFT OUTER JOIN groups_teams ON teams.id = groups_teams.team_id').
           group('organizations.id').all.to_map(&:id)
+
+
+        admin_counts = Organization.
+          select('organizations.id, count(teams_users.user_id) as admin_count').
+          from("(#{scope.to_sql}) AS organizations").
+          joins(:admin_users).
+          group('organizations.id').all.to_map(&:id)
+
         @organizations.each do |o|
+          count         = counts[o.id]
+          o.owner       = org_owners[o.cms_id]
+          o.user_count  = count.user_count
+          o.team_count  = count.team_count
+          o.group_count = count.group_count
           o.admin_count = admin_counts[o.id].admin_count
         end
       end

@@ -20,6 +20,7 @@ class Catalog::PlatformsController < Base::PlatformsController
                                                       :attrProps         => 'owner'}).map(&:toCi)
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
         @versions = locate_pack_versions(params[:source], params[:pack]) unless @design
+        @stats = Search::Pack.count_stats(params[:source], params[:pack], params[:version]) if @version
       end
 
       format.json do
@@ -36,7 +37,7 @@ class Catalog::PlatformsController < Base::PlatformsController
 
   def diff
     respond_to do |format|
-      format.html { render '_diff' }
+      format.html {render '_diff'}
       format.js
     end
   end

@@ -253,6 +253,10 @@ class AssembliesController < ApplicationController
     end
   end
 
+  def tags
+    render :json => AssemblyTag.new([current_user.organization.ci], locate_assemblies)
+  end
+
 
   protected
 
@@ -273,7 +277,7 @@ class AssembliesController < ApplicationController
   end
 
   def authorize_update
-    unauthorized unless @assembly && manages_access_for_assembly?(@assembly.ciId)
+    unauthorized unless @assembly && (manages_access_for_assembly?(@assembly.ciId) || (action_name == 'update' && has_design?))
   end
 
   def load_assembly_list
@@ -312,5 +316,48 @@ class AssembliesController < ApplicationController
                         :relationShortName => 'DeployedTo',
                         :direction         => 'to',
                         :groupBy           => 'ciId')
+  end
+
+  class AssemblyTag < Hash
+    def initialize(orgs, assemblies)
+      orgs.each do |o|
+        if o.is_a?(Hash)
+          self[o['ciName']] = parse_tags(o['ciAttributes'])
+        else
+          self[o.ciName] = parse_tags(o.ciAttributes)
+        end
+      end
+      assemblies.each do |a|
+        if a.is_a?(Hash)
+          self["#{a['nsPath'].split('/')[1]}/#{a['ciName']}"] = parse_tags(a['ciAttributes'])
+        else
+          self["#{a.nsPath.split('/')[1]}/#{a.ciName}"] = parse_tags(a.ciAttributes)
+        end
+      end
+    end
+
+    def get(org, assembly, tag)
+      key = "#{org}/#{assembly}"
+      (include?(key) && self[key][:tags][tag]) ||
+        (include?(org) && self[org][:tags][tag]) ||
+        "#{key} -> #{(include?(key) && self[key][:owner]) || (include?(org) &&  self[org][:owner]) || '???'}"
+    end
+
+
+    private
+
+    def parse_tags(ci_attributes)
+      attrs   = ci_attributes || {}
+      is_hash = attrs.is_a?(Hash)
+      tags    = is_hash ? attrs['tags'] : ci_attributes.tags
+      unless tags.is_a?(Hash)
+        begin
+          tags = tags ? JSON.parse(tags) : {}
+        rescue
+          tags = {}
+        end
+      end
+      {:tags => tags, :owner => is_hash ? attrs['owner'] : attrs.owner}
+    end
   end
 end
