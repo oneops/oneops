@@ -147,7 +147,7 @@ public class CIMessageProcessor implements MessageProcessor {
             logger.info("WO not found for ci " + ci.getCiId() + " of type " + ci.getCiClassName());
             GetResponse response = client.prepareGet(indexer.getIndexName(), "ci", ""+ci.getCiId()).get();
             if (response.isExists()){
-                wos = GSON.fromJson(GSON.toJson(response.getSource().get("workorder")), CmsWorkOrderSimple.class);
+                wos = GSON_ES.fromJson(GSON.toJson(response.getSource().get("workorder")), CmsWorkOrderSimple.class);
                 ciSearch.setWorkorder(wos);
             }
         }

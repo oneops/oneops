@@ -5,9 +5,6 @@ class Catalog::PacksController < ApplicationController
   before_filter :authorize_pack_owner_group_membership, :only => [:visibility, :password]
   before_filter :find_pack_version, :only => [:show, :update, :visibility, :password, :diff]
 
-  helper_method :check_pack_owner_group_membership?
-
-
   def index
     load_packs_and_versions
     respond_to do |format|
@@ -98,7 +95,7 @@ class Catalog::PacksController < ApplicationController
     end
 
     respond_to do |format|
-      format.js {render :action => :show}
+      format.js
       format.json { render_json_ci_response(ok, @pack) }
     end
   end
@@ -131,7 +128,7 @@ class Catalog::PacksController < ApplicationController
     end
 
     respond_to do |format|
-      format.js {render :action => :show}
+      format.js {render :action => :update}
       format.json { render_json_ci_response(ok, @version) }
     end
   end

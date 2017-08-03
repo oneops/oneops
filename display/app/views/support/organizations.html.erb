@@ -2,10 +2,11 @@
                   :width => 'triple',
                   :menu  => [link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")', :class => 'btn btn-mini')] do %>
   <%= list(@organizations,
-           :toolbar  => {:sort_by => [%w(Name name), %w(Created created)],
-                         :filter_by => %w(name)}) do |builder, org| %>
+           :toolbar  => {:sort_by => [%w(Name name), %w(Created created), ['Admin Count', 'admin_count'], ['User Count', 'user_count']],
+                         :filter_by => %w(name owner)}) do |builder, org| %>
     <% builder.itemid org.id %>
-    <% builder.attributes raw(%(name="#{org.name}" created="#{org.created_at}")) %>
+    <% builder.attributes raw(%(name="#{org.name}" created="#{org.created_at}" owner="#{org.owner}" admin_count="#{org.admin_count}" user_count="#{org.user_count}")) %>
+    <% builder.target link_to('', "/#{org.name}") %>
     <% builder.top do %>
       <%= org.name %>
       <% if org.full_name? %>
