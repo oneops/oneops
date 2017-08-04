@@ -453,11 +453,11 @@ else
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
      #remedy for this change before we upgrade to a newer nagios package version https://github.com/NagiosEnterprises/nagioscore/commit/f7c6118c794c18b84ce73faa7b2767f847616582
-     execute 'remedy fix for old nagios package with init script' do
-       command 'killall -w -u nagios'
-       returns [0,1]
-       only_if { system('which killall') }
-     end
+    ruby_block 'remedy fix for old nagios package with init script' do
+      block do
+        `sudo pkill -f '^/usr/sbin/nagios -d'`
+      end
+    end
 
     service nagios_service do
       supports [ :restart, :enable ]
