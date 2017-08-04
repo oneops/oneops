@@ -1,6 +1,6 @@
 <%= render 'base/shared/edit_form',
            :resource   => @assembly,
            :content    => 'cms/cis/ci',
-           :read_only  => !manages_access?,
+           :read_only  => !(manages_access? || has_design?),
            :form_url   => assembly_path(@assembly),
            :cancel_url => edit_assembly_path %>
