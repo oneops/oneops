@@ -66,7 +66,7 @@ public class CmsUtil {
     private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
     private static final String VARSUFFIX ="}";
     private static final String ATTR_PROP_OWNER = "owner";
-    private static final String MASK = "##############";
+    protected static final String MASK = "##############";
     private static final String DJ_ATTR = "dj";
     private static final Logger logger = Logger.getLogger(CmsUtil.class);
     private CmsCmProcessor cmProcessor;
@@ -244,7 +244,7 @@ public class CmsUtil {
      *
      * @param rfcCI rfcCI for which attributes need to be secured.
      */
-    private static void maskSecure(CmsRfcCISimple rfcCI) {
+    protected static void maskSecure(CmsRfcCISimple rfcCI) {
         if (rfcCI.getCiAttrProps() != null && rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
             for (Entry<String, String> secAttr : rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
                 if ("true".equals(secAttr.getValue())) {
