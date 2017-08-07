@@ -748,8 +748,10 @@ public class CMSClient {
                 try {
                     if (val.startsWith(CmsCrypto.ENC_PREFIX)) {
                         rfc.getCiBaseAttributes().put(attrName, cmsCrypto.decrypt(val));
+			rfc.addCiAttrProp(CmsConstants.SECURED_ATTRIBUTE, attrName, "true");
                     } else if (val.contains(CmsCrypto.ENC_VAR_PREFIX)) {
                         rfc.getCiBaseAttributes().put(attrName, cmsCrypto.decryptVars(val));
+			rfc.addCiAttrProp(CmsConstants.SECURED_ATTRIBUTE, attrName, "true");
                     }
                 } catch (GeneralSecurityException ce) {
                     logger.error("Error decrypting ciBaseAttribute " + attrName + "; value - " + val + "\n"

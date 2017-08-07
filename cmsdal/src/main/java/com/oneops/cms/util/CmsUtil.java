@@ -230,7 +230,8 @@ public class CmsUtil {
     private static void maskSecure(CmsCISimple ci) {
         if (ci.getAttrProps() != null && ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
             for (Entry<String, String> secAttr : ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
-                if ("true".equals(secAttr.getValue())) {
+                if ("true".equals(secAttr.getValue())
+			&& ! StringUtils.isEmpty(ci.getCiAttributes().get(secAttr.getKey()))) {
                     ci.getCiAttributes().put(secAttr.getKey(), MASK);
                 }
             }
