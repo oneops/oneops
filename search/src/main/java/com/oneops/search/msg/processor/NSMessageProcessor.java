@@ -36,8 +36,6 @@ public class NSMessageProcessor {
 	
 	private static Logger logger = Logger.getLogger(NSMessageProcessor.class);
 	@Autowired
-	private RelationMessageProcessor relationMessageProcessor;
-	@Autowired
 	private Client client;
 	@Autowired
 	private Indexer indexer;
@@ -71,9 +69,6 @@ public class NSMessageProcessor {
         	for (SearchHit hit : scrollResp.getHits()){
         		indexer.getTemplate().delete(index, type, String.valueOf(hit.getId()));
     			logger.info("Deleted message with id::"+ hit.getId() +" and type::"+type+" from ES for nsId " + nsId);
-    			if("ci".equals(type)){
-    				relationMessageProcessor.processRelationDeleteMsg(hit.getId());
-    			}
         	}
 			
             scrollResp = client.prepareSearchScroll(scrollResp.getScrollId()).setScroll(new TimeValue(600000)).execute().actionGet();
