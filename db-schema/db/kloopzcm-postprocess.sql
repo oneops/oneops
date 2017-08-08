@@ -77,26 +77,9 @@ ALTER TABLE dj_rfc_relation
       REFERENCES dj_releases (release_id) MATCH SIMPLE
       ON UPDATE RESTRICT ON DELETE CASCADE;
 
-
-CREATE INDEX cm_ops_proc_ci_id_idx
- ON kloopzcm.cm_ops_procedures
- ( ci_id );
-
-CREATE INDEX cm_ops_proc_state_id_idx
- ON kloopzcm.cm_ops_procedures
- ( state_id );
-
 CREATE INDEX cm_ops_actions_proc_id_idx
  ON kloopzcm.cm_ops_actions
  ( ops_proc_id );
-
-CREATE INDEX cm_ops_actions_ci_id_idx
- ON kloopzcm.cm_ops_actions
- ( ci_id );
-
-CREATE INDEX cm_ops_actions_state_id_idx
- ON kloopzcm.cm_ops_actions
- ( state_id );
 
 CREATE UNIQUE INDEX dj_dpmt_state_idx
    ON dj_deployment (release_id) where state_id in (10, 100, 300, 500);
@@ -107,12 +90,9 @@ CREATE UNIQUE INDEX dj_release_state_idx
 CREATE UNIQUE INDEX md_class_attr_name_idx
    ON md_class_attributes (class_id ASC NULLS LAST, attribute_name ASC NULLS LAST);
 
-CREATE INDEX cm_ops_proc_ciid_nm_created
-  ON cm_ops_procedures (ci_id , created );
-   
 CREATE  INDEX concurrently cm_ops_procedures_ci_proc_idx
  ON kloopzcm.cm_ops_procedures
- ( ops_proc_id, ci_id );
+ ( ci_id, ops_proc_id );
  
 CREATE INDEX CONCURRENTLY cm_ci_relations_r_ns_idx
  ON kloopzcm.cm_ci_relations

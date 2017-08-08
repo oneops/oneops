@@ -622,21 +622,13 @@ CREATE TABLE kloopzcm.cm_ops_procedures (
 );
 
 
-CREATE INDEX cm_ops_proc_ci_id_idx
+CREATE INDEX CONCURRENTLY cm_ops_proc_ci_state_idx
  ON kloopzcm.cm_ops_procedures
- ( ci_id );
-
-CREATE INDEX cm_ops_proc_state_id_idx
- ON kloopzcm.cm_ops_procedures
- ( state_id );
-
-CREATE INDEX cm_ops_proc_ciid_nm_created
- ON kloopzcm.cm_ops_procedures
- ( ci_id, created );
+ ( ci_id, state_id, created );
 
 CREATE INDEX cm_ops_procedures_ci_proc_idx
  ON kloopzcm.cm_ops_procedures
- ( ops_proc_id, ci_id );
+ ( ci_id, ops_proc_id );
 
 CREATE TABLE kloopzcm.cm_ops_actions (
                 ops_action_id BIGINT NOT NULL,
@@ -658,14 +650,6 @@ CREATE TABLE kloopzcm.cm_ops_actions (
 CREATE INDEX cm_ops_actions_proc_id_idx
  ON kloopzcm.cm_ops_actions
  ( ops_proc_id );
-
-CREATE INDEX cm_ops_actions_ci_id_idx
- ON kloopzcm.cm_ops_actions
- ( ci_id );
-
-CREATE INDEX cm_ops_actions_state_id_idx
- ON kloopzcm.cm_ops_actions
- ( state_id );
 
 CREATE INDEX cm_ops_actions_ci_proc_idx
  ON kloopzcm.cm_ops_actions
