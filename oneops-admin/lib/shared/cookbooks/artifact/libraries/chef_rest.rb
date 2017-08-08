@@ -4,7 +4,7 @@ if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
 end
 require 'tempfile'
 require 'uri'
-require  'openssl'
+require 'openssl'
 
 class Chef
   class REST
@@ -42,7 +42,7 @@ class Chef
       uri = URI(url_path)
       ssl = uri.scheme == "https" ? true : false
       headers_h, headers = nil
-      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('1.8.7')
+      if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) { |http|
           url_path = !uri.query.nil? ? "#{uri.path}?#{uri.query}" : uri.path
           headers = http.head(url_path)
@@ -80,17 +80,13 @@ class Chef
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      if Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new('2.0.0')
-        url_uri = URI.parse(remote_file.to_s)
-      else
-        url_uri = URI(remote_file)
-      end
+      uri = URI(remote_file)
       
-      ssl = url_uri.scheme == "https" ? true : false
+      ssl = uri.scheme == "https" ? true : false
 
       if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
-        Net::HTTP.start(url_uri.host, url_uri.port, :use_ssl => ssl) do |http|
-          request = Net::HTTP::Get.new url_uri
+        Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) do |http|
+          request = Net::HTTP::Get.new uri
 
           http.request request do |response|
             open local_file, 'wb' do |io|
@@ -101,8 +97,8 @@ class Chef
           end
         end
       else
-        http = Net::HTTP.new(url_uri.host,url_uri.port)
-        req = Net::HTTP::Get.new(url_uri.request_uri)
+        http = Net::HTTP.new(uri.host,uri.port)
+        req = Net::HTTP::Get.new(uri.request_uri)
         if ssl
           http.use_ssl = true
           http.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -126,7 +122,6 @@ class Chef
       Chef::Log.info("Fetching in #{parts.length} parts")
       Chef::Log.info("Part details: #{pp parts.inspect}")
       # todo.. resume mode
-
       #install parallel gem, for windows make sure it installs into chef-dedicated instance of ruby
       if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
         `c:\\opscode\\chef\\embedded\\bin\\gem install parallel -v 1.3.3`
@@ -193,9 +188,7 @@ class Chef
 
       parts.each do |part|
         file="#{local_path}.#{part['slot']}.tmp"
-		File.open(file,'rb') do |part_file|
-		  temp_file.write(part_file.read)
-		end
+        temp_file.write(File.open(file, 'rb').read)
       end
 
       temp_file.flush
