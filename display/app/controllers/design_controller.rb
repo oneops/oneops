@@ -283,8 +283,8 @@ class DesignController < ApplicationController
         errors['platforms'][plat_name] = {}
 
         pack_path = plat['pack']
-        if pack_path =~ /^\w+\/[\w\-]+:\d+$/
-          source, pack, version = pack_path.split(/\/|:/)
+        if pack_path =~ /^\w+\/[\w\-]+:\d+(\.\d+\.\d+)?$/
+          source, pack, version = pack_path.split(/[\/:]/)
           ci_attrs = plat.slice(*PLATFORM_EXPORT_ATTRIBUTES)
           ci_attrs = ci_attrs.merge(:source => source, :pack => pack, :version => version)
 

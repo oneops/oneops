@@ -1,7 +1,7 @@
 class Search::Cost < Search::Base
   self.prefix       = ''
   self.element_name = ''
-  self.timeout      = 10
+  self.timeout      = 30
 
   def self.cost_rate(ns_path)
     result        = nil

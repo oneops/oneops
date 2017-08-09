@@ -39,19 +39,16 @@ import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
 @Service
 public class CIMessageProcessor implements MessageProcessor {
-    private static final int EXPANSION_LEVEL_MAX = 2;
     private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
     private static final String SUCCESS_PREFIX = "SUCCESS:";
     private static final int RETRY_COUNT = 5;
     private static final long TIME_TO_WAIT = 5000;
-    private static final String EXPJSON_SUFFIX = "_json";
-
+    
 
     private Client client;
     private Indexer indexer;
     private PolicyProcessor policyProcessor;
     private DeploymentPlanProcessor deploymentPlanProcessor;
-    private RelationMessageProcessor relationMessageProcessor;
     private CmsUtil cmsUtil;
 
     @Autowired
@@ -74,10 +71,6 @@ public class CIMessageProcessor implements MessageProcessor {
         this.deploymentPlanProcessor = deploymentPlanProcessor;
     }
 
-    @Autowired
-    public void setRelationMessageProcessor(RelationMessageProcessor relationMessageProcessor) {
-        this.relationMessageProcessor = relationMessageProcessor;
-    }
 
     @Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
@@ -104,7 +97,6 @@ public class CIMessageProcessor implements MessageProcessor {
             message = GSON_ES.toJson(simpleCI);
         }
 		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
-        relationMessageProcessor.processRelationForCi(message);
     }
 
 
