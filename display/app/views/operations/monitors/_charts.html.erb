@@ -80,7 +80,9 @@
                    dataPoints = [],
                    metricLevels = levels[metricName] || [];
                for (var i = 0; i < values.length; i++) {
-                 dataPoints.push([new Date((start + i * step) * 1000), values[i]]);
+                 if (values[i] != null) {
+                   dataPoints.push([new Date((start + i * step) * 1000), values[i]]);
+                 }
                }
                return {
                  name:    metricName,

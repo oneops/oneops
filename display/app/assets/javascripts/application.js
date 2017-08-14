@@ -262,19 +262,24 @@ window.sort_list = function(container, sortAttrs, desc) {
       var a_value = a.getAttribute(sortAttrs[i]);
       var b_value = b.getAttribute(sortAttrs[i]);
       if (a_value != null && b_value != null) {
-        result = (a_value < b_value ? -1 : (a_value > b_value ? 1 : 0)) * (desc ? -1 : 1);
-        if (result) {
-          return result;
+        a_value = a_value.toLowerCase();
+        b_value = b_value.toLowerCase();
+        result = a_value < b_value ? -1 : (a_value > b_value ? 1 : 0);
+        if (result != 0) {
+          break;
         }
       }
       else if (a_value != null) {
-        return -1;
+        result = -1;
+        break;
       }
-      else {
-        return 1;
+      else if (b_value != null) {
+        result = 1;
+        break
       }
     }
-    return result;
+    // console.log(result);
+    return result * (desc ? -1 : 1);
   });
   items.each(function(li) {
     li.remove();

@@ -185,7 +185,22 @@ class Base::PlatformsController < ApplicationController
                               :items         => []})
     end
 
-    pack_ns_path = platform_pack_ns_path(@platform)
+    pack_ns_path     = platform_pack_ns_path(@platform)
+    platform_ns_path = design_platform_ns_path(@assembly, @platform)
+
+    monitors_map = Cms::DjRelation.all(:params => {:nsPath => platform_ns_path,
+                                                   :relationShortName => 'WatchedBy'}).inject({}) do |h, r|
+      h[r.fromCiId] ||= 0
+      h[r.fromCiId] += 1
+      h
+    end
+
+    attachments_map = Cms::DjRelation.all(:params => {:nsPath            => platform_ns_path,
+                                                      :relationShortName => 'EscortedBy'}).inject({}) do |h, r|
+      h[r.fromCiId] ||= 0
+      h[r.fromCiId] += 1
+      h
+    end
 
     @components = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                   :direction         => 'from',
@@ -194,6 +209,8 @@ class Base::PlatformsController < ApplicationController
                                                   :attrProps         => 'owner'}).map do |r|
       group_id  = "#{r.relationAttributes.template}_#{@platform.ciId}"
       component = r.toCi
+      component.monitors = monitors_map[component.ciId].to_i
+      component.attachments = attachments_map[component.ciId].to_i
       component.add_policy_locations(pack_ns_path) if Settings.check_policy_compliance
       group = group_map[group_id]
       unless group

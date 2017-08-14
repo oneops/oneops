@@ -72,11 +72,19 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def search
+    if request.format.html?
+      render '_search'
+    else
+      super
+    end
+  end
+
 
   protected
 
   def search_ns_path
-    environment_ns_path(@environment)
+    environment_bom_ns_path(@environment)
   end
 
 

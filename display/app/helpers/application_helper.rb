@@ -327,14 +327,7 @@ module ApplicationHelper
       html = image_tag(page_icon)
     end
 
-    fav   = ''
     ci_id = params[:id]
-    if ci_id.present? && /(\/assemblies\/)|(\/clouds\/)/ =~ request.url
-      fav = link_to_function(content_tag(:i, '', :class => "fa fa-bookmark#{'-o' unless current_user.favorite(ci_id.to_i)}", :title => 'Mark/remove favorite'),
-                             "toggleFavorite(this, '#{ci_id }')",
-                             :class => 'favorite')
-
-    end
     block = ''
     block << content_tag(:span, sanitize(page_kind), :class => 'page_kind') if page_kind
     doc_link = options[:doc_link]
@@ -344,7 +337,7 @@ module ApplicationHelper
       else
         block << content_tag(:span, raw("#{sanitize(options[:page_label])}"), :class => 'page_label')
       end
-      block << fav
+      block << favorite_marker(ci_id.to_i) if ci_id.present? && /(\/assemblies\/)|(\/clouds\/)/ =~ request.url
       block << doc_link if doc_link.present?
     end
     block << content_tag(:span, sanitize(options[:page_sublabel]), :class => 'page_sublabel') if options[:page_sublabel]
@@ -352,6 +345,12 @@ module ApplicationHelper
 
     html << content_tag(:ul, raw(options[:page_options].join(' ')), :id => 'page_title_options') if options[:page_options]
     content_for(:page_title, raw(html))
+  end
+
+  def favorite_marker(ci_id)
+    link_to_function(content_tag(:i, '', :class => "fa fa-bookmark#{'-o' unless current_user.favorite(ci_id)}", :title => 'Mark/remove favorite'),
+                     "toggleFavorite(this, '#{ci_id }')",
+                     :class => 'favorite')
   end
 
   def page_info(info = nil, &block)
@@ -1313,11 +1312,11 @@ module ApplicationHelper
 
   def expandable_list(items, options = {})
     separator     = options[:separator] || ', '
-    visible_count = options[:visible_count] || 2
-    html = items[0..visible_count].join(separator)
+    visible_count = options[:visible_count] || 3
+    html = items[0...visible_count].join(separator)
     if items.size > visible_count
       html << separator
-      html << expandable_content(:content => items[(visible_count + 1)..-1].join(separator), :label => options[:label])
+      html << expandable_content(:content => items[visible_count..-1].join(separator), :label => options[:label])
     end
     raw(html)
   end

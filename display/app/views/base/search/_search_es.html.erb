@@ -13,25 +13,22 @@
 
       <div class="filter">
         <div class="name">
-          <%= link_to_function(raw("Filters #{icon('caret-down')}"),
+          <%= link_to_function(raw("Filters #{icon('caret-up')}"),
                                '$j(this).parents(".filter").find(".sub-filter").toggle();$j(this).find("i").toggleClass("fa-caret-down").toggleClass("fa-caret-up")') %>
         </div>
-        <% if defined?(ns_path) %>
-          <input type="hidden" class="nspath" value="<%= ns_path %>">
-        <% else %>
-          <div class="sub-filter hide">
-            <div class="name">Namespace</div>
-            <div class="input-append">
-              <input type="text" class="nspath" value="<%= params[:nspath] || search_ns_path %>" pattern="<%= search_ns_path.gsub('/', '\/') %>(\/|\w|-)*">
-              <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path %>')"></i>
-            </div>
+        <% search_ns_path_x = defined?(ns_path) ? ns_path : search_ns_path %>
+        <div class="sub-filter">
+          <div class="name">Namespace</div>
+          <div class="input-append">
+            <input type="text" class="nspath" value="<%= params[:nspath] || search_ns_path_x %>" pattern="<%= search_ns_path_x.gsub('/', '\/') %>([\w/-\*])*">
+            <i class="fa fa-times-circle-o fa-lg add-on" onclick="$j(this).siblings('input').val('<%= search_ns_path_x %>')"></i>
           </div>
-        <% end %>
+        </div>
 
         <% if defined?(class_name) %>
           <input type="hidden" class="class-name" value="<%= class_name %>">
         <% else %>
-          <div class="sub-filter hide">
+          <div class="sub-filter">
             <div class="name">Class</div>
             <div class="input-prepend">
               <input type="text" class="class-name" value="<%= params[:class_name] %>">
@@ -44,11 +41,11 @@
       <% if quick_filters.present? %>
         <div class="filter quick">
           <div class="name">
-            <%= link_to_function(raw("Quick Search #{icon('caret-down')}"),
+            <%= link_to_function(raw("Quick Search #{icon('caret-up')}"),
                                  '$j(this).parents(".filter").find(".btn").toggle();$j(this).find("i").toggleClass("fa-caret-down").toggleClass("fa-caret-up")') %>
           </div>
-          <% quick_filters.keys.sort.each do |q| %>
-            <a class="btn btn-small btn-<%= quick_filters[q][:run] ? 'success' : 'info' %>" style="display:none"><%= q %></a>
+          <% quick_filters.keys.each do |q| %>
+            <a class="btn btn-small btn-<%= quick_filters[q][:run] ? 'success' : 'info' %>"><%= q %></a>
           <% end %>
         </div>
       <% end %>
@@ -109,7 +106,9 @@
       }
     }
 
-    searchFilterSection.find("textarea.query").val(query || '');
+    if (query) {
+      searchFilterSection.find("textarea.query").val(query);
+    }
 
     if (quickFilter.run) {
       updateSearchResultList();
