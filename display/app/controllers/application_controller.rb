@@ -120,7 +120,7 @@ class ApplicationController < ActionController::Base
 
       if query.present? || class_name.present?
         begin
-          search_params = {:nsPath => "#{ns_path}#{'/' unless ns_path.last == '/'}*", :size => max_size}
+          search_params = {:nsPath => "#{ns_path}#{'*' unless ns_path.include?('*')}", :size => max_size}
           search_params[:query] = {:query => query, :fields => %w(ciAttributes.* ciClassName ciName), :lenient => true} if query.present?
           # search_params[:query]                = query if query.present?
           search_params['ciClassName.keyword'] = class_name if class_name.present?
@@ -215,6 +215,7 @@ class ApplicationController < ActionController::Base
 
   helper_method :organization_ns_path,
                 :assembly_ns_path,
+                :design_ns_path,
                 :environment_ns_path,
                 :environment_manifest_ns_path,
                 :environment_bom_ns_path,

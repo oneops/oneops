@@ -1,15 +1,16 @@
 <% watched_map = current_user.watches.where(:ci_class_name => 'account.Assembly').inject({}) {|m, a| m[a.ci_id] = true; m}
    toolbar = {:list_name => 'assemblies',
-              :sort_by   => [%w(Name ciName), %w(Created created), %w(Watching watch)],
-              :filter_by => %w(ciName)}
+              :sort_by   => [%w(Name ciName), %w(Created created), %w(Favorite favorite:ciName), %w(Watching watching:ciName)],
+              :filter_by => %w(ciName favorite watching)}
    menu = [{:id => 'watch',   :label => icon('eye', 'Watch',  'fa-fw'),  :url => watch_path, :method => :post,   :param_name => 'ciIds'},
            {:id => 'unwatch', :label => icon('eye-slash','Ignore', 'fa-fw'), :url => watch_path, :method => :delete, :param_name => 'ciIds'}] %>
 <%= ci_list(@assemblies,
             :toolbar => toolbar,
             :menu => menu,
             :new_link => (manages_access? ? link_to(icon('plus', 'New Assembly...'), new_assembly_path) : nil)) do |builder, target| %>
-  <%= watching = watched_map[target.ciId] %>
-  <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" watch="#{watching ? 0 : 1}") %>
+  <% favorite = current_user.favorite(target.ciId)
+     watching = watched_map[target.ciId] %>
+  <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" favorite="#{favorite ? 'favorite' : '~!'}" watching="#{watching ? 'watching' : '~!'}")) %>
   <% builder.target link_to('', assembly_path(target), :remote => false) %>
   <% builder.status do %>
     <%= marker(icon('eye', 'watching', 'fa-lg'), 'label-inverse') if watching %>
@@ -23,6 +24,12 @@
     <% end %>
   <% end %>
   <% builder.icon :none %>
+  <% builder.top do %>
+    <span class="topname"><%= target.ciName %></span>
+    <% if favorite %>
+      <span class="favorite"><%= icon('bookmark') %></span>
+    <% end %>
+  <% end %>
   <% builder.middle do %>
     <%= link_to(icon(site_icon(:design),     'design'),     assembly_design_path(target)) %> <%= highlight(target.platforms.count) %> <%= 'platform'.pluralize(target.platforms.count) %> |
     <%= link_to(icon(site_icon(:transition), 'transition'), assembly_transition_path(target)) %> <%= highlight(target.environments.count) %> <%= 'environment'.pluralize(target.environments.count) %> |
