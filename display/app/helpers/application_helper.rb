@@ -787,7 +787,7 @@ module ApplicationHelper
 
   def instance_marker(platform_clouds, target)
     clouds = platform_clouds["#{target.ciName}/#{target.ciAttributes.major_version}"]
-    return '' unless clouds.present?
+    return '', 0 unless clouds.present?
     clouds = clouds.values
     total = 0
     content = clouds.sort_by {|info| info[:consumes].toCi.ciName}.inject('') do |a, info|

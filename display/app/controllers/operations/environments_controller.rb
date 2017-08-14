@@ -23,10 +23,10 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
           @pending_approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId}).select { |a| a.state == 'pending' }
         end
 
-        @platforms = Cms::DjRelation.all(:params => {:ciId              => @environment.ciId,
-                                                     :direction         => 'from',
-                                                     :relationShortName => 'ComposedOf',
-                                                     :targetClassName   => 'manifest.Platform'})
+        @platforms = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
+                                                   :direction         => 'from',
+                                                   :relationShortName => 'ComposedOf',
+                                                   :targetClassName   => 'manifest.Platform'})
         @clouds    = Cms::Relation.all(:params => {:relationName    => 'base.Consumes',
                                                    :targetClassName => 'account.Cloud',
                                                    :direction       => 'from',
@@ -45,11 +45,11 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     @environment = Cms::Ci.find(params[:id])
 
     manifest_ns_path = environment_manifest_ns_path(@environment)
-    composedof_rels = Cms::DjRelation.all(:params => {:ciId              => @environment.ciId,
-                                                      :direction         => 'from',
-                                                      :relationShortName => 'ComposedOf',
-                                                      :targetClassName   => 'manifest.Platform',
-                                                      :includeToCi       => true})
+    composedof_rels = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
+                                                    :direction         => 'from',
+                                                    :relationShortName => 'ComposedOf',
+                                                    :targetClassName   => 'manifest.Platform',
+                                                    :includeToCi       => true})
 
     requires_rels = Cms::Relation.all(:params => {:nsPath            => manifest_ns_path,
                                                   :relationShortName => 'Requires',
@@ -63,9 +63,9 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
       @graph = environment_graph(@environment, composedof_rels, requires_rels)
     else
       cis_bom = @instances.inject({}) { |h, c| h.update(c.ciId => c) }
-      realizedas_rels = Cms::DjRelation.all(:params => {:nsPath            => environment_ns_path(@environment) + '/bom',
-                                                        :relationShortName => 'RealizedAs',
-                                                        :recursive         => true})
+      realizedas_rels = Cms::Relation.all(:params => {:nsPath            => environment_ns_path(@environment) + '/bom',
+                                                      :relationShortName => 'RealizedAs',
+                                                      :recursive         => true})
 
       ops_states = Operations::Sensor.states(@instances)
       @graph = environment_graph(@environment, composedof_rels, requires_rels, realizedas_rels, cis_bom, ops_states)
