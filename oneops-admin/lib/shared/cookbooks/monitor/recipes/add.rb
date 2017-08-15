@@ -417,6 +417,14 @@ ruby_block 'setup nagios' do
   end
 end
 
+#fix for this change before we upgrade to a newer nagios package version https://github.com/NagiosEnterprises/nagioscore/commit/f7c6118c794c18b84ce73faa7b2767f847616582
+ruby_block 'fix for nagios service script' do
+  block do
+    nagios_version = `yum info nagios | grep 'Version'`.gsub(/\s+/, '').gsub('Version:', '')
+    include_recipe 'monitor::nagios_service_fix'
+  end
+  only_if nagios_version == '3.5.1' && node.platform_family == 'rhel'
+end
 
 if is_new_compute
   include_recipe 'compute::ssh_key_file_rm'
