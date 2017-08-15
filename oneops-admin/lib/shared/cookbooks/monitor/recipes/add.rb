@@ -452,6 +452,10 @@ else
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
+     #fix for this change before we upgrade to a newer nagios package version https://github.com/NagiosEnterprises/nagioscore/commit/f7c6118c794c18b84ce73faa7b2767f847616582
+     nagios_version = `yum info nagios | grep 'Version'`.gsub(/\s+/, '').gsub('Version:', '')
+     include_recipe 'monitor::nagios_service_fix' if nagios_version == '3.5.1' && node.platform_family == 'rhel'
+
     service nagios_service do
       supports [ :restart, :enable ]
       action [ :restart, :enable ]
