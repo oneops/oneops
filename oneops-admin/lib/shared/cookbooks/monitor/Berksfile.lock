@@ -1,0 +1,23 @@
+DEPENDENCIES
+  compute
+    path: ../../../../../../../circuit-oneops-1/components/cookbooks/compute
+  kitchen-test-helper
+    git: git://github.com/kbvincent/kitchen-test-helper.git
+    revision: 61c5288fdf66f0655273390f20a438a8cb15640e
+    branch: master
+  monitor
+    path: .
+    metadata: true
+  shared
+    path: ../../../../../../../oneops/oneops-admin/lib/shared/cookbooks/shared
+
+GRAPH
+  azure (0.2.0)
+    ohai (>= 1.1.4)
+  compute (0.0.0)
+    azure (>= 0.0.0)
+    shared (>= 0.0.0)
+  kitchen-test-helper (2.0.0)
+  monitor (0.1.0)
+  ohai (5.1.0)
+  shared (0.1.0)
