@@ -24,11 +24,11 @@ suites:
       mgmt_domain: 'test.oneops.com'
       workorder:
         cloud:
-          ciName: 'prod-dfw4'
+          ciName: 'prod'
           ciId: '123456789'
         services:
           monitoring:
-            prod-dfw4:
+            dev:
         payLoad:
           WatchedBy:
           -
