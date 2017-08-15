@@ -4,6 +4,6 @@ template '/etc/init.d/nagios' do
 	mode '0755'
 end
       
-service "#{nagios_service}" do
+service 'nagios' do
 	action :reload
 end
