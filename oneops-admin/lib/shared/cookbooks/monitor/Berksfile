@@ -1,0 +1,7 @@
+source "https://supermarket.chef.io"
+
+cookbook "kitchen-test-helper", github: "kbvincent/kitchen-test-helper", branch: "master"
+metadata
+
+cookbook "compute", path: "/Users/ighouri/work/circuit-oneops-1/components/cookbooks/compute/"
+cookbook "shared", path: "/Users/ighouri/work/oneops/oneops-admin/lib/shared/cookbooks/shared/"
