@@ -416,7 +416,11 @@ class Chef
           cl = Chef::CookbookLoader.new(config[:cookbook_path])
           cl.load_cookbooks
           cl.each do |cname, cookbook|
-            generate_metadata(cname.to_s)
+            # if the component has .ignore file skip it
+            # using .ignore file method since we can't expand metadata.rb with
+            # reasonable field, using this method will ensure that component/cookbook
+            # will also work with various other Chef's compliant tool.
+            generate_metadata(cname.to_s) if !::File.exist?("#{cookbook.root_paths.first}/.ignore")
           end
         
          begin
@@ -434,7 +438,13 @@ class Chef
             ui.error "You must specify the cookbook to generate metadata for, or use the --all option."
             exit 1
           end
-          generate_metadata(cookbook_name)
+          #
+          # config[:cookbook_path] will default to be ["components/cookbooks"],
+          # and cookbook/component is directly inside this structure 
+          # e.g. components/cookbooks/#{cookbook_name}
+          # this mean that to sync individual cookbook the current directory
+          # must be at the root of the circuit.
+          generate_metadata(cookbook_name) if !::File.exist?("#{::File.expand_path(Dir.pwd)}/#{config[:cookbook_path].first}/#{cookbook_name}/.ignore")
         end
       end
       
