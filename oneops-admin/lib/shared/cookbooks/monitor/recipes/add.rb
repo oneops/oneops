@@ -101,7 +101,6 @@ if node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/
   is_new_compute = true
 else
   include_recipe 'monitor::install_nagios'
-  include_recipe 'monitor::nagios_service_fix'
 end
 
 Chef::Log.info("Is new compute: #{is_new_compute}")
@@ -467,3 +466,5 @@ else
     end
   end
 end
+
+include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/

@@ -7,8 +7,10 @@ if nagios_version == '3.5.1' && node.platform_family == 'rhel'
 	template '/etc/init.d/nagios' do
 		source 'nagios_service_3.5.1.erb'
 		mode '0755'
+		notifies :reload, 'service[nagios]', :immediately
+		notifies :restart, 'service[nagios]', :immediately
 	end
 	service 'nagios' do
-		action [ :reload, :restart ]
+		supports :reload => true, :restart => true
 	end
 end
