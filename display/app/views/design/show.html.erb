@@ -30,5 +30,6 @@
 <%= render 'base/shared/page_nav_pages',
            :items => [{:label => 'summary', :template => 'summary', :selected => true},
                       {:label => 'variables', :url => assembly_design_variables_path(@assembly)},
-                      {:label => 'timeline', :url => assembly_design_timeline_path(@assembly)}] %>
+                      {:label => 'timeline', :url => assembly_design_timeline_path(@assembly)},
+                      {:label => icon('search'), :id => 'search', :template => 'search'}] %>
 

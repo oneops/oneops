@@ -311,6 +311,7 @@ Display::Application.routes.draw do
         get  'load',    :on => :member
         put  'load',    :on => :member
         get  'diagram', :on => :member
+        get  'search',  :on => :member
       end
 
       namespace :design do

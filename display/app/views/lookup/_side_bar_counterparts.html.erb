@@ -72,6 +72,7 @@
      end
    end
 %>
+<% visible_count = 3 %>
 <% if groups.present? %>
   <% groups.each do |g| %>
     <% items = g[:items] %>
@@ -80,9 +81,16 @@
       <% if title.present? %>
         <li class="indent minor">
           <%= link_to_function(raw("#{icon('caret-down', title)}"), 'toggleSidebarInlineSelectionList(this)') %>
-          <ul class="hide submenu">
-            <% items.sort.each do |item| %>
+          <ul class="submenu">
+            <% items.sort! %>
+            <% items[0...visible_count].each do |item| %>
               <li><%= raw(item) %></li>
+            <% end %>
+            <% if items.size > visible_count %>
+              <li><%= link_to_function(content_tag(:strong, '...'), '$j(this).parent().hide().siblings(".hide").show()') %></li>
+              <% items[visible_count..-1].each do |item| %>
+                <li class="hide"><%= raw(item) %></li>
+              <% end %>
             <% end %>
           </ul>
         </li>

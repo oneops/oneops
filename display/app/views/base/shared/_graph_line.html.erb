@@ -288,7 +288,7 @@
           .attr("class", "value");
 
       var line = d3.svg.line()
-          .interpolate("monotone")
+          .interpolate("linear")
           .x(function (d) {
                return xScale(d[0]);
              })
