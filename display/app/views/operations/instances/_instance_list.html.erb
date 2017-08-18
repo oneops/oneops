@@ -43,9 +43,13 @@
                else
                  'assembly_instances'
                end
+
    toolbar = {:list_name => list_name,
               :sort_by   => sort_by,
-              :filter_by => filter_by}
+              :filter_by => filter_by,
+              :quick_filters => [{:label => 'All', :value => '', :selected => true},
+                                 {:label => 'Primary', :value => 'cloudPriority=primary'},
+                                 {:label => 'Secondary', :value => 'cloudPriority=secondary'}]}
 
    has_operations = has_operations?(@assembly.try(:ciId))
 

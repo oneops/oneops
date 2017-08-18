@@ -299,6 +299,10 @@ Display::Application.routes.draw do
         get  'health'
       end
 
+      collection do
+        get 'tags'
+      end
+
       resources :instances, :controller => 'operations/instances', :only => [:index]
 
       # Design.
@@ -307,6 +311,7 @@ Display::Application.routes.draw do
         get  'load',    :on => :member
         put  'load',    :on => :member
         get  'diagram', :on => :member
+        get  'search',  :on => :member
       end
 
       namespace :design do

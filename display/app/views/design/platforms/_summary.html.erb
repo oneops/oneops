@@ -23,10 +23,11 @@
 
     <%= group_builder.items(group_items) do |item_builder, ci| %>
       <% item_builder.attributes raw(%(ciName="#{ci.ciName}")) %>
-      <% item_builder.target link_to('', edit_assembly_design_platform_component_path(@assembly, @platform, ci)) %>
+      <% edit_url = edit_assembly_design_platform_component_path(@assembly, @platform, ci) %>
+      <% item_builder.target link_to('', edit_url) %>
       <% item_builder.icon :none %>
-      <% if @policy_compliance %>
-        <% item_builder.status do %>
+      <% item_builder.status do %>
+        <% if @policy_compliance %>
           <% violate_count = @policy_compliance[ci.ciId] %>
           <% if violate_count == 0 %>
             <%= status_marker('policy', 'passed', 'label-success') %>
@@ -34,6 +35,10 @@
             <%= status_marker('policy', "#{violate_count} failed", 'label-important') %>
           <% end %>
         <% end %>
+        <%= link_to(status_marker(icon('line-chart'), pluralize(ci.monitors, 'monitor'), 'label-info'),
+                    edit_assembly_design_platform_component_path(@assembly, @platform, ci, :anchor => 'monitors')) if ci.monitors > 0 %>
+        <%= link_to(status_marker(icon('paperclip'), pluralize(ci.attachments, 'attachment'), 'label-info'),
+                    edit_assembly_design_platform_component_path(@assembly, @platform, ci, :anchor => 'attachments')) if ci.attachments > 0 %>
       <% end %>
       <% if ci.ciAttributes.attributes.present? %>
         <% item_builder.middle do %>

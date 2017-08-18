@@ -1,12 +1,18 @@
 class Operations::ComponentsController < Base::ComponentsController
-  before_filter :find_component
-
   def show
     respond_to do |format|
       format.html do
-        @procedures = Cms::Procedure.all(:params => {:ciId  => @component.ciId,
-                                                     :limit => 100})
+        instances = Cms::Relation.all(:params => {:ciId              => @component.ciId,
+                                                  :direction         => 'from',
+                                                  :includeToCi       => false,
+                                                  :relationShortName => 'RealizedAs'})
+        if instances.size == 1
+          redirect_to assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, @component, instances.first.toCiId)
+        else
+          @procedures = Cms::Procedure.all(:params => {:ciId => @component.ciId, :limit => 100})
+        end
       end
+
       format.json {render_json_ci_response(true, @component)}
     end
   end

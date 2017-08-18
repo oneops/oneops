@@ -318,6 +318,20 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def search
+    if request.format.html?
+      render '_search'
+    else
+      super
+    end
+  end
+
+
+  protected
+
+  def search_ns_path
+    environment_manifest_ns_path(@environment)
+  end
 
   private
 

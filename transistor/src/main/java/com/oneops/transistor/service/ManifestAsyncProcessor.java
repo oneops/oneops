@@ -18,6 +18,7 @@
 package com.oneops.transistor.service;
 
 import com.oneops.cms.exceptions.CmsBaseException;
+import com.oneops.cms.util.CmsError;
 import org.apache.log4j.Logger;
 
 import java.util.List;
@@ -55,6 +56,10 @@ public class ManifestAsyncProcessor {
                     } catch (CmsBaseException e) {
                         logger.error("CmsBaseException occurred", e);
                         envMsg = EnvSemaphore.MANIFEST_ERROR + e.getMessage();
+                        // if services are missing, design pull cannot be completed, so we have to delete all previously created rfcs and release
+                        if (e.getErrorCode()== CmsError.TRANSISTOR_MISSING_CLOUD_SERVICES) {
+                            manifestManager.rollbackOpenRelease(envId);
+                        }
                         throw e;
                     } finally {
                         envSemaphore.unlockEnv(envId, envMsg, processId);//error in design pull

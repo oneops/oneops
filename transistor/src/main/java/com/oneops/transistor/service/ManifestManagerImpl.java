@@ -641,6 +641,15 @@ public class ManifestManagerImpl implements ManifestManager {
 		manifestRfcProcessor.updatePlatfomCloudStatus(cloudRel, userId);
 	}
 
+	@Override
+	public void rollbackOpenRelease(long envId) {
+		CmsCI env = getEnv(envId);
+		String nsPath = getManifestNsPath(env);
+		List<CmsRelease> list = rfcProcessor.getLatestRelease(nsPath, "open");
+		if (list.size()>0) {
+			rfcProcessor.deleteRelease(list.get(0).getReleaseId());
+		}
+	}
 
 	private class ManifestRfcProcessorTask implements Callable<DesignCIManifestRfcTouple> {
         private final CmsCI env;

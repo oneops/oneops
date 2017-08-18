@@ -17,9 +17,6 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
@@ -30,6 +27,7 @@ import com.oneops.search.msg.processor.ci.DeploymentPlanProcessor;
 import com.oneops.search.msg.processor.ci.PolicyProcessor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.search.sort.SortOrder;
@@ -37,26 +35,20 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
 @Service
 public class CIMessageProcessor implements MessageProcessor {
-    private static final int EXPANSION_LEVEL_MAX = 2;
     private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
     private static final String SUCCESS_PREFIX = "SUCCESS:";
     private static final int RETRY_COUNT = 5;
     private static final long TIME_TO_WAIT = 5000;
-    private static final String EXPJSON_SUFFIX = "_json";
-
+    
 
     private Client client;
     private Indexer indexer;
     private PolicyProcessor policyProcessor;
     private DeploymentPlanProcessor deploymentPlanProcessor;
-    private RelationMessageProcessor relationMessageProcessor;
     private CmsUtil cmsUtil;
 
     @Autowired
@@ -79,10 +71,6 @@ public class CIMessageProcessor implements MessageProcessor {
         this.deploymentPlanProcessor = deploymentPlanProcessor;
     }
 
-    @Autowired
-    public void setRelationMessageProcessor(RelationMessageProcessor relationMessageProcessor) {
-        this.relationMessageProcessor = relationMessageProcessor;
-    }
 
     @Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
@@ -104,12 +92,11 @@ public class CIMessageProcessor implements MessageProcessor {
 
         //add wo to all bom cis
         if (ci.getCiClassName().startsWith("bom")) {
-            message = this.process(simpleCI);
+            message = this.processBomCI(simpleCI);
         } else {
             message = GSON_ES.toJson(simpleCI);
         }
 		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
-        relationMessageProcessor.processRelationForCi(message);
     }
 
 
@@ -119,7 +106,7 @@ public class CIMessageProcessor implements MessageProcessor {
      * @param ci
      * @return
      */
-    private String process(CmsCISimple ci) {
+    private String processBomCI(CmsCISimple ci) {
         CmsCISearch ciSearch = new CmsCISearch();
         BeanUtils.copyProperties(ci, ciSearch);
         long ciId = ciSearch.getCiId();
@@ -128,7 +115,7 @@ public class CIMessageProcessor implements MessageProcessor {
             try {
                 SearchResponse response = client.prepareSearch("cms-2*")
                         .setTypes("workorder")
-                        .setQuery(queryStringQuery(String.valueOf(ciId)).field("rfcCi.ciId"))
+                        .setQuery(queryStringQuery("rfcCi.ciId:"+ciId+" AND dpmtRecordState:complete"))
                         .addSort("searchTags.responseDequeTS", SortOrder.DESC)
                         .setSize(1)
                         .execute()
@@ -150,6 +137,11 @@ public class CIMessageProcessor implements MessageProcessor {
         }
         if (wos == null) {
             logger.info("WO not found for ci " + ci.getCiId() + " of type " + ci.getCiClassName());
+            GetResponse response = client.prepareGet(indexer.getIndexName(), "ci", ""+ci.getCiId()).get();
+            if (response.isExists()){
+                wos = GSON_ES.fromJson(GSON.toJson(response.getSource().get("workorder")), CmsWorkOrderSimple.class);
+                ciSearch.setWorkorder(wos);
+            }
         }
         return GSON_ES.toJson(ciSearch);
     }

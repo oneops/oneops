@@ -106,6 +106,10 @@ CREATE UNIQUE INDEX ns_namespaces_ak
  ON kloopzcm.ns_namespaces
  ( ns_path );
 
+CREATE INDEX ns_namespaces_vpo
+ ON kloopzcm.ns_namespaces
+ (ns_path varchar_pattern_ops);
+
 CREATE TABLE kloopzcm.dj_deployment_rfc_states (
                 state_id INTEGER NOT NULL,
                 state_name VARCHAR(64) NOT NULL,
@@ -402,6 +406,13 @@ CREATE UNIQUE INDEX md_classes_cln_idx
  ON kloopzcm.md_classes
  ( class_name );
 
+ CREATE INDEX md_classes_comp_names_idx
+ ON kloopzcm.md_classes
+   (class_name, short_class_name);
+
+ CREATE INDEX md_classes_scln_idx
+ ON md_classes  (short_class_name);
+
 CREATE TABLE kloopzcm.md_class_actions (
                 action_id INTEGER NOT NULL,
                 class_id INTEGER NOT NULL,
@@ -526,6 +537,9 @@ CREATE INDEX dj_rfc_rel_tcirlsfromci_idx
  ON kloopzcm.dj_rfc_relation
  ( to_ci_id, release_id, relation_id, from_ci_id );
 
+CREATE INDEX dj_rfc_relation_cid_idx
+ON kloopzcm.dj_rfc_relation  (ci_relation_id);
+
 CREATE TABLE kloopzcm.dj_rfc_relation_attributes (
                 rfc_attr_id BIGINT NOT NULL,
                 rfc_id BIGINT NOT NULL,
@@ -608,21 +622,13 @@ CREATE TABLE kloopzcm.cm_ops_procedures (
 );
 
 
-CREATE INDEX cm_ops_proc_ci_id_idx
+CREATE INDEX CONCURRENTLY cm_ops_proc_ci_state_idx
  ON kloopzcm.cm_ops_procedures
- ( ci_id );
-
-CREATE INDEX cm_ops_proc_state_id_idx
- ON kloopzcm.cm_ops_procedures
- ( state_id );
-
-CREATE INDEX cm_ops_proc_ciid_nm_created
- ON kloopzcm.cm_ops_procedures
- ( ci_id, created );
+ ( ci_id, state_id, created );
 
 CREATE INDEX cm_ops_procedures_ci_proc_idx
  ON kloopzcm.cm_ops_procedures
- ( ops_proc_id, ci_id );
+ ( ci_id, ops_proc_id );
 
 CREATE TABLE kloopzcm.cm_ops_actions (
                 ops_action_id BIGINT NOT NULL,
@@ -644,14 +650,6 @@ CREATE TABLE kloopzcm.cm_ops_actions (
 CREATE INDEX cm_ops_actions_proc_id_idx
  ON kloopzcm.cm_ops_actions
  ( ops_proc_id );
-
-CREATE INDEX cm_ops_actions_ci_id_idx
- ON kloopzcm.cm_ops_actions
- ( ci_id );
-
-CREATE INDEX cm_ops_actions_state_id_idx
- ON kloopzcm.cm_ops_actions
- ( state_id );
 
 CREATE INDEX cm_ops_actions_ci_proc_idx
  ON kloopzcm.cm_ops_actions

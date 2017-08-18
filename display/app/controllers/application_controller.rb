@@ -40,7 +40,7 @@ class ApplicationController < ActionController::Base
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
                 :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
-                :has_support_permission?, :organization_ns_path
+                :has_support_permission?, :organization_ns_path, :check_pack_owner_group_membership?
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -120,7 +120,7 @@ class ApplicationController < ActionController::Base
 
       if query.present? || class_name.present?
         begin
-          search_params = {:nsPath => "#{ns_path}#{'/' unless ns_path.last == '/'}*", :size => max_size}
+          search_params = {:nsPath => "#{ns_path}#{'*' unless ns_path.include?('*')}", :size => max_size}
           search_params[:query] = {:query => query, :fields => %w(ciAttributes.* ciClassName ciName), :lenient => true} if query.present?
           # search_params[:query]                = query if query.present?
           search_params['ciClassName.keyword'] = class_name if class_name.present?
@@ -215,6 +215,7 @@ class ApplicationController < ActionController::Base
 
   helper_method :organization_ns_path,
                 :assembly_ns_path,
+                :design_ns_path,
                 :environment_ns_path,
                 :environment_manifest_ns_path,
                 :environment_bom_ns_path,

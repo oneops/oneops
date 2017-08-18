@@ -327,14 +327,7 @@ module ApplicationHelper
       html = image_tag(page_icon)
     end
 
-    fav   = ''
     ci_id = params[:id]
-    if ci_id.present? && /(\/assemblies\/)|(\/clouds\/)/ =~ request.url
-      fav = link_to_function(content_tag(:i, '', :class => "fa fa-bookmark#{'-o' unless current_user.favorite(ci_id.to_i)}", :title => 'Mark/remove favorite'),
-                             "toggleFavorite(this, '#{ci_id }')",
-                             :class => 'favorite')
-
-    end
     block = ''
     block << content_tag(:span, sanitize(page_kind), :class => 'page_kind') if page_kind
     doc_link = options[:doc_link]
@@ -344,7 +337,7 @@ module ApplicationHelper
       else
         block << content_tag(:span, raw("#{sanitize(options[:page_label])}"), :class => 'page_label')
       end
-      block << fav
+      block << favorite_marker(ci_id.to_i) if ci_id.present? && /(\/assemblies\/)|(\/clouds\/)/ =~ request.url
       block << doc_link if doc_link.present?
     end
     block << content_tag(:span, sanitize(options[:page_sublabel]), :class => 'page_sublabel') if options[:page_sublabel]
@@ -352,6 +345,12 @@ module ApplicationHelper
 
     html << content_tag(:ul, raw(options[:page_options].join(' ')), :id => 'page_title_options') if options[:page_options]
     content_for(:page_title, raw(html))
+  end
+
+  def favorite_marker(ci_id)
+    link_to_function(content_tag(:i, '', :class => "fa fa-bookmark#{'-o' unless current_user.favorite(ci_id)}", :title => 'Mark/remove favorite'),
+                     "toggleFavorite(this, '#{ci_id }')",
+                     :class => 'favorite')
   end
 
   def page_info(info = nil, &block)
@@ -398,7 +397,7 @@ module ApplicationHelper
 
   def ci_list(ci_collection, options = {}, &block)
     options[:toolbar] = nil if ci_collection.blank?
-    options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:sort_by => [%w(Name ciName), %w(Created created)], :filter_by => %w(ciName ciId)}})
+    options.reverse_merge!({:item_partial => 'base/shared/ci_list_item', :toolbar => {:sort_by => [%w(Name ciName), %w(Created created), %w(Updated updated)], :filter_by => %w(ciName ciId)}})
     render(:partial => 'base/shared/list', :locals => {:list_content => ListItemBuilder.build_list_item_content(ci_collection, self, options, &block), :options => options})
   end
 
@@ -788,7 +787,7 @@ module ApplicationHelper
 
   def instance_marker(platform_clouds, target)
     clouds = platform_clouds["#{target.ciName}/#{target.ciAttributes.major_version}"]
-    return '' unless clouds.present?
+    return '', 0 unless clouds.present?
     clouds = clouds.values
     total = 0
     content = clouds.sort_by {|info| info[:consumes].toCi.ciName}.inject('') do |a, info|
@@ -798,7 +797,8 @@ module ApplicationHelper
       total += count
       a + "#{cloud.toCi.ciName} - <strong class='#{state_to_text(status)}'>#{count}</strong><br>"
     end
-    status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {})
+    return status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {}),
+           total
   end
 
   def cloud_marker(cloud, primary, status)
@@ -1308,6 +1308,17 @@ module ApplicationHelper
 
   def expandable_content(options = {}, &block)
     raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
+  end
+
+  def expandable_list(items, options = {})
+    separator     = options[:separator] || ', '
+    visible_count = options[:visible_count] || 3
+    html = items[0...visible_count].join(separator)
+    if items.size > visible_count
+      html << separator
+      html << expandable_content(:content => items[visible_count..-1].join(separator), :label => options[:label])
+    end
+    raw(html)
   end
 
   def pack_version_text_class(version_ci, org_ns_path = has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT) ? nil : organization_ns_path)
