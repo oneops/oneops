@@ -50,5 +50,5 @@ Gem::Specification.new do |s|
   s.add_dependency "fog-aliyun", '= 0.1.0'
   s.bindir       = 'bin'
   s.require_path = 'lib'
-  s.files        = %w() + ["oneops-admin.gemspec"] + ["Gemfile"] + Dir.glob(".chef/**/*") + Dir.glob("lib/**/*") + ["#{Inductor::JAR}"] + Dir.glob('bin/**/*')
+  s.files        = %w() + ["oneops-admin.gemspec"] + ["Gemfile"] + Dir.glob(".chef/**/*") + Dir.glob("lib/**/*", File::FNM_DOTMATCH).reject { |f| f =~ /\.$/ || f =~ /\.\.$/ } + ["#{Inductor::JAR}"] + Dir.glob('bin/**/*')
 end

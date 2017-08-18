@@ -423,7 +423,6 @@ public class ManifestManagerImpl implements ManifestManager {
 		}
 		long  t2= System.currentTimeMillis();
 		logger.info(" processPlatformRfcs  "+ manifestPlatformRfcs.getManifestPlatformRfc().getNsPath() +" completed in  "+(t2-t1)  );
-	}
 
 	private Long safelong2Long(long rfcId) {
 		return rfcId==0?null:rfcId;
