@@ -1,6 +1,9 @@
 
 driver: 
   name: vagrant
+  http_proxy: http://proxy.wal-mart.com:9080
+  https_proxy: http://proxy.wal-mart.com:9080
+  no_proxy: .local,.wal-mart.com,.wamnetNAD,.walmart.com,.wmlink,.walmartlabs.com
   customize:
     memory: 2048
     cpuexecutioncap: 70
@@ -120,24 +123,24 @@ suites:
 #              ciName: "test"
     name: remote_ondemand
     run_list:
-      - recipe[kitchen-test-helper]
       - recipe[attachment::ondemand]
+      - recipe[kitchen-test-helper]
     veridier:
       inspec_tests:
         - test/integration/remote_ondemand/serverspec
     attributes:
       workorder:
         rfcCi:
-          rfcAction: "add"
+          rfcAction: "on-demand"
           ciClassName: "bom.Volume"
         payLoad:
           EscortedBy:
             -
               ciAttributes:
                 priority: 1
-                source: "https://github.com/CodyLeeWhite/testscript/blob/master/test.sh"
-                path: "/face/download_file"
-                run_on_action: "[]"
+                source: "https://raw.githubusercontent.com/CodyLeeWhite/testscript/master/test.sh"
+                path: "/tmp/download_file"
+                run_on_action: '["on-demand"]'
                 run_on: "before-add,after-add,on-demand"
                 headers: ""
                 basic_auth_user: ""
