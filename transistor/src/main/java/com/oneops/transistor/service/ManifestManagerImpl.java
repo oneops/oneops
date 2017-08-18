@@ -269,7 +269,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		for(CmsRfcRelation toRfcRelation : manifestPlatformRfcs.getRootRfcRelTouple().getToRfcRelation()){
 			toRfcRelation.setToCiId(rootRfc.getCiId());
 			toRfcRelation.setToRfcCi(rootRfc);
-			toRfcRelation.setToRfcId(rootRfc.getRfcId());
+			toRfcRelation.setToRfcId(safelong2Long(rootRfc.getRfcId()));
 			toRfcRelation.setReleaseId(context.ensureReleaseId());
 			toRfcRelation.setNsId(context.nsId);
 //			toRfcRelation.setValidated(true);
@@ -280,7 +280,7 @@ public class ManifestManagerImpl implements ManifestManager {
 		for(CmsRfcRelation fromRfcRelation : manifestPlatformRfcs.getRootRfcRelTouple().getFromRfcRelation()){
 			fromRfcRelation.setFromCiId(rootRfc.getCiId());
 			fromRfcRelation.setFromRfcCi(rootRfc);
-			fromRfcRelation.setFromRfcId(rootRfc.getRfcId());
+			fromRfcRelation.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
 			fromRfcRelation.setReleaseId(context.ensureReleaseId());
 			fromRfcRelation.setNsId(context.nsId);
 //			fromRfcRelation.setValidated(true);
@@ -303,7 +303,7 @@ public class ManifestManagerImpl implements ManifestManager {
 					toRfcCI = rfcProcessor.createAndfetchRfcCINoCheck(toRfcCI, userId);
 				}
 				rfcRelation.setToCiId(toRfcCI.getCiId());
-				rfcRelation.setToRfcId(toRfcCI.getRfcId());
+				rfcRelation.setToRfcId(safelong2Long(toRfcCI.getRfcId()));
 				rfcRelation.setToRfcCi(toRfcCI);
 			}
 			
@@ -318,13 +318,13 @@ public class ManifestManagerImpl implements ManifestManager {
 					fromRfcCI = rfcProcessor.createAndfetchRfcCINoCheck(fromRfcCI, userId);
 				}
 				rfcRelation.setFromCiId(fromRfcCI.getCiId());
-				rfcRelation.setFromRfcId(fromRfcCI.getRfcId());
+				rfcRelation.setFromRfcId(safelong2Long(fromRfcCI.getRfcId()));
 				rfcRelation.setFromRfcCi(fromRfcCI);
 			}
 			
 			if("manifest.Entrypoint".equals(rfcRelation.getRelationName())){
 				rfcRelation.setFromCiId(rootRfc.getCiId());
-				rfcRelation.setFromRfcId(rootRfc.getRfcId());
+				rfcRelation.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
 				rfcRelation.setFromRfcCi(rootRfc);
 			}
 			rfcRelation.setReleaseId(context.ensureReleaseId());
@@ -353,10 +353,10 @@ public class ManifestManagerImpl implements ManifestManager {
 				if("manifest.Requires".equals(rfcRel.getRelationName()) && rfcRel.getFromCiId() == 0){
 					rfcRel.setFromCiId(rootRfc.getCiId());
 					rfcRel.setFromRfcCi(rootRfc);
-					rfcRel.setFromRfcId(rootRfc.getRfcId());
+					rfcRel.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
 				}
 				rfcRel.setToCiId(newRfc.getCiId());
-				rfcRel.setToRfcId(newRfc.getRfcId());
+				rfcRel.setToRfcId(safelong2Long(newRfc.getRfcId()));
 				rfcRel.setToRfcCi(newRfc);
 				rfcRel.setReleaseId(context.ensureReleaseId());
 //				rfcRel.setValidated(true);
@@ -371,10 +371,10 @@ public class ManifestManagerImpl implements ManifestManager {
 				if(rfcRel.getToCiId() == 0){
 					rfcRel.setToCiId(rootRfc.getCiId());
 					rfcRel.setToRfcCi(rootRfc);
-					rfcRel.setToRfcId(rootRfc.getRfcId());
+					rfcRel.setToRfcId(safelong2Long(rootRfc.getRfcId()));
 				}
 				rfcRel.setFromCiId(newRfc.getCiId());
-				rfcRel.setFromRfcId(newRfc.getRfcId());
+				rfcRel.setFromRfcId(safelong2Long(newRfc.getRfcId()));
 				rfcRel.setFromRfcCi(newRfc);
 				rfcRel.setReleaseId(context.ensureReleaseId());
 //				rfcRel.setValidated(true);
@@ -395,7 +395,7 @@ public class ManifestManagerImpl implements ManifestManager {
 				//if("base.Consumes".equals(rfcRelation.getRelationName())){
 					rfcRelation.setFromCiId(rootRfc.getCiId());
 					rfcRelation.setFromRfcCi(rootRfc);
-					rfcRelation.setFromRfcId(rootRfc.getRfcId());
+					rfcRelation.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
 //				}else{
 //					rfcRelation.setFromCiId(rootRfc.getCiId());
 //					rfcRelation.setFromRfcCi(rootRfc);
@@ -423,6 +423,9 @@ public class ManifestManagerImpl implements ManifestManager {
 		}
 		long  t2= System.currentTimeMillis();
 		logger.info(" processPlatformRfcs  "+ manifestPlatformRfcs.getManifestPlatformRfc().getNsPath() +" completed in  "+(t2-t1)  );
+
+	private Long safelong2Long(long rfcId) {
+		return rfcId==0?null:rfcId;
 	}
 
 	private long checkPlatformPackCompliance(List<CmsCIRelation> designPlatRels , CmsCI env, String nsPath, String userId) {
