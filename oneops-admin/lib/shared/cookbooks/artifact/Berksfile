@@ -1,8 +1,0 @@
-source "http://localhost:65535/"
-# Did not want to link the berks file to outside link https://supermarket.chef.io so I set it to listen
-# to random unused port.
-metadata
-
-# The shared is needed bout wont work without a dummy metadata.rb file placed with it.
-cookbook "shared", "~> 0.0.1", path: "../shared"
-cookbook "java", "~> 0.1.0", path: "../../../../../../oneops_circuits/circuit-main-1/components/cookbooks/java"

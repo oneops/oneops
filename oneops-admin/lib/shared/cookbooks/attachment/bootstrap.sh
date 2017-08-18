@@ -9,7 +9,7 @@ if [ $? -eq 1 ]
     echo "removing default repos from yum"
     sudo rm -rf /etc/yum.repos.d/*
     echo "adding walmart repo to yum"
-    sudo printf "[myrepo] \nname=walmartrepo \nbaseurl=http://repos.walmart.com/base/centos/6.8 \n" > /etc/yum.repos.d/Centos-Base.repo
+    sudo printf "[myrepo] \nname=walmartrepo \nbaseurl=http://repos.walmart.com/base/centos/6.8 \ngpgcheck=0\n" > /etc/yum.repos.d/Centos-Base.repo
 fi
 
 echo "setting url for internal gem repo"
@@ -25,6 +25,6 @@ sudo /opt/chef/embedded/bin/gem install i18n -v 0.6.9 --conservative
 sudo /opt/chef/embedded/bin/gem install activesupport -v 3.2.11 --conservative
 echo "Done"
 
-echo "install zip and unzip"
-sudo yum clean metadata
-sudo yum install zip unzip -y
+#echo "install zip and unzip"
+#sudo yum clean metadata
+#sudo yum install zip unzip -y

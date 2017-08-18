@@ -43,7 +43,6 @@ if node.workorder.payLoad.has_key?('EscortedBy')
 
       _headers = _headers.empty? ? Hash.new : JSON.parse(_headers)
       _checksum = a[:ciAttributes][:checksum] or nil
-      
       shared_download_http "#{_source}" do
         path _path
         checksum _checksum
