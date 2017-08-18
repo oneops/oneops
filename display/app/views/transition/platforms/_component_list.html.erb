@@ -25,6 +25,10 @@
       <% end %>
     <% end %>
     <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.rfcAction.present? %>
+    <%= link_to(status_marker(icon('line-chart'), pluralize(target.monitors, 'monitor'), 'label-info'),
+                edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, target, :anchor => 'monitors')) if target.monitors > 0 %>
+    <%= link_to(status_marker(icon('paperclip'), pluralize(target.attachments, 'attachment'), 'label-info'),
+                edit_assembly_transition_environment_platform_component_path(@assembly, @environment, @platform, target, :anchor => 'attachments')) if target.attachments > 0 %>
   <% end %>
   <% builder.menu do |ci| %>
     <%= link_to(icon('refresh', ' Touch'),

@@ -36,8 +36,6 @@ public class NSMessageProcessor {
 	
 	private static Logger logger = Logger.getLogger(NSMessageProcessor.class);
 	@Autowired
-	private RelationMessageProcessor relationMessageProcessor;
-	@Autowired
 	private Client client;
 	@Autowired
 	private Indexer indexer;
@@ -49,9 +47,9 @@ public class NSMessageProcessor {
 	public void processNSDeleteMsg(String nsId){
 		logger.info("Processing ns delete event for nsId " + nsId);
 		//Fetch and delete CIs for given nsId
-		fetchAndDeleteRecords("ci", nsId);
+		fetchAndDeleteRecords("ci", "cms-all", nsId);
 		//Fetch and delete releases for given nsId
-		fetchAndDeleteRecords("release", nsId);
+		fetchAndDeleteRecords("release", "cms-weekly",nsId);
 	}
 
 	/**
@@ -59,8 +57,7 @@ public class NSMessageProcessor {
 	 * @param type
 	 * @param nsId
 	 */
-	private void fetchAndDeleteRecords(String type, String nsId) {
-		String index = indexer.getIndexByType(type);
+	private void fetchAndDeleteRecords(String type, String index, String nsId) {
 		SearchResponse scrollResp = client.prepareSearch(index)
                 .setSearchType(SearchType.SCAN)
                 .setTypes(type)
@@ -72,9 +69,6 @@ public class NSMessageProcessor {
         	for (SearchHit hit : scrollResp.getHits()){
         		indexer.getTemplate().delete(index, type, String.valueOf(hit.getId()));
     			logger.info("Deleted message with id::"+ hit.getId() +" and type::"+type+" from ES for nsId " + nsId);
-    			if("ci".equals(type)){
-    				relationMessageProcessor.processRelationDeleteMsg(hit.getId());
-    			}
         	}
 			
             scrollResp = client.prepareSearchScroll(scrollResp.getScrollId()).setScroll(new TimeValue(600000)).execute().actionGet();

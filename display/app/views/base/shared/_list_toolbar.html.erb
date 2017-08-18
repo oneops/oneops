@@ -57,25 +57,25 @@
 </div>
 <script type="text/javascript">
   if (!window.sort_selected) {
-    window.sort_selected = function(source, attr, label) {
+    window.sort_selected = function(source, new_sort_attr, label) {
       var indicator = $j(source).closest(".list-toolbar").find(".sort-indicator");
-      var current_attr = indicator.attr("sort-by");
-      if (current_attr == attr) {
+      var current_sort_attr = indicator.attr("sort-by");
+      var listDiv = indicator.closest(".list-toolbar").parent();
+      if (current_sort_attr == new_sort_attr) {
         toggle_order(indicator);
       }
       else {
-        indicator.attr("sort-by", attr);
+        indicator.attr("sort-by", new_sort_attr);
         indicator.find("i").removeClass("fa-sort").addClass("fa-sort-amount-asc").removeClass("fa-flip-vertical");
         indicator.find("span").html(" " + label);
-        var listDiv = indicator.closest(".list-toolbar").parent();
         if (!listDiv.hasClass('list-paginated')) {
-          sort_list(listDiv.find(".list-body > ul")[0], current_attr ? [attr, current_attr] : [attr], false);
+          do_list_sort(listDiv.find(".list-body > ul")[0], new_sort_attr, current_sort_attr);
         }
       }
 
       if (localStorage) {
         var prefix = LOCAL_STORAGE_KEY_PREFIX + indicator.closest(".list-toolbar").attr("list-name") + "_list_";
-        localStorage.setItem(prefix + "sort_attribute", attr);
+        localStorage.setItem(prefix + "sort_attribute", new_sort_attr);
         localStorage.setItem(prefix + "sort_label", label);
         localStorage.setItem(prefix + "sort_desc", indicator.find("i").hasClass("fa-flip-vertical"));
       }
@@ -96,13 +96,21 @@
         var toolbar = button.closest(".list-toolbar");
         var listDiv = toolbar.parent();
         if (!listDiv.hasClass('list-paginated')) {
-          sort_list(listDiv.find(".list-body ul")[0], [icon.closest(".sort-indicator").attr("sort-by")], desc);
+          do_list_sort(listDiv.find(".list-body > ul")[0], icon.closest(".sort-indicator").attr("sort-by"), null, desc);
         }
         if (localStorage) {
           localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + toolbar.attr("list-name") + "_list_sort_desc", desc);
         }
         listDiv.trigger('sortChanged');
       }
+    };
+
+    window.do_list_sort = function (list, attr, current_attr, desc) {
+      var attrs = attr.split(':');
+      if (current_attr && attrs.length < 2) {
+        attrs.push(current_attr.split(':')[0]);
+      }
+      sort_list(list, attrs, desc);
     };
 
     window.get_list_sort = function(list) {

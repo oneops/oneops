@@ -92,6 +92,21 @@ class DesignController < ApplicationController
     send_data(prepare_platforms_diagram, :type => 'image/svg+xml', :disposition => 'inline')
   end
 
+  def search
+    if request.format.html?
+      render '_search'
+    else
+      super
+    end
+  end
+
+
+  protected
+
+  def search_ns_path
+    design_ns_path(@assembly)
+  end
+
 
   private
 
@@ -283,8 +298,8 @@ class DesignController < ApplicationController
         errors['platforms'][plat_name] = {}
 
         pack_path = plat['pack']
-        if pack_path =~ /^\w+\/[\w\-]+:\d+$/
-          source, pack, version = pack_path.split(/\/|:/)
+        if pack_path =~ /^\w+\/[\w\-]+:\d+(\.\d+\.\d+)?$/
+          source, pack, version = pack_path.split(/[\/:]/)
           ci_attrs = plat.slice(*PLATFORM_EXPORT_ATTRIBUTES)
           ci_attrs = ci_attrs.merge(:source => source, :pack => pack, :version => version)
 

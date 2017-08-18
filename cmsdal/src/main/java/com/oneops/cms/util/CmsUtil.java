@@ -66,7 +66,7 @@ public class CmsUtil {
     private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
     private static final String VARSUFFIX ="}";
     private static final String ATTR_PROP_OWNER = "owner";
-    private static final String MASK = "##############";
+    protected static final String MASK = "##############";
     private static final String DJ_ATTR = "dj";
     private static final Logger logger = Logger.getLogger(CmsUtil.class);
     private CmsCmProcessor cmProcessor;
@@ -230,7 +230,8 @@ public class CmsUtil {
     private static void maskSecure(CmsCISimple ci) {
         if (ci.getAttrProps() != null && ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
             for (Entry<String, String> secAttr : ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
-                if ("true".equals(secAttr.getValue())) {
+                if ("true".equals(secAttr.getValue())
+			&& ! StringUtils.isEmpty(ci.getCiAttributes().get(secAttr.getKey()))) {
                     ci.getCiAttributes().put(secAttr.getKey(), MASK);
                 }
             }
@@ -243,11 +244,15 @@ public class CmsUtil {
      *
      * @param rfcCI rfcCI for which attributes need to be secured.
      */
-    private static void maskSecure(CmsRfcCISimple rfcCI) {
+    protected static void maskSecure(CmsRfcCISimple rfcCI) {
         if (rfcCI.getCiAttrProps() != null && rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
             for (Entry<String, String> secAttr : rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
                 if ("true".equals(secAttr.getValue())) {
                     rfcCI.getCiAttributes().put(secAttr.getKey(), MASK);
+                    String ciBaseAttributeName = rfcCI.getCiBaseAttributes().get(secAttr.getKey());
+                    if (! StringUtils.isEmpty(ciBaseAttributeName)) {
+                    	rfcCI.getCiBaseAttributes().put(secAttr.getKey(), MASK);
+                    }
                 }
             }
         }
