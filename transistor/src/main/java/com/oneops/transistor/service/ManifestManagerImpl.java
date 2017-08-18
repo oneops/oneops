@@ -337,7 +337,7 @@ public class ManifestManagerImpl implements ManifestManager {
 
 		/**Handle Requires relations ***/
 		for(ManifestRootRfcContainer rfcRelTouple:manifestPlatformRfcs.getRfcRelToupleList()){
-			CsmsRfcCI newRfc;
+			CmsRfcCI newRfc;
 			if(rfcRelTouple.getRfcCI().getRfcId() == 0){
 				rfcRelTouple.getRfcCI().setReleaseId(context.ensureReleaseId());
 				rfcRelTouple.getRfcCI().setNsId(context.nsId);;
