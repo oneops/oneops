@@ -23,7 +23,7 @@
     
     <bean id="manifestExecutor" class="java.util.concurrent.Executors" 
       factory-method="newFixedThreadPool" destroy-method="shutdown">
-    	<constructor-arg value="${MANIFEST_EXEC_POOL_CNT:100}"/>
+    	<constructor-arg value="${MANIFEST_EXEC_POOL_CNT:10}"/>
 	</bean>
 
 	<bean id="manifestRfcProcessor" class="com.oneops.transistor.service.ManifestRfcBulkProcessor">
