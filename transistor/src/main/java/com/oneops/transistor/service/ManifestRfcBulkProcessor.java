@@ -867,9 +867,9 @@ public class ManifestRfcBulkProcessor {
 		logger.info("processing monitors for platform " + manifestPlat.getCiName());
 		Timing t= new Timing();
 		t.start();
-		List<CmsRfcRelation> existingMonitorRelations = cmRfcMrgProcessor.getCIRelations(context.platNsPath, MANIFEST_WATCHEDBY, null, null, MANIFEST_MONITOR, null);
-		Map<String, CmsRfcRelation> existingMonitorsMap = existingMonitorRelations.stream().
-				collect(Collectors.toMap(reln->reln.getToRfcCi().getCiName(), Function.identity()));
+		List<CmsCIRelation> existingMonitorRelations = cmProcessor.getCIRelations(context.platNsPath, MANIFEST_WATCHEDBY, null, null, MANIFEST_MONITOR);
+		Map<String, CmsCIRelation> existingMonitorsMap = existingMonitorRelations.stream().
+				collect(Collectors.toMap(reln->reln.getToCi().getCiName(), Function.identity()));
 
 		t.stop("-- monitors load");
 		List<String> rfcNames = platformRfcs.getRfcList().stream().map(CmsRfcCI::getCiName).collect(Collectors.toList());
@@ -920,28 +920,28 @@ public class ManifestRfcBulkProcessor {
 		existingMonitorsMap.values().stream().
 			filter(this::canMonitorBeDeleted).
 			forEach(obsoleteMonitor -> {
-				CmsRfcCI monitor = obsoleteMonitor.getToRfcCi();
+				CmsCI monitor = obsoleteMonitor.getToCi();
 				logger.info("delete monitor ci [" + monitor.getCiId() + "] " + monitor.getCiName() + " in " + monitor.getNsPath());
 				cmRfcMrgProcessor.requestCiDelete(monitor.getCiId(), context.userId);
 			});
 		t.stop("-- obsolete monitors removal");
 	}
 
-	private boolean canMonitorBeDeleted(CmsRfcRelation watchedByRel) {
+	private boolean canMonitorBeDeleted(CmsCIRelation watchedByRel) {
 		//monitors are eligible for deletion only if there are deleted from pack for pack monitors
 		//in case of custom monitors, if they are added in design and deleted from design then they can be deleted
 		//to support backward compatibility don't allow deletion of custom monitors directly added in transition
-		boolean isCustomMonitor = isCustomMonitor(watchedByRel.getToRfcCi());
+		boolean isCustomMonitor = isCustomMonitor(watchedByRel.getToCi());
 		return (!isCustomMonitor || (isCustomMonitor && isMonitorSourceDesign(watchedByRel)));
 	}
 
-	private boolean isMonitorSourceDesign(CmsRfcRelation watchedByRel) {
-		CmsRfcAttribute sourceAttr = watchedByRel.getAttribute(CmsConstants.ATTR_NAME_SOURCE);
-		return (sourceAttr != null && CmsConstants.ATTR_SOURCE_VALUE_DESIGN.equalsIgnoreCase(sourceAttr.getNewValue()));
+	private boolean isMonitorSourceDesign(CmsCIRelation watchedByRel) {
+		CmsCIRelationAttribute sourceAttr = watchedByRel.getAttribute(CmsConstants.ATTR_NAME_SOURCE);
+		return (sourceAttr != null && CmsConstants.ATTR_SOURCE_VALUE_DESIGN.equalsIgnoreCase(sourceAttr.getDfValue()));
 	}
 
 	private void processMonitor(CmsCIRelation tmplRelation, CmsCIRelation designRelation, CmsRfcCI manifestPlat, DesignPullContext context,
-			ManifestRfcContainer platformRfcs, CmsRfcCI monitorFromRfc, Map<String, CmsRfcRelation> existingMonitorsMap, List<String> rfcNames) {
+			ManifestRfcContainer platformRfcs, CmsRfcCI monitorFromRfc, Map<String, CmsCIRelation> existingMonitorsMap, List<String> rfcNames) {
 
 		CmsCI templateCi = tmplRelation != null ? tmplRelation.getToCi() : null;
 		CmsCI designCi = designRelation != null ? designRelation.getToCi() : null;
