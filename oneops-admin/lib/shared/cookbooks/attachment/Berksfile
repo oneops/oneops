@@ -1,4 +1,4 @@
-source "http://localhost:65535/"
+source "https://supermarket.chef.io"
 # Did not want to link the berks file to outside link https://supermarket.chef.io so I set it to listen
 # to random unused port.
 metadata

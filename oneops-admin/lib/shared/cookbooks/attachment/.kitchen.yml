@@ -19,8 +19,7 @@ provisioner:
     log_level: :info
 
 suites:
-  -
-    name: ondemand
+  - name: ondemand
     run_list:
       - recipe[kitchen-test-helper]
       - recipe[attachment::ondemand]
@@ -41,7 +40,7 @@ suites:
                 content: >
                   echo "testing 123"
               ciName: "test"
-    name: after
+  - name: after
     run_list:
       - recipe[kitchen-test-helper]
       - recipe[attachment::after]
@@ -50,6 +49,9 @@ suites:
         - test/integration/after/serverspec
     attributes:
       workorder:
+        rfcCi:
+          rfcAction: "add"
+          ciClassName: "bom.Volume"
         payLoad:
           EscortedBy:
             -
@@ -57,12 +59,12 @@ suites:
                 priority: 1
                 source: ""
                 path: "/tmp/download_file"
-                run_on_action: "[]"
+                run_on_action: '["after-add"]'
                 run_on: "before-add,after-add,on-demand"
                 content: >
                   echo "testing 123"
               ciName: "test"
-    name: before
+  - name: before
     run_list:
       - recipe[kitchen-test-helper]
       - recipe[attachment::before]
@@ -90,7 +92,7 @@ suites:
                 content: >
                   echo "testing 123"
               ciName: "test"
-    name: remote_before
+  - name: remote_before
     run_list:
       - recipe[kitchen-test-helper]
       - recipe[attachment::before]
@@ -117,7 +119,7 @@ suites:
                 content: ""
                 exec_cmd: "sudo chmod 777 /tmp/download_file"
               ciName: "test"
-    name: remote_ondemand
+  - name: remote_ondemand
     run_list:
       - recipe[attachment::ondemand]
       - recipe[kitchen-test-helper]
@@ -144,7 +146,7 @@ suites:
                 content: ""
                 exec_cmd: "sudo chmod 777 /tmp/download_file"
               ciName: "test"
-    name: remote_after
+  - name: remote_after
     run_list:
       - recipe[kitchen-test-helper]
       - recipe[attachment::after]
