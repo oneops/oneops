@@ -1,0 +1,8 @@
+source 'https://supermarket.chef.io'
+# Did not want to link the berks file to outside link https://supermarket.chef.io so it is set up to listen
+# to a random unused port.
+metadata
+
+# The shared is needed but wont work without a dummy metadata.rb file placed in it.
+cookbook "kitchen-test-helper", github: "kbvincent/kitchen-test-helper", branch: "master"
+cookbook "shared", "~> 0.1.0", git: "https://github.com/oneops/oneops.git", branch: "master", rel: "oneops-admin/lib/shared/cookbooks/shared"
