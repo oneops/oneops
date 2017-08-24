@@ -17,12 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.ws.rest;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletResponse;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -30,19 +24,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.oneops.cms.cm.domain.CmsAltNs;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
@@ -51,6 +32,7 @@ import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
+import com.oneops.cms.ds.DataTypeHolder;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.exceptions.DJException;
@@ -64,6 +46,29 @@ import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.cms.ws.exceptions.CmsSecurityException;
 import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 public class CmRestController extends AbstractRestController {
@@ -557,9 +562,32 @@ public class CmRestController extends AbstractRestController {
 		if (recursive == null) {
 			recursive = false;
 		}
+		try {
+			if (isOrgLevelRecursiveAccess(nsPath, recursive)) {
+				logger.info("marking relations count read only nsPath : " + nsPath + ", relationName " + relationName);
+				DataTypeHolder.setReadOnlyData();
+			}
+
+			return getRelationsCountsInternal(nsPath, ciId, direction, relationName, shortRelationName, targetClazz, recursive, groupBy);
+
+		} catch(RuntimeException e) {
+			if (CmsUtil.isCancelledDueToConflict(e)) {
+				DataTypeHolder.clear();
+				logger.info("retrying the request due to cancellation");
+				return getRelationsCountsInternal(nsPath, ciId, direction, relationName, shortRelationName, targetClazz, recursive, groupBy);
+			}
+			throw e;
+		}finally {
+			DataTypeHolder.clear();
+		}
+	}
+
+	private Map<String, Long> getRelationsCountsInternal(String nsPath, Long ciId, String direction, String relationName,
+														 String shortRelationName, String targetClazz,
+														 Boolean recursive, String groupBy) {
 		if (groupBy != null) {
 			if ("ciId".equals(groupBy)) {
-				Map<Long,Long> counts;
+				Map<Long, Long> counts;
 				if ("from".equals(direction)) {
 					counts = cmManager.getCounCIRelationsGroupByFromCiId(relationName, shortRelationName, targetClazz, nsPath);
 				} else {
@@ -589,6 +617,13 @@ public class CmRestController extends AbstractRestController {
 			result.put("count", count);
 			return result;
 		}
+	}
+
+	private boolean isOrgLevelRecursiveAccess(String nsPath, boolean recursive) {
+		if (nsPath.length() > 1 && nsPath.endsWith("/")) {
+			nsPath = nsPath.substring(0, nsPath.length() - 1);
+		}
+		return recursive && nsPath.split("/").length <= 2;
 	}
 
 
