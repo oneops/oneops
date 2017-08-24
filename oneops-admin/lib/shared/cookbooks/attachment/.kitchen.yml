@@ -109,7 +109,7 @@ suites:
             -
               ciAttributes:
                 priority: 1
-                source: "https://raw.githubusercontent.com/CodyLeeWhite/testscript/master/test.sh"
+                source: "https://raw.githubusercontent.com/oneops/oneops-testing/master/bash_scripts/testScript"
                 path: "/tmp/download_file"
                 run_on_action: '["before-add"]'
                 run_on: "before-add,after-add,on-demand"
@@ -136,7 +136,7 @@ suites:
             -
               ciAttributes:
                 priority: 1
-                source: "https://raw.githubusercontent.com/CodyLeeWhite/testscript/master/test.sh"
+                source: "https://raw.githubusercontent.com/oneops/oneops-testing/master/bash_scripts/testScript"
                 path: "/tmp/download_file"
                 run_on_action: '["on-demand"]'
                 run_on: "before-add,after-add,on-demand"
@@ -163,7 +163,7 @@ suites:
             -
               ciAttributes:
                 priority: 1
-                source: "https://raw.githubusercontent.com/CodyLeeWhite/testscript/master/test.sh"
+                source: "https://raw.githubusercontent.com/oneops/oneops-testing/master/bash_scripts/testScript"
                 path: "/tmp/download_file"
                 run_on_action: '["after-add"]'
                 run_on: "before-add,after-add,on-demand"
