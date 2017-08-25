@@ -15,9 +15,6 @@ import java.util.Map;
 @Configuration
 public class DataSourceConfig {
 
-    @Autowired
-    Environment env;
-
     @Value("${CMS_DB_USER}")
     private String dbUser;
 
@@ -25,14 +22,38 @@ public class DataSourceConfig {
     private String dbPass;
 
     @Value("${CMS_DB_HOST}")
-    private String dbHost;
+    private String primaryDbHost;
 
-    @Value("#{servletContext.servletContextName}-${ONEOPS_COMPUTE_CI_ID:0}")
+    @Value("adapter-${ONEOPS_COMPUTE_CI_ID:0}")
     private String applicationName;
+
+    @Value("${IS_QUERY_STANDBY_ENABLED:false}")
+    private boolean isQueryStandByEnabled;
+
+
+    @Value("${oo.adapter.primary.initial:5}")
+    private int primaryInitialSize;
+
+    @Value("${oo.adapter.primary.max.active:10}")
+    private int primaryMaxActiveSize;
+
+    @Value("${oo.adapter.primary.max.idle:5}")
+    private int primaryMaxIdleSize;
+
+    @Value("${oo.adapter.standby.initial:3}")
+    private int standbyInitialSize;
+
+    @Value("${oo.adapter.standby.max.active:10}")
+    private int standbyMaxActiveSize;
+
+    @Value("${oo.adapter.standby.max.idle:3}")
+    private int standbyMaxIdleSize;
+
+    @Autowired
+    Environment env;
 
     private static final String DRIVER = "org.postgresql.Driver";
     private static final String JDBC_URL = "jdbc:postgresql://%s/kloopzdb?autoReconnect=true&ApplicationName=%s";
-    private static final String IS_QUERY_STANDBY_ENABLED_PROPERTY = "IS_QUERY_STANDBY_ENABLED";
     private static final Logger logger = Logger.getLogger(DataSourceConfig.class);
 
     private String jdbcUrl(String dbHost) {
@@ -58,15 +79,15 @@ public class DataSourceConfig {
 
     private DataSource getPrimaryDataSource() {
         BasicDataSource ds = getBaseDataSource();
-        ds.setUrl(jdbcUrl(dbHost));
-        setNumConnections(ds, 5, 10, 5);
+        ds.setUrl(jdbcUrl(primaryDbHost));
+        setNumConnections(ds, primaryInitialSize, primaryMaxActiveSize, primaryMaxIdleSize);
         return ds;
     }
 
     private DataSource getReadOnlyDataSource() {
         BasicDataSource ds = getBaseDataSource();
         ds.setUrl(jdbcUrl(env.getProperty("CMS_DB_READONLY_HOST")));
-        setNumConnections(ds, 2, 10, 2);
+        setNumConnections(ds, standbyInitialSize, standbyMaxActiveSize, standbyMaxIdleSize);
         return ds;
     }
 
@@ -82,11 +103,10 @@ public class DataSourceConfig {
 
     @Bean(name = "oneopsCMSDS")
     public DataSource dataSource() {
-        boolean isStandByEnabled = Boolean.valueOf(env.getProperty(IS_QUERY_STANDBY_ENABLED_PROPERTY, "false"));
-        logger.info("isStandByEnabled : " + isStandByEnabled);
+        logger.info("isQueryStandByEnabled : " + isQueryStandByEnabled);
         DataSource primaryDataSource = getPrimaryDataSource();
 
-        if (isStandByEnabled) {
+        if (isQueryStandByEnabled) {
             DataSource readOnlyDataSource = getReadOnlyDataSource();
             return getRoutingDataSource(primaryDataSource, readOnlyDataSource);
         }
@@ -94,5 +114,6 @@ public class DataSourceConfig {
             return primaryDataSource;
         }
     }
+
 
 }

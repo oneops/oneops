@@ -619,8 +619,8 @@ public class CmRestController extends AbstractRestController {
 		}
 	}
 
-	private boolean isOrgLevelRecursiveAccess(String nsPath, boolean recursive) {
-		if (nsPath.length() > 1 && nsPath.endsWith("/")) {
+	private boolean isOrgLevelRecursiveAccess(String nsPath, Boolean recursive) {
+		if (nsPath != null && nsPath.length() > 1 && nsPath.endsWith("/")) {
 			nsPath = nsPath.substring(0, nsPath.length() - 1);
 		}
 		return recursive && nsPath.split("/").length <= 2;
