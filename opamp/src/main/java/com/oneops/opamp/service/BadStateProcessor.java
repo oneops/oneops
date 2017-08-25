@@ -75,7 +75,9 @@ public class BadStateProcessor {
 	private int startExponentialDelayAfterProcedures = 4;
 	private double exponentialBackoffFactor = 2;
 	//Max Days limit of 11 makes the final repair attempt timing close to the limit of days (11 in this case) for the common cool-off of 15 mins1476110700000 
-	private int maxDaysRepair = 11; 
+	private int maxDaysRepair = 11;
+
+	private int maxPastDaysForProcedureCount = 15;
 
 	/**
 	 * Sets the ops proc processor.
@@ -205,7 +207,10 @@ public class BadStateProcessor {
 			List<OpsProcedureState> procedureFinishedStates = new ArrayList<>();
 			procedureFinishedStates.add(OpsProcedureState.complete);
 			procedureFinishedStates.add(OpsProcedureState.failed);
-			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair", new Date(unhealthyStartTime));
+
+			long minCheckTime4ProcCount = System.currentTimeMillis() - (maxPastDaysForProcedureCount * 24 * 60 * 60 * 1000L);
+			long proceduresCount = opsManager.getCmsOpsProceduresCountForCiFromTime(ciId, procedureFinishedStates, "ci_repair",
+					new Date(Math.max(unhealthyStartTime, minCheckTime4ProcCount)));
 
 			boolean isAutoReplaceEnabled = envProcessor.isAutoReplaceEnabled(platform);
 
@@ -434,21 +439,23 @@ public class BadStateProcessor {
 			long unhealthySinceMillis = (currentTimeMillis - unhealthyStartTime);
 			long repairRetriesMaxDaysMillis = maxDaysRepair * 24 * 60 * 60 * 1000;
 
-			if (exponentialDelay && repairRetriesCount >= startExponentialDelayAfterProcedures) { //add exponential delay after initial regular interval
+			if (exponentialDelay) { //add exponential delay after initial regular interval
+
 				if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since 7 days
 					logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
 					return;
 				}
+				if (repairRetriesCount >= startExponentialDelayAfterProcedures) {
+					long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * startExponentialDelayAfterProcedures);
 
-				long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * startExponentialDelayAfterProcedures);
+					long nextRepairTime = getNextRepairTime(delayStartTime, coolOffPeriodMillis, exponentialBackoffFactor,
+							repairRetriesCount - startExponentialDelayAfterProcedures, repairRetriesMaxDaysMillis);
 
-				long nextRepairTime = getNextRepairTime(delayStartTime, coolOffPeriodMillis, exponentialBackoffFactor,
-						repairRetriesCount - startExponentialDelayAfterProcedures, repairRetriesMaxDaysMillis);
-
-				if (currentTimeMillis < nextRepairTime) {
-					//next exponential delay is not yet complete
-					logger.info("Exponential back-off - Skipping the auto-repair till " + new Date(nextRepairTime));
-					return;
+					if (currentTimeMillis < nextRepairTime) {
+						//next exponential delay is not yet complete
+						logger.info("Exponential back-off - Skipping the auto-repair till " + new Date(nextRepairTime));
+						return;
+					}
 				}
 			}
 		}
@@ -560,5 +567,9 @@ public class BadStateProcessor {
 
 	public void setMaxDaysRepair(int maxDaysRepair) {
 		this.maxDaysRepair = maxDaysRepair;
+	}
+
+	public void setMaxPastDaysForProcedureCount(int maxPastDaysForProcedureCount) {
+		this.maxPastDaysForProcedureCount = maxPastDaysForProcedureCount;
 	}
 }
