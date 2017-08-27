@@ -34,6 +34,7 @@ import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
+import org.springframework.dao.DataAccessException;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -256,6 +257,11 @@ public class CmsUtil {
                 }
             }
         }
+    }
+
+    public static boolean isCancelledDueToConflict(RuntimeException ex) {
+        return (ex instanceof DataAccessException &&
+                ex.getMessage().contains("canceling statement due to conflict with recovery"));
     }
 
     /**
