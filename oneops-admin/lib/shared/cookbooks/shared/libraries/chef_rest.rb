@@ -80,7 +80,7 @@ class Chef
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      uri = remote_file.class == "String" ? URI(remote_file) : remote_file
+      uri = URI(remote_file)
       
       ssl = uri.scheme == "https" ? true : false
 
@@ -205,8 +205,7 @@ class Chef
     def download_file(part, remote_file, local_file)
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file} part: #{part['slot']} [Start: #{part['start']} End: #{part['end']}]")
-      
-      uri = remote_file.class == "String" ? URI(remote_file) : remote_file
+      uri = URI(remote_file)
 
       ssl = uri.scheme == "https" ? true : false
 
