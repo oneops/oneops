@@ -101,6 +101,7 @@ class Chef
       # @return [String] the version number that latest resolves to or the passed in value
       def get_actual_version(node, artifact_location, ssl_verify=true)
         version = artifact_location.split(':')[2]
+        version.upcase! if version == "latest"
         version
       end
 
