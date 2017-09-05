@@ -92,6 +92,21 @@ class DesignController < ApplicationController
     send_data(prepare_platforms_diagram, :type => 'image/svg+xml', :disposition => 'inline')
   end
 
+  def search
+    if request.format.html?
+      render '_search'
+    else
+      super
+    end
+  end
+
+
+  protected
+
+  def search_ns_path
+    design_ns_path(@assembly)
+  end
+
 
   private
 

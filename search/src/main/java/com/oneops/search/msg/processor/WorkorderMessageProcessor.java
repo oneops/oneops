@@ -47,7 +47,7 @@ public class WorkorderMessageProcessor implements MessageProcessor {
                 if (payLoad == null) {
                     SearchResponse response2 = client.prepareSearch("cms-2*")
                             .setTypes("workorder")
-                            .setQuery(queryStringQuery("rfcCi.ciId:" + rfcCi.get("ciId") + " AND dpmtRecordState:complete"))
+                            .setQuery(queryStringQuery("rfcCi.ciId:" + rfcCi.get("ciId")))
                             .addSort("searchTags.responseDequeTS", SortOrder.DESC)
                             .setSize(1)
                             .execute()

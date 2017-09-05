@@ -1,479 +1,472 @@
 #!/usr/bin/env ruby
 require 'json'
-require 'time'
-require 'date'
 require 'time_diff'
 
-es_host = ARGV[0]
-start_day = ARGV[1]
-end_day = ARGV[2]
+BATCH_SIZE = 100000
 
-def index_unchanged_ci_cost (td , index_name, host)
+class NilClass
+  def [] (_)
+    nil
+  end
 
-  wos = JSON.parse(`curl -s -XGET 'http://#{host}:9200/cms-all/ci/_search' -d '{
-  "_source": {
-    "include": [
-      "nsPath",
-      "ciClassName",
+  def empty?
+    true
+  end
+end
+
+@tags_cache = {}
+
+def existing_ci_cost (date)
+  ts = Time.now
+  end_of_day = (Time.parse(date) + 24.hours).utc.beginning_of_day
+
+  req = {
+    "_source" => [
       "ciId",
+      "ciClassName",
+      "nsPath",
+      "created",
       "workorder.cloud.ciName",
+      "ops.cloudName",
+      "workorder.rfcCi.rfcAction",
       "workorder.box.ciAttributes.pack",
       "workorder.box.ciAttributes.major_version",
       "workorder.box.ciAttributes.source",
+      "workorder.payLoad.Organization.ciAttributes.tags",
+      "workorder.payLoad.Organization.ciAttributes.owner",
+      "workorder.payLoad.Assembly.ciAttributes.tags",
+      "workorder.payLoad.Assembly.ciAttributes.owner",
       "workorder.payLoad.offerings",
-      "workorder.payLoad.RealizedAs",
-      "workorder.payLoad.Environment",
-      "workorder.payLoad.Organization",
+      "workorder.payLoad.RealizedAs.ciId",
+      "workorder.payLoad.Environment.ciAttributes.profile",
       "workorder.searchTags.responseDequeTS"
-    ]
-  },
-  "size": 1000000,
-  "query": {
-    "filtered": {
-      "query": {
-        "nested": {
-          "path": "workorder.payLoad.offerings",
-          "filter": {
-            "exists": {
-              "field": "workorder.payLoad.offerings"
+    ],
+    "size"    => BATCH_SIZE,
+    "query"   => {
+      "bool" => {
+        "must" => [
+          {
+            "nested" => {
+              "path"   => "workorder.payLoad.offerings",
+              "filter" => {
+                "exists" => {
+                  "field" => "workorder.payLoad.offerings"
+                }
+              }
+            }
+          },
+          {
+            "range" => {
+              "created" => {
+                "lt" => end_of_day.iso8601.to_s
+              }
             }
           }
-        }
-      },
-      "filter": {
-        "range": {
-          "workorder.searchTags.responseDequeTS": {
-            "lt": "#{td}T00:00:00"
-          }
-        }
+        ]
       }
-    }
+    },
+    "sort" => {"ciId" => "asc"}
   }
-}'`)["hits"]["hits"]
 
-  # puts wos.size
- 
-  wos.each do |wo|
+  from           = 0
+  total          = 1
+  ci_counter     = 0
+  record_counter = 0
+  records        = []
+  while from < total
+    req[:from] = from
+
+    print 'Loading CIs... '
+    cmd     = %(curl -s -XGET 'http://#{@host}:9200/cms-all/ci/_search' -d '#{req.to_json}')
+    results = JSON.parse(`#{cmd}`)['hits']
+    cis     = results['hits']
+    total   = results['total']
+    puts "#{cis.size} loaded."
+
+    cis.each do |ci|
+      begin
+        fields = ci['_source']
+        wo     = fields['workorder']
+
+        if wo
+          payLoad   = wo['payLoad']
+          offerings = payLoad['offerings']
+
+          if offerings
+            ciId           = fields['ciId']
+            ciClassName    = fields['ciClassName']
+            nsPath         = fields['nsPath']
+            cloud          = wo['cloud']['ciName'] || fields['ops']['cloudName'] || 'openstack'
+            org_attrs      = payLoad['Organization'][0]['ciAttributes']
+            assembly_attrs = payLoad['Assembly'][0]['ciAttributes']
+            envProfile     = payLoad['Environment'][0]['ciAttributes']['profile']
+            manifestId     = payLoad['RealizedAs'][0]['ciId']
+            box            = wo['box']['ciAttributes']
+            packName       = box['pack']
+            packVersion    = box['major_version']
+            packSource     = box['source']
+            created_ts     = fields['created']
+            created_ts     = (wo['rfcCi']['rfcAction'] == 'add' ? (wo['searchTags']['responseDequeTS'] || created_ts) : created_ts).in_time_zone('UTC')
+            hours          = (end_of_day - created_ts).to_f / 3600
+            hours          = 24 if hours > 24
+            _, organization, assembly, env = nsPath.split('/', 5)
+
+            if hours > 0
+              offerings.each do |o|
+                o_attrs   = o['ciAttributes']
+                cost_rate = o_attrs['cost_rate'].to_f
+                records << {:ts            => Time.now.utc.iso8601,
+                            :date          => date,
+                            :ciId          => ciId,
+                            :ciClassName   => ciClassName,
+                            :nsPath        => nsPath,
+                            :organization  => organization,
+                            :assembly      => assembly,
+                            :environment   => env,
+                            :envProfile    => envProfile,
+                            :packSource    => packSource,
+                            :packName      => packName,
+                            :packVersion   => packVersion,
+                            :manifestId    => manifestId,
+                            :cloud         => cloud,
+                            :serviceType   => o_attrs['service_type'],
+                            :servicensPath => o['nsPath'],
+                            :tags          => tags(organization, assembly, org_attrs, assembly_attrs),
+                            :cost_rate     => cost_rate,
+                            :cost          => (cost_rate * hours).round(3),
+                            :unit          => o_attrs['cost_unit'],
+                            :origin        => 'ci'}.to_json
+              end
+            end
+          end
+        end
+      rescue Exception => e
+        puts "ERROR! Failed to process CI: #{ci.to_json}"
+        puts e
+      end
+      ci_counter += 1
+      print "Processing Cis: #{ci_counter}\r" if ci_counter % 100 == 0 || ci_counter == cis.size
+    end
+
+    write_records(records)
+    record_counter += records.size
+
+    from += BATCH_SIZE
+    break if from > total
+  end
+  puts "Processed #{ci_counter} CIs, created #{record_counter} cost records in #{(Time.now - ts).to_i}sec."
+end
+
+def deleted_ci_cost(date, class_name_regex)
+  ts = Time.now
+  start_of_day = Time.parse(date).utc.beginning_of_day
+  end_of_day   = start_of_day + 24.hours
+
+  req = {
+    "_source" => [
+      "rfcCi.ciId",
+      "rfcCi.nsPath",
+      "rfcCi.ciClassName",
+      "rfcCi.rfcAction",
+      "rfcCi.created",
+      "cloud.ciName",
+      "cloudName",
+      "payLoad.Organization.ciAttributes.tags",
+      "payLoad.Organization.ciAttributes.owner",
+      "payLoad.Assembly.ciAttributes.tags",
+      "payLoad.Assembly.ciAttributes.owner",
+      "payLoad.RealizedAs.ciAttributes.ciId",
+      "payLoad.Environment.ciAttributes.profile",
+      "payLoad.offerings",
+      "box.ciAttributes.pack",
+      "box.ciAttributes.major_version",
+      "box.ciAttributes.source",
+      "searchTags.responseDequeTS"
+    ],
+    "size"    => BATCH_SIZE,
+    "query"   => {
+      "bool" => {
+        "must" => [
+          {
+            "wildcard" => {"rfcCi.ciClassName.keyword" => "#{class_name_regex}"}
+          },
+          {
+            "term" => {"rfcCi.rfcAction" => 'delete'}
+          },
+          {
+            "term" => {"dpmtRecordState" => 'complete'}
+          },
+          {
+            "range" => {
+              "searchTags.responseDequeTS" => {
+                "gt" => start_of_day.iso8601.to_s
+              }
+            }
+          }
+        ]
+      }
+    },
+    "sort" => {"searchTags.responseDequeTS" =>  "asc"}
+  }
+
+  from           = 0
+  total          = 1
+  wo_counter     = 0
+  record_counter = 0
+  records        = []
+  while from < total
+    req[:from] = from
+
+    print 'Loading delete WOs... '
+    cmd     = %(curl -s -XGET 'http://#{@host}:9200/cms-20*/workorder/_search' -d '#{req.to_json}')
+    results = JSON.parse(`#{cmd}`)['hits']
+    wos     = results['hits']
+    total   = results['total']
+
+    puts "#{wos.size} loaded."
+
+    wos.each do |wo|
+      wo_counter += 1
+      print "Processing delete WOs #{wo_counter}\r" if wo_counter % 100 == 0 || wo_counter == wos.size
+      begin
+        fields  = wo['_source']
+        rfc_ci  = fields['rfcCi']
+        ciId    = rfc_ci['ciId']
+        payload = fields['payLoad']
+
+        offerings = payload['offerings']
+        begin
+          created_ts = Time.parse(rfc_ci['created'])
+        rescue
+          created_ts = nil
+        end
+
+        next unless offerings && created_ts && created_ts < end_of_day
+
+        ciClassName    = rfc_ci['ciClassName']
+        nsPath         = rfc_ci['nsPath']
+        cloud          = fields['cloud']['ciName'] || fields['cloudName'] || 'openstack'
+        org_attrs      = payload['Organization'][0]['ciAttributes']
+        assembly_attrs = payload['Assembly'][0]['ciAttributes']
+        envProfile     = payload['Environment'][0]['ciAttributes']['profile']
+        manifestId     = payload['RealizedAs'][0]['ciId']
+        box            = fields['box']['ciAttributes']
+        packName       = box['pack']
+        packVersion    = box['major_version']
+        packSource     = box['source']
+        wo_ts          = wo['_source']['searchTags']['responseDequeTS'].in_time_zone('UTC')
+        hours          = (wo_ts - (start_of_day > created_ts ? start_of_day : created_ts)).to_f / 3600
+        hours          = 24 if hours > 24
+        _, organization, assembly, env = nsPath.split('/', 5)
+
+        if hours > 0
+          offerings.each do |o|
+            cost_rate = o['ciAttributes']['cost_rate'].to_f
+            records << {:ts            => Time.now.utc.iso8601,
+                        :date          => date,
+                        :ciId          => ciId,
+                        :ciClassName   => ciClassName,
+                        :nsPath        => nsPath,
+                        :organization  => organization,
+                        :assembly      => assembly,
+                        :environment   => env,
+                        :envProfile    => envProfile,
+                        :packSource    => packSource,
+                        :packName      => packName,
+                        :packVersion   => packVersion,
+                        :manifestId    => manifestId,
+                        :cloud         => cloud,
+                        :serviceType   => o['ciAttributes']['service_type'],
+                        :servicensPath => o['nsPath'],
+                        :tags          => tags(organization, assembly, org_attrs, assembly_attrs),
+                        :cost_rate     => cost_rate,
+                        :cost          => (cost_rate * hours).round(3),
+                        :unit          => o['ciAttributes']['cost_unit'],
+                        :origin        => 'wo'}.to_json
+          end
+        end
+      rescue Exception => e
+        puts "ERROR! Failed to process WO: #{wo.to_json}"
+        puts e
+      end
+    end
+
+    write_records(records)
+    record_counter += records.size
+
+    from += BATCH_SIZE
+    break if from > total
+  end
+  puts "Processed #{wo_counter} delete WOs, created #{record_counter} cost records in #{(Time.now - ts).to_i}sec."
+end
+
+def write_records(records)
+  open(@result_file_name, 'a') do |c|
+    c << "\n"
+    c << records.join("\n")
+  end
+end
+
+def load_tags
+  print 'Loading tags info... '
+  ts = Time.now
+
+  req = {
+    :_source => %w(ciName ciAttributes.tags ciAttributes.owner),
+    :filter  => {:term => {'ciClassName.keyword' => 'account.Organization'}},
+    :size    => 9999
+  }
+  org_cis = JSON.parse(`curl -s -XGET 'http://#{@host}:9200/cms-all/ci/_search' -d '#{req.to_json}'`)['hits']['hits']
+  org_cis.each do |o|
+    organization = o['_source']
+    key = "/#{organization['ciName']}"
+    @tags_cache[key] = parse_tags_and_owner(organization['ciAttributes'])
+  end
+
+  req = {
+    :_source => %w(ciName nsPath ciAttributes.tags ciAttributes.owner),
+    :filter  => {:term => {'ciClassName.keyword' => 'account.Assembly'}},
+    :size    => 999999
+  }
+  assembly_ci = JSON.parse(`curl -s -XGET 'http://#{@host}:9200/cms-all/ci/_search' -d '#{req.to_json}'`)['hits']['hits']
+  assembly_ci.each do |a|
+    assembly = a['_source']
+    ns       = assembly['nsPath']
+    key      = "#{ns}/#{assembly['ciName']}"
+    @tags_cache[key] = (@tags_cache[ns] || {}).merge(parse_tags_and_owner(assembly['ciAttributes']))
+  end
+  puts "loaded tags in #{(Time.now - ts).to_i}sec."
+end
+
+def tags(org, assembly, wo_org_attrs, wo_assembly_attrs)
+  load_tags if @tags_cache.empty?
+
+  results = @tags_cache["/#{org}/#{assembly}"]
+  return results if results
+
+  if wo_assembly_attrs
+    # If no tags for assembly have been loaded (most likely due to assembly and/org have been deleted), try to use
+    # in-lined org/assembly tags directly from Wo - but do NOT cache them (they could have changed over time).
+    results = (@tags_cache["/#{org}"] || parse_tags_and_owner(wo_org_attrs)).merge(parse_tags_and_owner(wo_assembly_attrs))
+  else
+    results = @tags_cache["/#{org}"] || parse_tags_and_owner(wo_org_attrs)
+  end
+
+  return results
+end
+
+def parse_tags_and_owner(attrs, fallback = {})
+  result = fallback
+  if attrs
+    begin
+      result = JSON.parse(attrs['tags'])
+    rescue
+    end
+    owner = attrs['owner']
+    result['owner'] = owner unless owner.empty?
+  end
+
+  result
+end
+
+def do_curl(cmd, msg, retries = 3)
+  ts = Time.now
+  r = nil
+  print msg
+  retries.times do
+    r = `curl -s -i #{cmd}`
+    break if r.include?('200 OK') || r.include?('404 Not Found')
+    print "failed, retrying... "
+  end
+  System.exit(1) unless r
+  puts "done in #{(Time.now - ts).to_f.round(1)}sec."
+  return r
+end
+
+def show_help
+  puts <<-HELP
+Rebuilds or displays daily cost indices for a given time period by integrating over cost rate for
+existing and deleted bom CIs with offerings.
+Usage:
+  <this_script> [OPTIONS] ES_HOST START_DAY END_DAY [INDEX_NAME_PREFIX]
   
-    nsPath = wo["_source"]["nsPath"]
-    ciClassName = wo["_source"]["ciClassName"]
-    ciId = wo["_source"]["ciId"]
-    cloud = wo["_source"]["workorder"]["cloud"]["ciName"]
-
-    packName = wo["_source"]["workorder"]["box"]["ciAttributes"]["pack"]
-    packVersion = wo["_source"]["workorder"]["box"]["ciAttributes"]["major_version"]
-    packSource = wo["_source"]["workorder"]["box"]["ciAttributes"]["source"]
-
-    envProfile = wo["_source"]["workorder"]["payLoad"]["Environment"][0]["ciAttributes"]["profile"]
-
-    manifestId = wo["_source"]["workorder"]["payLoad"]["RealizedAs"][0]["ciId"]
-
-    organization = wo["_source"]["workorder"]["payLoad"]["Organization"][0]["ciName"]
-
-    offerings = wo["_source"]["workorder"]["payLoad"]["offerings"]
-    offerings.each do |o|
-      cost_unit = o["ciAttributes"]["cost_unit"]
-      service_type = o["ciAttributes"]["service_type"]
-      cost_rate = o["ciAttributes"]["cost_rate"]
-      service_nsPath = o["nsPath"]
-      cost = "#{'%.03f' % (cost_rate.to_f * 24)}".to_f
-
-      cost_record = {"ts" => Time.now.utc.iso8601, "ciId" => ciId ,"cloud" => cloud, "cost" => cost.to_f , "unit" => cost_unit, "nsPath" => nsPath ,
-                     "organization" => organization , "ciClassName" => ciClassName, "serviceType" => service_type, "servicensPath" => service_nsPath, "manifestId" => manifestId,
-                     "packName" => packName, "packVersion" => packVersion , "packSource" => packSource , "envProfile" => envProfile,
-                     "date" => DateTime.parse("#{td}").to_time.utc.iso8601}
-
-      open('ci_cost.json', 'a') do |c|
-        c << cost_record.to_json
-        c << "\n"
-      end
-
-    end
-
-  end
-
-  ind = `cat ci_cost.json | ./stream2es stdin --target "http://#{host}:9200/#{index_name}/ci"`
-  # puts ind
-
-  File.delete("ci_cost.json")
-
+  OPTIONS:
+    -f | --force   - force day cost reindexing when daily index already exists
+                     (deletes daily index and rebuilds it), otherwise day is skipped
+    -h | --help    - display help info
+    -l | --list    - list daily index info 
+  
+Example:
+  ./cost-batch.rb es.prod-1312.core.oneops.prod.walmart.com 2017-07-14 2017-07-14
+HELP
 end
 
-def fetch_prev_day_last_wo_cost_rate (td , ciId, host,init_rate)
+#------------------------------------------------------------------------------------------------
+# Start here.
+#------------------------------------------------------------------------------------------------
+puts Time.now
 
-  # puts "prev day wo for ci #{ciId}"
+if ARGV.size < 3
+  show_help
+  exit(1)
+end
 
-  wos = `curl -s -XGET 'http://#{host}:9200/cms-20*/workorder/_search' -d '{
-  "_source": ["payLoad.offerings","searchTags.responseDequeTS"],
-  "size": 1,
-  "query": {
-    "filtered": {
-      "filter": {
-        "bool": {
-          "must": [
-            {
-              "term": {
-                "rfcCi.ciId": #{ciId}
-              }
-            },
-            {
-              "exists": {
-                "field": "payLoad.offerings"
-              }
-            },
-            {
-              "range": {
-                "searchTags.responseDequeTS": {
-                  "lt": "#{td}"
-                }
-              }
-            }
-          ]
-        }
-      }
-    }
-  },
-   "sort": [
-    {
-      "searchTags.responseDequeTS": {
-        "order": "desc"
-      }
-    }
-  ]
-}'`
-
-  hits = JSON.parse(wos)["hits"]["hits"]
-
-  if !hits.empty?
-    # puts hits
-    cr = hits[0]["_source"]["payLoad"]["offerings"][0]["ciAttributes"]["cost_rate"].to_f/60
+force = false
+list_only = false
+ARGV.delete_if do |a|
+  if a == '-f' || a == '--force'
+    force = true
+  elsif a == '-h' || a == '--help'
+    show_help
+    exit
+  elsif a == '-l' || a == '--list'
+    list_only = true
+  elsif a.start_with?('-')
+    puts "Unknown option ''#{a}'', use '-h' option to see help!"
+    exit(1)
   else
-    cr = init_rate
+    false
   end
-
-  return cr
-
 end
 
-def fetch_prev_day_last_wo_cost_rate_for_del (td , ciId, host)
+@host, start_day, end_day, index_name_prefix = ARGV
+index_name_prefix = 'cost' if !index_name_prefix || index_name_prefix.empty?
+load_tags unless list_only
 
-  # puts "prev day wo for ci #{ciId}"
+(DateTime.parse(start_day).to_date..DateTime.parse(end_day).to_date).map(&:to_s).each do |d|
+  @index_name = "#{index_name_prefix}-#{Time.parse("#{d}").strftime("%Y%m%d")}"
 
-  wos = `curl -s -XGET 'http://#{host}:9200/cms-20*/workorder/_search' -d '{
-  "_source": ["payLoad.offerings","searchTags.responseDequeTS"],
-  "size": 1,
-  "query": {
-    "filtered": {
-      "filter": {
-        "bool": {
-          "must": [
-            {
-              "term": {
-                "rfcCi.ciId": #{ciId}
-              }
-            },
-            {
-              "exists": {
-                "field": "payLoad.offerings"
-              }
-            },
-            {
-              "range": {
-                "searchTags.responseDequeTS": {
-                  "lt": "#{td}"
-                }
-              }
-            }
-          ]
-        }
-      }
-    }
-  },
-   "sort": [
-    {
-      "searchTags.responseDequeTS": {
-        "order": "desc"
-      }
-    }
-  ]
-}'`
-
-  hits = JSON.parse(wos)["hits"]["hits"]
-
-  if !hits.empty?
-    # puts hits
-    #cr = hits[0]["_source"]["payLoad"]["offerings"][0]["ciAttributes"]["cost_rate"].to_f/60
-    lwo = hits[0]["_source"]["payLoad"]["offerings"][0]
-  else
-    return nil
+  if list_only
+    puts `curl -s "http://#{@host}:9200/_cat/indices/#{@index_name}"`
+    next
   end
 
-  return lwo
+  puts "--------------- Indexing cost for #{d} ---------------"
+  ts = Time.now
 
-end
+  @result_file_name = "#{@index_name}.json"
+  File.delete(@result_file_name) if File.exist?(@result_file_name)
 
-
-
-def calculate_cost(wos,init_cost_rate,td,end_ts)
-
-  init_time = Date.parse(td.to_s).to_time.utc
-  cost = 0
-  cost_rate = 0
-  action = ""
-
-  # puts "wo size = #{wos.size}"
-
-  wos.each do |wo|
-    action = wo["_source"]["searchTags"]["rfcAction"]
-    # puts action
-    ts = wo["_source"]["searchTags"]["responseDequeTS"]
-    # puts ts
-
-    if action == "add"
-      init_time = Time.parse("#{ts}").utc
-    end
-
-    mins = ((Time.parse("#{ts}").utc - init_time)/60)
-    # puts "tot mins #{mins}"
-
-    if action == "delete"
-      if mins > 0
-        cost = "#{'%.03f' % (cost + (mins * cost_rate))}".to_f
-      end
+  response = do_curl(%(-XHEAD "http://#{@host}:9200/#{@index_name}"), "Checking if #{@index_name} already exist...")
+  if response.include?('200 OK')
+    unless force
+      puts "Index #{@index_name} already exists - skipping, use '-f' option to force reindexing\n\n"
       next
     end
-
-    if cost_rate == 0
-      cost_rate = init_cost_rate
-    else
-      cost_rate = (wo["_source"]["payLoad"]["offerings"][0]["ciAttributes"]["cost_rate"].to_f/60)
-    end
-
-    if mins > 0
-      cost = "#{'%.03f' % (cost + (mins * cost_rate))}".to_f
-    end
-
-    init_time = Time.parse("#{ts}").utc
+    do_curl(%(-XDELETE 'http://#{@host}:9200/#{@index_name}'), "Index #{@index_name} already exists - deleting... ")
   end
+  do_curl(%(-XPOST 'http://#{@host}:9200/#{@index_name}'), "Creating index #{@index_name}... ")
 
-  if action != "delete"
-    cost = "#{'%.03f' % (cost + ((((end_ts - init_time)/60)) * cost_rate))}".to_f
-  end
+  existing_ci_cost(d)
+  deleted_ci_cost(d, 'bom.*Compute')
 
-  # puts "final cost is #{cost}"
-  return cost
+  ts1 = Time.now
+  cmd = %(cat #{@result_file_name} | ./stream2es stdin --target "http://#{@host}:9200/#{@index_name}/ci")
+  puts cmd
+  `#{cmd}`
+  puts "Done streaming in #{(Time.now - ts1).to_i}sec."
 
+  File.delete(@result_file_name)
+
+  puts "\nCost indexer job done for '#{d}' in #{(Time.now - ts).to_i}sec.\n\n"
 end
-
-
-def index_target_day_ci_cost(td,index_name,host,class_name)
-
-  end_ts = Date.parse(td.to_s).end_of_day.utc
-  wos = `curl -s -XGET 'http://#{host}:9200/cms-20*/workorder/_search' -d '{
-  "_source": false,
-  "query": {
-    "filtered": {
-      "filter": {
-        "bool": {
-           "must": [
-            {
-              "term" : { "rfcCi.ciClassName.keyword" : "#{class_name}" }
-            },
-            {
-              "range": {
-                "searchTags.responseDequeTS": {
-                  "gt": "#{td}T00:00:00"
-                }
-              }
-            }
-          ],
-          "must_not": {
-              "term" : { "dpmtRecordState" : "failed" }
-          },
-          "should" : [
-            {
-              "exists": {
-                "field": "payLoad.offerings"
-              }
-            },
-            {
-              "term" : { "searchTags.rfcAction" : "delete" }
-            }
-           ]
-        }
-      }
-    }
-  },
-  "aggs": {
-    "ci": {
-      "terms": {
-        "field": "rfcCi.ciId",
-        "size": 100000
-      },
-      "aggs": {
-        "wos": {
-          "top_hits": {
-            "sort": [
-              {
-                "searchTags.responseDequeTS": {
-                  "order": "asc"
-                }
-              }
-            ],
-            "_source": {
-              "include": [
-                "rfcCi.ciId",
-                "rfcCi.nsPath",
-                "cloud.ciName",
-                "rfcCi.ciClassName",
-                "searchTags.rfcAction",
-                "payLoad.RealizedAs",
-                "payLoad.Environment",
-                "payLoad.Organization",
-                "box.ciAttributes.pack",
-                "box.ciAttributes.major_version",
-                "box.ciAttributes.source",
-                "payLoad.offerings",
-                "searchTags.responseDequeTS"
-              ]
-            },
-            "size": 5000
-          }
-        }
-      }
-    }
-  }
-}'`
-
-  # open('tmp.json', 'a') do |c|
-  #   c << wos
-  # end
-
-  ci_buckets = JSON.parse(wos)["aggregations"]["ci"]["buckets"]
-
-  # puts "bucket size #{ci_buckets.size}"
-
-  ci_buckets.each do |bucket|
-    ciId = bucket["key"]
-    wos = bucket["wos"]["hits"]["hits"]
-
-    first_wo = wos.first
-    rfcAction = first_wo["_source"]["searchTags"]["rfcAction"]
-    resDequeTS = first_wo["_source"]["searchTags"]["responseDequeTS"]
-    nsPath = first_wo["_source"]["rfcCi"]["nsPath"]
-    ciClassName = first_wo["_source"]["rfcCi"]["ciClassName"]
-    cloud = first_wo["_source"]["cloud"]["ciName"]
-    manifestId = first_wo["_source"]["payLoad"]["RealizedAs"][0]["ciId"]
-
-    packName = first_wo["_source"]["box"]["ciAttributes"]["pack"]
-    packVersion = first_wo["_source"]["box"]["ciAttributes"]["major_version"]
-    packSource = first_wo["_source"]["box"]["ciAttributes"]["source"]
-
-    envProfile = first_wo["_source"]["payLoad"]["Environment"][0]["ciAttributes"]["profile"]
-
-    organization = first_wo["_source"]["payLoad"]["Organization"][0]["ciName"]
-
-    if rfcAction != "delete"
-      service_type = first_wo["_source"]["payLoad"]["offerings"][0]["ciAttributes"]["service_type"]
-      cost_unit = first_wo["_source"]["payLoad"]["offerings"][0]["ciAttributes"]["cost_unit"]
-      service_nsPath = first_wo["_source"]["payLoad"]["offerings"][0]["nsPath"]
-      init_rate = first_wo["_source"]["payLoad"]["offerings"][0]["ciAttributes"]["cost_rate"].to_f
-    end
-
-    # puts ciId
-
-    if rfcAction == "add"
-      if Time.parse("#{resDequeTS}").utc > Date.parse(td.to_s).end_of_day.utc
-        next
-      else
-        init_cost_rate = (init_rate/60)
-        cost = calculate_cost(wos , init_cost_rate,td,end_ts)
-      end
-    elsif (rfcAction == "update" || rfcAction == "replace")
-      init_cost_rate = fetch_prev_day_last_wo_cost_rate(td,ciId,host,init_rate/60)
-      if Time.parse("#{resDequeTS}").utc > Date.parse(td.to_s).end_of_day.utc
-        cost = init_cost_rate * 24 * 60
-      else
-        cost = calculate_cost(wos , init_cost_rate,td,end_ts)
-      end
-    elsif rfcAction == "delete"
-      lw = fetch_prev_day_last_wo_cost_rate_for_del(td,ciId,host)
-      if !lw.nil?
-        init_cost_rate = lw["ciAttributes"]["cost_rate"].to_f/60
-        service_type = lw["ciAttributes"]["service_type"]
-        cost_unit = lw["ciAttributes"]["cost_unit"]
-        service_nsPath = lw["nsPath"]
-      else
-        init_cost_rate = 0
-      end
-
-      if Time.parse("#{resDequeTS}").utc > Date.parse(td.to_s).end_of_day.utc
-        cost = init_cost_rate * 24 * 60
-      else
-        cost = calculate_cost(wos , init_cost_rate,td,end_ts)
-      end
-    end
-
-    if cost > 0
-      cost_record = {"ts" => Time.now.utc.iso8601, "ciId" => ciId ,"cloud" => cloud, "cost" => cost.to_f , "unit" => cost_unit, "nsPath" => nsPath ,
-                     "organization" => organization, "ciClassName" => ciClassName, "serviceType" => service_type, "servicensPath" => service_nsPath, "manifestId" => manifestId,
-                     "packName" => packName, "packVersion" => packVersion , "packSource" => packSource , "envProfile" => envProfile,
-                     "date" => DateTime.parse("#{td}").to_time.iso8601}
-
-
-      open('ci_cost.json', 'a') do |c|
-        c << cost_record.to_json
-        c << "\n"
-      end
-    else
-      # puts "0 cost ci #{ciId} for action #{rfcAction} and type #{ciClassName}"
-    end
-
-
-  end
-
-  if ci_buckets.size > 0
-    if File.exist?("ci_cost.json")
-      ind = `cat ci_cost.json | ./stream2es stdin --target "http://#{host}:9200/#{index_name}/ci"`
-      # puts "target day ci cost done: #{ind}"
-      File.delete("ci_cost.json")
-    end
-  end
-
-  end
-
-File.delete("ci_cost.json") if File.exist?("ci_cost.json")
-
-day_range = (DateTime.parse(start_day).to_date..DateTime.parse(end_day).to_date).map(&:to_s)
-
-day_range.each do |d|
-
-  puts "indexing cost for day #{d}"
-
-  index_name = "cost-"+Time.parse("#{d}").strftime("%Y%m%d")
-  res = `curl -s -XHEAD -i "http://#{es_host}:9200/#{index_name}"`
-
-  # create index if doesnt exist. Delete index if already exists
-  if res.include?("404 Not Found")
-    `curl -s -XPOST -i 'http://#{es_host}:9200/#{index_name}'`
-  elsif res.include?("200 OK")
-    `curl -s -XDELETE 'http://#{es_host}:9200/#{index_name}'`
-  end
-
-  #stage 1
-  index_unchanged_ci_cost(d,index_name,es_host)
-
-
-  #stage 2
-  index_target_day_ci_cost(d,index_name,es_host,'bom.Compute')
-  puts "done with all v1 computes"
-  index_target_day_ci_cost(d,index_name,es_host,'bom.oneops.1.Compute')
-  puts "done with all oneops1 computes"
-  index_target_day_ci_cost(d,index_name,es_host,'bom.main.2.Compute')
-  puts "done with all v2 computes"
-
-
-end
-
-puts "cost indexer job done"
-
