@@ -1,4 +1,4 @@
-name             "Attachment"
+name             "attachment"
 description      "Attachment"
 version          "0.1"
 maintainer       "OneOps"

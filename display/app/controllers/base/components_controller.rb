@@ -18,6 +18,25 @@ class Base::ComponentsController < ApplicationController
     respond_to do |format|
       format.js do
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
+
+        platform_ns_path = @environment ? transition_platform_ns_path(@environment, @platform) : design_platform_ns_path(@assembly, @platform)
+        monitors_map = Cms::DjRelation.all(:params => {:nsPath => platform_ns_path,
+                                                       :relationShortName => 'WatchedBy'}).inject({}) do |h, r|
+          h[r.fromCiId] ||= 0
+          h[r.fromCiId] += 1
+          h
+        end
+
+        attachments_map = Cms::DjRelation.all(:params => {:nsPath            => platform_ns_path,
+                                                          :relationShortName => 'EscortedBy'}).inject({}) do |h, r|
+          h[r.fromCiId] ||= 0
+          h[r.fromCiId] += 1
+          h
+        end
+        @components.each do |c|
+          c.monitors = monitors_map[c.ciId].to_i
+          c.attachments = attachments_map[c.ciId].to_i
+        end
       end
 
       format.json { render :json => @components }

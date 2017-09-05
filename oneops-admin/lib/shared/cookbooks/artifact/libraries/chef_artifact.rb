@@ -101,18 +101,8 @@ class Chef
       # @return [String] the version number that latest resolves to or the passed in value
       def get_actual_version(node, artifact_location, ssl_verify=true)
         version = artifact_location.split(':')[2]
-        if latest?(version)
-          require 'nexus_cli'
-          require 'rexml/document'
-          config = data_bag_config_for(node, DATA_BAG_NEXUS)
-          if config.empty?
-            raise DataBagNotFound.new(DATA_BAG_NEXUS)
-          end
-          remote = NexusCli::RemoteFactory.create(config, ssl_verify)
-          REXML::Document.new(remote.get_artifact_info(artifact_location)).elements["//version"].text
-        else
-          version
-        end
+        version.upcase! if version == "latest"
+        version
       end
 
       # Downloads a file to disk from the configured Nexus server.

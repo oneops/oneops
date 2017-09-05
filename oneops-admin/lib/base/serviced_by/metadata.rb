@@ -1,4 +1,4 @@
-name             "ServicedBy"
+name 'serviced_by'
 description      "Dependency relation between platform components and IaaS services"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

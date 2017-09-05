@@ -1,4 +1,4 @@
-name             "Binding"
+name 'binding'
 description      "Provider bindings for zones and tokens"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

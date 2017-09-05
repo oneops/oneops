@@ -1,4 +1,4 @@
-name 'Consumes'
+name 'consumes'
 description 'Relation to indicate cloud usage'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version '0.1'

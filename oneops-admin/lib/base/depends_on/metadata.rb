@@ -1,4 +1,4 @@
-name             "DependsOn"
+name 'depends_on'
 description      "Dependency relation between platform resources"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

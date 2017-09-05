@@ -1,4 +1,4 @@
-name 'SupportedBy'
+name 'supported_by'
 description 'Links cloud to support'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version '0.1'

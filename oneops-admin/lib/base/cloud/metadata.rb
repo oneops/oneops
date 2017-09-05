@@ -1,4 +1,4 @@
-name "Cloud"
+name 'cloud'
 description "Collection of Cloud Services"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version "0.1"

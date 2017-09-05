@@ -1,4 +1,4 @@
-name             "RealizedAs"
+name 'realized_as'
 description      "Relation between manifest and bom resources"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

@@ -1,4 +1,4 @@
-name             "ComposedOf"
+name 'composed_of'
 description      "Relation between assembly and platform"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

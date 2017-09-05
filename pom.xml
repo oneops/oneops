@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.08.16-01-SNAPSHOT</version>
+  <version>17.09.06-01-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -61,7 +61,7 @@
     <mockito-all.version>1.9.5</mockito-all.version>
     <mockito.version>1.9.5</mockito.version>
     <mockrunner.version>0.3.1</mockrunner.version>
-    <mybatis-spring.version>1.2.2</mybatis-spring.version>
+    <mybatis-spring.version>1.2.4</mybatis-spring.version>
     <mybatis.version>3.2.5</mybatis.version>
     <neethi.version>2.0.4</neethi.version>
     <org.springframework.security.version>3.2.8.RELEASE</org.springframework.security.version>

@@ -1,4 +1,4 @@
-name             "Log"
+name             "log"
 description      "Log"
 version          "0.1"
 maintainer       "OneOps"

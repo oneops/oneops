@@ -1,4 +1,4 @@
-name             "Exposes"
+name 'exposes'
 description      "Provider token exposes provider"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

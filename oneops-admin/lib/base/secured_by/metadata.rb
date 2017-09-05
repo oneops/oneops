@@ -1,4 +1,4 @@
-name             "SecuredBy"
+name 'secured_by'
 description      "Key pairs used for securing environments and other resources"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

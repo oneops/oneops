@@ -1,4 +1,4 @@
-name 'Security'
+name 'security'
 description 'Cloud Security Compliance'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version '0.1'

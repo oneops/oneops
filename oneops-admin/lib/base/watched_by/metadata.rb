@@ -1,4 +1,4 @@
-name             "WatchedBy"
+name 'watched_by'
 description      "Pack resources watched by monitors"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

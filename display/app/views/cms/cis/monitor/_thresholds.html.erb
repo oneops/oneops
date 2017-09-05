@@ -115,14 +115,14 @@
 
     window.metric_chaged = function(metric_el) {
       metric_el = $j(metric_el);
-      var threshold_div = $j(metric_el.parents("div.monitor_threshold")[0]);
+      var threshold_div = $j(metric_el.closest("div.monitor_threshold")[0]);
       threshold_div.find(".unit").html(metric_units[metric_el.val()]);
       thresholds_struct_changed(metric_el[0]);
     };
 
     window.duration_changed = function(duration_el) {
       duration_el = $j(duration_el);
-      normalize_duration_and_numocc(duration_el.parents("div.monitor_threshold").find(".bucket")[0], duration_el[0], duration_el.parents("tr").find(".numocc")[0]);
+      normalize_duration_and_numocc(duration_el.closest("div.monitor_threshold").find(".bucket")[0], duration_el[0], duration_el.closest("tr").find(".numocc")[0]);
       thresholds_struct_changed(duration_el[0]);
     };
 
