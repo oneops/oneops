@@ -1,4 +1,4 @@
-name             "LoggedBy"
+name 'logged_by'
 description      "Components loggedBy Log"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

@@ -1,4 +1,4 @@
-name             "EscortedBy"
+name 'escorted_by'
 description      "Platform components escorted by attachments"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

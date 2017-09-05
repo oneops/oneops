@@ -1,4 +1,4 @@
-name             'CompliesWith'
+name 'complies_with'
 description      'Links cloud to compliance'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          '0.1'

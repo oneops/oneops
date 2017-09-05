@@ -1,4 +1,4 @@
-name             "Payload"
+name 'payload'
 description      "Relation between platform components and query path in templates"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

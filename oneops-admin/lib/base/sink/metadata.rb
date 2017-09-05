@@ -1,4 +1,4 @@
-name              'Sink'
+name 'sink'
 description       'Notification sink'
 long_description  IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version           '0.1'

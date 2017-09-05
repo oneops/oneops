@@ -1,4 +1,4 @@
-name 'Version'
+name 'version'
 description 'Management pack version'
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version '0.1'

@@ -1,4 +1,4 @@
-name             "ValueFor"
+name 'value_for'
 description      "Relation between variables and targets"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

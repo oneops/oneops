@@ -1,4 +1,4 @@
-name             "RealizedIn"
+name 'realized_in'
 description      "Relation between assembly and environment"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

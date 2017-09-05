@@ -1,4 +1,4 @@
-name             "ControlledBy"
+name 'controlled_by'
 description      "Relation between platform and the procedures in templates"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

@@ -1,4 +1,4 @@
-name             "ForwardsTo"
+name 'forwards_to'
 description      "Links to notification sinks"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

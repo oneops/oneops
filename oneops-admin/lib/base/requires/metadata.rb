@@ -1,4 +1,4 @@
-name             "Requires"
+name 'requires'
 description      "Relation between platform and the required resources"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"

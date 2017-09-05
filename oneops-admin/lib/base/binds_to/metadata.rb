@@ -1,4 +1,4 @@
-name             "BindsTo"
+name 'binds_to'
 description      "Provider binding binds to provider zone"
 long_description IO.read(File.join(File.dirname(__FILE__), 'README.md'))
 version          "0.1"
