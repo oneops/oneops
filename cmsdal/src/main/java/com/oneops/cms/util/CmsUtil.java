@@ -259,11 +259,6 @@ public class CmsUtil {
         }
     }
 
-    public static boolean isCancelledDueToConflict(RuntimeException ex) {
-        return (ex instanceof DataAccessException &&
-                ex.getMessage().contains("canceling statement due to conflict with recovery"));
-    }
-
     /**
      * Sets the cm processor.
      *
