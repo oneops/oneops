@@ -325,10 +325,8 @@ public abstract class AbstractOrderExecutor {
         String sharedDir = config.getCircuitDir().replace("packer",
                 "shared/cookbooks");
 
-        Set<String> cookbookPaths = new HashSet<>();
-        cookbookPaths.add(cookbookDir);
-        cookbookPaths.add(sharedDir);
-        
+        Set<String> cookbookPaths = new LinkedHashSet<>();
+
         if (cloudServices != null) {
         	for (String serviceName : cloudServices.keySet()) { // for each service
         		CmsCISimple serviceCi = cloudServices.get(serviceName).get(cloudName);
@@ -341,6 +339,13 @@ public abstract class AbstractOrderExecutor {
         		}
         	}
         }
+        if (cookbookPaths.size() > 0) {
+            //Remove the current component's circuit from the cookbook_path so that we can add it after other circuits
+            //This is to make sure the current component's circuit is higher priority in search path
+            cookbookPaths.remove(cookbookDir);
+        }
+        cookbookPaths.add(cookbookDir);
+        cookbookPaths.add(sharedDir);
         String content = "cookbook_path " + gson.toJson(cookbookPaths) + "\n";
 
         content += "lockfile \"" + filename + ".lock\"\n";
