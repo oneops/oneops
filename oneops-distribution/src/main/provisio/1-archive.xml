@@ -34,7 +34,8 @@
         as="oneops-db-schema-${tarballVersion}.tar.gz"/>
     <artifact id="com.oneops:oneops-admin:tar.gz:${project.version}"
       as="oneops-admin-${tarballVersion}.tar.gz"/>
-  </artifactSet>
+    <artifact id="com.oneops:oneops-admin:tar.gz:adapter:${project.version}"
+          as="oneops-admin-${tarballVersion}-adapter.tar.gz"/>  </artifactSet>
   <fileSet to="oneops/dist">
     <file path="${basedir}/target/distribution-${project.version}-oneops.tar.gz"
       as="oneops-${tarballVersion}.tar.gz"/>
