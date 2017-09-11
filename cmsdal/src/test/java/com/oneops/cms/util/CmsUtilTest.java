@@ -1965,8 +1965,8 @@ public class CmsUtilTest {
    aRfc.setCiAttributes(rfcAttributes);
 
    Map<String,String> baseAttributes = new HashMap<>();
-   rfcAttributes.put("secureBaseAtrribute1","secureBaseAtrribute1");
-   rfcAttributes.put("baseAtrribute1","baseAtrribute1");
+   baseAttributes.put("secureBaseAtrribute1","secureBaseAtrribute1");
+   baseAttributes.put("baseAtrribute1","baseAtrribute1");
    aRfc.setCiBaseAttributes(baseAttributes);
    Map<String, Map<String, String>> secureAttributeMap = new HashMap<>();
    Map<String, String> attributeNames = new HashMap<>();
@@ -1977,8 +1977,8 @@ public class CmsUtilTest {
    CmsUtil.maskSecure(aRfc);
    assertEquals(aRfc.getCiAttributes().get("secureAtrribute1"),CmsUtil.MASK);
    assertEquals(aRfc.getCiAttributes().get("attrib2"),"attrib2");
-   //assertEquals(aRfc.getCiBaseAttributes().get("secureBaseAtrribute1"),CmsUtil.MASK);
-   //assertEquals(aRfc.getCiBaseAttributes().get("baseAtrribute1"),"baseAtrribute1");
+   assertEquals(aRfc.getCiBaseAttributes().get("secureBaseAtrribute1"),CmsUtil.MASK);
+   assertEquals(aRfc.getCiBaseAttributes().get("baseAtrribute1"),"baseAtrribute1");
   }
 
 

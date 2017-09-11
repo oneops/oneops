@@ -1,7 +1,7 @@
 require "rexml/document"
 include REXML
 
-module Inductor
+module InductorUtil
   # This version number is used as the RubyGem release version.
   version = '1.1.0'
   jar = "target/inductor-#{version}.jar"
