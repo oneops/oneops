@@ -1,14 +1,3 @@
-require 'chef/config'
-require 'chef/mixin/params_validate'
-require 'chef/mixin/from_file'
-#require 'chef/couchdb'
-#require 'chef/index_queue'
-require 'chef/mash'
-require 'chef/json_compat'
-require 'chef/search/query'
-
-
-
 class Chef
   class Cloud
 
@@ -291,7 +280,7 @@ class Chef
         o.save
         Chef::Log.info("Successfully loaded #{o.ciClassName} #{o.ciName}")
       rescue Exception => e
-        Chef::Log.debug(e.response.read_body)
+        Chef::Log.error(e.response.read_body)
         Chef::Log.error("Failed loading #{o.ciClassName} #{o.ciName}")
       false
       end
