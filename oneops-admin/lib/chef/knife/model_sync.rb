@@ -1,3 +1,8 @@
+require 'cms'
+require 'chef/cookbook_loader'
+# ENV['KNIFE_HOME'] = File.expand_path('../../../../.chef', __FILE__)
+# Chef::Config.from_file(File.expand_path('../../../../.chef/knife.rb', __FILE__))
+
 class Chef
   class Knife
     class ModelSync < Chef::Knife::CookbookMetadata
@@ -45,7 +50,7 @@ class Chef
          if class_parts.size < 2
            class_name = class_parts.last
          end
-         remote_dir = get_remote_dir
+         get_remote_dir
          doc_dir = f.gsub("metadata.rb","doc")
 
         image_groupings = []
@@ -78,7 +83,7 @@ class Chef
                obj['content_type'] = 'text/html'
              end
 
-             file = @remote_dir.files.create obj
+             @remote_dir.files.create(obj)
 
              # components can be services, sinks, relays too
              if image_groupings.size > 0
@@ -90,7 +95,7 @@ class Chef
                    remote_file = g + "." + orig_remote
                  end
                  puts "doc: #{local_file} remote: #{remote_file}"
-                 file = @remote_dir.files.create :key => remote_file, :body => content
+                 @remote_dir.files.create(:key => remote_file, :body => content)
                end
              end
 
@@ -100,10 +105,10 @@ class Chef
       end
 
       def generate_metadata_from_file(cookbook, file)
-
         config[:register] ||= Chef::Config[:register]
         config[:version] ||= Chef::Config[:version]
         config[:version] ||='1.0.0'
+
         ui.info("Processing metadata for #{cookbook} from #{file}")
         md = Chef::Cookbook::Metadata.new
         md.name(cookbook.capitalize)
@@ -161,7 +166,7 @@ class Chef
       def save_class(md, package, group, group_props)
         short_name = build_md_name(md.name)
         full_name  = "#{package}.#{short_name}"
-        cms_class  = Cms::CiMd.find(full_name)
+        cms_class  = find('Cms::CiMd', full_name)
         if cms_class
           ui.info("Updating class #{full_name}")
         else
@@ -236,14 +241,14 @@ class Chef
       def save_relation(md, package, group, group_props)
         short_name   = build_md_name(md.name)
         full_name    = "#{package}.#{short_name}"
-        cms_relation = Cms::RelationMd.find(full_name)
+        cms_relation = find('Cms::RelationMd', full_name)
         if cms_relation
           ui.info("Updating relation #{full_name}")
         else
           ui.info("Creating relation #{full_name}")
           cms_relation = Cms::CiMd.new
         end
-        cms_relation.relationName = [package, full_name].join('.')
+        cms_relation.relationName = full_name
         cms_relation.description  = group_props[:description] || md.description
         cms_relation.mdAttributes = Array.new
         cms_relation.targets      = Array.new
@@ -305,8 +310,8 @@ class Chef
 
       def generate_target(name, properties)
         target = Cms::TargetMd.new
-        target.fromClassName = build_md_name(properties[:from_class])
-        target.toClassName = build_md_name(properties[:to_class])
+        target.fromClassName = properties[:from_class]
+        target.toClassName = properties[:to_class]
         target.linkType = properties[:link_type]
         target.isStrong = (properties['required'] == 'required')
         target.description = name
@@ -359,7 +364,7 @@ class Chef
          begin
             res = Cms::MdCache.cache_refresh
             unless res.nil?
-              ui.info("Metadata cache status update http response code : #{res.code}")
+              ui.info("Metadata cache status update http response code: #{res.code}")
             end
          rescue Exception => e
           STDERR.puts(e.inspect)
@@ -416,7 +421,7 @@ class Chef
 
       def build_md_name(name, package = nil)
         suffix = Chef::Config[:admin] ? '' : "#{config[:register]}.#{"#{config[:version].split('.').first}." if Chef::Config[:useversion]}"
-        "#{"#{package}." if package}#{suffix}#{name.capitalize}"
+        "#{"#{package}." if package}#{suffix}#{name[0].upcase}#{name[1..-1]}"
       end
     end
   end

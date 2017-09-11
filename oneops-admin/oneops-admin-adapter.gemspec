@@ -14,21 +14,22 @@ Gem::Specification.new do |s|
   s.required_ruby_version = ['>= 1.9.0', '<= 2.1.0']
   s.bindir                = 'bin'
   s.require_path          = 'lib'
-  s.files                 = ['oneops-admin-adapter.gemspec', 'Gemfile'] +
-                            Dir.glob('.chef/**/*') +
-    Dir.glob('lib/base/**/*') +
-    # Dir.glob('lib/chef/**/*') +
-                            Dir.glob('lib/chef/catalog_export.rb') +
-                            Dir.glob('lib/chef/model_sync.rb') +
-                            Dir.glob('lib/chef/model_metadata.rb') +
-                            Dir.glob('lib/cms/**/*') +
-                            Dir.glob('lib/shared/**/*') +
-    Dir.glob('lib/circuit') +
-                            Dir.glob('bin/circuit')
-  # s.files        = %w() + ["oneops-admin-adapter.gemspec"] + ["Gemfile"] +
-  #   Dir.glob(".chef/**/*") +
-  #   Dir.glob("lib/**/*") +
-  #   Dir.glob('bin/**/*')
+  s.files                 = %w(oneops-admin-adapter.gemspec
+                              Gemfile
+                              bin/circuit
+                              lib/chef/knife/model_sync.rb
+                              lib/chef/knife/pack.rb
+                              lib/chef/knife/pack_sync.rb
+                              lib/chef/knife/cloud.rb
+                              lib/chef/knife/cloud_sync.rb
+                              lib/chef/knife/register.rb
+                              lib/circuit.rb
+                              lib/cms.rb
+                              .chef/knife.rb) +
+                            Dir.glob('lib/cms/*.rb') +
+                            Dir.glob('lib/templates/circuit/**/*') +
+                            Dir.glob('lib/base/**/*') +
+                            Dir.glob('lib/shared/**/*')
 
   s.add_dependency 'thor', '= 0.19.1'
 
