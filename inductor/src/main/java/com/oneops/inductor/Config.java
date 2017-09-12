@@ -497,6 +497,10 @@ public class Config {
 		this.env = env;
 	}
 
+	public void setCircuitDir(String circuitDir) {
+		this.circuitDir = circuitDir;
+	}
+
 	/**
 	 * Get the env vars key-value map.
 	 *
