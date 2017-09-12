@@ -1,5 +1,7 @@
 require 'cms'
 require 'chef/cookbook_loader'
+require 'fog'
+require 'kramdown'
 # ENV['KNIFE_HOME'] = File.expand_path('../../../../.chef', __FILE__)
 # Chef::Config.from_file(File.expand_path('../../../../.chef/knife.rb', __FILE__))
 

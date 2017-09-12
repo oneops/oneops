@@ -1,5 +1,7 @@
 require 'cms'
 require 'chef/knife/core/object_loader'
+require 'fog'
+require 'kramdown'
 
 class Chef
   class Knife
