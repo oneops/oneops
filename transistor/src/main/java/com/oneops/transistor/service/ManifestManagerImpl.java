@@ -18,6 +18,7 @@
 package com.oneops.transistor.service;
 
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRelease;
@@ -159,20 +160,33 @@ public class ManifestManagerImpl implements ManifestManager {
                 throw new TransistorException(CmsError.TRANSISTOR_OPEN_MANIFEST_RELEASE, "Error in pulling latest design for all platforms ");
             }
         }
-
+		long t2 = System.currentTimeMillis();
         check4MissingServices(design2manifestPlatMap);
-
+		logger.info("Check missing services for " + nsPath + " completed in  " + (System.currentTimeMillis() - t2) + " millis ");
         //now we need to process linkedTo relations
+		t2 = System.currentTimeMillis();
         manifestRfcProcessor.processLinkedTo(design2manifestPlatMap, nsPath, userId);
+		logger.info("Process linked to " + nsPath + " completed in  " + (System.currentTimeMillis() - t2) + " millis ");
 
         //now lets delete old existing plats that do not exists in new manifest
+		t2 = System.currentTimeMillis();
         manifestRfcProcessor.processDeletedPlatforms(design2manifestPlatMap.values(), env, nsPath, userId);
+		logger.info("Process deleted platforms " + nsPath + " completed in  " + (System.currentTimeMillis() - t2) + " millis ");
 
         //process global variables from design
+		t2 = System.currentTimeMillis();
         manifestRfcProcessor.processGlobalVars(assembly.getCiId(), env, nsPath, userId);
-        long t2 = System.currentTimeMillis();
+		logger.info("Process global vars for " + nsPath + " completed in  " + (System.currentTimeMillis() - t2) + " millis ");
+        
         long envReleaseId = populateParentRelease(env, nsPath);
-        logger.info("Pull design for  " + nsPath + " completed in  " + (t2 - t1) + " millis (releaseId " + envReleaseId + ")");
+        logger.info("Pull design for  " + nsPath + " completed in  " + (System.currentTimeMillis() - t1) + " millis (releaseId " + envReleaseId + ")");
+
+		List<CmsRelease> manifestReleases = rfcProcessor.getLatestRelease(nsPath, "open");
+		if (manifestReleases.size()>0) {
+			CmsRelease release = manifestReleases.get(0);
+			release.setDescription("Pull design completed in "+(System.currentTimeMillis() - t1) + " ms");
+			rfcProcessor.updateRelease(release);
+		}
         return envReleaseId;
     }
 
@@ -231,6 +245,7 @@ public class ManifestManagerImpl implements ManifestManager {
 	 */
 	private void processPlatformRfcs(ManifestRfcContainer manifestPlatformRfcs, String userId) {
 
+		
 		long  t1= System.currentTimeMillis();
 		/***** Handle root RFC and relations ******/
 		CmsRfcCI rootRfc = null;
@@ -244,15 +259,31 @@ public class ManifestManagerImpl implements ManifestManager {
 
 		if(rootRfc.getCiState() == null){
 			rootRfc.setCiState("default");
-		}
+		}  
+		
+		Context context = new Context();                                            
+		context.user = userId;
+		context.nsPath = rootRfc.getReleaseNsPath();
+		context.nsId = rootRfc.getNsId();
 		
 		for(CmsRfcRelation toRfcRelation : manifestPlatformRfcs.getRootRfcRelTouple().getToRfcRelation()){
 			toRfcRelation.setToCiId(rootRfc.getCiId());
+			toRfcRelation.setToRfcCi(rootRfc);
+			toRfcRelation.setToRfcId(safelong2Long(rootRfc.getRfcId()));
+			toRfcRelation.setReleaseId(context.ensureReleaseId());
+			toRfcRelation.setNsId(context.nsId);
+//			toRfcRelation.setValidated(true);
+		//	toRfcRelation.setComments(generateComments(toRfcRelation));
 			rfcProcessor.createRfcRelationNoCheck(toRfcRelation, userId);
 		}
 		
 		for(CmsRfcRelation fromRfcRelation : manifestPlatformRfcs.getRootRfcRelTouple().getFromRfcRelation()){
 			fromRfcRelation.setFromCiId(rootRfc.getCiId());
+			fromRfcRelation.setFromRfcCi(rootRfc);
+			fromRfcRelation.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
+			fromRfcRelation.setReleaseId(context.ensureReleaseId());
+			fromRfcRelation.setNsId(context.nsId);
+//			fromRfcRelation.setValidated(true);
 			rfcProcessor.createRfcRelationNoCheck(fromRfcRelation, userId);
 		}
 		
@@ -265,27 +296,41 @@ public class ManifestManagerImpl implements ManifestManager {
 			CmsRfcCI toRfcCI = rfcRelTriplet.getToRfcCI();
 			if(toRfcCI != null){
 				if(toRfcCI.getRfcAction() == null){toRfcCI.setRfcAction("add");}
-				manifestRfcProcessor.setCiId(toRfcCI);
 				if(toRfcCI.getRfcId() == 0 && toRfcCI.getCiId() == 0){
+                    manifestRfcProcessor.setCiId(toRfcCI);
+					toRfcCI.setReleaseId(context.ensureReleaseId());
+					toRfcCI.setNsId(context.nsId);;
 					toRfcCI = rfcProcessor.createAndfetchRfcCINoCheck(toRfcCI, userId);
 				}
 				rfcRelation.setToCiId(toRfcCI.getCiId());
+				rfcRelation.setToRfcId(safelong2Long(toRfcCI.getRfcId()));
+				rfcRelation.setToRfcCi(toRfcCI);
 			}
 			
 			CmsRfcCI fromRfcCI = rfcRelTriplet.getFromRfcCI();
 			if(fromRfcCI != null){
 				if(fromRfcCI.getRfcAction() == null){fromRfcCI.setRfcAction("add");}
-				manifestRfcProcessor.setCiId(fromRfcCI);
+				
 				if(fromRfcCI.getRfcId() == 0 && fromRfcCI.getCiId() == 0){
+                    manifestRfcProcessor.setCiId(fromRfcCI);
+					fromRfcCI.setReleaseId(context.ensureReleaseId());
+					fromRfcCI.setNsId(context.nsId);
 					fromRfcCI = rfcProcessor.createAndfetchRfcCINoCheck(fromRfcCI, userId);
 				}
 				rfcRelation.setFromCiId(fromRfcCI.getCiId());
+				rfcRelation.setFromRfcId(safelong2Long(fromRfcCI.getRfcId()));
+				rfcRelation.setFromRfcCi(fromRfcCI);
 			}
 			
 			if("manifest.Entrypoint".equals(rfcRelation.getRelationName())){
 				rfcRelation.setFromCiId(rootRfc.getCiId());
+				rfcRelation.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
+				rfcRelation.setFromRfcCi(rootRfc);
 			}
-			
+			rfcRelation.setReleaseId(context.ensureReleaseId());
+//			rfcRelation.setValidated(true);
+			rfcRelation.setNsId(context.nsId);
+
 			manifestRfcProcessor.setCiRelationId(rfcRelation);
 			rfcProcessor.createRfcRelationNoCheck(rfcRelation, userId);
 		}
@@ -295,6 +340,8 @@ public class ManifestManagerImpl implements ManifestManager {
 		for(ManifestRootRfcContainer rfcRelTouple:manifestPlatformRfcs.getRfcRelToupleList()){
 			CmsRfcCI newRfc;
 			if(rfcRelTouple.getRfcCI().getRfcId() == 0){
+				rfcRelTouple.getRfcCI().setReleaseId(context.ensureReleaseId());
+				rfcRelTouple.getRfcCI().setNsId(context.nsId);;
 			  newRfc = rfcProcessor.createAndfetchRfcCINoCheck(rfcRelTouple.getRfcCI(), userId);
 			}else{
 			  newRfc = rfcRelTouple.getRfcCI();
@@ -306,8 +353,15 @@ public class ManifestManagerImpl implements ManifestManager {
 				
 				if("manifest.Requires".equals(rfcRel.getRelationName()) && rfcRel.getFromCiId() == 0){
 					rfcRel.setFromCiId(rootRfc.getCiId());
+					rfcRel.setFromRfcCi(rootRfc);
+					rfcRel.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
 				}
 				rfcRel.setToCiId(newRfc.getCiId());
+				rfcRel.setToRfcId(safelong2Long(newRfc.getRfcId()));
+				rfcRel.setToRfcCi(newRfc);
+				rfcRel.setReleaseId(context.ensureReleaseId());
+//				rfcRel.setValidated(true);
+				rfcRel.setNsId(context.nsId);
 				rfcProcessor.createRfcRelationNoCheck(rfcRel, userId);
 			}
 			for(CmsRfcRelation rfcRel : rfcRelTouple.getFromRfcRelation()){
@@ -317,42 +371,63 @@ public class ManifestManagerImpl implements ManifestManager {
 				
 				if(rfcRel.getToCiId() == 0){
 					rfcRel.setToCiId(rootRfc.getCiId());
+					rfcRel.setToRfcCi(rootRfc);
+					rfcRel.setToRfcId(safelong2Long(rootRfc.getRfcId()));
 				}
 				rfcRel.setFromCiId(newRfc.getCiId());
+				rfcRel.setFromRfcId(safelong2Long(newRfc.getRfcId()));
+				rfcRel.setFromRfcCi(newRfc);
+				rfcRel.setReleaseId(context.ensureReleaseId());
+//				rfcRel.setValidated(true);
+				rfcRel.setNsId(context.nsId);
 				rfcProcessor.createRfcRelationNoCheck(rfcRel, userId);
 			}
 			
 		}
 		
 		for(CmsRfcCI rfc:manifestPlatformRfcs.getRfcList()){
+			rfc.setReleaseId(context.ensureReleaseId());
+			rfc.setNsId(context.nsId);
 			rfcProcessor.createRfcCINoCheck(rfc, userId);
 		}
 		
 		for(CmsRfcRelation rfcRelation:manifestPlatformRfcs.getRfcRelationList()){
 			if(rfcRelation.getFromCiId() == 0){
-				if("base.Consumes".equals(rfcRelation.getRelationName())){
+				//if("base.Consumes".equals(rfcRelation.getRelationName())){
 					rfcRelation.setFromCiId(rootRfc.getCiId());
-				}else{
-					rfcRelation.setFromCiId(rootRfc.getCiId());
-				}
+					rfcRelation.setFromRfcCi(rootRfc);
+					rfcRelation.setFromRfcId(safelong2Long(rootRfc.getRfcId()));
+//				}else{
+//					rfcRelation.setFromCiId(rootRfc.getCiId());
+//					rfcRelation.setFromRfcCi(rootRfc);
+//				}
 			}
 			if(rfcRelation.getRfcAction() == null){
 				rfcRelation.setRfcAction("add");
 			}
-			
+			rfcRelation.setReleaseId(context.ensureReleaseId());
+//			rfcRelation.setValidated(true);
+			rfcRelation.setNsId(context.nsId);
 			rfcProcessor.createRfcRelationNoCheck(rfcRelation, userId);
 		}
 		
-		for(Long delCiId:manifestPlatformRfcs.getDeleteCiIdList()){
-			cmRfcMrgProcessor.requestCiDeleteCascadeNoRelsRfcs(delCiId, userId, 0);
+		for(long delCiId:manifestPlatformRfcs.getDeleteCiIdList()){
+			ManifestRfcBulkProcessor.Context manifestContext = manifestRfcProcessor.new Context();
+			manifestContext.user = userId;
+			manifestContext.nsPath = rootRfc.getReleaseNsPath();
+			manifestContext.processed = new ArrayList<>();
+			manifestRfcProcessor.requestCiDeleteCascadeNoRelsRfcs(delCiId, 0, manifestContext);
 		}
 		
-		for(CmsRfcRelation delRelation:manifestPlatformRfcs.getRfcDeleteRelationList()){
+		for(CmsCIRelation delRelation:manifestPlatformRfcs.getDeleteRelationList()){
 			cmRfcMrgProcessor.requestRelationDelete(delRelation.getCiRelationId(), userId);
 		}
 		long  t2= System.currentTimeMillis();
 		logger.info(" processPlatformRfcs  "+ manifestPlatformRfcs.getManifestPlatformRfc().getNsPath() +" completed in  "+(t2-t1)  );
+	}
 
+	private Long safelong2Long(long rfcId) {
+		return rfcId==0?null:rfcId;
 	}
 
 	private long checkPlatformPackCompliance(List<CmsCIRelation> designPlatRels , CmsCI env, String nsPath, String userId) {
@@ -625,7 +700,22 @@ public class ManifestManagerImpl implements ManifestManager {
 		
 	}
 
-	public void setCloudUtil(CloudUtil cloudUtil) {
+    class Context {
+        String user;
+        String nsPath;
+        Long releaseId;
+        public long nsId;
+
+        private Long ensureReleaseId() {
+            if (releaseId == null) {
+                releaseId = rfcProcessor.getOpenReleaseIdByNs(nsPath, null, user);
+            }
+            return releaseId;
+        }
+    }
+
+
+    public void setCloudUtil(CloudUtil cloudUtil) {
 		this.cloudUtil=cloudUtil;
 	}
 }

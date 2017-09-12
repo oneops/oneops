@@ -48,8 +48,6 @@ public class ESMessageProcessor implements MessageProcessor {
     @Autowired
     private NSMessageProcessor nsMessageProcessor;
     @Autowired
-    private RelationMessageProcessor relationMsgProcessor;
-    @Autowired
     private ReleaseMessageProcessor releaseMessageProcessor;
     @Autowired
     private NotificationMessageProcessor notificationMessageProcessor;
@@ -88,7 +86,6 @@ public class ESMessageProcessor implements MessageProcessor {
                     ciMessageProcessor.processMessage(message, msgType, msgId);
                     break;
                 case "cm_ci_rel":
-                    relationMsgProcessor.processMessage(message, msgType, msgId);
                     break;
                 case "release":
                     releaseMessageProcessor.processMessage(message, msgType, msgId);
@@ -115,7 +112,7 @@ public class ESMessageProcessor implements MessageProcessor {
             } else {
                 if ("cm_ci".equals(msgType)) {
                     msgType = "ci";
-                    relationMsgProcessor.processRelationDeleteMsg(msgId); //Delete all relation docs for given ci 
+                   // relationMsgProcessor.processRelationDeleteMsg(msgId); //Delete all relation docs for given ci 
                     indexer.getTemplate().delete(indexer.getIndexName(), ".percolator", msgId);//TEMP code: Till ciClassName is available try to delete all ciIds from percolator type also
 
                     JsonObject object = new JsonObject();
@@ -123,7 +120,7 @@ public class ESMessageProcessor implements MessageProcessor {
                     object.add("ciId", new JsonPrimitive(msgId));
                     indexer.indexEvent("ci_delete", object.toString());
                 } else if ("cm_ci_rel".equals(msgType)){
-                    msgType = "relation";
+                    return;                    // no longer deal with relation messages
                 }
                 indexer.getTemplate().delete(indexer.getIndexByType(msgType), msgType, msgId);
                 logger.info("Deleted message with id::" + msgId + " and type::" + msgType + " from ES index:"+indexer.getIndexByType(msgType));
