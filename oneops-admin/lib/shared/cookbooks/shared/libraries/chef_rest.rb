@@ -40,6 +40,7 @@ class Chef
     def probe_url(url)
       url_path = url.to_s
       uri = URI(url_path)
+
       ssl = uri.scheme == "https" ? true : false
       headers_h, headers = nil
       if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
@@ -80,7 +81,7 @@ class Chef
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      uri = URI(remote_file)
+      uri = remote_file.class.to_s == "String" ? URI(remote_file) : remote_file
       
       ssl = uri.scheme == "https" ? true : false
 
@@ -135,7 +136,7 @@ class Chef
           Gem.clear_paths
         end
       end
-      
+
       require 'parallel'
 
       download_start = Time.now
@@ -205,11 +206,12 @@ class Chef
     def download_file(part, remote_file, local_file)
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file} part: #{part['slot']} [Start: #{part['start']} End: #{part['end']}]")
-      uri = URI(remote_file)
+
+      uri = remote_file.class.to_s == "String" ? URI(remote_file) : remote_file
 
       ssl = uri.scheme == "https" ? true : false
 
-      if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
+      if Gem::Version.new(RUBY_VERSION.dup) > Gem::Version.new('2.0.0')
         Net::HTTP.start(uri.host, uri.port, :use_ssl => ssl) do |http|
           request = Net::HTTP::Get.new uri
           Chef::Log.info("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")

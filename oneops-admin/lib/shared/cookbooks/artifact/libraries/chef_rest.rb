@@ -80,8 +80,8 @@ class Chef
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file}")
 
-      uri = URI(remote_file)
-      
+      uri = remote_file.class.to_s == "String" ? URI(remote_file) : remote_file
+
       ssl = uri.scheme == "https" ? true : false
 
       if Gem::Version.new(RUBY_VERSION.dup) >= Gem::Version.new('2.0.0')
@@ -122,6 +122,7 @@ class Chef
       Chef::Log.info("Fetching in #{parts.length} parts")
       Chef::Log.info("Part details: #{pp parts.inspect}")
       # todo.. resume mode
+
       #install parallel gem, for windows make sure it installs into chef-dedicated instance of ruby
       if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
         `c:\\opscode\\chef\\embedded\\bin\\gem install parallel -v 1.3.3`
@@ -205,7 +206,8 @@ class Chef
     def download_file(part, remote_file, local_file)
       Chef::Log.info("Saving file to #{local_file}")
       Chef::Log.info("Fetching file: #{remote_file} part: #{part['slot']} [Start: #{part['start']} End: #{part['end']}]")
-      uri = URI(remote_file)
+
+      uri = remote_file.class.to_s == "String" ? URI(remote_file) : remote_file
 
       ssl = uri.scheme == "https" ? true : false
 
