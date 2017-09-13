@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">
+
+
+  <bean id="dpmtMapper" class="org.mockito.Mockito" factory-method="mock">
+    <constructor-arg value="com.oneops.cms.dj.dal.DJDpmtMapper"/>
+  </bean>
+
+  <bean id="cmsCmRfcMrgProcessor" class="org.mockito.Mockito" factory-method="mock">
+    <constructor-arg value="com.oneops.cms.dj.service.CmsCmRfcMrgProcessor"/>
+  </bean>
+
+  <bean id="cmsCmProcessor" class="org.mockito.Mockito" factory-method="mock">
+    <constructor-arg value="com.oneops.cms.cm.service.CmsCmProcessor"/>
+  </bean>
+
+  <bean id="djMapper" class="org.mockito.Mockito" factory-method="mock">
+    <constructor-arg value="com.oneops.cms.dj.dal.DJMapper"/>
+  </bean>
+
+  <bean id="rfcUtil" class="com.oneops.cms.dj.service.CmsRfcUtil"/>
+
+  <bean id="opsMapper" class="org.mockito.Mockito" factory-method="mock">
+    <constructor-arg value="com.oneops.cms.cm.ops.dal.OpsMapper"/>
+  </bean>
+
+  <bean id="colProcessor" class="org.mockito.Mockito" factory-method="mock">
+    <constructor-arg value="com.oneops.cms.collections.CollectionProcessor"/>
+  </bean>
+
+
+  <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">
+    <property name="cmProcessor" ref="cmsCmProcessor"/>
+    <property name="rfcUtil" ref="rfcUtil"/>
+  </bean>
+
+
+</beans>

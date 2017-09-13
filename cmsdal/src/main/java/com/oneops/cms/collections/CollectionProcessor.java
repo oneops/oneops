@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.cms.collections;
 
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +35,8 @@ import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
  */
 public class CollectionProcessor {
 
-	private CmsCmRfcMrgProcessor cmrfcProcessor;
+  private static final String RELATION_ATTRIBUTE_SUFFIX = ".";
+  private CmsCmRfcMrgProcessor cmrfcProcessor;
 	private CmsCmProcessor cmProcessor;
 	
 	/**
@@ -74,7 +77,7 @@ public class CollectionProcessor {
 			}
 			for (CmsCIRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmProcessor.getCiById(rel.getToCiId()));
+				    result.add(addRelationAttributes(relationDef,rel));
 				}
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
@@ -92,7 +95,7 @@ public class CollectionProcessor {
 			}
 			for (CmsCIRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmProcessor.getCiById(rel.getFromCiId()));
+          result.add(addRelationAttributes(relationDef,rel));
 				}
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
@@ -107,14 +110,13 @@ public class CollectionProcessor {
 
 	/**
 	 * Gets the flat collection rfc.
-	 *
 	 * @param anchorCiId the anchor ci id
 	 * @param relationDef the relation def
 	 * @return the flat collection rfc
 	 */
 	public List<CmsRfcCI> getFlatCollectionRfc(long anchorCiId, CollectionLinkDefinition relationDef) {
 		
-		List<CmsRfcCI> result = new ArrayList<CmsRfcCI>();
+		List<CmsRfcCI> result = new ArrayList<>();
 		
 		if ("from".equalsIgnoreCase(relationDef.getDirection())) {
 			List<CmsRfcRelation> relations = null;
@@ -125,8 +127,9 @@ public class CollectionProcessor {
 			}
 			for (CmsRfcRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmrfcProcessor.getCiById(rel.getToCiId(), "df"));
+          result.add(addRelationAttributes(relationDef, rel));
 				}
+				//
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
 						result.addAll(getFlatCollectionRfc(rel.getToCiId(), relDef));
@@ -142,8 +145,8 @@ public class CollectionProcessor {
 			}
 			for (CmsRfcRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmrfcProcessor.getCiById(rel.getFromCiId(),"df"));
-				}
+          result.add(addRelationAttributes(relationDef, rel));
+        }
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
 						result.addAll(getFlatCollectionRfc(rel.getFromCiId(), relDef));
@@ -155,7 +158,38 @@ public class CollectionProcessor {
 		return result;
 	}
 
-    /**
+  private CmsRfcCI addRelationAttributes(CollectionLinkDefinition relationDef, CmsRfcRelation rel) {
+    final CmsRfcCI aRfc = cmrfcProcessor.getCiById(rel.getToCiId(), "df");
+    if(relationDef.getReturnRelationAttributes()){
+      rel.getAttributes().forEach((k,v)->{
+        CmsRfcAttribute attribute = new CmsRfcAttribute();
+        attribute.setAttributeName(rel.getRelationName()+RELATION_ATTRIBUTE_SUFFIX+k);
+        attribute.setNewValue(v.getNewValue());
+        attribute.setOldValue(v.getOldValue());
+        aRfc.getAttributes().put(attribute.getAttributeName(),attribute);
+      });
+
+    }
+    return aRfc;
+  }
+
+  private CmsCI addRelationAttributes(CollectionLinkDefinition relationDef, CmsCIRelation rel) {
+    final CmsCI aCi = cmProcessor.getCiById(rel.getToCiId());
+    if(relationDef.getReturnRelationAttributes()){
+      rel.getAttributes().forEach((k,v)->{
+        CmsCIAttribute attribute = new CmsCIAttribute();
+        attribute.setAttributeName(rel.getRelationName()+ RELATION_ATTRIBUTE_SUFFIX +k);
+        attribute.setDfValue(v.getDfValue());
+        attribute.setDjValue(v.getDjValue());
+        aCi.getAttributes().put(attribute.getAttributeName(),attribute);
+      });
+
+    }
+    return aCi;
+  }
+
+
+  /**
      * Upsert collection rfc.
      *
      * @param rfcNode the rfc node
