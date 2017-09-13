@@ -926,7 +926,6 @@ public class CmsWoProvider {
         return null;
     }
 
-    //private CmsCi
     private CmsCI getCloudForCloudService(long ciId) {
         List<CmsRfcRelation> cloudRels = cmrfcProcessor.getToCIRelationsNakedNoAttrs(ciId, "base.Provides", null, "account.Cloud");
         if (cloudRels.size() > 0) {
