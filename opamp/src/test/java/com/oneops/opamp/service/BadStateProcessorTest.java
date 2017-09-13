@@ -16,21 +16,13 @@
  *  
  *******************************************************************************/
 package com.oneops.opamp.service;
-import static org.mockito.Mockito.*;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.List;
-
-import org.testng.Assert;
-import org.testng.annotations.Test;
-
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureDefinition;
+import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.exceptions.OpsException;
@@ -38,7 +30,22 @@ import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
+import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsBaseEvent;
+import org.mockito.ArgumentCaptor;
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.Mockito.*;
 
 public class BadStateProcessorTest {
 
@@ -199,5 +206,77 @@ public class BadStateProcessorTest {
 		System.out.println(" For startTime " + calendar_Oct05_0000_2016.getTime() + " next time : " + new Date(nextTime));
 		Assert.assertEquals(calendar_Oct26_074500_2016.getTimeInMillis(), nextTime);
 
+	}
+
+	@Test
+	public void testProcQueryCount4UnhealthyState() throws OpampException {
+		Long ci1 = 321L;
+		Long ci2 = 123L;
+		BadStateProcessor bsp = new BadStateProcessor();
+		bsp.setNotifier(mock(Notifications.class));
+		OpsProcedureProcessor opsProcedureProcessor = mock(OpsProcedureProcessor.class);
+		CmsOpsProcedure proc = new CmsOpsProcedure();
+		proc.setProcedureId(1000L);
+		when(opsProcedureProcessor.processProcedureRequest(any(), any())).thenReturn(proc);
+		bsp.setOpsProcProcessor(opsProcedureProcessor);
+
+		CiOpsProcessor copMock=mock(CiOpsProcessor.class);
+		when(copMock.getCIstate(anyLong())).thenReturn("unhealthy");
+		CiOpenEvent openEvent = new CiOpenEvent();
+		openEvent.setState("unhealthy");
+		//very old (60 days) unhealthy start event
+		long ts = System.currentTimeMillis() - (60 * 24 * 60 * 60 * 1000L);
+		openEvent.setTimestamp(ts);
+
+		CiOpenEvent openEvent1 = new CiOpenEvent();
+		openEvent1.setState("unhealthy");
+		//unhealthy start event 2 days back
+		long ts1 = System.currentTimeMillis() - (2 * 24 * 60 * 60 * 1000L);
+		openEvent1.setTimestamp(ts1);
+
+		Map<Long, List<CiOpenEvent>> openEvents = new HashMap<>();
+		openEvents.put(ci1, Collections.singletonList(openEvent));
+		openEvents.put(ci2, Collections.singletonList(openEvent1));
+		when(copMock.getCisOpenEvents(any())).thenReturn(openEvents);
+		bsp.setCoProcessor(copMock);
+
+		List<CmsCIRelation> emptyList = Collections.emptyList();
+		CmsCmProcessor cmsCmProcessorMock = mock(CmsCmProcessor.class);
+		when(cmsCmProcessorMock.getFromCIRelationsNakedNoAttrs(anyLong(), any(), eq("DependsOn"),any())).thenReturn(emptyList);
+		bsp.setCmProcessor(cmsCmProcessorMock);
+
+		EnvPropsProcessor envProcessorMock = mock(EnvPropsProcessor.class);
+		when(envProcessorMock.isAutorepairEnabled(anyLong())).thenReturn(true);
+		when(envProcessorMock.isCloudActive4Bom(anyLong(), any())).thenReturn(true);
+		when(envProcessorMock.getPlatform4Bom(anyLong())).thenReturn(new CmsCI());
+		when(envProcessorMock.isRepairDelayEnabled(any())).thenReturn(true);
+		bsp.setEnvProcessor(envProcessorMock);
+
+		CiChangeStateEvent changeEvent = new CiChangeStateEvent();
+		changeEvent.setCiId(ci1);
+		changeEvent.setPayLoad("{\"coolOff\" : 15}");
+
+		OpsBaseEvent event = new OpsBaseEvent();
+		event.setCiId(ci1);
+		EventUtil eventUtil = mock(EventUtil.class);
+		bsp.setEventUtil(eventUtil);
+		when(eventUtil.getOpsEvent(changeEvent)).thenReturn(event);
+		when(eventUtil.getGson()).thenReturn(new Gson());
+
+		OpsManager opsMock = mock(OpsManager.class);
+		bsp.setOpsManager(opsMock);
+		long minCheckTime4ProcCount = System.currentTimeMillis() - (15 * 24 * 60 * 60 * 1000L);
+
+		bsp.processUnhealthyState(changeEvent);
+		event.setCiId(ci2);
+		changeEvent.setCiId(ci2);
+
+		bsp.processUnhealthyState(changeEvent);
+
+		ArgumentCaptor<Date> captor = ArgumentCaptor.forClass(Date.class);
+		verify(opsMock, times(2)).getCmsOpsProceduresCountForCiFromTime(anyLong(), any(), eq("ci_repair"), captor.capture());
+		List<Date> values = captor.getAllValues();
+		Assert.assertTrue(values.get(0).getTime() - minCheckTime4ProcCount < (60 * 1000L));
+		Assert.assertTrue(values.get(1).getTime() - ts1 < (60 * 1000L));
 	}
 }

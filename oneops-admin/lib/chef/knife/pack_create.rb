@@ -1,10 +1,7 @@
-require 'chef/knife'
-
-
 class Chef
  class Knife
    class PackCreate < Chef::Knife
-     
+
      banner "knife pack create PACK (options)"
 
      option :pack_path,
@@ -30,8 +27,8 @@ class Chef
      option :type,
         :short => "-t TYPE",
         :long => "--type TYPE",
-        :description => "Limit to the specified type "   
-       
+        :description => "Limit to the specified type "
+
      def run
         self.config = Chef::Config.merge!(config)
         if @name_args.length < 1
@@ -39,23 +36,23 @@ class Chef
            ui.fatal("You must specify a pack name")
            exit 1
         end
-        
-        
+
+
         pack_path = File.expand_path(Array(config[:pack_path]).first)
         subdir_path = config[:pack_subdir]||""
-        
+
         version = config[:version]||"1.0.0"
-        
+
         full_path=File.join(pack_path,subdir_path)
         ui.info("Path : #{full_path}")
-        
+
         pack_name = @name_args.first
         copyright = config[:pack_copyright] || "YOUR_COMPANY_NAME"
         category = config[:pack_category] || "OTHER"
         owner = config[:owner] || "YOUR_EMAIL"
         config[:type] ||='platform'
-        
-        
+
+
         create_pack(full_path, pack_name, copyright,owner,category,config[:type].capitalize,config[:version].split(".").first)
       end
 
@@ -83,13 +80,13 @@ type "#{type}"
 
 #environment "single", {}
 #environment "redundant", {}
-    
+
 EOH
-         end  
+         end
        end
-        
+
       end
-   
+
     end
    end
  end

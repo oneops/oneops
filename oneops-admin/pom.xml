@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.08.02-01-SNAPSHOT</version>
+    <version>17.09.06-01</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-admin</artifactId>
@@ -17,6 +17,26 @@
   </dependencies>
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>clean</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+            <configuration>
+              <filesets>
+                <fileset>
+                  <directory>${basedir}</directory>
+                  <includes>*.gem</includes>
+                </fileset>
+              </filesets>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -32,12 +52,113 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>1.6.0</version>
         <executions>
+          <!-- Prepare oneops-admin-adapter gem (build gem, cache dependencies, package in a tar) -->
           <execution>
+            <id>adapter-build-gem</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>gem</executable>
+              <arguments>
+                <argument>build</argument>
+                <argument>oneops-admin-adapter.gemspec</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>adapter-bundle-package</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>bundle</executable>
+              <arguments>
+                <argument>package</argument>
+                <argument>--gemfile=oneops-admin-adapter.gemfile</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>adapter-tar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>tar</executable>
+              <arguments>
+                <argument>-cf</argument>
+                <argument>${project.build.directory}/${project.artifactId}-${project.version}-adapter.tar.gz</argument>
+                <argument>-z</argument>
+                <argument>oneops-admin-adapter-1.0.0.gem</argument>
+                <argument>oneops-admin-adapter.gemfile</argument>
+                <argument>oneops-admin-adapter.gemspec</argument>
+                <argument>vendor/cache</argument>
+              </arguments>
+            </configuration>
+          </execution>
+
+          <!-- Prepare oneops-admin-inductor gem (build gem, cache dependencies, package in a tar) -->
+          <execution>
+            <id>inductor-build-gem</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>gem</executable>
+              <arguments>
+                <argument>build</argument>
+                <argument>oneops-admin-inductor.gemspec</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>inductor-bundle-package</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>bundle</executable>
+              <arguments>
+                <argument>package</argument>
+                <argument>--gemfile=oneops-admin-inductor.gemfile</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>inductor-tar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>tar</executable>
+              <arguments>
+                <argument>-cf</argument>
+                <argument>${project.build.directory}/${project.artifactId}-${project.version}-inductor.tar.gz</argument>
+                <argument>-z</argument>
+                <argument>oneops-admin-inductor-1.0.0.gem</argument>
+                <argument>oneops-admin-inductor.gemfile</argument>
+                <argument>oneops-admin-inductor.gemspec</argument>
+                <argument>vendor/cache</argument>
+              </arguments>
+            </configuration>
+          </execution>
+
+          <!-- Build old oneops-admin gem -->
+          <execution>
+            <id>old-build-gem</id>
             <phase>package</phase>
             <goals>
               <goal>exec</goal>
@@ -48,6 +169,45 @@
                 <argument>build</argument>
                 <argument>oneops-admin.gemspec</argument>
               </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>adapter-register</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/${project.artifactId}-${project.version}-adapter.tar.gz</file>
+                  <type>tar.gz</type>
+                  <classifier>adapter</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+          <execution>
+            <id>inductor-register</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/${project.artifactId}-${project.version}-inductor.tar.gz</file>
+                  <type>tar.gz</type>
+                  <classifier>inductor</classifier>
+                </artifact>
+              </artifacts>
             </configuration>
           </execution>
         </executions>

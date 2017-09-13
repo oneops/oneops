@@ -1,33 +1,3 @@
-require 'chef/knife'
-require 'chef/exceptions'
-require 'chef/json_compat'
-
-$:.unshift File.dirname(__FILE__)
-require 'pack'
-require 'bundler'
-
-ENV['BUNDLE_GEMFILE'] ||= File.dirname(__FILE__) + '/../../../Gemfile'
-require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
-
-
-Bundler.setup(:default)
-
-require 'cms'
-
-# class ActiveResource::Connection
-# # Creates new Net::HTTP instance for communication with
-# # remote service and resources.
-# def http
-# http = Net::HTTP.new(@site.host, @site.port)
-# http.use_ssl = @site.is_a?(URI::HTTPS)
-# http.verify_mode = OpenSSL::SSL::VERIFY_NONE if http.use_ssl
-# http.read_timeout = @timeout if @timeout
-# #Here's the addition that allows you to see the output
-# http.set_debug_output $stderr
-# return http
-# end
-# end
-
 class Chef
   class Knife
     class Register < Chef::Knife
@@ -43,12 +13,12 @@ class Chef
         :short => "-r REGISTER",
         :long => "--register REGISTER",
         :description => "Specify the source register name to use during uploads"
-        
+
       option :version,
         :short => "-v VERSION",
         :long => "--version VERSION",
         :description => "Specify the source register version to use during uploads"
-                
+
       option :msg,
         :short => '-m MSG',
         :long => '--msg MSG',
@@ -58,11 +28,11 @@ class Chef
         :long => "--nsPath NSPATH",
         :description => "Namespace path to register the source",
         :default => '/public'
-        
+
       def run
         name = config[:register] ||= Chef::Config[:register]
         nspath = config[:nspath] ||= Chef::Config[:nspath]
-        
+
         unless name
           ui.error( "Missing 'register' entry in the config file" )
           return false
@@ -70,15 +40,15 @@ class Chef
 
         comments = "#{ENV['USER']}:#{$0}"
         comments += " #{config[:msg]}" if config[:msg]
-        
+
         ui.info( "Ensuring namespace #{nspath} exists" )
-        
+
         unless ensure_path_exists(nspath)
           return false
         end
-        
+
         ui.info( "Registering source #{name} in namespace #{nspath}" )
-        
+
         source = Cms::Ci.first( :params => { :nsPath => nspath, :ciClassName => 'mgmt.Source', :ciName => name })
         if source.nil?
           ui.info( "Registering source #{name}")
@@ -92,7 +62,7 @@ class Chef
 
         source.comments = comments
         source.ciAttributes.description = config[:description]
-        
+
         Chef::Log.debug(source.to_json)
         if save(source)
           ui.info("Successfuly registered source #{name}")
@@ -100,7 +70,7 @@ class Chef
           ui.error("Could not register source #{name}")
           return false
         end
-        
+
         if ensure_path_exists("#{source.nsPath}/#{source.ciName}/packs")
           ui.info("Successfuly created packs namespace for source #{name}")
           return source
@@ -109,7 +79,7 @@ class Chef
         end
 
       end
-      
+
       def ensure_path_exists(nspath)
         ns = Cms::Namespace.all( :params => { :nsPath => nspath } ).first
         if ns.nil?
@@ -125,7 +95,7 @@ class Chef
         end
         return ns
       end
-      
+
       def save(object)
         begin
           ok = object.save

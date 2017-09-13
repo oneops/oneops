@@ -1,22 +1,6 @@
-require 'chef/knife'
-require 'chef/exceptions'
-require 'chef/cookbook_loader'
-require 'chef/cookbook_uploader'
-
-#require 'chef/pack'
-require 'chef/knife/core/object_loader'
-require 'chef/json_compat'
-
-$:.unshift File.dirname(__FILE__)
-require 'pack'
-require 'bundler'
-
-ENV['BUNDLE_GEMFILE'] ||= File.dirname(__FILE__) + '/../../../Gemfile'
-require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
-
-Bundler.setup(:default)
-
 require 'cms'
+require 'chef/knife/core/object_loader'
+require 'fog'
 require 'kramdown'
 
 class Chef

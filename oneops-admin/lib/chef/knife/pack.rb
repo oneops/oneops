@@ -1,92 +1,48 @@
-#
-require 'chef/config'
-require 'chef/mixin/params_validate'
-require 'chef/mixin/from_file'
-#require 'chef/couchdb'
-require 'chef/run_list'
-#require 'chef/index_queue'
-require 'chef/mash'
-require 'chef/json_compat'
-require 'chef/search/query'
-
 class Chef
   class Pack
 
     include Chef::Mixin::FromFile
     include Chef::Mixin::ParamsValidate
-    #include Chef::IndexQueue::Indexable
 
-    attr_reader   :platform,
-    		  :environments,
-                  :resources,
-                  :relations,
-                  :serviced_bys,
-                  :entrypoints,
-                  :procedures,
-                  :variables
+    attr_reader :platform,
+                :environments,
+                :resources,
+                :relations,
+                :serviced_bys,
+                :entrypoints,
+                :procedures,
+                :variables
 
-    # DESIGN_DOCUMENT = {
-      # "version" => 6,
-      # "language" => "javascript",
-      # "views" => {
-        # "all" => {
-          # "map" => <<-EOJS
-          # function(doc) {
-            # if (doc.chef_type == "pack") {
-              # emit(doc.name, doc);
-            # }
-          # }
-          # EOJS
-        # },
-        # "all_id" => {
-          # "map" => <<-EOJS
-          # function(doc) {
-            # if (doc.chef_type == "pack") {
-              # emit(doc.name, doc.name);
-            # }
-          # }
-          # EOJS
-        # }
-      # }
-    # }
-
-    #attr_accessor :couchdb_rev, :couchdb
-    #attr_reader :couchdb_id
-
-    # Create a new Chef::Pack object.
-    def initialize(couchdb=nil)
-      @name = ''
-      @description = ''
-      @category = ''
-      @version = ''
-      @visibility = []
-      @group_id = ''
-      @ignore = false
-      @enabled = true
-      @type = ''
-      @platform = Hash.new
-      @services = ''
-      @environments = Mash.new
-      @resources = Mash.new
-      @relations = Mash.new
-      @default_attributes = Mash.new
+    def initialize
+      @name                = ''
+      @description         = ''
+      @category            = ''
+      @version             = ''
+      @visibility          = []
+      @group_id            = ''
+      @ignore              = false
+      @enabled             = true
+      @type                = ''
+      @platform            = Hash.new
+      @services            = ''
+      @environments        = Mash.new
+      @resources           = Mash.new
+      @relations           = Mash.new
+      @default_attributes  = Mash.new
       @override_attributes = Mash.new
-      @depends_on = Mash.new
-      @managed_via = Mash.new
-      @serviced_bys = Mash.new
-      @entrypoints = Mash.new
-      @procedures = Mash.new
-      @variables = Mash.new
-      @env_run_lists = {"_default" => Chef::RunList.new}
-      @owner = ''
-      @policies = Mash.new
-      #@couchdb_rev = nil
-      #@couchdb_id = nil
-      #@couchdb = couchdb || Chef::CouchDB.new
+      @depends_on          = Mash.new
+      @managed_via         = Mash.new
+      @serviced_bys        = Mash.new
+      @entrypoints         = Mash.new
+      @procedures          = Mash.new
+      @variables           = Mash.new
+      @env_run_lists       = {'_default' => Chef::RunList.new}
+      @owner               = ''
+      @policies            = Mash.new
     end
 
     def couchdb_id=(value)
-      @couchdb_id = value
+      @couchdb_id   = value
       self.index_id = value
     end
 
@@ -162,15 +118,15 @@ class Chef
       set_or_return(
         :ignore,
         arg,
-        :kind_of => [ TrueClass, FalseClass ], :default => false
+        :kind_of => [TrueClass, FalseClass], :default => false
       )
     end
 
     def enabled(arg=nil)
       set_or_return(
-      :enabled,
-      arg,
-      :kind_of => [ TrueClass, FalseClass ], :default => true
+        :enabled,
+        arg,
+        :kind_of => [TrueClass, FalseClass], :default => true
       )
     end
 
@@ -200,10 +156,10 @@ class Chef
 
     def environment(name, options={})
       validate(
-          options,
-          {
-          }
-        )
+        options,
+        {
+        }
+      )
       @environments[name] = options
       @environments[name]
     end
@@ -218,17 +174,17 @@ class Chef
 
     def resource(name, options={})
       validate(
-          options,
-          {
-              :except => { :kind_of => Array },
-              :only => { :kind_of => Array },
-              :cookbook => { :kind_of => String },
-              :design => { :kind_of => [ TrueClass, FalseClass ], :default => true },
-              :attributes => { :kind_of => Hash },
-              :requires => { :kind_of => Hash },
-              :monitors => { :kind_of => Hash }
-          }
-        )
+        options,
+        {
+          :except     => {:kind_of => Array},
+          :only       => {:kind_of => Array},
+          :cookbook   => {:kind_of => String},
+          :design     => {:kind_of => [TrueClass, FalseClass], :default => true},
+          :attributes => {:kind_of => Hash},
+          :requires   => {:kind_of => Hash},
+          :monitors   => {:kind_of => Hash}
+        }
+      )
       if @resources.has_key?(name)
         @resources[name].merge!(options)
       else
@@ -238,7 +194,7 @@ class Chef
     end
 
     def design_resources
-      @resources.reject { |n,r| !r[:design] }
+      @resources.reject {|n, r| !r[:design]}
     end
 
     def platform(arg=nil)
@@ -251,7 +207,7 @@ class Chef
     end
 
     def environment_resources(environment)
-      @resources.reject do |n,r|
+      @resources.reject do |n, r|
         if envs = r[:only]
           envs.include?(environment) ? false : true
         elsif envs = r[:except]
@@ -293,7 +249,7 @@ class Chef
           raise Chef::Exceptions::InvalidEnvironmentRunListSpecification, msg
         end
         @env_run_lists.clear
-        env_run_lists.each { |k,v| @env_run_lists[k] = Chef::RunList.new(*Array(v))}
+        env_run_lists.each {|k, v| @env_run_lists[k] = Chef::RunList.new(*Array(v))}
       end
       @env_run_lists
     end
@@ -326,20 +282,20 @@ class Chef
 
     def relation(name, options={})
       validate(
-          options,
-          {
-              :except => { :kind_of => Array },
-              :only => { :kind_of => Array },
-              :relation_name => { :kind_of => String },
-              :design => { :kind_of => [ TrueClass, FalseClass ], :default => true }
-          }
-        )
+        options,
+        {
+          :except        => {:kind_of => Array},
+          :only          => {:kind_of => Array},
+          :relation_name => {:kind_of => String},
+          :design        => {:kind_of => [TrueClass, FalseClass], :default => true}
+        }
+      )
       @relations[name] = options
       @relations[name]
     end
 
     def environment_relations(environment)
-      @relations.reject do |n,r|
+      @relations.reject do |n, r|
         if envs = r[:only]
           envs.include?(environment) ? false : true
         elsif envs = r[:except]
@@ -376,20 +332,20 @@ class Chef
 
     def serviced_by(name, options={})
       validate(
-          options,
-          {
-            :except => { :kind_of => Array },
-            :only => { :kind_of => Array },
-            :pack => { :kind_of => String },
-            :version => { :kind_of => String }
-          }
-        )
+        options,
+        {
+          :except  => {:kind_of => Array},
+          :only    => {:kind_of => Array},
+          :pack    => {:kind_of => String},
+          :version => {:kind_of => String}
+        }
+      )
       @serviced_bys[name] = options
       @serviced_bys[name]
     end
 
     def environment_serviced_bys(environment)
-      @serviced_bys.reject do |n,r|
+      @serviced_bys.reject do |n, r|
         if sbs = r[:only]
           sbs.include?(environment) ? false : true
         elsif eps = r[:except]
@@ -410,19 +366,19 @@ class Chef
 
     def entrypoint(name, options={})
       validate(
-          options,
-          {
-            :except => { :kind_of => Array },
-            :only => { :kind_of => Array },
-            :attributes => { :kind_of => Hash }
-          }
-        )
+        options,
+        {
+          :except     => {:kind_of => Array},
+          :only       => {:kind_of => Array},
+          :attributes => {:kind_of => Hash}
+        }
+      )
       @entrypoints[name] = options
       @entrypoints[name]
     end
 
     def environment_entrypoints(environment)
-      @entrypoints.reject do |n,r|
+      @entrypoints.reject do |n, r|
         if eps = r[:only]
           eps.include?(environment) ? false : true
         elsif eps = r[:except]
@@ -443,22 +399,22 @@ class Chef
 
     def procedure(name, options={})
       validate(
-          options,
-          {
-            :except => { :kind_of => Array },
-            :only => { :kind_of => Array },
-            :description => { :kind_of => String },
-            :owner => { :kind_of => String },
-            :arguments => { :kind_of => Hash },
-            :definition => { :kind_of => String }
-          }
-        )
+        options,
+        {
+          :except      => {:kind_of => Array},
+          :only        => {:kind_of => Array},
+          :description => {:kind_of => String},
+          :owner       => {:kind_of => String},
+          :arguments   => {:kind_of => Hash},
+          :definition  => {:kind_of => String}
+        }
+      )
       @procedures[name] = options
       @procedures[name]
     end
 
     def environment_procedures(environment)
-      @procedures.reject do |n,r|
+      @procedures.reject do |n, r|
         if procs = r[:only]
           procs.include?(environment) ? false : true
         elsif eps = r[:except]
@@ -479,15 +435,15 @@ class Chef
 
     def variable(name, options={})
       validate(
-          options,
-          {
-            :except => { :kind_of => Array },
-            :only => { :kind_of => Array },
-            :description => { :kind_of => String },
-            :owner => { :kind_of => String },
-            :value => { :kind_of => String }
-          }
-        )
+        options,
+        {
+          :except      => {:kind_of => Array},
+          :only        => {:kind_of => Array},
+          :description => {:kind_of => String},
+          :owner       => {:kind_of => String},
+          :value       => {:kind_of => String}
+        }
+      )
       @variables[name] = options
       @variables[name]
     end
@@ -495,29 +451,29 @@ class Chef
 
     def policies(arg=nil)
       set_or_return(
-          :policies,
-          arg,
-          :kind_of => Hash
+        :policies,
+        arg,
+        :kind_of => Hash
       )
     end
 
     def policy(name, options={})
       validate(
-          options,
-          {
-              :except => { :kind_of => Array },
-              :only => { :kind_of => Array },
-              :description => { :kind_of => String },
-              :owner => { :kind_of => String },
-              :value => { :kind_of => String }
-          }
+        options,
+        {
+          :except      => {:kind_of => Array},
+          :only        => {:kind_of => Array},
+          :description => {:kind_of => String},
+          :owner       => {:kind_of => String},
+          :value       => {:kind_of => String}
+        }
       )
       @policies[name] = options
       @policies[name]
     end
 
     def environment_variables(environment)
-      @variables.reject do |n,r|
+      @variables.reject do |n, r|
         if vars = r[:only]
           vars.include?(environment) ? false : true
         elsif eps = r[:except]
@@ -529,7 +485,7 @@ class Chef
     end
 
     def environment_policies(environment)
-      @policies.reject do |n,r|
+      @policies.reject do |n, r|
         if pols = r[:only]
           pols.include?(environment) ? false : true
         elsif eps = r[:except]
@@ -542,7 +498,7 @@ class Chef
 
     def to_hash
       env_run_lists_without_default = @env_run_lists.dup
-      env_run_lists_without_default.delete("_default")
+      env_run_lists_without_default.delete('_default')
       {
         "name"                => @name,
         "description"         => @description,
@@ -564,7 +520,7 @@ class Chef
         "procedures"          => @procedures,
         "variables"           => @variables,
         "policies"            => @policies,
-        "chef_type"           => "pack",
+        "chef_type"           => 'pack',
         "run_list"            => run_list,
         "owner"               => @owner,
         "relations"           => @relations,
@@ -638,17 +594,17 @@ class Chef
       pack.env_run_lists(env_run_list_hash)
 
       pack.couchdb_rev = o["_rev"] if o.has_key?("_rev")
-      pack.index_id = pack.couchdb_id
-      pack.couchdb_id = o["_id"] if o.has_key?("_id")
+      pack.index_id    = pack.couchdb_id
+      pack.couchdb_id  = o["_id"] if o.has_key?("_id")
       pack
     end
 
     # List all the Chef::Pack objects in the CouchDB.  If inflate is set to true, you will get
     # the full list of all packs, fully inflated.
     def self.cdb_list(inflate=false, couchdb=nil)
-      rs = (couchdb || Chef::CouchDB.new).list("packs", inflate)
+      rs     = (couchdb || Chef::CouchDB.new).list("packs", inflate)
       lookup = (inflate ? "value" : "key")
-      rs["rows"].collect { |r| r[lookup] }
+      rs["rows"].collect {|r| r[lookup]}
     end
 
     # Get the list of all packs from the API.
@@ -743,7 +699,7 @@ class Chef
         Chef::Log.warn("Loading #{short_name}")
         r = Chef::Pack.from_disk(short_name, "json")
         begin
-          couch_pack = Chef::Pack.cdb_load(short_name)
+          couch_pack    = Chef::Pack.cdb_load(short_name)
           r.couchdb_rev = couch_pack.couchdb_rev
           Chef::Log.debug("Replacing pack #{short_name} with data from #{pack_file}")
         rescue Chef::Exceptions::CouchDBNotFound
@@ -761,7 +717,7 @@ class Chef
         services(o.services) unless o.services.empty?
         environments(o.environments)
         platform(o.platform)
-	resources(o.resources)
+        resources(o.resources)
         relations(o.relations)
         recipes(o.recipes) if defined?(o.recipes)
         serviced_bys(o.serviced_bys)
@@ -776,16 +732,16 @@ class Chef
     end
 
     def metric(options=nil)
-      { :display => true }.merge(options)
+      {:display => true}.merge(options)
     end
 
-    def threshold(bucket,stat,metric,trigger,reset,state = 'notify')
+    def threshold(bucket, stat, metric, trigger, reset, state = 'notify')
       # need to add validations for values
-      { :bucket => bucket, :stat => stat, :metric => metric, :trigger => trigger, :reset => reset, :state => state }
+      {:bucket => bucket, :stat => stat, :metric => metric, :trigger => trigger, :reset => reset, :state => state}
     end
 
-    def trigger(operator,value,duration,numocc)
-      { :operator => operator, :value => value, :duration => duration, :numocc => numocc }
+    def trigger(operator, value, duration, numocc)
+      {:operator => operator, :value => value, :duration => duration, :numocc => numocc}
     end
 
     alias :reset :trigger
@@ -796,7 +752,7 @@ class Chef
 
     def self.flatten(o, seed = '')
       return o.sort_by {|e| e.first.to_s}.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Hash)
-      return o.inject(seed) { |s, e| flatten(e, s) } if o.is_a?(Array)
+      return o.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Array)
       "#{seed}|#{o.to_s}"
     end
   end
