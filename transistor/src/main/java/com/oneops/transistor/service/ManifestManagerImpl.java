@@ -331,7 +331,8 @@ public class ManifestManagerImpl implements ManifestManager {
 //			rfcRelation.setValidated(true);
 			rfcRelation.setNsId(context.nsId);
 
-			manifestRfcProcessor.setCiRelationId(rfcRelation);
+//			manifestRfcProcessor.setCiRelationId(rfcRelation);
+			
 			rfcProcessor.createRfcRelationNoCheck(rfcRelation, userId);
 		}
 		
