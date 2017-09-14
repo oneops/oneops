@@ -1280,7 +1280,10 @@ class ApplicationController < ActionController::Base
   end
 
   def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
-    svg.scan(/(?<=xlink:title=)"[^"]+"/).inject(svg) {|r, c| r.sub(img_stub, ci_class_image_url(c[1..-2]))}
+    svg.scan(/(?<=xlink:title=)"[^"]+\.[^"]+"/).inject(svg) do |r, c|
+      ci_class_name = c[1..-2]
+      r.sub(img_stub, ci_class_image_url(ci_class_name)) if Cms::CiMd.look_up(ci_class_name)
+    end
   end
 
   def graphvis_sub_pack_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
