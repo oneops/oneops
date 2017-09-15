@@ -344,7 +344,7 @@ class Catalog::PacksController < ApplicationController
   end
 
   def build_pack_version_map(versions, org_ns_path)
-    versions.sort_by(&:ciName).
-    to_map_with_value {|v| [v.ciName, !!(v.ciAttributes.enabled != 'false' || v.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path))]}
+    semver_sort(versions).
+      to_map_with_value {|v| [v.ciName, !!(v.ciAttributes.enabled != 'false' || v.altNs.attributes[Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG].try(:include?, org_ns_path))]}
   end
 end

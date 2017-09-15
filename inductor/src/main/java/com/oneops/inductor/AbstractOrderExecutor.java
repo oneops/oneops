@@ -316,31 +316,8 @@ public abstract class AbstractOrderExecutor {
     		Map<String, Map<String, CmsCISimple>> cloudServices, String logLevel) {
         String filename = "/tmp/chef-" + ci;
 
-        String cookbookDir = config.getCircuitDir();
-        if (!cookbookRelativePath.equals(""))
-            cookbookDir = config.getCircuitDir().replace("packer",
-                    cookbookRelativePath);
+        Set<String> cookbookPaths = createCookbookSearchPath(cookbookRelativePath, cloudServices, cloudName);
 
-        cookbookDir += "/components/cookbooks";
-        String sharedDir = config.getCircuitDir().replace("packer",
-                "shared/cookbooks");
-
-        Set<String> cookbookPaths = new HashSet<>();
-        cookbookPaths.add(cookbookDir);
-        cookbookPaths.add(sharedDir);
-        
-        if (cloudServices != null) {
-        	for (String serviceName : cloudServices.keySet()) { // for each service
-        		CmsCISimple serviceCi = cloudServices.get(serviceName).get(cloudName);
-        		if (serviceCi != null) {
-        			String serviceClassName = serviceCi.getCiClassName();
-        	        String serviceCookbookCircuit = getCookbookPath(serviceClassName);
-        	        if (! serviceCookbookCircuit.equals(cookbookRelativePath)) { 
-        	        	cookbookPaths.add(config.getCircuitDir().replace("packer", serviceCookbookCircuit) + "/components/cookbooks");
-        	        }
-        		}
-        	}
-        }
         String content = "cookbook_path " + gson.toJson(cookbookPaths) + "\n";
 
         content += "lockfile \"" + filename + ".lock\"\n";
@@ -367,6 +344,43 @@ public abstract class AbstractOrderExecutor {
                     + e.getMessage());
         }
         return filename;
+    }
+
+    protected LinkedHashSet<String> createCookbookSearchPath(String cookbookRelativePath,
+                                                   Map<String, Map<String, CmsCISimple>> cloudServices,
+                                                   String cloudName) {
+        String cookbookDir = config.getCircuitDir();
+        if (!cookbookRelativePath.equals(""))
+            cookbookDir = config.getCircuitDir().replace("packer",
+                    cookbookRelativePath);
+
+        cookbookDir += "/components/cookbooks";
+        String sharedDir = config.getCircuitDir().replace("packer",
+                "shared/cookbooks");
+
+        LinkedHashSet<String> cookbookPaths = new LinkedHashSet<>();
+
+        if (cloudServices != null) {
+            for (String serviceName : cloudServices.keySet()) { // for each service
+                CmsCISimple serviceCi = cloudServices.get(serviceName).get(cloudName);
+                if (serviceCi != null) {
+                    String serviceClassName = serviceCi.getCiClassName();
+                    String serviceCookbookCircuit = getCookbookPath(serviceClassName);
+                    if (! serviceCookbookCircuit.equals(cookbookRelativePath)) {
+                        cookbookPaths.add(config.getCircuitDir().replace("packer", serviceCookbookCircuit)
+                                + "/components/cookbooks");
+                    }
+                }
+            }
+        }
+        if (cookbookPaths.size() > 0) {
+            //Remove the current component's circuit from the cookbook_path so that we can add it after other circuits
+            //This is to make sure the current component's circuit is higher priority in search path
+            cookbookPaths.remove(cookbookDir);
+        }
+        cookbookPaths.add(cookbookDir);
+        cookbookPaths.add(sharedDir);
+        return cookbookPaths;
     }
 
     /**

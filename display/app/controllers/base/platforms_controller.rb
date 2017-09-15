@@ -138,9 +138,9 @@ class Base::PlatformsController < ApplicationController
         end
       end
       @diagram = graphvis_sub_ci_remote_images(graph.output(:svg => String))
-    # rescue Exception => e
-    #   Rails.logger.warn "Failed to generate platform diagram: #{e}"
-    #   @diagram = nil
+    rescue Exception  => e
+      Rails.logger.warn "Failed to generate platform diagram: #{e}"
+      @diagram = nil
     end
 
     respond_to do |format|
