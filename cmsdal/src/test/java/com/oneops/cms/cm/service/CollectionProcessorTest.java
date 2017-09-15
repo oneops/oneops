@@ -126,6 +126,54 @@ public class CollectionProcessorTest {
 
   }
 
+
+  @Test
+  public void getRelationTestFrom() {
+    CollectionProcessor pr = new CollectionProcessor();
+    pr.setCmProcessor(cmProcessor);
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream("custom-payload-rel-to-attributes.json");
+    JsonParser parser = new JsonParser();
+    JsonElement jsonElement = parser.parse(new InputStreamReader(is));
+    final CollectionLinkDefinition relationDef = gson
+        .fromJson(jsonElement, CollectionLinkDefinition.class);
+    List<CmsCIRelation> realizedAsReltions = new ArrayList<>();
+    CmsCIRelation e = new CmsCIRelation();
+    e.setRelationName("base.RealizedAs");
+    e.setFromCiId(456);
+    e.setToCiId(123);
+    //return platform relation
+    realizedAsReltions.add(e);
+    //when(opsMapper.getProcedureForCiByAction(CI_WITH_ACTIVE_ACTION, null, null, null)).thenReturn(blockingList);
+    final long manifestOs = 789;
+    when(cmProcessor.getToCIRelationsNakedNoAttrs(123, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName())).thenReturn(
+        Collections.singletonList(e));
+    CmsCIRelation manifestRequiresRel = new CmsCIRelation();
+    manifestRequiresRel.setFromCiId(manifestOs);
+    manifestRequiresRel.setToCiId(456);
+    manifestRequiresRel.setRelationName("manifest.DependsOn");
+    when(cmProcessor.getToCIRelationsNakedNoAttrs(456, "manifest.DependsOn", null, "manifest.oneops.1.Os")).thenReturn(
+        Collections.singletonList(manifestRequiresRel));
+
+
+    CmsCI osCi = new CmsCI();
+    CmsCIAttribute attribute = new CmsCIAttribute();
+    Map<String, CmsCIAttribute> attributes = new HashMap<>();
+    attribute.setDfValue("centos");
+    attribute.setAttributeName("osType");
+    attributes.put(attribute.getAttributeName(),attribute);
+    osCi.setAttributes(attributes);
+    osCi.setCiName("Name1");
+
+    Map<String,CmsCI> cloudCis = new HashMap<>();
+    when(cmProcessor.getCiById(789)).thenReturn(osCi);
+
+    final List<CmsCI> cis = pr.getFlatCollection(123, relationDef);
+    Assert.assertTrue(cis.get(0).getAttributes().get("osType").getDfValue().equals("centos"));
+    Assert.assertTrue(cis.size()==1);
+
+
+  }
+
   private CmsCI newCloudCi(String k, Long v) {
     CmsCI cloud1 = new CmsCI();
     cloud1.setCiName(k);

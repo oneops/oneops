@@ -1,0 +1,15 @@
+{
+  "returnObject": false,
+  "returnRelation": false,
+  "relationName": "base.RealizedAs",
+  "direction": "to",
+  "targetClassName": "manifest.oneops.1.Compute",
+  "relations": [
+    { "returnObject": true,
+      "returnRelation": false,
+      "relationName": "manifest.DependsOn",
+      "direction": "to",
+      "targetClassName": "manifest.oneops.1.Os"
+    }
+  ]
+}
