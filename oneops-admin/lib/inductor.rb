@@ -1,4 +1,5 @@
 require 'thor'
+require 'json'
 
 class Inductor < Thor
   include Thor::Actions
