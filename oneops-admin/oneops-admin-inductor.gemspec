@@ -28,13 +28,11 @@ Gem::Specification.new do |s|
                             (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH)).
                               reject {|f| f =~ (/\.(\.|png)?$/)}
 
+  s.add_dependency 'thor', '= 0.19.1'
   s.add_dependency 'chef', '= 11.18.12'
   s.add_dependency 'rack', '= 1.6.8'
-
   s.add_dependency 'json', '= 1.8.6'
-
   s.add_dependency 'fog', '= 1.38.0'
-
   s.add_dependency 'ffi', '= 1.9.10'
   s.add_dependency 'nokogiri', '= 1.5.11'
   s.add_dependency 'ohai', '= 7.4.1'
@@ -42,8 +40,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'net-ssh', '= 2.6.5'
   s.add_dependency 'net-scp', '= 1.1.2'
   s.add_dependency 'net-ldap', '= 0.6.1'
-
   s.add_dependency 'fog-azure-rm-temp', '= 0.0.1'
-
   s.add_dependency 'crack', '= 0.4.3'
 end
