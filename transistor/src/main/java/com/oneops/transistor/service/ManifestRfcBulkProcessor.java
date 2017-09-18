@@ -1137,7 +1137,7 @@ public class ManifestRfcBulkProcessor {
 					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
 						CmsRfcRelation rfcRelation = newMergedManfestRfcRelation(ciRel, null, context);
 						rfcRelation.setFromCiId(fromManifestRfcCiId);
-						addTripplet(platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, null, toManifestRfc), context);
+						addTripplet(platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, null, toManifestRfc), context.existingGoIds);
 					}
 				}
 			}
@@ -1147,25 +1147,25 @@ public class ManifestRfcBulkProcessor {
 				if (newRfcsMap.containsKey(toCiId)) {
 					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
 						CmsRfcRelation rfcRelation = newMergedManfestRfcRelation(ciRel, null, context);
-						addTripplet( platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc), context);
+						addTripplet( platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc), context.existingGoIds);
 					}
 				}
 				if (ciIdsMap.containsKey(toCiId)){
 					for (Long toManifestCiId : ciIdsMap.get(toCiId)) {
 						CmsRfcRelation rfcRelation = newMergedManfestRfcRelation(ciRel, null, context);
 						rfcRelation.setToCiId(toManifestCiId);
-						addTripplet(platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null), context);
+						addTripplet(platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null), context.existingGoIds);
 					}
 				}
 			}
 		}
 	}
 
-	private void addTripplet(List<ManifestRfcRelationTriplet> rfcRelTripletList, ManifestRfcRelationTriplet manifestRfcRelationTriplet, DesignPullContext context) {
+	protected void addTripplet(List<ManifestRfcRelationTriplet> rfcRelTripletList, ManifestRfcRelationTriplet manifestRfcRelationTriplet, Set<String> existingGoIds) {
 		String goId = getGoId(manifestRfcRelationTriplet);
-		if (!context.existingGoIds.contains(goId)){
+		if (!existingGoIds.contains(goId)){
 			rfcRelTripletList.add(manifestRfcRelationTriplet);
-			context.existingGoIds.add(goId);
+			existingGoIds.add(goId);
 		} else {
 			logger.info("Skipping duplicate: "+ goId);
 					
