@@ -28,15 +28,13 @@ Gem::Specification.new do |s|
                             (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH)).
                               reject {|f| f =~ (/\.(\.|png)?$/)}
 
-  s.add_dependency 'thor', '= 0.19.1'
-
   s.add_dependency 'chef', '= 11.18.12'
   s.add_dependency 'rack', '= 1.6.8'
 
   s.add_dependency 'json', '= 1.8.6'
 
   s.add_dependency 'fog', '= 1.38.0'
-  s.add_dependency 'fog-aliyun', '= 0.1.0'
+
   s.add_dependency 'ffi', '= 1.9.10'
   s.add_dependency 'nokogiri', '= 1.5.11'
   s.add_dependency 'ohai', '= 7.4.1'
@@ -44,15 +42,8 @@ Gem::Specification.new do |s|
   s.add_dependency 'net-ssh', '= 2.6.5'
   s.add_dependency 'net-scp', '= 1.1.2'
   s.add_dependency 'net-ldap', '= 0.6.1'
-  s.add_dependency 'route53', '= 0.3.2'
-  s.add_dependency 'ms_rest', '= 0.1.1'
-  s.add_dependency 'ms_rest_azure', '= 0.1.1'
-  s.add_dependency 'azure_mgmt_compute', '= 0.1.1'
-  s.add_dependency 'azure_mgmt_storage', '= 0.1.1'
-  s.add_dependency 'azure_mgmt_network', '= 0.1.1'
-  s.add_dependency 'azure_mgmt_resources', '= 0.1.1'
-  s.add_dependency 'azure', '= 0.6.4'
-  s.add_dependency 'fog-vsphere', '= 1.5.1'
-  s.add_dependency 'fog-openstack', '= 0.1.21'
+
+  s.add_dependency 'fog-azure-rm-temp', '= 0.0.1'
+
   s.add_dependency 'crack', '= 0.4.3'
 end
