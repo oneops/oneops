@@ -17,6 +17,23 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import static com.oneops.cms.util.CmsConstants.ATTR_NAME_AUTO_COMPLY;
+import static com.oneops.cms.util.CmsConstants.ATTR_NAME_ENABLED;
+import static com.oneops.cms.util.CmsConstants.ATTR_RUN_ON;
+import static com.oneops.cms.util.CmsConstants.ATTR_RUN_ON_ACTION;
+import static com.oneops.cms.util.CmsConstants.ATTR_VALUE_TYPE_DF;
+import static com.oneops.cms.util.CmsConstants.BASE_COMPLIES_WITH;
+import static com.oneops.cms.util.CmsConstants.BASE_PROVIDES;
+import static com.oneops.cms.util.CmsConstants.CI_STATE_PENDING_DELETION;
+import static com.oneops.cms.util.CmsConstants.CLOUDSERVICEPREFIX;
+import static com.oneops.cms.util.CmsConstants.DEPENDS_ON;
+import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
+import static com.oneops.cms.util.CmsConstants.ESCORTED_BY;
+import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
+import static com.oneops.cms.util.CmsConstants.SECURED_BY;
+import static com.oneops.cms.util.CmsConstants.SERVICED_BY;
+import static com.oneops.cms.util.CmsConstants.ZONE_CLASS;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -46,15 +63,16 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
-import static com.oneops.cms.util.CmsConstants.*;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -611,7 +629,7 @@ public class CmsWoProvider {
             wo.setCloud(getCloudForCloudService(anchorCiId));
         } else {
             wo.setBox(getBox(anchorCiId));
-            wo.setCloud(getCloud(anchorCiId));
+            wo.setCloud(getCloud(anchorCiId,wo.getBox()));
             wo.setServices(getServices(anchorCiId, wo.getCloud()));
         }
     }
@@ -868,11 +886,15 @@ public class CmsWoProvider {
     }
 
 
-    private CmsCI getCloud(long ciId) {
+    private CmsCI getCloud(long ciId, CmsCI box) {
         List<CmsRfcRelation> cloudRels = cmrfcProcessor.getFromCIRelationsNakedNoAttrs(ciId, "base.DeployedTo", null, "account.Cloud");
+        //Add other attributes as CI attributes for work order, viz deploymentOrder, percentage
+
         if (cloudRels.size() > 0) {
             CmsCI cloud = cmProcessor.getCiById(cloudRels.get(0).getToCiId());
-            List<CmsRfcRelation> realizedAsRels = cmrfcProcessor.getToCIRelationsNaked(ciId, "base.RealizedAs", null, null);
+            //Get Clouds from
+          List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelationsByToCiIds(box.getCiId(), "base.Consumes", null,Collections.singletonList(cloud.getCiId()));
+          List<CmsRfcRelation> realizedAsRels = cmrfcProcessor.getToCIRelationsNaked(ciId, "base.RealizedAs", null, null);
             if (realizedAsRels.size() > 0 && realizedAsRels.get(0).getAttribute("priority") != null) {
                 String priority = realizedAsRels.get(0).getAttribute("priority").getNewValue();
                 CmsCIAttribute prAttr = new CmsCIAttribute();
@@ -880,6 +902,24 @@ public class CmsWoProvider {
                 prAttr.setDfValue(priority);
                 prAttr.setDjValue(priority);
                 cloud.addAttribute(prAttr);
+            }
+
+            if (platformCloudRels.size()>0 ) {
+              final Map<String, CmsCIRelationAttribute> consumeRelationAttributes = platformCloudRels
+                  .get(0)
+                  .getAttributes();
+              consumeRelationAttributes.keySet().stream()
+                  .filter(k -> !"priority".equals(k)).forEach(k -> {
+                    CmsCIAttribute relAttribute = new CmsCIAttribute();
+                    relAttribute.setAttributeName(k);
+                    relAttribute
+                        .setDfValue(consumeRelationAttributes.get(k).getDfValue());
+                    relAttribute
+                        .setDjValue(consumeRelationAttributes.get(k).getDjValue());
+                    cloud.addAttribute(relAttribute);
+                  }
+              );
+
             }
             return cloud;
         }

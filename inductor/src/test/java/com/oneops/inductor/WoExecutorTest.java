@@ -17,10 +17,11 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
+import com.google.gson.Gson;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,14 +29,18 @@ import org.junit.Test;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 
 import junit.framework.Assert;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class WoExecutorTest {
 	
 	WorkOrderExecutor woExecutor;
-	
+	final protected Gson gson = new Gson();
+
 	@Before
 	public void init() {
 		Config config = new Config();
+		config.setCircuitDir("/opt/oneops/inductor/packer");
 		woExecutor = new WorkOrderExecutor(config, null);
 	}
 	
@@ -51,7 +56,6 @@ public class WoExecutorTest {
 		CmsRfcCISimple rfci = new CmsRfcCISimple();
 		rfci.setRfcAction("add");
 		wo.setRfcCi(rfci);
-
 		List<String> runList = woExecutor.getExtraRunListClasses(wo);
 
 		Assert.assertFalse(runList.isEmpty());
@@ -81,5 +85,34 @@ public class WoExecutorTest {
 			}
 		}
 		return list;
+	}
+
+	@Test
+	public void testCreateCookbookSearchPath() {
+		String cloudName = "stg-dfw1";
+		Map<String, Map<String, CmsCISimple>> cloudServices = new HashMap<>();
+		Map<String, CmsCISimple> serviceCis = new HashMap<>();
+		CmsCISimple cloudServiceCi = new CmsCISimple();
+		cloudServiceCi.setCiClassName("cloud.service.oneops.1.Keywhiz-cloud-service");
+		serviceCis.put(cloudName, cloudServiceCi);
+		cloudServices.put("secret", serviceCis);
+
+		LinkedHashSet<String> searchPaths = woExecutor.createCookbookSearchPath("circuit-main-1", cloudServices, cloudName);
+		LinkedHashSet<String> expectedResult = new LinkedHashSet<>();
+
+		expectedResult.add("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks");
+		expectedResult.add("/opt/oneops/inductor/circuit-main-1/components/cookbooks");
+		expectedResult.add("/opt/oneops/inductor/shared/cookbooks");
+
+		Assert.assertEquals(gson.toJson(searchPaths), gson.toJson(expectedResult));
+
+		//now try the case where there is no cloud service involved
+		searchPaths = woExecutor.createCookbookSearchPath("circuit-main-1", new HashMap<>(), cloudName);
+		expectedResult = new LinkedHashSet<>();
+
+		expectedResult.add("/opt/oneops/inductor/circuit-main-1/components/cookbooks");
+		expectedResult.add("/opt/oneops/inductor/shared/cookbooks");
+
+		Assert.assertEquals(gson.toJson(searchPaths), gson.toJson(expectedResult));
 	}
 }

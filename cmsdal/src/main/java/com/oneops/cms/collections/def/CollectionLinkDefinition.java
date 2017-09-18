@@ -31,6 +31,7 @@ public class CollectionLinkDefinition extends BasicLinkDefinition implements Ser
 	
 	private boolean returnObject = false;
 	private boolean returnRelation = false;
+	private boolean returnRelationAttributes = false;
 	private List<AttrQueryCondition> relationAttrs = null;
 	private List<AttrQueryCondition> targetAttrs = null;
 	private List<CollectionLinkDefinition> relations = null;
@@ -106,6 +107,14 @@ public class CollectionLinkDefinition extends BasicLinkDefinition implements Ser
 	public void setReturnRelation(boolean returnRelation) {
 		this.returnRelation = returnRelation;
 	}
+
+  public boolean getReturnRelationAttributes() {
+    return returnRelationAttributes;
+  }
+
+  public void setReturnRelationAttributes(boolean returnRelationAttributes) {
+    this.returnRelationAttributes = returnRelationAttributes;
+  }
 
 	/**
 	 * Sets the relations.
