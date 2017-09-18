@@ -345,7 +345,6 @@ public class ManifestRfcBulkProcessor {
 		context.existingManifestCIs = existingManifestCIs;
 		context.existingManifestPlatRels = existingManifestPlatRels;
 		context.setActive = setActive;
-		context.existingGoIds = new HashSet<>();
 //		context.existingRfcCi = rfcProcessor.getOpenRfcCIByClazzAndName(platNsPath, null, null);
 //		context.existingRfcRelationCi = rfcProcessor.getOpenRfcRelationsByNs(platNsPath);
 		t.stop("context  preload");
@@ -640,7 +639,6 @@ public class ManifestRfcBulkProcessor {
 		context.platNsPath = iaasNsPath;
 		context.envNsPath = nsPath;
 		context.userId = userId;
-		context.existingGoIds = new HashSet<>();
 		MergeResult mrgResult = procesEdges(edges, iaasRfc, context, null);
 		
 		processPlatformInterRelations(templInternalRels, mrgResult.templateIdsMap, mrgResult.rfcMap, context, null);
@@ -1137,7 +1135,7 @@ public class ManifestRfcBulkProcessor {
 					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
 						CmsRfcRelation rfcRelation = newMergedManfestRfcRelation(ciRel, null, context);
 						rfcRelation.setFromCiId(fromManifestRfcCiId);
-						addTripplet(platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, null, toManifestRfc), context);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcRelation, null, toManifestRfc));
 					}
 				}
 			}
@@ -1147,34 +1145,18 @@ public class ManifestRfcBulkProcessor {
 				if (newRfcsMap.containsKey(toCiId)) {
 					for (CmsRfcCI toManifestRfc : newRfcsMap.get(toCiId)) {
 						CmsRfcRelation rfcRelation = newMergedManfestRfcRelation(ciRel, null, context);
-						addTripplet( platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc), context);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, toManifestRfc));
 					}
 				}
 				if (ciIdsMap.containsKey(toCiId)){
 					for (Long toManifestCiId : ciIdsMap.get(toCiId)) {
 						CmsRfcRelation rfcRelation = newMergedManfestRfcRelation(ciRel, null, context);
 						rfcRelation.setToCiId(toManifestCiId);
-						addTripplet(platformRfcs.getRfcRelTripletList(), newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null), context);
+						platformRfcs.getRfcRelTripletList().add(newManifestRfcRelTriplet(rfcRelation, fromManifestRfc, null));
 					}
 				}
 			}
 		}
-	}
-
-	private void addTripplet(List<ManifestRfcRelationTriplet> rfcRelTripletList, ManifestRfcRelationTriplet manifestRfcRelationTriplet, DesignPullContext context) {
-		String goId = getGoId(manifestRfcRelationTriplet);
-		if (!context.existingGoIds.contains(goId)){
-			rfcRelTripletList.add(manifestRfcRelationTriplet);
-			context.existingGoIds.add(goId);
-		} else {
-			logger.info("Skipping duplicate: "+ goId);
-					
-		}
-	}
-
-	private String getGoId(ManifestRfcRelationTriplet tr) {
-		
-		return  (tr.getFromRfcCI()!=null?(tr.getFromRfcCI().getNsPath()+"@"+tr.getFromRfcCI().getCiName()):"") + "-" + tr.getRfcRelation().getRelationId() + "-" + (tr.getToRfcCI()!=null?(tr.getToRfcCI().getNsPath()+"@"+tr.getToRfcCI().getCiName()):"");
 	}
 
 
@@ -1527,7 +1509,7 @@ public class ManifestRfcBulkProcessor {
 	    
 	    //populate values from manifest template obj if it's not null
 	    String owner = (designCiRelation==null) ? "manifest" : null;
-	    trUtil.applyRelationToRfc(newRfc, mgmtCiRelation, relAttrs, true, owner, true);
+	    trUtil.applyRelationToRfc(newRfc, mgmtCiRelation, relAttrs, true, owner);
 	    
 	    //populate values from design ci if not null;
 	    trUtil.applyRelationToRfc(newRfc, designCiRelation, relAttrs, false, null);
@@ -1784,7 +1766,6 @@ public class ManifestRfcBulkProcessor {
 		Map<Long, CmsCI> existingManifestCIs;
 		Map<String, Map<String, CmsCIRelation>> existingManifestPlatRels;
 		boolean setActive;
-		Set<String> existingGoIds;
 	}
 
 }
