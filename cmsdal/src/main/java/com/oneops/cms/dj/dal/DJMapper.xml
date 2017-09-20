@@ -1775,14 +1775,14 @@
 	</select>
 
 	
-	<select id="getTagId" parameterType="string">
-		select tag_id from ns_opt_tag where tag = #{value}
+	<select id="getTagId" parameterType="string" resultType="long">
+		select tag_id from ns_opt_tag where tag = #{tag}
 	</select>
 	
 	<insert id="createTag" parameterType="string">
 		 insert into ns_opt_tag (tag_id, tag)
         values
-        (nextval('cm_pk_seq'), p_tag)
+        (nextval('cm_pk_seq'), #{tag})
 	</insert>
 	
 	<insert id="createAltNs" parameterType="map" statementType="PREPARED">
