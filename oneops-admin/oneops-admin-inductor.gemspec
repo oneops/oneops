@@ -26,7 +26,7 @@ Gem::Specification.new do |s|
                             Dir.glob('lib/templates/inductor/**/*') +
                             Dir.glob('lib/templates/cloud/**/*') +
                             (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH)).
-                              reject {|f| f =~ (/\.(\.|md|png)?$/)}
+                              reject {|f| f =~ (/\.(\.|png)?$/)}
 
   s.add_dependency 'thor', '= 0.19.1'
 
