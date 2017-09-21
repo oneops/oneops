@@ -23,7 +23,10 @@ import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.controller.cms.CMSClient;
 import com.oneops.controller.cms.DeploymentNotifier;
+import com.oneops.controller.workflow.Deployer;
 import com.oneops.controller.workflow.WorkflowController;
 import org.activiti.engine.ActivitiException;
 import org.apache.activemq.ActiveMQConnection;
@@ -32,7 +35,14 @@ import org.apache.activemq.util.IndentPrinter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
-import javax.jms.*;
+import javax.jms.Connection;
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
+import javax.jms.Queue;
+import javax.jms.Session;
+import javax.jms.TextMessage;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -57,8 +67,8 @@ public class CmsListener implements MessageListener {
 	private static final String DPMT_STATE_PAUSED = "paused";
 	//private static final String DPMT_STATE_COMPLETE = "complete";
 	private static final String dpmtProcessVersion = System.getProperty("controller.dpmt.version", "2");
-	private static final String processName = "1".equals(dpmtProcessVersion) ? "deploybom" : "deploybom" + dpmtProcessVersion;
-	
+    private static final String processName = "1".equals(dpmtProcessVersion) ? "deploybom" : "deploybom" + dpmtProcessVersion;
+
 	
     private String queueName = "CONTROLLER.WO";
     //private String selector = "source = 'deployment' OR source = 'opsprocedure' OR source = 'release'";
@@ -69,7 +79,9 @@ public class CmsListener implements MessageListener {
 	private WorkflowController wfController;
 	private ActiveMQConnectionFactory connFactory;
     private DeploymentNotifier notifier;
-
+    private CMSClient cmsClient;
+    private Deployer deployer;
+    private boolean isDeployerEnabled;
 
     public void setNotifier(DeploymentNotifier notifier) {
         this.notifier = notifier;
@@ -125,13 +137,7 @@ public class CmsListener implements MessageListener {
 	    	if (message instanceof TextMessage) {
 	    		try {
 					logger.info("got message: " + ((TextMessage)message).getText());
-					String procId = processMessage((TextMessage) message);
-					if (procId != null) {
-	                    if (!procId.equals("skip")) {
-	                    	//wfController.pokeWithSubProcess(procId);
-	                    	wfController.pokeProcess(procId);
-	                    }
-					}
+					processMessage((TextMessage) message);
 					//session.commit();
 	    		} catch (ActivitiException ae) {
 	    			logger.error("ActivityException in onMessage", ae);
@@ -144,87 +150,108 @@ public class CmsListener implements MessageListener {
 		} 
 	}	
     
-    private String processMessage(TextMessage message) throws JsonSyntaxException, JMSException {
+    private void processMessage(TextMessage message) throws JsonSyntaxException, JMSException {
      	String source = message.getStringProperty("source");
         logger.info("Message from source: " + source);
      	String processKey;
+     	String pokeActivitiProcessId = null;
         Map<String, Object> wfParams = new HashMap<String, Object>();
         if(source.equals("deployment")) {
             CmsDeployment dpmt = gson.fromJson(message.getText(), CmsDeployment.class);
              if (dpmt == null) {
                  logger.error("Got bad message:" + message.getText() + "/n end msg");
-                 return null;
+                 return;
              }
-            processKey = getDpmtProcessKey(dpmt);
+             else {
+                 if (isDeployerEnabled(dpmt)) {
+                     logger.info("Starting deployment using Deployer : " + dpmt.getDeploymentId());
+                     startDeployer(dpmt);
+                 }
+                 else {
+                     processKey = getDpmtProcessKey(dpmt);
 
-            if (processKey != null && !processKey.equals("skip")) {
-                wfParams.put("dpmt", dpmt);
-                wfParams.put("execOrder", 1);
-                return wfController.startDpmtProcess(processKey, wfParams);
-            } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PAUSED)) {
-            	sendDeploymentPausedNotification(dpmt);
-            } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_CANCELED)) {
-            	sendDeploymentCancelleddNotification(dpmt);
-            } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PENDING)) {
-            	sendDeploymentPendingNotification(dpmt);
-            }
-            return "skip";
+                     if (processKey != null && !processKey.equals("skip")) {
+                         wfParams.put("dpmt", dpmt);
+                         wfParams.put("execOrder", 1);
+                         pokeActivitiProcessId = wfController.startDpmtProcess(processKey, wfParams);
+                     } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PAUSED)) {
+                         sendDeploymentPausedNotification(dpmt);
+                     } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_CANCELED)) {
+                         sendDeploymentCancelleddNotification(dpmt);
+                     } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PENDING)) {
+                         sendDeploymentPendingNotification(dpmt);
+                     }
+                 }
+             }
+
+
         } else if(source.equals("opsprocedure")) {
             CmsOpsProcedure proc = gson.fromJson(message.getText(), CmsOpsProcedure.class);
              if (proc == null) {
                  logger.error("Got bad message:" + message.getText() + "/n end msg");
-                 return null;
+                 return;
              }
             processKey = getOpsProcedureProcessKey(proc);
             if (processKey != null && !processKey.equals("skip")) {
                 wfParams.put("proc", proc);
                 wfParams.put("execOrder", 1);
             } else {
-                return "skip";
+                return;
             }
-            return wfController.startOpsProcess(processKey, wfParams);
+            pokeActivitiProcessId = wfController.startOpsProcess(processKey, wfParams);
             
         } else if(source.equals("release")) {
             CmsRelease release = gson.fromJson(message.getText(), CmsRelease.class);
             if (release == null) {
                 logger.error("Got bad message:" + message.getText() + "/n end msg");
-                return null;
+                return;
             }
            processKey = getDeployReleaseProcessKey(release);
            if (processKey != null && !processKey.equals("skip")) {
                wfParams.put("release", release);
            } else {
-               return "skip";
+               return;
            }
-           return wfController.startReleaseProcess(processKey, wfParams);
+            pokeActivitiProcessId = wfController.startReleaseProcess(processKey, wfParams);
        } else {
             logger.error("Unsupported source:" + source);
-            return null;
+            return;
+        }
+        if (pokeActivitiProcessId != null) {
+            wfController.pokeProcess(pokeActivitiProcessId);
         }
     }
 
+    private void startDeployer(CmsDeployment dpmt) {
+        deployer.deploy(dpmt);
+    }
+
     private void sendDeploymentPendingNotification(CmsDeployment dpmt) {
-    	notifier.sendDeploymentNotification(dpmt, "Deployment in pending state. Initiated by "
+    	notifier.sendDeploymentNotification(dpmt, "DeploymentExecution in pending state. Initiated by "
     			+ (StringUtils.isBlank(dpmt.getUpdatedBy())?dpmt.getCreatedBy():dpmt.getUpdatedBy()),
         notifier.createDeploymentNotificationText(dpmt), NotificationSeverity.info, null);
 	}
 
 	private void sendDeploymentCancelleddNotification(CmsDeployment dpmt) {
-		notifier.sendDeploymentNotification(dpmt, "Deployment cancelled by " + dpmt.getUpdatedBy(),
+		notifier.sendDeploymentNotification(dpmt, "DeploymentExecution cancelled by " + dpmt.getUpdatedBy(),
         notifier.createDeploymentNotificationText(dpmt), NotificationSeverity.warning, null);
 	}
 
 	private void sendDeploymentPausedNotification(CmsDeployment dpmt) {
-        notifier.sendDeploymentNotification(dpmt, "Deployment paused by " + dpmt.getUpdatedBy(),
+        notifier.sendDeploymentNotification(dpmt, "DeploymentExecution paused by " + dpmt.getUpdatedBy(),
         notifier.createDeploymentNotificationText(dpmt), NotificationSeverity.info, null);
 	}
 
 	private String getDpmtProcessKey(CmsDeployment dpmt) {
     	if ("active".equalsIgnoreCase(dpmt.getDeploymentState())) {
-    		return processName;
+    	    return processName;
     	} else {
     		return "skip";
     	}
+    }
+
+    private boolean isDeployerEnabled(CmsDeployment dpmt) {
+        return isDeployerEnabled && cmsClient.getVarByMatchingCriteriaBoolean(CmsConstants.DEPLOYER_ENABLED_PROPERTY, dpmt.getNsPath());
     }
     
     private String getOpsProcedureProcessKey(CmsOpsProcedure proc) {
@@ -278,5 +305,16 @@ public class CmsListener implements MessageListener {
     public void setConsumerName(String consumerName) {
 		this.consumerName = consumerName;
 	}
-	
+
+    public void setCmsClient(CMSClient cmsClient) {
+        this.cmsClient = cmsClient;
+    }
+
+    public void setDeployer(Deployer deployer) {
+        this.deployer = deployer;
+    }
+
+    public void setDeployerEnabled(boolean deployerEnabled) {
+        isDeployerEnabled = deployerEnabled;
+    }
 }

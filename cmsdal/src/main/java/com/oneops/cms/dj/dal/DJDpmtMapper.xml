@@ -418,6 +418,23 @@
   	     limit #{limit}
 	 </select>
 
+	<select id="getWorkOrdersWithDpmtRecList" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsWorkOrder">
+		select  dr.deployment_rfc_id as dpmtRecordId,
+		dr.deployment_id as deploymentId,
+		dr.rfc_id as rfcId,
+		drs.state_name as dpmtRecordState,
+		dr.comments,
+		dr.created,
+		dr.updated
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where  dr.deployment_rfc_id in
+		<foreach item="item" index="index" collection="dpmtRecordIds" open="(" close=")" separator=", ">
+			#{item}
+		</foreach>
+		and dr.state_id = drs.state_id
+		and (#{state}::varchar is null or drs.state_name = #{state})
+		and dr.rfc_id = rci.rfc_id
+	</select>
 
 	<select id="getDeploymentRfcCIs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
 		SELECT 

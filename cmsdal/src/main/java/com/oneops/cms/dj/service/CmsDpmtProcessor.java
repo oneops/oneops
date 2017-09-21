@@ -52,12 +52,12 @@ public class CmsDpmtProcessor {
 	private CmsRfcProcessor rfcProcessor;
 	private Gson gson = new Gson();
 
-	private static final String DPMT_STATE_PENDING = "pending";
-	private static final String DPMT_STATE_ACTIVE = "active";
-	private static final String DPMT_STATE_CANCELED = "canceled";
-	private static final String DPMT_STATE_FAILED = "failed";
-	private static final String DPMT_STATE_PAUSED = "paused";
-	private static final String DPMT_STATE_COMPLETE = "complete";
+	public static final String DPMT_STATE_PENDING = "pending";
+	public static final String DPMT_STATE_ACTIVE = "active";
+	public static final String DPMT_STATE_CANCELED = "canceled";
+	public static final String DPMT_STATE_FAILED = "failed";
+	public static final String DPMT_STATE_PAUSED = "paused";
+	public static final String DPMT_STATE_COMPLETE = "complete";
 	
 	private static final String APPROVAL_STATE_PENDING = "pending";
 	private static final String APPROVAL_STATE_APPROVED = "approved";

@@ -314,20 +314,28 @@ public class CmsWoProvider {
     public List<CmsWorkOrderSimple> getWorkOrderIdsSimple(long deploymentId, String state, Integer execOrder, Integer limit) {
         List<CmsWorkOrderSimple> wosList = new ArrayList<>();
         List<CmsWorkOrder> woList = getWorkOrderIds(deploymentId, state, execOrder, limit);
+        woToWoSimple(woList, wosList);
+        return wosList;
+    }
 
+    private void woToWoSimple(List<CmsWorkOrder> woList, List<CmsWorkOrderSimple> wosList) {
         for (CmsWorkOrder wo : woList) {
             wosList.add(cmsUtil.custWorkOrder2Simple(wo));
         }
-
-        return wosList;
-
     }
 
     public List<CmsWorkOrder> getWorkOrderIds(long deploymentId, String state, Integer execOrder, Integer limit) {
-
-        List<CmsWorkOrder> workOrders = limit != null ? dpmtMapper.getWorkOrdersLimited(deploymentId, state, execOrder, limit)
+        List<CmsWorkOrder> workOrders = (limit != null && limit > 0)
+                ? dpmtMapper.getWorkOrdersLimited(deploymentId, state, execOrder, limit)
                 : dpmtMapper.getWorkOrders(deploymentId, state, execOrder);
         return workOrders;
+    }
+
+    public List<CmsWorkOrderSimple> getWorkOrderIdsSimple(List<Long> dpmtRecordIds, String state) {
+        List<CmsWorkOrderSimple> wosList = new ArrayList<>();
+        List<CmsWorkOrder> workOrders = dpmtMapper.getWorkOrdersWithDpmtRecList(dpmtRecordIds, state);
+        woToWoSimple(workOrders, wosList);
+        return wosList;
     }
 
     public CmsWorkOrderSimple getWorkOrderSimple(long dpmtRecordId, String state, Integer execOrder) {

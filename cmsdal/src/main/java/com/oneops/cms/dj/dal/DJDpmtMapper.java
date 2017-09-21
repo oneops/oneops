@@ -17,20 +17,19 @@
  *******************************************************************************/
 package com.oneops.cms.dj.dal;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.ibatis.annotations.Param;
-
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The Interface DJDpmtMapper.
@@ -70,8 +69,10 @@ public interface DJDpmtMapper {
 	List<CmsDpmtRecord> getDeploymentRecordsByCiId(@Param("ciId") long ciId, @Param("state") String state);
 	List<CmsWorkOrder> getWorkOrders(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	List<CmsWorkOrder> getWorkOrdersLimited(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder, @Param("limit") Integer limit);
+	List<CmsWorkOrder> getWorkOrdersWithDpmtRecList(@Param("dpmtRecordIds") List<Long> dpmtRecordIds, @Param("state") String state);
 	CmsWorkOrder getWorkOrder(@Param("dpmtRecordId") long dpmtRecordId, @Param("state") String state, @Param("execOrder") Integer execOrder);
-	
+
+
 	List<CmsRfcCI> getDeploymentRfcCIs(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
