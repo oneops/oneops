@@ -466,3 +466,5 @@ else
     end
   end
 end
+
+include_recipe 'monitor::nagios_service_fix' unless node.workorder.rfcCi.ciClassName =~ /bom\..*\.Compute/
