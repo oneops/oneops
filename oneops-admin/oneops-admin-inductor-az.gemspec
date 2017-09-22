@@ -40,6 +40,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'net-ssh', '= 2.6.5'
   s.add_dependency 'net-scp', '= 1.1.2'
   s.add_dependency 'net-ldap', '= 0.6.1'
-  s.add_dependency 'fog-azure-rm-temp', '= 0.0.2'
+  s.add_dependency 'fog-azure-rm', '= 0.3.3'
   s.add_dependency 'crack', '= 0.4.3'
 end
