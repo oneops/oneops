@@ -1,6 +1,4 @@
-require 'rubygems'
 require 'thor'
-require 'open-uri'
 require 'json'
 
 class Inductor < Thor
@@ -16,9 +14,9 @@ class Inductor < Thor
       `mkdir -p inductor`
       File.write("inductor/user",current_user)
     else
-      validate_user      
+      validate_user
     end
-        
+
     directory File.expand_path('templates/inductor',File.dirname(__FILE__)), options[:path]
     empty_directory "#{options[:path]}/clouds-available"
     empty_directory "#{options[:path]}/clouds-enabled"
@@ -29,7 +27,7 @@ class Inductor < Thor
     # local gem repo - remove remote gemrepo dependency and optimize speed
     empty_directory "#{options[:path]}/shared/cookbooks/vendor"
     empty_directory "#{options[:path]}/shared/cookbooks/vendor/cache"
-    
+
     # chmod exec-order.rb
     `chmod +x #{options[:path]}/shared/exec-order.rb`
 
@@ -49,12 +47,12 @@ class Inductor < Thor
   method_option :mqhost, :type => :string, :default => 'localhost'
   method_option :mqport, :type => :numeric, :default => 61617
   method_option :daq_enabled, :type => :string
-  method_option :tunnel_metrics, :type => :string 
+  method_option :tunnel_metrics, :type => :string
   method_option :collector_domain, :type => :string
   method_option :perf_collector_cert, :type => :string
   method_option :dns, :type => :string
   method_option :debug, :type => :string
-  method_option :ip_attribute, :type => :string 
+  method_option :ip_attribute, :type => :string
   method_option :queue, :type => :string
   method_option :authkey, :type => :string
   method_option :mgmt_url, :type => :string
@@ -67,7 +65,7 @@ class Inductor < Thor
   method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
   def add
-    @inductor_dir = File.expand_path(Dir.pwd)    
+    @inductor_dir = File.expand_path(Dir.pwd)
     validate_user
     if options[:mqhost]
       @mqhost = options[:mqhost]
@@ -144,7 +142,7 @@ class Inductor < Thor
 
     @max_consumers = options[:max_consumers] || ask("Max Consumers?")
     @local_max_consumers = options[:local_max_consumers] || ask("Max Local Consumers (ones for iaas)?")
-      
+
     # convert if they copied cloud location from ui
     dot_name = ""
     @queue.split("/").each do |v|
@@ -159,12 +157,12 @@ class Inductor < Thor
       end
       dot_name = @queue.gsub(".ind-wo","")
     else
-      @queue_name = dot_name +".ind-wo"      
+      @queue_name = dot_name +".ind-wo"
     end
     @authkey = options[:authkey] || ask("What is the authorization key?")
     @additional_java_args= options[:additional_java_args] || ask("Additional Java args (default empty)?")
     @env_vars = options[:env_vars] || ask("Environment Variables to pass to Executor (default empty)?")
-    
+
     @amq_truststore_location = options[:amq_truststore_location] || ask("Location of TrustStore to connect AMQ (If empty no trustStore is used)?")
 
     @home = File.expand_path("clouds-available/#{dot_name}")
@@ -178,7 +176,7 @@ class Inductor < Thor
     empty_directory "#{@home}/backup"
     empty_directory "#{@home}/data"
     empty_directory "#{@home}/retry"
-        
+
     # enable cloud
     inside("clouds-available") do
       if File.symlink?("../clouds-enabled/#{dot_name}")
@@ -188,7 +186,7 @@ class Inductor < Thor
         say_status('enable',"clouds-enabled/#{dot_name}")
       end
     end
-    
+
     say_status :success, "Next Step: inductor start ; inductor tail"
 
   end
@@ -234,10 +232,10 @@ class Inductor < Thor
     def validate_user
       current_user = `whoami`.chomp
       if File.exists?("inductor/user")
-        user=`cat inductor/user`.chomp       
+        user=`cat inductor/user`.chomp
       else
         user=`cat user`.chomp
-        if $?.to_i != 0          
+        if $?.to_i != 0
           puts "There is no inductor installed in this directory."
           exit 1
         end
@@ -245,9 +243,9 @@ class Inductor < Thor
       if current_user != user
         puts "Inductor was created using user: #{user} - Please sudo to that user."
         exit 1
-      end      
+      end
     end
-    
+
     def status_by_cloud(long_cloud)
       ec = 0
       long_path = File.expand_path(long_cloud)
@@ -371,7 +369,7 @@ class Inductor < Thor
       stop_logstash_forwarder_by_cloud(long_cloud)
       start_logstash_forwarder_by_cloud(long_cloud)
    end
-   
+
   end
 
 
@@ -388,7 +386,7 @@ class Inductor < Thor
 
   desc "start_logstash_forwarder NAME", "Inductor logstash agent start"
   def start_logstash_forwarder(pattern='*')
-    validate_user     
+    validate_user
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         start_logstash_forwarder_by_cloud(long_cloud)
@@ -399,7 +397,7 @@ class Inductor < Thor
   desc "stop NAME", "Inductor stop (will finish processing active threads)"
   method_option :verbose, :aliases => "-v", :default => false
   def stop (pattern='*')
-    validate_user    
+    validate_user
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         stop_by_cloud(long_cloud)
@@ -409,7 +407,7 @@ class Inductor < Thor
 
   desc "force_stop NAME", "Inductor force stop (will kill -9)"
   def force_stop (pattern='*')
-    validate_user    
+    validate_user
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         force_stop_by_cloud(long_cloud)
@@ -419,7 +417,7 @@ class Inductor < Thor
 
   desc "stop_logstash_forwarder NAME", "Inductor logstash agent stop"
   def stop_logstash_forwarder (pattern='*')
-    validate_user    
+    validate_user
     inside("clouds-enabled") do
       Dir.glob(pattern).each do |long_cloud|
         stop_logstash_forwarder_by_cloud(long_cloud)
@@ -522,7 +520,7 @@ class Inductor < Thor
   def self.source_root
     File.dirname(__FILE__)
   end
-  
+
   def self.jar
     inductor_file=Dir.glob("#{source_root}/../target/inductor*.jar")[0].to_s
     File.expand_path(inductor_file)

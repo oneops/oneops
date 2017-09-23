@@ -155,6 +155,7 @@ def existing_ci_cost (date)
     break if from > total
   end
   puts "Processed #{ci_counter} CIs, created #{record_counter} cost records in #{(Time.now - ts).to_i}sec."
+  @day_record_count += record_counter
 end
 
 def deleted_ci_cost(date, class_name_regex)
@@ -225,6 +226,7 @@ def deleted_ci_cost(date, class_name_regex)
 
     puts "#{wos.size} loaded."
 
+    time_parser = ActiveSupport::TimeZone.new('UTC')
     wos.each do |wo|
       wo_counter += 1
       print "Processing delete WOs #{wo_counter}\r" if wo_counter % 100 == 0 || wo_counter == wos.size
@@ -236,7 +238,7 @@ def deleted_ci_cost(date, class_name_regex)
 
         offerings = payload['offerings']
         begin
-          created_ts = Time.parse(rfc_ci['created'])
+          created_ts = time_parser.parse(rfc_ci['created'])
         rescue
           created_ts = nil
         end
@@ -298,6 +300,7 @@ def deleted_ci_cost(date, class_name_regex)
     break if from > total
   end
   puts "Processed #{wo_counter} delete WOs, created #{record_counter} cost records in #{(Time.now - ts).to_i}sec."
+  @day_record_count += record_counter
 end
 
 def write_records(records)
@@ -389,13 +392,13 @@ Rebuilds or displays daily cost indices for a given time period by integrating o
 existing and deleted bom CIs with offerings.
 Usage:
   <this_script> [OPTIONS] ES_HOST START_DAY END_DAY [INDEX_NAME_PREFIX]
-  
+
   OPTIONS:
     -f | --force   - force day cost reindexing when daily index already exists
                      (deletes daily index and rebuilds it), otherwise day is skipped
     -h | --help    - display help info
-    -l | --list    - list daily index info 
-  
+    -l | --list    - list daily index info
+
 Example:
   ./cost-batch.rb es.prod-1312.core.oneops.prod.walmart.com 2017-07-14 2017-07-14
 HELP
@@ -413,6 +416,7 @@ end
 
 force = false
 list_only = false
+no_write = false
 ARGV.delete_if do |a|
   if a == '-f' || a == '--force'
     force = true
@@ -421,6 +425,10 @@ ARGV.delete_if do |a|
     exit
   elsif a == '-l' || a == '--list'
     list_only = true
+  elsif a == '-d' || a == '--debug'
+    @debug = true
+  elsif a == '--no-write'
+    no_write = true
   elsif a.start_with?('-')
     puts "Unknown option ''#{a}'', use '-h' option to see help!"
     exit(1)
@@ -448,25 +456,30 @@ load_tags unless list_only
   File.delete(@result_file_name) if File.exist?(@result_file_name)
 
   response = do_curl(%(-XHEAD "http://#{@host}:9200/#{@index_name}"), "Checking if #{@index_name} already exist...")
-  if response.include?('200 OK')
-    unless force
-      puts "Index #{@index_name} already exists - skipping, use '-f' option to force reindexing\n\n"
-      next
+  unless no_write
+    if response.include?('200 OK')
+      unless force
+        puts "Index #{@index_name} already exists - skipping, use '-f' option to force reindexing\n\n"
+        next
+      end
+      do_curl(%(-XDELETE 'http://#{@host}:9200/#{@index_name}'), "Index #{@index_name} already exists - deleting... ")
     end
-    do_curl(%(-XDELETE 'http://#{@host}:9200/#{@index_name}'), "Index #{@index_name} already exists - deleting... ")
+    do_curl(%(-XPOST 'http://#{@host}:9200/#{@index_name}'), "Creating index #{@index_name}... ")
   end
-  do_curl(%(-XPOST 'http://#{@host}:9200/#{@index_name}'), "Creating index #{@index_name}... ")
 
+  @day_record_count = 0
   existing_ci_cost(d)
   deleted_ci_cost(d, 'bom.*Compute')
 
-  ts1 = Time.now
-  cmd = %(cat #{@result_file_name} | ./stream2es stdin --target "http://#{@host}:9200/#{@index_name}/ci")
-  puts cmd
-  `#{cmd}`
-  puts "Done streaming in #{(Time.now - ts1).to_i}sec."
+  unless no_write
+    ts1 = Time.now
+    cmd = %(cat #{@result_file_name} | ./stream2es stdin --target "http://#{@host}:9200/#{@index_name}/ci")
+    puts cmd
+    `#{cmd}`
+    puts "Done streaming in #{(Time.now - ts1).to_i}sec."
 
-  File.delete(@result_file_name)
+    File.delete(@result_file_name)
+  end
 
-  puts "\nCost indexer job done for '#{d}' in #{(Time.now - ts).to_i}sec.\n\n"
+  puts "\nCost indexer done for '#{d}', generated #{@day_record_count} in #{(Time.now - ts).to_i}sec.\n\n"
 end

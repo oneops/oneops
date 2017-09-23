@@ -9,5 +9,6 @@ work/
 *.iws
 .vagrant/
 Gemfile.lock
+*.gemfile.lock
 vendor/
 dependency-reduced-pom.xml

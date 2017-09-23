@@ -1,6 +1,4 @@
-require 'rubygems'
 require 'thor'
-require 'json'
 
 # prevent ArgumentError: invalid byte sequence in US-ASCII from play2app under 1.9.3
 ENV['LANG'] = "en_US.UTF-8"
@@ -10,9 +8,9 @@ class Circuit < Thor
 
   desc "create", "Setup Environment for cookbook/Pack creation"
   method_option :path, :default => File.expand_path('circuit', Dir.pwd)
-  method_option :force, :default => true  
+  method_option :force, :default => true
   def create
-    directory File.expand_path('templates/circuit',File.dirname(__FILE__)), options[:path]
+    directory File.expand_path('templates/circuit', File.dirname(__FILE__)), options[:path]
     empty_directory "#{options[:path]}/components/cookbooks"
     empty_directory "#{options[:path]}/packs"
     empty_directory "#{options[:path]}/clouds"
@@ -27,8 +25,8 @@ class Circuit < Thor
       extra_config += "object_store_local_root '#{display_store}'\n"
       `mkdir -p #{display_store}`
     end
-    
-    # unversioned base components and relationships    
+
+    # unversioned base components and relationships
     open(File.join("#{options[:path]}/.chef", "knife.rb-base"), "w") do |file|
       file.puts <<-EOH
 log_level                :info
@@ -56,8 +54,8 @@ default_impl 'oo::chef-11.4.0'
 EOH
     end
 
-    # allow versioned different chef knife.rb for shared components (Keypair, Artifact, etc) 
-    # adapter changes are needed to use shortname of Keypair, etc ; keeping un-versioned for now 
+    # allow versioned different chef knife.rb for shared components (Keypair, Artifact, etc)
+    # adapter changes are needed to use shortname of Keypair, etc ; keeping un-versioned for now
     open(File.join("#{options[:path]}/.chef", "knife.rb-shared"), "w") do |file|
       file.puts <<-EOH
 log_level                :info
@@ -84,7 +82,7 @@ default_impl 'oo::chef-11.4.0'
 #{extra_config}
 EOH
     end
-    
+
     puts "Next Step: cd circuit ; circuit init"
   end
 
@@ -94,41 +92,41 @@ EOH
 
   desc "init", "Initialize the circuit"
   method_option :cookbook_path, :default => "-o base:shared/cookbooks"
-  method_option :force, :default => true    
+  method_option :force, :default => true
   def init
     base_path="#{File.expand_path(File.dirname(__FILE__))};"
     options[:cookbook_path].split(":").each do |path|
       if !path.include?("-o")
         path = "-o #{path}"
       end
-      if path =~ /base/        
+      if path =~ /base/
         run("cp .chef/knife.rb-base .chef/knife.rb")
       else
-        run("cp .chef/knife.rb-shared .chef/knife.rb")                  
+        run("cp .chef/knife.rb-shared .chef/knife.rb")
       end
       run("cp -r .chef #{base_path}")
       syncmodelclasses(base_path, path);
-      #syncmodelrelations(base_path, path);      
+      #syncmodelrelations(base_path, path);
     end
     options[:cookbook_path].split(":").each do |path|
       if !path.include?("-o")
         path = "-o #{path}"
       end
-      if path =~ /base/        
+      if path =~ /base/
         run("cp .chef/knife.rb-base .chef/knife.rb")
       else
-        run("cp .chef/knife.rb-shared .chef/knife.rb")                  
+        run("cp .chef/knife.rb-shared .chef/knife.rb")
       end
       run("cp -r .chef #{base_path}")
       #syncmodelclasses(base_path, path);
-      syncmodelrelations(base_path, path);      
+      syncmodelrelations(base_path, path);
     end
 
   end
 
   desc "install", "Install the circuit"
   def install
-    
+
     if ENV.has_key?('DISPLAY_LOCAL_STORE')
       display_store = ENV['DISPLAY_LOCAL_STORE']
       puts "using display local object store: #{display_store}"
@@ -143,7 +141,7 @@ EOH
       `grep -v environment_name .chef/tmp > .chef/knife.rb`
       `rm -f .chef/tmp`
       # add config
-      `echo "object_store_provider 'Local'" >> .chef/knife.rb`        
+      `echo "object_store_provider 'Local'" >> .chef/knife.rb`
       `echo "environment_name 'cms'"  >> .chef/knife.rb`
       `echo "object_store_local_root '#{display_store}'" >> .chef/knife.rb`
       `mkdir -p #{display_store}`
@@ -165,8 +163,8 @@ EOH
     exit_code = $?.exitstatus
     if exit_code != 0
       say "fail. #{cmd} returned: #{exit_code}", :red
-      exit exit_code 
-    end    
+      exit exit_code
+    end
     puts "Source registered!"
   end
 
@@ -175,7 +173,7 @@ EOH
   def model
     syncmodelclasses()
     syncmodelrelations()
-    
+
     puts "Model synced!"
   end
 
@@ -188,8 +186,8 @@ EOH
     exit_code = $?.exitstatus
     if exit_code != 0
       say "fail. #{cmd} returned: #{exit_code}", :red
-      exit exit_code 
-    end    
+      exit exit_code
+    end
     puts "Pack synced!"
   end
 
@@ -201,12 +199,12 @@ EOH
     exit_code = $?.exitstatus
     if exit_code != 0
       say "fail. #{cmd} returned: #{exit_code}", :red
-      exit exit_code 
-    end    
+      exit exit_code
+    end
     puts "Cloud synced!"
   end
 
-  
+
   no_commands do
 
     # Metadata cache TTL in seconds. Used to sleep before
@@ -226,7 +224,7 @@ EOH
       exit_code = $?.exitstatus
       if exit_code != 0
         say "fail. #{cmd} returned: #{exit_code}", :red
-        exit exit_code 
+        exit exit_code
       end
     end
 
@@ -238,10 +236,10 @@ EOH
       exit_code = $?.exitstatus
       if exit_code != 0
         say "fail. #{cmd} returned: #{exit_code}", :red
-        exit exit_code 
+        exit exit_code
       end
-      
-      
+
+
     end
   end
 

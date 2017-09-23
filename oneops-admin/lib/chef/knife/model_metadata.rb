@@ -1,19 +1,8 @@
-require 'chef/knife'
-require 'chef/exceptions'
-
-require 'bundler'
-ENV['BUNDLE_GEMFILE'] ||= File.dirname(__FILE__) + '/../../../Gemfile'
-require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
-
-Bundler.setup(:default)
-
-require 'cms'
-
 class Chef
   class Knife
     class ModelMetadata < Chef::Knife::CookbookMetadata
 
-      banner "knife model metadata [COOKBOOKS...] (options)"
+      banner 'knife model metadata [COOKBOOKS...] (options)'
 
       option :all,
         :short => "-a",
