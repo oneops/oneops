@@ -164,10 +164,11 @@ public class CmsListener implements MessageListener {
              }
              else {
                  if (isDeployerEnabled(dpmt)) {
-                     logger.info("Starting deployment using Deployer : " + dpmt.getDeploymentId());
+                     logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
                      startDeployer(dpmt);
                  }
                  else {
+                     logger.info("Executing deployment using activiti : " + dpmt.getDeploymentId());
                      processKey = getDpmtProcessKey(dpmt);
 
                      if (processKey != null && !processKey.equals("skip")) {

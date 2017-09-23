@@ -26,91 +26,93 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Configuration
 public class DeployerConfiguration {
 
-    @Bean
-    public DataSource getDataSource() {
-        return new EmbeddedDatabaseBuilder()
-                .setType(EmbeddedDatabaseType.H2)
-                .addScript("deployer-test-data1.sql")
-                .build();
-    }
+  @Bean
+  public DataSource getDataSource() {
+    return new EmbeddedDatabaseBuilder()
+        .setType(EmbeddedDatabaseType.H2)
+        .addScript("deployer-test-data1.sql")
+        .build();
+  }
 
-    @Bean
-    public RetryTemplate getRetryTemplate() {
-        return Mockito.mock(RetryTemplate.class);
-    }
+  @Bean
+  public RetryTemplate getRetryTemplate() {
+    return Mockito.mock(RetryTemplate.class);
+  }
 
-    @Bean
-    public DataSourceTransactionManager getTransactionManager(DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
-    }
+  @Bean
+  public DataSourceTransactionManager getTransactionManager(DataSource dataSource) {
+    return new DataSourceTransactionManager(dataSource);
+  }
 
-    @Bean
-    public SqlSessionFactoryBean getSessionFactoryBean(DataSource dataSource) {
-        SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
-        sqlSessionFactoryBean.setDataSource(dataSource);
-        sqlSessionFactoryBean.setTypeAliasesPackage("com.oneops.cms.dj.domain");
-        return sqlSessionFactoryBean;
-    }
+  @Bean
+  public SqlSessionFactoryBean getSessionFactoryBean(DataSource dataSource) {
+    SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
+    sqlSessionFactoryBean.setDataSource(dataSource);
+    sqlSessionFactoryBean.setTypeAliasesPackage("com.oneops.cms.dj.domain");
+    return sqlSessionFactoryBean;
+  }
 
-    @Bean
-    public MapperScannerConfigurer getMapperScannerConfigurer() {
-        MapperScannerConfigurer mapperScannerConfigurer = new MapperScannerConfigurer();
-        mapperScannerConfigurer.setBasePackage("com.oneops.cms.dj.dal");
-        return mapperScannerConfigurer;
-    }
+  @Bean
+  public MapperScannerConfigurer getMapperScannerConfigurer() {
+    MapperScannerConfigurer mapperScannerConfigurer = new MapperScannerConfigurer();
+    mapperScannerConfigurer.setBasePackage("com.oneops.cms.dj.dal");
+    return mapperScannerConfigurer;
+  }
 
-    @Bean
-    public CmsWoProvider getWoProvider(MapperScannerConfigurer mapperScannerConfigurer, DJMapper djMapper, DJDpmtMapper djDpmtMapper) {
-        CmsWoProvider woProvider = new CmsWoProvider();
-        woProvider.setDjMapper(djMapper);
-        woProvider.setDpmtMapper(djDpmtMapper);
-        woProvider.setCmsUtil(new CmsUtil());
-        return woProvider;
-    }
+  @Bean
+  public CmsWoProvider getWoProvider(MapperScannerConfigurer mapperScannerConfigurer,
+      DJMapper djMapper, DJDpmtMapper djDpmtMapper) {
+    CmsWoProvider woProvider = new CmsWoProvider();
+    woProvider.setDjMapper(djMapper);
+    woProvider.setDpmtMapper(djDpmtMapper);
+    woProvider.setCmsUtil(new CmsUtil());
+    return woProvider;
+  }
 
-    @Bean
-    public CmsDpmtProcessor getDpmtProcessor(DJDpmtMapper djDpmtMapper) {
-        CmsDpmtProcessor dpmtProcessor = new CmsDpmtProcessor();
-        dpmtProcessor.setDpmtMapper(djDpmtMapper);
-        return dpmtProcessor;
-    }
+  @Bean
+  public CmsDpmtProcessor getDpmtProcessor(DJDpmtMapper djDpmtMapper) {
+    CmsDpmtProcessor dpmtProcessor = new CmsDpmtProcessor();
+    dpmtProcessor.setDpmtMapper(djDpmtMapper);
+    return dpmtProcessor;
+  }
 
-    @Bean
-    public CMSClient getCmsClient(CmsWoProvider woProvider) {
-        CMSClient cmsClient = new CMSClient();
-        cmsClient.setCmsWoProvider(woProvider);
-        cmsClient.setControllerUtil(new ControllerUtil());
-        return cmsClient;
-    }
+  @Bean
+  public CMSClient getCmsClient(CmsWoProvider woProvider) {
+    CMSClient cmsClient = new CMSClient();
+    cmsClient.setCmsWoProvider(woProvider);
+    cmsClient.setControllerUtil(new ControllerUtil());
+    return cmsClient;
+  }
 
-    @Bean
-    public DeploymentCache getDeploymentCache() {
-        return new LocalDeploymentCache();
-    }
+  @Bean
+  public DeploymentCache getDeploymentCache() {
+    return new LocalDeploymentCache();
+  }
 
-    @Bean
-    public WoDispatcher getWoDispatcher() {
-        return Mockito.mock(WoDispatcher.class);
-    }
+  @Bean
+  public WoDispatcher getWoDispatcher() {
+    return Mockito.mock(WoDispatcher.class);
+  }
 
-    @Bean
-    public WorkflowPublisher getWorkflowPublisher() {
-        return Mockito.mock(WorkflowPublisher.class);
-    }
+  @Bean
+  public WorkflowPublisher getWorkflowPublisher() {
+    return Mockito.mock(WorkflowPublisher.class);
+  }
 
-    @Bean
-    public Deployer getDeployer(@Qualifier("dispatchExecutor") ThreadPoolExecutor threadPoolExecutor) {
-        return new Deployer();
-    }
+  @Bean
+  public Deployer getDeployer(
+      @Qualifier("dispatchExecutor") ThreadPoolExecutor threadPoolExecutor) {
+    return new Deployer();
+  }
 
-    @Bean(name = "dispatchExecutor")
-    public ThreadPoolExecutor getDispatchExecutor() {
-        return Mockito.mock(ThreadPoolExecutor.class);
-    }
+  @Bean(name = "dispatchExecutor")
+  public ThreadPoolExecutor getDispatchExecutor() {
+    return Mockito.mock(ThreadPoolExecutor.class);
+  }
 
-    @Bean
-    public PropertySourcesPlaceholderConfigurer propertiesResolver() {
-        return new PropertySourcesPlaceholderConfigurer();
-    }
+  @Bean
+  public PropertySourcesPlaceholderConfigurer propertiesResolver() {
+    return new PropertySourcesPlaceholderConfigurer();
+  }
 
 }

@@ -4,47 +4,37 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 
 public class WorkOrderContext {
 
-    private int execOrder;
-    private int batchNumber;
-    private CmsWorkOrderSimple woSimple;
-    private String woDispatchError;
+  private int execOrder;
+  private CmsWorkOrderSimple woSimple;
+  private String woDispatchError;
 
-    public WorkOrderContext(CmsWorkOrderSimple woSimple, int execOrder, int batchNumber) {
-        this.woSimple = woSimple;
-        this.execOrder = execOrder;
-        this.batchNumber = batchNumber;
-    }
+  public WorkOrderContext(CmsWorkOrderSimple woSimple, int execOrder) {
+    this.woSimple = woSimple;
+    this.execOrder = execOrder;
+  }
 
-    public int getBatchNumber() {
-        return batchNumber;
-    }
+  public CmsWorkOrderSimple getWoSimple() {
+    return woSimple;
+  }
 
-    public void setBatchNumber(int batchNumber) {
-        this.batchNumber = batchNumber;
-    }
+  public void setWoSimple(CmsWorkOrderSimple woSimple) {
+    this.woSimple = woSimple;
+  }
 
-    public CmsWorkOrderSimple getWoSimple() {
-        return woSimple;
-    }
+  public int getExecOrder() {
 
-    public void setWoSimple(CmsWorkOrderSimple woSimple) {
-        this.woSimple = woSimple;
-    }
+    return execOrder;
+  }
 
-    public int getExecOrder() {
+  public void setExecOrder(int execOrder) {
+    this.execOrder = execOrder;
+  }
 
-        return execOrder;
-    }
+  public String getWoDispatchError() {
+    return woDispatchError;
+  }
 
-    public void setExecOrder(int execOrder) {
-        this.execOrder = execOrder;
-    }
-
-    public String getWoDispatchError() {
-        return woDispatchError;
-    }
-
-    public void setWoDispatchError(String woDispatchError) {
-        this.woDispatchError = woDispatchError;
-    }
+  public void setWoDispatchError(String woDispatchError) {
+    this.woDispatchError = woDispatchError;
+  }
 }

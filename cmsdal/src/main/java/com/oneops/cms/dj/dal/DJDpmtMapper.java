@@ -69,7 +69,6 @@ public interface DJDpmtMapper {
 	List<CmsDpmtRecord> getDeploymentRecordsByCiId(@Param("ciId") long ciId, @Param("state") String state);
 	List<CmsWorkOrder> getWorkOrders(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	List<CmsWorkOrder> getWorkOrdersLimited(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder, @Param("limit") Integer limit);
-	List<CmsWorkOrder> getWorkOrdersWithDpmtRecList(@Param("dpmtRecordIds") List<Long> dpmtRecordIds, @Param("state") String state);
 	CmsWorkOrder getWorkOrder(@Param("dpmtRecordId") long dpmtRecordId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 
 
@@ -85,4 +84,7 @@ public interface DJDpmtMapper {
 	CmsDpmtApproval getDpmtApproval(long approvalId);
 	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
 	List<TimelineDeployment> getDeploymentsByNsPath(TimelineQueryParam queryParam);
+	long getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId,
+			@Param("states") List<String> states, @Param("execOrder") Integer execOrder);
+	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
 }

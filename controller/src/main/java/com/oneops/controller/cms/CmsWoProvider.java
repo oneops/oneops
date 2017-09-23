@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import static com.oneops.cms.util.CmsConstants.*;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -46,15 +48,16 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
-import static com.oneops.cms.util.CmsConstants.*;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -329,13 +332,6 @@ public class CmsWoProvider {
                 ? dpmtMapper.getWorkOrdersLimited(deploymentId, state, execOrder, limit)
                 : dpmtMapper.getWorkOrders(deploymentId, state, execOrder);
         return workOrders;
-    }
-
-    public List<CmsWorkOrderSimple> getWorkOrderIdsSimple(List<Long> dpmtRecordIds, String state) {
-        List<CmsWorkOrderSimple> wosList = new ArrayList<>();
-        List<CmsWorkOrder> workOrders = dpmtMapper.getWorkOrdersWithDpmtRecList(dpmtRecordIds, state);
-        woToWoSimple(workOrders, wosList);
-        return wosList;
     }
 
     public CmsWorkOrderSimple getWorkOrderSimple(long dpmtRecordId, String state, Integer execOrder) {

@@ -214,30 +214,16 @@ public class CMSClient {
         }
     }
 
-    public List<CmsWorkOrderSimple> getWorkOrderIds(CmsDeployment dpmt, int execOrder) {
+    public List<CmsWorkOrderSimple> getWorkOrderIdsNoLimit(CmsDeployment dpmt, int execOrder) {
         long startTime = System.currentTimeMillis();
         try {
             List<CmsWorkOrderSimple> recList = cmsWoProvider.getWorkOrderIdsSimple(dpmt.getDeploymentId(), PENDING,
-                    execOrder, this.stepWoLimit);
+                    execOrder, null);
             logger.info(dpmt.getDeploymentId()+"-"+execOrder +" Got workOrderIds size: " + recList.size()
                     + " took " +(System.currentTimeMillis()-startTime) +"ms");
             return recList;
         } catch (CmsBaseException e) {
             logger.error(dpmt.getDeploymentId()+"-"+execOrder +" CmsException :", e);
-            handleWoError(dpmt, execOrder, e);
-            throw e;
-        }
-    }
-
-    public List<CmsWorkOrderSimple> getWorkOrderIds(CmsDeployment dpmt, List<Long> dpmtRecordIds, int execOrder) {
-        long startTime = System.currentTimeMillis();
-        try {
-            List<CmsWorkOrderSimple> recList = cmsWoProvider.getWorkOrderIdsSimple(dpmtRecordIds, PENDING);
-            logger.info("getWorkOrderIds from recordIds " + dpmt.getDeploymentId()+"-"+execOrder +" workOrderIds size: " + recList.size()
-                    + " given size " + dpmtRecordIds.size() + " took " +(System.currentTimeMillis()-startTime) +"ms");
-            return recList;
-        } catch (CmsBaseException e) {
-            logger.error("getWorkOrderIds from recordIds " +  dpmt.getDeploymentId()+"-"+execOrder +" CmsException :", e);
             handleWoError(dpmt, execOrder, e);
             throw e;
         }

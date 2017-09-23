@@ -91,25 +91,22 @@ public class WoDispatcher {
 
 
 	public void dispatchWO(WorkOrderContext woContext, CmsWorkOrderSimple assembledWo) throws Exception {
-
 		try {
-
 			if (assembledWo.rfcCi.getImpl() == null) {
 				inductorPublisher.publishMessage(Integer.toString(woContext.getExecOrder()),
-						Integer.toString(woContext.getBatchNumber()), assembledWo, "", CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
+						"", assembledWo, "", CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
 			} else {
 				String[] implParts = assembledWo.rfcCi.getImpl().split("::");
 				if ("class".equalsIgnoreCase(implParts[0])) {
 					WoProcessor wop = (WoProcessor) Class.forName(implParts[1]).newInstance();
-					String processComplexId = Integer.toString(woContext.getExecOrder()) +
-							"!" + Integer.toString(woContext.getBatchNumber()) + "!";
+					String processComplexId = Integer.toString(woContext.getExecOrder());
 					WoProcessRequest wopr = new WoProcessRequest();
 					wopr.setProcessId(processComplexId);
 					wopr.setWo(assembledWo);
 					wop.processWo(wopr);
 				} else {
 					inductorPublisher.publishMessage(Integer.toString(woContext.getExecOrder()),
-							Integer.toString(woContext.getBatchNumber()), assembledWo, "", "deploybom");
+							"", assembledWo, "", "deploybom");
 				}
 			}
 		} catch (Exception e) {

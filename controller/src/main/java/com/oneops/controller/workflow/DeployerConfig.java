@@ -15,24 +15,25 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 @Conditional(DeployerConfig.DeployerEnabledCondition.class)
 public class DeployerConfig {
 
-    @Bean
-    public MapConfig getControllerMapConfig() {
-        MapConfig mapConfig  = new MapConfig("controller.*");
-        mapConfig.setBackupCount(1);
-        return mapConfig;
-    }
+  @Bean
+  public MapConfig getControllerMapConfig() {
+    MapConfig mapConfig = new MapConfig("controller.*");
+    mapConfig.setBackupCount(1);
+    return mapConfig;
+  }
 
-    @Bean
-    public DeploymentCache getDeploymentCache() {
-        return new HazelcastDpmtCache();
-    }
+  @Bean
+  public DeploymentCache getDeploymentCache() {
+    return new HazelcastDpmtCache();
+  }
 
-    static class DeployerEnabledCondition implements Condition {
+  static class DeployerEnabledCondition implements Condition {
 
-        @Override
-        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            return Boolean.valueOf(context.getEnvironment().getProperty(CmsConstants.DEPLOYER_ENABLED_PROPERTY, "false"));
-        }
+    @Override
+    public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+      return Boolean.valueOf(
+          context.getEnvironment().getProperty(CmsConstants.DEPLOYER_ENABLED_PROPERTY, "false"));
     }
+  }
 
 }
