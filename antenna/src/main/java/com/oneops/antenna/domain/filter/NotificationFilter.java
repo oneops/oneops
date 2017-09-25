@@ -17,19 +17,19 @@
  *******************************************************************************/
 package com.oneops.antenna.domain.filter;
 
+import static org.apache.commons.lang3.ArrayUtils.isNotEmpty;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+
 import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.antenna.domain.NotificationSeverity;
 import com.oneops.antenna.domain.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
-import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-
 import java.io.IOException;
 import java.util.Arrays;
-
-import static org.apache.commons.lang3.ArrayUtils.isNotEmpty;
-import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+import org.apache.commons.lang3.BooleanUtils;
+import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * Notification message filter implementation.
@@ -78,8 +78,37 @@ public class NotificationFilter implements MessageFilter {
      */
     private String envProfilePattern;
 
+    /**
+     *  Actions for which the notifications need to be sent.
+     */
+    private boolean includeCi;
 
     /**
+     * ClassName for which notification needs to be sent.
+     */
+    private String[] classNames;
+
+
+  /**
+     *  Actions for which the notifications need to be sent.
+     */
+    private String actions;
+
+    public boolean isIncludeCi() {
+      return includeCi;
+    }
+
+    public String getActions() {
+      return actions;
+    }
+
+    public String[] getClassNames() {
+      return classNames;
+    }
+
+
+
+  /**
      * Check whether or not the given ${@link NotificationMessage} needs
      * to be accepted based on this filter rules. The filtering logic is
      * a simple check of the filter rules in the following order.
@@ -168,19 +197,44 @@ public class NotificationFilter implements MessageFilter {
                 if (attr != null) {
                     envProfilePattern = attr.getDjValue();
                 }
+                //notification for action add/update
+                attr = sink.getAttribute("notify_on");
+                String notifyOn = null;
+                if (attr != null) {
+                    notifyOn = attr.getDjValue();
+                }
+
+              // class Names
+              attr = sink.getAttribute("cname");
+              String[] classNames = null;
+              if (attr != null) {
+                classNames = toArray(attr.getDjValue());
+              }
+              // Monitoring clouds
+              attr = sink.getAttribute("include_cis");
+              boolean includeCi = false;
+              if (attr != null) {
+                includeCi = BooleanUtils.toBoolean(attr.getDjValue());
+              }
                 NotificationFilter filter = new NotificationFilter()
                         .eventType(eventType)
                         .eventSeverity(eventSeverity)
                         .clouds(clouds)
                         .nsPaths(nsPaths)
                         .selectorPattern(pattern)
-                        .envProfilePattern(envProfilePattern);
+                        .envProfilePattern(envProfilePattern)
+                        .actions(notifyOn)
+                        .classNames(classNames)
+                        .includeCi(includeCi)  ;
+
                 logger.info("Notification filter : " + filter);
                 return filter;
             }
         }
         return null;
     }
+
+
 
 
     /**
@@ -262,6 +316,21 @@ public class NotificationFilter implements MessageFilter {
         this.envProfilePattern = envProfilePattern;
         return this;
     }
+
+    public NotificationFilter actions(String actions) {
+        this.actions = actions;
+        return this;
+    }
+
+  public NotificationFilter classNames(String[] clasNames) {
+    this.classNames = clasNames;
+    return this;
+  }
+
+  public NotificationFilter includeCi(boolean includeCi) {
+    this.includeCi = includeCi;
+    return this;
+  }
 
     public String envProfilePattern() {
         return this.envProfilePattern;

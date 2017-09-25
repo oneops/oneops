@@ -21,10 +21,15 @@ import com.google.common.cache.CacheStats;
 import com.oneops.antenna.cache.SinkCache;
 import com.oneops.antenna.cache.SinkKey;
 import com.oneops.antenna.domain.BasicSubscriber;
+import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.antenna.service.Dispatcher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -51,7 +56,19 @@ public class AntennaWsController {
      */
     private final SinkCache cache;
 
+    /**
+     * Dispatcher to test.
+     */
     @Autowired
+    private Dispatcher dispatcher;
+
+  /**
+   * Enable method to dispatch notification.
+   */
+  @Value("${oo.antenna.enableWSNotify:false}")
+  private boolean enableWSNotify;
+
+  @Autowired
     public AntennaWsController(SinkCache cache) {
         this.cache = cache;
     }
@@ -174,5 +191,19 @@ public class AntennaWsController {
         stat.put("entry", nsPath);
         return new ResponseEntity<>(stat, OK);
     }
+
+
+    /**
+     *  Post Notification Message
+     *
+     */
+    @RequestMapping(value = "/notify/", method = RequestMethod.POST)
+    @ResponseBody
+    public void dispatch(@RequestBody NotificationMessage nmsg) {
+      if(enableWSNotify)
+        dispatcher.dispatch(nmsg);
+    }
+
+
 
 }
