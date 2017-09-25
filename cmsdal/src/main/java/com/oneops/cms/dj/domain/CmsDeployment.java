@@ -55,6 +55,7 @@ public class CmsDeployment implements Serializable{
 
 	private Integer flags;
 	private boolean continueOnFailure = false;
+	private Integer currentStep;
 
 	/**
 	 * Gets the deployment id.
@@ -352,4 +353,14 @@ public class CmsDeployment implements Serializable{
 		this.flags &= ~(1 << bitPos);
 	}
 
+	public Integer getCurrentStep() {
+		if (currentStep == null) {
+			return 0;
+		}
+		return currentStep;
+	}
+
+	public void setCurrentStep(Integer currentStep) {
+		this.currentStep = currentStep;
+	}
 }
