@@ -398,14 +398,21 @@ public class TransUtil {
 	    
 	    return newRrel;
 	}
-	
-	
+
 	public void applyRelationToRfc(CmsRfcRelation newRfc, CmsCIRelation ciRel, Map<String, CmsRelationAttribute> mdAttrs, boolean checkExpression, String owner) {
+	    applyRelationToRfc(newRfc, ciRel, mdAttrs, checkExpression, owner, false);
+	}
+
+
+	public void applyRelationToRfc(CmsRfcRelation newRfc, CmsCIRelation ciRel, Map<String, CmsRelationAttribute> mdAttrs, boolean checkExpression, String owner, boolean checkManifestLock) {
 
 		if (ciRel != null) {
 	    	newRfc.setComments(ciRel.getComments());
 	    	Map<String,String> expressions = new HashMap<String,String>();
 	    	for (CmsCIRelationAttribute mgmtAttr : ciRel.getAttributes().values()) {
+	    		if (checkManifestLock && "manifest".equals(mgmtAttr.getOwner())){
+	    			continue;
+				}
 	    		if (mdAttrs.containsKey(mgmtAttr.getAttributeName())) {
 			    	if (mgmtAttr.getDjValue() != null && checkExpression) {
 			    		//TODO process expression

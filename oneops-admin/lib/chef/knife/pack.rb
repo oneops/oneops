@@ -19,7 +19,6 @@ class Chef
       @category            = ''
       @version             = ''
       @visibility          = []
-      @group_id            = ''
       @ignore              = false
       @enabled             = true
       @type                = ''
@@ -91,14 +90,6 @@ class Chef
         :visibility,
         arg,
         :kind_of => Array, :default => []
-      )
-    end
-
-    def group_id(arg=nil)
-      set_or_return(
-        :group_id,
-        arg,
-        :kind_of => String
       )
     end
 

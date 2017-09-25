@@ -1339,7 +1339,7 @@ module ApplicationHelper
   end
 
   def pack_version_list(versions, org_ns_path)
-    versions = versions.sort {|a, b| b.ciName <=> a.ciName}
+    versions = semver_sort(versions)
     builder  = lambda {|vv| vv.map {|v| link_to(v.ciName, catalog_pack_platform_path(params[:source], params[:pack], v.ciName, params[:availability], params[:pack]), :class => pack_version_text_class(v, org_ns_path))}.join(', ')}
     result   = builder.call(versions[0..14])
     if versions.size > 15
