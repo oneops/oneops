@@ -1,5 +1,6 @@
 package com.oneops.cms.dj.dal;
 
+import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,7 +12,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 
 /**
@@ -44,5 +47,29 @@ public class DjMapperTest {
         assertEquals(1, list.size());
         assertEquals(attr.getAttributeName(), list.get(0).getAttributeName());
         assertEquals(attr.getNewValue(), list.get(0).getNewValue());
+    }
+
+
+    @Test
+    public void testAltNs() throws Exception {
+        
+        assertNull(djMapper.getTagId("test"));
+        djMapper.createTag("test");
+        assertNotNull(djMapper.getTagId("test"));
+
+
+        List<CmsAltNs> list = djMapper.getAltNsBy(1);
+        assertEquals(list.size(), 0);
+        
+        djMapper.createAltNs(1, djMapper.getTagId("test"), 1);
+        
+        list = djMapper.getAltNsBy(1);
+        assertEquals(list.size(), 1);
+        
+        djMapper.deleteAltNs(1, 1);
+        
+        list = djMapper.getAltNsBy(1);
+        assertEquals(list.size(), 0);
+
     }
 }
