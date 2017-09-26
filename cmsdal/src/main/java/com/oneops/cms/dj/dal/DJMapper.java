@@ -202,7 +202,11 @@ public interface DJMapper {
 
   long countOpenRfcRelationsByNs(String nsPath);
 
-  void rmRfcs(Map<String, Object> params);
+  void rmRfcsByNs(String nsPath);
+  
+  void rmToRelByNs(String nsPath);
+  
+  void rmFromRelByNs(String nsPath);
 
   long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId,
       @Param("relationName") String relationName,
@@ -220,9 +224,14 @@ public interface DJMapper {
   List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);
 
-  void createAltNs(@Param("nsId") long nsId, @Param("tag") String tag, @Param("rfcId") long rfcId);
+  
+  Long getTagId(@Param("tag")String tag);
+  
+  void createTag(@Param("tag")String tag);
+  
+  void createAltNs(@Param("nsId") long nsId, @Param("tagId") long tagId, @Param("rfcId") long rfcId);
 
-  long deleteAltNs(@Param("nsId") long nsId, @Param("rfcId") long rfcId);
+  void deleteAltNs(@Param("nsId") long nsId, @Param("rfcId") long rfcId);
 
   List<CmsRfcCI> getRfcCIByAltNsAndTag(@Param("nsPath") String nsPath, @Param("tag") String tag,
       @Param("releaseId") Long releaseId, @Param("isActive") boolean isActive,

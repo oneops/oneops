@@ -17,20 +17,19 @@
  *******************************************************************************/
 package com.oneops.cms.dj.dal;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.ibatis.annotations.Param;
-
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The Interface DJDpmtMapper.
@@ -73,7 +72,7 @@ public interface DJDpmtMapper {
 	CmsWorkOrder getWorkOrder(@Param("dpmtRecordId") long dpmtRecordId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	
 	List<CmsRfcCI> getDeploymentRfcCIs(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder,@Param("classNames") String[] classNames,@Param("action") String action);
-	
+
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
 	
 	List<Long> getToCiIdsForDeployment(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("relName") String relName);
@@ -84,4 +83,7 @@ public interface DJDpmtMapper {
 	CmsDpmtApproval getDpmtApproval(long approvalId);
 	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
 	List<TimelineDeployment> getDeploymentsByNsPath(TimelineQueryParam queryParam);
+	long getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId,
+			@Param("states") List<String> states, @Param("execOrder") Integer execOrder);
+	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
 }

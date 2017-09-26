@@ -89,7 +89,7 @@ public interface CmsDjManager {
 	
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
     
-    long rmRfcs(String nsPath);
+    void rmRfcs(String nsPath);
 	long getRfcCiCountByNs(String nsPath);
 	long getRfcRelationCountByNs(String nsPath);
 	List<TimelineBase> getDjTimeLine(TimelineQueryParam queryParam);

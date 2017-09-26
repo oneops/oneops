@@ -29,6 +29,12 @@
  	 </bean>
  	<bean id="cmsListener" class="com.oneops.controller.jms.CmsListener">
 		<property name="connFactory" ref="stubConnectionFactory" />
+		<property name="cmsClient" ref="cmsClient" />
+		<property name="deployerEnabled" value="false"/>
+	</bean>
+
+	<bean id="cmsClient" class="org.mockito.Mockito" factory-method="mock">
+		<constructor-arg value="com.oneops.controller.cms.CMSClient" />
 	</bean>
 	 
 	<bean id="inductorListener" class="com.oneops.controller.jms.InductorListener">
@@ -58,5 +64,5 @@
 		<property name="backlogThreshold" value="10" />
 		<property name="scanFolder" value="/tmp/search/retry" />
 	</bean>
-	
+
 </beans>
