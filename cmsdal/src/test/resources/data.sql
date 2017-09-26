@@ -8,3 +8,7 @@ INSERT INTO md_class_attributes(
     VALUES (101, 100, 'testAttribute', 'string', false, 
             false, false, false, false,'', 
             '{"help":"Assembly description","category":"1.Configuration","order":1}', 'testAttrbitue', '2016-09-02 16:18:23.652701',  '2016-09-02 16:18:23.652701');
+
+insert into ns_namespaces values (1, 'test',  '2016-09-02');
+insert into dj_rfc_ci (rfc_id, release_id, ns_id, ci_id, class_id, ci_name, action_id) values (1,0, 1, 1, 1, 'test',1)
+

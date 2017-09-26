@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.09.20-02-SNAPSHOT</version>
+    <version>17.09.20-03-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-admin</artifactId>
@@ -155,7 +155,56 @@
               </arguments>
             </configuration>
           </execution>
+          <!--Begin Az Inductor package -->
 
+          <execution>
+            <id>inductor-build-az-gem</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>gem</executable>
+              <arguments>
+                <argument>build</argument>
+                <argument>oneops-admin-inductor-az.gemspec</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>inductor-bundle-package-az</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>bundle</executable>
+              <arguments>
+                <argument>package</argument>
+                <argument>--gemfile=oneops-admin-inductor-az.gemfile</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>inductor-tar-az</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>tar</executable>
+              <arguments>
+                <argument>-cf</argument>
+                <argument>${project.build.directory}/${project.artifactId}-${project.version}-inductor-az.tar.gz</argument>
+                <argument>-z</argument>
+                <argument>oneops-admin-inductor-az-1.0.0.gem</argument>
+                <argument>oneops-admin-inductor-az.gemfile</argument>
+                <argument>oneops-admin-inductor-az.gemspec</argument>
+                <argument>vendor/cache</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <!--End Az Inductor package -->
           <!-- Build old oneops-admin gem -->
           <execution>
             <id>old-build-gem</id>

@@ -61,6 +61,7 @@
 			    where drfc.deployment_id = d.deployment_id
 			      and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
 			   d.auto_pause_exec_orders as autoPauseExecOrdersVal,
+			   d.current_step as currentStep,
 			   d.created,
 			   d.updated
 		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
@@ -418,7 +419,6 @@
   	     limit #{limit}
 	 </select>
 
-
 	<select id="getDeploymentRfcCIs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
 		SELECT 
 			rci.rfc_id as rfcId, 
@@ -629,5 +629,24 @@
 		and d.state_id = ds.state_id
 		order by d.deployment_id ${order.sort}
 	 </select>
+
+	<select id="getDeploymentRecordsCountByStates" parameterType="map" useCache="false" resultType="long">
+		select  count(1)
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+		and dr.state_id = drs.state_id
+		and drs.state_name in
+		<foreach item="item" index="index" collection="states" open="(" close=")" separator=", ">
+			#{item}
+		</foreach>
+		and dr.rfc_id = rci.rfc_id
+		and rci.execution_order = #{execOrder}
+	</select>
+
+	<update id="updateDeploymentCurrentStep" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="PREPARED">
+		update dj_deployment
+			set current_step = #{currentStep}
+			where deployment_id = ${deploymentId}
+	</update>
 
 </mapper>
