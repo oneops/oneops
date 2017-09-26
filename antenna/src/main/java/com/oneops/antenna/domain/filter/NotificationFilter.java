@@ -79,7 +79,7 @@ public class NotificationFilter implements MessageFilter {
     private String envProfilePattern;
 
     /**
-     *  Actions for which the notifications need to be sent.
+     *  Should CI information be included.
      */
     private boolean includeCi;
 

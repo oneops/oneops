@@ -141,7 +141,9 @@ public class Dispatcher {
                       nMsg.setCis(cis);
                     }
                   }
-
+                  if(logger.isDebugEnabled()){
+                    logger.debug("nMsg " + gson.toJson(nMsg));
+                  }
                   urlSender.postMessage(nMsg, sub);
                 } else if (sub instanceof XMPPSubscriber) {
                     xmppSender.postMessage(nMsg, sub);
