@@ -235,10 +235,20 @@
           var taItems = filtersFields.split(",");
           filter_field.typeahead({items: 15,
                                   source:  function(query, process) {
-                                    var split = query.split(/:|=/);
-                                    var val = split.length > 1 ? split[1] : split[0];
-                                    var items = taItems.map(function(i) {return i + "=" + val;});
-                                    items.unshift(val);
+//                                    var split = query.split(/:|=/);
+//                                    var val = split.length > 1 ? split[1] : split[0];
+                                    var val = query.split(/\s/).last();
+                                    if (!val || val.indexOf('=') > 0) {
+                                      return [];
+                                    }
+                                    var items = taItems.filter(function (i) {return i.startsWith(val);});
+                                    if (items.length) {
+                                      items = items.map(function(i) {return i + "=";})
+                                    }
+                                    else {
+                                      items = taItems.map(function(i) {return i + "=" + val;});
+                                      items.unshift(val);
+                                    }
                                     return items;
                                   },
                                   matcher: function (item) {
@@ -263,10 +273,12 @@
                                     return split.length > 1 ? "<small><em>" + split[0] + "=</em></small>" + split[1] : item;
                                   },
                                   updater: function (item) {
+                                    var val = this.$element.val();
+                                    var term = val.split(/\s/).last();
                                     setTimeout(function () {
                                       filter_changed(filter_field[0]);
                                     }, 10);
-                                    return item;
+                                    return val.substring(0, val.length - term.length) + item;
                                   }});
         }
         else {

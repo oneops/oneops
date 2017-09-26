@@ -1,5 +1,5 @@
 <ul class="dropdown-menu">
-  <% favs = current_user.favorites.where(:organization_id => current_user.organization_id).order(:ci_name) %>
+  <% favs = current_user.org_favorites.order(:ci_name) %>
   <% if favs.present? %>
     <% fav_groups = favs.group_by { |f| f.ci_class_name.split('.').last } %>
     <% fav_groups.each do |ci_class, group| %>
