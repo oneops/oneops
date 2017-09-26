@@ -16,16 +16,10 @@
  *******************************************************************************/
 package com.oneops.controller.workflow;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.jms.JMSException;
-
-import org.activiti.engine.delegate.DelegateExecution;
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
+import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.cms.CMSClient;
 import com.oneops.controller.domain.WoProcessRequest;
 import com.oneops.controller.domain.WoProcessResponse;
@@ -33,6 +27,12 @@ import com.oneops.controller.jms.InductorPublisher;
 import com.oneops.controller.plugin.WoProcessor;
 import com.oneops.controller.sensor.SensorClient;
 import com.oneops.sensor.client.SensorClientException;
+import org.activiti.engine.delegate.DelegateExecution;
+import org.apache.log4j.Logger;
+
+import javax.jms.JMSException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The Class WoDispatcher.
@@ -51,6 +51,7 @@ public class WoDispatcher {
 	private static String WAIT_STATE_NODE = "pwoWaitResponse";
 	private static String NR_OF_INSTANCES = "nrOfInstances";
 	private static String LOOP_COUNTER = "loopCounter";
+
 	
 	final private Gson gson = new Gson();
 
@@ -75,7 +76,46 @@ public class WoDispatcher {
 	public void setWfController(WorkflowController wfController) {
 		this.wfController = wfController;
 	}
-	
+
+	public void dispatchAndUpdate(CmsDeployment dpmt, WorkOrderContext woContext) {
+		try {
+			CmsWorkOrderSimple assembledWo = cmsClient.getWorkOrder(dpmt, woContext);
+			assembledWo.getSearchTags().put(CmsConstants.DEPLOYMENT_MODEL, CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
+			dispatchWO(woContext, assembledWo);
+			cmsClient.updateWoState(dpmt, assembledWo, CMSClient.INPROGRESS, null);
+			handleReplace(assembledWo);
+		} catch(Exception e) {
+			cmsClient.updateWoState(dpmt, woContext.getWoSimple(), CMSClient.FAILED, woContext.getWoDispatchError());
+		}
+	}
+
+
+	public void dispatchWO(WorkOrderContext woContext, CmsWorkOrderSimple assembledWo) throws Exception {
+		try {
+			if (assembledWo.rfcCi.getImpl() == null) {
+				inductorPublisher.publishMessage(Integer.toString(woContext.getExecOrder()),
+						"", assembledWo, "", CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
+			} else {
+				String[] implParts = assembledWo.rfcCi.getImpl().split("::");
+				if ("class".equalsIgnoreCase(implParts[0])) {
+					WoProcessor wop = (WoProcessor) Class.forName(implParts[1]).newInstance();
+					String processComplexId = Integer.toString(woContext.getExecOrder());
+					WoProcessRequest wopr = new WoProcessRequest();
+					wopr.setProcessId(processComplexId);
+					wopr.setWo(assembledWo);
+					wop.processWo(wopr);
+				} else {
+					inductorPublisher.publishMessage(Integer.toString(woContext.getExecOrder()),
+							"", assembledWo, "", "deploybom");
+				}
+			}
+		} catch (Exception e) {
+			logger.error("unable to dispatch", e);
+			woContext.setWoDispatchError(e.getMessage());
+			throw e;
+		}
+	}
+
 	/**
 	 * Dispatch wo.
 	 *
@@ -154,7 +194,7 @@ public class WoDispatcher {
     	wfController.pokeSubProcess(processId, executionId, params);
 
 	}
-	
+
 	public void getAndDispatch(DelegateExecution exec, CmsWorkOrderSimple dpmtRec) {
 		try {
 			CmsWorkOrderSimple wo = cmsClient.getWorkOrder(exec, dpmtRec);
@@ -180,7 +220,17 @@ public class WoDispatcher {
 			e.printStackTrace();
 			throw e;
 		}
-	}	
+	}
+
+	private void handleReplace(CmsWorkOrderSimple wo) {
+		if ("replace".equals(wo.getRfcCi().getRfcAction())) {
+			try {
+				sensorClient.processMonitors(wo);
+			} catch (SensorClientException e) {
+				logger.error("Error while sending replaced instance " + wo.getRfcCi().getCiId() + " to sensor ", e);
+			}
+		}
+	}
 
 	private void  pokeSubProcAsync(final String procId, final String execId, final Map<String,Object> params) {
 		final Runnable pocker = new Runnable() {
