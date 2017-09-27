@@ -24,7 +24,10 @@ import com.oneops.antenna.subscriptions.SubscriberService;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.util.CmsUtil;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
@@ -61,7 +64,8 @@ public class DispatcherTest {
         when(subService.getSubscribersForNs(anyString())).thenReturn(bsList);
         SubscriberService subService = mock(SubscriberService.class);
         NotificationSender notMock = mock(NotificationSender.class);
-        this.dispatcher = new Dispatcher(new Gson(), subService, notMock, notMock, notMock, notMock, notMock, cmProcessor, mock(CmsDpmtProcessor.class), mock(OpsProcedureProcessor.class));
+        this.dispatcher = new Dispatcher(new Gson(), subService, notMock, notMock, notMock, notMock, notMock, cmProcessor, mock(CmsDpmtProcessor.class), mock(OpsProcedureProcessor.class),mock(
+            DJDpmtMapper.class),mock(CmsMdProcessor.class),mock(CmsUtil.class));
     }
 
     /**

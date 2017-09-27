@@ -17,9 +17,11 @@
  *******************************************************************************/
 package com.oneops.antenna.domain;
 
+import com.oneops.cms.simple.domain.CmsCISimple;
 import java.io.Serializable;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.oneops.util.URLUtil;
@@ -43,6 +45,7 @@ public class NotificationMessage implements Serializable {
     private String environmentProfileName;
     private String adminStatus;
     private long manifestCiId;
+    private List<CmsCISimple> cis;
 
     public Map<String, String> getPayload() {
         return payload;
@@ -222,4 +225,11 @@ public class NotificationMessage implements Serializable {
 	}
 
 
+    public List<CmsCISimple> getCis() {
+        return cis;
+    }
+
+    public void setCis(List<CmsCISimple> cis) {
+        this.cis = cis;
+    }
 }
