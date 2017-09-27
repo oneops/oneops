@@ -27,6 +27,17 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
+/**
+ * Deployer executes the deployment workflow from the deployment plan,
+ * the important aspects of this workflow include
+ * <ul>
+ * <li>dispatching workorders to inductor queue</li>
+ * <li>handling response from inductor</li>
+ * <li>proceeding to next step after converge</li>
+ * <li>updating deployment state</li>
+ * </ul>
+ * This class uses a distributed map for maintaining deployment state, deployment locks
+ */
 @Component
 public class Deployer {
 
@@ -80,16 +91,28 @@ public class Deployer {
     processWorkOrders(wfMessage.getDpmtId(), wfMessage.isCheckProcessDelay(), true);
   }
 
+  /**
+   * identifies pending workorders to be dispatched for the deployment by acquiring lock on dpmtId,
+   * uses a separate executor for assembling and sending workorders, also updates the state in the deployment distributed map
+   *
+   * @param dpmtId deployment id
+   * @param checkProcessDelay if set the execution will continue only if the last run was before dpmtWaitTimeBetweenRuns
+   * @param wait4WoDispatch if set waits for all workorders to be dispatched
+   */
   @Transactional
   public void processWorkOrders(long dpmtId, boolean checkProcessDelay, boolean wait4WoDispatch) {
+    logger.info("processWo for deployment " + dpmtId);
     CmsDeployment dpmt = dpmtProcessor.getDeployment(dpmtId);
     boolean dpmtFinished = false;
     boolean isAutoPaused = false;
     StepDispatch stepDispatch = null;
+    long startTs = System.currentTimeMillis();
     if (isActive(dpmt)) {
       dpmtCache.lockDpmt(dpmtId);
       try {
         DeploymentExecution dpmtExec = dpmtCache.getDeploymentFromMap(dpmtId);
+        logger.info("processWo - dpmtExec from cache : " + dpmtExec);
+        //use the current_step from db if there is a mismatch between cache and db
         if (dpmtExec.getCurrentStep() < dpmt.getCurrentStep()) {
           dpmtExec.setCurrentStep(dpmt.getCurrentStep());
         }
@@ -99,23 +122,26 @@ public class Deployer {
         if (currStep != null) {
           if (checkProcessDelay &&
               timeElapsedInSecs(currStep.getScheduledTs()) < dpmtWaitTimeBetweenRuns) {
-            //dont proceed if now()-stepDispatchTs < dpmtWaitTimeBetweenRuns
+            //don't proceed if now()-stepDispatchTs < dpmtWaitTimeBetweenRuns
             return;
           }
         }
 
         List<CmsWorkOrderSimple> list = Collections.emptyList();
 
+        //loop until either we have a list of workorders or the end of deployment
         while (list.isEmpty()) {
           list = cmsClient.getWorkOrderIdsNoLimit(dpmt, currentStep);
-          //there are no workorders in this step, so increment the current step and continue
           if (list.isEmpty()) {
+            //there are no workorders in this step, so increment the current step and continue
             DeploymentStep dpmtStep = dpmtExec.getStepMap().get(currentStep);
             if (dpmtStep != null) {
               dpmtStep.setCompleted(true);
             }
             currentStep++;
             if (currentStep > dpmt.getMaxExecOrder()) {
+              //no workorder pending for this deployment, mark it as finished,
+              //final state of deployment could be completed/failed based on all the workorders state
               dpmtFinished = true;
               break;
             }
@@ -129,6 +155,8 @@ public class Deployer {
             updateDeploymentWithStep(dpmt, dpmtExec, dStep, null);
           }
           else if (!list.isEmpty()) {
+            //we have pending workorders to be dispatched, update the deployment's current_step
+            //the actual dispatch will happen after releasing the lock on dpmtId
             DeploymentStep dStep = new DeploymentStep(currentStep, list.size(), System.currentTimeMillis());
             updateDeploymentWithStep(dpmt, dpmtExec, dStep, list);
             stepDispatch = new StepDispatch(dStep, list);
@@ -141,7 +169,10 @@ public class Deployer {
       } finally {
         dpmtCache.unlockDpmt(dpmtId);
       }
+
+      logger.info("processWo for deployment " + dpmtId + " took " + (System.currentTimeMillis() - startTs) + "ms");
       if (dpmtFinished) {
+        logger.info("deployment finished, removing from cache " + dpmtId);
         updateDeploymentEndState(dpmt);
         dpmtCache.removeDeploymentFromMap(dpmtId);
       } else if (stepDispatch != null) {
@@ -149,6 +180,7 @@ public class Deployer {
             wait4WoDispatch || isBacklogHigh());
       }
     } else {
+      logger.info("deployment not active, removing from cache " + dpmtId);
       dpmtCache.removeDeploymentFromMap(dpmtId);
     }
   }
@@ -160,6 +192,7 @@ public class Deployer {
   private void updateDeploymentWithStep(CmsDeployment dpmt, DeploymentExecution dpmtExec,
       DeploymentStep dpmtStep, List<CmsWorkOrderSimple> list) {
     dpmtExec.setCurrentStep(dpmtStep.getStep());
+    logger.info("processWo updating deployment " + dpmt.getDeploymentId() + " with step " + dpmtStep.getStep());
     if (list != null && !list.isEmpty()) {
       dpmtExec.getStepMap().computeIfAbsent(dpmtStep.getStep(), (k) -> dpmtStep);
     }
@@ -179,7 +212,7 @@ public class Deployer {
   private boolean autoPauseIfRequired(CmsDeployment dpmt, int step) {
     Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
     if (autoPauseExecOrders != null && autoPauseExecOrders.contains(step)) {
-      logger.info("pausing deployment " + dpmt.getDeploymentId() + " before step " + step);
+      logger.info("auto pausing deployment " + dpmt.getDeploymentId() + " before step " + step);
       dpmt.setDeploymentState(CmsDpmtProcessor.DPMT_STATE_PAUSED);
       dpmt.setUpdatedBy(CMSClient.ONEOPS_SYSTEM_USER);
       dpmt.setComments("deployment paused at step " + step + " on " + new Date());
@@ -222,6 +255,7 @@ public class Deployer {
 
   private void dispatchWorkOrdersWithWait(CmsDeployment dpmt, List<CmsWorkOrderSimple> list,
       DeploymentStep dpmtStep) {
+    long startTs = System.currentTimeMillis();
     CountDownLatch latch = new CountDownLatch(list.size());
     list.forEach(wo -> {
       WorkOrderContext context = updateRfcMapAndGetWoContext(dpmt, wo, dpmtStep);
@@ -234,6 +268,8 @@ public class Deployer {
     } catch (InterruptedException e) {
       logger.error("Exception waiting for latch in dispatchWorkOrders ", e);
     }
+    logger.info("dispatchWorkorders for dpmt " + dpmt.getDeploymentId() + ", step " + dpmtStep.getStep()
+        + " took " + (System.currentTimeMillis() - startTs) + "ms");
   }
 
   private void dispatchWorkOrdersNoWait(CmsDeployment dpmt, List<CmsWorkOrderSimple> list,
@@ -295,6 +331,10 @@ public class Deployer {
     return new DeploymentRfc(wo.getRfcId(), state, step);
   }
 
+  /**
+   * updates wo state based on inductor response, if the state is successful the rfc would be promoted to ci,
+   * also checks if we need to move to next step
+   */
   public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params)
       throws JMSException {
     CmsWorkOrderSimple woResponse = (CmsWorkOrderSimple) wo;
@@ -314,36 +354,50 @@ public class Deployer {
     logger.info("inductor response finished  deployment " + dpmtId + " rfc " + rfcId);
   }
 
+  /**
+   * checks if step converge can happen [all workorders are not in pending/in-progress state for this step].
+   * if so then sends a jms message to controller.workflow queue to proceed to next step after acquiring lock on dpmtId
+   */
   private void checkForConverge(CmsWorkOrderSimple woResponse, DeploymentRfc dpmtRfc)
       throws JMSException {
     long dpmtId = woResponse.getDeploymentId();
     long rfcId = woResponse.getRfcId();
+    int step = dpmtRfc != null ? dpmtRfc.getStep() : woResponse.rfcCi.getExecOrder();
     String logPrefix = "dpmtId " + dpmtId + " rfc " + rfcId;
-    long wosPending = dpmtProcessor.getUnfinishedWorkordersCount(dpmtId, dpmtRfc.getStep());
+    long wosPending = dpmtProcessor.getUnfinishedWorkordersCount(dpmtId, step);
     logger.info(logPrefix + ": unfinished workorders count " + wosPending);
     if (wosPending == 0) {
-      logger.info(logPrefix + ": trying to lock on dpmtId");
-      dpmtCache.lockDpmt(dpmtId);
-      try {
-        logger.info(logPrefix + ": got lock in inductor response ");
-        DeploymentExecution dpmtExec = dpmtCache.getDeploymentFromMap(dpmtId);
-        DeploymentStep dpmtStep = dpmtExec.getStepMap().get(dpmtRfc.getStep());
-        if (dpmtExec.getCurrentStep() == dpmtRfc.getStep() && !dpmtStep.isCompleted()) {
-          logger.info(logPrefix + ": inductor response converging to next step");
-          sendJMSMessageToProceed(dpmtId);
-          dpmtStep.setCompleted(true);
-        }
-        dpmtCache.updateDeploymentMap(dpmtId, dpmtExec);
-        logger.info(logPrefix + ": inductor response updated dpmtMap");
+      if (isActiveInCache(dpmtId)) {
+        logger.info(logPrefix + ": trying to lock on dpmtId");
+        long startTs = System.currentTimeMillis();
+        dpmtCache.lockDpmt(dpmtId);
+        try {
+          logger.info(logPrefix + ": got lock in inductor response ");
+          DeploymentExecution dpmtExec = dpmtCache.getDeploymentFromMap(dpmtId);
+          logger.info(logPrefix + " dpmtExec from cache : " + dpmtExec);
+          DeploymentStep dpmtStep = dpmtExec.getStepMap().get(step);
+          if (dpmtExec.getCurrentStep() == step && !dpmtStep.isCompleted()) {
+            logger.info(logPrefix + ": inductor response converging to next step");
+            sendJMSMessageToProceed(dpmtId);
+            dpmtStep.setCompleted(true);
+          }
+          dpmtCache.updateDeploymentMap(dpmtId, dpmtExec);
+          logger.info(logPrefix + ": inductor response updated dpmtMap");
 
-      } catch (JMSException e) {
-        logger.error("JMSException processing the response ", e);
-        throw e;
-      } finally {
-        dpmtCache.unlockDpmt(dpmtId);
-        logger.info(logPrefix + ": unlocked dpmtId");
+        } catch (JMSException e) {
+          logger.error("JMSException processing the response ", e);
+          throw e;
+        } finally {
+          dpmtCache.unlockDpmt(dpmtId);
+          logger.info(logPrefix + ": unlocked dpmtId");
+        }
+        logger.info(logPrefix + ": converge took " + (System.currentTimeMillis() - startTs) + " ms");
       }
     }
+  }
+
+  private boolean isActiveInCache(long dpmtId) {
+    return dpmtCache.getDeploymentFromMap(dpmtId) != null;
   }
 
   @Transactional
