@@ -75,7 +75,7 @@
   };
 
   <% selected = items.detect {|item| item[:selected]} %>
-  show_page(getHashParam("#") || "<%= selected[:id] || selected[:label] %>", null, true);
+  show_page(getHashParam("#") || "<%= selected[:id] || selected[:label] %>", null, false);
 
   $("page_nav_pages").show();
 </script>

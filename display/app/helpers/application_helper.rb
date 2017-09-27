@@ -14,6 +14,7 @@ module ApplicationHelper
                 :design                 => 'puzzle-piece',
                 :transition             => 'play-circle-o',
                 :operations             => 'signal',
+                :environment            => 'cubes',
                 :single_availability    => 'cube',
                 :redundant_availability => 'cubes',
                 :cloud_services         => 'cog',
@@ -26,7 +27,8 @@ module ApplicationHelper
                 :history                => 'history',
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
-                :compute                => 'server'}
+                :compute                => 'server',
+                :favorite               => 'bookmark'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -119,7 +121,7 @@ module ApplicationHelper
       end
     elsif @platform
       begin
-        catalog_pack_nav(@platform, @component)
+        catalog_pack_nav(@platform)
       rescue Exception => e
         Rails.logger.warn "Failed to generate context nav: #{e}.\nPack: #{@platform.inspect}\nCI: #{@component.inspect if @component}"
       end
@@ -144,7 +146,7 @@ module ApplicationHelper
       content_for(:context_nav, raw(nav))
   end
 
-  def catalog_pack_nav(platform, component)
+  def catalog_pack_nav(platform)
     scope = platform.ciClassName.end_with?('catalog.Platform') ?  'design' : platform.nsPath.split('/').last
     nav = %(<li class="title">#{link_to(icon(site_icon(:pack), "&nbsp;#{context_nav_name_label(platform.ciName)} #{content_tag(:sub, icon(site_icon("#{scope}_availability"), scope))}"), catalog_pack_platform_path(:platform_id => platform))}</li>)
     if scope == 'design'

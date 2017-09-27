@@ -46,4 +46,8 @@ public class DeploymentExecution implements Serializable {
     this.currentStep = currentStep;
   }
 
+  public String toString() {
+    return "DeploymentExec : [dpmtId : " + deploymentId + ", currentStep : " + currentStep + ", stepMap : " + stepMap + "]";
+  }
+
 }

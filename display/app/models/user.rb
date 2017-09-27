@@ -88,6 +88,10 @@ class User < ActiveRecord::Base
     password.present? && (Settings.authentication == 'ldap' ? valid_ldap_authentication?(password) : valid_password?(password))
   end
 
+  def org_favorites(org_id = organization_id)
+    favorites.where(:organization_id => org_id)
+  end
+
   def favorite(ci_id)
     @favorite_map ||= favorites.where(:organization_id => organization_id).inject({}) do |m, proxy|
       m[proxy.ci_id] = proxy

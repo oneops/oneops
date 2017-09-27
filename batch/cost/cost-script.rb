@@ -65,7 +65,7 @@ def existing_ci_cost (date)
         ]
       }
     },
-    "sort" => {"ciId" => "asc"}
+    "sort"    => {"ciId" => "asc"}
   }
 
   from           = 0
@@ -158,7 +158,7 @@ def existing_ci_cost (date)
   @day_record_count += record_counter
 end
 
-def deleted_ci_cost(date, class_name_regex)
+def deleted_ci_cost(date)
   ts = Time.now
   start_of_day = Time.parse(date).utc.beginning_of_day
   end_of_day   = start_of_day + 24.hours
@@ -168,7 +168,6 @@ def deleted_ci_cost(date, class_name_regex)
       "rfcCi.ciId",
       "rfcCi.nsPath",
       "rfcCi.ciClassName",
-      "rfcCi.rfcAction",
       "rfcCi.created",
       "cloud.ciName",
       "cloudName",
@@ -189,10 +188,17 @@ def deleted_ci_cost(date, class_name_regex)
       "bool" => {
         "must" => [
           {
-            "wildcard" => {"rfcCi.ciClassName.keyword" => "#{class_name_regex}"}
+            "nested" => {
+              "path"   => "payLoad.offerings",
+              "filter" => {
+                "exists" => {
+                  "field" => "payLoad.offerings"
+                }
+              }
+            }
           },
           {
-            "term" => {"rfcCi.rfcAction" => 'delete'}
+            "terms" => {"searchTags.rfcAction" => %w(delete replace)}
           },
           {
             "term" => {"dpmtRecordState" => 'complete'}
@@ -207,7 +213,7 @@ def deleted_ci_cost(date, class_name_regex)
         ]
       }
     },
-    "sort" => {"searchTags.responseDequeTS" =>  "asc"}
+    "sort"    => {"searchTags.responseDequeTS" => "asc"}
   }
 
   from           = 0
@@ -219,7 +225,7 @@ def deleted_ci_cost(date, class_name_regex)
     req[:from] = from
 
     print 'Loading delete WOs... '
-    cmd     = %(curl -s -XGET 'http://#{@host}:9200/cms-20*/workorder/_search' -d '#{req.to_json}')
+    cmd     = %(curl -s -XGET 'http://#{@host}:9200/cms-weekly/workorder/_search' -d '#{req.to_json}')
     results = JSON.parse(`#{cmd}`)['hits']
     wos     = results['hits']
     total   = results['total']
@@ -428,6 +434,7 @@ ARGV.delete_if do |a|
   elsif a == '-d' || a == '--debug'
     @debug = true
   elsif a == '--no-write'
+    puts '***** READ-ONLY MODE *****'
     no_write = true
   elsif a.start_with?('-')
     puts "Unknown option ''#{a}'', use '-h' option to see help!"
@@ -455,8 +462,8 @@ load_tags unless list_only
   @result_file_name = "#{@index_name}.json"
   File.delete(@result_file_name) if File.exist?(@result_file_name)
 
-  response = do_curl(%(-XHEAD "http://#{@host}:9200/#{@index_name}"), "Checking if #{@index_name} already exist...")
   unless no_write
+    response = do_curl(%(-XHEAD "http://#{@host}:9200/#{@index_name}"), "Checking if #{@index_name} already exist...")
     if response.include?('200 OK')
       unless force
         puts "Index #{@index_name} already exists - skipping, use '-f' option to force reindexing\n\n"
@@ -469,7 +476,7 @@ load_tags unless list_only
 
   @day_record_count = 0
   existing_ci_cost(d)
-  deleted_ci_cost(d, 'bom.*Compute')
+  deleted_ci_cost(d)
 
   unless no_write
     ts1 = Time.now
