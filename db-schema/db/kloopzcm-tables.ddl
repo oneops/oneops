@@ -173,6 +173,7 @@ CREATE TABLE kloopzcm.dj_deployment (
                 comments TEXT,
                 ops TEXT,
                 auto_pause_exec_orders VARCHAR(200),
+                current_step SMALLINT,
                 created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
                 CONSTRAINT dj_deployment_pk PRIMARY KEY (deployment_id)

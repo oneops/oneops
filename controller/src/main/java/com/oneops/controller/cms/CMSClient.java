@@ -494,18 +494,26 @@ public class CMSClient {
         String processId = exec.getProcessInstanceId();
         String execId = exec.getId();
         // lets create strip down dpmt to update just a processId and updatedBy
+        updateDeploymentAndNotify(dpmt, processId + "!" + execId, "Activiti Execution");
+    }
+
+    public void updateDeploymentAndNotify(CmsDeployment dpmt, String processId, String comments) {
         CmsDeployment dpmtParam = new CmsDeployment();
         dpmtParam.setDeploymentId(dpmt.getDeploymentId());
-        dpmtParam.setProcessId(processId + "!" + execId);
+        if (processId != null) {
+            dpmtParam.setProcessId(processId);
+        }
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
+        dpmtParam.setComments(comments);
         try {
-        	cmsDpmtProcessor.updateDeployment(dpmtParam);
+            cmsDpmtProcessor.updateDeployment(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
         } catch (CmsBaseException e) {
-			logger.error("CmsBaseException in updateDeployment", e);
-			e.printStackTrace();
-			throw e;
-		}
+            logger.error("CmsBaseException in updateDeployment", e);
+            e.printStackTrace();
+            throw e;
+        }
+
     }
 
 
