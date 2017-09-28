@@ -148,7 +148,7 @@ public class NotificationFilter implements MessageFilter {
      * Converts the json string to java string array.
      *
      * @param jsonString json array string
-     * @return java array. Returns <code>null</code>, if there is any error parsing the json string or not of type array.
+     * @return java array. Returns empty string, if there is any error parsing the json string or not of type array.
      */
     private static String[] toArray(String jsonString) {
       if (jsonString == null) {
@@ -157,7 +157,7 @@ public class NotificationFilter implements MessageFilter {
       try {
         return mapper.readValue(jsonString, String[].class);
       } catch (IOException e) {
-        return null;
+         return ArrayUtils.EMPTY_STRING_ARRAY;
       }
     }
 
