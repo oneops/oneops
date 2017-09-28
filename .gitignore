@@ -12,3 +12,8 @@ Gemfile.lock
 *.gemfile.lock
 vendor/
 dependency-reduced-pom.xml
+.DS_Store
+Builds
+box:
+display/.DS_Store
+virtualbox-iso:
