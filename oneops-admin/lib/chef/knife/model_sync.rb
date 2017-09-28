@@ -246,7 +246,7 @@ class Chef
           ui.info("Updating relation #{full_name}")
         else
           ui.info("Creating relation #{full_name}")
-          cms_relation = Cms::CiMd.new
+          cms_relation = Cms::RelationMd.new
         end
         cms_relation.relationName = full_name
         cms_relation.description  = group_props[:description] || md.description
