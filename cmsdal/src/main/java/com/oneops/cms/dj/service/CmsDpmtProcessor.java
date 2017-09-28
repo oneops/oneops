@@ -925,4 +925,8 @@ public class CmsDpmtProcessor {
 		dpmtMapper.updateDeploymentCurrentStep(deployment);
 	}
 
+	public void updateDeploymentExecInfo(CmsDeployment deployment) {
+		dpmtMapper.updateDeploymentExecInfo(deployment);
+	}
+
 }

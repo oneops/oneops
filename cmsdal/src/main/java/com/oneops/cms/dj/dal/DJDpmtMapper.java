@@ -86,4 +86,5 @@ public interface DJDpmtMapper {
 	long getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId,
 			@Param("states") List<String> states, @Param("execOrder") Integer execOrder);
 	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
+	void updateDeploymentExecInfo(CmsDeployment cmsDeployment);
 }

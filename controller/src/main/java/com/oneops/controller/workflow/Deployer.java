@@ -81,7 +81,7 @@ public class Deployer {
     if (dpmtExec == null) {
       dpmtCache.updateDeploymentMap(dpmt.getDeploymentId(), newDpmtExecution(dpmt, 1));
     }
-    cmsClient.updateDeploymentAndNotify(dpmt, null, "Deployer Execution");
+    cmsClient.updateDeploymentAndNotify(dpmt, null, "Deployer");
     processWorkOrders(dpmt.getDeploymentId(), false, true);
   }
 
