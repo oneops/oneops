@@ -510,7 +510,6 @@ public class CMSClient {
             deploymentNotifier.sendDpmtNotification(dpmt);
         } catch (CmsBaseException e) {
             logger.error("CmsBaseException in updateDeployment", e);
-            e.printStackTrace();
             throw e;
         }
 
