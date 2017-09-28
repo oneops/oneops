@@ -64,4 +64,8 @@ public class DeploymentStep implements Serializable {
   public void setWoFailedDispatchCount(int woFailedDispatchCount) {
     this.woFailedDispatchCount = woFailedDispatchCount;
   }
+
+  public String toString() {
+    return "DeploymentStep : [step : " + step + ", isCompleted : " + isCompleted + ", woCount : " + woCount + "]";
+  }
 }
