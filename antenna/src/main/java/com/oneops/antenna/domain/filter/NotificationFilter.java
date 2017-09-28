@@ -27,6 +27,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import java.io.IOException;
 import java.util.Arrays;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -147,14 +148,17 @@ public class NotificationFilter implements MessageFilter {
      * Converts the json string to java string array.
      *
      * @param jsonString json array string
-     * @return java array. Returns <code>null</code>, if there is any error parsing the json string or not of type array.
+     * @return java array. Returns empty string, if there is any error parsing the json string or not of type array.
      */
     private static String[] toArray(String jsonString) {
-        try {
-            return mapper.readValue(jsonString, String[].class);
-        } catch (IOException e) {
-            return null;
-        }
+      if (jsonString == null) {
+        return ArrayUtils.EMPTY_STRING_ARRAY;
+      }
+      try {
+        return mapper.readValue(jsonString, String[].class);
+      } catch (IOException e) {
+         return ArrayUtils.EMPTY_STRING_ARRAY;
+      }
     }
 
     /**
