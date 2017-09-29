@@ -498,8 +498,9 @@ public class CmsMdProcessor {
 
         clazz.setShortClassName(cmsUtil.getShortClazzName(clazz.getClassName()));
 
-        if (getClazz(clazz.getClassName()) != null) {
-            return updateClazz(clazz);
+        CmsClazz existingClazz = getClazz(clazz.getClassName());
+        if (existingClazz != null) {
+            return updateClazz(clazz, existingClazz);
         }
 
         if (clazz.getClassId() == 0) {
@@ -544,10 +545,13 @@ public class CmsMdProcessor {
             existingClazz = getClazz(clazz.getClassName(), true);
             if (existingClazz == null) {
                 throw new MDException(CmsError.MD_METADATA_NOT_FOUND_ERROR, "Could not find the metadata to update. class_name = " + clazz.getClassName());
-            } else {
-                clazz.setClassId(existingClazz.getClassId());
             }
         }
+        return updateClazz(clazz, existingClazz);
+    }
+
+    private CmsClazz updateClazz(CmsClazz clazz, CmsClazz existingClazz) {
+        clazz.setClassId(existingClazz.getClassId());
 
         CIValidationResult validation = mdValidator.validateUpdateClazz(clazz);
         if (!validation.isValidated()) {
@@ -600,6 +604,17 @@ public class CmsMdProcessor {
         }
 
         return getClazz(clazz.getClassId());
+    }
+
+    /**
+     * Updates clazz if it exists otherwise creates it.
+     *
+     * @param clazz the clazz
+     * @return the cms clazz
+     */
+    public CmsClazz createOrUpdateClazz(CmsClazz clazz) {
+        CmsClazz existingClazz = getClazz(clazz.getClassName(), true);
+        return existingClazz == null ? createClazz(clazz) : updateClazz(clazz, existingClazz);
     }
 
     private boolean allowAttributeChanges(CmsClazzAttribute existingAttr, CmsClazzAttribute updAttr) {
@@ -685,25 +700,21 @@ public class CmsMdProcessor {
     public CmsRelation createRelation(CmsRelation relation) {
         relation.setShortRelationName(cmsUtil.getShortClazzName(relation.getRelationName()));
 
-        if (getRelation(relation.getRelationName()) != null) {
-            return updateRelation(relation);
+        CmsRelation existingRelation = getRelation(relation.getRelationName());
+        if (existingRelation != null) {
+            return updateRelation(relation, existingRelation);
         }
+
         if (relation.getRelationId() == 0) {
             relation.setRelationId(relationMapper.getNextRelationId());
         }
         relationMapper.createRelation(relation);
+
         for (CmsRelationAttribute attr : relation.getMdAttributes()) {
             attr.setRelationId(relation.getRelationId());
             relationMapper.addRelationAttribute(attr);
         }
 
-        /*
-        for(CmsClazzRelation link : relation.getTargets()) {
-            link.setRelationId(relation.getRelationId());
-            prepareTarget(link);
-            relationMapper.addRelationTarget(link);
-        }
-        */
         for (CmsClazzRelation uppTarget : relation.getTargets()) {
             //added ability to specify target wildcard on the package like mgmt.service.*
             for (CmsClazzRelation target : parseTargets(uppTarget)) {
@@ -727,6 +738,10 @@ public class CmsMdProcessor {
         if (existingRelation == null) {
             throw new MDException(CmsError.MD_RELATION_NOT_FOUND_ERROR, "Could not find the relation to update. relation_name = " + relation.getRelationName());
         }
+        return updateRelation(relation, existingRelation);
+    }
+
+    private CmsRelation updateRelation(CmsRelation relation, CmsRelation existingRelation) {
 
         CIValidationResult validation = mdValidator.validateUpdateRelation(relation);
         if (!validation.isValidated()) {
@@ -773,6 +788,18 @@ public class CmsMdProcessor {
 
         return getRelation(relation.getRelationName());
     }
+
+    /**
+     * Updates relations if it exists otherwise creates it.
+     *
+     * @param relation the clazz
+     * @return the cms relation
+     */
+    public CmsRelation createOrUpdateRelation(CmsRelation relation) {
+        CmsRelation existingRelation = getRelationWithTargets(relation.getRelationName());
+        return existingRelation == null ? createRelation(relation) : updateRelation(relation, existingRelation);
+    }
+
 
     /**
      * Delete relation.

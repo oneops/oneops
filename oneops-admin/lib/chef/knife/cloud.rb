@@ -275,13 +275,12 @@ class Chef
         Chef::Log.info("Creating #{o.ciClassName} #{o.ciName}")
       end
 
-      Chef::Log.debug(o.inspect)
+      Chef::Log.debug(o.to_yaml) if Log.debug?
       begin
         o.save
         Chef::Log.info("Successfully loaded #{o.ciClassName} #{o.ciName}")
       rescue Exception => e
-        Chef::Log.error(e.response.read_body)
-        Chef::Log.error("Failed loading #{o.ciClassName} #{o.ciName}")
+        Log.error("Failed loading #{o.ciClassName} #{o.ciName}: e")
       false
       end
       o
@@ -298,8 +297,7 @@ class Chef
           Chef::Log.info("Successfully deleted #{ci.ciClassName} #{ci.ciName}")
         end
       rescue Exception => e
-      #raise e unless e.response.code == "404"
-        Chef::Log.info("Failed deleting #{ci.ciClassName} #{ci.ciName}")
+        Log.error("Failed deleting #{ci.ciClassName} #{ci.ciName}: #{e}")
         false
       end
     end
@@ -325,8 +323,7 @@ class Chef
         o.save
         Chef::Log.info("Successfully loaded #{name}")
       rescue Exception => e
-        Chef::Log.debug(e.response.read_body)
-        Chef::Log.error("Failed loading #{name}")
+        Log.error("Failed loading #{name}: #{e}")
       false
       end
       o
@@ -347,13 +344,12 @@ class Chef
         Chef::Log.info("Creating #{name}")
       end
 
-      Chef::Log.debug(o.inspect)
+      Log.debug(o.to_yaml) if Log.debug?
       begin
         o.save
-        Chef::Log.info("Successfully loaded #{name}")
+        Log.info("Successfully loaded #{name}")
       rescue Exception => e
-        Chef::Log.debug(e.response.read_body)
-        Chef::Log.error("Failed loading #{name}")
+        Log.error("Failed loading #{name}: #{e}")
       false
       end
       o
