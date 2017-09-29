@@ -76,6 +76,11 @@
       "destination": "/tmp/ruby-2.3.3.tar.bz2"
     },
     {
+      "type": "file",
+      "source": "files/ruby/binaries/centos/7/x86_64/ruby-2.0.0-p648.tar.bz2",
+      "destination": "/tmp/ruby-2.0.0-p648.tar.bz2"
+    },
+    {
       "environment_vars": [
         "CM={{user `cm`}}",
         "CM_VERSION={{user `cm_version`}}",
