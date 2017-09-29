@@ -446,7 +446,7 @@ public class Deployer {
     String state = (String) params.get(CmsConstants.WORK_ORDER_STATE);
     logger.info("updating workorder state dpmt " + dpmtId + " rfc " + woResponse.getRfcId() + " state "
         + state);
-    cmsClient.updateWoState(dpmt, woResponse, state, "workorder execution failed");
+    cmsClient.updateWoState(dpmt, woResponse, state, null);
   }
 
   private void sendJMSMessageToProceed(long dpmtId) throws JMSException {
