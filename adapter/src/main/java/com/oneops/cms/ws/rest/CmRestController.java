@@ -493,6 +493,23 @@ public class CmRestController extends AbstractRestController {
 		return cmsCISimple;
 	}
 
+	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/cis/bulk")
+	@ResponseBody
+	public List<CmsCISimple> createOrUpdateCISimpleBulk(
+			@RequestParam(value="value", required = false)  String valueType,
+			@RequestBody CmsCISimple[] cis,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) throws CIValidationException {
+
+		List<CmsCISimple> result = new ArrayList<>();
+		for (CmsCISimple ci : cis) {
+			long ciId = ci.getCiId();
+			result.add(ciId == 0 ? createCISimple(valueType, ci, scope, userId) : updateCISimple(ciId, valueType, ci, scope, userId));
+		}
+		return result;
+	}
+
+
 	private void updateAltNs(long ciId, CmsCISimple ciSimple) {
 		Map<String, Set<String>> altNs = ciSimple.getAltNs();
 		if (altNs !=null && altNs.size()!=0){
@@ -745,9 +762,24 @@ public class CmRestController extends AbstractRestController {
 		}
 		return cmsUtil.custCIRelation2CIRelationSimple(newRel, valueType,false, attrProps);
 	}
-	
-	
-	@RequestMapping(value="/cm/simple/relations/{ciRelId}", method = RequestMethod.DELETE)
+
+	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/relations/bulk")
+	@ResponseBody
+	public List<CmsCIRelationSimple> createOrUpdateCIRelationBulk(
+			@RequestParam(value="value", required = false)  String valueType,
+			@RequestBody CmsCIRelationSimple[] relations,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) throws CIValidationException {
+		List<CmsCIRelationSimple> result = new ArrayList<>();
+		for (CmsCIRelationSimple relation : relations) {
+			long id = relation.getCiRelationId();
+			result.add(id == 0 ? createCIRelation(valueType, relation, scope, userId) : updateCIRelation(id, valueType, relation, scope, userId));
+		}
+		return result;
+	}
+
+
+		@RequestMapping(value="/cm/simple/relations/{ciRelId}", method = RequestMethod.DELETE)
 	@ResponseBody
 	public String deleteRelation(
 			@PathVariable long ciRelId,

@@ -36,11 +36,18 @@ class Chef
              :long        => '--msg MSG',
              :description => "Append a message to the comments"
 
+      option :cms_trace,
+             :short       => "-t",
+             :long        => "--trace",
+             :description => "Raw HTTP debug trace for CMS calls"
+
       def clouds_loader
         @clouds_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
       end
 
       def run
+        ENV['CMS_TRACE'] = 'true' if config[:cms_trace]
+
         config[:register]   ||= Chef::Config[:register]
         config[:version]    ||= Chef::Config[:version]
         config[:cloud_path] ||= Chef::Config[:cloud_path]

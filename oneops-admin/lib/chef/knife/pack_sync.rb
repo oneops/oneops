@@ -7,14 +7,14 @@ class Chef
   class Knife
     class UI
       def debug(message)
-        stdout.puts message if @config[:verbosity] >= 2
+        Log.debug message if Log.debug?
       end
     end
 
     VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
     class PackSync < Chef::Knife
-      banner "knife pack sync PACK (options)"
+      banner "Loads packs to CMS.\nUsage:\n   knife pack sync PACK (options)"
 
       option :all,
              :short       => "-a",
@@ -45,80 +45,67 @@ class Chef
              :long        => "--semver",
              :description => "Creates new patch version for each change"
 
-
       option :msg,
              :short       => '-m MSG',
              :long        => '--msg MSG',
              :description => "Append a message to the comments"
 
-      def packs_loader
-        @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Pack, ui)
-      end
+      option :cms_trace,
+             :short       => "-t",
+             :long        => "--trace",
+             :description => "Raw HTTP debug trace for CMS calls"
 
-      # safety measure: make sure no packs conflict in scope
-      def validate_packs
-        config[:pack_path] ||= Chef::Config[:pack_path]
-        config[:version]   ||= Chef::Config[:version]
-
-        # keyed by group-name-version
-        pack_map = {}
-
-        config[:pack_path].each do |dir|
-
-          pack_file_pattern = "#{dir}/*.rb"
-          files             = Dir.glob(pack_file_pattern)
-          files.each do |file|
-            pack = packs_loader.load_from("packs", file)
-            key  = "#{get_group}**#{pack.name.downcase}**#{pack.version.presence || config[:version].split('.').first}"
-            if pack_map.has_key?(key)
-              puts "error: conflict of pack group-name-version: #{key} #{file} to #{pack_map[key]}"
-              puts "no packs loaded."
-              exit 1
-            else
-              pack_map[key] = "#{file}"
-            end
-          end
-        end
-      end
 
       def run
+        t1 = Time.now
+        ENV['CMS_TRACE'] = 'true' if config[:cms_trace]
+
         config[:pack_path] ||= Chef::Config[:pack_path]
         config[:register]  ||= Chef::Config[:register]
         config[:version]   ||= Chef::Config[:version]
         config[:semver]    ||= ENV['SEMVER'].present?
 
-        comments = "#{ENV['USER']}:#{$0}"
-        comments += " #{config[:msg]}" if config[:msg]
+        @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Pack, ui)
 
-        validate_packs
+        validate_packs   # safety measure: make sure no packs conflict in scope
 
-        unless Cms::Namespace.first(:params => {:nsPath => "#{Chef::Config[:nspath]}/#{get_group}/packs"})
-          ui.error("Can't find namespace #{nspath}. Please register your source first with the register command.")
+        circuit_ns_path = "#{Chef::Config[:nspath]}/#{get_group}/packs"
+        unless Cms::Namespace.first(:params => {:nsPath => circuit_ns_path})
+          ui.error("Can't find namespace #{circuit_ns_path}. Please register your source first with the register command.")
           exit 1
         end
 
         if config[:all]
-          config[:pack_path].each do |dir|
-            pack_file_pattern = "#{dir}/*.rb"
-            files             = Dir.glob(pack_file_pattern)
-            files.each do |file|
-              unless upload_template_from_file(file, comments)
-                ui.error('exiting')
-                exit 1
-              end
-            end
-          end
-        elsif @name_args.present?
-          @name_args.each do |pack|
-            file = [pack, 'rb'].join('.')
-            unless upload_template_from_file(file, comments)
-              ui.error('exiting')
-              exit 1
-            end
-          end
+          files = config[:pack_path].inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
         else
-          ui.error 'You must specify the pack name or use the --all option.'
-          exit 1
+          files = @name_args.inject([]) {|a, pack| a << "#{pack}.rb"}
+        end
+
+        if files.blank?
+          ui.error 'You must specify pack name(s) or use the --all option to sync all.'
+          exit(1)
+        end
+
+        comments = "#{ENV['USER']}:#{$0} #{config[:msg]}"
+        files.each {|f| exit(1) unless sync_pack(f, comments)}
+
+        t2 = Time.now
+        ui.info("\nProcessed #{files.size} packs.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
+      end
+
+      def validate_packs
+        pack_map = {}
+        config[:pack_path].each do |dir|
+          Dir.glob("#{dir}/*.rb").each do |file|
+            pack = @packs_loader.load_from('packs', file)
+            key  = "#{get_group}**#{pack.name.downcase}**#{pack.version.presence || config[:version].split('.').first}"
+            if pack_map.has_key?(key)
+              ui.error("Conflict of pack source-name-version: #{key} is defined in #{file} and #{pack_map[key]}")
+              exit 1
+            else
+              pack_map[key] = file
+            end
+          end
         end
       end
 
@@ -204,34 +191,37 @@ class Chef
         Chef::Config[:register]
       end
 
-      def upload_template_from_file(file, comments)
-        pack = packs_loader.load_from(Chef::Config[:pack_path], file)
+      def sync_pack(file, comments)
+        pack = @packs_loader.load_from(Chef::Config[:pack_path], file)
         pack.name.downcase!
-        if config[:semver] || pack.semver?
-          return upload_template_from_file_ver_update(pack, comments)
+
+        if pack.ignore
+          ui.info("Ignoring pack #{pack.name} version #{pack.version.presence || config[:version]}")
+          return true
+        elsif config[:semver] || pack.semver?
+          return sync_pack_semver(pack, comments)
         else
-          return upload_template_from_file_no_verupdate(pack, comments)
+          return sync_pack_no_semver(pack, comments)
         end
       end
 
-      def upload_template_from_file_ver_update(pack, comments)
-        if pack.ignore
-          ui.info("Ignoring pack #{pack.name} version #{pack.version}")
-          return true
-        end
-
+      def sync_pack_semver(pack, comments)
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} \e[0m")
+        ui.info('--------------------------------------------------')
         if config[:reload]
-          ui.warn('Reload option is no longer available in semver mode, all pack versions are immutable. If you need to force new patch version, force a change to the content of pack file (i.e. pack description) and do a pack sync.')
+          ui.warn('Reload option is not available in semver mode, all pack versions are '\
+                  'immutable. If you need to force a new patch version, make a change in '\
+                  'the pack (i.e. pack description) or specify patch version explicitly.')
         end
 
         signature = check_pack_version_ver_update(pack)
 
-        ui.info("============> #{pack.name} #{pack.version}")
         ns = "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}"
 
         # If pack signature matches nothing to do.
         unless signature
-          # Documentation could have been updated, reload it just in case.
+          # However, documentation could have been updated, reload it just in case.
           gen_doc(ns, pack)
           return true
         end
@@ -245,12 +235,12 @@ class Chef
           gen_doc(ns, pack)
 
           # Upload design template
-          upload_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
+          sync_env_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
 
           # Upload manifest templates
           pack.environments.each do |name, _|
             setup_mode(pack, name, comments)
-            upload_template("#{ns}/#{name}", pack.name, 'mgmt.manifest', pack, name, pack.environment_resources(name), comments)
+            sync_env_template("#{ns}/#{name}", pack.name, 'mgmt.manifest', pack, name, pack.environment_resources(name), comments)
           end
         rescue Exception => e
           ui.error(e.message)
@@ -263,22 +253,18 @@ class Chef
           raise e
         end
 
-        ui.info("Uploaded pack #{pack.name} version #{pack.version}")
-        ui.info("Uploaded pack #{pack.name} version #{pack.version} [signature: #{signature}]")
+        ui.info("\e[7m\e[32mSuccessfully synched\e[0m pack #{pack.name} version #{pack.version} [signature: #{signature}]")
         return true
       end
 
-      def upload_template_from_file_no_verupdate(pack, comments)
+      def sync_pack_no_semver(pack, comments)
         signature = Digest::MD5.hexdigest(pack.signature)
 
-        pack.version((pack.version.presence || config[:version]).split('.').first) # default to the global knife version if not specified
+        pack.version((pack.version.presence || config[:version]).split('.').first)   # default to the global knife version if not specified
 
-        if pack.ignore
-          ui.info("Ignoring pack #{pack.name} version #{pack.version}")
-          return true
-        end
-
-        ui.info("============> #{pack.name} #{pack.version}")
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} ver.#{pack.version} \e[0m")
+        ui.info('--------------------------------------------------')
 
         # If pack signature matches but reload option is not set - bail
         return true if !config[:reload] && check_pack_version_no_ver_update(pack, signature)
@@ -290,26 +276,30 @@ class Chef
         fix_delta_cms(pack)
 
         # setup pack version namespace first
-        pack_version = setup_pack_version(pack, comments, '')
-        return false unless pack_version
+        version_ci = setup_pack_version(pack, comments, '')
+        unless version_ci
+          # Unfortunately for legacy reasons we have to continue because some old packs have inconsitent name (capitalized and was not 'downcased' before syching in the past).
+          ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}, skipping it.")
+          return true
+        end
 
         ns = "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}"
         gen_doc(ns, pack)
 
         # Upload design template
-        upload_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
+        sync_env_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
 
         # Upload manifest templates
         pack.environments.each do |name, _|
           setup_mode(pack, name, comments)
-          upload_template("#{ns}/#{name}", pack.name, 'mgmt.manifest', pack, name, pack.environment_resources(name), comments)
+          sync_env_template("#{ns}/#{name}", pack.name, 'mgmt.manifest', pack, name, pack.environment_resources(name), comments)
         end
 
-        pack_version.ciAttributes.commit = signature
-        unless save(pack_version)
+        version_ci.ciAttributes.commit = signature
+        unless save(version_ci)
           ui.warn("Failed to update signature for pack #{pack.name} version #{pack.version}")
         end
-        ui.info("Uploaded pack #{pack.name} version #{pack.version} [signature: #{signature}]")
+        ui.info("\e[7m\e[32mSuccessfully synched pack #{pack.name} version #{pack.version}\e[0m [signature: #{signature}]")
         return true
       end
 
@@ -439,7 +429,7 @@ class Chef
 
         if latest_patch
           pack.version(latest_patch.ciName)
-          signature = Digest::MD5.hexdigest(pack.signature)
+          signature = pack.signature
           if latest_patch.ciAttributes.attributes['commit'] == signature
             ui.info("Pack #{pack.name} latest patch version #{latest_patch.ciName} matches signature (#{signature}), will skip pack loading, but will try to update docs.")
             return nil
@@ -552,9 +542,10 @@ class Chef
         end
       end
 
-      def upload_template(nspath, template_name, package, pack, env, resources, comments)
+      def sync_env_template(nspath, template_name, package, pack, env, resources, comments)
         ui.info("======> #{env}")
         Log.debug([pack.name, pack.version, package, nspath, resources, comments].to_yaml) if Log.debug?
+
         platform = upload_template_platform(nspath, template_name, package, pack, comments)
         if platform
           components = upload_template_components(nspath, platform, template_name, package, resources, comments)
@@ -606,11 +597,11 @@ class Chef
       end
 
       def upload_template_components(nspath, platform, template_name, package, resources, comments)
-        components = {}
-        relations  = Cms::Relation.all(:params => {:ciId              => platform.ciId,
-                                                   :direction         => 'from',
-                                                   :relationShortName => 'Requires',
-                                                   :includeToCi       => true})
+        relations = []
+        existing = Cms::Relation.all(:params => {:ciId              => platform.ciId,
+                                                 :direction         => 'from',
+                                                 :relationShortName => 'Requires',
+                                                 :includeToCi       => true})
 
         resources.each do |resource_name, resource|
           class_name_parts     = resource[:cookbook].split('.')
@@ -619,7 +610,7 @@ class Chef
           class_name_parts     = class_name_parts.unshift(package)
           ci_class_name        = class_name_parts.join('.')
 
-          relation = relations.find {|r| r.toCi.ciName == resource_name && r.toCi.ciClassName == ci_class_name}
+          relation = existing.find {|r| r.toCi.ciName == resource_name && r.toCi.ciClassName == ci_class_name}
 
           if relation
             ui.debug("Updating resource #{resource_name} for template #{template_name}")
@@ -651,31 +642,33 @@ class Chef
             attrs.each {|name, _| attrs[name] = component_attrs[name] if component_attrs.has_key?(name)}
           end
 
-          if save(relation)
-            ui.debug("Successfuly saved resource #{resource_name} for template #{template_name}")
-            components[resource_name] = relation.toCiId
-          else
-            ui.error("Could not save resource #{resource_name}, skipping it")
-          end
+          relations << relation
         end
 
-        return components
+        relations, error = Cms::Relation.bulk(relations)
+        unless relations
+          ui.error("Could not save components: #{error}")
+          raise(error)
+        end
+        ui.debug('Successfuly saved components')
+        return relations.inject({}) {|h, r| h[r.toCi.ciName] = r.toCiId; h}
       end
 
       def upload_template_depends_on(nspath, pack, resources, components, env)
         relation_name = "mgmt.#{env == '_default' ? 'catalog' : 'manifest'}.DependsOn"
-        relations     = Cms::Relation.all(:params => {:nsPath       => nspath,
-                                                      :relationName => relation_name})
+        existing = Cms::Relation.all(:params => {:nsPath       => nspath,
+                                                 :relationName => relation_name})
+        relations = []
         resources.each do |resource_name, _|
           next unless pack.depends_on[resource_name]
           pack.depends_on[resource_name].each do |do_class, __|
             next unless components[do_class] # skip if the target depends_on is not in this mode/env
-            depends_on = relations.find {|d| d.fromCiId == components[resource_name] && d.toCiId == components[do_class]}
-            if depends_on
+            relation = existing.find {|d| d.fromCiId == components[resource_name] && d.toCiId == components[do_class]}
+            if relation
               ui.debug("Updating depends on between #{resource_name} and #{do_class}")
             else
               ui.info("Creating depends on between #{resource_name} and #{do_class}")
-              depends_on = build('Cms::Relation',
+              relation = build('Cms::Relation',
                                  :relationName => relation_name,
                                  :nsPath       => nspath,
                                  :fromCiId     => components[resource_name],
@@ -683,32 +676,36 @@ class Chef
             end
 
             attrs = pack.depends_on[resource_name][do_class]
-            depends_on.relationAttributes.attributes.each do |name, ___|
-              depends_on.relationAttributes.send(name+'=', attrs[name]) if attrs[name]
+            relation.relationAttributes.attributes.each do |name, ___|
+              relation.relationAttributes.send(name+'=', attrs[name]) if attrs[name]
             end
 
-            if save(depends_on)
-              ui.debug("Successfuly saved depends on between #{resource_name} and #{do_class}")
-            else
-              ui.error("Could not save depends on between #{resource_name} and #{do_class} in #{nspath}, skipping it")
-            end
+            relations << relation
           end
         end
+
+        relations, error = Cms::Relation.bulk(relations)
+        unless relations
+          ui.error("Could not save DependsOn relations: #{error}")
+          raise(error)
+        end
+        ui.debug('Successfuly saved DependsOn relations')
       end
 
       def upload_template_managed_via(nspath, pack, resources, components)
         relation_name = 'mgmt.manifest.ManagedVia'
-        relations     = Cms::Relation.all(:params => {:nsPath       => nspath,
-                                                      :relationName => relation_name})
+        existing = Cms::Relation.all(:params => {:nsPath       => nspath,
+                                                 :relationName => relation_name})
+        relations = []
         resources.each do |resource_name, _|
           next unless pack.managed_via[resource_name]
           pack.managed_via[resource_name].each do |mv_class, __|
-            managed_via = relations.find {|r| r.fromCiId == components[resource_name] && r.toCiId == components[mv_class]}
-            if managed_via
+            relation = existing.find {|r| r.fromCiId == components[resource_name] && r.toCiId == components[mv_class]}
+            if relation
               ui.debug("Updating managed via between #{resource_name} and #{mv_class}")
             else
               ui.info("Creating managed via between #{resource_name} and #{mv_class}")
-              managed_via = build('Cms::Relation',
+              relation = build('Cms::Relation',
                                   :relationName => relation_name,
                                   :nsPath       => nspath,
                                   :fromCiId     => components[resource_name],
@@ -716,17 +713,20 @@ class Chef
             end
 
             attrs = pack.managed_via[resource_name][mv_class]
-            managed_via.relationAttributes.attributes.each do |name, ___|
-              managed_via.relationAttributes.send(name+'=', attrs[name]) if attrs[name]
+            relation.relationAttributes.attributes.each do |name, ___|
+              relation.relationAttributes.send(name+'=', attrs[name]) if attrs[name]
             end
 
-            if save(managed_via)
-              ui.debug("Successfuly saved managed via between #{resource_name} and #{mv_class}")
-            else
-              ui.error("Could not save managed via between #{resource_name} and #{mv_class}, skipping it")
-            end
+            relations << relation
           end
         end
+
+        relations, error = Cms::Relation.bulk(relations)
+        unless relations
+          ui.error("Could not save ManagedVia relations: #{error}")
+          raise(error)
+        end
+        ui.debug('Successfuly saved ManagedVia relations')
       end
 
       def upload_template_entrypoint(nspath, pack, resources, components, platform, env)
@@ -766,7 +766,7 @@ class Chef
         ci_class_name = "#{package}.Monitor"
         relations     = Cms::Relation.all(:params => {:nsPath       => nspath,
                                                       :relationName => relation_name,
-                                                      :includeToCi  => true})
+                                                      :includeToCi  => true}).to_a
 
         resources.each do |resource_name, resource|
           next unless resource[:monitors]
@@ -789,7 +789,7 @@ class Chef
                 ui.warn("Monitor #{monitor_name} for component #{resource_name} is not uniquely named, will re-use existing payload CI with the same name")
                 relation.toCiId = duplicate_ci_name_rel.toCiId
                 if save(relation)
-                  relation.add(relation)
+                  relations << relation
                   relation.toCi = duplicate_ci_name_rel.toCi
                 else
                   ui.error("Could not create WatchedBy relation #{monitor_name} for #{resource_name}, skipping it")
@@ -991,15 +991,6 @@ class Chef
           Log.warn(object.errors.full_messages.join('; ')) unless ok
         rescue Exception => e
           Log.info(object.to_yaml) unless Log.debug?
-          Log.info(e.response.read_body)
-        end
-        ok ? object : false
-      end
-
-      def destroy(object)
-        begin
-          ok = object.destroy
-        rescue Exception => e
           Log.info(e.response.read_body)
         end
         ok ? object : false
