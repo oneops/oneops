@@ -259,6 +259,23 @@
               </artifacts>
             </configuration>
           </execution>
+          <execution>
+            <id>inductor-az-register</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/${project.artifactId}-${project.version}-inductor-az.tar.gz</file>
+                  <type>tar.gz</type>
+                  <classifier>inductor-az</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+
         </executions>
       </plugin>
     </plugins>
