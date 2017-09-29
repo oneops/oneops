@@ -57,6 +57,7 @@ class Chef
 
 
       def run
+        t1 = Time.now
         ENV['CMS_TRACE'] = 'true' if config[:cms_trace]
 
         config[:pack_path] ||= Chef::Config[:pack_path]
@@ -80,13 +81,16 @@ class Chef
           files = @name_args.inject([]) {|a, pack| a << "#{pack}.rb"}
         end
 
-        if files.present?
-          comments = "#{ENV['USER']}:#{$0} #{config[:msg]}"
-          files.each {|f| exit(1) unless sync_pack(f, comments)}
-        else
+        if files.blank?
           ui.error 'You must specify pack name(s) or use the --all option to sync all.'
           exit(1)
         end
+
+        comments = "#{ENV['USER']}:#{$0} #{config[:msg]}"
+        files.each {|f| exit(1) unless sync_pack(f, comments)}
+
+        t2 = Time.now
+        ui.info("\nProcessed #{files.size} packs.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
       end
 
       def validate_packs
@@ -202,7 +206,9 @@ class Chef
       end
 
       def sync_pack_semver(pack, comments)
-        ui.info("\n============> \e[7m\e[34m# {pack.name} #{pack.version} \e[0m")
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} \e[0m")
+        ui.info('--------------------------------------------------')
         if config[:reload]
           ui.warn('Reload option is not available in semver mode, all pack versions are '\
                   'immutable. If you need to force a new patch version, make a change in '\
@@ -256,7 +262,9 @@ class Chef
 
         pack.version((pack.version.presence || config[:version]).split('.').first)   # default to the global knife version if not specified
 
-        ui.info("\n============> \e[7m\e[34m #{pack.name} #{pack.version} \e[0m")
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} ver.#{pack.version} \e[0m")
+        ui.info('--------------------------------------------------')
 
         # If pack signature matches but reload option is not set - bail
         return true if !config[:reload] && check_pack_version_no_ver_update(pack, signature)

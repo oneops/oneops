@@ -17,12 +17,14 @@
  *******************************************************************************/
 package com.oneops.cms.ws.rest;
 
+import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.MDException;
 import com.oneops.cms.md.domain.CmsClazz;
 import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.service.CmsMdManager;
 import com.oneops.cms.util.CmsError;
+import com.oneops.filter.CacheFilter;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,9 +38,14 @@ import java.util.List;
 public class MdRestController extends AbstractRestController {
 
 	private CmsMdManager mdManager;
+	private CmsCmManager cmManager;
 
 	public void setMdManager(CmsMdManager mdManager) {
 		this.mdManager = mdManager;
+	}
+
+	public void setCmManager(CmsCmManager cmManager) {
+		this.cmManager = cmManager;
 	}
 
 	@ExceptionHandler(MDException.class)
@@ -124,14 +131,20 @@ public class MdRestController extends AbstractRestController {
 
     @RequestMapping(method=RequestMethod.POST, value="/md/classes/bulk")
     @ResponseBody
-    public List<CmsClazz> createClazz(@RequestBody CmsClazz[] clazzes) {
+    public List<CmsClazz> createOrUpdateClazz(@RequestBody CmsClazz[] clazzes) {
 		List<CmsClazz> result = new ArrayList<>();
 		for (CmsClazz clazz : clazzes) {
 			result.add(mdManager.createOrUpdateClazz(clazz));
 		}
-		mdManager.invalidateCache();
         return result;
     }
+
+	@RequestMapping(method = RequestMethod.GET, value = "/md/cache/trigger_reset")
+	@ResponseBody
+	public String triggerCacheReset() {
+		cmManager.updateCmSimpleVar(CacheFilter.MD_CACHE_STATUS_VAR, "" + System.currentTimeMillis(), null, "oneops-system");
+		return "ok";
+	}
 
     @RequestMapping(method=RequestMethod.PUT, value="/md/classes/{clazzName}")
     @ResponseBody
@@ -165,12 +178,11 @@ public class MdRestController extends AbstractRestController {
 
     @RequestMapping(method=RequestMethod.POST, value="/md/relations/bulk")
     @ResponseBody
-    public List<CmsRelation> createRelation(@RequestBody CmsRelation[] relations) {
+    public List<CmsRelation> createOrUpdateRelation(@RequestBody CmsRelation[] relations) {
 		List<CmsRelation> result = new ArrayList<>();
 		for (CmsRelation rel : relations) {
 			result.add(mdManager.createOrUpdateRelation(rel));
 		}
-		mdManager.invalidateCache();
 		return result;
     }
 

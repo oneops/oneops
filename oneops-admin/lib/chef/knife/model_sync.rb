@@ -45,6 +45,7 @@ class Chef
 
 
       def run
+        t1 = Time.now
         ENV['CMS_TRACE'] = 'true' if config[:cms_trace]
 
         config[:cookbook_path] ||= Chef::Config[:cookbook_path]
@@ -57,18 +58,26 @@ class Chef
           cookbooks = @name_args
         end
 
-        if cookbooks.present?
-          models = cookbooks.inject([]) do |a, cookbook|
-            Array(config[:cookbook_path]).reverse.inject(a) do |aa, path|
-              file = File.expand_path(File.join(path, cookbook, 'metadata.rb'))
-              File.exists?(file) ? (aa + sync_cookbook_metadata(cookbook, file)) : aa
-            end
-          end
-          ui.warn('Nothing to do - no matching metadata definitions found.') unless models.present?
-        else
+        if cookbooks.blank?
           ui.error 'You must specify cookbook name(s) or use the --all option to sync all.'
           exit(1)
         end
+
+        models = cookbooks.inject([]) do |a, cookbook|
+          Array(config[:cookbook_path]).reverse.inject(a) do |aa, path|
+            file = File.expand_path(File.join(path, cookbook, 'metadata.rb'))
+            File.exists?(file) ? (aa + sync_cookbook_metadata(cookbook, file)) : aa
+          end
+        end
+
+        if models.present?
+          ok, error = Cms::MdCache.reset
+          ui.warn("Failed to tigger metadata cache reset: #{error}") unless ok
+        else
+          ui.warn('Nothing to do - no matching metadata definitions found.')
+        end
+        t2 = Time.now
+        ui.info("\nProcessed #{cookbooks.size} cookbooks, resulting in #{models.size} models.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
       end
 
       def gen_doc(md, f)
@@ -177,7 +186,9 @@ class Chef
       end
 
       def build_class_models(md)
-        ui.info("\n============> Building classes for \e[7m\e[34m #{md.name} \e[0m")
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m #{md.name} \e[0m classes")
+        ui.info('--------------------------------------------------')
         classes = []
         # must sync the base class first
         md.groupings.each do |group_name, group_properties|
@@ -243,7 +254,9 @@ class Chef
       end
 
       def build_relation_models(md)
-        ui.info("\n============> Building relations for \e[7m\e[34m #{md.name} \e[0m")
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m #{md.name} \e[0m relations")
+        ui.info('--------------------------------------------------')
         relations = []
         # must sync the base relation first
         md.groupings.each do |group_name, group_properties|

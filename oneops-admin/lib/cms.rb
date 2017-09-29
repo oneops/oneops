@@ -14,6 +14,7 @@ require 'cms/relation_md'
 require 'cms/ci'
 require 'cms/relation'
 require 'cms/namespace'
+require 'cms/md_cache'
 
 class ActiveResource::Connection
   # Creates new Net::HTTP instance for communication with

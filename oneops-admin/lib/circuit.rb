@@ -172,9 +172,10 @@ EOH
 
   def model
     syncmodelclasses()
-    syncmodelrelations()
+    puts "Classes synced!\n"
 
-    puts "Model synced!"
+    syncmodelrelations()
+    puts "Relations synced!\n"
   end
 
   desc "packs", "Pack Sync"
@@ -188,7 +189,7 @@ EOH
       say "fail. #{cmd} returned: #{exit_code}", :red
       exit exit_code
     end
-    puts "Pack synced!"
+    puts "Packs synced!\n"
   end
 
   desc "clouds", "Clouds Sync"
@@ -238,11 +239,8 @@ EOH
         say "fail. #{cmd} returned: #{exit_code}", :red
         exit exit_code
       end
-
-
     end
   end
-
 end
 
 Circuit.start
