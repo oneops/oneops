@@ -14,7 +14,7 @@ class Chef
     VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
     class PackSync < Chef::Knife
-      banner "Loads packs to CMS.\nUsage:\n   knife pack sync PACK (options)"
+      banner "Loads packs into CMS.\nUsage:\n   knife pack sync [PACKS...] (options)"
 
       option :all,
              :short       => "-a",
@@ -31,10 +31,10 @@ class Chef
              :long        => "--version VERSION",
              :description => "Specify the source register version to use during sync"
 
-      option :cookbook_path,
+      option :pack_path,
              :short       => "-o PATH:PATH",
-             :long        => "--cookbook-path PATH:PATH",
-             :description => "A colon-separated path to look for cookbooks in",
+             :long        => "--pack-path PATH:PATH",
+             :description => "A colon-separated path to look for packs in",
              :proc        => lambda {|o| o.split(":")}
 
       option :reload,
@@ -97,7 +97,7 @@ class Chef
         pack_map = {}
         config[:pack_path].each do |dir|
           Dir.glob("#{dir}/*.rb").each do |file|
-            pack = @packs_loader.load_from('packs', file)
+            pack = @packs_loader.load_from(config[:pack_path], file)
             key  = "#{get_group}**#{pack.name.downcase}**#{pack.version.presence || config[:version].split('.').first}"
             if pack_map.has_key?(key)
               ui.error("Conflict of pack source-name-version: #{key} is defined in #{file} and #{pack_map[key]}")
@@ -110,17 +110,17 @@ class Chef
       end
 
       def get_remote_dir
-        unless @remote_dir
+        unless doc_store
           conn       = get_connection
           env_bucket = Chef::Config[:environment_name]
 
-          @remote_dir = conn.directories.get(env_bucket)
-          if @remote_dir.nil?
-            @remote_dir = conn.directories.create(:key => env_bucket)
+          doc_store = conn.directories.get(env_bucket)
+          if doc_store.nil?
+            doc_store = conn.directories.create(:key => env_bucket)
             ui.debug "created #{env_bucket}"
           end
         end
-        @remote_dir
+        doc_store
       end
 
       def get_connection
@@ -192,7 +192,7 @@ class Chef
       end
 
       def sync_pack(file, comments)
-        pack = @packs_loader.load_from(Chef::Config[:pack_path], file)
+        pack = @packs_loader.load_from(config[:pack_path], file)
         pack.name.downcase!
 
         if pack.ignore
@@ -207,7 +207,7 @@ class Chef
 
       def sync_pack_semver(pack, comments)
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} \e[0m")
+        ui.info("\e[7m\e[34m #{pack.name} #{pack.version} \e[0m")
         ui.info('--------------------------------------------------')
         if config[:reload]
           ui.warn('Reload option is not available in semver mode, all pack versions are '\
@@ -263,7 +263,7 @@ class Chef
         pack.version((pack.version.presence || config[:version]).split('.').first)   # default to the global knife version if not specified
 
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} ver.#{pack.version} \e[0m")
+        ui.info("\e[7m\e[34m #{pack.name} ver.#{pack.version} \e[0m")
         ui.info('--------------------------------------------------')
 
         # If pack signature matches but reload option is not set - bail
@@ -786,7 +786,7 @@ class Chef
               # monitor CI may already exists.
               duplicate_ci_name_rel = relations.find {|r| r.toCi.ciName == monitor_name}
               if duplicate_ci_name_rel
-                ui.warn("Monitor #{monitor_name} for component #{resource_name} is not uniquely named, will re-use existing payload CI with the same name")
+                ui.warn("Monitor #{monitor_name} for component #{resource_name} is not uniquely named, will re-use existing monitor CI with the same name")
                 relation.toCiId = duplicate_ci_name_rel.toCiId
                 if save(relation)
                   relations << relation

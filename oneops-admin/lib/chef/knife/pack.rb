@@ -1,6 +1,5 @@
 class Chef
   class Pack
-
     include Chef::Mixin::FromFile
     include Chef::Mixin::ParamsValidate
 

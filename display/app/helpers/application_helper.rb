@@ -1270,10 +1270,11 @@ module ApplicationHelper
   end
 
   def ci_doc_link(ci, label, opts = {})
-    asset_url = Settings.asset_url.presence || 'cms/'
-    anchor    = opts[:anchor]
+    asset_url        = Settings.asset_url.presence || 'cms/'
+    anchor           = opts[:anchor]
+    class_name_split = ci.ciClassName.split('.')
     link_to(raw(label),
-            "#{asset_url}#{ci.ciClassName.split('.')[1..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
+            "#{asset_url}#{class_name_split[(class_name_split[0] == 'mgmt' ? 2 : 1)..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
             :class  => opts[:class] || '')
   end
