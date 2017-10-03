@@ -135,6 +135,10 @@ public class Dispatcher {
                           .stream()
                           .map(rfc -> rfc.getCiId())
                           .collect(Collectors.toList());
+                      if(ciIds.isEmpty()){
+                        // There are no ci's which sink is subscribed to , skip notifications.
+                        continue;
+                      }
                       final List<CmsCISimple> cis = cmProcessor.getCiByIdList(ciIds).stream()
                           .map(ci -> cmsUtil.custCI2CISimple(ci, "df")).collect(
                               Collectors.toList());

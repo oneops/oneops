@@ -212,3 +212,4 @@ CREATE UNIQUE INDEX cms_vars_idx2
  WHERE criteria IS NULL;
 
 ALTER TABLE kloopzcm.dj_deployment ADD COLUMN current_step SMALLINT;
+ALTER TABLE kloopzcm.dj_deployment ADD COLUMN exec_model VARCHAR(100);

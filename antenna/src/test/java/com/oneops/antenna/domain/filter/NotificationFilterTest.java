@@ -17,17 +17,19 @@
  *******************************************************************************/
 package com.oneops.antenna.domain.filter;
 
+import static com.oneops.antenna.domain.NotificationSeverity.critical;
+import static com.oneops.antenna.domain.NotificationSeverity.info;
+import static com.oneops.antenna.domain.NotificationType.ci;
+import static com.oneops.antenna.domain.NotificationType.deployment;
+import static com.oneops.antenna.domain.NotificationType.none;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
+
 import com.oneops.antenna.domain.NotificationMessage;
 import com.oneops.antenna.domain.NotificationSeverity;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import static com.oneops.antenna.domain.NotificationSeverity.critical;
-import static com.oneops.antenna.domain.NotificationSeverity.info;
-import static com.oneops.antenna.domain.NotificationType.*;
-import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertTrue;
 
 /**
  * {@link NotificationFilter} tests.
@@ -54,6 +56,7 @@ public class NotificationFilterTest {
         msg = new NotificationMessage();
         msg.setEnvironmentProfileName("prod");
         msg.setNsPath("/test/ns/path");
+        msg.setSubject("Test message");
         msg.setType(ci);
         msg.setSeverity(info);
     }
@@ -174,6 +177,26 @@ public class NotificationFilterTest {
         assertTrue(filter.accept(msg), "'(dfw|dal)-prod*' cloud filter should pass through messages with 'dal-prod' cloud.");
     }
 
+    @Test
+    public void testMessageFilter() throws Exception {
+      filter.selectorPattern("*");
+      assertTrue(filter.accept(msg), "Empty cloud filter should pass through all messages.");
+
+      filter.selectorPattern(null);
+      assertTrue(filter.accept(msg), "Null  filter should pass through all messages.");
+
+      filter.selectorPattern(".* Deployment completed successfully");
+      msg.setSubject(
+          "stgqe/Aenterprise-VvkFH/Eenterprise-VvkFH : Deployment completed successfully");
+      assertTrue(filter.accept(msg),
+          "<Deployment completed successfully>  filter should pass this messages.");
+
+      filter.selectorPattern("Deployment completed successfully");
+      msg.setSubject("stgqe/Aenterprise-VvkFH/Eenterprise-VvkFH : Deployment Failed");
+      assertFalse(filter.accept(msg),
+          "<Deployment completed successfully>  filter should NOT pass through all dfw-prod messages.");
+
+    }
     @AfterMethod
     public void tearDown() throws Exception {
     }
