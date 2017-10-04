@@ -79,12 +79,17 @@ public class Deployer {
     logger.info("Deployer started for dpmt : " + dpmt.getDeploymentId());
     DeploymentExecution dpmtExec = dpmtCache.getDeploymentFromMap(dpmt.getDeploymentId());
     if (dpmtExec == null) {
-      dpmtExec = new DeploymentExecution();
-      dpmtExec.setDeploymentId(dpmt.getDeploymentId());
-      dpmtExec.setCurrentStep(1);
-      dpmtCache.updateDeploymentMap(dpmt.getDeploymentId(), dpmtExec);
+      dpmtCache.updateDeploymentMap(dpmt.getDeploymentId(), newDpmtExecution(dpmt, 1));
     }
+    cmsClient.updateDeploymentAndNotify(dpmt, null, "Deployer");
     processWorkOrders(dpmt.getDeploymentId(), false, true);
+  }
+
+  private DeploymentExecution newDpmtExecution(CmsDeployment dpmt, int step) {
+    DeploymentExecution dpmtExec = new DeploymentExecution();
+    dpmtExec.setDeploymentId(dpmt.getDeploymentId());
+    dpmtExec.setCurrentStep(step);
+    return dpmtExec;
   }
 
   public void processWorkflow(WorkflowMessage wfMessage) {
@@ -108,6 +113,7 @@ public class Deployer {
     StepDispatch stepDispatch = null;
     long startTs = System.currentTimeMillis();
     if (isActive(dpmt)) {
+      ensureDpmtInCache(dpmt);
       dpmtCache.lockDpmt(dpmtId);
       try {
         DeploymentExecution dpmtExec = dpmtCache.getDeploymentFromMap(dpmtId);
@@ -191,10 +197,16 @@ public class Deployer {
 
   private void updateDeploymentWithStep(CmsDeployment dpmt, DeploymentExecution dpmtExec,
       DeploymentStep dpmtStep, List<CmsWorkOrderSimple> list) {
-    dpmtExec.setCurrentStep(dpmtStep.getStep());
-    logger.info("processWo updating deployment " + dpmt.getDeploymentId() + " with step " + dpmtStep.getStep());
+    int oldStep = dpmtExec.getCurrentStep();
+    int newStep = dpmtStep.getStep();
+    dpmtExec.setCurrentStep(newStep);
+    logger.info("processWo updating deployment " + dpmt.getDeploymentId() + " with step " + newStep);
     if (list != null && !list.isEmpty()) {
-      dpmtExec.getStepMap().computeIfAbsent(dpmtStep.getStep(), (k) -> dpmtStep);
+      Map<Integer, DeploymentStep> stepMap = dpmtExec.getStepMap();
+      stepMap.computeIfAbsent(newStep, (k) -> dpmtStep);
+      if (oldStep < newStep) {
+        stepMap.remove(oldStep);
+      }
     }
     dpmtCache.updateDeploymentMap(dpmtExec.getDeploymentId(), dpmtExec);
     if (dpmt.getCurrentStep() != dpmtExec.getCurrentStep()) {
@@ -228,7 +240,7 @@ public class Deployer {
   }
 
   private boolean isActive(CmsDeployment dpmt) {
-    return CmsDpmtProcessor.DPMT_STATE_ACTIVE.equals(dpmt.getDeploymentState());
+    return (dpmt != null) && CmsDpmtProcessor.DPMT_STATE_ACTIVE.equals(dpmt.getDeploymentState());
   }
 
   private boolean isPaused(CmsDeployment dpmt) {
@@ -236,7 +248,7 @@ public class Deployer {
   }
 
   private boolean isPending(CmsDpmtRecord dpmtRecord) {
-    return CmsDpmtProcessor.DPMT_STATE_PENDING.equals(dpmtRecord.getDpmtRecordState());
+    return (dpmtRecord != null) && CmsDpmtProcessor.DPMT_STATE_PENDING.equals(dpmtRecord.getDpmtRecordState());
   }
 
   private long timeElapsedInSecs(long time) {
@@ -367,7 +379,7 @@ public class Deployer {
     long wosPending = dpmtProcessor.getUnfinishedWorkordersCount(dpmtId, step);
     logger.info(logPrefix + ": unfinished workorders count " + wosPending);
     if (wosPending == 0) {
-      if (isActiveInCache(dpmtId)) {
+      if (ensureDpmtInCache(dpmtId, step)) {
         logger.info(logPrefix + ": trying to lock on dpmtId");
         long startTs = System.currentTimeMillis();
         dpmtCache.lockDpmt(dpmtId);
@@ -396,8 +408,35 @@ public class Deployer {
     }
   }
 
-  private boolean isActiveInCache(long dpmtId) {
-    return dpmtCache.getDeploymentFromMap(dpmtId) != null;
+  private boolean ensureDpmtInCache(long dpmtId, int step) {
+    if (dpmtCache.getDeploymentFromMap(dpmtId) == null) {
+      logger.info("deployment not available in cache " + dpmtId + " step " + step);
+      CmsDeployment dpmt = dpmtProcessor.getDeployment(dpmtId);
+      if (isActive(dpmt) && dpmt.getCurrentStep() == step) {
+        logger.info("deployment " + dpmtId + " still active and step matches, so adding to cache");
+        initCacheWithDeployment(dpmt);
+      }
+      else {
+        logger.info("deployment " + dpmtId + " not active/step not matching step : " + step);
+        return false;
+      }
+    }
+    else {
+      logger.info("deployment available in cache " + dpmtId);
+    }
+    return true;
+  }
+
+  private void ensureDpmtInCache(CmsDeployment dpmt) {
+    if (dpmtCache.getDeploymentFromMap(dpmt.getDeploymentId()) == null) {
+      initCacheWithDeployment(dpmt);
+    }
+  }
+
+  private void initCacheWithDeployment(CmsDeployment dpmt) {
+    DeploymentExecution dpmtExec = newDpmtExecution(dpmt, dpmt.getCurrentStep());
+    dpmtExec.getStepMap().put(dpmt.getCurrentStep(), new DeploymentStep(dpmt.getCurrentStep()));
+    dpmtCache.updateDeploymentMap(dpmt.getDeploymentId(), dpmtExec);
   }
 
   @Transactional
@@ -407,7 +446,7 @@ public class Deployer {
     String state = (String) params.get(CmsConstants.WORK_ORDER_STATE);
     logger.info("updating workorder state dpmt " + dpmtId + " rfc " + woResponse.getRfcId() + " state "
         + state);
-    cmsClient.updateWoState(dpmt, woResponse, state, "workorder execution failed");
+    cmsClient.updateWoState(dpmt, woResponse, state, null);
   }
 
   private void sendJMSMessageToProceed(long dpmtId) throws JMSException {

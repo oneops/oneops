@@ -10,7 +10,7 @@ This repository contains the main codebase for all components.
 Requirements for building include JDK 8, Maven, Ruby, Bundler and a number of
 other tools.
 
-A simple buld can be performed with
+A simple build can be performed with
 
 
 ```
