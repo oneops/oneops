@@ -1,12 +1,10 @@
-require 'cms'
+require 'chef/knife/base_sync'
 require 'chef/cookbook_loader'
-require 'fog'
-require 'kramdown'
 
 class Chef
   class Knife
     class ModelSync < Chef::Knife::CookbookMetadata
-      @doc_store = nil
+      include ::BaseSync
 
       banner "Loads class and relation metadata into CMS\nUsage: \n   knife model sync [COOKBOOKS...] (options)"
 
@@ -40,15 +38,6 @@ class Chef
              :description => "A colon-separated path to look for cookbooks in",
              :proc        => lambda {|o| o.split(":")}
 
-      option :cms_trace,
-             :short       => "-t",
-             :long        => "--trace",
-             :description => "Raw HTTP debug trace for CMS calls"
-
-      option :skip_docs,
-             :long        => "--skip-docs",
-             :description => "Do not sync documents and images"
-
 
       def run
         t1 = Time.now
@@ -69,14 +58,6 @@ class Chef
         if cookbooks.blank?
           ui.error 'You must specify cookbook name(s) or use the --all option to sync all.'
           exit(1)
-        end
-
-        unless config[:skip_docs]
-          unless get_remote_dir
-            ui.warn "object_store_provder is not configured, will NOT sync documents and images!\n"\
-                  "For local store set CIRCUIT_LOCAL_ASSET_STORE_ROOT environment variable, i.e.\n"\
-                  "\texport CIRCUIT_LOCAL_ASSET_STORE_ROOT=/<path_to_display>/public/_circuit"
-          end
         end
 
         sync_relations = config[:relations]
@@ -302,52 +283,14 @@ class Chef
         return target
       end
 
-      def get_remote_dir
-        return @doc_store if @doc_store
-
-        object_store_provider = Chef::Config[:object_store_provider]
-        if object_store_provider == 'OpenStack'
-          conn = Fog::Storage.new({:provider           => object_store_provider,
-                                   :openstack_username => Chef::Config[:object_store_user],
-                                   :openstack_api_key  => Chef::Config[:object_store_pass],
-                                   :openstack_auth_url => Chef::Config[:object_store_endpoint]})
-          env_bucket  = Chef::Config[:environment_name]
-        elsif ENV['CIRCUIT_LOCAL_ASSET_STORE_ROOT'].present?
-          conn = Fog::Storage.new({:provider   => 'Local',
-                                   :local_root => ENV['CIRCUIT_LOCAL_ASSET_STORE_ROOT']})
-          env_bucket = '.'
-        else
-          ui.warn "Unsupported object_store_provider: #{object_store_provider}" if object_store_provider.present?
-          return nil
-        end
-
-        @doc_store = conn.directories.get(env_bucket) || conn.directories.create(:key => env_bucket)
-        Log.debug "Object store dir:\n #{@doc_store.to_yaml}" if Log.debug?
-        return @doc_store
-      end
-
       def sync_docs(md, md_file)
-        return unless @doc_store
+        return unless sync_docs?
 
         doc_dir = md_file.gsub(/metadata\.rb$/, 'doc')
         files   = Dir.glob("#{doc_dir}/**/*")
         if files.present?
           ui.info('docs and images:')
-          files.each do |file|
-            content     = File.read(file)
-            remote_file = file.gsub(doc_dir, build_md_name(md.name))
-            if file.end_with?('.md')
-              content = Kramdown::Document.new(content).to_html
-              remote_file.gsub!(/.md$/, '.html')
-            end
-
-            obj = {:key => remote_file, :body => content}
-            obj['content_type'] = 'text/html' if remote_file.end_with?('.html')
-            obj['content_type'] = 'image/png' if remote_file.end_with?('.png')
-
-            @doc_store.files.create(obj)
-            ui.info(" - #{remote_file} ")
-          end
+          files.each {|file| sync_doc_file(file, file.gsub(doc_dir, build_md_name(md.name)))}
         end
       end
 

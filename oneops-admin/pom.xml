@@ -155,8 +155,8 @@
               </arguments>
             </configuration>
           </execution>
-          <!--Begin Az Inductor package -->
 
+          <!-- Prepare oneops-admin-inductor-az (azure) gem (build gem, cache dependencies, package in a tar) -->
           <execution>
             <id>inductor-build-az-gem</id>
             <phase>package</phase>
@@ -204,22 +204,6 @@
               </arguments>
             </configuration>
           </execution>
-          <!--End Az Inductor package -->
-          <!-- Build old oneops-admin gem -->
-          <execution>
-            <id>old-build-gem</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>gem</executable>
-              <arguments>
-                <argument>build</argument>
-                <argument>oneops-admin.gemspec</argument>
-              </arguments>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
 
@@ -255,6 +239,22 @@
                   <file>${project.build.directory}/${project.artifactId}-${project.version}-inductor.tar.gz</file>
                   <type>tar.gz</type>
                   <classifier>inductor</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
+          <execution>
+            <id>inductor-az-register</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/${project.artifactId}-${project.version}-inductor-az.tar.gz</file>
+                  <type>tar.gz</type>
+                  <classifier>inductor-az</classifier>
                 </artifact>
               </artifacts>
             </configuration>

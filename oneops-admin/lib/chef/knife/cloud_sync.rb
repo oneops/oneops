@@ -1,8 +1,9 @@
-require 'cms'
+require 'chef/knife/base_sync'
 
 class Chef
   class Knife
     class CloudSync < Chef::Knife
+      include ::BaseSync
 
       banner "Loads cloud templates into CMS\nUsage: \n   knife cloud sync [CLOUDS...] (options)"
 
@@ -31,15 +32,6 @@ class Chef
              :long        => "--reload",
              :description => "Remove the current cloud before syncing"
 
-      option :msg,
-             :short       => '-m MSG',
-             :long        => '--msg MSG',
-             :description => "Append a message to the comments"
-
-      option :cms_trace,
-             :short       => "-t",
-             :long        => "--trace",
-             :description => "Raw HTTP debug trace for CMS calls"
 
       def clouds_loader
         @clouds_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
