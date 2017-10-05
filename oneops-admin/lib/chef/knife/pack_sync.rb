@@ -1,20 +1,14 @@
-require 'cms'
+require 'chef/knife/base_sync'
 require 'chef/knife/core/object_loader'
-require 'fog'
-require 'kramdown'
 
 class Chef
   class Knife
-    class UI
-      def debug(message)
-        Log.debug message if Log.debug?
-      end
-    end
+    include ::BaseSync
 
     VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
     class PackSync < Chef::Knife
-      banner "Loads packs to CMS.\nUsage:\n   knife pack sync PACK (options)"
+      banner "Loads packs into CMS.\nUsage:\n   knife pack sync [PACKS...] (options)"
 
       option :all,
              :short       => "-a",
@@ -31,10 +25,10 @@ class Chef
              :long        => "--version VERSION",
              :description => "Specify the source register version to use during sync"
 
-      option :cookbook_path,
+      option :pack_path,
              :short       => "-o PATH:PATH",
-             :long        => "--cookbook-path PATH:PATH",
-             :description => "A colon-separated path to look for cookbooks in",
+             :long        => "--pack-path PATH:PATH",
+             :description => "A colon-separated path to look for packs in",
              :proc        => lambda {|o| o.split(":")}
 
       option :reload,
@@ -44,16 +38,6 @@ class Chef
       option :semver,
              :long        => "--semver",
              :description => "Creates new patch version for each change"
-
-      option :msg,
-             :short       => '-m MSG',
-             :long        => '--msg MSG',
-             :description => "Append a message to the comments"
-
-      option :cms_trace,
-             :short       => "-t",
-             :long        => "--trace",
-             :description => "Raw HTTP debug trace for CMS calls"
 
 
       def run
@@ -69,7 +53,7 @@ class Chef
 
         validate_packs   # safety measure: make sure no packs conflict in scope
 
-        circuit_ns_path = "#{Chef::Config[:nspath]}/#{get_group}/packs"
+        circuit_ns_path = get_packs_ns
         unless Cms::Namespace.first(:params => {:nsPath => circuit_ns_path})
           ui.error("Can't find namespace #{circuit_ns_path}. Please register your source first with the register command.")
           exit 1
@@ -87,18 +71,18 @@ class Chef
         end
 
         comments = "#{ENV['USER']}:#{$0} #{config[:msg]}"
-        files.each {|f| exit(1) unless sync_pack(f, comments)}
+        loaded_files = files.inject([]) {|a, f| a << f if sync_pack(f, comments); a}
 
         t2 = Time.now
-        ui.info("\nProcessed #{files.size} packs.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
+        ui.info("\nProcessed #{files.size} files, loaded #{loaded_files.size} packs.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
       end
 
       def validate_packs
         pack_map = {}
         config[:pack_path].each do |dir|
           Dir.glob("#{dir}/*.rb").each do |file|
-            pack = @packs_loader.load_from('packs', file)
-            key  = "#{get_group}**#{pack.name.downcase}**#{pack.version.presence || config[:version].split('.').first}"
+            pack = @packs_loader.load_from(config[:pack_path], file)
+            key  = "#{get_source}**#{pack.name.downcase}**#{pack.version.presence || config[:version].split('.').first}"
             if pack_map.has_key?(key)
               ui.error("Conflict of pack source-name-version: #{key} is defined in #{file} and #{pack_map[key]}")
               exit 1
@@ -109,105 +93,43 @@ class Chef
         end
       end
 
-      def get_remote_dir
-        unless @remote_dir
-          conn       = get_connection
-          env_bucket = Chef::Config[:environment_name]
 
-          @remote_dir = conn.directories.get(env_bucket)
-          if @remote_dir.nil?
-            @remote_dir = conn.directories.create(:key => env_bucket)
-            ui.debug "created #{env_bucket}"
-          end
-        end
-        @remote_dir
-      end
+      private
 
-      def get_connection
-        return @object_store_connection if @object_store_connection
-        object_store_provider = Chef::Config[:object_store_provider]
-
-        case object_store_provider
-          when 'OpenStack'
-            @object_store_connection = Fog::Storage.new({
-                                                          :provider           => object_store_provider,
-                                                          :openstack_username => Chef::Config[:object_store_user],
-                                                          :openstack_api_key  => Chef::Config[:object_store_pass],
-                                                          :openstack_auth_url => Chef::Config[:object_store_endpoint]
-                                                        })
-          when 'Local'
-            @object_store_connection = Fog::Storage.new({
-                                                          :provider   => object_store_provider,
-                                                          :local_root => Chef::Config[:object_store_local_root]
-                                                        })
-          else
-            raise Exception.new("unsupported object_store_provider: #{object_store_provider}")
-        end
-
-        return @object_store_connection
-      end
-
-      def gen_doc(ns, pack)
-        if Chef::Config[:object_store_provider].blank?
-          ui.info "skipping doc - no object_store_provider is set"
-          return
-        end
-
-        remote_dir  = get_remote_dir
-        initial_dir = Dir.pwd
-        doc_dir     = initial_dir + '/packs/doc'
-
-        if File.directory? doc_dir
-          Dir.chdir doc_dir
-          ["#{pack.name}.md", "#{pack.name}.png"].each do |file|
-            remote_file = ns + '/' + file
-            local_file  = doc_dir + '/' + file
-            unless File.exists?(local_file)
-              ui.warn "missing local file: #{local_file}"
-              next
-            end
-            if file =~ /\.md$/
-              content = Kramdown::Document.new(File.read(local_file)).to_html
-              remote_file.gsub!(".md", ".html")
-              File.write(local_file.gsub(".md", ".html"), content)
-            else
-              content = File.open(local_file)
-            end
-            # remove first slash in ns path
-            remote_file = remote_file[1..-1]
-            ui.info "doc: #{local_file}   =>   remote: #{remote_file}"
-            obj = {:key => remote_file, :body => content}
-            if remote_file =~ /\.html/
-              obj['content_type'] = 'text/html'
-            end
-
-            remote_dir.files.create obj
-          end
-        end
-        Dir.chdir initial_dir
-      end
-
-      def get_group
+      def get_source
         Chef::Config[:register]
       end
 
+      def get_packs_ns
+        "#{Chef::Config[:nspath]}/#{get_source}/packs"
+      end
+
+      def get_pack_ns(pack)
+        "#{get_packs_ns}/#{pack.name}/#{pack.version}"
+      end
+
       def sync_pack(file, comments)
-        pack = @packs_loader.load_from(Chef::Config[:pack_path], file)
+        pack = @packs_loader.load_from(config[:pack_path], file)
         pack.name.downcase!
 
         if pack.ignore
           ui.info("Ignoring pack #{pack.name} version #{pack.version.presence || config[:version]}")
-          return true
+          return false
         elsif config[:semver] || pack.semver?
-          return sync_pack_semver(pack, comments)
+          signature = sync_pack_semver(pack, comments)
         else
-          return sync_pack_no_semver(pack, comments)
+          signature = sync_pack_no_semver(pack, comments)
         end
+
+        sync_docs(pack)
+        ui.info("\e[7m\e[32mSuccessfully synched\e[0m pack #{pack.name} version #{pack.version} #{"[signature: #{signature}]" if signature}")
+
+        return signature
       end
 
       def sync_pack_semver(pack, comments)
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} \e[0m")
+        ui.info("\e[7m\e[34m #{pack.name} #{pack.version} \e[0m")
         ui.info('--------------------------------------------------')
         if config[:reload]
           ui.warn('Reload option is not available in semver mode, all pack versions are '\
@@ -216,31 +138,22 @@ class Chef
         end
 
         signature = check_pack_version_ver_update(pack)
-
-        ns = "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}"
-
-        # If pack signature matches nothing to do.
-        unless signature
-          # However, documentation could have been updated, reload it just in case.
-          gen_doc(ns, pack)
-          return true
-        end
+        return false unless signature   # If pack signature matches nothing to do.
 
         Log.debug(pack.to_yaml) if Log.debug?
 
         version_ci = setup_pack_version(pack, comments, signature)
-        return false unless version_ci
 
         begin
-          gen_doc(ns, pack)
+          ns = get_pack_ns(pack)
 
           # Upload design template
           sync_env_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
 
           # Upload manifest templates
-          pack.environments.each do |name, _|
-            setup_mode(pack, name, comments)
-            sync_env_template("#{ns}/#{name}", pack.name, 'mgmt.manifest', pack, name, pack.environment_resources(name), comments)
+          pack.environments.each do |env, _|
+            setup_mode(pack, env, comments)
+            sync_env_template("#{ns}/#{env}", pack.name, 'mgmt.manifest', pack, env, pack.environment_resources(env), comments)
           end
         rescue Exception => e
           ui.error(e.message)
@@ -253,8 +166,7 @@ class Chef
           raise e
         end
 
-        ui.info("\e[7m\e[32mSuccessfully synched\e[0m pack #{pack.name} version #{pack.version} [signature: #{signature}]")
-        return true
+        return signature
       end
 
       def sync_pack_no_semver(pack, comments)
@@ -263,11 +175,11 @@ class Chef
         pack.version((pack.version.presence || config[:version]).split('.').first)   # default to the global knife version if not specified
 
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m# {pack.name} #{pack.version} ver.#{pack.version} \e[0m")
+        ui.info("\e[7m\e[34m #{pack.name} ver.#{pack.version} \e[0m")
         ui.info('--------------------------------------------------')
 
         # If pack signature matches but reload option is not set - bail
-        return true if !config[:reload] && check_pack_version_no_ver_update(pack, signature)
+        return false if !config[:reload] && check_pack_version_no_ver_update(pack, signature)          # However, documentation could have been updated, reload it just in case.
 
         Log.debug(pack.to_yaml) if Log.debug?
 
@@ -278,36 +190,32 @@ class Chef
         # setup pack version namespace first
         version_ci = setup_pack_version(pack, comments, '')
         unless version_ci
-          # Unfortunately for legacy reasons we have to continue because some old packs have inconsitent name (capitalized and was not 'downcased' before syching in the past).
+          # Unfortunately for legacy reasons we have to continue because some old packs have inconsistent name (capitalized and was not 'downcased' before syching in the past).
           ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}, skipping it.")
-          return true
+          return false
         end
 
-        ns = "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}"
-        gen_doc(ns, pack)
+        ns = get_pack_ns(pack)
 
         # Upload design template
         sync_env_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
 
         # Upload manifest templates
-        pack.environments.each do |name, _|
-          setup_mode(pack, name, comments)
-          sync_env_template("#{ns}/#{name}", pack.name, 'mgmt.manifest', pack, name, pack.environment_resources(name), comments)
+        pack.environments.each do |env, _|
+          setup_mode(pack, env, comments)
+          sync_env_template("#{ns}/#{env}", pack.name, 'mgmt.manifest', pack, env, pack.environment_resources(env), comments)
         end
 
         version_ci.ciAttributes.commit = signature
         unless save(version_ci)
           ui.warn("Failed to update signature for pack #{pack.name} version #{pack.version}")
         end
-        ui.info("\e[7m\e[32mSuccessfully synched pack #{pack.name} version #{pack.version}\e[0m [signature: #{signature}]")
-        return true
+
+        return signature
       end
 
-
-      private
-
       def fix_delta_cms(pack)
-        nsPath  = "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}"
+        nsPath  = get_pack_ns(pack)
         cmsEnvs = ['_default'] + Cms::Ci.all(:params => {:nsPath => nsPath, :ciClassName => 'mgmt.Mode'}).map(&:ciName)
         cmsEnvs.each do |env|
           relations = fix_rels_from_cms(pack, env)
@@ -319,7 +227,7 @@ class Chef
         pack_rels   = pack.relations
         target_rels = []
         scope       = (env == '_default') ? '' : "/#{env}"
-        Cms::Relation.all(:params => {:nsPath        => "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}#{scope}",
+        Cms::Relation.all(:params => {:nsPath        => "#{get_pack_ns(pack)}#{scope}",
                                       :includeToCi   => true,
                                       :includeFromCi => true}).each do |r|
           new_state      = nil
@@ -367,7 +275,7 @@ class Chef
       def fix_ci_from_cms(pack, env, relations, environments)
         scope          = (env == '_default') ? '' : "/#{env}"
         pack_resources = pack.resources
-        Cms::Ci.all(:params => {:nsPath => "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}#{scope}"}).each do |resource|
+        Cms::Ci.all(:params => {:nsPath => "#{get_pack_ns(pack)}#{scope}"}).each do |resource|
           new_state      = nil
           exists_in_pack = pack_resources.include?(resource.ciName) || relations.include?(resource.ciName) || environments.include?(resource.ciName)
           if exists_in_pack && resource.ciState == 'pending_deletion'
@@ -387,7 +295,7 @@ class Chef
       end
 
       def check_pack_version_ver_update(pack)
-        all_versions = Cms::Ci.all(:params => {:nsPath       => "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}",
+        all_versions = Cms::Ci.all(:params => {:nsPath       => "#{get_packs_ns}/#{pack.name}",
                                                :ciClassName  => 'mgmt.Version',
                                                :includeAltNs => VISIBILITY_ALT_NS_TAG})
         major, minor, patch = (pack.version.blank? ? config[:version] : pack.version).split('.')
@@ -446,8 +354,7 @@ class Chef
       end
 
       def check_pack_version_no_ver_update(pack, signature)
-        source       = "#{Chef::Config[:nspath]}/#{get_group}/packs"
-        pack_version = Cms::Ci.first(:params => {:nsPath => "#{source}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version})
+        pack_version = Cms::Ci.first(:params => {:nsPath => "#{get_packs_ns}/#{pack.name}", :ciClassName => 'mgmt.Version', :ciName => pack.version})
         if pack_version.nil?
           ui.info("Pack #{pack.name} version #{pack.version} not found")
           return false
@@ -463,14 +370,16 @@ class Chef
       end
 
       def setup_pack_version(pack, comments, signature)
-        source  = "#{Chef::Config[:nspath]}/#{get_group}/packs"
-        pack_ci = Cms::Ci.first(:params => {:nsPath => "#{source}", :ciClassName => 'mgmt.Pack', :ciName => pack.name})
+        packs_ns = get_packs_ns
+        pack_ci  = Cms::Ci.first(:params => {:nsPath      => packs_ns,
+                                             :ciClassName => 'mgmt.Pack',
+                                             :ciName      => pack.name})
         if pack_ci
           ui.debug("Updating pack #{pack.name}")
         else
           ui.info("Creating pack CI #{pack.name}")
           pack_ci = build('Cms::Ci',
-                          :nsPath      => "#{source}",
+                          :nsPath      => packs_ns,
                           :ciClassName => 'mgmt.Pack',
                           :ciName      => pack.name)
         end
@@ -483,7 +392,7 @@ class Chef
 
         if save(pack_ci)
           ui.debug("Successfuly saved pack CI #{pack.name}")
-          pack_version = Cms::Ci.first(:params => {:nsPath      => "#{source}/#{pack.name}",
+          pack_version = Cms::Ci.first(:params => {:nsPath      => "#{packs_ns}/#{pack.name}",
                                                    :ciClassName => 'mgmt.Version',
                                                    :ciName      => pack.version})
           if pack_version
@@ -491,7 +400,7 @@ class Chef
           else
             ui.info("Creating pack CI #{pack.name} version #{pack.version}")
             pack_version = build('Cms::Ci',
-                                 :nsPath       => "#{source}/#{pack.name}",
+                                 :nsPath       => "#{packs_ns}/#{pack.name}",
                                  :ciClassName  => 'mgmt.Version',
                                  :ciName       => pack.version,
                                  :ciAttributes => {:enabled => pack.enabled},
@@ -511,20 +420,20 @@ class Chef
         else
           ui.error("Could not save pack CI #{pack.name}")
         end
-        ui.error("Unable to setup namespace for pack #{pack.name} version #{pack.version}")
+        message = "Unable to setup namespace for pack #{pack.name} version #{pack.version}"
 
-        return false
+        raise Exception.new(message)
       end
 
       def setup_mode(pack, env, comments)
-        nspath = "#{Chef::Config[:nspath]}/#{get_group}/packs/#{pack.name}/#{pack.version}"
-        mode   = Cms::Ci.first(:params => {:nsPath => nspath, :ciClassName => 'mgmt.Mode', :ciName => env})
+        ns   = get_pack_ns(pack)
+        mode = Cms::Ci.first(:params => {:nsPath => ns, :ciClassName => 'mgmt.Mode', :ciName => env})
         if mode
           ui.debug("Updating pack #{pack.name} version #{pack.version} environment mode #{env}")
         else
           ui.info("Creating pack #{pack.name} version #{pack.version} environment mode #{env}")
           mode = build('Cms::Ci',
-                       :nsPath      => nspath,
+                       :nsPath      => ns,
                        :ciClassName => 'mgmt.Mode',
                        :ciName      => env)
         end
@@ -543,7 +452,7 @@ class Chef
       end
 
       def sync_env_template(nspath, template_name, package, pack, env, resources, comments)
-        ui.info("======> #{env}")
+        ui.info("======> #{env == '_default' ? 'design' : env}")
         Log.debug([pack.name, pack.version, package, nspath, resources, comments].to_yaml) if Log.debug?
 
         platform = upload_template_platform(nspath, template_name, package, pack, comments)
@@ -583,7 +492,7 @@ class Chef
 
         platform.comments                 = comments
         platform.ciAttributes.description = pack.description
-        platform.ciAttributes.source      = get_group
+        platform.ciAttributes.source      = get_source
         platform.ciAttributes.pack        = pack.name.capitalize
         platform.ciAttributes.version     = pack.version
 
@@ -786,7 +695,7 @@ class Chef
               # monitor CI may already exists.
               duplicate_ci_name_rel = relations.find {|r| r.toCi.ciName == monitor_name}
               if duplicate_ci_name_rel
-                ui.warn("Monitor #{monitor_name} for component #{resource_name} is not uniquely named, will re-use existing payload CI with the same name")
+                ui.warn("Monitor #{monitor_name} for component #{resource_name} is not uniquely named, will re-use existing monitor CI with the same name")
                 relation.toCiId = duplicate_ci_name_rel.toCiId
                 if save(relation)
                   relations << relation
@@ -984,25 +893,15 @@ class Chef
         end
       end
 
-      def save(object)
-        Log.debug(object.to_yaml) if Log.debug?
-        begin
-          ok = object.save
-          Log.warn(object.errors.full_messages.join('; ')) unless ok
-        rescue Exception => e
-          Log.info(object.to_yaml) unless Log.debug?
-          Log.info(e.response.read_body)
-        end
-        ok ? object : false
-      end
+      def sync_docs(pack)
+        return unless sync_docs?
 
-      def build(klass, options)
-        begin
-          object = klass.constantize.build(options)
-        rescue Exception => e
-          Log.debug(e.response.read_body)
+        doc_dir = File.expand_path('doc', File.dirname(pack.filename))
+        files = Dir.glob("#{doc_dir}/#{pack.name}.*")
+        if files.present?
+          ui.info('docs and images:')
+          files.each {|file| sync_doc_file(file, file.gsub(doc_dir, "#{get_source}/packs/#{pack.name}/#{pack.version}"))}
         end
-        object ? object : false
       end
     end
   end

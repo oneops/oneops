@@ -16,143 +16,79 @@ class Circuit < Thor
     empty_directory "#{options[:path]}/clouds"
     empty_directory "#{options[:path]}/.chef"
 
-    extra_config = ""
-    if ENV.has_key?('DISPLAY_LOCAL_STORE')
-      display_store = ENV['DISPLAY_LOCAL_STORE']
-      puts "using display local object store: #{display_store}"
-      extra_config = "object_store_provider 'Local'\n"
-      extra_config += "environment_name 'cms'\n"
-      extra_config += "object_store_local_root '#{display_store}'\n"
-      `mkdir -p #{display_store}`
+    config = <<-EOH
+  log_level                :info
+  log_location             STDOUT
+  print_after              true
+  admin                    true
+  node_name                'oneops'
+  register                 'oneops'
+  version                  '1.0.0'
+  nspath                   '/public'
+  client_key               'client_key.pem'
+  validation_client_name   'chef-validator'
+  validation_key           'validation.pem'
+  chef_server_url          'http://localhost:4000'
+  cache_type               'BasicFile'
+  cache_options( :path => '.chef/checksums' )
+  cookbook_path [ 'components/cookbooks' ]
+  publish_path 'pkgs'
+  pack_path [ 'packs' ]
+  service_path [ 'services' ]
+  cloud_path [ 'clouds' ]
+  catalog_path [ 'catalogs' ]
+  default_impl 'oo::chef-11.18.12'
+    EOH
+
+    open(File.join("#{options[:path]}/.chef", 'knife.rb'), 'w') do |file|
+      file.puts config
     end
 
-    # unversioned base components and relationships
-    open(File.join("#{options[:path]}/.chef", "knife.rb-base"), "w") do |file|
-      file.puts <<-EOH
-log_level                :info
-log_location             STDOUT
-print_after              true
-admin                    true
-node_name                'oneops'
-register                 'oneops'
-version                  '1.0.0'
-nspath                   '/public'
-client_key               'client_key.pem'
-validation_client_name   'chef-validator'
-validation_key           'validation.pem'
-chef_server_url          'http://localhost:4000'
-cache_type               'BasicFile'
-cache_options( :path => '.chef/checksums' )
-cookbook_path [ 'components/cookbooks' ]
-publish_path 'pkgs'
-pack_path [ 'packs' ]
-service_path [ 'services' ]
-cloud_path [ 'clouds' ]
-catalog_path [ 'catalogs' ]
-default_impl 'oo::chef-11.4.0'
-#{extra_config}
-EOH
-    end
-
-    # allow versioned different chef knife.rb for shared components (Keypair, Artifact, etc)
-    # adapter changes are needed to use shortname of Keypair, etc ; keeping un-versioned for now
-    open(File.join("#{options[:path]}/.chef", "knife.rb-shared"), "w") do |file|
-      file.puts <<-EOH
-log_level                :info
-log_location             STDOUT
-print_after              true
-admin                    true
-node_name                'oneops'
-register                 'oneops'
-version                  '1.0.0'
-nspath                   '/public'
-client_key               'client_key.pem'
-validation_client_name   'chef-validator'
-validation_key           'validation.pem'
-chef_server_url          'http://localhost:4000'
-cache_type               'BasicFile'
-cache_options( :path => '.chef/checksums' )
-cookbook_path [ 'components/cookbooks' ]
-publish_path 'pkgs'
-pack_path [ 'packs' ]
-service_path [ 'services' ]
-cloud_path [ 'clouds' ]
-catalog_path [ 'catalogs' ]
-default_impl 'oo::chef-11.4.0'
-#{extra_config}
-EOH
-    end
-
-    puts "Next Step: cd circuit ; circuit init"
+    puts 'Created empty circuit seed. Next Step: provide component, packs, cloud content. Run Run "cd circuit; circuit install" to load.'
   end
 
-  def self.source_root
-    File.dirname(__FILE__)
-  end
-
-  desc "init", "Initialize the circuit"
-  method_option :cookbook_path, :default => "-o base:shared/cookbooks"
-  method_option :force, :default => true
+  desc 'init', 'Initialize the circuit'
+  method_option :cookbook_path, :default => '-o base:shared/cookbooks'
   def init
-    base_path="#{File.expand_path(File.dirname(__FILE__))};"
-    options[:cookbook_path].split(":").each do |path|
-      if !path.include?("-o")
-        path = "-o #{path}"
-      end
-      if path =~ /base/
-        run("cp .chef/knife.rb-base .chef/knife.rb")
-      else
-        run("cp .chef/knife.rb-shared .chef/knife.rb")
-      end
-      run("cp -r .chef #{base_path}")
-      syncmodelclasses(base_path, path);
-      #syncmodelrelations(base_path, path);
-    end
-    options[:cookbook_path].split(":").each do |path|
-      if !path.include?("-o")
-        path = "-o #{path}"
-      end
-      if path =~ /base/
-        run("cp .chef/knife.rb-base .chef/knife.rb")
-      else
-        run("cp .chef/knife.rb-shared .chef/knife.rb")
-      end
-      run("cp -r .chef #{base_path}")
-      #syncmodelclasses(base_path, path);
-      syncmodelrelations(base_path, path);
-    end
-
+    cookbook_path = options[:cookbook_path]
+    cookbook_path = "#{'-o' unless cookbook_path.include?('-o')} #{cookbook_path}" if cookbook_path
+    models(cookbook_path, File.expand_path('', File.dirname(__FILE__)))
   end
 
-  desc "install", "Install the circuit"
+  desc 'install', 'Install the circuit'
   def install
+    models
 
-    if ENV.has_key?('DISPLAY_LOCAL_STORE')
-      display_store = ENV['DISPLAY_LOCAL_STORE']
-      puts "using display local object store: #{display_store}"
-      `ls .chef/knife.rb`
-      if $?.to_i != 0
-        puts "missing chef config: .chef/knife.rb - please run circuit install from root of the circuit dir"
-        exit 1
+    register
+    packs
+    clouds
+
+    say 'Circuit installed!', :green
+  end
+
+  desc 'models', 'Model Sync'
+  def models(cookbook_paths = nil, cd_to = nil)
+    %w(classes relations).each do |type|
+      cmd = "#{"cd #{cd_to};" if cd_to} knife model sync -a --#{type} #{cookbook_paths}"
+      say_status('running', cmd)
+      system(cmd)
+      exit_code = $?.exitstatus
+
+      if exit_code == 0
+        # Metadata cache TTL in seconds. Used to sleep before
+        # doing pack sync to clear the adapter metadata cache.
+        # The default value can be overridden by:
+        # "export MD_CACHE_VAR_TTL=<TTL in sec>".
+        ttl = ENV['MD_CACHE_VAR_TTL'] || 6
+        print "\nWaiting #{ttl} seconds for CMS metadata cache to clear... "
+        sleep((ttl).to_i)
+        puts 'done'
+      else
+        say "Failed: #{cmd}\nExit code: #{exit_code}", :red
+        exit exit_code
       end
-
-      # cleanup config
-      `grep -v object_store .chef/knife.rb > .chef/tmp`
-      `grep -v environment_name .chef/tmp > .chef/knife.rb`
-      `rm -f .chef/tmp`
-      # add config
-      `echo "object_store_provider 'Local'" >> .chef/knife.rb`
-      `echo "environment_name 'cms'"  >> .chef/knife.rb`
-      `echo "object_store_local_root '#{display_store}'" >> .chef/knife.rb`
-      `mkdir -p #{display_store}`
     end
-
-    model()
-    sleep(md_cache_ttl)
-    register()
-    packs()
-    clouds()
-    puts 'Installed repository!'
+    say "Models synced!\n\n", :green
   end
 
   desc "register", "Register source"
@@ -162,34 +98,23 @@ EOH
     system(cmd)
     exit_code = $?.exitstatus
     if exit_code != 0
-      say "fail. #{cmd} returned: #{exit_code}", :red
+      say "Failed: #{cmd}\nExit code: #{exit_code}", :red
       exit exit_code
     end
-    puts "Source registered!"
-  end
-
-  desc "model", "Model Sync"
-
-  def model
-    syncmodelclasses()
-    puts "Classes synced!\n"
-
-    syncmodelrelations()
-    puts "Relations synced!\n"
+    say "Source registered!\n\n", :green
   end
 
   desc "packs", "Pack Sync"
-
   def packs
     cmd = "knife pack sync -a"
     say_status("running", cmd)
     system(cmd)
     exit_code = $?.exitstatus
     if exit_code != 0
-      say "fail. #{cmd} returned: #{exit_code}", :red
+      say "Failed: #{cmd}\nExit code: #{exit_code}", :red
       exit exit_code
     end
-    puts "Packs synced!\n"
+    say "Packs synced!\n\n", :green
   end
 
   desc "clouds", "Clouds Sync"
@@ -199,47 +124,10 @@ EOH
     system(cmd)
     exit_code = $?.exitstatus
     if exit_code != 0
-      say "fail. #{cmd} returned: #{exit_code}", :red
+      say "Failed: #{cmd}\nExit code: #{exit_code}", :red
       exit exit_code
     end
-    puts "Cloud synced!"
-  end
-
-
-  no_commands do
-
-    # Metadata cache TTL in seconds. Used to sleep before
-    # doing pack sync to clear the adapter metadata cache.
-    # Default value is 5 seconds. The default value can be
-    # overridden by "export MD_CACHE_VAR_TTL=<TTL in sec>".
-    #
-    def md_cache_ttl
-      (ENV['MD_CACHE_VAR_TTL'] || 5).to_i
-    end
-
-    def syncmodelclasses(path=nil, path_val=nil)
-      pathVal = "cd #{path} " if !path.nil?
-      cmd = "#{pathVal} knife model sync -a #{path_val}"
-      say_status("running", cmd)
-      system(cmd)
-      exit_code = $?.exitstatus
-      if exit_code != 0
-        say "fail. #{cmd} returned: #{exit_code}", :red
-        exit exit_code
-      end
-    end
-
-    def syncmodelrelations(path=nil, path_val=nil)
-      pathVal = "cd #{path} " if !path.nil?
-      cmd = "#{pathVal} knife model sync -a -r #{path_val}"
-      say_status("running", cmd)
-      system(cmd)
-      exit_code = $?.exitstatus
-      if exit_code != 0
-        say "fail. #{cmd} returned: #{exit_code}", :red
-        exit exit_code
-      end
-    end
+    say "Cloud synced!\n\n", :green
   end
 end
 

@@ -1,11 +1,8 @@
 class Chef
   class Cloud
-
     include Chef::Mixin::FromFile
     include Chef::Mixin::ParamsValidate
-    #include Chef::IndexQueue::Indexable
-    # Create a new Chef::Service object.
-    def initialize(couchdb=nil)
+    def initialize
       @name = ''
       @description = ''
       @auth = ''
@@ -103,18 +100,13 @@ class Chef
     end
 
     # Sync this service via the REST API
-    def sync( options = {} )
-
+    def sync( options = {}, comments )
       nspath = "#{Chef::Config[:nspath]}/#{options[:register]}/clouds"
-
-      unless ensure_path_exists(nspath)
-        return false
-      end
+      return false unless ensure_path_exists(nspath)
 
       Chef::Log.info("Starting sync for cloud #{name} in namespace #{nspath}")
-
       if (options[:reload])
-        Chef::Log.info("Deleting cloud #{self.name} because reload is specified")
+        puts("Deleting cloud #{self.name} because reload is specified")
         cms_ci_delete( :nsPath => nspath, :ciClassName => 'mgmt.Cloud', :ciName => self.name )
       end
 
@@ -130,6 +122,7 @@ class Chef
       cloud = cms_ci_sync(cloud)
 
       # process each service
+      puts('services:')
       self.to_hash['services'].each do |service,options|
         ciClassName = options[:cookbook].capitalize
         if options[:source]
@@ -137,6 +130,7 @@ class Chef
         else
           ciClassName = [ 'mgmt.cloud.service', ciClassName ].join('.')
         end
+        puts(" - #{service} #{ciClassName}")
         relationName = 'mgmt.Provides'
         relation = Cms::Relation.all( :params => {  :ciId => cloud.id,
           :nsPath => nspath,
@@ -174,15 +168,15 @@ class Chef
           end
           unless relation
             Chef::Log.error("Could not build service #{service}, skipping it")
-            next;
+            next
           end
 
         else
           Chef::Log.info("Updating service #{service}")
         end
 
-        relation.comments = "#{ENV['USER']}:#{$0}"
-        relation.toCi.comments = "#{ENV['USER']}:#{$0}"
+        relation.comments = comments
+        relation.toCi.comments = comments
 
         # provides relation attributes
         relation.relationAttributes.attributes.each do |name,value|
@@ -205,41 +199,13 @@ class Chef
           Chef::Log.error("Could not save service #{service}, skipping it")
         end
 
-        if options[:offerings]
-          cms_offering_sync(options[:offerings],relation.toCi)
-        end
+        cms_offering_sync(options[:offerings],relation.toCi)
       end
 
       Chef::Log.info("Completed sync for cloud #{name}!")
       self
     end
 
-    # Load a service from disk - prefers to load the JSON, but will happily load
-    # the raw rb files as well.
-    def self.from_disk(name, force=nil)
-      js_file = File.join(Chef::Config[:cloud_path], "#{name}.json")
-      rb_file = File.join(Chef::Config[:cloud_path], "#{name}.rb")
-
-      if File.exists?(js_file) || force == "json"
-        Chef::JSONCompat.from_json(IO.read(js_file))
-      elsif File.exists?(rb_file) || force == "ruby"
-        cloud = Chef::Cloud.new
-      cloud.name(name)
-      cloud.from_file(rb_file)
-      cloud
-      else
-        raise Chef::Exceptions::RoleNotFound, "Cloud '#{name}' could not be loaded from disk"
-      end
-    end
-
-    # Sync all the services with cms from disk
-    def self.sync_all( options = {} )
-      Dir[File.join(Chef::Config[:cloud_path], "*.rb")].each do |cloud_file|
-        short_name = File.basename(cloud_file, ".rb")
-        r = Chef::Cloud.from_disk(short_name, "rb")
-        r.sync(options)
-      end
-    end
 
     private
 
@@ -280,7 +246,7 @@ class Chef
         o.save
         Chef::Log.info("Successfully loaded #{o.ciClassName} #{o.ciName}")
       rescue Exception => e
-        Log.error("Failed loading #{o.ciClassName} #{o.ciName}: e")
+        Log.error("Failed loading #{o.ciClassName} #{o.ciName}: #{e.response.read_body}")
       false
       end
       o
@@ -355,64 +321,47 @@ class Chef
       o
     end
 
-    def cms_offering_sync(o,service)
-    ciClassName = "mgmt.cloud.Offering"
-    relationName = "base.Offers"
+    def cms_offering_sync(offerings, service)
+      return if offerings.blank?
 
-    o.each do |name,offering|
-      relation = Cms::Relation.all( :params => {  :ciId => service.id,
-        :nsPath => '#{service.nsPath}/#{service.ciClassName}/#{service.ciName}',
-        :direction => 'from',
-        :relationName => relationName,
-        :targetClassName => ciClassName,
-        :includeToCi => true
-      }).select { |r| r.toCi.ciName == name }.first
+      puts('   offerings:')
+      relations      = []
+      relations_name = 'base.Offers'
+      ci_class_name  = 'mgmt.cloud.Offering'
+      existing       = Cms::Relation.all(:params => {:ciId            => service.ciId,
+                                                     :direction       => 'from',
+                                                     :relationName    => relations_name,
+                                                     :targetClassName => ci_class_name,
+                                                     :includeToCi     => true})
 
-      if relation.nil?
-        relation = build('Cms::Relation',   :relationName => relationName,
-                                            :nsPath => "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}",
-                                            :fromCiId => service.id
-                               )
+      offerings.each do |name, offering|
+        relation = existing.find {|r| r.toCi.ciName == name}
+        unless relation
+          relation = build('Cms::Relation',
+                           :relationName => relations_name,
+                           :nsPath       => "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}",
+                           :fromCiId     => service.ciId,
+                           :toCiId       => 0,
+                           :toCi         => build('Cms::Ci',
+                                                  :nsPath      => "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}",
+                                                  :ciClassName => ci_class_name,
+                                                  :ciName      => name))
 
-        ci = Cms::Ci.first( :params => { :nsPath => "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}", :ciClassName => ciClassName, :ciName => name })
-        if ci.nil?
-          relation.toCiId = 0
-          relation.toCi = build('Cms::Ci',  :nsPath => "#{service.nsPath}/#{service.ciClassName}/#{service.ciName}",
-                                            :ciClassName => ciClassName,
-                                            :ciName => name
-                                         )
-        else
-          relation.toCiId = ci.id
-          relation.toCi = ci
-          Log.debug(relation.inspect)
-          # if relation is missing, but ci is present, save the relation only first
-          if cms_relation_sync(relation)
-            Chef::Log.info("Successfuly saved offering #{name}")
-            relation = Cms::Relation.find(relation.id, :params => {  :nsPath => ci.nsPath, :includeToCi => true } )
-          else
-            Chef::Log.error("Could not save offering #{name}, skipping it")
-          end
         end
+
+        attrs = relation.toCi.ciAttributes.attributes
+        attrs.each {|attr, _| attrs[attr] = offering[attr] if offering[attr]}
+
+        puts("    - #{name}")
+        relations << relation
       end
-
-      relation.comments = "#{ENV['USER']}:#{$0}"
-      relation.toCi.comments = "#{ENV['USER']}:#{$0}"
-
-      # offering attributes
-      relation.toCi.ciAttributes.attributes.each do |attr,value|
-        if offering && offering.has_key?(attr)
-          relation.toCi.ciAttributes.send(attr+'=',offering[attr])
-        end
+      relations, error = Cms::Relation.bulk(relations)
+      unless relations
+        Log.error("Could not save offerings: #{error}")
+        raise(error)
       end
-
-      if cms_relation_sync(relation)
-        Chef::Log.info("Successfuly saved offering #{name}")
-      else
-        Chef::Log.error("Could not save offering #{name}, skipping it")
-      end
-
+      Log.debug('Successfuly saved offerings')
     end
-   end
 
     def build(klass, options)
       begin
@@ -422,6 +371,5 @@ class Chef
       end
       object ? object : false
     end
-
   end
 end
