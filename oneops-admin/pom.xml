@@ -155,8 +155,8 @@
               </arguments>
             </configuration>
           </execution>
-          <!--Begin Az Inductor package -->
 
+          <!-- Prepare oneops-admin-inductor-az (azure) gem (build gem, cache dependencies, package in a tar) -->
           <execution>
             <id>inductor-build-az-gem</id>
             <phase>package</phase>
@@ -201,22 +201,6 @@
                 <argument>oneops-admin-inductor-az.gemfile</argument>
                 <argument>oneops-admin-inductor-az.gemspec</argument>
                 <argument>vendor/cache</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <!--End Az Inductor package -->
-          <!-- Build old oneops-admin gem -->
-          <execution>
-            <id>old-build-gem</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>gem</executable>
-              <arguments>
-                <argument>build</argument>
-                <argument>oneops-admin.gemspec</argument>
               </arguments>
             </configuration>
           </execution>

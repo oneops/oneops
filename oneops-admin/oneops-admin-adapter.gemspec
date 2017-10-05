@@ -15,17 +15,18 @@ Gem::Specification.new do |s|
   s.bindir                = 'bin'
   s.require_path          = 'lib'
   s.files                 = %w(oneops-admin-adapter.gemspec
-                              Gemfile
-                              bin/circuit
-                              lib/chef/knife/model_sync.rb
-                              lib/chef/knife/pack.rb
-                              lib/chef/knife/pack_sync.rb
-                              lib/chef/knife/cloud.rb
-                              lib/chef/knife/cloud_sync.rb
-                              lib/chef/knife/register.rb
-                              lib/circuit.rb
-                              lib/cms.rb
-                              .chef/knife.rb) +
+                               Gemfile
+                               bin/circuit
+                               lib/chef/knife/base_sync.rb
+                               lib/chef/knife/model_sync.rb
+                               lib/chef/knife/pack.rb
+                               lib/chef/knife/pack_sync.rb
+                               lib/chef/knife/cloud.rb
+                               lib/chef/knife/cloud_sync.rb
+                               lib/chef/knife/register.rb
+                               lib/circuit.rb
+                               lib/cms.rb
+                               .chef/knife.rb) +
                             Dir.glob('lib/cms/*.rb') +
                             Dir.glob('lib/templates/circuit/**/*') +
                             Dir.glob('lib/base/**/*') +

@@ -1,16 +1,12 @@
-require 'cms'
+require 'chef/knife/base_sync'
 require 'chef/cookbook_loader'
-require 'fog'
-require 'kramdown'
 
 class Chef
   class Knife
     class ModelSync < Chef::Knife::CookbookMetadata
+      include ::BaseSync
 
       banner "Loads class and relation metadata into CMS\nUsage: \n   knife model sync [COOKBOOKS...] (options)"
-
-      @object_store_connection = nil
-      @remote_dir              = nil
 
       option :all,
              :short       => "-a",
@@ -27,21 +23,20 @@ class Chef
              :long        => "--version VERSION",
              :description => "Specify the source register version to use during uploads"
 
+      option :classes,
+             :long        => "--classes",
+             :description => "Sync metadata for classes only (by default is ON if not specified and --relations not specified)"
+
       option :relations,
              :short       => "-r",
              :long        => "--relations",
-             :description => "Sync metadata for all relation cookbooks, rather than just a single cookbook"
+             :description => "Sync metadata for relations only (by default is OFF if not specified)"
 
       option :cookbook_path,
              :short       => "-o PATH:PATH",
              :long        => "--cookbook-path PATH:PATH",
              :description => "A colon-separated path to look for cookbooks in",
              :proc        => lambda {|o| o.split(":")}
-
-      option :cms_trace,
-             :short       => "-t",
-             :long        => "--trace",
-             :description => "Raw HTTP debug trace for CMS calls"
 
 
       def run
@@ -53,7 +48,9 @@ class Chef
         config[:version]       ||= (Chef::Config[:version] || '1.0.0')
 
         if config[:all]
-          cookbooks = Chef::CookbookLoader.new(config[:cookbook_path]).load_cookbooks.keys
+          cookbooks = config[:cookbook_path].inject([]) do |a, path|
+            a + Chef::CookbookLoader.new(path).load_cookbooks.keys.sort
+          end
         else
           cookbooks = @name_args
         end
@@ -63,13 +60,12 @@ class Chef
           exit(1)
         end
 
-        models = cookbooks.inject([]) do |a, cookbook|
-          Array(config[:cookbook_path]).reverse.inject(a) do |aa, path|
-            file = File.expand_path(File.join(path, cookbook, 'metadata.rb'))
-            File.exists?(file) ? (aa + sync_cookbook_metadata(cookbook, file)) : aa
-          end
-        end
+        sync_relations = config[:relations]
+        sync_classes   = config[:classes] || sync_relations.nil?
 
+        models = []
+        models += sync_cookbooks(cookbooks, true, false) if sync_classes
+        models += sync_cookbooks(cookbooks, false, true) if sync_relations
         if models.present?
           ok, error = Cms::MdCache.reset
           ui.warn("Failed to tigger metadata cache reset: #{error}") unless ok
@@ -80,92 +76,42 @@ class Chef
         ui.info("\nProcessed #{cookbooks.size} cookbooks, resulting in #{models.size} models.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
       end
 
-      def gen_doc(md, f)
-        if !Chef::Config.has_key?("object_store_provider") ||
-          Chef::Config[:object_store_provider].nil? || Chef::Config[:object_store_provider].empty?
-          puts "skipping doc - no object_store_provider"
-          return
-        end
-        class_name  = build_md_name(md.name)
-        class_parts = class_name.split('.')
-        # handle pre-versioned classes
-        if class_parts.size < 2
-          class_name = class_parts.last
-        end
-        get_remote_dir
-        doc_dir = f.gsub("metadata.rb", "doc")
 
-        image_groupings = []
-        md.groupings.each do |group_name, group_properties|
-          group_properties[:packages].reject {|v| v == 'base'}.each do |package_name|
-            puts "package_name: #{package_name}"
-            if package_name =~ /service|notification|relay/
-              image_groupings.push(package_name.gsub("account.", ""))
-            end
+      private
 
+      def sync_cookbooks(cookbooks, sync_classes, sync_relations)
+        cookbooks.inject([]) do |a, cookbook|
+          config[:cookbook_path].inject(a) do |aa, path|
+            file = File.expand_path(File.join(path, cookbook, 'metadata.rb'))
+            File.exists?(file) ? (aa + sync_cookbook_metadata(cookbook, file, sync_classes, sync_relations)) : aa
           end
         end
-
-        initial_dir = Dir.pwd
-        if File.directory? doc_dir
-          Dir.chdir doc_dir
-          Dir.glob("**/*").each do |file|
-            remote_file = class_name + '/' + file
-            local_file  = doc_dir + '/' + file
-            if file =~ /\.md$/
-              content = Kramdown::Document.new(File.read(local_file)).to_html
-              remote_file.gsub!(".md", ".html")
-            else
-              content = File.open(local_file)
-            end
-
-            puts "doc: #{local_file} remote: #{remote_file}"
-            obj = {:key => remote_file, :body => content}
-            if remote_file =~ /\.html/
-              obj['content_type'] = 'text/html'
-            end
-
-            @remote_dir.files.create(obj)
-
-            # components can be services, sinks, relays too
-            if image_groupings.size > 0
-              orig_remote = remote_file
-              image_groupings.each do |g|
-                if g =~ /cloud.service/
-                  remote_file = "service." + orig_remote
-                else
-                  remote_file = g + "." + orig_remote
-                end
-                puts "doc: #{local_file} remote: #{remote_file}"
-                @remote_dir.files.create(:key => remote_file, :body => content)
-              end
-            end
-
-          end
-        end
-        Dir.chdir initial_dir
       end
 
-      def sync_cookbook_metadata(cookbook, file)
+      def sync_cookbook_metadata(cookbook, file, sync_classes, sync_relations)
         md = Chef::Cookbook::Metadata.new
         md.name(cookbook.capitalize)
         md.from_file(file)
 
         return [] if md.groupings.blank? # Nothing to do - just a placeholder metadata file.
 
-        is_md_relation = md.groupings['default'][:relation]
-        load_relations = config[:relations]
-        if is_md_relation && load_relations
-          models = build_relation_models(md)
-        elsif !is_md_relation && !load_relations
-          models = build_class_models(md)
-          gen_doc(md, file)
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m #{md.name} \e[0m #{sync_classes ? 'classes' : 'relations'}")
+        ui.info('--------------------------------------------------')
+
+        models = []
+        if md.groupings['default'][:relation]
+          models = build_model_relations(md) if sync_relations
         else
-          return []
+          if sync_classes
+            models = build_model_classes(md)
+            sync_docs(md, file)
+          end
         end
+
         Log.debug(models.to_yaml) if Log.debug?
         if models.present?
-          ok, error = (is_md_relation ? Cms::RelationMd : Cms::CiMd).bulk(models)
+          ok, error = (sync_classes ? Cms::CiMd : Cms::RelationMd).bulk(models)
           if ok
             ui.info("\e[7m\e[32mSuccessfully synched models\e[0m")
           else
@@ -173,7 +119,7 @@ class Chef
             exit 1
           end
         else
-          ui.info('Nothing to do - no model definitions found.')
+          ui.info("Nothing to do - no #{sync_classes ? 'class' : 'relation'} definitions found.")
         end
 
         return models
@@ -185,10 +131,8 @@ class Chef
         exit 1
       end
 
-      def build_class_models(md)
-        ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{md.name} \e[0m classes")
-        ui.info('--------------------------------------------------')
+      def build_model_classes(md)
+        ui.info('models:')
         classes = []
         # must sync the base class first
         md.groupings.each do |group_name, group_properties|
@@ -211,7 +155,7 @@ class Chef
         cms_class.className      = "#{package}.#{short_name}"
         cms_class.superClassName = "base.#{short_name}" unless package == 'base'
 
-        ui.info("   #{cms_class.className}")
+        ui.info(" - #{cms_class.className}")
 
         cms_class.impl        = group_props[:impl] || Chef::Config[:default_impl]
         cms_class.description = group_props[:description] || md.description
@@ -253,10 +197,8 @@ class Chef
         return cms_class
       end
 
-      def build_relation_models(md)
-        ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{md.name} \e[0m relations")
-        ui.info('--------------------------------------------------')
+      def build_model_relations(md)
+        ui.info('models:')
         relations = []
         # must sync the base relation first
         md.groupings.each do |group_name, group_properties|
@@ -280,7 +222,7 @@ class Chef
         cms_relation.mdAttributes = Array.new
         cms_relation.targets      = Array.new
 
-        ui.info("   #{cms_relation.relationName}")
+        ui.info("#{cms_relation.relationName}")
 
         md.attributes.each do |name, properties|
           if properties[:relation_target]
@@ -341,38 +283,15 @@ class Chef
         return target
       end
 
-      def get_remote_dir
-        return @remote_dir if @remote_dir
+      def sync_docs(md, md_file)
+        return unless sync_docs?
 
-        conn       = get_connection
-        env_bucket = Chef::Config[:environment_name]
-
-        @remote_dir = conn.directories.get(env_bucket)
-        if @remote_dir.nil?
-          @remote_dir = conn.directories.create(:key => env_bucket)
-          puts "created #{env_bucket}"
+        doc_dir = md_file.gsub(/metadata\.rb$/, 'doc')
+        files   = Dir.glob("#{doc_dir}/**/*")
+        if files.present?
+          ui.info('docs and images:')
+          files.each {|file| sync_doc_file(file, file.gsub(doc_dir, build_md_name(md.name)))}
         end
-        puts "remote_dir:\n #{@remote_dir.inspect}"
-      end
-
-      def get_connection
-        unless @object_store_connection
-          object_store_provider = Chef::Config[:object_store_provider]
-          case object_store_provider
-            when 'OpenStack'
-              @object_store_connection = Fog::Storage.new({:provider           => object_store_provider,
-                                                           :openstack_username => Chef::Config[:object_store_user],
-                                                           :openstack_api_key  => Chef::Config[:object_store_pass],
-                                                           :openstack_auth_url => Chef::Config[:object_store_endpoint]})
-            when 'Local'
-              @object_store_connection = Fog::Storage.new({:provider   => object_store_provider,
-                                                           :local_root => Chef::Config[:object_store_local_root]})
-            else
-              ui.error "Unsupported object_store_provider: #{object_store_provider}"
-              exit 1
-          end
-        end
-        return @object_store_connection
       end
 
       def build_md_name(name, package = nil)

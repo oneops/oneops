@@ -1,7 +1,5 @@
 class Chef
   class Pack
-
-    include Chef::Mixin::FromFile
     include Chef::Mixin::ParamsValidate
 
     attr_reader :platform,
@@ -11,7 +9,8 @@ class Chef
                 :serviced_bys,
                 :entrypoints,
                 :procedures,
-                :variables
+                :variables,
+                :filename
 
     def initialize
       @name                = ''
@@ -40,17 +39,32 @@ class Chef
       @policies            = Mash.new
     end
 
-    def couchdb_id=(value)
-      @couchdb_id   = value
-      self.index_id = value
+    def from_file(filename)
+      if File.exists?(filename) && File.readable?(filename)
+        self.instance_eval(IO.read(filename), filename, 1)
+        @filename = filename
+      else
+        raise IOError, "Cannot open or read #{filename}!"
+      end
     end
 
-    def chef_server_rest
-      Chef::REST.new(Chef::Config[:chef_server_url])
-    end
-
-    def self.chef_server_rest
-      Chef::REST.new(Chef::Config[:chef_server_url])
+    def include_pack(name, force=nil)
+      file = File.join(Chef::Config[:pack_path], "#{name}.rb")
+      Chef::Log.debug("Including pack #{name}")
+      o = Chef::Pack.new
+      o.from_file(file)
+      services(o.services) unless o.services.empty?
+      environments(o.environments)
+      platform(o.platform)
+      resources(o.resources)
+      relations(o.relations)
+      recipes(o.recipes) if defined?(o.recipes)
+      serviced_bys(o.serviced_bys)
+      entrypoints(o.entrypoints)
+      procedures(o.procedures)
+      variables(o.variables)
+      env_run_lists(o.env_run_lists) unless o.env_run_lists.nil?
+      self
     end
 
     def name(arg=nil)
@@ -549,177 +563,8 @@ class Chef
       self
     end
 
-    # Create a Chef::Pack from JSON
-    def self.json_create(o)
-      pack = new
-      pack.name(o["name"])
-      pack.description(o["description"])
-      pack.category(o["category"])
-      pack.version(o["version"])
-      pack.ignore(o["ignore"])
-      pack.enabled(o["enabled"])
-      pack.type(o["type"])
-      pack.platform(o["platform"])
-      pack.services(o["services"])
-      pack.environments(o["environments"])
-      pack.resources(o["resources"])
-      pack.default_attributes(o["default_attributes"])
-      pack.override_attributes(o["override_attributes"])
-      pack.depends_on(o["depends_on"])
-      pack.managed_via(o["managed_via"])
-      pack.serviced_bys(o["serviced_bys"])
-      pack.entrypoints(o["entrypoints"])
-      pack.procedures(o["procedures"])
-      pack.variables(o["variables"])
-      pack.owner(o["owner"])
-
-      # _default run_list is in 'run_list' for newer clients, and
-      # 'recipes' for older clients.
-      env_run_list_hash = {"_default" => (o.has_key?("run_list") ? o["run_list"] : o["recipes"])}
-
-      # Clients before 0.10 do not include env_run_lists, so only
-      # merge if it's there.
-      if o["env_run_lists"]
-        env_run_list_hash.merge!(o["env_run_lists"])
-      end
-      pack.env_run_lists(env_run_list_hash)
-
-      pack.couchdb_rev = o["_rev"] if o.has_key?("_rev")
-      pack.index_id    = pack.couchdb_id
-      pack.couchdb_id  = o["_id"] if o.has_key?("_id")
-      pack
-    end
-
-    # List all the Chef::Pack objects in the CouchDB.  If inflate is set to true, you will get
-    # the full list of all packs, fully inflated.
-    def self.cdb_list(inflate=false, couchdb=nil)
-      rs     = (couchdb || Chef::CouchDB.new).list("packs", inflate)
-      lookup = (inflate ? "value" : "key")
-      rs["rows"].collect {|r| r[lookup]}
-    end
-
-    # Get the list of all packs from the API.
-    def self.list(inflate=false)
-      if inflate
-        response = Hash.new
-        Chef::Search::Query.new.search(:pack) do |n|
-          response[n.name] = n unless n.nil?
-        end
-        response
-      else
-        chef_server_rest.get_rest("packs")
-      end
-    end
-
-    # Load a pack by name from CouchDB
-    def self.cdb_load(name, couchdb=nil)
-      (couchdb || Chef::CouchDB.new).load("pack", name)
-    end
-
-    # Load a pack by name from the API
-    def self.load(name)
-      chef_server_rest.get_rest("packs/#{name}")
-    end
-
-    def self.exists?(packname, couchdb)
-      begin
-        self.cdb_load(packname, couchdb)
-      rescue Chef::Exceptions::CouchDBNotFound
-        nil
-      end
-    end
-
-    # Remove this pack from the CouchDB
-    def cdb_destroy
-      couchdb.delete("pack", @name, couchdb_rev)
-    end
-
-    # Remove this pack via the REST API
-    def destroy
-      chef_server_rest.delete_rest("packs/#{@name}")
-    end
-
-    # Save this pack to the CouchDB
-    def cdb_save
-      self.couchdb_rev = couchdb.store("pack", @name, self)["rev"]
-    end
-
-    # Save this pack via the REST API
-    def save
-      begin
-        chef_server_rest.put_rest("packs/#{@name}", self)
-      rescue Net::HTTPServerException => e
-        raise e unless e.response.code == "404"
-        chef_server_rest.post_rest("packs", self)
-      end
-      self
-    end
-
-    # Create the pack via the REST API
-    def create
-      chef_server_rest.post_rest("packs", self)
-      self
-    end
-
-    # Set up our CouchDB design document
-    def self.create_design_document(couchdb=nil)
-      (couchdb || Chef::CouchDB.new).create_design_document("packs", DESIGN_DOCUMENT)
-    end
-
-    # As a string
     def to_s
       "pack[#{@name}]"
-    end
-
-    # Load a pack from disk
-    def self.from_disk(file)
-      if File.exists?(file)
-        pack = Chef::Pack.new
-        #pack.name(name)
-        pack.from_file(file)
-        pack
-      else
-        raise Chef::Exceptions::RoleNotFound, "pack '#{file}' could not be loaded from disk"
-      end
-    end
-
-    # Sync all the json packs with couchdb from disk
-    def self.sync_from_disk_to_couchdb
-      Dir[File.join(Chef::Config[:pack_path], "*.json")].each do |pack_file|
-        short_name = File.basename(pack_file, ".json")
-        Chef::Log.warn("Loading #{short_name}")
-        r = Chef::Pack.from_disk(short_name, "json")
-        begin
-          couch_pack    = Chef::Pack.cdb_load(short_name)
-          r.couchdb_rev = couch_pack.couchdb_rev
-          Chef::Log.debug("Replacing pack #{short_name} with data from #{pack_file}")
-        rescue Chef::Exceptions::CouchDBNotFound
-          Chef::Log.debug("Creating pack #{short_name} with data from #{pack_file}")
-        end
-        r.cdb_save
-      end
-    end
-
-    def include_pack(name, force=nil)
-      file = File.join(Chef::Config[:pack_path], "#{name}.rb")
-      Chef::Log.debug("Including pack #{name}")
-      o = Chef::Pack.from_disk(file)
-      if o
-        services(o.services) unless o.services.empty?
-        environments(o.environments)
-        platform(o.platform)
-        resources(o.resources)
-        relations(o.relations)
-        recipes(o.recipes) if defined?(o.recipes)
-        serviced_bys(o.serviced_bys)
-        entrypoints(o.entrypoints)
-        procedures(o.procedures)
-        variables(o.variables)
-        env_run_lists(o.env_run_lists) unless o.env_run_lists.nil?
-        self
-      else
-        return false
-      end
     end
 
     def metric(options=nil)
