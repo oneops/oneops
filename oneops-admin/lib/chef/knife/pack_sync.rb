@@ -122,7 +122,7 @@ class Chef
         end
 
         sync_docs(pack)
-        ui.info("\e[7m\e[32mSuccessfully synched\e[0m pack #{pack.name} version #{pack.version} [signature: #{signature}]")
+        ui.info("\e[7m\e[32mSuccessfully synched\e[0m pack #{pack.name} version #{pack.version} #{"[signature: #{signature}]" if signature}")
 
         return signature
       end

@@ -294,9 +294,9 @@ class Chef
         end
       end
 
-      def build_md_name(name, package = nil)
+      def build_md_name(name)
         suffix = Chef::Config[:admin] ? '' : "#{config[:register]}.#{"#{config[:version].split('.').first}." if Chef::Config[:useversion]}"
-        "#{"#{package}." if package}#{suffix}#{name[0].upcase}#{name[1..-1]}"
+        "#{suffix}#{name[0].upcase}#{name[1..-1]}"
       end
     end
   end
