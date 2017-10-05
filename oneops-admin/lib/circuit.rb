@@ -50,23 +50,14 @@ class Circuit < Thor
   desc 'init', 'Initialize the circuit'
   method_option :cookbook_path, :default => '-o base:shared/cookbooks'
   def init
-    pwd = Dir.pwd
-    Dir.chdir File.expand_path('', File.dirname(__FILE__))
     cookbook_path = options[:cookbook_path]
     cookbook_path = "#{'-o' unless cookbook_path.include?('-o')} #{cookbook_path}" if cookbook_path
-    models(cookbook_path)
-    Dir.chdir pwd
+    models(cookbook_path, File.expand_path('', File.dirname(__FILE__)))
   end
 
   desc 'install', 'Install the circuit'
   def install
     models
-
-    # Metadata cache TTL in seconds. Used to sleep before
-    # doing pack sync to clear the adapter metadata cache.
-    # Default value is 5 seconds. The default value can be
-    # overridden by "export MD_CACHE_VAR_TTL=<TTL in sec>".
-    sleep((ENV['MD_CACHE_VAR_TTL'] || 5).to_i)
 
     register
     packs
@@ -76,16 +67,28 @@ class Circuit < Thor
   end
 
   desc 'models', 'Model Sync'
-  def models(cookbook_paths = nil)
-    cmd = "knife model sync -a --classes --relations #{cookbook_paths}"
-    say_status('running', cmd)
-    system(cmd)
-    exit_code = $?.exitstatus
-    if exit_code != 0
-      say "Failed: #{cmd}\nExit code: #{exit_code}", :red
-      exit exit_code
+  def models(cookbook_paths = nil, cd_to = nil)
+    %w(classes relations).each do |type|
+      cmd = "#{"cd #{cd_to};" if cd_to} knife model sync -a --#{type} #{cookbook_paths}"
+      say_status('running', cmd)
+      system(cmd)
+      exit_code = $?.exitstatus
+
+      if exit_code == 0
+        # Metadata cache TTL in seconds. Used to sleep before
+        # doing pack sync to clear the adapter metadata cache.
+        # The default value can be overridden by:
+        # "export MD_CACHE_VAR_TTL=<TTL in sec>".
+        ttl = ENV['MD_CACHE_VAR_TTL'] || 6
+        print "\nWaiting #{ttl} seconds for CMS metadata cache to clear... "
+        sleep((ttl).to_i)
+        puts 'done'
+      else
+        say "Failed: #{cmd}\nExit code: #{exit_code}", :red
+        exit exit_code
+      end
     end
-    puts "Models synced!\n\n"
+    say "Models synced!\n\n", :green
   end
 
   desc "register", "Register source"
@@ -98,7 +101,7 @@ class Circuit < Thor
       say "Failed: #{cmd}\nExit code: #{exit_code}", :red
       exit exit_code
     end
-    puts "Source registered!\n\n"
+    say "Source registered!\n\n", :green
   end
 
   desc "packs", "Pack Sync"
@@ -111,7 +114,7 @@ class Circuit < Thor
       say "Failed: #{cmd}\nExit code: #{exit_code}", :red
       exit exit_code
     end
-    puts "Packs synced!\n\n"
+    say "Packs synced!\n\n", :green
   end
 
   desc "clouds", "Clouds Sync"
@@ -124,7 +127,7 @@ class Circuit < Thor
       say "Failed: #{cmd}\nExit code: #{exit_code}", :red
       exit exit_code
     end
-    puts "Cloud synced!\n\n"
+    say "Cloud synced!\n\n", :green
   end
 end
 
