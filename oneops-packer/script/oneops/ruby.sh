@@ -8,27 +8,11 @@ then
 	echo 'gem: --no-document' >> /root/.gemrc
 fi
 
-# install rvm since most distro has older version of ruby
+yum -y install ruby ruby-devel rubygems
 
-curl -sSL https://rvm.io/mpapis.asc | gpg --import -
-
-curl -L get.rvm.io | bash -s stable
-
-source /etc/profile.d/rvm.sh
-
-rvm reload
-
-rvm requirements run
-
-# install pre-compiled ruby to save time
-rvm mount /tmp/ruby-2.3.3.tar.bz2
-
-rvm use 2.3.3 --default
-
-#gem update --system 2.6.1
-gem install json -v 1.8.6
-gem install bundler
-gem install rake
+gem update --system 1.8.25
+gem install json -v 1.7.7
+gem install bundler -v 1.15.4
 gem install net-ssh -v 2.6.5
 gem install net-ssh-gateway -v 1.3.0 # this is the last version that can use net-ssh 2.6.5s
 gem install mixlib-log -v '1.6.0'
