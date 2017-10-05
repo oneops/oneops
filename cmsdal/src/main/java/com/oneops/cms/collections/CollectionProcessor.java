@@ -121,7 +121,7 @@ public class CollectionProcessor {
 
 		if ("from".equalsIgnoreCase(relationDef.getDirection())) {
 			List<CmsRfcRelation> relations = null;
-			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
+			if ((relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0) || relationDef.getReturnRelationAttributes()) {
 				relations = cmrfcProcessor.getFromCIRelationsByAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(), "df", relationDef.getRelationAttrs());
 			} else {
 				relations = cmrfcProcessor.getFromCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
