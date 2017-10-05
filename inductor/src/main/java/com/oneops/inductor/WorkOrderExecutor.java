@@ -90,7 +90,10 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         this.semaphore = semaphore;
     }
 
-    /**
+
+
+
+  /**
      * Process workorder and return message to be put in
      * the controller response queue
      *
@@ -814,7 +817,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      */
     public void runBaseInstall(CmsWorkOrderSimple wo,
                                String host, String port, String logKey, String keyFile) {
-
         long t1 = System.currentTimeMillis();
         // amazon public images use ubuntu user for ubuntu os
         String cloudName = wo.getCloud().getCiName();
@@ -909,7 +911,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
             // add infront so env can be set before repo cmds
             repoCmdList.add(0, getProxyEnvVars(wo));
-
             cmd = (String[]) ArrayUtils.addAll(cmdTmp, repoCmdList.toArray());
             if (!host.equals(TEST_HOST)) {
                 ProcessResult result = processRunner.executeProcessRetry(cmd, logKey,
@@ -973,8 +974,10 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                                 + "/components/cookbooks/" + baseComponent
                                 + "/files/default/install_base.sh"});
 
-        String[] proxyList = new String[]{getProxyBashVars(wo)};
+        // Add Cloud Provider here
+        String[] proxyList = new String[]{getProxyBashVars(wo),"provider:"+getProvider(wo)};
         cmd = (String[]) ArrayUtils.addAll(cmdTmp, proxyList);
+
 
         if (!host.equals(TEST_HOST)) {
             ProcessResult result = processRunner.executeProcessRetry(cmd, logKey,
@@ -988,7 +991,19 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         wo.putSearchTag(BASE_INSTALL_TIME,Long.toString(System.currentTimeMillis()-t1));
     }
 
-    /**
+  public String getProvider(CmsWorkOrderSimple wo) {
+    String className = StringUtils.EMPTY;
+    String cloudName = wo.getCloud().getCiName();
+    if (wo.getServices().containsKey("compute")
+        && wo.getServices().get("compute").get(cloudName).getCiClassName()!=null
+        ) {
+       className = getShortenedClass(wo.getServices().get("compute").get(cloudName).getCiClassName());
+    }
+    logger.info("Using provider :" + className);
+    return className;
+  }
+
+  /**
      * getRepoList: gets list of repos from a json string
      *
      * @param jsonReposArray String
