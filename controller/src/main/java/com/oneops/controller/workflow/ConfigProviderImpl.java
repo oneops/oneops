@@ -18,7 +18,6 @@ public class ConfigProviderImpl implements ConfigProvider {
   @Override
   public CacheConfig getCacheConfig(List<String> cacheHosts) {
     CacheConfig cacheConfig = new CacheConfig();
-    System.out.println("quorum size old " + quorumSize);
     if (quorumSize == 0) {
       quorumSize = cacheHosts.size() > 1 ? (cacheHosts.size()/2) + 1 : 1;
     }
