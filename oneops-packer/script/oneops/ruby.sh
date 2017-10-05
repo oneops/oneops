@@ -1,6 +1,8 @@
 
 echo '==> Configuring ruby for vagrant'
 
+sudo yum install -y ruby ruby-devel gcc gcc-c++ libxml2-devel libxslt-devel
+
 grep -s -i 'no-document' /root/.gemrc
 
 if [ $? -ne 0 ];
@@ -22,8 +24,9 @@ rvm requirements run
 
 # install pre-compiled ruby to save time
 rvm mount /tmp/ruby-2.3.3.tar.bz2
+rvm mount /tmp/ruby-2.0.0-p648.tar.bz2
 
-rvm use 2.3.3 --default
+rvm use 2.0.0 --default
 
 #gem update --system 2.6.1
 gem install json -v 1.8.6

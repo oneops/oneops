@@ -55,6 +55,9 @@ sed -i 's/service.*start/systemctl start tomcat/' deploy_java.sh
 sed -i 's/cp.*dist.*dist.*search.*jar/cp $OO_HOME\/dist\/search.jar \/opt\/oneops-search/' deploy_search.sh
 sed -i 's/gem install.*oneops-admin.*/gem install $OO_HOME\/dist\/oneops-admin-1.0.0.gem --no-ri --no-rdoc/' deploy_ooadmin.sh
 
+sed -i 's/gem install.*oneops-admin.*/gem install $OO_HOME\/dist\/oneops-admin-adapter-1.0.0.gem --no-ri --no-rdoc/' deploy_ooadmin.sh
+sed -i '/gem install $OO_HOME\/dist\/oneops-admin-adapter-1.0.0.gem --no-ri --no-rdoc/a gem install $OO_HOME/dist/oneops-admin-inductor-az-1.0.0.gem --no-ri --no-rdoc' deploy_ooadmin.sh
+
 chmod a+x /etc/init.d/display
 
 ./oneops_build.sh "$@"
