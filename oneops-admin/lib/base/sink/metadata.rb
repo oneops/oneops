@@ -224,6 +224,10 @@ attribute 'event_type',
                   ['All', 'none']]}
           }
 
+
+
+
+
 attribute 'severity_level',
           :description => 'Severity Level',
           :required => 'required',
@@ -280,6 +284,43 @@ attribute 'msg_selector_regex',
               :filter => {'all' => {'visible' => 'filter_enabled:eq:true'}},
               :category => '3.Filtering',
               :order => 7
+          }
+
+# Include  CI's
+attribute 'include_cis',
+          :description => 'Include Ci',
+          :default => 'false',
+          :format => {
+              :help => 'Include information about CIs(Compute)',
+              :category => '3.Filtering',
+              :filter => {'all' => {'visible' => 'filter_enabled:eq:true'}},
+              :form => {'field' => 'checkbox'},
+              :order => 8
+          }
+
+attribute 'cName',
+          :description => 'Class Pattern.',
+          :data_type => 'Array',
+          :default => '[]',
+          :format => {
+              :help => 'Send notifications only for deployments which have this CI<eg . Use bom.compute> for matching to compute. Currently supports compute',
+              :filter => {'all' => {'visible' => 'include_cis:eq:true'}},
+              :category => '3.Filtering',
+              :order => 9
+          }
+
+attribute 'notify_on',
+          :description => 'Include CI on',
+          :required => 'required',
+          :default => 'replace',
+          :format => {
+              :help => 'Notifies sinks if deployment resulted in replace or update. Currently supports replace',
+              :filter => {'all' => {'visible' => 'include_cis:eq:true'}},
+              :category => '3.Filtering',
+              :order => 10,
+              :form => { 'field' => 'checkbox', 'multiple' => 'true', 'options_for_select' => [
+                  ['Replace','replace']
+              ] }
           }
 
 # Message Transformation

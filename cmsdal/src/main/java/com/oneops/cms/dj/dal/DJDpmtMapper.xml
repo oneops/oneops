@@ -61,6 +61,7 @@
 			    where drfc.deployment_id = d.deployment_id
 			      and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
 			   d.auto_pause_exec_orders as autoPauseExecOrdersVal,
+			   d.current_step as currentStep,
 			   d.created,
 			   d.updated
 		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
@@ -418,7 +419,6 @@
   	     limit #{limit}
 	 </select>
 
-
 	<select id="getDeploymentRfcCIs" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcCI">
 		SELECT 
 			rci.rfc_id as rfcId, 
@@ -431,23 +431,27 @@
 			cl.impl as impl, 
 			rci.ci_name as ciName, 
 			rci.ci_goid as ciGoid, 
-		    rci.action_id as rfcActionId,
-		    a.action_name as rfcAction, 
-		    rci.execution_order as execOrder, 
-		    rci.is_active_in_release as isActiveInRelease,
-		    rci.last_rfc_id lastAppliedRfcId, 
-		    rci.comments, 
-		    rci.created
+		  rci.action_id as rfcActionId,
+		  a.action_name as rfcAction,
+		  rci.execution_order as execOrder,
+		  rci.is_active_in_release as isActiveInRelease,
+		  rci.last_rfc_id lastAppliedRfcId,
+		  rci.comments,
+		 rci.created
         FROM dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci, ns_namespaces ns, md_classes cl, dj_rfc_ci_actions a
-        where dr.deployment_id = #{deploymentId} 
-		  and dr.state_id = drs.state_id  
-		  and (#{state}::varchar is null or drs.state_name = #{state})
-		  and dr.rfc_id = rci.rfc_id
-	  	  and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
-          and rci.ns_id = ns.ns_id
-          and rci.class_id = cl.class_id
-          and rci.action_id = a.action_id
-        order by rci.execution_order
+     where dr.deployment_id = #{deploymentId}
+		 and dr.state_id = drs.state_id
+		 and (#{state}::varchar is null or drs.state_name = #{state})
+		 and dr.rfc_id = rci.rfc_id
+	   and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
+     and rci.ns_id = ns.ns_id
+     and rci.class_id = cl.class_id
+     and rci.action_id = a.action_id
+		and (#{action}::varchar is null or a.action_name = #{action})
+		and cl.class_name in <foreach item="item" index="index" collection="classNames" open="(" close=")" separator=", ">
+			#{item}
+		</foreach>
+		order by rci.execution_order
 	 </select>
 
 	 <select id="getDeploymentStateHist" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent">
@@ -629,5 +633,33 @@
 		and d.state_id = ds.state_id
 		order by d.deployment_id ${order.sort}
 	 </select>
+
+	<select id="getDeploymentRecordsCountByStates" parameterType="map" useCache="false" resultType="long">
+		select  count(1)
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+		where dr.deployment_id = #{deploymentId}
+		and dr.state_id = drs.state_id
+		and drs.state_name in
+		<foreach item="item" index="index" collection="states" open="(" close=")" separator=", ">
+			#{item}
+		</foreach>
+		and dr.rfc_id = rci.rfc_id
+		and rci.execution_order = #{execOrder}
+	</select>
+
+	<update id="updateDeploymentCurrentStep" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="PREPARED">
+		update dj_deployment
+		set current_step = #{currentStep}, updated = now()
+			where deployment_id = ${deploymentId}
+	</update>
+
+	<update id="updateDeploymentExecInfo" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="PREPARED">
+		update dj_deployment
+		set exec_model = #{execModel},
+			process_id = coalesce(#{processId}, process_id),
+			updated_by = #{updatedBy},
+			updated = now()
+		where deployment_id = ${deploymentId}
+	</update>
 
 </mapper>

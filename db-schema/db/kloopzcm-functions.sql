@@ -1331,61 +1331,6 @@ $BODY$
 ALTER FUNCTION dj_retry_deployment(bigint, character varying, character varying, character varying)
   OWNER TO :user;
 
--- Function: dj_rm_rfc_ci(bigint)
-
--- DROP FUNCTION dj_rm_rfc_ci(bigint);
-
-CREATE OR REPLACE FUNCTION dj_rm_rfc_ci(p_rfc_id bigint)
-  RETURNS void AS
-$BODY$
-DECLARE
-	l_ci_id bigint;
-	l_ci_exists integer;
-	l_rel_rfc_id bigint;
-BEGIN
-	update dj_rfc_ci
-	set is_active_in_release = false,
-	    updated = now()
-	where rfc_id = p_rfc_id
-	returning ci_id into l_ci_id;
-
-	select count(1) into l_ci_exists 
-	from cm_ci where ci_id = l_ci_id;
-
-	if l_ci_exists = 0 then
-        -- we need to clean up all the rels rfcs for this guy since no ci exists
-	      for l_rel_rfc_id in 
-			select rfc_id from dj_rfc_relation where from_rfc_id = p_rfc_id
-			union all
-			select rfc_id from dj_rfc_relation where to_rfc_id = p_rfc_id	      
-	      loop
-		  perform dj_rm_rfc_rel(l_rel_rfc_id);
-	      end loop;	 
-	end if;
-	
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION dj_rm_rfc_ci(bigint) OWNER TO :user;
-
--- Function: dj_rm_rfc_rel(bigint)
-
--- DROP FUNCTION dj_rm_rfc_rel(bigint);
-
-CREATE OR REPLACE FUNCTION dj_rm_rfc_rel(p_rfc_id bigint)
-  RETURNS void AS
-$BODY$
-BEGIN
-	update dj_rfc_relation
-	set is_active_in_release = false,
-	    updated = now()
-	where rfc_id = p_rfc_id;
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-ALTER FUNCTION dj_rm_rfc_rel(bigint) OWNER TO :user;
 
 
 -- Function: dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying)
@@ -2453,52 +2398,6 @@ ALTER FUNCTION dj_rm_rfcs(character varying)
   OWNER TO :user;
 
 
-
--- Function: dj_create_alt_namespace(bigint, character varying, bigint)
-
-DROP FUNCTION dj_create_alt_namespace(bigint, character varying, bigint);
-
-CREATE OR REPLACE FUNCTION dj_create_alt_namespace(p_ns_id bigint, p_tag character varying, p_rfc_id bigint)
-  RETURNS void AS
-$BODY$
-DECLARE
-    l_tag_id bigint;
-BEGIN
-    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;	
-
-    if not found then
-	    insert into ns_opt_tag (tag_id, tag)
-        values
-        (nextval('cm_pk_seq'), p_tag)
-        returning tag_id into l_tag_id;
-    end if;
-        
-    insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (p_rfc_id, p_ns_id, now(), l_tag_id);    
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-
-ALTER FUNCTION dj_create_alt_namespace(bigint, character varying, bigint) OWNER TO :user;
-
-
-
--- Function: dj_delete_alt_namespace(bigint, bigint)
-
--- DROP FUNCTION dj_delete_alt_namespace(bigint, bigint);
-
-CREATE OR REPLACE FUNCTION dj_delete_alt_namespace( p_ns_id bigint, p_rfc_id bigint)
-  RETURNS bigint AS
-$BODY$
-BEGIN
-    delete from dj_ns_opt where rfc_id= p_rfc_id and ns_id=p_ns_id;    
-    return p_ns_id;
-END;
-$BODY$
-  LANGUAGE plpgsql VOLATILE
-  COST 100;
-
-ALTER FUNCTION dj_delete_alt_namespace(bigint, bigint) OWNER TO :user;
 
 
 

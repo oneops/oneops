@@ -67,6 +67,7 @@
 
   <bean id="mdRestController" class="com.oneops.cms.ws.rest.MdRestController">
     <property name="mdManager" ref="cmsMdManager"/>
+    <property name="cmManager" ref="cmsCmManager"/>
   </bean>
 
   <bean id="cmRestController" class="com.oneops.cms.ws.rest.CmRestController">

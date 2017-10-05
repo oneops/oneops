@@ -1,10 +1,11 @@
-require 'cms'
+require 'chef/knife/base_sync'
 
 class Chef
   class Knife
     class CloudSync < Chef::Knife
+      include ::BaseSync
 
-      banner "knife cloud sync CLOUD (options)"
+      banner "Loads cloud templates into CMS\nUsage: \n   knife cloud sync [CLOUDS...] (options)"
 
       option :all,
              :short       => "-a",
@@ -31,37 +32,47 @@ class Chef
              :long        => "--reload",
              :description => "Remove the current cloud before syncing"
 
-      option :msg,
-             :short       => '-m MSG',
-             :long        => '--msg MSG',
-             :description => "Append a message to the comments"
 
       def clouds_loader
         @clouds_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
       end
 
       def run
+        t1 = Time.now
+        ENV['CMS_TRACE'] = 'true' if config[:cms_trace]
+
         config[:register]   ||= Chef::Config[:register]
         config[:version]    ||= Chef::Config[:version]
         config[:cloud_path] ||= Chef::Config[:cloud_path]
 
+        @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
+
         if config[:all]
-          ui.info("Starting sync for all clouds")
-          Chef::Cloud.sync_all(config)
-          ui.info("Completed sync for all clouds")
+          files = config[:cloud_path].inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
         else
-          if @name_args.empty?
-            ui.error "You must specify the cloud to sync or use the --all option."
-            exit 1
-          end
-          @name_args.each do |name|
-            ui.info("Starting sync for cloud #{name}")
-            cloud = Chef::Cloud.from_disk(name)
-            Chef::Log.debug(cloud.inspect)
-            cloud.sync(config)
-            ui.info("Completed sync for cloud #{name}!")
-          end
+          files = @name_args.inject([]) {|a, cloud| a << "#{cloud}.rb"}
         end
+
+        if files.blank?
+          ui.error 'You must specify cloud name(s) or use the --all option to sync all.'
+          exit(1)
+        end
+
+        comments = "#{ENV['USER']}:#{$0} #{config[:msg]}"
+        files.each {|f| exit(1) unless sync_cloud(f, comments)}
+
+        t2 = Time.now
+        ui.info("\nProcessed #{files.size} clouds.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
+      end
+
+      def sync_cloud(file, comments)
+        cloud = @packs_loader.load_from(config[:cloud_path], file)
+        ui.info("\n--------------------------------------------------")
+        ui.info("\e[7m\e[34m #{cloud.name} \e[0m")
+        ui.info('--------------------------------------------------')
+        cloud.sync(config, comments)
+        ui.info("\e[7m\e[32mSuccessfully synched\e[0m cloud #{cloud.name}")
+        return cloud
       end
     end
   end

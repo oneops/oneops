@@ -456,8 +456,8 @@ public class DjRestController extends AbstractRestController {
 
         scopeVerifier.verifyScope(scope, nsPath);
 
-        long deleted = djManager.rmRfcs(nsPath);
-        return "{\"deleted\":" + deleted + "}";
+        djManager.rmRfcs(nsPath);
+        return "";
     }
 
     @RequestMapping(value="/dj/simple/timeline", method=RequestMethod.GET)

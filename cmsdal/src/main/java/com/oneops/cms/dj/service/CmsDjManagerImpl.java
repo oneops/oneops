@@ -461,8 +461,8 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	}
     
     @Override
-    public long rmRfcs(String nsPath) {
-        return rfcProcessor.rmRfcs(nsPath);
+    public void rmRfcs(String nsPath) {
+        rfcProcessor.rmRfcs(nsPath);
     }
 
 	@Override

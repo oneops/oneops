@@ -114,4 +114,11 @@ public final class CmsConstants {
 	public static final String SERVICED_BY = "ServicedBy";
 
 	public static final String ESCORTED_BY = "EscortedBy";
+	public static String DEPLOYMENT_MODEL = "dpmtModel";
+	public static String DEPLOYMENT_MODEL_DEPLOYER = "deployer";
+	public static final String EXEC_ORDER = "execOrder";
+	public static final String WORK_ORDER_STATE = "wostate";
+
+	public static final String DEPLOYER_ENABLED_PROPERTY = "DEPLOYER_ENABLED";
+
 }

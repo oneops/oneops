@@ -36,12 +36,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  * @author Suresh G
  */
 public abstract class CacheFilter implements Filter {
+    public static final String MD_CACHE_STATUS_VAR = "MD_UPDATE_TIMESTAMP";
 
     private long lastUpdatedTs;
     private boolean cacheEnabled;
     private CmsCmManager cmManager;
     private LoadingCache<String, Long> varCache;
-    private static final String MD_CACHE_STATUS_VAR = "MD_UPDATE_TIMESTAMP";
     protected final Logger logger = Logger.getLogger(this.getClass());
 
     /**

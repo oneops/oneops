@@ -17,28 +17,36 @@
  *******************************************************************************/
 package com.oneops.antenna.ws;
 
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+
 import com.google.common.cache.CacheStats;
+import com.google.gson.Gson;
 import com.oneops.antenna.cache.SinkCache;
 import com.oneops.antenna.cache.SinkKey;
 import com.oneops.antenna.domain.BasicSubscriber;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-
+import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.antenna.service.Dispatcher;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.springframework.http.HttpStatus.*;
-import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 /**
  * The Class AntennaWsController.
@@ -51,7 +59,32 @@ public class AntennaWsController {
      */
     private final SinkCache cache;
 
+    /**
+     * Dispatcher to test.
+     */
     @Autowired
+    private Dispatcher dispatcher;
+
+  /**
+   * Dispatcher to test.
+   */
+  @Autowired
+  private Gson gson;
+
+  /**
+   * Enable method to dispatch notification.
+   */
+  @Value("${oo.antenna.enableWSNotify:false}")
+  private boolean enableWSNotify;
+
+  /**
+   * Enable method to log notification messages.
+   */
+  @Value("${oo.antenna.logNotificationMessage:false}")
+  private boolean logNotifyMessages;
+  private static Logger logger = Logger.getLogger(AntennaWsController.class);
+
+  @Autowired
     public AntennaWsController(SinkCache cache) {
         this.cache = cache;
     }
@@ -174,5 +207,30 @@ public class AntennaWsController {
         stat.put("entry", nsPath);
         return new ResponseEntity<>(stat, OK);
     }
+
+
+    /**
+     *  Post Notification Message
+     *
+     */
+    @RequestMapping(value = "/notify/", method = RequestMethod.POST)
+    @ResponseBody
+    public void dispatch(@RequestBody NotificationMessage nmsg) {
+      if(enableWSNotify)
+        dispatcher.dispatch(nmsg);
+
+    }
+
+  /**
+   *  Post Notification Message, Used for testing
+   *
+   */
+  @RequestMapping(value = "/notify/log", method = RequestMethod.POST)
+  @ResponseBody
+  public void log(@RequestBody NotificationMessage nmsg) {
+    if (logNotifyMessages) {
+      logger.info("Notification message" + gson.toJson(nmsg));
+    }
+  }
 
 }

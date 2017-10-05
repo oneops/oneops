@@ -23,12 +23,15 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.sensor.SensorClient;
 import com.oneops.controller.util.ControllerUtil;
+import com.oneops.controller.workflow.Deployer;
 import com.oneops.controller.workflow.WorkflowController;
 import com.oneops.sensor.client.SensorClientException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import org.activiti.engine.ActivitiException;
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.util.IndentPrinter;
+import org.apache.log4j.Logger;
+
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -37,11 +40,10 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import org.activiti.engine.ActivitiException;
-import org.apache.activemq.ActiveMQConnection;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.util.IndentPrinter;
-import org.apache.log4j.Logger;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 /**
@@ -67,6 +69,7 @@ public class InductorListener implements MessageListener {
   private WoPublisher woPublisher;
   private SensorClient sensorClient;
   private ControllerUtil controllerUtil;
+  private Deployer deployer;
 
   public SensorClient getSensorClient() {
     return sensorClient;
@@ -197,18 +200,33 @@ public class InductorListener implements MessageListener {
     }
 
     if (woTaskResult.equalsIgnoreCase("200")) {
-      params.put("wostate", "complete");
+      params.put(CmsConstants.WORK_ORDER_STATE, "complete");
     } else {
-      params.put("wostate", "failed");
+      params.put(CmsConstants.WORK_ORDER_STATE, "failed");
     }
-    String woCorelationId = processId + executionId;
-    wfController.pokeSubProcess(processId, executionId, params);
+
+    handleWorkOrderFlow(processId, executionId, params, wo);
+
     final long processTime = System.currentTimeMillis() - startTime;
+    String woCorelationId = processId + executionId;
     wo.getSearchTags().put("cProcessTime",String.valueOf(processTime));
     setWoTimeStamps(wo);
     woPublisher.publishMessage(wo, type, woCorelationId);
     logger.info("Processed iResponse with id "+ corelationId + " result" + woTaskResult+" took(ms) " +processTime);
+  }
 
+  private void handleWorkOrderFlow(String processId, String executionId, Map<String,
+          Object> params, CmsWorkOrderSimpleBase wo) throws JMSException {
+    if (isRunByDeployer(wo)) {
+      deployer.handleInductorResponse(wo, params);
+    }
+    else {
+      wfController.pokeSubProcess(processId, executionId, params);
+    }
+  }
+
+  private boolean isRunByDeployer(CmsWorkOrderSimpleBase wo) {
+    return CmsConstants.DEPLOYMENT_MODEL_DEPLOYER.equals(wo.getSearchTags().get(CmsConstants.DEPLOYMENT_MODEL));
   }
 
   /**
@@ -254,9 +272,13 @@ public class InductorListener implements MessageListener {
   private void closeConnection() {
     try {
       session.close();
+
       connection.close();
     } catch (Exception ignore) {
     }
   }
 
+  public void setDeployer(Deployer deployer) {
+    this.deployer = deployer;
+  }
 }

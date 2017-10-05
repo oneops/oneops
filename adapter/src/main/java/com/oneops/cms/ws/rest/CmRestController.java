@@ -32,7 +32,7 @@ import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
-import com.oneops.cms.ds.DataTypeHolder;
+import com.oneops.cms.ds.CmsDataHelper;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.exceptions.DJException;
@@ -46,6 +46,7 @@ import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.cms.ws.exceptions.CmsSecurityException;
 import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
+import com.oneops.cms.ws.rest.util.RelationParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -492,6 +493,23 @@ public class CmRestController extends AbstractRestController {
 		return cmsCISimple;
 	}
 
+	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/cis/bulk")
+	@ResponseBody
+	public List<CmsCISimple> createOrUpdateCISimpleBulk(
+			@RequestParam(value="value", required = false)  String valueType,
+			@RequestBody CmsCISimple[] cis,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) throws CIValidationException {
+
+		List<CmsCISimple> result = new ArrayList<>();
+		for (CmsCISimple ci : cis) {
+			long ciId = ci.getCiId();
+			result.add(ciId == 0 ? createCISimple(valueType, ci, scope, userId) : updateCISimple(ciId, valueType, ci, scope, userId));
+		}
+		return result;
+	}
+
+
 	private void updateAltNs(long ciId, CmsCISimple ciSimple) {
 		Map<String, Set<String>> altNs = ciSimple.getAltNs();
 		if (altNs !=null && altNs.size()!=0){
@@ -562,36 +580,24 @@ public class CmRestController extends AbstractRestController {
 		if (recursive == null) {
 			recursive = false;
 		}
-		try {
-			if (isOrgLevelRecursiveAccess(nsPath, recursive)) {
-				logger.info("marking relations count read only nsPath : " + nsPath + ", relationName " + relationName);
-				DataTypeHolder.setReadOnlyData();
-			}
-
-			return getRelationsCountsInternal(nsPath, ciId, direction, relationName, shortRelationName, targetClazz, recursive, groupBy);
-
-		} catch(RuntimeException e) {
-			if (CmsUtil.isCancelledDueToConflict(e)) {
-				DataTypeHolder.clear();
-				logger.info("retrying the request due to cancellation");
-				return getRelationsCountsInternal(nsPath, ciId, direction, relationName, shortRelationName, targetClazz, recursive, groupBy);
-			}
-			throw e;
-		}finally {
-			DataTypeHolder.clear();
-		}
+		CmsDataHelper<RelationParam, Map<String, Long>> dataHelper = new CmsDataHelper<>();
+		RelationParam param = new RelationParam(nsPath, relationName, shortRelationName, targetClazz, recursive);
+		param.setCiId(ciId);
+		param.setDirection(direction);
+		param.setGroupBy(groupBy);
+		return dataHelper.execute(this::getRelationsCountsInternal, param, isOrgLevelRecursiveAccess(nsPath, recursive), "getRelationsCounts");
 	}
 
-	private Map<String, Long> getRelationsCountsInternal(String nsPath, Long ciId, String direction, String relationName,
-														 String shortRelationName, String targetClazz,
-														 Boolean recursive, String groupBy) {
-		if (groupBy != null) {
-			if ("ciId".equals(groupBy)) {
+	private Map<String, Long> getRelationsCountsInternal(RelationParam param) {
+		if (param.getGroupBy() != null) {
+			if ("ciId".equals(param.getGroupBy())) {
 				Map<Long, Long> counts;
-				if ("from".equals(direction)) {
-					counts = cmManager.getCounCIRelationsGroupByFromCiId(relationName, shortRelationName, targetClazz, nsPath);
+				if ("from".equals(param.getDirection())) {
+					counts = cmManager.getCounCIRelationsGroupByFromCiId(param.getRelationName(), param.getShortRelationName(),
+							param.getTargetClazz(), param.getNsPath());
 				} else {
-					counts = cmManager.getCounCIRelationsGroupByToCiId(relationName, shortRelationName, targetClazz, nsPath);
+					counts = cmManager.getCounCIRelationsGroupByToCiId(param.getRelationName(), param.getShortRelationName(),
+							param.getTargetClazz(), param.getNsPath());
 				}
 				//convert to Map<String,Long>
 				Map<String, Long> result = new HashMap<>(1);
@@ -600,18 +606,22 @@ public class CmRestController extends AbstractRestController {
 				}
 				return result;
 			} else {
-				if ("from".equals(direction)) {
-					return cmManager.getCountFromCIRelationsGroupByNs(ciId, relationName, shortRelationName, targetClazz, nsPath);
+				if ("from".equals(param.getDirection())) {
+					return cmManager.getCountFromCIRelationsGroupByNs(param.getCiId(), param.getRelationName(),
+							param.getShortRelationName(), param.getTargetClazz(), param.getNsPath());
 				} else {
-					return cmManager.getCountToCIRelationsGroupByNs(ciId, relationName, shortRelationName, targetClazz, nsPath);
+					return cmManager.getCountToCIRelationsGroupByNs(param.getCiId(), param.getRelationName(),
+							param.getShortRelationName(), param.getTargetClazz(), param.getNsPath());
 				}
 			}
 		} else {
 			Long count;
-			if ("from".equals(direction)) {
-				count = cmManager.getCountFromCIRelationsByNS(ciId, relationName, shortRelationName, targetClazz, nsPath, recursive);
+			if ("from".equals(param.getDirection())) {
+				count = cmManager.getCountFromCIRelationsByNS(param.getCiId(), param.getRelationName(),
+						param.getShortRelationName(), param.getTargetClazz(), param.getNsPath(), param.isRecursive());
 			} else {
-				count = cmManager.getCountToCIRelationsByNS(ciId, relationName, shortRelationName, targetClazz, nsPath, recursive);
+				count = cmManager.getCountToCIRelationsByNS(param.getCiId(), param.getRelationName(),
+						param.getShortRelationName(), param.getTargetClazz(), param.getNsPath(), param.isRecursive());
 			}
 			Map<String, Long> result = new HashMap<>(1);
 			result.put("count", count);
@@ -674,7 +684,12 @@ public class CmRestController extends AbstractRestController {
 		} else if (nsPath != null) {
 			
 			if (recursive != null && recursive) {
-				relList = cmManager.getCIRelationsNsLike(nsPath, relationName, shortRelationName, fromClazz, targetClazz);
+				RelationParam param = new RelationParam(nsPath, relationName, shortRelationName, targetClazz, recursive);
+				param.setFromClazz(fromClazz);
+				CmsDataHelper<RelationParam, List<CmsCIRelation>> dataHelper = new CmsDataHelper<>();
+				relList = dataHelper.execute(this::getNsLikeRelations, param,
+						isOrgLevelRecursiveAccess(nsPath, true), "getCIRelationSimpleQuery");
+
 			} else {	
 				relList = cmManager.getCIRelations(nsPath, relationName, shortRelationName, fromClazz, targetClazz);
 			}
@@ -696,7 +711,12 @@ public class CmRestController extends AbstractRestController {
 		}
 		return simpleList;
 	}
-	
+
+	private List<CmsCIRelation> getNsLikeRelations(RelationParam param) {
+		return cmManager.getCIRelationsNsLike(param.getNsPath(), param.getRelationName(),
+				param.getShortRelationName(), param.getFromClazz(), param.getTargetClazz());
+	}
+
 	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/relations")
 	@ResponseBody
 	public CmsCIRelationSimple createCIRelation(
@@ -742,9 +762,24 @@ public class CmRestController extends AbstractRestController {
 		}
 		return cmsUtil.custCIRelation2CIRelationSimple(newRel, valueType,false, attrProps);
 	}
-	
-	
-	@RequestMapping(value="/cm/simple/relations/{ciRelId}", method = RequestMethod.DELETE)
+
+	@RequestMapping(method=RequestMethod.POST, value="/cm/simple/relations/bulk")
+	@ResponseBody
+	public List<CmsCIRelationSimple> createOrUpdateCIRelationBulk(
+			@RequestParam(value="value", required = false)  String valueType,
+			@RequestBody CmsCIRelationSimple[] relations,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) throws CIValidationException {
+		List<CmsCIRelationSimple> result = new ArrayList<>();
+		for (CmsCIRelationSimple relation : relations) {
+			long id = relation.getCiRelationId();
+			result.add(id == 0 ? createCIRelation(valueType, relation, scope, userId) : updateCIRelation(id, valueType, relation, scope, userId));
+		}
+		return result;
+	}
+
+
+		@RequestMapping(value="/cm/simple/relations/{ciRelId}", method = RequestMethod.DELETE)
 	@ResponseBody
 	public String deleteRelation(
 			@PathVariable long ciRelId,

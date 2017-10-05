@@ -1,6 +1,8 @@
 
 action_name,class_name,attribute_to_look =get_attachment_context
 run_on_event = 'before'
+windows_platform = node['platform_family'] == 'windows'
+
 
 if node.workorder.payLoad.has_key?('EscortedBy') && class_name !~ /\.Compute/
   attachments = node.workorder.payLoad.EscortedBy
@@ -28,9 +30,9 @@ before.sort_by { |a| a[:ciAttributes][:priority] }.each do |a|
   _d = File.dirname(_path)
 
   directory "#{_d}" do
-    owner "root"
-    group "root"
-    mode "0755"
+    owner "root" unless windows_platform
+    group "root" unless windows_platform
+    mode "0755"  unless windows_platform
     recursive true
     action :create
     not_if { File.directory?(_d) }
@@ -44,9 +46,9 @@ before.sort_by { |a| a[:ciAttributes][:priority] }.each do |a|
 
     file "#{_path}" do
       content _content.gsub(/\r\n?/,"\n")
-      owner "root"
-      group "root"
-      mode "0755"
+      owner "root" unless windows_platform
+      group "root" unless windows_platform
+      mode "0755"  unless windows_platform
       action :create
     end
 
@@ -74,9 +76,9 @@ before.sort_by { |a| a[:ciAttributes][:priority] }.each do |a|
       path _path
       access_key_id _user
       secret_access_key _password
-      owner "root"
-      group "root"
-      mode 0644
+      owner "root" unless windows_platform
+      group "root" unless windows_platform
+      mode 0644    unless windows_platform
       action :create
       only_if do _source =~ /s3:\/\// end
     end
@@ -85,13 +87,21 @@ before.sort_by { |a| a[:ciAttributes][:priority] }.each do |a|
 
   if a[:ciAttributes].has_key?("exec_cmd")
     _exec_cmd = a[:ciAttributes][:exec_cmd].gsub(/\r\n?/,"\n")
-    bash "execute #{run_on_event}-#{action_name} #{a[:ciName]} attachment" do
-      code <<-EOH
-#{_exec_cmd}
-      EOH
-      not_if { _exec_cmd.empty? }
-    end
-  end
+      if windows_platform
+        batch "execute #{run_on_event}-#{action_name} #{a[:ciName]} attachment" do
+          code <<-EOH
+            #{_exec_cmd}
+          EOH
+          not_if { _exec_cmd.empty? }
+        end
+      else
+        bash "execute #{run_on_event}-#{action_name} #{a[:ciName]} attachment" do
+          code <<-EOH
+            #{_exec_cmd}
+          EOH
+          not_if { _exec_cmd.empty? }
+        end
+      end
+   end
+ end
 end
-end
-

@@ -1,0 +1,18 @@
+{
+  "cmsId": 2681774,
+  "severity": "info",
+  "type": "deployment",
+  "source": "deployment",
+  "subject": "appstore1/t3/t3 : Deployment completed successfully.",
+  "text": "",
+  "nsPath": "/appstore1/t3/t3/bom",
+  "payload": {
+    "deploymentState": "complete",
+    "updatedBy": "oneops-system",
+    "comments": "",
+    "createdBy": "glall",
+    "deploymentId": "2681774"
+  },
+  "timestamp": 1506191541331,
+  "manifestCiId": 0
+}
