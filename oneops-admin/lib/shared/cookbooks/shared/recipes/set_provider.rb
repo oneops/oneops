@@ -9,7 +9,8 @@ require 'fog'
 # compute provider
 #
 
-provider_class = ""
+provider_class = nil
+provider = nil
 cloud_name = node[:workorder][:cloud][:ciName]
 if node.workorder.services.has_key?("compute")
   cloud = node[:workorder][:services][:compute][cloud_name][:ciAttributes]
@@ -88,7 +89,14 @@ when /aliyun/
   })
 
 when /azure/
-  provider = 'azure'
+  require 'fog/azurerm'
+  provider =Fog::Compute.new(
+    provider: 'AzureRM',
+    tenant_id: cloud[:tenant_id],
+    client_id: cloud[:client_id],
+    client_secret: cloud[:client_secret],
+    subscription_id: cloud[:subscription]
+  )
 
 when /docker/
   provider = 'docker'
@@ -111,10 +119,16 @@ end
 #  block storage provider
 #
 storage_class = ""
+storage_service = nil
 if node.workorder.services.has_key?("storage")
   storage_service = node[:workorder][:services][:storage][cloud_name]
-  storage = storage_service["ciAttributes"]
-  storage_class = storage_service["ciClassName"].split(".").last.downcase
+elsif node[:workorder][:payLoad].has_key?('volume_storage')
+  storage_service = node[:workorder][:payLoad][:volume_storage][0]
+end
+
+if !storage_service.nil?
+  storage = storage_service[:ciAttributes]
+  storage_class = storage_service[:ciClassName].split(".").last.downcase
   node.set["storage_provider_class"] = storage_class
 end
 
@@ -134,13 +148,25 @@ when /rackspace/
     :rackspace_region => cloud[:region]
   }) 
 when /azure/
-  provider_class = "azuredatadisk" 
+  require 'fog/azurerm'
+  node.set[:storage_provider] = Fog::Compute.new(
+    provider: 'AzureRM',
+    tenant_id: storage[:tenant_id],
+    client_id: storage[:client_id],
+    client_secret: storage[:client_secret],
+    subscription_id: storage[:subscription]
+  )
 end
 
 
-if !node.has_key?(:storage_provider) || node.storage_provider == nil
-     node.set[:storage_provider] = provider
-     node.set[:storage_provider_class] = provider_class
+if (!node.has_key?(:storage_provider) || node[:storage_provider].nil?) && !provider.nil?
+  node.set[:storage_provider] = provider
 end
 
-node.set[:iaas_provider] = provider
+if (!node.has_key?(:storage_provider_class) || node[:storage_provider_class].nil?) && !provider_class.nil?
+  node.set[:storage_provider_class] = provider_class
+end
+
+if (!node.has_key?(:iaas_provider) || node[:iaas_provider].nil?) && !provider.nil?
+  node.set[:iaas_provider] = provider
+end
