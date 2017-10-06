@@ -17,7 +17,20 @@
  *******************************************************************************/
 package com.oneops.sensor;
 
-import com.espertech.esper.client.*;
+import static com.oneops.sensor.StmtBuilder.STMT_DELAY_PERF_EVENT;
+import static com.oneops.sensor.StmtBuilder.STMT_RESET;
+import static com.oneops.sensor.StmtBuilder.STMT_RESET_HEARTBEAT;
+import static com.oneops.sensor.StmtBuilder.STMT_RETRIGGER_HEARTBEAT;
+import static com.oneops.sensor.StmtBuilder.STMT_TRIGGER_CHANNELDOWN;
+import static com.oneops.sensor.StmtBuilder.THRESHOLDS_JSON_SIZE_FLOOR;
+import static java.lang.System.getProperty;
+
+import com.espertech.esper.client.Configuration;
+import com.espertech.esper.client.ConfigurationEngineDefaults;
+import com.espertech.esper.client.EPServiceProvider;
+import com.espertech.esper.client.EPServiceProviderManager;
+import com.espertech.esper.client.EPStatement;
+import com.espertech.esper.client.UpdateListener;
 import com.google.gson.Gson;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.ops.CiOpsProcessor;
@@ -34,22 +47,23 @@ import com.oneops.sensor.thresholds.Threshold;
 import com.oneops.sensor.thresholds.ThresholdsDao;
 import com.oneops.sensor.util.ChannelDownEvent;
 import com.oneops.sensor.util.ReplacedInstances;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.zip.CRC32;
 import org.apache.log4j.Logger;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import rx.Observable;
 import rx.observables.ConnectableObservable;
 import rx.schedulers.Schedulers;
-
-import java.util.*;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.zip.CRC32;
-
-import static com.oneops.sensor.StmtBuilder.*;
-import static java.lang.System.getProperty;
 
 
 /**
@@ -90,8 +104,9 @@ public class Sensor {
     private int minHeartbeatSeedDelay = 300;
     private int heartbeatRandomDelay = 30;
     private ReplacedInstances replacedInstances;
+    private int loadStatementTimeOut;
 
-    /**
+  /**
      * Sets the statement builder
      *
      * @param stmtBuilder
@@ -282,7 +297,7 @@ public class Sensor {
      *
      * @param ciId       the ci id
      * @param manifestId the manifest id
-     * @param monitor    the monitor
+     * @param monitors    the monitor
      * @throws SensorException
      */
     public void addCiThresholdsList(long ciId, long manifestId, List<CmsRfcCISimple> monitors) throws SensorException {
@@ -789,7 +804,7 @@ public class Sensor {
         logger.info("Starting stream processing pipeline...");
         openEvents.connect();
         logger.info("Waiting to complete the OpsEvent stream processing.");
-        lock.await(30, TimeUnit.MINUTES);
+        lock.await(getLoadStatementTimeOut(), TimeUnit.MINUTES);
 
         // Finally insert the fake events to satisfy the open hb conditions.
         fes.stream().forEach(fe -> {
@@ -948,4 +963,12 @@ public class Sensor {
 	public void setReplacedInstances(ReplacedInstances replacedInstances) {
 		this.replacedInstances = replacedInstances;
 	}
+
+  public int getLoadStatementTimeOut() {
+    return loadStatementTimeOut;
+  }
+
+  public void setLoadStatementTimeOut(int loadStatementTimeOut) {
+    this.loadStatementTimeOut = loadStatementTimeOut;
+  }
 }
