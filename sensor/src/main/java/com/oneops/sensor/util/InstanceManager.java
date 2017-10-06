@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.sensor.util;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import com.oneops.cms.util.service.CmsUtilManager;
 import com.oneops.sensor.OrphanEventHandler;
 import com.oneops.sensor.Sensor;
@@ -25,35 +27,30 @@ import com.oneops.sensor.jms.SensorListenerContainer;
 import com.oneops.sensor.jms.SensorMonListenerContainer;
 import com.oneops.util.AMQConnectorURI;
 import com.oneops.util.DNSUtil;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.log4j.Logger;
-import org.springframework.jms.JmsException;
-import org.springframework.transaction.TransactionException;
-
-import javax.jms.Session;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
+import javax.jms.Session;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.log4j.Logger;
+import org.springframework.jms.JmsException;
+import org.springframework.transaction.TransactionException;
 
 public class InstanceManager {
 	
 	private static final String LOCK_NAME_PREFIX = "SENSOR_INSTANCE_LOCK_";
-	private static final int LOCK_TIMEOUT_SEC = 30;
-	private static final int LOCK_REFRESH_SEC = 10;
-	private static final long LOCK_RETRY_SLEEP_MSEC = 30000;
 	private static final String OPSMQ_HOST_PARAM = "com.oneops.sensor.opsmq.host";
 	private static final String OPSMQ_PORT_PARAM = "com.oneops.sensor.opsmq.port";
 	private static final String OPSMQ_MAX_SESSIONS = "com.oneops.sensor.opsmq.sessions";
 	private static final String OPSMQ_USER = "superuser";
 	private static final String OPSMQ_PASS_ENV_VAR = "KLOOPZ_AMQ_PASS";
+  private static final String DEFAULT_PROCESS_ID = "0";
 
-	
-	private final Logger logger = Logger.getLogger(this.getClass());
+
+  private final Logger logger = Logger.getLogger(this.getClass());
 	private CmsUtilManager utilManager;
 	private List<SensorListenerContainer> sensorListenerContainers = new ArrayList<>();
 	private SensorMonListenerContainer monListenerContainer;
@@ -63,6 +60,12 @@ public class InstanceManager {
 	private boolean shouldLogStats;
 	private int numLockRefreshesToLogStats = 10;
 	private int currentRefresh=0;
+
+	private long retryLockWaitInMilliSeconds;
+  private int lockTimeOutInSeconds;
+  private long refreshLockWaitInSeconds;
+
+  private boolean useRandomProcessId = true;
 	private String processId;
 	private AMQConnectorURI opsMQURI;
 	private SensorListener sensorListener;
@@ -72,7 +75,25 @@ public class InstanceManager {
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 	private ScheduledFuture<?> jobLockRefreshHandle = null;
 
-	public void setMonListenerContainer(SensorMonListenerContainer monListenerContainer) {
+
+  public long getRefreshLockWaitInSeconds() {
+    return refreshLockWaitInSeconds;
+  }
+
+  public void setRefreshLockWaitInSeconds(long refreshLockWaitInSeconds) {
+    this.refreshLockWaitInSeconds = refreshLockWaitInSeconds;
+  }
+
+  public long getRetryLockWaitInMilliSeconds() {
+    return retryLockWaitInMilliSeconds;
+  }
+
+  public void setRetryLockWaitInMilliSeconds(long retryLockWaitInMilliSeconds) {
+    this.retryLockWaitInMilliSeconds = retryLockWaitInMilliSeconds;
+  }
+
+
+  public void setMonListenerContainer(SensorMonListenerContainer monListenerContainer) {
 		this.monListenerContainer = monListenerContainer;
 	}
 
@@ -90,15 +111,17 @@ public class InstanceManager {
 
 	private void startTheLockRefresh() {
 		final Runnable lockRefresher = () -> refreshLock();
-		jobLockRefreshHandle = scheduler.scheduleWithFixedDelay(lockRefresher, 0, LOCK_REFRESH_SEC, SECONDS);
+		jobLockRefreshHandle = scheduler.scheduleWithFixedDelay(lockRefresher, 0,
+        refreshLockWaitInSeconds, SECONDS);
 	}
 
 	private void lockRetry() {
         final Runnable lockAqcuirer = () -> {
             while (!acquireLock()) {
                 try {
-                    logger.info("Could not acquire lock, will sleep for " + LOCK_RETRY_SLEEP_MSEC + " ms and try again.");
-                    Thread.sleep(LOCK_RETRY_SLEEP_MSEC);
+                    logger.info("Could not acquire lock, will sleep for " + retryLockWaitInMilliSeconds
+                        + " ms and try again.");
+                    Thread.sleep(retryLockWaitInMilliSeconds);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -113,20 +136,30 @@ public class InstanceManager {
 	}
 
 	public void init() {
-		this.processId = UUID.randomUUID().toString();
-
-		String poolSizeParam = System.getProperty("com.oneops.sensor.PoolSize");
-		if (poolSizeParam == null) {
-			this.poolSize = 1;
-		} else {
-			this.poolSize = Integer.valueOf(poolSizeParam);
-		}
-        logger.info("Sensor started with processId :" + this.processId +" poolSize :"+ poolSize+" logStats:" +shouldLogStats);
-
-		if (!acquireLock()) {
-			lockRetry();
-		}
-	}
+    String poolSizeParam = System.getProperty("com.oneops.sensor.PoolSize");
+    //If the sensor is initialized using OneOps managed VM, the ciId is unique
+    //and can be used as processId, will ease in troubleshooting.
+    //TODO add a WS end point which queries all the locks.
+    if (useRandomProcessId) {
+      this.processId = UUID.randomUUID().toString();
+    } else {
+      if (processId.equals(DEFAULT_PROCESS_ID)) {
+        throw new IllegalStateException(
+            " Requires a unique process Id, pls set env var ONEOPS_COMPUTE_CI_ID ");
+      }
+    }
+    if (poolSizeParam == null) {
+      this.poolSize = 1;
+    } else {
+      this.poolSize = Integer.valueOf(poolSizeParam);
+    }
+    logger.info(
+        "Sensor started with processId :" + this.processId + " poolSize :" + poolSize + " logStats:"
+            + shouldLogStats);
+    if (!acquireLock()) {
+      lockRetry();
+    }
+  }
 
 
 	public void setSensorHeartBeat(SensorHeartBeat sensorHeartBeat) {
@@ -141,7 +174,20 @@ public class InstanceManager {
 		this.shouldLogStats = shouldLogStats;
 	}
 
-	private enum State {
+  public void setUseRandomProcessId(boolean useRandomProcessId) {
+    this.useRandomProcessId = useRandomProcessId;
+  }
+
+  public boolean getUseRandomProcessId() {
+    return useRandomProcessId;
+  }
+
+  public void setLockTimeOutInSeconds(int lockTimeOutInSeconds) {
+    this.lockTimeOutInSeconds = lockTimeOutInSeconds;
+  }
+
+
+  private enum State {
 		WaitingForLock,Initializing, Initalized
 	}
     private State state = State.WaitingForLock;
@@ -150,7 +196,7 @@ public class InstanceManager {
 	private boolean acquireLock() {
 		try {
 			for (int i = 1; i <= this.poolSize; i++) {
-				if (utilManager.acquireLock(LOCK_NAME_PREFIX + i, this.processId, LOCK_TIMEOUT_SEC)) {
+				if (utilManager.acquireLock(LOCK_NAME_PREFIX + i, this.processId, lockTimeOutInSeconds)) {
 					this.instanceId = i;
 					logger.info(">>>>>>>Sensor process " + this.processId + " will be running as #" + i);
 					startTheLockRefresh();
@@ -272,7 +318,7 @@ public class InstanceManager {
 
 	private void cleanAndReinit() {
 
-        logger.error(">>>>>>>>>This Sensor instance lost the lock, will shutdown processing and re-init!");
+    logger.error(">>>>>>>>>This Sensor instance lost the lock, will shutdown processing and re-init!");
 		closeSensorListener();
 		closeMonitorListeners();
 		sensor.stop();
@@ -316,6 +362,10 @@ public class InstanceManager {
 
 	public int getPoolSize() {
 		return poolSize;
+	}
+
+	public void setProcessId(String processId) {
+		this.processId = processId;
 	}
 
 	public String getProcessId() {

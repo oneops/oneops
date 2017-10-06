@@ -119,32 +119,45 @@ public class NotificationFilter implements MessageFilter {
      * 3. Filter msgs with nsPaths configured in sink.
      * 4. Filter msgs with clouds configured in sink.
      * 5. Filter msgs with env profile pattern(Case-Insensitive) configured in sink.
+     * 6. Filter msgs with message selector on subject.
      *
      * @param msg {@link  com.oneops.antenna.domain.NotificationMessage}
      * @return <code>true</code> if message pass the filter rules.
      */
     @Override
     public boolean accept(NotificationMessage msg) {
-        if (NotificationType.none == this.eventType || msg.getType() == this.eventType) {
-            if (msg.getSeverity().getLevel() >= this.eventSeverity.getLevel()) {
-                if (hasValidNSPath(msg.getNsPath())) {
-                    if (allowCloud(msg.getCloudName())) {
-                        if (isNotEmpty(envProfilePattern)) {
-                            String envProfile = msg.getEnvironmentProfileName();
-                            // ProfilePattern regex match is Case-Insensitive.
-                            return envProfile != null && envProfile.matches("(?i)" + envProfilePattern);
-                        } else {
-                            // Pass through all messages because env profile pattern is empty.
-                            return true;
-                        }
-                    }
+      if (NotificationType.none == this.eventType || msg.getType() == this.eventType) {
+        if (msg.getSeverity().getLevel() >= this.eventSeverity.getLevel()) {
+          if (hasValidNSPath(msg.getNsPath())) {
+            if (filter(msg.getSubject())) {
+              if (allowCloud(msg.getCloudName())) {
+                if (isNotEmpty(envProfilePattern)) {
+                  String envProfile = msg.getEnvironmentProfileName();
+                  // ProfilePattern regex match is Case-Insensitive.
+                  return envProfile != null && envProfile.matches("(?i)" + envProfilePattern);
+                } else {
+                  // Pass through all messages because env profile pattern is empty.
+                  return true;
                 }
+              }
             }
+          }
         }
-        return false;
+      }
+      return false;
     }
 
-    /**
+  private boolean filter(String subject) {
+    if("*".equals(this.selectorPattern) || this.selectorPattern ==null ) return true;
+    if (isNotEmpty(this.selectorPattern)) {
+        if (subject != null && subject.matches(selectorPattern)) {
+          return true;
+        }
+      }
+      return false;
+  }
+
+  /**
      * Converts the json string to java string array.
      *
      * @param jsonString json array string

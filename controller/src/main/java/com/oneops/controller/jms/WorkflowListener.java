@@ -27,6 +27,7 @@ public class WorkflowListener implements MessageListener {
   private void processMessage(TextMessage message) {
     try {
       WorkflowMessage wfMessage = gson.fromJson(message.getText(), WorkflowMessage.class);
+      logger.info("processWorkflow using Deployer " + wfMessage.getDpmtId());
       deployer.processWorkflow(wfMessage);
     } catch (JMSException e) {
       logger.error("Exception in processMessage ", e);

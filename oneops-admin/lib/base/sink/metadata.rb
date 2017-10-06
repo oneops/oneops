@@ -302,7 +302,6 @@ attribute 'cName',
           :description => 'Class Pattern.',
           :data_type => 'Array',
           :default => '[]',
-          :default => '',
           :format => {
               :help => 'Send notifications only for deployments which have this CI<eg . Use bom.compute> for matching to compute. Currently supports compute',
               :filter => {'all' => {'visible' => 'include_cis:eq:true'}},

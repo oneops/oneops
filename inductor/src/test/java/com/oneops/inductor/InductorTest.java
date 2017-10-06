@@ -17,29 +17,52 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
+import static org.mockito.Mockito.*;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.concurrent.Semaphore;
 import javax.jms.*;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.mockrunner.mock.jms.MockTextMessage;
 
-import junit.framework.Assert;
 
 public class InductorTest {
 
 	private String testWo = "";
 	private String testAo = "";
+  final protected Gson gson = new Gson();
 
-	private void init() {
+  @Test
+  public  void testProvider(){
+    InputStream is = this.getClass().getClassLoader().getResourceAsStream("testWorkorder.json");
+    JsonParser parser = new JsonParser();
+    JsonElement jsonElement = parser.parse(new InputStreamReader(is));
+    CmsWorkOrderSimple wo = gson.fromJson(jsonElement, CmsWorkOrderSimple.class);
+    WorkOrderExecutor executor = new WorkOrderExecutor(mock(Config.class), mock(
+        Semaphore.class));
+    final String provider = executor.getProvider(wo);
+    Assert.assertTrue(provider.equals("azure"));
+  }
+
+	public void init() {
 
 		String line = null;
 		BufferedReader br;
 		try {
-			br = new BufferedReader(new FileReader(
+
+      br = new BufferedReader(new FileReader(
 					"src/test/resources/testWorkorder.json"));
 			while ((line = br.readLine()) != null) {
 				testWo += line + "\n";

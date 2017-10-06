@@ -34,7 +34,7 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
           "   AND r.execution_order = ? LIMIT ? );";
 
   @Autowired
-  private Deployer deployer;
+  private DeployerImpl deployer;
 
   @Autowired
   private DeploymentCache dpmtCache;

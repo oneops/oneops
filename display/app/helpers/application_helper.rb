@@ -1270,10 +1270,11 @@ module ApplicationHelper
   end
 
   def ci_doc_link(ci, label, opts = {})
-    asset_url = Settings.asset_url.presence || 'cms/'
-    anchor    = opts[:anchor]
+    asset_url        = Settings.asset_url.presence || 'cms/'
+    anchor           = opts[:anchor]
+    class_name_split = ci.ciClassName.split('.')
     link_to(raw(label),
-            "#{asset_url}#{ci.ciClassName.split('.')[1..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
+            "#{asset_url}#{class_name_split[[-class_name_split.size, -3].max..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
             :class  => opts[:class] || '')
   end
@@ -1293,7 +1294,7 @@ module ApplicationHelper
 
   def pack_doc_url(source, pack, version, opts = {})
     anchor = opts[:anchor]
-    "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}"
+    "#{Settings.asset_url.presence || 'cms/'}#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}"
   end
 
   def platform_pack_link(platform, label = icon(site_icon(:pack)))

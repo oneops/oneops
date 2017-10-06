@@ -28,13 +28,8 @@ import com.oneops.controller.cms.CMSClient;
 import com.oneops.controller.cms.DeploymentNotifier;
 import com.oneops.controller.workflow.Deployer;
 import com.oneops.controller.workflow.WorkflowController;
-import org.activiti.engine.ActivitiException;
-import org.apache.activemq.ActiveMQConnection;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.util.IndentPrinter;
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
+import java.util.HashMap;
+import java.util.Map;
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -43,8 +38,12 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import java.util.HashMap;
-import java.util.Map;
+import org.activiti.engine.ActivitiException;
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.util.IndentPrinter;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -224,7 +223,7 @@ public class CmsListener implements MessageListener {
     }
 
     private void startDeployer(CmsDeployment dpmt) {
-        deployer.deploy(dpmt);
+      deployer.deploy(dpmt);
     }
 
     private void sendDeploymentPendingNotification(CmsDeployment dpmt) {

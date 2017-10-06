@@ -649,8 +649,17 @@
 
 	<update id="updateDeploymentCurrentStep" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="PREPARED">
 		update dj_deployment
-			set current_step = #{currentStep}
+		set current_step = #{currentStep}, updated = now()
 			where deployment_id = ${deploymentId}
+	</update>
+
+	<update id="updateDeploymentExecInfo" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="PREPARED">
+		update dj_deployment
+		set exec_model = #{execModel},
+			process_id = coalesce(#{processId}, process_id),
+			updated_by = #{updatedBy},
+			updated = now()
+		where deployment_id = ${deploymentId}
 	</update>
 
 </mapper>
