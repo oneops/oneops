@@ -28,8 +28,6 @@ class Chef
       @relations           = Mash.new
       @default_attributes  = Mash.new
       @override_attributes = Mash.new
-      @depends_on          = Mash.new
-      @managed_via         = Mash.new
       @serviced_bys        = Mash.new
       @entrypoints         = Mash.new
       @procedures          = Mash.new
@@ -68,51 +66,27 @@ class Chef
     end
 
     def name(arg=nil)
-      set_or_return(
-        :name,
-        arg,
-        :regex => /^[\-[:alnum:]_]+$/
-      )
+      set_or_return(:name, arg, :regex => /^[\-[:alnum:]_]+$/)
     end
 
     def description(arg=nil)
-      set_or_return(
-        :description,
-        arg,
-        :kind_of => String
-      )
+      set_or_return(:description, arg, :kind_of => String)
     end
 
     def owner(arg=nil)
-      set_or_return(
-        :owner,
-        arg,
-        :kind_of => String
-      )
+      set_or_return(:owner, arg, :kind_of => String)
     end
 
     def category(arg=nil)
-      set_or_return(
-        :category,
-        arg,
-        :kind_of => String
-      )
+      set_or_return(:category, arg, :kind_of => String)
     end
 
     def visibility(arg = nil)
-      set_or_return(
-        :visibility,
-        arg,
-        :kind_of => Array, :default => []
-      )
+      set_or_return(:visibility, arg, :kind_of => Array, :default => [])
     end
 
     def version(arg=nil)
-      set_or_return(
-        :version,
-        arg,
-        :kind_of => String
-      )
+      set_or_return(:version, arg, :kind_of => String)
     end
 
     def semver?
@@ -120,61 +94,33 @@ class Chef
     end
 
     def ignore(arg=nil)
-      set_or_return(
-        :ignore,
-        arg,
-        :kind_of => [TrueClass, FalseClass], :default => false
-      )
+      set_or_return(:ignore, arg, :kind_of => [TrueClass, FalseClass], :default => false)
     end
 
     def enabled(arg=nil)
-      set_or_return(
-        :enabled,
-        arg,
-        :kind_of => [TrueClass, FalseClass], :default => true
-      )
+      set_or_return(:enabled, arg, :kind_of => [TrueClass, FalseClass], :default => false)
     end
 
     def type(arg=nil)
-      set_or_return(
-        :type,
-        arg,
-        :kind_of => String
-      )
+      set_or_return(:type, arg, :kind_of => String)
     end
 
     def services(arg=nil)
-      set_or_return(
-        :services,
-        arg,
-        :kind_of => Array
-      )
+      set_or_return(:services, arg, :kind_of => Array)
     end
 
     def environments(arg=nil)
-      set_or_return(
-        :environments,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:environments, arg, :kind_of => Hash)
     end
 
     def environment(name, options={})
-      validate(
-        options,
-        {
-        }
-      )
+      validate(options, {})
       @environments[name] = options
       @environments[name]
     end
 
     def resources(arg=nil)
-      set_or_return(
-        :resources,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:resources, arg, :kind_of => Hash)
     end
 
     def resource(name, options={})
@@ -203,31 +149,16 @@ class Chef
     end
 
     def platform(arg=nil)
-      set_or_return(
-        :platform,
-        arg,
-        :kind_of => Hash
-      )
-
+      set_or_return(:platform, arg, :kind_of => Hash)
     end
 
-    def environment_resources(environment)
-      @resources.reject do |n, r|
-        if envs = r[:only]
-          envs.include?(environment) ? false : true
-        elsif envs = r[:except]
-          envs.include?(environment) ? true : false
-        else
-          false
-        end
-      end
+    def environment_resources(env)
+      filter_by_env(@resources, env)
     end
 
     def run_list(*args)
-      if (args.length > 0)
-        @env_run_lists["_default"].reset!(args)
-      end
-      @env_run_lists["_default"]
+      @env_run_lists['_default'].reset!(args) if args.length > 0
+      @env_run_lists['_default']
     end
 
     alias_method :recipes, :run_list
@@ -262,27 +193,15 @@ class Chef
     alias :env_run_list :env_run_lists
 
     def default_attributes(arg=nil)
-      set_or_return(
-        :default_attributes,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:default_attributes, arg, :kind_of => Hash)
     end
 
     def override_attributes(arg=nil)
-      set_or_return(
-        :override_attributes,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:override_attributes, arg, :kind_of => Hash)
     end
 
     def relations(arg=nil)
-      set_or_return(
-        :relations,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:relations, arg, :kind_of => Hash)
     end
 
     def relation(name, options={})
@@ -299,40 +218,12 @@ class Chef
       @relations[name]
     end
 
-    def environment_relations(environment)
-      @relations.reject do |n, r|
-        if envs = r[:only]
-          envs.include?(environment) ? false : true
-        elsif envs = r[:except]
-          envs.include?(environment) ? true : false
-        else
-          false
-        end
-      end
-    end
-
-    def depends_on(arg=nil)
-      set_or_return(
-        :depends_on,
-        arg,
-        :kind_of => Hash
-      )
-    end
-
-    def managed_via(arg=nil)
-      set_or_return(
-        :managed_via,
-        arg,
-        :kind_of => Hash
-      )
+    def env_relations(env, relation_name)
+      filter_by_env(@relations, env).values.select {|r| r[:relation_name] == relation_name}
     end
 
     def serviced_bys(arg=nil)
-      set_or_return(
-        :serviced_bys,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:serviced_bys, arg, :kind_of => Hash)
     end
 
     def serviced_by(name, options={})
@@ -349,24 +240,8 @@ class Chef
       @serviced_bys[name]
     end
 
-    def environment_serviced_bys(environment)
-      @serviced_bys.reject do |n, r|
-        if sbs = r[:only]
-          sbs.include?(environment) ? false : true
-        elsif eps = r[:except]
-          sbs.include?(environment) ? true : false
-        else
-          false
-        end
-      end
-    end
-
     def entrypoints(arg=nil)
-      set_or_return(
-        :entrypoints,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:entrypoints, arg, :kind_of => Hash)
     end
 
     def entrypoint(name, options={})
@@ -382,24 +257,12 @@ class Chef
       @entrypoints[name]
     end
 
-    def environment_entrypoints(environment)
-      @entrypoints.reject do |n, r|
-        if eps = r[:only]
-          eps.include?(environment) ? false : true
-        elsif eps = r[:except]
-          eps.include?(environment) ? true : false
-        else
-          false
-        end
-      end
+    def environment_entrypoints(env)
+      filter_by_env(@entrypoints, env)
     end
 
     def procedures(arg=nil)
-      set_or_return(
-        :procedures,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:procedures, arg, :kind_of => Hash)
     end
 
     def procedure(name, options={})
@@ -418,24 +281,12 @@ class Chef
       @procedures[name]
     end
 
-    def environment_procedures(environment)
-      @procedures.reject do |n, r|
-        if procs = r[:only]
-          procs.include?(environment) ? false : true
-        elsif eps = r[:except]
-          procs.include?(environment) ? true : false
-        else
-          false
-        end
-      end
+    def environment_procedures(env)
+      filter_by_env(@procedures, env)
     end
 
     def variables(arg=nil)
-      set_or_return(
-        :variables,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:variables, arg, :kind_of => Hash)
     end
 
     def variable(name, options={})
@@ -455,11 +306,7 @@ class Chef
 
 
     def policies(arg=nil)
-      set_or_return(
-        :policies,
-        arg,
-        :kind_of => Hash
-      )
+      set_or_return(:policies, arg, :kind_of => Hash)
     end
 
     def policy(name, options={})
@@ -477,28 +324,12 @@ class Chef
       @policies[name]
     end
 
-    def environment_variables(environment)
-      @variables.reject do |n, r|
-        if vars = r[:only]
-          vars.include?(environment) ? false : true
-        elsif eps = r[:except]
-          vars.include?(environment) ? true : false
-        else
-          false
-        end
-      end
+    def environment_variables(env)
+      filter_by_env(@variables, env)
     end
 
-    def environment_policies(environment)
-      @policies.reject do |n, r|
-        if pols = r[:only]
-          pols.include?(environment) ? false : true
-        elsif eps = r[:except]
-          pols.include?(environment) ? true : false
-        else
-          false
-        end
-      end
+    def environment_policies(env)
+      filter_by_env(@policies, env)
     end
 
     def to_hash
@@ -518,8 +349,6 @@ class Chef
         'json_class'          => self.class.name,
         "default_attributes"  => @default_attributes,
         "override_attributes" => @override_attributes,
-        "depends_on"          => @depends_on,
-        "managed_via"         => @managed_via,
         "serviced_bys"        => @serviced_bys,
         "entrypoints"         => @entrypoints,
         "procedures"          => @procedures,
@@ -553,8 +382,6 @@ class Chef
       recipes(o.recipes) if defined?(o.recipes)
       default_attributes(o.default_attributes)
       override_attributes(o.override_attributes)
-      depends_on(o.depends_on)
-      managed_via(o.managed_via)
       serviced_bys(o.serviced_bys)
       entrypoints(o.entrypoints)
       procedures(o.procedures)
@@ -590,6 +417,21 @@ class Chef
       return o.sort_by {|e| e.first.to_s}.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Hash)
       return o.inject(seed) {|s, e| flatten(e, s)} if o.is_a?(Array)
       "#{seed}|#{o.to_s}"
+    end
+
+
+    private
+
+    def filter_by_env(hash, env)
+      hash.select do |_, v|
+        envs = v[:only]
+        if envs
+          envs.include?(env)
+        else
+          envs = v[:except]
+          envs ? !envs.include?(env) : true
+        end
+      end
     end
   end
 end

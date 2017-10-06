@@ -148,12 +148,12 @@ class Chef
           ns = get_pack_ns(pack)
 
           # Upload design template
-          sync_env_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
+          sync_env(ns, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
 
           # Upload manifest templates
           pack.environments.each do |env, _|
             setup_mode(pack, env, comments)
-            sync_env_template("#{ns}/#{env}", pack.name, 'mgmt.manifest', pack, env, pack.environment_resources(env), comments)
+            sync_env("#{ns}/#{env}", 'mgmt.manifest', pack, env, pack.environment_resources(env), comments)
           end
         rescue Exception => e
           ui.error(e.message)
@@ -198,12 +198,12 @@ class Chef
         ns = get_pack_ns(pack)
 
         # Upload design template
-        sync_env_template(ns, pack.name, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
+        sync_env(ns, 'mgmt.catalog', pack, '_default', pack.design_resources, comments)
 
         # Upload manifest templates
         pack.environments.each do |env, _|
           setup_mode(pack, env, comments)
-          sync_env_template("#{ns}/#{env}", pack.name, 'mgmt.manifest', pack, env, pack.environment_resources(env), comments)
+          sync_env("#{ns}/#{env}", 'mgmt.manifest', pack, env, pack.environment_resources(env), comments)
         end
 
         version_ci.ciAttributes.commit = signature
@@ -451,37 +451,38 @@ class Chef
         end
       end
 
-      def sync_env_template(nspath, template_name, package, pack, env, resources, comments)
+      def sync_env(ns_path, package, pack, env, resources, comments)
         ui.info("======> #{env == '_default' ? 'design' : env}")
-        Log.debug([pack.name, pack.version, package, nspath, resources, comments].to_yaml) if Log.debug?
+        Log.debug([pack.name, pack.version, package, ns_path, resources, comments].to_yaml) if Log.debug?
 
-        platform = upload_template_platform(nspath, template_name, package, pack, comments)
+        platform = sync_platform(ns_path, package, pack, comments)
         if platform
-          components = upload_template_components(nspath, platform, template_name, package, resources, comments)
-          upload_template_depends_on(nspath, pack, resources, components, env)
-          upload_template_managed_via(nspath, pack, resources, components)
-          upload_template_entrypoint(nspath, pack, resources, components, platform, env)
-          upload_template_monitors(nspath, resources, components, package)
-          upload_template_payloads(nspath, resources, components)
-          upload_template_procedures(nspath, pack, platform, env)
-          upload_template_variables(nspath, pack, package, platform, env)
-          upload_template_policies(nspath, pack, package, env)
+          components = sync_components(package, ns_path, platform, resources, comments)
+          %w(DependsOn ManagedVia SecuredBy).each do |relation_name|
+            sync_relations(relation_name, package, ns_path, pack.env_relations(env, relation_name), components)
+          end
+          upload_template_entrypoint(ns_path, pack, resources, components, platform, env)
+          upload_template_procedures(ns_path, pack, platform, env)
+          upload_template_variables(ns_path, pack, package, platform, env)
+          upload_template_policies(ns_path, pack, package, env)
+          sync_monitors(package, ns_path, resources, components)
+          sync_payloads(ns_path, resources, components) if package == 'mgmt.manifest'
         end
       end
 
-      def upload_template_platform(nspath, template_name, package, pack, comments)
+      def sync_platform(nspath, package, pack, comments)
         ci_class_name = "#{package}.#{pack.type.capitalize}"
         platform      = Cms::Ci.first(:params => {:nsPath      => nspath,
                                                   :ciClassName => ci_class_name,
-                                                  :ciName      => template_name})
+                                                  :ciName      => pack.name})
         if platform
-          ui.debug("Updating #{ci_class_name} for template #{template_name}")
+          ui.debug("Updating #{ci_class_name}")
         else
-          ui.info("Creating #{ci_class_name} for template #{template_name}")
+          ui.info("Creating #{ci_class_name}")
           platform = build('Cms::Ci',
                            :nsPath      => nspath,
                            :ciClassName => ci_class_name,
-                           :ciName      => template_name)
+                           :ciName      => pack.name)
         end
 
         plat_attrs = pack.platform && pack.platform[:attributes]
@@ -497,15 +498,15 @@ class Chef
         platform.ciAttributes.version     = pack.version
 
         if save(platform)
-          ui.debug("Successfuly saved #{ci_class_name} for template #{template_name}")
+          ui.debug("Successfuly saved #{ci_class_name}")
           return platform
         else
-          ui.error("Could not save #{ci_class_name}, skipping template #{template_name}")
+          ui.error("Could not save #{ci_class_name}, skipping pack")
           return false
         end
       end
 
-      def upload_template_components(nspath, platform, template_name, package, resources, comments)
+      def sync_components(package, ns_path, platform, resources, comments)
         relations = []
         existing = Cms::Relation.all(:params => {:ciId              => platform.ciId,
                                                  :direction         => 'from',
@@ -522,16 +523,16 @@ class Chef
           relation = existing.find {|r| r.toCi.ciName == resource_name && r.toCi.ciClassName == ci_class_name}
 
           if relation
-            ui.debug("Updating resource #{resource_name} for template #{template_name}")
+            ui.debug("Updating resource #{resource_name}")
           else
-            ui.info("Creating resource #{resource_name} for #{template_name}")
+            ui.info("Creating resource #{resource_name}")
             relation = build('Cms::Relation',
                              :relationName => 'mgmt.Requires',
-                             :nsPath       => nspath,
+                             :nsPath       => ns_path,
                              :fromCiId     => platform.ciId,
                              :toCiId       => 0,
                              :toCi         => build('Cms::Ci',
-                                                    :nsPath      => nspath,
+                                                    :nsPath      => ns_path,
                                                     :ciClassName => ci_class_name,
                                                     :ciName      => resource_name))
           end
@@ -559,83 +560,50 @@ class Chef
           ui.error("Could not save components: #{error}")
           raise(error)
         end
-        ui.debug('Successfuly saved components')
+        ui.info("synced #{relations.size} components")
         return relations.inject({}) {|h, r| h[r.toCi.ciName] = r.toCiId; h}
       end
 
-      def upload_template_depends_on(nspath, pack, resources, components, env)
-        relation_name = "mgmt.#{env == '_default' ? 'catalog' : 'manifest'}.DependsOn"
-        existing = Cms::Relation.all(:params => {:nsPath       => nspath,
-                                                 :relationName => relation_name})
-        relations = []
-        resources.each do |resource_name, _|
-          next unless pack.depends_on[resource_name]
-          pack.depends_on[resource_name].each do |do_class, __|
-            next unless components[do_class] # skip if the target depends_on is not in this mode/env
-            relation = existing.find {|d| d.fromCiId == components[resource_name] && d.toCiId == components[do_class]}
-            if relation
-              ui.debug("Updating depends on between #{resource_name} and #{do_class}")
-            else
-              ui.info("Creating depends on between #{resource_name} and #{do_class}")
-              relation = build('Cms::Relation',
-                                 :relationName => relation_name,
-                                 :nsPath       => nspath,
-                                 :fromCiId     => components[resource_name],
-                                 :toCiId       => components[do_class])
-            end
-
-            attrs = pack.depends_on[resource_name][do_class]
-            relation.relationAttributes.attributes.each do |name, ___|
-              relation.relationAttributes.send(name+'=', attrs[name]) if attrs[name]
-            end
-
-            relations << relation
+      def sync_relations(short_name, package, ns_path, pack_rels, components)
+        relation_name = "#{package}.#{short_name}"
+        existing_rels = Cms::Relation.all(:params => {:nsPath       => ns_path,
+                                                      :relationName => relation_name})
+        relations = pack_rels.inject([]) do |a, r|
+          from     = r[:from_resource]
+          to       = r[:to_resource]
+          from_id  = components[from]
+          to_id    = components[to]
+          problems = []
+          problems << "component #{from} not found" unless from_id
+          problems << "component #{to} not found" unless to_id
+          if problems.present?
+            ui.warn("Can't process #{short_name} from #{from} to #{to}: #{problems.join('; ')}")
+            next a
           end
-        end
 
-        relations, error = Cms::Relation.bulk(relations)
-        unless relations
-          ui.error("Could not save DependsOn relations: #{error}")
-          raise(error)
-        end
-        ui.debug('Successfuly saved DependsOn relations')
-      end
-
-      def upload_template_managed_via(nspath, pack, resources, components)
-        relation_name = 'mgmt.manifest.ManagedVia'
-        existing = Cms::Relation.all(:params => {:nsPath       => nspath,
-                                                 :relationName => relation_name})
-        relations = []
-        resources.each do |resource_name, _|
-          next unless pack.managed_via[resource_name]
-          pack.managed_via[resource_name].each do |mv_class, __|
-            relation = existing.find {|r| r.fromCiId == components[resource_name] && r.toCiId == components[mv_class]}
-            if relation
-              ui.debug("Updating managed via between #{resource_name} and #{mv_class}")
-            else
-              ui.info("Creating managed via between #{resource_name} and #{mv_class}")
-              relation = build('Cms::Relation',
-                                  :relationName => relation_name,
-                                  :nsPath       => nspath,
-                                  :fromCiId     => components[resource_name],
-                                  :toCiId       => components[mv_class])
-            end
-
-            attrs = pack.managed_via[resource_name][mv_class]
-            relation.relationAttributes.attributes.each do |name, ___|
-              relation.relationAttributes.send(name+'=', attrs[name]) if attrs[name]
-            end
-
-            relations << relation
+          relation = existing_rels.find {|d| d.fromCiId == from_id && d.toCiId == to_id}
+          if relation
+            ui.debug("Updating #{short_name} from #{from} to #{to}")
+          else
+            ui.info("Creating #{short_name} between #{from} to #{to}")
+            relation = build('Cms::Relation',
+                             :relationName => relation_name,
+                             :nsPath       => ns_path,
+                             :fromCiId     => from_id,
+                             :toCiId       => to_id)
           end
+          relation.merge_attributes(r[:attributes])
+          a << relation
         end
 
-        relations, error = Cms::Relation.bulk(relations)
-        unless relations
-          ui.error("Could not save ManagedVia relations: #{error}")
-          raise(error)
+        if relations.present?
+          relations, error = Cms::Relation.bulk(relations)
+          unless relations
+            ui.error("Could not save #{short_name} relations: #{error}")
+            raise(error)
+          end
+          ui.info("synched #{relations.size} #{short_name} relations")
         end
-        ui.debug('Successfuly saved ManagedVia relations')
       end
 
       def upload_template_entrypoint(nspath, pack, resources, components, platform, env)
@@ -670,10 +638,10 @@ class Chef
         end
       end
 
-      def upload_template_monitors(nspath, resources, components, package)
+      def sync_monitors(package, ns_path, resources, components)
         relation_name = "#{package}.WatchedBy"
         ci_class_name = "#{package}.Monitor"
-        relations     = Cms::Relation.all(:params => {:nsPath       => nspath,
+        relations     = Cms::Relation.all(:params => {:nsPath       => ns_path,
                                                       :relationName => relation_name,
                                                       :includeToCi  => true}).to_a
 
@@ -688,7 +656,7 @@ class Chef
               ui.info("Creating monitor #{monitor_name} for #{resource_name}")
               relation = build('Cms::Relation',
                                :relationName => relation_name,
-                               :nsPath       => nspath,
+                               :nsPath       => ns_path,
                                :fromCiId     => components[resource_name])
               # For legacy reasons, we might have monitors with same name, so several components
               # link (via relation) to the same CI in the pack template. Therefore,
@@ -698,7 +666,6 @@ class Chef
                 ui.warn("Monitor #{monitor_name} for component #{resource_name} is not uniquely named, will re-use existing monitor CI with the same name")
                 relation.toCiId = duplicate_ci_name_rel.toCiId
                 if save(relation)
-                  relations << relation
                   relation.toCi = duplicate_ci_name_rel.toCi
                 else
                   ui.error("Could not create WatchedBy relation #{monitor_name} for #{resource_name}, skipping it")
@@ -707,10 +674,11 @@ class Chef
               else
                 relation.toCiId = 0
                 relation.toCi = build('Cms::Ci',
-                                      :nsPath      => nspath,
+                                      :nsPath      => ns_path,
                                       :ciClassName => ci_class_name,
                                       :ciName      => monitor_name)
               end
+              relations << relation
             end
 
             attrs = relation.toCi.ciAttributes.attributes
@@ -730,10 +698,10 @@ class Chef
         end
       end
 
-      def upload_template_payloads(nspath, resources, components)
+      def sync_payloads(ns_path, resources, components)
         relation_name = 'mgmt.manifest.Payload'
         ci_class_name = 'mgmt.manifest.Qpath'
-        relations     = Cms::Relation.all(:params => {:nsPath          => nspath,
+        relations     = Cms::Relation.all(:params => {:nsPath          => ns_path,
                                                       :relationName    => relation_name,
                                                       :targetClassName => ci_class_name,
                                                       :includeToCi     => true})
@@ -758,19 +726,19 @@ class Chef
               ui.info("Creating payload #{payload_name} for #{resource_name}")
               relation = build('Cms::Relation',
                                :relationName => relation_name,
-                               :nsPath       => nspath,
+                               :nsPath       => ns_path,
                                :fromCiId     => components[resource_name])
               if duplicate_ci_name_rel
                 relation.toCiId = duplicate_ci_name_rel.toCiId
                 unless save(relation)
-                  ui.error("Could not create Qpath relation #{payload_name} for #{resource_name}, skipping it")
+                  ui.error("Could not create Payload relation #{payload_name} for #{resource_name}, skipping it")
                   next
                 end
                 relation.toCi = duplicate_ci_name_rel.toCi
               else
                 relation.toCiId = 0
                 relation.toCi = build('Cms::Ci',
-                                      :nsPath      => nspath,
+                                      :nsPath      => ns_path,
                                       :ciClassName => ci_class_name,
                                       :ciName      => payload_name)
               end
@@ -780,7 +748,7 @@ class Chef
             attrs.each {|name, _| attrs[name] = payload[name] if payload[name]}
 
             if save(relation)
-              existing_rels[payload_name] = relation unless duplicate_ci_name_rel
+              existing_rels[payload_name.downcase] = relation unless duplicate_ci_name_rel
               ui.debug("Successfuly saved payload #{payload_name} for #{resource_name}")
             else
               ui.error("Could not save payload #{payload_name} for #{resource_name}, skipping it")
@@ -899,7 +867,7 @@ class Chef
         doc_dir = File.expand_path('doc', File.dirname(pack.filename))
         files = Dir.glob("#{doc_dir}/#{pack.name}.*")
         if files.present?
-          ui.info('docs and images:')
+          ui.info('synching docs and images:')
           files.each {|file| sync_doc_file(file, file.gsub(doc_dir, "#{get_source}/packs/#{pack.name}/#{pack.version}"))}
         end
       end

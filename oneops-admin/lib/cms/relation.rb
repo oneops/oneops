@@ -56,6 +56,11 @@ class Cms::Relation < ActiveResource::Base
     ciRelationId.to_s
   end
 
+  def merge_attributes(attrs)
+    existng_attrs = relationAttributes.attributes
+    existng_attrs.keys.each {|name| existng_attrs[name] = attrs[name] if attrs[name]}
+  end
+
 
   private
 
