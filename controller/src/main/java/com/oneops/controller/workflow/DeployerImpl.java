@@ -1,6 +1,5 @@
 package com.oneops.controller.workflow;
 
-import com.hazelcast.core.HazelcastException;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
@@ -11,16 +10,6 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.cms.CMSClient;
 import com.oneops.workflow.WorkflowMessage;
 import com.oneops.workflow.WorkflowPublisher;
-import org.apache.log4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-
-import javax.annotation.PostConstruct;
-import javax.jms.JMSException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -29,6 +18,13 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import javax.annotation.PostConstruct;
+import javax.jms.JMSException;
+import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Deployer executes the deployment workflow from the deployment plan,
@@ -112,7 +108,6 @@ public class DeployerImpl implements Deployer {
   @Transactional
   public void processWorkOrders(long dpmtId, boolean checkProcessDelay, boolean wait4WoDispatch) {
     logger.info("processWo for deployment " + dpmtId);
-    logger.info("processWoNew for deployment " + dpmtId);
     CmsDeployment dpmt = dpmtProcessor.getDeployment(dpmtId);
     boolean dpmtFinished = false;
     boolean isAutoPaused = false;

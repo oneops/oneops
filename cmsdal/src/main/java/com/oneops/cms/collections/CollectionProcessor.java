@@ -140,7 +140,7 @@ public class CollectionProcessor {
 			}
 		} else {
 			List<CmsRfcRelation> relations = null;
-			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
+			if ((relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0) || relationDef.getReturnRelationAttributes() ) {
 				relations = cmrfcProcessor.getToCIRelationsByAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(), "df", relationDef.getRelationAttrs());
 			} else {
 				relations = cmrfcProcessor.getToCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
