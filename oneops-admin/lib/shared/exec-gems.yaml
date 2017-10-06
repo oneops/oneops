@@ -50,9 +50,6 @@ chef-11.4.0:
     # workaround for chef install dependency issues
     # http://stackoverflow.com/questions/14738091/cant-install-chef-gem-version-conflict-with-net-ssh-net-ssh-multi-net-ssh-gate
     -
-      - nokogiri
-      - 1.6.8.1
-    -
       - net-ssh
       - 2.6.7
     -
@@ -90,9 +87,6 @@ puppet:
 
 chef-11.18.12:
     -
-      - nokogiri
-      - 1.6.8.1
-    -
       - mime-types
       - 1.25.0
     -
@@ -104,9 +98,6 @@ chef-11.18.12:
 
 chef-12.11.18:
     -
-      - nokogiri
-      - 1.5.11
-    -
       - mixlib-shellout
       - 2.2.7
     -
@@ -116,23 +107,5 @@ chef-12.11.18:
       - rest-client
       - 1.6.7
     -
-      - ms_rest
-      - 0.1.1
-    -
-      - ms_rest_azure
-      - 0.1.1
-    -
-      - azure_mgmt_compute
-      - 0.1.1
-    -
-      - azure_mgmt_network
-      - 0.1.1
-    -
-      - azure_mgmt_storage
-      - 0.1.1
-    -
-      - azure_mgmt_resources
-      - 0.1.1
-    -
-      - azure
-      - 0.6.4
+      - fog-azure-rm
+      - 0.3.4
