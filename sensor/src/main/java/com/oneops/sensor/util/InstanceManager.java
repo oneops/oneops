@@ -42,9 +42,6 @@ import org.springframework.transaction.TransactionException;
 public class InstanceManager {
 	
 	private static final String LOCK_NAME_PREFIX = "SENSOR_INSTANCE_LOCK_";
-	private static final int LOCK_TIMEOUT_SEC = 30;
-	private static final int LOCK_REFRESH_SEC = 10;
-	private static final long LOCK_RETRY_SLEEP_MSEC = 30000;
 	private static final String OPSMQ_HOST_PARAM = "com.oneops.sensor.opsmq.host";
 	private static final String OPSMQ_PORT_PARAM = "com.oneops.sensor.opsmq.port";
 	private static final String OPSMQ_MAX_SESSIONS = "com.oneops.sensor.opsmq.sessions";
@@ -63,6 +60,11 @@ public class InstanceManager {
 	private boolean shouldLogStats;
 	private int numLockRefreshesToLogStats = 10;
 	private int currentRefresh=0;
+
+	private long retryLockWaitInMilliSeconds;
+  private int lockTimeOutInSeconds;
+  private long refreshLockWaitInSeconds;
+
   private boolean useRandomProcessId = true;
 	private String processId;
 	private AMQConnectorURI opsMQURI;
@@ -72,6 +74,24 @@ public class InstanceManager {
 
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 	private ScheduledFuture<?> jobLockRefreshHandle = null;
+
+
+  public long getRefreshLockWaitInSeconds() {
+    return refreshLockWaitInSeconds;
+  }
+
+  public void setRefreshLockWaitInSeconds(long refreshLockWaitInSeconds) {
+    this.refreshLockWaitInSeconds = refreshLockWaitInSeconds;
+  }
+
+  public long getRetryLockWaitInMilliSeconds() {
+    return retryLockWaitInMilliSeconds;
+  }
+
+  public void setRetryLockWaitInMilliSeconds(long retryLockWaitInMilliSeconds) {
+    this.retryLockWaitInMilliSeconds = retryLockWaitInMilliSeconds;
+  }
+
 
   public void setMonListenerContainer(SensorMonListenerContainer monListenerContainer) {
 		this.monListenerContainer = monListenerContainer;
@@ -91,15 +111,17 @@ public class InstanceManager {
 
 	private void startTheLockRefresh() {
 		final Runnable lockRefresher = () -> refreshLock();
-		jobLockRefreshHandle = scheduler.scheduleWithFixedDelay(lockRefresher, 0, LOCK_REFRESH_SEC, SECONDS);
+		jobLockRefreshHandle = scheduler.scheduleWithFixedDelay(lockRefresher, 0,
+        refreshLockWaitInSeconds, SECONDS);
 	}
 
 	private void lockRetry() {
         final Runnable lockAqcuirer = () -> {
             while (!acquireLock()) {
                 try {
-                    logger.info("Could not acquire lock, will sleep for " + LOCK_RETRY_SLEEP_MSEC + " ms and try again.");
-                    Thread.sleep(LOCK_RETRY_SLEEP_MSEC);
+                    logger.info("Could not acquire lock, will sleep for " + retryLockWaitInMilliSeconds
+                        + " ms and try again.");
+                    Thread.sleep(retryLockWaitInMilliSeconds);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -160,6 +182,11 @@ public class InstanceManager {
     return useRandomProcessId;
   }
 
+  public void setLockTimeOutInSeconds(int lockTimeOutInSeconds) {
+    this.lockTimeOutInSeconds = lockTimeOutInSeconds;
+  }
+
+
   private enum State {
 		WaitingForLock,Initializing, Initalized
 	}
@@ -169,7 +196,7 @@ public class InstanceManager {
 	private boolean acquireLock() {
 		try {
 			for (int i = 1; i <= this.poolSize; i++) {
-				if (utilManager.acquireLock(LOCK_NAME_PREFIX + i, this.processId, LOCK_TIMEOUT_SEC)) {
+				if (utilManager.acquireLock(LOCK_NAME_PREFIX + i, this.processId, lockTimeOutInSeconds)) {
 					this.instanceId = i;
 					logger.info(">>>>>>>Sensor process " + this.processId + " will be running as #" + i);
 					startTheLockRefresh();
