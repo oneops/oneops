@@ -109,8 +109,13 @@ class Chef
       end
 
       def sync_pack(file, comments)
+        @existing_pack_ci_map ||= Cms::Ci.all(:params => {:nsPath      => get_packs_ns,
+                                                          :ciClassName => 'mgmt.Pack'}).
+          inject({}) {|h, p| h[p.ciName.downcase] = p; h}
+
         pack = @packs_loader.load_from(config[:pack_path], file)
-        pack.name.downcase!
+        pack_ci = @existing_pack_ci_map[pack.name.downcase]
+        pack.name(pack_ci ? pack_ci.ciName : pack.name.downcase)   # This kludge is deal with legacy problem of some existing packs loaded but not converted to down case.
 
         if pack.ignore
           ui.info("Ignoring pack #{pack.name} version #{pack.version.presence || config[:version]}")
@@ -179,21 +184,14 @@ class Chef
         ui.info('--------------------------------------------------')
 
         # If pack signature matches but reload option is not set - bail
-        return false if !config[:reload] && check_pack_version_no_ver_update(pack, signature)          # However, documentation could have been updated, reload it just in case.
+        return false if !config[:reload] && check_pack_version_no_ver_update(pack, signature)
 
         Log.debug(pack.to_yaml) if Log.debug?
 
-        # First, check to see if anything from CMS need to
-        # flip to pending_deletion
+        # First, check to see if anything from CMS need to flip to pending_deletion
         fix_delta_cms(pack)
 
-        # setup pack version namespace first
         version_ci = setup_pack_version(pack, comments, '')
-        unless version_ci
-          # Unfortunately for legacy reasons we have to continue because some old packs have inconsistent name (capitalized and was not 'downcased' before syching in the past).
-          ui.error( "Unable to setup namespace for pack #{pack.name} version #{pack.version}, skipping it.")
-          return false
-        end
 
         ns = get_pack_ns(pack)
 
@@ -370,10 +368,8 @@ class Chef
       end
 
       def setup_pack_version(pack, comments, signature)
+        pack_ci = @existing_pack_ci_map[pack.name.downcase]
         packs_ns = get_packs_ns
-        pack_ci  = Cms::Ci.first(:params => {:nsPath      => packs_ns,
-                                             :ciClassName => 'mgmt.Pack',
-                                             :ciName      => pack.name})
         if pack_ci
           ui.debug("Updating pack #{pack.name}")
         else
@@ -445,7 +441,7 @@ class Chef
           ui.debug("Successfuly saved pack mode CI #{env}")
           return mode
         else
-          message = "Unable to setup namespace for pack #{pack.name} version #{pack.version} environment mode #{env}"
+          message = "Unable to setup environment namespace for pack #{pack.name} version #{pack.version} environment mode #{env}"
           ui.error(message)
           raise Exception.new(message)
         end
@@ -867,7 +863,7 @@ class Chef
         doc_dir = File.expand_path('doc', File.dirname(pack.filename))
         files = Dir.glob("#{doc_dir}/#{pack.name}.*")
         if files.present?
-          ui.info('synching docs and images:')
+          ui.info('docs and images:')
           files.each {|file| sync_doc_file(file, file.gsub(doc_dir, "#{get_source}/packs/#{pack.name}/#{pack.version}"))}
         end
       end
