@@ -2,6 +2,8 @@ class Chef
   class Pack
     include Chef::Mixin::ParamsValidate
 
+    cattr_accessor :config
+
     attr_reader :platform,
                 :environments,
                 :resources,
@@ -47,7 +49,7 @@ class Chef
     end
 
     def include_pack(name, force=nil)
-      file = File.join(Chef::Config[:pack_path], "#{name}.rb")
+      file = File.join(config[:pack_path], "#{name}.rb")
       Chef::Log.debug("Including pack #{name}")
       o = Chef::Pack.new
       o.from_file(file)
@@ -204,16 +206,11 @@ class Chef
       set_or_return(:relations, arg, :kind_of => Hash)
     end
 
-    def relation(name, options={})
-      validate(
-        options,
-        {
-          :except        => {:kind_of => Array},
-          :only          => {:kind_of => Array},
-          :relation_name => {:kind_of => String},
-          :design        => {:kind_of => [TrueClass, FalseClass], :default => true}
-        }
-      )
+    def relation(name, options = {})
+      validate(options, {:except        => {:kind_of => Array},
+                         :only          => {:kind_of => Array},
+                         :relation_name => {:kind_of => String},
+                         :design        => {:kind_of => [TrueClass, FalseClass], :default => true}})
       @relations[name] = options
       @relations[name]
     end
