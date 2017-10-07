@@ -100,9 +100,9 @@ public class DeployerConfiguration {
   }
 
   @Bean
-  public Deployer getDeployer(
+  public DeployerImpl getDeployer(
       @Qualifier("dispatchExecutor") ThreadPoolExecutor threadPoolExecutor) {
-    return new Deployer();
+    return new DeployerImpl();
   }
 
   @Bean(name = "dispatchExecutor")

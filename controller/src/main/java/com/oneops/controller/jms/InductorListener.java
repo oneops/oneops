@@ -26,12 +26,10 @@ import com.oneops.controller.util.ControllerUtil;
 import com.oneops.controller.workflow.Deployer;
 import com.oneops.controller.workflow.WorkflowController;
 import com.oneops.sensor.client.SensorClientException;
-import org.activiti.engine.ActivitiException;
-import org.apache.activemq.ActiveMQConnection;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.util.IndentPrinter;
-import org.apache.log4j.Logger;
-
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -40,10 +38,11 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import org.activiti.engine.ActivitiException;
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.util.IndentPrinter;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -218,6 +217,10 @@ public class InductorListener implements MessageListener {
   private void handleWorkOrderFlow(String processId, String executionId, Map<String,
           Object> params, CmsWorkOrderSimpleBase wo) throws JMSException {
     if (isRunByDeployer(wo)) {
+      if (wo instanceof CmsWorkOrderSimple) {
+        CmsWorkOrderSimple woSimple = ((CmsWorkOrderSimple)wo);
+        logger.info("handleInductorResponse using Deployer for deployment " + woSimple.getDeploymentId() + " rfc " + woSimple.getRfcId());
+      }
       deployer.handleInductorResponse(wo, params);
     }
     else {
