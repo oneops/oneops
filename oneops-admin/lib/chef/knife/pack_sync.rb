@@ -3,11 +3,11 @@ require 'chef/knife/core/object_loader'
 
 class Chef
   class Knife
-    include ::BaseSync
-
-    VISIBILITY_ALT_NS_TAG = 'enableForOrg'
-
     class PackSync < Chef::Knife
+      include ::BaseSync
+
+      VISIBILITY_ALT_NS_TAG = 'enableForOrg'
+
       banner "Loads packs into CMS.\nUsage:\n   knife pack sync [PACKS...] (options)"
 
       option :all,
@@ -33,7 +33,11 @@ class Chef
 
       option :reload,
              :long        => "--reload",
-             :description => "Remove the current pack before uploading"
+             :description => "Force pack sync even if digest signatue has not changed (not applicable for packs with semantic versioning)"
+
+      option :clean,
+             :long        => "--clean",
+             :description => "Remove the current pack (and corresponding namespace) and then sync - 'fresh start' (not applicable for packs with semantic versioning)"
 
       option :semver,
              :long        => "--semver",
@@ -49,6 +53,7 @@ class Chef
         config[:version]   ||= Chef::Config[:version]
         config[:semver]    ||= ENV['SEMVER'].present?
 
+        Chef::Pack.config = config
         @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Pack, ui)
 
         validate_packs   # safety measure: make sure no packs conflict in scope
@@ -97,7 +102,7 @@ class Chef
       private
 
       def get_source
-        Chef::Config[:register]
+        config[:register]
       end
 
       def get_packs_ns
@@ -182,6 +187,12 @@ class Chef
         ui.info("\n--------------------------------------------------")
         ui.info("\e[7m\e[34m #{pack.name} ver.#{pack.version} \e[0m")
         ui.info('--------------------------------------------------')
+
+        pack_ci = @existing_pack_ci_map[pack.name.downcase]
+        if pack_ci && config[:clean]
+          @existing_pack_ci_map.delete(pack.name.downcase)
+          pack_ci.destroy
+        end
 
         # If pack signature matches but reload option is not set - bail
         return false if !config[:reload] && check_pack_version_no_ver_update(pack, signature)
@@ -564,9 +575,9 @@ class Chef
         relation_name = "#{package}.#{short_name}"
         existing_rels = Cms::Relation.all(:params => {:nsPath       => ns_path,
                                                       :relationName => relation_name})
-        relations = pack_rels.inject([]) do |a, r|
-          from     = r[:from_resource]
-          to       = r[:to_resource]
+        relations = pack_rels.inject([]) do |rels_to_save, pack_rel|
+          from     = pack_rel[:from_resource]
+          to       = pack_rel[:to_resource]
           from_id  = components[from]
           to_id    = components[to]
           problems = []
@@ -574,22 +585,28 @@ class Chef
           problems << "component #{to} not found" unless to_id
           if problems.present?
             ui.warn("Can't process #{short_name} from #{from} to #{to}: #{problems.join('; ')}")
-            next a
+            next rels_to_save
           end
 
-          relation = existing_rels.find {|d| d.fromCiId == from_id && d.toCiId == to_id}
+          relation = rels_to_save.find {|d| d.fromCiId == from_id && d.toCiId == to_id}
           if relation
-            ui.debug("Updating #{short_name} from #{from} to #{to}")
+            ui.debug("Updating again #{short_name} from #{from} to #{to}")
           else
-            ui.info("Creating #{short_name} between #{from} to #{to}")
-            relation = build('Cms::Relation',
-                             :relationName => relation_name,
-                             :nsPath       => ns_path,
-                             :fromCiId     => from_id,
-                             :toCiId       => to_id)
+            relation = existing_rels.find {|d| d.fromCiId == from_id && d.toCiId == to_id}
+            if relation
+              ui.debug("Updating #{short_name} from #{from} to #{to}")
+            else
+              ui.info("Creating #{short_name} between #{from} to #{to}")
+              relation = build('Cms::Relation',
+                               :relationName => relation_name,
+                               :nsPath       => ns_path,
+                               :fromCiId     => from_id,
+                               :toCiId       => to_id)
+            end
+            rels_to_save << relation
           end
-          relation.merge_attributes(r[:attributes])
-          a << relation
+          relation.merge_attributes(pack_rel[:attributes])
+          rels_to_save
         end
 
         if relations.present?

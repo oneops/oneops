@@ -65,7 +65,7 @@ class Cms::Relation < ActiveResource::Base
   private
 
   def self.get_relation_md(relation_name)
-    Cms::RelationMd.find(relation_name)
+    Cms::RelationMd.look_up(relation_name)
   end
 
   def self.from_relation_md(relation_name)
