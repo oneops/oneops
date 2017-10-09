@@ -90,13 +90,13 @@ when /aliyun/
 
 when /azure/
   require 'fog/azurerm'
-  provider =Fog::Compute.new(
-    provider: 'AzureRM',
-    tenant_id: cloud[:tenant_id],
-    client_id: cloud[:client_id],
-    client_secret: cloud[:client_secret],
-    subscription_id: cloud[:subscription]
-  )
+  provider = Fog::Compute.new({
+    :provider => 'AzureRM',
+    :tenant_id => cloud[:tenant_id],
+    :client_id => cloud[:client_id],
+    :client_secret => cloud[:client_secret],
+    :subscription_id => cloud[:subscription]
+ } )
 
 when /docker/
   provider = 'docker'
@@ -149,13 +149,13 @@ when /rackspace/
   }) 
 when /azure/
   require 'fog/azurerm'
-  node.set[:storage_provider] = Fog::Compute.new(
-    provider: 'AzureRM',
-    tenant_id: storage[:tenant_id],
-    client_id: storage[:client_id],
-    client_secret: storage[:client_secret],
-    subscription_id: storage[:subscription]
-  )
+  node.set[:storage_provider] = Fog::Compute.new({
+    :provider => 'AzureRM',
+    :tenant_id => storage[:tenant_id],
+    :client_id =>  storage[:client_id],
+    :client_secret => storage[:client_secret],
+    :subscription_id => storage[:subscription]
+ } )
 end
 
 
