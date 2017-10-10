@@ -96,7 +96,7 @@ class Chef
         return [] if md.groupings.blank? # Nothing to do - just a placeholder metadata file.
 
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{md.name} \e[0m #{sync_classes ? 'classes' : 'relations'}")
+        ui.info("#{" #{md.name} ".blue(true)} #{sync_classes ? 'classes' : 'relations'}")
         ui.info('--------------------------------------------------')
 
         models = []
@@ -113,7 +113,7 @@ class Chef
         if models.present?
           ok, error = (sync_classes ? Cms::CiMd : Cms::RelationMd).bulk(models)
           if ok
-            ui.info("\e[7m\e[32mSuccessfully synched models\e[0m")
+            ui.info('Successfully synched models'.green)
           else
             ui.error("Failed to save models: #{error}")
             exit 1

@@ -53,6 +53,12 @@ class Chef
       Chef::Log.debug("Including pack #{name}")
       o = Chef::Pack.new
       o.from_file(file)
+      # LK: Technically such "coarse" assignments below are 'dangerous'. This relies on
+      # include_pack declarations in pack file being at the very top (before any 'resource'
+      # or 'relations' declarations).  Better approach could be to iterate though member collections
+      # below and assign individually given that each single assingment is implemented properly
+      # to merge data (e.g., 'resource' method should match on relation_name-from_resource-to_resource
+      # key and merge attributes when one already exists).
       services(o.services) unless o.services.empty?
       environments(o.environments)
       platform(o.platform)
@@ -211,6 +217,14 @@ class Chef
                          :only          => {:kind_of => Array},
                          :relation_name => {:kind_of => String},
                          :design        => {:kind_of => [TrueClass, FalseClass], :default => true}})
+      # LK: The proper way would be the code below (merging of attributes when they are overwritten, based on relation name and from and to resources.)
+      # But will keep the "old" (incorrect) way for "backward-compatibility"
+      # name = "#{options[:relation_name]}**#{options[:from_resource]}**#{options[:to_resource]}"
+      # if @relations[name]
+      #   @relations[name][:attributes] = (@relations[name][:attributes] || {}).merge(options[:attributes] || {})
+      # else
+      #   @relations[name] = options
+      # end
       @relations[name] = options
       @relations[name]
     end

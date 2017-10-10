@@ -1,10 +1,7 @@
 class Cms::RelationMd < ActiveResource::Base
-  self.prefix = '/adapter/rest/md/'
-  self.format = :json
-  self.include_root_in_json = false
-  self.include_format_in_path = false
+  self.prefix       = '/adapter/rest/md/'
   self.element_name = 'relation'
-  self.primary_key = :relationId
+  self.primary_key  = :relationId
 
   cattr_accessor :md_cache
   self.md_cache = {}

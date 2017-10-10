@@ -1,9 +1,7 @@
 class Cms::Relation < ActiveResource::Base
-  self.prefix                 = '/adapter/rest/cm/simple/'
-  self.format                 = :json
-  self.include_root_in_json   = false
-  self.include_format_in_path = false
-  self.primary_key            = :ciRelationId
+  self.prefix       = '/adapter/rest/cm/simple/'
+  self.element_name = 'relation'
+  self.primary_key  = :ciRelationId
 
   def self.build(attributes = {})
     attrs = self.from_relation_md(attributes[:relationName]).merge(attributes)

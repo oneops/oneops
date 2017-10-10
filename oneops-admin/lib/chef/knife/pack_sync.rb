@@ -132,14 +132,14 @@ class Chef
         end
 
         sync_docs(pack)
-        ui.info("\e[7m\e[32mSuccessfully synched\e[0m pack #{pack.name} version #{pack.version} #{"[signature: #{signature}]" if signature}")
+        ui.info("Successfully synched pack #{pack.name} version #{pack.version} #{"[signature: #{signature}]" if signature}".green)
 
         return signature
       end
 
       def sync_pack_semver(pack, comments)
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{pack.name} #{pack.version} \e[0m")
+        ui.info(" #{pack.name} #{pack.version} ".blue(true))
         ui.info('--------------------------------------------------')
         if config[:reload]
           ui.warn('Reload option is not available in semver mode, all pack versions are '\
@@ -185,7 +185,7 @@ class Chef
         pack.version((pack.version.presence || config[:version]).split('.').first)   # default to the global knife version if not specified
 
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{pack.name} ver.#{pack.version} \e[0m")
+        ui.info(" #{pack.name} ver.#{pack.version} ".blue(true))
         ui.info('--------------------------------------------------')
 
         pack_ci = @existing_pack_ci_map[pack.name.downcase]
@@ -399,6 +399,7 @@ class Chef
 
         if save(pack_ci)
           ui.debug("Successfuly saved pack CI #{pack.name}")
+          @existing_pack_ci_map[pack.name.downcase] = pack_ci
           pack_version = Cms::Ci.first(:params => {:nsPath      => "#{packs_ns}/#{pack.name}",
                                                    :ciClassName => 'mgmt.Version',
                                                    :ciName      => pack.version})
@@ -501,7 +502,7 @@ class Chef
         platform.comments                 = comments
         platform.ciAttributes.description = pack.description
         platform.ciAttributes.source      = get_source
-        platform.ciAttributes.pack        = pack.name.capitalize
+        platform.ciAttributes.pack        = pack.name
         platform.ciAttributes.version     = pack.version
 
         if save(platform)

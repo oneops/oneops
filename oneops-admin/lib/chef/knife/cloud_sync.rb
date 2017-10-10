@@ -68,7 +68,7 @@ class Chef
       def sync_cloud(file, comments)
         cloud = @packs_loader.load_from(config[:cloud_path], file)
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{cloud.name} \e[0m")
+        ui.info(" #{cloud.name} ".blue(true))
         ui.info('--------------------------------------------------')
         cloud.sync(config, comments)
         ui.info("\e[7m\e[32mSuccessfully synched\e[0m cloud #{cloud.name}")
