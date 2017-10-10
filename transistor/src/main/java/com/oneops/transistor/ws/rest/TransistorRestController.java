@@ -432,6 +432,12 @@ public class TransistorRestController extends AbstractRestController {
 	public Map<String,BigDecimal> calculateCost(@PathVariable long envId){
 		return envManager.calculateCost(envId);		
 	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String,BigDecimal> calculateEstimatedCost(@PathVariable long envId){
+		return envManager.calculateEstimatedCost(envId);
+	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
 	@ResponseBody

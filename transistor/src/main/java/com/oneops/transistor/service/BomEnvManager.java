@@ -30,4 +30,6 @@ public interface BomEnvManager {
 	public long discardEnvManifest(long envId, String userId);
 
 	Map<String,BigDecimal> calculateCost(long envId);
+
+	Map<String,BigDecimal> calculateEstimatedCost(long envId);
 }
