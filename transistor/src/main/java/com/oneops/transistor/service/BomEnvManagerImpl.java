@@ -176,7 +176,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		
 		Map<Long, Triplet> deploymentMap = new HashMap<>();
 		for (CmsRfcRelation rfcRelation: rfcRelations){
-			deploymentMap.put(rfcRelation.getFromCiId(), new Triplet(cloudMap.get(rfcRelation.getToRfcId()), cmProcessor.getCiById(rfcRelation.getToCiId()), rfcProcessor.getRfcCIById(rfcRelation.getFromRfcId()))) ;
+			deploymentMap.put(rfcRelation.getFromCiId(), new Triplet(cloudMap.get(rfcRelation.getToCiId()), cmProcessor.getCiById(rfcRelation.getFromCiId()), rfcProcessor.getRfcCIById(rfcRelation.getFromRfcId()))) ;
 		}
 		
 		for (CmsCIRelation relation:relations){
