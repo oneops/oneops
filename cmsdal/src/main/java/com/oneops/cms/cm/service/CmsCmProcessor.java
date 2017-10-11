@@ -1246,12 +1246,36 @@ public class CmsCmProcessor {
 			String nsPath, String relationName, String ciState, String fromClazzName, String toClazzName) {
 		return ciMapper.getCIRelationsByState(nsPath, relationName, ciState, fromClazzName, toClazzName); 
 	}
-	
+
+
+	/**
+	 * Gets the cI relations ns like naked no attrs optionally loads cis.
+	 *
+	 * @param ns the ns path
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param fromClazzName the from clazz name
+	 * @param toClazzName the to clazz name
+	 * @return the cI relations ns like naked no attrs
+	 */
+	public List<CmsCIRelation> getCIRelationsNsLikeNakedNoAttrs(
+			String ns, String relationName, String shortRelName, String fromClazzName, String toClazzName, boolean loadFromCi, boolean loadToCi) {
+
+		String nsLike = CmsUtil.likefyNsPath(ns);
+
+		CiClassNames toNames = parseClassName(toClazzName);
+
+		CiClassNames fromNames = parseClassName(fromClazzName);
+
+		List<CmsCIRelation> ciRelationsNsLike = ciMapper.getCIRelationsNsLike(ns, nsLike, relationName, shortRelName, fromNames.className, fromNames.shortClassName, toNames.className, toNames.shortClassName);
+		populateRelCis(ciRelationsNsLike, loadFromCi, loadToCi);
+		return ciRelationsNsLike;
+	}
 	
 	/**
 	 * Gets the cI relations ns like naked no attrs.
 	 *
-	 * @param nsPath the ns path
+	 * @param ns the ns path
 	 * @param relationName the relation name
 	 * @param shortRelName the short rel name
 	 * @param fromClazzName the from clazz name
@@ -1260,14 +1284,7 @@ public class CmsCmProcessor {
 	 */
 	public List<CmsCIRelation> getCIRelationsNsLikeNakedNoAttrs(
 			String ns, String relationName, String shortRelName, String fromClazzName, String toClazzName) {
-		
-		String nsLike = CmsUtil.likefyNsPath(ns);
-		
-		CiClassNames toNames = parseClassName(toClazzName);
-		
-		CiClassNames fromNames = parseClassName(fromClazzName);
-		
-		return ciMapper.getCIRelationsNsLike(ns, nsLike, relationName, shortRelName, fromNames.className, fromNames.shortClassName, toNames.className, toNames.shortClassName); 
+		return getCIRelationsNsLikeNakedNoAttrs(ns, relationName, shortRelName, fromClazzName, toClazzName, false, false); 
 	}
 	
 	/**

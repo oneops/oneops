@@ -129,13 +129,17 @@
 		<property name="cmsUtil" ref="cmsUtil" />
     </bean>
 
+
+	<bean id="exprParser" class="org.springframework.expression.spel.standard.SpelExpressionParser" />
 	<bean id="envManager" class="com.oneops.transistor.service.BomEnvManagerImpl">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="nsManager" ref="cmsNsManager" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="dpmtProcessor" ref="cmsDpmtProcessor" />
 		<property name="bomManager" ref="bomManager" />
-
+		<property name="exprParser" ref="exprParser"/>
+		<property name="rfcUtil" ref="rfcUtil"/>
+		<property name="cmsUtil" ref="cmsUtil"/>
     </bean>
 
 	<bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">
