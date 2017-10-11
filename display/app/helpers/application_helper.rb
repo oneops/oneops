@@ -17,6 +17,7 @@ module ApplicationHelper
                 :environment            => 'cubes',
                 :single_availability    => 'cube',
                 :redundant_availability => 'cubes',
+                :platform               => 'archive',
                 :cloud_services         => 'cog',
                 :cloud_compliance       => 'briefcase',
                 :cloud_support          => 'medkit',
