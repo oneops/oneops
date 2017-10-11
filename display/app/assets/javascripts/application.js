@@ -398,8 +398,10 @@ function setHashParam(name, newValue) {
     location.hash = location.hash.replace(prefix + oldValue, "");
   }
   else if (!oldValue && newValue) {
-    // location.hash = location.hash + prefix + newValue;
-    replace_state(location.hash + prefix + newValue)
+    var loc = location.href,
+        hash = '#' + location.hash,
+        new_hash = hash + prefix + newValue;
+    replace_state(loc ? loc.replace(hash, new_hash) : (location.href + new_hash));
   }
 }
 

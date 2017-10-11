@@ -1,10 +1,7 @@
 class Cms::CiMd < ActiveResource::Base
-  self.prefix = '/adapter/rest/md/'
-  self.format = :json
-  self.include_root_in_json = false
-  self.include_format_in_path = false
+  self.prefix       = '/adapter/rest/md/'
   self.element_name = 'class'
-  self.primary_key = :classId
+  self.primary_key  = :classId
 
   cattr_accessor :md_cache
   self.md_cache = {}

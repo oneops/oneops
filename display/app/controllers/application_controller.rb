@@ -1269,7 +1269,7 @@ class ApplicationController < ActionController::Base
     if Cms::CiMd.look_up!(ci_class_name)
       split = ci_class_name.split('.')
       split = split[1..-1] if split.first == 'mgmt'
-      "#{asset_url_prefix}#{split[[-split.size, -3].max..-1].join('.')}/#{split.last}.png"
+      "#{asset_url_prefix}#{split[-[split.size - 1, 3].min..-1].join('.')}/#{split.last}.png"
     else
       CI_IMG_STUB
     end
