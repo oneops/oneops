@@ -48,12 +48,12 @@ class Chef
         @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
 
         if config[:all]
-          files = config[:cloud_path].inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
+          files = (config[:cloud_path] || []).inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
         else
           files = @name_args.inject([]) {|a, cloud| a << "#{cloud}.rb"}
         end
 
-        if files.blank?
+        if files.blank? && config[:all].blank?
           ui.error 'You must specify cloud name(s) or use the --all option to sync all.'
           exit(1)
         end
