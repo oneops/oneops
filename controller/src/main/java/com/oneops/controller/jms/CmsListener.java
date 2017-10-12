@@ -227,18 +227,18 @@ public class CmsListener implements MessageListener {
     }
 
     private void sendDeploymentPendingNotification(CmsDeployment dpmt) {
-    	notifier.sendDeploymentNotification(dpmt, "DeploymentExecution in pending state. Initiated by "
+      notifier.sendDeploymentNotification(dpmt, "Deployment in pending state. Initiated by "
     			+ (StringUtils.isBlank(dpmt.getUpdatedBy())?dpmt.getCreatedBy():dpmt.getUpdatedBy()),
         notifier.createDeploymentNotificationText(dpmt), NotificationSeverity.info, null);
 	}
 
 	private void sendDeploymentCancelleddNotification(CmsDeployment dpmt) {
-		notifier.sendDeploymentNotification(dpmt, "DeploymentExecution cancelled by " + dpmt.getUpdatedBy(),
+		notifier.sendDeploymentNotification(dpmt, "Deployment cancelled by " + dpmt.getUpdatedBy(),
         notifier.createDeploymentNotificationText(dpmt), NotificationSeverity.warning, null);
 	}
 
 	private void sendDeploymentPausedNotification(CmsDeployment dpmt) {
-        notifier.sendDeploymentNotification(dpmt, "DeploymentExecution paused by " + dpmt.getUpdatedBy(),
+        notifier.sendDeploymentNotification(dpmt, "Deployment paused by " + dpmt.getUpdatedBy(),
         notifier.createDeploymentNotificationText(dpmt), NotificationSeverity.info, null);
 	}
 
