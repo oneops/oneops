@@ -163,8 +163,9 @@ public class CmsListener implements MessageListener {
              }
              else {
                  if (isDeployerEnabled(dpmt)) {
-                     logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
-                     startDeployer(dpmt);
+                   notifyIfRequired(dpmt);
+                   logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
+                   startDeployer(dpmt);
                  }
                  else {
                      logger.info("Executing deployment using activiti : " + dpmt.getDeploymentId());
@@ -174,12 +175,8 @@ public class CmsListener implements MessageListener {
                          wfParams.put("dpmt", dpmt);
                          wfParams.put("execOrder", 1);
                          pokeActivitiProcessId = wfController.startDpmtProcess(processKey, wfParams);
-                     } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PAUSED)) {
-                         sendDeploymentPausedNotification(dpmt);
-                     } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_CANCELED)) {
-                         sendDeploymentCancelleddNotification(dpmt);
-                     } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PENDING)) {
-                         sendDeploymentPendingNotification(dpmt);
+                     } else {
+                       notifyIfRequired(dpmt);
                      }
                  }
              }
@@ -224,6 +221,16 @@ public class CmsListener implements MessageListener {
 
     private void startDeployer(CmsDeployment dpmt) {
       deployer.deploy(dpmt);
+    }
+
+    private void notifyIfRequired(CmsDeployment dpmt) {
+      if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PAUSED)) {
+        sendDeploymentPausedNotification(dpmt);
+      } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_CANCELED)) {
+        sendDeploymentCancelleddNotification(dpmt);
+      } else if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PENDING)) {
+        sendDeploymentPendingNotification(dpmt);
+      }
     }
 
     private void sendDeploymentPendingNotification(CmsDeployment dpmt) {
