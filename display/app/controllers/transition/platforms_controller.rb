@@ -211,6 +211,7 @@ class Transition::PlatformsController < Base::PlatformsController
     cloud_id = params[:cloud_id].to_i
     load_clouds
     @cloud = @clouds.find {|c| c.toCiId == cloud_id}
+    not_found("Cloud #{cloud_id} not found for platform #{@platform && @platform.ciId} in #{@platform && @platform.nsPath}") unless @cloud
   end
 
   def load_clouds
