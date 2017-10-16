@@ -17,6 +17,8 @@ public class HazelcastDpmtCache implements DeploymentCache {
   IMap<Long, DeploymentExecution> dpmtMap;
   IMap<String, DeploymentRfc> dpmtRfcMap;
 
+  public static final String CACHE_QUORUM_NAME = "controllerQuorum";
+
   @PostConstruct
   public void init() {
     hazelcastInstance = cacheInitializer.getHazelcastInstance();

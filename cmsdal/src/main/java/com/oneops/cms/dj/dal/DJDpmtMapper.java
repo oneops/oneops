@@ -70,10 +70,9 @@ public interface DJDpmtMapper {
 	List<CmsWorkOrder> getWorkOrders(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	List<CmsWorkOrder> getWorkOrdersLimited(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder, @Param("limit") Integer limit);
 	CmsWorkOrder getWorkOrder(@Param("dpmtRecordId") long dpmtRecordId, @Param("state") String state, @Param("execOrder") Integer execOrder);
-
-
-	List<CmsRfcCI> getDeploymentRfcCIs(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	
+	List<CmsRfcCI> getDeploymentRfcCIs(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder,@Param("classNames") String[] classNames,@Param("action") String action);
+
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
 	
 	List<Long> getToCiIdsForDeployment(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("relName") String relName);
@@ -87,4 +86,5 @@ public interface DJDpmtMapper {
 	long getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId,
 			@Param("states") List<String> states, @Param("execOrder") Integer execOrder);
 	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
+	void updateDeploymentExecInfo(CmsDeployment cmsDeployment);
 }

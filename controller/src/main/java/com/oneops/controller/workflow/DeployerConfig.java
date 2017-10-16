@@ -1,6 +1,6 @@
 package com.oneops.controller.workflow;
 
-import com.hazelcast.config.MapConfig;
+import com.oneops.cache.ConfigProvider;
 import com.oneops.cms.util.CmsConstants;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -16,10 +16,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 public class DeployerConfig {
 
   @Bean
-  public MapConfig getControllerMapConfig() {
-    MapConfig mapConfig = new MapConfig("controller.*");
-    mapConfig.setBackupCount(1);
-    return mapConfig;
+  public ConfigProvider getCacheConfigProvider() {
+    return new ConfigProviderImpl();
   }
 
   @Bean

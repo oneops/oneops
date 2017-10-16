@@ -1,5 +1,6 @@
 class ApplicationController < ActionController::Base
   GRAPHVIZ_IMG_STUB = '/images/cms/graphviz.png'
+  CI_IMG_STUB       = '/images/cms/ci_stub.png'
 
   before_filter :set_no_cache
 
@@ -1265,9 +1266,13 @@ class ApplicationController < ActionController::Base
   end
 
   def ci_class_image_url(ci_class_name)
-    split = ci_class_name.split('.')
-    split = split[1..-1] if split.first == 'mgmt'
-    "#{asset_url_prefix}#{split[1..-1].join('.')}/#{split.last}.png"
+    if Cms::CiMd.look_up!(ci_class_name)
+      split = ci_class_name.split('.')
+      split = split[1..-1] if split.first == 'mgmt'
+      "#{asset_url_prefix}#{split[-[split.size - 1, 3].min..-1].join('.')}/#{split.last}.png"
+    else
+      CI_IMG_STUB
+    end
   end
 
   def platform_image_url(platform)
@@ -1276,13 +1281,12 @@ class ApplicationController < ActionController::Base
   end
 
   def pack_image_url(source, pack, version)
-    "#{asset_url_prefix}public/#{source}/packs/#{pack}/#{version}/#{pack}.png"
+    "#{asset_url_prefix}#{source}/packs/#{pack}/#{version}/#{pack}.png"
   end
 
   def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
     svg.scan(/(?<=xlink:title=)"[^"]+\.[^"]+"/).inject(svg) do |r, c|
-      ci_class_name = c[1..-2]
-      r.sub(img_stub, ci_class_image_url(ci_class_name)) if Cms::CiMd.look_up(ci_class_name)
+      r.sub(img_stub, ci_class_image_url(CGI.unescape_html(c[1..-2])))
     end
   end
 

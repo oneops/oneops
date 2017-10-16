@@ -15,6 +15,6 @@
 <%= section_panel 'Diagram',
                   :width    => 'double',
                   :position => 'left',
-                  :menu     => [link_to(icon('expand'), diagram_catalog_design_path(@design, :size => '11,8'), :target => "_blank", :class => 'btn btn-mini')] do %>
+                  :menu     => [link_to(icon('expand'), diagram_catalog_design_path(@design, :size => '14,9'), :target => "_blank", :class => 'btn btn-mini')] do %>
   <%= content_tag(:object, '', :data => diagram_catalog_design_path(@design), :class => 'diagram') %>
 <% end %>

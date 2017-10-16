@@ -56,6 +56,7 @@ public class CmsDeployment implements Serializable{
 	private Integer flags;
 	private boolean continueOnFailure = false;
 	private Integer currentStep;
+	private String execModel;
 
 	/**
 	 * Gets the deployment id.
@@ -362,5 +363,13 @@ public class CmsDeployment implements Serializable{
 
 	public void setCurrentStep(Integer currentStep) {
 		this.currentStep = currentStep;
+	}
+
+	public String getExecModel() {
+		return execModel;
+	}
+
+	public void setExecModel(String execModel) {
+		this.execModel = execModel;
 	}
 }

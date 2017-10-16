@@ -1,20 +1,10 @@
-require "net/http"
-require "uri"
+class Cms::MdCache < ActiveResource::Base
+  self.prefix = '/adapter/rest/md'
+  self.element_name = ''
 
-class Cms::MdCache
-
-  def self.cache_refresh
-    time = Time.now.to_i
-    cmsapi = ENV['CMSAPI'] || 'http://cmsapi:8080'
-    uri = URI.parse("#{cmsapi}/adapter/rest/cm/simple/vars?name=MD_UPDATE_TIMESTAMP&value=#{time}");
-    begin
-      response = Net::HTTP.get_response(uri)
-    rescue ActiveResource::BadRequest, ActiveResource::ResourceNotFound, ActiveResource::ResourceInvalid
-      Log.debug("bad request /resource not found!")
-    rescue Exception => e
-      STDERR.puts(e.inspect)
-    end
-
+  def self.reset
+    return get('cache/trigger_reset'), nil
+  rescue Exception => e
+    return false, e
   end
-
 end

@@ -75,17 +75,33 @@ body {
   display:   block;
 }
 
-.sidebar .profile .dropdown-menu {
+.sidebar .dropdown-menu {
   top:    auto;
   bottom: 0;
-  left:   -moz-calc(100% - 15px);
-  left:   -webkit-calc(100% - 15px);
-  left:   calc(100% - 15px);
+  left:   -moz-calc(100% - 20px);
+  left:   -webkit-calc(100% - 20px);
+  left:   calc(100% - 20px);
 }
 
-.sidebar .profile .dropdown-menu > li img.icon {
+.sidebar ul.menu .favorites-dropdown  {
+  overflow-x: inherit;
+  position: inherit;
+}
+.sidebar ul.menu .favorites-dropdown .dropdown-menu {
+  margin-top: -20px;
+  bottom:     auto;
+}
+
+.sidebar .dropdown-menu > li img.icon {
   height:         20px;
   width:          auto;
+  padding:        0 5px;
+  vertical-align: text-top;
+}
+
+.sidebar .dropdown-menu > li i.icon {
+  height:         20px;
+  width:          20px;
   padding:        0 5px;
   vertical-align: text-top;
 }
@@ -133,6 +149,10 @@ body {
 }
 
 .sidebar ul.menu > li.minor > a {
+  font-size: 14px;
+}
+
+.sidebar ul.menu > li.title.minor > a {
   font-size: 14px;
 }
 
@@ -203,6 +223,11 @@ body {
   margin: 1px 0 1px 20px;
 }
 
+.sidebar .favorites .submenu > li {
+  margin: 1px 0 1px 0px;
+  white-space: normal;
+}
+
 .sidebar .submenu > li a {
   font-size:       14px;
   text-decoration: none;
@@ -230,14 +255,14 @@ body {
   border-top: 1px solid #888;
 }
 
-.sidebar.dark .profile .dropdown-menu {
+.sidebar.dark .dropdown-menu {
   background: black;
   background: -webkit-gradient(linear, left top, left bottom, from(#000), to(#444));
   background: -moz-linear-gradient(top, #000, #444);
   filter:     progid:DXImageTransform.Microsoft.gradient(startColorstr='#000000', endColorstr='#444444');
 }
 
-.sidebar.dark .profile .dropdown-menu > li a {
+.sidebar.dark .dropdown-menu > li a {
   color: white;
 }
 
@@ -1545,6 +1570,10 @@ img.authicon {
   float:       right;
   white-space: nowrap;
   margin:      0px 5px 0px 5px;
+}
+
+.list-toolbar div.filter .typeahead {
+  background-color: rgba(255, 255, 255, 0.85);
 }
 
 .list-toolbar div.quick-filters {
@@ -4294,6 +4323,7 @@ hr {
 .org_dropdown {
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: visible;
 }
 
 .sidebar.light {
