@@ -41,6 +41,9 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSim
 	public Map<String,String> searchTags = new HashMap<String,String>();
 	public Map<String,String> additionalInfo = new HashMap<String,String>();
 	public Map<String,String> config;
+
+	private List<CmsRfcCISimple> rfcs;
+	private boolean isBulk;
 	
 	
 	/**
@@ -271,5 +274,21 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements CmsWorkOrderSim
 
 	public void setConfig(Map<String, String> config) {
 		this.config = config;
+	}
+
+	public List<CmsRfcCISimple> getRfcs() {
+		return rfcs;
+	}
+
+	public void setRfcs(List<CmsRfcCISimple> rfcs) {
+		this.rfcs = rfcs;
+	}
+
+	public boolean isBulk() {
+		return isBulk;
+	}
+
+	public void setBulk(boolean bulk) {
+		isBulk = bulk;
 	}
 }
