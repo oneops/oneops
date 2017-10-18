@@ -14,8 +14,10 @@ module ApplicationHelper
                 :design                 => 'puzzle-piece',
                 :transition             => 'play-circle-o',
                 :operations             => 'signal',
+                :environment            => 'cubes',
                 :single_availability    => 'cube',
                 :redundant_availability => 'cubes',
+                :platform               => 'archive',
                 :cloud_services         => 'cog',
                 :cloud_compliance       => 'briefcase',
                 :cloud_support          => 'medkit',
@@ -26,7 +28,8 @@ module ApplicationHelper
                 :history                => 'history',
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
-                :compute                => 'server'}
+                :compute                => 'server',
+                :favorite               => 'bookmark'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -119,7 +122,7 @@ module ApplicationHelper
       end
     elsif @platform
       begin
-        catalog_pack_nav(@platform, @component)
+        catalog_pack_nav(@platform)
       rescue Exception => e
         Rails.logger.warn "Failed to generate context nav: #{e}.\nPack: #{@platform.inspect}\nCI: #{@component.inspect if @component}"
       end
@@ -144,7 +147,7 @@ module ApplicationHelper
       content_for(:context_nav, raw(nav))
   end
 
-  def catalog_pack_nav(platform, component)
+  def catalog_pack_nav(platform)
     scope = platform.ciClassName.end_with?('catalog.Platform') ?  'design' : platform.nsPath.split('/').last
     nav = %(<li class="title">#{link_to(icon(site_icon(:pack), "&nbsp;#{context_nav_name_label(platform.ciName)} #{content_tag(:sub, icon(site_icon("#{scope}_availability"), scope))}"), catalog_pack_platform_path(:platform_id => platform))}</li>)
     if scope == 'design'
@@ -1270,8 +1273,10 @@ module ApplicationHelper
   def ci_doc_link(ci, label, opts = {})
     asset_url = Settings.asset_url.presence || 'cms/'
     anchor    = opts[:anchor]
+    split     = ci.ciClassName.split('.')
+    split     = split[1..-1] if split.first == 'mgmt'
     link_to(raw(label),
-            "#{asset_url}#{ci.ciClassName.split('.')[1..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
+            "#{asset_url}#{split[-[split.size - 1, 3].min..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
             :class  => opts[:class] || '')
   end
@@ -1291,7 +1296,7 @@ module ApplicationHelper
 
   def pack_doc_url(source, pack, version, opts = {})
     anchor = opts[:anchor]
-    "#{Settings.asset_url.presence || 'cms/'}public/#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}"
+    "#{Settings.asset_url.presence || 'cms/'}#{source}/packs/#{pack}/#{version}/#{pack}.html#{"##{anchor}" if anchor.present?}"
   end
 
   def platform_pack_link(platform, label = icon(site_icon(:pack)))
@@ -1339,7 +1344,7 @@ module ApplicationHelper
   end
 
   def pack_version_list(versions, org_ns_path)
-    versions = versions.sort {|a, b| b.ciName <=> a.ciName}
+    versions = semver_sort(versions)
     builder  = lambda {|vv| vv.map {|v| link_to(v.ciName, catalog_pack_platform_path(params[:source], params[:pack], v.ciName, params[:availability], params[:pack]), :class => pack_version_text_class(v, org_ns_path))}.join(', ')}
     result   = builder.call(versions[0..14])
     if versions.size > 15

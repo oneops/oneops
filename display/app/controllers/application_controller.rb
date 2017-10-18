@@ -1,5 +1,6 @@
 class ApplicationController < ActionController::Base
   GRAPHVIZ_IMG_STUB = '/images/cms/graphviz.png'
+  CI_IMG_STUB       = '/images/cms/ci_stub.png'
 
   before_filter :set_no_cache
 
@@ -40,7 +41,8 @@ class ApplicationController < ActionController::Base
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
                 :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
-                :has_support_permission?, :organization_ns_path, :check_pack_owner_group_membership?
+                :has_support_permission?, :organization_ns_path, :check_pack_owner_group_membership?,
+                :semver_sort
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
                              Cms::Release, Cms::ReleaseBom, Cms::Procedure, Transistor,
@@ -787,7 +789,7 @@ class ApplicationController < ActionController::Base
       packs[source] = (pack_map[source] || []).inject({}) do |ch, pack|
         versions = version_map["#{pack.nsPath}/#{pack.ciName}"]
         if versions.present?
-          pack_versions[source][pack.ciName] = versions.sort.reverse
+          pack_versions[source][pack.ciName] = semver_sort(versions)
           category = pack.ciAttributes.category
           ch[category] = [] unless ch.include?(category)
           ch[category] << pack.ciName
@@ -817,7 +819,7 @@ class ApplicationController < ActionController::Base
                                          :altNsTag    => Catalog::PacksController::ORG_VISIBILITY_ALT_NS_TAG,
                                          :altNs       => organization_ns_path})
     versions = versions.select {|v| v.ciName == major_version || v.ciName.start_with?("#{major_version}.")} if major_version.present?
-    versions.sort_by { |v| s = v.ciName.split('.'); -(s[1].to_i * 100000 + s[2].to_i) }
+    semver_sort(versions)
   end
 
   def check_pack_owner_group_membership?(user = current_user)
@@ -1264,9 +1266,13 @@ class ApplicationController < ActionController::Base
   end
 
   def ci_class_image_url(ci_class_name)
-    split = ci_class_name.split('.')
-    split = split[1..-1] if split.first == 'mgmt'
-    "#{asset_url_prefix}#{split[1..-1].join('.')}/#{split.last}.png"
+    if Cms::CiMd.look_up!(ci_class_name)
+      split = ci_class_name.split('.')
+      split = split[1..-1] if split.first == 'mgmt'
+      "#{asset_url_prefix}#{split[-[split.size - 1, 3].min..-1].join('.')}/#{split.last}.png"
+    else
+      CI_IMG_STUB
+    end
   end
 
   def platform_image_url(platform)
@@ -1275,11 +1281,13 @@ class ApplicationController < ActionController::Base
   end
 
   def pack_image_url(source, pack, version)
-    "#{asset_url_prefix}public/#{source}/packs/#{pack}/#{version}/#{pack}.png"
+    "#{asset_url_prefix}#{source}/packs/#{pack}/#{version}/#{pack}.png"
   end
 
   def graphvis_sub_ci_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
-    svg.scan(/(?<=xlink:title=)"[^"]+"/).inject(svg) {|r, c| r.sub(img_stub, ci_class_image_url(c[1..-2]))}
+    svg.scan(/(?<=xlink:title=)"[^"]+\.[^"]+"/).inject(svg) do |r, c|
+      r.sub(img_stub, ci_class_image_url(CGI.unescape_html(c[1..-2])))
+    end
   end
 
   def graphvis_sub_pack_remote_images(svg, img_stub = GRAPHVIZ_IMG_STUB)
@@ -1342,5 +1350,11 @@ class ApplicationController < ActionController::Base
   def has_support_permission?(permission)
     permissions = support_permissions
     permissions['*'] || permissions[permission]
+  end
+
+  def semver_sort(versions, ascending = false)
+    asc = ascending ? 1 : -1
+    name = versions.first.respond_to?(:ciName) ? :ciName : :to_s
+    versions.sort_by {|v| s = v.send(name).split('.'); asc * (s[0].to_i * 10000000 + s[1].to_i * 10000 + s[2].to_i)}
   end
 end

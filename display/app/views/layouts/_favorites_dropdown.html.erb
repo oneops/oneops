@@ -1,11 +1,14 @@
 <ul class="dropdown-menu">
-  <% favs = current_user.favorites.where(:organization_id => current_user.organization_id).order(:ci_name) %>
+  <% favs = current_user.org_favorites.order(:ci_name) %>
   <% if favs.present? %>
     <% fav_groups = favs.group_by { |f| f.ci_class_name.split('.').last } %>
     <% fav_groups.each do |ci_class, group| %>
       <li class="dropdown-submenu">
         <a class="dropdown-toggle" data-toggle="dropdown">
-          <%= image_tag(ci_class_image_url(group.first.ci_class_name), :class => 'icon') %> <%= ci_class %>
+          <% ci_class_name = group.first.ci_class_name
+             icon_name = site_icon!(ci_class_name.split('.').last.downcase) %>
+          <%= icon_name.blank? ? image_tag(ci_class_image_url(ci_class_name), :class => 'icon') : icon(icon_name, nil, 'icon') %>
+          <%= ci_class %>
         </a>
         <ul class="dropdown-menu">
           <% group.each do |favorite| %>

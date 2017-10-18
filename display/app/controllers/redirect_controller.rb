@@ -4,7 +4,9 @@ class RedirectController < ApplicationController
   before_filter :find_ci, :only => [:ci, :instance, :monitor_doc]
 
   def ns
-    redirect_to path_to_ns(params[:path])
+    ns = params[:path]
+    ns = "/#{ns}" unless ns.first == '/'
+    redirect_to path_to_ns(ns)
   end
 
   def release

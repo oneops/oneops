@@ -1,0 +1,135 @@
+common:
+    -
+      - fog
+      - 1.29.0
+    -
+      - aws-s3
+      - 0.6.3
+    -
+      - ghost
+      - 0.3.0
+    -
+      - rake
+      - 10.0.3
+    -
+      - xml-simple
+      - 1.1.3
+    -
+      - highline
+      - 1.6.21
+    -
+      - rack
+      - 1.6.4
+    -
+      - fog-profitbricks
+      - 0.0.5
+    -
+      - fog-aliyun
+      - 0.1.0
+    -
+      - fog-softlayer
+      - 1.1.3
+
+chef-10.16.6:
+    # workaround for chef install dependency issues
+    # http://stackoverflow.com/questions/14738091/cant-install-chef-gem-version-conflict-with-net-ssh-net-ssh-multi-net-ssh-gate
+    -
+      - net-ssh
+      - 2.2.2
+    -
+      - net-ssh-multi
+      - 1.1.0
+    -
+      - nokogiri
+      - 1.5.11
+    -
+      - net-ssh-gateway
+      - 1.1.0
+
+chef-11.4.0:
+    # workaround for chef install dependency issues
+    # http://stackoverflow.com/questions/14738091/cant-install-chef-gem-version-conflict-with-net-ssh-net-ssh-multi-net-ssh-gate
+    -
+      - nokogiri
+      - 1.6.8.1
+    -
+      - net-ssh
+      - 2.6.7
+    -
+      - net-ssh-multi
+      - 1.1.0
+    -
+      - net-ssh-gateway
+      - 1.1.0
+    -
+      - mime-types
+      - 1.25.0
+    -
+      - json
+      - 1.7.7
+    -
+      - yajl-ruby
+      - 1.1.0
+    -
+      - mixlib-shellout
+      - 1.3.0
+    -
+      - ohai
+      - 6.22.0
+    -
+      - fog-azure-rm
+      - 0.3.4
+
+puppet:
+    -
+      - nokogiri
+      - 1.5.11
+    -
+      - hiera
+      - 1.1.2
+
+chef-11.18.12:
+    -
+      - nokogiri
+      - 1.6.8.1
+    -
+      - mime-types
+      - 1.25.0
+    -
+      - fog-azure-rm
+      - 0.3.4
+    -
+      - rack
+      - 1.6.4
+
+chef-12.11.18:
+    -
+      - nokogiri
+      - 1.5.11
+    -
+      - ffi-yajl
+      - 2.2.3
+    -
+      - rest-client
+      - 1.6.7
+    -
+      - ms_rest
+      - 0.1.1
+    -
+      - ms_rest_azure
+      - 0.1.1
+    -
+      - azure_mgmt_compute
+      - 0.1.1
+    -
+      - azure_mgmt_network
+      - 0.1.1
+    -
+      - azure_mgmt_storage
+      - 0.1.1
+    -
+      - azure_mgmt_resources
+      - 0.1.1
+    -
+      - azure
+      - 0.6.4

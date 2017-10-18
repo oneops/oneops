@@ -287,24 +287,33 @@ window.sort_list = function(container, sortAttrs, desc) {
   });
 };
 
-window.filter_list = function(container, attribute_names, filter) {
+// Multi-term list filtering assumes that:
+//  - terms are white-space delimited;
+//  - each term is either general 'value' (match against any attribute) or in 'attr=value' form (match against
+//    specific attribute only);
+//  - terms are implicitly 'AND' concatenated (each term has to match);
+window.filter_list = function (container, attribute_names, filter) {
   container = $j(container);
   if (filter) {
-    var split = filter.split(/:|=/),
-        filter_regexp = new RegExp(split[split.length - 1], 'i'),
-        filter_attr = split.length > 1 && split[0];
-    container.find('li').toArray().each(function(item) {
-      for (var i = 0; i < attribute_names.length; i++) {
-        var attr = attribute_names[i];
-        var value = item.getAttribute(attr);
-        if ((!filter_attr || attr == filter_attr) && (value == null || value.match(filter_regexp))) {
-          item.show();
-          break;
+    var terms = filter.replace(/\s+AND(\s+|$)/gi, " ")
+      .split(/\s+/)
+      .map(function (t) {
+        var split = t.split(/[:=]/);
+        return {
+          regex: new RegExp(split[split.length - 1], 'i'),
+          attr:  split.length > 1 && split[0]
         }
-        else {
-          item.hide();
-        }
-      }
+      });
+    container.find('li').toArray().each(function (item) {
+      var match = terms.every(function (t) {
+        var filter_regexp = t.regex,
+          filter_attr = t.attr;
+        return attribute_names.some(function (attr) {
+          var value = item.getAttribute(attr);
+          return ((!filter_attr || attr == filter_attr) && (value == null || value.match(filter_regexp)));
+        });
+      });
+      match ? item.show() : item.hide();
     });
   }
   else {
@@ -389,7 +398,10 @@ function setHashParam(name, newValue) {
     location.hash = location.hash.replace(prefix + oldValue, "");
   }
   else if (!oldValue && newValue) {
-    location.hash = location.hash + prefix + newValue;
+    var loc = location.href,
+        hash = '#' + location.hash,
+        new_hash = hash + prefix + newValue;
+    replace_state(loc ? loc.replace(hash, new_hash) : (location.href + new_hash));
   }
 }
 

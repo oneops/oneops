@@ -17,8 +17,18 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.List;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.domain.CmsRfcRelationBasic;
+import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
+import com.oneops.cms.dj.service.CmsRfcUtil;
+import com.oneops.cms.util.CmsUtil;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -27,6 +37,9 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.ns.service.CmsNsManager;
+import org.springframework.expression.Expression;
+import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 
 public class BomEnvManagerImpl implements BomEnvManager  {
@@ -37,9 +50,23 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	private CmsNsManager nsManager;
 	private CmsRfcProcessor rfcProcessor;
 	private CmsDpmtProcessor dpmtProcessor;
-
+	private CmsRfcUtil rfcUtil;
+	private ExpressionParser exprParser;
+	private CmsUtil cmsUtil;
 	private BomManager bomManager;
-	
+
+	public void setCmsUtil(CmsUtil cmsUtil) {
+		this.cmsUtil = cmsUtil;
+	}
+
+	public void setExprParser(ExpressionParser exprParser) {
+		this.exprParser = exprParser;
+	}
+
+	public void setRfcUtil(CmsRfcUtil rfcUtil) {
+		this.rfcUtil = rfcUtil;
+	}
+
 	public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
 		this.dpmtProcessor = dpmtProcessor;
 	}
@@ -105,6 +132,122 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		return manifestReleaseId;
 	}
 
+	private class Triplet{
+		private CmsCI ci;
+		private CmsRfcCI rfc;
+		private CmsCI cloud;
 
+		Triplet(CmsCI cloud, CmsCI ci, CmsRfcCI rfc) {
+			this.ci = ci;
+			this.rfc = rfc;
+			this.cloud = cloud;
+		}
 
+		Triplet(CmsCI cloud, CmsCI ci) {
+			this(cloud, ci, null);
+		}
+	}
+	@Override
+	public Map<String, BigDecimal> calculateEstimatedCost(long envId) {
+		CmsCI env = cmProcessor.getCiById(envId);
+		String bomNsPath = getNs(env) + "/bom";
+		
+		// rfcs (adds and updates)
+		List<CmsRfcRelation> rfcRelations = rfcProcessor.getOpenRfcRelationsNsLikeNakedNoAttrs(null, "DeployedTo", bomNsPath,null, "account.Cloud");
+		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(Collectors.toSet());
+		// existing cis 
+		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null,"DeployedTo", null, "account.Cloud", true, false);
+		cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet()));
+		
+		
+		Map<Long, CmsCI> cloudMap = new HashMap<>();  // load all DeployedTo clouds
+		for (Long cloudId: cloudIds) {
+			cloudMap.put(cloudId, cmProcessor.getCiById(cloudId));
+		}
+
+		// collect all deployedTo cloud namespaces
+		Set<String> cloudNs = cloudMap.values().stream().map(BomEnvManagerImpl::getNs).collect(Collectors.toSet());
+		
+		// load all offerings 
+		Map<String, List<CmsCI>> offeringsByNs = getOfferingsForClouds(cloudNs); 
+		
+		//List<CmsRfcCI> rfcs = rfcProcessor.getOpenRfcCIByNsLike(bomNsPath, null, null);
+		
+		
+		Map<Long, Triplet> deploymentMap = new HashMap<>();
+		for (CmsRfcRelation rfcRelation: rfcRelations){
+			deploymentMap.put(rfcRelation.getFromCiId(), new Triplet(cloudMap.get(rfcRelation.getToCiId()), cmProcessor.getCiById(rfcRelation.getFromCiId()), rfcProcessor.getRfcCIById(rfcRelation.getFromRfcId()))) ;
+		}
+		
+		for (CmsCIRelation relation:relations){
+			long ciId = relation.getFromCiId();
+			if (!deploymentMap.containsKey(ciId)){
+				deploymentMap.put(ciId, new Triplet(cloudMap.get(relation.getToCiId()), relation.getFromCi(), rfcProcessor.getOpenRfcCIByCiId(ciId))) ;
+			}
+		}
+		return calculateCost(offeringsByNs, deploymentMap.values());
+	}
+
+	private Map<String, BigDecimal> calculateCost(Map<String, List<CmsCI>> offeringsByNs, Collection<Triplet> triplets) {
+		Map<String, BigDecimal> cost = new HashMap<>();
+		for (Triplet triplet: triplets) {
+			String costNs = getNs(triplet.cloud);
+			for (CmsCI ci : offeringsByNs.get(costNs)) {
+				CmsCIAttribute criteriaAttribute = ci.getAttribute("criteria");
+				String criteria = criteriaAttribute.getDfValue();
+				if (isLikelyElasticExpression(criteria)){
+					criteria = convert(criteria);
+				}
+				Expression expression = exprParser.parseExpression(criteria);
+				StandardEvaluationContext context = new StandardEvaluationContext();
+				if (triplet.rfc!=null && "delete".equals(triplet.rfc.getRfcAction())) continue; // do not process deletes
+				CmsRfcCI rfcCi = rfcUtil.mergeRfcAndCi(triplet.rfc, triplet.ci,null);
+				context.setRootObject(cmsUtil.custRfcCI2RfcCISimple(rfcCi));
+				boolean match = expression.getValue(context, Boolean.class);
+				if (match) {
+					String platformNs = rfcCi.getNsPath();
+					cost.putIfAbsent(platformNs, BigDecimal.ZERO);
+					cost.put(platformNs, cost.get(platformNs).add(new BigDecimal(ci.getAttribute("cost_rate").getDjValue())) );
+				}
+			}
+		}
+		return cost;
+	}
+
+	private Map<String, List<CmsCI>> getOfferingsForClouds(Set<String> cloudNs) {
+		Map<String, List<CmsCI>> offeringsByNs = new HashMap<>();
+		for (String ns: cloudNs) {
+			offeringsByNs.put(ns, cmProcessor.getCiBy3NsLike(ns, "cloud.Offering", null));
+		}
+		return offeringsByNs;
+	}
+
+	@Override
+	public Map<String, BigDecimal> calculateCost(long envId) {
+		CmsCI env = cmProcessor.getCiById(envId);
+		String bomNsPath = getNs(env) + "/bom";
+		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null,"DeployedTo", null, "account.Cloud", true, true);
+		Set<String> cloudNs = new HashSet<>();
+		for (CmsCIRelation relation: relations){
+			cloudNs.add(getNs(relation.getToCi()));
+		}
+		Map<String, List<CmsCI>> offeringsByNs = getOfferingsForClouds(cloudNs);
+		List<Triplet> triplets = new ArrayList<>();
+		for (CmsCIRelation relation: relations) {
+			triplets.add(new Triplet(relation.getToCi(), relation.getFromCi()));
+		}
+		return calculateCost(offeringsByNs, triplets);
+	}
+
+	private static String convert(String elasticExp) {
+		return elasticExp.replace(":", "=='").replace("*.[1 TO *]", "[a-zA-Z0-9.]*").replace(".size", "['size']").replaceFirst("ciClassName==", "ciClassName matches ").replace(".Compute", ".Compute'").replace(".*Compute", ".*Compute'")+"'";
+	}
+
+	private static boolean isLikelyElasticExpression(String elasticExp) {
+		return elasticExp.contains(":") || elasticExp.contains("ciAttribute.size");
+	}
+
+	private static String getNs(CmsCI ci) {
+		return ci.getNsPath()+"/"+ci.getCiName();
+	}
 }

@@ -1,9 +1,10 @@
 class Cms::CiMd < ActiveResource::Base
-  self.prefix = "/adapter/rest/md/"
-  self.format = :json
-  self.include_root_in_json = false
-  self.element_name = "class"
-  self.primary_key = :classId
+  self.prefix       = '/adapter/rest/md/'
+  self.element_name = 'class'
+  self.primary_key  = :classId
+
+  cattr_accessor :md_cache
+  self.md_cache = {}
 
   def find_or_create_resource_for_collection(name)
     case name
@@ -13,28 +14,24 @@ class Cms::CiMd < ActiveResource::Base
       super
     end
   end
-  
+
   def to_param
     className.to_s
   end
-   
-  # modify standard paths to not include format extension
-  # the format is already defined in the header
-  def self.new_element_path(prefix_options = {})
-    drop_extension(super)
+
+  def self.bulk(classes)
+    return post('bulk', {}, classes.to_json).body
+  rescue Exception => e
+    return false, e
   end
 
-  def self.element_path(id, prefix_options = {}, query_options = nil)
-    drop_extension(super)
-  end
+  def self.look_up(ci_class_name)
+    key = "Cms::CiMd:ci_class_name=#{ci_class_name}"
+    md = md_cache[key]
+    return md if md
 
-  def self.collection_path(prefix_options = {}, query_options = nil)
-    drop_extension(super)
-  end
-
-  private
-
-  def self.drop_extension(path)
-    path.gsub(/.#{self.format.extension}/, '')
+    md = find(ci_class_name)
+    md_cache[key] = md
+    return md
   end
 end

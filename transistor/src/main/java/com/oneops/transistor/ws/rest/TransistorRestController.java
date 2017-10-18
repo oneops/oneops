@@ -47,6 +47,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -426,6 +427,17 @@ public class TransistorRestController extends AbstractRestController {
 		}
 	}
 	
+	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String,BigDecimal> calculateCost(@PathVariable long envId){
+		return envManager.calculateCost(envId);		
+	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String,BigDecimal> calculateEstimatedCost(@PathVariable long envId){
+		return envManager.calculateEstimatedCost(envId);
+	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
 	@ResponseBody

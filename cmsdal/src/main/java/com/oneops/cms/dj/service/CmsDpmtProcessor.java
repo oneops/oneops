@@ -52,12 +52,12 @@ public class CmsDpmtProcessor {
 	private CmsRfcProcessor rfcProcessor;
 	private Gson gson = new Gson();
 
-	private static final String DPMT_STATE_PENDING = "pending";
-	private static final String DPMT_STATE_ACTIVE = "active";
-	private static final String DPMT_STATE_CANCELED = "canceled";
-	private static final String DPMT_STATE_FAILED = "failed";
-	private static final String DPMT_STATE_PAUSED = "paused";
-	private static final String DPMT_STATE_COMPLETE = "complete";
+	public static final String DPMT_STATE_PENDING = "pending";
+	public static final String DPMT_STATE_ACTIVE = "active";
+	public static final String DPMT_STATE_CANCELED = "canceled";
+	public static final String DPMT_STATE_FAILED = "failed";
+	public static final String DPMT_STATE_PAUSED = "paused";
+	public static final String DPMT_STATE_COMPLETE = "complete";
 	
 	private static final String APPROVAL_STATE_PENDING = "pending";
 	private static final String APPROVAL_STATE_APPROVED = "approved";
@@ -66,6 +66,7 @@ public class CmsDpmtProcessor {
 	
 	
 	private static final String DPMT_RECORD_STATE_INPROGRESS = "inprogress";
+	private static final String DPMT_RECORD_STATE_PENDING = "pending";
 	private static final String RELEASE_STATE_OPEN = "open";
 	private static final String MANIFEST_PLATFORM_CLASS = "manifest.Platform";
 	private static final String ONEOPS_AUTOREPLACE_USER = "oneops-autoreplace";
@@ -913,6 +914,19 @@ public class CmsDpmtProcessor {
 	private List<TimelineDeployment> getDeployments4NsPathLike(TimelineQueryParam queryParam) {
 		queryParam.setDpmtNsLike(CmsUtil.likefyNsPathWithTypeNoEndingSlash(queryParam.getNsPath(), CmsConstants.BOM));
 		return dpmtMapper.getDeploymentsByNsPath(queryParam);
+	}
+
+	public long getUnfinishedWorkordersCount(long deploymentId, int execOrder) {
+		return dpmtMapper.getDeploymentRecordsCountByStates(deploymentId,
+				Stream.of(DPMT_RECORD_STATE_PENDING, DPMT_RECORD_STATE_INPROGRESS).collect(Collectors.toList()), execOrder);
+	}
+
+	public void updateDeploymentStep(CmsDeployment deployment) {
+		dpmtMapper.updateDeploymentCurrentStep(deployment);
+	}
+
+	public void updateDeploymentExecInfo(CmsDeployment deployment) {
+		dpmtMapper.updateDeploymentExecInfo(deployment);
 	}
 
 }
