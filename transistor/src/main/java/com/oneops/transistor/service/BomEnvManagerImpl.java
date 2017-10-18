@@ -29,14 +29,12 @@ import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.ns.service.CmsNsManager;
 import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.util.CmsUtil;
 import org.apache.log4j.Logger;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -155,7 +153,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	}
 	
 	@Override
-	public List<CostStructure> getEstimatedCostData(long envId) {
+	public List<CostData> getEstimatedCostData(long envId) {
 		CmsCI env = cmProcessor.getCiById(envId);
 		String bomNsPath = getNs(env) + "/bom";
 		
@@ -189,8 +187,8 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		return calculateCost(offeringsByNs, deploymentMap.values());
 	}
 
-	private List<CostStructure> calculateCost(Map<String, Map<String, List<CmsCI>>> offeringsByNs, Collection<Triplet> triplets) {
-		List<CostStructure> costList = new ArrayList<>();
+	private List<CostData> calculateCost(Map<String, Map<String, List<CmsCI>>> offeringsByNs, Collection<Triplet> triplets) {
+		List<CostData> costList = new ArrayList<>();
 		
 		for (Triplet triplet: triplets) {
 			List<CmsCISimple> reqOfferings = new ArrayList<>();
@@ -225,7 +223,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 				}
 			}
 			if (!reqOfferings.isEmpty()) {
-				costList.add(new CostStructure(cmsUtil.custRfcCI2RfcCISimple(rfcCi), cmsUtil.custCI2CISimple(triplet.cloud, "dj"), reqOfferings));
+				costList.add(new CostData(cmsUtil.custRfcCI2RfcCISimple(rfcCi), cmsUtil.custCI2CISimple(triplet.cloud, "dj"), reqOfferings));
 			}
 		}
 		return costList;

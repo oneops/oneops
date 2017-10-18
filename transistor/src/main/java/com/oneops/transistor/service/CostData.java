@@ -23,7 +23,7 @@ import java.util.List;
  *
  *******************************************************************************/
 
-public class CostStructure {
+public class CostData {
     private CmsRfcCISimple rfc;
     private CmsCISimple cloud;
     private List<CmsCISimple> offerings;
@@ -41,7 +41,7 @@ public class CostStructure {
         return cloud;
     }
 
-    CostStructure(CmsRfcCISimple rfc, CmsCISimple cloud, List<CmsCISimple> offerings) {
+    CostData(CmsRfcCISimple rfc, CmsCISimple cloud, List<CmsCISimple> offerings) {
         this.rfc = rfc;
         this.cloud = cloud;
         this.offerings = offerings;

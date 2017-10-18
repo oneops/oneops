@@ -17,12 +17,9 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import com.oneops.cms.dj.domain.CmsRfcCI;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 @Transactional
 public interface BomEnvManager {
@@ -31,6 +28,6 @@ public interface BomEnvManager {
 	public long discardEnvBom(long envId);
 	public long discardEnvManifest(long envId, String userId);
 
-	List<CostStructure> getCostData(long envId);
-	List<CostStructure> getEstimatedCostData(long envId);
+	List<CostData> getCostData(long envId);
+	List<CostData> getEstimatedCostData(long envId);
 }

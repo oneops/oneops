@@ -430,13 +430,13 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
 	@ResponseBody
-	public List<CostStructure>  getCostData(@PathVariable long envId){
+	public List<CostData>  getCostData(@PathVariable long envId){
 		return envManager.getCostData(envId);
 	}
 
 	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
 	@ResponseBody
-	public List<CostStructure> getEstimatedCostData(@PathVariable long envId){
+	public List<CostData> getEstimatedCostData(@PathVariable long envId){
 		return envManager.getEstimatedCostData(envId);
 	}
 	
@@ -454,9 +454,9 @@ public class TransistorRestController extends AbstractRestController {
 
 
 
-	private BigDecimal getSum(List<CostStructure> offerings) {
+	private BigDecimal getSum(List<CostData> offerings) {
 		BigDecimal result = BigDecimal.ZERO;
-		for (CostStructure cost: offerings){
+		for (CostData cost: offerings){
 			for (CmsCISimple offering: cost.getOfferings()){
 				result = result.add(new BigDecimal(offering.getCiAttributes().get("cost_rate")));
 			}
