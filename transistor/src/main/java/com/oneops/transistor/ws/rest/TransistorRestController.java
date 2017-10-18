@@ -426,17 +426,42 @@ public class TransistorRestController extends AbstractRestController {
 			throw te;
 		}
 	}
+
+
+	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostStructure>  getCostData(@PathVariable long envId){
+		return envManager.getCostData(envId);
+	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostStructure> getEstimatedCostData(@PathVariable long envId){
+		return envManager.getEstimatedCostData(envId);
+	}
 	
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
-	public Map<String,BigDecimal> calculateCost(@PathVariable long envId){
-		return envManager.calculateCost(envId);		
+	public BigDecimal calculateCost(@PathVariable long envId){
+		return getSum(getCostData(envId));		
 	}
 
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
 	@ResponseBody
-	public Map<String,BigDecimal> calculateEstimatedCost(@PathVariable long envId){
-		return envManager.calculateEstimatedCost(envId);
+	public BigDecimal calculateEstimatedCost(@PathVariable long envId){
+		return getSum(getCostData(envId));
+	}
+
+
+
+	private BigDecimal getSum(List<CostStructure> offerings) {
+		BigDecimal result = BigDecimal.ZERO;
+		for (CostStructure cost: offerings){
+			for (CmsCISimple offering: cost.getOfferings()){
+				result = result.add(new BigDecimal(offering.getCiAttributes().get("cost_rate")));
+			}
+		}
+		return result;
 	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
