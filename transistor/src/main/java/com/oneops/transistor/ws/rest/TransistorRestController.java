@@ -431,13 +431,13 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CostData>  getCostData(@PathVariable long envId){
-		return envManager.getCostData(envId);
+		return envManager.getEnvCostData(envId);
 	}
 
 	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
 	@ResponseBody
 	public List<CostData> getEstimatedCostData(@PathVariable long envId){
-		return envManager.getEstimatedCostData(envId);
+		return envManager.getEnvEstimatedCostData(envId);
 	}
 	
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)

@@ -153,7 +153,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	}
 	
 	@Override
-	public List<CostData> getEstimatedCostData(long envId) {
+	public List<CostData> getEnvEstimatedCostData(long envId) {
 		CmsCI env = cmProcessor.getCiById(envId);
 		String bomNsPath = getNs(env) + "/bom";
 		
@@ -296,7 +296,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	}
 
 	@Override
-	public List getCostData(long envId) {
+	public List getEnvCostData(long envId) {
 		CmsCI env = cmProcessor.getCiById(envId);
 		String bomNsPath = getNs(env) + "/bom";
 		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null,"DeployedTo", null, "account.Cloud", true, true);

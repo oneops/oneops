@@ -28,6 +28,6 @@ public interface BomEnvManager {
 	public long discardEnvBom(long envId);
 	public long discardEnvManifest(long envId, String userId);
 
-	List<CostData> getCostData(long envId);
-	List<CostData> getEstimatedCostData(long envId);
+	List<CostData> getEnvCostData(long envId);
+	List<CostData> getEnvEstimatedCostData(long envId);
 }
