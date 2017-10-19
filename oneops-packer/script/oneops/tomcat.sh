@@ -74,6 +74,9 @@ Environment="MD_CACHE_ENABLED=false"
 WantedBy=multi-user.target
 EOL
 
+# Fix SElinux permission
+restorecon -r /var/run
+
 systemctl enable tomcat.service
 systemctl start tomcat.service
 
