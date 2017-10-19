@@ -30,9 +30,9 @@ class ActiveResource::Connection
   end
 end
 
-ActiveResource::Base.site                 = ENV['CMSAPI'] || 'http://cmsapi:8080'
-ActiveResource::Base.format               = :json
-ActiveResource::Base.include_root_in_json = false
+ActiveResource::Base.site                   = ENV['CMSAPI'] || 'http://cmsapi:8080'
+ActiveResource::Base.format                 = :json
+ActiveResource::Base.include_root_in_json   = false
 ActiveResource::Base.include_format_in_path = false
 
 class String

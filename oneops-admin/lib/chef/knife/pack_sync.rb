@@ -8,7 +8,7 @@ class Chef
 
       VISIBILITY_ALT_NS_TAG = 'enableForOrg'
 
-      banner "Loads packs into CMS.\nUsage:\n   knife pack sync [PACKS...] (options)"
+      banner "Loads packs into OneOps.\nUsage:\n   circuit pack [OPTIONS] [PACKS...]"
 
       option :all,
              :short       => "-a",
@@ -65,7 +65,7 @@ class Chef
         end
 
         if config[:all]
-          files = config[:pack_path].inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
+          files = config[:pack_path].inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb").sort}
         else
           files = @name_args.inject([]) {|a, pack| a << "#{pack}.rb"}
         end

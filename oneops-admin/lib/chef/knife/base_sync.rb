@@ -1,5 +1,7 @@
 require 'cms'
-require 'fog'
+require 'fog/core'
+require 'fog/openstack'
+require 'fog/local'
 require 'kramdown'
 
 ENV['LC_ALL'] = 'en_US.UTF-8'   # Needed for proper encoding during md -> html conversion.
