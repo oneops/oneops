@@ -22,7 +22,7 @@ class ApplicationController < ActionController::Base
   before_filter :check_reset_password unless Settings.authentication == 'ldap'
   before_filter :check_eula if Settings.eula
   before_filter :check_organization
-  before_filter :set_active_resource_headers
+  before_filter :set_active_resource_headers, :set_cms_data_consistency
 
   after_filter :process_flash_messages
 
@@ -656,6 +656,16 @@ class ApplicationController < ActionController::Base
 
   def clear_active_resource_headers
     set_active_resource_headers(false)
+  end
+
+  def set_cms_data_consistency(value = nil, *classes)
+    (classes.presence || AR_CLASSES_WITH_HEADERS).each do |clazz|
+      if value.blank?
+        clazz.headers.delete('X-Cms-Data-Consistency')
+      else
+        clazz.headers['X-Cms-Data-Consistency'] = value
+      end
+    end
   end
 
   def check_eula
