@@ -28,9 +28,9 @@ Gem::Specification.new do |s|
                                lib/cms.rb
                                .chef/knife.rb) +
                             Dir.glob('lib/cms/*.rb') +
-                            Dir.glob('lib/templates/circuit/**/*') +
                             Dir.glob('lib/base/**/*') +
-                            Dir.glob('lib/shared/**/*')
+                            Dir.glob('lib/shared/**/*') +
+                            Dir.glob('test/**/*')
 
   s.add_dependency 'thor', '= 0.19.1'
 
