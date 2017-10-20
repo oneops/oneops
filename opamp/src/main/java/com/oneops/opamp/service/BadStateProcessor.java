@@ -194,6 +194,17 @@ public class BadStateProcessor {
 
 	private void repairBad(CiChangeStateEvent event) throws OpampException {
 		long ciId = event.getCiId();
+
+		//first check if the ci is unhealthy for very long, If yes, just return
+		long unhealthyStartTime = getUnhealthyStartTime(ciId);
+		long currentTimeMillis = System.currentTimeMillis();
+		long unhealthySinceMillis = (currentTimeMillis - unhealthyStartTime);
+		long repairRetriesMaxDaysMillis = maxDaysRepair * 24 * 60 * 60 * 1000;
+
+		if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since more than "maxDaysRepair" days
+			logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
+			return;
+		}
 		if (isDependsOnGood(ciId)) {
 			CmsCI platform = envProcessor.getPlatform4Bom(ciId);
 
@@ -201,8 +212,6 @@ public class BadStateProcessor {
 				logger.error("can not get platform for ciid " + ciId);
 				return;
 			}
-
-			long unhealthyStartTime = getUnhealthyStartTime(ciId);
 
 			List<OpsProcedureState> procedureFinishedStates = new ArrayList<>();
 			procedureFinishedStates.add(OpsProcedureState.complete);
@@ -436,15 +445,10 @@ public class BadStateProcessor {
 				+ unhealthyStartTime + ". Total repairs executed in this state: " + repairRetriesCount);
 		if (unhealthyStartTime != 0) {
 			long currentTimeMillis = System.currentTimeMillis();
-			long unhealthySinceMillis = (currentTimeMillis - unhealthyStartTime);
 			long repairRetriesMaxDaysMillis = maxDaysRepair * 24 * 60 * 60 * 1000;
 
 			if (exponentialDelay) { //add exponential delay after initial regular interval
 
-				if (unhealthySinceMillis > repairRetriesMaxDaysMillis) { //unhealthy since 7 days
-					logger.info("CI " + ciId + " unhealthy since " + maxDaysRepair + " days - not doing auto-repair");
-					return;
-				}
 				if (repairRetriesCount >= startExponentialDelayAfterProcedures) {
 					long delayStartTime = unhealthyStartTime + (coolOffPeriodMillis * startExponentialDelayAfterProcedures);
 
