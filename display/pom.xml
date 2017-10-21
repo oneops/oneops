@@ -22,9 +22,8 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>bundle</executable>
+              <executable>build.sh</executable>
               <arguments>
-                <argument>package</argument>
               </arguments>
             </configuration>
           </execution>
