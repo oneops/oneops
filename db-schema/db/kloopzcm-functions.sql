@@ -1308,6 +1308,7 @@ BEGIN
 	    updated_by = coalesce(p_updated_by, updated_by),
 	    description = coalesce(p_desc, description),
 	    comments = coalesce(p_comments, comments),
+            current_step = null,
 	    updated = now()
     where deployment_id = p_deployment_id
     returning description, comments, ops, updated_by into l_desc, l_comments, l_ops, l_updated_by;
