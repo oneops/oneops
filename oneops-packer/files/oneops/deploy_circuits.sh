@@ -11,7 +11,8 @@ for d in /tmp/oneops_circuits/* ; do
     cd /opt/oneops/inductor
     CIRCUIT="$(/bin/basename ${d})"
     CIRCUITS[${CIRCUIT}]=$CIRCUIT
-    mv -f ${d} /home/oneops/build
+    rm -rf /home/oneops/build/${CIRCUIT}
+    mv ${d} /home/oneops/build/
     if [ ! -L ${CIRCUIT} ]; then
       ln -s /home/oneops/build/${CIRCUIT} ${CIRCUIT}
     fi
