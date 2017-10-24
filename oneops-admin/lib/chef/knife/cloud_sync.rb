@@ -5,7 +5,7 @@ class Chef
     class CloudSync < Chef::Knife
       include ::BaseSync
 
-      banner "Loads cloud templates into CMS\nUsage: \n   knife cloud sync [CLOUDS...] (options)"
+      banner "Loads cloud templates into OneOps\nUsage: \n   circuit cloud [OPTIONS] [CLOUDS...]"
 
       option :all,
              :short       => "-a",
@@ -48,7 +48,7 @@ class Chef
         @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
 
         if config[:all]
-          files = (config[:cloud_path] || []).inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
+          files = (config[:cloud_path] || []).inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb").sort}
         else
           files = @name_args.inject([]) {|a, cloud| a << "#{cloud}.rb"}
         end

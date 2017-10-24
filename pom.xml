@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.09.20-23-SNAPSHOT</version>
+  <version>17.09.20-26-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -87,6 +87,7 @@
     <activiti.version>5.19.0</activiti.version>
     <slf4j.version>1.6.1</slf4j.version>
     <hazelcast.version>3.8.5</hazelcast.version>
+    <aspectj.version>1.8.11</aspectj.version>
   </properties>
   <modules>
     <module>adapter</module>
@@ -657,6 +658,11 @@
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-spring</artifactId>
         <version>${hazelcast.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.aspectj</groupId>
+        <artifactId>aspectjweaver</artifactId>
+        <version>${aspectj.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
