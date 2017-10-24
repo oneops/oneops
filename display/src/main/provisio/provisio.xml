@@ -3,6 +3,7 @@
   <fileSet to="/">
      <directory path="${basedir}">
        <include>**</include>
+       <exclude>packer/**</exclude>
        <exclude>src/**</exclude>
        <exclude>.git/**</exclude>
        <exclude>target/**</exclude>
