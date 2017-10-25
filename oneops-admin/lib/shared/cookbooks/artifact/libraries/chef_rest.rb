@@ -20,6 +20,7 @@ class Chef
       content_length = headers.has_key?("content-length") ? headers["content-length"][0].to_i : 0
       accept_ranges = (headers["accept-ranges"].nil? || headers["accept-ranges"].empty?) ? "" : headers["accept-ranges"][0]
       remote_url = headers["location"].nil? ? url : headers["location"][0]
+
       if (accept_ranges != "bytes") || (content_length <= chunk_minimum)
         # doesn't support range request
         file="#{local_path}.tmp"
@@ -156,7 +157,7 @@ class Chef
         part_file = "#{local_path}.#{part['slot']}.tmp"
         size = File.size(part_file)
         if part['end'] != ''
-          part_size = part['size']
+          part_size = (part['slot'] + 1 == parts.length) ? part['size'] : part['size'] + 1
           if size != part_size
             Chef::Log.info("slot: #{part['slot']} comparing #{part_size} == #{part['size']}   fize_size = #{size}")
             Chef::Log.warn("File: #{part_file} does not seem to complete its download, please retry and verify")
@@ -198,6 +199,7 @@ class Chef
         file="#{local_path}.#{part['slot']}.tmp"
         File.delete(file)
       end
+
       temp_file
     end
 
@@ -214,6 +216,7 @@ class Chef
           request = Net::HTTP::Get.new uri
           Chef::Log.info("Requesting slot: #{part['slot']} from [#{part['start']} to #{part['end']}]")
           request.add_field('Range', "bytes=#{part['start']}-#{part['end']}")
+
           http.request request do |response|
             open local_file, 'wb' do |io|
               response.read_body do |chunk|
@@ -231,6 +234,7 @@ class Chef
           http.use_ssl = true
           http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
+
         http.request req do |response|
           open local_file, 'wb' do |io|
             response.read_body do |chunk|
@@ -244,40 +248,51 @@ class Chef
     def calculate_parts(content_length, parts=10, chunk_size=1048576)
       parts_details = []
       chunk_parts = content_length / chunk_size
+
       if chunk_parts >= parts
         chunk_size = content_length / parts
         chunk_parts = parts
       end
 
-      # This will be the number of bytes left on the last part. If max parts then it would be the 11th part. part[10]
       content_remainder = content_length % chunk_parts # e.g. 31521931 % 10 = 1
-
-      # The -1 accounts for this being array positions.
-      chunk_size = chunk_size - 1
-      byte_start = 0
-      byte_end = byte_start + chunk_size
+      byte_end = 0
 
       (0..chunk_parts-1).each do |n|
-
-        # Start at 0 or one after the end position of the last part.
-        byte_start = (n==0) ? 0 : byte_end + 1
-
-        # End at a chunk_size distance from start.
-        byte_end = byte_start + chunk_size
-
-        # Size is the total number of bytes in this part. The + 1 accounts for the start byte.
-        byte_size = (byte_end.to_i - byte_start.to_i) + 1
-
+        byte_start = (n*chunk_size == 0) ? 0 : (n*chunk_size) + 1
+        byte_end = ((n*chunk_size)+chunk_size) <= content_length ? ((n*chunk_size)+chunk_size) : ''
+        if byte_end == content_length # http server doesn't like the end of range to be
+          byte_end = '' # the same as the content_length
+        end
+        byte_size = (byte_end == '') ? content_length - byte_start.to_i : byte_end.to_i - byte_start.to_i
         parts_details.push({'slot' => n, 'start' => byte_start, 'end' => byte_end, 'size' => byte_size})
       end
 
       unless (content_remainder == 0)
-        # Since content_length == last_position+1; the +1 is not needed.
         byte_start = byte_end + 1
-        byte_size = (content_length - byte_start)
-        parts_details.push({'slot' => chunk_parts, 'start' => byte_start, 'end' => (content_length-1), 'size' => byte_size})
+        byte_size = content_length - byte_start
+
+        if byte_start == content_length
+          parts_details[parts_details.length-1]['end'] = ''
+          parts_details[parts_details.length-1]['size'] = parts_details[parts_details.length-1]['size'] + 1
+        else
+          parts_details.push({'slot' => chunk_parts, 'start' => byte_start, 'end' => '', 'size' => byte_size})
+        end
       end
 
+      last_slot = parts_details.length - 1
+      last_slot_byte_end = parts_details[last_slot]['end']
+
+      if parts_details[last_slot]['end'] != '' && parts_details[last_slot]['end'] < content_length
+        byte_start = last_slot_byte_end + 1
+        size = content_length - byte_start
+
+        if byte_start == content_length
+          parts_details[last_slot-1]['end'] = ''
+          parts_details[last_slot-1]['size'] = parts_details[last_slot-1]['size'] + 1
+        else
+          parts_details.push({'slot' => last_slot + 1, 'start' => byte_start, 'end' => '', size => size})
+        end
+      end
       parts_details
     end
   end
