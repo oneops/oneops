@@ -587,6 +587,7 @@ Display::Application.routes.draw do
       post 'charts', :on => :collection
     end
 
+    get ':image' => 'welcome#image_not_found', :constraints => {:image => /.*\.png/}
     match '*whatever' => 'welcome#not_found_error', :via => :all
   end
 

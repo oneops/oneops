@@ -27,27 +27,28 @@ class Operations::InstancesController < ApplicationController
 
     if @state.present?
       if component_scope
-        deployed_to = Cms::Relation.all(:params => {:nsPath            => @component.nsPath.sub('/manifest/', '/bom/'),
+        deployed_to = Cms::Relation.all(:params => {:nsPath            => scope_ns_path,
                                                     :relationShortName => 'DeployedTo',
                                                     :fromClassName     => @component.ciClassName.sub(/^manifest./, 'bom.')})
-        instance_ids = Cms::Relation.all(:params => {:ciId              => @component.ciId,
-                                                     :direction         => 'from',
-                                                     :includeToCi       => false,
-                                                     :relationShortName => 'RealizedAs'}).map(&:toCiId)
+        # Using this 'hack' below for performance reason.   The clean way is to query RealizedAs relations as:
+        # instance_ids = Cms::Relation.all(:params => {:ciId              => @component.ciId,
+        #                                              :direction         => 'from',
+        #                                              :includeToCi       => false,
+        #                                              :relationShortName => 'RealizedAs'}).map(&:toCiId)
+        deployed_to = deployed_to.select {|d| d.comments.include?(%("fromCiName":"#{@component.ciName}-#{d.toCiId}-))}
       else
         deployed_to = Cms::Relation.all(:params => {:nsPath            => scope_ns_path,
                                                     :relationShortName => 'DeployedTo',
-                                                    :recursive         => true})
-        instance_ids = deployed_to.map(&:fromCiId)
+                                                    :recursive         => !@platform})
       end
 
+      instance_ids = deployed_to.map(&:fromCiId)
       @clouds = Cms::Ci.all(:params => {:nsPath      => clouds_ns_path,
                                         :ciClassName => 'account.Cloud'}).to_map(&:ciId)
     end
 
     if instance_ids.present?
       deployed_to_map = deployed_to.inject({}) do |h, rel|
-        # rel.attributes.delete(:fromCi)   # This is very important not only to reduce the payload size but more importantly to prevent potential cyclic references during json generation in json responder.
         rel.toCi = @clouds[rel.toCiId]
         h[rel.fromCiId] = rel
         h
@@ -70,7 +71,7 @@ class Operations::InstancesController < ApplicationController
       @instances.each do |i|
         ops_state = @ops_states[i.ciId]
         i.opsState   = ops_state
-        i.cloud      = deployed_to_map[i.ciId]
+        i.cloud      = deployed_to_map[i.ciId]   #  Only for backward-compatibility.
         i.deployedTo = deployed_to_map[i.ciId].try(:toCi)
       end
     end
@@ -320,11 +321,24 @@ class Operations::InstancesController < ApplicationController
 
   def render_index(component_scope)
     if @instances.present?
-      managed_via_rels = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
-                                                       :recursive    => true,
-                                                       :relationName => 'bom.ManagedVia',
-                                                       :includeToCi  => true})
-      @managed_via = managed_via_rels.to_map_with_value {|r| [r.fromCiId, r.toCi]}
+      if component_scope && @component.ciClassName.end_with?('.Compute')
+        managed_via_rels = []
+        @ips_map = @instances.inject({}) do |h, compute|
+          attrs = compute.ciAttributes.attributes
+          h[compute.ciId] = attrs['private_ip'].presence || attrs['public_ip']
+          h
+        end
+      else
+        managed_via_rels = Cms::Relation.all(:params => {:nsPath       => scope_ns_path,
+                                                         :recursive    => !@platform,
+                                                         :relationName => 'bom.ManagedVia'})
+        @ips_map = Cms::Ci.list(managed_via_rels.map(&:toCiId)).inject({}) do |h, compute|
+          attrs = compute['ciAttributes']
+          h[compute['fromCiId']] = attrs['private_ip'].presence || attrs['public_ip'] if attrs
+          h
+        end
+      end
+
       unless component_scope
         @managed_via_health = managed_via_rels.inject({}) do |h, r|
           h[r.fromCiId] = @ops_states[r.toCiId]
@@ -363,7 +377,7 @@ class Operations::InstancesController < ApplicationController
   end
 
   def scope_ns_path
-    if @platform
+    if @platform || @component
       bom_platform_ns_path(@environment, @platform)
     elsif @environment
       environment_bom_ns_path(@environment)

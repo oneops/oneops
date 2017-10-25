@@ -1815,9 +1815,12 @@ img.authicon {
 
 .list-body li .status .popover {
   font-size: 12px;
-  left:      0 !important;
-  right:     auto;
-  width:     auto;
+  z-index: 20;
+  position:   relative;
+  /*left:       auto !important;*/
+  /*right:      0 !important;*/
+  /*right:     auto;*/
+  /*width:     auto;*/
 }
 
 .list-body li .menu {
@@ -1894,7 +1897,7 @@ img.authicon {
 
 .list-body li .content .top {
   position:          relative;
-  font-size:         20px;
+  font-size:         18px;
   font-weight:       normal;
   color:             #4183C4;
   line-height:       28px;
@@ -1999,7 +2002,7 @@ img.authicon {
   line-height:       15px;
   margin:            5px 2px 0px 2px;
   color:             #888;
-  opacity:           0.9;
+  /*opacity:           0.9;*/
   white-space:       nowrap;
   overflow:          hidden;
   text-overflow:     ellipsis;

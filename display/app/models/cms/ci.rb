@@ -76,6 +76,10 @@ class Cms::Ci < Cms::Base
     self.get(:count, {:nsPath => ns_path, :recursive => recursive})['count']
   end
 
+  def self.count_and_group_by_ns(ns_path)
+    self.get(:count, {:nsPath => ns_path, :recursive => true, :groupBy => 'nsPath'})
+  end
+
   def self.list(ids)
     return [] if ids.blank?
     JSON.parse(post(:list, {}, ids).body)
