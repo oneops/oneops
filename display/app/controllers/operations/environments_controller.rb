@@ -14,7 +14,8 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   def show
     respond_to do |format|
       format.html do
-        @release     = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
+        manifest_ns_path = environment_manifest_ns_path(@environment)
+        @release     = Cms::Release.latest(:nsPath => manifest_ns_path)
         @bom_release = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
                                                       :releaseState => 'open'})
 
@@ -32,8 +33,16 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
                                                    :direction       => 'from',
                                                    :ciId            => @environment.ciId})
 
-        load_platform_cloud_instances_map
-        @ops_states = Operations::Sensor.states(@deloyed_to_rels.map(&:fromCiId))
+        load_platform_instances_info
+
+        requires = Cms::DjRelation.all(:params => {:nsPath       => manifest_ns_path,
+                                                   :recursive    => true,
+                                                   :relationName => 'manifest.Requires'})
+        @ops_state_counts = Operations::Sensor.component_states(requires.map(&:toCiId)).inject({}) do |counts, (id, component_counts)|
+          component_counts.each {|state, count| counts[state] = (counts[state] || 0) + count}
+          counts
+        end
+        @ops_state_counts['total'] = @platform_instance_counts.values.sum
       end
 
       format.json { render_json_ci_response(true, @environment) }

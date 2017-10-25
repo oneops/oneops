@@ -86,7 +86,7 @@
           history of environment releases
         </li>
       </ul>
-      <% if @deloyed_to_rels.size > 0 && has_transition?(@assembly.ciId) %>
+      <% if @platform_instance_counts.values.sum > 0 && has_transition?(@assembly.ciId) %>
         <ul class="status-actions">
           <li>
             <%= link_confirm_busy(button('Disable Environment', 'danger'),
