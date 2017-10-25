@@ -13,11 +13,11 @@
           data: {
             cms_procedure: {
               ciId:           "<%= org_ci.ciId %>",
-              procedureName:  "Refresh Qouta",
+              procedureName:  "Refresh Quota",
               procedureState: "pending",
               procedureCiId:  0,
               definition:     Object.toJSON({
-                name: "Refresh Qouta",
+                name: "Refresh Quota",
                 flow: [{
                   nsPath:          "<%= org_ci.ciName %>/_clouds",
                   targetClassName: "account.Cloud",
