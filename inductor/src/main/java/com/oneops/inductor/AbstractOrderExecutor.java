@@ -25,7 +25,6 @@ import com.amazonaws.services.route53.model.*;
 import com.google.common.base.Joiner;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.stream.JsonReader;
 import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
@@ -104,7 +103,6 @@ public abstract class AbstractOrderExecutor {
     }
 
 
-
     /**
      * boolean check for uuid
      *
@@ -135,7 +133,7 @@ public abstract class AbstractOrderExecutor {
      *
      * @param order         wo/ao
      * @param correlationId correlationId
-     * @return Map<String, String> message
+     * @return Map<String   ,       String> message
      * @throws IOException
      */
     abstract Map<String, String> process(CmsWorkOrderSimpleBase order,
@@ -197,7 +195,7 @@ public abstract class AbstractOrderExecutor {
             if (getSearchTag(wo, LOCAL_WAIT_TIME) != null) {
                 duration -= Double.valueOf(getSearchTag(wo, LOCAL_WAIT_TIME));
             }
-            wo.getSearchTags().put(EXECUTION_TIME,String.valueOf(duration / 1000.0));
+            wo.getSearchTags().put(EXECUTION_TIME, String.valueOf(duration / 1000.0));
         } catch (Exception e) {
             logger.error("Exception occurred while setting execution time", e);
         }
@@ -212,7 +210,7 @@ public abstract class AbstractOrderExecutor {
     protected String writePrivateKey(String key) {
         String uuid = UUID.randomUUID().toString();
         String fileName = config.getDataDir() + "/" + uuid;
-        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(fileName))){
+        try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(fileName))) {
             bw.write(key);
             bw.close();
             File f = new File(fileName);
@@ -314,8 +312,8 @@ public abstract class AbstractOrderExecutor {
      * @param logLevel
      * @return
      */
-    protected String writeChefConfig(String ci, String cookbookRelativePath, String cloudName, 
-    		Map<String, Map<String, CmsCISimple>> cloudServices, String logLevel) {
+    protected String writeChefConfig(String ci, String cookbookRelativePath, String cloudName,
+                                     Map<String, Map<String, CmsCISimple>> cloudServices, String logLevel) {
         String filename = "/tmp/chef-" + ci;
 
         Set<String> cookbookPaths = createCookbookSearchPath(cookbookRelativePath, cloudServices, cloudName);
@@ -349,8 +347,8 @@ public abstract class AbstractOrderExecutor {
     }
 
     protected LinkedHashSet<String> createCookbookSearchPath(String cookbookRelativePath,
-                                                   Map<String, Map<String, CmsCISimple>> cloudServices,
-                                                   String cloudName) {
+                                                             Map<String, Map<String, CmsCISimple>> cloudServices,
+                                                             String cloudName) {
         String cookbookDir = config.getCircuitDir();
         if (!cookbookRelativePath.equals(""))
             cookbookDir = config.getCircuitDir().replace("packer",
@@ -368,7 +366,7 @@ public abstract class AbstractOrderExecutor {
                 if (serviceCi != null) {
                     String serviceClassName = serviceCi.getCiClassName();
                     String serviceCookbookCircuit = getCookbookPath(serviceClassName);
-                    if (! serviceCookbookCircuit.equals(cookbookRelativePath)) {
+                    if (!serviceCookbookCircuit.equals(cookbookRelativePath)) {
                         cookbookPaths.add(config.getCircuitDir().replace("packer", serviceCookbookCircuit)
                                 + "/components/cookbooks");
                     }
@@ -624,7 +622,6 @@ public abstract class AbstractOrderExecutor {
     }
 
 
-
     private boolean isManagedVia(CmsWorkOrderSimpleBase wo) {
         return wo.isPayLoadEntryPresent(MANAGED_VIA);
     }
@@ -648,12 +645,11 @@ public abstract class AbstractOrderExecutor {
     }
 
     private boolean isAddDelete(CmsWorkOrderSimpleBase wo) {
-        return ADD.equalsIgnoreCase(wo.getAction() )|| DELETE.equalsIgnoreCase(wo.getAction());
+        return ADD.equalsIgnoreCase(wo.getAction()) || DELETE.equalsIgnoreCase(wo.getAction());
     }
 
 
-
-    public <T> String  getCustomerDomain(CmsWorkOrderSimpleBase<T> wo) {
+    public <T> String getCustomerDomain(CmsWorkOrderSimpleBase<T> wo) {
         final T env = wo.getPayLoadEntryAt(ENVIRONMENT, 0);
         String cloudName = wo.getCloud().getCiName();
         CmsCISimple cloudService = new CmsCISimple();
@@ -661,7 +657,7 @@ public abstract class AbstractOrderExecutor {
             cloudService = wo.getServices().get("dns").get(cloudName);
         CmsCISimple envSimple;
         //cloud actions
-        if(env ==null)  return  getCustomerDomain(cloudService, null);
+        if (env == null) return getCustomerDomain(cloudService, null);
         if (env instanceof CmsCISimple) {
             envSimple = CmsCISimple.class.cast(env);
         } else {
@@ -722,7 +718,7 @@ public abstract class AbstractOrderExecutor {
     /**
      * Gets dns servers
      *
-     * @param ao action order
+     * @param wo action order
      * @return
      */
     protected <T> List<String> getAuthoritativeServers(CmsWorkOrderSimpleBase<T> wo) {
@@ -761,6 +757,7 @@ public abstract class AbstractOrderExecutor {
         logger.error(errorMessage);
         return new KeyNotFoundException(errorMessage);
     }
+
     /**
      * Removes a file with uuid checking
      *
@@ -774,7 +771,7 @@ public abstract class AbstractOrderExecutor {
 
 
     protected String getDebugFlag(CmsWorkOrderSimpleBase ao) {
-        String debugFlag =StringUtils.EMPTY;
+        String debugFlag = StringUtils.EMPTY;
         if (isDebugEnabled(ao)) {
             debugFlag = "-d";
         }
@@ -790,9 +787,8 @@ public abstract class AbstractOrderExecutor {
     }
 
     /**
-     *
-      * @param o
-     *  @return
+     * @param wo
+     * @return
      */
     public Map<String, Object> assembleRequest(CmsWorkOrderSimpleBase wo) {
         //CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
@@ -801,7 +797,7 @@ public abstract class AbstractOrderExecutor {
         Map<String, String> global = new HashMap<>();
         List<String> runList = getRunList(wo);
         chefRequest.put(appName, wo.getCiAttributes());
-        chefRequest.put("customer_domain",getCustomerDomain(wo));
+        chefRequest.put("customer_domain", getCustomerDomain(wo));
         chefRequest.put("mgmt_domain", config.getMgmtDomain());
         chefRequest.put("mgmt_url", config.getMgmtUrl());
         chefRequest.put("workorder", wo);
@@ -865,7 +861,7 @@ public abstract class AbstractOrderExecutor {
     }
 
     protected boolean isAction(CmsWorkOrderSimpleBase wo, String action) {
-        if(action==null) return false;
+        if (action == null) return false;
         return action.equals(wo.getAction());
     }
 
@@ -885,7 +881,8 @@ public abstract class AbstractOrderExecutor {
             ProcessResult result = processRunner.executeProcessRetry(ctx);
             if (result.getResultCode() > 0) {
                 logger.error(ctx.getLogKey() + " FATAL: " + generateRsyncErrorMessage(result.getResultCode(), ctx.getHost()));
-                handleRsyncFailure(ctx.getWo(), ctx.getKeyFile());;
+                handleRsyncFailure(ctx.getWo(), ctx.getKeyFile());
+                ;
                 rsynchFailed = true;
             }
         }
@@ -901,7 +898,7 @@ public abstract class AbstractOrderExecutor {
         wo.getSearchTags().putAll(result.getTagMap());
     }
 
-	public void setInductorStat(StatCollector inductorStat) {
-		this.inductorStat = inductorStat;
-	}
+    public void setInductorStat(StatCollector inductorStat) {
+        this.inductorStat = inductorStat;
+    }
 }
