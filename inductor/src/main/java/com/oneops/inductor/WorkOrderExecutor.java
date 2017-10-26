@@ -24,7 +24,9 @@ import com.oneops.cms.dj.domain.RfcHint;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.CmsConstants;
-import java.nio.file.Files;
+
+import java.nio.file.*;
+
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.*;
 import org.apache.log4j.Logger;
@@ -32,7 +34,6 @@ import org.yaml.snakeyaml.*;
 import org.yaml.snakeyaml.DumperOptions.FlowStyle;
 
 import java.io.*;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -76,19 +77,17 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
 
     /**
-     * Process workorder and return message to be put in
-     * the controller response queue
+     * Process workorder and return message to be put in the controller response queue.
      *
      * @param o             CmsWorkOrderSimpleBase
      * @param correlationId JMS correlation Id
-     * @returns Map<String String> message
+     * @returns response message map.
      */
     @Override
     public Map<String, String> process(CmsWorkOrderSimpleBase o,
                                        String correlationId) throws IOException {
         CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-        // compute::replace will do a delete and add - only for old
-        // pre-versioned compute
+        // compute::replace will do a delete and add - only for old pre-versioned compute
         String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
         if (classParts.length < 3 && isWorkOrderOfCompute(wo) && isAction(wo, REPLACE)) {
             logger.info("compute::replace - delete then add");
@@ -150,17 +149,18 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     public String getSpecFilePath(CmsWorkOrderSimple wo, String testFileDir) {
         return testFileDir +
-            wo.getRfcCi().getRfcAction() +"/serverspec/" + wo.getRfcCi().getRfcAction()
-            + "_spec.rb";
+                wo.getRfcCi().getRfcAction() + "/serverspec/" + wo.getRfcCi().getRfcAction()
+                + "_spec.rb";
     }
 
     public String getKitchenTestPath(CmsWorkOrderSimple wo) {
         String baseDir = config.getCircuitDir().replace("packer",
-            getCookbookPath(wo.getRfcCi().getCiClassName()));
+                getCookbookPath(wo.getRfcCi().getCiClassName()));
         String cookbookDir = baseDir + "/components/cookbooks/" +
-            getShortenedClass(wo.getRfcCi().getCiClassName());
+                getShortenedClass(wo.getRfcCi().getCiClassName());
         return cookbookDir + "/test/integration/";
     }
+
     /**
      * Run verification tests for the component. Usually this is done after
      * executing the work order.
@@ -182,7 +182,12 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
                     String remoteWOPath = getRemoteFileName(wo);
                     String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
                     String sshKeyPath = writePrivateKey(wo);
-                    String kitchenConfigPath = generateKitchenConfig(wo, sshKeyPath, logKey);
+                    String kitchenConfigPath = String.format("%s/../test/%d.yaml", this.config.getDataDir(), wo.getDpmtRecordId());
+
+                    String kitchenConfig = generateKitchenConfig(wo, sshKeyPath, logKey);
+                    Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(), StandardOpenOption.CREATE_NEW);
+                    logger.info(logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
+
                     logger.info(logKey + "Kitchen Config Path: " + kitchenConfigPath);
                     logger.info(logKey + "SSH key path: " + sshKeyPath);
                     logger.info(logKey + "Remote WO Path: " + remoteWOPath);
@@ -212,14 +217,12 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     }
 
     /**
-     * Generate the kitchen yaml for given work order.
-     * <p>
-     * * Generate kitchen yaml for the deployment record under /<inductor>/test directory.
-     * // ToDo - Change the key path to /<inductor>/test
+     * Generate the kitchen yaml string for given work order.
      *
      * @param wo     work order.
+     * @param sshKey ssh key path for the work order.
      * @param logKey log key
-     * @return kitchen yaml file path
+     * @return kitchen yaml string for the work-order.
      */
     private String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) throws IOException {
         Map<String, String> config = stream(this.config.getTestConfig().split(","))
@@ -251,13 +254,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         kitchenConfig.put("driver", driver);
         kitchenConfig.put("suites", singletonList(suite));
 
-        String kitchenYaml = String.format("%s/../test/%d.yaml", this.config.getDataDir(), wo.getDpmtRecordId());
-        FileWriter fw = new FileWriter(kitchenYaml);
-        yaml.dump(kitchenConfig, fw);
-        fw.close();
-
-        logger.info(logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
-        return kitchenYaml;
+        return yaml.dump(kitchenConfig);
     }
 
     @Override
