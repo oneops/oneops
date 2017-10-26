@@ -498,7 +498,7 @@ module ApplicationHelper
     def self.build_list_item_content(item_collection, template, options, group = nil, &block)
       partial = options[:item_partial]
       locals  = {:group        => group,
-                 :collapse     => (options[:collapse] || (options[:toolbar] && options[:toolbar][:compact])),
+                 :collapse     => options[:collapse],
                  :multi_select => options[:menu].present?}
       item_collection.inject('') do |content, item|
         list_item_builder = ListItemBuilder.new(item, template, options)
