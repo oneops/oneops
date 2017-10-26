@@ -53,6 +53,8 @@ import com.oneops.cms.util.CmsConstants;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -453,6 +455,30 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     }
 
+
+    public String getKitchenSpecPath(CmsWorkOrderSimple wo) {
+        ///opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb
+        String testFileDir = getKitchenTestPath(wo);
+        String specFilePath = getSpecFilePath(wo, testFileDir);
+        if (Files.exists(Paths.get(specFilePath))) {
+            return testFileDir;
+        }
+       return StringUtils.EMPTY;
+    }
+
+    public String getSpecFilePath(CmsWorkOrderSimple wo, String testFileDir) {
+        return testFileDir +
+            wo.getRfcCi().getRfcAction() +"/serverspec/" + wo.getRfcCi().getRfcAction()
+            + "_spec.rb";
+    }
+
+    public String getKitchenTestPath(CmsWorkOrderSimple wo) {
+        String baseDir = config.getCircuitDir().replace("packer",
+            getCookbookPath(wo.getRfcCi().getCiClassName()));
+        String cookbookDir = baseDir + "/components/cookbooks/" +
+            getShortenedClass(wo.getRfcCi().getCiClassName());
+        return cookbookDir + "/test/integration/";
+    }
 
     /**
      * Calls local or remote chef to do recipe [ciClassname::wo.getRfcCi().rfcAction]
