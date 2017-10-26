@@ -27,17 +27,31 @@ class Operations::PlatformsController < Base::PlatformsController
                                                     :attrProps    => 'owner'})
 
         state_info = Operations::Sensor.component_states(@requires.map(&:toCiId))
+        @ops_state_counts = {}
         @requires.each do |r|
           comp_state_info = state_info[r.toCiId.to_s]
-          comp_state_info.except!('updated') if comp_state_info
+          if comp_state_info
+            comp_state_info.except!('updated')
+            @ops_state_counts = comp_state_info.inject(@ops_state_counts) do |counts, (state, count)|
+              counts[state] = (counts[state] || 0) + count
+              counts
+            end
+          end
           r.toCi.health = comp_state_info
         end
+        bom_ns_path = platform_bom_ns_path(@environment, @platform)
+        @ops_state_counts['total'] = Cms::Ci.count(bom_ns_path, true) if @ops_state_counts.blank?
 
-        @instances     = Cms::DjCi.all(:params => {:nsPath => platform_bom_ns_path(@environment, @platform)})
-        @bom_release   = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
-        @ops_states    = Operations::Sensor.states(@instances)
-        @procedure_cis = get_platform_procedures(@platform)
-        @procedures    = Cms::Procedure.all(:params => {:ciId => @platform.ciId, :limit => 100})
+        @cloud_instance_counts = Cms::Relation.count(:nsPath            => bom_ns_path,
+                                                     :recursive         => true,
+                                                     :relationShortName => 'DeployedTo',
+                                                     :direction         => 'to',
+                                                     :groupBy           => 'ciId')
+
+
+        @bom_release       = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
+        @procedure_cis     = get_platform_procedures(@platform)
+        @procedures        = Cms::Procedure.all(:params => {:ciId => @platform.ciId, :limit => 100})
 
         @policy_compliance = Cms::Ci.violates_policies(@requires.map(&:toCi), false, true) if Settings.check_policy_compliance
       end
@@ -47,7 +61,7 @@ class Operations::PlatformsController < Base::PlatformsController
           @platform.links_to = Cms::DjRelation.all(:params => {:ciId              => @platform.ciId,
                                                                :direction         => 'from',
                                                                :relationShortName => 'LinksTo',
-                                                               :includeToCi       => true}).map { |r| r.toCi.ciName }
+                                                               :includeToCi       => true}).map {|r| r.toCi.ciName}
           @platform.consumes = @clouds
         end
         render_json_ci_response(true, @platform)
@@ -61,20 +75,20 @@ class Operations::PlatformsController < Base::PlatformsController
                                                :direction    => 'from',
                                                :includeToCi  => true,
                                                :relationName => 'manifest.Requires'}).map(&:toCi)
-    @instances = Cms::DjCi.all(:params => {:nsPath => ns_path})
 
-    if @instances.size > 500
+    @instance_count = Cms::Ci.count(ns_path, true)
+    if @instance_count > 500
       @graph = platform_graph(@platform, components)
     else
-      cis_bom      = @instances.inject({}) {|h, c| h[c.ciId] = c; h}
-      @realized_as = Cms::DjRelation.all(:params => {:nsPath => ns_path, :relationName => 'base.RealizedAs'})
-      @ops_states  = Operations::Sensor.states(@instances)
-      @graph       = platform_graph(@platform, components, @realized_as, cis_bom, @ops_states)
+      cis_bom     = Cms::DjCi.all(:params => {:nsPath => ns_path}).inject({}) {|h, c| h[c.ciId] = c; h}
+      realized_as = Cms::DjRelation.all(:params => {:nsPath => ns_path, :relationName => 'base.RealizedAs'})
+      ops_states  = Operations::Sensor.states(cis_bom.keys)
+      @graph      = platform_graph(@platform, components, realized_as, cis_bom, ops_states)
     end
   end
 
   def procedures
-    render :json =>  get_platform_procedures(@platform).map(&:toCi)
+    render :json => get_platform_procedures(@platform).map(&:toCi)
   end
 
   def autorepair
@@ -93,7 +107,7 @@ class Operations::PlatformsController < Base::PlatformsController
         flash[:error] = 'Failed to update autorepair!' unless ok
       end
 
-      format.json { render_json_ci_response(ok, @platform) }
+      format.json {render_json_ci_response(ok, @platform)}
     end
   end
 
@@ -104,13 +118,13 @@ class Operations::PlatformsController < Base::PlatformsController
       enable = (status == 'enable')
       if enable || (status == 'disable')
         @platform.ciAttributes.autoreplace = enable ? 'true' : 'false'
-        @platform.attrOwner.autoreplace = 'manifest'
+        @platform.attrOwner.autoreplace    = 'manifest'
       end
       %w(replace_after_minutes replace_after_repairs).each do |attr|
         value = params[attr]
         if value.present?
           @platform.ciAttributes.attributes[attr] = value
-          @platform.attrOwner.attributes[attr] = 'manifest'
+          @platform.attrOwner.attributes[attr]    = 'manifest'
         end
       end
       ok = execute(@platform, :save)
@@ -122,7 +136,7 @@ class Operations::PlatformsController < Base::PlatformsController
         flash[:error] = 'Failed to update autoreplace!' unless ok
       end
 
-      format.json { render_json_ci_response(ok, @platform) }
+      format.json {render_json_ci_response(ok, @platform)}
     end
   end
 
@@ -137,7 +151,7 @@ class Operations::PlatformsController < Base::PlatformsController
           render :js => ''
         end
 
-        format.json { render_json_ci_response(false, @platform) }
+        format.json {render_json_ci_response(false, @platform)}
       end
       return
     end
@@ -157,7 +171,7 @@ class Operations::PlatformsController < Base::PlatformsController
         flash[:error] = 'Failed to update autoscale!' unless ok
       end
 
-      format.json { render_json_ci_response(ok, @platform) }
+      format.json {render_json_ci_response(ok, @platform)}
     end
   end
 
@@ -177,7 +191,7 @@ class Operations::PlatformsController < Base::PlatformsController
         flash[:error] = 'Failed to update autocomply!' unless ok
       end
 
-      format.json { render_json_ci_response(ok, @platform) }
+      format.json {render_json_ci_response(ok, @platform)}
     end
   end
 
@@ -195,9 +209,9 @@ class Operations::PlatformsController < Base::PlatformsController
     @assembly    = locate_assembly(params[:assembly_id])
     @environment = locate_environment(params[:environment_id], @assembly)
 
-    platform_id  = params[:id]
+    platform_id = params[:id]
     if platform_id.present?
-       @platform = locate_manifest_platform(platform_id, @environment, :attrProps => 'owner')
+      @platform = locate_manifest_platform(platform_id, @environment, :attrProps => 'owner')
       unless request.get? || @platform.rfcAction == 'add'
         @platform = locate_manifest_platform(platform_id, @environment, :dj => false, :attrProps => 'owner')
       end
@@ -222,34 +236,35 @@ class Operations::PlatformsController < Base::PlatformsController
                                   :includeToCi       => true})
   end
 
-  def platform_graph(p, components, realized_as = nil, instances = nil, ops_states = nil)
-    t            = HashWithIndifferentAccess.new
-    t[:name]     = p.ciName
-    t[:pkg]      = p.ciClassName.split('.').shift
-    t[:klass]    = p.ciClassName.split('.').last
-    t[:children] = Array.new
-    components.each do |c|
-      component = {:name     => c.ciName,
-                   :pkg      => c.ciClassName.split('.').shift,
-                   :klass    => c.ciClassName.split('.').last,
-                   :size     => 10,
-                   :children => Array.new,
-                   :url      => assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, c)}
-      if @realized_as
-        realized_as.select { |r| r.fromCiId == c.ciId }.each do |i|
-          instance = instances[i.toCiId]
-          component[:children].push({:name       => instance.ciName,
-                                     :pkg        => instance.ciClassName.split('.').shift,
-                                     :klass      => instance.ciClassName.split('.').last,
-                                     :size       => 10,
-                                     :release    => instance.rfcAction,
-                                     :deployment => instance.rfcId == instance.lastAppliedRfcId ? 'complete' : 'pending',
-                                     :health     => instance.lastAppliedRfcId ? ops_states[instance.ciId] : 'pending',
-                                     :url        => assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, c, instance)})
-        end
+  def platform_graph(p, components, realized_as = [], instances = nil, ops_states = nil)
+    platform_class_name = p.ciClassName.split('.')
+    {
+      :name     => p.ciName,
+      :pkg      => platform_class_name.first,
+      :klass    => platform_class_name.last,
+      :children => components.inject([]) do |component_nodes, c|
+        component_class_name = c.ciClassName.split('.')
+        component_nodes << {
+          :name     => c.ciName,
+          :pkg      => component_class_name.first,
+          :klass    => component_class_name.last,
+          :size     => 10,
+          :url      => assembly_operations_environment_platform_component_path(@assembly, @environment, @platform, c),
+          :children => realized_as.inject([]) do |instance_nodes, r|
+            next instance_nodes unless r.fromCiId == c.ciId
+            instance            = instances[r.toCiId]
+            instance_class_name = instance.ciClassName.split('.')
+            instance_nodes << {:name       => instance.ciName,
+                               :pkg        => instance_class_name.first,
+                               :klass      => instance_class_name.last,
+                               :size       => 10,
+                               :release    => instance.rfcAction,
+                               :deployment => instance.rfcId == instance.lastAppliedRfcId ? 'complete' : 'pending',
+                               :health     => instance.lastAppliedRfcId ? ops_states[instance.ciId] : 'pending',
+                               :url        => assembly_operations_environment_platform_component_instance_path(@assembly, @environment, @platform, c, instance)}
+          end
+        }
       end
-      t[:children].push(component)
-    end
-    return t
+    }
   end
 end

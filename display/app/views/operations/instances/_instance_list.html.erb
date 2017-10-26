@@ -1,13 +1,4 @@
-<% ips_map = @instances.inject({}) do |h, ci|
-     compute = (ci.ciClassName.end_with?('.Compute') && ci) || (@managed_via && @managed_via[ci.ciId])
-     if compute
-       attrs = compute.ciAttributes.attributes
-       h[ci.ciId] = attrs['private_ip'].presence || attrs['public_ip']
-     end
-     h
-   end
-
-   menu = %w(good notify unhealthy overutilized underutilized).map do |state|
+<% menu = %w(good notify unhealthy overutilized underutilized).map do |state|
     selected_states = params[:instances_state]
     selected = selected_states == 'all' || selected_states.include?(state)
     link_to_function(icon(selected ? 'check-square-o' : 'square-o', state),
@@ -59,7 +50,7 @@
                                      :label    => a.is_a?(Operations::InstancesController::CustomAction) ? a.description : a.actionName,
                                      :function => 'prepare_action'} }
    end
-   if ips_map.present?
+   if @ips_map.present?
      list_menu << nil if list_menu.size > 0
      list_menu << {:id => 'instance_ips', :label => 'list of IPs...', :function => 'instance_ips'}
    end
@@ -106,7 +97,7 @@
       <% else %>
         <%= status_marker('health', ops_state, health_to_label(ops_state)) %>
       <% end %>
-      <% ip = ips_map[target.ciId] %>
+      <% ip = @ips_map[target.ciId] %>
       <%= status_marker('IP', ip) if ip.present? %>
       <%= status_marker('configuration', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
       <%= status_marker('state', target.ciState, state_to_label(target.ciState)) unless target.ciState == 'default' %>
@@ -181,7 +172,7 @@
       $j.ajax({url: "<%= prepare_operations_procedures_path %>", type: 'POST', data: data});
     };
 
-    var instanceIps = JSON.parse('<%= sanitize(ips_map.to_json) %>');
+    var instanceIps = JSON.parse('<%= sanitize(@ips_map.to_json) %>');
     window.instance_ips = function(type, instanceIds) {
       var ip;
       var ips = instanceIds.reduce(function(h, ciId) {
@@ -224,6 +215,7 @@
     btn.find("i").toggleClass("fa-check-square-o fa-square-o");
 
     var states = btn.parents('.btn-group').find(".btn.active").toArray().map(function(b) {return b.getAttribute("instance_state")});
-    $j.get("<%= url_for %>", {instances_state: states.join(",")});
+    show_busy('Loading instances...');
+    $j.get("<%= url_for %>", {instances_state: states.join(",")}).always(hide_busy);
   };
 </script>
