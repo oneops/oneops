@@ -1,6 +1,10 @@
+<%= section_panel 'Status', :width => 'double', :position => 'left' do %>
+  <%= render 'status' %>
+<% end %>
+
 <%= render 'base/cost/cost_summary', :width => 'single', :position => 'right' %>
 
-<%= section_panel 'Platforms', :id => 'platforms_list', :width => 'single', :position => 'right' do %>
+<%= section_panel 'Platforms', :width => 'single', :position => 'right' do %>
   <% ci_relation_map = @platforms.inject({}) { |map, r| map[r.toCiId] = r; map } %>
   <%= ci_list(@platforms.map(&:toCi),
               :toolbar => {:sort_by       => [%w(Name ciName), %w(Created created), %w(Status status)],
@@ -32,10 +36,6 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Status', :width => 'double', :position => 'left' do %>
-  <%= render 'status' %>
-<% end %>
-
 <%= section_panel 'Health', :width => 'double', :position => 'left' do %>
   <ul class="status">
     <%= render 'base/shared/status_health',
@@ -45,5 +45,4 @@
   </ul>
 <% end %>
 
-
-<%= render 'base/notifications/notifications_summary' %>
+<%= render 'base/notifications/notifications_summary', :width => 'double', :position => 'left' %>

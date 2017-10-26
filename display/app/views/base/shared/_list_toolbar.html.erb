@@ -177,7 +177,7 @@
 
     window.apply_list_filter = function(list, value) {
       if (!list.hasClass('list-paginated')) {
-        filter_list(list.find(".list-body ul > li"), list.find(".list-toolbar").attr("filters").split(","), value);
+        filter_list(list.find(".list-body > ul > li"), list.find(".list-toolbar").attr("filters").split(","), value);
       }
       update_filter_marker(list);
 

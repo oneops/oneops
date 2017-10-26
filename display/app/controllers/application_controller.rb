@@ -586,8 +586,8 @@ class ApplicationController < ActionController::Base
 
   def authenticate_user_from_token
     return unless request.authorization.present? && request.authorization.split(' ', 2).first == 'Basic'
-    token, foo = Base64.decode64(request.authorization.split(' ', 2).last || '').split(/:/, 2)
-    user  = token.present? && User.where(:authentication_token => token.to_s).first
+    @auth_token, _ = Base64.decode64(request.authorization.split(' ', 2).last || '').split(/:/, 2)
+    user = @auth_token.present? && User.where(:authentication_token => @auth_token.to_s).first
 
     request.env["devise.skip_trackable"] = true   # do not update user record with "trackable" stats (i.e. sign_in_count, last_sign_in_at, etc...) for API requests.
     # Passing in store => false, so the user is not actually stored in the session and a token is needed for every request.
