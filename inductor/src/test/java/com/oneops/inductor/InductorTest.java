@@ -56,6 +56,22 @@ public class InductorTest {
     Assert.assertTrue(provider.equals("azure"));
   }
 
+	@Test
+	public  void testKitchenPath(){
+		InputStream is = this.getClass().getClassLoader().getResourceAsStream("testWorkorder.json");
+		JsonParser parser = new JsonParser();
+		JsonElement jsonElement = parser.parse(new InputStreamReader(is));
+		CmsWorkOrderSimple wo = gson.fromJson(jsonElement, CmsWorkOrderSimple.class);
+		Config cfg = new Config();
+		cfg.setCircuitDir("/opt/oneops/inductor/packer");
+		WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(
+				Semaphore.class));
+		final String kitchenTestPath = executor.getKitchenTestPath(wo);
+		Assert.assertTrue(kitchenTestPath.equals("/opt/oneops/inductor/circuit-main-1/components/cookbooks/test_wo/test/integration/"));
+		final String kitchenSpecPath = executor.getSpecFilePath(wo,kitchenTestPath);
+		Assert.assertTrue(kitchenSpecPath.equals("/opt/oneops/inductor/circuit-main-1/components/cookbooks/test_wo/test/integration/add/serverspec/add_spec.rb"));
+	}
+
 	public void init() {
 
 		String line = null;

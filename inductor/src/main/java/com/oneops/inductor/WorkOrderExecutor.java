@@ -24,6 +24,7 @@ import com.oneops.cms.dj.domain.RfcHint;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.CmsConstants;
+import java.nio.file.Files;
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.*;
 import org.apache.log4j.Logger;
@@ -137,6 +138,29 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         return buildResponseMessage(wo, correlationId);
     }
 
+    public String getKitchenSpecPath(CmsWorkOrderSimple wo) {
+        ///opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb
+        String testFileDir = getKitchenTestPath(wo);
+        String specFilePath = getSpecFilePath(wo, testFileDir);
+        if (Files.exists(Paths.get(specFilePath))) {
+            return testFileDir;
+        }
+        return StringUtils.EMPTY;
+    }
+
+    public String getSpecFilePath(CmsWorkOrderSimple wo, String testFileDir) {
+        return testFileDir +
+            wo.getRfcCi().getRfcAction() +"/serverspec/" + wo.getRfcCi().getRfcAction()
+            + "_spec.rb";
+    }
+
+    public String getKitchenTestPath(CmsWorkOrderSimple wo) {
+        String baseDir = config.getCircuitDir().replace("packer",
+            getCookbookPath(wo.getRfcCi().getCiClassName()));
+        String cookbookDir = baseDir + "/components/cookbooks/" +
+            getShortenedClass(wo.getRfcCi().getCiClassName());
+        return cookbookDir + "/test/integration/";
+    }
     /**
      * Run verification tests for the component. Usually this is done after
      * executing the work order.
