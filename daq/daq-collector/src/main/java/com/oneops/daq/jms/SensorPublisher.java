@@ -62,9 +62,9 @@ public class SensorPublisher {
     private ConcurrentHashMap<Long, Long> manifestCache = new ConcurrentHashMap<>();
 
     private final AtomicLong eventCounter = new AtomicLong();
-    protected final AtomicLong missingManifestCounter = new AtomicLong();
-    protected final AtomicLong failedThresholdLoadCounter = new AtomicLong();
-    protected final AtomicLong publishedCounter = new AtomicLong();
+    private final AtomicLong missingManifestCounter = new AtomicLong();
+    private  final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+    private final AtomicLong publishedCounter = new AtomicLong();
 
 
     private static final Threshold NO_OP_THRESHOLD = new Threshold();
@@ -309,5 +309,17 @@ public class SensorPublisher {
             ((PooledConnectionFactory) jt.getConnectionFactory()).stop();
         }
         producers = null;
+    }
+
+    public long getMissingManifestCounter() {
+        return missingManifestCounter.get();
+    }
+
+    public long getFailedThresholdLoadCounter() {
+        return failedThresholdLoadCounter.get();
+    }
+
+    public long getPublishedCounter() {
+        return publishedCounter.get();
     }
 }

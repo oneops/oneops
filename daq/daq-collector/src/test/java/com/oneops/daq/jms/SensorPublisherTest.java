@@ -63,8 +63,8 @@ public class SensorPublisherTest {
 			}
 		}
 		verifyNoMoreInteractions(dao);
-		assertEquals(25, publisher.missingManifestCounter.get());
-		assertEquals(0, publisher.publishedCounter.get());
+		assertEquals(25, publisher.getMissingManifestCounter());
+		assertEquals(0, publisher.getPublishedCounter());
 	}
 
 
@@ -88,7 +88,7 @@ public class SensorPublisherTest {
 		
 		verify(dao).getThreshold(1,"null");
 		verify(dao).getThreshold(1,"null");
-		assertEquals(2, publisher.publishedCounter.get());
+		assertEquals(2, publisher.getPublishedCounter());
 		verifyNoMoreInteractions(dao);
 	}
 	/**
