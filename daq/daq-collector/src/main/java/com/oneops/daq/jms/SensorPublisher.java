@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SensorPublisher {
     private static final Logger logger = Logger.getLogger(SensorPublisher.class);
     private static final int MINUTE = 60 * 1000;
+    private static final Long LOOKUP_THRESHOLD = 20L;
 
     private String user = ActiveMQConnection.DEFAULT_USER;
     private String password = ActiveMQConnection.DEFAULT_PASSWORD;
@@ -61,8 +62,10 @@ public class SensorPublisher {
     private ConcurrentHashMap<Long, Long> manifestCache = new ConcurrentHashMap<>();
 
     private final AtomicLong eventCounter = new AtomicLong();
-    private final AtomicLong missingManifestCounter = new AtomicLong();
-    private final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+    protected final AtomicLong missingManifestCounter = new AtomicLong();
+    protected final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+    protected final AtomicLong publishedCounter = new AtomicLong();
+
 
     private static final Threshold NO_OP_THRESHOLD = new Threshold();
 
@@ -212,17 +215,21 @@ public class SensorPublisher {
                     " manifest miss: " + missingManifestCounter.get() +
                     " failed threshold load count: " + failedThresholdLoadCounter.get());
 
-        Long manifestId;
-        if (manifestCache.containsKey(event.getCiId()))
+        // negative value in manifestId cache represents number of failed attempts to retrieve it from cassandra. We stop after LOOKUP_THRESHOLD 
+        Long manifestId = null;
+        if (manifestCache.containsKey(event.getCiId()) &&  manifestCache.get(event.getCiId())>0)
             manifestId = manifestCache.get(event.getCiId());
-        else {
+        else if (!manifestCache.containsKey(event.getCiId()) || manifestCache.get(event.getCiId())< -LOOKUP_THRESHOLD){
             manifestId = thresholdsDao.getManifestId(event.getCiId());
-            if (manifestId != null)
+            if (manifestId != null) {
                 manifestCache.put(event.getCiId(), manifestId);
+            } else {
+                logger.warn("Failed to map ciId: " + event.getCiId() + " to manifestId. Please fix");
+                manifestCache.put(event.getCiId(), manifestCache.getOrDefault(event.getCiId(), 0L)-1);
+            }
         }
         if (manifestId == null) {
             long missCount = missingManifestCounter.incrementAndGet();
-            logger.warn("Failed to map ciId: " + event.getCiId() + " to manifestId. Please fix");
             return;
         }
 
@@ -257,8 +264,9 @@ public class SensorPublisher {
      * @throws JMSException the jMS exception
      */
     public void publishMessage(final BasicEvent event) throws JMSException {
-
+        
         if (System.currentTimeMillis() > lastFailureTimestamp) {
+            publishedCounter.incrementAndGet();
             int shard = (int) (event.getManifestId() % poolsize);
             try {
                 producers[shard].send(session -> {
@@ -280,6 +288,10 @@ public class SensorPublisher {
         }
     }
 
+
+    void setProducers(JmsTemplate[] producers) {
+        this.producers = producers;
+    }
 
     /**
      * Cleanup.

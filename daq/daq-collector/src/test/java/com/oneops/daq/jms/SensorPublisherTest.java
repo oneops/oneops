@@ -17,7 +17,11 @@
  *******************************************************************************/
 package com.oneops.daq.jms;
 
+import com.oneops.sensor.events.PerfEvent;
+import com.oneops.sensor.thresholds.Threshold;
+import com.oneops.sensor.thresholds.ThresholdsDao;
 import org.apache.log4j.Logger;
+import org.springframework.jms.core.JmsTemplate;
 import org.testng.annotations.Test;
 
 import javax.jms.JMSException;
@@ -26,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 
 
@@ -35,12 +40,57 @@ import static org.testng.Assert.assertEquals;
  */
 public class SensorPublisherTest {
 
+	public static final int LOOKUP_THRESHOLD = 20;
 	private SensorPublisher publisher = new SensorPublisher();
 
 	private static final Logger logger = Logger.getLogger(SensorPublisherTest.class);
 	
 	private static final String NO_ENV_EXC_MSG="missing KLOOPZ_AMQ_PASS env var";
 
+	
+	@Test
+	public void testLookupThreshold() throws JMSException {
+		SensorPublisher publisher = new SensorPublisher();
+		PerfEvent event = new PerfEvent();
+		ThresholdsDao dao = mock(ThresholdsDao.class);
+		when(dao.getManifestId(100)).thenReturn(null);
+		publisher.setThresholdDao(dao);
+		event.setCiId(100);
+		for (int i=0;i<LOOKUP_THRESHOLD+5;i++) {
+			publisher.enrichAndPublish(event);
+			if (i< LOOKUP_THRESHOLD) {  // even though we called publish 25 times, we should only do lookup 20 times
+				verify(dao).getManifestId(100);
+			}
+		}
+		verifyNoMoreInteractions(dao);
+		assertEquals(25, publisher.missingManifestCounter.get());
+		assertEquals(0, publisher.publishedCounter.get());
+	}
+
+
+	@Test
+	public void testLookupThresholdNotReached() throws JMSException {
+		SensorPublisher publisher = new SensorPublisher();
+		JmsTemplate[] array = {mock(JmsTemplate.class)};
+		publisher.setProducers(array);
+		PerfEvent event = new PerfEvent();
+		ThresholdsDao dao = mock(ThresholdsDao.class);
+		when(dao.getManifestId(100)).thenReturn(1L);
+		Threshold t = new Threshold();
+		t.setThresholdJson("{}");
+		t.setHeartbeat(true);
+		when(dao.getThreshold(1, "null")).thenReturn(t);
+		publisher.setThresholdDao(dao);
+		event.setCiId(100);
+		publisher.enrichAndPublish(event);
+		publisher.enrichAndPublish(event);
+		verify(dao).getManifestId(100);
+		
+		verify(dao).getThreshold(1,"null");
+		verify(dao).getThreshold(1,"null");
+		assertEquals(2, publisher.publishedCounter.get());
+		verifyNoMoreInteractions(dao);
+	}
 	/**
 	 * test publishing messages though we can only set up the message as we have
 	 * not mocked the channel
