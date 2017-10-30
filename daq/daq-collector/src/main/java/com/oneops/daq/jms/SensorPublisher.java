@@ -63,7 +63,7 @@ public class SensorPublisher {
 
     private final AtomicLong eventCounter = new AtomicLong();
     private final AtomicLong missingManifestCounter = new AtomicLong();
-    private  final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+    private final AtomicLong failedThresholdLoadCounter = new AtomicLong();
     private final AtomicLong publishedCounter = new AtomicLong();
 
 
