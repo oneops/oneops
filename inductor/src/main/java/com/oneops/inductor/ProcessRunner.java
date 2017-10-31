@@ -17,17 +17,16 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
+import com.oneops.cms.util.CmsConstants;
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.environment.EnvironmentUtils;
 import org.apache.log4j.Logger;
-
-import com.oneops.cms.util.CmsConstants;
-
-import java.io.IOException;
-import java.util.Map;
 
 public class ProcessRunner {
 
@@ -133,7 +132,7 @@ public class ProcessRunner {
 
 			long startTime = System.currentTimeMillis();
 
-			executeProcess(cmd, logKey, result);
+			executeProcess(cmd, logKey, result,null,null);
 			long endTime = System.currentTimeMillis();
 			long duration = endTime - startTime;
 			logger.info(logKey + "cmd took: " + duration + " ms");
@@ -169,11 +168,15 @@ public class ProcessRunner {
 	 * @param logKey
 	 * @param result
 	 */
-	private void executeProcess(String[] cmd, String logKey, ProcessResult result) {
+	public void executeProcess(String[] cmd, String logKey, ProcessResult result , Map<String, String> additionamEnvVars,File workingDir) {
 
 		Map<String, String> env = getEnvVars(logKey, cmd);
-		logger.info(logKey + " Cmd: " + String.join(" ", cmd) + ", Env: " + env);
-
+    if (env != null) {
+      env.putAll(additionamEnvVars);
+    } else {
+      env = additionamEnvVars;
+    }
+    logger.info(logKey + " Cmd: " + String.join(" ", cmd) + ", Env: " + env);
 		// run the cmd
 		try {
 
@@ -188,6 +191,9 @@ public class ProcessRunner {
 			executor.setExitValue(0);
 			executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
 			executor.setStreamHandler(new OutputHandler(logger, logKey, result));
+			if(workingDir!=null){
+			executor.setWorkingDirectory(workingDir);
+			}
 			result.setResultCode(executor.execute(cmdLine, env));
 
 			// set fault to last error if fault map is empty
@@ -199,7 +205,7 @@ public class ProcessRunner {
 			logger.error(logKey + ee);
 			result.setResultCode(ee.getExitValue());
 		} catch (IOException e) {
-			logger.error(e);
+		  logger.error(e);
 			result.setResultCode(1);
 		}
 

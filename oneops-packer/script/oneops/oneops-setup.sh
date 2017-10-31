@@ -1,4 +1,3 @@
-
 echo '==> Configuring OneOps for vagrant'
 
 mkdir -p /home/oneops
@@ -9,7 +8,16 @@ cd /home/oneops
 
 tar zxf oneops-continuous.tar.gz -C /home/
 
-mkdir -p /home/oneops/dist/oneops-admin-inductor && tar zxf /home/oneops/dist/oneops-admin-*-inductor.tar.gz -C /home/oneops/dist/oneops-admin-inductor
+azure=${azure_inductor:-false}
+
+mkdir -p /home/oneops/dist/oneops-admin-inductor
+
+if [ "$azure" = "true" ]; then
+  tar zxf /home/oneops/dist/oneops-admin-*-inductor-az.tar.gz -C /home/oneops/dist/oneops-admin-inductor
+else
+  tar zxf /home/oneops/dist/oneops-admin-*-inductor.tar.gz -C /home/oneops/dist/oneops-admin-inductor
+fi
+
 mkdir -p /home/oneops/dist/oneops-admin-adapter && tar zxf /home/oneops/dist/oneops-admin-*-adapter.tar.gz -C /home/oneops/dist/oneops-admin-adapter
 
 export BUILD_BASE='/home/oneops/build'
@@ -58,11 +66,15 @@ sed -i 's/cp.*dist.*dist.*search.*jar/cp $OO_HOME\/dist\/search.jar \/opt\/oneop
 cat > deploy_ooadmin.sh <<EOL
 #!/bin/sh
 
+set -e
+
 echo "Deploying OneOps Admin "
 
 cd $OO_HOME/dist/oneops-admin-inductor
-gem install oneops-admin-inductor-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
-bundle install --gemfile=oneops-admin-inductor.gemfile --local
+INDUCTOR_GEM=\$(ls *.gem)
+INDUCTOR_GEMFILE=\$(ls *.gemfile)
+gem install \$INDUCTOR_GEM --ignore-dependencies --no-ri --no-rdoc
+bundle install --gemfile=\$INDUCTOR_GEMFILE --local
 
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
@@ -93,6 +105,8 @@ circuit install
 
 echo "install inductor as ooadmin"
 adduser ooadmin 2>/dev/null
+
+chown -R ooadmin:ooadmin "$BUILD_BASE/circuit-oneops-1"
 
 cd /opt/oneops
 chown ooadmin /opt/oneops
@@ -130,6 +144,9 @@ echo "export INDUCTOR_HOME=/opt/oneops/inductor" > /opt/oneops/inductor_env.sh
 echo "export PATH=$PATH:/usr/local/bin" >> /opt/oneops/inductor_env.sh
 
 echo "done with inductor"
+
+source /home/oneops/deploy_circuits.sh
+
 EOL
 
 chmod a+x /etc/init.d/display
@@ -139,3 +156,5 @@ chmod a+x /etc/init.d/display
 if [ $? -ne 0 ]; then
   exit 1;
 fi
+
+source /tmp/create_user.sh

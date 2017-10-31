@@ -47,6 +47,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -425,7 +426,43 @@ public class TransistorRestController extends AbstractRestController {
 			throw te;
 		}
 	}
+
+
+	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostData>  getCostData(@PathVariable long envId){
+		return envManager.getEnvCostData(envId);
+	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostData> getEstimatedCostData(@PathVariable long envId){
+		return envManager.getEnvEstimatedCostData(envId);
+	}
 	
+	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
+	@ResponseBody
+	public BigDecimal calculateCost(@PathVariable long envId){
+		return getSum(getCostData(envId));		
+	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public BigDecimal calculateEstimatedCost(@PathVariable long envId){
+		return getSum(getCostData(envId));
+	}
+
+
+
+	private BigDecimal getSum(List<CostData> offerings) {
+		BigDecimal result = BigDecimal.ZERO;
+		for (CostData cost: offerings){
+			for (CmsCISimple offering: cost.getOfferings()){
+				result = result.add(new BigDecimal(offering.getCiAttributes().get("cost_rate")));
+			}
+		}
+		return result;
+	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
 	@ResponseBody

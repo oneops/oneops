@@ -81,7 +81,10 @@ public class DeployerImpl implements Deployer {
     if (dpmtExec == null) {
       dpmtCache.updateDeploymentMap(dpmt.getDeploymentId(), newDpmtExecution(dpmt, 1));
     }
-    cmsClient.updateDeploymentAndNotify(dpmt, null, "Deployer");
+    if (!isComplete(dpmt)) {
+      cmsClient.updateDeploymentAndNotify(dpmt, null, "Deployer");
+    }
+
     processWorkOrders(dpmt.getDeploymentId(), false, true);
   }
 
@@ -242,6 +245,10 @@ public class DeployerImpl implements Deployer {
 
   private boolean isActive(CmsDeployment dpmt) {
     return (dpmt != null) && CmsDpmtProcessor.DPMT_STATE_ACTIVE.equals(dpmt.getDeploymentState());
+  }
+
+  private boolean isComplete(CmsDeployment dpmt) {
+    return (dpmt != null) && CmsDpmtProcessor.DPMT_STATE_COMPLETE.equals(dpmt.getDeploymentState());
   }
 
   private boolean isPaused(CmsDeployment dpmt) {

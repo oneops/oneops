@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.09.20-14-SNAPSHOT</version>
+    <version>17.09.20-32-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops.cms</groupId>
   <artifactId>adapter</artifactId>
@@ -131,6 +131,10 @@
     <dependency>
       <groupId>com.oneops</groupId>
       <artifactId>oo-commons</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
     </dependency>
   </dependencies>
   <build>

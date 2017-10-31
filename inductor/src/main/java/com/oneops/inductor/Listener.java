@@ -99,21 +99,18 @@ public class Listener implements MessageListener, ApplicationContextAware {
     /**
      * init - configuration / defaults
      */
-    public void init() throws Exception {
-
+    public void init() {
         filesystem = new File(config.getDataDir());
         checkFreeSpace();
         logger.info(this);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            DefaultMessageListenerContainer listenerContainer = (DefaultMessageListenerContainer)
-                    applicationContext.getBean("listenerContainer");
-
+            DefaultMessageListenerContainer listenerContainer = (DefaultMessageListenerContainer) applicationContext.getBean("listenerContainer");
             logger.info("Stopping listener container...");
             listenerContainer.stop();
             while (activeThreads.get() > 0) {
-                logger.info("Shutdown in progress. sleeping for 10sec. activeThreads: "+ activeThreads);
+                logger.info("Shutdown in progress. sleeping for 10sec. activeThreads: " + activeThreads);
                 try {
-                    Thread.currentThread().sleep(10000);
+                    Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     logger.info("Got InterruptedException, but will still let the activeThreads complete.");
                 }
@@ -121,6 +118,8 @@ public class Listener implements MessageListener, ApplicationContextAware {
             logger.info("Shutdown done.");
         }));
 
+        File testDir = new File(filesystem, "../test");
+        logger.info("Verification test directory created: " + testDir.mkdirs());
     }
 
     /**
@@ -185,7 +184,8 @@ public class Listener implements MessageListener, ApplicationContextAware {
                     preProcess(wo);
                     wo.putSearchTag("rfcAction", wo.getAction());
                     responseMsgMap = workOrderExecutor.process(wo, correlationID);
-                    // ActionOrder
+                    responseMsgMap = workOrderExecutor.runVerification(wo,responseMsgMap);
+                // ActionOrder
                 } else if (type.equals(ACTION_ORDER_TYPE)) {
                     long t = System.currentTimeMillis();
                     wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);

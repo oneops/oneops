@@ -17,10 +17,7 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
-import com.oneops.cms.util.CmsConstants;
-
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import static com.oneops.cms.util.CmsConstants.SEARCH_TS_PATTERN;
 

@@ -133,10 +133,7 @@ public class InductorPublisher {
                 throw new RuntimeException(e);
             }
         }).send(message);
-
-        String woCorelationId = processId + execId;
-        woPublisher.publishMessage(wo, woType, woCorelationId);
-
+        
         if (logger.isDebugEnabled()) {
             logger.debug("Published: " + message.getText());
         }

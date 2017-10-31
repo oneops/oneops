@@ -1,0 +1,120 @@
+{
+  "_comment": "Build with `packer build centos.json`",
+  "builders": [
+    {
+      "headless": "{{ user `headless` }}",
+      "output_directory": "{{ user `vm_name` }}-virtualbox-box",
+      "shutdown_command": "{{ user `shutdown_command` }}",
+      "ssh_password": "{{ user `ssh_password` }}",
+      "ssh_username": "{{ user `ssh_username` }}",
+      "ssh_wait_timeout": "10000s",
+      "type": "virtualbox-ovf",
+      "source_path": "{{ user `oneops_base_image`}}",
+      "vboxmanage": [
+        [
+          "modifyvm", "{{.Name}}", "--memory", "{{ user `memory` }}"
+        ],
+        [
+          "modifyvm", "{{.Name}}", "--cpus", "{{ user `cpus` }}"
+        ],
+        [
+          "modifyvm", "{{.Name}}", "--paravirtprovider", "{{ user `virtualbox_paravirtprovider` }}"
+        ],
+        [
+          "modifyvm", "{{.Name}}", "--nictype1", "{{ user `virtualbox_nictype` }}"
+        ]
+      ],
+      "virtualbox_version_file": ".vbox_version",
+      "vm_name": "{{ user `vm_name` }}",
+      "skip_export": "{{ user `skip_export` }}"
+    }
+  ],
+  "post-processors": [
+  {
+    "type": "vagrant",
+      "keep_input_artifact": false,
+      "output": "box/{{user `vm_name`}}-{{user `version`}}.box"
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "{{user `oneops_circuits`}}",
+      "destination": "/tmp/oneops_circuits"
+    },
+    {
+      "type": "file",
+      "source": "{{user `oneops_artifact`}}",
+      "destination": "/tmp/oneops-continuous.tar.gz"
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/create_user.sh",
+      "destination": "/tmp/create_user.sh"
+    },    
+    {
+      "type": "file",
+      "source": "files/oneops/deploy_circuits.sh",
+      "destination": "/tmp/deploy_circuits.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mkdir -p /home/oneops", "sudo mv /tmp/deploy_circuits.sh /home/oneops/deploy_circuits.sh" ]
+    },
+    {
+      "environment_vars": [
+        "CM={{user `cm`}}",
+        "CM_VERSION={{user `cm_version`}}",
+        "DESKTOP={{user `desktop`}}",
+        "DOCKER={{user `docker`}}",
+        "UPDATE={{user `update`}}",
+        "INSTALL_VAGRANT_KEY={{user `install_vagrant_key`}}",
+        "SSH_USERNAME={{user `ssh_username`}}",
+        "SSH_PASSWORD={{user `ssh_password`}}",
+        "http_proxy={{user `http_proxy`}}",
+        "https_proxy={{user `https_proxy`}}",
+        "ftp_proxy={{user `ftp_proxy`}}",
+        "rsync_proxy={{user `rsync_proxy`}}",
+        "no_proxy={{user `no_proxy`}}",
+        "azure_inductor={{user `azure_inductor`}}"
+      ],
+      "execute_command": "echo 'vagrant' | {{.Vars}} sudo -E -S bash '{{.Path}}'",
+      "scripts": [
+        "script/oneops/oneops-setup.sh",
+        "script/minimize.sh"
+      ],
+      "type": "shell"
+    }
+  ],
+  "variables": {
+    "cpus": "4",
+    "cutom_script": ".",
+    "desktop": "false",
+    "disk_size": "65536",
+    "docker": "false",
+    "ftp_proxy": "{{env `ftp_proxy`}}",
+    "headless": "true",
+    "http_proxy": "{{env `http_proxy`}}",
+    "https_proxy": "{{env `https_proxy`}}",
+    "install_vagrant_key": "true",
+    "memory": "6144",
+    "no_proxy": "{{env `no_proxy`}}",
+    "parallels_guest_os_type": "centos",
+    "rsync_proxy": "{{env `rsync_proxy`}}",
+    "shutdown_command": "echo 'vagrant'|sudo -S shutdown -P now",
+    "ssh_password": "vagrant",
+    "ssh_username": "vagrant",
+    "update": "false",
+    "vagrantfile_template": "",
+    "version": "0.1",
+    "virtualbox_guest_os_type": "RedHat_64",
+    "virtualbox_paravirtprovider": "default",
+    "virtualbox_nictype": "virtio",
+    "vm_name": "centos67",
+    "vmware_guest_os_type": "centos-64",
+    "vm_name": "centos73-oneops",
+    "skip_export": "false",
+    "azure_inductor": "{{env `AZURE_INDUCTOR`}}",
+    "oneops_circuits": "circuits"
+  }
+}
