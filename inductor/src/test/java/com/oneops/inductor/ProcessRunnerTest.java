@@ -19,6 +19,8 @@ package com.oneops.inductor;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
 import org.junit.Test;
 
 public class ProcessRunnerTest {
@@ -56,7 +58,7 @@ public class ProcessRunnerTest {
 	}
 
 	// @Test
-	public void executeProcessWithEnv() {
+	public void executeProcessWithEnv() throws IOException, URISyntaxException {
 		Config c = new Config();
 		c.setEnv("PATH1=/usr/local/ruby/bin,GEM_PATH1=/usr/local/gems");
 		c.init();
