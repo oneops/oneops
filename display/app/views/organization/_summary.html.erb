@@ -1,30 +1,29 @@
-<div class="section">
-  <%= render 'base/cost/cost_summary' %>
-  <%= render 'base/notifications/notifications_summary' %>
-</div>
+<%= render 'base/cost/cost_summary' %>
 
-<div class="single right section">
+<%= section_panel 'Counts', :width => 'single', :position => 'right' do %>
+  <% user_count     = current_user.organization.users.size
+     assembly_count = @assemblies.size %>
   <ul class="glance">
     <li>
       <%= link_to "#{edit_organization_path}#users" do %>
-        <strong><%= current_user.organization.users.size %></strong>
-        <span>users</span>
+        <strong><%= user_count %></strong>
+        <span><%= 'user'.pluralize(user_count) %></span>
       <% end %>
     </li>
     <li>
       <%= link_to clouds_path do %>
-        <strong><%= @clouds.size %></strong>
-        <span>clouds</span>
+        <strong><%= @cloud_count %></strong>
+        <span><%= 'cloud'.pluralize(@cloud_count) %></span>
       <% end %>
     </li>
     <li>
       <%= link_to assemblies_path do %>
-        <strong><%= @entities['base.Manages'] ? @entities['base.Manages'].size : 0 %></strong>
-        <span>assemblies</span>
+        <strong><%= assembly_count %></strong>
+        <span><%= 'assembly'.pluralize(assembly_count) %></span>
       <% end %>
     </li>
   </ul>
-</div>
+<% end %>
 
 <% favs = current_user.favorites.where(:organization_id => current_user.organization_id).order(:ci_name) %>
 <% if favs.blank? %>
@@ -46,3 +45,5 @@
 <% else %>
   <%= render 'favorite_list', :favorites => favs %>
 <% end %>
+
+<%= render 'base/notifications/notifications_summary' %>

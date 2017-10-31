@@ -21,10 +21,11 @@ if defined?(LogStasher) && LogStasher.enabled
     # If you are using custom instrumentation, just add it to logstasher custom fields
     #LogStasher.custom_fields << :myapi_runtime
   end
+
   LogStasher.watch('request.active_resource', :event_group => 'http') do |name, start, finish, id, payload, store|
     duration         = ((finish.to_f - start.to_f) * 1000).round(1)
     store[:duration] ||= 0
-    store[:duration] += duration
+    store[:duration] += duration.round(1)
 
     store[:count] ||= 0
     store[:count] += 1
@@ -49,7 +50,7 @@ if defined?(LogStasher) && LogStasher.enabled
                end
 
     store[category]            ||= {:duration => 0, :requests => []}
-    store[category][:duration] += duration
+    store[category][:duration] += duration.round(1)
     store[category][:requests] << {:duration => duration,
                                    :method   => payload[:method],
                                    :alias    => url.sub(/\?.*$/, '').sub(/^http.*:\d\d\d\d+\//, '').gsub(/\/\d+/, '/<ID>'),

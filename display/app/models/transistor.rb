@@ -1,9 +1,9 @@
 class Transistor < ActiveResource::Base
-  self.site         = Settings.transistor_site
-  self.prefix       = '/transistor/rest'
-  self.timeout      = 600
-  self.element_name = ''
+  self.site                   = Settings.transistor_site
+  self.prefix                 = '/transistor/rest'
+  self.element_name           = ''
   self.include_format_in_path = false
+  self.timeout                = Settings.transistor_http_timeout
 
   def self.export_design(assembly, platform_ids = nil)
     begin
