@@ -53,9 +53,6 @@ import java.util.concurrent.Semaphore;
 import javax.jms.JMSException;
 import org.junit.Assert;
 import org.junit.Test;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.DumperOptions.FlowStyle;
-import org.yaml.snakeyaml.Yaml;
 
 public class InductorTest {
 
@@ -102,9 +99,9 @@ public class InductorTest {
 
         WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
         final String kitchenTestPath = executor.getKitchenTestPath(wo);
-        assertTrue(kitchenTestPath.equals("/opt/oneops/inductor/circuit-main-1/components/cookbooks/test_wo/test/integration/"));
+        assertTrue(kitchenTestPath.equals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user"));
         final String kitchenSpecPath = executor.getSpecFilePath(wo, kitchenTestPath);
-        assertTrue(kitchenSpecPath.equals("/opt/oneops/inductor/circuit-main-1/components/cookbooks/test_wo/test/integration/add/serverspec/add_spec.rb"));
+        assertTrue(kitchenSpecPath.equals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb"));
     }
 
 
