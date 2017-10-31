@@ -89,6 +89,36 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def cost_estimate
+    pending = params[:pending] == 'false' ? false : true
+    details = params[:details] == 'false' ? false : true
+    cost = Transistor.environment_cost(@environment, pending, details)
+
+    if details
+      by_cloud, by_plaform, by_service = cost.inject([{}, {}, {}]) do |h, c|
+        cloud_key    = c['cloud']['ciName']
+        platform_key = c['rfc']['nsPath'].split('/')[-2..-1].join('/')
+        c['offerings'].each do |o|
+          rate        = o['ciAttributes']['cost_rate'].to_f
+          service_key = o['ciAttributes']['service_type']
+          h[0][cloud_key]    = (h[0][cloud_key].presence || 0) + rate
+          h[1][platform_key] = (h[1][platform_key].presence || 0) + rate
+          h[2][service_key]  = (h[2][service_key].presence || 0) + rate
+        end
+        h
+      end
+      result = {:total       => cost.sum {|c| c['offerings'].sum {|y| y['ciAttributes']['cost_rate'].to_f}},
+                :unit        => cost.present? ? cost.first['offerings'].first['ciAttributes']['cost_unit'] : '',
+                :by_cloud    => by_cloud,
+                :by_platform => by_plaform,
+                :by_service  => by_service}
+    else
+      result = {:total => cost}
+    end
+
+    render :json => result
+  end
+
 
   protected
 

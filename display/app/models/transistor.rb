@@ -276,8 +276,12 @@ class Transistor < ActiveResource::Base
     end
   end
 
-  def self.custom_method_collection_url(method_name, options = {})
-    super.gsub(/.#{self.format.extension}/, '')
+  def self.environment_cost(env, pending = false, details = false)
+    begin
+      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/#{'estimated_' if pending}cost#{'_data' if details}")
+    rescue Exception => e
+      return nil, handle_exception(e, "Failed to get cost for environment #{env.ciId} :")
+    end
   end
 
 
