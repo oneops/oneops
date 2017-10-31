@@ -39,78 +39,78 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import static java.util.stream.Collectors.toMap;
+
 @Component
 public class Config {
 
     private static Logger logger = Logger.getLogger(Config.class);
 
     // Value from spring+inductor.properties
-    private @Value("${packer_home}")
-    String circuitDir;
+    @Value("${packer_home}")
+    private String circuitDir;
 
-    private @Value("${amq.in_queue}")
-    String inQueue;
+    @Value("${amq.in_queue}")
+    private String inQueue;
 
-    private @Value("${retry_count:3}")
-    int retryCount;
+    @Value("${retry_count:3}")
+    private int retryCount;
 
     // allows use of public or private ip
-    private @Value("${ip_attribute}")
-    String ipAttribute;
+    @Value("${ip_attribute}")
+    private String ipAttribute;
 
-    private @Value("${data_dir}")
-    String dataDir;
+    @Value("${data_dir}")
+    private String dataDir;
 
-    private @Value("${mgmt_domain}")
-    String mgmtDomain;
+    @Value("${mgmt_domain}")
+    private String mgmtDomain;
 
-    private @Value("${perf_collector_cert_location:unset}")
-    String perfCollectorCertLocation;
+    @Value("${perf_collector_cert_location:unset}")
+    private String perfCollectorCertLocation;
 
-    private @Value("${mgmt_url}")
-    String mgmtUrl;
+    @Value("${mgmt_url}")
+    private String mgmtUrl;
 
-    private @Value("${mgmt_cert:unset}")
-    String mgmtCert;
+    @Value("${mgmt_cert:unset}")
+    private String mgmtCert;
 
-    private @Value("${min_free_space_mb:50}")
-    int minFreeSpaceMB;
+    @Value("${min_free_space_mb:50}")
+    private int minFreeSpaceMB;
 
     // For backwards compliance (using PPC.ignoreUnresolvablePlaceholders)
-    // missing autowired values default to a String, hense this dns value
+    // missing autowired values default to a String, Hence this dns value
     // to boolean inside init.
-    private @Value("${dns}")
-    String dnsEnabled;
+    @Value("${dns}")
+    private String dnsEnabled;
 
     private boolean dnsDisabled = false;
 
-    private @Value("${dns_config_file}")
-    String dnsConfigFile;
+    @Value("${dns_config_file}")
+    private String dnsConfigFile;
 
     // Added to debug compute add - prevents compute::delete on
     // compute::add (install_base/remote) failure
-    private @Value("${debug_mode}")
-    String debugMode;
-
+    @Value("${debug_mode}")
+    private String debugMode;
 
     // Enable jmx metrics
-    private @Value("${enable_jmx:true}")
-    boolean isJMXEnabled;
-
+    @Value("${enable_jmx:true}")
+    private boolean isJMXEnabled;
 
     // Enable auto shutdown
-    private @Value("${autoShutDown:false}")
-    boolean isAutoShutDown;
+    @Value("${autoShutDown:false}")
+    private boolean isAutoShutDown;
 
-    private @Value("${initial_user:unset}")
-    String initialUser;
+    @Value("${initial_user:unset}")
+    private String initialUser;
 
-    private @Value("${local_max_consumers:10}")
-    int localMaxConsumers;
+    @Value("${local_max_consumers:10}")
+    private int localMaxConsumers;
 
     // rsync timeout. Default value is 30 sec
-    private @Value("${rsync_timeout:30}")
-    int rsyncTimeout;
+    @Value("${rsync_timeout:30}")
+    private int rsyncTimeout;
 
     /**
      * The list of clouds which are marked to be in stub mode.
@@ -134,7 +134,6 @@ public class Config {
      */
     @Value("${stubResultCode:1}")
     private int stubResultCode;
-
 
     /**
      * How long should inductor wait before returning a stubbed response ?
@@ -184,18 +183,6 @@ public class Config {
     private int rebootLimit;
 
     /**
-     * Checks whether inductor is running in verification mode.
-     */
-    @Value("${test_mode:false}")
-    private boolean testMode;
-
-    /**
-     * Additional test config. Use it as a comma sseparated key=value pairs.
-     */
-    @Value("${test_config:}")
-    private String testConfig;
-
-    /**
      * Env vars read from {@link #env}. This will get initialized in ${@link #init()}
      */
     private Map<String, String> envVars;
@@ -212,11 +199,25 @@ public class Config {
 
     private String perfCollectorCertContent = null;
 
+    /******************************
+     * Verify mode configurations *
+     ******************************/
+
+    @Value("${verify.mode:false}")
+    private boolean verifyMode;
+
+    /**
+     * Additional test config. Use it as a comma separated key=value pairs.
+     */
+    @Value("${verify.config: }")
+    private String verifyConfig;
+
+    private Map<String, String> verifyConfigMap;
+
     /**
      * init - configuration / defaults
      */
     public void init() {
-
         // Read env vars.
         envVars = readEnvVars(env);
 
@@ -243,8 +244,7 @@ public class Config {
             ipAttribute = "public_ip";
         }
 
-        if (dnsEnabled == null || dnsEnabled.equalsIgnoreCase("off")
-                || dnsEnabled.equalsIgnoreCase("false")) {
+        if (dnsEnabled == null || dnsEnabled.equalsIgnoreCase("off") || dnsEnabled.equalsIgnoreCase("false")) {
             dnsDisabled = true;
         }
         if (dnsConfigFile == null || dnsConfigFile.equals("${dns_config_file}")) {
@@ -277,6 +277,10 @@ public class Config {
             logger.info("*** " + this.toString());
         }
 
+        verifyConfigMap = Arrays.stream(verifyConfig.split(","))
+                .map(e -> e.split("="))
+                .filter(p -> p.length == 2)
+                .collect(toMap(e -> e[0].trim(), e -> e[1].trim(), (a, b) -> a));
     }
 
     /**
@@ -388,6 +392,94 @@ public class Config {
         return null;
     }
 
+    /**
+     * Helper method to read inductor ${@link #env} and returns an env vars map.
+     *
+     * @param env env can be a file location or a string containing multiple ENV_NAME=VALUE entries.
+     *            Entries are separated by newline (file) or ',' (string).
+     * @return env var map.
+     */
+    private Map<String, String> readEnvVars(String env) {
+        Path path = Paths.get(env);
+        List<String> kvList;
+        if (path.toFile().exists()) {
+            try {
+                kvList = Files.readAllLines(path);
+            } catch (IOException ioe) {
+                logger.warn("Error reading env var file: " + path, ioe);
+                kvList = Collections.emptyList();
+            }
+        } else {
+            kvList = Arrays.asList(env.trim().split(","));
+        }
+        return kvList.stream()
+                .map(s -> s.split("="))
+                .filter(p -> p.length == 2)
+                .collect(Collectors.toMap(p -> p[0].trim(), p -> p[1].trim()));
+    }
+
+    /**
+     * Checks if the cloud for given wo has been configured as shutdown
+     *
+     * @param bwo work order
+     * @return <code>true</code> if the wo cloud has configured as shutdown, else return <code>false</code>
+     */
+    public boolean hasCloudShutdownFor(CmsWorkOrderSimpleBase bwo) {
+        if (!clouds.isEmpty()) {
+            // Proceed only if it's not null
+            if (bwo != null) {
+                // Do it only for work orders
+                if (bwo instanceof CmsWorkOrderSimple) {
+                    CmsWorkOrderSimple wo = CmsWorkOrderSimple.class.cast(bwo);
+                    // Do it only for configured rfc actions (DELETE by default)
+                    if (rfcActions.contains(wo.getRfcCi().getRfcAction().toLowerCase())) {
+                        String cloudName = wo.getCloud().getCiName();
+                        // Do it only for the shutdown clouds
+                        if (clouds.contains(cloudName.toLowerCase())) {
+                            String bomClass = wo.getRfcCi().getCiClassName();
+                            // Skip configured bom classes
+                            return !bomClasses.contains(bomClass.toLowerCase());
+                        }
+                    }
+
+                }
+            }
+
+        }
+        return false;
+    }
+
+    public boolean isCloudStubbed(CmsWorkOrderSimpleBase bwo) {
+        boolean stubbedMode = false;
+        String cloudName = StringUtils.EMPTY;
+        if (!CollectionUtils.isEmpty(stubbedCloudsList)) {
+            if (bwo != null) {
+                cloudName = getCloud(bwo, cloudName);
+                if (StringUtils.isEmpty(cloudName)) {
+                    stubbedMode = false;
+                } else if (stubbedCloudsList.contains(cloudName.toLowerCase())) {
+                    stubbedMode = true;
+                }
+            }
+        }
+        if (stubbedMode) {
+            logger.warn("Cloud :" + cloudName + " is running in stub mode.");
+        }
+        return stubbedMode;
+    }
+
+    private String getCloud(CmsWorkOrderSimpleBase bwo, String cloudName) {
+        if (bwo instanceof CmsWorkOrderSimple) {
+            CmsWorkOrderSimple wo = CmsWorkOrderSimple.class.cast(bwo);
+            cloudName = wo.getCloud().getCiName();
+        } else if (bwo instanceof CmsActionOrderSimple) {
+            CmsActionOrderSimple ao = CmsActionOrderSimple.class.cast(bwo);
+            cloudName = ao.getCloud().getCiName();
+        }
+        return cloudName;
+    }
+
+
     public static Logger getLogger() {
         return logger;
     }
@@ -430,6 +522,10 @@ public class Config {
 
     public String getIpAttribute() {
         return ipAttribute;
+    }
+
+    public void setIpAttribute(String ipAttribute) {
+        this.ipAttribute = ipAttribute;
     }
 
     public String getDataDir() {
@@ -516,149 +612,41 @@ public class Config {
         this.circuitDir = circuitDir;
     }
 
-    public boolean isTestMode() {
-        return testMode;
+    public boolean isVerifyMode() {
+        return verifyMode;
     }
 
-    public String getTestConfig() {
-        return testConfig;
+    public void setVerifyMode(boolean verifyMode) {
+        this.verifyMode = verifyMode;
     }
 
-    /**
-     * Get the env vars key-value map.
-     *
-     * @return map containing env name and value.
-     */
+    public String getVerifyConfig() {
+        return verifyConfig;
+    }
+
+    public void setVerifyConfig(String verifyConfig) {
+        this.verifyConfig = verifyConfig;
+    }
+
     public Map<String, String> getEnvVars() {
         return this.envVars;
     }
 
-    /**
-     * Helper method to read inductor ${@link #env} and returns an env vars map.
-     *
-     * @param env env can be a file location or a string containing multiple ENV_NAME=VALUE entries.
-     *            Entries are separated by newline (file) or ',' (string).
-     * @return env var map.
-     */
-    private Map<String, String> readEnvVars(String env) {
-        Path path = Paths.get(env);
-        List<String> kvList;
-        if (path.toFile().exists()) {
-            try {
-                kvList = Files.readAllLines(path);
-            } catch (IOException ioe) {
-                logger.warn("Error reading env var file: " + path, ioe);
-                kvList = Collections.emptyList();
-            }
-        } else {
-            kvList = Arrays.asList(env.trim().split(","));
-        }
-        return kvList.stream()
-                .map(s -> s.split("="))
-                .filter(p -> p.length == 2)
-                .collect(Collectors.toMap(p -> p[0].trim(), p -> p[1].trim()));
-    }
-
-
-    /**
-     * Checks if the cloud for given wo has been configured as shutdown
-     *
-     * @param bwo work order
-     * @return <code>true</code> if the wo cloud has configured as shutdown, else return <code>false</code>
-     */
-    public boolean hasCloudShutdownFor(CmsWorkOrderSimpleBase bwo) {
-        if (!clouds.isEmpty()) {
-            // Proceed only if it's not null
-            if (bwo != null) {
-                // Do it only for work orders
-                if (bwo instanceof CmsWorkOrderSimple) {
-                    CmsWorkOrderSimple wo = CmsWorkOrderSimple.class.cast(bwo);
-                    // Do it only for configured rfc actions (DELETE by default)
-                    if (rfcActions.contains(wo.getRfcCi().getRfcAction().toLowerCase())) {
-                        String cloudName = wo.getCloud().getCiName();
-                        // Do it only for the shutdown clouds
-                        if (clouds.contains(cloudName.toLowerCase())) {
-                            String bomClass = wo.getRfcCi().getCiClassName();
-                            // Skip configured bom classes
-                            if (!bomClasses.contains(bomClass.toLowerCase())) {
-                                return true;
-                            }
-                        }
-                    }
-
-                }
-            }
-
-        }
-        return false;
-    }
-
-    public boolean isCloudStubbed(CmsWorkOrderSimpleBase bwo) {
-        boolean stubbedMode = false;
-        String cloudName = StringUtils.EMPTY;
-        if (!CollectionUtils.isEmpty(stubbedCloudsList)) {
-            if (bwo != null) {
-                cloudName = getCloud(bwo, cloudName);
-                if (StringUtils.isEmpty(cloudName)) {
-                    stubbedMode = false;
-                } else if (stubbedCloudsList.contains(cloudName.toLowerCase())) {
-                    stubbedMode = true;
-                }
-            }
-        }
-        if (stubbedMode) {
-            logger.warn("Cloud :" + cloudName + " is running in stub mode.");
-        }
-        return stubbedMode;
-    }
-
-    private String getCloud(CmsWorkOrderSimpleBase bwo, String cloudName) {
-        if (bwo instanceof CmsWorkOrderSimple) {
-            CmsWorkOrderSimple wo = CmsWorkOrderSimple.class.cast(bwo);
-            cloudName = wo.getCloud().getCiName();
-        } else if (bwo instanceof CmsActionOrderSimple) {
-            CmsActionOrderSimple ao = CmsActionOrderSimple.class.cast(bwo);
-            cloudName = ao.getCloud().getCiName();
-        }
-        return cloudName;
-    }
-
-    /**
-     * Accessor for shutdown clouds
-     *
-     * @return cloud list
-     */
     public List<String> clouds() {
         return this.clouds;
     }
 
-    /**
-     * Accessor for bom class
-     *
-     * @return bom class list
-     */
     public List<String> bomClasses() {
         return this.bomClasses;
     }
 
-    /**
-     * Accessor for rfc action
-     *
-     * @return action list
-     */
     public List<String> rfcActions() {
         return this.rfcActions;
     }
 
-    /**
-     * Accessor for command timeout
-     *
-     * @return timeout
-     */
     public long getCmdTimeout() {
         return cmdTimeout;
     }
-
 
     public int getStubResponseTimeInSeconds() {
         return stubResponseTimeInSeconds;
@@ -675,7 +663,6 @@ public class Config {
     public void setJMXEnabled(boolean JMXEnabled) {
         isJMXEnabled = JMXEnabled;
     }
-
 
     public boolean isAutoShutDown() {
         return isAutoShutDown;
@@ -695,6 +682,10 @@ public class Config {
 
     public void setRebootLimit(int rebootLimit) {
         this.rebootLimit = rebootLimit;
+    }
+
+    public Map<String, String> getVerifyConfigMap() {
+        return verifyConfigMap;
     }
 
     @Override
@@ -729,7 +720,8 @@ public class Config {
                 ", cmdTimeout=" + cmdTimeout +
                 ", env='" + env + '\'' +
                 ", rebootLimit=" + rebootLimit +
-                ", testMode=" + testMode +
+                ", verifyMode=" + verifyMode +
+                ", verifyConfig=" + verifyConfig +
                 ", ipAddr='" + ipAddr + '\'' +
                 '}';
     }
