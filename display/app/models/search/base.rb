@@ -2,7 +2,7 @@ class Search::Base < ActiveResource::Base
   self.site         = Settings.search_site
   self.prefix       = ''
   self.element_name = ''
-  self.timeout      = Rails.env.shared? ? 3 : 10
+  self.timeout      = Rails.env.shared? ? 3 : Settings.search_http_timeout
 
   def self.search_raw(index, payload)
     JSON.parse(post(index, {}, payload.to_json).body)
