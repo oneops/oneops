@@ -1,7 +1,14 @@
 {
+
     "rfcCi": {
       "ciAttributes": {
-        "ostype": "ubuntu"
+        "ostype": "ubuntu",
+        "password": "",
+        "sudoer": "true",
+        "ulimit": "16384",
+        "login_shell": "/bin/bash",
+        "username": "app",
+        "group": "[]"
       },
       "ciBaseAttributes": {},
       "ciAttrProps": {},
@@ -9,7 +16,7 @@
       "releaseId": 190453,
       "ciId": 10371185,
       "nsPath": "/oneops/pt/s1w2b/bom/pt/1",
-      "ciClassName": "bom.Test_wo",
+      "ciClassName": "bom.oneops.1.User",
       "impl": "oo::puppet-3.1.0",
       "ciName": "test_wo-25392-1",
       "ciGoid": "10371178-631493-10371185",
