@@ -46,26 +46,26 @@ brew cask install virtualbox
 brew cask install vagrant
 ```
 
-We are going to use box-cutter/centos73 as the minimal image as our starting point.
+We are going to use oneops/centos73 as the minimal image as our starting point.
 
 ```
-vagrant box add box-cutter/centos73 --box-version 2.0.21 --provider virtualbox
+vagrant box add oneops/centos73 --box-version 2.0.21 --provider virtualbox
 ```
 
-URL: https://vagrantcloud.com/box-cutter/boxes/centos73/versions/2.0.21/providers/virtualbox.box
+URL: https://vagrantcloud.com/oneops/boxes/centos73/versions/2.0.21/providers/virtualbox.box
 
 
 ## Packer Templates
--  **centos-oneps-base.json** : Build the initial .ovf container which has box-cutter/centos73 along with all the pre-requisites for OneOps.
+-  **centos-oneps-base.json** : Build the initial .ovf container which has oneops/centos73 along with all the pre-requisites for OneOps.
 -  **centos-oneops.json** : Install OneOps's runtime application along with various circuits.
 
 ## Build Image
 
 ### Base .ovf
 
-The first step is to build base image with all the pre-requisites pre-installed from box-cutter/centos73 image.  Normally we can boostrap from iso but that process itself is long and unncessary.   Instead of using virtualbox-iso builder we are going to use virtualbox-ovf.  We are going to configure our builder to rely on existing ovf file.
+The first step is to build base image with all the pre-requisites pre-installed from oneops/centos73 image.  Normally we can boostrap from iso but that process itself is long and unncessary.   Instead of using virtualbox-iso builder we are going to use virtualbox-ovf.  We are going to configure our builder to rely on existing ovf file.
 
-**e.g:** "source_path": "{{ user `home_dir` }}/.vagrant.d/boxes/box-cutter-VAGRANTSLASH-centos73/2.0.21/virtualbox/box.ovf"
+**e.g:** "source_path": "{{ user `home_dir` }}/.vagrant.d/boxes/oneops-VAGRANTSLASH-centos73/2.0.21/virtualbox/box.ovf"
 
 This step is necessary because we can't use **env** helper in builder definition section.
 

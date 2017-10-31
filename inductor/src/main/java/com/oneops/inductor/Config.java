@@ -725,4 +725,12 @@ public class Config {
                 ", ipAddr='" + ipAddr + '\'' +
                 '}';
     }
+
+    public void setDataDir(String dataDir) {
+        this.dataDir = dataDir;
+    }
+
+    public void setClouds(List clouds) {
+        this.clouds = clouds;
+    }
 }

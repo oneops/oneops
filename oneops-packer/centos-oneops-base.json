@@ -9,7 +9,7 @@
       "ssh_username": "{{ user `ssh_username` }}",
       "ssh_wait_timeout": "10000s",
       "type": "virtualbox-ovf",
-      "source_path": "{{ user `home_dir` }}/.vagrant.d/boxes/box-cutter-VAGRANTSLASH-centos73/2.0.21/virtualbox/box.ovf",
+      "source_path": "{{ user `home_dir` }}/.vagrant.d/boxes/oneops-VAGRANTSLASH-centos73/2.0.21/virtualbox/box.ovf",
       "vboxmanage": [
         [
           "modifyvm", "{{.Name}}", "--memory", "{{ user `memory` }}"
