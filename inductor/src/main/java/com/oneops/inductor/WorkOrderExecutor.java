@@ -24,9 +24,6 @@ import com.oneops.cms.dj.domain.RfcHint;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.*;
 import com.oneops.cms.util.CmsConstants;
-
-import java.nio.file.*;
-
 import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.*;
 import org.apache.log4j.Logger;
@@ -34,16 +31,15 @@ import org.yaml.snakeyaml.*;
 import org.yaml.snakeyaml.DumperOptions.FlowStyle;
 
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsConstants.*;
 import static com.oneops.inductor.InductorConstants.*;
-import static java.util.Arrays.stream;
-import static java.util.Collections.*;
+import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.stream.Collectors.toMap;
 
 /**
  * WorkOrder specific processing
@@ -170,7 +166,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      * @return updated response map.
      */
     protected Map<String, String> runVerification(CmsWorkOrderSimpleBase o, Map<String, String> responseMap) {
-        if (config.isTestMode()) {
+        if (config.isVerifyMode()) {
             CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
             String logKey = getLogKey(wo) + " TEST => ";
             long start = System.currentTimeMillis();
@@ -224,12 +220,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
      * @param logKey log key
      * @return kitchen yaml string for the work-order.
      */
-    private String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) throws IOException {
-        Map<String, String> config = stream(this.config.getTestConfig().split(","))
-                .map(e -> e.split("="))
-                .filter(p -> p.length == 2)
-                .collect(toMap(e -> e[0], e -> e[1], (a, b) -> a));
-
+    public String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) {
         String remoteHost = getWorkOrderHost(wo, logKey);
         int remotePort = 22;
 
@@ -240,21 +231,34 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         driver.put("port", remotePort);
         driver.put("username", ONEOPS_USER);
         driver.put("ssh_key", sshKey);
-        driver.putAll(config);
+
+        Map<String, Object> provisioner = new LinkedHashMap<>();
+        provisioner.put("require_chef_omnibus", false);
+        provisioner.put("chef_solo_path", "/usr/local/bin/chef-solo");
+        provisioner.put("script", "bootstrap.sh");
+
+        Map<String, Object> platform = new LinkedHashMap<>(1);
+        platform.put("name", "centos-7.2");
 
         Map<String, Object> chefClient = new LinkedHashMap<>(1);
-        chefClient.put("config", config);
+        chefClient.put("config", config.getVerifyConfigMap());
 
         Map<String, Object> suite = new LinkedHashMap<>();
         suite.put("name", wo.getRfcCi().getRfcAction());
         suite.put("chef_client", chefClient);
-        suite.put("run_list", emptyList());
 
         Map<String, Object> kitchenConfig = new LinkedHashMap<>();
         kitchenConfig.put("driver", driver);
+        kitchenConfig.put("provisioner", provisioner);
+        kitchenConfig.put("platforms", singletonList(platform));
         kitchenConfig.put("suites", singletonList(suite));
 
-        return yaml.dump(kitchenConfig);
+        StringWriter writer = new StringWriter();
+        // KitchenCI hack to pass env vars.
+        writer.append("# <% load \"#{File.dirname(__FILE__)}/test/kitchen_proxy.rb\" %>\n");
+        yaml.dump(kitchenConfig, writer);
+
+        return writer.toString();
     }
 
     @Override
@@ -902,7 +906,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     /**
      * Installs base software needed for chef / oneops
      *
-     * @param pr      ProcessRunner
      * @param wo      CmsWorkOrderSimple
      * @param host    remote host
      * @param port    remote port
