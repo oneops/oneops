@@ -1,5 +1,7 @@
 class Cms::Base < ActiveResource::Base
-  self.site = Settings.cms_site
+  self.site                   = Settings.cms_site
+  self.include_format_in_path = false
+  self.timeout                = Settings.cms_http_timeout
 
   def self.all(*args)
     result = super(*args)
@@ -24,38 +26,12 @@ class Cms::Base < ActiveResource::Base
     Time.at(self.updated / 1000)
   end
 
-  # modify standard paths to not include format extension
-  # the format is already defined in the header
-  def self.new_element_path(prefix_options = {})
-    drop_extension(super)
-  end
-
-  def self.element_path(id, prefix_options = {}, query_options = nil)
-    drop_extension(super)
-  end
-
-  def self.collection_path(prefix_options = {}, query_options = nil)
-    drop_extension(super)
-  end
-
-  def self.custom_method_collection_url(method_name, options = {})
-    drop_extension(super)
-  end
-
-  def custom_method_element_url(method_name, options = {})
-    self.class.drop_extension(super)
-  end
-
   def to_pretty
     JSON.pretty_unparse(JSON.parse(to_json))
   end
 
 
   protected
-
-  def self.drop_extension(path)
-    path.gsub(/.#{self.format.extension}/, '')
-  end
 
   def self.handle_exception(exception, message)
     body = nil

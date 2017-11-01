@@ -2,7 +2,7 @@ class Operations::Sensor < Cms::Base
   self.site         = Settings.events_site
   self.prefix       = '/sensor/rest/ops'
   self.element_name = ''
-  self.timeout      = 300
+  self.timeout      = Settings.sensor_http_timeout
 
   def self.states(instances)
     return {} if instances.blank?
