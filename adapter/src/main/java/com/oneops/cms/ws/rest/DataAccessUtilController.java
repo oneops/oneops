@@ -17,6 +17,7 @@ public class DataAccessUtilController extends AbstractRestController {
   @RequestMapping(method = RequestMethod.PUT, value = "/ds/standby")
   @ResponseBody
   public void updateQueryStandbyFlag(@RequestParam(value="enabled", required = true) Boolean enabled) {
+    logger.info("setting isQueryStandByEnabled flag to " + enabled);
     dataAccessAspect.setQueryStandByEnabled(enabled);
   }
 
