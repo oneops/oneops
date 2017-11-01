@@ -53,7 +53,6 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SensorPublisher {
     private static final Logger logger = Logger.getLogger(SensorPublisher.class);
     private static final int MINUTE = 60 * 1000;
-    private static final Long LOOKUP_THRESHOLD = 20L;
 
     private String user = ActiveMQConnection.DEFAULT_USER;
     private String password = ActiveMQConnection.DEFAULT_PASSWORD;
@@ -113,7 +112,9 @@ public class SensorPublisher {
     private static int thresholdTTL = Integer.parseInt(System.getProperty("threshold_cache_ttl", "15"));
     private static String mqConnectionTimeout = System.getProperty("mqTimeout", "1000");  // timeout message send after 1 second
     private static String mqConnectionStartupRetries = System.getProperty("mqStartupRetries", "5");  // only reconnect 5 times on startup (to avoid publisher being stuck if MQ is down on startup
-    private static int mqConnectionThreshold = Integer.parseInt(System.getProperty("mqRetryTimeout", "10000"));  // discard all the published messages for mqRetryTimeout milliseconds before attempting to send message again   
+    private static int mqConnectionThreshold = Integer.parseInt(System.getProperty("mqRetryTimeout", "10000"));  // discard all the published messages for mqRetryTimeout milliseconds before attempting to send message again
+    private static Long manifestIdLookupThreshold = Long.parseLong(System.getProperty("manifestIdLookupThreshold", "20"));
+
     private long lastFailureTimestamp = -1;
 
     private LoadingCache<String, ThresholdHolderWithExpiration> thresholdCache = CacheBuilder.newBuilder()
@@ -215,11 +216,11 @@ public class SensorPublisher {
                     " manifest miss: " + missingManifestCounter.get() +
                     " failed threshold load count: " + failedThresholdLoadCounter.get());
 
-        // negative value in manifestId cache represents number of failed attempts to retrieve it from cassandra. We stop after LOOKUP_THRESHOLD 
+        // negative value in manifestId cache represents number of failed attempts to retrieve it from cassandra. We stop after manifestIdLookupThreshold 
         Long manifestId = null;
         if (manifestCache.containsKey(event.getCiId()) &&  manifestCache.get(event.getCiId())>0)
             manifestId = manifestCache.get(event.getCiId());
-        else if (!manifestCache.containsKey(event.getCiId()) || manifestCache.get(event.getCiId())< -LOOKUP_THRESHOLD){
+        else if (!manifestCache.containsKey(event.getCiId()) || manifestCache.get(event.getCiId())< -manifestIdLookupThreshold){
             manifestId = thresholdsDao.getManifestId(event.getCiId());
             if (manifestId != null) {
                 manifestCache.put(event.getCiId(), manifestId);

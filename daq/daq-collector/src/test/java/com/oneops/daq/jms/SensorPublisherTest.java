@@ -40,7 +40,7 @@ import static org.testng.Assert.assertEquals;
  */
 public class SensorPublisherTest {
 
-	public static final int LOOKUP_THRESHOLD = 20;
+	public static final int LOOKUP_THRESHOLD = 10;
 	private SensorPublisher publisher = new SensorPublisher();
 
 	private static final Logger logger = Logger.getLogger(SensorPublisherTest.class);
@@ -50,9 +50,11 @@ public class SensorPublisherTest {
 	
 	@Test
 	public void testLookupThreshold() throws JMSException {
+		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
 		SensorPublisher publisher = new SensorPublisher();
 		PerfEvent event = new PerfEvent();
 		ThresholdsDao dao = mock(ThresholdsDao.class);
+		
 		when(dao.getManifestId(100)).thenReturn(null);
 		publisher.setThresholdDao(dao);
 		event.setCiId(100);
@@ -63,14 +65,16 @@ public class SensorPublisherTest {
 			}
 		}
 		verifyNoMoreInteractions(dao);
-		assertEquals(25, publisher.getMissingManifestCounter());
+		assertEquals(LOOKUP_THRESHOLD+5, publisher.getMissingManifestCounter());
 		assertEquals(0, publisher.getPublishedCounter());
 	}
 
 
 	@Test
 	public void testLookupThresholdNotReached() throws JMSException {
+		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
 		SensorPublisher publisher = new SensorPublisher();
+
 		JmsTemplate[] array = {mock(JmsTemplate.class)};
 		publisher.setProducers(array);
 		PerfEvent event = new PerfEvent();
