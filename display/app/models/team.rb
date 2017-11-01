@@ -15,6 +15,7 @@ class Team < ActiveRecord::Base
   has_and_belongs_to_many :users
   has_and_belongs_to_many :groups
   has_and_belongs_to_many :ci_proxies
+  has_many :team_users
 
   validates_presence_of   :name
   validates_uniqueness_of :name, :scope => :organization_id

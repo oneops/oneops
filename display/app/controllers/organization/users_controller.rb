@@ -2,16 +2,26 @@ class Organization::UsersController < ApplicationController
   before_filter :authorize_admin, :except => [:index, :show]
 
   def index
-    @users = current_user.organization.users.order(:email).all
-    @user_teams = current_user.organization.teams.includes(:users).inject({}) do |m, team|
-      team.users.each do |user|
-        m[user.id] ||= []
-        m[user.id] << team.name
-      end
-      m
-    end
+    @organization = current_user.organization
+    @users = @organization.users.all
     respond_to do |format|
-      format.js {render :action => :index}
+      format.js do
+        user_map = @users.to_map(&:id)
+        team_map = @organization.teams.all.to_map(&:id)
+        @user_teams = @organization.teams.includes(:team_users).inject({}) do |m, team|
+          team.team_users.each do |tu|
+            user_id = tu.user_id
+            user = user_map[user_id]
+            m[user_id] ||= []
+            m[user_id] << team_map[tu.team_id].name
+            user.last_sign_in_at_for_current_org = tu.last_sign_in_at if user.last_sign_in_at_for_current_org && user.last_sign_in_at_for_current_org < tu.last_sign_in_at
+          end
+          m
+        end
+
+        render :action => :index
+      end
+
       format.json {render :json => @users}
     end
   end
@@ -65,13 +75,13 @@ class Organization::UsersController < ApplicationController
             team.users << user if team
           end
           user.update_attribute(:organization_id, current_user.organization_id) if user.organization_id.blank?
-          flash[:notice] = "Successfully added user #{username} to organization '#{current_user.organization.name}'."
+          flash[:notice] = "Successfully added tu #{username} to organization '#{current_user.organization.name}'."
         else
           flash[:error] = "Must select a team."
         end
       end
     else
-      flash[:error] = "Unknown user: #{username}"
+      flash[:error] = "Unknown tu: #{username}"
     end
 
     index
@@ -95,7 +105,7 @@ class Organization::UsersController < ApplicationController
     @user = current_user.organization.users.find(params[:id])
     if @user
       current_user.organization.teams.each { |team| team.users.delete(@user) }
-      flash[:notice] = "Successfully removed user #{@user.username} from '#{current_user.organization.name}'"
+      flash[:notice] = "Successfully removed tu #{@user.username} from '#{current_user.organization.name}'"
 
       check_reset_org
     end
