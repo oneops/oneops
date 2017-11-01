@@ -58,15 +58,15 @@ public class SensorPublisherTest {
 		when(dao.getManifestId(100)).thenReturn(null);
 		publisher.setThresholdDao(dao);
 		event.setCiId(100);
-		for (int i=0;i<LOOKUP_THRESHOLD+5;i++) {
+		for (int i=0;i<LOOKUP_THRESHOLD+10;i++) {
 			publisher.enrichAndPublish(event);
-			if (i< LOOKUP_THRESHOLD) {  // even though we called publish 25 times, we should only do lookup 20 times
+			if (i< LOOKUP_THRESHOLD+3) {  // even though we called publish LOOKUP_THRESHOLD+10 times, we should only do lookup LOOKUP_THRESHOLD + 3 times due to exponential backoff(10 contains 3 square roots for 1, 2 and 3)
 				verify(dao).getManifestId(100);
 			}
 		}
 		verifyNoMoreInteractions(dao);
-		assertEquals(LOOKUP_THRESHOLD+5, publisher.getMissingManifestCounter());
-		assertEquals(0, publisher.getPublishedCounter());
+		assertEquals(publisher.getMissingManifestCounter(), LOOKUP_THRESHOLD+10);
+		assertEquals( publisher.getPublishedCounter(), 0);
 	}
 
 
@@ -92,7 +92,7 @@ public class SensorPublisherTest {
 		
 		verify(dao).getThreshold(1,"null");
 		verify(dao).getThreshold(1,"null");
-		assertEquals(2, publisher.getPublishedCounter());
+		assertEquals( publisher.getPublishedCounter(), 2);
 		verifyNoMoreInteractions(dao);
 	}
 	/**

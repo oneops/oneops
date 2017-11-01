@@ -220,17 +220,16 @@ public class SensorPublisher {
         Long manifestId = null;
         if (manifestCache.containsKey(event.getCiId()) &&  manifestCache.get(event.getCiId())>0)
             manifestId = manifestCache.get(event.getCiId());
-        else if (!manifestCache.containsKey(event.getCiId()) || manifestCache.get(event.getCiId())< -manifestIdLookupThreshold){
+        else if (!manifestCache.containsKey(event.getCiId()) || needToDoALookup(-manifestCache.get(event.getCiId()), manifestIdLookupThreshold)){
             manifestId = thresholdsDao.getManifestId(event.getCiId());
             if (manifestId != null) {
                 manifestCache.put(event.getCiId(), manifestId);
-            } else {
-                logger.warn("Failed to map ciId: " + event.getCiId() + " to manifestId. Please fix");
-                manifestCache.put(event.getCiId(), manifestCache.getOrDefault(event.getCiId(), 0L)-1);
             }
         }
         if (manifestId == null) {
-            long missCount = missingManifestCounter.incrementAndGet();
+            logger.warn("Failed to map ciId: " + event.getCiId() + " to manifestId. Please fix");
+            manifestCache.put(event.getCiId(), manifestCache.getOrDefault(event.getCiId(), 0L)-1);
+            missingManifestCounter.incrementAndGet();
             return;
         }
 
@@ -250,11 +249,18 @@ public class SensorPublisher {
             event.setChecksum(tr.getCrc());
         } catch (Exception e) {
             logger.warn("Failed threshold load:" + manifestId + "::" + event.getSource(), e);
-            long missCount = failedThresholdLoadCounter.incrementAndGet();
+            failedThresholdLoadCounter.incrementAndGet();
             return;
         }
         publishMessage(event);
 
+    }
+
+    private boolean needToDoALookup(Long counter, Long threshold) {
+        if (counter < -manifestIdLookupThreshold) return true; // make every call before the threshold 
+        long callsAfterThreshold = counter - threshold;
+        long sqrt = (long)(Math.sqrt(callsAfterThreshold));
+        return sqrt*sqrt==callsAfterThreshold; // make calls every n^2 times [1,4,9,16,25 ...] 
     }
 
 
