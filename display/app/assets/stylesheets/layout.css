@@ -1463,7 +1463,7 @@ img.authicon {
 .glance li {
   list-style-type: none;
   float:           left;
-  margin:          5px 15px;
+  margin:          5px 10px;
   min-width:       60px;
 }
 
@@ -1815,9 +1815,12 @@ img.authicon {
 
 .list-body li .status .popover {
   font-size: 12px;
-  left:      0 !important;
-  right:     auto;
-  width:     auto;
+  z-index: 20;
+  position:   relative;
+  /*left:       auto !important;*/
+  /*right:      0 !important;*/
+  /*right:     auto;*/
+  /*width:     auto;*/
 }
 
 .list-body li .menu {
@@ -1894,7 +1897,7 @@ img.authicon {
 
 .list-body li .content .top {
   position:          relative;
-  font-size:         20px;
+  font-size:         18px;
   font-weight:       normal;
   color:             #4183C4;
   line-height:       28px;
@@ -1907,10 +1910,6 @@ img.authicon {
 
 .list-body li .content .top .favorite {
   font-size: 12px;
-}
-
-.list-body li .content .top i.muted {
-  color: #777;
 }
 
 .list-body li:hover .content .top .topname {
@@ -1930,6 +1929,19 @@ img.authicon {
 
 .list-relation .list-body li .content .top {
   font-size: 16px;
+}
+
+.list-body li .content .top i {
+  color: #444;
+  position: relative;
+  float:    left;
+  height:   24px;
+  width:    24px;
+  margin:   2px 4px 2px 2px;
+}
+
+.list-body li .content .top i.muted {
+  color: #777;
 }
 
 .list-body li .content .top img {
@@ -1999,7 +2011,7 @@ img.authicon {
   line-height:       15px;
   margin:            5px 2px 0px 2px;
   color:             #888;
-  opacity:           0.9;
+  /*opacity:           0.9;*/
   white-space:       nowrap;
   overflow:          hidden;
   text-overflow:     ellipsis;

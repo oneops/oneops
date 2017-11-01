@@ -14,7 +14,8 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   def show
     respond_to do |format|
       format.html do
-        @release     = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
+        manifest_ns_path = environment_manifest_ns_path(@environment)
+        @release     = Cms::Release.latest(:nsPath => manifest_ns_path)
         @bom_release = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
                                                       :releaseState => 'open'})
 
@@ -32,8 +33,16 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
                                                    :direction       => 'from',
                                                    :ciId            => @environment.ciId})
 
-        load_platform_cloud_instances_map
-        @ops_states = Operations::Sensor.states(@deloyed_to_rels.map(&:fromCiId))
+        load_platform_instances_info
+
+        requires = Cms::DjRelation.all(:params => {:nsPath       => manifest_ns_path,
+                                                   :recursive    => true,
+                                                   :relationName => 'manifest.Requires'})
+        @ops_state_counts = Operations::Sensor.component_states(requires.map(&:toCiId)).inject({}) do |counts, (id, component_counts)|
+          component_counts.each {|state, count| counts[state] = (counts[state] || 0) + count}
+          counts
+        end
+        @ops_state_counts['total'] = @platform_instance_counts.values.sum
       end
 
       format.json { render_json_ci_response(true, @environment) }
@@ -78,6 +87,36 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     else
       super
     end
+  end
+
+  def cost_estimate
+    pending = params[:pending] == 'false' ? false : true
+    details = params[:details] == 'false' ? false : true
+    cost = Transistor.environment_cost(@environment, pending, details)
+
+    if details
+      by_cloud, by_plaform, by_service = cost.inject([{}, {}, {}]) do |h, c|
+        cloud_key    = c['cloud']['ciName']
+        platform_key = c['rfc']['nsPath'].split('/')[-2..-1].join('/')
+        c['offerings'].each do |o|
+          rate        = o['ciAttributes']['cost_rate'].to_f
+          service_key = o['ciAttributes']['service_type']
+          h[0][cloud_key]    = (h[0][cloud_key].presence || 0) + rate
+          h[1][platform_key] = (h[1][platform_key].presence || 0) + rate
+          h[2][service_key]  = (h[2][service_key].presence || 0) + rate
+        end
+        h
+      end
+      result = {:total       => cost.sum {|c| c['offerings'].sum {|y| y['ciAttributes']['cost_rate'].to_f}},
+                :unit        => cost.present? ? cost.first['offerings'].first['ciAttributes']['cost_unit'] : '',
+                :by_cloud    => by_cloud,
+                :by_platform => by_plaform,
+                :by_service  => by_service}
+    else
+      result = {:total => cost}
+    end
+
+    render :json => result
   end
 
 

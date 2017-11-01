@@ -30,7 +30,7 @@
     </ul>
   <% end %>
 <% end %>
-<% deployed_count = @deloyed_to_rels.size %>
+<% instance_count = @platform_instance_counts.values.sum %>
 <li class="status-marker">
   <% if @environment.ciState == 'locked' %>
     <div class="marker"><%= status_marker('deployment', 'generating', 'label-info') %></div>
@@ -56,7 +56,7 @@
             Deployment <strong>failed</strong>
             <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
           </li>
-          <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
+          <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(instance_count, 'info') %> deployed instances</li>
           <%= render 'transition/environments/deployment_problems' %>
         <% elsif @deployment.deploymentState == 'pending' && @pending_approvals.present? %>
            <%= render 'transition/environments/pending_approvals_info' %>
@@ -87,7 +87,7 @@
     <div class="description">
       <ul>
         <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
-        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
+        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(instance_count, 'info') %> deployed instances</li>
       </ul>
       <%= yield :deploy %>
     </div>
@@ -99,12 +99,12 @@
           <%= icon('check', ' ', 'fa-fw') %>Last deployment <%= @deployment.deploymentId %> <%= @deployment.deploymentState %>
           <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
         </li>
-        <li><%= icon('user', ' ', 'fa-fw') %>Deployed by <%= highlight(@deployment.createdBy) %></li>
+        <li><%= icon('user', ' ', 'fa-fw') %>Deployed by <b><%= @deployment.createdBy %></b></li>
         <li>
           <%= icon('clock-o', ' ', 'fa-fw') %>Duration of last deployment was
           <strong><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</strong>
         </li>
-        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(deployed_count,'info') %> deployed component instances</li>
+        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(instance_count, 'info') %> deployed instances</li>
       </ul>
       <%= yield :force_deploy %>
     </div>

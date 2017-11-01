@@ -369,7 +369,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
 
     load_consumes_relations
 
-    load_platform_cloud_instances_map
+    load_platform_instances_info
 
     load_profiles
 

@@ -94,6 +94,10 @@ defaults: &defaults
   # Metadata cache entries expiration in minutes
   md_cache_expiration_timeout: <%= ENV['MD_CACHE_EXPIRATION_TIMEOUT'] || (30 * 24 * 60) %>
 
+  cms_http_timeout: <%= ENV['CMS_HTTP_TIMEOUT'] || 120 %>
+  transistor_http_timeout: <%= ENV['TRANSISTOR_HTTP_TIMEOUT'] || 600 %>
+  search_http_timeout: <%= ENV['SEARCH_HTTP_TIMEOUT'] || 10 %>
+  sensor_http_timeout: <%= ENV['SENSOR_HTTP_TIMEOUT'] || 300 %>
 
 development: &development
   <<: *defaults

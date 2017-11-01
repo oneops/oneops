@@ -7,9 +7,8 @@ class OrganizationController < ApplicationController
   def show
     respond_to do  |format|
       format.html do
-        @entities = Cms::Relation.all(:params => { :ciId => current_user.organization.cms_id}).group_by { |r| r.relationName }
-        @clouds = Cms::Ci.all(:params => {:nsPath => clouds_ns_path, :ciClassName => 'account.Cloud'})
-        @assemblies = locate_assemblies.sort_by { |o| o.created_timestamp }
+        @assemblies  = locate_assemblies
+        @cloud_count = Cms::Ci.count(clouds_ns_path, false, :ciClassName => 'account.Cloud')
       end
 
       format.json {render :json => current_user.organization.ci}

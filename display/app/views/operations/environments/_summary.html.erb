@@ -1,24 +1,22 @@
-<%= section_panel 'Status', :id => 'status_section', :width => 'double', :position => 'left' do %>
-  <%= render :partial => 'status' %>
+<%= section_panel 'Status', :width => 'double', :position => 'left' do %>
+  <%= render 'status' %>
 <% end %>
 
 <%= render 'base/cost/cost_summary', :width => 'single', :position => 'right' %>
 
-<%= section_panel 'Platforms', :id => 'platforms_list', :width => 'single', :position => 'right' do %>
+<%= section_panel 'Platforms', :width => 'single', :position => 'right' do %>
   <% ci_relation_map = @platforms.inject({}) { |map, r| map[r.toCiId] = r; map } %>
   <%= ci_list(@platforms.map(&:toCi),
               :toolbar => {:sort_by       => [%w(Name ciName), %w(Created created), %w(Status status)],
                            :filter_by     => %w(ciName status ops_status),
-                           :quick_filters => @platform_clouds.blank? ?
-                                                 nil :
-                                                 [{:label => 'All', :value => ''},
-                                                  {:label => 'Deployed', :value => 'ops_status=deployed', :selected => true},
-                                                  {:label => 'Disabled', :value => 'status=disabled'}]}) do |builder, target| %>
+                           :quick_filters => [{:label => 'All', :value => ''},
+                                              {:label => 'Deployed', :value => 'ops_status=deployed', :selected => true},
+                                              {:label => 'Disabled', :value => 'status=disabled'}]}) do |builder, target| %>
     <% relation = ci_relation_map[target.ciId]
        enabled = relation.relationAttributes.enabled == 'true'
        active = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true
-       instance_info_marker, instance_count = instance_marker(@platform_clouds, target) %>
-    <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}" ops_status="#{instance_count > 0 ? 'deployed' : ''}") %>
+       instance_count = @platform_instance_counts[bom_platform_ns_path(@environment, target)] %>
+    <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}" ops_status="#{instance_count  && instance_count > 0 ? 'deployed' : ''}") %>
     <% builder.target link_to('', assembly_operations_environment_platform_path(@assembly, @environment, target)) %>
     <% builder.icon platform_image_url(target) %>
     <% builder.status do %>
@@ -29,7 +27,7 @@
       <%= status_marker('version', "#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
       <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if target.respond_to?(:rfcAction) && target.rfcAction %>
       <%= marker('disabled', 'label-important') unless enabled %>
-      <%= instance_info_marker %>
+      <%= instance_marker(instance_count) %>
     <% end %>
     <% builder.top do %>
       <span class="topname"><%= target.ciName %></span>
@@ -38,4 +36,13 @@
   <% end %>
 <% end %>
 
-<%= render 'base/notifications/notifications_summary' %>
+<%= section_panel 'Health', :width => 'double', :position => 'left' do %>
+  <ul class="status">
+    <%= render 'base/shared/status_health',
+               :scope        => 'environment',
+               :state_counts => @ops_state_counts,
+               :bom_status   => @bom_release %>
+  </ul>
+<% end %>
+
+<%= render 'base/notifications/notifications_summary', :width => 'double', :position => 'left' %>
