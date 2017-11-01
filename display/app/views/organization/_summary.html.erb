@@ -1,4 +1,5 @@
 <%= render 'base/cost/cost_summary' %>
+<%= render 'base/notifications/notifications_summary' unless Settings.show_cost %>
 
 <%= section_panel 'Counts', :width => 'single', :position => 'right' do %>
   <% user_count     = current_user.organization.users.size
@@ -46,4 +47,4 @@
   <%= render 'favorite_list', :favorites => favs %>
 <% end %>
 
-<%= render 'base/notifications/notifications_summary' %>
+<%= render 'base/notifications/notifications_summary' if Settings.show_cost %>
