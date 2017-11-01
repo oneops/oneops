@@ -62,7 +62,7 @@ public class DataSourceConfig {
     private static final String JDBC_PARAM_CONNECT_TIMEOUT = "connectTimeout";
     private static final Logger logger = Logger.getLogger(DataSourceConfig.class);
 
-    private String jdbcUrl(String dbHost, Map<String, String> parameters) {
+    String jdbcUrl(String dbHost, Map<String, String> parameters) {
         String jdbcUrl = String.format(JDBC_URL, dbHost, applicationName);
         if (parameters != null) {
             String joinedParams = parameters.entrySet().stream().
@@ -101,7 +101,11 @@ public class DataSourceConfig {
         BasicDataSource ds = getBaseDataSource();
         Map<String, String> map = new HashMap<>();
         map.put(JDBC_PARAM_CONNECT_TIMEOUT, standbyConnectTimeoutInSecs);
-        ds.setUrl(jdbcUrl(env.getProperty("CMS_DB_READONLY_HOST"), map));
+        map.put("targetServerType", "preferSlave");
+        map.put("loadBalanceHosts", "true");
+        String jdbcUrl = jdbcUrl(env.getProperty("CMS_DB_READONLY_HOST"), map);
+        logger.info("read only connection jdbc url : " + jdbcUrl);
+        ds.setUrl(jdbcUrl);
         setNumConnections(ds, standbyInitialSize, standbyMaxActiveSize, standbyMaxIdleSize);
         return ds;
     }
@@ -130,5 +134,7 @@ public class DataSourceConfig {
         }
     }
 
-
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+    }
 }
