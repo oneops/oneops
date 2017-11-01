@@ -149,6 +149,24 @@ public class InductorTest {
   }
 
   @Test
+  public void testStatFile() throws Exception {
+
+    String dataDir = "/opt/oneops/inductor/xxx/data";
+    String logDir = "/opt/oneops/inductor/xxx/log";
+    String statsLog = "inductor-stat.log";
+
+    Config cfg = new Config();
+    cfg.setDataDir(dataDir);
+    StatCollector c = new StatCollector(cfg);
+    c.setStatFileName(statsLog);
+    assertEquals(c.getStatFileName(), Paths.get(logDir, statsLog).toString());
+
+    statsLog = "/opt/inductor/log/test.log";
+    c.setStatFileName(statsLog);
+    assertEquals(c.getStatFileName(), statsLog);
+  }
+
+  @Test
   public void testEnvVars() {
     ProcessRunner p = new ProcessRunner(mock(Config.class));
     String remoteCmd[] = {"ssh", "-i"};
