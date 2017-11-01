@@ -29,10 +29,7 @@
               <filesets>
                 <fileset>
                   <directory>${basedir}</directory>
-                  <includes>
-                    <include>*.gem</include>
-                    <include>*.gemfile.lock</include>
-                  </includes>
+                  <includes>*.gem</includes>
                 </fileset>
               </filesets>
             </configuration>
@@ -61,23 +58,6 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>1.6.0</version>
         <executions>
-          <!-- Configure bundler to cache gems for specified platforms -->
-          <execution>
-            <id>inductor-bundle-config-platform</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>config</argument>
-                <argument>specific_platform</argument>
-                <argument>true</argument>
-              </arguments>
-            </configuration>
-          </execution>
-
           <!-- Prepare oneops-admin-adapter gem (build gem, cache dependencies, package in a tar) -->
           <execution>
             <id>adapter-build-gem</id>
@@ -94,37 +74,6 @@
             </configuration>
           </execution>
           <execution>
-            <id>adapter-bundle-config</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>config</argument>
-                <argument>--local</argument>
-                <argument>gemfile</argument>
-                <argument>oneops-admin-adapter.gemfile</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>adapter-bundle-lock</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>lock</argument>
-                <argument>--add-platform</argument>
-                <argument>jruby</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
             <id>adapter-bundle-package</id>
             <phase>package</phase>
             <goals>
@@ -134,8 +83,7 @@
               <executable>bundle</executable>
               <arguments>
                 <argument>package</argument>
-                <argument>--no-install</argument>
-                <argument>--all-platforms</argument>
+                <argument>--gemfile=oneops-admin-adapter.gemfile</argument>
               </arguments>
             </configuration>
           </execution>
@@ -175,37 +123,6 @@
             </configuration>
           </execution>
           <execution>
-            <id>inductor-bundle-config</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>config</argument>
-                <argument>--local</argument>
-                <argument>gemfile</argument>
-                <argument>oneops-admin-inductor.gemfile</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>inductor-bundle-lock</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>lock</argument>
-                <argument>--add-platform</argument>
-                <argument>jruby</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
             <id>inductor-bundle-package</id>
             <phase>package</phase>
             <goals>
@@ -215,8 +132,7 @@
               <executable>bundle</executable>
               <arguments>
                 <argument>package</argument>
-                <argument>--no-install</argument>
-                <argument>--all-platforms</argument>
+                <argument>--gemfile=oneops-admin-inductor.gemfile</argument>
               </arguments>
             </configuration>
           </execution>
@@ -242,7 +158,7 @@
 
           <!-- Prepare oneops-admin-inductor-az (azure) gem (build gem, cache dependencies, package in a tar) -->
           <execution>
-            <id>inductor-az-build-gem</id>
+            <id>inductor-build-az-gem</id>
             <phase>package</phase>
             <goals>
               <goal>exec</goal>
@@ -256,38 +172,7 @@
             </configuration>
           </execution>
           <execution>
-            <id>inductor-az-bundle-config</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>config</argument>
-                <argument>--local</argument>
-                <argument>gemfile</argument>
-                <argument>oneops-admin-inductor-az.gemfile</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>inductor-az-bundle-lock</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>lock</argument>
-                <argument>--add-platform</argument>
-                <argument>jruby</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>inductor-az-bundle-package</id>
+            <id>inductor-bundle-package-az</id>
             <phase>package</phase>
             <goals>
               <goal>exec</goal>
@@ -296,13 +181,12 @@
               <executable>bundle</executable>
               <arguments>
                 <argument>package</argument>
-                <argument>--no-install</argument>
-                <argument>--all-platforms</argument>
+                <argument>--gemfile=oneops-admin-inductor-az.gemfile</argument>
               </arguments>
             </configuration>
           </execution>
           <execution>
-            <id>inductor-az-tar</id>
+            <id>inductor-tar-az</id>
             <phase>package</phase>
             <goals>
               <goal>exec</goal>
@@ -320,44 +204,9 @@
               </arguments>
             </configuration>
           </execution>
-
-          <!-- Clean up default gemfile configuration in bundler config -->
-          <execution>
-            <id>bundle-config-clean</id>
-            <phase>clean</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>config</argument>
-                <argument>--delete</argument>
-                <argument>gemfile</argument>
-                <argument>--local</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <execution>
-            <id>bundle-config-reset</id>
-            <phase>package</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>bundle</executable>
-              <arguments>
-                <argument>config</argument>
-                <argument>--delete</argument>
-                <argument>gemfile</argument>
-                <argument>--local</argument>
-              </arguments>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
 
-      <!-- register all gem artifacts (tars) -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
