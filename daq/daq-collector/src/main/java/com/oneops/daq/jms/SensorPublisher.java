@@ -216,7 +216,7 @@ public class SensorPublisher {
                     " manifest miss: " + missingManifestCounter.get() +
                     " failed threshold load count: " + failedThresholdLoadCounter.get());
 
-        // negative value in manifestId cache represents number of failed attempts to retrieve it from cassandra. We stop after manifestIdLookupThreshold 
+        // negative value in manifestId cache represents number of failed attempts to retrieve it from cassandra. We exponentially backoff after manifestIdLookupThreshold 
         Long manifestId = null;
         if (manifestCache.containsKey(event.getCiId()) &&  manifestCache.get(event.getCiId())>0)
             manifestId = manifestCache.get(event.getCiId());
