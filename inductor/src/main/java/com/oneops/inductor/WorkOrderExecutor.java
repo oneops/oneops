@@ -58,6 +58,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -226,7 +227,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       Map<String, String> responseMap) {
     if (config.isVerifyMode()) {
       CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-      String logKey = getLogKey(wo) + " TEST => ";
+      String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
 
       try {
@@ -301,7 +302,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
           String[] cmd = {"kitchen", "verify"};
           result = new ProcessResult();
-          String cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath, remoteWOPath);
+          String cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
+              remoteWOPath);
           logger.info(logKey + "cmd: " + cmdline);
           processRunner.executeProcess(cmd, logKey, result, envVars, new File(destDir));
 
@@ -370,10 +372,21 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     kitchenConfig.put("suites", singletonList(suite));
     StringWriter writer = new StringWriter();
     // KitchenCI hack to pass env vars.
-    writer.append("# <% load \"#{File.dirname(__FILE__)}/test/kitchen_proxy.rb\" %>\n");
+    writer.append(String.format("#<%% load \"%s/monkey_patch.rb\" %%>%n", getCircuitRoot(wo)));
     yaml.dump(kitchenConfig, writer);
 
     return writer.toString();
+  }
+
+  /**
+   * Returns the circuit directory of the component.
+   *
+   * @param wo component work order.
+   * @return circuit root directory path.
+   */
+  public Path getCircuitRoot(CmsWorkOrderSimple wo) {
+    String circuitName = getCookbookPath(wo.getRfcCi().getCiClassName());
+    return Paths.get(config.getCircuitDir().replace("packer", circuitName));
   }
 
   @Override
