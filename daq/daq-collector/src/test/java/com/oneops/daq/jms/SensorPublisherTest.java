@@ -40,41 +40,58 @@ import static org.testng.Assert.assertEquals;
  */
 public class SensorPublisherTest {
 
-	public static final int LOOKUP_THRESHOLD = 10;
-	private SensorPublisher publisher = new SensorPublisher();
+	private static final int LOOKUP_THRESHOLD = 10;
 
 	private static final Logger logger = Logger.getLogger(SensorPublisherTest.class);
-	
 	private static final String NO_ENV_EXC_MSG="missing KLOOPZ_AMQ_PASS env var";
 
-	
+
+
+	@Test
+	public void testLookupPriorToThreshold() throws JMSException {
+		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
+		SensorPublisher publisher = new SensorPublisher();
+		PerfEvent event = new PerfEvent();
+		ThresholdsDao dao = mock(ThresholdsDao.class);
+		when(dao.getManifestId(100)).thenReturn(null);
+		publisher.setThresholdDao(dao);
+		event.setCiId(100);
+		for (int i = 0; i<LOOKUP_THRESHOLD; i++) {
+			publisher.enrichAndPublish(event);
+		
+		}
+		verify(dao, times(LOOKUP_THRESHOLD)).getManifestId(100);
+		verifyNoMoreInteractions(dao);
+		assertEquals(publisher.getMissingManifestCounter(), LOOKUP_THRESHOLD);
+		assertEquals( publisher.getPublishedCounter(), 0);
+	}
+
+
 	@Test
 	public void testLookupThreshold() throws JMSException {
 		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
 		SensorPublisher publisher = new SensorPublisher();
 		PerfEvent event = new PerfEvent();
 		ThresholdsDao dao = mock(ThresholdsDao.class);
-		
 		when(dao.getManifestId(100)).thenReturn(null);
 		publisher.setThresholdDao(dao);
 		event.setCiId(100);
-		for (int i=0;i<LOOKUP_THRESHOLD+10;i++) {
+		final int EXTRA = 10;
+		for (int i = 0; i<LOOKUP_THRESHOLD+ EXTRA; i++) {
 			publisher.enrichAndPublish(event);
-			if (i< LOOKUP_THRESHOLD+3) {  // even though we called publish LOOKUP_THRESHOLD+10 times, we should only do lookup LOOKUP_THRESHOLD + 3 times due to exponential backoff(10 contains 3 square roots for 1, 2 and 3)
-				verify(dao).getManifestId(100);
-			}
 		}
+		  // even though we called publish LOOKUP_THRESHOLD+EXTRA times, we should only do lookup LOOKUP_THRESHOLD + 4 times due to exponential backoff(10 contains 3 square roots for 0, 1, 2 and 3)
+		verify(dao, times(LOOKUP_THRESHOLD+4)).getManifestId(100);
 		verifyNoMoreInteractions(dao);
-		assertEquals(publisher.getMissingManifestCounter(), LOOKUP_THRESHOLD+10);
+		assertEquals(publisher.getMissingManifestCounter(), LOOKUP_THRESHOLD+EXTRA);
 		assertEquals( publisher.getPublishedCounter(), 0);
 	}
 
 
 	@Test
-	public void testLookupThresholdNotReached() throws JMSException {
+	public void testLookupIdFound() throws JMSException {
 		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
 		SensorPublisher publisher = new SensorPublisher();
-
 		JmsTemplate[] array = {mock(JmsTemplate.class)};
 		publisher.setProducers(array);
 		PerfEvent event = new PerfEvent();
@@ -89,9 +106,7 @@ public class SensorPublisherTest {
 		publisher.enrichAndPublish(event);
 		publisher.enrichAndPublish(event);
 		verify(dao).getManifestId(100);
-		
-		verify(dao).getThreshold(1,"null");
-		verify(dao).getThreshold(1,"null");
+		verify(dao, times(1)).getThreshold(1,"null");
 		assertEquals( publisher.getPublishedCounter(), 2);
 		verifyNoMoreInteractions(dao);
 	}
@@ -111,6 +126,8 @@ public class SensorPublisherTest {
 		// event.setManifestId(2L);
 		// event.setSource(this.getClass().getName());
 		//
+		SensorPublisher publisher = new SensorPublisher();
+
 		try {
 			publisher.init();
 		} catch (JMSException e) {
@@ -128,8 +145,8 @@ public class SensorPublisherTest {
 	 */
 	@Test(priority=2)
 	public void testInitAfterSetup() throws Exception {
+		SensorPublisher publisher = new SensorPublisher();
 		setIntoEnvVariables();
-
 		try {
 			publisher.init();
 			

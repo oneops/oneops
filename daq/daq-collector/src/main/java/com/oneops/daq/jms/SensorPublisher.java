@@ -257,8 +257,8 @@ public class SensorPublisher {
     }
 
     private boolean needToDoALookup(Long counter, Long threshold) {
-        if (counter < -manifestIdLookupThreshold) return true; // make every call before the threshold 
         long callsAfterThreshold = counter - threshold;
+        if (callsAfterThreshold<0) return true; // make every call before the threshold
         long sqrt = (long)(Math.sqrt(callsAfterThreshold));
         return sqrt*sqrt==callsAfterThreshold; // make calls every n^2 times [1,4,9,16,25 ...] 
     }
