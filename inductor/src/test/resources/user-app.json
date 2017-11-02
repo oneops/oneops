@@ -1,0 +1,15 @@
+{
+
+  "user": {
+    "password": "ysewet",
+    "system_account": "true",
+    "home_directory_mode": "755",
+    "home_directory": "/home/app",
+    "sudoer": "true",
+    "description": "",
+    "login_shell": "/bin/bash",
+    "ulimit": "16384",
+    "username": "app",
+    "group": "[]"
+  }
+}

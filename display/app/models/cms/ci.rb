@@ -72,8 +72,10 @@ class Cms::Ci < Cms::Base
     end
   end
 
-  def self.count(ns_path, recursive = false)
-    self.get(:count, {:nsPath => ns_path, :recursive => recursive})['count']
+  def self.count(ns_path, recursive = false, ci_class_name = nil)
+    params = {:nsPath => ns_path, :recursive => recursive}
+    params[:ciClassName] = ci_class_name if ci_class_name.present?
+    self.get(:count, params)['count']
   end
 
   def self.count_and_group_by_ns(ns_path)

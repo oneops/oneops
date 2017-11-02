@@ -1,111 +1,113 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:p="http://www.springframework.org/schema/p"
-	xmlns:context="http://www.springframework.org/schema/context"
-	xmlns:amq="http://activemq.apache.org/schema/core"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:p="http://www.springframework.org/schema/p"
+  xmlns:context="http://www.springframework.org/schema/context"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans
                            http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd
                            http://activemq.apache.org/schema/core 
                            http://activemq.apache.org/schema/core/activemq-core-5.11.1.xsd">
 
-	<!-- spring 3+ way to get config -->
-	<!-- Common lib components -->
+  <!-- spring 3+ way to get config -->
+  <!-- Common lib components -->
 
-  <bean id="metricRegistry" class="com.codahale.metrics.MetricRegistry"></bean>
-	<bean id="propertyPlaceholderConfigurer"
-        class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-        <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE" />
-        <property name="ignoreResourceNotFound" value="true"/>
-        <property name="ignoreUnresolvablePlaceholders" value="true" />
-        <property name="locations">
-                <list>
-                     <value>classpath:inductor.properties</value>
-                     <value>file:${conf.dir}/inductor.properties</value>
-                </list>
-        </property>
-    </bean>
+  <bean id="metricRegistry" class="com.codahale.metrics.MetricRegistry"/>
+  <bean id="propertyPlaceholderConfigurer"
+    class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+    <property name="systemPropertiesModeName" value="SYSTEM_PROPERTIES_MODE_OVERRIDE"/>
+    <property name="ignoreResourceNotFound" value="true"/>
+    <property name="ignoreUnresolvablePlaceholders" value="true"/>
+    <property name="locations">
+      <list>
+        <value>classpath:inductor.properties</value>
+        <value>file:${conf.dir}/inductor.properties</value>
+      </list>
+    </property>
+  </bean>
 
-    <context:component-scan base-package="com.oneops.inductor"/>
+  <context:component-scan base-package="com.oneops.inductor"/>
 
-    <!-- queue by cloud -->
-	<amq:queue id="inbound" physicalName="${amq.in_queue}" />
-	<!-- out bound queue is setup in messagePublisher below -->
+  <!-- queue by cloud -->
+  <amq:queue id="inbound" physicalName="${amq.in_queue}"/>
+  <!-- out bound queue is setup in messagePublisher below -->
 
-	<!-- JMS ConnectionFactory to use, configuring the embedded broker using XML -->
-	<amq:connectionFactory id="jmsFactory"
-		brokerURL="${amq.connect_string}"
-		userName="${amq.zone}"
-		password="${amq.authkey}" 
-		/>
-	<!-- JMS Producer Configuration -->
-	<bean id="jmsProducerConnectionFactory"
-		class="org.springframework.jms.connection.CachingConnectionFactory"
-		p:targetConnectionFactory-ref="jmsFactory" />
+  <!-- JMS ConnectionFactory to use, configuring the embedded broker using XML -->
+  <amq:connectionFactory id="jmsFactory"
+    brokerURL="${amq.connect_string}"
+    userName="${amq.zone}"
+    password="${amq.authkey}"
+  />
+  <!-- JMS Producer Configuration -->
+  <bean id="jmsProducerConnectionFactory"
+    class="org.springframework.jms.connection.CachingConnectionFactory"
+    p:targetConnectionFactory-ref="jmsFactory"/>
 
-	<!-- JMS Consumer consumes queue: <provider>.<avail zone>.controller.workorders 
-		(inbound queue) -->
-	<bean id="messagePublisher" class="com.oneops.inductor.MessagePublisher"
-		init-method="init">
-		<property name="connectionFactory" ref="jmsProducerConnectionFactory" />
-		<property name="topic" value="controller.response" />
-        <property name="scanFolder" value="${scan_path}" />
-        <property name="scanPeriod" value="${scan_period}" />
-	</bean>
-	
-	<bean id="config" class="com.oneops.inductor.Config" init-method="init" />
+  <!-- JMS Consumer consumes queue: <provider>.<avail zone>.controller.workorders
+      (inbound queue) -->
+  <bean id="messagePublisher" class="com.oneops.inductor.MessagePublisher"
+    init-method="init">
+    <property name="connectionFactory" ref="jmsProducerConnectionFactory"/>
+    <property name="topic" value="controller.response"/>
+    <property name="scanFolder" value="${scan_path}"/>
+    <property name="scanPeriod" value="${scan_period}"/>
+  </bean>
 
-    <!-- JMS Consumer consumes queue: <provider>.<avail zone>.controller.workorders
-        (inbound queue) -->
-    <bean id="messageListener" class="com.oneops.inductor.Listener" init-method="init" scope="prototype">
-        <property name="messagePublisher" ref="messagePublisher"/>
-        <property name="config" ref="config"/>
-		<property name="workOrderExecutor" ref="workOrderExecutor"/>
-		<property name="actionOrderExecutor" ref="actionOrderExecutor"/>
-     <property name="registry" ref="metricRegistry"/>
-    </bean>
+  <bean id="config" class="com.oneops.inductor.Config" init-method="init"/>
 
-    <!-- and this is the message listener container -->
-	<bean id="listenerContainer"
-		class="org.springframework.jms.listener.DefaultMessageListenerContainer">
-		<property name="connectionFactory" ref="jmsFactory" />
-		<property name="maxConcurrentConsumers" value="${max_consumers:10}" />
-		<property name="concurrentConsumers" value="${max_consumers:10}" />
-		<property name="destination" ref="inbound" />
-		<property name="messageListener" ref="messageListener" />
-		<property name="sessionAcknowledgeMode" value="2"/>
-	</bean>
+  <!-- JMS Consumer consumes queue: <provider>.<avail zone>.controller.workorders
+      (inbound queue) -->
+  <bean id="messageListener" class="com.oneops.inductor.Listener" init-method="init"
+    scope="prototype">
+    <property name="messagePublisher" ref="messagePublisher"/>
+    <property name="config" ref="config"/>
+    <property name="workOrderExecutor" ref="workOrderExecutor"/>
+    <property name="actionOrderExecutor" ref="actionOrderExecutor"/>
+    <property name="registry" ref="metricRegistry"/>
+  </bean>
 
-	<bean id="workOrderExecutor" class="com.oneops.inductor.WorkOrderExecutor">
-		<constructor-arg index="0" ref="config"/>
-		<constructor-arg index="1" ref="semaphore"/>
-		<property name="processRunner" ref="processRunner"/>
-    	<property name="registry" ref="metricRegistry"/>
-    	<property name="inductorStat" ref="statCollector"/>
-	</bean>
+  <!-- and this is the message listener container -->
+  <bean id="listenerContainer"
+    class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+    <property name="connectionFactory" ref="jmsFactory"/>
+    <property name="maxConcurrentConsumers" value="${max_consumers:10}"/>
+    <property name="concurrentConsumers" value="${max_consumers:10}"/>
+    <property name="destination" ref="inbound"/>
+    <property name="messageListener" ref="messageListener"/>
+    <property name="sessionAcknowledgeMode" value="2"/>
+  </bean>
 
-	<bean id="actionOrderExecutor" class="com.oneops.inductor.ActionOrderExecutor" >
-		<constructor-arg index="0" ref="config"/>
-		<constructor-arg index="1" ref="semaphore"/>
-		<property name="processRunner" ref="processRunner"/>
-		<property name="inductorStat" ref="statCollector"/>
-	</bean>
+  <bean id="workOrderExecutor" class="com.oneops.inductor.WorkOrderExecutor">
+    <constructor-arg index="0" ref="config"/>
+    <constructor-arg index="1" ref="semaphore"/>
+    <property name="processRunner" ref="processRunner"/>
+    <property name="registry" ref="metricRegistry"/>
+    <property name="inductorStat" ref="statCollector"/>
+  </bean>
 
-	<bean id="semaphore" class="java.util.concurrent.Semaphore">
-		<constructor-arg value="#{config.localMaxConsumers}"/>
-	</bean>
-	<bean id="processRunner" class="com.oneops.inductor.ProcessRunner">
-		<constructor-arg ref="config"/>
-	</bean>
+  <bean id="actionOrderExecutor" class="com.oneops.inductor.ActionOrderExecutor">
+    <constructor-arg index="0" ref="config"/>
+    <constructor-arg index="1" ref="semaphore"/>
+    <property name="processRunner" ref="processRunner"/>
+    <property name="inductorStat" ref="statCollector"/>
+  </bean>
 
-	<bean id="statCollector" class="com.oneops.inductor.StatCollector" init-method="init" destroy-method="close">
-		<property name="statFileName" value="${STAT_FILE:/var/log/inductor-stat.log}" />
-    <property name="metrics" ref="metricRegistry"></property>
-    <property name="listenerContainer" ref="listenerContainer"></property>
+  <bean id="semaphore" class="java.util.concurrent.Semaphore">
+    <constructor-arg value="#{config.localMaxConsumers}"/>
+  </bean>
+  <bean id="processRunner" class="com.oneops.inductor.ProcessRunner">
+    <constructor-arg ref="config"/>
+  </bean>
 
-	</bean>
+  <bean id="statCollector" class="com.oneops.inductor.StatCollector" init-method="init"
+    destroy-method="close">
+    <constructor-arg index="0" ref="config"/>
+    <property name="statFileName" value="${STAT_FILE:inductor-stat.log}"/>
+    <property name="metrics" ref="metricRegistry"/>
+    <property name="listenerContainer" ref="listenerContainer"/>
+  </bean>
 
 </beans>
 

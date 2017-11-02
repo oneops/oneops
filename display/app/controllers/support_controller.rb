@@ -245,6 +245,14 @@ class SupportController < ReportsController
     '/'
   end
 
+  def compute_report_data
+    old_timeout = Cms::Base.timeout
+    Cms::Base.timeout = 180 if Settings.cms_http_timeout < 180
+    super
+  ensure
+    Cms::Base.timeout = old_timeout
+  end
+
   def compute_report_graph_data
     assemblies = Cms::Ci.all(:params => {:nsPath      => '/',
                                          :ciClassName => 'account.Assembly',

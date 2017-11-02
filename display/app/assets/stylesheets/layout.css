@@ -1463,7 +1463,7 @@ img.authicon {
 .glance li {
   list-style-type: none;
   float:           left;
-  margin:          5px 15px;
+  margin:          5px 10px;
   min-width:       60px;
 }
 
@@ -1912,10 +1912,6 @@ img.authicon {
   font-size: 12px;
 }
 
-.list-body li .content .top i.muted {
-  color: #777;
-}
-
 .list-body li:hover .content .top .topname {
   text-decoration: underline;
 }
@@ -1933,6 +1929,19 @@ img.authicon {
 
 .list-relation .list-body li .content .top {
   font-size: 16px;
+}
+
+.list-body li .content .top  i.icon {
+  color: #444;
+  position: relative;
+  float:    left;
+  height:   24px;
+  width:    24px;
+  margin:   2px 4px 2px 2px;
+}
+
+.list-body li .content .top i.muted {
+  color: #777;
 }
 
 .list-body li .content .top img {
@@ -3661,11 +3670,6 @@ div.marker[data-toggle] {
 
 div.marker .label {
   font-weight: normal;
-  /*text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.3);*/
-}
-
-div.marker .label i {
-  font-weight: bold;
 }
 
 div.marker .label-marker-name {

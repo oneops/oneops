@@ -541,17 +541,18 @@ Display::Application.routes.draw do
             put 'autoreplace', :on => :member
             put 'autoscale',   :on => :member
             get 'search',      :on => :member
-            get 'health',        :on => :member
+            get 'health',      :on => :member
           end
 
           resources :instances, :only => [:index]
 
-          get 'graph',         :on => :member
-          get 'notifications', :on => :member
-          get 'search',        :on => :member
-          get 'cost',          :on => :member
-          get 'cost_rate',     :on => :member
-          get 'health',        :on => :member
+          get 'graph',          :on => :member
+          get 'notifications',  :on => :member
+          get 'search',         :on => :member
+          get 'cost',           :on => :member
+          get 'cost_rate',      :on => :member
+          get 'cost_estimate',  :on => :member
+          get 'health',         :on => :member
         end
 
         resources :instances, :only => :none do
