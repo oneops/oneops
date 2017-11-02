@@ -6,7 +6,7 @@
     <% builder.target link_to('', favorite_path(target.ci_id)) %>
     <% builder.top do %>
       <% icon_name = site_icon!(short_class_name) %>
-      <%= icon_name.blank? ? image_tag(ci_class_image_url(target.ci_class_name), :class => 'icon') : icon(icon_name) %>
+      <%= icon_name.blank? ? image_tag(ci_class_image_url(target.ci_class_name), :class => 'icon') : icon(icon_name, nil, 'icon') %>
       <%= target.ci_name %>
     <% end %>
     <% builder.middle link_to(target.ns_path, path_to_ns(target.ns_path)) %>

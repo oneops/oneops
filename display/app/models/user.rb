@@ -32,6 +32,8 @@ class User < ActiveRecord::Base
            :timeoutable
   end
 
+  attr_accessor :last_sign_in_at_for_current_org
+
   BLACKLIST_FOR_SERIALIZATION.concat([:authentication_token, :session_token, :eula_accepted_at, :show_wizard, :organization_id])
 
   validates_presence_of   :username
@@ -282,12 +284,8 @@ class User < ActiveRecord::Base
   end
 
   def last_sign_in_at_for_org(org_id)
-    team_users.joins(:team).where("teams.organization_id" => org_id)
+    team_users.joins(:team).where('teams.organization_id' => org_id)
       .order(:last_sign_in_at).last.try(:last_sign_in_at)
-  end
-
-  def last_sign_in_at_for_current_org
-    last_sign_in_at_for_org(organization_id)
   end
 
 
