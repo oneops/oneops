@@ -198,7 +198,6 @@ public class InductorTest {
 
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     String actual = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
-    System.out.println(actual);
     String expected = readResourceAsString("/verification/kitchen.yml");
     assertTrue("Invalid kitchen config.", actual.equalsIgnoreCase(expected));
   }
