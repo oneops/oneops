@@ -372,7 +372,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     kitchenConfig.put("suites", singletonList(suite));
     StringWriter writer = new StringWriter();
     // KitchenCI hack to pass env vars.
-    writer.append(String.format("#<%% load \"%s/monkey_patch.rb\" %%>\n", getCircuitRoot(wo)));
+    writer.append(String.format("#<%% load \"%s/monkey_patch.rb\" %%>%n", getCircuitRoot(wo)));
     yaml.dump(kitchenConfig, writer);
 
     return writer.toString();
