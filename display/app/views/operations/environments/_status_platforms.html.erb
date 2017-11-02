@@ -1,6 +1,6 @@
 <% enabled_platforms_count = @platforms.reject{ |e| e.relationAttributes.enabled != 'true' }.count %>
 <% disabled_platforms_count = @platforms.reject{ |e| e.relationAttributes.enabled == 'true' }.count %>
-<% enabled_count = @deloyed_to_rels.size %>
+<% instane_count = @platform_instance_counts.values.sum %>
 <% if disabled_platforms_count == 0 %>
 	<li class="status-marker">
 		<div class="marker">
@@ -8,10 +8,10 @@
 		</div>
 		<div class="description">
 			<ul>
-				<li><%= icon('info-circle') %> All <%= @platforms.count %> platforms are <%= highlight('enabled') %></li>
+				<li><%= icon('info-circle') %> All <%= @platforms.count %> platforms are <b>enabled</b></li>
 				<li><%= icon('arrow-left') %> Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %>
 					to disable platforms</li>
-				<li><%= icon('check-circle') %> Environment has total of <%= highlight(enabled_count,'info') %> deployed component instances</li>
+				<li><%= icon('check-circle') %> Environment has total of <%= highlight(instane_count, 'info') %> deployed instances</li>
 			</ul>
 		</div>
 	</li>
@@ -22,7 +22,7 @@
 		</div>
 		<div class="description">
 			<ul>
-				<li><%= icon('info-circle') %> All <%= @platforms.count %> platforms are <%= highlight('disabled') %></li>
+				<li><%= icon('info-circle') %> All <%= @platforms.count %> platforms are <b>disabled</b></li>
 				<li><%= icon('arrow-left') %> Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %> to enable platforms</li>
 			</ul>
 		</div>
@@ -34,9 +34,9 @@
 		</div>
 		<div class="description">
 			<ul>
-				<li><%= icon('info-circle') %> <%= highlight(enabled_platforms_count) %> of <%= highlight(@platforms.count) %> platforms are <%= highlight('enabled') %></li>
+				<li><%= icon('info-circle') %> <b><%= enabled_platforms_count %></b> of <%= @platforms.count %> platforms are <b>enabled</b></li>
 				<li><%= icon('arrow-left') %> Go to <%= link_to highlight('transition','info'), assembly_transition_environment_path(@assembly,@environment) %> to enable or disable platforms</li>
-				<li><%= icon('check-circle') %> Environment has total of <%= highlight(enabled_count,'info') %> deployed component instances</li>
+				<li><%= icon('check-circle') %> Environment has total of <%= highlight(instane_count, 'info') %> deployed instances</li>
 			</ul>
 		</div>
 	</li>

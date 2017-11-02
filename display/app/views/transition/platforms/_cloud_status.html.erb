@@ -33,6 +33,7 @@
   <% builder.status do %>
     <%= marker(priority_label, primary ? 'label-info' : '') %>
     <%= status_marker('status', status, cloud_admin_status_label(status)) %>
+    <%= instance_marker(@cloud_instance_counts[cloud_id.to_s]) if @cloud_instance_counts %>
   <% end %>
   <% builder.top do %>
     <span class="topdesc"><%= icon('cloud') %></span>
@@ -42,30 +43,29 @@
     <dl class="dl-horizontal cloud-configuration">
       <% if primary %>
         <dt><%= icon('level-up', '', 'text-info') %></dt>
-        <dd>Cloud <%= cloud_name %> is <%= highlight('primary') %>.</dd>
+        <dd>Cloud <%= cloud_name %> is <b>primary</b></dd>
       <% else %>
         <dt><%= icon('level-down') %></dt>
-        <dd>Cloud <%= cloud_name %> is <%= highlight('secondary') %>.</dd>
+        <dd>Cloud <%= cloud_name %> is <b>secondary</b></dd>
       <% end %>
       <% if status == 'active' %>
         <dt><%= icon('cloud-upload', '', 'text-success') %></dt>
-        <dd>Administrative status of cloud <%= cloud_name %> is <%= highlight(status) %>.</dd>
+        <dd>Administrative status of cloud <%= cloud_name %> is <b><%= status %></b>.</dd>
         <dt><%= icon('play', '', 'text-success') %></dt>
-        <dd>All transition and operations activity to this cloud is <%= highlight('enabled') %>.</dd>
+        <dd>All transition and operations activity to this cloud is <b>enabled</b></dd>
       <% elsif status == 'inactive' %>
         <dt><%= icon('pause', '', 'text-error') %></dt>
         <dd>
-          All transition and operations activity to this cloud is <%= highlight('ignored') %>.
-          Any existing instances running in this cloud will not be affected.
+          All transition and operations activity to this cloud is <b>ignored</b>, any existing instances running in this cloud will not be affected.
         </dd>
       <% else %>
         <dt><%= icon('cloud-download', '', 'muted') %></dt>
-        <dd>Administrative status of cloud <%= cloud_name %> is <%= highlight(status) %>.</dd>
+        <dd>Administrative status of cloud <%= cloud_name %> is <b><%= status %></b></dd>
       <% end %>
       <dt><%= icon('sort-numeric-asc') %></dt>
       <dd id="dpmt_order_<%= cloud_id %>">
         <% dpmt_order = cloud.relationAttributes.attributes['dpmt_order'] || cloud.meta.mdAttributes.find { |a| a.attributeName == 'dpmt_order' }.defaultValue.to_i %>
-        Cloud deployment order is <%= highlight(dpmt_order) %>
+        Cloud deployment order is <b><%= dpmt_order %></b>
         <div class="hide well well-small">
           <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
             <%= hidden_field_tag :cloud_id, cloud_id %>
@@ -78,7 +78,7 @@
       <dt><%= icon('sort-amount-asc') %></dt>
       <dd id="pct_scale_<%= cloud_id %>">
         <% pct_scale = cloud.relationAttributes.attributes['pct_scale'] || cloud.meta.mdAttributes.find { |a| a.attributeName == 'pct_scale' }.defaultValue.to_i %>
-        Cloud scale at <%= highlight(pct_scale) %>%
+        Cloud scale at <b><%= pct_scale %></b>%
         <div class="hide well well-small">
           <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
             <%= hidden_field_tag :cloud_id, cloud_id %>
@@ -167,30 +167,29 @@
       	<dl class="dl-horizontal">
           <% if primary %>
             <dt><%= icon('level-up', '', 'text-info') %></dt>
-            <dd>Cloud <%= cloud.toCi.ciName %> is <%= highlight('primary') %>.</dd>
+            <dd>Cloud <%= cloud.toCi.ciName %> is <b>primary</b></dd>
           <% else %>
             <dt><%= icon('level-down') %></dt>
-            <dd>Cloud <%= cloud.toCi.ciName %> is <%= highlight('secondary') %>.</dd>
+            <dd>Cloud <%= cloud.toCi.ciName %> is <b>secondary</b></dd>
           <% end %>
           <% if status == 'active' %>
             <dt><%= icon('cloud-upload', '', 'text-success') %></dt>
-            <dd>Administrative status of cloud <%= cloud.toCi.ciName %> is <%= highlight(status) %>.</dd>
+            <dd>Administrative status of cloud <%= cloud.toCi.ciName %> is <b><%= status %></b>.</dd>
             <dt><%= icon('play', '', 'text-success') %></dt>
-            <dd>All transition and operations activity to this cloud is <%= highlight('enabled') %>.</dd>
+            <dd>All transition and operations activity to this cloud is <b>enabled</b></dd>
           <% elsif status == 'inactive' %>
             <dt><%= icon('pause', '', 'text-error') %></dt>
             <dd>
-              All transition and operations activity to this cloud is <%= highlight('ignored') %>.
-              Any existing instances running in this cloud will not be affected.
+              All transition and operations activity to this cloud is <b>ignored</b>, any existing instances running in this cloud will not be affected.
             </dd>
           <% else %>
             <dt><%= icon('cloud-download', '', 'muted') %></dt>
-            <dd>Administrative status of cloud <%= cloud.toCi.ciName %> is <%= highlight(status) %>.</dd>
+            <dd>Administrative status of cloud <%= cloud.toCi.ciName %> is <b><%= status %></b>.</dd>
           <% end %>
           <dt><%= icon('sort-numeric-asc') %></dt>
           <dd id="dpmt_order_<%= cloud_id %>">
             <% dpmt_order = cloud.relationAttributes.attributes['dpmt_order'] || cloud.meta.mdAttributes.find {|a| a.attributeName == 'dpmt_order'}.defaultValue.to_i %>
-            Cloud deployment order is <%= highlight(dpmt_order) %>
+            Cloud deployment order is <b><%= dpmt_order %></b>
             <div class="hide well well-small">
               <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
                 <%= hidden_field_tag :cloud_id, cloud_id %>
@@ -203,7 +202,7 @@
           <dt><%= icon('sort-amount-asc') %></dt>
           <dd id="pct_scale_<%= cloud_id %>">
             <% pct_scale = cloud.relationAttributes.attributes['pct_scale'] || cloud.meta.mdAttributes.find {|a| a.attributeName == 'pct_scale'}.defaultValue.to_i %>
-            Cloud scale at <%= highlight(pct_scale) %>%
+            Cloud scale at <b><%= pct_scale %></b>%
             <div class="hide well well-small">
               <%= form_tag cloud_configuration_assembly_transition_environment_platform_path(@assembly, @environment, @platform), :method => :put, :remote => true, :class => 'form-horizontal' do %>
                 <%= hidden_field_tag :cloud_id, cloud_id %>

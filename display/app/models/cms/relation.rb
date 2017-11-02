@@ -1,7 +1,6 @@
 class Cms::Relation < Cms::Base
   self.prefix      = "#{Settings.cms_path_prefix}/cm/simple/"
   self.primary_key = :ciRelationId
-  self.timeout     = 300
 
   validate do |r|
     [:fromCi, :toCi].each do |key|

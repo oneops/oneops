@@ -16,9 +16,9 @@ fi
 
 if [ ! -f $BASE_IMAGE_FILE ]
 then
-  if [ ! -f "${HOME}/.vagrant.d/boxes/box-cutter-VAGRANTSLASH-centos73/2.0.21/virtualbox/box.ovf" ]
+  if [ ! -f "${HOME}/.vagrant.d/boxes/oneops-VAGRANTSLASH-centos73/2.0.21/virtualbox/box.ovf" ]
   then
-    vagrant box add box-cutter/centos73 --box-version 2.0.21 --provider virtualbox
+    vagrant box add oneops/centos73 --box-version 2.0.21 --provider virtualbox
   fi
   packer build centos-oneops-base.json
 fi

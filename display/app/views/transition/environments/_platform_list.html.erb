@@ -9,11 +9,11 @@
                          :quick_filters => [{:label => 'All', :value => '', :selected => true},
                                             {:label => 'Enabled', :value => 'status=enabled'},
                                             {:label => 'Disabled', :value => 'status=disabled'}]}) do |builder, target| %>
-  <% relation   = ci_relation_map[target.ciId]
-     rfc_action = target.respond_to?(:rfcAction) && target.rfcAction
-     enabled    = relation.relationAttributes.enabled == 'true'
-     active     = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true
-     instance_info_marker, instance_count = instance_marker(@platform_clouds, target) %>
+  <% relation       = ci_relation_map[target.ciId]
+     rfc_action     = target.respond_to?(:rfcAction) && target.rfcAction
+     enabled        = relation.relationAttributes.enabled == 'true'
+     active         = target.ciAttributes.attributes.has_key?(:is_active) && target.ciAttributes.is_active != 'true' ? false : true
+     instance_count = @platform_instance_counts[bom_platform_ns_path(@environment, target)] %>
   <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" status="#{enabled ? 'enabled' : 'disabled'}") %>
   <% builder.target link_to('', assembly_transition_environment_platform_path(@assembly, @environment, target)) %>
   <% builder.status do %>
@@ -24,7 +24,7 @@
 	  <%= status_marker('version',"#{target.ciAttributes.major_version}", active ? 'label-success' : '') %>
     <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) if rfc_action %>
     <%= marker('disabled','label-important') unless enabled %>
-    <%= instance_info_marker %>
+    <%= instance_marker(instance_count) %>
   <% end %>
   <% if has_transition %>
     <% builder.menu do |ci| %>

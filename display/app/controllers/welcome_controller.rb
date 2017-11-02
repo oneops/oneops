@@ -3,6 +3,8 @@ class WelcomeController < ApplicationController
   before_filter :check_signed_in, :except => [:api_docs]
   skip_filter *_process_action_callbacks.map(&:filter), :only => [:api_docs]
 
+  IMAGE_STUB = Rails.root.join('public', 'images', 'cms', 'ci_stub.png')
+
   def api_docs
     render :action => :api_docs, :layout => false
   end
@@ -42,6 +44,10 @@ class WelcomeController < ApplicationController
 
   def custom_log_info
     {:exception => @exception.to_s} if @exception
+  end
+
+  def image_not_found
+    send_file(IMAGE_STUB, :type => 'image/png', :disposition => 'inline')
   end
 
 

@@ -27,8 +27,10 @@ public class DataAccessAspect {
     HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
     String dataConsistency = request.getHeader(HEADER_DATA_CONSISTENCY);
     Object returnValue;
-    if (isQueryStandByEnabled && "week".equals(dataConsistency)) {
-      logger.info("marking " + joinPoint.getSignature().getName() + " read only ");
+    if (isQueryStandByEnabled && "weak".equals(dataConsistency)) {
+      if (logger.isDebugEnabled()) {
+        logger.debug("marking " + joinPoint.getSignature().getName() + " read only ");
+      }
       DataTypeHolder.setReadOnlyData();
       try {
         returnValue = joinPoint.proceed();
@@ -44,4 +46,7 @@ public class DataAccessAspect {
     return joinPoint.proceed();
   }
 
+  public void setQueryStandByEnabled(boolean queryStandByEnabled) {
+    isQueryStandByEnabled = queryStandByEnabled;
+  }
 }
