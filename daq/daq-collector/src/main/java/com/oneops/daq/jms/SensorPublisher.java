@@ -65,6 +65,7 @@ public class SensorPublisher {
     private final AtomicLong failedThresholdLoadCounter = new AtomicLong();
     private final AtomicLong publishedCounter = new AtomicLong();
 
+    private int amqConnectionPoolSize = Integer.parseInt(System.getProperty("daq.amq.connection.pool.size", "8"));
 
     private static final Threshold NO_OP_THRESHOLD = new Threshold();
 
@@ -185,7 +186,7 @@ public class SensorPublisher {
         ActiveMQConnectionFactory amqConnectionFactory = new ActiveMQConnectionFactory(user, password, url);
         amqConnectionFactory.setUseAsyncSend(true);
         PooledConnectionFactory pooledConnectionFactory = new PooledConnectionFactory(amqConnectionFactory);
-        pooledConnectionFactory.setMaxConnections(4);
+        pooledConnectionFactory.setMaxConnections(amqConnectionPoolSize);
         pooledConnectionFactory.setIdleTimeout(10000);
 
         for (int i = 0; i < poolsize; i++) {
