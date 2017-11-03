@@ -28,7 +28,9 @@ public class DataAccessAspect {
     String dataConsistency = request.getHeader(HEADER_DATA_CONSISTENCY);
     Object returnValue;
     if (isQueryStandByEnabled && "weak".equals(dataConsistency)) {
-      logger.info("marking " + joinPoint.getSignature().getName() + " read only ");
+      if (logger.isDebugEnabled()) {
+        logger.debug("marking " + joinPoint.getSignature().getName() + " read only ");
+      }
       DataTypeHolder.setReadOnlyData();
       try {
         returnValue = joinPoint.proceed();
@@ -44,4 +46,7 @@ public class DataAccessAspect {
     return joinPoint.proceed();
   }
 
+  public void setQueryStandByEnabled(boolean queryStandByEnabled) {
+    isQueryStandByEnabled = queryStandByEnabled;
+  }
 }

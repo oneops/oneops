@@ -449,7 +449,7 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
 	@ResponseBody
 	public BigDecimal calculateEstimatedCost(@PathVariable long envId){
-		return getSum(getCostData(envId));
+		return getSum(getEstimatedCostData(envId));
 	}
 
 
