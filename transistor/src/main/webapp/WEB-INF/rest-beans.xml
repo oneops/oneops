@@ -56,6 +56,15 @@
         </property>
     </bean>
 
+	<bean id="computeRsController" class="com.oneops.transistor.ws.rest.ComputeRSController">
+		<property name="cmProcessor" ref="cmsCmProcessor"/>
+		<property name="restTemplate" ref="restTemplate" />
+       	<property name="transistorUrl" value="${TRANSISTOR_HOST:http://cmsapi}:8080/transistor/rest/"/>
+       	<property name="cmManager" ref="cmsCmManager"/>
+       	<property name="rfcProcessor" ref="cmsRfcProcessor" />
+       	
+	</bean>
+
     <bean id="tranRestController" class="com.oneops.transistor.ws.rest.TransistorRestController">
         <property name="manifestManager" ref="manifestManager"/>
         <property name="envManager" ref="envManager"/>
