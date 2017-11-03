@@ -1,4 +1,4 @@
-# <% load "#{File.dirname(__FILE__)}/test/kitchen_proxy.rb" %>
+#<% load "/opt/oneops/inductor/circuit-oneops-1/monkey_patch.rb" %>
 driver:
   name: proxy
   host: inductor-test-host
