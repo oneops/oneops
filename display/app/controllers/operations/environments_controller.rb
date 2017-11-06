@@ -126,6 +126,10 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     environment_bom_ns_path(@environment)
   end
 
+  def notification_ns_path
+    environment_ns_path(@environment)
+  end
+
 
   private
 
