@@ -51,22 +51,24 @@ class Transition::PlatformsController < Base::PlatformsController
     # Save "Scale" relation changes.
     if ok
       scale = params[:depends_on]
-      if scale.present?
-        @scale_relations.collect! do |relation|
-          scale_data = scale[relation.toCiId.to_s]
-          if scale_data
-            relation.relationAttributes = scale_data[:relationAttributes]
-            relation.relationAttrProps  = scale_data[:relationAttrProps]
-            to_ci = relation.toCi
-            relation.toCi = nil   # No need to pass "ci" while saving relation but restore it after the save because it will referenced down stream.
-            ok = execute(relation, :save)
-            relation.toCi = to_ci
-            unless ok
-              @platform.errors.add(:base, "Cannot update scale for #{relation.toCi.ciName}.")
-              break
+      if @scale_relations.present?
+        if scale.present?
+          @scale_relations.collect! do |relation|
+            scale_data = scale[relation.toCiId.to_s]
+            if scale_data
+              relation.relationAttributes = scale_data[:relationAttributes]
+              relation.relationAttrProps  = scale_data[:relationAttrProps]
+              to_ci = relation.toCi
+              relation.toCi = nil   # No need to pass "ci" while saving relation but restore it after the save because it will referenced down stream.
+              ok = execute(relation, :save)
+              relation.toCi = to_ci
+              unless ok
+                @platform.errors.add(:base, "Cannot update scale for #{relation.toCi.ciName}.")
+                break
+              end
             end
+            relation
           end
-          relation
         end
       end
     end

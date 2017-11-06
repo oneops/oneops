@@ -1,5 +1,5 @@
-<% has_transition = has_transition?(@assembly.ciId)
-   content_for :force_deploy do %>
+<% has_transition = has_transition?(@assembly.ciId) %>
+<% content_for :force_deploy_action do %>
   <% if has_transition %>
     <ul class="status-actions">
       <li>
@@ -18,7 +18,7 @@
     </ul>
   <% end %>
 <% end %>
-<% content_for :deploy do %>
+<% content_for :deploy_action do %>
   <% if has_transition %>
     <ul class="status-actions">
       <li>
@@ -38,9 +38,9 @@
       <ul>
         <li><%= icon('info-circle', ' ', 'fa-fw') %>You must wait till deployment plan is generated before deploying</li>
       </ul>
-      <%= yield :deploy %>
+      <%= yield :deploy_action %>
     </div>
-  <% elsif @deployment  && %w(active failed pausing paused pending).include?(@deployment.deploymentState) %>
+  <% elsif @deployment  && %w(active failed paused pausing pending).include?(@deployment.deploymentState) %>
     <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
     <div class="description">
       <ul>
@@ -83,14 +83,7 @@
       </ul>
     </div>
   <% elsif @bom_release %>
-    <div class="marker"><%= status_marker('deployment', 'pending', 'label-info') %></div>
-    <div class="description">
-      <ul>
-        <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
-        <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(instance_count, 'info') %> deployed instances</li>
-      </ul>
-      <%= yield :deploy %>
-    </div>
+    <%= render 'transition/environments/status_deployment_pending' %>
   <% elsif @deployment %>
     <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
     <div class="description">
@@ -106,7 +99,7 @@
         </li>
         <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(instance_count, 'info') %> deployed instances</li>
       </ul>
-      <%= yield :force_deploy %>
+      <%= yield :force_deploy_action %>
     </div>
   <% else %>
     <div class="marker"><%= status_marker('deployment', 'none', 'label') %></div>
@@ -116,7 +109,7 @@
           <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
         </ul>
       <% end %>
-      <%= yield :force_deploy %>
+      <%= yield :force_deploy_action %>
     </div>
   <% end %>
 </li>
