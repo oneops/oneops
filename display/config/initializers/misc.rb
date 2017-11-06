@@ -45,6 +45,10 @@ class Hash
     end
     target
   end
+
+  def transform_values(&block)
+    inject({}) {|h, (k, v)| h[k] = v.instance_of?(Hash) ? v.transform_values(&block) : yield(k, v); h}
+  end
 end
 
 class Numeric

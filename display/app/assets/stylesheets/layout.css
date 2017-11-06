@@ -625,6 +625,10 @@ img.authicon {
   padding: 10px;
 }
 
+#overlay .wf > div.controls .cost-change {
+  font-size: 14px;
+}
+
 #overlay div.footer {
   clear:     both;
   float:     right;
@@ -2528,6 +2532,10 @@ ul.status li.status-marker {
 
 ul.status li.status-marker:last-child {
   border-bottom: none;
+}
+
+ul.status li.status-marker .description dl {
+  margin-bottom: 0;
 }
 
 ul.status div.marker {
@@ -4449,6 +4457,9 @@ hr {
   border-bottom: none;
 }
 
+.cost-rate {
+  white-space: nowrap;
+}
 .cost-rate b {
   margin-left: 5px;
 }
