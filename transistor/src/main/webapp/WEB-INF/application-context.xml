@@ -163,7 +163,14 @@
 	<bean id="maProcessor" class="com.oneops.transistor.service.ManifestAsyncProcessor" >
 		<property name="manifestManager" ref="manifestManager" />
         <property name="envSemaphore" ref="envSemaphore" />
+		<property name="executor" ref="designPullFixedPoolExecutor"/>
     </bean>
+
+	<bean id="designPullFixedPoolExecutor" class="java.util.concurrent.Executors"
+		  factory-method="newFixedThreadPool" destroy-method="shutdown">
+		<constructor-arg value="5"/>      
+		<!--It is extremely important to keep this pool size less then db connection pool size to avoid deadlocks -->
+	</bean>
 
 	<bean id="packRefreshProcessor" class="com.oneops.transistor.service.PackRefreshProcessor" >
 		<property name="cmProcessor" ref="cmsCmProcessor" />
