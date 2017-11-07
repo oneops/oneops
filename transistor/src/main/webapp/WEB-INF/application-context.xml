@@ -168,7 +168,7 @@
 
 	<bean id="designPullFixedPoolExecutor" class="java.util.concurrent.Executors"
 		  factory-method="newFixedThreadPool" destroy-method="shutdown">
-		<constructor-arg value="5"/>      
+		<constructor-arg value="${DESIGN_PULL_THREAD_POOL_CNT:5}"/>      
 		<!--It is extremely important to keep this pool size less then db connection pool size to avoid deadlocks -->
 	</bean>
 
