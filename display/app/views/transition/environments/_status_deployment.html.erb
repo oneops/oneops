@@ -60,15 +60,7 @@
     </ul>
   </div>
 <% elsif @bom_release %>
-  <div class="marker"><%= status_marker('deployment', 'pending', 'label-info') %></div>
-  <div class="description">
-    <ul>
-      <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
-    </ul>
-    <% if @release && @release.releaseState != 'open' %>
-      <%= yield :deploy_action %>
-    <% end %>
-  </div>
+  <%= render 'status_deployment_pending' %>
 <% elsif @deployment %>
   <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
   <div class="description">
