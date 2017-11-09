@@ -1,0 +1,49 @@
+#\<% load "<circuit_root>/monkey_patch.rb" %\>
+---
+<if(local)>
+driver:
+  name: proxy
+  host: <driver_host>
+  reset_command: "exit 0"
+  transport: local
+provisioner:
+  name: chef_solo
+  cookbook_files_glob: "**/*"
+  require_chef_omnibus: false
+  solo_rb:
+    verify_api_cert: true
+    ssl_verify_mode: :verify_peer
+    log_level: :info
+verifier:
+  name: busser
+  sudo: false
+  ruby_bindir: /usr/bin
+  busser_bin: /usr/local/bin/busser
+  transport: local
+platforms:
+  - name: <platform_name>
+suites:
+  - name: <recipe_name>
+
+<else>
+driver:
+  name: proxy
+  host: <driver_host>
+  reset_command: "exit 0"
+  port: 22
+  username: <user>
+  ssh_key: <ssh_key>
+provisioner:
+  name: chef_solo
+  cookbook_files_glob: "**/*"
+  require_chef_omnibus: false
+  solo_rb:
+    verify_api_cert: true
+    ssl_verify_mode: :verify_peer
+    log_level: :info
+platforms:
+  - name: <platform_name>
+suites:
+  - name: <recipe_name>
+<endif>
+
