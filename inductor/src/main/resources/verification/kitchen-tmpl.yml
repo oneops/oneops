@@ -15,15 +15,16 @@ provisioner:
     ssl_verify_mode: :verify_peer
     log_level: :info
 verifier:
-  name: busser
-  sudo: false
-  ruby_bindir: /usr/bin
-  busser_bin: /usr/local/bin/busser
+  name: serverspec
+  remote_exec: false
   transport: local
 platforms:
   - name: <platform_name>
 suites:
   - name: <recipe_name>
+    verifier:
+      patterns:
+      - test/integration/<recipe_name>/serverspec/<recipe_name>_spec.rb
 
 <else>
 driver:
