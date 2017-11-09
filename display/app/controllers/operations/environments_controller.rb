@@ -128,6 +128,7 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
         end
         h
       end
+      result = result.transform_values {|k, v| v.is_a?(Float) ? v.round(2) : v}
     else
       result = {:total => cost}
     end
