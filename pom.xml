@@ -110,6 +110,7 @@
     <module>oneops-admin</module>
     <module>db-schema</module>
     <module>oneops-packer</module>
+    <module>oneops-model</module>
   </modules>
   <dependencyManagement>
     <dependencies>

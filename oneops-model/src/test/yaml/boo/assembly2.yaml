@@ -1,0 +1,86 @@
+boo:
+  oneops_host: 'https://localhost:9000/'
+  organization: 'local-org'
+  api_key: 'auth-key'
+  email: 'email'
+  environment_name: 'environment_name'
+  ip_output: 'json'
+  
+assembly:
+  name: 'assembly-name'
+  auto_gen: true # If turn on, then this tool will generate random assembly name for you.
+  tags: {"tag-key1":"tag-value1", "tag-key2":"tag-value2", "tag-key3":"tag-value3", "tag-key4":"tag-value4"}
+  description: 'some good description of the assembly'
+  
+platforms: # In OneOps design.
+  platform-0: # This is as your platform name as well
+    deploy_order: 1
+    pack: source/pack-platform-0
+    pack_version: '1'
+    variables:
+      pack-platform-variable-0: pack-platform-0-variable-0-value
+      pack-platform-variable-1: pack-platform-0-variable-1-value
+    components: # Optional
+      component-0:
+        config-0: platform-0-config-0-value
+        config-1: platform-0-config-1-value
+        attachments:
+          attachment1:
+            priority: '1'
+            exec_cmd: ''
+            run_on: 'before-add,before-update,before-replace'
+      compute:
+        size: XXL
+        require_public_ip: true
+      user: # support multi-user by addding more client users.
+        user1: # e.g. client-rzhan33
+          username: user1 # e.g. rzhan33
+          authorized_keys: '[""]' # copy the authorized_keys into ""
+        user2: # e.g. client-mli014
+          username: user2 # e.g. mli014
+          authorized_keys: '[""]' # copy the authorized_keys into ""
+          sibling_depends_on: '["user1"]'
+
+environments: # Only support one environment for now.
+  dev:
+    global_dns: 'true'
+    availability: 'redundant'
+    platforms:
+      platform-0:
+        auto_healing:
+          autorepair: false
+          autoreplace: true
+          replace_after_minutes: 60
+          replace_after_repairs: 4
+        scale: # Don't change this
+          compute: # Component name
+            current: '3' # Currently set current=min=max as the total number of computes
+            min: '1'
+            max: '5'
+        components:
+          lb:
+            ecv_map: '{"8080":"GET /"}'
+    clouds:
+      stub-dfw2a:
+        priority: '1'
+        dpmt_order: '1'
+        pct_scale: '100'
+  dev0:
+    global_dns: 'true'
+    availability: 'single'
+    platforms:
+      platform-0:
+        auto_healing:
+          autorepair: true
+          autoreplace: true
+          replace_after_minutes: 40
+          replace_after_repairs: 2
+    clouds:
+      stub-dfw2a:
+        priority: '1'
+        dpmt_order: '1'
+        pct_scale: '100'
+      stub-dfw2b:
+        priority: '2'
+        dpmt_order: '1'
+        pct_scale: '100'
