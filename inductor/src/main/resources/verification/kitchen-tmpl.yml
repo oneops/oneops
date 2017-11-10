@@ -1,4 +1,4 @@
-#\<% load "<circuit_root>/monkey_patch.rb" %\>
+#\<% load "<circuit_root>/monkey_patch.rb" %>
 ---
 <if(local)>
 driver:
