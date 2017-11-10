@@ -44,6 +44,10 @@ provisioner:
     verify_api_cert: true
     ssl_verify_mode: :verify_peer
     log_level: :info
+verifier:
+  name: busser
+  ruby_bindir: /usr/bin
+  gem_path: /usr/local/share/gems:/tmp/verifier/gems
 platforms:
   - name: <platform_name>
 suites:
