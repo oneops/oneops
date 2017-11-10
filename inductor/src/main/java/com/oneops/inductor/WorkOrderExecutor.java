@@ -41,7 +41,6 @@ import static com.oneops.inductor.InductorConstants.TEST_HOST;
 import static com.oneops.inductor.InductorConstants.UPDATE;
 import static com.oneops.inductor.InductorConstants.WATCHED_BY;
 import static java.lang.String.format;
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import com.codahale.metrics.MetricRegistry;
@@ -56,7 +55,6 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.inductor.util.ResourceUtils;
 import java.io.File;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -66,7 +64,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -232,6 +229,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
       String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
+      boolean debugMode = isDebugEnabled(wo);
 
       try {
         logger.info(logKey + "Running verification test for the component.");
@@ -311,11 +309,15 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
           if (result.getResultCode() > 0) {
             wo.setComments("Kitchen test failed.");
             responseMap.put("task_result_code", "500");
-            FileSystemUtils.deleteRecursively(dest);
+            if (!debugMode) {
+              FileSystemUtils.deleteRecursively(dest);
+            }
             return responseMap;
           }
           //Delete the destination dir.
-          FileSystemUtils.deleteRecursively(dest);
+          if (!debugMode) {
+            FileSystemUtils.deleteRecursively(dest);
+          }
         } else {
           logger.info(logKey + "Skipping KitchenCI test as this is a local component.");
         }

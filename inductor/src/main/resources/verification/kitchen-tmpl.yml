@@ -10,6 +10,7 @@ provisioner:
   name: chef_solo
   cookbook_files_glob: "**/*"
   require_chef_omnibus: false
+  chef_solo_path: /usr/local/bin/chef-solo
   solo_rb:
     verify_api_cert: true
     ssl_verify_mode: :verify_peer
@@ -38,6 +39,7 @@ provisioner:
   name: chef_solo
   cookbook_files_glob: "**/*"
   require_chef_omnibus: false
+  chef_solo_path: /usr/local/bin/chef-solo
   solo_rb:
     verify_api_cert: true
     ssl_verify_mode: :verify_peer
