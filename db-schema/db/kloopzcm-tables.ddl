@@ -1212,3 +1212,18 @@ REFERENCES kloopzcm.md_class_attributes (attribute_id)
 ON DELETE RESTRICT
 ON UPDATE RESTRICT
 NOT DEFERRABLE;
+
+
+CREATE TABLE kloopzcm.dj_deployment_exec (
+    deployment_exec_id BIGSERIAL PRIMARY KEY,
+    deployment_id BIGINT NOT NULL REFERENCES kloopzcm.dj_deployment (deployment_id) ON DELETE CASCADE,
+    step SMALLINT NOT NULL,
+    state_id INTEGER,
+    created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated TIMESTAMP
+);
+
+CREATE UNIQUE INDEX dj_deployment_exec_d_idx
+ ON kloopzcm.dj_deployment_exec
+ ( deployment_id, step );
+

@@ -10,15 +10,14 @@ public class DeploymentStep implements Serializable {
   private int woFailedDispatchCount;
   private long scheduledTs;
 
-  public DeploymentStep(int step, int woCount, long scheduledTs) {
+  public DeploymentStep(int step, int woCount) {
     this.step = step;
     this.woCount = woCount;
-    this.scheduledTs = scheduledTs;
     isCompleted = false;
   }
 
   public DeploymentStep(int step) {
-    this(step, 0, 0);
+    this(step, 0);
   }
 
   public DeploymentStep() {
@@ -47,14 +46,6 @@ public class DeploymentStep implements Serializable {
 
   public void setWoCount(int woCount) {
     this.woCount = woCount;
-  }
-
-  public long getScheduledTs() {
-    return scheduledTs;
-  }
-
-  public void setScheduledTs(long scheduledTs) {
-    this.scheduledTs = scheduledTs;
   }
 
   public int getWoFailedDispatchCount() {

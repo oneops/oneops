@@ -25,11 +25,10 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.util.TimelineQueryParam;
-import org.apache.ibatis.annotations.Param;
-
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * The Interface DJDpmtMapper.
@@ -83,8 +82,10 @@ public interface DJDpmtMapper {
 	CmsDpmtApproval getDpmtApproval(long approvalId);
 	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
 	List<TimelineDeployment> getDeploymentsByNsPath(TimelineQueryParam queryParam);
-	long getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId,
-			@Param("states") List<String> states, @Param("execOrder") Integer execOrder);
+	List<Map<String,Object>> getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId, @Param("step") Integer step);
 	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
 	void updateDeploymentExecInfo(CmsDeployment cmsDeployment);
+	int getAndUpdateStepState(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("newState") String newState);
+	void getDpmtLock(long deploymentId);
+	void createDeploymentExec(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("state") String state);
 }

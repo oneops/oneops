@@ -12,6 +12,10 @@ public interface Deployer {
 
   public void processWorkflow(WorkflowMessage wfMessage);
 
+  public DeployerContext fetchPendingWorkOrders(long dpmtId, boolean wait4WoDispatch);
+
   public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params) throws JMSException;
+
+  public boolean canConverge(long dpmtId, long rfcId, int step);
 
 }

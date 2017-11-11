@@ -6,8 +6,6 @@ public class WorkflowMessage implements Serializable {
 
   private long dpmtId;
 
-  private boolean checkProcessDelay;
-
   public long getDpmtId() {
     return dpmtId;
   }
@@ -16,11 +14,4 @@ public class WorkflowMessage implements Serializable {
     this.dpmtId = dpmtId;
   }
 
-  public boolean isCheckProcessDelay() {
-    return checkProcessDelay;
-  }
-
-  public void setCheckProcessDelay(boolean checkProcessDelay) {
-    this.checkProcessDelay = checkProcessDelay;
-  }
 }

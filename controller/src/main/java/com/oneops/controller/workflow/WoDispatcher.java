@@ -85,6 +85,8 @@ public class WoDispatcher {
 			cmsClient.updateWoState(dpmt, assembledWo, CMSClient.INPROGRESS, null);
 			handleReplace(assembledWo);
 		} catch(Exception e) {
+			logger.error("Exception dispatching workorder rfcId : " +
+					woContext.getWoSimple().getRfcId() + " dpmtId " + woContext.getWoSimple().getDeploymentId(), e);
 			cmsClient.updateWoState(dpmt, woContext.getWoSimple(), CMSClient.FAILED, woContext.getWoDispatchError());
 		}
 	}

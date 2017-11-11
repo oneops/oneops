@@ -84,6 +84,7 @@ public class CMSClient {
     private static final int NSPATH_ENV_ELEM_NO = 3;
     private static final int NSPARTS_SIZE_MIN = 5;
     public static final String INPROGRESS = "inprogress";
+    public static final String CANCELLED = "canceled";
     public static final String COMPLETE = "complete";
     public static final String FAILED = "failed";
     public static final String PAUSED = "paused";
@@ -405,7 +406,7 @@ public class CMSClient {
     }
 
     public void updateWoState(CmsDeployment dpmt, CmsWorkOrderSimple wo, String newState, String error) {
-        updateWoState(wo, newState, dpmt, "", error, d -> cmsDpmtProcessor.updateDeployment(d));
+        updateWoState(wo, newState, dpmt, "", error, null);
     }
 
     public void updateWoState(CmsWorkOrderSimple wo, String newState, CmsDeployment dpmt, String execContextName,
@@ -427,14 +428,16 @@ public class CMSClient {
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
-                    updateDpmtFunc.accept(dpmt);
+                    if (updateDpmtFunc != null) {
+                        updateDpmtFunc.accept(dpmt);
+                    }
                     if (error != null) {
                         dpmtRec.setComments(error);
                     }
                 }
             }
             try {
-                cmsDpmtProcessor.updateDpmtRecord(dpmtRec);
+                cmsDpmtProcessor.updateDpmtRecordSimple(dpmtRec);
             } catch (CmsBaseException ce) {
                 logger.error(ce.getMessage(), ce);
                 throw ce;

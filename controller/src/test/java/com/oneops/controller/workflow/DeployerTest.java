@@ -5,8 +5,16 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.controller.cms.CMSClient;
+import com.oneops.workflow.WorkflowPublisher;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ThreadPoolExecutor;
 import javax.sql.DataSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +22,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
-import org.testng.annotations.BeforeMethod;
+import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 @Test
@@ -24,7 +33,7 @@ import org.testng.annotations.Test;
 })
 public class DeployerTest extends AbstractTestNGSpringContextTests {
 
-  private static final String UPDATE_QUERY =
+  private static final String COMPLETE_WO_QUERY =
       "UPDATE dj_deployment_rfc SET state_id = 200 WHERE deployment_rfc_id in (\n" +
           "  SELECT d.deployment_rfc_id\n" +
           "  FROM dj_deployment_rfc d, dj_rfc_ci r\n" +
@@ -37,90 +46,185 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
   private DeployerImpl deployer;
 
   @Autowired
-  private DeploymentCache dpmtCache;
+  ThreadPoolExecutor mockExecutor;
 
   @Autowired
-  ThreadPoolExecutor mockExecutor;
+  CmsDpmtProcessor dpmtProessor;
 
   @Autowired
   DataSource ds;
 
-  @BeforeMethod
+  @Autowired
+  WorkflowPublisher workflowPublisher;
+
+  @BeforeClass
   public void setup() {
     deployer.setWoDispatchExecutor(mockExecutor);
   }
 
-  @Test
-  public void testProcessWo() {
-    long dpmtId = 219664;
-    DeploymentExecution dpmtExec = new DeploymentExecution();
-    dpmtExec.setDeploymentId(dpmtId);
-    dpmtCache.updateDeploymentMap(dpmtId, dpmtExec);
-
-    processAndVerifyStepWorkorders(dpmtExec, 1, 3);
-    processAndVerifyStepWorkorders(dpmtExec, 2, 5);
-    processAndVerifyStepWorkorders(dpmtExec, 3, 30);
-    processAndVerifyStepWorkorders(dpmtExec, 4, 6);
-    processAndVerifyStepWorkorders(dpmtExec, 5, 5);
-    processAndVerifyStepWorkorders(dpmtExec, 6, 1);
-  }
-
-  @Test
-  public void testProcessWoMultiBatch() throws Exception {
-    long dpmtId = 287398;
-    DeploymentExecution dpmtExec = new DeploymentExecution();
-    dpmtExec.setDeploymentId(dpmtId);
-    dpmtCache.updateDeploymentMap(dpmtId, dpmtExec);
-
-    //step 1 (110 workorders)
-    processAndVerifyWorkorders(dpmtExec, 110);
-    updateWos(dpmtExec, 1, 30);
-
-    //only 30 got completed so next call should return 80
-    processAndVerifyWorkorders(dpmtExec, 80);
-
-    updateWos(dpmtExec, 1, 10);
-    processAndVerifyWorkorders(dpmtExec, 70);
-
-    updateWos(dpmtExec, 1, 30);
-    processAndVerifyWorkorders(dpmtExec, 40);
-
-    updateWos(dpmtExec, 1, 30);
-    processAndVerifyWorkorders(dpmtExec, 10);
-
-    updateWos(dpmtExec, 1, 10);
-
-    //step 2 (111 workorders)
-    processAndVerifyWorkorders(dpmtExec, 111);
-    updateWos(dpmtExec, 2, 100);
-
-    processAndVerifyWorkorders(dpmtExec, 11);
-    updateWos(dpmtExec, 2, 11);
-
-    //step 3 (50 workorders)
-    processAndVerifyWorkorders(dpmtExec, 50);
-  }
-
-  private void updateWos(DeploymentExecution dpmtExec, int step, int limit) throws Exception {
-    DeploymentStep dpmtStep = dpmtExec.getStepMap().get(dpmtExec.getCurrentStep());
+  private void resetDeploymentData(long dpmtId) throws Exception {
     Connection conn = ds.getConnection();
-    PreparedStatement stmt = conn.prepareStatement(UPDATE_QUERY);
-    stmt.setLong(1, dpmtExec.getDeploymentId());
-    stmt.setInt(2, step);
-    stmt.setInt(3, limit);
-    stmt.executeUpdate();
+    try (PreparedStatement stmt = conn.prepareStatement("UPDATE dj_deployment_rfc SET state_id = 10 where deployment_id = ?")) {
+      stmt.setLong(1, dpmtId);
+      stmt.executeUpdate();
+    }
+    try (PreparedStatement stmt = conn.prepareStatement("UPDATE dj_deployment SET state_id = 100, "
+        + "auto_pause_exec_orders = null, current_step = null, flags = 0 where deployment_id = ?")) {
+      stmt.setLong(1, dpmtId);
+      stmt.executeUpdate();
+    }
   }
 
-  private void processAndVerifyStepWorkorders(DeploymentExecution dpmtExec, int step, int woCount) {
-    dpmtExec.setCurrentStep(step);
-    processAndVerifyWorkorders(dpmtExec, woCount);
+  @Test
+  public void testProcessWo() throws Exception {
+    long dpmtId = 73078;
+    resetDeploymentData(73078);
+
+    //step:workorders [1:1, 2:1, 3:3, 4:4, 5:6]
+    processWorkOrders(dpmtId);
+    verifyWo(1, 1);
+    completeWos(dpmtId, 1, 1);
+
+    processWorkOrders(dpmtId);
+    verifyWo(2, 1);
+    completeWos(dpmtId, 2, 1);
+
+    processWorkOrders(dpmtId);
+    verifyWo(3, 3);
+    completeWos(dpmtId, 3, 3);
+
+    processWorkOrders(dpmtId);
+    verifyWo(4, 4);
+    completeWos(dpmtId, 4, 4);
+
+    processWorkOrders(dpmtId);
+    verifyWo(5, 6);
   }
 
-  private void processAndVerifyWorkorders(DeploymentExecution dpmtExec, int woCount) {
-    deployer.processWorkOrders(dpmtExec.getDeploymentId(), false, false);
-    System.out.println("step " + dpmtExec.getCurrentStep());
+
+  @Test
+  public void testConverge() throws Exception {
+    long dpmtId = 73078;
+    resetDeploymentData(dpmtId);
+    processWorkOrders(dpmtId);
+    verifyWo(1, 1);
+    sendInductorResponse(dpmtId, 73080, 72824, 1, CMSClient.COMPLETE);
+    verifyConverge(dpmtId);
+
+    processWorkOrders(dpmtId);
+    verifyWo(2, 1);
+    sendInductorResponse(dpmtId, 73081, 72817, 2, CMSClient.COMPLETE);
+    verifyConverge(dpmtId);
+
+    processWorkOrders(dpmtId);
+    verifyWo(3, 3);
+    sendInductorResponse(dpmtId, 73082, 72830, 3, CMSClient.COMPLETE);
+    sendInductorResponse(dpmtId, 73084, 72852, 3, CMSClient.COMPLETE);
+    sendInductorResponse(dpmtId, 73083, 72841, 3, CMSClient.COMPLETE);
+    verifyConverge(dpmtId);
+  }
+
+
+  @Test
+  public void testAutoPause() throws Exception {
+    long dpmtId = 73078;
+    resetDeploymentData(dpmtId);
+    setAutoPause(dpmtId, "2,4");
+    processWorkOrders(dpmtId);
+    verifyWo(1, 1);
+    completeWos(dpmtId, 1, 1);
+    processWorkOrders(dpmtId);
+    verifyDpmtState(dpmtId, CmsDpmtProcessor.DPMT_STATE_PAUSED);
+  }
+
+  @Test
+  public void testDeploymentFailure() throws Exception {
+    long dpmtId = 73078;
+    resetDeploymentData(dpmtId);
+    processWorkOrders(dpmtId);
+    verifyWo(1, 1);
+    sendInductorResponse(dpmtId, 73081, 72817, 2, CMSClient.FAILED);
+    verifyDpmtState(dpmtId, CmsDpmtProcessor.DPMT_STATE_FAILED);
+  }
+
+  @Test
+  public void testContinueOnFailure() throws Exception {
+    long dpmtId = 73078;
+    resetDeploymentData(dpmtId);
+    enableContinueOnFailure(dpmtId);
+    processWorkOrders(dpmtId);
+    verifyWo(1, 1);
+    sendInductorResponse(dpmtId, 73081, 72817, 2, CMSClient.FAILED);
+    processWorkOrders(dpmtId);
+    verifyWo(2, 1);
+  }
+
+  private void enableContinueOnFailure(long dpmtId) throws Exception {
+    Connection conn = ds.getConnection();
+    try (PreparedStatement stmt = conn.prepareStatement("UPDATE dj_deployment SET flags =1 where deployment_id = ?")) {
+      stmt.setLong(1, dpmtId);
+      stmt.executeUpdate();
+    }
+  }
+
+  private void sendInductorResponse(long dpmtId, long dpmtRecordId, long rfcId, int step, String state) throws Exception {
+    CmsWorkOrderSimple woResp = new CmsWorkOrderSimple();
+    woResp.setDeploymentId(dpmtId);
+    woResp.setDpmtRecordId(dpmtRecordId);
+    woResp.setDpmtRecordState(state);
+    woResp.setRfcId(rfcId);
+    CmsRfcCISimple rfcCi = new CmsRfcCISimple();
+    rfcCi.setRfcId(rfcId);
+    rfcCi.setExecOrder(step);
+    rfcCi.setRfcAction("add");
+    woResp.setRfcCi(rfcCi);
+    Map<String, Object> params = new HashMap<>();
+    rfcCi.setNsPath("/test1/c1/dev/bom/t1/1");
+    params.put("wostate", state);
+    deployer.handleInductorResponse(woResp, params);
+  }
+
+  private void verifyConverge(long dpmtId) {
+    try {
+      verify(workflowPublisher).sendWorkflowMessage(dpmtId, null);
+      reset(workflowPublisher);
+    } catch(Exception e) {
+      Assert.fail("failed verifying converge");
+    }
+  }
+
+
+  private void verifyDpmtState(long dpmtId, String state) {
+    CmsDeployment dpmt = dpmtProessor.getDeployment(dpmtId);
+    Assert.assertEquals(dpmt.getDeploymentState(), state);
+  }
+
+  private void setAutoPause(long dpmtId, String steps) throws Exception {
+    Connection conn = ds.getConnection();
+    try (PreparedStatement stmt = conn.prepareStatement("UPDATE dj_deployment SET auto_pause_exec_orders = ? where deployment_id = ?")) {
+      stmt.setString(1, steps);
+      stmt.setLong(2, dpmtId);
+      stmt.executeUpdate();
+    }
+  }
+
+  private void completeWos(long dpmtId, int step, int limit) throws Exception {
+    Connection conn = ds.getConnection();
+    try (PreparedStatement stmt = conn.prepareStatement(COMPLETE_WO_QUERY)) {
+      stmt.setLong(1, dpmtId);
+      stmt.setInt(2, step);
+      stmt.setInt(3, limit);
+      stmt.executeUpdate();
+    }
+  }
+
+  private void verifyWo(int step, int woCount) {
     verify(mockExecutor, times(woCount)).submit(any(Runnable.class));
     reset(mockExecutor);
+  }
+
+  private void processWorkOrders(long dpmtId) {
+    deployer.processWorkOrders(dpmtId, false);
   }
 
 }

@@ -67,10 +67,9 @@ public class WorkflowPublisher extends AbstractMessagePublisher {
 		super.send(producer, createTextMessage(data));
 	}
 
-	public void sendWorkflowMessage(long dpmtId, boolean checkProcessDelay, Map<String, String> headers) throws JMSException {
+	public void sendWorkflowMessage(long dpmtId, Map<String, String> headers) throws JMSException {
 		WorkflowMessage wfMessage = new WorkflowMessage();
 		wfMessage.setDpmtId(dpmtId);
-		wfMessage.setCheckProcessDelay(checkProcessDelay);
 		String message = gson.toJson(wfMessage);
 		MessageData data = new MessageData();
 		data.setPayload(message);

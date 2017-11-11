@@ -382,7 +382,6 @@
 	  	     and (#{state}::varchar is null or drs.state_name = #{state})
 			 and dr.rfc_id = rci.rfc_id
 	  	     and (#{execOrder}::smallint is null or rci.execution_order = #{execOrder})
-  	     order by rci.execution_order
 	 </select>
 
 	 <select id="getWorkOrder" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsWorkOrder">
@@ -634,17 +633,13 @@
 		order by d.deployment_id ${order.sort}
 	 </select>
 
-	<select id="getDeploymentRecordsCountByStates" parameterType="map" useCache="false" resultType="long">
-		select  count(1)
-		from dj_deployment_rfc dr, dj_deployment_rfc_states drs, dj_rfc_ci rci
+	<select id="getDeploymentRecordsCountByStates" parameterType="map" useCache="false" resultType="hashmap">
+		select  drs.state_name as state, count(1) as count
+		from dj_deployment_rfc dr, dj_deployment_rfc_states drs
 		where dr.deployment_id = #{deploymentId}
-		and dr.state_id = drs.state_id
-		and drs.state_name in
-		<foreach item="item" index="index" collection="states" open="(" close=")" separator=", ">
-			#{item}
-		</foreach>
-		and dr.rfc_id = rci.rfc_id
-		and rci.execution_order = #{execOrder}
+		 and dr.state_id = drs.state_id
+		 and dr.step = #{step}
+		group by drs.state_name
 	</select>
 
 	<update id="updateDeploymentCurrentStep" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="PREPARED">
@@ -661,5 +656,32 @@
 			updated = now()
 		where deployment_id = ${deploymentId}
 	</update>
+
+	<update id="getAndUpdateStepState" parameterType="map" statementType="PREPARED">
+		WITH state AS (
+			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{newState}
+		)
+		UPDATE dj_deployment_exec de
+	  SET state_id = s.id
+	  FROM (SELECT deployment_exec_id id
+	  			FROM dj_deployment_exec
+	  			WHERE deployment_id = #{deploymentId}
+	  			  AND step = #{step} FOR UPDATE) t, state s
+	  WHERE de.deployment_exec_id = t.id
+		  AND de.state_id != s.id
+	</update>
+
+	<select id="getDpmtLock" parameterType="long" statementType="PREPARED" resultType="boolean">
+		SELECT pg_advisory_xact_lock(#{value})
+	</select>
+
+	<insert id="createDeploymentExec" parameterType="map" statementType="PREPARED">
+    WITH state AS (
+			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{state}
+    )
+		INSERT INTO dj_deployment_exec (deployment_id, step, state_id)
+		VALUES (#{deploymentId}, #{step}, (SELECT id from state))
+		ON CONFLICT (deployment_id, step) DO UPDATE SET state_id = (SELECT id from state)
+	</insert>
 
 </mapper>

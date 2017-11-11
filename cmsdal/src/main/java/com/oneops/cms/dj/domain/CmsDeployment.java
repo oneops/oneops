@@ -55,7 +55,7 @@ public class CmsDeployment implements Serializable{
 
 	private Integer flags;
 	private boolean continueOnFailure = false;
-	private Integer currentStep;
+	private int currentStep;
 	private String execModel;
 
 	/**
@@ -354,14 +354,11 @@ public class CmsDeployment implements Serializable{
 		this.flags &= ~(1 << bitPos);
 	}
 
-	public Integer getCurrentStep() {
-		if (currentStep == null) {
-			return 0;
-		}
+	public int getCurrentStep() {
 		return currentStep;
 	}
 
-	public void setCurrentStep(Integer currentStep) {
+	public void setCurrentStep(int currentStep) {
 		this.currentStep = currentStep;
 	}
 
