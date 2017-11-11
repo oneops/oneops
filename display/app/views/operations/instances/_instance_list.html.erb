@@ -91,7 +91,7 @@
     <% builder.bottom @component ? :none : link_to(target.nsPath, path_to_ns(target.nsPath)) %>
     <% builder.status do %>
       <%= status_marker('id', target.ciId)%>
-      <% if events %>
+      <% if events.present? %>
         <%= content = events.sort_by {|e| -e['timestamp']}.inject('') {|c, e| c + "<span><strong>#{e['name']}</strong> reporting <strong class='#{health_to_text(e['state'])}'>#{e['state']}</strong> since #{time_ago_in_words(Time.at((e['timestamp'] || 0) /1000))}</span><br>"}
             status_marker('health', events.size > 1 ? "#{events.size} events" : events.first['name'], health_to_label(ops_state), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Monitor Events', 'data-content' => content, 'data-trigger' => 'click', 'data-placement' => 'bottom') %>
       <% else %>

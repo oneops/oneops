@@ -2,23 +2,21 @@ package com.oneops.inductor;
 
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.oneops.metrics.OneOpsMetrics.INDUCTOR;
+import static java.nio.file.StandardOpenOption.CREATE;
+import static java.nio.file.StandardOpenOption.WRITE;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.codahale.metrics.JmxReporter;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.log4j.Logger;
-
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jms.listener.DefaultMessageListenerContainer;
 
 public class StatCollector {
@@ -35,26 +33,16 @@ public class StatCollector {
   private Meter rsyncFailed;
   private Meter woFailed;
   private JmxReporter jmxReporter;
-  @Autowired
   private Config config;
   private DefaultMessageListenerContainer listenerContainer;
   private DecimalFormat format;
 
-  public static FileChannel getStatChannel() {
-    return statChannel;
-  }
-
-  public static void setStatChannel(FileChannel statChannel) {
-    StatCollector.statChannel = statChannel;
-  }
-
-  public static void setDelayInSecs(long delay) {
-    StatCollector.delayInSecs = delay;
+  public StatCollector(Config config) {
+    this.config = config;
   }
 
   public void init() {
     try {
-
       if (config.isJMXEnabled()) {
         jmxReporter = JmxReporter.forRegistry(metrics).build();
         jmxReporter.start();
@@ -62,11 +50,11 @@ public class StatCollector {
 
       if (config.isAutoShutDown()) {
         autoShutDownScheduler
-            .scheduleWithFixedDelay(this::shutDown, delayInSecs, delayInSecs, TimeUnit.SECONDS);
+            .scheduleWithFixedDelay(this::shutDown, delayInSecs, delayInSecs, SECONDS);
       }
 
-      statChannel = FileChannel.open(Paths.get(statFileName), StandardOpenOption.WRITE, StandardOpenOption.CREATE);
-      logger.info("initializing StatCollector file : " + statFileName);
+      logger.info("Initializing StatCollector file : " + statFileName);
+      statChannel = FileChannel.open(Paths.get(statFileName), CREATE, WRITE);
     } catch (IOException e) {
       logger.error("Error while creating stat file " + statFileName, e);
     }
@@ -75,12 +63,12 @@ public class StatCollector {
     format = new DecimalFormat();
     format.setMaximumFractionDigits(2);
     statScheduler
-        .scheduleWithFixedDelay(this::writeStat, delayInSecs, delayInSecs, TimeUnit.SECONDS);
+        .scheduleWithFixedDelay(this::writeStat, delayInSecs, delayInSecs, SECONDS);
   }
 
   private void shutDown() {
-
-    if(config.isAutoShutDown() && rsyncFailed.getFifteenMinuteRate() > config.getAutoShutDownThreshold()){
+    if (config.isAutoShutDown() && rsyncFailed.getFifteenMinuteRate() > config
+        .getAutoShutDownThreshold()) {
       logger.warn("Shutting down");
       listenerContainer.stop();
     }
@@ -102,7 +90,8 @@ public class StatCollector {
   public void writeStat() {
     try {
       String statMsg =
-          "Inductor Stat - | failed_count=" + format.format(woFailed.getOneMinuteRate()) + ", rsync_count="
+          "Inductor Stat - | failed_count=" + format.format(woFailed.getOneMinuteRate())
+              + ", rsync_count="
               + format.format(rsyncFailed.getOneMinuteRate()) + "\n";
       appendStat(statMsg);
     } catch (IOException e) {
@@ -121,8 +110,35 @@ public class StatCollector {
     statScheduler.shutdown();
   }
 
-  public void setStatFileName(String statFile) {
-    this.statFileName = statFile;
+  public static FileChannel getStatChannel() {
+    return statChannel;
+  }
+
+  public static void setStatChannel(FileChannel statChannel) {
+    StatCollector.statChannel = statChannel;
+  }
+
+  public static void setDelayInSecs(long delay) {
+    StatCollector.delayInSecs = delay;
+  }
+
+  /**
+   * Sets the inductor stats file name. If the file name is relative, it will set as
+   * "inductor_home/log/statFile". No change for absolute path.
+   *
+   * @param statFile s file name. Can be absolute or relative.
+   */
+  public void setStatFileName(String statFile) throws IOException {
+    if (Paths.get(statFile).isAbsolute()) {
+      this.statFileName = statFile;
+    } else {
+      this.statFileName = Paths.get(config.getDataDir(), "/../", "log", statFile).toFile()
+          .getCanonicalPath();
+    }
+  }
+
+  public String getStatFileName() {
+    return statFileName;
   }
 
   public void setMetrics(MetricRegistry metrics) {

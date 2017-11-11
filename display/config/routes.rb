@@ -42,7 +42,7 @@ Display::Application.routes.draw do
   get 'l/d/:id'                   => 'lookup#deployment', :as => 'lookup_deployment'
   get 'l/procedure/:id'           => 'lookup#procedure'
   get 'l/p/:id'                   => 'lookup#procedure',  :as => 'lookup_procedure'
-  get 'l/:id'                     => 'lookup#ci', :constraints => {:id => /\d+/}
+  get 'l/:id(/:attribute_name)'   => 'lookup#ci', :constraints => {:id => /\d+/}
 
   get '/api_docs' => 'welcome#api_docs'
 

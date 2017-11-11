@@ -34,11 +34,9 @@ import com.oneops.transistor.domain.IaasRequest;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
-//import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.service.*;
 import com.oneops.transistor.snapshot.domain.Snapshot;
-import com.oneops.transistor.service.SnapshotManager;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -434,24 +432,28 @@ public class TransistorRestController extends AbstractRestController {
 		return envManager.getEnvCostData(envId);
 	}
 
-	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
-	@ResponseBody
-	public List<CostData> getEstimatedCostData(@PathVariable long envId){
-		return envManager.getEnvEstimatedCostData(envId);
-	}
-	
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
 	public BigDecimal calculateCost(@PathVariable long envId){
-		return getSum(getCostData(envId));		
-	}
-
-	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
-	@ResponseBody
-	public BigDecimal calculateEstimatedCost(@PathVariable long envId){
 		return getSum(getCostData(envId));
 	}
 
+	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, List<CostData>> getEstimatedCostData(@PathVariable long envId){
+		return envManager.getEnvEstimatedCostData(envId);
+	}
+	
+	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public HashMap<String, BigDecimal> calculateEstimatedCost(@PathVariable long envId) {
+		HashMap<String, BigDecimal> result = new HashMap<>();
+		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
+		for (String type : estimatedCostData.keySet()) {
+			result.put(type, getSum(estimatedCostData.get(type)));
+		}
+		return result;
+	}
 
 
 	private BigDecimal getSum(List<CostData> offerings) {

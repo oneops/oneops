@@ -278,7 +278,7 @@ class Transistor < ActiveResource::Base
 
   def self.environment_cost(env, pending = false, details = false)
     begin
-      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/#{'estimated_' if pending}cost#{'_data' if details}")
+      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/#{'estimated_' if pending}cost#{'_data' if details}"), nil
     rescue Exception => e
       return nil, handle_exception(e, "Failed to get cost for environment #{env.ciId} :")
     end

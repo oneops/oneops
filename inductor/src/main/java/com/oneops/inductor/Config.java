@@ -17,6 +17,9 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -27,26 +30,24 @@ import java.net.NetworkInterface;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
-import com.oneops.cms.simple.domain.CmsActionOrderSimple;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import static java.util.stream.Collectors.toMap;
-
 @Component
 public class Config {
 
   private static Logger logger = Logger.getLogger(Config.class);
 
-  // Value from spring+inductor.properties
   @Value("${packer_home}")
   private String circuitDir;
 
@@ -165,9 +166,9 @@ public class Config {
   private long cmdTimeout;
 
   /**
-   * Additional env variables to be used for workorder exec. The value can be file location or a
+   * Additional env variables to be used for work-order exec. The value can be file location or a
    * string containing multiple ENV_NAME=VALUE entries. Entries are separated by newline (file) or
-   * ',' (string). Right now this configuration is used only for local workorders.
+   * ',' (string). Right now this configuration is used only for local work-orders.
    */
   @Value("${env_vars:}")
   private String env;
@@ -177,6 +178,9 @@ public class Config {
    */
   @Value("${reboot_limit:5}")
   private int rebootLimit;
+
+  @Value("${verify.mode:false}")
+  private boolean verifyMode;
 
   /**
    * Env vars read from {@link #env}. This will get initialized in ${@link #init()}
@@ -195,21 +199,6 @@ public class Config {
 
   private String perfCollectorCertContent = null;
 
-  /******************************
-   * Verify mode configurations *
-   ******************************/
-
-  @Value("${verify.mode:false}")
-  private boolean verifyMode;
-
-  /**
-   * Additional test config. Use it as a comma separated key=value pairs.
-   */
-  @Value("${verify.config: }")
-  private String verifyConfig;
-
-  private Map<String, String> verifyConfigMap;
-
   /**
    * init - configuration / defaults
    */
@@ -217,15 +206,14 @@ public class Config {
     // Read env vars.
     envVars = readEnvVars(env);
 
-    // null checks due to spring ignoreUnresolvablePlaceholders not working
-    // on junit tests
+    // Null checks due to spring ignoreUnresolvablePlaceholders
+    // not working on junit tests.
     if (mgmtDomain == null) {
       mgmtDomain = getMgmtDomainFromFile();
     }
 
     // Read mgmt certificate file content
     mgmtCertContent = readCertFile(mgmtCert);
-
     perfCollectorCertContent = readCertFile(perfCollectorCertLocation);
 
     // defaults for some backwards compliance
@@ -273,11 +261,6 @@ public class Config {
     if (!clouds.isEmpty()) {
       logger.info("*** " + this.toString());
     }
-
-    verifyConfigMap = Arrays.stream(verifyConfig.split(","))
-        .map(e -> e.split("="))
-        .filter(p -> p.length == 2)
-        .collect(toMap(e -> e[0].trim(), e -> e[1].trim(), (a, b) -> a));
   }
 
   /**
@@ -370,8 +353,7 @@ public class Config {
           while (addrs.hasMoreElements()) {
             InetAddress add = addrs.nextElement();
             // Print only IPV4 address
-            if (add instanceof Inet4Address
-                && !add.isLoopbackAddress()) {
+            if (add instanceof Inet4Address && !add.isLoopbackAddress()) {
               // Log the first one.
               String ip = add.getHostAddress() + " (" + nic.getDisplayName() + ")";
               logger.info("Inductor IP : " + ip);
@@ -616,14 +598,6 @@ public class Config {
     this.verifyMode = verifyMode;
   }
 
-  public String getVerifyConfig() {
-    return verifyConfig;
-  }
-
-  public void setVerifyConfig(String verifyConfig) {
-    this.verifyConfig = verifyConfig;
-  }
-
   public Map<String, String> getEnvVars() {
     return this.envVars;
   }
@@ -680,10 +654,6 @@ public class Config {
     this.rebootLimit = rebootLimit;
   }
 
-  public Map<String, String> getVerifyConfigMap() {
-    return verifyConfigMap;
-  }
-
   public void setDataDir(String dataDir) {
     this.dataDir = dataDir;
   }
@@ -725,7 +695,6 @@ public class Config {
         ", env='" + env + '\'' +
         ", rebootLimit=" + rebootLimit +
         ", verifyMode=" + verifyMode +
-        ", verifyConfig=" + verifyConfig +
         ", ipAddr='" + ipAddr + '\'' +
         '}';
   }

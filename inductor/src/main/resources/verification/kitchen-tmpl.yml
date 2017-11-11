@@ -1,0 +1,56 @@
+#\<% load "<circuit_root>/monkey_patch.rb" %>
+---
+<if(local)>
+driver:
+  name: proxy
+  host: <driver_host>
+  reset_command: "exit 0"
+  transport: local
+provisioner:
+  name: chef_solo
+  cookbook_files_glob: "**/*"
+  require_chef_omnibus: false
+  chef_solo_path: /usr/local/bin/chef-solo
+  solo_rb:
+    verify_api_cert: true
+    ssl_verify_mode: :verify_peer
+    log_level: :info
+verifier:
+  name: serverspec
+  remote_exec: false
+  transport: local
+platforms:
+  - name: <platform_name>
+suites:
+  - name: <recipe_name>
+    verifier:
+      patterns:
+      - test/integration/<recipe_name>/serverspec/<recipe_name>_spec.rb
+
+<else>
+driver:
+  name: proxy
+  host: <driver_host>
+  reset_command: "exit 0"
+  port: 22
+  username: <user>
+  ssh_key: <ssh_key>
+provisioner:
+  name: chef_solo
+  cookbook_files_glob: "**/*"
+  require_chef_omnibus: false
+  chef_solo_path: /usr/local/bin/chef-solo
+  solo_rb:
+    verify_api_cert: true
+    ssl_verify_mode: :verify_peer
+    log_level: :info
+verifier:
+  name: busser
+  ruby_bindir: /usr/bin
+  gem_path: /usr/local/share/gems:/tmp/verifier/gems
+platforms:
+  - name: <platform_name>
+suites:
+  - name: <recipe_name>
+<endif>
+

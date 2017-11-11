@@ -41,7 +41,6 @@ import static com.oneops.inductor.InductorConstants.TEST_HOST;
 import static com.oneops.inductor.InductorConstants.UPDATE;
 import static com.oneops.inductor.InductorConstants.WATCHED_BY;
 import static java.lang.String.format;
-import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import com.codahale.metrics.MetricRegistry;
@@ -56,8 +55,8 @@ import com.oneops.cms.util.CmsConstants;
 import com.oneops.inductor.util.ResourceUtils;
 import java.io.File;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -65,7 +64,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,9 +74,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.util.FileSystemUtils;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.DumperOptions.FlowStyle;
-import org.yaml.snakeyaml.Yaml;
+import org.stringtemplate.v4.ST;
 
 /**
  * WorkOrder specific processing
@@ -95,9 +91,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   private Semaphore semaphore;
   private Config config;
   private MetricRegistry registry;
-
-  private Yaml yaml;
-  private String bootStrap;
+  private String verifyTemplate;
 
   public WorkOrderExecutor(Config config, Semaphore semaphore) {
     super(config);
@@ -107,22 +101,16 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   }
 
   /**
-   * Initialize all verification related config.
+   * Initializes the verification config template. It uses ANTLR StringTemplate format.
+   *
+   * @see <a href="https://github.com/antlr/stringtemplate4">StringTemplate</a>
    */
   private void initVerificationConfig() {
-    // Initialize yaml.
-    DumperOptions dumperOptions = new DumperOptions();
-    dumperOptions.setIndent(1);
-    dumperOptions.setDefaultFlowStyle(FlowStyle.BLOCK);
-    dumperOptions.setExplicitStart(false);
-    dumperOptions.setCanonical(false);
-    this.yaml = new Yaml(dumperOptions);
-    this.bootStrap = ResourceUtils.readResourceAsString("/verification/bootstrap.sh");
+    verifyTemplate = ResourceUtils.readResourceAsString("/verification/kitchen-tmpl.yml");
   }
 
-
   /**
-   * Process workorder and return message to be put in the controller response queue.
+   * Process work-order and return message to be put in the controller response queue.
    *
    * @param o CmsWorkOrderSimpleBase
    * @param correlationId JMS correlation Id
@@ -131,12 +119,14 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   @Override
   public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId) {
     CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
+
     // compute::replace will do a delete and add - only for old pre-versioned compute
     String[] classParts = wo.getRfcCi().getCiClassName().split("\\.");
     if (classParts.length < 3 && isWorkOrderOfCompute(wo) && isAction(wo, REPLACE)) {
       logger.info("compute::replace - delete then add");
       wo.getRfcCi().setRfcAction(DELETE);
       process(wo, correlationId);
+
       if (wo.getDpmtRecordState().equals(COMPLETE)) {
         if (wo.getRfcCi().getCiAttributes().containsKey("instance_id")) {
           wo.getRfcCi().getCiAttributes().remove("instance_id");
@@ -147,6 +137,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         return buildResponseMessage(wo, correlationId);
       }
     }
+
     long startTime = System.currentTimeMillis();
     if (config.isCloudStubbed(wo)) {
       String fileName = config.getDataDir() + "/" + wo.getDpmtRecordId() + ".json";
@@ -170,7 +161,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     }
 
     long endTime = System.currentTimeMillis();
-
     int duration = Math.round((endTime - startTime) / 1000);
     logger.info(wo.getRfcCi().getRfcAction() + " "
         + wo.getRfcCi().getImpl() + " "
@@ -182,17 +172,28 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     return buildResponseMessage(wo, correlationId);
   }
 
+  /**
+   * Returns the circuit directory of the component.
+   *
+   * @param wo component work order.
+   * @return circuit root directory path.
+   */
+  public Path getCircuitRoot(CmsWorkOrderSimple wo) {
+    String circuitName = getCookbookPath(wo.getRfcCi().getCiClassName());
+    return Paths.get(config.getCircuitDir().replace("packer", circuitName));
+  }
+
+
   public String getKitchenSpecPath(CmsWorkOrderSimple wo) {
-    ///opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb
+    ///opt/oneops/inductor/circuit-oneops-1/ components/cookbooks/ user/ test/integration/add/serverspec/add_spec.rb
     String testFileDir = getKitchenTestPath(wo);
     String specFilePath = getSpecFilePath(wo, testFileDir);
     return specFilePath;
   }
 
   public String getSpecFilePath(CmsWorkOrderSimple wo, String testFileDir) {
-    return testFileDir + "/test/integration/" +
-        wo.getRfcCi().getRfcAction() + "/serverspec/" + wo.getRfcCi().getRfcAction()
-        + "_spec.rb";
+    return String.format("%s/test/integration/%s/serverspec/%s_spec.rb", testFileDir,
+        wo.getRfcCi().getRfcAction(), wo.getRfcCi().getRfcAction());
   }
 
   public String getKitchenTestPath(CmsWorkOrderSimple wo) {
@@ -226,8 +227,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       Map<String, String> responseMap) {
     if (config.isVerifyMode()) {
       CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-      String logKey = getLogKey(wo) + " TEST => ";
+      String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
+      boolean debugMode = isDebugEnabled(wo);
 
       try {
         logger.info(logKey + "Running verification test for the component.");
@@ -280,14 +282,12 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
           FileSystemUtils.copyRecursively(new File(getKitchenTestPath(wo)), dest);
           String kitchenConfig = generateKitchenConfig(wo, sshKeyPath, logKey);
           String kitchenConfigPath = format("%s/%dk.yaml", destDir, wo.getDpmtRecordId());
-          String bootStrapPath = destDir + "/bootstrap.sh";
+
           Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(),
               StandardOpenOption.CREATE_NEW);
-          Files.write(Paths.get(bootStrapPath), bootStrap.getBytes(),
-              StandardOpenOption.CREATE_NEW);
 
-          logger.info(
-              logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
+          logger
+              .info(logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
           logger.info(logKey + "Kitchen Config Path: " + kitchenConfigPath);
           logger.info(logKey + "SSH key path: " + sshKeyPath);
           logger.info(logKey + "Remote WO Path: " + remoteWOPath);
@@ -301,18 +301,23 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
           String[] cmd = {"kitchen", "verify"};
           result = new ProcessResult();
-          String cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath, remoteWOPath);
+          String cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
+              remoteWOPath);
           logger.info(logKey + "cmd: " + cmdline);
           processRunner.executeProcess(cmd, logKey, result, envVars, new File(destDir));
 
           if (result.getResultCode() > 0) {
             wo.setComments("Kitchen test failed.");
             responseMap.put("task_result_code", "500");
-            FileSystemUtils.deleteRecursively(dest);
+            if (!debugMode) {
+              FileSystemUtils.deleteRecursively(dest);
+            }
             return responseMap;
           }
           //Delete the destination dir.
-          FileSystemUtils.deleteRecursively(dest);
+          if (!debugMode) {
+            FileSystemUtils.deleteRecursively(dest);
+          }
         } else {
           logger.info(logKey + "Skipping KitchenCI test as this is a local component.");
         }
@@ -329,7 +334,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   }
 
   /**
-   * Generate the kitchen yaml string for given work order.
+   * Generate the kitchen yaml string for given local/remote work-order.
    *
    * @param wo work order.
    * @param sshKey ssh key path for the work order.
@@ -337,44 +342,20 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    * @return kitchen yaml string for the work-order.
    */
   public String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) {
-    String remoteHost = getWorkOrderHost(wo, logKey);
-    int remotePort = 22;
+    boolean local = !isRemoteChefCall(wo);
+    String host = local ? "127.0.0.1" : getWorkOrderHost(wo, logKey);
 
-    Map<String, Object> driver = new LinkedHashMap<>();
-    driver.put("name", "proxy");
-    driver.put("host", remoteHost);
-    driver.put("reset_command", "exit 0");
-    driver.put("port", remotePort);
-    driver.put("username", ONEOPS_USER);
-    driver.put("ssh_key", sshKey);
-
-    Map<String, Object> provisioner = new LinkedHashMap<>();
-    provisioner.put("require_chef_omnibus", false);
-    provisioner.put("chef_solo_path", "/usr/local/bin/chef-solo");
-    provisioner.put("script", "bootstrap.sh");
-
-    Map<String, Object> platform = new LinkedHashMap<>(1);
-    platform.put("name", "centos-7.2");
-
-    Map<String, Object> chefClient = new LinkedHashMap<>(1);
-    chefClient.put("config", config.getVerifyConfigMap());
-
-    Map<String, Object> suite = new LinkedHashMap<>();
-    suite.put("name", wo.getRfcCi().getRfcAction());
-    suite.put("chef_client", chefClient);
-
-    Map<String, Object> kitchenConfig = new LinkedHashMap<>();
-    kitchenConfig.put("driver", driver);
-    kitchenConfig.put("provisioner", provisioner);
-    kitchenConfig.put("platforms", singletonList(platform));
-    kitchenConfig.put("suites", singletonList(suite));
-    StringWriter writer = new StringWriter();
-    // KitchenCI hack to pass env vars.
-    writer.append("# <% load \"#{File.dirname(__FILE__)}/test/kitchen_proxy.rb\" %>\n");
-    yaml.dump(kitchenConfig, writer);
-
-    return writer.toString();
+    ST config = new ST(verifyTemplate);
+    config.add("local", local);
+    config.add("circuit_root", getCircuitRoot(wo));
+    config.add("recipe_name", wo.getRfcCi().getRfcAction());
+    config.add("driver_host", host);
+    config.add("platform_name", "centos-7.1");
+    config.add("user", ONEOPS_USER);
+    config.add("ssh_key", sshKey);
+    return config.render();
   }
+
 
   @Override
   protected List<String> getRunList(CmsWorkOrderSimpleBase wo) {

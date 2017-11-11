@@ -63,6 +63,8 @@ public class SensorPublisher {
     private final AtomicLong eventCounter = new AtomicLong();
     private final AtomicLong missingManifestCounter = new AtomicLong();
     private final AtomicLong failedThresholdLoadCounter = new AtomicLong();
+    private final AtomicLong publishedCounter = new AtomicLong();
+    private int amqConnectionPoolSize = Integer.parseInt(System.getProperty("daq.amq.connection.pool.size", "8"));
 
     private static final Threshold NO_OP_THRESHOLD = new Threshold();
 
@@ -110,7 +112,9 @@ public class SensorPublisher {
     private static int thresholdTTL = Integer.parseInt(System.getProperty("threshold_cache_ttl", "15"));
     private static String mqConnectionTimeout = System.getProperty("mqTimeout", "1000");  // timeout message send after 1 second
     private static String mqConnectionStartupRetries = System.getProperty("mqStartupRetries", "5");  // only reconnect 5 times on startup (to avoid publisher being stuck if MQ is down on startup
-    private static int mqConnectionThreshold = Integer.parseInt(System.getProperty("mqRetryTimeout", "10000"));  // discard all the published messages for mqRetryTimeout milliseconds before attempting to send message again   
+    private static int mqConnectionThreshold = Integer.parseInt(System.getProperty("mqRetryTimeout", "10000"));  // discard all the published messages for mqRetryTimeout milliseconds before attempting to send message again
+    private static Long manifestIdLookupThreshold = Long.parseLong(System.getProperty("manifestIdLookupThreshold", "20"));
+
     private long lastFailureTimestamp = -1;
 
     private LoadingCache<String, ThresholdHolderWithExpiration> thresholdCache = CacheBuilder.newBuilder()
@@ -181,7 +185,7 @@ public class SensorPublisher {
         ActiveMQConnectionFactory amqConnectionFactory = new ActiveMQConnectionFactory(user, password, url);
         amqConnectionFactory.setUseAsyncSend(true);
         PooledConnectionFactory pooledConnectionFactory = new PooledConnectionFactory(amqConnectionFactory);
-        pooledConnectionFactory.setMaxConnections(4);
+        pooledConnectionFactory.setMaxConnections(amqConnectionPoolSize);
         pooledConnectionFactory.setIdleTimeout(10000);
 
         for (int i = 0; i < poolsize; i++) {
@@ -212,17 +216,20 @@ public class SensorPublisher {
                     " manifest miss: " + missingManifestCounter.get() +
                     " failed threshold load count: " + failedThresholdLoadCounter.get());
 
-        Long manifestId;
-        if (manifestCache.containsKey(event.getCiId()))
+        // negative value in manifestId cache represents number of failed attempts to retrieve it from cassandra. We exponentially backoff after manifestIdLookupThreshold 
+        Long manifestId = null;
+        if (manifestCache.containsKey(event.getCiId()) &&  manifestCache.get(event.getCiId())>0)
             manifestId = manifestCache.get(event.getCiId());
-        else {
+        else if (!manifestCache.containsKey(event.getCiId()) || needToDoALookup(-manifestCache.get(event.getCiId()), manifestIdLookupThreshold)){
             manifestId = thresholdsDao.getManifestId(event.getCiId());
-            if (manifestId != null)
+            if (manifestId != null) {
                 manifestCache.put(event.getCiId(), manifestId);
+            }
         }
         if (manifestId == null) {
-            long missCount = missingManifestCounter.incrementAndGet();
             logger.warn("Failed to map ciId: " + event.getCiId() + " to manifestId. Please fix");
+            manifestCache.put(event.getCiId(), manifestCache.getOrDefault(event.getCiId(), 0L)-1);
+            missingManifestCounter.incrementAndGet();
             return;
         }
 
@@ -242,11 +249,18 @@ public class SensorPublisher {
             event.setChecksum(tr.getCrc());
         } catch (Exception e) {
             logger.warn("Failed threshold load:" + manifestId + "::" + event.getSource(), e);
-            long missCount = failedThresholdLoadCounter.incrementAndGet();
+            failedThresholdLoadCounter.incrementAndGet();
             return;
         }
         publishMessage(event);
 
+    }
+
+    private boolean needToDoALookup(Long counter, Long threshold) {
+        long callsAfterThreshold = counter - threshold;
+        if (callsAfterThreshold<0) return true; // make every call before the threshold
+        long sqrt = (long)(Math.sqrt(callsAfterThreshold));
+        return sqrt*sqrt==callsAfterThreshold; // make calls every n^2 times [1,4,9,16,25 ...] 
     }
 
 
@@ -257,8 +271,9 @@ public class SensorPublisher {
      * @throws JMSException the jMS exception
      */
     public void publishMessage(final BasicEvent event) throws JMSException {
-
+        
         if (System.currentTimeMillis() > lastFailureTimestamp) {
+            publishedCounter.incrementAndGet();
             int shard = (int) (event.getManifestId() % poolsize);
             try {
                 producers[shard].send(session -> {
@@ -281,6 +296,10 @@ public class SensorPublisher {
     }
 
 
+    void setProducers(JmsTemplate[] producers) {
+        this.producers = producers;
+    }
+
     /**
      * Cleanup.
      */
@@ -297,5 +316,17 @@ public class SensorPublisher {
             ((PooledConnectionFactory) jt.getConnectionFactory()).stop();
         }
         producers = null;
+    }
+
+    public long getMissingManifestCounter() {
+        return missingManifestCounter.get();
+    }
+
+    public long getFailedThresholdLoadCounter() {
+        return failedThresholdLoadCounter.get();
+    }
+
+    public long getPublishedCounter() {
+        return publishedCounter.get();
     }
 }

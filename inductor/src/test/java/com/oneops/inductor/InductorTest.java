@@ -19,23 +19,19 @@ package com.oneops.inductor;
 
 import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
 import static com.oneops.cms.util.CmsConstants.SECURED_BY;
-import static com.oneops.inductor.InductorConstants.ACTION_ORDER_TYPE;
 import static com.oneops.inductor.InductorConstants.PRIVATE;
-import static com.oneops.inductor.InductorConstants.WORK_ORDER_TYPE;
 import static com.oneops.inductor.util.ResourceUtils.readResourceAsBytes;
 import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
 import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 import static java.util.Collections.emptyMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import com.mockrunner.mock.jms.MockTextMessage;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -45,53 +41,30 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import javax.jms.JMSException;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.yaml.snakeyaml.Yaml;
 
 public class InductorTest {
 
-  private String testWo = "";
-  private String testAo = "";
   private final Gson gson = new Gson();
+  private static String remoteWo;
+  private static String remoteAo;
+  private static String localWo;
+  private static Yaml yaml;
 
-  private void init() {
-    testWo = readResourceAsString("/testWorkorder.json");
-    testAo = readResourceAsString("/testActionorder.json");
-  }
-
-  private void testMessage(String text, String type) {
-    init();
-    MockTextMessage m = new MockTextMessage();
-    try {
-      m.setText(text);
-      m.setJMSCorrelationID("test");
-      m.setStringProperty("type", type);
-    } catch (JMSException e) {
-      e.printStackTrace();
-    }
-
-    Listener i = new Listener();
-    Config config = new Config();
-    try {
-      config.setEnv("");
-      config.setVerifyConfig("");
-      config.init();
-      i.setConfig(config);
-      i.init();
-    } catch (Exception ex) {
-      ex.printStackTrace();
-    }
-  }
-
-  private <T> T getTestOrder(String resourceName, Class<T> type) {
-    JsonElement jsonElement = new JsonParser().parse(readResourceAsString(resourceName));
-    return gson.fromJson(jsonElement, type);
+  @BeforeClass
+  public static void init() {
+    remoteWo = readResourceAsString("/remoteWorkOrder.json");
+    localWo = readResourceAsString("/localWorkOrder.json");
+    remoteAo = readResourceAsString("/remoteActionOrder.json");
+    yaml = new Yaml();
   }
 
   @Test
   public void testProvider() {
-    CmsWorkOrderSimple wo = getTestOrder("/testWorkorder.json", CmsWorkOrderSimple.class);
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     WorkOrderExecutor executor = new WorkOrderExecutor(mock(Config.class), mock(Semaphore.class));
     final String provider = executor.getProvider(wo);
     assertTrue(provider.equals("azure"));
@@ -99,7 +72,7 @@ public class InductorTest {
 
   @Test
   public void testKitchenPath() {
-    CmsWorkOrderSimple wo = getTestOrder("/testWorkorder.json", CmsWorkOrderSimple.class);
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
 
@@ -110,17 +83,6 @@ public class InductorTest {
     final String kitchenSpecPath = executor.getSpecFilePath(wo, kitchenTestPath);
     assertTrue(kitchenSpecPath.equals(
         "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb"));
-  }
-
-
-  @Test
-  public void testWorkOrder() {
-    testMessage(testWo, WORK_ORDER_TYPE);
-  }
-
-  @Test
-  public void testActionOrder() {
-    testMessage(testAo, ACTION_ORDER_TYPE);
   }
 
   @Test
@@ -149,6 +111,23 @@ public class InductorTest {
   }
 
   @Test
+  public void testStatFile() throws Exception {
+    String dataDir = "/opt/oneops/inductor/xxx/data";
+    String logDir = "/opt/oneops/inductor/xxx/log";
+    String statsLog = "inductor-stat.log";
+
+    Config cfg = new Config();
+    cfg.setDataDir(dataDir);
+    StatCollector c = new StatCollector(cfg);
+    c.setStatFileName(statsLog);
+    assertEquals(c.getStatFileName(), Paths.get(logDir, statsLog).toString());
+
+    statsLog = "/opt/inductor/log/test.log";
+    c.setStatFileName(statsLog);
+    assertEquals(c.getStatFileName(), statsLog);
+  }
+
+  @Test
   public void testEnvVars() {
     ProcessRunner p = new ProcessRunner(mock(Config.class));
     String remoteCmd[] = {"ssh", "-i"};
@@ -169,28 +148,34 @@ public class InductorTest {
   }
 
   @Test
-  public void testVerificationConfig() throws Exception {
-    CmsWorkOrderSimple wo = getTestOrder("/testWorkorder.json", CmsWorkOrderSimple.class);
+  public void testRemoteKitchenConfig() {
+    testKitchenConfig(remoteWo);
+  }
+
+  @Test
+  public void testLocalKitchenConfig() {
+    testKitchenConfig(localWo);
+  }
+
+  private void testKitchenConfig(String woString) {
+    CmsWorkOrderSimple wo = gson.fromJson(woString, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
-    cfg.setVerifyConfig("http_proxy=http://httpproxy.com,https_proxy=http://httpsproxy.com");
     cfg.setIpAttribute("public_ip");
     cfg.setEnv("");
     cfg.init();
 
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
-    String actual = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
-    System.out.println(actual);
-    String expected = readResourceAsString("/verification/kitchen.yml");
-    assertTrue("Invalid kitchen config.", actual.equalsIgnoreCase(expected));
+    String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
+    Object yamlConfig = yaml.load(config);
+    assertNotNull("Invalid kitchen config.", yamlConfig);
   }
 
   // @Test
   public void getWorkOrderRsyncCommand() {
-    CmsWorkOrderSimple wo = getTestOrder("/testWorkorder.json", CmsWorkOrderSimple.class);
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
-    cfg.setVerifyConfig("http_proxy=,https_proxy=");
     cfg.setIpAttribute("public_ip");
     cfg.setDataDir("/tmp/wos");
 
@@ -205,11 +190,9 @@ public class InductorTest {
    */
   //@Test
   public void runVerification() throws IOException {
-
-    CmsWorkOrderSimple wo = getTestOrder("/testWorkorder.json", CmsWorkOrderSimple.class);
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
-    cfg.setVerifyConfig("http_proxy=http,https_proxy=https");
     cfg.setIpAttribute("public_ip");
     cfg.setDataDir("/tmp/wos");
     cfg.setVerifyMode(true);
