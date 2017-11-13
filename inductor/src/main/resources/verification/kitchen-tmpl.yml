@@ -19,6 +19,12 @@ verifier:
   name: serverspec
   remote_exec: false
   transport: local
+  test_serverspec_installed: false
+  additional_install_command: "mkdir -p <circuit_root>/gems"
+  bundler_path: 'GEM_HOME=<circuit_root>/gems /usr/local/bin'
+  gemfile: test/integration/Gemfile
+  env_vars:
+    GEM_PATH: <circuit_root>/gems:/usr/local/share/gems
 platforms:
   - name: <platform_name>
 suites:
