@@ -53,9 +53,6 @@ public class DeployerImpl implements Deployer {
   @Value("${oo.controller.wo.async.threshold:300}")
   private int woAsyncDispatchThreshold;
 
-  @Value("${oo.controller.dpmt.time.between.runs:60}")
-  private int dpmtWaitTimeBetweenRuns;
-
   @Autowired
   private WoDispatcher woDispatcher;
 
@@ -338,8 +335,12 @@ public class DeployerImpl implements Deployer {
         logger.info(logPrefix + "trying to update step as failed");
         updated = dpmtProcessor.getAndUpdateStepState(dpmtId, step, FAILED);
         if (updated > 0) {
-          //if any of the wo has failed then update the deployment to failed
-          dpmtProcessor.updateDeployment(deployment(dpmtId, DPMT_STATE_FAILED));
+          CmsDeployment deployment = dpmtProcessor.getDeployment(dpmtId);
+          if (!deployment.getContinueOnFailure()) {
+            deployment.setDeploymentState(DPMT_STATE_FAILED);
+            //if any of the wo has failed then update the deployment to failed
+            dpmtProcessor.updateDeployment(deployment);
+          }
         }
       }
       else if (!anyCancelledWo(woCountMap)) {

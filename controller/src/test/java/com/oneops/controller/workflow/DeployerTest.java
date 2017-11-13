@@ -1,5 +1,10 @@
 package com.oneops.controller.workflow;
 
+import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_ACTIVE;
+import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_FAILED;
+import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_PAUSED;
+import static com.oneops.controller.cms.CMSClient.COMPLETE;
+import static com.oneops.controller.cms.CMSClient.FAILED;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -9,7 +14,6 @@ import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.controller.cms.CMSClient;
 import com.oneops.workflow.WorkflowPublisher;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,6 +28,7 @@ import org.springframework.test.context.support.AnnotationConfigContextLoader;
 import org.springframework.test.context.testng.AbstractTestNGSpringContextTests;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 @Test
@@ -62,101 +67,138 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
     deployer.setWoDispatchExecutor(mockExecutor);
   }
 
-  private void resetDeploymentData(long dpmtId) throws Exception {
+  private final  Long DPMT_ID = 73078l;
+
+  @BeforeMethod
+  private void resetDeploymentData() throws Exception {
     Connection conn = ds.getConnection();
     try (PreparedStatement stmt = conn.prepareStatement("UPDATE dj_deployment_rfc SET state_id = 10 where deployment_id = ?")) {
-      stmt.setLong(1, dpmtId);
+      stmt.setLong(1, DPMT_ID);
       stmt.executeUpdate();
     }
     try (PreparedStatement stmt = conn.prepareStatement("UPDATE dj_deployment SET state_id = 100, "
         + "auto_pause_exec_orders = null, current_step = null, flags = 0 where deployment_id = ?")) {
-      stmt.setLong(1, dpmtId);
+      stmt.setLong(1, DPMT_ID);
       stmt.executeUpdate();
     }
+    reset(mockExecutor);
   }
 
   @Test
   public void testProcessWo() throws Exception {
-    long dpmtId = 73078;
-    resetDeploymentData(73078);
 
     //step:workorders [1:1, 2:1, 3:3, 4:4, 5:6]
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(1, 1);
-    completeWos(dpmtId, 1, 1);
+    completeWos(DPMT_ID, 1, 1);
 
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(2, 1);
-    completeWos(dpmtId, 2, 1);
+    completeWos(DPMT_ID, 2, 1);
 
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(3, 3);
-    completeWos(dpmtId, 3, 3);
+    completeWos(DPMT_ID, 3, 3);
 
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(4, 4);
-    completeWos(dpmtId, 4, 4);
+    completeWos(DPMT_ID, 4, 4);
 
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(5, 6);
   }
 
 
   @Test
   public void testConverge() throws Exception {
-    long dpmtId = 73078;
-    resetDeploymentData(dpmtId);
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(1, 1);
-    sendInductorResponse(dpmtId, 73080, 72824, 1, CMSClient.COMPLETE);
-    verifyConverge(dpmtId);
+    sendInductorResponse(DPMT_ID, 73080, 72824, 1, COMPLETE);
+    verifyConverge(DPMT_ID);
 
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(2, 1);
-    sendInductorResponse(dpmtId, 73081, 72817, 2, CMSClient.COMPLETE);
-    verifyConverge(dpmtId);
+    sendInductorResponse(DPMT_ID, 73081, 72817, 2, COMPLETE);
+    verifyConverge(DPMT_ID);
 
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(3, 3);
-    sendInductorResponse(dpmtId, 73082, 72830, 3, CMSClient.COMPLETE);
-    sendInductorResponse(dpmtId, 73084, 72852, 3, CMSClient.COMPLETE);
-    sendInductorResponse(dpmtId, 73083, 72841, 3, CMSClient.COMPLETE);
-    verifyConverge(dpmtId);
+    sendInductorResponse(DPMT_ID, 73082, 72830, 3, COMPLETE);
+    sendInductorResponse(DPMT_ID, 73084, 72852, 3, COMPLETE);
+    sendInductorResponse(DPMT_ID, 73083, 72841, 3, COMPLETE);
+    verifyConverge(DPMT_ID);
   }
 
 
   @Test
   public void testAutoPause() throws Exception {
-    long dpmtId = 73078;
-    resetDeploymentData(dpmtId);
-    setAutoPause(dpmtId, "2,4");
-    processWorkOrders(dpmtId);
+    setAutoPause(DPMT_ID, "2,4");
+    processWorkOrders(DPMT_ID);
     verifyWo(1, 1);
-    completeWos(dpmtId, 1, 1);
-    processWorkOrders(dpmtId);
-    verifyDpmtState(dpmtId, CmsDpmtProcessor.DPMT_STATE_PAUSED);
+    completeWos(DPMT_ID, 1, 1);
+    processWorkOrders(DPMT_ID);
+    verifyDpmtState(DPMT_ID, DPMT_STATE_PAUSED);
   }
 
   @Test
   public void testDeploymentFailure() throws Exception {
-    long dpmtId = 73078;
-    resetDeploymentData(dpmtId);
-    processWorkOrders(dpmtId);
+    processWorkOrders(DPMT_ID);
     verifyWo(1, 1);
-    sendInductorResponse(dpmtId, 73081, 72817, 2, CMSClient.FAILED);
-    verifyDpmtState(dpmtId, CmsDpmtProcessor.DPMT_STATE_FAILED);
+    sendInductorResponse(DPMT_ID, 73080, 72824, 1, FAILED);
+    verifyDpmtState(DPMT_ID, DPMT_STATE_FAILED);
+    processWorkOrders(DPMT_ID);
+    verifyWo(1, 0);
   }
 
   @Test
   public void testContinueOnFailure() throws Exception {
-    long dpmtId = 73078;
-    resetDeploymentData(dpmtId);
-    enableContinueOnFailure(dpmtId);
-    processWorkOrders(dpmtId);
+    enableContinueOnFailure(DPMT_ID);
+    processWorkOrders(DPMT_ID);
     verifyWo(1, 1);
-    sendInductorResponse(dpmtId, 73081, 72817, 2, CMSClient.FAILED);
-    processWorkOrders(dpmtId);
+    sendInductorResponse(DPMT_ID, 73080, 72824, 1, FAILED);
+    processWorkOrders(DPMT_ID);
     verifyWo(2, 1);
+  }
+
+  @Test
+  public void testRetryDeployment() throws Exception {
+    processWorkOrders(DPMT_ID);
+    verifyWo(1, 1);
+    sendInductorResponse(DPMT_ID, 73080, 72824, 1, COMPLETE);
+    processWorkOrders(DPMT_ID);
+    verifyWo(2, 1);
+    sendInductorResponse(DPMT_ID, 73081, 72817, 2, FAILED);
+    CmsDeployment dpmt = verifyDpmtState(DPMT_ID, DPMT_STATE_FAILED);
+    //retry the deployment
+    dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
+    dpmtProessor.updateDeployment(dpmt);
+    processWorkOrders(DPMT_ID);
+    verifyWo(2, 1);
+    sendInductorResponse(DPMT_ID, 73081, 72817, 2, COMPLETE);
+    processWorkOrders(DPMT_ID);
+    verifyWo(3, 3);
+  }
+
+  @Test
+  public void testPauseResume() throws Exception {
+    processWorkOrders(DPMT_ID);
+    sendInductorResponse(DPMT_ID, 73080, 72824, 1, COMPLETE);
+    processWorkOrders(DPMT_ID);
+    sendInductorResponse(DPMT_ID, 73081, 72817, 2, COMPLETE);
+    processWorkOrders(DPMT_ID);
+    sendInductorResponse(DPMT_ID, 73082, 72830, 3, COMPLETE);
+    sendInductorResponse(DPMT_ID, 73084, 72852, 3, COMPLETE);
+    sendInductorResponse(DPMT_ID, 73083, 72841, 3, COMPLETE);
+    CmsDeployment dpmt = verifyDpmtState(DPMT_ID, DPMT_STATE_ACTIVE);
+    dpmt.setDeploymentState(DPMT_STATE_PAUSED);
+    dpmtProessor.updateDeployment(dpmt);
+    reset(mockExecutor);
+    processWorkOrders(DPMT_ID);
+    verifyWo(4, 0);
+    dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
+    dpmtProessor.updateDeployment(dpmt);
+    processWorkOrders(DPMT_ID);
+    verifyWo(4, 4);
   }
 
   private void enableContinueOnFailure(long dpmtId) throws Exception {
@@ -194,9 +236,16 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
   }
 
 
-  private void verifyDpmtState(long dpmtId, String state) {
+  private CmsDeployment verifyDpmtState(long dpmtId, String state) {
     CmsDeployment dpmt = dpmtProessor.getDeployment(dpmtId);
     Assert.assertEquals(dpmt.getDeploymentState(), state);
+    return dpmt;
+  }
+
+  private CmsDeployment verifyDpmtCurrentStep(long dpmtId, int step) {
+    CmsDeployment dpmt = dpmtProessor.getDeployment(dpmtId);
+    Assert.assertEquals(dpmt.getCurrentStep(), step);
+    return dpmt;
   }
 
   private void setAutoPause(long dpmtId, String steps) throws Exception {

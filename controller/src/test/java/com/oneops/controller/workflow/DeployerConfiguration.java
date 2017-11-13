@@ -1,5 +1,6 @@
 package com.oneops.controller.workflow;
 
+import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
@@ -110,6 +111,7 @@ public class DeployerConfiguration {
   public CmsDpmtProcessor getDpmtProcessor(DJDpmtMapper djDpmtMapper) {
     CmsDpmtProcessor dpmtProcessor = new CmsDpmtProcessor();
     dpmtProcessor.setDpmtMapper(djDpmtMapper);
+    dpmtProcessor.setCmProcessor(Mockito.mock(CmsCmProcessor.class));
     return dpmtProcessor;
   }
 
