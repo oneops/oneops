@@ -60,8 +60,10 @@ public final class CmsConstants {
 	public static final String CATALOG_VALUE_FOR = "catalog.ValueFor";
 
 	//manifest relations
-	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
+	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
+	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
+	public static final String MANIFEST_LOGGED_BY = "manifest.LoggedBy";
 
 	//mgmt relations
 	public static final String MGMT_CATALOG_WATCHEDBY = "mgmt.catalog.WatchedBy";

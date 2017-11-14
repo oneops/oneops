@@ -117,7 +117,6 @@ public class BomManagerImpl implements BomManager {
 	}
 		
 	public long generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
-
 		long startTime = System.currentTimeMillis();
 
 		CmsCI env = cmProcessor.getCiById(envId);
@@ -143,24 +142,20 @@ public class BomManagerImpl implements BomManager {
 		}
 		
 		Map<String,String> envVars = cmsUtil.getGlobalVars(env);
-		
+
 		logger.info(">>> Starting generating BOM for active clouds... ");
 		int execOrder = generateBomForActiveClouds(envId, userId, excludePlats, manifestNs, bomNsPath, envVars, desc);
 
 		logger.info(">>> Starting generating BOM for offline clouds... ");
-		execOrder = generateBomForOfflineClouds(envId, userId, excludePlats, manifestNs, bomNsPath, envVars, execOrder, desc);
-		//logger.info(">>>> execOrder=" + execOrder);
-		
+		generateBomForOfflineClouds(envId, userId, excludePlats, manifestNs, bomNsPath, envVars, execOrder, desc);
+
 		long relelaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNs, "open");
 		long rfcCount = 0;
 		if (relelaseId >0) {
 			rfcProcessor.brushExecOrder(relelaseId);
 			rfcCount = rfcProcessor.getRfcCount(relelaseId);
 		}
-		
-		long timeTook = System.currentTimeMillis() - startTime;
-		logger.info(bomNsPath + " >>> Time to process Bom " + timeTook + " ms. RFCs created = " + rfcCount);
-		
+
 		//if release id is 0 check if there is global var in pending_deletion state. If yes delete it.
 		if(relelaseId == 0){
 			for (CmsCI localVar : cmProcessor.getCiByNsLikeByStateNaked(manifestNs, "manifest.Globalvar", "pending_deletion")) {
@@ -169,9 +164,9 @@ public class BomManagerImpl implements BomManager {
 			//if there is nothing to deploy update parent relese on latest closed bom relese
 			getPopulateParentAndGetReleaseId(bomNsPath, manifestNs, "closed");
 		}
-		
+
+		logger.info(bomNsPath + " >>> Generated BOM in " + (System.currentTimeMillis() - startTime) + " ms. RFCs created = " + rfcCount);
 		return relelaseId;
-		
 	}
 	
 	private CmsRelease check4OpenBomRelease(String bomNsPath) {
@@ -207,9 +202,9 @@ public class BomManagerImpl implements BomManager {
 		for (Integer order : platsToProcess.keySet()) {
 			maxOrder = (order > maxOrder) ? order : maxOrder;
 		}
-		
-		int startingExecOrder = 1;
 
+
+		int startingExecOrder = 1;
 		for (int i = 1; i<=maxOrder ; i++) {
 			if (platsToProcess.containsKey(i)) {
 				startingExecOrder = (startingExecOrder >1 ) ? startingExecOrder+1 : startingExecOrder;
@@ -223,38 +218,40 @@ public class BomManagerImpl implements BomManager {
 					//now we need to check if the cloud is active for this given platform
 					List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
 
-
-					if(checkSecondary){
-						check4Secondary(plat,platformCloudRels, getNspath(bomNsPath, plat));
-					}else {
-						logger.info("check secondary configured :"+ checkSecondary);
+					if (checkSecondary) {
+						check4Secondary(plat, platformCloudRels, getNspath(bomNsPath, plat));
+					} else {
+						logger.info("check secondary configured: " + checkSecondary);
 					}
-					if (platformCloudRels.size() >0) {
-						
+
+					if (platformCloudRels.size() > 0) {
 						//Collections.sort(platformCloudRels,BINDING_COMPARATOR);
-						
+
 						int platExecOrder = startingExecOrder;
 						int thisPlatMaxExecOrder = 0;
 						SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> orderedClouds = getOrderedClouds(platformCloudRels, false);
+						PlatformManifest pm = null;
 						for (SortedMap<Integer, List<CmsCIRelation>> priorityClouds : orderedClouds.values()) {
 							for (List<CmsCIRelation> orderCloud : priorityClouds.values()) {
 								for (CmsCIRelation platformCloudRel : orderCloud) {
 									if (platformCloudRel.getAttribute("adminstatus") != null
-										&& !CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue())) {
+											&& !CmsConstants.CLOUD_STATE_ACTIVE.equals(platformCloudRel.getAttribute("adminstatus").getDjValue())) {
 										continue;
-									} 
+									}
 
-									Map<String,String> cloudVars = cmsUtil.getCloudVars(platformCloudRel.getToCi());
+									Map<String, String> cloudVars = cmsUtil.getCloudVars(platformCloudRel.getToCi());
 
 									int maxExecOrder = 0;
-									if (disabledPlats.contains(plat.getCiId())
-										|| plat.getCiState().equalsIgnoreCase("pending_deletion")) {
+									if (disabledPlats.contains(plat.getCiId()) || plat.getCiState().equalsIgnoreCase("pending_deletion")) {
 										maxExecOrder = bomRfcProcessor.deleteManifestPlatform(plat, platformCloudRel, bomNsPath, platExecOrder, userId);
 									} else {
-										maxExecOrder = bomRfcProcessor.processManifestPlatform(plat, platformCloudRel, bomNsPath, platExecOrder, envVars, cloudVars, userId, true, true);
+										if (pm == null) {
+											pm = new PlatformManifest(plat, cmProcessor, cmsUtil);
+										}
+										maxExecOrder = bomRfcProcessor.processManifestPlatform(pm, platformCloudRel, bomNsPath, platExecOrder, envVars, cloudVars, userId, true);
 									}
 									stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
-									thisPlatMaxExecOrder = (maxExecOrder > thisPlatMaxExecOrder) ? maxExecOrder : thisPlatMaxExecOrder; 
+									thisPlatMaxExecOrder = (maxExecOrder > thisPlatMaxExecOrder) ? maxExecOrder : thisPlatMaxExecOrder;
 								}
 								platExecOrder = (thisPlatMaxExecOrder > platExecOrder) ? thisPlatMaxExecOrder + 1 : platExecOrder;
 							}
@@ -582,5 +579,4 @@ public class BomManagerImpl implements BomManager {
 			throw new TransistorException(CmsError.TRANSISTOR_ACTIVE_DEPLOYMENT_EXISTS, err);
 		}
 	}
-
 }
