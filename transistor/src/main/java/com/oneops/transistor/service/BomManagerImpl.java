@@ -113,6 +113,10 @@ public class BomManagerImpl implements BomManager {
 
 	@Override
 	public long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+		return generateBomForClouds(envId, userId, excludePlats, desc, commit);
+	}
+		
+	public long generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 
 		long startTime = System.currentTimeMillis();
 
