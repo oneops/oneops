@@ -685,7 +685,7 @@ public class BomRfcBulkProcessor {
 	}
 
 	private Map<String, Map<String, CmsCIRelation>> getExistingRelations(String nsPath) {
-		List<CmsCIRelation> bomRels = cmProcessor.getCIRelationsNakedNoAttrs(nsPath, null, null, null, null);
+		List<CmsCIRelation> bomRels = cmProcessor.getCIRelationsNaked(nsPath, null, null, null, null);
 		Map<String, Map<String, CmsCIRelation>> bomRelsMap = new HashMap<>();
 		for (CmsCIRelation rel : bomRels) {
 			if (!bomRelsMap.containsKey(rel.getRelationName())) {
