@@ -123,14 +123,19 @@ public class FlexManagerImpl implements FlexManager {
 		Map<String,String> globalVars = cmsUtil.getGlobalVars(env);
 
 		List<CmsCIRelation> cloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
-		
+
+		PlatformManifest pm = null;
+
 		for (CmsCIRelation cloudRel : cloudRels) {
 			if (cloudRel.getAttribute("adminstatus") != null
 					&& !CmsConstants.CLOUD_STATE_ACTIVE.equals(cloudRel.getAttribute("adminstatus").getDjValue())) {
 				continue;
 			}
+			if (pm == null) {
+				pm = new PlatformManifest(plat, cmProcessor, cmsUtil);
+			}
 			Map<String,String> cloudVars = cmsUtil.getCloudVars(cloudRel.getToCi());
-			bomRfcProcessor.processManifestPlatform(plat, cloudRel, bomNsPath, 1, globalVars, cloudVars, userId, true, false);
+			bomRfcProcessor.processManifestPlatform(pm, cloudRel, bomNsPath, 1, globalVars, cloudVars, userId, false);
 		}	
 		
 		return getPopulateParentAndGetReleaseId(bomNsPath, manifestReleaseId);
