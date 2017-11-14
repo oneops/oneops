@@ -1,0 +1,37 @@
+apikey: auth-key
+host: "https://localhost:9000/"
+organization: local-org
+
+description: 'Evaluate optional component add/delete'
+tags:
+  - pulldesign
+  - addcomponent
+  - deletecomponent
+  
+templates: # template sequence/ordering is crucial for test evaluation
+  template-1.yaml:
+    assertions:
+      addusercomponent:
+        message: 'evaluate add of optional component user-temp'
+        component: user
+        name: user-temp
+  template-2.yaml:
+    assertions:
+      pulldesign:
+        message: 'Pull design'
+      deleteusercomponent:
+        message: 'Delete component'
+        component: user
+        name: user-temp
+ 
+randomcloud: false #Supports true OR false. Select any ONE cloud as primary, available within the specified organization. If true below clouds will be ignored
+
+clouds:
+  cloud0:
+    priority: '1'
+    deploymentorder: '1'
+    scalepercentage: '100'
+  cloud1:
+    priority: '2'
+    deploymentorder: '1'
+    scalepercentage: '100'

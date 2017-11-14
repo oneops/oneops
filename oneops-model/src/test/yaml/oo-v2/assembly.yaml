@@ -1,0 +1,101 @@
+apikey: auth-key
+host: "https://localhost:9000/"
+organization: local-org
+
+assembly: 
+  name: assembly-name
+  description: 'assembly-description'
+
+  tags:
+    tag-0: tag-value-0
+    tag-1: tag-value-1
+
+  variables:
+    variable-0: variable-value-0
+    variable-1: variable-value-1
+  encryptedvariables:
+    encrypted-variable-0: encrypted-variable-value-0
+
+  platforms:
+    platform-0:
+      pack: source/pack-platform-0
+      packVersion: '1'
+      links:
+        - platform-0-link-0
+        - platform-0-link-1
+      variables:
+        pack-platform-variable-0: pack-platform-0-variable-0-value
+        pack-platform-variable-1: pack-platform-0-variable-1-value
+      encryptedvariables:
+        encrypted-pack-platform-variable-0: encrypted-pack-platform-0-variable-0-value
+      components:
+        component-0:
+          type: component-0-type
+          configuration:
+            config-0: platform-0-config-0-value
+            config-1: platform-0-config-1-value
+    platform-1:
+      pack: pack-platform-1
+      configuration:
+        version: 1
+      components:
+        component-0:
+          type: component-1-type
+          configuration:
+            config-0: platform-1-config-0-value
+            config-1: platform-1-config-1-value
+          attachments:
+            attachment1:
+              configuration:
+                priority: '1'
+                exec_cmd: ''
+                run_on: 'before-add,before-update,before-replace'
+            attachment2:
+              configuration:
+                priority: '1'
+                exec_cmd: ''
+                run_on: 'before-add,before-update,before-replace'
+
+  environments:
+    environment-0:
+      globaldns: 'true'
+      availability: 'redundant'
+      variables:
+        variable-0: variable-new-value-0
+      encryptedvariables:
+        encrypted-variable-0: encrypted-variable-new-value-0
+      platforms:
+        platform-1:
+          enable: false
+          variables:
+            pack-platform-variable-0: pack-platform-0-variable-0-new-value
+          configuration:
+            availability: 'redundant'
+            autorepair: false
+            autoreplace: true
+            replace_after_minutes: 55
+            replace_after_repairs: 4
+          scale: # Don't change this
+            compute: # Component name
+              current: '3' # Currently set current=min=max as the total number of computes
+              min: '1'
+              max: '5'
+            
+          components:
+            component-0:
+              touch: true
+              type: component-0-type
+              configuration:
+                config-2: platform-1-config-0-value
+                config-3: platform-1-config-1-value
+              attachments:
+                attachment1:
+                  configuration:
+                    priority: '1'
+                    exec_cmd: ''
+                    run_on: 'before-add,before-update,before-replace'
+      clouds:
+        cloud-0:
+          priority: 1
+          deploymentorder: 1
+          scalepercentage: 100
