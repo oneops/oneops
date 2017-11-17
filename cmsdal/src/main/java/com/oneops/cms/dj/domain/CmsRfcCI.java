@@ -201,5 +201,21 @@ public class CmsRfcCI extends CmsRfcCIBasic  implements CmsRfcContainer {
 			this.releaseNsPath = releaseNs;
 		}
 	}
-	
+
+	public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue) {
+		CmsRfcAttribute attr = getAttribute(attrName);
+		if (attr == null) {
+			attr = new CmsRfcAttribute();
+			attr.setAttributeName(attrName);
+			addAttribute(attr);
+		}
+		attr.setNewValue(String.valueOf(attrValue));
+		return attr;
+	}
+
+	public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue, String comments) {
+		CmsRfcAttribute attr = addOrUpdateAttribute(attrName, attrValue);
+		attr.setComments(comments);
+		return attr;
+	}
 }

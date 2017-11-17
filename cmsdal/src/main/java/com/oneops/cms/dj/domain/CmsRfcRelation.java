@@ -294,5 +294,15 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 			this.releaseNsPath = releaseNs;
 		}
 	}
-	
+
+	public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue) {
+		CmsRfcAttribute attr = getAttribute(attrName);
+		if (attr == null) {
+			attr = new CmsRfcAttribute();
+			attr.setAttributeName(attrName);
+			addAttribute(attr);
+		}
+		attr.setNewValue(String.valueOf(attrValue));
+		return attr;
+	}
 }
