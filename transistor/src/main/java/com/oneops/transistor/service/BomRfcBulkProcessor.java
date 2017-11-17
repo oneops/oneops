@@ -584,7 +584,7 @@ public class BomRfcBulkProcessor {
 						CmsCI existingCi = existingCIs.get(bomId);
 						CmsRfcCI existingRfc = existingRFCs.get(bomId);
 						if (existingRfc == null && bom.rfc.getRfcId() == 0) {
-							logger.info("creating dummy update rfc with hint for " + existingCi.getCiId());
+//							logger.info("creating dummy update rfc with hint for " + existingCi.getCiId());
 							cmRfcMrgProcessor.createDummyUpdateRfcWithHint(existingCi.getCiId(), getPropagateUpdateHint(),
 									null, bom.execOrder, userId);
 						}
@@ -658,7 +658,7 @@ public class BomRfcBulkProcessor {
 						if (propagations.contains(rel.getFromCiId())) {
 							continue;
 						}
-						logger.info("propagating update from bom cid : " + bomCiId + " to " + rel.getFromCiId());
+						//logger.info("propagating update from bom cid : " + bomCiId + " to " + rel.getFromCiId());
 						propagations.add(rel.getFromCiId());
 						List<CmsCIRelation> realizedAs = cmProcessor.getToCIRelations(rel.getFromCiId(), BASE_REALIZED_AS, fromCi.getCiClassName().replaceFirst("bom", "manifest"));
 						if (realizedAs != null) {
@@ -672,7 +672,7 @@ public class BomRfcBulkProcessor {
 						if (propagations.contains(rel.getToCiId())) {
 							continue;
 						}
-						logger.info("propagating update from bom cid : " + bomCiId + " to " + rel.getToCiId());
+						//logger.info("propagating update from bom cid : " + bomCiId + " to " + rel.getToCiId());
 						propagations.add(rel.getToCiId());
 						List<CmsCIRelation> realizedAs = cmProcessor.getToCIRelations(rel.getToCiId(), BASE_REALIZED_AS, toCi.getCiClassName().replaceFirst("bom", "manifest"));
 						if (realizedAs != null) {

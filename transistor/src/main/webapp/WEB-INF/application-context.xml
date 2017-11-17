@@ -179,7 +179,6 @@
 	<bean id="bomRfcProcessorIM" class="com.oneops.transistor.service.BomRfcBulkProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessorIM" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
-		<property name="mdProcessor" ref="cmsMdProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="djValidator" ref="cmsDjValidator" />

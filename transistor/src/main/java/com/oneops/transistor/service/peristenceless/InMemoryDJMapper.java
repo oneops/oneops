@@ -29,6 +29,8 @@ public class InMemoryDJMapper implements DJMapper{
     private long ciId = 1;
     private Map<Long, CmsRfcCI> rfcs = new HashMap<>();
     private Map<Long, CmsRfcRelation> relations = new HashMap<>();
+    private Map<Long, Long> rfcIdByCiId = new HashMap<>();
+    private Map<Long, Long> relationRfcIdByCiId = new HashMap<>();
     private CmsRelease release;
 
     public InMemoryDJMapper() {
@@ -88,7 +90,8 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public int deleteRelease(long releaseId) {
-        throw new UnsupportedOperationException();
+       // this.release = null;
+        return 0;
     }
 
     @Override
@@ -98,7 +101,16 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public void createRfcCI(CmsRfcCI rfcCi) {
-        rfcs.put(rfcCi.getRfcId(), rfcCi);
+        long ciId = rfcCi.getCiId();
+        if (!rfcIdByCiId.containsKey(ciId)) {  // we need this in case there are multiple rfc updates for the same CI
+            long rfcId = rfcCi.getRfcId();
+            rfcIdByCiId.put(ciId, rfcId);
+            rfcs.put(rfcId, rfcCi);
+        } else {
+            long rfcId = rfcIdByCiId.get(ciId);
+            rfcCi.setRfcId(rfcId);
+            rfcs.put(rfcId, rfcCi);
+        }
     }
 
     @Override
@@ -200,7 +212,15 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public void createRfcRelation(CmsRfcRelation rel) {
-        relations.put(rel.getRfcId(), rel);
+        long ciRelationId = rel.getCiRelationId();
+        if (!relationRfcIdByCiId.containsKey(ciRelationId)) {
+            relationRfcIdByCiId.put(rel.getRfcId(), ciRelationId);
+            relations.put(rel.getRfcId(), rel);
+        } else {
+            Long rfcId = relationRfcIdByCiId.get(ciRelationId);
+            relations.put(rfcId, rel);
+            rel.setRfcId(rfcId);
+        }
     }
 
     @Override
