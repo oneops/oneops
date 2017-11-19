@@ -21,7 +21,11 @@ package com.oneops.cms.cm.ops.domain;
  * The Enum OpsActionState.
  */
 public enum OpsActionState {
-  pending("pending", 10), inprogress("inprogress", 100), complete("complete", 200), failed("failed", 300), canceled("canceled", 400);
+  pending("pending", 10),
+  inprogress("inprogress", 100),
+  complete("complete", 200),
+  failed("failed", 300),
+  canceled("canceled", 400);
 
   private String name;
   private int id;

@@ -207,12 +207,4 @@ public class CmsClazzAction implements Serializable {
   public void setInheritedFrom(String inheritedFrom) {
     this.inheritedFrom = inheritedFrom;
   }
-
-  public boolean isInheritable() {
-    return isInheritable;
-  }
-
-  public void setInheritable(boolean inheritable) {
-    isInheritable = inheritable;
-  }
 }

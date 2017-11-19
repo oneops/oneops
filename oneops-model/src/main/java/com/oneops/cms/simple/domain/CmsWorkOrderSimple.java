@@ -29,7 +29,7 @@ import java.util.Map;
  * The Class CmsWorkOrderSimple.
  */
 public class CmsWorkOrderSimple extends CmsDpmtRecord implements
-  CmsWorkOrderSimpleBase<CmsRfcCISimple> {
+    CmsWorkOrderSimpleBase<CmsRfcCISimple> {
 
   private static final long serialVersionUID = 1L;
 
@@ -256,12 +256,10 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements
     this.payLoad.put(payloadEntry, rfcCISimples);
   }
 
-  @Override
   public Map<String, String> getConfig() {
     return config;
   }
 
-  @Override
   public void setConfig(Map<String, String> config) {
     this.config = config;
   }

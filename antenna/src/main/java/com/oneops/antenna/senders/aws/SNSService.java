@@ -28,7 +28,7 @@ import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
 import com.amazonaws.services.sns.model.PublishResult;
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.domain.SNSMessage;
 import com.oneops.antenna.domain.SNSSubscriber;
 import com.oneops.antenna.senders.NotificationSender;

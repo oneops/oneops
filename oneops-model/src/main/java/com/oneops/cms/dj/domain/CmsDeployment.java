@@ -53,6 +53,8 @@ public class CmsDeployment implements Serializable {
 
   private Integer flags;
   private boolean continueOnFailure = false;
+  private Integer currentStep;
+  private String execModel;
 
   /**
    * Gets the deployment id.
@@ -273,7 +275,7 @@ public class CmsDeployment implements Serializable {
     if (updateCollection) {
       if (StringUtils.isNotBlank(autoPauseExecOrdersVal)) {
         autoPauseExecOrders = Arrays.stream(autoPauseExecOrdersVal.split(","))
-          .map(val -> Integer.parseInt(val.trim())).collect(Collectors.toSet());
+            .map(val -> Integer.parseInt(val.trim())).collect(Collectors.toSet());
       }
     }
   }
@@ -313,8 +315,8 @@ public class CmsDeployment implements Serializable {
   }
 
   /**
-   * Varios CMS class flags, each bit is used for some attribute
-   * i.e 010 is set for continueOnFailure
+   * Varios CMS class flags, each bit is used for some attribute i.e 010 is set for
+   * continueOnFailure
    *
    * @return the impl
    */
@@ -358,4 +360,22 @@ public class CmsDeployment implements Serializable {
     this.flags &= ~(1 << bitPos);
   }
 
+  public Integer getCurrentStep() {
+    if (currentStep == null) {
+      return 0;
+    }
+    return currentStep;
+  }
+
+  public void setCurrentStep(Integer currentStep) {
+    this.currentStep = currentStep;
+  }
+
+  public String getExecModel() {
+    return execModel;
+  }
+
+  public void setExecModel(String execModel) {
+    this.execModel = execModel;
+  }
 }

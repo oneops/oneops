@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.dj.domain;
 
+import com.oneops.cms.cm.domain.CmsCI;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,6 +33,39 @@ public class CmsRfcCI extends CmsRfcCIBasic implements CmsRfcContainer {
   private int rfcActionId;
   private String releaseNsPath;
   private Map<String, CmsRfcAttribute> attributes = new HashMap<>();
+
+  public CmsRfcCI() {
+  }
+
+  public CmsRfcCI(CmsCI ci, String createdBy) {
+    setCiId(ci.getCiId());
+    setCiClassName(ci.getCiClassName());
+    setCiClassId(ci.getCiClassId());
+    setCiName(ci.getCiName());
+    setNsPath(ci.getNsPath());
+    setNsId(ci.getNsId());
+    setCiGoid(ci.getCiGoid());
+    setCiState(ci.getCiState());
+    setComments(ci.getComments());
+    setLastAppliedRfcId(ci.getLastAppliedRfcId());
+    setCreated(ci.getCreated());
+    setCreatedBy(ci.getCreatedBy());
+    setUpdated(ci.getUpdated());
+    setUpdatedBy(ci.getUpdatedBy());
+    setRfcCreatedBy(createdBy);
+    setRfcUpdatedBy(createdBy);
+  }
+
+  public CmsRfcCI(CmsCI ci, String createdBy, Map<String, String> changes) {
+    this(ci, createdBy);
+    setRfcAction("update");
+    changes.entrySet().forEach(a -> {
+      CmsRfcAttribute attr = new CmsRfcAttribute();
+      attr.setAttributeName(a.getKey());
+      attr.setNewValue(a.getValue());
+      addAttribute(attr);
+    });
+  }
 
   /**
    * Gets the release ns path.

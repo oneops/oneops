@@ -1,10 +1,9 @@
 package com.oneops;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.collect.Lists;
 
 public class Assembly {
 
@@ -62,6 +61,10 @@ public class Assembly {
     return platforms;
   }
 
+  public void setPlatforms(Map<String, Platform> platforms) {
+    this.platforms = platforms;
+  }
+
   public List<Platform> getPlatformList() {
     List<Platform> platformList = Lists.newArrayList();
     for (Entry<String, Platform> entry : platforms.entrySet()) {
@@ -70,10 +73,6 @@ public class Assembly {
       platformList.add(platform);
     }
     return platformList;
-  }
-
-  public void setPlatforms(Map<String, Platform> platforms) {
-    this.platforms = platforms;
   }
 
   public Map<String, Environment> getEnvironments() {

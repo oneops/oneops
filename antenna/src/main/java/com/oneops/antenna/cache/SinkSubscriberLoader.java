@@ -20,11 +20,17 @@ package com.oneops.antenna.cache;
 
 import com.google.common.cache.CacheLoader;
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.*;
+import com.oneops.antenna.domain.BasicSubscriber;
+import com.oneops.antenna.domain.EmailSubscriber;
+import com.oneops.notification.NotificationSeverity;
+import com.oneops.antenna.domain.SNSSubscriber;
+import com.oneops.antenna.domain.SlackSubscriber;
+import com.oneops.antenna.domain.URLSubscriber;
+import com.oneops.antenna.domain.XMPPSubscriber;
 import com.oneops.antenna.domain.SlackSubscriber.Channel;
 import com.oneops.antenna.domain.SlackSubscriber.Format;
-import com.oneops.antenna.domain.filter.NotificationFilter;
-import com.oneops.antenna.domain.transform.Transformer;
+import com.oneops.notification.filter.NotificationFilter;
+import com.oneops.notification.transform.Transformer;
 import com.oneops.antenna.service.Dispatcher;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -38,7 +44,7 @@ import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.oneops.antenna.domain.NotificationSeverity.none;
+import static com.oneops.notification.NotificationSeverity.none;
 
 /**
  * A subscriber list {@link com.google.common.cache.CacheLoader} for automatic loading of

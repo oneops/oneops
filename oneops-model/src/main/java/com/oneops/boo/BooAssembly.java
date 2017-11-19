@@ -3,6 +3,7 @@ package com.oneops.boo;
 import java.util.Map;
 
 public class BooAssembly {
+
   private String name;
   private Boolean auto_gen;
   private String description;
