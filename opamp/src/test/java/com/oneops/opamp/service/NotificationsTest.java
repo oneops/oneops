@@ -28,13 +28,11 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationSeverity;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationSeverity;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.opamp.service.EnvPropsProcessor;
-import com.oneops.opamp.service.Notifications;
 import com.oneops.opamp.util.EventUtil;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.OpsBaseEvent;

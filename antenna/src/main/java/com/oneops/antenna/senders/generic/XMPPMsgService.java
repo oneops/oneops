@@ -20,10 +20,11 @@ package com.oneops.antenna.senders.generic;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.domain.XMPPSubscriber;
 import com.oneops.antenna.senders.NotificationSender;
 
+import com.oneops.util.URLUtil;
 import org.apache.log4j.Logger;
 import org.jivesoftware.smack.Connection;
 import org.jivesoftware.smack.ConnectionConfiguration;
@@ -188,7 +189,8 @@ public class XMPPMsgService implements NotificationSender {
 
             // Flavor #2 XHTML
             StringBuilder fmtMsg = new StringBuilder();
-            URL url = msg.getNotificationUrl();
+
+            URL url = URLUtil.getNotificationUrl(msg);
             fmtMsg.append("<body>")
                     .append(msg.getSeverity().getName().toUpperCase())
                     .append(" | ")

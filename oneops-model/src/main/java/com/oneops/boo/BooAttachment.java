@@ -3,6 +3,7 @@ package com.oneops.boo;
 import java.util.Map;
 
 public class BooAttachment {
+
   private String name;
   private Map<String, String> configuration;
 

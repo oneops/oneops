@@ -28,7 +28,7 @@ import com.codahale.metrics.*;
 import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.service.Dispatcher;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ import org.springframework.jms.listener.DefaultMessageListenerContainer;
 import static com.codahale.metrics.MetricRegistry.name;
 import static com.codahale.metrics.Timer.Context;
 import static com.oneops.metrics.OneOpsMetrics.*;
-import static com.oneops.util.URLUtil.*;
+import static com.oneops.util.URLUtil.ONEOPS_BASE_URL;
 
 /**
  * The listener interface for receiving antenna events. The class that is interested in

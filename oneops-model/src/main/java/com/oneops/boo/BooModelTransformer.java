@@ -1,10 +1,5 @@
 package com.oneops.boo;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
 import com.google.common.collect.Maps;
 import com.oneops.Assembly;
 import com.oneops.Attachment;
@@ -13,6 +8,10 @@ import com.oneops.Component;
 import com.oneops.Environment;
 import com.oneops.OneOps;
 import com.oneops.Platform;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 public class BooModelTransformer {
 
@@ -29,7 +28,6 @@ public class BooModelTransformer {
 
       Map<String, Platform> platforms = convertPlatforms(booYaml.getPlatformList());
 
-
       assembly.setPlatforms(platforms);
 
       Map<String, Environment> environments = convertEnvironments(booYaml.getEnvironmentList());
@@ -39,11 +37,15 @@ public class BooModelTransformer {
         if (booScaleList != null) {
           for (BooScale booScale : booScaleList) {
             for (Entry<String, Environment> environmentEntry : environments.entrySet()) {
-              if (environmentEntry != null && environmentEntry.getValue() != null && environmentEntry.getValue().getPlatforms() != null) {
-                for (Entry<String, Platform> platformEntry : environmentEntry.getValue().getPlatforms().entrySet()) {
-                  if (booScale.getPlatformName() != null && booScale.getPlatformName().equals(platformEntry.getKey())) {
+              if (environmentEntry != null && environmentEntry.getValue() != null
+                  && environmentEntry.getValue().getPlatforms() != null) {
+                for (Entry<String, Platform> platformEntry : environmentEntry.getValue()
+                    .getPlatforms().entrySet()) {
+                  if (booScale.getPlatformName() != null && booScale.getPlatformName()
+                      .equals(platformEntry.getKey())) {
                     Platform platform = platformEntry.getValue();
-                    platform.setScale(booYaml.getScale().get(booScale.getPlatformName()).get("scaling"));
+                    platform.setScale(
+                        booYaml.getScale().get(booScale.getPlatformName()).get("scaling"));
                   }
                 }
               }
@@ -118,7 +120,9 @@ public class BooModelTransformer {
                     Map<String, String> siblingLink = (Map<String, String>) entry0.getValue();
                     String linkStr = siblingLink.get("sibling_depends_on");
                     if (linkStr != null) {
-                      List<String> compList = Arrays.asList(linkStr.replace("[", "").replace("]", "").replaceAll("\"", "").split(","));
+                      List<String> compList = Arrays.asList(
+                          linkStr.replace("[", "").replace("]", "").replaceAll("\"", "")
+                              .split(","));
                       component.setLinks(compList);
                     }
                     config.remove("sibling_depends_on");
@@ -130,7 +134,8 @@ public class BooModelTransformer {
                     for (Entry<String, Object> attachmentEntry : value.entrySet()) {
                       Attachment attachment = new Attachment();
                       if (attachmentEntry != null && attachmentEntry.getValue() instanceof Map) {
-                        Map<String, String> attach = (Map<String, String>) attachmentEntry.getValue();
+                        Map<String, String> attach = (Map<String, String>) attachmentEntry
+                            .getValue();
                         attachment.setConfiguration(attach);
                         attachment.setId(attachmentEntry.getKey());
                         attachments.put(attachmentEntry.getKey(), attachment);

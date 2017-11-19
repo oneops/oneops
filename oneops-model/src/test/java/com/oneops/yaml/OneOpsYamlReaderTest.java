@@ -3,13 +3,6 @@ package com.oneops.yaml;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.File;
-import java.util.List;
-import java.util.Map;
-
-import org.junit.Before;
-import org.junit.Test;
-
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.oneops.Assembly;
@@ -28,6 +21,11 @@ import com.oneops.boo.BooModelTransformer;
 import com.oneops.boo.BooPlatform;
 import com.oneops.boo.BooScale;
 import com.oneops.boo.BooYaml;
+import java.io.File;
+import java.util.List;
+import java.util.Map;
+import org.junit.Before;
+import org.junit.Test;
 
 public class OneOpsYamlReaderTest {
 
@@ -41,7 +39,8 @@ public class OneOpsYamlReaderTest {
   @Test
   public void validateReadingTestYaml() throws Exception {
     OneOpsYamlReader reader = new OneOpsYamlReader();
-    TestCase testCaseYaml = reader.read(yaml("src/test/yaml/oo-v2", "testcase.yaml"), TestCase.class);
+    TestCase testCaseYaml = reader
+        .read(yaml("src/test/yaml/oo-v2", "testcase.yaml"), TestCase.class);
 
     assertEquals("Evaluate optional component add/delete", testCaseYaml.getDescription());
     assertEquals("false", testCaseYaml.getRandomcloud());
@@ -55,7 +54,8 @@ public class OneOpsYamlReaderTest {
     assertTrue(testCaseYaml.getTemplates().keySet().contains("template-1.yaml"));
     List<Template> templates = Lists.newArrayList(testCaseYaml.getTemplates().values());
     Template template = templates.get(0);
-    assertEquals("evaluate add of optional component user-temp", template.getAssertions().get("addusercomponent").getMessage());
+    assertEquals("evaluate add of optional component user-temp",
+        template.getAssertions().get("addusercomponent").getMessage());
   }
 
 
@@ -246,11 +246,14 @@ public class OneOpsYamlReaderTest {
     assertEquals("platform-0-link-1", links.get(1));
     // Variables
     Map<String, String> platformVariables = p0.getVariables();
-    assertEquals("pack-platform-0-variable-0-value", platformVariables.get("pack-platform-variable-0"));
-    assertEquals("pack-platform-0-variable-1-value", platformVariables.get("pack-platform-variable-1"));
+    assertEquals("pack-platform-0-variable-0-value",
+        platformVariables.get("pack-platform-variable-0"));
+    assertEquals("pack-platform-0-variable-1-value",
+        platformVariables.get("pack-platform-variable-1"));
 
     Map<String, String> encryptedPlatformVariables = p0.getEncryptedvariables();
-    assertEquals("encrypted-pack-platform-0-variable-0-value", encryptedPlatformVariables.get("encrypted-pack-platform-variable-0"));
+    assertEquals("encrypted-pack-platform-0-variable-0-value",
+        encryptedPlatformVariables.get("encrypted-pack-platform-variable-0"));
     // Components
     List<Component> components = p0.getComponentList();
     Component c0 = components.get(0);
@@ -277,7 +280,8 @@ public class OneOpsYamlReaderTest {
     assertEquals("redundant", e0.getAvailability());
     //Environment global variable
     assertEquals("variable-new-value-0", e0.getVariables().get("variable-0"));
-    assertEquals("encrypted-variable-new-value-0", e0.getEncryptedvariables().get("encrypted-variable-0"));
+    assertEquals("encrypted-variable-new-value-0",
+        e0.getEncryptedvariables().get("encrypted-variable-0"));
     //Environment platform
     List<Platform> environmentPlatforms = e0.getPlatformList();
     Platform ep0 = environmentPlatforms.get(0);
@@ -299,7 +303,8 @@ public class OneOpsYamlReaderTest {
     assertEquals("5", computeScale.get("max"));
 
     //Environment platform variable
-    assertEquals("pack-platform-0-variable-0-new-value", ep0.getVariables().get("pack-platform-variable-0"));
+    assertEquals("pack-platform-0-variable-0-new-value",
+        ep0.getVariables().get("pack-platform-variable-0"));
 
     List<Component> environmentComponents = ep0.getComponentList();
     Component epc0 = environmentComponents.get(0);

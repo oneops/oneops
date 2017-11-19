@@ -30,6 +30,27 @@ public class CmsRfcAttribute extends CmsRfcBasicAttribute implements Serializabl
   private long rfcId;
 
   /**
+   * Default constructor.
+   */
+  public CmsRfcAttribute() {
+  }
+
+  /**
+   * Convenience constructor for a typical operation of adding a RFC attribute specified by name.
+   */
+  public CmsRfcAttribute(String attributeName) {
+    super(attributeName);
+  }
+
+  /**
+   * Convenience constructor for a typical operation of adding a RFC attribute specified by name
+   * with a given value.
+   */
+  public CmsRfcAttribute(String attributeName, String newValue) {
+    super(attributeName, newValue);
+  }
+
+  /**
    * Gets the rfc attribute id.
    *
    * @return the rfc attribute id

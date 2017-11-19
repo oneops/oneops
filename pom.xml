@@ -492,7 +492,17 @@
       </dependency>
       <dependency>
         <groupId>com.oneops</groupId>
+        <artifactId>oo-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
         <artifactId>oo-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-model</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

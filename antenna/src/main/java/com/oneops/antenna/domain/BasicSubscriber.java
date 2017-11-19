@@ -17,9 +17,9 @@
  *******************************************************************************/
 package com.oneops.antenna.domain;
 
-import com.oneops.antenna.domain.filter.MessageFilter;
-import com.oneops.antenna.domain.transform.Transformer;
-import com.oneops.antenna.domain.transform.impl.HPOMTransformer;
+import com.oneops.notification.filter.MessageFilter;
+import com.oneops.notification.transform.Transformer;
+import com.oneops.notification.transform.impl.HPOMTransformer;
 import com.oneops.antenna.service.Dispatcher;
 
 /**
