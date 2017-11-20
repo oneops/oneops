@@ -302,6 +302,7 @@ public class DeployerImpl implements Deployer {
     long rfcId = woResponse.getRfcId();
     String logPrefix = "dpmtId " + dpmtId + " rfc " + rfcId;
     logger.info(logPrefix + "<<<<<<<<<<< deployer handle inductor response");
+    
     updateWoState(dpmtId, woResponse, params);
     logger.info(logPrefix + "ci updated from inductor response");
     int step = woResponse.rfcCi.getExecOrder();
