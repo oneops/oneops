@@ -1,6 +1,7 @@
 package com.oneops.boo;
 
 public class BooScale {
+
   private String platformName;
   private String componentName;
   private String current;

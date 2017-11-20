@@ -1,10 +1,9 @@
 package com.oneops.boo;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.collect.Lists;
 
 public class BooYaml {
 
@@ -63,6 +62,10 @@ public class BooYaml {
     return scale;
   }
 
+  public void setScale(Map<String, Map<String, Map<String, Map<String, String>>>> scale) {
+    this.scale = scale;
+  }
+
   public List<BooEnvironment> getEnvironmentList() {
     List<BooEnvironment> environmentList = Lists.newArrayList();
     if (this.environments != null && this.environments.size() > 0) {
@@ -81,10 +84,6 @@ public class BooYaml {
 
   public void setEnvironment(BooEnvironment environment) {
     this.environment = environment;
-  }
-
-  public void setScale(Map<String, Map<String, Map<String, Map<String, String>>>> scale) {
-    this.scale = scale;
   }
 
   public List<BooScale> getScaleList() {

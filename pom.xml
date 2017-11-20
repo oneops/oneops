@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.11.01-7-SNAPSHOT</version>
+  <version>17.11.01-8-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -492,7 +492,17 @@
       </dependency>
       <dependency>
         <groupId>com.oneops</groupId>
+        <artifactId>oo-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
         <artifactId>oo-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-model</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

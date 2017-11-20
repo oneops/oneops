@@ -1,10 +1,9 @@
 package com.oneops;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.collect.Lists;
 
 public class Component {
 

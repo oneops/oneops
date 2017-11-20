@@ -3,7 +3,6 @@ package com.oneops.yaml;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-
 import org.yaml.snakeyaml.Yaml;
 
 public class OneOpsYamlReader {

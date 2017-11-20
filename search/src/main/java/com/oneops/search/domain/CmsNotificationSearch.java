@@ -19,7 +19,7 @@ package com.oneops.search.domain;
 
 import java.util.Map;
 
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 
 public class CmsNotificationSearch extends NotificationMessage {
 

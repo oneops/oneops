@@ -19,7 +19,7 @@ package com.oneops.search.domain;
 
 import org.springframework.data.elasticsearch.annotations.Document;
 
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 

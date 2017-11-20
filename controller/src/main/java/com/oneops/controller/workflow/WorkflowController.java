@@ -16,7 +16,7 @@
  *******************************************************************************/
 package com.oneops.controller.workflow;
 
-import com.oneops.antenna.domain.NotificationSeverity;
+import com.oneops.notification.NotificationSeverity;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;

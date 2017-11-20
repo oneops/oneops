@@ -17,8 +17,8 @@
 package com.oneops.controller.cms;
 
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.ops.domain.CmsOpsAction;

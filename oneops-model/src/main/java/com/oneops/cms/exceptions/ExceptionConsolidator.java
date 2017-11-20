@@ -18,7 +18,7 @@ public class ExceptionConsolidator {
 
 
   public ExceptionConsolidator(Class<? extends CmsBaseException> exception, int errorCode,
-    int countOfErrorsToReport) {
+      int countOfErrorsToReport) {
     this.errorCode = errorCode;
     this.exception = exception;
     errors = new HashSet<>();
@@ -47,8 +47,8 @@ public class ExceptionConsolidator {
     if (!errors.isEmpty()) {
       try {
         throw exception.getDeclaredConstructor(Integer.TYPE, String.class)
-          .newInstance(errorCode, StringUtils.join(
-            getErrorsToReport(), ";\n"));
+            .newInstance(errorCode, StringUtils.join(
+                getErrorsToReport(), ";\n"));
       } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
         throw new RuntimeException(errors.toString());
       }
@@ -57,7 +57,7 @@ public class ExceptionConsolidator {
 
   private Set<String> getErrorsToReport() {
     return hasErrorCountExceeded() ? errors.stream().limit(countOfErrorsToReport).collect(
-      Collectors.toSet()) : errors;
+        Collectors.toSet()) : errors;
   }
 
   private boolean hasErrorCountExceeded() {
