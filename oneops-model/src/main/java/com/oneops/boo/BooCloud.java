@@ -1,6 +1,7 @@
 package com.oneops.boo;
 
 public class BooCloud {
+
   private String name;
   private String priority;
   private String dpmt_order;

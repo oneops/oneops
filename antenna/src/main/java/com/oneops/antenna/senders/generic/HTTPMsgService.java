@@ -24,7 +24,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializer;
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.domain.URLSubscriber;
 import com.oneops.antenna.senders.NotificationSender;
 import java.util.Date;

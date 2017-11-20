@@ -17,9 +17,9 @@
  *******************************************************************************/
 package com.oneops.antenna.senders.generic;
 
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationSeverity;
-import com.oneops.antenna.domain.NotificationType;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationSeverity;
+import com.oneops.notification.NotificationType;
 import com.oneops.antenna.domain.XMPPSubscriber;
 import org.testng.annotations.Test;
 

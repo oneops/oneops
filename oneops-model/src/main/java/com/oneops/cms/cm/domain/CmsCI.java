@@ -39,13 +39,8 @@ public class CmsCI extends CmsCIBasic implements Serializable {
   private long nsId;
 
   /**
-   * CI state id (cm_ci_state). The possible states are,
-   * <ul>
-   * <li>default
-   * <li>pending_deletion
-   * <li>replace
-   * <li>locked
-   * </ul>
+   * CI state id (cm_ci_state). The possible states are, <ul> <li>default <li>pending_deletion
+   * <li>replace <li>locked </ul>
    */
   private int ciStateId;
 

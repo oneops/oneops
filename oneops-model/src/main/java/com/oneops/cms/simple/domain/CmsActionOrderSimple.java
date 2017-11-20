@@ -28,7 +28,7 @@ import java.util.Map;
  * The Class CmsActionOrderSimple.
  */
 public class CmsActionOrderSimple extends CmsOpsAction implements
-  CmsWorkOrderSimpleBase<CmsCISimple> {
+    CmsWorkOrderSimpleBase<CmsCISimple> {
 
   private static final long serialVersionUID = 1L;
 
@@ -38,9 +38,7 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
   public CmsCISimple box;
   public Map<String, List<CmsCISimple>> payLoad;
   public Map<String, Map<String, CmsCISimple>> services;
-  public Map<String, String> searchTags = new HashMap<>();
-
-  public Map<String, String> config;
+  public Map<String, String> searchTags = new HashMap<String, String>();
 
   /**
    * Gets the cloud.
@@ -178,7 +176,7 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
 
   @Override
   public boolean isPayloadEntryEqual(String payloadEntry, String attributeName,
-    String valueToBeCompared) {
+      String valueToBeCompared) {
     return false;
   }
 
@@ -195,16 +193,6 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
       }
       this.payLoad.put(key, value);
     }
-  }
-
-  @Override
-  public Map<String, String> getConfig() {
-    return null;
-  }
-
-  @Override
-  public void setConfig(Map<String, String> config) {
-
   }
 
   /**

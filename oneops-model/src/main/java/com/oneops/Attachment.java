@@ -3,6 +3,7 @@ package com.oneops;
 import java.util.Map;
 
 public class Attachment {
+
   private String id;
   private Map<String, String> configuration;
 

@@ -233,36 +233,40 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
       try {
         logger.info(logKey + "Running verification test for the component.");
+
+        String remoteWOPath = getRemoteFileName(wo);
+        String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
+        String localWorOrder = config.getDataDir() + "/" + wo.getDpmtRecordId() + ".json";
+        String host = getWorkOrderHost(wo, logKey);
+        String port = "22";
+        if (!Files.exists(Paths.get(getKitchenSpecPath(wo)))) {
+          logger.info(
+              logKey + "Skipping  test No kitchen test cases found at : " + getKitchenSpecPath(
+                  wo));
+          return responseMap;
+        }
+
+        //Optimize the WorkOrder
+        //TODO 1. No rsync if debug mode is enabled
+        //TODO 2. Make a test dir /INDUCTOR
+        /**
+         * Generate the yaml file with specific test case.
+         * - IP address DONE
+         * - Requires SSH key DONE
+         * - Dynamically generated test case name. DONE
+         * - Copy the workorder to remote compute DONE
+         * - Copy the component DIR to unique- /tmp/ <CID>
+         * - invoke the kitchen ci.
+         * - Result code
+         */
+        //Copy the workorder to remote compute
+
+        logger.info(logKey + "kitchen test cases found at : " + getKitchenSpecPath(wo));
+        String kitchenConfig = null;
+        String sshKeyPath = null;
         if (isRemoteChefCall(wo)) {
-          String remoteWOPath = getRemoteFileName(wo);
-          String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
-          String sshKeyPath = writePrivateKey(wo);
-          String localWorOrder = config.getDataDir() + "/" + wo.getDpmtRecordId() + ".json";
-          String host = getWorkOrderHost(wo, logKey);
-          String port = "22";
-          if (!Files.exists(Paths.get(getKitchenSpecPath(wo)))) {
-            logger.info(
-                logKey + "Skipping  test No kitchen test cases found at : " + getKitchenSpecPath(
-                    wo));
-            return responseMap;
-          }
+          sshKeyPath = writePrivateKey(wo);
 
-          //Optimize the WorkOrder
-          //TODO 1. No rsync if debug mode is enabled
-          //TODO 2. Make a test dir /INDUCTOR
-          /**
-           * Generate the yaml file with specific test case.
-           * - IP address DONE
-           * - Requires SSH key DONE
-           * - Dynamically generated test case name. DONE
-           * - Copy the workorder to remote compute DONE
-           * - Copy the component DIR to unique- /tmp/ <CID>
-           * - invoke the kitchen ci.
-           * - Result code
-           */
-          //Copy the workorder to remote compute
-
-          logger.info(logKey + "kitchen test cases found at : " + getKitchenSpecPath(wo));
           String[] cmdLine = getRsyncCommandLineWo(wo, sshKeyPath);
           logger.info(logKey + " ### SYNC: " + remoteWOPath);
           ProcessResult result = processRunner.executeProcessRetry(
@@ -275,52 +279,67 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             responseMap.put("task_result_code", "500");
             return responseMap;
           }
-          String destDir = "/tmp/" + getShortenedClass(wo.getRfcCi().getCiClassName()) + "-" + wo
-              .getDeploymentId();
-          File dest = new File(destDir);
-          FileSystemUtils.deleteRecursively(dest);
-          FileSystemUtils.copyRecursively(new File(getKitchenTestPath(wo)), dest);
-          String kitchenConfig = generateKitchenConfig(wo, sshKeyPath, logKey);
-          String kitchenConfigPath = format("%s/%dk.yaml", destDir, wo.getDpmtRecordId());
+        }
+        String destDir = "/tmp/" + getShortenedClass(wo.getRfcCi().getCiClassName()) + "-" + wo
+            .getDeploymentId();
+        File dest = new File(destDir);
+        FileSystemUtils.deleteRecursively(dest);
+        FileSystemUtils.copyRecursively(new File(getKitchenTestPath(wo)), dest);
+        if (isRemoteChefCall(wo)) {
+          kitchenConfig = generateKitchenConfig(wo, sshKeyPath, logKey);
+        } else {
+          kitchenConfig = generateKitchenConfig(wo, null, logKey);
+        }
 
-          Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(),
-              StandardOpenOption.CREATE_NEW);
+        String kitchenConfigPath = format("%s/%dk.yaml", destDir, wo.getDpmtRecordId());
 
-          logger
-              .info(logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
-          logger.info(logKey + "Kitchen Config Path: " + kitchenConfigPath);
-          logger.info(logKey + "SSH key path: " + sshKeyPath);
-          logger.info(logKey + "Remote WO Path: " + remoteWOPath);
-          logger.info(logKey + "CookbookPath: " + cookbookPath);
-          logger.info(logKey + "Working Dir: " + destDir);
+        Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(),
+            StandardOpenOption.CREATE_NEW);
 
-          //Execute the kitchen verify
-          Map<String, String> envVars = new HashMap<>();
+        logger
+            .info(logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
+        logger.info(logKey + "Kitchen Config Path: " + kitchenConfigPath);
+        logger.info(logKey + "SSH key path: " + sshKeyPath);
+        logger.info(logKey + "Remote WO Path: " + remoteWOPath);
+        logger.info(logKey + "CookbookPath: " + cookbookPath);
+        logger.info(logKey + "Working Dir: " + destDir);
+
+        //Execute the kitchen verify
+        Map<String, String> envVars = new HashMap<>();
+        if (isRemoteChefCall(wo)) {
           envVars.put("WORKORDER", remoteWOPath);
-          envVars.put("KITCHEN_YAML", kitchenConfigPath);
+        } else {
+          envVars.put("WORKORDER", localWorOrder);
 
-          String[] cmd = {"kitchen", "verify"};
-          result = new ProcessResult();
-          String cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
+        }
+        envVars.put("KITCHEN_YAML", kitchenConfigPath);
+
+        String[] cmd = {"kitchen", "verify"};
+        ProcessResult result = new ProcessResult();
+        String cmdline = null;
+        if (isRemoteChefCall(wo)) {
+          cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
               remoteWOPath);
-          logger.info(logKey + "cmd: " + cmdline);
-          processRunner.executeProcess(cmd, logKey, result, envVars, new File(destDir));
+        } else {
+          cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
+              localWorOrder);
+        }
+        logger.info(logKey + "cmd: " + cmdline);
+        processRunner.executeProcess(cmd, logKey, result, envVars, new File(destDir));
 
-          if (result.getResultCode() > 0) {
-            wo.setComments("Kitchen test failed.");
-            responseMap.put("task_result_code", "500");
-            if (!debugMode) {
-              FileSystemUtils.deleteRecursively(dest);
-            }
-            return responseMap;
-          }
-          //Delete the destination dir.
+        if (result.getResultCode() > 0) {
+          wo.setComments("Kitchen test failed.");
+          responseMap.put("task_result_code", "500");
           if (!debugMode) {
             FileSystemUtils.deleteRecursively(dest);
           }
-        } else {
-          logger.info(logKey + "Skipping KitchenCI test as this is a local component.");
+          return responseMap;
         }
+        //Delete the destination dir.
+        if (!debugMode) {
+          FileSystemUtils.deleteRecursively(dest);
+        }
+
       } catch (Throwable t) {
         logger.info(logKey + "Verification failed: " + t.getMessage());
         logger.error("Verification failed", t);

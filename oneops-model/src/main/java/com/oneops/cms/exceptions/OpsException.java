@@ -50,15 +50,15 @@ public class OpsException extends CmsBaseException {
   }
 
   /**
-   * If the exception is due to a procedure blocking, this method returns the
-   * id of the blocking procedure - if no blocker, it returns null
+   * If the exception is due to a procedure blocking, this method returns the id of the blocking
+   * procedure - if no blocker, it returns null
    *
    * @return id or null
    */
   public Long getBlockingProcedureId() {
     if (this.exceptionDetails.containsKey(ExceptionDetailKey.BLOCKING_PROCEDURE_CI_ID.name())) {
       return Long
-        .valueOf(this.exceptionDetails.get(ExceptionDetailKey.BLOCKING_PROCEDURE_CI_ID.name()));
+          .valueOf(this.exceptionDetails.get(ExceptionDetailKey.BLOCKING_PROCEDURE_CI_ID.name()));
     } else {
       return null;
     }
@@ -72,8 +72,8 @@ public class OpsException extends CmsBaseException {
   }
 
   /**
-   * Adds an entry into the exceptionDetails Map. Useful for clients who catch
-   * this and want to see specifics about the error
+   * Adds an entry into the exceptionDetails Map. Useful for clients who catch this and want to see
+   * specifics about the error
    *
    * @param key Entry key in the map
    * @param value Entry value in the map
@@ -101,7 +101,12 @@ public class OpsException extends CmsBaseException {
   }
 
   public enum ExceptionDetailKey {
-    BLOCKING_PROCEDURE_CI_ID, PROCEDURE_ID, PROCEDURE_NAME, PROCEDURE_STATE, MAX_EXEC_ORDER, ARG_LIST
+    BLOCKING_PROCEDURE_CI_ID,
+    PROCEDURE_ID,
+    PROCEDURE_NAME,
+    PROCEDURE_STATE,
+    MAX_EXEC_ORDER,
+    ARG_LIST
   }
 
 

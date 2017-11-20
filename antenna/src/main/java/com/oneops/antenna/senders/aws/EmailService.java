@@ -33,7 +33,7 @@ import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 import com.oneops.antenna.domain.BasicSubscriber;
 import com.oneops.antenna.domain.EmailMessage;
 import com.oneops.antenna.domain.EmailSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.senders.NotificationSender;
 
 /**

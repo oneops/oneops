@@ -20,7 +20,7 @@ package com.oneops.antenna.senders.generic;
 import org.apache.log4j.Logger;
 
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.senders.NotificationSender;
 
 /**

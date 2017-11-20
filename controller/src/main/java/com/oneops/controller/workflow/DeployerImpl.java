@@ -111,9 +111,6 @@ public class DeployerImpl implements Deployer {
   public DeployerContext fetchPendingWorkOrders(long dpmtId, boolean wait4WoDispatch) {
     logger.info("fetchPendingWorkOrders for deployment " + dpmtId);
     long startTs = System.currentTimeMillis();
-    logger.info("fetchPendingWorkOrders trying to get lock " + dpmtId);
-    //dpmtProcessor.getDpmtLock(dpmtId);
-    logger.info("fetchPendingWorkOrders got the lock " + dpmtId + ", took " + timeElapsed(startTs) + "ms");
     CmsDeployment deployment = dpmtProcessor.getDeployment(dpmtId);
     boolean dpmtFinished = false;
     boolean needsAutoPause = false;
