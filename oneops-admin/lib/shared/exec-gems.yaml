@@ -119,6 +119,9 @@ chef-12.11.18:
       - rest-client
       - 1.6.7
     -
+      - mixlib-shellout
+      - 2.2.7
+    -
       - ms_rest
       - 0.1.1
     -
