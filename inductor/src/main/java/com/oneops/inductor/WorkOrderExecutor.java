@@ -280,8 +280,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
             return responseMap;
           }
         }
-        String destDir = "/tmp/" + getShortenedClass(wo.getRfcCi().getCiClassName()) + "-" + wo
-            .getDeploymentId();
+        String destDir = "/tmp/" + getShortenedClass(wo.getRfcCi().getCiClassName()) + "-" + wo.getDpmtRecordId();
         File dest = new File(destDir);
         FileSystemUtils.deleteRecursively(dest);
         FileSystemUtils.copyRecursively(new File(getKitchenTestPath(wo)), dest);
