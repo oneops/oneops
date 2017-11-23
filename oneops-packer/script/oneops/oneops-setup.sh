@@ -72,13 +72,17 @@ echo "Deploying OneOps Admin "
 
 cd $OO_HOME/dist/oneops-admin-inductor
 INDUCTOR_GEM=\$(ls *.gem)
-INDUCTOR_GEMFILE=\$(ls *.gemfile)
+INDUCTOR_GEMFILE=\$(ls oneops-admin-inductor*.gemfile)
 gem install \$INDUCTOR_GEM --ignore-dependencies --no-ri --no-rdoc
 bundle install --gemfile=\$INDUCTOR_GEMFILE --local
 
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
 bundle install --gemfile=oneops-admin-adapter.gemfile --local
+
+cd $OO_HOME/dist/oneops-admin-inductor
+# install test-kitchen
+bundle install --gemfile=test-kitchen.gemfile
 
 mkdir -p /opt/oneops-admin
 cd /opt/oneops-admin
