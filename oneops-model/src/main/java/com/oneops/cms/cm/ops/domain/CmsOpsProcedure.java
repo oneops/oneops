@@ -44,6 +44,7 @@ public class CmsOpsProcedure implements Serializable {
   private Boolean forceExecution = Boolean.FALSE;
 
   private List<CmsOpsAction> actions = new ArrayList<CmsOpsAction>();
+  private int currentStep;
 
   /**
    * Gets the procedure name.
@@ -288,4 +289,11 @@ public class CmsOpsProcedure implements Serializable {
     this.forceExecution = forceExecution;
   }
 
+  public int getCurrentStep() {
+    return currentStep;
+  }
+
+  public void setCurrentStep(int currentStep) {
+    this.currentStep = currentStep;
+  }
 }

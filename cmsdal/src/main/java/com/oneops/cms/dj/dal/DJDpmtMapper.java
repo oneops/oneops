@@ -85,7 +85,10 @@ public interface DJDpmtMapper {
 	List<Map<String,Object>> getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId, @Param("step") Integer step);
 	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
 	void updateDeploymentExecInfo(CmsDeployment cmsDeployment);
-	int getAndUpdateStepState(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("newState") String newState);
 	void getDpmtLock(long deploymentId);
-	void createDeploymentExec(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("state") String state);
+	void createDeploymentExec(@Param("typeId") short typeId, @Param("deploymentId") long deploymentId,
+			@Param("step") int step, @Param("state") String state);
+	int getAndUpdateStepState(@Param("typeId") short typeId, @Param("deploymentId") long deploymentId,
+			@Param("step") int step, @Param("newState") String newState);
+
 }

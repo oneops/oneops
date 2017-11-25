@@ -73,6 +73,7 @@ public class CmsDpmtProcessor {
   private static final int BOM_RELASE_NSPATH_LENGTH = 5;
 
   private static final String ZONES_SELECTED = "ZONES_SELECTED";
+  private static final short DEPLOYMENT_TYPE = 100;
 
   /**
    * Sets the cm processor.
@@ -974,10 +975,6 @@ public class CmsDpmtProcessor {
     return woCountMap;
   }
 
-  public int getAndUpdateStepState(long deploymentId, int step, String newState) {
-    return dpmtMapper.getAndUpdateStepState(deploymentId, step, newState);
-  }
-
   public void updateDeploymentStep(CmsDeployment deployment) {
     dpmtMapper.updateDeploymentCurrentStep(deployment);
   }
@@ -991,7 +988,11 @@ public class CmsDpmtProcessor {
   }
 
   public void createDeploymentExec(long deploymentId, int step, String state) {
-    dpmtMapper.createDeploymentExec(deploymentId, step, state);
+    dpmtMapper.createDeploymentExec(DEPLOYMENT_TYPE, deploymentId, step, state);
+  }
+
+  public int getAndUpdateStepState(long deploymentId, int step, String newState) {
+    return dpmtMapper.getAndUpdateStepState(DEPLOYMENT_TYPE, deploymentId, step, newState);
   }
 
 }

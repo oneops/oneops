@@ -3366,13 +3366,11 @@ CREATE TABLE dj_deployment (
 
 ALTER TABLE dj_deployment OWNER TO kloopzcm;
 
---
--- Name: dj_deployment_exec; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
---
 
-CREATE TABLE dj_deployment_exec (
-    deployment_exec_id bigint NOT NULL,
-    deployment_id bigint NOT NULL,
+CREATE TABLE cm_execution (
+    exec_id bigint NOT NULL,
+    type_id smallint NOT NULL,
+    process_id bigint NOT NULL,
     step smallint NOT NULL,
     state_id integer,
     created timestamp without time zone DEFAULT now() NOT NULL,
@@ -3380,13 +3378,14 @@ CREATE TABLE dj_deployment_exec (
 );
 
 
-ALTER TABLE dj_deployment_exec OWNER TO kloopzcm;
+ALTER TABLE cm_execution OWNER TO kloopzcm;
 
 --
--- Name: dj_deployment_exec_deployment_exec_id_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
+-- TOC entry 244 (class 1259 OID 1191152)
+-- Name: cm_execution_exec_id_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
-CREATE SEQUENCE dj_deployment_exec_deployment_exec_id_seq
+CREATE SEQUENCE cm_execution_exec_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -3394,13 +3393,15 @@ CREATE SEQUENCE dj_deployment_exec_deployment_exec_id_seq
     CACHE 1;
 
 
-ALTER TABLE dj_deployment_exec_deployment_exec_id_seq OWNER TO kloopzcm;
+ALTER TABLE cm_execution_exec_id_seq OWNER TO kloopzcm;
 
 --
--- Name: dj_deployment_exec_deployment_exec_id_seq; Type: SEQUENCE OWNED BY; Schema: kloopzcm; Owner: kloopzcm
+-- TOC entry 2920 (class 0 OID 0)
+-- Dependencies: 244
+-- Name: cm_execution_exec_id_seq; Type: SEQUENCE OWNED BY; Schema: kloopzcm; Owner: kloopzcm
 --
 
-ALTER SEQUENCE dj_deployment_exec_deployment_exec_id_seq OWNED BY dj_deployment_exec.deployment_exec_id;
+ALTER SEQUENCE cm_execution_exec_id_seq OWNED BY cm_execution.exec_id;
 
 
 --
@@ -3898,12 +3899,7 @@ ALTER TABLE ns_pk_seq OWNER TO kloopzcm;
 COMMENT ON SEQUENCE ns_pk_seq IS 'ns pk sequenece';
 
 
---
--- Name: dj_deployment_exec deployment_exec_id; Type: DEFAULT; Schema: kloopzcm; Owner: kloopzcm
---
-
-ALTER TABLE ONLY dj_deployment_exec ALTER COLUMN deployment_exec_id SET DEFAULT nextval('dj_deployment_exec_deployment_exec_id_seq'::regclass);
-
+ALTER TABLE ONLY cm_execution ALTER COLUMN exec_id SET DEFAULT nextval('cm_execution_exec_id_seq'::regclass);
 
 --
 -- Data for Name: cm_ci; Type: TABLE DATA; Schema: kloopzcm; Owner: kloopzcm
@@ -14479,10 +14475,10 @@ INSERT INTO dj_deployment VALUES (73078, 0, 8029, 72816, 'bannama', 'oneops-syst
 
 
 --
--- Data for Name: dj_deployment_exec; Type: TABLE DATA; Schema: kloopzcm; Owner: kloopzcm
+-- Data for Name: cm_execution; Type: TABLE DATA; Schema: kloopzcm; Owner: kloopzcm
 --
 
-INSERT INTO dj_deployment_exec VALUES (96, 73078, 1, 100, '2017-11-10 12:09:41.8759', NULL);
+INSERT INTO cm_execution VALUES (96, 100, 73078, 1, 100, '2017-11-10 12:09:41.8759', NULL);
 
 
 --
@@ -17227,11 +17223,7 @@ INSERT INTO ns_opt_tag VALUES (1, 'InitialTag');
 SELECT pg_catalog.setval('cm_pk_seq', 19703, true);
 
 
---
--- Name: dj_deployment_exec_deployment_exec_id_seq; Type: SEQUENCE SET; Schema: kloopzcm; Owner: kloopzcm
---
-
-SELECT pg_catalog.setval('dj_deployment_exec_deployment_exec_id_seq', 96, true);
+SELECT pg_catalog.setval('cm_execution_exec_id_seq', 96, true);
 
 
 --
@@ -17429,12 +17421,8 @@ ALTER TABLE ONLY dj_approval_states
     ADD CONSTRAINT dj_approval_states_pk PRIMARY KEY (state_id);
 
 
---
--- Name: dj_deployment_exec dj_deployment_exec_pkey; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
---
-
-ALTER TABLE ONLY dj_deployment_exec
-    ADD CONSTRAINT dj_deployment_exec_pkey PRIMARY KEY (deployment_exec_id);
+ALTER TABLE ONLY cm_execution
+    ADD CONSTRAINT cm_execution_pkey PRIMARY KEY (exec_id);
 
 
 --
@@ -17824,12 +17812,7 @@ CREATE UNIQUE INDEX cms_vars_idx2 ON cms_vars USING btree (var_name) WHERE (crit
 CREATE UNIQUE INDEX df_ci_goid_idx ON cm_ci USING btree (ci_goid);
 
 
---
--- Name: dj_deployment_exec_d_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
---
-
-CREATE UNIQUE INDEX dj_deployment_exec_d_idx ON dj_deployment_exec USING btree (deployment_id, step);
-
+CREATE UNIQUE INDEX cm_exec_idx ON cm_execution USING btree (type_id, process_id, step);
 
 --
 -- Name: dj_deployment_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
@@ -18358,13 +18341,6 @@ ALTER TABLE ONLY dj_rfc_ci
 ALTER TABLE ONLY dj_deployment_rfc
     ADD CONSTRAINT dj_deployment_dj_deployment_rfc_fk FOREIGN KEY (deployment_id) REFERENCES dj_deployment(deployment_id) ON DELETE CASCADE;
 
-
---
--- Name: dj_deployment_exec dj_deployment_exec_deployment_id_fkey; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
---
-
-ALTER TABLE ONLY dj_deployment_exec
-    ADD CONSTRAINT dj_deployment_exec_deployment_id_fkey FOREIGN KEY (deployment_id) REFERENCES dj_deployment(deployment_id) ON DELETE CASCADE;
 
 
 --

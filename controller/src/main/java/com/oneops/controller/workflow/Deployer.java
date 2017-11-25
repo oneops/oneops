@@ -8,11 +8,13 @@ import javax.jms.JMSException;
 
 public interface Deployer {
 
+  public static final String DEPLOYMENT_TYPE = "deployment";
+
   public void deploy(CmsDeployment dpmt);
 
   public void processWorkflow(WorkflowMessage wfMessage);
 
-  public DeployerContext fetchPendingWorkOrders(long dpmtId, boolean wait4WoDispatch);
+  public DeploymentContext fetchPendingWorkOrders(long dpmtId);
 
   public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params) throws JMSException;
 

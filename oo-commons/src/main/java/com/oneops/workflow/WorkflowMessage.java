@@ -4,14 +4,22 @@ import java.io.Serializable;
 
 public class WorkflowMessage implements Serializable {
 
-  private long dpmtId;
+  private long executionId;
+  private String type;
 
-  public long getDpmtId() {
-    return dpmtId;
+  public long getExecutionId() {
+    return executionId;
   }
 
-  public void setDpmtId(long dpmtId) {
-    this.dpmtId = dpmtId;
+  public void setExecutionId(long executionId) {
+    this.executionId = executionId;
   }
 
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
 }

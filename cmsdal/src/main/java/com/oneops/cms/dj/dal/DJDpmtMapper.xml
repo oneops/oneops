@@ -657,20 +657,6 @@
 		where deployment_id = ${deploymentId}
 	</update>
 
-	<update id="getAndUpdateStepState" parameterType="map" statementType="PREPARED">
-		WITH state AS (
-			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{newState}
-		)
-		UPDATE dj_deployment_exec de
-	  SET state_id = s.id
-	  FROM (SELECT deployment_exec_id id
-	  			FROM dj_deployment_exec
-	  			WHERE deployment_id = #{deploymentId}
-	  			  AND step = #{step} FOR UPDATE) t, state s
-	  WHERE de.deployment_exec_id = t.id
-		  AND de.state_id != s.id
-	</update>
-
 	<select id="getDpmtLock" parameterType="long" statementType="PREPARED" resultType="boolean">
 		SELECT pg_advisory_xact_lock(#{value})
 	</select>
@@ -679,9 +665,24 @@
     WITH state AS (
 			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{state}
     )
-		INSERT INTO dj_deployment_exec (deployment_id, step, state_id)
-		VALUES (#{deploymentId}, #{step}, (SELECT id from state))
-		ON CONFLICT (deployment_id, step) DO UPDATE SET state_id = (SELECT id from state)
+		INSERT INTO cm_execution (type_id, process_id, step, state_id)
+			VALUES (#{typeId}, #{deploymentId}, #{step}, (SELECT id from state))
+			ON CONFLICT (type_id, process_id, step) DO UPDATE SET state_id = (SELECT id from state)
 	</insert>
+
+	<update id="getAndUpdateStepState" parameterType="map" statementType="PREPARED">
+		WITH state AS (
+			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{newState}
+		)
+		UPDATE cm_execution ex
+		SET state_id = s.id
+		FROM (SELECT exec_id id
+					FROM cm_execution
+					WHERE type_id = #{typeId}
+						AND process_id = #{deploymentId}
+						AND step = #{step} FOR UPDATE) t, state s
+		WHERE ex.exec_id = t.id
+			AND ex.state_id != s.id
+	</update>
 
 </mapper>

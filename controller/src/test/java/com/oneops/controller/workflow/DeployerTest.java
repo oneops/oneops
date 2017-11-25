@@ -137,7 +137,11 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
     verifyWo(1, 1);
     completeWos(DPMT_ID, 1, 1);
     processWorkOrders(DPMT_ID);
-    verifyDpmtState(DPMT_ID, DPMT_STATE_PAUSED);
+    CmsDeployment dpmt = verifyDpmtState(DPMT_ID, DPMT_STATE_PAUSED);
+    dpmt.setDeploymentState(DPMT_STATE_ACTIVE);
+    dpmtProessor.updateDeployment(dpmt);
+    processWorkOrders(DPMT_ID);
+    verifyWo(2, 1);
   }
 
   @Test
@@ -228,7 +232,7 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
 
   private void verifyConverge(long dpmtId) {
     try {
-      verify(workflowPublisher).sendWorkflowMessage(dpmtId, null);
+      verify(workflowPublisher).sendWorkflowMessage(Deployer.DEPLOYMENT_TYPE, dpmtId, null);
       reset(workflowPublisher);
     } catch(Exception e) {
       Assert.fail("failed verifying converge");

@@ -17,14 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.cm.ops.service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -41,6 +33,14 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.exceptions.OpsException;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.log4j.Logger;
 /**
  * The Class OpsProcedureProcessor.
  */
@@ -58,6 +58,7 @@ public class OpsProcedureProcessor {
     private static final String ALREADY_HAS_ACTIVE_OPS_ACTION = " already has active ops action: ";
     private static final String NO_ACTION_ITH_ID = "There is no action with this id: ";
     private static final String ACTION_IS_IN_WRONG_STATE = "Action is in wrong state id:";
+	private static final short PROCEDURE_TYPE = 200;
 
     
 	/**
@@ -696,5 +697,28 @@ public class OpsProcedureProcessor {
 	public long getCmsOpsProceduresCountForCiFromTime(long ciId,
 			List<OpsProcedureState> stateList, String procedureName, Date timestamp) {
 		return opsMapper.getCmsOpsProceduresCountForCiFromTime(ciId, stateList, procedureName, timestamp);
+	}
+
+	public Map<String, Integer> getActionsCountByState(long procedureId, int execOrder) {
+		List<Map<String,Object>> list = opsMapper.getActionsCountByStates(procedureId, execOrder);
+		Map<String, Integer> aoCountMap = new HashMap<>();
+		if (list != null) {
+			list.stream().forEach(m -> {
+				aoCountMap.put((String) m.get("state"), ((Long) m.get("count")).intValue());
+			});
+		}
+		return aoCountMap;
+	}
+
+	public void createProcedureExec(long procedureId, int step, String state) {
+		opsMapper.createProcedureExec(PROCEDURE_TYPE, procedureId, step, state);
+	}
+
+	public int getAndUpdateStepState(long procedureId, int step, String newState) {
+		return opsMapper.getAndUpdateStepState(PROCEDURE_TYPE, procedureId, step, newState);
+	}
+
+	public void updateProcedureCurrentStep(CmsOpsProcedure procedure) {
+    	opsMapper.updateProcedureCurrentStep(procedure);
 	}
 }

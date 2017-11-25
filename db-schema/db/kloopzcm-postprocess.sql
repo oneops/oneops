@@ -214,3 +214,5 @@ CREATE UNIQUE INDEX cms_vars_idx2
 ALTER TABLE kloopzcm.dj_deployment ADD COLUMN current_step SMALLINT;
 ALTER TABLE kloopzcm.dj_deployment ADD COLUMN exec_model VARCHAR(100);
 ALTER TABLE kloopzcm.dj_deployment_rfc ADD COLUMN step SMALLINT;
+
+ALTER TABLE kloopzcm.cm_ops_procedures ADD COLUMN current_step SMALLINT;
