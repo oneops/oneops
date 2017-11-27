@@ -41,6 +41,7 @@ import static com.oneops.inductor.InductorConstants.TEST_HOST;
 import static com.oneops.inductor.InductorConstants.UPDATE;
 import static com.oneops.inductor.InductorConstants.WATCHED_BY;
 import static java.lang.String.format;
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import com.codahale.metrics.MetricRegistry;
@@ -52,14 +53,15 @@ import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
+import com.oneops.inductor.util.PathUtils;
 import com.oneops.inductor.util.ResourceUtils;
 import java.io.File;
 import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,7 +75,6 @@ import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.springframework.util.FileSystemUtils;
 import org.stringtemplate.v4.ST;
 
 /**
@@ -154,18 +155,19 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         wo.setResultCi(resultCi);
         logger.info("completing wo without doing anything because dns is off");
       } else {
-        // creates the json chefRequest and exec's chef to run chef
-        // local or remote via ssh/mc
+        // creates the json chefRequest and exec's chef to run chef local or remote via ssh/mc
         runWorkOrder(wo);
       }
     }
 
     long endTime = System.currentTimeMillis();
     int duration = Math.round((endTime - startTime) / 1000);
-    logger.info(wo.getRfcCi().getRfcAction() + " "
-        + wo.getRfcCi().getImpl() + " "
-        + wo.getRfcCi().getCiClassName() + " "
-        + wo.getRfcCi().getCiName() + " took: " + duration + "sec");
+    logger.info(format("%s %s %s %s took: %d sec",
+        wo.getRfcCi().getRfcAction(),
+        wo.getRfcCi().getImpl(),
+        wo.getRfcCi().getCiClassName(),
+        wo.getRfcCi().getCiName(),
+        duration));
 
     setTotalExecutionTime(wo, endTime - startTime);
     wo.putSearchTag(RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
@@ -178,42 +180,55 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    * @param wo component work order.
    * @return circuit root directory path.
    */
-  public Path getCircuitRoot(CmsWorkOrderSimple wo) {
+  public Path getCircuitDir(CmsWorkOrderSimple wo) {
     String circuitName = getCookbookPath(wo.getRfcCi().getCiClassName());
     return Paths.get(config.getCircuitDir().replace("packer", circuitName));
   }
 
-
-  public String getKitchenSpecPath(CmsWorkOrderSimple wo) {
-    ///opt/oneops/inductor/circuit-oneops-1/ components/cookbooks/ user/ test/integration/add/serverspec/add_spec.rb
-    String testFileDir = getKitchenTestPath(wo);
-    String specFilePath = getSpecFilePath(wo, testFileDir);
-    return specFilePath;
+  /**
+   * Returns the cookbook directory of the component.
+   *
+   * @param wo component work order.
+   * @return cookbook directory path.
+   */
+  public Path getCookbookDir(CmsWorkOrderSimple wo) {
+    String compName = getShortenedClass(wo.getRfcCi().getCiClassName());
+    Path circuitDir = getCircuitDir(wo);
+    return circuitDir.resolve("components/cookbooks/" + compName);
   }
 
-  public String getSpecFilePath(CmsWorkOrderSimple wo, String testFileDir) {
-    return String.format("%s/test/integration/%s/serverspec/%s_spec.rb", testFileDir,
-        wo.getRfcCi().getRfcAction(), wo.getRfcCi().getRfcAction());
+  /**
+   * Returns the verification spec file path for the component action. The path is :
+   * {circuit_root}/components/cookbooks/user/test/integration/{action}/serverspec/{action}_spec.rb
+   *
+   * @param wo component work order.
+   * @return action spec file path.
+   */
+  public Path getActionSpecPath(CmsWorkOrderSimple wo) {
+    String action = wo.getRfcCi().getRfcAction();
+    return getCookbookDir(wo)
+        .resolve(format("test/integration/%s/serverspec/%s_spec.rb", action, action));
   }
 
-  public String getKitchenTestPath(CmsWorkOrderSimple wo) {
-    String baseDir = config.getCircuitDir().replace("packer",
-        getCookbookPath(wo.getRfcCi().getCiClassName()));
-    String cookbookDir = baseDir + "/components/cookbooks/" +
-        getShortenedClass(wo.getRfcCi().getCiClassName());
-    return cookbookDir;
-  }
 
-  public String[] getRsyncCommandLineWo(CmsWorkOrderSimple o, String sshKeyPath) {
-    String[] rsyncCmdLineWithKey = rsyncCmdLine.clone();
-    String remoteWOPath = getRemoteFileName(o);
-    String port = "22";
-    String host = getWorkOrderHost(o, getLogKey(o));
-    rsyncCmdLineWithKey[4] += "-p " + port + " -qi " + sshKeyPath;
-    String[] cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
-        new String[]{config.getDataDir() + "/" + o.getDpmtRecordId() + ".json",
-            "oneops" + "@" + host + ":" + remoteWOPath});
-    return cmdLine;
+  /**
+   * Returns the remote work order rsync command.
+   *
+   * @param o component work order.
+   * @param sshKey ssh key path.
+   * @param logKey log key.
+   * @return rsync command.
+   */
+  public String[] getRemoteWoRsyncCmd(CmsWorkOrderSimple o, String sshKey, String logKey) {
+    int size = rsyncCmdLine.length;
+    String host = getWorkOrderHost(o, logKey);
+
+    String[] cmd = Arrays.copyOf(rsyncCmdLine, size + 2);
+    // Some nasty hack due to legacy code :‑/
+    cmd[4] += format("-p 22 -qi %s", sshKey);
+    cmd[size] = format("%s/%d.json", config.getDataDir(), o.getDpmtRecordId());
+    cmd[size + 1] = format("oneops@%s:%s", host, getRemoteFileName(o));
+    return cmd;
   }
 
   /**
@@ -225,129 +240,97 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    */
   protected Map<String, String> runVerification(CmsWorkOrderSimpleBase o,
       Map<String, String> responseMap) {
+
     if (config.isVerifyMode()) {
       CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
       String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
-      boolean debugMode = isDebugEnabled(wo);
+
+      if (config.isCloudStubbed(wo)) {
+        logger.info(logKey + "Skipping verification for stubbed cloud.");
+        return responseMap;
+      }
+
+      if (!Files.exists(getActionSpecPath(wo))) {
+        logger.info(logKey + "Skipping verification. No spec found at : " + getActionSpecPath(wo));
+        return responseMap;
+      }
+
+      String action = wo.getRfcCi().getRfcAction();
+      String compName = getShortenedClass(wo.getRfcCi().getCiClassName());
 
       try {
-        logger.info(logKey + "Running verification test for the component.");
-
-        String remoteWOPath = getRemoteFileName(wo);
-        String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
-        String localWorOrder = config.getDataDir() + "/" + wo.getDpmtRecordId() + ".json";
+        logger.info(
+            format("%sRunning '%s' verification for component '%s'", logKey, action, compName));
         String host = getWorkOrderHost(wo, logKey);
-        String port = "22";
-        if (!Files.exists(Paths.get(getKitchenSpecPath(wo)))) {
-          logger.info(
-              logKey + "Skipping  test No kitchen test cases found at : " + getKitchenSpecPath(
-                  wo));
-          return responseMap;
-        }
+        String localWOPath = format("%s/%d.json", config.getDataDir(), wo.getDpmtRecordId());
+        String remoteWOPath = getRemoteFileName(wo);
 
-        //Optimize the WorkOrder
-        //TODO 1. No rsync if debug mode is enabled
-        //TODO 2. Make a test dir /INDUCTOR
-        /**
-         * Generate the yaml file with specific test case.
-         * - IP address DONE
-         * - Requires SSH key DONE
-         * - Dynamically generated test case name. DONE
-         * - Copy the workorder to remote compute DONE
-         * - Copy the component DIR to unique- /tmp/ <CID>
-         * - invoke the kitchen ci.
-         * - Result code
-         */
-        //Copy the workorder to remote compute
+        boolean debugMode = isDebugEnabled(wo);
+        boolean isRemoteWO = isRemoteChefCall(wo);
+        logger.info(logKey + "Local WO Path: " + localWOPath);
+        logger.info(logKey + "Remote WO Path: " + remoteWOPath);
+        logger.info(logKey + "Circuit Path: " + getCircuitDir(wo));
+        logger.info(logKey + "Debug mode: " + debugMode);
 
-        logger.info(logKey + "kitchen test cases found at : " + getKitchenSpecPath(wo));
-        String kitchenConfig = null;
-        String sshKeyPath = null;
-        if (isRemoteChefCall(wo)) {
-          sshKeyPath = writePrivateKey(wo);
+        // Copy remote work-order.
+        String sshKey = null;
+        if (isRemoteWO) {
+          sshKey = writePrivateKey(wo);
+          logger.info(logKey + "SSH key path: " + sshKey);
+          String[] cmdLine = getRemoteWoRsyncCmd(wo, sshKey, logKey);
+          logger.info(logKey + "### SYNC: " + remoteWOPath);
+          ProcessResult result = processRunner
+              .executeProcessRetry(new ExecutionContext(wo, cmdLine, logKey, retryCount));
 
-          String[] cmdLine = getRsyncCommandLineWo(wo, sshKeyPath);
-          logger.info(logKey + " ### SYNC: " + remoteWOPath);
-          ProcessResult result = processRunner.executeProcessRetry(
-              new ExecutionContext(wo, cmdLine, logKey, retryCount));
           if (result.getResultCode() > 0) {
-            wo.setComments("FATAL: " + generateRsyncErrorMessage(result.getResultCode(),
-                host + ":" + port));
-            handleRsyncFailure(wo, sshKeyPath);
-            //TODO modify the re
+            wo.setComments(
+                "FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":22"));
+            handleRsyncFailure(wo, sshKey);
             responseMap.put("task_result_code", "500");
             return responseMap;
           }
         }
-        String destDir = "/tmp/" + getShortenedClass(wo.getRfcCi().getCiClassName()) + "-" + wo.getDpmtRecordId();
-        File dest = new File(destDir);
-        FileSystemUtils.deleteRecursively(dest);
-        FileSystemUtils.copyRecursively(new File(getKitchenTestPath(wo)), dest);
-        if (isRemoteChefCall(wo)) {
-          kitchenConfig = generateKitchenConfig(wo, sshKeyPath, logKey);
-        } else {
-          kitchenConfig = generateKitchenConfig(wo, null, logKey);
-        }
 
-        String kitchenConfigPath = format("%s/%dk.yaml", destDir, wo.getDpmtRecordId());
+        // Copy cookbook to tmp working directory.
+        Path workDir = Paths.get(format("/tmp/%s-%d", compName, wo.getDpmtRecordId()));
+        logger.info(logKey + "Working Dir: " + workDir);
+        PathUtils.delete(workDir);
+        PathUtils.copy(getCookbookDir(wo), workDir, config.getVerifyExcludePaths());
 
-        Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(),
-            StandardOpenOption.CREATE_NEW);
+        // Generate kitchen config.
+        String kitchenConfigPath = format("%s/%dk.yaml", workDir, wo.getDpmtRecordId());
+        logger.info(logKey + "Generating Kitchen Config : " + kitchenConfigPath);
+        String kitchenConfig = generateKitchenConfig(wo, sshKey, logKey);
+        Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(), CREATE_NEW);
 
-        logger
-            .info(logKey + "Generated kitchen config for deployment id: " + wo.getDpmtRecordId());
-        logger.info(logKey + "Kitchen Config Path: " + kitchenConfigPath);
-        logger.info(logKey + "SSH key path: " + sshKeyPath);
-        logger.info(logKey + "Remote WO Path: " + remoteWOPath);
-        logger.info(logKey + "CookbookPath: " + cookbookPath);
-        logger.info(logKey + "Working Dir: " + destDir);
-
-        //Execute the kitchen verify
-        Map<String, String> envVars = new HashMap<>();
-        if (isRemoteChefCall(wo)) {
-          envVars.put("WORKORDER", remoteWOPath);
-        } else {
-          envVars.put("WORKORDER", localWorOrder);
-
-        }
-        envVars.put("KITCHEN_YAML", kitchenConfigPath);
-
+        // Execute the kitchen verify
+        String woPath = isRemoteWO ? remoteWOPath : localWOPath;
         String[] cmd = {"kitchen", "verify"};
         ProcessResult result = new ProcessResult();
-        String cmdline = null;
-        if (isRemoteChefCall(wo)) {
-          cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
-              remoteWOPath);
-        } else {
-          cmdline = format("KITCHEN_YAML=%s WORKORDER=%s kitchen verify", kitchenConfigPath,
-              localWorOrder);
-        }
-        logger.info(logKey + "cmd: " + cmdline);
-        processRunner.executeProcess(cmd, logKey, result, envVars, new File(destDir));
-
+        Map<String, String> envVars = new HashMap<>();
+        envVars.put("WORKORDER", woPath);
+        envVars.put("KITCHEN_YAML", kitchenConfigPath);
+        processRunner.executeProcess(cmd, logKey, result, envVars, workDir.toFile());
         if (result.getResultCode() > 0) {
-          wo.setComments("Kitchen test failed.");
+          wo.setComments("FATAL: Spec verification failed!");
           responseMap.put("task_result_code", "500");
-          if (!debugMode) {
-            FileSystemUtils.deleteRecursively(dest);
-          }
-          return responseMap;
-        }
-        //Delete the destination dir.
-        if (!debugMode) {
-          FileSystemUtils.deleteRecursively(dest);
         }
 
+        // Clean up working dir.
+        if (!debugMode) {
+          PathUtils.delete(workDir);
+        }
       } catch (Throwable t) {
         logger.info(logKey + "Verification failed: " + t.getMessage());
         logger.error("Verification failed", t);
-        // Change the task result code in case of any error.
         responseMap.put("task_result_code", "500");
+      } finally {
+        logger.info(logKey + " Run Verification took: "
+            + MILLISECONDS.toSeconds(System.currentTimeMillis() - start) + " seconds.");
       }
-      logger.info(logKey + " Run Verification took: " + MILLISECONDS
-          .toSeconds(System.currentTimeMillis() - start) + " seconds.");
     }
+
     return responseMap;
   }
 
@@ -360,18 +343,17 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    * @return kitchen yaml string for the work-order.
    */
   public String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) {
-    boolean local = !isRemoteChefCall(wo);
-    String host = local ? "127.0.0.1" : getWorkOrderHost(wo, logKey);
-
-    ST config = new ST(verifyTemplate);
-    config.add("local", local);
-    config.add("circuit_root", getCircuitRoot(wo));
-    config.add("recipe_name", wo.getRfcCi().getRfcAction());
-    config.add("driver_host", host);
-    config.add("platform_name", "centos-7.1");
-    config.add("user", ONEOPS_USER);
-    config.add("ssh_key", sshKey);
-    return config.render();
+    String inductorHome = config.getCircuitDir().replace("packer", "");
+    ST st = new ST(verifyTemplate);
+    st.add("local", !isRemoteChefCall(wo));
+    st.add("circuit_root", getCircuitDir(wo));
+    st.add("inductor_home", inductorHome);
+    st.add("recipe_name", wo.getRfcCi().getRfcAction());
+    st.add("driver_host", getWorkOrderHost(wo, logKey));
+    st.add("platform_name", "centos-7.1");
+    st.add("user", ONEOPS_USER);
+    st.add("ssh_key", sshKey);
+    return st.render();
   }
 
 
@@ -477,10 +459,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
     String chefConfig = writeChefConfig(wo, cookbookPath);
     // run local - iaas calls to provision vm
-    String[] cmd = buildChefSoloCmd(fileName, chefConfig,
-        isDebugEnabled(wo));
-    logger.info(logKey + " ### EXEC: localhost "
-        + StringUtils.join(cmd, " "));
+    String[] cmd = buildChefSoloCmd(fileName, chefConfig, isDebugEnabled(wo));
+    logger.info(logKey + " ### EXEC: localhost " + String.join(" ", cmd));
 
     int woRetryCount = getRetryCountForWorkOrder(wo);
 
@@ -687,15 +667,13 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    */
   private void runWorkOrder(CmsWorkOrderSimple wo) {
 
-    // check to see if should be remote by looking at proxy
     Boolean isRemote = isRemoteChefCall(wo);
-
-    // file-based request keyed by deployment record id - remotely by
-    // class.ciName for ease of debug
+    // Remote WO file name to rsync to.
     String remoteFileName = getRemoteFileName(wo);
     String fileName = config.getDataDir() + "/" + wo.getDpmtRecordId() + ".json";
     logger.info("writing config to: " + fileName + " remote: " + remoteFileName);
-    // assume failed; gets set to COMPLETE at the end
+
+    // Assume failed; gets set to COMPLETE at the end.
     wo.setDpmtRecordState(FAILED);
     String appName = normalizeClassName(wo);
     String logKey = getLogKey(wo);
@@ -703,21 +681,17 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     wo.putSearchTag("inductor", config.getIpAddr());
 
     writeChefRequest(wo, fileName);
-
     String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
     logger.info("cookbookPath: " + cookbookPath);
 
-    Set<String> serviceCookbookPaths = null;
-
     // sync cookbook and chef json request to remote site
+    Set<String> serviceCookbookPaths = null;
     String host = null;
     String user = "oneops";
-
     String keyFile = null;
     String port = "22";
 
     if (isRemote) {
-
       host = getWorkOrderHost(wo, logKey);
 
       try {
@@ -726,6 +700,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
         logger.error(e.getMessage());
         return;
       }
+
       if (host.contains(":")) {
         String[] parts = host.split(":");
         host = parts[0];
@@ -745,7 +720,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       }
 
       String rfcAction = wo.getRfcCi().getRfcAction();
-
       logger.info("rfc: " + wo.getRfcCi().getRfcId() + ", appName: " + appName + ", rfcAction: "
           + rfcAction);
 
@@ -763,14 +737,14 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
           return;
         }
       }
+
       String baseDir = config.getCircuitDir().replace("packer", cookbookPath);
       String components = baseDir + "/components";
       String destination = "/home/" + user + "/" + cookbookPath;
 
       // always sync base cookbooks/modules
       String[] cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
-          new String[]{components,
-              user + "@" + host + ":" + destination});
+          new String[]{components, user + "@" + host + ":" + destination});
       logger.info(logKey + " ### SYNC BASE: " + components);
 
       if (!host.equals(TEST_HOST)) {
@@ -807,8 +781,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       String sharedComponents = config.getCircuitDir().replace("packer", "shared/");
       destination = "/home/" + user + "/shared/";
       cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
-          new String[]{sharedComponents,
-              user + "@" + host + ":" + destination});
+          new String[]{sharedComponents, user + "@" + host + ":" + destination});
       logger.info(logKey + " ### SYNC SHARED: " + sharedComponents);
 
       if (!host.equals(TEST_HOST)) {
@@ -828,9 +801,9 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
 
       // rsync  workorder
       cmdLine = (String[]) ArrayUtils.addAll(rsyncCmdLineWithKey,
-          new String[]{fileName,
-              user + "@" + host + ":" + remoteFileName});
+          new String[]{fileName, user + "@" + host + ":" + remoteFileName});
       logger.info(logKey + " ### SYNC: " + remoteFileName);
+
       if (!host.equals(TEST_HOST)) {
         ProcessResult result = processRunner.executeProcessRetry(
             new ExecutionContext(wo, cmdLine, logKey, retryCount));
@@ -865,11 +838,11 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
           + wo.getRfcCi().getImpl() + " " + remoteFileName + " "
           + cookbookPath + " " + additionalCookbookPaths + " " + debugFlag;
 
-      cmd = (String[]) ArrayUtils.addAll(sshCmdLine, new String[]{
-          keyFile, "-p " + port, user + "@" + host, remoteCmd});
-      logger.info(logKey + " ### EXEC: " + user + "@" + host + " "
-          + remoteCmd);
+      cmd = (String[]) ArrayUtils
+          .addAll(sshCmdLine, new String[]{keyFile, "-p " + port, user + "@" + host, remoteCmd});
+      logger.info(logKey + " ### EXEC: " + user + "@" + host + " " + remoteCmd);
       int woRetryCount = getRetryCountForWorkOrder(wo);
+
       if (!host.equals(TEST_HOST)) {
         ProcessResult result = executeWorkOrderRemote(
             new ExecutionContext(wo, cmd, logKey, woRetryCount), fileName, cookbookPath);
@@ -916,6 +889,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       removeFile(fileName);
     }
   }
+
 
   private ProcessResult executeWorkOrderRemote(ExecutionContext executionContext, String fileName,
       String cookbookPath) {

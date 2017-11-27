@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
@@ -75,14 +74,20 @@ public class InductorTest {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setDataDir("/tmp/wos");
 
-    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
-    final String kitchenTestPath = executor.getKitchenTestPath(wo);
-    assertTrue(
-        kitchenTestPath.equals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user"));
-    final String kitchenSpecPath = executor.getSpecFilePath(wo, kitchenTestPath);
-    assertTrue(kitchenSpecPath.equals(
-        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb"));
+    WorkOrderExecutor woExec = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    assertEquals("/opt/oneops/inductor/circuit-oneops-1", woExec.getCircuitDir(wo).toString());
+    assertEquals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user",
+        woExec.getCookbookDir(wo).toString());
+    assertEquals(
+        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/user/test/integration/add/serverspec/add_spec.rb",
+        woExec.getActionSpecPath(wo).toString());
+
+    final String[] cmdLine = woExec.getRemoteWoRsyncCmd(wo, "sshkey", "");
+    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
+    assertEquals(rsync, Arrays.toString(cmdLine));
   }
 
   @Test
@@ -169,20 +174,6 @@ public class InductorTest {
     String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
     Object yamlConfig = yaml.load(config);
     assertNotNull("Invalid kitchen config.", yamlConfig);
-  }
-
-  // @Test
-  public void getWorkOrderRsyncCommand() {
-    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
-    Config cfg = new Config();
-    cfg.setCircuitDir("/opt/oneops/inductor/packer");
-    cfg.setIpAttribute("public_ip");
-    cfg.setDataDir("/tmp/wos");
-
-    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
-    final String[] cmdLine = executor.getRsyncCommandLineWo(wo, "sshkey");
-    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
-    Assert.assertEquals(Arrays.toString(cmdLine), rsync);
   }
 
   /**

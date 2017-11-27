@@ -20,18 +20,18 @@ verifier:
   remote_exec: false
   transport: local
   test_serverspec_installed: false
-  additional_install_command: "mkdir -p <circuit_root>/gems"
-  bundler_path: 'GEM_HOME=<circuit_root>/gems /usr/local/bin'
+  additional_install_command: "mkdir -p <inductor_home>/test/gems"
+  bundler_path: 'GEM_HOME=<inductor_home>/test/gems /usr/local/bin'
   gemfile: test/integration/Gemfile
   env_vars:
-    GEM_PATH: <circuit_root>/gems:/usr/local/share/gems
+    GEM_PATH: <inductor_home>/test/gems:/usr/local/share/gems
 platforms:
   - name: <platform_name>
 suites:
   - name: <recipe_name>
     verifier:
       patterns:
-      - test/integration/<recipe_name>/serverspec/<recipe_name>_spec.rb
+      - test/integration/<recipe_name>/serverspec/*_spec.rb
 
 <else>
 driver:
