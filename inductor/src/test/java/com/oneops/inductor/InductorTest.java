@@ -86,8 +86,8 @@ public class InductorTest {
         woExec.getActionSpecPath(wo).toString());
 
     final String[] cmdLine = woExec.getRemoteWoRsyncCmd(wo, "sshkey", "");
-    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null , --timeout=0, -p 22 -qi sshkey, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
-    assertEquals(Arrays.toString(cmdLine), rsync);
+    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
+    assertEquals(rsync, Arrays.toString(cmdLine));
   }
 
   @Test

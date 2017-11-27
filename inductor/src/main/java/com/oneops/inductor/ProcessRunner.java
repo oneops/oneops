@@ -176,7 +176,7 @@ public class ProcessRunner {
       Map<String, String> additionalEnvVars, File workingDir) {
 
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
-    logger.info(format("%s Cmd: %s, Additional Env: %s", logKey,
+    logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey,
         String.join(" ", cmd), additionalEnvVars));
 
     try {

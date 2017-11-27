@@ -66,7 +66,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -221,12 +220,15 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    * @return rsync command.
    */
   public String[] getRemoteWoRsyncCmd(CmsWorkOrderSimple o, String sshKey, String logKey) {
+    int size = rsyncCmdLine.length;
     String host = getWorkOrderHost(o, logKey);
-    List<String> cmds = new LinkedList<>(Arrays.asList(rsyncCmdLine));
-    cmds.add(format("-p 22 -qi %s", sshKey));
-    cmds.add(format("%s/%d.json", config.getDataDir(), o.getDpmtRecordId()));
-    cmds.add(format("oneops@%s:%s", host, getRemoteFileName(o)));
-    return cmds.toArray(new String[0]);
+
+    String[] cmd = Arrays.copyOf(rsyncCmdLine, size + 2);
+    // Some nasty hack due to legacy code :‑/
+    cmd[4] += format("-p 22 -qi %s", sshKey);
+    cmd[size] = format("%s/%d.json", config.getDataDir(), o.getDpmtRecordId());
+    cmd[size + 1] = format("oneops@%s:%s", host, getRemoteFileName(o));
+    return cmd;
   }
 
   /**
@@ -258,18 +260,17 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       String compName = getShortenedClass(wo.getRfcCi().getCiClassName());
 
       try {
-        logger.info(String
-            .format("%sRunning '%s' verification for component '%s'", logKey, action, compName));
+        logger.info(
+            format("%sRunning '%s' verification for component '%s'", logKey, action, compName));
         String host = getWorkOrderHost(wo, logKey);
         String localWOPath = format("%s/%d.json", config.getDataDir(), wo.getDpmtRecordId());
         String remoteWOPath = getRemoteFileName(wo);
-        String cookbookPath = getCookbookPath(wo.getRfcCi().getCiClassName());
 
         boolean debugMode = isDebugEnabled(wo);
         boolean isRemoteWO = isRemoteChefCall(wo);
         logger.info(logKey + "Local WO Path: " + localWOPath);
         logger.info(logKey + "Remote WO Path: " + remoteWOPath);
-        logger.info(logKey + "CookbookPath: " + cookbookPath);
+        logger.info(logKey + "Circuit Path: " + getCircuitDir(wo));
         logger.info(logKey + "Debug mode: " + debugMode);
 
         // Copy remote work-order.
