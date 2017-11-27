@@ -174,8 +174,10 @@ public class ProcessRunner {
    */
   public void executeProcess(String[] cmd, String logKey, ProcessResult result,
       Map<String, String> additionalEnvVars, File workingDir) {
+
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
-    logger.info(format("%s Cmd: %s, Env: %s", logKey, String.join(" ", cmd), env));
+    logger.info(format("%s Cmd: %s, Additional Env: %s", logKey,
+        String.join(" ", cmd), additionalEnvVars));
 
     try {
       CommandLine cmdLine = new CommandLine(cmd[0]);
