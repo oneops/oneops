@@ -99,8 +99,9 @@ public class BomRfcBulkProcessor {
 		int maxExecOrder = 0;
 		CmsCI platformCi = pc.getPlatform();
 		String bomNsPath = pc.getBomNsPath();
+		CmsCI cloud = bindingRel.getToCi();
 
-		logger.info(bomNsPath + " >>> Start working on cloud - " + bindingRel.getToCi().getCiName());
+		logger.info(bomNsPath + " >>> Start working on cloud - " + cloud.getCiName() + " (" + cloud.getCiId()	+ ")");
 		List<CmsCI> components = pc.getComponents();
 		if (components.size() > 0) {
 			if (startExecOrder <= priorityMax) {
@@ -121,7 +122,7 @@ public class BomRfcBulkProcessor {
 			cisToValidate.addAll(pc.getAttachments());
 			cisToValidate.addAll(pc.getMonitors());
 			cisToValidate.addAll(pc.getLogs());
-			processAndValidateVars(cisToValidate, ec.getCloudVariables(bindingRel.getToCi()), ec.getGlobalVariables(), pc.getVariables());
+			processAndValidateVars(cisToValidate, ec.getCloudVariables(cloud), ec.getGlobalVariables(), pc.getVariables());
 
 			List<BomRfc> boms = new ArrayList<>();
 			Map<String, List<BomRfc>> mfstId2nodeId = new HashMap<>();
@@ -177,15 +178,10 @@ public class BomRfcBulkProcessor {
 				maxExecOrder = findObsolete(boms, bomNsPath, maxExecOrder, existingCIs, releaseId, userId, pc.getDependsOnFromMap(), pc.getDependsOnToMap());
 				logger.info(bomNsPath + " >>> Done with obsolete boms in " + (System.currentTimeMillis() - obsoleteStartTime) + "ms.");
 			}
-
-			if (rfcProcessor.getRfcCount(releaseId) == 0) {  // clean up redundant release
-				logger.info("No release because rfc count is 0. Cleaning up release.");
-				rfcProcessor.deleteRelease(releaseId);
-			}
 		}
 
 		long timeTook = System.currentTimeMillis() - startingTime;
-		logger.info(bomNsPath + ">>> Done with " + platformCi.getCiName() + ", cloud - " + bindingRel.getToCi().getCiName() + " in " + timeTook + " ms.");
+		logger.info(bomNsPath + ">>> Done with " + platformCi.getCiName() + ", cloud - " + cloud.getCiName() + " in " + timeTook + " ms.");
 		return maxExecOrder;
 	}
 
@@ -944,26 +940,29 @@ public class BomRfcBulkProcessor {
 									   Long releaseId) {
 		logger.info(bomNsPath + " >>> Path calc BFS optimization");
 
-		Map<String, CmsLink> depOnLinks = pc.getDependsOns().stream()
-											.collect(Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
-																	  r -> new CmsLink(r.getFromCiId(), r.getToCiId(), r.getToCi().getCiClassName())));
-
 		Map<Long, String> toClassNameMap = existingCIs.values().stream()
 				.collect(Collectors.toMap(CmsCI::getCiId, CmsCI::getCiClassName));
 		bomsMap.values().stream()
 			   .flatMap(List::stream)
 			   .filter(b -> b.rfc != null)
 			   .forEach(b -> toClassNameMap.put(b.rfc.getCiId(), b.rfc.getCiClassName()));
-		existingRels.getRfcRels(BOM_DEPENDS_ON).forEach(r -> {
-			Long toCiId = r.getToCiId();
-			String key = r.getFromCiId() + ":" + toCiId;
-			String rfcAction = r.getRfcAction();
-			if ("add".equals(rfcAction)) {
-				depOnLinks.put(key, new CmsLink(r.getFromCiId(), toCiId, toClassNameMap.get(toCiId)));
-			} else if ("delete".equals(rfcAction)) {
-				depOnLinks.remove(key);
-			}
-		});
+
+		Map<String, CmsLink> depOnLinks = existingRels.getExistingRels(BOM_DEPENDS_ON).stream()
+			  .filter(r -> toClassNameMap.containsKey(r.getToCiId()))
+			  .collect(Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
+										r -> new CmsLink(r.getFromCiId(), r.getToCiId(), toClassNameMap.get(r.getToCiId()))));
+		existingRels.getRfcRels(BOM_DEPENDS_ON).stream()
+				.filter(r -> toClassNameMap.containsKey(r.getToCiId()))
+				.forEach(r -> {
+					Long toCiId = r.getToCiId();
+					String key = r.getFromCiId() + ":" + toCiId;
+					String rfcAction = r.getRfcAction();
+					if ("add".equals(rfcAction)) {
+						depOnLinks.put(key, new CmsLink(r.getFromCiId(), toCiId, toClassNameMap.get(toCiId)));
+					} else if ("delete".equals(rfcAction)) {
+						depOnLinks.remove(key);
+					}
+				});
 
 		Map<Long, Map<String, List<Long>>> dependsOnMap = depOnLinks.values().stream()
 			.collect(Collectors.groupingBy(CmsLink::getFromCiId,
