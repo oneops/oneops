@@ -2084,16 +2084,6 @@ public class CmsCmProcessor {
 		return utilMapper.getCmVarByLongestMatchingCriteria(varNameLike, criteria);
 	}
 
-	/**
-	 * get ci links (simple call to get relations without extra info)
-	 *
-	 * @param  nsPath, relName
-	 */
-	public List<CmsLink> getLinks(String nsPath, String relName) {
-		return ciMapper.getLinks(nsPath, relName);
-	}
-    
-	
 	private CiClassNames parseClassName(String clazzName) {
 		
 		CiClassNames names = new CiClassNames();

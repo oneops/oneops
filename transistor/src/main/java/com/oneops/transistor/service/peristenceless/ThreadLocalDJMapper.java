@@ -324,11 +324,6 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
-    public List<CmsRfcLink> getOpenRfcLinks(String nsPath, String relName) {
-        return get().getOpenRfcLinks(nsPath, relName);
-    }
-
-    @Override
     public long countCiRfcByReleaseId(long releaseId) {
         return get().countCiRfcByReleaseId(releaseId);
     }

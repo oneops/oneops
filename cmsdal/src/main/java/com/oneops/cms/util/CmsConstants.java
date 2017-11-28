@@ -61,6 +61,7 @@ public final class CmsConstants {
 	public static final String CATALOG_VALUE_FOR = "catalog.ValueFor";
 
 	//manifest relations
+	public static final String MANIFEST_COMPOSED_OF = "manifest.ComposedOf";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
