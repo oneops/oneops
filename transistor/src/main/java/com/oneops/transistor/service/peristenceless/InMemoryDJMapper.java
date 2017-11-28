@@ -6,6 +6,7 @@ import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /*******************************************************************************
  *
@@ -27,10 +28,8 @@ import java.util.*;
 public class InMemoryDJMapper implements DJMapper{
     private long djId = 1;
     private long ciId = 1;
-    private Map<Long, CmsRfcCI> rfcs = new HashMap<>();
+    private Map<Long, CmsRfcCI> cis = new HashMap<>();
     private Map<Long, CmsRfcRelation> relations = new HashMap<>();
-    private Map<Long, Long> rfcIdByCiId = new HashMap<>();
-    private Map<Long, Long> relationRfcIdByCiId = new HashMap<>();
     private CmsRelease release;
 
     public InMemoryDJMapper() {
@@ -63,6 +62,18 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public void brushReleaseExecOrder(long releaseId) {
+        List<CmsRfcCI> orderedCIs = cis.values().stream()
+                                       .sorted(Comparator.comparingInt(ci -> ci.getExecOrder()))
+                                       .collect(Collectors.toList());
+        int lastExecOrder = 0;
+        int newExecOrder = 0;
+        for (CmsRfcCI ci : orderedCIs) {
+            if (ci.getExecOrder() > lastExecOrder) {
+                newExecOrder++;
+                lastExecOrder = ci.getExecOrder();
+            }
+            ci.setExecOrder(newExecOrder);
+        }
     }
 
     @Override
@@ -101,16 +112,8 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public void createRfcCI(CmsRfcCI rfcCi) {
-        long ciId = rfcCi.getCiId();
-        if (!rfcIdByCiId.containsKey(ciId)) {  // we need this in case there are multiple rfc updates for the same CI
-            long rfcId = rfcCi.getRfcId();
-            rfcIdByCiId.put(ciId, rfcId);
-            rfcs.put(rfcId, rfcCi);
-        } else {
-            long rfcId = rfcIdByCiId.get(ciId);
-            rfcCi.setRfcId(rfcId);
-            rfcs.put(rfcId, rfcCi);
-        }
+        rfcCi.setIsActiveInRelease(true);
+        cis.put(rfcCi.getRfcId(), rfcCi);
     }
 
     @Override
@@ -124,7 +127,7 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public void updateRfcCI(CmsRfcCI rfcCI) {
-        rfcs.put(rfcCI.getRfcId(), rfcCI);
+        cis.put(rfcCI.getRfcId(), rfcCI);
     }
 
     @Override
@@ -141,13 +144,13 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public CmsRfcCI getRfcCIById(long rfcId) {
-        return rfcs.get(rfcId);
+        return cis.get(rfcId);
     }
 
     @Override
     public CmsRfcCI getOpenRfcCIByCiId(long ciId) {
-        for (CmsRfcCI rfc:rfcs.values()){
-            if ( (ciId==rfc.getCiId()) && (rfc.getIsActiveInRelease())) return rfc;
+        for (CmsRfcCI rfc : cis.values()) {
+            if ((ciId == rfc.getCiId()) && rfc.getIsActiveInRelease()) return rfc;
         }
         return null;
     }
@@ -159,20 +162,21 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcCI> getRfcCIBy3(long releaseId, Boolean isActive, Long ciId) {
-        ArrayList<CmsRfcCI> cmsRfcCIS = new ArrayList<>();
-        for (CmsRfcCI rfc:rfcs.values()){
-            if ( (ciId!=null && ciId.equals(rfc.getCiId())) && (isActive!=null && isActive==rfc.getIsActiveInRelease())) cmsRfcCIS.add(rfc);
-        }
-        return cmsRfcCIS;
+        return cis.values().stream()
+                  .filter(r -> (ciId == null || ciId.equals(r.getCiId())) &&
+                                (isActive == null || isActive == r.getIsActiveInRelease()))
+                  .collect(Collectors.toList());
     }
 
     @Override
     public List<CmsRfcCI> getRfcCIByClazzAndName(String nsPath, String clazzName, String ciName, Boolean isActive, String state) {
-        ArrayList<CmsRfcCI> cmsRfcCIS = new ArrayList<>();
-        for (CmsRfcCI rfc:rfcs.values()){
-            if ((nsPath!=null && nsPath.equals(rfc.getNsPath())) && (clazzName!=null && clazzName.equals(rfc.getCiClassName())) && (ciName!=null && ciName.equals(rfc.getCiName())) && (isActive!=null && isActive==rfc.getIsActiveInRelease()) && (state!=null && state.equals(rfc.getCiState()))) cmsRfcCIS.add(rfc);
-        }
-        return cmsRfcCIS;
+        return cis.values().stream()
+                  .filter(r -> (nsPath == null || nsPath.equals(r.getNsPath())) &&
+                                (clazzName == null || clazzName.equals(r.getCiClassName())) &&
+                                (ciName == null || ciName.equals(r.getCiName())) &&
+                                (isActive == null || isActive == r.getIsActiveInRelease()) &&
+                                (state == null || state.equals(r.getCiState())))
+                  .collect(Collectors.toList());
     }
 
     @Override
@@ -211,16 +215,9 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
-    public void createRfcRelation(CmsRfcRelation rel) {
-        long ciRelationId = rel.getCiRelationId();
-        if (!relationRfcIdByCiId.containsKey(ciRelationId)) {
-            relationRfcIdByCiId.put(rel.getRfcId(), ciRelationId);
-            relations.put(rel.getRfcId(), rel);
-        } else {
-            Long rfcId = relationRfcIdByCiId.get(ciRelationId);
-            relations.put(rfcId, rel);
-            rel.setRfcId(rfcId);
-        }
+    public void createRfcRelation(CmsRfcRelation rfcRelation) {
+        rfcRelation.setIsActiveInRelease(true);
+        relations.put(rfcRelation.getRfcId(), rfcRelation);
     }
 
     @Override
@@ -234,7 +231,8 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public int updateRfcRelation(CmsRfcRelation rel) {
-        relations.put(rel.getRfcId(), rel);
+        long rfcId = rel.getRfcId();
+        relations.put(rfcId, rel);
         return 0;
     }
 
@@ -261,8 +259,8 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public CmsRfcRelation getOpenRfcRelationByCiRelId(long ciRelationId) {
-        for (CmsRfcRelation rel: relations.values()){
-            if (rel.getCiRelationId()== ciRelationId) return rel;
+        for (CmsRfcRelation rel : relations.values()) {
+            if (rel.getCiRelationId() == ciRelationId && rel.getIsActiveInRelease()) return rel;
         }
         return null;
     }
@@ -279,7 +277,10 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcRelation> getRfcRelationsByNs(String nsPath, Boolean isActive, String state) {
-        return new ArrayList<>(relations.values());
+        return relations.values().stream()
+                        .filter(r -> r.getNsPath().equals(nsPath) &&
+                                (isActive == null || r.getIsActiveInRelease()))
+                        .collect(Collectors.toList());
     }
 
     @Override
@@ -289,15 +290,12 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcRelation> getOpenRfcRelationBy2(Long fromCiId, Long toCiId, String relName, String shortRelName) {
-        List<CmsRfcRelation> cmsRfcLinks = new ArrayList<>();
-        for (CmsRfcRelation rel: relations.values()){
-            if ((relName!=null && rel.getRelationName().equals(relName)) && (fromCiId!=null && fromCiId.equals(rel.getFromCiId())) && (toCiId!=null && toCiId.equals(rel.getToCiId())) && (shortRelName!=null && rel.getRelationName().endsWith(shortRelName))){
-                
-                cmsRfcLinks.add(rel);
-            }
-        }
-
-        return cmsRfcLinks;
+        return relations.values().stream()
+                        .filter(r -> (relName == null || r.getRelationName().equals(relName)) &&
+                                     (fromCiId == null || fromCiId.equals(r.getFromCiId())) &&
+                                     (toCiId == null || toCiId.equals(r.getToCiId())) &&
+                                     (shortRelName == null || r.getRelationName().endsWith(shortRelName)))
+                        .collect(Collectors.toList());
     }
 
     @Override
@@ -322,7 +320,10 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcRelation> getRfcRelationBy3(long releaseId, Boolean isActive, Long ciRelationId) {
-        throw new UnsupportedOperationException();
+        return relations.values().stream()
+                        .filter(r -> (ciRelationId == null || ciRelationId.equals(r.getCiRelationId())) &&
+                                     (isActive == null || isActive == r.getIsActiveInRelease()))
+                        .collect(Collectors.toList());
     }
 
     @Override
@@ -356,27 +357,8 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
-    public List<CmsRfcLink> getOpenRfcLinks(String nsPath, String relName) {
-        List<CmsRfcLink> cmsRfcLinks = new ArrayList<>();
-        for (CmsRfcRelation rel: relations.values()){
-            if ((relName!=null && rel.getRelationName().equals(relName)) && (nsPath!=null && nsPath.equals(rel.getNsPath()))){
-                CmsRfcLink link = new CmsRfcLink();
-                link.setAction(rel.getRfcAction());
-                link.setRfcId(rel.getRfcId());
-                link.setFromCiId(rel.getFromCiId());
-                link.setRelationName(rel.getRelationName());
-                link.setToCiId(rel.getToCiId());
-                link.setToClazzName(rel.getToRfcCi()!=null? rel.getToRfcCi().getCiClassName():"");
-                cmsRfcLinks.add(link);
-            }
-        }
-        
-        return cmsRfcLinks;
-    }
-
-    @Override
     public long countCiRfcByReleaseId(long releaseId) {
-        return rfcs.size();
+        return cis.size();
     }
 
     @Override
@@ -447,7 +429,6 @@ public class InMemoryDJMapper implements DJMapper{
     @Override
     public void createAltNs(long nsId, long tagId, long rfcId) {
         throw new UnsupportedOperationException();
-
     }
 
     @Override
@@ -469,7 +450,7 @@ public class InMemoryDJMapper implements DJMapper{
     public String toString() {
         return "InMemoryDJMapper{" + "djId=" + djId +
                 ", ciId=" + ciId +
-                ", rfcs=" + rfcs.size() +
+                ", cis=" + cis.size() +
                 ", relations=" + relations.size() +
                 ", release=" + release.getReleaseId() +
                 '}';

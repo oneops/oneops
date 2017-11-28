@@ -1692,15 +1692,6 @@ public class CmsRfcProcessor {
 	 *
 	 * @param  nsPath, relName
 	 */
-	public List<CmsRfcLink> getLinks(String nsPath, String relName) {
-		return djMapper.getOpenRfcLinks(nsPath, relName);
-	}
-    
-	/**
-	 * get ci rfc links (simple call to get relations without extra info)
-	 *
-	 * @param  nsPath, relName
-	 */
 	public long getRfcCount(long nsPath) {
 		return djMapper.countCiRfcByReleaseId(nsPath);
 	}

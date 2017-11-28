@@ -123,7 +123,6 @@
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
 		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
-		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
 		<property name="bomManager" ref="bomManager"/>
 		<property name="cmsUtil" ref="cmsUtil" />
     </bean>
