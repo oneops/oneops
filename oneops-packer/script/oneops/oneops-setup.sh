@@ -135,7 +135,8 @@ inductor add --mqhost localhost \
 --authkey superuser:amqpass \
 --amq_truststore_location /opt/oneops/inductor/lib/client.ts \
 --additional_java_args \"\" \
---env_vars \"\"
+--env_vars \"\" \
+--verifier_mode true
 mkdir -p /opt/oneops/inductor/lib
 \cp /opt/activemq/conf/client.ts /opt/oneops/inductor/lib/client.ts
 ln -sf /home/oneops/build/circuit-oneops-1 .
