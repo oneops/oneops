@@ -1430,6 +1430,12 @@
 		where release_id = #{value}
 	 </select>
 
+	 <select id="countRelationRfcByReleaseId" parameterType="long" useCache="false" resultType="long">
+		SELECT count(1)
+		from dj_rfc_relation
+		where release_id = #{value}
+	 </select>
+
 	<select id="countOpenRfcCisByNs" parameterType="string" useCache="false" resultType="long">
 		SELECT count(1)
 		  FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns

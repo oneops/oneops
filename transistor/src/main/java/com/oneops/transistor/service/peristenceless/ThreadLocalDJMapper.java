@@ -329,6 +329,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     }
 
     @Override
+    public long countRelationRfcByReleaseId(long releaseId) {
+        return get().countRelationRfcByReleaseId(releaseId);
+    }
+
+    @Override
     public long countOpenRfcCisByNs(String nsPath) {
         return get().countOpenRfcCisByNs(nsPath);
     }

@@ -192,6 +192,7 @@ public interface DJMapper {
       @Param("isActive") Boolean isActive, @Param("rfcId") long rfcId);
 
   long countCiRfcByReleaseId(long releaseId);
+  long countRelationRfcByReleaseId(long releaseId);
 
   long countOpenRfcCisByNs(String nsPath);
 

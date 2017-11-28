@@ -1688,12 +1688,21 @@ public class CmsRfcProcessor {
     }
  
 	/**
-	 * get ci rfc links (simple call to get relations without extra info)
+	 * Get rfc CI count for a given release.
 	 *
-	 * @param  nsPath, relName
+	 * @param  releaseId
 	 */
-	public long getRfcCount(long nsPath) {
-		return djMapper.countCiRfcByReleaseId(nsPath);
+	public long getRfcCiCount(long releaseId) {
+		return djMapper.countCiRfcByReleaseId(releaseId);
+	}
+
+	/**
+	 * Get rfc relation count for a given release.
+	 *
+	 * @param  releaseId
+	 */
+	public long getRfcRelationCount(long releaseId) {
+		return djMapper.countRelationRfcByReleaseId(releaseId);
 	}
 
 	/**

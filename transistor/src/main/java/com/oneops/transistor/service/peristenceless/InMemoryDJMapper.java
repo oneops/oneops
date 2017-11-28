@@ -362,6 +362,11 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
+    public long countRelationRfcByReleaseId(long releaseId) {
+        return relations.size();
+    }
+
+    @Override
     public long countOpenRfcCisByNs(String nsPath) {
         throw new UnsupportedOperationException();
     }

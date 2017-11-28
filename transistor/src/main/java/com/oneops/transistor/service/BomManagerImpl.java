@@ -126,24 +126,31 @@ public class BomManagerImpl implements BomManager {
 		int execOrder = generateBomForActiveClouds(context);
 		generateBomForOfflineClouds(context, execOrder);
 
-		long relelaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "open");
-		long rfcCount = 0;
-		if (relelaseId > 0) {
-			rfcProcessor.brushExecOrder(relelaseId);
-			rfcCount = rfcProcessor.getRfcCount(relelaseId);
+		long rfcCiCount = 0;
+		long rfcRelCount = 0;
+		long releaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "open");
+		if (releaseId > 0) {
+			rfcProcessor.brushExecOrder(releaseId);
+			rfcCiCount = rfcProcessor.getRfcCiCount(releaseId);
+			rfcRelCount = rfcProcessor.getRfcRelationCount(releaseId);
 
 //			if (logger.isInfoEnabled()) {
 			if (logger.isDebugEnabled()) {
-				String rfcs = rfcProcessor.getRfcCIBy3(relelaseId, true, null).stream()
-										  .map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getCiClassName() + " !! " + rfc.getCiName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
-										  .sorted(String::compareTo)
-										  .collect(Collectors.joining("\n", "", "\n"));
-				rfcs = rfcProcessor.getRfcRelationBy3(relelaseId, true, null).stream()
-								   .map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
-								   .sorted(String::compareTo)
-								   .collect(Collectors.joining("\n", rfcs, ""));
+				String rfcs = rfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
+						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getCiClassName() + " !! " + rfc.getCiName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
+						.sorted(String::compareTo)
+						.collect(Collectors.joining("\n", "", "\n"));
+				rfcs = rfcProcessor.getRfcRelationBy3(releaseId, true, null).stream()
+						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
+						.sorted(String::compareTo)
+						.collect(Collectors.joining("\n", rfcs, ""));
 				logger.debug(rfcs);
 //				System.out.println(rfcs);
+			}
+
+			if (rfcCiCount == 0) {
+				logger.info("No release because rfc count is 0. Cleaning up release.");
+				rfcProcessor.deleteRelease(releaseId);
 			}
 		}
 		else {
@@ -155,8 +162,8 @@ public class BomManagerImpl implements BomManager {
 			getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "closed");
 		}
 
-		logger.info(bomNsPath + " >>> Generated BOM in " + (System.currentTimeMillis() - startTime) + " ms. RFCs created = " + rfcCount);
-		return relelaseId;
+		logger.info(bomNsPath + " >>> Generated BOM in " + (System.currentTimeMillis() - startTime) + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
+		return releaseId;
 	}
 
 	private CmsRelease check4OpenBomRelease(String bomNsPath) {
@@ -403,8 +410,6 @@ public class BomManagerImpl implements BomManager {
 		logger.info("created new deployment - " + newDpmt.getDeploymentId());
 		return newDpmt.getDeploymentId();
 	}
-
-
 
 	private long getPopulateParentAndGetReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
 		List<CmsRelease> releases = rfcProcessor.getLatestRelease(nsPath, bomReleaseState);
