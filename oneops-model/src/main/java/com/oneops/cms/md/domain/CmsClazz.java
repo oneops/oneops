@@ -345,18 +345,18 @@ public class CmsClazz implements Serializable {
   @Override
   public String toString() {
     return "CmsClazz{" +
-      "classId=" + classId +
-      ", className='" + className + '\'' +
-      ", shortClassName='" + shortClassName + '\'' +
-      ", superClassId=" + superClassId +
-      ", accessLevel='" + accessLevel + '\'' +
-      ", isNamespace=" + isNamespace +
-      ", description='" + description + '\'' +
-      ", created=" + created +
-      ", attributes=" + mdAttributes +
-      ", fromRelations=" + fromRelations +
-      ", toRelations=" + toRelations +
-      '}';
+        "classId=" + classId +
+        ", className='" + className + '\'' +
+        ", shortClassName='" + shortClassName + '\'' +
+        ", superClassId=" + superClassId +
+        ", accessLevel='" + accessLevel + '\'' +
+        ", isNamespace=" + isNamespace +
+        ", description='" + description + '\'' +
+        ", created=" + created +
+        ", attributes=" + mdAttributes +
+        ", fromRelations=" + fromRelations +
+        ", toRelations=" + toRelations +
+        '}';
   }
 
   /**
@@ -403,8 +403,8 @@ public class CmsClazz implements Serializable {
   }
 
   /**
-   * Varios CMS class flags, each bit is used for some attribute
-   * i.e 010 is set for useClassNameInNS
+   * Varios CMS class flags, each bit is used for some attribute i.e 010 is set for
+   * useClassNameInNS
    *
    * @return the impl
    */

@@ -246,11 +246,5 @@ public class CmsClazzRelation implements Serializable {
     this.toClassName = toClassName;
   }
 
-  public boolean isStrong() {
-    return isStrong;
-  }
 
-  public void setStrong(boolean strong) {
-    isStrong = strong;
-  }
 }

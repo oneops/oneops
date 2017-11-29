@@ -336,35 +336,4 @@ public class CmsClazzAttribute implements Serializable {
     this.updated = updated;
   }
 
-  public boolean isMandatory() {
-    return isMandatory;
-  }
-
-  public void setMandatory(boolean mandatory) {
-    isMandatory = mandatory;
-  }
-
-  public boolean isInheritable() {
-    return isInheritable;
-  }
-
-  public void setInheritable(boolean inheritable) {
-    isInheritable = inheritable;
-  }
-
-  public boolean isEncrypted() {
-    return isEncrypted;
-  }
-
-  public void setEncrypted(boolean encrypted) {
-    isEncrypted = encrypted;
-  }
-
-  public boolean isImmutable() {
-    return isImmutable;
-  }
-
-  public void setImmutable(boolean immutable) {
-    isImmutable = immutable;
-  }
 }

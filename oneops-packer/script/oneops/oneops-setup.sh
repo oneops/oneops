@@ -72,13 +72,17 @@ echo "Deploying OneOps Admin "
 
 cd $OO_HOME/dist/oneops-admin-inductor
 INDUCTOR_GEM=\$(ls *.gem)
-INDUCTOR_GEMFILE=\$(ls *.gemfile)
+INDUCTOR_GEMFILE=\$(ls oneops-admin-inductor*.gemfile)
 gem install \$INDUCTOR_GEM --ignore-dependencies --no-ri --no-rdoc
 bundle install --gemfile=\$INDUCTOR_GEMFILE --local
 
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
 bundle install --gemfile=oneops-admin-adapter.gemfile --local
+
+cd $OO_HOME/dist/oneops-admin-inductor
+# install test-kitchen
+bundle install --gemfile=test-kitchen.gemfile
 
 mkdir -p /opt/oneops-admin
 cd /opt/oneops-admin
@@ -131,7 +135,8 @@ inductor add --mqhost localhost \
 --authkey superuser:amqpass \
 --amq_truststore_location /opt/oneops/inductor/lib/client.ts \
 --additional_java_args \"\" \
---env_vars \"\"
+--env_vars \"\" \
+--verifier_mode true
 mkdir -p /opt/oneops/inductor/lib
 \cp /opt/activemq/conf/client.ts /opt/oneops/inductor/lib/client.ts
 ln -sf /home/oneops/build/circuit-oneops-1 .

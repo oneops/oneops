@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.11.01-7-SNAPSHOT</version>
+    <version>17.11.01-11-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-admin</artifactId>
@@ -151,6 +151,7 @@
                 <argument>oneops-admin-inductor-1.0.0.gem</argument>
                 <argument>oneops-admin-inductor.gemfile</argument>
                 <argument>oneops-admin-inductor.gemspec</argument>
+                <argument>test-kitchen.gemfile</argument>
                 <argument>vendor/cache</argument>
               </arguments>
             </configuration>
@@ -200,6 +201,7 @@
                 <argument>oneops-admin-inductor-az-1.0.0.gem</argument>
                 <argument>oneops-admin-inductor-az.gemfile</argument>
                 <argument>oneops-admin-inductor-az.gemspec</argument>
+                <argument>test-kitchen.gemfile</argument>
                 <argument>vendor/cache</argument>
               </arguments>
             </configuration>

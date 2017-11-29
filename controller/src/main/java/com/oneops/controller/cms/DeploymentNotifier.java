@@ -16,9 +16,9 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationSeverity;
-import com.oneops.antenna.domain.NotificationType;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationSeverity;
+import com.oneops.notification.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;

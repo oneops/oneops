@@ -64,6 +64,7 @@ class Inductor < Thor
   method_option :env_vars, :type => :string
   method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
+  method_option :verifier_mode, :default => false
   def add
     @inductor_dir = File.expand_path(Dir.pwd)
     validate_user
@@ -72,6 +73,10 @@ class Inductor < Thor
     else
       @mqhost = ask("What message queue host (if empty defaults to localhost)?")
       @mqhost = 'localhost' if @mqhost.empty?
+    end
+
+    if options[:verifier_mode]
+      @verifier_mode = options[:verifier_mode]
     end
 
     if options[:dns]

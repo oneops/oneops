@@ -1,12 +1,12 @@
 package com.oneops;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.collect.Lists;
-
 public class TestCase {
+
   private String host;
   private String apikey;
   private String organization;
@@ -61,6 +61,10 @@ public class TestCase {
     return templates;
   }
 
+  public void setTemplates(Map<String, Template> templates) {
+    this.templates = templates;
+  }
+
   public List<Template> getTemplateList() {
     List<Template> templateList = Lists.newArrayList();
     for (Entry<String, Template> entry : templates.entrySet()) {
@@ -71,12 +75,12 @@ public class TestCase {
     return templateList;
   }
 
-  public void setTemplates(Map<String, Template> templates) {
-    this.templates = templates;
-  }
-
   public Map<String, Cloud> getClouds() {
     return clouds;
+  }
+
+  public void setClouds(Map<String, Cloud> clouds) {
+    this.clouds = clouds;
   }
 
   public List<Cloud> getCloudList() {
@@ -87,10 +91,6 @@ public class TestCase {
       cloudList.add(cloud);
     }
     return cloudList;
-  }
-
-  public void setClouds(Map<String, Cloud> clouds) {
-    this.clouds = clouds;
   }
 
   public List<String> getTags() {

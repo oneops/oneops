@@ -1,10 +1,9 @@
 package com.oneops;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.collect.Lists;
 
 public class Environment {
 
@@ -21,16 +20,16 @@ public class Environment {
     return globaldns;
   }
 
+  public void setGlobaldns(boolean globaldns) {
+    this.globaldns = globaldns;
+  }
+
   public String getId() {
     return id;
   }
 
   public void setId(String id) {
     this.id = id;
-  }
-
-  public void setGlobaldns(boolean globaldns) {
-    this.globaldns = globaldns;
   }
 
   public String getAvailability() {

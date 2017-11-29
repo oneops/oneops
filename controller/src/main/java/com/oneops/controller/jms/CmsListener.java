@@ -18,7 +18,7 @@ package com.oneops.controller.jms;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.oneops.antenna.domain.NotificationSeverity;
+import com.oneops.notification.NotificationSeverity;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.dj.domain.CmsDeployment;

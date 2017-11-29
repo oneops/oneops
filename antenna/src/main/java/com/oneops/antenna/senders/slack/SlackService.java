@@ -20,11 +20,12 @@ package com.oneops.antenna.senders.slack;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationSeverity;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationSeverity;
 import com.oneops.antenna.domain.SlackSubscriber;
 import com.oneops.antenna.domain.SlackSubscriber.Format;
 import com.oneops.antenna.senders.NotificationSender;
+import com.oneops.util.URLUtil;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -162,7 +163,7 @@ public class SlackService implements NotificationSender {
 
         String color = getColor(msg.getSeverity());
         StringBuilder buf = new StringBuilder();
-        buf.append(String.format("`%s` | %s | <%s|%s>", env, msg.getType(), msg.getNotificationUrl(), msg.getNsPath()));
+        buf.append(String.format("`%s` | %s | <%s|%s>", env, msg.getType(), URLUtil.getNotificationUrl(msg), msg.getNsPath()));
         String text = msg.getText();
         if (isNotEmpty(text)) {
             buf.append('\n').append(text);

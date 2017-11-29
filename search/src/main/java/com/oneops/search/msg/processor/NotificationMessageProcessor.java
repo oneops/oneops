@@ -1,6 +1,6 @@
 package com.oneops.search.msg.processor;
 
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.search.domain.CmsCISearch;
 import com.oneops.search.domain.CmsNotificationSearch;

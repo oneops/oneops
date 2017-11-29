@@ -20,9 +20,10 @@ package com.oneops.antenna.senders.generic;
 
 import com.codahale.metrics.MetricRegistry;
 import com.oneops.antenna.domain.EmailSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationType;
 import com.oneops.antenna.domain.XMPPSubscriber;
+import com.oneops.util.URLUtil;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
@@ -113,7 +114,7 @@ public class XMPPMsgServiceTest {
         NotificationMessage nMessage = new NotificationMessage();
         nMessage.setNsPath(deploymentNsp);
         nMessage.setType(NotificationType.deployment);
-        URL url = nMessage.getNotificationUrl();
+        URL url = URLUtil.getNotificationUrl(nMessage);
         assertNotNull(url, "DEPLOYMNENT URL unexpected null in place of a good url for nspath: " + deploymentNsp);
         assertTrue(url.toString().startsWith("http"), "DEPLOYMNENT URL h-t-t-p " +
                 "are not first letters of this bad URL: " + url);
@@ -125,7 +126,7 @@ public class XMPPMsgServiceTest {
         //Continue to next type....
         nMessage.setNsPath(repairNsp);
         nMessage.setType(NotificationType.procedure);
-        url = nMessage.getNotificationUrl();
+        url =URLUtil.getNotificationUrl(nMessage);
         assertNotNull(url, "OPERATION URL unexpected null in place of a good url for nspath: " + deploymentNsp);
         assertTrue(url.toString().startsWith("http"), "OPERATION URL h-t-t-p are not first letters of this bad URL: " + url);
 
