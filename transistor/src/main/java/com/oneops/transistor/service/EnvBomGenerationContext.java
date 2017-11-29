@@ -55,7 +55,7 @@ class EnvBomGenerationContext {
         this.excludePlats = excludePlats;
     }
 
-    public void load() {
+    void load() {
         long t = System.currentTimeMillis();
         List<CmsCIRelation> rels = cmProcessor.getFromCIRelations(environment.getCiId(), MANIFEST_COMPOSED_OF, null, "manifest.Platform");
 
@@ -73,7 +73,7 @@ class EnvBomGenerationContext {
     }
 
 
-    public String getUserId() {
+    String getUserId() {
         return userId;
     }
 

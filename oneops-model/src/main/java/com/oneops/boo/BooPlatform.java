@@ -1,11 +1,10 @@
 package com.oneops.boo;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class BooPlatform {
 
@@ -137,7 +136,8 @@ public class BooPlatform {
 
         if (entry.getValue() != null && entry.getValue().containsKey("attachments")) {
           @SuppressWarnings("unchecked")
-          Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) entry.getValue().get("attachments");
+          Map<String, Map<String, String>> map = (Map<String, Map<String, String>>) entry.getValue()
+              .get("attachments");
           for (Entry<String, Map<String, String>> attachmentEntry : map.entrySet()) {
             String attachmentName = attachmentEntry.getKey();
             BooAttachment attachment = new BooAttachment();

@@ -23,14 +23,16 @@ public class Masker {
    * Masks the secured attributes in work-orders and action-orders
    *
    * @param cmsWoSimpleBase simple work order for which attributes need to be secured
-   * @param type            of the workOrder or actionOrder
+   * @param type of the workOrder or actionOrder
    * @return secured workOrder.
    */
-  public static <T> CmsWorkOrderSimpleBase maskSecuredFields(CmsWorkOrderSimpleBase<T> cmsWoSimpleBase, String type) {
+  public static <T> CmsWorkOrderSimpleBase maskSecuredFields(
+      CmsWorkOrderSimpleBase<T> cmsWoSimpleBase, String type) {
 
     //service CIs
     if (cmsWoSimpleBase.getServices() != null) {
-      for (Entry<String, Map<String, CmsCISimple>> serviceEntry : cmsWoSimpleBase.getServices().entrySet()) {
+      for (Entry<String, Map<String, CmsCISimple>> serviceEntry : cmsWoSimpleBase.getServices()
+          .entrySet()) {
         for (CmsCISimple ci : serviceEntry.getValue().values()) {
           maskSecure(ci);
         }
@@ -71,7 +73,6 @@ public class Masker {
       }
     }
 
-
     //action-order: pay-load and CI
     if (ACTION_ORDER_TYPE.equals(type)) {
       CmsActionOrderSimple cmsAo = (CmsActionOrderSimple) cmsWoSimpleBase;
@@ -97,8 +98,10 @@ public class Masker {
    * @param ci the ci whose attributes need to be secured.
    */
   private static void maskSecure(CmsCISimple ci) {
-    if (ci.getAttrProps() != null && ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
-      for (Entry<String, String> secAttr : ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
+    if (ci.getAttrProps() != null
+        && ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
+      for (Entry<String, String> secAttr : ci.getAttrProps().get(CmsConstants.SECURED_ATTRIBUTE)
+          .entrySet()) {
         if ("true".equals(secAttr.getValue())) {
           ci.getCiAttributes().put(secAttr.getKey(), MASK);
         }
@@ -113,8 +116,10 @@ public class Masker {
    * @param rfcCI rfcCI for which attributes need to be secured.
    */
   private static void maskSecure(CmsRfcCISimple rfcCI) {
-    if (rfcCI.getCiAttrProps() != null && rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
-      for (Entry<String, String> secAttr : rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
+    if (rfcCI.getCiAttrProps() != null
+        && rfcCI.getCiAttrProps().get(CmsConstants.SECURED_ATTRIBUTE) != null) {
+      for (Entry<String, String> secAttr : rfcCI.getCiAttrProps()
+          .get(CmsConstants.SECURED_ATTRIBUTE).entrySet()) {
         if ("true".equals(secAttr.getValue())) {
           rfcCI.getCiAttributes().put(secAttr.getKey(), MASK);
         }

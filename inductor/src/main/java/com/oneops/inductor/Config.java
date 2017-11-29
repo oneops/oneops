@@ -182,6 +182,9 @@ public class Config {
   @Value("${verify.mode:false}")
   private boolean verifyMode;
 
+  @Value("#{'${verify.exclude.paths:Berksfile}'.split(',')}")
+  private List<String> verifyExcludePaths;
+
   /**
    * Env vars read from {@link #env}. This will get initialized in ${@link #init()}
    */
@@ -662,6 +665,14 @@ public class Config {
     this.clouds = clouds;
   }
 
+  public List<String> getVerifyExcludePaths() {
+    return verifyExcludePaths;
+  }
+
+  public void setVerifyExcludePaths(List<String> verifyExcludePaths) {
+    this.verifyExcludePaths = verifyExcludePaths;
+  }
+
   @Override
   public String toString() {
     return "Config{" +
@@ -695,6 +706,7 @@ public class Config {
         ", env='" + env + '\'' +
         ", rebootLimit=" + rebootLimit +
         ", verifyMode=" + verifyMode +
+        ", verifyExcludePaths=" + verifyExcludePaths +
         ", ipAddr='" + ipAddr + '\'' +
         '}';
   }

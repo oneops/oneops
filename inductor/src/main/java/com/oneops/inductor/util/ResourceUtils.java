@@ -56,8 +56,8 @@ public class ResourceUtils {
   }
 
   /**
-   * Gets the entire content of this resource as a String using UTF-8 encoding. Returns the {@code
-   * defaultValue} if there is any error reading the resource.
+   * Gets the entire content of this resource as a String using UTF-8 encoding. Returns
+   * the {@code defaultValue} if there is any error reading the resource.
    *
    * @param name resource name.
    * @param defaultValue default value.
@@ -79,4 +79,5 @@ public class ResourceUtils {
   public static String readResourceAsString(String name) {
     return new String(readResourceAsBytes(name), StandardCharsets.UTF_8);
   }
+
 }

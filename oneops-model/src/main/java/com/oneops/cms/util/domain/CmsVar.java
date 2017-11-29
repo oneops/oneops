@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.cms.util.domain;
 
@@ -21,9 +21,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 /**
- * 
- * CmsVar class : Will be used to store util configuration data 
- *
+ * CmsVar class : Will be used to store util configuration data
  */
 public class CmsVar implements Serializable {
 
@@ -37,7 +35,7 @@ public class CmsVar implements Serializable {
   private Date updated;
 
   /**
-   * 
+   *
    * @return
    */
   public int getId() {
@@ -45,7 +43,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @param id
    */
   public void setId(int id) {
@@ -53,7 +51,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @return
    */
   public String getName() {
@@ -61,7 +59,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @param name
    */
   public void setName(String name) {
@@ -69,7 +67,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @return
    */
   public String getValue() {
@@ -77,7 +75,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @param vale
    */
   public void setValue(String value) {
@@ -85,7 +83,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @return
    */
   public Date getCreated() {
@@ -93,7 +91,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @param created
    */
   public void setCreated(Date created) {
@@ -101,7 +99,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @return
    */
   public Date getUpdated() {
@@ -109,7 +107,7 @@ public class CmsVar implements Serializable {
   }
 
   /**
-   * 
+   *
    * @param updated
    */
   public void setUpdated(Date updated) {

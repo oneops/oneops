@@ -1,10 +1,9 @@
 package com.oneops;
 
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.google.common.collect.Lists;
 
 public class Template {
 
@@ -33,6 +32,10 @@ public class Template {
     return assertions;
   }
 
+  public void setAssertions(Map<String, Assertion> assertions) {
+    this.assertions = assertions;
+  }
+
   public List<Assertion> getAssertionList() {
     List<Assertion> assertionList = Lists.newArrayList();
     for (Entry<String, Assertion> entry : assertions.entrySet()) {
@@ -41,10 +44,6 @@ public class Template {
       assertionList.add(assertion);
     }
     return assertionList;
-  }
-
-  public void setAssertions(Map<String, Assertion> assertions) {
-    this.assertions = assertions;
   }
 
   public OneOps getOneOps() {

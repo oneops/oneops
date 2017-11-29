@@ -82,22 +82,25 @@ import org.apache.log4j.Logger;
 public abstract class AbstractOrderExecutor {
 
   public static final String ONDEMAND = "ondemand";
+  public static final String USER_CUSTOM_ATTACHMENT = "user-custom-attachment";
   private static final Logger logger = Logger.getLogger(AbstractOrderExecutor.class);
-
   protected static final String RUN_LIST_SEPARATOR = "::";
   protected static final String RUN_LIST_PREFIX = "recipe[";
   protected static final String RUN_LIST_SUFFIX = "]";
-  public static final String USER_CUSTOM_ATTACHMENT = "user-custom-attachment";
+
   final protected Gson gson = new Gson();
   final protected Gson gsonPretty = new GsonBuilder().setPrettyPrinting().create();
-  protected int retryCount = 3;
+
+  protected int retryCount;
   protected ProcessRunner processRunner;
-  protected String[] sshCmdLine = null;
-  protected String[] rsyncCmdLine = null;
-  protected String[] sshInteractiveCmdLine = null;
+  protected String[] sshCmdLine;
+  protected String[] rsyncCmdLine;
+  protected String[] sshInteractiveCmdLine;
   protected Random randomGenerator = new Random();
-  private Config config = null;
   protected StatCollector inductorStat;
+
+  private Config config;
+
 
   public AbstractOrderExecutor(Config config) {
     this.config = config;
@@ -159,13 +162,12 @@ public abstract class AbstractOrderExecutor {
   }
 
   /**
-   * Process the workorder or actionorder and return message to be put in the controller response
-   * queue
+   * Process the workorder or actionorder and return message to be put
+   * in the controller response queue
    *
    * @param order wo/ao
    * @param correlationId correlationId
-   * @return Map<String                                                                                                                               ,
-               *       String> message
+   * @return Process response map.                                                                                                                                                                                                                                                             ,                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               String> message
    */
   abstract Map<String, String> process(CmsWorkOrderSimpleBase order,
       String correlationId) throws IOException;
@@ -410,12 +412,8 @@ public abstract class AbstractOrderExecutor {
   /**
    * Populates list of proxies from a json bash string
    */
-  protected void updateProxyListBash(ArrayList<String> proxyList,
-      String jsonProxyHash) {
-
-    Map<String, String> proxyMap = gson.fromJson(jsonProxyHash,
-        Map.class);
-
+  protected void updateProxyListBash(ArrayList<String> proxyList, String jsonProxyHash) {
+    Map<String, String> proxyMap = gson.fromJson(jsonProxyHash, Map.class);
     if (proxyMap != null) {
       for (String key : proxyMap.keySet()) {
         proxyList.add(key + ":" + proxyMap.get(key));
@@ -698,9 +696,7 @@ public abstract class AbstractOrderExecutor {
     String domain = "";
 
     if (env != null && env.getCiAttributes().containsKey("subdomain")
-        && env.getCiAttributes().get("subdomain") != null)
-
-    {
+        && env.getCiAttributes().get("subdomain") != null) {
       domain = env.getCiAttributes().get("subdomain");
     }
 

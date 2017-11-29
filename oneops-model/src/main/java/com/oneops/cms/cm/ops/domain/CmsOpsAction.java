@@ -37,7 +37,7 @@ public class CmsOpsAction implements Serializable {
   private String extraInfo;
   private String arglist;
   private String payLoadDef;
-  //created by 
+  //created by
   private String createdBy;
   private Date created;
   private Date updated;

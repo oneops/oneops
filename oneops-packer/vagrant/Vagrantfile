@@ -1,8 +1,11 @@
+
+sync_folder_root=ENV['OO_VGRNT_CIRCUITS_SYNC_ROOT'] || "/home/oneops/build"
+
 Vagrant.configure(2) do |config|
 
- config.vm.box = "oneops"
+  config.vm.box = "oneops"
 
- # Use the vagrant-cachier plugin, if installed, to cache downloaded packages
+  # Use the vagrant-cachier plugin, if installed, to cache downloaded packages
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.scope = :box
   end
@@ -12,9 +15,72 @@ Vagrant.configure(2) do |config|
   config.vm.network "forwarded_port", guest: 8080, host: 9091
   config.vm.network "forwarded_port", guest: 8161, host: 8166
 
- config.vm.provider "virtualbox" do |vb|
-   vb.gui = false
-   vb.memory = 6144
-   vb.customize ["modifyvm", :id, "--cpuexecutioncap", "70"]
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.memory = 6144
+    vb.customize ["modifyvm", :id, "--cpuexecutioncap", "70"]
+  end
+
+  #if you want to sync circuits on your host with vagrant then create an env variable ONEOPS_HOME on your host that points to a directory that houses all the circuits and oneops core
+  if !ENV['ONEOPS_HOME'].nil?
+    config.vm.synced_folder ENV['ONEOPS_HOME']+"/circuit-oneops-1", "#{sync_folder_root}/circuit-oneops-1",owner: "root",group: "root"
+    config.vm.synced_folder ENV['ONEOPS_HOME']+"/oneops/oneops-admin", "#{sync_folder_root}/oneops-admin",owner: "root",group: "root"
+
+    config.vm.provision "configure_circuits", type: "shell", inline: $script_configure_circuits, env: {"sync_folder_root" => sync_folder_root}
+    config.vm.provision "use_latest_inductor", type: "shell", inline: $script_use_latest_inductor, env: {"sync_folder_root" => sync_folder_root}
   end
 end
+
+$script_configure_circuits = <<SCRIPT
+  echo "configuring inductor to use circuits on host"
+  cd /opt/oneops/inductor
+
+  echo "deleting/unlinking existing circuits"
+  circuits=( circuit-oneops-1 shared )
+
+  for circuit in "${circuits[@]}"
+  do
+    if [[ -L "$circuit" && -d "$circuit" ]]
+    then
+      echo "$circuit is a symlink to a directory. unlinking the symlink"
+      sudo unlink $circuit
+    else
+      echo "$circuit is a directory. deleting it"
+      sudo rm -Rf $circuit
+    fi
+  done
+
+  echo "creating symlinks"
+  for circuit in "${circuits[@]}"
+  do
+    if [ "$circuit" == "shared" ]
+    then
+      sudo ln -s "$sync_folder_root"/oneops-admin/lib/shared/ shared
+    else
+      sudo ln -s "$sync_folder_root/$circuit/" $circuit
+    fi
+  done
+
+  echo "script completed successfully"
+SCRIPT
+
+$script_use_latest_inductor = <<SCRIPT
+  is_azure_inductor=`gem list fog-azure-rm -i`
+
+  if [ $is_azure_inductor == "true" ]
+  then
+    echo 'it is azure inductor'
+    oneops_admin_path=$(gem path oneops-admin-inductor-az)
+  else
+    echo 'it is not an azure inductor'
+    oneops_admin_path=$(gem path oneops-admin-inductor)
+  fi
+
+  cd $oneops_admin_path
+
+  echo "removing inductor jar from $oneops_admin_path/target"
+  rm target/inductor-*.jar
+
+  echo "copying latest inductor jar from $sync_folder_root/oneops-admin/target to $oneops_admin_path/target"
+  cp "$sync_folder_root/oneops-admin/target"/inductor-*.jar target/
+SCRIPT

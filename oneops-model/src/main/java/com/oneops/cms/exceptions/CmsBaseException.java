@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.exceptions;
 
+import com.oneops.cms.util.CmsError;
 
 /**
  * Base exception that contains CmsError.
@@ -30,7 +31,8 @@ public class CmsBaseException extends RuntimeException implements CmsError {
   /**
    * Instantiates a new cms base exception.
    */
-  public CmsBaseException() {}
+  public CmsBaseException() {
+  }
 
   public CmsBaseException(String message, Throwable e) {
     super(message, e);
