@@ -343,7 +343,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    * @return kitchen yaml string for the work-order.
    */
   public String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) {
-    String inductorHome = config.getCircuitDir().replace("packer", "");
+    String inductorHome = config.getCircuitDir().replace("/packer", "");
     ST st = new ST(verifyTemplate);
     st.add("local", !isRemoteChefCall(wo));
     st.add("circuit_root", getCircuitDir(wo));
