@@ -18,6 +18,7 @@ import static com.oneops.cms.util.CmsConstants.MANIFEST_COMPOSED_OF;
 
 class EnvBomGenerationContext {
     private static final Logger logger = Logger.getLogger(EnvBomGenerationContext.class);
+    private final Set<Long> excludePlats;
 
     private CmsCmProcessor cmProcessor;
     private CmsUtil cmsUtil;
@@ -42,8 +43,6 @@ class EnvBomGenerationContext {
     }
 
     EnvBomGenerationContext(Long envId, Set<Long> excludePlats, String userId, CmsCmProcessor cmProcessor, CmsUtil cmsUtil, CmsRfcProcessor rfcProcessor) {
-        long t = System.currentTimeMillis();
-
         this.cmProcessor = cmProcessor;
         this.cmsUtil = cmsUtil;
         this.rfcProcessor = rfcProcessor;
@@ -53,8 +52,12 @@ class EnvBomGenerationContext {
         environment = cmProcessor.getCiById(envId);
         manifestNsPath = environment.getNsPath() + "/" + environment.getCiName() + "/manifest";
         bomNsPath = environment.getNsPath() + "/" + environment.getCiName() + "/bom";
+        this.excludePlats = excludePlats;
+    }
 
-        List<CmsCIRelation> rels = cmProcessor.getFromCIRelations(envId, MANIFEST_COMPOSED_OF, null, "manifest.Platform");
+    public void load() {
+        long t = System.currentTimeMillis();
+        List<CmsCIRelation> rels = cmProcessor.getFromCIRelations(environment.getCiId(), MANIFEST_COMPOSED_OF, null, "manifest.Platform");
 
         platforms = rels.stream()
                         .filter(r -> excludePlats == null || !excludePlats.contains(r.getToCiId()))

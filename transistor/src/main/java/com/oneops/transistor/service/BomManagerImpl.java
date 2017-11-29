@@ -115,6 +115,8 @@ public class BomManagerImpl implements BomManager {
 			//get open manifest release and soft commit it (no real deletes)
 			commitManifestRelease(manifestNsPath, bomNsPath, userId, desc);
 		}
+		
+		context.load();
 
 		//if we have an open bom release then return the release id
 		CmsRelease bomRelease = check4OpenBomRelease(bomNsPath);
