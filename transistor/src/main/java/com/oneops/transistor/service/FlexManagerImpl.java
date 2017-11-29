@@ -102,7 +102,7 @@ public class FlexManagerImpl implements FlexManager {
 
 	private long processBomRelease(long envId, CmsCI platform, long manifestReleaseId, String userId) {
 		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, userId, cmProcessor, cmsUtil, rfcProcessor);
-
+		context.load();
 		String bomNsPath = context.getBomNsPath();
 		trUtil.verifyAndCreateNS(bomNsPath);
 
