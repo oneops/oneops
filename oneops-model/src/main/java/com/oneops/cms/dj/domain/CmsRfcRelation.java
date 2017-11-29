@@ -38,42 +38,9 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   private CmsRfcCI fromRfcCi;
   private CmsRfcCI toRfcCi;
   private boolean isValidated = false;
-	private Map<String,CmsRfcAttribute> attributes = new HashMap<>();
+  private Map<String,CmsRfcAttribute> attributes = new HashMap<>();
 
-	public CmsRfcRelation() {}
-
-  public CmsRfcRelation(CmsCIRelation relation, String createdBy) {
-    setCiRelationId(relation.getCiRelationId());
-    setRelationName(relation.getRelationName());
-    setRelationId(relation.getRelationId());
-    setNsPath(relation.getNsPath());
-    relation.setNsId(relation.getNsId());
-    setRelationGoid(relation.getRelationGoid());
-    setFromCiId(relation.getFromCiId());
-    setToCiId(relation.getToCiId());
-    setComments(relation.getComments());
-    setLastAppliedRfcId(relation.getLastAppliedRfcId());
-    setCreated(relation.getCreated());
-    setCreatedBy(relation.getCreatedBy());
-    setUpdated(relation.getUpdated());
-    setUpdatedBy(relation.getUpdatedBy());
-    setRfcCreatedBy(createdBy);
-    setRfcUpdatedBy(createdBy);
-  }
-
-  public CmsRfcRelation(CmsCIRelation relation, String createdBy, Map<String, String> changes) {
-    this(relation, createdBy);
-    setRfcAction("update");
-		changes.forEach((key, value) -> {
-      CmsRfcAttribute attr = new CmsRfcAttribute();
-			attr.setAttributeName(key);
-			attr.setNewValue(value);
-      addAttribute(attr);
-    });
-  }
-
-  public CmsRfcRelation() {
-  }
+  public CmsRfcRelation() {}
 
   public CmsRfcRelation(CmsCIRelation relation, String createdBy) {
     setCiRelationId(relation.getCiRelationId());
@@ -97,10 +64,10 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   public CmsRfcRelation(CmsCIRelation relation, String createdBy, Map<String, String> changes) {
     this(relation, createdBy);
     setRfcAction("update");
-    changes.entrySet().forEach(a -> {
+    changes.forEach((key, value) -> {
       CmsRfcAttribute attr = new CmsRfcAttribute();
-      attr.setAttributeName(a.getKey());
-      attr.setNewValue(a.getValue());
+      attr.setAttributeName(key);
+      attr.setNewValue(value);
       addAttribute(attr);
     });
   }
