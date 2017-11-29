@@ -1,26 +1,24 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.cms.dj.domain;
 
-import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 
-import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,7 +38,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	private CmsRfcCI fromRfcCi;
 	private CmsRfcCI toRfcCi;
 	private boolean isValidated = false;
-	private Map<String,CmsRfcAttribute> attributes = new HashMap<String,CmsRfcAttribute>();
+	private Map<String,CmsRfcAttribute> attributes = new HashMap<>();
 
 	public CmsRfcRelation() {}
 
@@ -66,10 +64,10 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public CmsRfcRelation(CmsCIRelation relation, String createdBy, Map<String, String> changes) {
 		this(relation, createdBy);
 		setRfcAction("update");
-		changes.entrySet().forEach(a -> {
+		changes.forEach((key, value) -> {
 			CmsRfcAttribute attr = new CmsRfcAttribute();
-			attr.setAttributeName(a.getKey());
-			attr.setNewValue(a.getValue());
+			attr.setAttributeName(key);
+			attr.setNewValue(value);
 			addAttribute(attr);
 		});
 	}
@@ -82,7 +80,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public boolean isValidated() {
 		return isValidated;
 	}
-	
+
 	/**
 	 * Sets the validated.
 	 *
@@ -91,7 +89,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setValidated(boolean isValidated) {
 		this.isValidated = isValidated;
 	}
-	
+
 	/**
 	 * Gets the release ns path.
 	 *
@@ -100,7 +98,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public String getReleaseNsPath() {
 		return releaseNsPath;
 	}
-	
+
 	/**
 	 * Sets the release ns path.
 	 *
@@ -109,7 +107,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setReleaseNsPath(String releaseNsPath) {
 		this.releaseNsPath = releaseNsPath;
 	}
-	
+
 	/**
 	 * Gets the from rfc ci.
 	 *
@@ -118,7 +116,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public CmsRfcCI getFromRfcCi() {
 		return fromRfcCi;
 	}
-	
+
 	/**
 	 * Sets the from rfc ci.
 	 *
@@ -127,7 +125,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setFromRfcCi(CmsRfcCI fromRfcCi) {
 		this.fromRfcCi = fromRfcCi;
 	}
-	
+
 	/**
 	 * Gets the to rfc ci.
 	 *
@@ -136,7 +134,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public CmsRfcCI getToRfcCi() {
 		return toRfcCi;
 	}
-	
+
 	/**
 	 * Sets the to rfc ci.
 	 *
@@ -145,7 +143,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setToRfcCi(CmsRfcCI toRfcCi) {
 		this.toRfcCi = toRfcCi;
 	}
-	
+
 	/**
 	 * Gets the relation id.
 	 *
@@ -154,7 +152,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public int getRelationId() {
 		return relationId;
 	}
-	
+
 	/**
 	 * Sets the relation id.
 	 *
@@ -163,7 +161,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setRelationId(int relationId) {
 		this.relationId = relationId;
 	}
-	
+
 	/**
 	 * Gets the rfc action id.
 	 *
@@ -172,7 +170,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public int getRfcActionId() {
 		return rfcActionId;
 	}
-	
+
 	/**
 	 * Gets the from rfc id.
 	 *
@@ -181,7 +179,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public Long getFromRfcId() {
 		return fromRfcId;
 	}
-	
+
 	/**
 	 * Sets the from rfc id.
 	 *
@@ -190,7 +188,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setFromRfcId(Long fromRfcId) {
 		this.fromRfcId = fromRfcId;
 	}
-	
+
 	/**
 	 * Gets the to rfc id.
 	 *
@@ -199,7 +197,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public Long getToRfcId() {
 		return toRfcId;
 	}
-	
+
 	/**
 	 * Sets the to rfc id.
 	 *
@@ -208,7 +206,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setToRfcId(Long toRfcId) {
 		this.toRfcId = toRfcId;
 	}
-	
+
 	/**
 	 * Sets the rfc action id.
 	 *
@@ -217,7 +215,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setRfcActionId(int rfcActionId) {
 		this.rfcActionId = rfcActionId;
 	}
-	
+
 	/**
 	 * Sets the attributes.
 	 *
@@ -226,7 +224,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setAttributes(Map<String,CmsRfcAttribute> attributes) {
 		this.attributes = attributes;
 	}
-	
+
 	/**
 	 * Gets the attributes.
 	 *
@@ -235,7 +233,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public Map<String,CmsRfcAttribute> getAttributes() {
 		return attributes;
 	}
-	
+
 	/**
 	 * Adds the attribute.
 	 *
@@ -244,7 +242,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void addAttribute(CmsRfcAttribute attribute) {
 		this.attributes.put(attribute.getAttributeName(), attribute);
 	}
-	
+
 	/**
 	 * Gets the attribute.
 	 *
@@ -254,7 +252,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public CmsRfcAttribute getAttribute(String attrName){
 		return this.attributes.get(attrName);
 	}
-	
+
 	/**
 	 * Sets the ns id.
 	 *
@@ -263,7 +261,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public void setNsId(long nsId) {
 		this.nsId = nsId;
 	}
-	
+
 	/**
 	 * Gets the ns id.
 	 *
@@ -272,7 +270,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 	public long getNsId() {
 		return nsId;
 	}
-	
+
 	/**
 	 * Sets the ns path.
 	 *
@@ -284,14 +282,14 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
 			//  /oneops/montest/mtest/bom/custom/1
 			// Lets strip off platform parts for the release
 			String[] nsParts = nsPath.split("/");
-			String releaseNs = "";
+			StringBuilder releaseNs = new StringBuilder();
 			for (int i=1; i< nsParts.length; i++) {
 				if (nsParts[i].equals("_design")) break;
-				releaseNs += "/" + nsParts[i];
+				releaseNs.append("/").append(nsParts[i]);
 				if (nsParts[i].equals("bom")) break;
 				if (nsParts[i].equals("manifest")) break;
 			}
-			this.releaseNsPath = releaseNs;
+			this.releaseNsPath = releaseNs.toString();
 		}
 	}
 
