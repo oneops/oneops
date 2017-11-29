@@ -31,13 +31,11 @@ import org.apache.log4j.Logger;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
-import com.oneops.cms.cm.domain.CmsLink;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcLink;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.exceptions.MDException;
@@ -51,8 +49,8 @@ import com.oneops.cms.util.domain.AttrQueryCondition;
  * The Class CmsCmRfcMrgProcessor.
  */
 public class CmsCmRfcMrgProcessor {
+    private static Logger logger = Logger.getLogger(CmsCmRfcMrgProcessor.class);
 
-    static Logger logger = Logger.getLogger(CmsCmRfcMrgProcessor.class);
     private CmsRfcProcessor rfcProcessor;
     private CmsCmProcessor cmProcessor;
     private CmsDJValidator djValidator;
@@ -693,24 +691,6 @@ public class CmsCmRfcMrgProcessor {
         return rfcProcessor.getRfcCIById(newRfcId);
     }
 
-    public CmsRfcCI createDummyUpdateRfcWithHint(long ciId, String hint, String releaseType, int execOrder, String userId) {
-
-        //first lets check if there is an rfc already
-        CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiId(ciId);
-        if (existingRfc != null) {
-            return existingRfc;
-        }
-
-        CmsCI ci = cmProcessor.getCiByIdNaked(ciId);
-        if (ci != null) {
-            CmsRfcCI rfcCi = newRfcCi(ci, releaseType, execOrder, userId);
-            rfcCi.setHint(hint);
-            return createRfc(rfcCi, userId);
-        } else {
-            return null;
-        }
-    }
-
     /**
      * Gets the df dj relations.
      *
@@ -1128,7 +1108,7 @@ public class CmsCmRfcMrgProcessor {
     }
 
 
-    public void populateRelCis(List<CmsRfcRelation> rels, boolean fromCis, boolean toCis, String cmAttrValue) {
+    private void populateRelCis(List<CmsRfcRelation> rels, boolean fromCis, boolean toCis, String cmAttrValue) {
 
         if (rels.size() == 0) {
             return;
@@ -1281,7 +1261,7 @@ public class CmsCmRfcMrgProcessor {
             //this should be an new "update" rfc lets figure out delta
             rfcCi.setRfcAction("update");
             CmsRfcCI baseCi = getCiById(rfcCi.getCiId(), attrValue);
-            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi, attrValue);
+            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi);
             if (updRfc != null) {
                 rfcProcessor.createRfcCINoCheck(updRfc, userId);
                 resultRfc = getCiById(rfcCi.getCiId(), attrValue);
@@ -1291,7 +1271,7 @@ public class CmsCmRfcMrgProcessor {
         } else {
             //we need to update exisitng rfc
             CmsRfcCI baseCi = getCiById(rfcCi.getCiId(), attrValue);
-            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi, attrValue);
+            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi);
             if (updRfc != null) {
                 rfcProcessor.updateRfcCI(updRfc);
                 resultRfc = getCiById(rfcCi.getCiId(), attrValue);
@@ -1326,7 +1306,7 @@ public class CmsCmRfcMrgProcessor {
             //this should be an new "update" rfc lets figure out delta
             rfcCi.setRfcAction("update");
             CmsRfcCI baseCi = getCiById(rfcCi.getCiId(), attrValue);
-            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi, attrValue);
+            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi);
             if (updRfc != null) {
                 long newRfcId = rfcProcessor.createRfcCINoCheck(updRfc, userId);
                 //resultRfc = getCiById(rfcCi.getCiId(), attrValue);
@@ -1337,7 +1317,7 @@ public class CmsCmRfcMrgProcessor {
         } else {
             //we need to update exisitng rfc
             CmsRfcCI baseCi = getCiById(rfcCi.getCiId(), attrValue);
-            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi, attrValue);
+            CmsRfcCI updRfc = generateNewRfc(rfcCi, baseCi);
             if (updRfc != null) {
                 long newRfcId = rfcProcessor.updateRfcCI(updRfc);
                 //resultRfc = getCiById(rfcCi.getCiId(), attrValue);
@@ -1355,11 +1335,10 @@ public class CmsCmRfcMrgProcessor {
     }
 
 
-    private CmsRfcCI generateNewRfc(CmsRfcCI rfcCi, CmsRfcCI baseCi, String attrValue) {
+    private CmsRfcCI generateNewRfc(CmsRfcCI rfcCi, CmsRfcCI baseCi) {
 
         boolean needUpdate = false;
         CmsRfcCI newRfc = new CmsRfcCI();
-        //CmsRfcCI baseCi = getCiById(rfcCi.getCiId(), attrValue);
         if (baseCi == null) {
             //this should never happen raise an error
             String errMsg = "the is no ci or rfc for ci_id = " + rfcCi.getCiId();
@@ -1566,26 +1545,6 @@ public class CmsCmRfcMrgProcessor {
         return newRfcRel;
     }
 
-    public List<CmsLink> getLinks(String nsPath, String relName) {
-        List<CmsLink> ciLinks = cmProcessor.getLinks(nsPath, relName);
-        List<CmsRfcLink> openRfcLinks = rfcProcessor.getLinks(nsPath, relName);
-
-        Map<String, CmsLink> mergedMap = new HashMap<>();
-        for (CmsLink ciLink : ciLinks) {
-            mergedMap.put(ciLink.getFromCiId() + ":" + ciLink.getRelationName() + ":" + ciLink.getToCiId(), ciLink);
-        }
-        for (CmsRfcLink rfcLink : openRfcLinks) {
-            String key = rfcLink.getFromCiId() + ":" + rfcLink.getRelationName() + ":" + rfcLink.getToCiId();
-            if ("add".equals(rfcLink.getAction())) {
-                mergedMap.put(key, rfcLink);
-            } else if ("delete".equals(rfcLink.getAction())) {
-                mergedMap.remove(key);
-            }
-        }
-
-        return new ArrayList<>(mergedMap.values());
-    }
-
     private class Relations {
         private CmsCIRelation ciRelation;
         private CmsRfcRelation rfcRelation;
@@ -1627,6 +1586,4 @@ public class CmsCmRfcMrgProcessor {
             return rfc;
         }
     }
-
-
 }

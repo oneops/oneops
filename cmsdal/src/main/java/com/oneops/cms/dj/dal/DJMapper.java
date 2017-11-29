@@ -22,12 +22,10 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcLink;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.util.TimelineQueryParam;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.apache.ibatis.annotations.Param;
 
@@ -193,10 +191,8 @@ public interface DJMapper {
   List<Long> getLinkedRfcRelationId(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("rfcId") long rfcId);
 
-  List<CmsRfcLink> getOpenRfcLinks(@Param("nsPath") String nsPath,
-      @Param("relName") String relName);
-
   long countCiRfcByReleaseId(long releaseId);
+  long countRelationRfcByReleaseId(long releaseId);
 
   long countOpenRfcCisByNs(String nsPath);
 

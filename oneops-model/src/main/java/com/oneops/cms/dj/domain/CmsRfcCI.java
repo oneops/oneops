@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.cms.dj.domain;
 
+import com.oneops.Util;
 import com.oneops.cms.cm.domain.CmsCI;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,8 +35,7 @@ public class CmsRfcCI extends CmsRfcCIBasic implements CmsRfcContainer {
   private String releaseNsPath;
   private Map<String, CmsRfcAttribute> attributes = new HashMap<>();
 
-  public CmsRfcCI() {
-  }
+	public CmsRfcCI() {}
 
   public CmsRfcCI(CmsCI ci, String createdBy) {
     setCiId(ci.getCiId());
@@ -59,10 +59,10 @@ public class CmsRfcCI extends CmsRfcCIBasic implements CmsRfcContainer {
   public CmsRfcCI(CmsCI ci, String createdBy, Map<String, String> changes) {
     this(ci, createdBy);
     setRfcAction("update");
-    changes.entrySet().forEach(a -> {
+    changes.forEach((key, value) -> {
       CmsRfcAttribute attr = new CmsRfcAttribute();
-      attr.setAttributeName(a.getKey());
-      attr.setNewValue(a.getValue());
+      attr.setAttributeName(key);
+      attr.setNewValue(value);
       addAttribute(attr);
     });
   }
@@ -187,24 +187,24 @@ public class CmsRfcCI extends CmsRfcCIBasic implements CmsRfcContainer {
   public void setNsPath(String nsPath) {
     super.setNsPath(nsPath);
     if (this.releaseNsPath == null) {
-      //  /oneops/montest/mtest/bom/custom/1
-      // Lets strip off platform parts for the release
-      String[] nsParts = nsPath.split("/");
-      String releaseNs = "";
-      for (int i = 1; i < nsParts.length; i++) {
-        if (nsParts[i].equals("_design")) {
-          break;
-        }
-        releaseNs += "/" + nsParts[i];
-        if (nsParts[i].equals("bom")) {
-          break;
-        }
-        if (nsParts[i].equals("manifest")) {
-          break;
-        }
-      }
-      this.releaseNsPath = releaseNs;
+      this.releaseNsPath = Util.getReleaseNsPath(nsPath);
     }
   }
 
+	public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue) {
+		CmsRfcAttribute attr = getAttribute(attrName);
+		if (attr == null) {
+			attr = new CmsRfcAttribute();
+			attr.setAttributeName(attrName);
+			addAttribute(attr);
+		}
+		attr.setNewValue(String.valueOf(attrValue));
+		return attr;
+	}
+
+	public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue, String comments) {
+		CmsRfcAttribute attr = addOrUpdateAttribute(attrName, attrValue);
+		attr.setComments(comments);
+		return attr;
+	}
 }
