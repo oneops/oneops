@@ -19,7 +19,6 @@ package com.oneops.cms.dj.domain;
 
 import com.oneops.Util;
 import com.oneops.cms.cm.domain.CmsCIRelation;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -69,6 +68,39 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
       CmsRfcAttribute attr = new CmsRfcAttribute();
 			attr.setAttributeName(key);
 			attr.setNewValue(value);
+      addAttribute(attr);
+    });
+  }
+
+  public CmsRfcRelation() {
+  }
+
+  public CmsRfcRelation(CmsCIRelation relation, String createdBy) {
+    setCiRelationId(relation.getCiRelationId());
+    setRelationName(relation.getRelationName());
+    setRelationId(relation.getRelationId());
+    setNsPath(relation.getNsPath());
+    relation.setNsId(relation.getNsId());
+    setRelationGoid(relation.getRelationGoid());
+    setFromCiId(relation.getFromCiId());
+    setToCiId(relation.getToCiId());
+    setComments(relation.getComments());
+    setLastAppliedRfcId(relation.getLastAppliedRfcId());
+    setCreated(relation.getCreated());
+    setCreatedBy(relation.getCreatedBy());
+    setUpdated(relation.getUpdated());
+    setUpdatedBy(relation.getUpdatedBy());
+    setRfcCreatedBy(createdBy);
+    setRfcUpdatedBy(createdBy);
+  }
+
+  public CmsRfcRelation(CmsCIRelation relation, String createdBy, Map<String, String> changes) {
+    this(relation, createdBy);
+    setRfcAction("update");
+    changes.entrySet().forEach(a -> {
+      CmsRfcAttribute attr = new CmsRfcAttribute();
+      attr.setAttributeName(a.getKey());
+      attr.setNewValue(a.getValue());
       addAttribute(attr);
     });
   }
