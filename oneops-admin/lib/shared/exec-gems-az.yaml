@@ -3,9 +3,6 @@ common:
       - fog
       - 1.29.0
     -
-      - fog-core
-      - 1.43
-    -
       - aws-s3
       - 0.6.3
     -
