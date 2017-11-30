@@ -36,7 +36,6 @@ import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.service.*;
-import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -62,15 +61,12 @@ public class TransistorRestController extends AbstractRestController {
 	private IaasManager iaasManager;
 	private DesignManager dManager;
 	private BomAsyncProcessor baProcessor;
-	private InMemoryBomProcessor imBomProcesor;
 	private ManifestAsyncProcessor maProcessor;
 	private CmsUtil util;
 	private SnapshotManager snapshotManager;
+	
+	
 
-
-	public void setImBomProcesor(InMemoryBomProcessor imBomProcesor) {
-		this.imBomProcesor = imBomProcesor;
-	}
 
 	public void setMaProcessor(ManifestAsyncProcessor maProcessor) {
 		this.maProcessor = maProcessor;
@@ -468,23 +464,6 @@ public class TransistorRestController extends AbstractRestController {
 			}
 		}
 		return result;
-	}
-
-
-	@RequestMapping(value="environments/{envId}/deployments/inmemory", method = {RequestMethod.POST, RequestMethod.GET})
-	@ResponseBody
-	public void generateBomInMemory(
-			@PathVariable long envId,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
-		try {
-			if (userId == null) userId = "oneops-system";
-			imBomProcesor.compileEnv(envId, userId, null, null, false, false);
-		} catch (CmsBaseException te) {
-			logger.error(te);
-			te.printStackTrace();
-			throw te;
-		}
 	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)

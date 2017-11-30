@@ -18,6 +18,7 @@
 package com.oneops.transistor.service;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -25,24 +26,27 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsUtil;
 
-import static com.oneops.cms.util.CmsConstants.BASE_CONSUMES;
-
 public class FlexManagerImpl implements FlexManager {
+
 	private static Logger logger = Logger.getLogger(FlexManagerImpl.class);
 
+	
 	private CmsCmProcessor cmProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private TransUtil trUtil;
 	private BomRfcBulkProcessor bomRfcProcessor;
+	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
 
 	private BomManager bomManager;
@@ -50,7 +54,6 @@ public class FlexManagerImpl implements FlexManager {
 	public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
 	}
-
 	public void setCmProcessor(CmsCmProcessor cmProcessor) {
 		this.cmProcessor = cmProcessor;
 	}
@@ -69,6 +72,14 @@ public class FlexManagerImpl implements FlexManager {
 
 	public void setBomRfcProcessor(BomRfcBulkProcessor bomRfcProcessor) {
 		this.bomRfcProcessor = bomRfcProcessor;
+	}
+
+	public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
+		this.dpmtProcessor = dpmtProcessor;
+	}
+
+	public BomManager getBomManager() {
+		return bomManager;
 	}
 
 	public void setBomManager(BomManager bomManager) {
@@ -99,24 +110,28 @@ public class FlexManagerImpl implements FlexManager {
 			return null;
 		}
 	}
+	
+	private long processBomRelease(long envId, CmsCI plat, long manifestReleaseId, String userId) {
+		
+		CmsCI env = cmProcessor.getCiById(envId);
+		
+		String manifestNs = env.getNsPath() + "/" + env.getCiName();
+		String bomNsPath = manifestNs + "/bom";
 
-	private long processBomRelease(long envId, CmsCI platform, long manifestReleaseId, String userId) {
-		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, userId, cmProcessor, cmsUtil, rfcProcessor);
-		context.load();
-		String bomNsPath = context.getBomNsPath();
 		trUtil.verifyAndCreateNS(bomNsPath);
+		
+		Map<String,String> globalVars = cmsUtil.getGlobalVars(env);
 
-		List<CmsCIRelation> cloudRels = cmProcessor.getFromCIRelations(platform.getCiId(), BASE_CONSUMES, "account.Cloud");
+		List<CmsCIRelation> cloudRels = cmProcessor.getFromCIRelations(plat.getCiId(), "base.Consumes", "account.Cloud");
+		
 		for (CmsCIRelation cloudRel : cloudRels) {
-			CmsCIRelationAttribute adminstatus = cloudRel.getAttribute("adminstatus");
-			if (adminstatus == null || CmsConstants.CLOUD_STATE_ACTIVE.equals(adminstatus.getDjValue())) {
-				bomRfcProcessor.processManifestPlatform(context,
-														context.getPlatformContext(platform),
-														cloudRel,
-														1,
-														false);
+			if (cloudRel.getAttribute("adminstatus") != null
+					&& !CmsConstants.CLOUD_STATE_ACTIVE.equals(cloudRel.getAttribute("adminstatus").getDjValue())) {
+				continue;
 			}
-		}
+			Map<String,String> cloudVars = cmsUtil.getCloudVars(cloudRel.getToCi());
+			bomRfcProcessor.processManifestPlatform(plat, cloudRel, bomNsPath, 1, globalVars, cloudVars, userId, true, false);
+		}	
 		
 		return getPopulateParentAndGetReleaseId(bomNsPath, manifestReleaseId);
 	}
@@ -181,4 +196,7 @@ public class FlexManagerImpl implements FlexManager {
 		}
 		return 0;
 	}
+
+
+
 }

@@ -19,7 +19,7 @@
       <dd>
         <% old_cost = @cost['actual']
            new_cost = @cost['estimated'] %>
-        <% if old_cost.blank? || old_cost == 0 %>
+        <% if old_cost.blank? %>
           This environment will cost <%= format_cost_rate(new_cost) %>
         <% elsif new_cost == old_cost %>
           Cost of this environment will <b>stay</b> at <%= format_cost_rate(new_cost) %>
