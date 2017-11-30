@@ -17,7 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.dj.domain;
 
-import com.oneops.Util;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,9 +37,10 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   private CmsRfcCI fromRfcCi;
   private CmsRfcCI toRfcCi;
   private boolean isValidated = false;
-  private Map<String,CmsRfcAttribute> attributes = new HashMap<>();
+  private Map<String, CmsRfcAttribute> attributes = new HashMap<String, CmsRfcAttribute>();
 
-  public CmsRfcRelation() {}
+  public CmsRfcRelation() {
+  }
 
   public CmsRfcRelation(CmsCIRelation relation, String createdBy) {
     setCiRelationId(relation.getCiRelationId());
@@ -64,10 +64,10 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   public CmsRfcRelation(CmsCIRelation relation, String createdBy, Map<String, String> changes) {
     this(relation, createdBy);
     setRfcAction("update");
-    changes.forEach((key, value) -> {
+    changes.entrySet().forEach(a -> {
       CmsRfcAttribute attr = new CmsRfcAttribute();
-      attr.setAttributeName(key);
-      attr.setNewValue(value);
+      attr.setAttributeName(a.getKey());
+      attr.setNewValue(a.getValue());
       addAttribute(attr);
     });
   }
@@ -279,18 +279,24 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   public void setNsPath(String nsPath) {
     super.setNsPath(nsPath);
     if (this.releaseNsPath == null) {
-      this.releaseNsPath = Util.getReleaseNsPath(nsPath);
+      //  /oneops/montest/mtest/bom/custom/1
+      // Lets strip off platform parts for the release
+      String[] nsParts = nsPath.split("/");
+      String releaseNs = "";
+      for (int i = 1; i < nsParts.length; i++) {
+        if (nsParts[i].equals("_design")) {
+          break;
+        }
+        releaseNs += "/" + nsParts[i];
+        if (nsParts[i].equals("bom")) {
+          break;
+        }
+        if (nsParts[i].equals("manifest")) {
+          break;
+        }
+      }
+      this.releaseNsPath = releaseNs;
     }
   }
 
-  public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue) {
-    CmsRfcAttribute attr = getAttribute(attrName);
-    if (attr == null) {
-      attr = new CmsRfcAttribute();
-      attr.setAttributeName(attrName);
-      addAttribute(attr);
-    }
-    attr.setNewValue(String.valueOf(attrValue));
-    return attr;
-  }
 }

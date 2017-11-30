@@ -131,7 +131,8 @@ public interface CIMapper {
 	List<CmsCI> getCiByName(@Param("pvalue") String pvalue, @Param("oper") String oper);
 
 	List<HashMap<String, Object>> getEnvState(String nsPath);
-
+	List<CmsLink> getLinks(@Param("nsPath") String nsPath, @Param("relName") String relName);
+	
 
 	void createAltNs(@Param("nsId")long nsId, @Param("tag")String tag, @Param("ciId")long ciId);
 

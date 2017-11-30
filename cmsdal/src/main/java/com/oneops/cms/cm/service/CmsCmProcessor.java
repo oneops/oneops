@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
@@ -34,6 +33,7 @@ import com.oneops.cms.ns.service.CmsNsProcessor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsException;
@@ -43,6 +43,7 @@ import com.oneops.cms.md.domain.CmsRelation;
 import com.oneops.cms.md.domain.CmsRelationAttribute;
 import com.oneops.cms.md.service.CmsMdProcessor;
 import com.oneops.cms.ns.domain.CmsNamespace;
+import com.oneops.cms.ns.service.CmsNsManager;
 import com.oneops.cms.util.CIValidationResult;
 import com.oneops.cms.util.CmsCmValidator;
 import com.oneops.cms.util.CmsError;
@@ -51,7 +52,6 @@ import com.oneops.cms.util.QueryConditionMapper;
 import com.oneops.cms.util.dal.UtilMapper;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
-
 import static com.oneops.cms.util.CmsConstants.*;
 
 /**
@@ -69,6 +69,7 @@ public class CmsCmProcessor {
 	private CmsNsProcessor cmsNsProcessor;
 	private CmsMdProcessor mdProcessor;
 	private QueryConditionMapper qcm = new QueryConditionMapper();
+	private Gson gson = new Gson();
 	private Set<String> bomRelations = new HashSet<>();
 
 	public CmsCmProcessor() {
@@ -189,37 +190,40 @@ public class CmsCmProcessor {
 	}
 	
 	public void populateRelCis(List<CmsCIRelation> rels, boolean fromCis, boolean toCis) {
-		populateRelCisLocal(rels,  fromCis, toCis, true);
-	}
-
-	public void populateRelCisNoAttrs(List<CmsCIRelation> rels, boolean fromCis, boolean toCis) {
-		populateRelCisLocal(rels,  fromCis, toCis, false);
-	}
-
-	private void populateRelCisLocal(List<CmsCIRelation> rels, boolean fromCis, boolean toCis, boolean populateAttrs) {
+		
 		if (rels.size() == 0) {
 			return;
 		}
-
-		Set<Long> ids = new HashSet<>();
-		if (fromCis) {
-			ids.addAll(rels.stream().map(CmsCIRelation::getFromCiId).collect(Collectors.toList()));
-		}
+		
 		if (toCis) {
-			ids.addAll(rels.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toList()));
-		}
-		Map<Long, CmsCI> ciMap = getCiByIdListLocal(new ArrayList<>(ids), populateAttrs).stream()
-				.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
-		for (CmsCIRelation rel : rels) {
-			if (fromCis) {
-				rel.setFromCi(ciMap.get(rel.getFromCiId()));
+			Set<Long> toCiIds = new HashSet<Long>();
+			for (CmsCIRelation rel : rels) {
+				toCiIds.add(rel.getToCiId());
+			}	
+			Map<Long, CmsCI> ciMap = new HashMap<Long, CmsCI>();
+			for (CmsCI ci : getCiByIdList(new ArrayList<Long>(toCiIds))) {
+				ciMap.put(ci.getCiId(), ci);
 			}
-			if (toCis) {
+			for (CmsCIRelation rel : rels) {
 				rel.setToCi(ciMap.get(rel.getToCiId()));
+			}	
+		}
+		if (fromCis) {
+			Set<Long> fromCiIds = new HashSet<Long>();
+			for (CmsCIRelation rel : rels) {
+				fromCiIds.add(rel.getFromCiId());
+			}	
+			Map<Long, CmsCI> ciMap = new HashMap<Long, CmsCI>();
+			for (CmsCI ci : getCiByIdList(new ArrayList<Long>(fromCiIds))) {
+				ciMap.put(ci.getCiId(), ci);
 			}
+			for (CmsCIRelation rel : rels) {
+				rel.setFromCi(ciMap.get(rel.getFromCiId()));
+			}	
 		}
 	}
-
+	
+	
 	private void populateAttrs(CmsCI ci) {
 		if (ci != null) {
 			CmsClazz clazz = mdProcessor.getClazz(ci.getCiClassId());
@@ -636,7 +640,6 @@ public class CmsCmProcessor {
 	public List<CmsCI> getCiByIdListNaked(List<Long> ids) {
 		return getCiByIdListLocal(ids, false);
 	}	
-
 	private List<CmsCI> getCiByIdListLocal(List<Long> ids, boolean populateAttrs) {
 		List<CmsCI> cis = new ArrayList<CmsCI>();
 		
@@ -707,6 +710,7 @@ public class CmsCmProcessor {
 	 * @return the cms ci
 	 */
 	public CmsCI updateCI(CmsCI ci) {
+		
 		CmsCI existingCi = getCiById(ci.getCiId());
 
 		if (existingCi == null) {
@@ -734,7 +738,9 @@ public class CmsCmProcessor {
 			ci.setCiStateId(100);
 		}
 
-		boolean ciChanged = !cmValidator.cisEqual(existingCi, ci);
+		boolean ciChanged = false;
+
+		ciChanged = !cmValidator.cisEqual(existingCi, ci);
 		
 		for(CmsCIAttribute updAttr : ci.getAttributes().values()){
 			updAttr.setCiId(ci.getCiId());
@@ -759,7 +765,7 @@ public class CmsCmProcessor {
 	/**
 	 * Update ci state.
 	 *
-	 * @param ciId, String new ciState
+	 * @param long ciId, String new ciState 
 	 * @return the cms ci
 	 */
 	public CmsCI updateCiState(long ciId, String ciState, String user) {
@@ -911,13 +917,14 @@ public class CmsCmProcessor {
 	 * Gets the from ci relations by multiple names
 	 *
 	 * @param fromId the from id
-	 * @param relationNames the relation names
-	 * @param shortRelNames the short relation names
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param toClazzName the to clazz name
 	 * @return the from ci relations
 	 */
 	public Map<String, List<CmsCIRelation>> getFromCIRelationsByMultiRelationNames(long fromId, List<String> relationNames, List<String> shortRelNames) {
 		List<CmsCIRelation> relations = getFromCIRelationsLocal(fromId, relationNames, shortRelNames);
-		Map<String, List<CmsCIRelation>> relationsMap;
+		Map<String, List<CmsCIRelation>> relationsMap = null;
 		if (relations != null) {
 			relationsMap = relations.stream().collect(Collectors.groupingBy(CmsCIRelation::getRelationName));
 		}
@@ -944,38 +951,6 @@ public class CmsCmProcessor {
 			logger.debug(" got "+relList.size()+" for  r:"+relationName+":shortRelName"+shortRelName+":toClazzName"+toClazzName+":toCiName"+toCiName);
 		}
 		return relList;
-	}
-
-	/**
-	 * Gets a list of 'from' CIs for relations with a given 'to' ciId.
-	 *
-	 * @param toId the to id
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
-	 * @param toClazzName the to clazz name
-	 * @return list of CIs
-	 */
-	public List<CmsCI> getFromCIs(long toId, String relationName, String shortRelName, String toClazzName) {
-		CiClassNames names = parseClassName(toClazzName);
-		List<Long> ids = ciMapper.getToCIRelations(toId, relationName, shortRelName, names.className, names.shortClassName).stream()
-				.map(CmsCIRelation::getFromCiId).collect(Collectors.toList());
-		return getCiByIdList(ids);
-	}
-
-	/**
-	 * Gets a list of 'to' CIs for relations with a given 'from' ciId.
-	 *
-	 * @param fromId the from id
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
-	 * @param toClazzName the to clazz name
-	 * @return list of CIs
-	 */
-	public List<CmsCI> getToCIs(long fromId, String relationName, String shortRelName, String toClazzName) {
-		CiClassNames names = parseClassName(toClazzName);
-		List<Long> ids = ciMapper.getFromCIRelations(fromId, relationName, shortRelName, names.className, names.shortClassName).stream()
-				.map(CmsCIRelation::getToCiId).collect(Collectors.toList());
-		return getCiByIdList(ids);
 	}
 
 	private List<CmsCIRelation> getFromCIRelationsLocal(long fromId,
@@ -1187,9 +1162,11 @@ public class CmsCmProcessor {
 	 */
 	public List<CmsCIRelation> getFromCIRelationsNakedNoAttrs(long fromId,
 			String relationName, String shortRelName, String toClazzName) {
+		
+		
 		CiClassNames names = parseClassName(toClazzName);
 
-		return ciMapper.getFromCIRelations(fromId, relationName, shortRelName, names.className, names.shortClassName);
+		return ciMapper.getFromCIRelations(fromId, relationName, shortRelName, names.className, names.shortClassName); 
 	}
 
 	/**
@@ -1206,6 +1183,7 @@ public class CmsCmProcessor {
 			String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName) {
 		
 		CiClassNames toNames = parseClassName(toClazzName);
+		
 		CiClassNames fromNames = parseClassName(fromClazzName);
 		
 		List<CmsCIRelation> relList = ciMapper.getCIRelations(nsPath, relationName, shortRelName, fromNames.className, fromNames.shortClassName, toNames.className, toNames.shortClassName); 
@@ -1225,11 +1203,12 @@ public class CmsCmProcessor {
 	 * @return the cI relations ns like naked
 	 */
 	public List<CmsCIRelation> getCIRelationsNsLikeNaked(
-			String nsPath, String relationName, String shortRelName, String fromClazzName, String toClazzName) {
+			String ns, String relationName, String shortRelName, String fromClazzName, String toClazzName) {
 		
-		List<CmsCIRelation> relList = getCIRelationsNsLikeNakedNoAttrs(nsPath, relationName, shortRelName, fromClazzName, toClazzName);
+		List<CmsCIRelation> relList = getCIRelationsNsLikeNakedNoAttrs(ns, relationName, shortRelName, fromClazzName, toClazzName); 
 		populateRelAttrs(relList);
 		return relList;
+
 	}
 	
 	
@@ -1251,21 +1230,6 @@ public class CmsCmProcessor {
 		CiClassNames fromNames = parseClassName(fromClazzName);
 		
 		return ciMapper.getCIRelations(nsPath, relationName, shortRelName, fromNames.className, fromNames.shortClassName, toNames.className, toNames.shortClassName); 
-	}
-
-	/**
-	 * Gets the cI relations - do not laod attributes for relations and CIs.
-	 *
-	 * @param nsPath the ns path
-	 * @param relationName the relation name
-	 * @param shortRelName the short rel name
-	 * @return the cI relations naked no attrs
-	 */
-	public List<CmsCIRelation> getCIRelationsNoAttrs(String nsPath, String relationName, String shortRelName) {
-
-		List<CmsCIRelation> relList = ciMapper.getCIRelations(nsPath, relationName, shortRelName, null, null, null, null);
-		populateRelCisNoAttrs(relList, true, true);
-		return relList;
 	}
 
 	/**
@@ -1320,7 +1284,7 @@ public class CmsCmProcessor {
 	 */
 	public List<CmsCIRelation> getCIRelationsNsLikeNakedNoAttrs(
 			String ns, String relationName, String shortRelName, String fromClazzName, String toClazzName) {
-		return getCIRelationsNsLikeNakedNoAttrs(ns, relationName, shortRelName, fromClazzName, toClazzName, false, false);
+		return getCIRelationsNsLikeNakedNoAttrs(ns, relationName, shortRelName, fromClazzName, toClazzName, false, false); 
 	}
 	
 	/**
@@ -1515,7 +1479,7 @@ public class CmsCmProcessor {
 	}
 	
 	/**
-	 * Gets the to ci relations by target nsPath and toCiId.
+	 * Gets the to ci relations by target nsPath.
 	 *
 	 * @param toId the to id
 	 * @param relationName the relation name
@@ -1525,30 +1489,21 @@ public class CmsCmProcessor {
 	 * @return the from to ci relations
 	 */
 	public List<CmsCIRelation> getToCIRelationsByNs(long toId, String relationName, String shortRelName, String fromClazzName, String fromNsPath) {
-		List<CmsCIRelation> relList = getToCIRelationsByNsNoAttrs(toId, relationName, shortRelName, fromClazzName, fromNsPath);
-		populateRelAttrs(relList);
-		return relList;
-	}
+		
+		List<CmsCIRelation> relList = getToCIRelationsByNsNaked(toId, relationName, shortRelName, fromClazzName, fromNsPath);
 
-	/**
-	 * Gets the to ci relations by target nsPath and toCiId with no relation attributes.
-	 *
-	 * @param toId the to id
-	 * @param relationName the relation name
-	 * @param shortRelName the short relation name
-	 * @param fromClazzName target class
-	 * @param fromNsPath target nsPath
-	 * @return the from to ci relations
-	 */
-	public List<CmsCIRelation> getToCIRelationsByNsNoAttrs(long toId, String relationName, String shortRelName, String fromClazzName, String fromNsPath) {
-		CiClassNames fromNames = parseClassName(fromClazzName);
-		List<CmsCIRelation> relList = ciMapper.getToCIRelationsByNS(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, fromNsPath);
 		populateRelCis(relList, true, false);
+		
+		/*
+		for (CmsCIRelation rel : relList) {
+			rel.setFromCi(getCiById(rel.getFromCiId()));
+		}
+		*/
 		return relList;
 	}
 
 	/**
-	 * Gets the to ci relations by target nsPath without populating fromCi.
+	 * Gets the to ci relations by target nsPath without populationg fromCi.
 	 *
 	 * @param toId the to id
 	 * @param relationName the relation name
@@ -1562,7 +1517,7 @@ public class CmsCmProcessor {
 	}
 
 	/**
-	 * Gets the to ci relations by target nsPath recursivley without populating fromCi.
+	 * Gets the to ci relations by target nsPath recursivley without populationg fromCi.
 	 *
 	 * @param toId the to id
 	 * @param relationName the relation name
@@ -1574,7 +1529,7 @@ public class CmsCmProcessor {
 	public List<CmsCIRelation> getToCIRelationsByNsNaked(long toId, String relationName, String shortRelName, String fromClazzName, String fromNsPath, boolean recursive) {
 		
 		CiClassNames fromNames = parseClassName(fromClazzName);
-		List<CmsCIRelation> relList;
+		List<CmsCIRelation> relList = null;
 		if(recursive) {
 			String nsLike = CmsUtil.likefyNsPath(fromNsPath);
 			relList = ciMapper.getToCIRelationsByNSLike(toId, relationName, shortRelName, fromNames.className, fromNames.shortClassName, fromNsPath, nsLike);
@@ -1584,7 +1539,8 @@ public class CmsCmProcessor {
 		populateRelAttrs(relList);
 		return relList;
 	}
-
+	
+	
 	/**
 	 * Gets the from to ci relations.
 	 *
@@ -2002,10 +1958,11 @@ public class CmsCmProcessor {
 	/**
 	 * Gets the count ci relations group by to ci_id.
 	 *
+	 * @param fromId the from id
 	 * @param relationName the relation name
 	 * @param shortRelName the short rel name
-	 * @param fromClazzName the to clazz name
-	 * @param nsPath the to ns path
+	 * @param toClazzName the to clazz name
+	 * @param toNsPath the to ns path
 	 * @return the count from ci relations group by ns
 	 */
 	public Map<Long, Long> getCountCIRelationsGroupByToCiId(
@@ -2020,7 +1977,8 @@ public class CmsCmProcessor {
 	 * @param toId the to id
 	 * @param relationName the relation name
 	 * @param shortRelName the short rel name
-	 * @param fromClazzName the to clazz name
+	 * @param toClazzName the to clazz name
+	 * @param toNsPath the to ns path
 	 * @param recursive the recursive
 	 * @return the count to ci relations by ns
 	 */
@@ -2084,6 +2042,16 @@ public class CmsCmProcessor {
 		return utilMapper.getCmVarByLongestMatchingCriteria(varNameLike, criteria);
 	}
 
+	/**
+	 * get ci links (simple call to get relations without extra info)
+	 *
+	 * @param  nsPath, relName
+	 */
+	public List<CmsLink> getLinks(String nsPath, String relName) {
+		return ciMapper.getLinks(nsPath, relName);
+	}
+    
+	
 	private CiClassNames parseClassName(String clazzName) {
 		
 		CiClassNames names = new CiClassNames();
@@ -2111,6 +2079,15 @@ public class CmsCmProcessor {
 		String shortClassName = null;
 	}
 	
+	private String generateRelComments(String fromCiName, String fromCiClass, String toCiName, String toCiClass) {
+		Map<String, String> strMap = new HashMap<String, String>();
+		strMap.put("fromCiName", fromCiName);
+		strMap.put("fromCiClass", fromCiClass);
+		strMap.put("toCiName", toCiName);
+		strMap.put("toCiClass", toCiClass);
+		return gson.toJson(strMap);
+	}
+
 	public CmsCIRelation bootstrapRelation(CmsCI fromCi, CmsCI toCi, String relName, String nsPath, String createdBy, Date created) {
 		CmsCIRelation newRel = new CmsCIRelation();
 		newRel.setNsPath(nsPath);
@@ -2134,7 +2111,7 @@ public class CmsCmProcessor {
 
 	    newRel.setFromCiId(fromCi.getCiId());
 	    newRel.setToCiId(toCi.getCiId());
-	    newRel.setComments(CmsUtil.generateRelComments(fromCi.getCiName(), fromCi.getCiClassName(), toCi.getCiName(), toCi.getCiClassName()));
+	    newRel.setComments(generateRelComments(fromCi.getCiName(), fromCi.getCiClassName(), toCi.getCiName(), toCi.getCiClassName()));
 	    newRel.setCreated(created);
 	    newRel.setCreatedBy(createdBy);
 		return newRel;
