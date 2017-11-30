@@ -25,6 +25,7 @@
               <executable>bundle</executable>
               <arguments>
                 <argument>package</argument>
+                <argument>--gemfile=Gemfile</argument>
               </arguments>
             </configuration>
           </execution>
