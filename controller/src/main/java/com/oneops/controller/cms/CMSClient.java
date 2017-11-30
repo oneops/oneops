@@ -601,15 +601,26 @@ public class CMSClient {
         exec.setVariable(CmsConstants.EXEC_ORDER, newExecOrder);
     }
 
-    public List<CmsActionOrder> getBaseActionOrders(CmsOpsProcedure procedure, int execOrder) {
-        return cmsWoProvider
-            .getBaseActionOrders(procedure.getProcedureId(), OpsProcedureState.pending, execOrder);
-    }
-
-    public CmsActionOrderSimple assembleAo(CmsActionOrder ao, Map<Long, CmsCI> manifestToTemplateMap) {
-        CmsActionOrderSimple aoSimple = cmsWoProvider.getAssembledAo(ao, manifestToTemplateMap);
-        aoSimple.getSearchTags().put(CmsConstants.DEPLOYMENT_MODEL, CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
-        return aoSimple;
+    /**
+     * Gets the action orders.
+     *
+     * @return the action orders
+     * @throws GeneralSecurityException the general security exception
+     */
+    public List<CmsActionOrderSimple>  getActionOrders(CmsOpsProcedure proc, int execOrder) throws GeneralSecurityException {
+        logger.info("Geting action orders for procedure id = " + proc.getProcedureId());
+        long startTime = System.currentTimeMillis();
+        try {
+            List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
+            logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
+            for (CmsActionOrderSimple ao : aoList) {
+                decryptAo(ao);
+            }
+            return aoList;
+        } catch (CmsBaseException rce) {
+            logger.error(rce);
+        }
+        return Collections.emptyList();
     }
 
     /**
@@ -619,6 +630,7 @@ public class CMSClient {
      * @return the action orders
      * @throws GeneralSecurityException the general security exception
      */
+
     public void getActionOrders(DelegateExecution exec) throws GeneralSecurityException {
         CmsOpsProcedure proc = (CmsOpsProcedure) exec.getVariable("proc");
         Integer execOrder = (Integer) exec.getVariable(CmsConstants.EXEC_ORDER);
@@ -629,6 +641,7 @@ public class CMSClient {
         	List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
         	logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
         	for (CmsActionOrderSimple ao : aoList) {
+              logger.info("Testing ao  " + ao.getCiId() + " bytes length : " + gson.toJson(ao).getBytes().length);
                 decryptAo(ao);
             }
             exec.setVariable("cmsaos", aoList);

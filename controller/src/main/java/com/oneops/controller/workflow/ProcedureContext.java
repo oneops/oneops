@@ -1,18 +1,20 @@
 package com.oneops.controller.workflow;
 
 import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 public class ProcedureContext implements ExecutionContext {
 
   CmsOpsProcedure procedure;
   boolean isCompleted;
-  List<CmsActionOrder> aoList;
+  List<CmsActionOrderSimple> aoList;
   Map<Long, CmsCI> manifestToTemplateMap;
+  CountDownLatch latch;
 
   ProcedureContext(CmsOpsProcedure procedure) {
     this.procedure = procedure;
@@ -39,8 +41,4 @@ public class ProcedureContext implements ExecutionContext {
     return "procedure";
   }
 
-  @Override
-  public void setCompleted(boolean completed) {
-    isCompleted = true;
-  }
 }

@@ -8,16 +8,12 @@ import javax.jms.JMSException;
 
 public interface Deployer {
 
-  public static final String DEPLOYMENT_TYPE = "deployment";
+  public DeploymentContext deploy(CmsDeployment dpmt);
 
-  public void deploy(CmsDeployment dpmt);
+  public DeploymentContext processWorkflow(WorkflowMessage wfMessage);
 
-  public void processWorkflow(WorkflowMessage wfMessage);
+  public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params);
 
-  public DeploymentContext fetchPendingWorkOrders(long dpmtId);
-
-  public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params) throws JMSException;
-
-  public boolean canConverge(long dpmtId, long rfcId, int step);
+  public void convergeIfNeeded(CmsWorkOrderSimpleBase wo) throws JMSException;
 
 }

@@ -47,6 +47,7 @@ public interface DJDpmtMapper {
 	void resetFailedRecords(CmsDeployment cmsDeployment);
 
 	CmsDeployment getDeployment(long deploymentId);
+	CmsDeployment getDeploymentSimple(long deploymentId);
 	List<CmsDeployment> findDeployment(@Param("nsPath") String nsPath,@Param("state") String state);
 	List<CmsDeployment> findDeploymentRecursive(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("state") String state);
 	List<CmsDeployment> findLatestDeployment(@Param("nsPath") String nsPath,@Param("state") String state);
@@ -86,9 +87,7 @@ public interface DJDpmtMapper {
 	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
 	void updateDeploymentExecInfo(CmsDeployment cmsDeployment);
 	void getDpmtLock(long deploymentId);
-	void createDeploymentExec(@Param("typeId") short typeId, @Param("deploymentId") long deploymentId,
-			@Param("step") int step, @Param("state") String state);
-	int getAndUpdateStepState(@Param("typeId") short typeId, @Param("deploymentId") long deploymentId,
-			@Param("step") int step, @Param("newState") String newState);
+	void createDeploymentExec(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("state") String state);
+	int getAndUpdateStepState(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("newState") String newState);
 
 }

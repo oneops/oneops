@@ -9,6 +9,7 @@ import static com.oneops.controller.cms.CMSClient.COMPLETE;
 import static com.oneops.controller.cms.CMSClient.FAILED;
 import static com.oneops.controller.cms.CMSClient.INPROGRESS;
 import static com.oneops.controller.cms.CMSClient.ONEOPS_SYSTEM_USER;
+import static com.oneops.controller.workflow.ExecutionType.DEPLOYMENT;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
@@ -70,29 +71,37 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
   }
 
   @Override
-  public void deploy(CmsDeployment dpmt) {
+  @Transactional
+  public DeploymentContext deploy(CmsDeployment dpmt) {
+    DeploymentContext context = null;
     logger.info("Deployer started for dpmt : " + dpmt.getDeploymentId());
     if (!isComplete(dpmt)) {
       cmsClient.updateDeploymentAndNotify(dpmt, null, "Deployer");
     }
     if (isActive(dpmt)) {
-      processWorkOrders(dpmt.getDeploymentId(), true);
+      context = processWorkOrders(dpmt.getDeploymentId());
     }
     else {
         logger.info("deployment " + dpmt.getDeploymentId() + " is not active");
     }
+    if (context == null) {
+      context = new DeploymentContext(dpmt);
+    }
+    return context;
   }
 
   @Override
-  public void processWorkflow(WorkflowMessage wfMessage) {
-    processWorkOrders(wfMessage.getExecutionId(), true);
+  @Transactional
+  public DeploymentContext processWorkflow(WorkflowMessage wfMessage) {
+    return processWorkOrders(wfMessage.getExecutionId());
   }
 
-  public void processWorkOrders(long dpmtId, boolean wait4WoDispatch) {
-    DeploymentContext dpmtContext = fetchPendingWorkOrders(dpmtId);
+  DeploymentContext processWorkOrders(long dpmtId) {
+    DeploymentContext dpmtContext = pendingWorkOrders(dpmtId);
     if (!dpmtContext.completed && dpmtContext.woList != null && !dpmtContext.woList.isEmpty()) {
-      dispatchWorkOrders(dpmtContext, wait4WoDispatch);
+      dispatchWorkOrders(dpmtContext);
     }
+    return dpmtContext;
   }
 
   /**
@@ -104,13 +113,12 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
    *
    * @param dpmtId deployment id
    */
-  @Transactional
-  public DeploymentContext fetchPendingWorkOrders(long dpmtId) {
-    logger.info("fetchPendingWorkOrders for deployment " + dpmtId);
+  private DeploymentContext pendingWorkOrders(long dpmtId) {
+    logger.info("pendingWorkOrders for deployment " + dpmtId);
     DeploymentContext context = getContext(dpmtId);
     CmsDeployment deployment = context.dpmt;
     if (isActive(deployment)) {
-      getPendingOrders(context);
+      pendingOrders(context);
     }
     return context;
   }
@@ -122,7 +130,7 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
 
 
   @Override
-  protected List<CmsWorkOrderSimple> getOrderIdsForStep(ExecutionContext context, int step) {
+  protected List<CmsWorkOrderSimple> getOrdersForStep(ExecutionContext context, int step) {
     return cmsClient.getWorkOrderIdsNoLimit(deployment(context), step);
   }
 
@@ -184,29 +192,31 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
     return (dpmt != null) && DPMT_STATE_COMPLETE.equals(dpmt.getDeploymentState());
   }
 
-  private boolean isPaused(CmsDeployment dpmt) {
-    return DPMT_STATE_PAUSED.equals(dpmt.getDeploymentState());
-  }
-
   private boolean isPending(CmsDpmtRecord dpmtRecord) {
     return (dpmtRecord != null) && DPMT_STATE_PENDING.equals(dpmtRecord.getDpmtRecordState());
   }
 
-  private void dispatchWorkOrders(DeploymentContext context, boolean wait4WoDispatch) {
+  private void dispatchWorkOrders(DeploymentContext context) {
     CmsDeployment dpmt = context.dpmt;
     logger.info("dispatching wos - dpmtId : " + dpmt.getDeploymentId() + ", step " + dpmt.getCurrentStep() + " wo size " + context.woList);
-    dispatchOrders(context, context.woList, wait4WoDispatch);
+    dispatchOrders(context, context.woList);
   }
 
 
+  private void dispatchOrders(DeploymentContext context, List<CmsWorkOrderSimple> ordersList) {
+    CountDownLatch latch = new CountDownLatch(ordersList.size());
+    ordersList.forEach(o -> {
+      dispatch(context, o, latch);
+    });
+    context.latch = latch;
+  }
 
   @Override
-  protected void assembleAndDispatch(ExecutionContext context, CmsWorkOrderSimple wo, CountDownLatch latch) {
+  protected void dispatch(ExecutionContext context, CmsWorkOrderSimple wo, CountDownLatch latch) {
     woDispatchExecutor.submit(() -> assembleAndDispatchAsync(context, wo, latch));
   }
 
-  @Transactional
-  void assembleAndDispatchAsync(ExecutionContext context, CmsWorkOrderSimple wo, CountDownLatch latch) {
+  private void assembleAndDispatchAsync(ExecutionContext context, CmsWorkOrderSimple wo, CountDownLatch latch) {
     CmsDeployment dpmt = deployment(context);
     WorkOrderContext woContext = new WorkOrderContext(wo, dpmt.getCurrentStep());
     CmsDpmtRecord dpmtRecord = dpmtProcessor.getDeploymentRecord(wo.getDpmtRecordId());
@@ -227,8 +237,8 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
    * promoted to ci, also checks if we need to move to next step
    */
   @Override
-  public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params)
-      throws JMSException {
+  @Transactional
+  public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params) {
     CmsWorkOrderSimple woResponse = (CmsWorkOrderSimple) wo;
     long dpmtId = woResponse.getDeploymentId();
     long rfcId = woResponse.getRfcId();
@@ -237,21 +247,28 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
     
     updateWoState(dpmtId, woResponse, params);
     logger.info(logPrefix + "ci updated from inductor response");
+
+    logger.info(logPrefix + " inductor response processing finished");
+  }
+
+  @Override
+  @Transactional
+  public void convergeIfNeeded(CmsWorkOrderSimpleBase wo) throws JMSException {
+    CmsWorkOrderSimple woResponse = (CmsWorkOrderSimple) wo;
+    long dpmtId = woResponse.getDeploymentId();
+    long rfcId = woResponse.getRfcId();
     int step = woResponse.rfcCi.getExecOrder();
     if (canConverge(dpmtId, rfcId, step)) {
       //send a jms message to controller.workflow queue to proceed to next step
       logger.info("dpmtId " + dpmtId + " rfc " + rfcId + ": inductor response converging to next step");
-      sendMessageToProceed(DEPLOYMENT_TYPE, dpmtId);
+      sendMessageToProceed(DEPLOYMENT.getName(), dpmtId);
     }
-    logger.info(logPrefix + " inductor response processing finished");
   }
 
   /**
    * checks if step converge can happen [no workorders in pending/in-progress state for this step].
    */
-  @Override
-  @Transactional
-  public boolean canConverge(long dpmtId, long rfcId, int step) {
+  private boolean canConverge(long dpmtId, long rfcId, int step) {
     long startTs = System.currentTimeMillis();
     String logPrefix = "dpmtId:" + dpmtId + " step:" + step + " rfc:" + rfcId + " :: ";
     boolean canConverge = false;
@@ -272,6 +289,9 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
             //if any of the wo has failed then update the deployment to failed
             dpmtProcessor.updateDeployment(deployment);
           }
+          else {
+            canConverge = true;
+          }
         }
       }
       else if (!anyCancelled(woCountMap)) {
@@ -285,7 +305,6 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
     return canConverge;
   }
 
-  @Transactional
   public void updateWoState(long dpmtId, CmsWorkOrderSimple woResponse,
       Map<String, Object> params) {
     CmsDeployment dpmt = dpmtProcessor.getDeployment(dpmtId);
@@ -303,7 +322,7 @@ public class DeployerImpl extends Execution<CmsWorkOrderSimple> implements Deplo
 
   @Override
   protected String getType() {
-    return DEPLOYMENT_TYPE;
+    return DEPLOYMENT.getName();
   }
 
   public void setWoDispatcher(WoDispatcher woDispatcher) {

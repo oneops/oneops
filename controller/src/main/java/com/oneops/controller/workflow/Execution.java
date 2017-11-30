@@ -21,7 +21,7 @@ public abstract class Execution<T> {
   @Autowired
   WorkflowPublisher workflowPublisher;
 
-  public ExecutionContext getPendingOrders(ExecutionContext context) {
+  public ExecutionContext pendingOrders(ExecutionContext context) {
     boolean isExecFinished = false;
     boolean needsAutoPause = false;
     String logPrefix = getType() + ":: id : " + context.getExecutionId();
@@ -32,7 +32,7 @@ public abstract class Execution<T> {
       logger.info(logPrefix + " current step before getting orders " + step);
       //loop until either we have a list of orders or the end of execution
       while (list.isEmpty() && !isExecFinished) {
-        list = getOrderIdsForStep(context, step);
+        list = getOrdersForStep(context, step);
         if (list.isEmpty()) {
           step++;
           if (step > context.getMaxSteps()) {
@@ -58,7 +58,7 @@ public abstract class Execution<T> {
         }
       }
     } catch(RuntimeException e) {
-      logger.error("error in getPendingOrders ", e);
+      logger.error("error in pendingOrders ", e);
       throw e;
     }
 
@@ -66,28 +66,6 @@ public abstract class Execution<T> {
       finishExecution(context);
     }
     return context;
-  }
-
-  protected void dispatchOrders(ExecutionContext context, List<T> ordersList, boolean wait4Dispatch) {
-    long startTs = System.currentTimeMillis();
-    CountDownLatch latch = new CountDownLatch(ordersList.size());
-    ordersList.forEach(o -> {
-      assembleAndDispatch(context, o, latch);
-    });
-    if (wait4Dispatch) {
-      try {
-        latch.await();
-      } catch (InterruptedException e) {
-        logger.error("Exception waiting for latch in dispatchOrders ", e);
-      }
-    }
-    else {
-      logger.info("dispatchOrders for "+ context.getType() + " " + context.getExecutionId() +
-          ", step " + context.getCurrentStep() + " submitted, not waiting for dispatch to complete");
-    }
-    logger.info(
-        "dispatchOrders for " + context.getType() + " " + context.getExecutionId() + ", step " + context.getCurrentStep()
-            + " took " + timeElapsed(startTs) + "ms");
   }
 
   protected boolean anyCancelled(Map<String, Integer> orderStateCountMap) {
@@ -123,7 +101,7 @@ public abstract class Execution<T> {
 
   protected abstract String getType();
 
-  protected abstract void assembleAndDispatch(ExecutionContext context, T order, CountDownLatch latch);
+  protected abstract void dispatch(ExecutionContext context, T order, CountDownLatch latch);
 
   protected abstract void updateExecutionWithStep(ExecutionContext context, int step, List<T> list);
 
@@ -133,7 +111,7 @@ public abstract class Execution<T> {
 
   protected abstract void finishExecution(ExecutionContext context);
 
-  protected abstract List<T> getOrderIdsForStep(ExecutionContext context, int step);
+  protected abstract List<T> getOrdersForStep(ExecutionContext context, int step);
 
   public void setWorkflowPublisher(WorkflowPublisher workflowPublisher) {
     this.workflowPublisher = workflowPublisher;

@@ -51,6 +51,9 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
   private DeployerImpl deployer;
 
   @Autowired
+  private ExecutionManager executionManager;
+
+  @Autowired
   ThreadPoolExecutor mockExecutor;
 
   @Autowired
@@ -160,6 +163,7 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
     processWorkOrders(DPMT_ID);
     verifyWo(1, 1);
     sendInductorResponse(DPMT_ID, 73080, 72824, 1, FAILED);
+    verifyConverge(DPMT_ID);
     processWorkOrders(DPMT_ID);
     verifyWo(2, 1);
   }
@@ -227,12 +231,12 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
     Map<String, Object> params = new HashMap<>();
     rfcCi.setNsPath("/test1/c1/dev/bom/t1/1");
     params.put("wostate", state);
-    deployer.handleInductorResponse(woResp, params);
+    executionManager.handleWOResponse(woResp, params);
   }
 
   private void verifyConverge(long dpmtId) {
     try {
-      verify(workflowPublisher).sendWorkflowMessage(Deployer.DEPLOYMENT_TYPE, dpmtId, null);
+      verify(workflowPublisher).sendWorkflowMessage(ExecutionType.DEPLOYMENT.getName(), dpmtId, null);
       reset(workflowPublisher);
     } catch(Exception e) {
       Assert.fail("failed verifying converge");
@@ -277,7 +281,7 @@ public class DeployerTest extends AbstractTestNGSpringContextTests {
   }
 
   private void processWorkOrders(long dpmtId) {
-    deployer.processWorkOrders(dpmtId, false);
+    deployer.processWorkOrders(dpmtId);
   }
 
 }

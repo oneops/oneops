@@ -23,20 +23,37 @@ import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
-import com.oneops.cms.dj.domain.*;
+import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDpmtApproval;
+import com.oneops.cms.dj.domain.CmsDpmtRecord;
+import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
+import com.oneops.cms.dj.domain.CmsRelease;
+import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.exceptions.DJException;
 import com.oneops.cms.ns.dal.NSMapper;
-import com.oneops.cms.util.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-import org.springframework.dao.DuplicateKeyException;
-
+import com.oneops.cms.util.CmsConstants;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.ListUtils;
+import com.oneops.cms.util.TimelineQueryParam;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
+import org.springframework.dao.DuplicateKeyException;
 
 /**
  * The Class CmsDpmtProcessor.
@@ -73,7 +90,6 @@ public class CmsDpmtProcessor {
   private static final int BOM_RELASE_NSPATH_LENGTH = 5;
 
   private static final String ZONES_SELECTED = "ZONES_SELECTED";
-  private static final short DEPLOYMENT_TYPE = 100;
 
   /**
    * Sets the cm processor.
@@ -350,7 +366,7 @@ public class CmsDpmtProcessor {
    * @return the cms deployment
    */
   public CmsDeployment updateDeployment(CmsDeployment dpmt) {
-    CmsDeployment existingDpmt = dpmtMapper.getDeployment(dpmt.getDeploymentId());
+    CmsDeployment existingDpmt = dpmtMapper.getDeploymentSimple(dpmt.getDeploymentId());
 
     updateAutoDeployExecOrders(dpmt);
 
@@ -988,11 +1004,11 @@ public class CmsDpmtProcessor {
   }
 
   public void createDeploymentExec(long deploymentId, int step, String state) {
-    dpmtMapper.createDeploymentExec(DEPLOYMENT_TYPE, deploymentId, step, state);
+    dpmtMapper.createDeploymentExec(deploymentId, step, state);
   }
 
   public int getAndUpdateStepState(long deploymentId, int step, String newState) {
-    return dpmtMapper.getAndUpdateStepState(DEPLOYMENT_TYPE, deploymentId, step, newState);
+    return dpmtMapper.getAndUpdateStepState(deploymentId, step, newState);
   }
 
 }

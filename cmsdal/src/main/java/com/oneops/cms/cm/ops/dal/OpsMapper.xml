@@ -292,21 +292,20 @@
     WITH state AS (
 			SELECT state_id AS id FROM cm_ops_proc_state WHERE state_name = #{state}
     )
-    INSERT INTO cm_execution (type_id, process_id, step, state_id)
-      VALUES (#{typeId}, #{procedureId}, #{step}, (SELECT id from state))
-      ON CONFLICT (type_id, process_id, step) DO UPDATE SET state_id = (SELECT id from state)
+    INSERT INTO cm_procedure_execution (ops_proc_id, step, state_id)
+      VALUES (#{procedureId}, #{step}, (SELECT id from state))
+      ON CONFLICT (ops_proc_id, step) DO UPDATE SET state_id = (SELECT id from state)
   </insert>
 
   <update id="getAndUpdateStepState" parameterType="map" statementType="PREPARED">
     WITH state AS (
 			SELECT state_id AS id FROM cm_ops_proc_state WHERE state_name = #{newState}
 		)
-    UPDATE cm_execution ex
+    UPDATE cm_procedure_execution ex
     SET state_id = s.id
     FROM (SELECT exec_id id
-          FROM cm_execution
-          WHERE type_id = #{typeId}
-            AND process_id = #{procedureId}
+          FROM cm_procedure_execution
+          WHERE ops_proc_id = #{procedureId}
             AND step = #{step} FOR UPDATE) t, state s
     WHERE ex.exec_id = t.id
       AND ex.state_id != s.id

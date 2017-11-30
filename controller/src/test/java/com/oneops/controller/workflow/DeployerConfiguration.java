@@ -1,5 +1,6 @@
 package com.oneops.controller.workflow;
 
+import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.dal.DJMapper;
@@ -154,6 +155,21 @@ public class DeployerConfiguration {
   @Bean
   public PropertySourcesPlaceholderConfigurer propertiesResolver() {
     return new PropertySourcesPlaceholderConfigurer();
+  }
+
+  @Bean
+  public ExecutionManager getExecutionManager() {
+    return new ExecutionManager();
+  }
+
+  @Bean
+  public ProcedureRunner getProcedureRunner() {
+    return new ProcedureRunnerImpl();
+  }
+
+  @Bean
+  public OpsProcedureProcessor getProcedureProcessor() {
+    return Mockito.mock(OpsProcedureProcessor.class);
   }
 
 }

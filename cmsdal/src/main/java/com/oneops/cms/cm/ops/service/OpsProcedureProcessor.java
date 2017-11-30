@@ -41,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.log4j.Logger;
+import static com.oneops.controller.workflow.ExecutionType.PROCEDURE;
+
 /**
  * The Class OpsProcedureProcessor.
  */
@@ -58,7 +60,6 @@ public class OpsProcedureProcessor {
     private static final String ALREADY_HAS_ACTIVE_OPS_ACTION = " already has active ops action: ";
     private static final String NO_ACTION_ITH_ID = "There is no action with this id: ";
     private static final String ACTION_IS_IN_WRONG_STATE = "Action is in wrong state id:";
-	private static final short PROCEDURE_TYPE = 200;
 
     
 	/**
@@ -711,11 +712,11 @@ public class OpsProcedureProcessor {
 	}
 
 	public void createProcedureExec(long procedureId, int step, String state) {
-		opsMapper.createProcedureExec(PROCEDURE_TYPE, procedureId, step, state);
+		opsMapper.createProcedureExec(procedureId, step, state);
 	}
 
 	public int getAndUpdateStepState(long procedureId, int step, String newState) {
-		return opsMapper.getAndUpdateStepState(PROCEDURE_TYPE, procedureId, step, newState);
+		return opsMapper.getAndUpdateStepState(procedureId, step, newState);
 	}
 
 	public void updateProcedureCurrentStep(CmsOpsProcedure procedure) {

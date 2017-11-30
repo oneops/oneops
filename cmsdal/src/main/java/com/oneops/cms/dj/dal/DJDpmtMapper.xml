@@ -45,10 +45,9 @@
 	    {call dj_reset_failed_records(#{deploymentId})}
 	 </update> 
 
-	 <select id="getDeployment" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+	 <select id="getDeploymentSimple" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
 		SELECT d.deployment_id as deploymentId, 
 			   d.release_id as releaseId, 
-			   ns.ns_path as nsPath, 
 			   ds.state_name as deploymentState,
 			   d.process_id as processId, 
 			   d.created_by as createdBy,
@@ -57,18 +56,39 @@
 			   d.comments,
 			   d.flags,
 			   d.ops,
-			   (select max(execution_order) from dj_rfc_ci rci, dj_deployment_rfc drfc
-			    where drfc.deployment_id = d.deployment_id
-			      and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
 			   d.auto_pause_exec_orders as autoPauseExecOrdersVal,
 			   d.current_step as currentStep,
 			   d.created,
 			   d.updated
+		from dj_deployment d, dj_deployment_states ds
+		where d.deployment_id = #{value}
+		and d.state_id = ds.state_id
+	 </select>
+
+	<select id="getDeployment" parameterType="long" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
+		SELECT d.deployment_id as deploymentId,
+		d.release_id as releaseId,
+		ns.ns_path as nsPath,
+		ds.state_name as deploymentState,
+		d.process_id as processId,
+		d.created_by as createdBy,
+		d.updated_by as updatedBy,
+		d.description,
+		d.comments,
+		d.flags,
+		d.ops,
+		(select max(execution_order) from dj_rfc_ci rci, dj_deployment_rfc drfc
+		where drfc.deployment_id = d.deployment_id
+		and rci.rfc_id = drfc.rfc_id) as maxExecOrder,
+		d.auto_pause_exec_orders as autoPauseExecOrdersVal,
+		d.current_step as currentStep,
+		d.created,
+		d.updated
 		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
 		where d.deployment_id = #{value}
 		and d.ns_id = ns.ns_id
-		and d.state_id = ds.state_id	 
-	 </select>
+		and d.state_id = ds.state_id
+	</select>
 
 	 <select id="countDeployment" parameterType="map" useCache="false" resultType="long">
 		SELECT count(1)
@@ -665,21 +685,20 @@
     WITH state AS (
 			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{state}
     )
-		INSERT INTO cm_execution (type_id, process_id, step, state_id)
-			VALUES (#{typeId}, #{deploymentId}, #{step}, (SELECT id from state))
-			ON CONFLICT (type_id, process_id, step) DO UPDATE SET state_id = (SELECT id from state)
+		INSERT INTO dj_dpmt_execution (deployment_id, step, state_id)
+			VALUES (#{deploymentId}, #{step}, (SELECT id from state))
+			ON CONFLICT (deployment_id, step) DO UPDATE SET state_id = (SELECT id from state)
 	</insert>
 
 	<update id="getAndUpdateStepState" parameterType="map" statementType="PREPARED">
 		WITH state AS (
 			SELECT state_id AS id FROM dj_deployment_rfc_states WHERE state_name = #{newState}
 		)
-		UPDATE cm_execution ex
+		UPDATE dj_dpmt_execution ex
 		SET state_id = s.id
 		FROM (SELECT exec_id id
-					FROM cm_execution
-					WHERE type_id = #{typeId}
-						AND process_id = #{deploymentId}
+					FROM dj_dpmt_execution
+					WHERE deployment_id = #{deploymentId}
 						AND step = #{step} FOR UPDATE) t, state s
 		WHERE ex.exec_id = t.id
 			AND ex.state_id != s.id

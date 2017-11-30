@@ -18,6 +18,7 @@ package com.oneops.controller.workflow;
 
 import com.google.gson.Gson;
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.cms.CMSClient;
@@ -27,12 +28,11 @@ import com.oneops.controller.jms.InductorPublisher;
 import com.oneops.controller.plugin.WoProcessor;
 import com.oneops.controller.sensor.SensorClient;
 import com.oneops.sensor.client.SensorClientException;
-import org.activiti.engine.delegate.DelegateExecution;
-import org.apache.log4j.Logger;
-
-import javax.jms.JMSException;
 import java.util.HashMap;
 import java.util.Map;
+import javax.jms.JMSException;
+import org.activiti.engine.delegate.DelegateExecution;
+import org.apache.log4j.Logger;
 
 /**
  * The Class WoDispatcher.
@@ -118,6 +118,10 @@ public class WoDispatcher {
 			woContext.setWoDispatchError(e.getMessage());
 			throw e;
 		}
+	}
+
+	public void publishMessage(CmsActionOrderSimple ao, String woType) throws JMSException {
+		inductorPublisher.publishMessage(Long.toString(ao.getProcedureId()), Long.toString(ao.getActionId()), ao, "", woType);
 	}
 
 	/**

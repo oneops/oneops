@@ -5,6 +5,8 @@
 -- Dumped from database version 9.6.5
 -- Dumped by pg_dump version 10.0
 
+-- Started on 2017-11-29 12:45:19 PST
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -15,6 +17,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- TOC entry 5 (class 2615 OID 27823)
 -- Name: kloopzcm; Type: SCHEMA; Schema: -; Owner: kloopzcm
 --
 
@@ -24,6 +27,8 @@ CREATE SCHEMA kloopzcm;
 ALTER SCHEMA kloopzcm OWNER TO kloopzcm;
 
 --
+-- TOC entry 3111 (class 0 OID 0)
+-- Dependencies: 5
 -- Name: SCHEMA kloopzcm; Type: COMMENT; Schema: -; Owner: kloopzcm
 --
 
@@ -33,6 +38,7 @@ COMMENT ON SCHEMA kloopzcm IS 'schema for config management';
 SET search_path = kloopzcm, pg_catalog;
 
 --
+-- TOC entry 327 (class 1255 OID 27824)
 -- Name: cm_add_ci_attribute(bigint, integer, text, text, character varying, character varying, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -42,7 +48,7 @@ CREATE FUNCTION cm_add_ci_attribute(p_ci_id bigint, p_attribute_id integer, p_df
 DECLARE
     l_attribute_name character varying;
 BEGIN
-    select into l_attribute_name a.attribute_name
+    select into l_attribute_name a.attribute_name 
     from md_class_attributes a
     where a.attribute_id = p_attribute_id;
 
@@ -50,14 +56,14 @@ BEGIN
     values (nextval('cm_pk_seq'), p_ci_id, p_attribute_id, p_df_value, p_dj_value, p_owner, p_comments)
     returning ci_attribute_id into out_ci_attr_id;
 
-    insert into cm_ci_attribute_log(log_id, log_time, log_event, ci_id, ci_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old)
+    insert into cm_ci_attribute_log(log_id, log_time, log_event, ci_id, ci_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old) 
     values (nextval('log_pk_seq'), now(), 100, p_ci_id, out_ci_attr_id, p_attribute_id, l_attribute_name, p_comments, p_owner, p_dj_value, p_dj_value, p_df_value, p_df_value);
 
     if p_event = true then
-	    insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
-    	values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 200);
-	end if;
-
+        insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+        values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 200);
+    end if;
+    
 END;
 $$;
 
@@ -65,6 +71,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_add_ci_attribute(p_ci_id bigint, p_attribute_id integer, p_df_value text, p_dj_value text, p_owner character varying, p_comments character varying, p_event boolean, OUT out_ci_attr_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 328 (class 1255 OID 27825)
 -- Name: cm_add_ci_rel_attribute(bigint, integer, text, text, character varying, character varying, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -74,7 +81,7 @@ CREATE FUNCTION cm_add_ci_rel_attribute(p_ci_rel_id bigint, p_attribute_id integ
 DECLARE
     l_attribute_name character varying;
 BEGIN
-    select into l_attribute_name a.attribute_name
+    select into l_attribute_name a.attribute_name 
     from md_relation_attributes a
     where a.attribute_id = p_attribute_id;
 
@@ -82,14 +89,14 @@ BEGIN
     values (nextval('cm_pk_seq'), p_ci_rel_id, p_attribute_id, p_df_value, p_dj_value, p_owner, p_comments)
     returning ci_rel_attribute_id into out_ci_rel_attr_id;
 
-    insert into cm_ci_relation_attr_log(log_id, log_time, log_event, ci_relation_id, ci_rel_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old)
+    insert into cm_ci_relation_attr_log(log_id, log_time, log_event, ci_relation_id, ci_rel_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old) 
     values (nextval('log_pk_seq'), now(), 100, p_ci_rel_id, out_ci_rel_attr_id, p_attribute_id, l_attribute_name, p_comments, p_owner, p_dj_value, p_dj_value, p_df_value, p_df_value);
 
     if p_event = true then
-	    insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
-    	values (nextval('event_pk_seq'), p_ci_rel_id, 'cm_ci_rel' , 200);
-	end if;
-
+        insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+        values (nextval('event_pk_seq'), p_ci_rel_id, 'cm_ci_rel' , 200);
+    end if;
+    
 END;
 $$;
 
@@ -97,6 +104,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_add_ci_rel_attribute(p_ci_rel_id bigint, p_attribute_id integer, p_df_value text, p_dj_value text, p_owner character varying, p_comments character varying, p_event boolean, OUT out_ci_rel_attr_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 277 (class 1255 OID 27826)
 -- Name: cm_ci_attribute_log_insert(); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -106,22 +114,22 @@ CREATE FUNCTION cm_ci_attribute_log_insert() RETURNS trigger
 BEGIN
     IF ( NEW.log_time >= DATE '2012-01-01' AND
          NEW.log_time < DATE '2013-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2012 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_attribute_log_2012 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2013-01-01' AND
             NEW.log_time < DATE '2014-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2013 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_attribute_log_2013 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2014-01-01' AND
             NEW.log_time < DATE '2015-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2014 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_attribute_log_2014 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2015-01-01' AND
             NEW.log_time < DATE '2016-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2015 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_attribute_log_2015 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2016 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_attribute_log_2016 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
             NEW.log_time < DATE '2018-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_attribute_log_2017 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_attribute_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_attribute_log_insert() function!';
     END IF;
@@ -133,6 +141,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_ci_attribute_log_insert() OWNER TO kloopzcm;
 
 --
+-- TOC entry 278 (class 1255 OID 27827)
 -- Name: cm_ci_log_insert(); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -142,22 +151,22 @@ CREATE FUNCTION cm_ci_log_insert() RETURNS trigger
 BEGIN
     IF ( NEW.log_time >= DATE '2012-01-01' AND
          NEW.log_time < DATE '2013-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2012 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_log_2012 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2013-01-01' AND
             NEW.log_time < DATE '2014-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2013 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_log_2013 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2014-01-01' AND
             NEW.log_time < DATE '2015-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2014 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_log_2014 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2015-01-01' AND
             NEW.log_time < DATE '2016-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2015 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_log_2015 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2016 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_log_2016 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
             NEW.log_time < DATE '2018-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_log_2017 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_log_insert() function!';
     END IF;
@@ -169,6 +178,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_ci_log_insert() OWNER TO kloopzcm;
 
 --
+-- TOC entry 279 (class 1255 OID 27828)
 -- Name: cm_ci_relation_attr_log_insert(); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -178,22 +188,22 @@ CREATE FUNCTION cm_ci_relation_attr_log_insert() RETURNS trigger
 BEGIN
     IF ( NEW.log_time >= DATE '2012-01-01' AND
          NEW.log_time < DATE '2013-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2012 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_attr_log_2012 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2013-01-01' AND
             NEW.log_time < DATE '2014-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2013 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_attr_log_2013 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2014-01-01' AND
             NEW.log_time < DATE '2015-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2014 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_attr_log_2014 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2015-01-01' AND
             NEW.log_time < DATE '2016-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2015 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_attr_log_2015 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2016 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_attr_log_2016 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
             NEW.log_time < DATE '2018-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2017 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_attr_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_attr_log_insert() function!';
     END IF;
@@ -205,6 +215,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_ci_relation_attr_log_insert() OWNER TO kloopzcm;
 
 --
+-- TOC entry 280 (class 1255 OID 27829)
 -- Name: cm_ci_relation_log_insert(); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -214,22 +225,22 @@ CREATE FUNCTION cm_ci_relation_log_insert() RETURNS trigger
 BEGIN
     IF ( NEW.log_time >= DATE '2012-01-01' AND
          NEW.log_time < DATE '2013-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2012 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_log_2012 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2013-01-01' AND
             NEW.log_time < DATE '2014-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2013 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_log_2013 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2014-01-01' AND
             NEW.log_time < DATE '2015-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2014 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_log_2014 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2015-01-01' AND
             NEW.log_time < DATE '2016-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2015 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_log_2015 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2016 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_log_2016 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
             NEW.log_time < DATE '2018-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_log_2017 VALUES (NEW.*);
+    INSERT INTO kloopzcm.cm_ci_relation_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_log_insert() function!';
     END IF;
@@ -241,6 +252,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_ci_relation_log_insert() OWNER TO kloopzcm;
 
 --
+-- TOC entry 263 (class 1255 OID 29502)
 -- Name: cm_create_alt_namespace(bigint, character varying, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -250,16 +262,16 @@ CREATE FUNCTION cm_create_alt_namespace(p_ns_id bigint, p_tag character varying,
 DECLARE
     l_tag_id bigint;
 BEGIN
-    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;
+    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;  
 
     if not found then
-	    insert into ns_opt_tag (tag_id, tag)
+        insert into ns_opt_tag (tag_id, tag)
         values
         (nextval('cm_pk_seq'), p_tag)
         returning tag_id into l_tag_id;
     end if;
-
-    insert into cm_ns_opt (ci_id, ns_id, created, tag_id) values (p_ci_id, p_ns_id, now(), l_tag_id);
+        
+    insert into cm_ns_opt (ci_id, ns_id, created, tag_id) values (p_ci_id, p_ns_id, now(), l_tag_id);    
 
 END;
 $$;
@@ -268,6 +280,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_alt_namespace(p_ns_id bigint, p_tag character varying, p_ci_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 329 (class 1255 OID 27831)
 -- Name: cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -283,6 +296,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_ci(p_ci_id bigint, p_ns_id bigint, p_class_id integer, p_goid character varying, p_ci_name character varying, p_comments character varying, p_state_id integer, p_created_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 334 (class 1255 OID 27832)
 -- Name: cm_create_ci(bigint, bigint, integer, character varying, character varying, character varying, integer, bigint, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -290,9 +304,9 @@ CREATE FUNCTION cm_create_ci(p_ci_id bigint, p_ns_id bigint, p_class_id integer,
     LANGUAGE plpgsql
     AS $$
 DECLARE
-	l_class_name character varying;
+    l_class_name character varying;
 BEGIN
-    select into l_class_name cl.class_name
+    select into l_class_name cl.class_name 
     from md_classes cl
     where cl.class_id = p_class_id;
 
@@ -312,6 +326,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_ci(p_ci_id bigint, p_ns_id bigint, p_class_id integer, p_goid character varying, p_ci_name character varying, p_comments character varying, p_state_id integer, p_last_rfc_id bigint, p_created_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 285 (class 1255 OID 27833)
 -- Name: cm_create_ops_action(character varying, bigint, bigint, character varying, integer, boolean, text, text, text); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -324,12 +339,12 @@ BEGIN
     select state_id into l_state_id from cm_ops_action_state where state_name = p_state_name;
 
     if not found then
-	RAISE EXCEPTION 'Given ops action state % is wrong.', p_state_name USING ERRCODE = '22000';
+    RAISE EXCEPTION 'Given ops action state % is wrong.', p_state_name USING ERRCODE = '22000';
     end if;
 
     insert into cm_ops_actions (ops_action_id, ops_proc_id, ci_id, action_name, state_id, exec_order, is_critical, extra_info, arglist, payload)
     values (nextval('dj_pk_seq'), p_ops_proc_id, p_ci_id, p_action_name, l_state_id, p_exec_order, p_critical, p_extra_info, p_arglist, p_payload);
-
+    
 END;
 $$;
 
@@ -337,6 +352,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_ops_action(p_action_name character varying, p_ops_proc_id bigint, p_ci_id bigint, p_state_name character varying, p_exec_order integer, p_critical boolean, p_extra_info text, p_arglist text, p_payload text) OWNER TO kloopzcm;
 
 --
+-- TOC entry 352 (class 1255 OID 27834)
 -- Name: cm_create_ops_procedure(bigint, character varying, bigint, character varying, text, character varying, text, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -350,7 +366,7 @@ BEGIN
     select state_id into l_state_id from cm_ops_proc_state where state_name = p_state_name;
 
     if not found then
-	RAISE EXCEPTION 'Can not resolve state: %', p_state_name USING ERRCODE = '22000';
+    RAISE EXCEPTION 'Can not resolve state: %', p_state_name USING ERRCODE = '22000';
     end if;
 
     insert into cm_ops_procedures (ops_proc_id, ci_id, proc_name, state_id, arglist, created_by, definition, proc_ci_id)
@@ -358,7 +374,7 @@ BEGIN
 
     insert into cms_event_queue(event_id, source_pk, source_name, event_type_id)
     values (nextval('event_pk_seq'), p_procedure_id, 'opsprocedure' , 100);
-
+    
 END;
 $$;
 
@@ -366,6 +382,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_ops_procedure(p_procedure_id bigint, p_procedure_name character varying, p_ci_id bigint, p_state_name character varying, p_arglist text, p_created_by character varying, p_definition text, p_proc_ci_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 335 (class 1255 OID 27835)
 -- Name: cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -381,6 +398,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_relation(p_ci_relation_id bigint, p_ns_id bigint, p_from_ci_id bigint, p_relation_id integer, p_to_ci_id bigint, p_rel_goid character varying, p_comments character varying, p_state_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 336 (class 1255 OID 27836)
 -- Name: cm_create_relation(bigint, bigint, bigint, integer, bigint, character varying, character varying, integer, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -389,19 +407,19 @@ CREATE FUNCTION cm_create_relation(p_ci_relation_id bigint, p_ns_id bigint, p_fr
     AS $$
 BEGIN
 
-    begin
-		insert into cm_ci_relations (ci_relation_id, ns_id, from_ci_id, relation_goid, relation_id, to_ci_id, ci_state_id, comments, last_applied_rfc_id)
-		values (p_ci_relation_id, p_ns_id, p_from_ci_id, p_rel_goid, p_relation_id, p_to_ci_id, p_state_id, p_comments, p_last_rfc_id);
+    begin       
+        insert into cm_ci_relations (ci_relation_id, ns_id, from_ci_id, relation_goid, relation_id, to_ci_id, ci_state_id, comments, last_applied_rfc_id)
+        values (p_ci_relation_id, p_ns_id, p_from_ci_id, p_rel_goid, p_relation_id, p_to_ci_id, p_state_id, p_comments, p_last_rfc_id);
+    
+        insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+        values (nextval('event_pk_seq'), p_ci_relation_id, 'cm_ci_rel' , 200);
 
-		insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
-    	values (nextval('event_pk_seq'), p_ci_relation_id, 'cm_ci_rel' , 200);
-
-		insert into cm_ci_relation_log(log_id, log_time, log_event, ci_relation_id, from_ci_id, to_ci_id, ci_state_id, ci_state_id_old, comments)
-		values (nextval('log_pk_seq'), now(), 100, p_ci_relation_id, p_from_ci_id, p_to_ci_id, p_state_id, p_state_id, p_comments);
+        insert into cm_ci_relation_log(log_id, log_time, log_event, ci_relation_id, from_ci_id, to_ci_id, ci_state_id, ci_state_id_old, comments) 
+        values (nextval('log_pk_seq'), now(), 100, p_ci_relation_id, p_from_ci_id, p_to_ci_id, p_state_id, p_state_id, p_comments);
     exception when integrity_constraint_violation then
-		raise notice '% %', sqlerrm, sqlstate;
+        raise notice '% %', sqlerrm, sqlstate;
     end;
-
+    
 END;
 $$;
 
@@ -409,6 +427,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_create_relation(p_ci_relation_id bigint, p_ns_id bigint, p_from_ci_id bigint, p_relation_id integer, p_to_ci_id bigint, p_rel_goid character varying, p_comments character varying, p_state_id integer, p_last_rfc_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 288 (class 1255 OID 27837)
 -- Name: cm_delete_alt_namespace(bigint, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -416,7 +435,7 @@ CREATE FUNCTION cm_delete_alt_namespace(p_ns_id bigint, p_ci_id bigint) RETURNS 
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    delete from cm_ns_opt where ci_id= p_ci_id and ns_id=p_ns_id;
+    delete from cm_ns_opt where ci_id= p_ci_id and ns_id=p_ns_id;    
     return p_ns_id;
 END;
 $$;
@@ -425,6 +444,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_delete_alt_namespace(p_ns_id bigint, p_ci_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 282 (class 1255 OID 27838)
 -- Name: cm_delete_ci(bigint, boolean, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -440,6 +460,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_delete_ci(p_ci_id bigint, p_delete4real boolean, p_deleted_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 283 (class 1255 OID 27839)
 -- Name: cm_delete_ci(bigint, bigint, boolean, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -458,48 +479,48 @@ DECLARE
     l_flags integer;
 BEGIN
 
-    select into l_ci_name, l_is_namespace, l_this_ns_path, l_class_id, l_class_name, l_comments, l_state_id, l_flags, l_created_by
-		ci.ci_name, cl.is_namespace, ns.ns_path, cl.class_id, cl.class_name, ci.comments, ci.ci_state_id, cl.flags, ci.created_by
+    select into l_ci_name, l_is_namespace, l_this_ns_path, l_class_id, l_class_name, l_comments, l_state_id, l_flags, l_created_by   
+        ci.ci_name, cl.is_namespace, ns.ns_path, cl.class_id, cl.class_name, ci.comments, ci.ci_state_id, cl.flags, ci.created_by  
     from cm_ci ci, md_classes cl, ns_namespaces ns
     where ci.ci_id = p_ci_id
       and ci.class_id = cl.class_id
       and ci.ns_id = ns.ns_id;
 
-    if l_ci_name is not null then
-	    if l_is_namespace = true then
-	        if l_this_ns_path = '/' then
-	           if (l_flags::bit(2) & B'10')::integer > 0 then
-			      perform ns_delete_namespace('/' || l_class_name || '/' ||  l_ci_name);
-	           else
-			      perform ns_delete_namespace('/' ||  l_ci_name);
-		       end if;
-		    else
-		       if (l_flags::bit(2) & B'10')::integer > 0 then
-			      perform ns_delete_namespace(l_this_ns_path || '/' || l_class_name || '/' || l_ci_name);
-		       else
-			      perform ns_delete_namespace(l_this_ns_path || '/' ||  l_ci_name);
-		       end if;
-		    end if;
-	    end if;
-
-	    if p_delete4real then
-
-	    	insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
-		    values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 300);
-
-		    insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old, created_by, updated_by)
-		    values (nextval('log_pk_seq'), now(), 300, p_ci_id, l_ci_name, l_class_id, l_class_name, l_comments, l_state_id, l_state_id, l_created_by, p_deleted_by);
-
-		    delete from cm_ci where ci_id = p_ci_id;
-	    else
-	        update cm_ci
-	        set ci_state_id = 200, --pending_delete
-			last_applied_rfc_id = coalesce(p_last_rfc_id, last_applied_rfc_id),
-	        	updated = now()
-	        where ci_id = p_ci_id;
-	    end if;
+    if l_ci_name is not null then  
+        if l_is_namespace = true then
+            if l_this_ns_path = '/' then
+               if (l_flags::bit(2) & B'10')::integer > 0 then
+                  perform ns_delete_namespace('/' || l_class_name || '/' ||  l_ci_name);    
+               else
+                  perform ns_delete_namespace('/' ||  l_ci_name);   
+               end if;
+            else 
+               if (l_flags::bit(2) & B'10')::integer > 0 then 
+                  perform ns_delete_namespace(l_this_ns_path || '/' || l_class_name || '/' || l_ci_name);   
+               else
+                  perform ns_delete_namespace(l_this_ns_path || '/' ||  l_ci_name); 
+               end if;
+            end if; 
+        end if;   
+    
+        if p_delete4real then   
+    
+            insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+            values (nextval('event_pk_seq'), p_ci_id, 'cm_ci' , 300);
+        
+            insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old, created_by, updated_by)
+            values (nextval('log_pk_seq'), now(), 300, p_ci_id, l_ci_name, l_class_id, l_class_name, l_comments, l_state_id, l_state_id, l_created_by, p_deleted_by);
+        
+            delete from cm_ci where ci_id = p_ci_id; 
+        else
+            update cm_ci
+            set ci_state_id = 200, --pending_delete
+            last_applied_rfc_id = coalesce(p_last_rfc_id, last_applied_rfc_id),
+                updated = now()
+            where ci_id = p_ci_id;
+        end if;
     end if;
-
+    
 END;
 $$;
 
@@ -507,6 +528,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_delete_ci(p_ci_id bigint, p_last_rfc_id bigint, p_delete4real boolean, p_deleted_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 284 (class 1255 OID 27840)
 -- Name: cm_delete_relation(bigint, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -520,33 +542,33 @@ DECLARE
     l_state_id integer;
 BEGIN
 
-    select into l_from_ci_id, l_to_ci_id, l_comments, l_state_id
-                r.from_ci_id, r.to_ci_id, r.comments, r.ci_state_id
+    select into l_from_ci_id, l_to_ci_id, l_comments, l_state_id   
+                r.from_ci_id, r.to_ci_id, r.comments, r.ci_state_id  
     from cm_ci_relations r
     where r.ci_relation_id = p_ci_relation_id;
 
     if p_delete4real then
 
-        delete from cm_ci_relations where ci_relation_id = p_ci_relation_id;
-
+        delete from cm_ci_relations where ci_relation_id = p_ci_relation_id; 
+        
         insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
-    	values (nextval('event_pk_seq'), p_ci_relation_id, 'cm_ci_rel' , 300);
-
-        -- if relation still exists and not deleted as cascade deletion on ci - put it in the log
-        if l_from_ci_id is not null then
-	       insert into cm_ci_relation_log(log_id, log_time, log_event, ci_relation_id, from_ci_id, to_ci_id, ci_state_id, ci_state_id_old, comments)
-	       values (nextval('log_pk_seq'), now(), 300, p_ci_relation_id, l_from_ci_id, l_to_ci_id, l_state_id, l_state_id, l_comments);
+        values (nextval('event_pk_seq'), p_ci_relation_id, 'cm_ci_rel' , 300);
+        
+        -- if relation still exists and not deleted as cascade deletion on ci - put it in the log   
+        if l_from_ci_id is not null then 
+           insert into cm_ci_relation_log(log_id, log_time, log_event, ci_relation_id, from_ci_id, to_ci_id, ci_state_id, ci_state_id_old, comments) 
+           values (nextval('log_pk_seq'), now(), 300, p_ci_relation_id, l_from_ci_id, l_to_ci_id, l_state_id, l_state_id, l_comments);
         end if;
 
     else
 
         update cm_ci_relations
-	    set ci_state_id = 200, --pending deletion
-	        updated = now()
-	    where ci_relation_id = p_ci_relation_id;
-
-	end if;
-
+        set ci_state_id = 200, --pending deletion
+            updated = now()
+        where ci_relation_id = p_ci_relation_id;
+    
+    end if;
+    
 END;
 $$;
 
@@ -554,6 +576,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_delete_relation(p_ci_relation_id bigint, p_delete4real boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 287 (class 1255 OID 27841)
 -- Name: cm_is_opened_release_for_ci(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -564,8 +587,8 @@ DECLARE
  l_open_release integer;
 BEGIN
 
-	select count(*) into l_open_release from dj_rfc_ci a, dj_releases b where b.release_id=a.release_id and b.release_state_id = 100 and a.ci_id = p_ci_id;
-
+    select count(*) into l_open_release from dj_rfc_ci a, dj_releases b where b.release_id=a.release_id and b.release_state_id = 100 and a.ci_id = p_ci_id;
+    
     return l_open_release > 0;
 END;
 $$;
@@ -574,6 +597,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_is_opened_release_for_ci(p_ci_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 286 (class 1255 OID 27842)
 -- Name: cm_is_ops_procedure_active_for_ci(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -587,7 +611,7 @@ BEGIN
     select count(*) into l_active_proc from cm_ops_procedures where ci_id = p_ci_id and state_id in (10,100);
 
     if l_active_proc = 0 then
-	    select count(*) into l_active_proc from cm_ops_procedures p, cm_ops_actions a where p.state_id in (10,100) and a.ops_proc_id = p.ops_proc_id and a.ci_id = p_ci_id;
+        select count(*) into l_active_proc from cm_ops_procedures p, cm_ops_actions a where p.state_id in (10,100) and a.ops_proc_id = p.ops_proc_id and a.ci_id = p_ci_id;
     end if;
 
     return l_active_proc > 0;
@@ -598,6 +622,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_is_ops_procedure_active_for_ci(p_ci_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 281 (class 1255 OID 27843)
 -- Name: cm_update_ci(bigint, character varying, character varying, integer, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -613,6 +638,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_ci(p_ci_id bigint, p_ci_name character varying, p_comments character varying, p_state_id integer, p_updated_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 337 (class 1255 OID 27844)
 -- Name: cm_update_ci(bigint, character varying, character varying, integer, bigint, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -626,14 +652,14 @@ DECLARE
     l_comments character varying;
     l_state_id integer;
 BEGIN
-    select into l_class_id, l_class_name, l_ci_name, l_comments, l_state_id
-		 cl.class_id, cl.class_name, ci.ci_name, ci.comments, ci.ci_state_id
+    select into l_class_id, l_class_name, l_ci_name, l_comments, l_state_id   
+         cl.class_id, cl.class_name, ci.ci_name, ci.comments, ci.ci_state_id  
     from cm_ci ci, md_classes cl
     where ci.ci_id = p_ci_id
       and ci.class_id = cl.class_id;
 
-    update cm_ci
-     set ci_name = coalesce(p_ci_name, ci_name),
+    update cm_ci 
+     set ci_name = coalesce(p_ci_name, ci_name), 
          comments = coalesce(p_comments, comments),
          ci_state_id = coalesce(p_state_id, ci_state_id),
          last_applied_rfc_id = coalesce(p_last_rfc_id, last_applied_rfc_id),
@@ -646,7 +672,7 @@ BEGIN
 
     insert into cm_ci_log(log_id, log_time, log_event, ci_id, ci_name, class_id, class_name, comments, ci_state_id, ci_state_id_old, updated_by)
     values (nextval('log_pk_seq'), now(), 200, p_ci_id, coalesce(p_ci_name, l_ci_name), l_class_id, l_class_name, coalesce(p_comments, l_comments), l_state_id, coalesce(p_state_id, l_state_id), p_updated_by);
-
+    
 END;
 $$;
 
@@ -654,6 +680,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_ci(p_ci_id bigint, p_ci_name character varying, p_comments character varying, p_state_id integer, p_last_rfc_id bigint, p_updated_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 290 (class 1255 OID 27845)
 -- Name: cm_update_ci_attribute(bigint, text, text, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -664,13 +691,13 @@ DECLARE
     l_ci_id bigint;
     l_attribute_id integer;
     l_attribute_name character varying;
-	l_dj_attribute_value text;
-	l_df_attribute_value text;
+    l_dj_attribute_value text;
+    l_df_attribute_value text;
 BEGIN
-    select into l_dj_attribute_value, l_df_attribute_value, l_attribute_id, l_attribute_name
-		 a.dj_attribute_value, a.df_attribute_value, a.attribute_id, cl.attribute_name
+    select into l_dj_attribute_value, l_df_attribute_value, l_attribute_id, l_attribute_name   
+         a.dj_attribute_value, a.df_attribute_value, a.attribute_id, cl.attribute_name   
     from cm_ci_attributes a, md_class_attributes cl
-    where a.ci_attribute_id = p_ci_attr_id
+    where a.ci_attribute_id = p_ci_attr_id 
       and a.attribute_id = cl.attribute_id;
 
     update cm_ci_attributes set
@@ -686,7 +713,7 @@ BEGIN
     set updated = now()
     where ci_id = l_ci_id;
 
-    insert into cm_ci_attribute_log(log_id, log_time, log_event, ci_id, ci_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old)
+    insert into cm_ci_attribute_log(log_id, log_time, log_event, ci_id, ci_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old) 
     values (nextval('log_pk_seq'), now(), 200, l_ci_id, p_ci_attr_id, l_attribute_id, l_attribute_name, p_comments, p_owner, coalesce(p_dj_value, l_dj_attribute_value), l_dj_attribute_value, coalesce(p_df_value, l_df_attribute_value), l_df_attribute_value);
 
 END;
@@ -696,6 +723,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_ci_attribute(p_ci_attr_id bigint, p_df_value text, p_dj_value text, p_owner character varying, p_comments character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 293 (class 1255 OID 27846)
 -- Name: cm_update_ops_action_state(bigint, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -709,11 +737,11 @@ BEGIN
     select state_id into l_state_id from cm_ops_action_state where state_name = p_state;
 
     if not found then
-	RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
+    RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
     end if;
 
     update cm_ops_actions set state_id = l_state_id, updated = now()
-    where ops_action_id = p_action_id;
+    where ops_action_id = p_action_id;  
 
 END;
 $$;
@@ -722,6 +750,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_ops_action_state(p_action_id bigint, p_state character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 292 (class 1255 OID 27847)
 -- Name: cm_update_ops_procedure_state(bigint, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -735,21 +764,21 @@ BEGIN
     select state_id into l_state_id from cm_ops_proc_state where state_name = p_state;
 
     if not found then
-		RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
+        RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
     end if;
 
     update cm_ops_procedures set state_id = l_state_id, updated = now()
-    where ops_proc_id = p_proc_id;
+    where ops_proc_id = p_proc_id;  
 
     -- lets check if it's cancled then we cancel all pending action orders for this proc
 
     if l_state_id = 400 then
-
-		update cm_ops_actions
-		set state_id = 400
-		where ops_proc_id = p_proc_id
-		and state_id = 10;
-
+    
+        update cm_ops_actions
+        set state_id = 400
+        where ops_proc_id = p_proc_id
+        and state_id = 10;
+    
     end if;
 
     insert into cms_event_queue(event_id, source_pk, source_name, event_type_id)
@@ -762,6 +791,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_ops_procedure_state(p_proc_id bigint, p_state character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 289 (class 1255 OID 27848)
 -- Name: cm_update_rel(bigint, character varying, integer, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -770,7 +800,7 @@ CREATE FUNCTION cm_update_rel(p_rel_id bigint, p_comments character varying, p_s
     AS $$
 BEGIN
 
-    update cm_ci_relations
+    update cm_ci_relations 
      set comments = coalesce(p_comments, comments),
          ci_state_id = coalesce(p_state_id, ci_state_id),
          last_applied_rfc_id = coalesce(p_last_rfc_id, last_applied_rfc_id)
@@ -779,7 +809,7 @@ BEGIN
     insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
     values (nextval('event_pk_seq'), p_rel_id, 'cm_ci_rel' , 200);
 
-    --insert into cm_ci_relation_log(log_id, log_time, log_event, ci_relation_id, from_ci_id, to_ci_id, ci_state_id, ci_state_id_old, comments)
+    --insert into cm_ci_relation_log(log_id, log_time, log_event, ci_relation_id, from_ci_id, to_ci_id, ci_state_id, ci_state_id_old, comments) 
     --values (nextval('log_pk_seq'), now(), 200, p_ci_relation_id, p_from_ci_id, p_to_ci_id, p_state_id, p_state_id, p_comments);
 
 END;
@@ -789,6 +819,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_rel(p_rel_id bigint, p_comments character varying, p_state_id integer, p_last_rfc_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 338 (class 1255 OID 27849)
 -- Name: cm_update_rel_attribute(bigint, text, text, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -799,13 +830,13 @@ DECLARE
     l_ci_rel_id bigint;
     l_attribute_id integer;
     l_attribute_name character varying;
-	l_dj_attribute_value text;
-	l_df_attribute_value text;
+    l_dj_attribute_value text;
+    l_df_attribute_value text;
 BEGIN
-    select into l_dj_attribute_value, l_df_attribute_value, l_attribute_id, l_attribute_name
-		 a.dj_attribute_value, a.df_attribute_value, a.attribute_id, cl.attribute_name
+    select into l_dj_attribute_value, l_df_attribute_value, l_attribute_id, l_attribute_name   
+         a.dj_attribute_value, a.df_attribute_value, a.attribute_id, cl.attribute_name   
     from cm_ci_relation_attributes a, md_relation_attributes cl
-    where a.ci_rel_attribute_id = p_ci_rel_attr_id
+    where a.ci_rel_attribute_id = p_ci_rel_attr_id 
       and a.attribute_id = cl.attribute_id;
 
     update cm_ci_relation_attributes set
@@ -821,7 +852,7 @@ BEGIN
     set updated = now()
     where ci_relation_id = l_ci_rel_id;
 
-    insert into cm_ci_relation_attr_log(log_id, log_time, log_event, ci_relation_id, ci_rel_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old)
+    insert into cm_ci_relation_attr_log(log_id, log_time, log_event, ci_relation_id, ci_rel_attribute_id, attribute_id, attribute_name, comments, owner, dj_attribute_value, dj_attribute_value_old, df_attribute_value, df_attribute_value_old) 
     values (nextval('log_pk_seq'), now(), 200, l_ci_rel_id, p_ci_rel_attr_id, l_attribute_id, l_attribute_name, p_comments, p_owner, coalesce(p_dj_value, l_dj_attribute_value), l_dj_attribute_value, coalesce(p_df_value, l_df_attribute_value), l_df_attribute_value);
 
 END;
@@ -831,6 +862,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_update_rel_attribute(p_ci_rel_attr_id bigint, p_df_value text, p_dj_value text, p_owner character varying, p_comments character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 339 (class 1255 OID 27850)
 -- Name: cm_vac_ns(bigint, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -839,29 +871,29 @@ CREATE FUNCTION cm_vac_ns(p_ns_id bigint, p_user character varying) RETURNS void
     AS $$
 DECLARE
     l_cm_ci cm_ci%ROWTYPE;
-    l_cm_rel cm_ci_relations%ROWTYPE;
+    l_cm_rel cm_ci_relations%ROWTYPE;    
     l_ns_like bigint[];
 BEGIN
 
     select array(select ns_id from ns_namespaces
         where ns_path like (select ns_path || '%' from ns_namespaces where ns_id = p_ns_id)) into l_ns_like;
 
-    for l_cm_ci in
-	    select * from cm_ci
-	    where ns_id = ANY(l_ns_like)
-	    and ci_state_id = 200
-	    order by ci_id
+    for l_cm_ci in 
+        select * from cm_ci
+        where ns_id = ANY(l_ns_like)
+        and ci_state_id = 200
+        order by ci_id
     loop
-	    perform cm_delete_ci(l_cm_ci.ci_id, true, p_user);
+        perform cm_delete_ci(l_cm_ci.ci_id, true, p_user);  
     end loop;
 
-    for l_cm_rel in
-	    select * from cm_ci_relations
-	    where ns_id = ANY(l_ns_like)
-	    and ci_state_id = 200
-	    order by ci_relation_id
+    for l_cm_rel in 
+        select * from cm_ci_relations
+        where ns_id = ANY(l_ns_like)
+        and ci_state_id = 200
+        order by ci_relation_id
     loop
-	    perform cm_delete_relation(l_cm_rel.ci_relation_id, true);
+        perform cm_delete_relation(l_cm_rel.ci_relation_id, true);  
     end loop;
 
 END;
@@ -871,6 +903,7 @@ $$;
 ALTER FUNCTION kloopzcm.cm_vac_ns(p_ns_id bigint, p_user character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 346 (class 1255 OID 27851)
 -- Name: cms_acquire_lock(character varying, character varying, integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -886,10 +919,10 @@ BEGIN
     select into l_lock_cnt count(1) from cms_lock where lock_name = p_lock_name;
 
     if l_lock_cnt = 0 then
-	-- we are first lets create a row
-	BEGIN
-	    insert into cms_lock(lock_id, lock_name, locked_by)
-	    values (nextval('cm_pk_seq'), p_lock_name, p_locked_by);
+    -- we are first lets create a row
+    BEGIN
+        insert into cms_lock(lock_id, lock_name, locked_by)
+        values (nextval('cm_pk_seq'), p_lock_name, p_locked_by);
         EXCEPTION WHEN unique_violation THEN
             --somebody beat us on this return false
             return false;
@@ -898,23 +931,23 @@ BEGIN
 
     -- try to lock it
     select into l_lock_row cl.lock_id, cl.lock_name, cl.locked_by, cl.created, cl.updated
-    from cms_lock cl where cl.lock_name = p_lock_name for update;
+    from cms_lock cl where cl.lock_name = p_lock_name for update;   
 
-    if l_lock_row.locked_by = p_locked_by then
-	-- this is my lock lets update timestamp
-	update cms_lock set updated=current_timestamp where lock_id = l_lock_row.lock_id;
-	return true;
+    if l_lock_row.locked_by = p_locked_by then 
+    -- this is my lock lets update timestamp
+    update cms_lock set updated=current_timestamp where lock_id = l_lock_row.lock_id;
+    return true;
     elsif cast(extract(epoch from (current_timestamp - l_lock_row.updated)) as integer) > p_stale_timeout then
-	-- seems like the lock is stale I will hijack it
-	update cms_lock
-	set locked_by = p_locked_by,
-            created = current_timestamp,
-            updated=current_timestamp
+    -- seems like the lock is stale I will hijack it
+    update cms_lock 
+    set locked_by = p_locked_by, 
+            created = current_timestamp, 
+            updated=current_timestamp 
         where lock_id = l_lock_row.lock_id;
         return true;
     else
-	-- the lock is fresh and not mine
-	return false;
+    -- the lock is fresh and not mine
+    return false;   
     end if;
 
 END;
@@ -924,6 +957,7 @@ $$;
 ALTER FUNCTION kloopzcm.cms_acquire_lock(p_lock_name character varying, p_locked_by character varying, p_stale_timeout integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 297 (class 1255 OID 27852)
 -- Name: cms_set_var(character varying, text, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -941,19 +975,19 @@ BEGIN
      and ((p_criteria is null and criteria is null) or criteria = p_criteria);
 
     if l_var_id is null then
-	insert into cms_vars(var_id, var_name, var_value, criteria, updated_by, created, updated)
-	values (nextval('cm_pk_seq'), p_var_name, p_var_value, p_criteria, p_updated_by, now(), now());
-    else
-    	update cms_vars
-    	set var_value = p_var_value,
+    insert into cms_vars(var_id, var_name, var_value, criteria, updated_by, created, updated)
+    values (nextval('cm_pk_seq'), p_var_name, p_var_value, p_criteria, p_updated_by, now(), now());
+    else 
+        update cms_vars
+        set var_value = p_var_value,
             criteria = p_criteria,
-    	    updated_by = p_updated_by,
-    	    updated = now()
-    	where var_id = l_var_id;
-
+            updated_by = p_updated_by,
+            updated = now()
+        where var_id = l_var_id;
+            
     end if;
 
-
+ 
 END;
 $$;
 
@@ -961,6 +995,7 @@ $$;
 ALTER FUNCTION kloopzcm.cms_set_var(p_var_name character varying, p_var_value text, p_criteria character varying, p_updated_by character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 296 (class 1255 OID 27853)
 -- Name: dj_brush_exec_order(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -974,20 +1009,20 @@ DECLARE
 BEGIN
 
     l_exec_order = 0;
-    l_last_exec_order = 0;
-    for l_rfc_ci in
-	    select rci.rfc_id, rci.execution_order
-	    from dj_rfc_ci rci
-	    where rci.release_id = p_release_id
-	    and rci.is_active_in_release = true
-	    order by rci.execution_order
+    l_last_exec_order = 0;  
+    for l_rfc_ci in 
+        select rci.rfc_id, rci.execution_order
+        from dj_rfc_ci rci
+        where rci.release_id = p_release_id
+        and rci.is_active_in_release = true
+        order by rci.execution_order
     loop
-	if l_rfc_ci.execution_order > l_last_exec_order then
-	   l_exec_order = l_exec_order + 1;
-	   l_last_exec_order = l_rfc_ci.execution_order;
-	end if;
+    if l_rfc_ci.execution_order > l_last_exec_order then
+       l_exec_order = l_exec_order + 1;
+       l_last_exec_order = l_rfc_ci.execution_order;
+    end if;
 
-	update dj_rfc_ci set execution_order = l_exec_order where rfc_id = l_rfc_ci.rfc_id;
+    update dj_rfc_ci set execution_order = l_exec_order where rfc_id = l_rfc_ci.rfc_id;
     end loop;
 
 END;
@@ -997,6 +1032,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_brush_exec_order(p_release_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 340 (class 1255 OID 27854)
 -- Name: dj_cancel_deployment(bigint, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1013,28 +1049,28 @@ BEGIN
 
     select state_id into l_old_state
     from dj_deployment
-    where deployment_id = p_deployment_id;
+    where deployment_id = p_deployment_id;  
 
-    update dj_deployment
-	set state_id = 400,
-	    updated_by = coalesce(p_updated_by, updated_by),
-	    description = coalesce(p_desc, description),
-	    comments = coalesce(p_comments, comments),
-	    updated = now()
-    where deployment_id = p_deployment_id
-    returning release_id, description, comments, ops into l_release_id, l_desc, l_comments, l_ops;
-
-    insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
-    values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, 400, l_desc, l_comments, l_ops, p_updated_by);
-
-    update dj_deployment_rfc
+    update dj_deployment 
     set state_id = 400,
+        updated_by = coalesce(p_updated_by, updated_by),
+        description = coalesce(p_desc, description),
+        comments = coalesce(p_comments, comments),
         updated = now()
     where deployment_id = p_deployment_id
-    and state_id = 10;
+    returning release_id, description, comments, ops into l_release_id, l_desc, l_comments, l_ops;  
+
+    insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
+    values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, 400, l_desc, l_comments, l_ops, p_updated_by);  
+
+    update dj_deployment_rfc 
+    set state_id = 400,
+        updated = now()
+    where deployment_id = p_deployment_id 
+    and state_id = 10;  
 
     INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-    VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);
+    VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);   
 
 END;
 $$;
@@ -1043,6 +1079,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_cancel_deployment(p_deployment_id bigint, p_updated_by character varying, p_desc character varying, p_comments character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 294 (class 1255 OID 27855)
 -- Name: dj_commit_release(bigint, boolean, integer, boolean, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1058,29 +1095,29 @@ BEGIN
 
     select into l_current_release_state rs.state_name
     from dj_releases r, dj_release_states rs
-    where r.release_id = p_release_id
+    where r.release_id = p_release_id 
     and r.release_state_id = rs.release_state_id;
 
     if l_current_release_state <> 'open' then
-	RAISE EXCEPTION 'The release is in wrong state: %', l_current_release_state USING ERRCODE = '22000';
+    RAISE EXCEPTION 'The release is in wrong state: %', l_current_release_state USING ERRCODE = '22000';
     end if;
 
     perform dj_commit_release_cis(p_release_id, p_set_df_value, p_new_ci_state_id, p_delete4real);
-    perform dj_commit_release_relations(p_release_id, p_set_df_value, p_new_ci_state_id, p_delete4real);
+    perform dj_commit_release_relations(p_release_id, p_set_df_value, p_new_ci_state_id, p_delete4real);    
 
     select into l_release_state release_state_id
     from dj_release_states
-    where state_name = 'closed';
+    where state_name = 'closed';    
 
     if l_release_state is not null then
        update dj_releases
        set release_state_id = l_release_state,
            updated = now(),
-       	   commited_by = p_commited_by,
-       	   description = coalesce(p_desc, description)
+           commited_by = p_commited_by,
+           description = coalesce(p_desc, description)
        where release_id =  p_release_id;
     end if;
-
+    
     INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
     VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 200);
 
@@ -1091,6 +1128,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_commit_release(p_release_id bigint, p_set_df_value boolean, p_new_ci_state_id integer, p_delete4real boolean, p_commited_by character varying, p_desc character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 342 (class 1255 OID 27856)
 -- Name: dj_commit_release_cis(bigint, boolean, integer, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1108,72 +1146,72 @@ DECLARE
     l_set_df_value boolean default coalesce(p_set_df_value, false);
 BEGIN
 
-    for l_rfc_ci in
-	    select rci.rfc_id, rci.ci_id, rci.ns_id, rci.class_id, rci.ci_name, rci.ci_goid, rci.comments, ra.action_name, rci.created_by, rci.updated_by
-	    from dj_rfc_ci rci, dj_rfc_ci_actions ra
-	    where rci.release_id = p_release_id
-	    and rci.is_active_in_release = true
-	    and rci.action_id = ra.action_id
-	    order by rci.execution_order
+    for l_rfc_ci in 
+        select rci.rfc_id, rci.ci_id, rci.ns_id, rci.class_id, rci.ci_name, rci.ci_goid, rci.comments, ra.action_name, rci.created_by, rci.updated_by
+        from dj_rfc_ci rci, dj_rfc_ci_actions ra 
+        where rci.release_id = p_release_id
+        and rci.is_active_in_release = true
+        and rci.action_id = ra.action_id
+        order by rci.execution_order
     loop
-	select into l_ci_exists count(1) from cm_ci where ci_id = l_rfc_ci.ci_id;
+    select into l_ci_exists count(1) from cm_ci where ci_id = l_rfc_ci.ci_id;
 
-	l_action := l_rfc_ci.action_name;
+    l_action := l_rfc_ci.action_name;
+    
+    if l_action = 'add' then
+       if l_ci_exists = 0 then
 
-	if l_action = 'add' then
-	   if l_ci_exists = 0 then
+          perform cm_create_ci(l_rfc_ci.ci_id, l_rfc_ci.ns_id, l_rfc_ci.class_id, l_rfc_ci.ci_goid, l_rfc_ci.ci_name, l_rfc_ci.comments, l_new_ci_state_id, l_rfc_ci.rfc_id, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));   
 
-	      perform cm_create_ci(l_rfc_ci.ci_id, l_rfc_ci.ns_id, l_rfc_ci.class_id, l_rfc_ci.ci_goid, l_rfc_ci.ci_name, l_rfc_ci.comments, l_new_ci_state_id, l_rfc_ci.rfc_id, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));
-
-	      for l_rfc_ci_attr in
-			SELECT *
-			FROM dj_rfc_ci_attributes cia
-			where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id)
+          for l_rfc_ci_attr in 
+            SELECT *
+            FROM dj_rfc_ci_attributes cia
+            where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id) 
           loop
-			  if l_set_df_value then
-			     l_df_value := l_rfc_ci_attr.new_attribute_value;
-			  end if;
-			  perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments, false);
-  	      end loop;
-	   else
-	      l_action := 'update';
-	   end if;
-	end if;
+              if l_set_df_value then
+                 l_df_value := l_rfc_ci_attr.new_attribute_value;   
+              end if;
+              perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments, false);
+          end loop; 
+       else
+          l_action := 'update'; 
+       end if;
+    end if;
+    
+    if l_action = 'update' then
+       if l_ci_exists > 0 then
+       
+          perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, l_rfc_ci.rfc_id, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by)); 
 
-	if l_action = 'update' then
-	   if l_ci_exists > 0 then
-
-	      perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, l_rfc_ci.rfc_id, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));
-
-	      for l_rfc_ci_attr in
-		SELECT *
-		FROM dj_rfc_ci_attributes cia
-		where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id)
+          for l_rfc_ci_attr in 
+        SELECT *
+        FROM dj_rfc_ci_attributes cia
+        where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id) 
               loop
 
-		  select into l_ci_attr_id ci_attribute_id
-		  from cm_ci_attributes
-		  where ci_id = l_rfc_ci.ci_id
-		  and attribute_id = l_rfc_ci_attr.attribute_id;
+          select into l_ci_attr_id ci_attribute_id
+          from cm_ci_attributes
+          where ci_id = l_rfc_ci.ci_id
+          and attribute_id = l_rfc_ci_attr.attribute_id;
+            
+          if l_set_df_value then
+             l_df_value := l_rfc_ci_attr.new_attribute_value;   
+          end if;
 
-		  if l_set_df_value then
-		     l_df_value := l_rfc_ci_attr.new_attribute_value;
-		  end if;
+          if l_ci_attr_id is null then
+             perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments, true);
+          else 
+             perform cm_update_ci_attribute(l_ci_attr_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments);
+          end if;
+          end loop; 
+       else
+          RAISE 'CI does not exists with ci_id: %', l_rfc_ci.ci_id USING ERRCODE = '22000'; 
+       end if;
+    end if;
 
-		  if l_ci_attr_id is null then
-		     perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments, true);
-		  else
-		     perform cm_update_ci_attribute(l_ci_attr_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments);
-		  end if;
-	      end loop;
-	   else
-	      RAISE 'CI does not exists with ci_id: %', l_rfc_ci.ci_id USING ERRCODE = '22000';
-	   end if;
-	end if;
-
-	if l_action = 'delete' then
-	   perform cm_delete_ci(l_rfc_ci.ci_id, l_rfc_ci.rfc_id, p_delete4real, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));
-	end if;
+    if l_action = 'delete' then
+       perform cm_delete_ci(l_rfc_ci.ci_id, l_rfc_ci.rfc_id, p_delete4real, coalesce(l_rfc_ci.updated_by, l_rfc_ci.created_by));
+    end if;
 
     end loop;
 
@@ -1184,6 +1222,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_commit_release_cis(p_release_id bigint, p_set_df_value boolean, p_new_ci_state_id integer, p_delete4real boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 300 (class 1255 OID 27857)
 -- Name: dj_commit_release_relations(bigint, boolean, integer, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1201,70 +1240,70 @@ DECLARE
     l_set_df_value boolean default coalesce(p_set_df_value, false);
 BEGIN
 
-    for l_rfc_rel in
-	    select rr.rfc_id, rr.ns_id, rr.ci_relation_id, rr.from_ci_id, rr.relation_id, rr.to_ci_id, rr.relation_goid, rr.comments, ra.action_name
-	    from dj_rfc_relation rr, dj_rfc_ci_actions ra
-	    where rr.release_id = p_release_id
-	    and rr.is_active_in_release = true
-	    and rr.action_id = ra.action_id
-	    order by rr.execution_order
+    for l_rfc_rel in 
+        select rr.rfc_id, rr.ns_id, rr.ci_relation_id, rr.from_ci_id, rr.relation_id, rr.to_ci_id, rr.relation_goid, rr.comments, ra.action_name
+        from dj_rfc_relation rr, dj_rfc_ci_actions ra 
+        where rr.release_id = p_release_id
+        and rr.is_active_in_release = true
+        and rr.action_id = ra.action_id
+        order by rr.execution_order
     loop
-	select into l_rel_exists count(1) from cm_ci_relations where ci_relation_id = l_rfc_rel.ci_relation_id;
-	l_action := l_rfc_rel.action_name;
+    select into l_rel_exists count(1) from cm_ci_relations where ci_relation_id = l_rfc_rel.ci_relation_id;
+    l_action := l_rfc_rel.action_name;
+    
+    if l_action = 'add' then
+       if l_rel_exists = 0 then
+          perform cm_create_relation(l_rfc_rel.ci_relation_id, l_rfc_rel.ns_id, l_rfc_rel.from_ci_id, l_rfc_rel.relation_id, l_rfc_rel.to_ci_id, l_rfc_rel.relation_goid, l_rfc_rel.comments, l_new_ci_state_id, l_rfc_rel.rfc_id); 
 
-	if l_action = 'add' then
-	   if l_rel_exists = 0 then
-	      perform cm_create_relation(l_rfc_rel.ci_relation_id, l_rfc_rel.ns_id, l_rfc_rel.from_ci_id, l_rfc_rel.relation_id, l_rfc_rel.to_ci_id, l_rfc_rel.relation_goid, l_rfc_rel.comments, l_new_ci_state_id, l_rfc_rel.rfc_id);
-
-	      for l_rfc_rel_attr in
-		  SELECT *
-		  FROM dj_rfc_relation_attributes ra
-		  where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id)
+          for l_rfc_rel_attr in 
+          SELECT *
+          FROM dj_rfc_relation_attributes ra
+          where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id) 
               loop
-		  if l_set_df_value then
-		     l_df_value := l_rfc_rel_attr.new_attribute_value;
-		  end if;
-		  perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, false);
-	      end loop;
-	   else
-	      l_action := 'update';
-	   end if;
-	end if;
-
-	if l_action = 'update' then
-	   if l_rel_exists > 0 then
-
-	      perform cm_update_rel(l_rfc_rel.ci_relation_id, l_rfc_rel.comments, null, l_rfc_rel.rfc_id);
-
-	      for l_rfc_rel_attr in
-		  SELECT *
-		  FROM dj_rfc_relation_attributes ra
-		  where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id)
+          if l_set_df_value then
+             l_df_value := l_rfc_rel_attr.new_attribute_value;  
+          end if;
+          perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, false);
+          end loop; 
+       else
+          l_action := 'update'; 
+       end if;
+    end if;
+    
+    if l_action = 'update' then
+       if l_rel_exists > 0 then
+       
+          perform cm_update_rel(l_rfc_rel.ci_relation_id, l_rfc_rel.comments, null, l_rfc_rel.rfc_id);
+        
+          for l_rfc_rel_attr in 
+          SELECT *
+          FROM dj_rfc_relation_attributes ra
+          where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id) 
               loop
 
-		  select into l_ci_rel_attr_id ci_rel_attribute_id
-		  from cm_ci_relation_attributes
-		  where ci_relation_id = l_rfc_rel.ci_relation_id
-		  and attribute_id = l_rfc_rel_attr.attribute_id;
+          select into l_ci_rel_attr_id ci_rel_attribute_id
+          from cm_ci_relation_attributes
+          where ci_relation_id = l_rfc_rel.ci_relation_id
+          and attribute_id = l_rfc_rel_attr.attribute_id;
+            
+          if l_set_df_value then
+             l_df_value := l_rfc_rel_attr.new_attribute_value;  
+          end if;
 
-		  if l_set_df_value then
-		     l_df_value := l_rfc_rel_attr.new_attribute_value;
-		  end if;
+          if l_ci_rel_attr_id is null then
+             perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, true);
+          else 
+             perform cm_update_rel_attribute(l_ci_rel_attr_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments);
+          end if;
+          end loop; 
+       else
+          RAISE 'Ci Relation does not exists with ci_relation_id: %', l_rfc_rel.ci_relation_id USING ERRCODE = '22000'; 
+       end if;
+    end if;
 
-		  if l_ci_rel_attr_id is null then
-		     perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, true);
-		  else
-		     perform cm_update_rel_attribute(l_ci_rel_attr_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments);
-		  end if;
-	      end loop;
-	   else
-	      RAISE 'Ci Relation does not exists with ci_relation_id: %', l_rfc_rel.ci_relation_id USING ERRCODE = '22000';
-	   end if;
-	end if;
-
-	if l_action = 'delete' then
-	   perform cm_delete_relation(l_rfc_rel.ci_relation_id, p_delete4real);
-	end if;
+    if l_action = 'delete' then
+       perform cm_delete_relation(l_rfc_rel.ci_relation_id, p_delete4real); 
+    end if;
 
     end loop;
 
@@ -1275,6 +1314,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_commit_release_relations(p_release_id bigint, p_set_df_value boolean, p_new_ci_state_id integer, p_delete4real boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 302 (class 1255 OID 27858)
 -- Name: dj_complete_deployment(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1294,69 +1334,69 @@ l_dpmt_updated_by character varying;
 l_desc text;
 l_comments text;
 l_ops text;
-l_old_state integer;
+l_old_state integer;  
 l_continue_on_failure bool;
 BEGIN
 
-	select into l_incomplete count(1)
-	from dj_deployment_rfc dpmt, dj_rfc_ci rfc
-	where dpmt.deployment_id = p_deployment_id
-	and dpmt.state_id <> 200
-	and dpmt.rfc_id = rfc.rfc_id;
+    select into l_incomplete count(1) 
+    from dj_deployment_rfc dpmt, dj_rfc_ci rfc
+    where dpmt.deployment_id = p_deployment_id
+    and dpmt.state_id <> 200
+    and dpmt.rfc_id = rfc.rfc_id;   
 
-	select into l_continue_on_failure (d.flags&1>0) from dj_deployment d where d.deployment_id = p_deployment_id;
-	if l_incomplete > 0 AND not(l_continue_on_failure) then
-	RAISE EXCEPTION 'Not all rfc are complete in deployment: %', p_deployment_id USING ERRCODE = '22000';
-	end if;
+    select into l_continue_on_failure (d.flags&1>0) from dj_deployment d where d.deployment_id = p_deployment_id;
+    if l_incomplete > 0 AND not(l_continue_on_failure) then
+    RAISE EXCEPTION 'Not all rfc are complete in deployment: %', p_deployment_id USING ERRCODE = '22000';
+    end if;
 
-	for l_rel_rfc_id in
-		select dpmt.rfc_id
-		from dj_deployment_rfc dpmt, dj_rfc_relation rfc
-		where dpmt.deployment_id = p_deployment_id
-		and dpmt.state_id <> 200
-		and dpmt.rfc_id = rfc.rfc_id
-	loop
-		perform dj_promote_rfc_relations(l_rel_rfc_id, true, 100);
+    for l_rel_rfc_id in
+        select dpmt.rfc_id 
+        from dj_deployment_rfc dpmt, dj_rfc_relation rfc
+        where dpmt.deployment_id = p_deployment_id
+        and dpmt.state_id <> 200
+        and dpmt.rfc_id = rfc.rfc_id    
+    loop
+        perform dj_promote_rfc_relations(l_rel_rfc_id, true, 100);
 
-		select into l_dpmt_complete_id state_id
-		from dj_deployment_rfc_states
-		where state_name = 'complete';
+        select into l_dpmt_complete_id state_id
+        from dj_deployment_rfc_states
+        where state_name = 'complete';  
 
-		update dj_deployment_rfc
-		set state_id = l_dpmt_complete_id,
-		    updated = now()
-		where deployment_id = p_deployment_id
-		  and rfc_id = l_rel_rfc_id;
+        update dj_deployment_rfc 
+        set state_id = l_dpmt_complete_id, 
+            updated = now()
+        where deployment_id = p_deployment_id
+          and rfc_id = l_rel_rfc_id;
 
-	end loop;
+    end loop;      
 
         select state_id into l_old_state
         from dj_deployment
-        where deployment_id = p_deployment_id;
+        where deployment_id = p_deployment_id;  
 
-	update dj_deployment
-	set state_id = 200,
-	    updated = now()
-	where deployment_id = p_deployment_id
-	returning release_id, created_by, updated_by, description, comments, ops into l_release_id, l_dpmt_created_by, l_dpmt_updated_by, l_desc, l_comments, l_ops;
+    update dj_deployment 
+    set state_id = 200,
+        updated = now()
+    where deployment_id = p_deployment_id
+    returning release_id, created_by, updated_by, description, comments, ops into l_release_id, l_dpmt_created_by, l_dpmt_updated_by, l_desc, l_comments, l_ops;    
 
-	insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
-	values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, 200, l_desc, l_comments, l_ops, l_dpmt_updated_by);
+    insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
+    values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, 200, l_desc, l_comments, l_ops, l_dpmt_updated_by);     
 
-	select into l_release_state release_state_id
-	from dj_release_states
-	where state_name = 'closed';
+    select into l_release_state release_state_id
+    from dj_release_states
+    where state_name = 'closed';    
 
-	update dj_releases
-	set release_state_id = l_release_state,
-	    commited_by = coalesce(l_dpmt_updated_by, l_dpmt_created_by),
-	    updated = now()
-	where release_id =  l_release_id;
+    update dj_releases
+    set release_state_id = l_release_state,
+        commited_by = coalesce(l_dpmt_updated_by, l_dpmt_created_by),
+        updated = now()
+    where release_id =  l_release_id;
 
-	INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-	VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);
+    INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
+    VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);
 
-	INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
+    INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
     VALUES (nextval('event_pk_seq'), l_release_id, 'release' , 200);
 
 
@@ -1367,6 +1407,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_complete_deployment(p_deployment_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 298 (class 1255 OID 27859)
 -- Name: dj_create_alt_namespace(bigint, character varying, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1376,16 +1417,16 @@ CREATE FUNCTION dj_create_alt_namespace(p_ns_id bigint, p_tag character varying,
 DECLARE
     l_tag_id bigint;
 BEGIN
-    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;
+    select tag_id into l_tag_id from ns_opt_tag where tag = p_tag;  
 
     if not found then
-	    insert into ns_opt_tag (tag_id, tag)
+        insert into ns_opt_tag (tag_id, tag)
         values
         (nextval('cm_pk_seq'), p_tag)
         returning tag_id into l_tag_id;
     end if;
-
-    insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (p_rfc_id, p_ns_id, now(), l_tag_id);
+        
+    insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (p_rfc_id, p_ns_id, now(), l_tag_id);    
 END;
 $$;
 
@@ -1393,6 +1434,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_create_alt_namespace(p_ns_id bigint, p_tag character varying, p_rfc_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 303 (class 1255 OID 27860)
 -- Name: dj_create_dpmt_approval(bigint, bigint, text, integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1400,10 +1442,10 @@ CREATE FUNCTION dj_create_dpmt_approval(p_dpmt_id bigint, p_govern_ci_id bigint,
     LANGUAGE plpgsql
     AS $$
 BEGIN
-	INSERT INTO dj_dpmt_approvals(
+    INSERT INTO dj_dpmt_approvals(
             approval_id, deployment_id, govern_ci_id, govern_ci, state_id, expires_in)
-    	VALUES (nextval('dj_pk_seq'), p_dpmt_id, p_govern_ci_id, p_govern_ci, 100, coalesce(p_expires_in,-1)) -- by default create in pending state
-    	returning approval_id into out_approval_id;
+        VALUES (nextval('dj_pk_seq'), p_dpmt_id, p_govern_ci_id, p_govern_ci, 100, coalesce(p_expires_in,-1)) -- by default create in pending state
+        returning approval_id into out_approval_id;
 
  END;
 $$;
@@ -1412,21 +1454,22 @@ $$;
 ALTER FUNCTION kloopzcm.dj_create_dpmt_approval(p_dpmt_id bigint, p_govern_ci_id bigint, p_govern_ci text, p_expires_in integer, OUT out_approval_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 341 (class 1255 OID 27861)
 -- Name: dj_create_release(bigint, bigint, bigint, character varying, character varying, bigint, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
 CREATE FUNCTION dj_create_release(p_release_id bigint, p_ns_id bigint, p_parent_release_id bigint, p_release_name character varying, p_created_by character varying, p_release_state_id bigint, p_description character varying, p_revision character varying) RETURNS void
     LANGUAGE plpgsql
     AS $$
-DECLARE
+DECLARE 
 BEGIN
 
-	INSERT INTO dj_releases(
+    INSERT INTO dj_releases(
             release_id, ns_id, parent_release_id, release_name, created_by, release_state_id, description, revision)
-    	VALUES (p_release_id, p_ns_id, p_parent_release_id, p_release_name, p_created_by, p_release_state_id, p_description, p_revision);
+        VALUES (p_release_id, p_ns_id, p_parent_release_id, p_release_name, p_created_by, p_release_state_id, p_description, p_revision);
 
     INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 100);
+    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 100);   
 
 END;
 $$;
@@ -1435,6 +1478,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_create_release(p_release_id bigint, p_ns_id bigint, p_parent_release_id bigint, p_release_name character varying, p_created_by character varying, p_release_state_id bigint, p_description character varying, p_revision character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 353 (class 1255 OID 27862)
 -- Name: dj_create_release(bigint, bigint, bigint, character varying, character varying, integer, character varying, character varying, integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1444,18 +1488,18 @@ CREATE FUNCTION dj_create_release(p_release_id bigint, p_ns_id bigint, p_parent_
 DECLARE
    l_parent_release_id bigint;
  BEGIN
-	if p_parent_release_id is null then
-	  select into l_parent_release_id max(parent_release_id) from dj_releases where ns_id = p_ns_id;
-	else
-	  l_parent_release_id := p_parent_release_id;
-	end if;
-
-	INSERT INTO dj_releases(
+    if p_parent_release_id is null then
+      select into l_parent_release_id max(parent_release_id) from dj_releases where ns_id = p_ns_id;    
+    else
+      l_parent_release_id := p_parent_release_id;
+    end if;
+ 
+    INSERT INTO dj_releases(
             release_id, ns_id, parent_release_id, release_name, created_by, release_state_id, release_type, description, revision)
-    	VALUES (p_release_id, p_ns_id, l_parent_release_id, p_release_name, p_created_by, p_release_state_id, p_release_type, p_description, p_revision);
+        VALUES (p_release_id, p_ns_id, l_parent_release_id, p_release_name, p_created_by, p_release_state_id, p_release_type, p_description, p_revision);
 
-	INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-	VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 100);
+    INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
+    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 100);
  END;
 $$;
 
@@ -1463,6 +1507,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_create_release(p_release_id bigint, p_ns_id bigint, p_parent_release_id bigint, p_release_name character varying, p_created_by character varying, p_release_state_id integer, p_release_type character varying, p_description character varying, p_revision integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 299 (class 1255 OID 27863)
 -- Name: dj_delete_alt_namespace(bigint, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1470,7 +1515,7 @@ CREATE FUNCTION dj_delete_alt_namespace(p_ns_id bigint, p_rfc_id bigint) RETURNS
     LANGUAGE plpgsql
     AS $$
 BEGIN
-    delete from dj_ns_opt where rfc_id= p_rfc_id and ns_id=p_ns_id;
+    delete from dj_ns_opt where rfc_id= p_rfc_id and ns_id=p_ns_id;    
     return p_ns_id;
 END;
 $$;
@@ -1479,6 +1524,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_delete_alt_namespace(p_ns_id bigint, p_rfc_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 301 (class 1255 OID 27864)
 -- Name: dj_delete_release(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1488,11 +1534,11 @@ CREATE FUNCTION dj_delete_release(p_release_id bigint) RETURNS void
 
 BEGIN
 
-    delete from dj_releases
+    delete from dj_releases 
     where release_id = p_release_id;
 
     INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 300);
+    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 300); 
 
 END;
 $$;
@@ -1501,6 +1547,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_delete_release(p_release_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 291 (class 1255 OID 27865)
 -- Name: dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1516,6 +1563,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_deploy_release(p_release_id bigint, p_state character varying, p_created_by character varying, p_description character varying, p_comments character varying, p_ops character varying, OUT out_deployment_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 345 (class 1255 OID 27866)
 -- Name: dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1525,7 +1573,7 @@ CREATE FUNCTION dj_deploy_release(p_release_id bigint, p_state character varying
 DECLARE
     l_rfc_ci record;
     l_ns_id bigint;
-    l_revision smallint;
+    l_revision smallint;    
     l_deployment_id bigint;
     l_dpmt_state_id integer;
 BEGIN
@@ -1537,6 +1585,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_deploy_release(p_release_id bigint, p_state character varying, p_created_by character varying, p_description character varying, p_comments character varying, p_ops character varying, p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 344 (class 1255 OID 27867)
 -- Name: dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying, bigint, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1546,7 +1595,7 @@ CREATE FUNCTION dj_deploy_release(p_release_id bigint, p_state character varying
 DECLARE
     l_rfc_ci record;
     l_ns_id bigint;
-    l_revision smallint;
+    l_revision smallint;    
     l_deployment_id bigint;
     l_dpmt_state_id integer;
 BEGIN
@@ -1556,23 +1605,23 @@ BEGIN
     select into l_dpmt_state_id state_id from dj_deployment_states where state_name = p_state;
 
     if not found then
-	RAISE EXCEPTION 'Given deployment state % is wrong.', p_state USING ERRCODE = '22000';
+    RAISE EXCEPTION 'Given deployment state % is wrong.', p_state USING ERRCODE = '22000';
     end if;
 
     insert into dj_deployment (deployment_id, ns_id, release_id, release_revision, state_id, created_by, description, comments, ops, auto_pause_exec_orders, flags )
     values (nextval('dj_pk_seq'), l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders, COALESCE (p_flags,0))
-    returning deployment_id into l_deployment_id;
+    returning deployment_id into l_deployment_id;   
 
     insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
-    values (nextval('dj_pk_seq'), l_deployment_id, null, l_dpmt_state_id, p_description, p_comments, p_ops, p_created_by);
+    values (nextval('dj_pk_seq'), l_deployment_id, null, l_dpmt_state_id, p_description, p_comments, p_ops, p_created_by);  
 
-    for l_rfc_ci in
-	    select rci.rfc_id,rci.execution_order
-	    from dj_rfc_ci rci
-	    where rci.release_id = p_release_id
-	    and rci.is_active_in_release = true
-	    and not exists (select 1 from dj_deployment_rfc drfc where drfc.rfc_id = rci.rfc_id and drfc.state_id = 200)
-	    order by rci.execution_order
+    for l_rfc_ci in 
+        select rci.rfc_id,rci.execution_order
+        from dj_rfc_ci rci
+        where rci.release_id = p_release_id
+        and rci.is_active_in_release = true
+        and not exists (select 1 from dj_deployment_rfc drfc where drfc.rfc_id = rci.rfc_id and drfc.state_id = 200)
+        order by rci.execution_order
     loop
 
         insert into dj_deployment_rfc (deployment_rfc_id, deployment_id, state_id, rfc_id, step)
@@ -1580,13 +1629,13 @@ BEGIN
 
     end loop;
 
-    for l_rfc_ci in
-	    select rci.rfc_id
-	    from dj_rfc_relation rci
-	    where rci.release_id = p_release_id
-	    and rci.is_active_in_release = true
-	    and not exists (select 1 from dj_deployment_rfc drfc where drfc.rfc_id = rci.rfc_id and drfc.state_id = 200)
-	    order by rci.execution_order
+    for l_rfc_ci in 
+        select rci.rfc_id
+        from dj_rfc_relation rci
+        where rci.release_id = p_release_id
+        and rci.is_active_in_release = true
+        and not exists (select 1 from dj_deployment_rfc drfc where drfc.rfc_id = rci.rfc_id and drfc.state_id = 200)
+        order by rci.execution_order
     loop
 
         insert into dj_deployment_rfc (deployment_rfc_id, deployment_id, state_id, rfc_id)
@@ -1606,6 +1655,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_deploy_release(p_release_id bigint, p_state character varying, p_created_by character varying, p_description character varying, p_comments character varying, p_ops character varying, p_flags bigint, p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 309 (class 1255 OID 27868)
 -- Name: dj_dpmt_approve(bigint, character varying, integer, text); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1613,13 +1663,13 @@ CREATE FUNCTION dj_dpmt_approve(p_approval_id bigint, p_updated_by character var
     LANGUAGE plpgsql
     AS $$
 BEGIN
-	update dj_dpmt_approvals
-	set state_id = 200,
-	    updated_by = p_approved_by,
-	    updated = now(),
-	    comments = p_comments,
-	    expires_in = coalesce(p_expires_in, expires_in)
-	where approval_id = p_approval_id;
+    update dj_dpmt_approvals
+    set state_id = 200,
+        updated_by = p_approved_by,
+        updated = now(),
+        comments = p_comments,
+        expires_in = coalesce(p_expires_in, expires_in) 
+    where approval_id = p_approval_id;    
 
  END;
 $$;
@@ -1628,6 +1678,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_dpmt_approve(p_approval_id bigint, p_updated_by character varying, p_expires_in integer, p_comments text) OWNER TO kloopzcm;
 
 --
+-- TOC entry 308 (class 1255 OID 27869)
 -- Name: dj_dpmt_upd_approvla_rec(bigint, character varying, integer, text, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1638,21 +1689,21 @@ DECLARE
   l_state_id integer;
 BEGIN
 
-	select into l_state_id state_id
-	from dj_approval_states
-	where state_name = p_state;
+    select into l_state_id state_id
+    from dj_approval_states
+    where state_name = p_state; 
 
-	if l_state_id is null then
-	   RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
-	end if;
+    if l_state_id is null then
+       RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
+    end if;
 
-	update dj_dpmt_approvals
-	set state_id = l_state_id,
-	    updated_by = p_updated_by,
-	    updated = now(),
-	    comments = p_comments,
-	    expires_in = coalesce(p_expires_in, expires_in)
-	where approval_id = p_approval_id;
+    update dj_dpmt_approvals
+    set state_id = l_state_id,
+        updated_by = p_updated_by,
+        updated = now(),
+        comments = p_comments,
+        expires_in = coalesce(p_expires_in, expires_in) 
+    where approval_id = p_approval_id;    
 
  END;
 $$;
@@ -1661,6 +1712,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_dpmt_upd_approvla_rec(p_approval_id bigint, p_updated_by character varying, p_expires_in integer, p_comments text, p_state character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 304 (class 1255 OID 27870)
 -- Name: dj_promote_rfc_ci(bigint, boolean, integer, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1681,129 +1733,129 @@ DECLARE
     l_dpmt_complete_id integer;
 BEGIN
 
-	select into l_rfc_ci rci.rfc_id, rci.ci_id, rci.ns_id, rci.class_id, rci.ci_name, rci.ci_goid, rci.comments, ra.action_name, rci.created_by, rci.updated_by
-	    from dj_rfc_ci rci, dj_rfc_ci_actions ra
-	    where rci.rfc_id = p_rfc_id
-	    and rci.is_active_in_release = true
-	    and rci.action_id = ra.action_id;
+    select into l_rfc_ci rci.rfc_id, rci.ci_id, rci.ns_id, rci.class_id, rci.ci_name, rci.ci_goid, rci.comments, ra.action_name, rci.created_by, rci.updated_by
+        from dj_rfc_ci rci, dj_rfc_ci_actions ra 
+        where rci.rfc_id = p_rfc_id
+        and rci.is_active_in_release = true
+        and rci.action_id = ra.action_id;
 
-	IF NOT FOUND THEN
-	    RAISE EXCEPTION 'rfc % not found', p_rfc_id;
-	END IF;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'rfc % not found', p_rfc_id;
+    END IF;
 
-	select into l_ci_exists count(1) from cm_ci where ci_id = l_rfc_ci.ci_id;
+    select into l_ci_exists count(1) from cm_ci where ci_id = l_rfc_ci.ci_id;
 
-	l_action := l_rfc_ci.action_name;
+    l_action := l_rfc_ci.action_name;
 
-	select into l_dpmt d.created_by, d.updated_by
-	 from dj_deployment d
-	 where d.deployment_id = p_dpmt_id;
+    select into l_dpmt d.created_by, d.updated_by
+     from dj_deployment d
+     where d.deployment_id = p_dpmt_id;
+    
+    if l_action = 'add' then
+       if l_ci_exists = 0 then
+          perform cm_create_ci(l_rfc_ci.ci_id, l_rfc_ci.ns_id, l_rfc_ci.class_id, l_rfc_ci.ci_goid, l_rfc_ci.ci_name, l_rfc_ci.comments, l_new_ci_state_id, l_rfc_ci.rfc_id, l_dpmt.created_by);    
 
-	if l_action = 'add' then
-	   if l_ci_exists = 0 then
-	      perform cm_create_ci(l_rfc_ci.ci_id, l_rfc_ci.ns_id, l_rfc_ci.class_id, l_rfc_ci.ci_goid, l_rfc_ci.ci_name, l_rfc_ci.comments, l_new_ci_state_id, l_rfc_ci.rfc_id, l_dpmt.created_by);
+          for l_rfc_ci_attr in 
+            SELECT *
+            FROM dj_rfc_ci_attributes cia
+            where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id) 
+          loop
+              if l_set_df_value then
+                 l_df_value := l_rfc_ci_attr.new_attribute_value;   
+              end if;
+              perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments,false);
+          end loop; 
+       else
+          l_action := 'update'; 
+       end if;
+    end if;
 
-	      for l_rfc_ci_attr in
-			SELECT *
-			FROM dj_rfc_ci_attributes cia
-			where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id)
-		  loop
-			  if l_set_df_value then
-			     l_df_value := l_rfc_ci_attr.new_attribute_value;
-			  end if;
-			  perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments,false);
-	      end loop;
-	   else
-	      l_action := 'update';
-	   end if;
-	end if;
+    if l_action = 'update' or l_action = 'replace' then
+       if l_ci_exists > 0 then
 
-	if l_action = 'update' or l_action = 'replace' then
-	   if l_ci_exists > 0 then
+          if l_action = 'replace' then
+        perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, 100, l_dpmt.created_by);  
+        update cm_ci
+        set created = now(), created_by = coalesce(l_dpmt.created_by, created_by)
+        where ci_id = l_rfc_ci.ci_id;
+          else      
+        perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, l_dpmt.created_by); 
+          end if;
+          
+          for l_rfc_ci_attr in 
+            SELECT *
+            FROM dj_rfc_ci_attributes cia
+            where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id) 
+          loop
+              select into l_ci_attr_id ci_attribute_id
+              from cm_ci_attributes
+              where ci_id = l_rfc_ci.ci_id
+              and attribute_id = l_rfc_ci_attr.attribute_id;
+                
+              if l_set_df_value then
+                 l_df_value := l_rfc_ci_attr.new_attribute_value;   
+              end if;
+    
+              if l_ci_attr_id is null then
+                 perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments, true);
+              else 
+                 perform cm_update_ci_attribute(l_ci_attr_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments);
+              end if;
+          end loop; 
+       else
+          RAISE 'CI does not exists with ci_id: %', l_rfc_ci.ci_id USING ERRCODE = '22000'; 
+       end if;
+    end if;
 
-	      if l_action = 'replace' then
-		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, 100, l_dpmt.created_by);
-		update cm_ci
-		set created = now(), created_by = coalesce(l_dpmt.created_by, created_by)
-		where ci_id = l_rfc_ci.ci_id;
-	      else
-		perform cm_update_ci(l_rfc_ci.ci_id, l_rfc_ci.ci_name, l_rfc_ci.comments, null, l_dpmt.created_by);
-	      end if;
+    if l_action = 'delete' then
+       perform cm_delete_ci(l_rfc_ci.ci_id, true, l_dpmt.created_by);   
 
-	      for l_rfc_ci_attr in
-			SELECT *
-			FROM dj_rfc_ci_attributes cia
-			where cia.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_ci_attributes a where a.rfc_id = l_rfc_ci.rfc_id group by a.attribute_id)
-	      loop
-			  select into l_ci_attr_id ci_attribute_id
-			  from cm_ci_attributes
-			  where ci_id = l_rfc_ci.ci_id
-			  and attribute_id = l_rfc_ci_attr.attribute_id;
+       if p_dpmt_id is not null then
+        select into l_dpmt_complete_id state_id
+        from dj_deployment_rfc_states
+        where state_name = 'complete';  
 
-			  if l_set_df_value then
-			     l_df_value := l_rfc_ci_attr.new_attribute_value;
-			  end if;
+        update dj_deployment_rfc 
+        set state_id = l_dpmt_complete_id, 
+            updated = now()
+        where deployment_id = p_dpmt_id
+          and rfc_id in (select rel.rfc_id 
+                from dj_rfc_relation rel
+                where rel.from_ci_id = l_rfc_ci.ci_id
+                union all
+                select rel.rfc_id 
+                from dj_rfc_relation rel
+                where rel.to_ci_id = l_rfc_ci.ci_id);
+       end if;
 
-			  if l_ci_attr_id is null then
-			     perform cm_add_ci_attribute(l_rfc_ci.ci_id, l_rfc_ci_attr.attribute_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments, true);
-			  else
-			     perform cm_update_ci_attribute(l_ci_attr_id, l_df_value, l_rfc_ci_attr.new_attribute_value, l_rfc_ci_attr.owner, l_rfc_ci_attr.comments);
-			  end if;
-	      end loop;
-	   else
-	      RAISE 'CI does not exists with ci_id: %', l_rfc_ci.ci_id USING ERRCODE = '22000';
-	   end if;
-	end if;
+    end if;
 
-	if l_action = 'delete' then
-	   perform cm_delete_ci(l_rfc_ci.ci_id, true, l_dpmt.created_by);
+    for l_rel_rfc_id in
+        select rel.rfc_id 
+        from dj_rfc_relation rel, cm_ci ci
+        where rel.from_rfc_id = p_rfc_id
+           and ci.ci_id = rel.to_ci_id
+        union all
+        select rel.rfc_id 
+        from dj_rfc_relation rel, cm_ci ci
+        where rel.to_rfc_id = p_rfc_id
+           and ci.ci_id = rel.from_ci_id
+    loop
+        perform dj_promote_rfc_relations(l_rel_rfc_id, p_set_df_value, p_new_ci_state_id);
+        -- if dpmt_id is not null lets complete the dpmt_records for the relation
+        if p_dpmt_id is not null then
+            select into l_dpmt_complete_id state_id
+            from dj_deployment_rfc_states
+            where state_name = 'complete';  
 
-	   if p_dpmt_id is not null then
-		select into l_dpmt_complete_id state_id
-		from dj_deployment_rfc_states
-		where state_name = 'complete';
+            update dj_deployment_rfc 
+            set state_id = l_dpmt_complete_id, 
+                updated = now()
+            where deployment_id = p_dpmt_id
+              and rfc_id = l_rel_rfc_id;
+        end if;
 
-		update dj_deployment_rfc
-		set state_id = l_dpmt_complete_id,
-		    updated = now()
-		where deployment_id = p_dpmt_id
-		  and rfc_id in (select rel.rfc_id
-				from dj_rfc_relation rel
-				where rel.from_ci_id = l_rfc_ci.ci_id
-				union all
-				select rel.rfc_id
-				from dj_rfc_relation rel
-				where rel.to_ci_id = l_rfc_ci.ci_id);
-	   end if;
-
-	end if;
-
-	for l_rel_rfc_id in
-		select rel.rfc_id
-		from dj_rfc_relation rel, cm_ci ci
-		where rel.from_rfc_id = p_rfc_id
-		   and ci.ci_id = rel.to_ci_id
-		union all
-		select rel.rfc_id
-		from dj_rfc_relation rel, cm_ci ci
-		where rel.to_rfc_id = p_rfc_id
-		   and ci.ci_id = rel.from_ci_id
-	loop
-		perform dj_promote_rfc_relations(l_rel_rfc_id, p_set_df_value, p_new_ci_state_id);
-		-- if dpmt_id is not null lets complete the dpmt_records for the relation
-		if p_dpmt_id is not null then
-			select into l_dpmt_complete_id state_id
-			from dj_deployment_rfc_states
-			where state_name = 'complete';
-
-			update dj_deployment_rfc
-			set state_id = l_dpmt_complete_id,
-			    updated = now()
-			where deployment_id = p_dpmt_id
-			  and rfc_id = l_rel_rfc_id;
-		end if;
-
-	end loop;
+    end loop;      
 
 END;
 $$;
@@ -1812,6 +1864,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_promote_rfc_ci(p_rfc_id bigint, p_set_df_value boolean, p_new_ci_state_id integer, p_dpmt_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 305 (class 1255 OID 27871)
 -- Name: dj_promote_rfc_relations(bigint, boolean, integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1829,70 +1882,70 @@ DECLARE
     l_set_df_value boolean default true;
 BEGIN
 
-	select into l_rfc_rel rr.rfc_id, rr.ns_id, rr.ci_relation_id, rr.from_ci_id, rr.relation_id, rr.to_ci_id, rr.relation_goid, rr.comments, ra.action_name
-	    from dj_rfc_relation rr, dj_rfc_ci_actions ra
-	    where rr.rfc_id = p_rfc_id
-	    and rr.is_active_in_release = true
-	    and rr.action_id = ra.action_id;
+    select into l_rfc_rel rr.rfc_id, rr.ns_id, rr.ci_relation_id, rr.from_ci_id, rr.relation_id, rr.to_ci_id, rr.relation_goid, rr.comments, ra.action_name
+        from dj_rfc_relation rr, dj_rfc_ci_actions ra 
+        where rr.rfc_id = p_rfc_id
+        and rr.is_active_in_release = true
+        and rr.action_id = ra.action_id;
 
-	IF NOT FOUND THEN
-	    RAISE EXCEPTION 'rfc % not found', p_rfc_id;
-	END IF;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'rfc % not found', p_rfc_id;
+    END IF;
 
-	select into l_rel_exists count(1) from cm_ci_relations where ci_relation_id = l_rfc_rel.ci_relation_id;
-	l_action := l_rfc_rel.action_name;
+    select into l_rel_exists count(1) from cm_ci_relations where ci_relation_id = l_rfc_rel.ci_relation_id;
+    l_action := l_rfc_rel.action_name;
+    
+    if l_action = 'add' then
+       if l_rel_exists = 0 then
+          perform cm_create_relation(l_rfc_rel.ci_relation_id, l_rfc_rel.ns_id, l_rfc_rel.from_ci_id, l_rfc_rel.relation_id, l_rfc_rel.to_ci_id, l_rfc_rel.relation_goid, l_rfc_rel.comments, l_new_ci_state_id);   
 
-	if l_action = 'add' then
-	   if l_rel_exists = 0 then
-	      perform cm_create_relation(l_rfc_rel.ci_relation_id, l_rfc_rel.ns_id, l_rfc_rel.from_ci_id, l_rfc_rel.relation_id, l_rfc_rel.to_ci_id, l_rfc_rel.relation_goid, l_rfc_rel.comments, l_new_ci_state_id);
-
-	      for l_rfc_rel_attr in
-		  SELECT *
-		  FROM dj_rfc_relation_attributes ra
-		  where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id)
+          for l_rfc_rel_attr in 
+          SELECT *
+          FROM dj_rfc_relation_attributes ra
+          where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id) 
               loop
-		  if l_set_df_value then
-		     l_df_value := l_rfc_rel_attr.new_attribute_value;
-		  end if;
-		  perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, false);
-	      end loop;
-	   else
-	      l_action := 'update';
-	   end if;
-	end if;
-
-	if l_action = 'update' then
-	   if l_rel_exists > 0 then
-
-	      for l_rfc_rel_attr in
-		  SELECT *
-		  FROM dj_rfc_relation_attributes ra
-		  where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id)
+          if l_set_df_value then
+             l_df_value := l_rfc_rel_attr.new_attribute_value;  
+          end if;
+          perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, false);
+          end loop; 
+       else
+          l_action := 'update'; 
+       end if;
+    end if;
+    
+    if l_action = 'update' then
+       if l_rel_exists > 0 then
+       
+          for l_rfc_rel_attr in 
+          SELECT *
+          FROM dj_rfc_relation_attributes ra
+          where ra.rfc_attr_id in (select max(a.rfc_attr_id) from dj_rfc_relation_attributes a where a.rfc_id = l_rfc_rel.rfc_id group by a.attribute_id) 
               loop
 
-		  select into l_ci_rel_attr_id ci_rel_attribute_id
-		  from cm_ci_relation_attributes
-		  where ci_relation_id = l_rfc_rel.ci_relation_id
-		  and attribute_id = l_rfc_rel_attr.attribute_id;
+          select into l_ci_rel_attr_id ci_rel_attribute_id
+          from cm_ci_relation_attributes
+          where ci_relation_id = l_rfc_rel.ci_relation_id
+          and attribute_id = l_rfc_rel_attr.attribute_id;
+            
+          if l_set_df_value then
+             l_df_value := l_rfc_rel_attr.new_attribute_value;  
+          end if;
 
-		  if l_set_df_value then
-		     l_df_value := l_rfc_rel_attr.new_attribute_value;
-		  end if;
+          if l_ci_rel_attr_id is null then
+             perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, true);
+          else 
+             perform cm_update_rel_attribute(l_ci_rel_attr_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments);
+          end if;
+          end loop; 
+       else
+          RAISE 'Ci Relation does not exists with ci_relation_id: %', l_rfc_rel.ci_relation_id USING ERRCODE = '22000'; 
+       end if;
+    end if;
 
-		  if l_ci_rel_attr_id is null then
-		     perform cm_add_ci_rel_attribute(l_rfc_rel.ci_relation_id, l_rfc_rel_attr.attribute_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments, true);
-		  else
-		     perform cm_update_rel_attribute(l_ci_rel_attr_id, l_df_value, l_rfc_rel_attr.new_attribute_value, l_rfc_rel_attr.owner, l_rfc_rel_attr.comments);
-		  end if;
-	      end loop;
-	   else
-	      RAISE 'Ci Relation does not exists with ci_relation_id: %', l_rfc_rel.ci_relation_id USING ERRCODE = '22000';
-	   end if;
-	end if;
-
-	if l_action = 'delete' then
-	   perform cm_delete_relation(l_rfc_rel.ci_relation_id, true);
-	end if;
+    if l_action = 'delete' then
+       perform cm_delete_relation(l_rfc_rel.ci_relation_id, true);  
+    end if;
 
 END;
 $$;
@@ -1901,6 +1954,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_promote_rfc_relations(p_rfc_id bigint, p_set_df_value boolean, p_new_ci_state_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 307 (class 1255 OID 27872)
 -- Name: dj_reset_failed_records(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1910,11 +1964,11 @@ CREATE FUNCTION dj_reset_failed_records(p_deployment_id bigint) RETURNS void
 DECLARE
 BEGIN
 
-    update dj_deployment_rfc
+    update dj_deployment_rfc 
     set state_id = 10,
         updated = now()
-    where deployment_id = p_deployment_id
-    and state_id = 300;
+    where deployment_id = p_deployment_id 
+    and state_id = 300; 
 
 END;
 $$;
@@ -1923,6 +1977,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_reset_failed_records(p_deployment_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 306 (class 1255 OID 27873)
 -- Name: dj_retry_deployment(bigint, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1939,26 +1994,26 @@ BEGIN
 
     select state_id into l_old_state
     from dj_deployment
-    where deployment_id = p_deployment_id;
+    where deployment_id = p_deployment_id;  
 
-    update dj_deployment
-	set state_id = 100,
-	    updated_by = coalesce(p_updated_by, updated_by),
-	    description = coalesce(p_desc, description),
-	    comments = coalesce(p_comments, comments),
+    update dj_deployment 
+    set state_id = 100,
+        updated_by = coalesce(p_updated_by, updated_by),
+        description = coalesce(p_desc, description),
+        comments = coalesce(p_comments, comments),
             current_step = null,
-	    updated = now()
+        updated = now()
     where deployment_id = p_deployment_id
     returning description, comments, ops, updated_by into l_desc, l_comments, l_ops, l_updated_by;
 
     insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
-    values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, 100, l_desc, l_comments, l_ops, l_updated_by);
+    values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, 100, l_desc, l_comments, l_ops, l_updated_by);  
 
-    update dj_deployment_rfc
+    update dj_deployment_rfc 
     set state_id = 10,
         updated = now()
-    where deployment_id = p_deployment_id
-    and state_id = 300;
+    where deployment_id = p_deployment_id 
+    and state_id = 300; 
 
     INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
     VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);
@@ -1970,6 +2025,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_retry_deployment(p_deployment_id bigint, p_updated_by character varying, p_desc character varying, p_comments character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 310 (class 1255 OID 27874)
 -- Name: dj_rm_rfc_ci(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -1977,30 +2033,30 @@ CREATE FUNCTION dj_rm_rfc_ci(p_rfc_id bigint) RETURNS void
     LANGUAGE plpgsql
     AS $$
 DECLARE
-	l_ci_id bigint;
-	l_ci_exists integer;
-	l_rel_rfc_id bigint;
+    l_ci_id bigint;
+    l_ci_exists integer;
+    l_rel_rfc_id bigint;
 BEGIN
-	update dj_rfc_ci
-	set is_active_in_release = false,
-	    updated = now()
-	where rfc_id = p_rfc_id
-	returning ci_id into l_ci_id;
+    update dj_rfc_ci
+    set is_active_in_release = false,
+        updated = now()
+    where rfc_id = p_rfc_id
+    returning ci_id into l_ci_id;
 
-	select count(1) into l_ci_exists
-	from cm_ci where ci_id = l_ci_id;
+    select count(1) into l_ci_exists 
+    from cm_ci where ci_id = l_ci_id;
 
-	if l_ci_exists = 0 then
+    if l_ci_exists = 0 then
         -- we need to clean up all the rels rfcs for this guy since no ci exists
-	      for l_rel_rfc_id in
-			select rfc_id from dj_rfc_relation where from_rfc_id = p_rfc_id
-			union all
-			select rfc_id from dj_rfc_relation where to_rfc_id = p_rfc_id
-	      loop
-		  perform dj_rm_rfc_rel(l_rel_rfc_id);
-	      end loop;
-	end if;
-
+          for l_rel_rfc_id in 
+            select rfc_id from dj_rfc_relation where from_rfc_id = p_rfc_id
+            union all
+            select rfc_id from dj_rfc_relation where to_rfc_id = p_rfc_id         
+          loop
+          perform dj_rm_rfc_rel(l_rel_rfc_id);
+          end loop;  
+    end if;
+    
 END;
 $$;
 
@@ -2008,6 +2064,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_rm_rfc_ci(p_rfc_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 311 (class 1255 OID 27875)
 -- Name: dj_rm_rfc_rel(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2015,10 +2072,10 @@ CREATE FUNCTION dj_rm_rfc_rel(p_rfc_id bigint) RETURNS void
     LANGUAGE plpgsql
     AS $$
 BEGIN
-	update dj_rfc_relation
-	set is_active_in_release = false,
-	    updated = now()
-	where rfc_id = p_rfc_id;
+    update dj_rfc_relation
+    set is_active_in_release = false,
+        updated = now()
+    where rfc_id = p_rfc_id;
 END;
 $$;
 
@@ -2026,6 +2083,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_rm_rfc_rel(p_rfc_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 317 (class 1255 OID 27876)
 -- Name: dj_rm_rfcs(character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2037,18 +2095,18 @@ DECLARE
     l_rel_rfc_id bigint;
 BEGIN
     l_loop_counter = 0;
-    for l_rel_rfc_id in
-	SELECT rfc_id
-	FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
-	WHERE rci.release_id = r.release_id
-	   AND r.release_state_id = rs.release_state_id
-	   AND rs.state_name = 'open'
-	   AND rci.is_active_in_release = true
-	   AND rci.ns_id = ns.ns_id
-	   AND ns.ns_path = p_ns_path
+    for l_rel_rfc_id in 
+    SELECT rfc_id
+    FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
+    WHERE rci.release_id = r.release_id
+       AND r.release_state_id = rs.release_state_id
+       AND rs.state_name = 'open'
+       AND rci.is_active_in_release = true
+       AND rci.ns_id = ns.ns_id
+       AND ns.ns_path = p_ns_path
     loop
-	perform dj_rm_rfc_ci(l_rel_rfc_id);
-	l_loop_counter:= l_loop_counter+1;
+    perform dj_rm_rfc_ci(l_rel_rfc_id);
+    l_loop_counter:= l_loop_counter+1;
     end loop;
     return l_loop_counter;
 END;
@@ -2058,6 +2116,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_rm_rfcs(p_ns_path character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 312 (class 1255 OID 27877)
 -- Name: dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2073,6 +2132,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_upd_deployment(p_deployment_id bigint, p_state character varying, p_updated_by character varying, p_desc character varying, p_comments character varying, p_process_id character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 313 (class 1255 OID 27878)
 -- Name: dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2088,6 +2148,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_upd_deployment(p_deployment_id bigint, p_state character varying, p_updated_by character varying, p_desc character varying, p_comments character varying, p_process_id character varying, p_auto_pause_exec_orders character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 347 (class 1255 OID 27879)
 -- Name: dj_upd_deployment(bigint, character varying, character varying, character varying, character varying, character varying, character varying, bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2099,43 +2160,43 @@ DECLARE
  l_old_state integer;
  l_desc text;
  l_comments text;
- l_ops text;
+ l_ops text; 
 BEGIN
 
-    if 	p_state is not null then
-	    select into l_state_id state_id
-	    from dj_deployment_states
-	    where state_name = p_state;
+    if  p_state is not null then
+        select into l_state_id state_id
+        from dj_deployment_states
+        where state_name = p_state; 
 
-	    if l_state_id is null then
-		RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
-	    end if;
+        if l_state_id is null then
+        RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
+        end if;
 
-	    select into l_old_state state_id
-	    from dj_deployment
-	    where deployment_id = p_deployment_id;
+        select into l_old_state state_id
+        from dj_deployment
+        where deployment_id = p_deployment_id;  
     end if;
-
-    update dj_deployment
-	set state_id = coalesce(l_state_id, state_id),
-	    updated_by = coalesce(p_updated_by, updated_by),
-	    description = coalesce(p_desc, description),
-	    comments = coalesce(p_comments, comments),
-	    flags = coalesce(p_flags, flags),
-	    process_id = coalesce(p_process_id, process_id),
+    
+    update dj_deployment 
+    set state_id = coalesce(l_state_id, state_id),
+        updated_by = coalesce(p_updated_by, updated_by),
+        description = coalesce(p_desc, description),
+        comments = coalesce(p_comments, comments),
+        flags = coalesce(p_flags, flags),
+        process_id = coalesce(p_process_id, process_id),
             auto_pause_exec_orders = coalesce(p_auto_pause_exec_orders, auto_pause_exec_orders),
-	    updated = now()
+        updated = now()
     where deployment_id = p_deployment_id
-    returning description, comments, ops into  l_desc, l_comments, l_ops;
+    returning description, comments, ops into  l_desc, l_comments, l_ops;   
 
     if l_state_id is not null then
-	insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
-	values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, l_state_id, l_desc, l_comments, l_ops, p_updated_by);
+    insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
+    values (nextval('dj_pk_seq'), p_deployment_id, l_old_state, l_state_id, l_desc, l_comments, l_ops, p_updated_by);   
     end if;
 
-    if p_state is not null and l_old_state != l_state_id then
-	    INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-	    VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);
+    if p_state is not null and l_old_state != l_state_id then   
+        INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
+        VALUES (nextval('event_pk_seq'), p_deployment_id, 'deployment' , 200);
     end if;
 
 END;
@@ -2145,6 +2206,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_upd_deployment(p_deployment_id bigint, p_state character varying, p_updated_by character varying, p_desc character varying, p_comments character varying, p_process_id character varying, p_auto_pause_exec_orders character varying, p_flags bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 314 (class 1255 OID 27880)
 -- Name: dj_upd_dpmt_record_state(bigint, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2159,21 +2221,21 @@ BEGIN
 
     select into l_state_id state_id
     from dj_deployment_rfc_states
-    where state_name = p_state;
+    where state_name = p_state; 
 
     if l_state_id is null then
-	RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
+    RAISE EXCEPTION 'Can not resolve state: %', p_state USING ERRCODE = '22000';
     end if;
 
-    update dj_deployment_rfc
-	set state_id = l_state_id,
-	    comments = coalesce(p_comments,comments),
-	    updated = now()
+    update dj_deployment_rfc 
+    set state_id = l_state_id, 
+        comments = coalesce(p_comments,comments),
+        updated = now()
     where deployment_rfc_id = p_dpmt_rfc_id
     returning rfc_id, deployment_id into l_rfc_id, l_dpmt_id;
 
     if p_state = 'complete' then
-       perform dj_promote_rfc_ci(l_rfc_id, false, null, l_dpmt_id);
+       perform dj_promote_rfc_ci(l_rfc_id, false, null, l_dpmt_id); 
     end if;
 
 
@@ -2184,6 +2246,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_upd_dpmt_record_state(p_dpmt_rfc_id bigint, p_state character varying, p_comments character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 343 (class 1255 OID 27881)
 -- Name: dj_update_release(bigint, bigint, character varying, integer, character varying, integer, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2195,16 +2258,16 @@ BEGIN
 
     update dj_releases set
     parent_release_id = p_parent_release_id,
-    release_name = p_release_name,
+    release_name = p_release_name, 
     release_state_id = p_release_state_id,
-    description = p_desc,
+    description = p_desc, 
     revision = p_revision,
-    commited_by = p_commited_by,
+    commited_by = p_commited_by, 
     updated = now()
     where release_id = p_release_id;
 
     INSERT INTO cms_event_queue(event_id, source_pk, source_name, event_type_id)
-    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 200);
+    VALUES (nextval('event_pk_seq'), p_release_id, 'release' , 200); 
 
 END;
 $$;
@@ -2213,6 +2276,7 @@ $$;
 ALTER FUNCTION kloopzcm.dj_update_release(p_release_id bigint, p_parent_release_id bigint, p_release_name character varying, p_release_state_id integer, p_commited_by character varying, p_revision integer, p_desc character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 315 (class 1255 OID 27882)
 -- Name: force_complete_dpmt(bigint); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2223,18 +2287,18 @@ DECLARE
     dpmt_rfc_id bigint;
 BEGIN
 
-	for dpmt_rfc_id in
-	select dpr.deployment_rfc_id
-	from dj_deployment_rfc dpr, dj_rfc_ci rfc
-	where dpr.deployment_id = p_dpmt_id
-	and dpr.rfc_id = rfc.rfc_id
-	loop
+    for dpmt_rfc_id in
+    select dpr.deployment_rfc_id
+    from dj_deployment_rfc dpr, dj_rfc_ci rfc
+    where dpr.deployment_id = p_dpmt_id
+    and dpr.rfc_id = rfc.rfc_id
+    loop
 
-	   perform dj_upd_dpmt_record_state(dpmt_rfc_id, 'complete', 'kire screwed up');
+       perform dj_upd_dpmt_record_state(dpmt_rfc_id, 'complete', 'kire screwed up');
 
-	end loop;
+    end loop;
 
-	perform dj_complete_deployment(p_dpmt_id);
+    perform dj_complete_deployment(p_dpmt_id);
 
 
 END;
@@ -2244,6 +2308,7 @@ $$;
 ALTER FUNCTION kloopzcm.force_complete_dpmt(p_dpmt_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 316 (class 1255 OID 27883)
 -- Name: md_add_class_action(integer, character varying, boolean, character varying, text); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2264,6 +2329,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_add_class_action(p_class_id integer, p_action_name character varying, p_is_inheritable boolean, p_descr character varying, p_args text, OUT out_action_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 276 (class 1255 OID 27884)
 -- Name: md_add_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2281,6 +2347,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_add_class_attribute(p_class_id integer, p_attribute_name character varying, p_data_type character varying, p_is_mandatory boolean, p_is_inheritable boolean, p_is_encrypted boolean, p_force_on_dependent boolean, p_default_value character varying, p_value_format character varying, p_descr character varying, OUT out_attribute_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 349 (class 1255 OID 27885)
 -- Name: md_add_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, boolean, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2301,6 +2368,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_add_class_attribute(p_class_id integer, p_attribute_name character varying, p_data_type character varying, p_is_mandatory boolean, p_is_inheritable boolean, p_is_encrypted boolean, p_is_immutable boolean, p_force_on_dependent boolean, p_default_value character varying, p_value_format character varying, p_descr character varying, OUT out_attribute_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 321 (class 1255 OID 27886)
 -- Name: md_add_relation_attribute(integer, character varying, character varying, boolean, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2321,6 +2389,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_add_relation_attribute(p_rel_id integer, p_attribute_name character varying, p_data_type character varying, p_is_mandatory boolean, p_default_value character varying, p_value_format character varying, p_descr character varying, OUT out_attribute_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 324 (class 1255 OID 27887)
 -- Name: md_add_relation_target(integer, integer, integer, boolean, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2341,6 +2410,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_add_relation_target(p_rel_id integer, p_from_class_id integer, p_to_class_id integer, p_is_strong boolean, p_link_type character varying, p_descr character varying, OUT out_link_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 348 (class 1255 OID 27888)
 -- Name: md_create_class(integer, character varying, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2359,6 +2429,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_create_class(p_class_id integer, p_class_name character varying, p_short_class_name character varying, p_super_class_id integer, p_impl character varying, p_is_namespace boolean, p_flags integer, p_access_level character varying, p_descr character varying, p_format character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 320 (class 1255 OID 27889)
 -- Name: md_create_relation(integer, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2378,6 +2449,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_create_relation(p_rel_id integer, p_rel_name character varying, p_short_rel_name character varying, p_descr character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 318 (class 1255 OID 27890)
 -- Name: md_delete_class(integer, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2386,15 +2458,15 @@ CREATE FUNCTION md_delete_class(p_class_id integer, p_delete_all boolean) RETURN
     AS $$
 DECLARE
 BEGIN
-	if p_delete_all = true then
-	    delete from dj_rfc_ci where class_id = p_class_id;
-	    delete from cm_ci where class_id = p_class_id;
-	end if;
-	delete from md_class_attributes where class_id = p_class_id;
-	delete from md_class_actions where class_id = p_class_id;
-	delete from md_class_relations where from_class_id = p_class_id or to_class_id = p_class_id;
-	delete from md_classes where class_id = p_class_id;
-
+    if p_delete_all = true then
+        delete from dj_rfc_ci where class_id = p_class_id; 
+        delete from cm_ci where class_id = p_class_id; 
+    end if;   
+    delete from md_class_attributes where class_id = p_class_id; 
+    delete from md_class_actions where class_id = p_class_id; 
+    delete from md_class_relations where from_class_id = p_class_id or to_class_id = p_class_id; 
+    delete from md_classes where class_id = p_class_id; 
+    
 END;
 $$;
 
@@ -2402,6 +2474,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_delete_class(p_class_id integer, p_delete_all boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 326 (class 1255 OID 27891)
 -- Name: md_delete_class_action(integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2411,8 +2484,8 @@ CREATE FUNCTION md_delete_class_action(p_action_id integer) RETURNS void
 DECLARE
 BEGIN
 
-	delete from md_class_actions where action_id = p_action_id;
-
+    delete from md_class_actions where action_id = p_action_id; 
+    
 END;
 $$;
 
@@ -2420,6 +2493,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_delete_class_action(p_action_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 319 (class 1255 OID 27892)
 -- Name: md_delete_class_attribute(integer, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2429,12 +2503,12 @@ CREATE FUNCTION md_delete_class_attribute(p_attribute_id integer, p_delete_all b
 DECLARE
 BEGIN
 
-	if p_delete_all = true then
-	    delete from dj_rfc_ci_attributes where attribute_id = p_attribute_id;
-	    delete from cm_ci_attributes where attribute_id = p_attribute_id;
-	end if;
-	delete from md_class_attributes where attribute_id = p_attribute_id;
-
+    if p_delete_all = true then
+        delete from dj_rfc_ci_attributes where attribute_id = p_attribute_id; 
+        delete from cm_ci_attributes where attribute_id = p_attribute_id; 
+    end if;   
+    delete from md_class_attributes where attribute_id = p_attribute_id; 
+    
 END;
 $$;
 
@@ -2442,6 +2516,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_delete_class_attribute(p_attribute_id integer, p_delete_all boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 322 (class 1255 OID 27893)
 -- Name: md_delete_relation(integer, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2451,14 +2526,14 @@ CREATE FUNCTION md_delete_relation(p_rel_id integer, p_delete_all boolean) RETUR
 DECLARE
 BEGIN
 
-	if p_delete_all = true then
-	    delete from dj_rfc_relation where relation_id = p_rel_id;
-	    delete from cm_ci_relations where relation_id = p_rel_id;
-	end if;
-	delete from md_class_relations where relation_id = p_rel_id;
-	delete from md_relation_attributes where relation_id = p_rel_id;
-	delete from md_relations where relation_id = p_rel_id;
-
+    if p_delete_all = true then
+        delete from dj_rfc_relation where relation_id = p_rel_id;
+        delete from cm_ci_relations where relation_id = p_rel_id; 
+    end if;   
+    delete from md_class_relations where relation_id = p_rel_id; 
+    delete from md_relation_attributes where relation_id = p_rel_id; 
+    delete from md_relations where relation_id = p_rel_id; 
+    
 END;
 $$;
 
@@ -2466,6 +2541,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_delete_relation(p_rel_id integer, p_delete_all boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 323 (class 1255 OID 27894)
 -- Name: md_delete_relation_attribute(integer, boolean); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2475,12 +2551,12 @@ CREATE FUNCTION md_delete_relation_attribute(p_attr_id integer, p_delete_all boo
 DECLARE
 BEGIN
 
-	if p_delete_all = true then
-	    delete from dj_rfc_relation_attributes where attribute_id = p_attr_id;
-	    delete from cm_ci_relation_attributes where attribute_id = p_attr_id;
-	end if;
-	delete from md_relation_attributes where attribute_id = p_attr_id;
-
+    if p_delete_all = true then
+        delete from dj_rfc_relation_attributes where attribute_id = p_attr_id;
+        delete from cm_ci_relation_attributes where attribute_id = p_attr_id; 
+    end if;   
+    delete from md_relation_attributes where attribute_id = p_attr_id; 
+    
 END;
 $$;
 
@@ -2488,6 +2564,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_delete_relation_attribute(p_attr_id integer, p_delete_all boolean) OWNER TO kloopzcm;
 
 --
+-- TOC entry 325 (class 1255 OID 27895)
 -- Name: md_delete_relation_target(integer); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2497,8 +2574,8 @@ CREATE FUNCTION md_delete_relation_target(p_link_id integer) RETURNS void
 DECLARE
 BEGIN
 
-	delete from md_class_relations where link_id = p_link_id;
-
+    delete from md_class_relations where link_id = p_link_id; 
+    
 END;
 $$;
 
@@ -2506,6 +2583,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_delete_relation_target(p_link_id integer) OWNER TO kloopzcm;
 
 --
+-- TOC entry 350 (class 1255 OID 27896)
 -- Name: md_update_class(integer, character varying, integer, character varying, boolean, integer, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2515,7 +2593,7 @@ CREATE FUNCTION md_update_class(p_class_id integer, p_short_class_name character
 DECLARE
     l_new_class_id integer;
 BEGIN
-
+                   
     update md_classes set
         short_class_name = coalesce(p_short_class_name, short_class_name),
         super_class_id = coalesce(nullif(p_super_class_id,0), super_class_id),
@@ -2533,6 +2611,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_update_class(p_class_id integer, p_short_class_name character varying, p_super_class_id integer, p_impl character varying, p_is_namespace boolean, p_flags integer, p_access_level character varying, p_descr character varying, p_format character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 295 (class 1255 OID 27897)
 -- Name: md_update_class_action(integer, character varying, boolean, character varying, text); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2555,6 +2634,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_update_class_action(p_action_id integer, p_action_name character varying, p_is_inheritable boolean, p_descr character varying, p_args text) OWNER TO kloopzcm;
 
 --
+-- TOC entry 351 (class 1255 OID 27898)
 -- Name: md_update_class_attribute(integer, character varying, character varying, boolean, boolean, boolean, boolean, boolean, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2583,6 +2663,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_update_class_attribute(p_attribute_id integer, p_attribute_name character varying, p_data_type character varying, p_is_mandatory boolean, p_is_inheritable boolean, p_is_encrypted boolean, p_is_immutable boolean, p_force_on_dependent boolean, p_default_value character varying, p_value_format character varying, p_descr character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 332 (class 1255 OID 27899)
 -- Name: md_update_relation(integer, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2602,6 +2683,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_update_relation(p_rel_id integer, p_rel_name character varying, p_short_rel_name character varying, p_descr character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 333 (class 1255 OID 27900)
 -- Name: md_update_relation_attribute(integer, integer, character varying, character varying, boolean, character varying, character varying, character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2623,6 +2705,7 @@ $$;
 ALTER FUNCTION kloopzcm.md_update_relation_attribute(p_attribute_id integer, p_rel_id integer, p_attribute_name character varying, p_data_type character varying, p_is_mandatory boolean, p_default_value character varying, p_value_format character varying, p_descr character varying) OWNER TO kloopzcm;
 
 --
+-- TOC entry 330 (class 1255 OID 27901)
 -- Name: ns_create_namespace(character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2634,7 +2717,7 @@ BEGIN
     insert into ns_namespaces (ns_id, ns_path)
     values (nextval('cm_pk_seq'), p_ns_path)
     returning ns_id into out_ns_id;
-
+    
 END;
 $$;
 
@@ -2642,6 +2725,7 @@ $$;
 ALTER FUNCTION kloopzcm.ns_create_namespace(p_ns_path character varying, OUT out_ns_id bigint) OWNER TO kloopzcm;
 
 --
+-- TOC entry 331 (class 1255 OID 27902)
 -- Name: ns_delete_namespace(character varying); Type: FUNCTION; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2652,20 +2736,20 @@ DECLARE
     l_ns_id bigint;
 BEGIN
 
-	for l_ns_id in
-	select ns_id from ns_namespaces
-	where (ns_path like p_ns_path || '/%' or ns_path = p_ns_path)
-	loop
-		insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
-		values (nextval('event_pk_seq'), l_ns_id, 'namespace' , 300);
-	end loop;
+    for l_ns_id in
+    select ns_id from ns_namespaces
+    where (ns_path like p_ns_path || '/%' or ns_path = p_ns_path)
+    loop
+        insert into cms_ci_event_queue(event_id, source_pk, source_name, event_type_id)
+        values (nextval('event_pk_seq'), l_ns_id, 'namespace' , 300);
+    end loop;
 
-	delete from ns_namespaces
-	where ns_path like p_ns_path || '/%';
+    delete from ns_namespaces 
+    where ns_path like p_ns_path || '/%';
 
-	delete from ns_namespaces
-	where ns_path = p_ns_path;
-
+    delete from ns_namespaces 
+    where ns_path = p_ns_path;
+    
 END;
 $$;
 
@@ -2677,6 +2761,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- TOC entry 186 (class 1259 OID 27903)
 -- Name: cm_ci; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2699,6 +2784,7 @@ CREATE TABLE cm_ci (
 ALTER TABLE cm_ci OWNER TO kloopzcm;
 
 --
+-- TOC entry 187 (class 1259 OID 27911)
 -- Name: cm_ci_attribute_log; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2724,6 +2810,7 @@ CREATE TABLE cm_ci_attribute_log (
 ALTER TABLE cm_ci_attribute_log OWNER TO kloopzcm;
 
 --
+-- TOC entry 188 (class 1259 OID 27917)
 -- Name: cm_ci_attribute_log_2012; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2736,6 +2823,7 @@ INHERITS (cm_ci_attribute_log);
 ALTER TABLE cm_ci_attribute_log_2012 OWNER TO kloopzcm;
 
 --
+-- TOC entry 189 (class 1259 OID 27924)
 -- Name: cm_ci_attribute_log_2013; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2748,6 +2836,7 @@ INHERITS (cm_ci_attribute_log);
 ALTER TABLE cm_ci_attribute_log_2013 OWNER TO kloopzcm;
 
 --
+-- TOC entry 190 (class 1259 OID 27931)
 -- Name: cm_ci_attribute_log_2014; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2760,6 +2849,7 @@ INHERITS (cm_ci_attribute_log);
 ALTER TABLE cm_ci_attribute_log_2014 OWNER TO kloopzcm;
 
 --
+-- TOC entry 191 (class 1259 OID 27938)
 -- Name: cm_ci_attribute_log_2015; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2772,6 +2862,7 @@ INHERITS (cm_ci_attribute_log);
 ALTER TABLE cm_ci_attribute_log_2015 OWNER TO kloopzcm;
 
 --
+-- TOC entry 192 (class 1259 OID 27945)
 -- Name: cm_ci_attribute_log_2016; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2784,6 +2875,7 @@ INHERITS (cm_ci_attribute_log);
 ALTER TABLE cm_ci_attribute_log_2016 OWNER TO kloopzcm;
 
 --
+-- TOC entry 193 (class 1259 OID 27952)
 -- Name: cm_ci_attribute_log_2017; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2796,6 +2888,7 @@ INHERITS (cm_ci_attribute_log);
 ALTER TABLE cm_ci_attribute_log_2017 OWNER TO kloopzcm;
 
 --
+-- TOC entry 194 (class 1259 OID 27959)
 -- Name: cm_ci_attributes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2815,6 +2908,7 @@ CREATE TABLE cm_ci_attributes (
 ALTER TABLE cm_ci_attributes OWNER TO kloopzcm;
 
 --
+-- TOC entry 195 (class 1259 OID 27967)
 -- Name: cm_ci_log; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2837,6 +2931,7 @@ CREATE TABLE cm_ci_log (
 ALTER TABLE cm_ci_log OWNER TO kloopzcm;
 
 --
+-- TOC entry 196 (class 1259 OID 27973)
 -- Name: cm_ci_log_2012; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2849,6 +2944,7 @@ INHERITS (cm_ci_log);
 ALTER TABLE cm_ci_log_2012 OWNER TO kloopzcm;
 
 --
+-- TOC entry 197 (class 1259 OID 27980)
 -- Name: cm_ci_log_2013; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2861,6 +2957,7 @@ INHERITS (cm_ci_log);
 ALTER TABLE cm_ci_log_2013 OWNER TO kloopzcm;
 
 --
+-- TOC entry 198 (class 1259 OID 27987)
 -- Name: cm_ci_log_2014; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2873,6 +2970,7 @@ INHERITS (cm_ci_log);
 ALTER TABLE cm_ci_log_2014 OWNER TO kloopzcm;
 
 --
+-- TOC entry 199 (class 1259 OID 27994)
 -- Name: cm_ci_log_2015; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2885,6 +2983,7 @@ INHERITS (cm_ci_log);
 ALTER TABLE cm_ci_log_2015 OWNER TO kloopzcm;
 
 --
+-- TOC entry 200 (class 1259 OID 28001)
 -- Name: cm_ci_log_2016; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2897,6 +2996,7 @@ INHERITS (cm_ci_log);
 ALTER TABLE cm_ci_log_2016 OWNER TO kloopzcm;
 
 --
+-- TOC entry 201 (class 1259 OID 28008)
 -- Name: cm_ci_log_2017; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2909,6 +3009,7 @@ INHERITS (cm_ci_log);
 ALTER TABLE cm_ci_log_2017 OWNER TO kloopzcm;
 
 --
+-- TOC entry 202 (class 1259 OID 28015)
 -- Name: cm_ci_relation_attr_log; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2934,6 +3035,7 @@ CREATE TABLE cm_ci_relation_attr_log (
 ALTER TABLE cm_ci_relation_attr_log OWNER TO kloopzcm;
 
 --
+-- TOC entry 203 (class 1259 OID 28021)
 -- Name: cm_ci_relation_attr_log_2012; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2946,6 +3048,7 @@ INHERITS (cm_ci_relation_attr_log);
 ALTER TABLE cm_ci_relation_attr_log_2012 OWNER TO kloopzcm;
 
 --
+-- TOC entry 204 (class 1259 OID 28028)
 -- Name: cm_ci_relation_attr_log_2013; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2958,6 +3061,7 @@ INHERITS (cm_ci_relation_attr_log);
 ALTER TABLE cm_ci_relation_attr_log_2013 OWNER TO kloopzcm;
 
 --
+-- TOC entry 205 (class 1259 OID 28035)
 -- Name: cm_ci_relation_attr_log_2014; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2970,6 +3074,7 @@ INHERITS (cm_ci_relation_attr_log);
 ALTER TABLE cm_ci_relation_attr_log_2014 OWNER TO kloopzcm;
 
 --
+-- TOC entry 206 (class 1259 OID 28042)
 -- Name: cm_ci_relation_attr_log_2015; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2982,6 +3087,7 @@ INHERITS (cm_ci_relation_attr_log);
 ALTER TABLE cm_ci_relation_attr_log_2015 OWNER TO kloopzcm;
 
 --
+-- TOC entry 207 (class 1259 OID 28049)
 -- Name: cm_ci_relation_attr_log_2016; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -2994,6 +3100,7 @@ INHERITS (cm_ci_relation_attr_log);
 ALTER TABLE cm_ci_relation_attr_log_2016 OWNER TO kloopzcm;
 
 --
+-- TOC entry 208 (class 1259 OID 28056)
 -- Name: cm_ci_relation_attr_log_2017; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3006,6 +3113,7 @@ INHERITS (cm_ci_relation_attr_log);
 ALTER TABLE cm_ci_relation_attr_log_2017 OWNER TO kloopzcm;
 
 --
+-- TOC entry 209 (class 1259 OID 28063)
 -- Name: cm_ci_relation_attributes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3025,6 +3133,7 @@ CREATE TABLE cm_ci_relation_attributes (
 ALTER TABLE cm_ci_relation_attributes OWNER TO kloopzcm;
 
 --
+-- TOC entry 210 (class 1259 OID 28071)
 -- Name: cm_ci_relation_log; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3046,6 +3155,7 @@ CREATE TABLE cm_ci_relation_log (
 ALTER TABLE cm_ci_relation_log OWNER TO kloopzcm;
 
 --
+-- TOC entry 211 (class 1259 OID 28077)
 -- Name: cm_ci_relation_log_2012; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3058,6 +3168,7 @@ INHERITS (cm_ci_relation_log);
 ALTER TABLE cm_ci_relation_log_2012 OWNER TO kloopzcm;
 
 --
+-- TOC entry 212 (class 1259 OID 28084)
 -- Name: cm_ci_relation_log_2013; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3070,6 +3181,7 @@ INHERITS (cm_ci_relation_log);
 ALTER TABLE cm_ci_relation_log_2013 OWNER TO kloopzcm;
 
 --
+-- TOC entry 213 (class 1259 OID 28091)
 -- Name: cm_ci_relation_log_2014; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3082,6 +3194,7 @@ INHERITS (cm_ci_relation_log);
 ALTER TABLE cm_ci_relation_log_2014 OWNER TO kloopzcm;
 
 --
+-- TOC entry 214 (class 1259 OID 28098)
 -- Name: cm_ci_relation_log_2015; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3094,6 +3207,7 @@ INHERITS (cm_ci_relation_log);
 ALTER TABLE cm_ci_relation_log_2015 OWNER TO kloopzcm;
 
 --
+-- TOC entry 215 (class 1259 OID 28105)
 -- Name: cm_ci_relation_log_2016; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3106,6 +3220,7 @@ INHERITS (cm_ci_relation_log);
 ALTER TABLE cm_ci_relation_log_2016 OWNER TO kloopzcm;
 
 --
+-- TOC entry 216 (class 1259 OID 28112)
 -- Name: cm_ci_relation_log_2017; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3118,6 +3233,7 @@ INHERITS (cm_ci_relation_log);
 ALTER TABLE cm_ci_relation_log_2017 OWNER TO kloopzcm;
 
 --
+-- TOC entry 217 (class 1259 OID 28119)
 -- Name: cm_ci_relations; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3141,6 +3257,7 @@ CREATE TABLE cm_ci_relations (
 ALTER TABLE cm_ci_relations OWNER TO kloopzcm;
 
 --
+-- TOC entry 218 (class 1259 OID 28127)
 -- Name: cm_ci_state; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3153,6 +3270,7 @@ CREATE TABLE cm_ci_state (
 ALTER TABLE cm_ci_state OWNER TO kloopzcm;
 
 --
+-- TOC entry 219 (class 1259 OID 28130)
 -- Name: cm_ns_opt; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3167,6 +3285,7 @@ CREATE TABLE cm_ns_opt (
 ALTER TABLE cm_ns_opt OWNER TO kloopzcm;
 
 --
+-- TOC entry 220 (class 1259 OID 28134)
 -- Name: cm_ops_action_state; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3179,6 +3298,7 @@ CREATE TABLE cm_ops_action_state (
 ALTER TABLE cm_ops_action_state OWNER TO kloopzcm;
 
 --
+-- TOC entry 221 (class 1259 OID 28137)
 -- Name: cm_ops_actions; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3201,6 +3321,7 @@ CREATE TABLE cm_ops_actions (
 ALTER TABLE cm_ops_actions OWNER TO kloopzcm;
 
 --
+-- TOC entry 222 (class 1259 OID 28146)
 -- Name: cm_ops_proc_state; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3213,6 +3334,7 @@ CREATE TABLE cm_ops_proc_state (
 ALTER TABLE cm_ops_proc_state OWNER TO kloopzcm;
 
 --
+-- TOC entry 223 (class 1259 OID 28149)
 -- Name: cm_ops_procedures; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3226,13 +3348,15 @@ CREATE TABLE cm_ops_procedures (
     definition text,
     state_id integer NOT NULL,
     created timestamp without time zone DEFAULT now() NOT NULL,
-    updated timestamp without time zone DEFAULT now() NOT NULL
+    updated timestamp without time zone DEFAULT now() NOT NULL,
+    current_step smallint
 );
 
 
 ALTER TABLE cm_ops_procedures OWNER TO kloopzcm;
 
 --
+-- TOC entry 224 (class 1259 OID 28157)
 -- Name: cm_pk_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3247,6 +3371,8 @@ CREATE SEQUENCE cm_pk_seq
 ALTER TABLE cm_pk_seq OWNER TO kloopzcm;
 
 --
+-- TOC entry 3112 (class 0 OID 0)
+-- Dependencies: 224
 -- Name: SEQUENCE cm_pk_seq; Type: COMMENT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3254,6 +3380,48 @@ COMMENT ON SEQUENCE cm_pk_seq IS 'cm pk sequenece';
 
 
 --
+-- TOC entry 262 (class 1259 OID 80858)
+-- Name: cm_procedure_execution; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
+--
+
+CREATE TABLE cm_procedure_execution (
+    exec_id bigint NOT NULL,
+    ops_proc_id bigint NOT NULL,
+    step smallint NOT NULL,
+    state_id integer,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    updated timestamp without time zone
+);
+
+
+ALTER TABLE cm_procedure_execution OWNER TO kloopzcm;
+
+--
+-- TOC entry 261 (class 1259 OID 80856)
+-- Name: cm_procedure_execution_exec_id_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
+--
+
+CREATE SEQUENCE cm_procedure_execution_exec_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE cm_procedure_execution_exec_id_seq OWNER TO kloopzcm;
+
+--
+-- TOC entry 3113 (class 0 OID 0)
+-- Dependencies: 261
+-- Name: cm_procedure_execution_exec_id_seq; Type: SEQUENCE OWNED BY; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER SEQUENCE cm_procedure_execution_exec_id_seq OWNED BY cm_procedure_execution.exec_id;
+
+
+--
+-- TOC entry 225 (class 1259 OID 28159)
 -- Name: cms_ci_event_queue; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3269,6 +3437,7 @@ CREATE TABLE cms_ci_event_queue (
 ALTER TABLE cms_ci_event_queue OWNER TO kloopzcm;
 
 --
+-- TOC entry 226 (class 1259 OID 28163)
 -- Name: cms_event_queue; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3284,6 +3453,7 @@ CREATE TABLE cms_event_queue (
 ALTER TABLE cms_event_queue OWNER TO kloopzcm;
 
 --
+-- TOC entry 227 (class 1259 OID 28167)
 -- Name: cms_event_type; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3296,6 +3466,7 @@ CREATE TABLE cms_event_type (
 ALTER TABLE cms_event_type OWNER TO kloopzcm;
 
 --
+-- TOC entry 228 (class 1259 OID 28170)
 -- Name: cms_lock; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3311,6 +3482,7 @@ CREATE TABLE cms_lock (
 ALTER TABLE cms_lock OWNER TO kloopzcm;
 
 --
+-- TOC entry 229 (class 1259 OID 28175)
 -- Name: cms_vars; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3328,6 +3500,7 @@ CREATE TABLE cms_vars (
 ALTER TABLE cms_vars OWNER TO kloopzcm;
 
 --
+-- TOC entry 230 (class 1259 OID 28181)
 -- Name: dj_approval_states; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3340,6 +3513,7 @@ CREATE TABLE dj_approval_states (
 ALTER TABLE dj_approval_states OWNER TO kloopzcm;
 
 --
+-- TOC entry 231 (class 1259 OID 28184)
 -- Name: dj_deployment; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3366,45 +3540,8 @@ CREATE TABLE dj_deployment (
 
 ALTER TABLE dj_deployment OWNER TO kloopzcm;
 
-
-CREATE TABLE cm_execution (
-    exec_id bigint NOT NULL,
-    type_id smallint NOT NULL,
-    process_id bigint NOT NULL,
-    step smallint NOT NULL,
-    state_id integer,
-    created timestamp without time zone DEFAULT now() NOT NULL,
-    updated timestamp without time zone
-);
-
-
-ALTER TABLE cm_execution OWNER TO kloopzcm;
-
 --
--- TOC entry 244 (class 1259 OID 1191152)
--- Name: cm_execution_exec_id_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
---
-
-CREATE SEQUENCE cm_execution_exec_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE cm_execution_exec_id_seq OWNER TO kloopzcm;
-
---
--- TOC entry 2920 (class 0 OID 0)
--- Dependencies: 244
--- Name: cm_execution_exec_id_seq; Type: SEQUENCE OWNED BY; Schema: kloopzcm; Owner: kloopzcm
---
-
-ALTER SEQUENCE cm_execution_exec_id_seq OWNED BY cm_execution.exec_id;
-
-
---
+-- TOC entry 232 (class 1259 OID 28193)
 -- Name: dj_deployment_rfc; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3424,6 +3561,7 @@ CREATE TABLE dj_deployment_rfc (
 ALTER TABLE dj_deployment_rfc OWNER TO kloopzcm;
 
 --
+-- TOC entry 233 (class 1259 OID 28201)
 -- Name: dj_deployment_rfc_states; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3436,6 +3574,7 @@ CREATE TABLE dj_deployment_rfc_states (
 ALTER TABLE dj_deployment_rfc_states OWNER TO kloopzcm;
 
 --
+-- TOC entry 234 (class 1259 OID 28204)
 -- Name: dj_deployment_state_hist; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3455,6 +3594,7 @@ CREATE TABLE dj_deployment_state_hist (
 ALTER TABLE dj_deployment_state_hist OWNER TO kloopzcm;
 
 --
+-- TOC entry 235 (class 1259 OID 28211)
 -- Name: dj_deployment_states; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3467,6 +3607,7 @@ CREATE TABLE dj_deployment_states (
 ALTER TABLE dj_deployment_states OWNER TO kloopzcm;
 
 --
+-- TOC entry 236 (class 1259 OID 28214)
 -- Name: dj_dpmt_approvals; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3487,6 +3628,48 @@ CREATE TABLE dj_dpmt_approvals (
 ALTER TABLE dj_dpmt_approvals OWNER TO kloopzcm;
 
 --
+-- TOC entry 260 (class 1259 OID 80843)
+-- Name: dj_dpmt_execution; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
+--
+
+CREATE TABLE dj_dpmt_execution (
+    exec_id bigint NOT NULL,
+    deployment_id bigint NOT NULL,
+    step smallint NOT NULL,
+    state_id integer,
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    updated timestamp without time zone
+);
+
+
+ALTER TABLE dj_dpmt_execution OWNER TO kloopzcm;
+
+--
+-- TOC entry 259 (class 1259 OID 80841)
+-- Name: dj_dpmt_execution_exec_id_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
+--
+
+CREATE SEQUENCE dj_dpmt_execution_exec_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE dj_dpmt_execution_exec_id_seq OWNER TO kloopzcm;
+
+--
+-- TOC entry 3114 (class 0 OID 0)
+-- Dependencies: 259
+-- Name: dj_dpmt_execution_exec_id_seq; Type: SEQUENCE OWNED BY; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER SEQUENCE dj_dpmt_execution_exec_id_seq OWNED BY dj_dpmt_execution.exec_id;
+
+
+--
+-- TOC entry 237 (class 1259 OID 28222)
 -- Name: dj_ns_opt; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3501,6 +3684,7 @@ CREATE TABLE dj_ns_opt (
 ALTER TABLE dj_ns_opt OWNER TO kloopzcm;
 
 --
+-- TOC entry 238 (class 1259 OID 28225)
 -- Name: dj_pk_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3515,6 +3699,8 @@ CREATE SEQUENCE dj_pk_seq
 ALTER TABLE dj_pk_seq OWNER TO kloopzcm;
 
 --
+-- TOC entry 3115 (class 0 OID 0)
+-- Dependencies: 238
 -- Name: SEQUENCE dj_pk_seq; Type: COMMENT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3522,6 +3708,7 @@ COMMENT ON SEQUENCE dj_pk_seq IS 'dj pk sequenece';
 
 
 --
+-- TOC entry 239 (class 1259 OID 28227)
 -- Name: dj_release_rev_label; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3536,6 +3723,7 @@ CREATE TABLE dj_release_rev_label (
 ALTER TABLE dj_release_rev_label OWNER TO kloopzcm;
 
 --
+-- TOC entry 240 (class 1259 OID 28230)
 -- Name: dj_release_states; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3548,6 +3736,7 @@ CREATE TABLE dj_release_states (
 ALTER TABLE dj_release_states OWNER TO kloopzcm;
 
 --
+-- TOC entry 241 (class 1259 OID 28233)
 -- Name: dj_releases; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3570,6 +3759,7 @@ CREATE TABLE dj_releases (
 ALTER TABLE dj_releases OWNER TO kloopzcm;
 
 --
+-- TOC entry 242 (class 1259 OID 28241)
 -- Name: dj_rfc_ci; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3597,6 +3787,7 @@ CREATE TABLE dj_rfc_ci (
 ALTER TABLE dj_rfc_ci OWNER TO kloopzcm;
 
 --
+-- TOC entry 243 (class 1259 OID 28250)
 -- Name: dj_rfc_ci_actions; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3609,6 +3800,7 @@ CREATE TABLE dj_rfc_ci_actions (
 ALTER TABLE dj_rfc_ci_actions OWNER TO kloopzcm;
 
 --
+-- TOC entry 244 (class 1259 OID 28253)
 -- Name: dj_rfc_ci_attributes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3627,6 +3819,7 @@ CREATE TABLE dj_rfc_ci_attributes (
 ALTER TABLE dj_rfc_ci_attributes OWNER TO kloopzcm;
 
 --
+-- TOC entry 245 (class 1259 OID 28260)
 -- Name: dj_rfc_relation; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3656,6 +3849,7 @@ CREATE TABLE dj_rfc_relation (
 ALTER TABLE dj_rfc_relation OWNER TO kloopzcm;
 
 --
+-- TOC entry 246 (class 1259 OID 28269)
 -- Name: dj_rfc_relation_attributes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3674,6 +3868,7 @@ CREATE TABLE dj_rfc_relation_attributes (
 ALTER TABLE dj_rfc_relation_attributes OWNER TO kloopzcm;
 
 --
+-- TOC entry 247 (class 1259 OID 28276)
 -- Name: event_pk_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3688,6 +3883,8 @@ CREATE SEQUENCE event_pk_seq
 ALTER TABLE event_pk_seq OWNER TO kloopzcm;
 
 --
+-- TOC entry 3116 (class 0 OID 0)
+-- Dependencies: 247
 -- Name: SEQUENCE event_pk_seq; Type: COMMENT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3695,6 +3892,7 @@ COMMENT ON SEQUENCE event_pk_seq IS 'pk sequenece for events';
 
 
 --
+-- TOC entry 248 (class 1259 OID 28278)
 -- Name: log_pk_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3709,6 +3907,8 @@ CREATE SEQUENCE log_pk_seq
 ALTER TABLE log_pk_seq OWNER TO kloopzcm;
 
 --
+-- TOC entry 3117 (class 0 OID 0)
+-- Dependencies: 248
 -- Name: SEQUENCE log_pk_seq; Type: COMMENT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3716,6 +3916,7 @@ COMMENT ON SEQUENCE log_pk_seq IS 'pk sequenece for logs';
 
 
 --
+-- TOC entry 249 (class 1259 OID 28280)
 -- Name: md_class_actions; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3734,6 +3935,7 @@ CREATE TABLE md_class_actions (
 ALTER TABLE md_class_actions OWNER TO kloopzcm;
 
 --
+-- TOC entry 250 (class 1259 OID 28289)
 -- Name: md_class_attributes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3758,6 +3960,7 @@ CREATE TABLE md_class_attributes (
 ALTER TABLE md_class_attributes OWNER TO kloopzcm;
 
 --
+-- TOC entry 251 (class 1259 OID 28301)
 -- Name: md_class_relations; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3776,6 +3979,7 @@ CREATE TABLE md_class_relations (
 ALTER TABLE md_class_relations OWNER TO kloopzcm;
 
 --
+-- TOC entry 252 (class 1259 OID 28308)
 -- Name: md_classes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3797,6 +4001,7 @@ CREATE TABLE md_classes (
 ALTER TABLE md_classes OWNER TO kloopzcm;
 
 --
+-- TOC entry 253 (class 1259 OID 28316)
 -- Name: md_pk_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3811,6 +4016,8 @@ CREATE SEQUENCE md_pk_seq
 ALTER TABLE md_pk_seq OWNER TO kloopzcm;
 
 --
+-- TOC entry 3118 (class 0 OID 0)
+-- Dependencies: 253
 -- Name: SEQUENCE md_pk_seq; Type: COMMENT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3818,6 +4025,7 @@ COMMENT ON SEQUENCE md_pk_seq IS 'metadata pk sequenece';
 
 
 --
+-- TOC entry 254 (class 1259 OID 28318)
 -- Name: md_relation_attributes; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3839,6 +4047,7 @@ CREATE TABLE md_relation_attributes (
 ALTER TABLE md_relation_attributes OWNER TO kloopzcm;
 
 --
+-- TOC entry 255 (class 1259 OID 28327)
 -- Name: md_relations; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3854,6 +4063,7 @@ CREATE TABLE md_relations (
 ALTER TABLE md_relations OWNER TO kloopzcm;
 
 --
+-- TOC entry 256 (class 1259 OID 28334)
 -- Name: ns_namespaces; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3867,6 +4077,7 @@ CREATE TABLE ns_namespaces (
 ALTER TABLE ns_namespaces OWNER TO kloopzcm;
 
 --
+-- TOC entry 257 (class 1259 OID 28338)
 -- Name: ns_opt_tag; Type: TABLE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3879,6 +4090,7 @@ CREATE TABLE ns_opt_tag (
 ALTER TABLE ns_opt_tag OWNER TO kloopzcm;
 
 --
+-- TOC entry 258 (class 1259 OID 28341)
 -- Name: ns_pk_seq; Type: SEQUENCE; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -3893,13 +4105,13 @@ CREATE SEQUENCE ns_pk_seq
 ALTER TABLE ns_pk_seq OWNER TO kloopzcm;
 
 --
+-- TOC entry 3119 (class 0 OID 0)
+-- Dependencies: 258
 -- Name: SEQUENCE ns_pk_seq; Type: COMMENT; Schema: kloopzcm; Owner: kloopzcm
 --
 
 COMMENT ON SEQUENCE ns_pk_seq IS 'ns pk sequenece';
 
-
-ALTER TABLE ONLY cm_execution ALTER COLUMN exec_id SET DEFAULT nextval('cm_execution_exec_id_seq'::regclass);
 
 --
 -- Data for Name: cm_ci; Type: TABLE DATA; Schema: kloopzcm; Owner: kloopzcm
@@ -14474,11 +14686,8 @@ INSERT INTO dj_approval_states VALUES (400, 'expired');
 INSERT INTO dj_deployment VALUES (73078, 0, 8029, 72816, 'bannama', 'oneops-system', 1, 100, NULL, NULL, '', NULL, NULL, '2017-11-10 12:09:40.991946', '2017-11-10 12:09:41.875458', null, 'Deployer');
 
 
---
--- Data for Name: cm_execution; Type: TABLE DATA; Schema: kloopzcm; Owner: kloopzcm
---
 
-INSERT INTO cm_execution VALUES (96, 100, 73078, 1, 100, '2017-11-10 12:09:41.8759', NULL);
+INSERT INTO dj_dpmt_execution VALUES (96, 73078, 1, 100, '2017-11-10 12:09:41.8759', NULL);
 
 
 --
@@ -17223,7 +17432,7 @@ INSERT INTO ns_opt_tag VALUES (1, 'InitialTag');
 SELECT pg_catalog.setval('cm_pk_seq', 19703, true);
 
 
-SELECT pg_catalog.setval('cm_execution_exec_id_seq', 96, true);
+SELECT pg_catalog.setval('dj_dpmt_execution_exec_id_seq', 96, true);
 
 
 --
@@ -17262,6 +17471,23 @@ SELECT pg_catalog.setval('ns_pk_seq', 1000, false);
 
 
 --
+-- TOC entry 2762 (class 2604 OID 80861)
+-- Name: cm_procedure_execution exec_id; Type: DEFAULT; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER TABLE ONLY cm_procedure_execution ALTER COLUMN exec_id SET DEFAULT nextval('cm_procedure_execution_exec_id_seq'::regclass);
+
+
+--
+-- TOC entry 2760 (class 2604 OID 80846)
+-- Name: dj_dpmt_execution exec_id; Type: DEFAULT; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER TABLE ONLY dj_dpmt_execution ALTER COLUMN exec_id SET DEFAULT nextval('dj_dpmt_execution_exec_id_seq'::regclass);
+
+
+--
+-- TOC entry 2772 (class 2606 OID 28344)
 -- Name: cm_ci_attribute_log cm_ci_attribute_log_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17270,6 +17496,7 @@ ALTER TABLE ONLY cm_ci_attribute_log
 
 
 --
+-- TOC entry 2776 (class 2606 OID 28346)
 -- Name: cm_ci_attributes cm_ci_attributes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17278,6 +17505,7 @@ ALTER TABLE ONLY cm_ci_attributes
 
 
 --
+-- TOC entry 2780 (class 2606 OID 28348)
 -- Name: cm_ci_log cm_ci_log_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17286,6 +17514,7 @@ ALTER TABLE ONLY cm_ci_log
 
 
 --
+-- TOC entry 2768 (class 2606 OID 28350)
 -- Name: cm_ci cm_ci_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17294,6 +17523,7 @@ ALTER TABLE ONLY cm_ci
 
 
 --
+-- TOC entry 2783 (class 2606 OID 28352)
 -- Name: cm_ci_relation_attr_log cm_ci_relation_attr_log_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17302,6 +17532,7 @@ ALTER TABLE ONLY cm_ci_relation_attr_log
 
 
 --
+-- TOC entry 2788 (class 2606 OID 28354)
 -- Name: cm_ci_relation_attributes cm_ci_relation_attributes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17310,6 +17541,7 @@ ALTER TABLE ONLY cm_ci_relation_attributes
 
 
 --
+-- TOC entry 2791 (class 2606 OID 28356)
 -- Name: cm_ci_relation_log cm_ci_relation_log_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17318,6 +17550,7 @@ ALTER TABLE ONLY cm_ci_relation_log
 
 
 --
+-- TOC entry 2796 (class 2606 OID 28358)
 -- Name: cm_ci_relations cm_ci_relations_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17326,6 +17559,7 @@ ALTER TABLE ONLY cm_ci_relations
 
 
 --
+-- TOC entry 2802 (class 2606 OID 28360)
 -- Name: cm_ci_state cm_ci_state_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17334,6 +17568,7 @@ ALTER TABLE ONLY cm_ci_state
 
 
 --
+-- TOC entry 2805 (class 2606 OID 28362)
 -- Name: cm_ns_opt cm_ns_opt_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17342,6 +17577,7 @@ ALTER TABLE ONLY cm_ns_opt
 
 
 --
+-- TOC entry 2807 (class 2606 OID 28364)
 -- Name: cm_ops_action_state cm_ops_action_state_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17350,6 +17586,7 @@ ALTER TABLE ONLY cm_ops_action_state
 
 
 --
+-- TOC entry 2810 (class 2606 OID 28366)
 -- Name: cm_ops_actions cm_ops_actions_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17358,6 +17595,7 @@ ALTER TABLE ONLY cm_ops_actions
 
 
 --
+-- TOC entry 2813 (class 2606 OID 28368)
 -- Name: cm_ops_proc_state cm_ops_proc_state_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17366,6 +17604,7 @@ ALTER TABLE ONLY cm_ops_proc_state
 
 
 --
+-- TOC entry 2817 (class 2606 OID 28370)
 -- Name: cm_ops_procedures cm_ops_procedures_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17374,6 +17613,16 @@ ALTER TABLE ONLY cm_ops_procedures
 
 
 --
+-- TOC entry 2928 (class 2606 OID 80864)
+-- Name: cm_procedure_execution cm_procedure_execution_pkey; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER TABLE ONLY cm_procedure_execution
+    ADD CONSTRAINT cm_procedure_execution_pkey PRIMARY KEY (exec_id);
+
+
+--
+-- TOC entry 2819 (class 2606 OID 28372)
 -- Name: cms_ci_event_queue cms_ci_event_queue_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17382,6 +17631,7 @@ ALTER TABLE ONLY cms_ci_event_queue
 
 
 --
+-- TOC entry 2821 (class 2606 OID 28374)
 -- Name: cms_event_queue cms_event_queue_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17390,6 +17640,7 @@ ALTER TABLE ONLY cms_event_queue
 
 
 --
+-- TOC entry 2823 (class 2606 OID 28376)
 -- Name: cms_event_type cms_event_type_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17398,6 +17649,7 @@ ALTER TABLE ONLY cms_event_type
 
 
 --
+-- TOC entry 2825 (class 2606 OID 28378)
 -- Name: cms_lock cms_lock_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17406,6 +17658,7 @@ ALTER TABLE ONLY cms_lock
 
 
 --
+-- TOC entry 2830 (class 2606 OID 28380)
 -- Name: cms_vars cms_vars_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17414,6 +17667,7 @@ ALTER TABLE ONLY cms_vars
 
 
 --
+-- TOC entry 2832 (class 2606 OID 28382)
 -- Name: dj_approval_states dj_approval_states_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17421,11 +17675,8 @@ ALTER TABLE ONLY dj_approval_states
     ADD CONSTRAINT dj_approval_states_pk PRIMARY KEY (state_id);
 
 
-ALTER TABLE ONLY cm_execution
-    ADD CONSTRAINT cm_execution_pkey PRIMARY KEY (exec_id);
-
-
 --
+-- TOC entry 2835 (class 2606 OID 28384)
 -- Name: dj_deployment dj_deployment_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17434,6 +17685,7 @@ ALTER TABLE ONLY dj_deployment
 
 
 --
+-- TOC entry 2841 (class 2606 OID 28386)
 -- Name: dj_deployment_rfc dj_deployment_rfc_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17442,6 +17694,7 @@ ALTER TABLE ONLY dj_deployment_rfc
 
 
 --
+-- TOC entry 2843 (class 2606 OID 28388)
 -- Name: dj_deployment_rfc_states dj_deployment_rfc_states_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17450,6 +17703,7 @@ ALTER TABLE ONLY dj_deployment_rfc_states
 
 
 --
+-- TOC entry 2846 (class 2606 OID 28390)
 -- Name: dj_deployment_state_hist dj_deployment_state_hist_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17458,6 +17712,7 @@ ALTER TABLE ONLY dj_deployment_state_hist
 
 
 --
+-- TOC entry 2848 (class 2606 OID 28392)
 -- Name: dj_deployment_states dj_deployment_states_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17466,6 +17721,7 @@ ALTER TABLE ONLY dj_deployment_states
 
 
 --
+-- TOC entry 2852 (class 2606 OID 28394)
 -- Name: dj_dpmt_approvals dj_dpmt_approvals_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17474,6 +17730,16 @@ ALTER TABLE ONLY dj_dpmt_approvals
 
 
 --
+-- TOC entry 2925 (class 2606 OID 80849)
+-- Name: dj_dpmt_execution dj_dpmt_execution_pkey; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER TABLE ONLY dj_dpmt_execution
+    ADD CONSTRAINT dj_dpmt_execution_pkey PRIMARY KEY (exec_id);
+
+
+--
+-- TOC entry 2855 (class 2606 OID 28396)
 -- Name: dj_ns_opt dj_ns_opt_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17482,6 +17748,7 @@ ALTER TABLE ONLY dj_ns_opt
 
 
 --
+-- TOC entry 2857 (class 2606 OID 28398)
 -- Name: dj_release_rev_label dj_release_rev_label_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17490,6 +17757,7 @@ ALTER TABLE ONLY dj_release_rev_label
 
 
 --
+-- TOC entry 2859 (class 2606 OID 28400)
 -- Name: dj_release_states dj_release_states_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17498,6 +17766,7 @@ ALTER TABLE ONLY dj_release_states
 
 
 --
+-- TOC entry 2863 (class 2606 OID 28402)
 -- Name: dj_releases dj_releases_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17506,6 +17775,7 @@ ALTER TABLE ONLY dj_releases
 
 
 --
+-- TOC entry 2872 (class 2606 OID 28404)
 -- Name: dj_rfc_ci_actions dj_rfc_ci_actions_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17514,6 +17784,7 @@ ALTER TABLE ONLY dj_rfc_ci_actions
 
 
 --
+-- TOC entry 2876 (class 2606 OID 28406)
 -- Name: dj_rfc_ci_attributes dj_rfc_ci_attributes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17522,6 +17793,7 @@ ALTER TABLE ONLY dj_rfc_ci_attributes
 
 
 --
+-- TOC entry 2869 (class 2606 OID 28408)
 -- Name: dj_rfc_ci dj_rfc_ci_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17530,6 +17802,7 @@ ALTER TABLE ONLY dj_rfc_ci
 
 
 --
+-- TOC entry 2890 (class 2606 OID 28410)
 -- Name: dj_rfc_relation_attributes dj_rfc_relation_attributes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17538,6 +17811,7 @@ ALTER TABLE ONLY dj_rfc_relation_attributes
 
 
 --
+-- TOC entry 2886 (class 2606 OID 28412)
 -- Name: dj_rfc_relation dj_rfc_relation_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17546,6 +17820,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2893 (class 2606 OID 28414)
 -- Name: md_class_actions md_class_actions_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17554,6 +17829,7 @@ ALTER TABLE ONLY md_class_actions
 
 
 --
+-- TOC entry 2897 (class 2606 OID 28416)
 -- Name: md_class_attributes md_class_attributes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17562,6 +17838,7 @@ ALTER TABLE ONLY md_class_attributes
 
 
 --
+-- TOC entry 2901 (class 2606 OID 28418)
 -- Name: md_class_relations md_class_relations_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17570,6 +17847,7 @@ ALTER TABLE ONLY md_class_relations
 
 
 --
+-- TOC entry 2907 (class 2606 OID 28420)
 -- Name: md_classes md_classes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17578,6 +17856,7 @@ ALTER TABLE ONLY md_classes
 
 
 --
+-- TOC entry 2910 (class 2606 OID 28422)
 -- Name: md_relation_attributes md_relation_attributes_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17586,6 +17865,7 @@ ALTER TABLE ONLY md_relation_attributes
 
 
 --
+-- TOC entry 2913 (class 2606 OID 28424)
 -- Name: md_relations md_relations_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17594,6 +17874,7 @@ ALTER TABLE ONLY md_relations
 
 
 --
+-- TOC entry 2918 (class 2606 OID 28426)
 -- Name: ns_namespaces ns_namespaces_pk; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17602,6 +17883,7 @@ ALTER TABLE ONLY ns_namespaces
 
 
 --
+-- TOC entry 2922 (class 2606 OID 28428)
 -- Name: ns_opt_tag tag_id; Type: CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17610,6 +17892,7 @@ ALTER TABLE ONLY ns_opt_tag
 
 
 --
+-- TOC entry 2764 (class 1259 OID 28429)
 -- Name: cm_ci_3cols_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17617,6 +17900,7 @@ CREATE UNIQUE INDEX cm_ci_3cols_idx ON cm_ci USING btree (ns_id, class_id, ci_na
 
 
 --
+-- TOC entry 2770 (class 1259 OID 28430)
 -- Name: cm_ci_attribute_log_ciid; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17624,6 +17908,7 @@ CREATE INDEX cm_ci_attribute_log_ciid ON cm_ci_attribute_log USING btree (ci_id,
 
 
 --
+-- TOC entry 2773 (class 1259 OID 28431)
 -- Name: cm_ci_attributes_attr_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17631,6 +17916,7 @@ CREATE INDEX cm_ci_attributes_attr_idx ON cm_ci_attributes USING btree (attribut
 
 
 --
+-- TOC entry 2774 (class 1259 OID 28432)
 -- Name: cm_ci_attributes_ci_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17638,6 +17924,7 @@ CREATE INDEX cm_ci_attributes_ci_idx ON cm_ci_attributes USING btree (ci_id);
 
 
 --
+-- TOC entry 2777 (class 1259 OID 28433)
 -- Name: cm_ci_attributes_uniq_attrid; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17645,6 +17932,7 @@ CREATE UNIQUE INDEX cm_ci_attributes_uniq_attrid ON cm_ci_attributes USING btree
 
 
 --
+-- TOC entry 2765 (class 1259 OID 28434)
 -- Name: cm_ci_cl_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17652,6 +17940,7 @@ CREATE INDEX cm_ci_cl_idx ON cm_ci USING btree (class_id);
 
 
 --
+-- TOC entry 2778 (class 1259 OID 28435)
 -- Name: cm_ci_log_ciid; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17659,6 +17948,7 @@ CREATE INDEX cm_ci_log_ciid ON cm_ci_log USING btree (ci_id);
 
 
 --
+-- TOC entry 2766 (class 1259 OID 28436)
 -- Name: cm_ci_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17666,6 +17956,7 @@ CREATE INDEX cm_ci_ns_idx ON cm_ci USING btree (ns_id);
 
 
 --
+-- TOC entry 2781 (class 1259 OID 28437)
 -- Name: cm_ci_rel_attr_log_crid; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17673,6 +17964,7 @@ CREATE INDEX cm_ci_rel_attr_log_crid ON cm_ci_relation_attr_log USING btree (ci_
 
 
 --
+-- TOC entry 2784 (class 1259 OID 28438)
 -- Name: cm_ci_relation_attr_a_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17680,6 +17972,7 @@ CREATE INDEX cm_ci_relation_attr_a_idx ON cm_ci_relation_attributes USING btree 
 
 
 --
+-- TOC entry 2785 (class 1259 OID 28439)
 -- Name: cm_ci_relation_attr_dj_value_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17687,6 +17980,7 @@ CREATE INDEX cm_ci_relation_attr_dj_value_idx ON cm_ci_relation_attributes USING
 
 
 --
+-- TOC entry 2786 (class 1259 OID 28440)
 -- Name: cm_ci_relation_attr_ridx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17694,6 +17988,7 @@ CREATE INDEX cm_ci_relation_attr_ridx ON cm_ci_relation_attributes USING btree (
 
 
 --
+-- TOC entry 2789 (class 1259 OID 28441)
 -- Name: cm_ci_relation_log_crid; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17701,6 +17996,7 @@ CREATE INDEX cm_ci_relation_log_crid ON cm_ci_relation_log USING btree (ci_relat
 
 
 --
+-- TOC entry 2792 (class 1259 OID 28442)
 -- Name: cm_ci_relations_fromci_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17708,6 +18004,7 @@ CREATE INDEX cm_ci_relations_fromci_idx ON cm_ci_relations USING btree (from_ci_
 
 
 --
+-- TOC entry 2793 (class 1259 OID 28443)
 -- Name: cm_ci_relations_goid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17715,6 +18012,7 @@ CREATE UNIQUE INDEX cm_ci_relations_goid_idx ON cm_ci_relations USING btree (rel
 
 
 --
+-- TOC entry 2794 (class 1259 OID 28444)
 -- Name: cm_ci_relations_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17722,6 +18020,7 @@ CREATE INDEX cm_ci_relations_ns_idx ON cm_ci_relations USING btree (ns_id);
 
 
 --
+-- TOC entry 2797 (class 1259 OID 28445)
 -- Name: cm_ci_relations_r_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17729,6 +18028,7 @@ CREATE INDEX cm_ci_relations_r_idx ON cm_ci_relations USING btree (relation_id);
 
 
 --
+-- TOC entry 2798 (class 1259 OID 28446)
 -- Name: cm_ci_relations_r_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17736,6 +18036,7 @@ CREATE INDEX cm_ci_relations_r_ns_idx ON cm_ci_relations USING btree (relation_i
 
 
 --
+-- TOC entry 2799 (class 1259 OID 28447)
 -- Name: cm_ci_relations_toci_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17743,6 +18044,7 @@ CREATE INDEX cm_ci_relations_toci_idx ON cm_ci_relations USING btree (to_ci_id);
 
 
 --
+-- TOC entry 2800 (class 1259 OID 28448)
 -- Name: cm_ci_relations_uniq_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17750,6 +18052,7 @@ CREATE UNIQUE INDEX cm_ci_relations_uniq_idx ON cm_ci_relations USING btree (fro
 
 
 --
+-- TOC entry 2803 (class 1259 OID 28449)
 -- Name: cm_ns_opt_ns_id_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17757,6 +18060,7 @@ CREATE INDEX cm_ns_opt_ns_id_idx ON cm_ns_opt USING btree (ns_id);
 
 
 --
+-- TOC entry 2808 (class 1259 OID 28450)
 -- Name: cm_ops_actions_ci_proc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17764,6 +18068,7 @@ CREATE INDEX cm_ops_actions_ci_proc_idx ON cm_ops_actions USING btree (ci_id, op
 
 
 --
+-- TOC entry 2811 (class 1259 OID 28451)
 -- Name: cm_ops_actions_proc_id_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17771,6 +18076,7 @@ CREATE INDEX cm_ops_actions_proc_id_idx ON cm_ops_actions USING btree (ops_proc_
 
 
 --
+-- TOC entry 2814 (class 1259 OID 28452)
 -- Name: cm_ops_proc_ci_state_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17778,6 +18084,7 @@ CREATE INDEX cm_ops_proc_ci_state_idx ON cm_ops_procedures USING btree (ci_id, s
 
 
 --
+-- TOC entry 2815 (class 1259 OID 28453)
 -- Name: cm_ops_procedures_ci_proc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17785,6 +18092,15 @@ CREATE INDEX cm_ops_procedures_ci_proc_idx ON cm_ops_procedures USING btree (ci_
 
 
 --
+-- TOC entry 2926 (class 1259 OID 80870)
+-- Name: cm_proc_exec_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
+--
+
+CREATE UNIQUE INDEX cm_proc_exec_idx ON cm_procedure_execution USING btree (ops_proc_id, step);
+
+
+--
+-- TOC entry 2826 (class 1259 OID 28454)
 -- Name: cms_lock_uln; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17792,6 +18108,7 @@ CREATE UNIQUE INDEX cms_lock_uln ON cms_lock USING btree (lock_name);
 
 
 --
+-- TOC entry 2827 (class 1259 OID 28455)
 -- Name: cms_vars_idx1; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17799,6 +18116,7 @@ CREATE UNIQUE INDEX cms_vars_idx1 ON cms_vars USING btree (var_name, criteria) W
 
 
 --
+-- TOC entry 2828 (class 1259 OID 28456)
 -- Name: cms_vars_idx2; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17806,15 +18124,15 @@ CREATE UNIQUE INDEX cms_vars_idx2 ON cms_vars USING btree (var_name) WHERE (crit
 
 
 --
+-- TOC entry 2769 (class 1259 OID 28457)
 -- Name: df_ci_goid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
 CREATE UNIQUE INDEX df_ci_goid_idx ON cm_ci USING btree (ci_goid);
 
 
-CREATE UNIQUE INDEX cm_exec_idx ON cm_execution USING btree (type_id, process_id, step);
-
 --
+-- TOC entry 2833 (class 1259 OID 28458)
 -- Name: dj_deployment_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17822,6 +18140,7 @@ CREATE INDEX dj_deployment_ns_idx ON dj_deployment USING btree (ns_id);
 
 
 --
+-- TOC entry 2838 (class 1259 OID 28459)
 -- Name: dj_deployment_rfc_d_idx1; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17829,6 +18148,7 @@ CREATE INDEX dj_deployment_rfc_d_idx1 ON dj_deployment_rfc USING btree (deployme
 
 
 --
+-- TOC entry 2839 (class 1259 OID 28460)
 -- Name: dj_deployment_rfc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17836,6 +18156,7 @@ CREATE INDEX dj_deployment_rfc_idx ON dj_deployment_rfc USING btree (rfc_id);
 
 
 --
+-- TOC entry 2836 (class 1259 OID 28461)
 -- Name: dj_deployment_rl_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17843,6 +18164,7 @@ CREATE INDEX dj_deployment_rl_idx ON dj_deployment USING btree (release_id);
 
 
 --
+-- TOC entry 2844 (class 1259 OID 28462)
 -- Name: dj_deployment_state_hist_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17850,6 +18172,7 @@ CREATE INDEX dj_deployment_state_hist_idx ON dj_deployment_state_hist USING btre
 
 
 --
+-- TOC entry 2849 (class 1259 OID 28463)
 -- Name: dj_dpmt_approvals_cid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17857,6 +18180,7 @@ CREATE INDEX dj_dpmt_approvals_cid_idx ON dj_dpmt_approvals USING btree (govern_
 
 
 --
+-- TOC entry 2850 (class 1259 OID 28464)
 -- Name: dj_dpmt_approvals_dpmt_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17864,6 +18188,15 @@ CREATE INDEX dj_dpmt_approvals_dpmt_idx ON dj_dpmt_approvals USING btree (deploy
 
 
 --
+-- TOC entry 2923 (class 1259 OID 80855)
+-- Name: dj_dpmt_exec_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
+--
+
+CREATE UNIQUE INDEX dj_dpmt_exec_idx ON dj_dpmt_execution USING btree (deployment_id, step);
+
+
+--
+-- TOC entry 2837 (class 1259 OID 28465)
 -- Name: dj_dpmt_state_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17871,6 +18204,7 @@ CREATE UNIQUE INDEX dj_dpmt_state_idx ON dj_deployment USING btree (release_id) 
 
 
 --
+-- TOC entry 2853 (class 1259 OID 28466)
 -- Name: dj_ns_opt_ns_id_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17878,6 +18212,7 @@ CREATE INDEX dj_ns_opt_ns_id_idx ON dj_ns_opt USING btree (ns_id);
 
 
 --
+-- TOC entry 2860 (class 1259 OID 28467)
 -- Name: dj_release_state_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17885,6 +18220,7 @@ CREATE UNIQUE INDEX dj_release_state_idx ON dj_releases USING btree (ns_id, rele
 
 
 --
+-- TOC entry 2861 (class 1259 OID 28468)
 -- Name: dj_releases_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17892,6 +18228,7 @@ CREATE INDEX dj_releases_ns_idx ON dj_releases USING btree (ns_id);
 
 
 --
+-- TOC entry 2864 (class 1259 OID 28469)
 -- Name: dj_rfc_ci_3n_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17899,6 +18236,7 @@ CREATE INDEX dj_rfc_ci_3n_idx ON dj_rfc_ci USING btree (release_id, ns_id, class
 
 
 --
+-- TOC entry 2873 (class 1259 OID 28470)
 -- Name: dj_rfc_ci_attr_a_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17906,6 +18244,7 @@ CREATE INDEX dj_rfc_ci_attr_a_idx ON dj_rfc_ci_attributes USING btree (attribute
 
 
 --
+-- TOC entry 2874 (class 1259 OID 28471)
 -- Name: dj_rfc_ci_attr_rfc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17913,6 +18252,7 @@ CREATE INDEX dj_rfc_ci_attr_rfc_idx ON dj_rfc_ci_attributes USING btree (rfc_id)
 
 
 --
+-- TOC entry 2865 (class 1259 OID 28472)
 -- Name: dj_rfc_ci_ciid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17920,6 +18260,7 @@ CREATE INDEX dj_rfc_ci_ciid_idx ON dj_rfc_ci USING btree (ci_id, release_id);
 
 
 --
+-- TOC entry 2866 (class 1259 OID 28473)
 -- Name: dj_rfc_ci_cl_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17927,6 +18268,7 @@ CREATE INDEX dj_rfc_ci_cl_idx ON dj_rfc_ci USING btree (class_id);
 
 
 --
+-- TOC entry 2867 (class 1259 OID 28474)
 -- Name: dj_rfc_ci_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17934,6 +18276,7 @@ CREATE INDEX dj_rfc_ci_ns_idx ON dj_rfc_ci USING btree (ns_id);
 
 
 --
+-- TOC entry 2870 (class 1259 OID 28475)
 -- Name: dj_rfc_ci_rcid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17941,6 +18284,7 @@ CREATE INDEX dj_rfc_ci_rcid_idx ON dj_rfc_ci USING btree (release_id, ci_id);
 
 
 --
+-- TOC entry 2877 (class 1259 OID 28476)
 -- Name: dj_rfc_rel_fcireltoci_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17948,6 +18292,7 @@ CREATE INDEX dj_rfc_rel_fcireltoci_idx ON dj_rfc_relation USING btree (from_ci_i
 
 
 --
+-- TOC entry 2878 (class 1259 OID 28477)
 -- Name: dj_rfc_rel_frfc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17955,6 +18300,7 @@ CREATE INDEX dj_rfc_rel_frfc_idx ON dj_rfc_relation USING btree (from_rfc_id);
 
 
 --
+-- TOC entry 2879 (class 1259 OID 28478)
 -- Name: dj_rfc_rel_ns_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17962,6 +18308,7 @@ CREATE INDEX dj_rfc_rel_ns_idx ON dj_rfc_relation USING btree (ns_id);
 
 
 --
+-- TOC entry 2880 (class 1259 OID 28479)
 -- Name: dj_rfc_rel_r_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17969,6 +18316,7 @@ CREATE INDEX dj_rfc_rel_r_idx ON dj_rfc_relation USING btree (relation_id);
 
 
 --
+-- TOC entry 2881 (class 1259 OID 28480)
 -- Name: dj_rfc_rel_tcirlsfromci_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17976,6 +18324,7 @@ CREATE INDEX dj_rfc_rel_tcirlsfromci_idx ON dj_rfc_relation USING btree (to_ci_i
 
 
 --
+-- TOC entry 2882 (class 1259 OID 28481)
 -- Name: dj_rfc_rel_trfc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17983,6 +18332,7 @@ CREATE INDEX dj_rfc_rel_trfc_idx ON dj_rfc_relation USING btree (to_rfc_id);
 
 
 --
+-- TOC entry 2887 (class 1259 OID 28482)
 -- Name: dj_rfc_relation_attr_a_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17990,6 +18340,7 @@ CREATE INDEX dj_rfc_relation_attr_a_idx ON dj_rfc_relation_attributes USING btre
 
 
 --
+-- TOC entry 2888 (class 1259 OID 28483)
 -- Name: dj_rfc_relation_attr_rfc_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -17997,6 +18348,7 @@ CREATE INDEX dj_rfc_relation_attr_rfc_idx ON dj_rfc_relation_attributes USING bt
 
 
 --
+-- TOC entry 2883 (class 1259 OID 28484)
 -- Name: dj_rfc_relation_cid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18004,6 +18356,7 @@ CREATE INDEX dj_rfc_relation_cid_idx ON dj_rfc_relation USING btree (ci_relation
 
 
 --
+-- TOC entry 2884 (class 1259 OID 28485)
 -- Name: dj_rfc_relation_crid_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18011,6 +18364,7 @@ CREATE INDEX dj_rfc_relation_crid_idx ON dj_rfc_relation USING btree (release_id
 
 
 --
+-- TOC entry 2891 (class 1259 OID 28486)
 -- Name: md_class_actions_cl_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18018,6 +18372,7 @@ CREATE INDEX md_class_actions_cl_idx ON md_class_actions USING btree (class_id);
 
 
 --
+-- TOC entry 2894 (class 1259 OID 28487)
 -- Name: md_class_attr_name_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18025,6 +18380,7 @@ CREATE UNIQUE INDEX md_class_attr_name_idx ON md_class_attributes USING btree (c
 
 
 --
+-- TOC entry 2895 (class 1259 OID 28488)
 -- Name: md_class_attributes_cl_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18032,6 +18388,7 @@ CREATE INDEX md_class_attributes_cl_idx ON md_class_attributes USING btree (clas
 
 
 --
+-- TOC entry 2898 (class 1259 OID 28489)
 -- Name: md_class_relations_f_idx1; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18039,6 +18396,7 @@ CREATE INDEX md_class_relations_f_idx1 ON md_class_relations USING btree (from_c
 
 
 --
+-- TOC entry 2899 (class 1259 OID 28490)
 -- Name: md_class_relations_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18046,6 +18404,7 @@ CREATE UNIQUE INDEX md_class_relations_idx ON md_class_relations USING btree (fr
 
 
 --
+-- TOC entry 2902 (class 1259 OID 28491)
 -- Name: md_class_relations_r_idx1; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18053,6 +18412,7 @@ CREATE INDEX md_class_relations_r_idx1 ON md_class_relations USING btree (relati
 
 
 --
+-- TOC entry 2903 (class 1259 OID 28492)
 -- Name: md_class_relations_t_idx1; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18060,6 +18420,7 @@ CREATE INDEX md_class_relations_t_idx1 ON md_class_relations USING btree (to_cla
 
 
 --
+-- TOC entry 2904 (class 1259 OID 28493)
 -- Name: md_classes_cln_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18067,6 +18428,7 @@ CREATE UNIQUE INDEX md_classes_cln_idx ON md_classes USING btree (class_name);
 
 
 --
+-- TOC entry 2905 (class 1259 OID 28494)
 -- Name: md_classes_comp_names_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18074,6 +18436,7 @@ CREATE INDEX md_classes_comp_names_idx ON md_classes USING btree (class_name, sh
 
 
 --
+-- TOC entry 2908 (class 1259 OID 28495)
 -- Name: md_classes_scln_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18081,6 +18444,7 @@ CREATE INDEX md_classes_scln_idx ON md_classes USING btree (short_class_name);
 
 
 --
+-- TOC entry 2911 (class 1259 OID 28496)
 -- Name: md_relation_attributes_r_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18088,6 +18452,7 @@ CREATE INDEX md_relation_attributes_r_idx ON md_relation_attributes USING btree 
 
 
 --
+-- TOC entry 2914 (class 1259 OID 28497)
 -- Name: md_relations_rln_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18095,6 +18460,7 @@ CREATE UNIQUE INDEX md_relations_rln_idx ON md_relations USING btree (relation_n
 
 
 --
+-- TOC entry 2915 (class 1259 OID 28498)
 -- Name: md_relations_srn_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18102,6 +18468,7 @@ CREATE INDEX md_relations_srn_idx ON md_relations USING btree (short_relation_na
 
 
 --
+-- TOC entry 2916 (class 1259 OID 28499)
 -- Name: ns_namespaces_ak; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18109,6 +18476,7 @@ CREATE UNIQUE INDEX ns_namespaces_ak ON ns_namespaces USING btree (ns_path);
 
 
 --
+-- TOC entry 2919 (class 1259 OID 28500)
 -- Name: ns_namespaces_vpo; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18116,6 +18484,7 @@ CREATE INDEX ns_namespaces_vpo ON ns_namespaces USING btree (ns_path varchar_pat
 
 
 --
+-- TOC entry 2920 (class 1259 OID 28501)
 -- Name: ns_opt_tag_idx; Type: INDEX; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18123,6 +18492,7 @@ CREATE UNIQUE INDEX ns_opt_tag_idx ON ns_opt_tag USING btree (tag);
 
 
 --
+-- TOC entry 2986 (class 2620 OID 28502)
 -- Name: cm_ci_attribute_log insert_cm_ci_attribute_log_trigger; Type: TRIGGER; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18130,6 +18500,7 @@ CREATE TRIGGER insert_cm_ci_attribute_log_trigger BEFORE INSERT ON cm_ci_attribu
 
 
 --
+-- TOC entry 2987 (class 2620 OID 28503)
 -- Name: cm_ci_log insert_cm_ci_log_trigger; Type: TRIGGER; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18137,6 +18508,7 @@ CREATE TRIGGER insert_cm_ci_log_trigger BEFORE INSERT ON cm_ci_log FOR EACH ROW 
 
 
 --
+-- TOC entry 2988 (class 2620 OID 28504)
 -- Name: cm_ci_relation_attr_log insert_cm_ci_relation_attr_log_trigger; Type: TRIGGER; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18144,6 +18516,7 @@ CREATE TRIGGER insert_cm_ci_relation_attr_log_trigger BEFORE INSERT ON cm_ci_rel
 
 
 --
+-- TOC entry 2989 (class 2620 OID 28505)
 -- Name: cm_ci_relation_log insert_cm_ci_relation_log_trigger; Type: TRIGGER; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18151,6 +18524,7 @@ CREATE TRIGGER insert_cm_ci_relation_log_trigger BEFORE INSERT ON cm_ci_relation
 
 
 --
+-- TOC entry 2932 (class 2606 OID 28506)
 -- Name: cm_ci_attributes cm_ci_attributes_attr_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18159,6 +18533,7 @@ ALTER TABLE ONLY cm_ci_attributes
 
 
 --
+-- TOC entry 2933 (class 2606 OID 28511)
 -- Name: cm_ci_attributes cm_ci_attributes_ciid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18167,6 +18542,7 @@ ALTER TABLE ONLY cm_ci_attributes
 
 
 --
+-- TOC entry 2929 (class 2606 OID 28516)
 -- Name: cm_ci cm_ci_clid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18175,6 +18551,7 @@ ALTER TABLE ONLY cm_ci
 
 
 --
+-- TOC entry 2941 (class 2606 OID 28521)
 -- Name: cm_ns_opt cm_ci_cm_ns_opt_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18183,6 +18560,7 @@ ALTER TABLE ONLY cm_ns_opt
 
 
 --
+-- TOC entry 2930 (class 2606 OID 28526)
 -- Name: cm_ci cm_ci_ns_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18191,6 +18569,7 @@ ALTER TABLE ONLY cm_ci
 
 
 --
+-- TOC entry 2934 (class 2606 OID 28531)
 -- Name: cm_ci_relation_attributes cm_ci_relation_attributes_crid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18199,6 +18578,7 @@ ALTER TABLE ONLY cm_ci_relation_attributes
 
 
 --
+-- TOC entry 2935 (class 2606 OID 28536)
 -- Name: cm_ci_relation_attributes cm_ci_relation_attributes_raid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18207,6 +18587,7 @@ ALTER TABLE ONLY cm_ci_relation_attributes
 
 
 --
+-- TOC entry 2936 (class 2606 OID 28541)
 -- Name: cm_ci_relations cm_ci_relations_frid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18215,6 +18596,7 @@ ALTER TABLE ONLY cm_ci_relations
 
 
 --
+-- TOC entry 2937 (class 2606 OID 28546)
 -- Name: cm_ci_relations cm_ci_relations_ns_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18223,6 +18605,7 @@ ALTER TABLE ONLY cm_ci_relations
 
 
 --
+-- TOC entry 2938 (class 2606 OID 28551)
 -- Name: cm_ci_relations cm_ci_relations_stid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18231,6 +18614,7 @@ ALTER TABLE ONLY cm_ci_relations
 
 
 --
+-- TOC entry 2939 (class 2606 OID 28556)
 -- Name: cm_ci_relations cm_ci_relations_toid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18239,6 +18623,7 @@ ALTER TABLE ONLY cm_ci_relations
 
 
 --
+-- TOC entry 2931 (class 2606 OID 28561)
 -- Name: cm_ci cm_ci_stid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18247,6 +18632,7 @@ ALTER TABLE ONLY cm_ci
 
 
 --
+-- TOC entry 2951 (class 2606 OID 28566)
 -- Name: dj_deployment cm_namespaces_dj_deployment_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18255,6 +18641,7 @@ ALTER TABLE ONLY dj_deployment
 
 
 --
+-- TOC entry 2962 (class 2606 OID 28571)
 -- Name: dj_releases cm_namespaces_dj_releases_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18263,6 +18650,7 @@ ALTER TABLE ONLY dj_releases
 
 
 --
+-- TOC entry 2944 (class 2606 OID 28576)
 -- Name: cm_ops_actions cm_ops_actions_ci_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18271,6 +18659,7 @@ ALTER TABLE ONLY cm_ops_actions
 
 
 --
+-- TOC entry 2945 (class 2606 OID 28581)
 -- Name: cm_ops_actions cm_ops_actions_proc_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18279,6 +18668,7 @@ ALTER TABLE ONLY cm_ops_actions
 
 
 --
+-- TOC entry 2946 (class 2606 OID 28586)
 -- Name: cm_ops_actions cm_ops_actions_st_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18287,6 +18677,7 @@ ALTER TABLE ONLY cm_ops_actions
 
 
 --
+-- TOC entry 2947 (class 2606 OID 28591)
 -- Name: cm_ops_procedures cm_ops_procedures_ci_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18295,6 +18686,7 @@ ALTER TABLE ONLY cm_ops_procedures
 
 
 --
+-- TOC entry 2948 (class 2606 OID 28596)
 -- Name: cm_ops_procedures cm_ops_procedures_st_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18303,6 +18695,16 @@ ALTER TABLE ONLY cm_ops_procedures
 
 
 --
+-- TOC entry 2985 (class 2606 OID 80865)
+-- Name: cm_procedure_execution cm_procedure_execution_ops_proc_id_fkey; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER TABLE ONLY cm_procedure_execution
+    ADD CONSTRAINT cm_procedure_execution_ops_proc_id_fkey FOREIGN KEY (ops_proc_id) REFERENCES cm_ops_procedures(ops_proc_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2949 (class 2606 OID 28601)
 -- Name: cms_ci_event_queue cms_ci_event_queue_etid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18311,6 +18713,7 @@ ALTER TABLE ONLY cms_ci_event_queue
 
 
 --
+-- TOC entry 2950 (class 2606 OID 28606)
 -- Name: cms_event_queue cms_event_queue_etid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18319,6 +18722,7 @@ ALTER TABLE ONLY cms_event_queue
 
 
 --
+-- TOC entry 2940 (class 2606 OID 28611)
 -- Name: cm_ci_relations df_ci_relations_mdrid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18327,6 +18731,7 @@ ALTER TABLE ONLY cm_ci_relations
 
 
 --
+-- TOC entry 2964 (class 2606 OID 28616)
 -- Name: dj_rfc_ci dj_ci_rfc_ns_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18335,6 +18740,7 @@ ALTER TABLE ONLY dj_rfc_ci
 
 
 --
+-- TOC entry 2954 (class 2606 OID 28621)
 -- Name: dj_deployment_rfc dj_deployment_dj_deployment_rfc_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18342,8 +18748,8 @@ ALTER TABLE ONLY dj_deployment_rfc
     ADD CONSTRAINT dj_deployment_dj_deployment_rfc_fk FOREIGN KEY (deployment_id) REFERENCES dj_deployment(deployment_id) ON DELETE CASCADE;
 
 
-
 --
+-- TOC entry 2955 (class 2606 OID 28626)
 -- Name: dj_deployment_rfc dj_deployment_rfc_dprfcstid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18352,6 +18758,7 @@ ALTER TABLE ONLY dj_deployment_rfc
 
 
 --
+-- TOC entry 2952 (class 2606 OID 28631)
 -- Name: dj_deployment dj_deployment_rid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18360,6 +18767,7 @@ ALTER TABLE ONLY dj_deployment
 
 
 --
+-- TOC entry 2956 (class 2606 OID 28636)
 -- Name: dj_deployment_state_hist dj_deployment_state_hist_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18368,6 +18776,7 @@ ALTER TABLE ONLY dj_deployment_state_hist
 
 
 --
+-- TOC entry 2953 (class 2606 OID 28641)
 -- Name: dj_deployment dj_deployment_states_dj_deployment_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18376,6 +18785,7 @@ ALTER TABLE ONLY dj_deployment
 
 
 --
+-- TOC entry 2957 (class 2606 OID 28646)
 -- Name: dj_dpmt_approvals dj_dpmt_approvals_dpmt_id_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18384,6 +18794,7 @@ ALTER TABLE ONLY dj_dpmt_approvals
 
 
 --
+-- TOC entry 2958 (class 2606 OID 28651)
 -- Name: dj_dpmt_approvals dj_dpmt_approvals_states_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18392,6 +18803,16 @@ ALTER TABLE ONLY dj_dpmt_approvals
 
 
 --
+-- TOC entry 2984 (class 2606 OID 80850)
+-- Name: dj_dpmt_execution dj_dpmt_execution_deployment_id_fkey; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
+--
+
+ALTER TABLE ONLY dj_dpmt_execution
+    ADD CONSTRAINT dj_dpmt_execution_deployment_id_fkey FOREIGN KEY (deployment_id) REFERENCES dj_deployment(deployment_id) ON DELETE CASCADE;
+
+
+--
+-- TOC entry 2970 (class 2606 OID 28656)
 -- Name: dj_rfc_relation dj_relation_rfc_actid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18400,6 +18821,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2971 (class 2606 OID 28661)
 -- Name: dj_rfc_relation dj_relation_rfc_relid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18408,6 +18830,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2972 (class 2606 OID 28666)
 -- Name: dj_rfc_relation dj_relation_rfc_rid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18416,6 +18839,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2963 (class 2606 OID 28671)
 -- Name: dj_releases dj_releases_rsid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18424,6 +18848,7 @@ ALTER TABLE ONLY dj_releases
 
 
 --
+-- TOC entry 2968 (class 2606 OID 28676)
 -- Name: dj_rfc_ci_attributes dj_rfc_ci_attributes_atrid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18432,6 +18857,7 @@ ALTER TABLE ONLY dj_rfc_ci_attributes
 
 
 --
+-- TOC entry 2969 (class 2606 OID 28681)
 -- Name: dj_rfc_ci_attributes dj_rfc_ci_attributes_ciid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18440,6 +18866,7 @@ ALTER TABLE ONLY dj_rfc_ci_attributes
 
 
 --
+-- TOC entry 2965 (class 2606 OID 28686)
 -- Name: dj_rfc_ci dj_rfc_ci_ciaid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18448,6 +18875,7 @@ ALTER TABLE ONLY dj_rfc_ci
 
 
 --
+-- TOC entry 2966 (class 2606 OID 28691)
 -- Name: dj_rfc_ci dj_rfc_ci_clid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18456,6 +18884,7 @@ ALTER TABLE ONLY dj_rfc_ci
 
 
 --
+-- TOC entry 2959 (class 2606 OID 28696)
 -- Name: dj_ns_opt dj_rfc_ci_dj_ns_opt_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18464,6 +18893,7 @@ ALTER TABLE ONLY dj_ns_opt
 
 
 --
+-- TOC entry 2973 (class 2606 OID 28701)
 -- Name: dj_rfc_relation dj_rfc_ci_dj_rfc_relation_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18472,6 +18902,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2974 (class 2606 OID 28706)
 -- Name: dj_rfc_relation dj_rfc_ci_dj_rfc_relation_fk1; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18480,6 +18911,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2975 (class 2606 OID 28711)
 -- Name: dj_rfc_relation dj_rfc_relation_ns_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18488,6 +18920,7 @@ ALTER TABLE ONLY dj_rfc_relation
 
 
 --
+-- TOC entry 2967 (class 2606 OID 28716)
 -- Name: dj_rfc_ci dj_rfc_rid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18496,6 +18929,7 @@ ALTER TABLE ONLY dj_rfc_ci
 
 
 --
+-- TOC entry 2978 (class 2606 OID 28721)
 -- Name: md_class_actions md_class_actions_cl_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18504,6 +18938,7 @@ ALTER TABLE ONLY md_class_actions
 
 
 --
+-- TOC entry 2979 (class 2606 OID 28726)
 -- Name: md_class_attributes md_class_attributes_clid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18512,6 +18947,7 @@ ALTER TABLE ONLY md_class_attributes
 
 
 --
+-- TOC entry 2980 (class 2606 OID 28731)
 -- Name: md_class_relations md_class_relations_frcl_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18520,6 +18956,7 @@ ALTER TABLE ONLY md_class_relations
 
 
 --
+-- TOC entry 2981 (class 2606 OID 28736)
 -- Name: md_class_relations md_class_relations_mdrid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18528,6 +18965,7 @@ ALTER TABLE ONLY md_class_relations
 
 
 --
+-- TOC entry 2982 (class 2606 OID 28741)
 -- Name: md_class_relations md_class_relations_tocl_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18536,6 +18974,7 @@ ALTER TABLE ONLY md_class_relations
 
 
 --
+-- TOC entry 2976 (class 2606 OID 28746)
 -- Name: dj_rfc_relation_attributes md_relation_attributes_dj_rfc_relation_attributes_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18544,6 +18983,7 @@ ALTER TABLE ONLY dj_rfc_relation_attributes
 
 
 --
+-- TOC entry 2983 (class 2606 OID 28751)
 -- Name: md_relation_attributes md_relation_attributes_mdrid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18552,6 +18992,7 @@ ALTER TABLE ONLY md_relation_attributes
 
 
 --
+-- TOC entry 2960 (class 2606 OID 28756)
 -- Name: dj_ns_opt ns_dj_ns_opt_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18560,6 +19001,7 @@ ALTER TABLE ONLY dj_ns_opt
 
 
 --
+-- TOC entry 2942 (class 2606 OID 28761)
 -- Name: cm_ns_opt ns_opt_tag_cm_ns_opt_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18568,6 +19010,7 @@ ALTER TABLE ONLY cm_ns_opt
 
 
 --
+-- TOC entry 2961 (class 2606 OID 28766)
 -- Name: dj_ns_opt ns_opt_tag_dj_ns_opt_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18576,6 +19019,7 @@ ALTER TABLE ONLY dj_ns_opt
 
 
 --
+-- TOC entry 2943 (class 2606 OID 28771)
 -- Name: cm_ns_opt ns_path_cm_ns_opt_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
@@ -18584,14 +19028,9 @@ ALTER TABLE ONLY cm_ns_opt
 
 
 --
+-- TOC entry 2977 (class 2606 OID 28776)
 -- Name: dj_rfc_relation_attributes rfc_relation_attributes_rfcrid_fk; Type: FK CONSTRAINT; Schema: kloopzcm; Owner: kloopzcm
 --
 
 ALTER TABLE ONLY dj_rfc_relation_attributes
     ADD CONSTRAINT rfc_relation_attributes_rfcrid_fk FOREIGN KEY (rfc_id) REFERENCES dj_rfc_relation(rfc_id) ON UPDATE RESTRICT ON DELETE CASCADE;
-
-
---
--- PostgreSQL database dump complete
---
-

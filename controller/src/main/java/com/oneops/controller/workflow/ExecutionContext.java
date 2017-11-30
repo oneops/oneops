@@ -6,6 +6,5 @@ public interface ExecutionContext {
   public int getCurrentStep();
   public long getExecutionId();
   public String getType();
-  public void setCompleted(boolean completed);
 
 }

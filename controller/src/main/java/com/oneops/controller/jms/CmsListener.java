@@ -18,7 +18,7 @@ package com.oneops.controller.jms;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-import com.oneops.controller.workflow.ProcedureRunner;
+import com.oneops.controller.workflow.ExecutionManager;
 import com.oneops.notification.NotificationSeverity;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
@@ -27,7 +27,6 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.cms.CMSClient;
 import com.oneops.controller.cms.DeploymentNotifier;
-import com.oneops.controller.workflow.Deployer;
 import com.oneops.controller.workflow.WorkflowController;
 import java.util.HashMap;
 import java.util.Map;
@@ -80,8 +79,7 @@ public class CmsListener implements MessageListener {
   private ActiveMQConnectionFactory connFactory;
   private DeploymentNotifier notifier;
   private CMSClient cmsClient;
-  private Deployer deployer;
-  private ProcedureRunner procedureRunner;
+  private ExecutionManager executionManager;
   private boolean isDeployerEnabled;
 
   /**
@@ -144,7 +142,7 @@ public class CmsListener implements MessageListener {
         if (isDeployerEnabled(dpmt.getNsPath())) {
           notifyIfRequired(dpmt);
           logger.info("Executing deployment using Deployer : " + dpmt.getDeploymentId());
-          startDeployer(dpmt);
+          startDeployment(dpmt);
         } else {
           logger.info("Executing deployment using activiti : " + dpmt.getDeploymentId());
           processKey = getDpmtProcessKey(dpmt);
@@ -169,7 +167,7 @@ public class CmsListener implements MessageListener {
       //logger.info()
       if (isDeployerEnabled(proc.getNsPath())) {
         logger.info("Executing procedure using ProcedureRunner : " + proc.getProcedureId());
-        startProcedureRunner(proc);
+        startProcedure(proc);
       }
       else {
         processKey = getOpsProcedureProcessKey(proc);
@@ -203,12 +201,12 @@ public class CmsListener implements MessageListener {
     }
   }
 
-  private void startDeployer(CmsDeployment dpmt) {
-    deployer.deploy(dpmt);
+  private void startDeployment(CmsDeployment dpmt) {
+    executionManager.execute(dpmt);
   }
 
-  private void startProcedureRunner(CmsOpsProcedure procedure) {
-    procedureRunner.execute(procedure);
+  private void startProcedure(CmsOpsProcedure procedure) {
+    executionManager.execute(procedure);
   }
 
   private void notifyIfRequired(CmsDeployment dpmt) {
@@ -308,16 +306,12 @@ public class CmsListener implements MessageListener {
     this.cmsClient = cmsClient;
   }
 
-  public void setDeployer(Deployer deployer) {
-    this.deployer = deployer;
-  }
-
   public void setDeployerEnabled(boolean deployerEnabled) {
     isDeployerEnabled = deployerEnabled;
   }
 
-  public void setProcedureRunner(ProcedureRunner procedureRunner) {
-    this.procedureRunner = procedureRunner;
+  public void setExecutionManager(ExecutionManager executionManager) {
+    this.executionManager = executionManager;
   }
 
   public void setNotifier(DeploymentNotifier notifier) {

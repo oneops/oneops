@@ -4,8 +4,8 @@ import static com.oneops.cms.cm.ops.domain.OpsActionState.inprogress;
 import static com.oneops.cms.cm.ops.domain.OpsProcedureState.active;
 import static com.oneops.cms.cm.ops.domain.OpsProcedureState.complete;
 import static com.oneops.cms.cm.ops.domain.OpsProcedureState.failed;
+import static com.oneops.controller.workflow.ExecutionType.PROCEDURE;
 
-import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
@@ -13,8 +13,8 @@ import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.cms.CMSClient;
-import com.oneops.controller.jms.InductorPublisher;
-import com.oneops.workflow.WorkflowMessage;
+import java.security.GeneralSecurityException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component(value = "procedureRunner")
-public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements ProcedureRunner {
+public class ProcedureRunnerImpl extends Execution<CmsActionOrderSimple> implements ProcedureRunner {
 
   @Autowired
   OpsProcedureProcessor procProcessor;
@@ -40,9 +40,6 @@ public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements Pr
 
   @Autowired
   WoDispatcher woDispatcher;
-
-  @Autowired
-  InductorPublisher inductorPublisher;
 
   @Value("${oo.controller.ao.assembler.pool.size:2}")
   private int aoAssemblerPoolSize;
@@ -58,82 +55,86 @@ public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements Pr
     aoDispatchExecutor = (ThreadPoolExecutor) Executors.newFixedThreadPool(aoAssemblerPoolSize);
   }
 
-  @Override
-  public void execute(CmsOpsProcedure procedure) {
-    if (isActive(procedure)) {
-      executeProcedure(procedure.getProcedureId());
-    }
-  }
-
-  private void executeProcedure(long procedureId) {
-    ProcedureContext context = getPendingActions(procedureId);
-    if (!context.isCompleted && context.aoList != null && !context.aoList.isEmpty()) {
-      CmsOpsProcedure procedure = procedure(context);
-      logger.info("dispatching aos - procedure " + procedureId + " step " + procedure.getCurrentStep() + " ao size " + context.aoList.size());
-      dispatchOrders(context, context.aoList, true);
-    }
-  }
-
-  @Override
-  public void processWorkflow(WorkflowMessage wfMessage) {
-    executeProcedure(wfMessage.getExecutionId());
-  }
 
   @Override
   @Transactional
-  public ProcedureContext getPendingActions(long procedureId) {
+  public ProcedureContext executeProcedure(long procedureId) {
+    ProcedureContext context = pendingActions(procedureId);
+    if (!context.isCompleted && context.aoList != null && !context.aoList.isEmpty()) {
+      CmsOpsProcedure procedure = procedure(context);
+      logger.info("dispatching aos - procedure " + procedureId + " step " + procedure.getCurrentStep() + " ao size " + context.aoList.size());
+      context.latch = dispatchOrders(context, context.aoList);
+    }
+    return context;
+  }
+
+  protected CountDownLatch dispatchOrders(ProcedureContext context, List<CmsActionOrderSimple> ordersList) {
+    CountDownLatch latch = new CountDownLatch(ordersList.size());
+    ordersList.forEach(o -> {
+      dispatch(context, o, latch);
+    });
+    return latch;
+  }
+
+
+  private ProcedureContext pendingActions(long procedureId) {
     CmsOpsProcedure procedure = procProcessor.getCmsOpsProcedure(procedureId, false);
     ProcedureContext context = new ProcedureContext(procedure);
     if (procedure.getProcedureState() == OpsProcedureState.active) {
-      getPendingOrders(context);
+      pendingOrders(context);
     }
     return context;
   }
 
   @Override
-  protected void assembleAndDispatch(ExecutionContext context, CmsActionOrder order,
+  protected void dispatch(ExecutionContext context, CmsActionOrderSimple order,
       CountDownLatch latch) {
-    aoDispatchExecutor.submit(() -> assembleAndDispatchAsync(context, order, latch));
+    aoDispatchExecutor.submit(() -> dispatchAsync(context, order, latch));
   }
 
-  @Transactional
-  void assembleAndDispatchAsync(ExecutionContext context, CmsActionOrder ao, CountDownLatch latch) {
+  private void dispatchAsync(ExecutionContext context, CmsActionOrderSimple aoAssembled, CountDownLatch latch) {
     try {
-      CmsActionOrderSimple aoAssembled = cmsClient.assembleAo(ao, ((ProcedureContext)context).manifestToTemplateMap);
+      aoAssembled.getSearchTags().put(CmsConstants.DEPLOYMENT_MODEL, CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
       logger.info(">>>>>>>>>>> dispatching actionorder dpmtId : " + context.getExecutionId() + " ci : "
           + aoAssembled.getCiId());
-      inductorPublisher.publishMessage(Long.toString(ao.getProcedureId()),
-          Long.toString(aoAssembled.getActionId()), aoAssembled, "", ACTION_ORDER_TPYE);
+      woDispatcher.publishMessage(aoAssembled, ACTION_ORDER_TPYE);
       cmsClient.updateActionOrderState(aoAssembled, inprogress);
     } catch (Exception e) {
-      logger.error("exception in assembleAndDispatchAsync procedure " + ao.getProcedureId() + " action " + ao.getActionId(), e);
-      cmsClient.failActionOrder(ao);
+      logger.error("exception in dispatchAsync procedure " + aoAssembled.getProcedureId() + " action " + aoAssembled.getActionId(), e);
+      //cmsClient.failActionOrder(ao);
     }
     latch.countDown();
   }
 
   @Override
-  public void handleInductorResponse(CmsActionOrderSimple ao, Map<String, Object> params) throws JMSException {
+  @Transactional
+  public void handleInductorResponse(CmsActionOrderSimple ao, Map<String, Object> params) {
     long procId = ao.getProcedureId();
     long ciId = ao.getCiId();
     String logPrefix = "procedure " + procId + " ci " + ciId;
     logger.info(logPrefix + "<<<<<<<<<<< ProcRunner handle inductor response");
     updateAoState(ao, params);
+  }
+
+  @Override
+  @Transactional
+  public void convergeIfNeeded(CmsActionOrderSimple ao) throws JMSException {
+    long procId = ao.getProcedureId();
+    long ciId = ao.getCiId();
+    String logPrefix = "procedure " + procId + " ci " + ciId;
     int step = ao.getExecOrder();
     if (canConverge(ao.getProcedureId(), ao.getCiId(), step)) {
       //send a jms message to controller.workflow queue to proceed to next step
       logger.info("procedure " + procId + " ciId " + ciId + ": inductor response converging to next step");
-      sendMessageToProceed(PROCEDURE_TYPE, procId);
+      sendMessageToProceed(PROCEDURE.getName(), procId);
     }
     logger.info(logPrefix + " inductor response processing finished");
-
   }
+
   /**
    * checks if step converge can happen [no actionorders in pending/in-progress state for this step].
    */
-  @Override
-  @Transactional
-  public boolean canConverge(long procId, long ciId, int step) {
+  private boolean canConverge(long procId, long ciId, int step) {
     long startTs = System.currentTimeMillis();
     String logPrefix = "procId:" + procId + " step " + step + " ciId:" + ciId+ " :: ";
     boolean canConverge = false;
@@ -163,8 +164,8 @@ public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements Pr
     return canConverge;
   }
 
-  @Transactional
-  public void updateAoState(CmsActionOrderSimple aoResponse, Map<String, Object> params) {
+
+  private void updateAoState(CmsActionOrderSimple aoResponse, Map<String, Object> params) {
     String state = (String) params.get(CmsConstants.WORK_ORDER_STATE);
     logger.info(
         "updating procedure state proc " + aoResponse.getProcedureId() + " action " + aoResponse.getActionId() + " state "
@@ -172,9 +173,6 @@ public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements Pr
     cmsClient.updateActionOrderState(aoResponse, OpsActionState.valueOf(state));
   }
 
-  private boolean isActive(CmsOpsProcedure procedure) {
-    return active.equals(procedure.getProcedureState());
-  }
 
   @PreDestroy
   public void destroy() {
@@ -183,7 +181,7 @@ public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements Pr
 
   @Override
   protected void updateExecutionWithStep(ExecutionContext context, int newStep,
-      List<CmsActionOrder> list) {
+      List<CmsActionOrderSimple> list) {
     CmsOpsProcedure procedure = procedure(context);
     logger.info("updating procedure " + procedure.getProcedureId() + " with current step " + newStep);
     if (procedure.getCurrentStep() != newStep) {
@@ -219,13 +217,19 @@ public class ProcedureRunnerImpl extends Execution<CmsActionOrder> implements Pr
   }
 
   @Override
-  protected List<CmsActionOrder> getOrderIdsForStep(ExecutionContext context, int step) {
+  protected List<CmsActionOrderSimple> getOrdersForStep(ExecutionContext context, int step) {
     CmsOpsProcedure procedure = procedure(context);
-    return cmsClient.getBaseActionOrders(procedure, step);
+    try {
+      return cmsClient.getActionOrders(procedure, step);
+    } catch (GeneralSecurityException e) {
+      e.printStackTrace();
+    }
+    return Collections.emptyList();
   }
 
   @Override
   protected String getType() {
-    return PROCEDURE_TYPE;
+    return PROCEDURE.getName();
   }
+
 }

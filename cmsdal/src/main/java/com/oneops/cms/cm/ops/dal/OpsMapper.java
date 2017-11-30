@@ -92,11 +92,9 @@ public interface OpsMapper {
 
   List<Map<String,Object>> getActionsCountByStates(@Param("procedureId") long procedureId, @Param("step") Integer step);
 
-  void createProcedureExec(@Param("typeId") short typeId, @Param("procedureId") long procedureId, @Param("step") int step,
-      @Param("state") String state);
+  void createProcedureExec(@Param("procedureId") long procedureId, @Param("step") int step, @Param("state") String state);
 
-  int getAndUpdateStepState(@Param("typeId") short typeId, @Param("procedureId") long procedureId, @Param("step") int step,
-      @Param("newState") String newState);
+  int getAndUpdateStepState(@Param("procedureId") long procedureId, @Param("step") int step, @Param("newState") String newState);
 
   void updateProcedureCurrentStep(CmsOpsProcedure procedure);
 
