@@ -450,6 +450,10 @@ public class InMemoryDJMapper implements DJMapper{
     public List<CmsAltNs> getAltNsBy(long rfcCI) {
         throw new UnsupportedOperationException();
     }
+    
+    public BomData getBOM(){
+        return new BomData(release, cis.values(), relations.values());
+    }
 
     @Override
     public String toString() {

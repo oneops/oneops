@@ -36,6 +36,7 @@ import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.service.*;
+import com.oneops.transistor.service.peristenceless.BomData;
 import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 import org.apache.log4j.Logger;
@@ -473,13 +474,13 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value="environments/{envId}/deployments/inmemory", method = {RequestMethod.POST, RequestMethod.GET})
 	@ResponseBody
-	public void generateBomInMemory(
+	public BomData generateBomInMemory(
 			@PathVariable long envId,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
-			imBomProcesor.compileEnv(envId, userId, null, null, false, false);
+			return imBomProcesor.compileEnv(envId, userId, null, null, false, false);
 		} catch (CmsBaseException te) {
 			logger.error(te);
 			te.printStackTrace();

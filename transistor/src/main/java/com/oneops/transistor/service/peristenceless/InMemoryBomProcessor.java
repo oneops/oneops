@@ -39,12 +39,12 @@ public class InMemoryBomProcessor {
     }
 
 
-    public void compileEnv(long envId, String userId, Set<Long> excludePlats, String desc, boolean autodeploy, boolean commit) {
-        buildBom(envId, userId, excludePlats, desc, autodeploy, commit);
+    public BomData compileEnv(long envId, String userId, Set<Long> excludePlats, String desc, boolean autodeploy, boolean commit) {
+        return buildBom(envId, userId, excludePlats, desc, autodeploy, commit);
     }
 
 
-    private void buildBom(final long envId, final String userId, final Set<Long> excludePlats, final String desc, final boolean deploy, final boolean commit) {
+    private BomData buildBom(final long envId, final String userId, final Set<Long> excludePlats, final String desc, final boolean deploy, final boolean commit) {
         try {
             long startTime = System.currentTimeMillis();
             InMemoryDJMapper mapper = new InMemoryDJMapper();
@@ -52,6 +52,7 @@ public class InMemoryBomProcessor {
             bomManager.generateBom(envId, userId, excludePlats, desc, commit);
             logger.info(" Generation time taken: " + (System.currentTimeMillis() - startTime) + " ms");
             logger.info(mapper.toString());
+            return mapper.getBOM();
         } catch (Exception e) {
             logger.error("Exception  in build bom ", e);
             throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, e.getMessage());
