@@ -30,10 +30,12 @@ public class ThreadLocalDJMapperTest {
     public void testGet() throws Exception {
         assertEquals(tlmapper.getNextCiId(), 1);
         assertEquals(tlmapper.getNextCiId(), 2);
-        new Thread(() -> {
+        Thread t = new Thread(() -> {
             tlmapper.set(new InMemoryDJMapper());
             assertEquals(tlmapper.getNextCiId(), 1);
-        }).start();
+        });
+        t.start();
+        t.join();
         assertEquals(tlmapper.getNextCiId(), 3);
     }
 

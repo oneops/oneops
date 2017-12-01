@@ -35,6 +35,18 @@ public class InMemoryDJMapper implements DJMapper{
     public InMemoryDJMapper() {
     }
 
+    public Map<Long, CmsRfcCI> getCis() {
+        return cis;
+    }
+
+    public Map<Long, CmsRfcRelation> getRelations() {
+        return relations;
+    }
+
+    public CmsRelease getRelease() {
+        return release;
+    }
+
     @Override
     public long getNextDjId() {
         return djId++;
