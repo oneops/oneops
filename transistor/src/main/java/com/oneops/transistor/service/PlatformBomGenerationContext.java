@@ -18,7 +18,6 @@ import static com.oneops.cms.util.CmsConstants.*;
 public class PlatformBomGenerationContext {
     private static Logger logger = Logger.getLogger(PlatformBomGenerationContext.class);
 
-    private EnvBomGenerationContext envContext;
     private CmsCI platform;
 
     private String manifestNsPath;
@@ -39,10 +38,10 @@ public class PlatformBomGenerationContext {
     private Map<Long, List<CmsCIRelation>> securedByMap;
     private Map<Long, List<CmsCIRelation>> managedViaMap;
 
+    private List<CmsCIRelation> bomRelations;
 
     PlatformBomGenerationContext(CmsCI platformCi, EnvBomGenerationContext envContext, CmsCmProcessor cmProcessor, CmsUtil cmsUtil) {
         long t = System.currentTimeMillis();
-        this.envContext = envContext;
 
         platform = platformCi;
 
@@ -84,6 +83,8 @@ public class PlatformBomGenerationContext {
 
         entryPoints = cmProcessor.getFromCIRelationsNakedNoAttrs(platformCi.getCiId(), null, ENTRYPOINT, null);
 
+        bomRelations = cmProcessor.getCIRelations(bomNsPath, null, null, null, null);
+
         logger.info(manifestNsPath + " >>> Loaded platform bom generation context in " + (System.currentTimeMillis() - t) + " ms.");
     }
 
@@ -123,23 +124,34 @@ public class PlatformBomGenerationContext {
         return dependsOns;
     }
 
-    public List<CmsCIRelation> getEntryPoints() {
+    List<CmsCIRelation> getEntryPoints() {
         return entryPoints;
     }
 
-    public Map<Long, List<CmsCIRelation>> getDependsOnFromMap() {
+    Map<Long, List<CmsCIRelation>> getDependsOnFromMap() {
         return dependsOnFromMap;
     }
 
-    public Map<Long, List<CmsCIRelation>> getDependsOnToMap() {
+    Map<Long, List<CmsCIRelation>> getDependsOnToMap() {
         return dependsOnToMap;
     }
 
-    public Map<Long, List<CmsCIRelation>> getSecuredByMap() {
+    Map<Long, List<CmsCIRelation>> getSecuredByMap() {
         return securedByMap;
     }
 
-    public Map<Long, List<CmsCIRelation>> getManagedViaMap() {
+    Map<Long, List<CmsCIRelation>> getManagedViaMap() {
         return managedViaMap;
+    }
+
+    List<CmsCI> getBomCIs(long cloudId) {
+        return getBomRelations().stream()
+                .filter(r -> r.getRelationName().equals(BASE_DEPLOYED_TO) && r.getToCiId() == cloudId)
+                .map(CmsCIRelation::getFromCi)
+                .collect(Collectors.toList());
+    }
+
+    List<CmsCIRelation> getBomRelations() {
+        return bomRelations;
     }
 }

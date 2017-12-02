@@ -124,41 +124,41 @@ public class BomRfcBulkProcessor {
 			cisToValidate.addAll(pc.getLogs());
 			processAndValidateVars(cisToValidate, ec.getCloudVariables(cloud), ec.getGlobalVariables(), pc.getVariables());
 
-			List<BomRfc> boms = new ArrayList<>();
+			List<BomRfc> bomRfcs = new ArrayList<>();
 			Map<String, List<BomRfc>> mfstId2nodeId = new HashMap<>();
 			Map<Long, Map<String, List<CmsCIRelation>>> manifestDependsOnRels = new HashMap<>();
 			CmsCI startingPoint = components.get(0);
 			while (startingPoint != null) {
 				BomRfc newBom = bootstrapNewBom(startingPoint, bindingRel.getToCiId(), 1);
-				boms.add(newBom);
+				bomRfcs.add(newBom);
 				mfstId2nodeId.put(newBom.manifestCiId + "-1", new ArrayList<>(Collections.singletonList(newBom)));
-				boms.addAll(processNode(newBom, bindingRel, mfstId2nodeId, manifestDependsOnRels, 1, usePercent, 1, pc.getDependsOnFromMap(), pc.getDependsOnToMap()));
-				startingPoint = getStartingPoint(components, boms);
+				bomRfcs.addAll(processNode(newBom, bindingRel, mfstId2nodeId, manifestDependsOnRels, 1, usePercent, 1, pc.getDependsOnFromMap(), pc.getDependsOnToMap()));
+				startingPoint = getStartingPoint(components, bomRfcs);
 			}
 
 			// this is needed to work around ibatis
 			// if there is no any updates within current transaction
 			// ibatis would not return a new object as query result but instead a ref to the previousely created one
 			// if it was modified outside - the changes will not be reset
-			for(BomRfc bom : boms) {
+			for(BomRfc bom : bomRfcs) {
 				bom.mfstCi = trUtil.cloneCI(bom.mfstCi);
 			}
 
+			List<CmsCI> existingCIs = pc.getBomCIs(bindingRel.getToCiId());
+			Map<String, CmsRfcCI> existingRfcCIs = getOpenRfcCis(bomNsPath);
+			ExistingRelations existingRels = new ExistingRelations(pc);
 			String userId = ec.getUserId();
 			long releaseId = ec.getReleaseId();
-			ExistingRels existingRels = new ExistingRels(bomNsPath);
-			Map<String, CmsCI> existingCIs = getExistingCis(bindingRel.getToCiId(), bomNsPath);
-			Map<String, CmsRfcCI> existingRfcCis = getOpenRfcCis(bomNsPath);
 
 			long bomCreationStartTime = System.currentTimeMillis();
 			logger.info(bomNsPath + " >>> Processing components...");
-			maxExecOrder = createBomRfcsAndRels(boms, bomNsPath, nsId, bindingRel, startExecOrder, isPartial, userId, existingRels, existingCIs, existingRfcCis, releaseId, pc.getDependsOnFromMap(), pc.getDependsOnToMap());
-			Map<Long, List<BomRfc>> bomRfcMap = boms.stream().collect(Collectors.groupingBy(bom -> bom.manifestCiId));
+			maxExecOrder = createBomRfcsAndRels(pc, bindingRel, existingCIs, existingRfcCIs, existingRels, bomRfcs, isPartial, nsId, startExecOrder, userId, releaseId);
+			Map<Long, List<BomRfc>> bomRfcMap = bomRfcs.stream().collect(Collectors.groupingBy(bom -> bom.manifestCiId));
 			logger.info(bomNsPath + " >>> Done with components in " + (System.currentTimeMillis() - bomCreationStartTime) + " ms.");
 
 			long mngviaStartTime = System.currentTimeMillis();
 			logger.info(bomNsPath + " >>> Processing MANAGED_VIA relations");
-			processManagedViaRels(components, pc, bomRfcMap, bomNsPath, nsId, userId, existingCIs, existingRels, releaseId);
+			processManagedViaRels(pc, existingCIs, existingRels, bomRfcMap, nsId, userId, releaseId);
 			logger.info(bomNsPath + " >>>  Done with MANAGED_VIA relations in " + (System.currentTimeMillis() - mngviaStartTime) + " ms.");
 
 			long secByStartTime = System.currentTimeMillis();
@@ -172,16 +172,35 @@ public class BomRfcBulkProcessor {
 			logger.info(bomNsPath + " >>> Done with ENTRYPOINT relations in " + (System.currentTimeMillis() - entryPointStartTime) + " ms.");
 
 			if (!usePercent || !isPartial) {
-				if (maxExecOrder == 0) maxExecOrder++;
-				long obsoleteStartTime = System.currentTimeMillis();
-				logger.info(bomNsPath + " >>> Finding obsolete boms...");
-				maxExecOrder = findObsolete(boms, bomNsPath, maxExecOrder, existingCIs, releaseId, userId, pc.getDependsOnFromMap(), pc.getDependsOnToMap());
-				logger.info(bomNsPath + " >>> Done with obsolete boms in " + (System.currentTimeMillis() - obsoleteStartTime) + "ms.");
+				if (maxExecOrder == 0) {
+					maxExecOrder++;
+				}
+				maxExecOrder = findObsolete(pc, existingCIs, bomRfcs, maxExecOrder, userId, releaseId);
 			}
 		}
 
 		long timeTook = System.currentTimeMillis() - startingTime;
 		logger.info(bomNsPath + ">>> Done with " + platformCi.getCiName() + ", cloud - " + cloud.getCiName() + " in " + timeTook + " ms.");
+		return maxExecOrder;
+	}
+
+	public int deleteManifestPlatform(EnvBomGenerationContext ec, PlatformBomGenerationContext pc, CmsCIRelation bindingRel, int startExecOrder) {
+		int maxExecOrder = 0;
+		String userId = ec.getUserId();
+		CmsCI platformCi = pc.getPlatform();
+		List<CmsCI> components = pc.getComponents();
+		if (components.size() > 0) {
+			String bomNsPath = pc.getBomNsPath();
+			if (pc.getBomRelations().size() > 0) {
+				maxExecOrder = findObsolete(pc, pc.getBomCIs(bindingRel.getToCiId()), new ArrayList<>(), startExecOrder, userId, ec.getReleaseId());
+			} else if (platformCi.getCiState().equalsIgnoreCase("pending_deletion")) {
+				for (CmsCI component : components) {
+					cmProcessor.deleteCI(component.getCiId(), true, userId);
+				}
+				cmProcessor.deleteCI(platformCi.getCiId(), true, userId);
+				trUtil.deleteNs(bomNsPath);
+			}
+		}
 		return maxExecOrder;
 	}
 
@@ -203,53 +222,48 @@ public class BomRfcBulkProcessor {
 		ec.rethrowExceptionIfNeeded();
 	}
 
-	private int findObsolete(List<BomRfc> newBoms,
-							 String bomNsPath,
+	private int findObsolete(PlatformBomGenerationContext pc,
+							 List<CmsCI> existingCIs,
+							 List<BomRfc> newBoms,
 							 int startingExecOrder,
-							 Map<String, CmsCI> existingCIs,
-							 long releaseId,
 							 String userId,
-							 Map<Long, List<CmsCIRelation>> depOnFromMap,
-							 Map<Long, List<CmsCIRelation>> depOnToMap) {
-		logger.info(bomNsPath + " >>> finding cis to delete..." );
+							 long releaseId) {
 		long startTime = System.currentTimeMillis();
+		String bomNsPath = pc.getBomNsPath();
+		logger.info(bomNsPath + " >>> Processing obsolete boms...");
 		int maxExecOrder = startingExecOrder;
 		Map<String, BomRfc> bomMap = new HashMap<>();
 		for (BomRfc bom : newBoms) {
 			bomMap.put(bom.ciName, bom);
 		}
 
-		List<CmsCI> existingCis = new ArrayList<>(existingCIs.values());
-
 		Map<Long, CmsCI> obsoleteCisMap = new HashMap<>();
-		for (CmsCI ci : existingCis) {
+		for (CmsCI ci : existingCIs) {
 			if (!bomMap.containsKey(ci.getCiName())) {
-				logger.info("This ci should be deleted - " + ci.getCiName());
+				logger.debug("This ci should be deleted - " + ci.getCiName());
 				obsoleteCisMap.put(ci.getCiId(), ci);
 			}
 		}
 
-		logger.info(bomNsPath + " >>> creating delete rfcs and traversing strong relations..." );
 		if (obsoleteCisMap.size()>0) {
-			maxExecOrder = processObsolete(newBoms, obsoleteCisMap, startingExecOrder, bomNsPath, releaseId, userId, existingCIs, depOnFromMap, depOnToMap);
+			logger.info(bomNsPath + " >>> creating delete rfcs and traversing strong relations..." );
+			maxExecOrder = processObsolete(pc, existingCIs, newBoms, obsoleteCisMap, startingExecOrder, releaseId, userId);
 		}
 
-		logger.info(bomNsPath + " >>> Done creating delete rfcs, time taken:" +  (System.currentTimeMillis() - startTime));
+		logger.info(bomNsPath + " >>> Done with obsolete boms in " + (System.currentTimeMillis() - startTime) + "ms.");
 		return maxExecOrder;
 	}
 
-	private int processObsolete(List<BomRfc> bomRfcs,
+	private int processObsolete(PlatformBomGenerationContext pc,
+								List<CmsCI> existingCIs,
+								List<BomRfc> bomRfcs,
 								Map<Long, CmsCI> obsoleteCisMap,
 								int startingExecOrder,
-								String bomNsPath,
 								long releaseId,
-								String userId,
-								Map<String, CmsCI> existingCIs,
-								Map<Long, List<CmsCIRelation>> depOnFromMap,
-								Map<Long, List<CmsCIRelation>> depOnToMap) {
-
+								String userId) {
+		String bomNsPath = pc.getBomNsPath();
+		Map<Long, List<CmsCIRelation>> depOnToMap = pc.getDependsOnToMap();
 		int maxExecOrder = startingExecOrder;
-
 		Set<Long> obsoleteToRelations = new HashSet<>();
 		Map<Long, List<CmsCIRelation>> obsoleteFromRelations = new HashMap<>();
 		List<CmsCIRelation> dummyUpdateRels = new ArrayList<>();
@@ -296,9 +310,14 @@ public class BomRfcBulkProcessor {
 		long totalPropagationTime = 0;
 
 		//now lets submit submit dummy update
+		Map<Long, CmsCIRelation> realizedAsToMap = pc.getBomRelations().stream()
+				.filter(r -> r.getRelationName().equals(BASE_REALIZED_AS))
+				.collect(Collectors.toMap(CmsCIRelation::getToCiId, Function.identity()));
 		Set<Long> dummyUpdates = new HashSet<>();
 		if (dummyUpdateRels.size() > 0) {
-			List<CmsCIRelation> bomDepOns = null;
+			List<CmsCIRelation> bomDepOns = pc.getBomRelations().stream()
+					.filter(r -> r.getRelationName().equals(BOM_DEPENDS_ON))
+					.collect(Collectors.toList());
 			for (CmsCIRelation rel : dummyUpdateRels) {
 				dummyUpdates.add(rel.getFromCiId());
 				for (BomRfc bomRfc : bomRfcs) {
@@ -306,11 +325,8 @@ public class BomRfcBulkProcessor {
 						 logger.info("bom.rfc null for " + bomRfc.ciName + " nspath: " + bomNsPath);
 					} else if (bomRfc.rfc.getCiId() == rel.getFromCiId()) {
 						long startTime = System.currentTimeMillis();
-						mapPropagations(bomRfc.manifestCiId, depOnFromMap, depOnToMap, manifestPropagations);
-						if (bomDepOns == null) {
-							bomDepOns = cmProcessor.getCIRelationsNoAttrs(bomNsPath, BOM_DEPENDS_ON, null);
-						}
-						propagateUpdate(bomRfc.rfc.getCiId(), bomRfc.manifestCiId, manifestPropagations, bomDepOns, propagations);
+						mapPropagations(bomRfc.manifestCiId, pc.getDependsOnFromMap(), depOnToMap, manifestPropagations);
+						propagateUpdate(bomRfc.rfc.getCiId(), bomRfc.manifestCiId, realizedAsToMap, manifestPropagations, bomDepOns, propagations);
 						long endTime = System.currentTimeMillis();
 						totalPropagationTime += totalPropagationTime + (endTime - startTime);
 					}
@@ -332,8 +348,8 @@ public class BomRfcBulkProcessor {
 			}
 
 			// Now lets iterate over the sorted order map to touch the dummy update CIs with exec order starting from max exec order
-			Map<Long, CmsCI> existingCiMap = existingCIs.values().stream()
-														.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+			Map<Long, CmsCI> existingCiMap = existingCIs.stream()
+					.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
 			for (int order : dummyUpdateExecOrders.keySet()) {
 				maxExecOrder++;
 				for (long dummyUpdateCiId : dummyUpdateExecOrders.get(order)) {
@@ -383,29 +399,32 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private int createBomRfcsAndRels(List<BomRfc> boms,
-									 String nsPath,
-									 long nsId,
+	private int createBomRfcsAndRels(PlatformBomGenerationContext pc,
 									 CmsCIRelation bindingRel,
-									 int startExecOrder,
+									 List<CmsCI> existingCIs,
+									 Map<String, CmsRfcCI> existingRfcCIs,
+									 ExistingRelations existingRels,
+									 List<BomRfc> bomRfcs,
 									 boolean isPartial,
+									 long nsId,
+									 int startExecOrder,
 									 String userId,
-									 ExistingRels existingRels,
-									 Map<String, CmsCI> existingCIs,
-									 Map<String, CmsRfcCI> existingRFCs,
-									 Long releaseId,
-									 Map<Long, List<CmsCIRelation>> depOnFromMap,
-									 Map<Long, List<CmsCIRelation>> depOnToMap) {
+									 Long releaseId) {
+
+		String bomNsPath = pc.getBomNsPath();
+		Map<Long, List<CmsCIRelation>> depOnFromMap = pc.getDependsOnFromMap();
+		Map<Long, List<CmsCIRelation>> depOnToMap = pc.getDependsOnToMap();
+
 
 		Map<String, BomRfc> bomMap = new HashMap<>();
-		for (BomRfc bom : boms) {
+		for (BomRfc bom : bomRfcs) {
 			bomMap.put(bom.nodeId, bom);
 		}
 		// need to verify all the to links for the case when we have converge link
 		verifyToLinks(bomMap);
 		//lets find out the exec order and populate relations list
 		Map<String, BomLink> links = new HashMap<>();
-		for (BomRfc bom :boms) {
+		for (BomRfc bom :bomRfcs) {
 			if (bom.fromLinks.size()==0) {
 				processOrder(bom, bomMap, startExecOrder, 1);
 			} else {
@@ -415,43 +434,50 @@ public class BomRfcBulkProcessor {
 			}
 		}
 
-		int maxExecOrder = getMaxExecOrder(boms);
+		int maxExecOrder = bomRfcs.stream().map(b -> b.execOrder).max(Comparator.comparingInt(i -> i)).orElse(0);
 
 		Map<Integer, List<BomRfc>> orderedMap = new HashMap<>();
-		for (BomRfc bom : boms) {
+		for (BomRfc bom : bomRfcs) {
 			if (!orderedMap.containsKey(bom.execOrder)) {
 				orderedMap.put(bom.execOrder, new ArrayList<>());
 			}
 			orderedMap.get(bom.execOrder).add(bom);
 		}
+
+		Map<String, CmsCI> existingCIsByBomIdMap = existingCIs.stream()
+				.collect(Collectors.toMap(ci -> ci.getCiClassName() + ":" + ci.getCiName(), Function.identity()));
+		Map<Long, CmsCIRelation> realizedAsToMap = pc.getBomRelations().stream()
+				.filter(r -> r.getRelationName().equals(BASE_REALIZED_AS))
+				.collect(Collectors.toMap(CmsCIRelation::getToCiId, Function.identity()));
 		Set<Long> propagations = new HashSet<>();
 		Set<Long> bomCiIds = new HashSet<>();
 		Map<Long, List<String>> manifestPropagations = new HashMap<>();
 		long timeTakenByPropagation = 0;
 		long rfcInsertStartTime = System.currentTimeMillis();
-		//now lets create rfcs
 		int realExecOrder = startExecOrder;
 		int numberOfRFCs = 0;
 		List<CmsRfcCI> replacedComputes = new ArrayList<>();
-		List<CmsCIRelation> bomDepOns = null;
-		for (int i=startExecOrder; i<=maxExecOrder; i++) {
+		List<CmsCIRelation> bomDepOns = pc.getBomRelations().stream()
+				.filter(r -> r.getRelationName().equals(BOM_DEPENDS_ON))
+				.collect(Collectors.toList());
+		for (int i = startExecOrder; i <= maxExecOrder; i++) {
 			boolean incOrder = false;
 			if (orderedMap.containsKey(i)) {
 				for (BomRfc bom : orderedMap.get(i)) {
 					String shortClazzName = trUtil.getShortClazzName(bom.mfstCi.getCiClassName());
 					String bomId = "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName()) + ":" + bom.ciName;
-					CmsCI existingCi = existingCIs.get(bomId);
-					CmsRfcCI existingRfc = existingRFCs.get(bomId);
+					CmsCI existingCi = existingCIsByBomIdMap.get(bomId);
+					CmsRfcCI existingRfc = existingRfcCIs.get(bomId);
 					boolean rfcCreated;
 					if (priorityMap.containsKey(shortClazzName)) {
 						bom.execOrder = priorityMap.get(shortClazzName);
-						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, nsPath, bindingRel, releaseId, userId, existingRels);
+						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, bomNsPath, bindingRel, releaseId, userId, existingRels);
 						if (rfcCreated && realExecOrder == 1) {
 							incOrder = true;
 						}
 					} else {
 						//bom.execOrder = realExecOrder;
-						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, nsPath, bindingRel, releaseId, userId, existingRels);
+						rfcCreated = upsertRfcs(bom, existingCi, existingRfc, nsId, bomNsPath, bindingRel, releaseId, userId, existingRels);
 						if (rfcCreated && bom.rfc != null) {
 							//if rfc was created, lets check if any propagation is required
 							if(bom.rfc.getCiClassName().equals("bom.Compute") && bom.rfc.getRfcAction().equals("replace")) {
@@ -460,10 +486,7 @@ public class BomRfcBulkProcessor {
 
 							long startTime = System.currentTimeMillis();
 							mapPropagations(bom.manifestCiId, depOnFromMap, depOnToMap, manifestPropagations);
-							if (bomDepOns == null) {
-								bomDepOns = cmProcessor.getCIRelationsNoAttrs(nsPath.replace("/manifest/", "/bom/"), BOM_DEPENDS_ON, null);
-							}
-							propagateUpdate(bom.rfc.getCiId(), bom.manifestCiId, manifestPropagations, bomDepOns, propagations);
+							propagateUpdate(bom.rfc.getCiId(), bom.manifestCiId, realizedAsToMap, manifestPropagations, bomDepOns, propagations);
 							long endTime = System.currentTimeMillis();
 							timeTakenByPropagation = timeTakenByPropagation + (endTime - startTime);
 						}
@@ -476,22 +499,22 @@ public class BomRfcBulkProcessor {
 					if (rfcCreated) {
 						numberOfRFCs++;
 						if (numberOfRFCs % 100 == 0) {
-							logger.debug(nsPath + " >>> Inserted " + numberOfRFCs + " rfcs");
+							logger.debug(bomNsPath + " >>> Inserted " + numberOfRFCs + " rfcs");
 						}
 					}
 				}
 			}
 			if (incOrder) realExecOrder++;
 		}
-		logger.info(nsPath + " >>> Inserted " + numberOfRFCs + " RFC CIs in " + (System.currentTimeMillis() - rfcInsertStartTime) + "ms.");
+		logger.info(bomNsPath + " >>> Inserted " + numberOfRFCs + " RFC CIs in " + (System.currentTimeMillis() - rfcInsertStartTime) + "ms.");
 
 		long rfcRelationInsertStartTime = System.currentTimeMillis();
 		//lets create dependsOn Relations
 		//TODO question should we propagate rel attrs
-		int maxRfcExecOrder = getMaxRfcExecOrder(boms);
+		int maxRfcExecOrder = getMaxRfcExecOrder(bomRfcs);
 
-		Map<Long, CmsCI> existingCiMap = existingCIs.values().stream()
-													.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+		Map<Long, CmsCI> existingCiMap = existingCIs.stream()
+				.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
 		maxExecOrder = (maxRfcExecOrder > 0) ? maxRfcExecOrder : maxExecOrder;
 		//execute all dummy updates in one last step
 		//maxExecOrder++;
@@ -505,7 +528,7 @@ public class BomRfcBulkProcessor {
 				long fromCiId = fromNode.rfc.getCiId();
 				long toCiId = toNode.rfc.getCiId();
 				String comments = CmsUtil.generateRelComments(fromNode.rfc.getCiName(), fromNode.rfc.getCiClassName(), toNode.rfc.getCiName(), toNode.rfc.getCiClassName());
-				CmsRfcRelation dependsOn = bootstrapRfcRelation(fromCiId, toCiId, BOM_DEPENDS_ON, nsPath, nsId, userId, comments, existingRels);
+				CmsRfcRelation dependsOn = bootstrapRfcRelation(fromCiId, toCiId, BOM_DEPENDS_ON, bomNsPath, nsId, userId, comments, existingRels);
 				if (fromNode.rfc.getRfcId() > 0) {
 					dependsOn.setFromRfcId(fromNode.rfc.getRfcId());
 				}
@@ -524,25 +547,22 @@ public class BomRfcBulkProcessor {
 						long startTime = System.currentTimeMillis();
 						long manifestCiId = fromNode.manifestCiId;
 						mapPropagations(manifestCiId, depOnFromMap, depOnToMap, manifestPropagations);
-						if (bomDepOns == null) {
-							bomDepOns = cmProcessor.getCIRelationsNoAttrs(nsPath.replace("/manifest/", "/bom/"), BOM_DEPENDS_ON, null);
-						}
-						propagateUpdate(fromCiId, manifestCiId, manifestPropagations, bomDepOns, propagations);
+						propagateUpdate(fromCiId, manifestCiId, realizedAsToMap, manifestPropagations, bomDepOns, propagations);
 						long endTime = System.currentTimeMillis();
 						timeTakenByPropagation = timeTakenByPropagation + (endTime - startTime);
 						increaseMaxOrder = true;
 					}
 					if (numberOfRelRFCs % 100 == 0) {
-						logger.debug(nsPath + " >>> Inserted " + numberOfRelRFCs + " relation rfcs");
+						logger.debug(bomNsPath + " >>> Inserted " + numberOfRelRFCs + " relation rfcs");
 					}
 				}
 			}
 		}
-		logger.info(nsPath + " >>> Inserted " + numberOfRelRFCs + " RFC relations in " + (System.currentTimeMillis() - rfcRelationInsertStartTime) + "ms.");
+		logger.info(bomNsPath + " >>> Inserted " + numberOfRelRFCs + " RFC relations in " + (System.currentTimeMillis() - rfcRelationInsertStartTime) + "ms.");
 
 		//Now create dummy updates for all the dependency-propagations needed
 		if (propagations.size() > 0) {
-			for (BomRfc bom : boms) {
+			for (BomRfc bom : bomRfcs) {
 				if (bom.rfc == null) {
 					logger.info("rfc null for: " + bom.ciName);
 					continue;
@@ -550,8 +570,8 @@ public class BomRfcBulkProcessor {
 
 				if (propagations.contains(bom.rfc.getCiId())) {
 					String bomId = "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName()) + ":" + bom.ciName;
-					CmsCI existingCi = existingCIs.get(bomId);
-					CmsRfcCI existingRfc = existingRFCs.get(bomId);
+					CmsCI existingCi = existingCIsByBomIdMap.get(bomId);
+					CmsRfcCI existingRfc = existingRfcCIs.get(bomId);
 					if (existingRfc == null && bom.rfc.getRfcId() == 0) {
 						createDummyUpdateRfc(existingCi, releaseId, bom.execOrder, userId, true);
 					} else {
@@ -582,14 +602,8 @@ public class BomRfcBulkProcessor {
 		}
 		if (increaseMaxOrder) maxExecOrder++;
 
-		logger.info(nsPath + " >>> Total time taken by propagation in ms: " + timeTakenByPropagation);
+		logger.info(bomNsPath + " >>> Total time taken by propagation in ms: " + timeTakenByPropagation);
 		return maxExecOrder;
-	}
-
-	private Map<String, CmsCI> getExistingCis(long cloudId, String nsPath) {
-		return cmProcessor.getToCIRelationsByNsNoAttrs(cloudId, DEPLOYED_TO, null, null, nsPath).stream()
-				.map(CmsCIRelation::getFromCi)
-				.collect(Collectors.toMap(ci -> ci.getCiClassName() + ":" + ci.getCiName(), Function.identity()));
 	}
 
 	private Map<String, CmsRfcCI> getOpenRfcCis(String nsPath) {
@@ -597,7 +611,12 @@ public class BomRfcBulkProcessor {
 				.collect(Collectors.toMap(ci -> ci.getCiClassName() + ":" + ci.getCiName(), Function.identity()));
 	}
 
-	private void propagateUpdate(long bomCiId, long manifestId, Map<Long, List<String>> manifestPropagations, List<CmsCIRelation> bomDepOns, Set<Long> propagations) {
+	private void propagateUpdate(long bomCiId,
+								 long manifestId,
+								 Map<Long, CmsCIRelation> realizedAsToMap,
+								 Map<Long, List<String>> manifestPropagations,
+								 List<CmsCIRelation> bomDepOns,
+								 Set<Long> propagations) {
 		List<String> targetManifestCiNames = manifestPropagations.get(manifestId);
 		if (targetManifestCiNames == null || targetManifestCiNames.isEmpty()) {
 			return;
@@ -607,33 +626,21 @@ public class BomRfcBulkProcessor {
 											.collect(Collectors.toList());
 		for (String targetCiName : targetManifestCiNames) {
 			for (CmsCIRelation rel : rels) {
-				if (rel.getToCiId() == bomCiId) {
-					CmsCI fromCi = rel.getFromCi();
-					String ciName = fromCi.getCiName();
-					if (ciName != null && ciName.startsWith(targetCiName + "-")) {
-						if (propagations.contains(rel.getFromCiId())) {
-							continue;
-						}
-						//logger.info("propagating update from bom cid : " + bomCiId + " to " + rel.getFromCiId());
-						propagations.add(rel.getFromCiId());
-						List<CmsCIRelation> realizedAs = cmProcessor.getToCIRelations(rel.getFromCiId(), BASE_REALIZED_AS, fromCi.getCiClassName().replaceFirst("bom", "manifest"));
-						if (realizedAs != null) {
-							propagateUpdate(rel.getFromCiId(), realizedAs.get(0).getFromCiId(), manifestPropagations, bomDepOns, propagations);
-						}
-					}
-				} else if (rel.getFromCiId() == bomCiId) {
-					CmsCI toCi = rel.getToCi();
-					String ciName = toCi.getCiName();
-					if (ciName != null && ciName.startsWith(targetCiName + "-")) {
-						if (propagations.contains(rel.getToCiId())) {
-							continue;
-						}
-						//logger.info("propagating update from bom cid : " + bomCiId + " to " + rel.getToCiId());
-						propagations.add(rel.getToCiId());
-						List<CmsCIRelation> realizedAs = cmProcessor.getToCIRelations(rel.getToCiId(), BASE_REALIZED_AS, toCi.getCiClassName().replaceFirst("bom", "manifest"));
-						if (realizedAs != null) {
-							propagateUpdate(rel.getToCiId(), realizedAs.get(0).getFromCiId(), manifestPropagations, bomDepOns, propagations);
-						}
+				long ciId;
+				String ciName;
+				long toCiId = rel.getToCiId();
+				if (toCiId == bomCiId) {
+					ciId = rel.getFromCiId();
+					ciName = rel.getFromCi().getCiName();
+				} else {
+					ciId = toCiId;
+					ciName = rel.getToCi().getCiName();
+				}
+				if (ciName != null && ciName.startsWith(targetCiName + "-") && !propagations.contains(ciId)) {
+					propagations.add(ciId);
+					CmsCIRelation realizedAs = realizedAsToMap.get(ciId);
+					if (realizedAs != null) {
+						propagateUpdate(ciId, realizedAs.getFromCiId(), realizedAsToMap, manifestPropagations, bomDepOns, propagations);
 					}
 				}
 			}
@@ -694,7 +701,7 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private boolean upsertRfcs(BomRfc bom, CmsCI existingCi, CmsRfcCI existingRfc, long nsId, String nsPath, CmsCIRelation bindingRel, Long releaseId, String userId, ExistingRels existingRels) {
+	private boolean upsertRfcs(BomRfc bom, CmsCI existingCi, CmsRfcCI existingRfc, long nsId, String nsPath, CmsCIRelation bindingRel, Long releaseId, String userId, ExistingRelations existingRels) {
 
 		boolean rfcCreated = false;
 		if (bom.mfstCi.getCiState().equalsIgnoreCase("pending_deletion")) {
@@ -738,7 +745,7 @@ public class BomRfcBulkProcessor {
 			createBomRelationRfc(realizedAs, existingRels, releaseId);
 
 			comments = CmsUtil.generateRelComments(bom.rfc.getCiName(), bom.rfc.getCiClassName(), bindingRel.getToCi().getCiName(), bindingRel.getToCi().getCiClassName());
-			CmsRfcRelation deployedTo = bootstrapRfcRelation(bom.rfc.getCiId(), bindingRel.getToCiId(), DEPLOYED_TO, nsPath, nsId, userId, comments, priority, existingRels);
+			CmsRfcRelation deployedTo = bootstrapRfcRelation(bom.rfc.getCiId(), bindingRel.getToCiId(), BASE_DEPLOYED_TO, nsPath, nsId, userId, comments, priority, existingRels);
 			if (rfcCreated) {
 				deployedTo.setFromRfcId(bom.rfc.getRfcId());
 			}
@@ -804,7 +811,7 @@ public class BomRfcBulkProcessor {
 		return needUpdate;
 	}
 
-	private void createBomRelationRfc(CmsRfcRelation rfc, ExistingRels existingRels, Long releaseId) {
+	private void createBomRelationRfc(CmsRfcRelation rfc, ExistingRelations existingRels, Long releaseId) {
 		if (rfc.getReleaseId()==0 && releaseId!=null){
 			rfc.setReleaseId(releaseId);
 		}
@@ -857,29 +864,6 @@ public class BomRfcBulkProcessor {
 		return needUpdate;
 	}
 
-	public int deleteManifestPlatform(EnvBomGenerationContext ec, PlatformBomGenerationContext pc, CmsCIRelation bindingRel, int startExecOrder) {
-		int maxExecOrder = 0;
-		String userId = ec.getUserId();
-		long releaseId = ec.getReleaseId();
-		CmsCI platformCi = pc.getPlatform();
-		List<CmsCI> components = pc.getComponents();
-		if (components.size() > 0) {
-			String bomNsPath = pc.getBomNsPath();
-			long numOfBoms = cmProcessor.getCountBy3(bomNsPath, null, null, false);
-			if (numOfBoms > 0) {
-				Map<String, CmsCI> existingCIs = getExistingCis(bindingRel.getToCiId(), bomNsPath);
-				maxExecOrder = findObsolete(new ArrayList<>(), bomNsPath, startExecOrder, existingCIs, releaseId, userId, pc.getDependsOnFromMap(), pc.getDependsOnToMap());
-			} else if (platformCi.getCiState().equalsIgnoreCase("pending_deletion")) {
-				for (CmsCI component : components) {
-					cmProcessor.deleteCI(component.getCiId(), true, userId);
-				}
-				cmProcessor.deleteCI(platformCi.getCiId(), true, userId);
-				trUtil.deleteNs(bomNsPath);
-			}
-		}
-		return maxExecOrder;
-	}
-
 	private void processOrder(BomRfc bom, Map<String, BomRfc> bomMap, int order, int recursionDepth) {
 		if (recursionDepth >= MAX_RECURSION_DEPTH) {
 			String err = "Circular dependency detected, (level - " + recursionDepth + "),\n please check the platform diagram for " + extractPlatformNameFromNsPath(bom.mfstCi.getNsPath());
@@ -895,14 +879,6 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private int getMaxExecOrder(List<BomRfc> boms) {
-		int maxExecOrder = 0;
-		for (BomRfc bom : boms) {
-			maxExecOrder = (bom.execOrder > maxExecOrder) ? bom.execOrder : maxExecOrder;
-		}
-		return maxExecOrder;
-	}
-
 	private int getMaxRfcExecOrder(List<BomRfc> boms) {
 		int maxExecOrder = 0;
 		for (BomRfc bom : boms) {
@@ -913,7 +889,7 @@ public class BomRfcBulkProcessor {
 		return maxExecOrder;
 	}
 
-	private void processEntryPointRel(long platformCiId, List<CmsCIRelation> entryPoints, Map<Long, List<BomRfc>> bomsMap, String nsPath, long nsId, String userId, ExistingRels existingRels, long releaseId) {
+	private void processEntryPointRel(long platformCiId, List<CmsCIRelation> entryPoints, Map<Long, List<BomRfc>> bomsMap, String nsPath, long nsId, String userId, ExistingRelations existingRels, long releaseId) {
 		for (CmsCIRelation epRel : entryPoints) {
 			if (bomsMap.containsKey(epRel.getToCiId())) {
 				for (BomRfc bom : bomsMap.get(epRel.getToCiId())) {
@@ -929,18 +905,17 @@ public class BomRfcBulkProcessor {
 		}
 	}
 
-	private void processManagedViaRels(List<CmsCI> components,
-									   PlatformBomGenerationContext pc,
+	private void processManagedViaRels(PlatformBomGenerationContext pc,
+									   List<CmsCI> existingCIs,
+									   ExistingRelations existingRels,
 									   Map<Long, List<BomRfc>> bomsMap,
-									   String bomNsPath,
 									   long nsId,
 									   String userId,
-									   Map<String, CmsCI> existingCIs,
-									   ExistingRels existingRels,
 									   Long releaseId) {
+		String bomNsPath = pc.getBomNsPath();
 		logger.info(bomNsPath + " >>> Path calc BFS optimization");
 
-		Map<Long, String> toClassNameMap = existingCIs.values().stream()
+		Map<Long, String> toClassNameMap = existingCIs.stream()
 				.collect(Collectors.toMap(CmsCI::getCiId, CmsCI::getCiClassName));
 		bomsMap.values().stream()
 			   .flatMap(List::stream)
@@ -985,7 +960,7 @@ public class BomRfcBulkProcessor {
 
 		Map<Long, List<CmsCIRelation>> managedViaMap = pc.getManagedViaMap();
 		Set<String> relRfcGoids = new HashSet<>();
-		for (CmsCI component : components) {
+		for (CmsCI component : pc.getComponents()) {
 			List<CmsCIRelation> componentManagedViaRels = managedViaMap.get(component.getCiId());
 			if (componentManagedViaRels == null) continue;
 
@@ -1046,7 +1021,7 @@ public class BomRfcBulkProcessor {
 		logger.info(bomNsPath + " >>> dpOnPath time: "+dpOnPathTime+" Calls: "+dpOnPathCalls+" leafsByPath time: " +  leafTime+ " calls: "+ leafCalls +" Relation Counter:"+ counter+" Avg path length:"+(double)lengthSum/lengthCounter);
 	}
 
-	private void processSecuredByRels(List<CmsCI> components, Map<Long, List<CmsCIRelation>> securedByMap, Map<Long, List<BomRfc>> bomsMap, String bomNsPath, long nsId,  String userId, ExistingRels existingRels, Long releaseId) {
+	private void processSecuredByRels(List<CmsCI> components, Map<Long, List<CmsCIRelation>> securedByMap, Map<Long, List<BomRfc>> bomsMap, String bomNsPath, long nsId, String userId, ExistingRelations existingRels, Long releaseId) {
 		if (components.isEmpty()) return;
 
 		for (CmsCI component : components) {
@@ -1337,11 +1312,11 @@ public class BomRfcBulkProcessor {
 	}
 
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, ExistingRels existingRels) {
+	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, ExistingRelations existingRels) {
 		return bootstrapRfcRelation(fromCiId, toCiId, relName, nsPath, nsId, userId, new HashSet<>(), existingRels);
 	}
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, Set<String> attrs, ExistingRels existingRels) {
+	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, Set<String> attrs, ExistingRelations existingRels) {
 		CmsRfcRelation newRfc = trUtil.bootstrapRelationRfc(fromCiId, toCiId, relName, nsPath, null, attrs);
 		newRfc.setNsId(nsId);
 		newRfc.setCreatedBy(userId);
@@ -1363,13 +1338,13 @@ public class BomRfcBulkProcessor {
 		return newRfc;
 	}
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, ExistingRels existingRels) {
+	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, ExistingRelations existingRels) {
 		CmsRfcRelation newRfc = bootstrapRfcRelation(fromCiId, toCiId, relName, nsPath, nsId, userId, existingRels);
 		newRfc.setComments(comments);
 		return newRfc;
 	}
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, String priority, ExistingRels existingRels) {
+	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, String priority, ExistingRelations existingRels) {
 		Set<String> attrs = new HashSet<>();
 		attrs.add("priority");
 		CmsRfcRelation newRfc = bootstrapRfcRelation(fromCiId, toCiId, relName, nsPath, nsId, userId, attrs, existingRels);
@@ -1378,7 +1353,7 @@ public class BomRfcBulkProcessor {
 		return newRfc;
 	}
 
-	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, String priority, long lastManfestRfcId, ExistingRels existingRels) {
+	private CmsRfcRelation bootstrapRfcRelation(long fromCiId, long toCiId, String relName, String nsPath, long nsId, String userId, String comments, String priority, long lastManfestRfcId, ExistingRelations existingRels) {
 		Set<String> attrs = new HashSet<>();
 		attrs.add("priority");
 		attrs.add("last_manifest_rfc");
@@ -1442,19 +1417,19 @@ public class BomRfcBulkProcessor {
 		String toNodeId;
 	}
 
-	private class ExistingRels {
+	private class ExistingRelations {
 		private Map<String, Map<String, CmsCIRelation>> existing;
 		private Map<String, Map<String, CmsRfcRelation>> rfcs;
 
-		ExistingRels(String nsPath) {
-			this.existing = cmProcessor.getCIRelationsNaked(nsPath, null, null, null, null).stream()
-									   .collect(Collectors.groupingBy(CmsCIRelation::getRelationName,
-																		  Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
-																						   Function.identity())));
-			this.rfcs = rfcProcessor.getOpenRfcRelationsByNs(nsPath).stream()
-									.collect(Collectors.groupingBy(CmsRfcRelation::getRelationName,
-																		  Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
-																						   Function.identity())));
+		ExistingRelations(PlatformBomGenerationContext context) {
+			this.existing = context.getBomRelations().stream()
+					.collect(Collectors.groupingBy(CmsCIRelation::getRelationName,
+												   Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
+																	Function.identity())));
+			this.rfcs = rfcProcessor.getOpenRfcRelationsByNs(context.getBomNsPath()).stream()
+					.collect(Collectors.groupingBy(CmsRfcRelation::getRelationName,
+												   Collectors.toMap(r -> r.getFromCiId() + ":" + r.getToCiId(),
+																	Function.identity())));
 		}
 
 		CmsCIRelation getExistingRel(String relName, long fromCiId, long toCiId) {
