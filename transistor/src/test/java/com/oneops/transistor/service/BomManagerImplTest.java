@@ -21,6 +21,7 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.util.CloudUtil;
@@ -37,6 +38,7 @@ import static com.oneops.cms.util.CmsConstants.DEPLOYED_TO;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 
 public class BomManagerImplTest {
@@ -53,6 +55,58 @@ public class BomManagerImplTest {
                 .collect(toMap(CmsCI::getCiName, Function.identity()));
     }
 
+
+    @Test(expectedExceptions = {})
+    public void verifyOrderDeploymentOrder() {
+        CmsCI p1 = ci("p1", 1);
+        CmsCI p2 = ci("p2", 2);
+        CmsCI p3 = ci("p3", 3);
+        CmsCI p4 = ci("p4", 4);
+        CmsCI p5 = ci("p5", 5);
+        List<CmsCI> plats = Arrays.asList(p1, p2, p3, p4, p5);
+
+        List<CmsCIRelation> links = new ArrayList<>();
+        links.add(relation(CmsConstants.MANIFEST_LINKS_TO, p1, p2));
+        links.add(relation(CmsConstants.MANIFEST_LINKS_TO, p2, p3));
+        links.add(relation(CmsConstants.MANIFEST_LINKS_TO, p4, p3));
+
+        Set<Long> disabledPlats = new HashSet<>();
+        Set<Long> excludedPlats = new HashSet<>();
+
+        BomManagerImpl impl = mock(BomManagerImpl.class, CALLS_REAL_METHODS);
+        EnvBomGenerationContext context = mock(EnvBomGenerationContext.class);
+        doAnswer(i -> plats)
+                .when(context).getPlatforms();
+        doAnswer(i -> links)
+                .when(context).getLinksToRelations();
+        doAnswer(i -> disabledPlats)
+                .when(context).getDisabledPlatformIds();
+        doAnswer(i -> excludedPlats)
+                .when(context).getExcludedPlats();
+
+        Map<Integer, List<CmsCI>> expected = new HashMap<>();
+        expected.put(1, Arrays.asList(p3, p5));
+        expected.put(2, Arrays.asList(p2, p4));
+        expected.put(3, Arrays.asList(p1));
+        Map<Integer, List<CmsCI>> orderedPlats = impl.getOrderedPlatforms(context);
+        assertEquals(orderedPlats, expected);
+
+        excludedPlats.addAll(Arrays.asList(p2.getCiId(), p4.getCiId(), p5.getCiId()));
+        expected = new HashMap<>();
+        expected.put(1, Arrays.asList(p3));
+        expected.put(3, Arrays.asList(p1));
+        orderedPlats = impl.getOrderedPlatforms(context);
+        assertEquals(orderedPlats, expected);
+
+        excludedPlats.clear();
+        disabledPlats.addAll(Arrays.asList(p3.getCiId(), p5.getCiId()));
+        expected = new HashMap<>();
+        expected.put(2, Arrays.asList(p2, p4));
+        expected.put(3, Arrays.asList(p1));
+        expected.put(4, Arrays.asList(p3, p5));
+        orderedPlats = impl.getOrderedPlatforms(context);
+        assertEquals(orderedPlats, expected);
+    }
 
     @Test(expectedExceptions = {})
     public void somePrimaryOnManifestAllPrimaryDeployed() throws Exception {
@@ -75,7 +129,7 @@ public class BomManagerImplTest {
                     .collect(Collectors.toList()))
                 .when(context).getBomRelations();
 
-        doAnswer(i -> Arrays.asList(relation(ci("manifest.Fqdn", "c1", 1234), "Entrypoint")))
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "c1", 1234))))
                 .when(context).getEntryPoints();
 
         impl.check4Secondary(context, platformCloudRels);
@@ -114,7 +168,7 @@ public class BomManagerImplTest {
                     .collect(Collectors.toList()))
                 .when(context).getBomRelations();
 
-        doAnswer(i -> Arrays.asList(relation(ci("manifest.Fqdn", "c1", 1234), "Entrypoint")))
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "c1", 1234))))
                 .when(context).getEntryPoints();
 
         //should not allow
@@ -144,7 +198,7 @@ public class BomManagerImplTest {
                     .collect(Collectors.toList()))
                 .when(context).getBomRelations();
 
-        doAnswer(i -> Arrays.asList(relation(ci("manifest.Fqdn", "c1", 1234), "Entrypoint")))
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "c1", 1234))))
                 .when(context).getEntryPoints();
 
         //should not allow
@@ -181,13 +235,21 @@ public class BomManagerImplTest {
         impl.check4Secondary(context, platformCloudRels);
     }
 
-    private CmsCIRelation relation(CmsCI toCi,String relationName ) {
+    private CmsCIRelation relation(String relationName, CmsCI toCi) {
         CmsCIRelation rel = new CmsCIRelation();
-        rel.setToCi(toCi);
         rel.setRelationName(relationName);
+        rel.setToCi(toCi);
+        rel.setFromCiId((toCi.getCiId()));
         return rel;
     }
 
+
+    private CmsCIRelation relation(String relationName, CmsCI fromCi, CmsCI toCi) {
+        CmsCIRelation rel = relation(relationName, fromCi);
+        rel.setToCi(toCi);
+        rel.setToCiId((toCi.getCiId()));
+        return rel;
+    }
 
 
     @Test(expectedExceptions = {})
@@ -262,10 +324,10 @@ public class BomManagerImplTest {
         ci.setCiClassName(className);
         return ci;
     }
-    private CmsCI ci(String ciName, int i) {
+    private CmsCI ci(String ciName, int ciId) {
         CmsCI ci = new CmsCI();
         ci.setCiName(ciName);
-        ci.setCiId(i);
+        ci.setCiId(ciId);
         return ci;
     }
 

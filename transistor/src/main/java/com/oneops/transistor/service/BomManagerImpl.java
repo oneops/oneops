@@ -411,7 +411,7 @@ public class BomManagerImpl implements BomManager {
 		return 0;
 	}
 
-	private Map<Integer, List<CmsCI>> getOrderedPlatforms(EnvBomGenerationContext context) {
+	Map<Integer, List<CmsCI>> getOrderedPlatforms(EnvBomGenerationContext context) {
 		List<CmsCI> platforms = context.getPlatforms();
 		List<CmsCIRelation> allLinksToRels = context.getLinksToRelations();
 
@@ -430,7 +430,7 @@ public class BomManagerImpl implements BomManager {
 		int maxExecOrder = plat2ExecOrderMap.values().stream().max(Comparator.comparingInt(i -> i)).orElse(0);
 		for (long platId : plat2ExecOrderMap.keySet()) {
 			CmsCI plat = platformIdMap.get(platId);
-			if (plat.getCiState().equalsIgnoreCase("pending_deletion") || disabledPlats.contains(plat.getCiId())) {
+			if ("pending_deletion".equalsIgnoreCase(plat.getCiState()) || disabledPlats.contains(plat.getCiId())) {
 				plat2ExecOrderMap.put(platId, maxExecOrder+1);
 			}
 		}
