@@ -64,14 +64,15 @@ public final class CmsConstants {
 
 	//manifest relations
 	public static final String MANIFEST_COMPOSED_OF = "manifest.ComposedOf";
-	public static final String MANIFEST_LINKS_TO = "manifest.LinksTo";
-	public static final String MANIFEST_REQUIRES = "manifest.Requires";
-	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
-	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
-	public static final String MANIFEST_LOGGED_BY = "manifest.LoggedBy";
+	public static final String MANIFEST_DEPENDS_ON = "manifest.DependsOn";
 	public static final String MANIFEST_ENTRYPOINT = "manifest.Entrypoint";
+	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
+	public static final String MANIFEST_LINKS_TO = "manifest.LinksTo";
+	public static final String MANIFEST_LOGGED_BY = "manifest.LoggedBy";
 	public static final String MANIFEST_MANAGED_VIA = "manifest.ManagedVia";
+	public static final String MANIFEST_REQUIRES = "manifest.Requires";
 	public static final String MANIFEST_SECURED_BY = "manifest.SecuredBy";
+	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 
 	//bom relations
 	public static final String BOM_DEPENDS_ON = "bom.DependsOn";
