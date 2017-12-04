@@ -137,8 +137,8 @@ public class BomManagerImpl implements BomManager {
 			rfcCiCount = rfcProcessor.getRfcCiCount(releaseId);
 			rfcRelCount = rfcProcessor.getRfcRelationCount(releaseId);
 
-			if (logger.isInfoEnabled()) {
-//			if (logger.isDebugEnabled()) {
+//			if (logger.isInfoEnabled()) {
+			if (logger.isDebugEnabled()) {
 				String rfcs = rfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
 						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getCiClassName() + " !! " + rfc.getCiName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
 						.sorted(String::compareTo)
@@ -147,8 +147,8 @@ public class BomManagerImpl implements BomManager {
 						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
 						.sorted(String::compareTo)
 						.collect(Collectors.joining("\n", rfcs, ""));
-//				logger.debug(rfcs);
-				System.out.println(rfcs);
+				logger.debug(rfcs);
+//				System.out.println(rfcs);
 			}
 
 			if (rfcCiCount == 0) {

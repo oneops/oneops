@@ -74,20 +74,20 @@ public class PlatformBomGenerationContext {
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         logs = cmProcessor.getCiByIdList(ids);
 
-        securedByMap = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, null, SECURED_BY, null, null).stream()
+        securedByMap = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_SECURED_BY, null, null, null).stream()
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 })
                 .collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        managedViaMap = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, null, MANAGED_VIA, null, null).stream()
+        managedViaMap = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_MANAGED_VIA, null, null, null).stream()
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 }).collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        entryPoints = cmProcessor.getFromCIRelationsNakedNoAttrs(platformCi.getCiId(), null, ENTRYPOINT, null);
+        entryPoints = cmProcessor.getFromCIRelationsNakedNoAttrs(platformCi.getCiId(), MANIFEST_ENTRYPOINT, null, null);
         entryPoints.forEach(r -> {
             r.setFromCi(platformCi);
             r.setToCi(componentMap.get(r.getToCiId()));
