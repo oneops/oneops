@@ -448,6 +448,24 @@ public class TransistorRestController extends AbstractRestController {
 	public Map<String, List<CostData>> getEstimatedCostData(@PathVariable long envId){
 		return envManager.getEnvEstimatedCostData(envId);
 	}
+
+	@RequestMapping(value="environments/{envId}/deployment_cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, List<CostData>> getDeploymentCostData(@PathVariable long envId){
+		BomData data = imBomProcesor.compileEnv(envId, "", null, null, false, false);
+		return envManager.getEnvDeploymentCostData(envId, data);
+	}
+
+	@RequestMapping(value="environments/{envId}/deployment_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public HashMap<String, BigDecimal> calculateDeploymentCost(@PathVariable long envId) {
+		HashMap<String, BigDecimal> result = new HashMap<>();
+		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
+		for (String type : estimatedCostData.keySet()) {
+			result.put(type, getSum(estimatedCostData.get(type)));
+		}
+		return result;
+	}
 	
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
 	@ResponseBody
