@@ -180,7 +180,7 @@ public class BomRfcBulkProcessor {
 		}
 
 		long timeTook = System.currentTimeMillis() - startingTime;
-		logger.info(bomNsPath + ">>> Done with " + platformCi.getCiName() + ", cloud - " + cloud.getCiName() + " in " + timeTook + " ms.");
+		logger.info(bomNsPath + " >>> Done with " + platformCi.getCiName() + ", cloud - " + cloud.getCiName() + " in " + timeTook + " ms.");
 		return maxExecOrder;
 	}
 
