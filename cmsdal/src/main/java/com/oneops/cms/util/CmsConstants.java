@@ -44,9 +44,11 @@ public final class CmsConstants {
 	
 	//starting to put some relation constants 
 	public static final String ENTRYPOINT = "Entrypoint";
+
 	//base relations
 	public static final String BASE_REALIZED_AS = "base.RealizedAs";
 	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
+	public static final String BASE_DEPLOYED_TO = "base.DeployedTo";
 	public static final String DEPLOYED_TO = "base.DeployedTo";
 	public static final String BASE_PROVIDES = "base.Provides";
 	public static final String BASE_PLACED_IN = "base.PlacedIn";
@@ -62,10 +64,14 @@ public final class CmsConstants {
 
 	//manifest relations
 	public static final String MANIFEST_COMPOSED_OF = "manifest.ComposedOf";
+	public static final String MANIFEST_LINKS_TO = "manifest.LinksTo";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
 	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
 	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
 	public static final String MANIFEST_LOGGED_BY = "manifest.LoggedBy";
+	public static final String MANIFEST_ENTRYPOINT = "manifest.Entrypoint";
+	public static final String MANIFEST_MANAGED_VIA = "manifest.ManagedVia";
+	public static final String MANIFEST_SECURED_BY = "manifest.SecuredBy";
 
 	//bom relations
 	public static final String BOM_DEPENDS_ON = "bom.DependsOn";

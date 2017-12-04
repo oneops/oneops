@@ -15,10 +15,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsConstants.MANIFEST_COMPOSED_OF;
+import static com.oneops.cms.util.CmsConstants.MANIFEST_LINKS_TO;
 
 class EnvBomGenerationContext {
     private static final Logger logger = Logger.getLogger(EnvBomGenerationContext.class);
-    private final Set<Long> excludePlats;
+    private final Set<Long> excludedPlats;
 
     private CmsCmProcessor cmProcessor;
     private CmsUtil cmsUtil;
@@ -34,7 +35,10 @@ class EnvBomGenerationContext {
     private Map<String, String> globalVariables;
 
     private Map<Long, Map<String, String>> cloudVariableMap = new HashMap<>();
+
     private Map<Long, PlatformBomGenerationContext> platformContextMap = new HashMap<>();
+
+    private List<CmsCIRelation> linksToRelations;
 
     private Long releaseId = null;
 
@@ -52,7 +56,7 @@ class EnvBomGenerationContext {
         environment = cmProcessor.getCiById(envId);
         manifestNsPath = environment.getNsPath() + "/" + environment.getCiName() + "/manifest";
         bomNsPath = environment.getNsPath() + "/" + environment.getCiName() + "/bom";
-        this.excludePlats = excludePlats;
+        this.excludedPlats = excludePlats;
     }
 
     void load() {
@@ -60,7 +64,6 @@ class EnvBomGenerationContext {
         List<CmsCIRelation> rels = cmProcessor.getFromCIRelations(environment.getCiId(), MANIFEST_COMPOSED_OF, null, "manifest.Platform");
 
         platforms = rels.stream()
-                        .filter(r -> excludePlats == null || !excludePlats.contains(r.getToCiId()))
                         .map(CmsCIRelation::getToCi)
                         .collect(Collectors.toList());
         disabledPlatformIds = rels.stream()
@@ -69,6 +72,8 @@ class EnvBomGenerationContext {
                                   .collect(Collectors.toSet());
 
         globalVariables = cmsUtil.getGlobalVars(environment);
+
+        linksToRelations = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_LINKS_TO, null, null, null);
         logger.info(bomNsPath + " >>> Loaded bom generation context in " + (System.currentTimeMillis() - t) + " ms.");
     }
 
@@ -79,7 +84,7 @@ class EnvBomGenerationContext {
 
     Long getReleaseId() {
         if (releaseId == null) {
-            releaseId  = rfcProcessor.getOpenReleaseIdByNs(bomNsPath, null, userId);
+            releaseId = rfcProcessor.getOpenReleaseIdByNs(bomNsPath, null, userId);
         }
         return releaseId;
     }
@@ -104,6 +109,10 @@ class EnvBomGenerationContext {
         return disabledPlatformIds;
     }
 
+    Set<Long> getExcludedPlats() {
+        return excludedPlats;
+    }
+
     Map<String, String> getGlobalVariables() {
         return globalVariables;
     }
@@ -116,6 +125,10 @@ class EnvBomGenerationContext {
             cloudVariableMap.put(cloudId, vars);
         }
         return vars;
+    }
+
+    List<CmsCIRelation> getLinksToRelations() {
+        return linksToRelations;
     }
 
     PlatformBomGenerationContext getPlatformContext(CmsCI platform) {
