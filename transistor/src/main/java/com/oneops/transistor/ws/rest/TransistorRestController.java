@@ -514,15 +514,24 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
-	@RequestMapping(value="environments/{envId}/deployments/inmemory", method = {RequestMethod.POST, RequestMethod.GET})
+	@RequestMapping(value="environments/{envId}/deployments/preview", method = {RequestMethod.POST, RequestMethod.GET})
 	@ResponseBody
 	public BomData generateBomInMemory(
 			@PathVariable long envId,
+			@RequestParam(value = "cost", required = false) Boolean cost,
+			@RequestParam(value = "quota", required = false) Boolean quota,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
-			return imBomProcesor.compileEnv(envId, userId, null, null, false, false);
+			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
+			if (cost) {
+				bomData.addExtraData("cost", envManager.getEnvDeploymentCostData(envId, bomData));
+			}
+			//if (quota){
+				//bomData.addExtraData("quota", envManager.getEnvQuota(envId, bomData));
+			//}
+			return bomData;
 		} catch (CmsBaseException te) {
 			logger.error(te);
 			te.printStackTrace();
