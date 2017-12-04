@@ -526,7 +526,10 @@ public class TransistorRestController extends AbstractRestController {
 			if (userId == null) userId = "oneops-system";
 			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
 			if (cost) {
-				bomData.addExtraData("cost", envManager.getEnvDeploymentCostData(envId, bomData));
+				Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
+				for (String type : estimatedCostData.keySet()) {
+					bomData.addExtraData(type, getSum(estimatedCostData.get(type)));
+				}
 			}
 			//if (quota){
 				//bomData.addExtraData("quota", envManager.getEnvQuota(envId, bomData));
