@@ -1688,21 +1688,21 @@ public class CmsRfcProcessor {
     }
  
 	/**
-	 * Get rfc CI count for a given release.
+	 * get ci rfc links (simple call to get relations without extra info)
 	 *
-	 * @param  releaseId
+	 * @param  nsPath, relName
 	 */
-	public long getRfcCiCount(long releaseId) {
-		return djMapper.countCiRfcByReleaseId(releaseId);
+	public List<CmsRfcLink> getLinks(String nsPath, String relName) {
+		return djMapper.getOpenRfcLinks(nsPath, relName);
 	}
-
+    
 	/**
-	 * Get rfc relation count for a given release.
+	 * get ci rfc links (simple call to get relations without extra info)
 	 *
-	 * @param  releaseId
+	 * @param  nsPath, relName
 	 */
-	public long getRfcRelationCount(long releaseId) {
-		return djMapper.countRelationRfcByReleaseId(releaseId);
+	public long getRfcCount(long nsPath) {
+		return djMapper.countCiRfcByReleaseId(nsPath);
 	}
 
 	/**

@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.11.01-11-SNAPSHOT</version>
+    <version>17.11.01-13-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>display</artifactId>
@@ -25,6 +25,7 @@
               <executable>bundle</executable>
               <arguments>
                 <argument>package</argument>
+                <argument>--gemfile=Gemfile</argument>
               </arguments>
             </configuration>
           </execution>

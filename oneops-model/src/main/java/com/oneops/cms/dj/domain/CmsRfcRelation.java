@@ -17,7 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.dj.domain;
 
-import com.oneops.Util;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,39 +37,7 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   private CmsRfcCI fromRfcCi;
   private CmsRfcCI toRfcCi;
   private boolean isValidated = false;
-	private Map<String,CmsRfcAttribute> attributes = new HashMap<>();
-
-	public CmsRfcRelation() {}
-
-  public CmsRfcRelation(CmsCIRelation relation, String createdBy) {
-    setCiRelationId(relation.getCiRelationId());
-    setRelationName(relation.getRelationName());
-    setRelationId(relation.getRelationId());
-    setNsPath(relation.getNsPath());
-    relation.setNsId(relation.getNsId());
-    setRelationGoid(relation.getRelationGoid());
-    setFromCiId(relation.getFromCiId());
-    setToCiId(relation.getToCiId());
-    setComments(relation.getComments());
-    setLastAppliedRfcId(relation.getLastAppliedRfcId());
-    setCreated(relation.getCreated());
-    setCreatedBy(relation.getCreatedBy());
-    setUpdated(relation.getUpdated());
-    setUpdatedBy(relation.getUpdatedBy());
-    setRfcCreatedBy(createdBy);
-    setRfcUpdatedBy(createdBy);
-  }
-
-  public CmsRfcRelation(CmsCIRelation relation, String createdBy, Map<String, String> changes) {
-    this(relation, createdBy);
-    setRfcAction("update");
-		changes.forEach((key, value) -> {
-      CmsRfcAttribute attr = new CmsRfcAttribute();
-			attr.setAttributeName(key);
-			attr.setNewValue(value);
-      addAttribute(attr);
-    });
-  }
+  private Map<String, CmsRfcAttribute> attributes = new HashMap<String, CmsRfcAttribute>();
 
   public CmsRfcRelation() {
   }
@@ -312,18 +279,24 @@ public class CmsRfcRelation extends CmsRfcRelationBasic implements CmsRfcContain
   public void setNsPath(String nsPath) {
     super.setNsPath(nsPath);
     if (this.releaseNsPath == null) {
-      this.releaseNsPath = Util.getReleaseNsPath(nsPath);
+      //  /oneops/montest/mtest/bom/custom/1
+      // Lets strip off platform parts for the release
+      String[] nsParts = nsPath.split("/");
+      String releaseNs = "";
+      for (int i = 1; i < nsParts.length; i++) {
+        if (nsParts[i].equals("_design")) {
+          break;
+        }
+        releaseNs += "/" + nsParts[i];
+        if (nsParts[i].equals("bom")) {
+          break;
+        }
+        if (nsParts[i].equals("manifest")) {
+          break;
+        }
+      }
+      this.releaseNsPath = releaseNs;
     }
   }
 
-  public CmsRfcAttribute addOrUpdateAttribute(String attrName, String attrValue) {
-    CmsRfcAttribute attr = getAttribute(attrName);
-    if (attr == null) {
-      attr = new CmsRfcAttribute();
-      attr.setAttributeName(attrName);
-      addAttribute(attr);
-    }
-    attr.setNewValue(String.valueOf(attrValue));
-    return attr;
-  }
 }

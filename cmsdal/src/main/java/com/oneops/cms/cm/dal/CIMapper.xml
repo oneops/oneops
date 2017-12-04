@@ -1477,6 +1477,19 @@
 			and r.relation_name = 'base.RealizedAs'
 	 </select>
 	 
+	 <select id="getLinks" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsLink">
+		select fromci.ci_id as fromCiId, fromcl.class_name as fromClazzName, r.relation_name as relationName, toci.ci_id as toCiId, tocl.class_name as toClazzName
+		  from cm_ci_relations cir, md_relations r, ns_namespaces ns, cm_ci fromci, md_classes fromcl, cm_ci toci, md_classes tocl
+		where cir.relation_id = r.relation_id
+		  and cir.ns_id = ns.ns_id
+		  and ns.ns_path = #{nsPath}
+		  and fromci.ci_id = cir.from_ci_id
+		  and fromci.class_id = fromcl.class_id
+		  and toci.ci_id = cir.to_ci_id
+		  and toci.class_id = tocl.class_id
+		  and (#{relName}::varchar is null or r.relation_name = #{relName})
+	 </select>
+
 	<insert id="createAltNs" parameterType="map" statementType="CALLABLE">
 		{call cm_create_alt_namespace(#{nsId}, #{tag}, #{ciId})}
 	</insert>
