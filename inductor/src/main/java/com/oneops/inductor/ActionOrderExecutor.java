@@ -55,8 +55,8 @@ import org.apache.log4j.Logger;
 public class ActionOrderExecutor extends AbstractOrderExecutor {
 
   private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
-  private Semaphore semaphore = null;
-  private Config config = null;
+  private Semaphore semaphore;
+  private Config config;
 
   public ActionOrderExecutor(Config config, Semaphore semaphore) {
     super(config);
@@ -72,16 +72,16 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
    * @param correlationId jms correlation Id
    */
   @Override
-  public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId)
-      throws IOException {
+  public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId) {
 
     CmsActionOrderSimple ao = (CmsActionOrderSimple) o;
     long startTime = System.currentTimeMillis();
     CmsCISimple resultCi = new CmsCISimple();
     mergeCiToResult(ao.getCi(), resultCi);
     ao.setResultCi(resultCi);
+
     if (config.isCloudStubbed(ao)) {
-      Map<String, Object> chefRequest = assembleRequest(ao);
+      assembleRequest(ao);
       //delay the processing as configured and return response.
       processStubbedCloud(ao);
       logger.info("completing ao without doing anything because cloud is stubbed");
@@ -121,7 +121,6 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     message.put("correlationID", correlationId);
     message.put("task_result_code", responseCode);
     message.put("priority", "oneops-autorepair".equals(ao.getCreatedBy()) ? "regular" : "high");
-    startTime = System.currentTimeMillis();
     return message;
   }
 
@@ -167,14 +166,15 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
   /**
    * Gets host from action order
    *
-   * @param ao action order
+   * @param o action order
    * @param logKey log key
    * @return hostname
    */
-  private String getActionOrderHost(CmsActionOrderSimple ao, String logKey) {
+  public String getHost(CmsWorkOrderSimpleBase o, String logKey) {
     String host;
-    // Databases are ManagedVia Cluster - use fqdn of the Cluster for the
-    // host
+    CmsActionOrderSimple ao = (CmsActionOrderSimple) o;
+
+    // Databases are ManagedVia Cluster - use fqdn of the Cluster for the host
     if (ao.getActionName().equalsIgnoreCase("user-custom-attachment")) {
       //CmsCISimple hostCi = getPayLoadCI(ao, MANAGED_VIA);
       CmsCISimple hostCi = ao.getPayLoadEntryAt(MANAGED_VIA, 0);
@@ -237,7 +237,6 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     logger.info("using  host ip for ao(" + ao.getActionName() + ")" + host);
     return host;
   }
-
 
   private String getAttribute(CmsCISimple hostCi, String sharedIp) {
     return hostCi.getCiAttributes().get(SHARED_IP);
@@ -329,7 +328,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
 
     // file-based request keyed by deployment record id - remotely by
     // class.ciName for ease of debug
-    String remoteFileName = getRemoteFile(ao);
+    String remoteFileName = getRemoteFileName(ao);
     String fileName = config.getDataDir() + "/" + ao.getActionId() + ".json";
     logger.info("writing config to:" + fileName + " remote: " + remoteFileName);
 
@@ -337,11 +336,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     Map<String, Object> chefRequest = assembleRequest(ao);
     String appName = (String) chefRequest.get("app_name");
 
-    // extra ' - ' for pattern matching - daq InductorLogSink will parse
-    // this and insert into log store
-    // see https://github.com/oneops/daq/wiki/schema for more info
-    String logKey = ao.getActionId() + ":" + ao.getCi().getCiId() + " - ";
-
+    String logKey = getLogKey(ao);
     logger.info(logKey + " Inductor: " + config.getIpAddr());
     ao.getSearchTags().put("inductor", config.getIpAddr());
 
@@ -357,17 +352,16 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
       writeChefRequestToFile(fileName, chefRequest);
 
       // sync cookbook and chef json request to remote site
-      String host = getActionOrderHost(ao, logKey);
+      String host = getHost(ao, logKey);
       String user = ONEOPS_USER;
 
       // run local when no managed via
       if (host == null || host.isEmpty()) {
-        runLocalActionOrder(processRunner, ao, appName, logKey, fileName,
-            cookbookPath);
+        runLocalActionOrder(processRunner, ao, appName, logKey, fileName, cookbookPath);
         removeFile(fileName);
         return;
       }
-      String keyFile = "";
+      String keyFile;
       try {
         keyFile = writePrivateKey(ao);
       } catch (KeyNotFoundException e) {
@@ -428,29 +422,27 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
 
       String debugFlag = getDebugFlag(ao);
       // run the chef command
-      String remoteCmd = "sudo shared/exec-order.rb "
-          + ao.getCi().getImpl() + " " + remoteFileName + " "
-          + cookbookPath + " " + debugFlag;
-      String[] cmd = null;
-      cmd = (String[]) ArrayUtils.addAll(sshCmdLine, new String[]{
-          keyFile, "-p " + port, user + "@" + host, remoteCmd});
-      logger.info(logKey + " ### EXEC: " + user + "@" + host + " "
-          + remoteCmd);
-      if (isNotaTestHost(host)) {
-        ProcessResult result = processRunner.executeProcessRetry(cmd, logKey);
-        // set the result status
-        if (result.getResultCode() != 0) {
-          logger.debug(logKey
-              + "setting to failed - got non-zero exitStatus from remote chef");
-          return;
-        }
-        // compute resultCi gets populated on compute add (down further)
-        // and is already there
-        if (!appName.equalsIgnoreCase(InductorConstants.COMPUTE)) {
-          setResultCi(result, ao);
-        }
+      String remoteCmd = String
+          .format("sudo shared/exec-order.rb %s %s %s %s", ao.getCi().getImpl(), remoteFileName,
+              cookbookPath, debugFlag);
+      String[] cmd;
+      cmd = (String[]) ArrayUtils
+          .addAll(sshCmdLine, new String[]{keyFile, "-p " + port, user + "@" + host, remoteCmd});
+      logger.info(logKey + " ### EXEC: " + user + "@" + host + " " + remoteCmd);
 
+      ProcessResult result = processRunner.executeProcessRetry(cmd, logKey);
+      // set the result status
+      if (result.getResultCode() != 0) {
+        logger.debug(logKey
+            + "setting to failed - got non-zero exitStatus from remote chef");
+        return;
       }
+      // compute resultCi gets populated on compute add (down further)
+      // and is already there
+      if (!appName.equalsIgnoreCase(InductorConstants.COMPUTE)) {
+        setResultCi(result, ao);
+      }
+
       ao.setActionState(OpsActionState.complete);
       removeFile(ao, keyFile);
 
@@ -463,20 +455,12 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     }
   }
 
-  private String getRemoteFile(CmsActionOrderSimple ao) {
-    return "/opt/oneops/workorder/"
-        + ao.getCi().getCiClassName().substring(4).toLowerCase() + "."
-        + ao.getActionName() + "-" + ao.getCiId() + ".json";
-  }
-
-
   private void writeChefRequestToFile(String fileName, Map<String, Object> chefRequest)
       throws IOException {
     try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(fileName))) {
       writer.write(gsonPretty.toJson(chefRequest));
     }
   }
-
 
   /**
    * WriteChefConfig: creates a chef config file for unique lockfile by ci. returns chef config full
@@ -523,5 +507,4 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     // put tags from result / recipe OutputHandler
     ao.getSearchTags().putAll(result.getTagMap());
   }
-
 }
