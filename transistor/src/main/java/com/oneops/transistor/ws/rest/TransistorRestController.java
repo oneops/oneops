@@ -527,9 +527,11 @@ public class TransistorRestController extends AbstractRestController {
 			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
 			if (cost) {
 				Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
+				Map<String, Map<String, Object>> costMap = new HashMap<>();
 				for (String type : estimatedCostData.keySet()) {
-					bomData.addExtraData(type, getSum(estimatedCostData.get(type)));
+					costMap.put(type, getSum(estimatedCostData.get(type)));
 				}
+				bomData.addExtraData("cost", costMap);
 			}
 			//if (quota){
 				//bomData.addExtraData("quota", envManager.getEnvQuota(envId, bomData));
