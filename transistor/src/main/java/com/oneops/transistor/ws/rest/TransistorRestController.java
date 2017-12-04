@@ -439,7 +439,7 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
-	public BigDecimal calculateCost(@PathVariable long envId){
+	public Map<String, Object> calculateCost(@PathVariable long envId){
 		return getSum(getCostData(envId));
 	}
 
@@ -458,8 +458,8 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value="environments/{envId}/deployment_cost", method = RequestMethod.GET)
 	@ResponseBody
-	public HashMap<String, BigDecimal> calculateDeploymentCost(@PathVariable long envId) {
-		HashMap<String, BigDecimal> result = new HashMap<>();
+	public Map<String, Map<String,Object>> calculateDeploymentCost(@PathVariable long envId) {
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
 		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
 		for (String type : estimatedCostData.keySet()) {
 			result.put(type, getSum(estimatedCostData.get(type)));
@@ -469,8 +469,8 @@ public class TransistorRestController extends AbstractRestController {
 	
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
 	@ResponseBody
-	public HashMap<String, BigDecimal> calculateEstimatedCost(@PathVariable long envId) {
-		HashMap<String, BigDecimal> result = new HashMap<>();
+	public Map<String, Map<String, Object>> calculateEstimatedCost(@PathVariable long envId) {
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
 		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
 		for (String type : estimatedCostData.keySet()) {
 			result.put(type, getSum(estimatedCostData.get(type)));
@@ -479,14 +479,33 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
-	private BigDecimal getSum(List<CostData> offerings) {
-		BigDecimal result = BigDecimal.ZERO;
+	private Map<String, Object> getSum(List<CostData> offerings) {
+		Map<String, Object> map = new HashMap<>();
+		Map<String, BigDecimal> byCloud = new HashMap<>();
+		Map<String, BigDecimal> byPlatform = new HashMap<>();
+		Map<String, BigDecimal> byService = new HashMap<>();
+		BigDecimal total = BigDecimal.ZERO;
 		for (CostData cost: offerings){
-			for (CmsCISimple offering: cost.getOfferings()){
-				result = result.add(new BigDecimal(offering.getCiAttributes().get("cost_rate")));
+			String cloud = cost.getCloud().getCiName();
+			String[] array = cost.getRfc().getNsPath().split("/");
+			String platform = "";
+			if (array.length > 1) {
+				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
+			}
+			for (CmsCISimple offering : cost.getOfferings()) {
+				BigDecimal rate = new BigDecimal(offering.getCiAttributes().get("cost_rate"));
+				String serviceType = offering.getCiAttributes().get("service_type");
+				byPlatform.put(platform, byPlatform.getOrDefault(platform, BigDecimal.ZERO).add(rate));
+				byService.put(serviceType, byService.getOrDefault(serviceType, BigDecimal.ZERO).add(rate));
+				byCloud.put(cloud, byCloud.getOrDefault(cloud, BigDecimal.ZERO).add(rate));
+				total = total.add(rate);
 			}
 		}
-		return result;
+		map.put("by_cloud", byCloud);
+		map.put("by_platform", byPlatform);
+		map.put("by_service", byService);
+		map.put("total", total);
+		return map;
 	}
 
 
