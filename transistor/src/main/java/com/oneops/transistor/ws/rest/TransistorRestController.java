@@ -431,17 +431,43 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
-	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
-	@ResponseBody
-	public List<CostData>  getCostData(@PathVariable long envId){
-		return envManager.getEnvCostData(envId);
-	}
 
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, Object> calculateCost(@PathVariable long envId){
 		return getSum(getCostData(envId));
 	}
+
+
+	@RequestMapping(value="environments/{envId}/deployment_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Map<String,Object>> calculateDeploymentCost(@PathVariable long envId) {
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
+		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
+		for (String type : estimatedCostData.keySet()) {
+			result.put(type, getSum(estimatedCostData.get(type)));
+		}
+		return result;
+	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Map<String, Object>> calculateEstimatedCost(@PathVariable long envId) {
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
+		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
+		for (String type : estimatedCostData.keySet()) {
+			result.put(type, getSum(estimatedCostData.get(type)));
+		}
+		return result;
+	}
+
+
+	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostData>  getCostData(@PathVariable long envId){
+		return envManager.getEnvCostData(envId);
+	}
+
 
 	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
 	@ResponseBody
@@ -456,27 +482,6 @@ public class TransistorRestController extends AbstractRestController {
 		return envManager.getEnvDeploymentCostData(envId, data);
 	}
 
-	@RequestMapping(value="environments/{envId}/deployment_cost", method = RequestMethod.GET)
-	@ResponseBody
-	public Map<String, Map<String,Object>> calculateDeploymentCost(@PathVariable long envId) {
-		HashMap<String, Map<String, Object>> result = new HashMap<>();
-		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
-		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getSum(estimatedCostData.get(type)));
-		}
-		return result;
-	}
-	
-	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
-	@ResponseBody
-	public Map<String, Map<String, Object>> calculateEstimatedCost(@PathVariable long envId) {
-		HashMap<String, Map<String, Object>> result = new HashMap<>();
-		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
-		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getSum(estimatedCostData.get(type)));
-		}
-		return result;
-	}
 
 
 	private Map<String, Object> getSum(List<CostData> offerings) {
