@@ -63,6 +63,21 @@ public interface CmsWorkOrderSimpleBase<T> {
   String getCiName();
 
   /**
+   * Returns a unique id representing the CmsOps Action
+   * (ActionID) or CmsDpmt Record (Deployment RecordId).
+   *
+   * @return record id.
+   */
+  long getRecordId();
+
+  /**
+   * Sets the comments. Usually for action order, this will be np-op.
+   *
+   * @param comments the new comments
+   */
+   void setComments(String comments);
+
+  /**
    * Gets the pay load.
    *
    * @return the pay load
