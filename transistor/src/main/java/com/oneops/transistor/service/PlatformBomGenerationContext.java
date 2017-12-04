@@ -47,12 +47,20 @@ public class PlatformBomGenerationContext {
         manifestNsPath = envContext.getManifestNsPath() + nsSuffix;
         bomNsPath = envContext.getBomNsPath() + nsSuffix;
 
-        components = cmProcessor.getToCIs(platformCi.getCiId(), null, "Requires", null);
+        Map<String, List<CmsCIRelation>> relationMap = cmProcessor.getCIRelationsNaked(manifestNsPath, null, null, null, null).stream()
+                .collect(Collectors.groupingBy(CmsCIRelation::getRelationName, Collectors.toList()));
+
+        List<Long> ids = relationMap.get(MANIFEST_REQUIRES).stream().map(CmsCIRelation::getToCiId).collect(Collectors.toList());
+        components = cmProcessor.getCiByIdList(ids);
         Map<Long, CmsCI> componentMap = components.stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
 
         variables = cmsUtil.getLocalVars(platformCi);
 
-        dependsOns = cmProcessor.getCIRelations(manifestNsPath, null, "DependsOn", null, null);
+        dependsOns = relationMap.computeIfAbsent(MANIFEST_DEPENDS_ON, k -> new ArrayList<>());
+        dependsOns.forEach(r -> {
+                    r.setFromCi(componentMap.get(r.getFromCiId()));
+                    r.setToCi(componentMap.get(r.getToCiId()));
+                });
         dependsOnFromMap = new HashMap<>();
         dependsOnToMap = new HashMap<>();
         for (CmsCIRelation rel : dependsOns) {
@@ -62,32 +70,32 @@ public class PlatformBomGenerationContext {
             dependsOnToMap.get(rel.getToCiId()).add(rel);
         }
 
-        List<Long> ids = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_WATCHED_BY, null, null, null).stream()
+        ids = relationMap.computeIfAbsent(MANIFEST_WATCHED_BY, k -> new ArrayList<>()).stream()
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         monitors = cmProcessor.getCiByIdList(ids);
 
-        ids = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_ESCORTED_BY, null, null, null).stream()
+        ids = relationMap.computeIfAbsent(MANIFEST_ESCORTED_BY, k -> new ArrayList<>()).stream()
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         attachments = cmProcessor.getCiByIdList(ids);
 
-        ids = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_LOGGED_BY, null, null, null).stream()
+        ids = relationMap.computeIfAbsent(MANIFEST_LOGGED_BY, k -> new ArrayList<>()).stream()
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         logs = cmProcessor.getCiByIdList(ids);
 
-        securedByMap = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_SECURED_BY, null, null, null).stream()
+        securedByMap = relationMap.computeIfAbsent(MANIFEST_SECURED_BY, k -> new ArrayList<>()).stream()
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 })
                 .collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        managedViaMap = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_MANAGED_VIA, null, null, null).stream()
+        managedViaMap = relationMap.computeIfAbsent(MANIFEST_MANAGED_VIA, k -> new ArrayList<>()).stream()
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 }).collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        entryPoints = cmProcessor.getFromCIRelationsNakedNoAttrs(platformCi.getCiId(), MANIFEST_ENTRYPOINT, null, null);
+        entryPoints = relationMap.computeIfAbsent(MANIFEST_ENTRYPOINT, k -> new ArrayList<>());
         entryPoints.forEach(r -> {
             r.setFromCi(platformCi);
             r.setToCi(componentMap.get(r.getToCiId()));
