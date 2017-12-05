@@ -1286,7 +1286,7 @@ module ApplicationHelper
   end
 
   def format_cost_rate(rate, opts = {})
-    raw %(<span class="cost-rate">#{rate.to_human(:precision => opts[:precision] || 2)} <span class=""><sub>USD/hour</sub></span></span>)
+    raw %(<span class="cost-rate">#{rate.to_human(:precision => (opts[:precision] || 2))} <span class=""><sub>#{CostSummary::UNIT}</sub></span></span>)
   end
 
   def ci_doc_link(ci, label, opts = {})
