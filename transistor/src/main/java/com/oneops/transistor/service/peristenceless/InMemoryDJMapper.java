@@ -168,6 +168,11 @@ public class InMemoryDJMapper implements DJMapper{
     }
 
     @Override
+    public CmsRfcCI getOpenRfcCIByCiIdNoAttrs(long ciId) {
+        return getOpenRfcCIByCiId(ciId);
+    }
+
+    @Override
     public List<CmsRfcCI> getOpenRfcCIByCiIdList(List<Long> ciIds) {
         throw new UnsupportedOperationException();
     }

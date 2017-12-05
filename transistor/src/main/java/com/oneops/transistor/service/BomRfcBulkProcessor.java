@@ -261,24 +261,26 @@ public class BomRfcBulkProcessor {
 								int startingExecOrder,
 								long releaseId,
 								String userId) {
-		String bomNsPath = pc.getBomNsPath();
-		Map<Long, List<CmsCIRelation>> depOnToMap = pc.getDependsOnToMap();
 		int maxExecOrder = startingExecOrder;
+
 		Set<Long> obsoleteToRelations = new HashSet<>();
 		Map<Long, List<CmsCIRelation>> obsoleteFromRelations = new HashMap<>();
 		List<CmsCIRelation> dummyUpdateRels = new ArrayList<>();
+		Map<Long, List<CmsCIRelation>> depOnToMap = pc.getBomRelations().stream()
+				.filter(r -> r.getRelationName().equals(BOM_DEPENDS_ON))
+				.collect(Collectors.groupingBy(CmsCIRelation::getToCiId, Collectors.toList()));
 
 		for (Long ciId : obsoleteCisMap.keySet()) {
 			if (depOnToMap.containsKey(ciId)) {
-				for (CmsCIRelation fromDependsOnCiIdLink : depOnToMap.get(ciId)) {
-					if (obsoleteCisMap.containsKey(fromDependsOnCiIdLink.getFromCiId())) {
+				for (CmsCIRelation fromDependsOnCiId : depOnToMap.get(ciId)) {
+					if (obsoleteCisMap.containsKey(fromDependsOnCiId.getFromCiId())) {
 						obsoleteToRelations.add(ciId);
-						if (!obsoleteFromRelations.containsKey(fromDependsOnCiIdLink.getFromCiId())) {
-							obsoleteFromRelations.put(fromDependsOnCiIdLink.getFromCiId(), new ArrayList<>());
+						if (!obsoleteFromRelations.containsKey(fromDependsOnCiId.getFromCiId())) {
+							obsoleteFromRelations.put(fromDependsOnCiId.getFromCiId(), new ArrayList<>());
 						}
-						obsoleteFromRelations.get(fromDependsOnCiIdLink.getFromCiId()).add(fromDependsOnCiIdLink);
+						obsoleteFromRelations.get(fromDependsOnCiId.getFromCiId()).add(fromDependsOnCiId);
 					} else {
-						dummyUpdateRels.add(fromDependsOnCiIdLink);
+						dummyUpdateRels.add(fromDependsOnCiId);
 					}
 				}
 			}
@@ -310,6 +312,7 @@ public class BomRfcBulkProcessor {
 		long totalPropagationTime = 0;
 
 		//now lets submit submit dummy update
+		String bomNsPath = pc.getBomNsPath();
 		Map<Long, CmsCIRelation> realizedAsToMap = pc.getBomRelations().stream()
 				.filter(r -> r.getRelationName().equals(BASE_REALIZED_AS))
 				.collect(Collectors.toMap(CmsCIRelation::getToCiId, Function.identity()));
@@ -1267,7 +1270,7 @@ public class BomRfcBulkProcessor {
 
 	private CmsRfcCI createDummyUpdateRfc(CmsCI ci, Long releaseId, int execOrder, String userId, boolean hint) {
 		long ciId = ci.getCiId();
-		CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiId(ciId);
+		CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiIdNoAttrs(ciId);
 		if (existingRfc != null) {
 			return existingRfc;
 		}

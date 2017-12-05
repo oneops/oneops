@@ -81,6 +81,7 @@ public interface DJMapper {
   CmsRfcCI getRfcCIById(long rfcId);
 
   CmsRfcCI getOpenRfcCIByCiId(long ciId);
+  CmsRfcCI getOpenRfcCIByCiIdNoAttrs(long ciId);
 
   List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds);
 
