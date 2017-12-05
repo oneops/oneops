@@ -102,7 +102,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
       render :json => cost
     else
       render :json => {:errors => [error]}, :status => :internal_server_error
-      return
     end
   end
 

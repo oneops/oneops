@@ -276,6 +276,18 @@ class Transition::DeploymentsController < ApplicationController
     end
   end
 
+  def preview
+    flags = params.slice(:cost, :capacity).keys.select {|k| params[k] != 'false'}
+    data, error = Transistor.deployment_plan_preview(@environment, *flags)
+      if data
+        render :json => data
+      else
+        render :json => {:errors => [error]}, :status => :internal_server_error
+        return
+      end
+  end
+
+
   protected
 
   def read_only_request?
