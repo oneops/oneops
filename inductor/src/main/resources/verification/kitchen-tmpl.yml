@@ -53,7 +53,7 @@ provisioner:
 verifier:
   name: busser
   ruby_bindir: /usr/bin
-  gem_path: /usr/local/share/gems:/tmp/verifier/gems
+  gem_path: /usr/lib/ruby/gems/2.0.0:/usr/local/share/gems:/tmp/verifier/gems
 platforms:
   - name: <platform_name>
 suites:
