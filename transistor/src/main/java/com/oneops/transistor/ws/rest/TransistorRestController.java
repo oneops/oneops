@@ -519,13 +519,13 @@ public class TransistorRestController extends AbstractRestController {
 	public BomData generateBomInMemory(
 			@PathVariable long envId,
 			@RequestParam(value = "cost", required = false) Boolean cost,
-			@RequestParam(value = "quota", required = false) Boolean quota,
+			@RequestParam(value = "capacity", required = false) Boolean capacity,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
 			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
-			if (cost) {
+			if (cost != null && cost) {
 				Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
 				Map<String, Map<String, Object>> costMap = new HashMap<>();
 				for (String type : estimatedCostData.keySet()) {
@@ -533,8 +533,8 @@ public class TransistorRestController extends AbstractRestController {
 				}
 				bomData.addExtraData("cost", costMap);
 			}
-			//if (quota){
-				//bomData.addExtraData("quota", envManager.getEnvQuota(envId, bomData));
+			//if (capacity != null && capacity){
+				//bomData.addExtraData("capacity", envManager.getEnvCapacity(envId, bomData));
 			//}
 			return bomData;
 		} catch (CmsBaseException te) {
