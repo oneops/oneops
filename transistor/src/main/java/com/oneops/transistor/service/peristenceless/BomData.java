@@ -1,13 +1,12 @@
 package com.oneops.transistor.service.peristenceless;
 
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /*******************************************************************************
  *
@@ -30,11 +29,24 @@ public class BomData {
     private Collection<CmsRfcCI> cis;
     private Collection<CmsRfcRelation> relations;
     private CmsRelease release;
+    private Map<String, Object> data = new HashMap<>();
 
     BomData(CmsRelease release, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> relations) {
         this.release = release;
         this.cis = cis;
         this.relations = relations;
+    }
+
+    public Map<String, Object> getData() {
+        return data;
+    }
+
+    public void setData(Map<String, Object> data) {
+        this.data = data;
+    }
+    
+    public void addExtraData(String key, Object data){
+        this.data.put(key, data);
     }
 
     public Collection<CmsRfcCI> getCis() {
