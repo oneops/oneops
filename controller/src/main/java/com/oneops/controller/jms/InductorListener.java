@@ -23,7 +23,7 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.sensor.SensorClient;
 import com.oneops.controller.util.ControllerUtil;
-import com.oneops.controller.workflow.Deployer;
+import com.oneops.controller.workflow.ExecutionManager;
 import com.oneops.controller.workflow.WorkflowController;
 import com.oneops.sensor.client.SensorClientException;
 import java.text.SimpleDateFormat;
@@ -68,7 +68,7 @@ public class InductorListener implements MessageListener {
   private WoPublisher woPublisher;
   private SensorClient sensorClient;
   private ControllerUtil controllerUtil;
-  private Deployer deployer;
+  private ExecutionManager executionManager;
 
   public SensorClient getSensorClient() {
     return sensorClient;
@@ -219,9 +219,14 @@ public class InductorListener implements MessageListener {
     if (isRunByDeployer(wo)) {
       if (wo instanceof CmsWorkOrderSimple) {
         CmsWorkOrderSimple woSimple = ((CmsWorkOrderSimple)wo);
-        logger.info("handleInductorResponse using Deployer for deployment " + woSimple.getDeploymentId() + " rfc " + woSimple.getRfcId());
+        logger.info("handleWOResponse using ExecutionManager for deployment " + woSimple.getDeploymentId() + " rfc " + woSimple.getRfcId());
+        executionManager.handleWOResponse(woSimple, params);
       }
-      deployer.handleInductorResponse(wo, params);
+      else if (wo instanceof CmsActionOrderSimple){
+        CmsActionOrderSimple aoSimple = ((CmsActionOrderSimple)wo);
+        logger.info("handleAOResponse using ExecutionManager for procedure " + aoSimple.getProcedureId() + " action " + aoSimple.getActionId());
+        executionManager.handleAOResponse(aoSimple, params);
+      }
     }
     else {
       wfController.pokeSubProcess(processId, executionId, params);
@@ -281,7 +286,7 @@ public class InductorListener implements MessageListener {
     }
   }
 
-  public void setDeployer(Deployer deployer) {
-    this.deployer = deployer;
+  public void setExecutionManager(ExecutionManager executionManager) {
+    this.executionManager = executionManager;
   }
 }

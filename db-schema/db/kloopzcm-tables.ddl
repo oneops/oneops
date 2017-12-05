@@ -1212,3 +1212,31 @@ REFERENCES kloopzcm.md_class_attributes (attribute_id)
 ON DELETE RESTRICT
 ON UPDATE RESTRICT
 NOT DEFERRABLE;
+
+
+CREATE TABLE kloopzcm.dj_dpmt_execution (
+    exec_id BIGSERIAL PRIMARY KEY,
+    deployment_id BIGINT NOT NULL REFERENCES kloopzcm.dj_deployment(deployment_id) ON DELETE CASCADE,
+    step SMALLINT NOT NULL,
+    state_id INTEGER,
+    created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated TIMESTAMP
+);
+
+CREATE UNIQUE INDEX dj_dpmt_exec_idx
+ ON kloopzcm.dj_dpmt_execution
+ ( deployment_id, step );
+
+CREATE TABLE kloopzcm.cm_procedure_execution (
+    exec_id BIGSERIAL PRIMARY KEY,
+    ops_proc_id BIGINT NOT NULL REFERENCES kloopzcm.cm_ops_procedures(ops_proc_id) ON DELETE CASCADE,
+    step SMALLINT NOT NULL,
+    state_id INTEGER,
+    created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated TIMESTAMP
+);
+
+CREATE UNIQUE INDEX cm_proc_exec_idx
+ ON kloopzcm.cm_procedure_execution
+ ( ops_proc_id, step );
+

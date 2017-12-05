@@ -8,10 +8,12 @@ import javax.jms.JMSException;
 
 public interface Deployer {
 
-  public void deploy(CmsDeployment dpmt);
+  public DeploymentContext deploy(CmsDeployment dpmt);
 
-  public void processWorkflow(WorkflowMessage wfMessage);
+  public DeploymentContext processWorkflow(WorkflowMessage wfMessage);
 
-  public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params) throws JMSException;
+  public void handleInductorResponse(CmsWorkOrderSimpleBase wo, Map<String, Object> params);
+
+  public void convergeIfNeeded(CmsWorkOrderSimpleBase wo) throws JMSException;
 
 }

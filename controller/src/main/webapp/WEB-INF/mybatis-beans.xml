@@ -178,7 +178,7 @@
         <property name="exprParser" ref="exprParser"/>
 	</bean>
     
-    <bean id="cmsWoProvider" class="com.oneops.controller.cms.CmsWoProvider">
+  <bean id="cmsWoProvider" class="com.oneops.controller.cms.CmsWoProvider">
 		<property name="dpmtMapper" ref="dpmtMapper" />
 		<property name="cmrfcProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />

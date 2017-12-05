@@ -49,6 +49,7 @@ public abstract class ReliableExecutor <I> {
 	protected String name;
 	protected String shortName;
 	protected int threadPoolSize;
+	protected boolean logExecutionErrors = true;
 	
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool( 1 );
 	
@@ -98,7 +99,9 @@ public abstract class ReliableExecutor <I> {
 		try {
 			executors.submit(task);
 		} catch (RejectedExecutionException e) {
-			logger.error("Exception while submitting task in ReliableExecutor ", e);
+			if (logExecutionErrors) {
+				logger.error("Exception while submitting task in ReliableExecutor ", e);
+			}
 			writeToFile(param);
 		}
 	}
@@ -255,4 +258,7 @@ public abstract class ReliableExecutor <I> {
 		this.shortName = shortName;
 	}
 
+	public void setLogExecutionErrors(boolean logExecutionErrors) {
+		this.logExecutionErrors = logExecutionErrors;
+	}
 }
