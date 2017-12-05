@@ -93,47 +93,17 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
   def cost_estimate
     pending = params[:pending] == 'false' ? false : true
-    details = params[:details] == 'false' ? false : true
+    details = params[:details] == 'true' ? true : false
     cost, error = Transistor.environment_cost(@environment, pending, details)
 
-    unless cost
+    if cost
+      cost = cost['estimated'] if pending
+      cost['unit'] = UNIT unless details
+      render :json => cost
+    else
       render :json => {:errors => [error]}, :status => :internal_server_error
       return
     end
-
-    cost = cost['estimated'] if pending
-    if details
-      result = cost.inject({:total       => 0,
-                            :unit        => nil,
-                            :by_cloud    => {},
-                            :by_platform => {},
-                            :by_service  => {}}) do |h, c|
-        offerings = c['offerings']
-        next if offerings.blank?
-
-        cloud_key    = c['cloud']['ciName']
-        platform_key = c['rfc']['nsPath'].split('/')[-2..-1].join('/')
-        offerings.each do |o|
-          rate        = o['ciAttributes']['cost_rate'].to_f
-          unit        = o['ciAttributes']['cost_unit']
-          service_key = o['ciAttributes']['service_type']
-          h[:total]                     += rate
-          h[:unit]                      ||= unit if unit.present?
-          h[:by_cloud][cloud_key]       ||= 0
-          h[:by_cloud][cloud_key]       += rate
-          h[:by_platform][platform_key] ||= 0
-          h[:by_platform][platform_key] += rate
-          h[:by_service][service_key]   ||= 0
-          h[:by_service][service_key]   += rate
-        end
-        h
-      end
-      result = result.transform_values {|k, v| v.is_a?(Float) ? v.round(2) : v}
-    else
-      result = {:total => cost}
-    end
-
-    render :json => result
   end
 
 
