@@ -167,7 +167,7 @@
 
 	<bean id="bomManagerIM" class="com.oneops.transistor.service.BomManagerImpl">
 		<property name="bomRfcProcessor" ref="bomRfcProcessorIM" />
-		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessorIM" />
 		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
@@ -175,9 +175,17 @@
 		<property name="cloudUtil" ref="cloudUtil" />
 	</bean>
 
+	<bean id="cmsCmProcessorIM" class="com.oneops.transistor.service.peristenceless.CmsCmProcessorIM">
+		<property name="ciMapper" ref="ciMapper" />
+		<property name="utilMapper" ref="utilMapper" />
+		<property name="cmValidator" ref="cmsCmValidator" />
+		<property name="cmsNsProcessor" ref="cmsNsProcessor" />
+		<property name="mdProcessor" ref="cmsMdProcessor" />
+	</bean>
+
 	<bean id="bomRfcProcessorIM" class="com.oneops.transistor.service.BomRfcBulkProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessorIM" />
-		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessorIM" />
 		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="djValidator" ref="cmsDjValidator" />
@@ -186,7 +194,7 @@
 
 	<bean id="cmsCmRfcMrgProcessorIM" class="com.oneops.cms.dj.service.CmsCmRfcMrgProcessor">
 		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
-		<property name="cmProcessor" ref="cmsCmProcessor" />
+		<property name="cmProcessor" ref="cmsCmProcessorIM" />
 		<property name="djValidator" ref="cmsDjValidator" />
 		<property name="mdProcessor" ref="cmsMdProcessor" />
 		<property name="rfcUtil" ref="rfcUtil" />
