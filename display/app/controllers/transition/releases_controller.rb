@@ -48,8 +48,22 @@ class Transition::ReleasesController < Base::ReleasesController
   end
 
   def bom
+    if params[:latest] == 'true'
+      @release = Cms::Release.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
+    else
     @release = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
-    @release.rfc_cis = @release.rfc_cis if params[:include_rfc_cis].present?
+    end
+
+    if @release
+      include_rfcs = params[:include_rfcs]
+      unless include_rfcs.blank? || include_rfcs == 'false'
+        rfcs = {}
+        rfcs[:cis] = @release.rfc_cis unless include_rfcs == 'relations'
+        rfcs[:relations] = @release.rfc_relations unless include_rfcs == 'cis'
+        @release.rfcs = rfcs
+      end
+    end
+
     render_json_ci_response(@release.present?, @release)
   end
 
