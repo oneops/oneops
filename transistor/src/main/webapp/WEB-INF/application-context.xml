@@ -103,7 +103,6 @@
 		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
-        <property name="djValidator" ref="cmsDjValidator" />
         <property name="cmsUtil" ref="cmsUtil" />
     </bean>
 
@@ -188,7 +187,6 @@
 		<property name="cmProcessor" ref="cmsCmProcessorIM" />
 		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
-		<property name="djValidator" ref="cmsDjValidator" />
 		<property name="cmsUtil" ref="cmsUtil" />
 	</bean>
 

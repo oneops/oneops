@@ -64,7 +64,6 @@ public class BomRfcBulkProcessor {
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
-	private CmsDJValidator djValidator;
 	private TransUtil trUtil;
 	private CmsUtil cmsUtil;
 	private Gson gson = new Gson();
@@ -87,10 +86,6 @@ public class BomRfcBulkProcessor {
 
 	public void setCmRfcMrgProcessor(CmsCmRfcMrgProcessor cmRfcMrgProcessor) {
 		this.cmRfcMrgProcessor = cmRfcMrgProcessor;
-	}
-
-	public void setDjValidator(CmsDJValidator djValidator) {
-		this.djValidator = djValidator;
 	}
 
 	public int processManifestPlatform(EnvBomGenerationContext ec, PlatformBomGenerationContext pc, CmsCIRelation bindingRel, int startExecOrder, boolean usePercent) {
@@ -250,7 +245,7 @@ public class BomRfcBulkProcessor {
 			maxExecOrder = processObsolete(pc, existingCIs, newBoms, obsoleteCisMap, startingExecOrder, releaseId, userId);
 		}
 
-		logger.info(bomNsPath + " >>> Done with obsolete boms in " + (System.currentTimeMillis() - startTime) + "ms.");
+		logger.info(bomNsPath + " >>> Done with obsolete boms in " + (System.currentTimeMillis() - startTime) + " ms.");
 		return maxExecOrder;
 	}
 
@@ -304,12 +299,11 @@ public class BomRfcBulkProcessor {
 				int priorityOrder = priorityMap.get(shortClazzName);
 				actualExecOrder = startingExecOrder + obsoleteCisMap.size() + priorityMax - priorityOrder + 1;
 			}
-			createDeleteRfc(ci,actualExecOrder, userId);
+			createDeleteRfc(ci,actualExecOrder, userId, releaseId);
 			maxExecOrder = (ciExecOrder > maxExecOrder) ? ciExecOrder : maxExecOrder;
 		}
 		Map<Long, List<String>> manifestPropagations = new HashMap<>();
 		Set<Long> propagations = new HashSet<>();
-		long totalPropagationTime = 0;
 
 		//now lets submit submit dummy update
 		String bomNsPath = pc.getBomNsPath();
@@ -327,11 +321,8 @@ public class BomRfcBulkProcessor {
 					if (bomRfc.rfc == null) {
 						 logger.info("bom.rfc null for " + bomRfc.ciName + " nspath: " + bomNsPath);
 					} else if (bomRfc.rfc.getCiId() == rel.getFromCiId()) {
-						long startTime = System.currentTimeMillis();
 						mapPropagations(bomRfc.manifestCiId, pc.getDependsOnFromMap(), depOnToMap, manifestPropagations);
 						propagateUpdate(bomRfc.rfc.getCiId(), bomRfc.manifestCiId, realizedAsToMap, manifestPropagations, bomDepOns, propagations);
-						long endTime = System.currentTimeMillis();
-						totalPropagationTime += totalPropagationTime + (endTime - startTime);
 					}
 				}
 			}
@@ -361,11 +352,10 @@ public class BomRfcBulkProcessor {
 			}
 		}
 
-		logger.info(bomNsPath + " >>> Total time taken by propagation in seconds: " + totalPropagationTime/1000.0);
 		return maxExecOrder;
 	}
 
-	private void createDeleteRfc(CmsCI ci, int execOrder, String userId) {
+	private void createDeleteRfc(CmsCI ci, int execOrder, String userId, long releaseId) {
 		CmsRfcCI newRfc = new CmsRfcCI();
 
 		newRfc.setCiId(ci.getCiId());
@@ -381,6 +371,7 @@ public class BomRfcBulkProcessor {
 		newRfc.setExecOrder(execOrder);
 		newRfc.setCreatedBy(userId);
 		newRfc.setUpdatedBy(userId);
+		newRfc.setReleaseId(releaseId);
 		rfcProcessor.createRfcCI(newRfc, userId);
 	}
 
@@ -509,7 +500,7 @@ public class BomRfcBulkProcessor {
 			}
 			if (incOrder) realExecOrder++;
 		}
-		logger.info(bomNsPath + " >>> Inserted " + numberOfRFCs + " RFC CIs in " + (System.currentTimeMillis() - rfcInsertStartTime) + "ms.");
+		logger.info(bomNsPath + " >>> Inserted " + numberOfRFCs + " RFC CIs in " + (System.currentTimeMillis() - rfcInsertStartTime) + " ms.");
 
 		long rfcRelationInsertStartTime = System.currentTimeMillis();
 		//lets create dependsOn Relations
@@ -561,7 +552,7 @@ public class BomRfcBulkProcessor {
 				}
 			}
 		}
-		logger.info(bomNsPath + " >>> Inserted " + numberOfRelRFCs + " RFC relations in " + (System.currentTimeMillis() - rfcRelationInsertStartTime) + "ms.");
+		logger.info(bomNsPath + " >>> Inserted " + numberOfRelRFCs + " RFC relations in " + (System.currentTimeMillis() - rfcRelationInsertStartTime) + " ms.");
 
 		//Now create dummy updates for all the dependency-propagations needed
 		if (propagations.size() > 0) {
@@ -605,7 +596,6 @@ public class BomRfcBulkProcessor {
 		}
 		if (increaseMaxOrder) maxExecOrder++;
 
-		logger.info(bomNsPath + " >>> Total time taken by propagation in ms: " + timeTakenByPropagation);
 		return maxExecOrder;
 	}
 
@@ -721,18 +711,14 @@ public class BomRfcBulkProcessor {
 				}
 			}
 		} else {
-			CmsRfcCI rfc = bootstrapRfcCi(bom, existingRfc, existingCi, nsPath, nsId, userId);
-			createBomRfc(rfc,existingCi, existingRfc, releaseId);
-			bom.rfc = rfc;
+			bom.rfc = createBomRfc(bom, existingCi, existingRfc, nsPath, nsId, userId, releaseId);
 			rfcCreated = bom.rfc.getRfcId() > 0;
-
-			if (bom.rfc.getRfcId() == 0) {
+			if (!rfcCreated) {
 				//lets make sure the manifest object has not changed or we will create dummy update
 				CmsCIRelation realizedAsRel = existingRels.getExistingRel(BASE_REALIZED_AS, bom.mfstCi.getCiId(), bom.rfc.getCiId());
 				if (realizedAsRel != null && realizedAsRel.getAttribute("last_manifest_rfc") != null) {
 					long deployedManifestRfc = Long.valueOf(realizedAsRel.getAttribute("last_manifest_rfc").getDjValue());
 					if (bom.mfstCi.getLastAppliedRfcId() > deployedManifestRfc) {
-						//TODO convert to direct insert
 						bom.rfc = createDummyUpdateRfc(existingCi, releaseId, bom.execOrder, userId);
 						rfcCreated = true;
 					}
@@ -758,38 +744,49 @@ public class BomRfcBulkProcessor {
 		return rfcCreated;
 	}
 
-	private void createBomRfc(CmsRfcCI rfc, CmsCI existingCi, CmsRfcCI existingRfc, Long releaseId) {
-		if (rfc.getReleaseId()==0 && releaseId!=null){
-			rfc.setReleaseId(releaseId);
+	private CmsRfcCI createBomRfc(BomRfc bom, CmsCI existingCi, CmsRfcCI existingRfc, String nsPath, long nsId, String userId, Long releaseId) {
+		String targetClazzName = "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName());
+		Map<String, CmsCIAttribute> mfstAttrs = bom.mfstCi.getAttributes().values().stream().filter(a -> a.getDfValue() != null).collect(Collectors.toMap(CmsCIAttribute::getAttributeName, Function.identity()));
+		CmsRfcCI rfc = trUtil.bootstrapRfc(bom.ciName, targetClazzName, nsPath, null, mfstAttrs.keySet());
+		rfc.setReleaseId(releaseId);
+		rfc.setNsId(nsId);
+		rfc.setComments(bom.mfstCi.getComments());
+		rfc.setExecOrder(bom.execOrder);
+		rfc.setCreatedBy(userId);
+		rfc.setUpdatedBy(userId);
+
+		for (CmsCIAttribute mfstAttr : mfstAttrs.values()) {
+			rfc.addOrUpdateAttribute(mfstAttr.getAttributeName(), mfstAttr.getDfValue(), mfstAttr.getComments());
 		}
+
+		if (existingRfc != null) {
+			rfc.setCiId(existingRfc.getCiId());
+			rfc.setRfcId(existingRfc.getRfcId());
+			rfc.setReleaseId(existingRfc.getReleaseId());
+		} else if (existingCi != null) {
+			rfc.setCiId(existingCi.getCiId());
+			rfc.setCiState(existingCi.getCiState());
+		}
+
+
 		if (rfc.getCiId() == 0) {
-			//this is add rfc
-
-
-			rfc.setIsActiveInRelease(true);
 			rfc.setRfcAction("add");
-
-			if (rfc.getRfcId() == 0) {
-				rfcProcessor.createRfc(rfc);
-			} else {
-				rfcProcessor.updateRfc(rfc, existingRfc);
-			}
-		} else {
-			//need to figure out delta and create update rfc
-			if (needUpdateRfc(rfc, existingCi)) {
-				rfc.setIsActiveInRelease(true);
-				if (rfc.getRfcId() == 0) {
-					rfcProcessor.createRfc(rfc);
-				} else {
-					rfcProcessor.updateRfc(rfc, existingRfc);
-				}
-			}
+		} else if (!needUpdateRfc(rfc, existingCi)) {
+			return rfc;
 		}
+
+		rfc.setIsActiveInRelease(true);
+		if (rfc.getRfcId() == 0) {
+			rfcProcessor.createRfcRaw(rfc);
+		} else {
+			rfcProcessor.updateRfc(rfc, existingRfc);
+		}
+
+		return rfc;
 	}
 
 
 	private boolean needUpdateRfc(CmsRfcCI rfcCi, CmsCI baseCi) {
-
 		boolean needUpdate = false;
 		if ("replace".equals(baseCi.getCiState())) {
 			rfcCi.setRfcAction("replace");
@@ -800,7 +797,7 @@ public class BomRfcBulkProcessor {
 		Set<String> equalAttrs = new HashSet<>(rfcCi.getAttributes().size());
 		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
 			CmsCIAttribute existingAttr = baseCi.getAttribute(attr.getAttributeName());
-			if (djValidator.equalStrs(attr.getNewValue(), existingAttr.getDjValue())) {
+			if (Objects.equals(attr.getNewValue(), existingAttr.getDjValue())) {
 				equalAttrs.add(attr.getAttributeName());
 			} else {
 				needUpdate = true;
@@ -852,7 +849,7 @@ public class BomRfcBulkProcessor {
 		Set<String> equalAttrs = new HashSet<>(rfcRel.getAttributes().size());
 		for (CmsRfcAttribute attr : rfcRel.getAttributes().values()){
 			CmsCIRelationAttribute existingAttr = baseRel.getAttribute(attr.getAttributeName());
-			if (djValidator.equalStrs(attr.getNewValue(), existingAttr.getDjValue())) {
+			if (Objects.equals(attr.getNewValue(), existingAttr.getDjValue())) {
 				equalAttrs.add(attr.getAttributeName());
 			} else {
 				needUpdate = true;
@@ -1269,8 +1266,7 @@ public class BomRfcBulkProcessor {
 	}
 
 	private CmsRfcCI createDummyUpdateRfc(CmsCI ci, Long releaseId, int execOrder, String userId, boolean hint) {
-		long ciId = ci.getCiId();
-		CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiIdNoAttrs(ciId);
+		CmsRfcCI existingRfc = rfcProcessor.getOpenRfcCIByCiIdNoAttrs(ci.getCiId());
 		if (existingRfc != null) {
 			return existingRfc;
 		}
@@ -1283,35 +1279,9 @@ public class BomRfcBulkProcessor {
 			rfcCi.setHint(gson.toJson(new RfcHint("true")));
 		}
 
-		rfcProcessor.createRfc(rfcCi);
+		rfcProcessor.createRfcRaw(rfcCi);
 
 		return rfcCi;
-	}
-
-	private CmsRfcCI bootstrapRfcCi(BomRfc bom, CmsRfcCI existingRfc, CmsCI existingBomCi, String nsPath, long nsId, String userId) {
-		String targetClazzName = "bom." + trUtil.getLongShortClazzName(bom.mfstCi.getCiClassName());
-		Map<String, CmsCIAttribute> mfstAttrs = bom.mfstCi.getAttributes().values().stream().filter(a -> a.getDfValue() != null).collect(Collectors.toMap(CmsCIAttribute::getAttributeName, Function.identity()));
-		CmsRfcCI newRfc = trUtil.bootstrapRfc(bom.ciName, targetClazzName, nsPath, null, mfstAttrs.keySet());
-		newRfc.setNsId(nsId);
-		newRfc.setComments(bom.mfstCi.getComments());
-		newRfc.setExecOrder(bom.execOrder);
-		newRfc.setCreatedBy(userId);
-		newRfc.setUpdatedBy(userId);
-
-		for (CmsCIAttribute mfstAttr : mfstAttrs.values()) {
-			newRfc.addOrUpdateAttribute(mfstAttr.getAttributeName(), mfstAttr.getDfValue(), mfstAttr.getComments());
-		}
-
-		if (existingRfc != null) {
-			newRfc.setCiId(existingRfc.getCiId());
-			newRfc.setRfcId(existingRfc.getRfcId());
-			newRfc.setReleaseId(existingRfc.getReleaseId());
-		} else if (existingBomCi != null) {
-			newRfc.setCiId(existingBomCi.getCiId());
-			newRfc.setCiState(existingBomCi.getCiState());
-		}
-
-		return newRfc;
 	}
 
 
