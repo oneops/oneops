@@ -1,18 +1,20 @@
 package com.oneops.cms.ds;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.sql.DataSource;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.core.env.Environment;
 
-import javax.sql.DataSource;
-import java.util.HashMap;
-import java.util.Map;
-
 @Configuration
+@EnableAspectJAutoProxy
 public class DataSourceConfig {
 
     @Value("${CMS_DB_USER}")
@@ -49,15 +51,26 @@ public class DataSourceConfig {
     @Value("${oo.adapter.standby.max.idle:3}")
     private int standbyMaxIdleSize;
 
+    @Value("${oo.adapter.standby.connect.timeout.secs:5}")
+    private String standbyConnectTimeoutInSecs;
+
     @Autowired
     Environment env;
 
     private static final String DRIVER = "org.postgresql.Driver";
     private static final String JDBC_URL = "jdbc:postgresql://%s/kloopzdb?autoReconnect=true&ApplicationName=%s";
+    private static final String JDBC_PARAM_CONNECT_TIMEOUT = "connectTimeout";
     private static final Logger logger = Logger.getLogger(DataSourceConfig.class);
 
-    private String jdbcUrl(String dbHost) {
-        return String.format(JDBC_URL, dbHost, applicationName);
+    String jdbcUrl(String dbHost, Map<String, String> parameters) {
+        String jdbcUrl = String.format(JDBC_URL, dbHost, applicationName);
+        if (parameters != null) {
+            String joinedParams = parameters.entrySet().stream().
+                map(e -> e.getKey() + "=" + e.getValue()).
+                collect(Collectors.joining("&"));
+            jdbcUrl = jdbcUrl + "&" + joinedParams;
+        }
+        return jdbcUrl;
     }
 
     private void setNumConnections(BasicDataSource ds, int initialSize, int maxActive, int maxIdle) {
@@ -79,14 +92,20 @@ public class DataSourceConfig {
 
     private DataSource getPrimaryDataSource() {
         BasicDataSource ds = getBaseDataSource();
-        ds.setUrl(jdbcUrl(primaryDbHost));
+        ds.setUrl(jdbcUrl(primaryDbHost, null));
         setNumConnections(ds, primaryInitialSize, primaryMaxActiveSize, primaryMaxIdleSize);
         return ds;
     }
 
     private DataSource getReadOnlyDataSource() {
         BasicDataSource ds = getBaseDataSource();
-        ds.setUrl(jdbcUrl(env.getProperty("CMS_DB_READONLY_HOST")));
+        Map<String, String> map = new HashMap<>();
+        map.put(JDBC_PARAM_CONNECT_TIMEOUT, standbyConnectTimeoutInSecs);
+        map.put("targetServerType", "preferSlave");
+        map.put("loadBalanceHosts", "true");
+        String jdbcUrl = jdbcUrl(env.getProperty("CMS_DB_READONLY_HOST"), map);
+        logger.info("read only connection jdbc url : " + jdbcUrl);
+        ds.setUrl(jdbcUrl);
         setNumConnections(ds, standbyInitialSize, standbyMaxActiveSize, standbyMaxIdleSize);
         return ds;
     }
@@ -115,5 +134,7 @@ public class DataSourceConfig {
         }
     }
 
-
+    public void setApplicationName(String applicationName) {
+        this.applicationName = applicationName;
+    }
 }

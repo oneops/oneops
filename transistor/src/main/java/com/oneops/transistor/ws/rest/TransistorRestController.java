@@ -34,11 +34,9 @@ import com.oneops.transistor.domain.IaasRequest;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
-//import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.service.*;
 import com.oneops.transistor.snapshot.domain.Snapshot;
-import com.oneops.transistor.service.SnapshotManager;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -47,6 +45,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -425,7 +424,47 @@ public class TransistorRestController extends AbstractRestController {
 			throw te;
 		}
 	}
+
+
+	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostData>  getCostData(@PathVariable long envId){
+		return envManager.getEnvCostData(envId);
+	}
+
+	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
+	@ResponseBody
+	public BigDecimal calculateCost(@PathVariable long envId){
+		return getSum(getCostData(envId));
+	}
+
+	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, List<CostData>> getEstimatedCostData(@PathVariable long envId){
+		return envManager.getEnvEstimatedCostData(envId);
+	}
 	
+	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public HashMap<String, BigDecimal> calculateEstimatedCost(@PathVariable long envId) {
+		HashMap<String, BigDecimal> result = new HashMap<>();
+		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
+		for (String type : estimatedCostData.keySet()) {
+			result.put(type, getSum(estimatedCostData.get(type)));
+		}
+		return result;
+	}
+
+
+	private BigDecimal getSum(List<CostData> offerings) {
+		BigDecimal result = BigDecimal.ZERO;
+		for (CostData cost: offerings){
+			for (CmsCISimple offering: cost.getOfferings()){
+				result = result.add(new BigDecimal(offering.getCiAttributes().get("cost_rate")));
+			}
+		}
+		return result;
+	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
 	@ResponseBody

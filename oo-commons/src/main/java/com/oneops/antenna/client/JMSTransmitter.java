@@ -17,8 +17,8 @@
  *******************************************************************************/
 package com.oneops.antenna.client;
 
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationType;
 import com.oneops.util.SearchPublisher;
 import com.oneops.util.MessageData;
 import com.oneops.util.ReliableExecutor;

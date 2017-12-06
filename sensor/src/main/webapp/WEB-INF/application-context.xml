@@ -177,6 +177,7 @@
         <property name="ciStateProcessor" ref="ciStateProcessor"/>
         <property name="minHeartbeatSeedDelay" value="${MIN_HB_SEED_DELAY_IN_SEC:300}"/>
         <property name="heartbeatRandomDelay" value="${MAX_HB_RANDOM_DELAY_IN_SEC:30}"/>
+        <property name="loadStatementTimeOut" value="${LOAD_STATEMENT_TIMEOUT_IN_MINUTES:10}"/>
         <property name="replacedInstances" ref="replacedInstances"/>
     </bean>
 
@@ -221,7 +222,11 @@
         <property name="sensorHeartBeat" ref="sensorHeartBeat"/>
         <property name="shouldLogStats" value="${sensor.logStats:false}"/>
         <property name="processId" value="${ONEOPS_COMPUTE_CI_ID:0}"/>
-        <property name="useRandomProcessId" value="${sensor.useRandomProcessId:true}"/>
+        <property name="refreshLockWaitInSeconds" value="${sensor.refreshLockWaitInSeconds:10}"/>
+        <property name="retryLockWaitInMilliSeconds" value="${sensor.retryLockWaitInMilliSeconds:30000}"/>
+        <property name="lockTimeOutInSeconds" value="${sensor.lockTimeOutInSeconds:90}"/>
+
+       <property name="useRandomProcessId" value="${sensor.useRandomProcessId:true}"/>
         <property name="numLockRefreshesToLogStats" value="${sensor.numLockRefreshesToLogStats:10}"/>
 
     </bean>

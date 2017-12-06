@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.antenna.domain;
 
+import com.oneops.notification.NotificationSeverity;
 import java.util.List;
 
 /**

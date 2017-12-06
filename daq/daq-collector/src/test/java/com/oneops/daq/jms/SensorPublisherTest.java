@@ -17,7 +17,11 @@
  *******************************************************************************/
 package com.oneops.daq.jms;
 
+import com.oneops.sensor.events.PerfEvent;
+import com.oneops.sensor.thresholds.Threshold;
+import com.oneops.sensor.thresholds.ThresholdsDao;
 import org.apache.log4j.Logger;
+import org.springframework.jms.core.JmsTemplate;
 import org.testng.annotations.Test;
 
 import javax.jms.JMSException;
@@ -26,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.mockito.Mockito.*;
 import static org.testng.Assert.assertEquals;
 
 
@@ -35,12 +40,76 @@ import static org.testng.Assert.assertEquals;
  */
 public class SensorPublisherTest {
 
-	private SensorPublisher publisher = new SensorPublisher();
+	private static final int LOOKUP_THRESHOLD = 10;
 
 	private static final Logger logger = Logger.getLogger(SensorPublisherTest.class);
-	
 	private static final String NO_ENV_EXC_MSG="missing KLOOPZ_AMQ_PASS env var";
 
+
+
+	@Test
+	public void testLookupPriorToThreshold() throws JMSException {
+		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
+		SensorPublisher publisher = new SensorPublisher();
+		PerfEvent event = new PerfEvent();
+		ThresholdsDao dao = mock(ThresholdsDao.class);
+		when(dao.getManifestId(100)).thenReturn(null);
+		publisher.setThresholdDao(dao);
+		event.setCiId(100);
+		for (int i = 0; i<LOOKUP_THRESHOLD; i++) {
+			publisher.enrichAndPublish(event);
+		
+		}
+		verify(dao, times(LOOKUP_THRESHOLD)).getManifestId(100);
+		verifyNoMoreInteractions(dao);
+		assertEquals(publisher.getMissingManifestCounter(), LOOKUP_THRESHOLD);
+		assertEquals( publisher.getPublishedCounter(), 0);
+	}
+
+
+	@Test
+	public void testLookupThreshold() throws JMSException {
+		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
+		SensorPublisher publisher = new SensorPublisher();
+		PerfEvent event = new PerfEvent();
+		ThresholdsDao dao = mock(ThresholdsDao.class);
+		when(dao.getManifestId(100)).thenReturn(null);
+		publisher.setThresholdDao(dao);
+		event.setCiId(100);
+		final int EXTRA = 10;
+		for (int i = 0; i<LOOKUP_THRESHOLD+ EXTRA; i++) {
+			publisher.enrichAndPublish(event);
+		}
+		  // even though we called publish LOOKUP_THRESHOLD+EXTRA times, we should only do lookup LOOKUP_THRESHOLD + 4 times due to exponential backoff(10 contains 3 square roots for 0, 1, 2 and 3)
+		verify(dao, times(LOOKUP_THRESHOLD+4)).getManifestId(100);
+		verifyNoMoreInteractions(dao);
+		assertEquals(publisher.getMissingManifestCounter(), LOOKUP_THRESHOLD+EXTRA);
+		assertEquals( publisher.getPublishedCounter(), 0);
+	}
+
+
+	@Test
+	public void testLookupIdFound() throws JMSException {
+		System.setProperty("manifestIdLookupThreshold", ""+LOOKUP_THRESHOLD);
+		SensorPublisher publisher = new SensorPublisher();
+		JmsTemplate[] array = {mock(JmsTemplate.class)};
+		publisher.setProducers(array);
+		PerfEvent event = new PerfEvent();
+		ThresholdsDao dao = mock(ThresholdsDao.class);
+		when(dao.getManifestId(100)).thenReturn(1L);
+		Threshold t = new Threshold();
+		t.setThresholdJson("{}");
+		t.setHeartbeat(true);
+		when(dao.getThreshold(1, "null")).thenReturn(t);
+		publisher.setThresholdDao(dao);
+		event.setCiId(100);
+		publisher.enrichAndPublish(event);
+		publisher.enrichAndPublish(event);
+		verify(dao).getManifestId(100);
+		verify(dao, times(1)).getThreshold(1,"null");
+		assertEquals( publisher.getPublishedCounter(), 2);
+		verifyNoMoreInteractions(dao);
+	}
 	/**
 	 * test publishing messages though we can only set up the message as we have
 	 * not mocked the channel
@@ -57,6 +126,8 @@ public class SensorPublisherTest {
 		// event.setManifestId(2L);
 		// event.setSource(this.getClass().getName());
 		//
+		SensorPublisher publisher = new SensorPublisher();
+
 		try {
 			publisher.init();
 		} catch (JMSException e) {
@@ -74,8 +145,8 @@ public class SensorPublisherTest {
 	 */
 	@Test(priority=2)
 	public void testInitAfterSetup() throws Exception {
+		SensorPublisher publisher = new SensorPublisher();
 		setIntoEnvVariables();
-
 		try {
 			publisher.init();
 			

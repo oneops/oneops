@@ -1,10 +1,10 @@
 class Cms::RelationMd < ActiveResource::Base
-  self.prefix = '/adapter/rest/md/'
-  self.format = :json
-  self.include_root_in_json = false
-  self.include_format_in_path = false
+  self.prefix       = '/adapter/rest/md/'
   self.element_name = 'relation'
-  self.primary_key = :relationId
+  self.primary_key  = :relationId
+
+  cattr_accessor :md_cache
+  self.md_cache = {}
 
   def find_or_create_resource_for_collection(name)
     case name
@@ -25,5 +25,16 @@ class Cms::RelationMd < ActiveResource::Base
     return post('bulk', {}, relations.to_json).body
   rescue Exception => e
     return false, e
+  end
+
+
+  def self.look_up(relation_name)
+    key = "Cms::RelationMd:relation_name=#{relation_name}"
+    md = md_cache[key]
+    return md if md
+
+    md = find(relation_name)
+    md_cache[key] = md
+    return md
   end
 end

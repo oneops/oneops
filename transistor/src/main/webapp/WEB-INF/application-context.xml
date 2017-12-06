@@ -129,13 +129,18 @@
 		<property name="cmsUtil" ref="cmsUtil" />
     </bean>
 
+
+	<bean id="exprParser" class="org.springframework.expression.spel.standard.SpelExpressionParser" />
 	<bean id="envManager" class="com.oneops.transistor.service.BomEnvManagerImpl">
 		<property name="cmProcessor" ref="cmsCmProcessor" />
         <property name="nsManager" ref="cmsNsManager" />
         <property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="dpmtProcessor" ref="cmsDpmtProcessor" />
+		<property name="cmRfcProcessor" ref="cmsCmRfcMrgProcessor"/>
 		<property name="bomManager" ref="bomManager" />
-
+		<property name="exprParser" ref="exprParser"/>
+		<property name="rfcUtil" ref="rfcUtil"/>
+		<property name="cmsUtil" ref="cmsUtil"/>
     </bean>
 
 	<bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">
@@ -158,7 +163,14 @@
 	<bean id="maProcessor" class="com.oneops.transistor.service.ManifestAsyncProcessor" >
 		<property name="manifestManager" ref="manifestManager" />
         <property name="envSemaphore" ref="envSemaphore" />
+		<property name="executor" ref="designPullFixedPoolExecutor"/>
     </bean>
+
+	<bean id="designPullFixedPoolExecutor" class="java.util.concurrent.Executors"
+		  factory-method="newFixedThreadPool" destroy-method="shutdown">
+		<constructor-arg value="${DESIGN_PULL_THREAD_POOL_CNT:5}"/>      
+		<!--It is extremely important to keep this pool size less then db connection pool size to avoid deadlocks -->
+	</bean>
 
 	<bean id="packRefreshProcessor" class="com.oneops.transistor.service.PackRefreshProcessor" >
 		<property name="cmProcessor" ref="cmsCmProcessor" />

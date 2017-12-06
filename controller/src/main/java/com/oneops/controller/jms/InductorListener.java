@@ -23,15 +23,13 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.sensor.SensorClient;
 import com.oneops.controller.util.ControllerUtil;
-import com.oneops.controller.workflow.Deployer;
+import com.oneops.controller.workflow.ExecutionManager;
 import com.oneops.controller.workflow.WorkflowController;
 import com.oneops.sensor.client.SensorClientException;
-import org.activiti.engine.ActivitiException;
-import org.apache.activemq.ActiveMQConnection;
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.activemq.util.IndentPrinter;
-import org.apache.log4j.Logger;
-
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -40,10 +38,11 @@ import javax.jms.MessageListener;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import org.activiti.engine.ActivitiException;
+import org.apache.activemq.ActiveMQConnection;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.activemq.util.IndentPrinter;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -69,7 +68,7 @@ public class InductorListener implements MessageListener {
   private WoPublisher woPublisher;
   private SensorClient sensorClient;
   private ControllerUtil controllerUtil;
-  private Deployer deployer;
+  private ExecutionManager executionManager;
 
   public SensorClient getSensorClient() {
     return sensorClient;
@@ -218,7 +217,16 @@ public class InductorListener implements MessageListener {
   private void handleWorkOrderFlow(String processId, String executionId, Map<String,
           Object> params, CmsWorkOrderSimpleBase wo) throws JMSException {
     if (isRunByDeployer(wo)) {
-      deployer.handleInductorResponse(wo, params);
+      if (wo instanceof CmsWorkOrderSimple) {
+        CmsWorkOrderSimple woSimple = ((CmsWorkOrderSimple)wo);
+        logger.info("handleWOResponse using ExecutionManager for deployment " + woSimple.getDeploymentId() + " rfc " + woSimple.getRfcId());
+        executionManager.handleWOResponse(woSimple, params);
+      }
+      else if (wo instanceof CmsActionOrderSimple){
+        CmsActionOrderSimple aoSimple = ((CmsActionOrderSimple)wo);
+        logger.info("handleAOResponse using ExecutionManager for procedure " + aoSimple.getProcedureId() + " action " + aoSimple.getActionId());
+        executionManager.handleAOResponse(aoSimple, params);
+      }
     }
     else {
       wfController.pokeSubProcess(processId, executionId, params);
@@ -278,7 +286,7 @@ public class InductorListener implements MessageListener {
     }
   }
 
-  public void setDeployer(Deployer deployer) {
-    this.deployer = deployer;
+  public void setExecutionManager(ExecutionManager executionManager) {
+    this.executionManager = executionManager;
   }
 }

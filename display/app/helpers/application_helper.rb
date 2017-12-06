@@ -17,6 +17,7 @@ module ApplicationHelper
                 :environment            => 'cubes',
                 :single_availability    => 'cube',
                 :redundant_availability => 'cubes',
+                :platform               => 'archive',
                 :cloud_services         => 'cog',
                 :cloud_compliance       => 'briefcase',
                 :cloud_support          => 'medkit',
@@ -495,10 +496,16 @@ module ApplicationHelper
     end
 
     def self.build_list_item_content(item_collection, template, options, group = nil, &block)
+      partial = options[:item_partial]
+      locals  = {:group        => group,
+                 :collapse     => options[:collapse],
+                 :multi_select => options[:menu].present?}
       item_collection.inject('') do |content, item|
         list_item_builder = ListItemBuilder.new(item, template, options)
+        locals[:builder] = list_item_builder
+        locals[:item]    = item
         template.capture list_item_builder, item, &block if block_given?
-        content << template.render(:partial => options[:item_partial], :locals => {:item => item, :group => group, :builder => list_item_builder, :collapse => options[:collapse], :multi_select => options[:menu].present?})
+        content << template.render(:partial => partial, :locals => locals)
       end
     end
   end
@@ -711,6 +718,23 @@ module ApplicationHelper
     end
   end
 
+  def health_icon(state)
+    case state
+      when 'unhealthy'
+        'exclamation-triangle'
+      when 'notify'
+        'exclamation-circle'
+      when 'overutilized'
+        'expand'
+      when 'underutilized'
+        'compress'
+      when 'good'
+        'check-circle'
+      else
+        'question-circle'
+    end
+  end
+
   def ops_state_legend
     OPS_HEALTH_LEGEND
   end
@@ -787,20 +811,8 @@ module ApplicationHelper
     result
   end
 
-  def instance_marker(platform_clouds, target)
-    clouds = platform_clouds["#{target.ciName}/#{target.ciAttributes.major_version}"]
-    return '', 0 unless clouds.present?
-    clouds = clouds.values
-    total = 0
-    content = clouds.sort_by {|info| info[:consumes].toCi.ciName}.inject('') do |a, info|
-      count  = info[:instances]
-      cloud  = info[:consumes]
-      status = cloud.relationAttributes.adminstatus
-      total += count
-      a + "#{cloud.toCi.ciName} - <strong class='#{state_to_text(status)}'>#{count}</strong><br>"
-    end
-    return status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {}),
-           total
+  def instance_marker(count)
+    return count ? status_marker('instances', count.to_i, 'label-info') : ''
   end
 
   def cloud_marker(cloud, primary, status)
@@ -809,6 +821,10 @@ module ApplicationHelper
                    cloud_admin_status_label(status),
                   :name_class => primary ? 'info' : '')
     link_to(marker, edit_cloud_path(cloud))
+  end
+
+  def health_marker(state)
+    status_marker('health', state, health_to_label(state))
   end
 
   def icon(name, text = '', icon_class = '')
@@ -1269,12 +1285,17 @@ module ApplicationHelper
     render 'base/shared/graph_donut', :data => {:data => [data], :legend => legend}, :legend => false
   end
 
+  def format_cost_rate(rate, opts = {})
+    raw %(<span class="cost-rate">#{rate.to_human(:precision => opts[:precision] || 2)} <span class=""><sub>USD/hour</sub></span></span>)
+  end
+
   def ci_doc_link(ci, label, opts = {})
-    asset_url        = Settings.asset_url.presence || 'cms/'
-    anchor           = opts[:anchor]
-    class_name_split = ci.ciClassName.split('.')
+    asset_url = Settings.asset_url.presence || 'cms/'
+    anchor    = opts[:anchor]
+    split     = ci.ciClassName.split('.')
+    split     = split[1..-1] if split.first == 'mgmt'
     link_to(raw(label),
-            "#{asset_url}#{class_name_split[[-class_name_split.size, -3].max..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
+            "#{asset_url}#{split[-[split.size - 1, 3].min..-1].join('.')}/index.html#{"##{anchor}" if anchor.present?}",
             :target => '_blank',
             :class  => opts[:class] || '')
   end

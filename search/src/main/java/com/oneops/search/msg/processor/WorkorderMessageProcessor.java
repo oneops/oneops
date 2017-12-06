@@ -3,6 +3,7 @@ package com.oneops.search.msg.processor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.search.msg.index.Indexer;
 import org.apache.log4j.Logger;
 import org.elasticsearch.action.get.GetResponse;
@@ -28,8 +29,14 @@ public class WorkorderMessageProcessor implements MessageProcessor {
 
     @Override
     public void processMessage(String message, String msgType, String msgId) {
-        ObjectMapper mapper = new ObjectMapper();
         try {
+            CmsWorkOrderSimple wos = GSON.fromJson(message, CmsWorkOrderSimple.class);
+            if ("pending".equalsIgnoreCase(wos.getDpmtRecordState()) || "inprogress".equalsIgnoreCase(wos.getDpmtRecordState())) return;
+            // we don't need/want to store inprogress and pending messages in ES, in case it arrived out of order to avoid overwriting complete messages we care about
+        } catch (Exception ignore){
+        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
             JsonNode rootNode = mapper.readValue(message, JsonNode.class);
 
             JsonNode rfcCi = rootNode.get("rfcCi");

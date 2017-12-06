@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
   s.bindir                = 'bin'
   s.require_path          = 'lib'
 
-  s.files                 = %w(oneops-admin-inductor.gemspec
+  s.files                 = %w(oneops-admin-inductor-az.gemspec
                               Gemfile
                               bin/i
                               bin/inductor
@@ -25,8 +25,10 @@ Gem::Specification.new do |s|
       Dir.glob('target/inductor-*.jar') +
       Dir.glob('lib/templates/inductor/**/*') +
       Dir.glob('lib/templates/cloud/**/*') +
-      (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH)).
+      (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH).reject{ |f| f['exec-gems.yaml']}).
           reject {|f| f =~ (/\.(\.|png)?$/)}
+
+  s.extensions = ['Rakefile']
 
   s.add_dependency 'thor', '= 0.19.1'
   s.add_dependency 'chef', '= 11.18.12'
@@ -40,6 +42,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'net-ssh', '= 2.6.5'
   s.add_dependency 'net-scp', '= 1.1.2'
   s.add_dependency 'net-ldap', '= 0.6.1'
-  s.add_dependency 'fog-azure-rm', '= 0.3.3'
+  s.add_dependency 'fog-azure-rm', '= 0.3.8'
   s.add_dependency 'crack', '= 0.4.3'
 end

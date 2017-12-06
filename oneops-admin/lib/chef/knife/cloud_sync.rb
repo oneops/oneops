@@ -5,7 +5,7 @@ class Chef
     class CloudSync < Chef::Knife
       include ::BaseSync
 
-      banner "Loads cloud templates into CMS\nUsage: \n   knife cloud sync [CLOUDS...] (options)"
+      banner "Loads cloud templates into OneOps\nUsage: \n   circuit cloud [OPTIONS] [CLOUDS...]"
 
       option :all,
              :short       => "-a",
@@ -48,12 +48,12 @@ class Chef
         @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
 
         if config[:all]
-          files = config[:cloud_path].inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb")}
+          files = (config[:cloud_path] || []).inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb").sort}
         else
           files = @name_args.inject([]) {|a, cloud| a << "#{cloud}.rb"}
         end
 
-        if files.blank?
+        if files.blank? && config[:all].blank?
           ui.error 'You must specify cloud name(s) or use the --all option to sync all.'
           exit(1)
         end
@@ -68,7 +68,7 @@ class Chef
       def sync_cloud(file, comments)
         cloud = @packs_loader.load_from(config[:cloud_path], file)
         ui.info("\n--------------------------------------------------")
-        ui.info("\e[7m\e[34m #{cloud.name} \e[0m")
+        ui.info(" #{cloud.name} ".blue(true))
         ui.info('--------------------------------------------------')
         cloud.sync(config, comments)
         ui.info("\e[7m\e[32mSuccessfully synched\e[0m cloud #{cloud.name}")

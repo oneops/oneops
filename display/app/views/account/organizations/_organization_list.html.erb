@@ -1,8 +1,12 @@
-<%= section_panel 'Organizations',
+<% orgs = current_user.organizations.
+    joins(:teams).joins(:users).
+    select('organizations.*, count(teams.id) as team_count, count(distinct users.id) as user_count').
+    group('organizations.id').all %>
+<%= section_panel 'My Organizations',
                   :width => 'double',
-                  :menu => [link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")', :class => 'btn btn-mini')] do %>
-  <%= list(current_user.organizations.joins(:teams).select('organizations.*, count(teams.id) as team_count').group('organizations.id').all,
-           :new_link => link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")'),
+                  :menu => [link_to_function(icon('search', 'Find other organization...'), '$j("#organization_lookup_modal").modal("show")', :class => 'btn btn-mini')] do %>
+  <%= list(orgs,
+           :new_link => link_to_function(icon('search', 'Find other organization...'), '$j("#organization_lookup_modal").modal("show")'),
            :toolbar  => {:sort_by => [%w(Name name), %w(Created created)], :filter_by => %w(name)}) do |builder, org| %>
     <% builder.itemid org.id %>
     <% builder.attributes raw(%(name="#{org.name}" created="#{org.created_at}")) %>
@@ -16,7 +20,7 @@
     <% end %>
 
     <% builder.menu do %>
-      <% if org.users.count > 1 %>
+      <% if org.user_count > 1 %>
         <%= link_to(icon('times', 'Leave'), leave_account_organization_path(org), :method => :delete, :remote => true, :confirm => "Leave organization #{org.name}?") %>
       <% else %>
         <%= link_to(account_organization_path(org), :method => :delete, :remote => true, :confirm => "Permanently delete organization #{org.name}?") do %>
@@ -29,11 +33,12 @@
 <% if Settings.allow_create_orgs %>
   <%= section_panel 'New Organization', :width => 'single' do %>
     <span class="help-block">
-      <p class="text-info">
-        <%= icon('info-circle') %>
+      <p>
+        <%= icon('info-circle', nil, 'text-info') %>
         Before creating a new organization first consider joining an existing organization. You can search organizatons
         to view public profile and to request access.
       </p>
+      <hr>
       <%= link_to(icon('plus', 'New Organization'), new_account_organization_path, :remote => true, :class => 'btn btn-small') %>
     </span>
   <% end %>

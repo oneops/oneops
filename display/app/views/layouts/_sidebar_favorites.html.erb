@@ -1,29 +1,39 @@
-<% favs = current_user.org_favorites
-   grouped_favs = {:assembly => favs.select {|f| f.ci_class_name == 'account.Assembly'},
-                   :environment => favs.select {|f| f.ci_class_name == 'manifest.Environment'}} %>
-<% if grouped_favs.values.any?(&:present?) %>
-  <li class="title minor"><%= link_to(icon(site_icon(:favorite), 'Favorites'), services_path) %></li>
-  <% visible_count = 3 %>
-  <% grouped_favs.each_pair do |group, favs| %>
-    <% if favs.present? %>
-      <li class="minor favorites">
-        <%= link_to_function(raw("#{icon(site_icon(group), group.to_s.pluralize.capitalize)}"), 'toggleSidebarInlineSelectionList(this)') %>
-        <ul class="submenu">
-          <% favs.sort_by!(&:ci_name) %>
-          <% favs[0...visible_count].each do |fav| %>
-            <li>
-              <%= link_to("#{"#{fav.ns_path.split('/').last} / " if fav.ci_class_name == 'manifest.Environment'}#{fav.ci_name}", favorite_path(fav.ci_id)) %>
-            </li>
-          <% end %>
-          <% if favs.size > visible_count %>
-            <li><%= link_to_function(content_tag(:strong, '...'), '$j(this).parent().hide().siblings(".hide").show()') %></li>
-            <% favs[visible_count..-1].each do |fav| %>
-              <li class="hide"><%= link_to(fav.ci_name, favorite_path(fav.ci_id)) %></li>
+<% user_signed_in = user_signed_in?
+   current_org = user_signed_in && current_user.organization %>
+<% if current_org && current_org.persisted? %>
+  <% favs = current_user.org_favorites
+     grouped_favs = {:assembly    => favs.select {|f| f.ci_class_name == 'account.Assembly'},
+                     :environment => favs.select {|f| f.ci_class_name == 'manifest.Environment'}} %>
+  <% if grouped_favs.values.any?(&:present?) %>
+    <li class="title minor"><%= link_to(icon(site_icon(:favorite), 'Favorites'), services_path) %></li>
+    <% visible_count = 3 %>
+    <% grouped_favs.each_pair do |group, favs| %>
+      <% if favs.present? %>
+        <li class="minor favorites">
+          <%= link_to_function(raw("#{icon(site_icon(group), group.to_s.pluralize.capitalize)}"), 'toggleSidebarInlineSelectionList(this)') %>
+          <ul class="submenu">
+            <% favs.sort_by!(&:ci_name) %>
+            <% favs[0...visible_count].each do |fav| %>
+              <li>
+                <%= link_to("#{"#{fav.ns_path.split('/').last} / " if fav.ci_class_name == 'manifest.Environment'}#{fav.ci_name}", favorite_path(fav.ci_id)) %>
+              </li>
             <% end %>
-          <% end %>
-        </ul>
-      </li>
+            <% if favs.size > visible_count %>
+              <li><%= link_to_function(content_tag(:strong, '...'), '$j(this).parent().hide().siblings(".hide").show()') %></li>
+              <% favs[visible_count..-1].each do |fav| %>
+                <li class="hide"><%= link_to(fav.ci_name, favorite_path(fav.ci_id)) %></li>
+              <% end %>
+            <% end %>
+          </ul>
+        </li>
+      <% end %>
     <% end %>
   <% end %>
+  <li class="minor favorites-dropdown">
+    <a class="dropdown-toggle" data-toggle="dropdown">
+      <%= icon('bookmark', 'All favorites') %> <%= icon('caret-right', '', 'pull-right') %>
+    </a>
+    <%= render('layouts/favorites_dropdown') %>
+  </li>
   <li class="divider"></li>
 <% end %>

@@ -2,37 +2,43 @@ class LookupController < ApplicationController
   before_filter :clear_active_resource_headers
 
   def ci
+    ci = nil
     begin
       ci = Cms::DjCi.find(params[:id])
     rescue
     end
 
+    unless ci
+      render :json => {}, :status => :not_found
+      return
+    end
+
     attribute_name_param = params[:attribute_name]
     if attribute_name_param.present?
-      if authorize(ci.nsPath)
-        attribute = ci.ciAttributes.attributes[attribute_name_param]
-        md_attribute = ci.meta.md_attribute(attribute_name_param)
-        if md_attribute.present?
-          data_type = md_attribute.dataType
-          if (data_type == 'hash' || data_type == 'array' || data_type == 'struct')
-            begin
-              render :json => JSON.parse(attribute)
-            rescue
-              render :text => attribute
-            end
-          else
-            render :text => attribute
-          end
-        else
-          render :nothing => true, :status => :not_found
-        end
-      else
-        render :nothing => true, :status => :unauthorized
-      end
+      render_attribute(ci.nsPath, ci.ciAttributes.attributes[attribute_name_param], ci.meta.md_attribute(attribute_name_param))
     else
       authorize_and_respond(ci)
     end
+  end
 
+  def relation
+    rel = nil
+    begin
+      rel = Cms::DjRelation.find(params[:id])
+    rescue
+    end
+
+    unless rel
+      render :json => {}, :status => :not_found
+      return
+    end
+
+    attribute_name_param = params[:attribute_name]
+    if attribute_name_param.present?
+      render_attribute(rel.nsPath, rel.relationAttributes.attributes[attribute_name_param], rel.meta.md_attribute(attribute_name_param))
+    else
+      authorize_and_respond(rel)
+    end
   end
 
   def release
@@ -56,7 +62,7 @@ class LookupController < ApplicationController
   def procedure
     begin
       procedure = Cms::Procedure.find(params[:id])
-      ci        = procedure && Cms::DjCi.find(procedure.ciId)
+      ci = procedure && Cms::DjCi.find(procedure.ciId)
     rescue
     end
 
@@ -230,6 +236,27 @@ class LookupController < ApplicationController
 
   private
 
+  def render_attribute(ns_path, attribute, md_attribute)
+    if authorize(ns_path)
+      if md_attribute.present?
+        data_type = md_attribute.dataType
+        if data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+          begin
+            render :json => JSON.parse(attribute)
+          rescue
+            render :text => attribute
+          end
+        else
+          render :text => attribute
+        end
+      else
+        render :nothing => true, :status => :not_found
+      end
+    else
+      render :nothing => true, :status => :unauthorized
+    end
+  end
+
   def authorize_and_respond(target, ns_path = nil)
     unless target
       render :json => {}, :status => :not_found
@@ -267,4 +294,3 @@ class LookupController < ApplicationController
     end
   end
 end
-

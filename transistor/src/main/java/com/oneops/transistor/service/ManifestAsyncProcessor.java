@@ -32,6 +32,11 @@ public class ManifestAsyncProcessor {
 
     private ManifestManager manifestManager;
     private EnvSemaphore envSemaphore;
+    private ExecutorService executor;
+
+    public void setExecutor(ExecutorService executor) {
+        this.executor = executor;
+    }
 
     public void setManifestManager(ManifestManager manifestManager) {
         this.manifestManager = manifestManager;
@@ -42,7 +47,7 @@ public class ManifestAsyncProcessor {
     }
 
     public long generateEnvManifest(List<Long> envIds, String userId, Map<String, String> platModes) {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        
         String oldThreadName = Thread.currentThread().getName();
         try {
             for (long envId : envIds) {
@@ -66,7 +71,6 @@ public class ManifestAsyncProcessor {
                     }
                 });
             }
-            executor.shutdown();
         } finally {
             Thread.currentThread().setName(oldThreadName);
         }

@@ -1,9 +1,7 @@
 class Cms::Relation < ActiveResource::Base
-  self.prefix                 = '/adapter/rest/cm/simple/'
-  self.format                 = :json
-  self.include_root_in_json   = false
-  self.include_format_in_path = false
-  self.primary_key            = :ciRelationId
+  self.prefix       = '/adapter/rest/cm/simple/'
+  self.element_name = 'relation'
+  self.primary_key  = :ciRelationId
 
   def self.build(attributes = {})
     attrs = self.from_relation_md(attributes[:relationName]).merge(attributes)
@@ -56,11 +54,16 @@ class Cms::Relation < ActiveResource::Base
     ciRelationId.to_s
   end
 
+  def merge_attributes(attrs)
+    existng_attrs = relationAttributes.attributes
+    existng_attrs.keys.each {|name| existng_attrs[name] = attrs[name] if attrs[name]}
+  end
+
 
   private
 
   def self.get_relation_md(relation_name)
-    Cms::RelationMd.find(relation_name)
+    Cms::RelationMd.look_up(relation_name)
   end
 
   def self.from_relation_md(relation_name)

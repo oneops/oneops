@@ -137,6 +137,7 @@ class Transition::DeploymentsController < ApplicationController
 
         @manifest = Cms::Release.find(@release.parentReleaseId)
         check_for_override
+        @cost, _ = Transistor.environment_cost(@environment, true, false)
       end
     end
   end

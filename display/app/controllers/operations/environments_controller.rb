@@ -14,9 +14,12 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   def show
     respond_to do |format|
       format.html do
-        @release     = Cms::Release.latest(:nsPath => environment_manifest_ns_path(@environment))
-        @bom_release = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
+        manifest_ns_path = environment_manifest_ns_path(@environment)
+        @release         = Cms::Release.latest(:nsPath => manifest_ns_path)
+        @bom_release     = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
                                                       :releaseState => 'open'})
+
+        @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
 
         @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
         if @deployment && @deployment.deploymentState == 'pending'
@@ -32,8 +35,16 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
                                                    :direction       => 'from',
                                                    :ciId            => @environment.ciId})
 
-        load_platform_cloud_instances_map
-        @ops_states = Operations::Sensor.states(@deloyed_to_rels.map(&:fromCiId))
+        load_platform_instances_info
+
+        requires = Cms::DjRelation.all(:params => {:nsPath       => manifest_ns_path,
+                                                   :recursive    => true,
+                                                   :relationName => 'manifest.Requires'})
+        @ops_state_counts = Operations::Sensor.component_states(requires.map(&:toCiId)).inject({}) do |counts, (id, component_counts)|
+          component_counts.each {|state, count| counts[state] = (counts[state] || 0) + count}
+          counts
+        end
+        @ops_state_counts['total'] = @platform_instance_counts.values.sum
       end
 
       format.json { render_json_ci_response(true, @environment) }
@@ -80,11 +91,60 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  def cost_estimate
+    pending = params[:pending] == 'false' ? false : true
+    details = params[:details] == 'false' ? false : true
+    cost, error = Transistor.environment_cost(@environment, pending, details)
+
+    unless cost
+      render :json => {:errors => [error]}, :status => :internal_server_error
+      return
+    end
+
+    cost = cost['estimated'] if pending
+    if details
+      result = cost.inject({:total       => 0,
+                            :unit        => nil,
+                            :by_cloud    => {},
+                            :by_platform => {},
+                            :by_service  => {}}) do |h, c|
+        offerings = c['offerings']
+        next if offerings.blank?
+
+        cloud_key    = c['cloud']['ciName']
+        platform_key = c['rfc']['nsPath'].split('/')[-2..-1].join('/')
+        offerings.each do |o|
+          rate        = o['ciAttributes']['cost_rate'].to_f
+          unit        = o['ciAttributes']['cost_unit']
+          service_key = o['ciAttributes']['service_type']
+          h[:total]                     += rate
+          h[:unit]                      ||= unit if unit.present?
+          h[:by_cloud][cloud_key]       ||= 0
+          h[:by_cloud][cloud_key]       += rate
+          h[:by_platform][platform_key] ||= 0
+          h[:by_platform][platform_key] += rate
+          h[:by_service][service_key]   ||= 0
+          h[:by_service][service_key]   += rate
+        end
+        h
+      end
+      result = result.transform_values {|k, v| v.is_a?(Float) ? v.round(2) : v}
+    else
+      result = {:total => cost}
+    end
+
+    render :json => result
+  end
+
 
   protected
 
   def search_ns_path
     environment_bom_ns_path(@environment)
+  end
+
+  def notification_ns_path
+    environment_ns_path(@environment)
   end
 
 

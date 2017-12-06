@@ -353,8 +353,11 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     if @deployment && @deployment.deploymentState == 'pending'
       @pending_approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId}).select {|a| a.state == 'pending'}
     end
-    @platforms   = load_platforms
-    @diagram     = prepare_platform_diagram(@platforms)
+
+    @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
+
+    @platforms = load_platforms
+    @diagram   = prepare_platform_diagram(@platforms)
 
     if @manifest && @manifest.parentReleaseId == @catalog.releaseId
       begin
@@ -369,7 +372,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
 
     load_consumes_relations
 
-    load_platform_cloud_instances_map
+    load_platform_instances_info
 
     load_profiles
 

@@ -93,6 +93,7 @@ public class CloseEventListener implements UpdateListener {
         logger.debug("in " + CloseEventListener.class.getSimpleName());
         for (EventBean eBean : newEvents) {
             OpsCloseEvent event = (OpsCloseEvent) eBean.getUnderlying();
+            logger.info("close event  for " + event.getCiId() + " :" + event.getName());
             OpsEvent openEvent = event.getOpenEvent();
             event.setOpenEvent(null);
             event.setTimestamp(System.currentTimeMillis());
