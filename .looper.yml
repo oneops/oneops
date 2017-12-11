@@ -1,8 +1,18 @@
 tools:
   jdk: 8
   maven: 3.5.0
+
+triggers:
+  - manual: Run default
 flows:
   default:
-    - shell: mvn clean install
+    - call: versionsCheck
+    - call: pr
   pr:
-    call: default
+    - echo "Running build for $GITHUB_PR_URL"
+    - call: versionsCheck
+    - (name Maven build) mvn clean install
+
+  versionsCheck:
+    - (name JDK Version) java -version
+    - (name Maven version) mvn -v
