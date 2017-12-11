@@ -3,7 +3,7 @@ tools:
   maven: 3.5.0
 flows:
   default:
-    - ./mvnw clean install
+    - ./mvnw install
     #- shell: mvn clean install
   pr:
     call: default
