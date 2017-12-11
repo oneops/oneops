@@ -4,7 +4,8 @@ tools:
 flows:
   default:
     #- ./mvnw install
-    - ./mvnw --batch-mode install
+    - ./mvnw --batch-mode release:prepare
+    
     #- shell: mvn clean install
   pr:
     call: default
