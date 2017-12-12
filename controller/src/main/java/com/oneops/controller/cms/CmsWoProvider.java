@@ -181,6 +181,31 @@ public class CmsWoProvider {
         return aosSimple;
     }
 
+    public CmsActionOrderSimple getAssembledAo(CmsActionOrder ao, Map<Long, CmsCI> manifestToTemplateMap) {
+        assembleAo(ao, manifestToTemplateMap);
+        return cmsUtil.custActionOrder2Simple(ao);
+    }
+
+    public List<CmsActionOrder> getBaseActionOrders(long procedureId, OpsProcedureState state, Integer execOrder) {
+        checkControllerCache();
+        List<CmsActionOrder> aorders = opsMapper.getActionOrders(procedureId, state, execOrder);
+        if (!aorders.isEmpty()) {
+            aorders.forEach(ao -> {
+                CmsCI ci = cmProcessor.getCiById(ao.getCiId());
+                ao.setCi(ci);
+            });
+
+            // this is a special case for the cloud.Service usecase
+            aorders = aorders.stream().
+                filter(ao -> !ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX)).collect(Collectors.toList());
+
+            populateWoBase(aorders);
+            List<CmsCI> envs = Collections.singletonList(getEnvAndPopulatePlatEnable(aorders.get(0).getBox()));
+            aorders.forEach(ao -> ao.putPayLoadEntry("Environment", envs));
+        }
+        return aorders;
+    }
+
     /**
      * Gets the action orders.
      *
@@ -191,82 +216,70 @@ public class CmsWoProvider {
      */
     public List<CmsActionOrder> getActionOrders(long procedureId, OpsProcedureState state, Integer execOrder) {
         checkControllerCache();
-        List<CmsActionOrder> aorders = opsMapper.getActionOrders(procedureId, state, execOrder);
-        for (CmsActionOrder ao : aorders) {
-            CmsCI ci = cmProcessor.getCiById(ao.getCiId());
-            ao.setCi(ci);
-        }
-        populateWoBase(aorders);
-        CmsCI env = null;
-        List<CmsCI> envs = null;
+        List<CmsActionOrder> aorders = getBaseActionOrders(procedureId, state, execOrder);
         Map<Long, CmsCI> manifestToTemplateMap = new HashMap<>();
-        for (CmsActionOrder ao : aorders) {
-            // this is a special case for the cloud.Service usecase
-            if (ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX)) {
-                continue;
-            }
-
-            if (env == null) {
-                env = getEnvAndPopulatePlatEnable(ao.getBox());
-                envs = new ArrayList<>();//TODO Collections.singletonList
-                envs.add(env);
-            }
-
-            //put Environment
-            ao.putPayLoadEntry("Environment", envs);
-            //put all the variables in payload
-            try {
-                Map<String, List<CmsCI>> resolvedVariableCIs = cmsUtil.getResolvedVariableCIs(ao.getCloud(), env, ao.getBox());
-                ao.getPayLoad().putAll(resolvedVariableCIs);
-            } catch (Exception e) {
-                logger.error("Error in generating action order while resolving variables for env: "
-                        + env.getNsPath() + "/" + env.getCiName() + ", action name: " + ao.getActionName() + ", for CiId: " + ao.getCiId());
-                //do not throw again because action-procedures may not need variables.. and if they do,
-                //and the variable is not defined or badly encrypted, the recipe would fail anyway
-            }
-
-            //put proxy
-            ao.putPayLoadEntry("ManagedVia", getCIRelatives(ao.getCiId(), "bom.ManagedVia", "from", null));
-            //put depends on
-            ao.putPayLoadEntry("DependsOn", getCIRelatives(ao.getCiId(), "bom.DependsOn", "from", null));
-            //put realized as
-            ao.putPayLoadEntry("RealizedAs", getCIRelatives(ao.getCiId(), "base.RealizedAs", "to", null));
-            //put key pairs SecuredBy
-            ao.putPayLoadEntry("SecuredBy", getKeyPairs(ao.getCi(), ao.getPayLoad().get("ManagedVia")));
-
-            // if this is custom action from attachment - get the attachment
-            if (ao.getActionName().equals("user-custom-attachment")) {
-                setAttachment(env, ao);
-            } else {
-                //lets get the payload def from the template
-                long manifestCiId = getRealizedAs(ao.getCiId());
-                //
-                List<CmsCI> attachments = getAttachments(ao, manifestCiId, env);
-                if (!attachments.isEmpty())
-                    ao.putPayLoadEntry(ESCORTED_BY, attachments);
-                if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-                    CmsCI manifestCi = cmProcessor.getCiById(manifestCiId);
-                    //process Escorted by relation
-                    CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
-                    if (templObj == null) {
-                        logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
-                    } else {
-                        manifestToTemplateMap.put(manifestCi.getCiId(), templObj);
-                    }
-                }
-
-                if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-                    throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
-                            "Can not find pack template for manifest component id=" + manifestCiId);
-                }
-                processPayLoadDef(ao, manifestToTemplateMap.get(manifestCiId), null, null, null);
-                String actionPayLoad = ao.getPayLoadDef();
-                processPayLoadDef(ao, actionPayLoad);
-            }
-
-            ao.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(ao));
-        }
+        aorders.stream().forEach(ao -> assembleAo(ao, manifestToTemplateMap));
         return aorders;
+    }
+
+    private void assembleAo(CmsActionOrder ao, Map<Long, CmsCI> manifestToTemplateMap) {
+        CmsCI env = getEnvFromAo(ao);
+        //put all the variables in payload
+        try {
+            Map<String, List<CmsCI>> resolvedVariableCIs = cmsUtil.getResolvedVariableCIs(ao.getCloud(), env, ao.getBox());
+            ao.getPayLoad().putAll(resolvedVariableCIs);
+        } catch (Exception e) {
+
+            logger.error("Error in generating action order while resolving variables for env: "
+                + env.getNsPath() + "/" + env.getCiName() + ", action name: " + ao.getActionName() + ", for CiId: " + ao.getCiId());
+            //do not throw again because action-procedures may not need variables.. and if they do,
+            //and the variable is not defined or badly encrypted, the recipe would fail anyway
+        }
+
+        //put proxy
+        ao.putPayLoadEntry("ManagedVia", getCIRelatives(ao.getCiId(), "bom.ManagedVia", "from", null));
+        //put depends on
+        ao.putPayLoadEntry("DependsOn", getCIRelatives(ao.getCiId(), "bom.DependsOn", "from", null));
+        //put realized as
+        ao.putPayLoadEntry("RealizedAs", getCIRelatives(ao.getCiId(), "base.RealizedAs", "to", null));
+        //put key pairs SecuredBy
+        ao.putPayLoadEntry("SecuredBy", getKeyPairs(ao.getCi(), ao.getPayLoad().get("ManagedVia")));
+
+        // if this is custom action from attachment - get the attachment
+        if (ao.getActionName().equals("user-custom-attachment")) {
+            setAttachment(env, ao);
+        } else {
+            //lets get the payload def from the template
+            long manifestCiId = getRealizedAs(ao.getCiId());
+            //
+            List<CmsCI> attachments = getAttachments(ao, manifestCiId, env);
+            if (!attachments.isEmpty())
+                ao.putPayLoadEntry(ESCORTED_BY, attachments);
+
+            manifestToTemplateMap.computeIfAbsent(manifestCiId, (manifestId) -> {
+                CmsCI manifestCi = cmProcessor.getCiById(manifestId);
+                //process Escorted by relation
+                CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
+                if (templObj == null) {
+                    logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
+                }
+                return templObj;
+            });
+
+            if (!manifestToTemplateMap.containsKey(manifestCiId)) {
+                throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
+                    "Can not find pack template for manifest component id=" + manifestCiId);
+            }
+            processPayLoadDef(ao, manifestToTemplateMap.get(manifestCiId), null, null, null);
+            String actionPayLoad = ao.getPayLoadDef();
+            processPayLoadDef(ao, actionPayLoad);
+        }
+
+        ao.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(ao));
+    }
+
+    private CmsCI getEnvFromAo(CmsActionOrder ao) {
+        return ao.getPayLoad().get("Environment").get(0);
     }
 
     private void setAttachment(CmsCI env, CmsActionOrder ao) {

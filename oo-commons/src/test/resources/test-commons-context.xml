@@ -29,6 +29,7 @@
 		<property name="backlogThreshold" value="100" />
         <property name="scanFolder" ref="retryDir" />
         <property name="name" value="test-search-publish" />
+		<property name="logExecutionErrors" value="false" />
 	</bean>
 	
 	<bean id="retryDir" class="java.lang.String">

@@ -129,7 +129,6 @@ class Transition::DeploymentsController < ApplicationController
   def compile_status
     if @environment.ciState != 'locked' && (@environment.comments.blank? || !@environment.comments.start_with?('ERROR:'))
       find_open_bom_release
-
       if request.format.json?
         if @release
           @release.rfcs = {:cis => @release.rfc_cis, :relations => @release.rfc_relations}
@@ -137,15 +136,15 @@ class Transition::DeploymentsController < ApplicationController
         end
         render_json_ci_response(true, @environment)
       else
-        if @release
-          # Deployment might have been already started in a separate browser session.
-          @deployment = Cms::Deployment.latest(:releaseId => @release.releaseId)
-          @deployment = Cms::Deployment.build(:releaseId => @release.releaseId) unless @deployment && @deployment.deploymentState == 'active'
-          load_bom_release_data
+      if @release
+        # Deployment might have been already started in a separate browser session.
+        @deployment = Cms::Deployment.latest(:releaseId => @release.releaseId)
+        @deployment = Cms::Deployment.build(:releaseId => @release.releaseId) unless @deployment && @deployment.deploymentState == 'active'
+        load_bom_release_data
 
-          @manifest = Cms::Release.find(@release.parentReleaseId)
-          check_for_override
-          @cost, _ = Transistor.environment_cost(@environment, true, false)
+        @manifest = Cms::Release.find(@release.parentReleaseId)
+        check_for_override
+        @cost, _ = Transistor.environment_cost(@environment, true, false)
         end
       end
     end
