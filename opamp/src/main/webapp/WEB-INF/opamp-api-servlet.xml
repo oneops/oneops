@@ -15,7 +15,7 @@
     </bean>
 
     <!-- Enable annotation scanning. -->
-    <context:component-scan base-package="com.oneops.opamp.ws"/>
+    <context:component-scan base-package="com.oneops.opamp.ws, com.oneops.opamp.rs"/>
 
     <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
     <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
@@ -45,10 +45,19 @@
 
     <bean id="opampWsController" class="com.oneops.opamp.ws.OpampWsController"/>
 
+	<bean id="opampRsController" class="com.oneops.opamp.rs.OpampRsController">
+	<property name="computeProcessor" ref="computeProcessor"/>
+   </bean>
+   
     <bean id="opampWsTestController" class="com.oneops.opamp.ws.OpampWsTestController">
         <property name="bsProcessor" ref="bsProcessor"/>
         <property name="flexStateProcessor" ref="fsProcessor"/>
     </bean>
+
+    <bean id="opampRsControllerTest" class="com.oneops.opamp.rs.OpampRsControllerTest">
+     <property name="computeProcessor" ref="computeProcessor"/>
+    </bean>
+
 
     <!--Enabling ECV -->
     <import resource="classpath:ecv-beans.xml"/>
