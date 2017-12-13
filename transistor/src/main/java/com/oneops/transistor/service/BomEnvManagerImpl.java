@@ -183,8 +183,118 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	}
 
 
-    @Override
-    public Map<String, List<CostData>> getEnvDeploymentCostData(long envId, BomData data) {
+	@Override
+	public Map<String, List<CapacityData>> getEnvCapacity(long envId, BomData data) {
+		CmsCI env = cmProcessor.getCiById(envId);
+		String bomNsPath = getNs(env) + "/bom";
+
+
+		// rfcs (adds and updates)
+		List<CmsRfcRelation> rfcRelations = new ArrayList<>();
+		for (CmsRfcRelation rel : data.getRelations()) {
+			if (rel.getRelationName().endsWith(".DeployedTo") && rel.getNsPath().startsWith(bomNsPath)) {
+				rfcRelations.add(rel);
+			}
+		}
+
+		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(Collectors.toSet());
+		// existing cis
+
+
+		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null, "DeployedTo", null, "account.Cloud", false, false);
+		cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet()));
+
+		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+		Map<Long, CmsRfcCI> ciIdMap= data.getCis().stream().collect(Collectors.toMap(CmsRfcCI::getRfcId, Function.identity()));
+
+		Map<Long, Triplet> deploymentMap = new HashMap<>();
+		for (CmsRfcRelation rfcRelation : rfcRelations) {
+			deploymentMap.put(rfcRelation.getFromCiId(), new Triplet(cloudMap.get(rfcRelation.getToCiId()), rfcRelation.getFromCiId(), ciIdMap.get(rfcRelation.getFromRfcId())));
+		}
+
+		for (CmsCIRelation relation : relations) {
+			long ciId = relation.getFromCiId();
+			if (!deploymentMap.containsKey(ciId)) {
+				deploymentMap.put(ciId, new Triplet(cloudMap.get(relation.getToCiId()), ciId, null));
+			}
+		}
+		Collection<Triplet> triplets = deploymentMap.values();
+
+		Map<Long, Long> ciMap = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, "base.RealizedAs", null, null, null).stream()
+				.collect(Collectors.toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
+
+
+
+
+		List<CmsRfcRelation> openRfcRelationsNsLikeNakedNoAttrs = new ArrayList<>();
+		for (CmsRfcRelation rel : data.getRelations()) {
+			if (rel.getRelationName().equals("base.RealizedAs") && rel.getNsPath().startsWith(bomNsPath)) {
+				openRfcRelationsNsLikeNakedNoAttrs.add(rel);
+			}
+		}
+		Map<Long, Long> relmap = openRfcRelationsNsLikeNakedNoAttrs.stream()
+				.collect(Collectors.toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
+
+		relmap.putAll(ciMap);
+
+		Map<String, List<CapacityData>> result = new HashMap<>();
+		result.put("actual", calculateCapacity(prefilter(bomNsPath, triplets, ciMap)));
+		result.put("estimated", calculateCapacity(prefilter(bomNsPath, triplets, relmap)));
+		return result;
+	}
+
+
+	private List<CapacityData> calculateCapacity(Collection<Triplet> triplets) {
+
+		List<Long> ciIds = triplets.stream().map(t -> t.ciId).collect(Collectors.toList());
+		Map<Long, CmsCI> ciMap = cmProcessor.getCiByIdList(ciIds).stream()
+				.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+
+		return triplets.stream()
+				.filter(triplet -> triplet.services != null)
+				.map(triplet -> {
+					//Map<String, List<CmsCI>> map = offeringsByNs.get(getNs(triplet.cloud));
+					List<CmsCISimple> reqOfferings = new ArrayList<>();
+					CmsRfcCI rfcCi = rfcUtil.mergeRfcAndCi(triplet.rfc, ciMap.get(triplet.ciId), null);
+					//String[] requiredServices = triplet.services.split("[,\\*]");
+					return rfcCi.getCiClassName().endsWith(".Compute") ? new CapacityData(cmsUtil.custRfcCI2RfcCISimple(rfcCi), cmsUtil.custCI2CISimple(triplet.cloud, "dj")) : null;
+				}).filter(Objects::nonNull).collect(Collectors.toList());
+	}
+
+
+
+	private Collection<Triplet> prefilter(String bomNsPath, Collection<Triplet> triplets, Map<Long, Long> relmap) {
+
+
+		List<CmsCIRelation> ciRealized = cmProcessor.getCIRelationsNsLikeNaked(convertBomNsToManifestNs(bomNsPath), "manifest.Requires", null, null, null);
+		Map<Long, CmsCIRelationAttribute> servicesMap = ciRealized.stream().collect(Collectors.toMap(CmsCIRelation::getToCiId, rel -> rel.getAttribute("services")));
+
+		triplets = triplets.stream().filter(t -> {
+			if (t.rfc == null || !"delete".equals(t.rfc.getRfcAction())) { // do not process deletes
+				Long realizedFrom = relmap.get(t.ciId);
+				if (realizedFrom != null) {
+					CmsCIRelationAttribute servicesAttr = servicesMap.get(realizedFrom);
+					if (servicesAttr != null) {
+						String services = servicesAttr.getDjValue();
+						if (services != null && services.length() > 0) {
+							String[] requiredServices = services.split("[,\\*]");
+							for (String service : requiredServices) {
+								if (service.equals("compute")) {
+									t.services = services;
+									return true;
+								}
+							}
+						}
+					}
+				}
+			}
+			return false;
+		}).collect(Collectors.toList());
+		return triplets;
+	}
+
+	@Override
+    public Map<String, List<CostData>> getEnvEstimatedCostData(long envId, BomData data) {
         CmsCI env = cmProcessor.getCiById(envId);
         String bomNsPath = getNs(env) + "/bom";
 

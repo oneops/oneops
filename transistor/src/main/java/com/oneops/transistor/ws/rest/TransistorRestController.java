@@ -435,7 +435,7 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, Object> calculateCost(@PathVariable long envId){
-		return getSum(getCostData(envId));
+		return getCostTotals(getCostData(envId));
 	}
 
 
@@ -445,7 +445,7 @@ public class TransistorRestController extends AbstractRestController {
 		HashMap<String, Map<String, Object>> result = new HashMap<>();
 		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
 		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getSum(estimatedCostData.get(type)));
+			result.put(type, getCostTotals(estimatedCostData.get(type)));
 		}
 		return result;
 	}
@@ -456,7 +456,7 @@ public class TransistorRestController extends AbstractRestController {
 		HashMap<String, Map<String, Object>> result = new HashMap<>();
 		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
 		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getSum(estimatedCostData.get(type)));
+			result.put(type, getCostTotals(estimatedCostData.get(type)));
 		}
 		return result;
 	}
@@ -479,12 +479,42 @@ public class TransistorRestController extends AbstractRestController {
 	@ResponseBody
 	public Map<String, List<CostData>> getDeploymentCostData(@PathVariable long envId){
 		BomData data = imBomProcesor.compileEnv(envId, "", null, null, false, false);
-		return envManager.getEnvDeploymentCostData(envId, data);
+		return envManager.getEnvEstimatedCostData(envId, data);
 	}
 
 
 
-	private Map<String, Object> getSum(List<CostData> offerings) {
+	private Map<String, Object> getCapacityTotals(List<CapacityData> capacityData) {
+		Map<String, Object> map = new HashMap<>();
+		Map<String, Map<String, Integer>> byCloud = new HashMap<>();
+		Map<String, Map<String, Map<String, Integer>>> byPlatform = new HashMap<>();
+		
+		for (CapacityData capacity: capacityData){
+			String cloud = capacity.getCloud().getCiName();
+			String[] array = capacity.getRfc().getNsPath().split("/");
+			String platform = "";
+			if (array.length > 1) {
+				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
+			}
+			String size = capacity.getSize();
+			Map<String, Map<String, Integer>> byPlatformMap = byPlatform.getOrDefault(platform, new HashMap<>());
+			Map<String, Integer> bySizeMap = byPlatformMap.getOrDefault(cloud, new HashMap<>());
+			byPlatformMap.put(cloud, bySizeMap);
+			byPlatform.put(platform, byPlatformMap);
+			bySizeMap.put(size, bySizeMap.getOrDefault(size, 0)+1);
+
+			bySizeMap = byCloud.getOrDefault(cloud, new HashMap<>());
+			bySizeMap.put(size, bySizeMap.getOrDefault(size, 0)+1);
+			byCloud.put(cloud, bySizeMap);
+		}
+		map.put("by_cloud", byCloud);
+		map.put("by_platform", byPlatform);
+		return map;
+	}
+
+
+
+	private Map<String, Object> getCostTotals(List<CostData> offerings) {
 		Map<String, Object> map = new HashMap<>();
 		Map<String, BigDecimal> byCloud = new HashMap<>();
 		Map<String, BigDecimal> byPlatform = new HashMap<>();
@@ -518,6 +548,7 @@ public class TransistorRestController extends AbstractRestController {
 	@ResponseBody
 	public BomData generateBomInMemory(
 			@PathVariable long envId,
+			@RequestParam(value = "suppressRfcs", required = false) Boolean suppressRfcs,
 			@RequestParam(value = "cost", required = false) Boolean cost,
 			@RequestParam(value = "capacity", required = false) Boolean capacity,
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
@@ -526,16 +557,26 @@ public class TransistorRestController extends AbstractRestController {
 			if (userId == null) userId = "oneops-system";
 			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
 			if (cost != null && cost) {
-				Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
+				Map<String, List<CostData>> estimatedCostData = envManager.getEnvEstimatedCostData(envId, bomData);
 				Map<String, Map<String, Object>> costMap = new HashMap<>();
 				for (String type : estimatedCostData.keySet()) {
-					costMap.put(type, getSum(estimatedCostData.get(type)));
+					costMap.put(type, getCostTotals(estimatedCostData.get(type)));
 				}
 				bomData.addExtraData("cost", costMap);
 			}
-			//if (capacity != null && capacity){
-				//bomData.addExtraData("capacity", envManager.getEnvCapacity(envId, bomData));
-			//}
+			if (capacity != null && capacity){
+				Map<String, List<CapacityData>> estimatedCapacityData = envManager.getEnvCapacity(envId, bomData);
+				Map<String, Map<String, Object>> capacityMap = new HashMap<>();
+				for (String type : estimatedCapacityData.keySet()) {
+					capacityMap.put(type, getCapacityTotals(estimatedCapacityData.get(type)));
+				}
+				bomData.addExtraData("capacity", capacityMap);
+			}
+			if (suppressRfcs!=null && suppressRfcs){
+				bomData.setCis(null);
+				bomData.setRelations(null);
+			}
+			
 			return bomData;
 		} catch (CmsBaseException te) {
 			logger.error(te);
