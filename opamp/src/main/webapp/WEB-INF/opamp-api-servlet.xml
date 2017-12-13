@@ -54,10 +54,10 @@
         <property name="flexStateProcessor" ref="fsProcessor"/>
     </bean>
 
-    <bean id="opampRsControllerTest" class="com.oneops.opamp.rs.OpampRsControllerTest">
+    <!--  bean id="opampRsControllerTest" class="com.oneops.opamp.rs.OpampRsControllerTest"> 
      <property name="computeProcessor" ref="computeProcessor"/>
     </bean>
-
+-->
 
     <!--Enabling ECV -->
     <import resource="classpath:ecv-beans.xml"/>
