@@ -43,7 +43,7 @@ public class OpampRsController {
 		} catch (Exception e) {
 		
 			logger.error("Exception while processing replaceComputeByCidAPI for Cid: {}" +ciId +" :"+e);
-			result.put("Exception ccured while processing compute replacement API call", 1);
+			result.put("deploymentId", 1);
 			return result;
 		}
 	
