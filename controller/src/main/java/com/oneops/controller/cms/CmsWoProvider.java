@@ -186,24 +186,34 @@ public class CmsWoProvider {
         return cmsUtil.custActionOrder2Simple(ao);
     }
 
+    private boolean isCloudServiceAction(CmsActionOrder ao) {
+        return ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX);
+    }
+
     public List<CmsActionOrder> getBaseActionOrders(long procedureId, OpsProcedureState state, Integer execOrder) {
         checkControllerCache();
         List<CmsActionOrder> aorders = opsMapper.getActionOrders(procedureId, state, execOrder);
-        if (!aorders.isEmpty()) {
+      List<CmsActionOrder> actionOrders = Collections.EMPTY_LIST;
+      if (!aorders.isEmpty()) {
             aorders.forEach(ao -> {
                 CmsCI ci = cmProcessor.getCiById(ao.getCiId());
                 ao.setCi(ci);
             });
-
-            // this is a special case for the cloud.Service usecase
-            aorders = aorders.stream().
-                filter(ao -> !ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX)).collect(Collectors.toList());
-
             populateWoBase(aorders);
-            List<CmsCI> envs = Collections.singletonList(getEnvAndPopulatePlatEnable(aorders.get(0).getBox()));
-            aorders.forEach(ao -> ao.putPayLoadEntry("Environment", envs));
+            // this is a special case for the cloud.Service usecase
+            actionOrders = aorders.stream().
+                filter(ao -> !isCloudServiceAction(ao)).collect(Collectors.toList());
+            List<CmsActionOrder> cloudServiceOrders = aorders.stream().
+              filter(ao -> isCloudServiceAction(ao)).collect(Collectors.toList());
+
+
+            if (!actionOrders.isEmpty()) {
+              List<CmsCI> envs = Collections.singletonList(getEnvAndPopulatePlatEnable(actionOrders.get(0).getBox()));
+              actionOrders.forEach(ao -> ao.putPayLoadEntry("Environment", envs));
+            }
+          actionOrders.addAll(cloudServiceOrders);
         }
-        return aorders;
+        return actionOrders;
     }
 
     /**
@@ -218,7 +228,7 @@ public class CmsWoProvider {
         checkControllerCache();
         List<CmsActionOrder> aorders = getBaseActionOrders(procedureId, state, execOrder);
         Map<Long, CmsCI> manifestToTemplateMap = new HashMap<>();
-        aorders.stream().forEach(ao -> assembleAo(ao, manifestToTemplateMap));
+        aorders.stream().filter(ao -> !isCloudServiceAction(ao)).forEach(ao -> assembleAo(ao, manifestToTemplateMap));
         return aorders;
     }
 
@@ -771,7 +781,7 @@ public class CmsWoProvider {
             //this is total HACK for Netscaler needs to be generalized
             List<CmsCIRelation> netscaler = cmProcessor.getFromCIRelations(iaas.getCiId(), "manifest.Requires", "manifest.Netscaler");
             if (netscaler.size() > 0) {
-                for (Map.Entry<String, CmsCIAttribute> attrEntry : netscaler.get(0).getToCi().getAttributes().entrySet()) {
+                for (Entry<String, CmsCIAttribute> attrEntry : netscaler.get(0).getToCi().getAttributes().entrySet()) {
                     CmsCIAttribute nsAttr = attrEntry.getValue();
                     CmsRfcAttribute iaasNsAttr = new CmsRfcAttribute();
                     iaasNsAttr.setAttributeName(nsAttr.getAttributeName());
