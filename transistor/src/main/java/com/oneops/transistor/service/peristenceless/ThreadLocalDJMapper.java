@@ -147,7 +147,6 @@ public class ThreadLocalDJMapper implements DJMapper{
         return get().getOpenRfcCIByCiIdNoAttrs(ciId);
     }
 
-    @Override
     public List<CmsRfcCI> getOpenRfcCIByCiIdList(List<Long> ciIds) {
         return get().getOpenRfcCIByCiIdList(ciIds);
     }

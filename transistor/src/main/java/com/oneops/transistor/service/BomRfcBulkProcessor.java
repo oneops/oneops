@@ -272,6 +272,7 @@ public class BomRfcBulkProcessor {
 						obsoleteToRelations.add(ciId);
 						if (!obsoleteFromRelations.containsKey(fromDependsOnCiId.getFromCiId())) {
 							obsoleteFromRelations.put(fromDependsOnCiId.getFromCiId(), new ArrayList<>());
+
 						}
 						obsoleteFromRelations.get(fromDependsOnCiId.getFromCiId()).add(fromDependsOnCiId);
 					} else {
