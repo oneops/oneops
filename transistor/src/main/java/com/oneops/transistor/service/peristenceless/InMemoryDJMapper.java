@@ -257,7 +257,7 @@ public class InMemoryDJMapper implements DJMapper{
     @Override
     public void updateRfcRelationLog(CmsRfcRelation rel) {
     }
-
+           
     @Override
     public void insertRfcRelationAttribute(CmsRfcAttribute attr) {
     }
