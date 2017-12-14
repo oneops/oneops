@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.11.01-3-SNAPSHOT</version>
+    <version>17.11.01-16-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>search</artifactId>
@@ -143,8 +143,13 @@
     </dependency>
     <dependency>
       <groupId>com.oneops</groupId>
+      <artifactId>oneops-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.oneops</groupId>
       <artifactId>oo-commons</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-core</artifactId>

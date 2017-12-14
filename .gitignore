@@ -3,6 +3,8 @@
 .settings/
 target/
 work/
+2.0.0-p648/
+out/
 .idea/
 *.iml
 *.ipr

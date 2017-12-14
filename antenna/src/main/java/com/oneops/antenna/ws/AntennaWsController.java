@@ -30,7 +30,7 @@ import com.google.gson.Gson;
 import com.oneops.antenna.cache.SinkCache;
 import com.oneops.antenna.cache.SinkKey;
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.service.Dispatcher;
 import java.util.HashMap;
 import java.util.LinkedHashMap;

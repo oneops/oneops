@@ -20,6 +20,7 @@ package com.oneops.transistor.service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @Transactional
 public interface BomEnvManager {
@@ -29,5 +30,5 @@ public interface BomEnvManager {
 	public long discardEnvManifest(long envId, String userId);
 
 	List<CostData> getEnvCostData(long envId);
-	List<CostData> getEnvEstimatedCostData(long envId);
+	Map<String, List<CostData>> getEnvEstimatedCostData(long envId);
 }

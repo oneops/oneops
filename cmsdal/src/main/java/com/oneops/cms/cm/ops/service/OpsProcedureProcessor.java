@@ -17,14 +17,6 @@
  *******************************************************************************/
 package com.oneops.cms.cm.ops.service;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -41,6 +33,16 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.exceptions.OpsException;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import org.apache.log4j.Logger;
+import static com.oneops.controller.workflow.ExecutionType.PROCEDURE;
+
 /**
  * The Class OpsProcedureProcessor.
  */
@@ -696,5 +698,28 @@ public class OpsProcedureProcessor {
 	public long getCmsOpsProceduresCountForCiFromTime(long ciId,
 			List<OpsProcedureState> stateList, String procedureName, Date timestamp) {
 		return opsMapper.getCmsOpsProceduresCountForCiFromTime(ciId, stateList, procedureName, timestamp);
+	}
+
+	public Map<String, Integer> getActionsCountByState(long procedureId, int execOrder) {
+		List<Map<String,Object>> list = opsMapper.getActionsCountByStates(procedureId, execOrder);
+		Map<String, Integer> aoCountMap = new HashMap<>();
+		if (list != null) {
+			list.stream().forEach(m -> {
+				aoCountMap.put((String) m.get("state"), ((Long) m.get("count")).intValue());
+			});
+		}
+		return aoCountMap;
+	}
+
+	public void createProcedureExec(long procedureId, int step, String state) {
+		opsMapper.createProcedureExec(procedureId, step, state);
+	}
+
+	public int getAndUpdateStepState(long procedureId, int step, String newState) {
+		return opsMapper.getAndUpdateStepState(procedureId, step, newState);
+	}
+
+	public void updateProcedureCurrentStep(CmsOpsProcedure procedure) {
+    	opsMapper.updateProcedureCurrentStep(procedure);
 	}
 }

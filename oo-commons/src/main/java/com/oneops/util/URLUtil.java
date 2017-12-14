@@ -19,8 +19,8 @@ package com.oneops.util;
 
 import org.apache.log4j.Logger;
 
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationType;
 
 import java.net.URI;
 import java.net.URL;

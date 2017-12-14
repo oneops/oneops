@@ -1285,6 +1285,10 @@ module ApplicationHelper
     render 'base/shared/graph_donut', :data => {:data => [data], :legend => legend}, :legend => false
   end
 
+  def format_cost_rate(rate, opts = {})
+    raw %(<span class="cost-rate">#{rate.to_human(:precision => opts[:precision] || 2)} <span class=""><sub>USD/hour</sub></span></span>)
+  end
+
   def ci_doc_link(ci, label, opts = {})
     asset_url = Settings.asset_url.presence || 'cms/'
     anchor    = opts[:anchor]

@@ -971,7 +971,7 @@ BEGIN
     values (nextval('dj_pk_seq'), l_deployment_id, null, l_dpmt_state_id, p_description, p_comments, p_ops, p_created_by); 	
 
     for l_rfc_ci in 
-	    select rci.rfc_id
+	    select rci.rfc_id,rci.execution_order
 	    from dj_rfc_ci rci
 	    where rci.release_id = p_release_id
 	    and rci.is_active_in_release = true
@@ -979,8 +979,8 @@ BEGIN
 	    order by rci.execution_order
     loop
 
-        insert into dj_deployment_rfc (deployment_rfc_id, deployment_id, state_id, rfc_id)
-        values (nextval('dj_pk_seq'), l_deployment_id, 10, l_rfc_ci.rfc_id);
+        insert into dj_deployment_rfc (deployment_rfc_id, deployment_id, state_id, rfc_id, step)
+        values (nextval('dj_pk_seq'), l_deployment_id, 10, l_rfc_ci.rfc_id, l_rfc_ci.execution_order);
 
     end loop;
 

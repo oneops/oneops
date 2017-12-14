@@ -19,7 +19,7 @@ package com.oneops.antenna.senders.aws;
 
 
 import com.oneops.antenna.domain.EmailSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 

@@ -132,18 +132,16 @@ public class Listener implements MessageListener, ApplicationContextAware {
       DefaultMessageListenerContainer listenerContainer = (DefaultMessageListenerContainer)
           applicationContext.getBean("listenerContainer");
 
-      logger.info(
-          "Stopping listener container due to " + config.getDataDir() + " free space mb: "
-              + freeMB
-              +
-              " ... min_free_space_mb: " + config.getMinFreeSpaceMB());
+      logger.info("Stopping listener container due to "
+          + config.getDataDir() + " free space mb: "
+          + freeMB + " ... min_free_space_mb: " + config.getMinFreeSpaceMB());
+
       listenerContainer.stop();
       while (activeThreads.get() > 0) {
         logger
             .error("Shutdown in progress due " + config.getDataDir() + " free space mb: "
-                + freeMB +
-                " ... min_free_space_mb: " + config.getMinFreeSpaceMB() +
-                ". sleeping for 10sec. activeThreads: " + activeThreads);
+                + freeMB + " ... min_free_space_mb: " + config.getMinFreeSpaceMB()
+                + ". sleeping for 10sec. activeThreads: " + activeThreads);
         try {
           Thread.currentThread().sleep(10000);
         } catch (InterruptedException e) {

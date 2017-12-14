@@ -18,7 +18,7 @@
 package com.oneops.antenna.senders;
 
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 
 /**
  * The Interface NotificationSender.

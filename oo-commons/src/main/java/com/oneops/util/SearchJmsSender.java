@@ -64,7 +64,9 @@ public class SearchJmsSender extends ReliableExecutor<MessageData> {
 			}
 			
 		} catch (Exception e) {
-			logger.error("Exception occurred while sending message to search.stream", e);
+			if (logExecutionErrors) {
+				logger.error("Exception occurred while sending message to search.stream", e);
+			}
 		}
 		return false;
 		
