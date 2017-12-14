@@ -21,8 +21,9 @@ public class ComputeProcessor {
 
 	protected static final String X_CMS_USER = "X-Cms-User";
 	protected static final String ONEOPS_AUTO_REPLACE_USER_PROP_NAME = "oneops-auto-replace-user";
-	protected static final String ONEOPS_AUTOREPLACE_USER = System.getProperty(ONEOPS_AUTO_REPLACE_USER_PROP_NAME,"oneops-autoreplace");
-	
+	protected static final String ONEOPS_AUTOREPLACE_USER = System.getProperty(ONEOPS_AUTO_REPLACE_USER_PROP_NAME,
+			"oneops-autoreplace");
+
 	private EnvPropsProcessor envProcessor;
 	private CmsCmManager cmManager;
 	private String transistorUrl;
@@ -41,18 +42,17 @@ public class ComputeProcessor {
 		Map<String, Integer> result = new HashMap<>(1);
 
 		if (!releaseStatus) {
-			result=replace(ciId, env);
+			result = replace(ciId, env);
 			return result;
 
 		}
-		result.put("deploymentId", 1); 
+		result.put("deploymentId", 1);
 		return result;
 
 	}
 
 	private Map<String, Integer> replace(long ciId, CmsCI env) {
 
-		
 		cmManager.updateCiState(ciId, "replace", "bom.ManagedVia", "to", false, ONEOPS_AUTOREPLACE_USER);
 		logger.info("marked the ciId [" + ciId + "] for replace using headers using user" + ONEOPS_AUTOREPLACE_USER);
 
@@ -92,7 +92,7 @@ public class ComputeProcessor {
 				transistorUrl + "environments/" + env.getCiId() + "/deployments/deploy", requestWitHeaders, Map.class,
 				params);
 
-		logger.info("response for deployment API Call: " + response.entrySet()); 
+		logger.info("response for deployment API Call: " + response.entrySet());
 
 		logger.info("Deployment ID object Type: " + response.get("deploymentId").getClass());
 		Integer exitCode = response.get("deploymentId");
@@ -100,8 +100,7 @@ public class ComputeProcessor {
 		logger.info("exitCode: " + exitCode);
 		return response;
 	}
-	
-	
+
 	public EnvPropsProcessor getEnvProcessor() {
 		return envProcessor;
 	}
