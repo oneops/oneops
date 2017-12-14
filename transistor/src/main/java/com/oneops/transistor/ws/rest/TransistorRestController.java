@@ -431,6 +431,11 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
+	@RequestMapping(value="environments/{envId}/cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public List<CostData>  getCostData(@PathVariable long envId){
+		return envManager.getEnvCostData(envId);
+	}
 
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
@@ -441,13 +446,8 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
 	@ResponseBody
-	public Map<String, Map<String,Object>> calculateDeploymentCost(@PathVariable long envId) {
-		HashMap<String, Map<String, Object>> result = new HashMap<>();
-		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
-		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getSum(estimatedCostData.get(type)));
-		}
-		return result;
+	public Map<String, List<CostData>> getEstimatedCostData(@PathVariable long envId){
+		return envManager.getEnvEstimatedCostData(envId);
 	}
 
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
