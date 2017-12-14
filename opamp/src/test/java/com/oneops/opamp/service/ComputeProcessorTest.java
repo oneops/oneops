@@ -5,7 +5,6 @@ import org.mockito.Mockito;
 import org.springframework.web.client.RestTemplate;
 import org.testng.annotations.Test;
 
-import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.opamp.service.ComputeProcessor;
 import static org.mockito.Matchers.anyLong;
@@ -32,10 +31,10 @@ public class ComputeProcessorTest {
 		computeProcessor.setRestTemplate(restTemplate);
 		computeProcessor.setTransistorUrl(transistorUrl);
 		
-		Map<String, Integer> defaultResponse=new HashMap<String, Integer>(1);
-		defaultResponse.put("deploymentId",0);
+		Map<String, Integer> transistorResponse=new HashMap<String, Integer>(1);
+		transistorResponse.put("deploymentId",0);
 		
-		when(restTemplate.postForObject(anyString(), anyObject(), any(), anyMap())).thenReturn(defaultResponse);
+		when(restTemplate.postForObject(anyString(), anyObject(), any(), anyMapOf(String.class,String.class))).thenReturn(transistorResponse);
 		
 		Map<String, Integer> result=computeProcessor.replaceComputeByCid(anyLong());
 		assertEquals(result.size(), 1,"expected size 1, Actual Size: "+result.size() +" ,result.entrySet()"+result.entrySet());
@@ -57,10 +56,10 @@ public class ComputeProcessorTest {
 		computeProcessor.setRestTemplate(restTemplate);
 		computeProcessor.setTransistorUrl(transistorUrl);
 		
-		Map<String, Integer> defaultResponse=new HashMap<String, Integer>(1);
-		defaultResponse.put("deploymentId",1);
+		Map<String, Integer> transistorResponse=new HashMap<String, Integer>(1);
+		transistorResponse.put("deploymentId",1);
 		
-		when(restTemplate.postForObject(anyString(), anyObject(), any(), anyMap())).thenReturn(defaultResponse);
+		when(restTemplate.postForObject(anyString(), anyObject(), any(), anyMapOf(String.class,String.class))).thenReturn(transistorResponse);
 		
 		Map<String, Integer> result=computeProcessor.replaceComputeByCid(anyLong());
 		assertEquals(result.size(), 1,"expected size 1, Actual Size: "+result.size() +" ,result.entrySet()"+result.entrySet());
@@ -68,4 +67,30 @@ public class ComputeProcessorTest {
 		
 	}
 
+	@Test
+	public void ComputeProcessorTest_replaceComputeByCid_computeCannotBeRelaced_OpenRelease() {
+		
+		ComputeProcessor computeProcessor = new ComputeProcessor();
+		EnvPropsProcessor envProcessor=mock(EnvPropsProcessor.class, Mockito.RETURNS_DEEP_STUBS);
+		CmsCmManager cmManager=mock(CmsCmManager.class,Mockito.RETURNS_DEEP_STUBS);
+		String transistorUrl="TestTransistorURL";
+		RestTemplate restTemplate=mock(RestTemplate.class,Mockito.RETURNS_DEEP_STUBS);
+		
+		computeProcessor.setCmManager(cmManager);
+		computeProcessor.setEnvProcessor(envProcessor);
+		computeProcessor.setRestTemplate(restTemplate);
+		computeProcessor.setTransistorUrl(transistorUrl);
+		
+		Map<String, Integer> transistorResponse=new HashMap<String, Integer>(1);
+		transistorResponse.put("deploymentId",1);
+		when(envProcessor.isOpenRelease4Env(anyObject())).thenReturn(true);
+		when(restTemplate.postForObject(anyString(), anyObject(), any(), anyMapOf(String.class,String.class))).thenReturn(transistorResponse);
+		
+		
+		Map<String, Integer> result=computeProcessor.replaceComputeByCid(anyLong());
+		assertEquals(result.size(), 1,"expected size 1, Actual Size: "+result.size() +" ,result.entrySet()"+result.entrySet());
+		assertEquals(result.get("deploymentId"), Integer.valueOf(1),"Deployment while OpenRelease status must have failed with response code: 1 , result.entrySet(): "+result.entrySet());
+		
+	}
+	
 }
