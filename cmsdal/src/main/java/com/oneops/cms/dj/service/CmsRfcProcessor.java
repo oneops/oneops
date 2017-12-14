@@ -791,6 +791,16 @@ public class CmsRfcProcessor {
 	}
 	
 	/**
+	 * Gets the open rfc ci by ci id.
+	 *
+	 * @param ciId the ci id
+	 * @return the open rfc ci by ci id
+	 */
+	public CmsRfcCI getOpenRfcCIByCiIdNoAttrs(long ciId) {
+		return djMapper.getOpenRfcCIByCiId(ciId);
+	}
+
+	/**
 	 * Gets the open rfcs by ci id list.
 	 * no attributes
 	 * @param ids - List of the ci id

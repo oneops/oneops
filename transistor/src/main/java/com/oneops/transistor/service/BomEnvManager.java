@@ -32,7 +32,8 @@ public interface BomEnvManager {
 
 	List<CostData> getEnvCostData(long envId);
 	Map<String, List<CostData>> getEnvEstimatedCostData(long envId);
-    Map<String,List<CostData>> getEnvEstimatedCostData(long envId, BomData data);
+  Map<String,List<CostData>> getEnvEstimatedCostData(long envId, BomData data);
 
-    Map<String, List<CapacityData>> getEnvCapacity(long envId, BomData bomData);
+  Map<String, List<CapacityData>> getEnvCapacity(long envId, BomData bomData);
+
 }

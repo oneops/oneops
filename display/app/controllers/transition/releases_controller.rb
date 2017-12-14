@@ -51,16 +51,14 @@ class Transition::ReleasesController < Base::ReleasesController
     if params[:latest] == 'true'
       @release = Cms::Release.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
     else
-    @release = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
+      @release = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
     end
 
     if @release
       include_rfcs = params[:include_rfcs]
       unless include_rfcs.blank? || include_rfcs == 'false'
-        rfcs = {}
-        rfcs[:cis] = @release.rfc_cis unless include_rfcs == 'relations'
-        rfcs[:relations] = @release.rfc_relations unless include_rfcs == 'cis'
-        @release.rfcs = rfcs
+        @release.rfc_cis = @release.rfc_cis unless include_rfcs == 'relations'
+        @release.rfc_relations = @release.rfc_relations unless include_rfcs == 'cis'
       end
     end
 
