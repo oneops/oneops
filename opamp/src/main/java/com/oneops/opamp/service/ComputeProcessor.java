@@ -45,7 +45,7 @@ public class ComputeProcessor {
 			return result;
 
 		}
-		result.put("Compute could not be replaced", 1); // TODO: check with team if failure code should be 0
+		result.put("deploymentId", 1); 
 		return result;
 
 	}
