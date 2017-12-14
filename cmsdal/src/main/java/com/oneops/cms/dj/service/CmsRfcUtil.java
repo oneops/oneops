@@ -133,29 +133,34 @@ public class CmsRfcUtil {
 			rfcCi.setCreatedBy(ci.getCreatedBy());
 			rfcCi.setUpdatedBy(ci.getUpdatedBy());
 			
-	
 			for (CmsBasicAttribute attr : ci.getAttributes().values()) {
-				if (!rfcCi.getAttributes().containsKey(attr.getAttributeName())) {
-					CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
-					rfcAttr.setAttributeId(attr.getAttributeId());
-					rfcAttr.setAttributeName(attr.getAttributeName());
-					rfcAttr.setOwner(attr.getOwner());
+				CmsRfcAttribute rfcAttrib = null;
+				if (rfcCi.getAttributes().containsKey(attr.getAttributeName())) {
+					rfcAttrib = rfcCi.getAttributes().get(attr.getAttributeName());
 					if ("df".equalsIgnoreCase(cmAttrValue)) {
-						rfcAttr.setNewValue(attr.getDfValue());
+						rfcAttrib.setOldValue(attr.getDfValue());
 					} else {
-						rfcAttr.setNewValue(attr.getDjValue());
+						rfcAttrib.setOldValue(attr.getDjValue());
 					}
-					rfcCi.addAttribute(rfcAttr);
-				} else {
+				}
+				if (!rfcCi.getAttributes().containsKey(attr.getAttributeName())
+						|| rfcCi.getRfcActionId() == 100) { // in case the rfc is of type "Add"
+					if (rfcAttrib == null) {
+						rfcAttrib = new CmsRfcAttribute();
+						rfcAttrib.setAttributeId(attr.getAttributeId());
+						rfcAttrib.setAttributeName(attr.getAttributeName());
+					}
+
+					rfcAttrib.setOwner(attr.getOwner());
 					if ("df".equalsIgnoreCase(cmAttrValue)) {
-						rfcCi.getAttributes().get(attr.getAttributeName()).setOldValue(attr.getDfValue());
+						rfcAttrib.setNewValue(attr.getDfValue());
 					} else {
-						rfcCi.getAttributes().get(attr.getAttributeName()).setOldValue(attr.getDjValue());
+						rfcAttrib.setNewValue(attr.getDjValue());
 					}
+					rfcCi.addAttribute(rfcAttrib);
 				}
 			}
 		}
 		return rfcCi;
 	}
-
 }
