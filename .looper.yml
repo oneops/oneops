@@ -4,12 +4,13 @@ tools:
 flows:
   default:
     #- sudo yum -y install gcc mysql-devel ruby-devel rubygems
-    - gem install bundle
-    - gem install mysql
-    - gem install ruby_gem
-    - gem install rubdev
+    #- gem install bundle
+    #- gem install mysql
+    #- gem install ruby_gem
+    #- gem install rubdev
     #- bundle show | grep ruby
     #- bundle show | grep mysql
+    - rm -rf ~/.m2/repository
   
     #- ./mvnw install
     #- ./mvnw --batch-mode release:prepare
