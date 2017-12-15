@@ -5,7 +5,10 @@ flows:
   default:
     #- sudo yum -y install gcc mysql-devel ruby-devel rubygems
     - gem install bundle
-    - bundle show | grep mysql
+    - gem install mysql-devel
+    - gem install ruby-devel
+    - gem install rubygems
+    - bundle show | grep ruby
     - bundle show | grep ruby
   
     #- ./mvnw install
