@@ -7,7 +7,7 @@ flows:
     - gem install bundle
     - gem install mysql
     - gem install ruby_gem
-    - gem install ruby
+    - gem install rubdev
     #- bundle show | grep ruby
     #- bundle show | grep mysql
   
