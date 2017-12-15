@@ -5,8 +5,8 @@ flows:
   default:
     - gem install bundle
     #- ./mvnw install
-    - ./mvnw --batch-mode release:prepare
+    #- ./mvnw --batch-mode release:prepare
     
-    #- shell: mvn clean install
+    - shell: mvn clean install
   pr:
     call: default
