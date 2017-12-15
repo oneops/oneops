@@ -3,8 +3,11 @@ tools:
   maven: 3.5.0
 flows:
   default:
-    - sudo yum -y install gcc mysql-devel ruby-devel rubygems
-    #- gem install bundle
+    #- sudo yum -y install gcc mysql-devel ruby-devel rubygems
+    - gem install bundle
+    - bundle show | grep mysql
+    - bundle show | grep ruby
+  
     #- ./mvnw install
     #- ./mvnw --batch-mode release:prepare
     
