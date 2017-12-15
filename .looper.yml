@@ -6,7 +6,7 @@ flows:
     #- sudo yum -y install gcc mysql-devel ruby-devel rubygems
     - gem install bundle
     - gem install mysql
-    - gem install rubygems
+    - gem install ruby
     - gem install ruby-devel
     - bundle show | grep ruby
     - bundle show | grep ruby
