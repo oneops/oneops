@@ -10,7 +10,7 @@ flows:
     #- gem install rubdev
     #- bundle show | grep ruby
     #- bundle show | grep mysql
-    - rm -rf ~/.m2/repository
+    #- rm -rf ~/.m2/repository
   
     #- ./mvnw install
     #- ./mvnw --batch-mode release:prepare
