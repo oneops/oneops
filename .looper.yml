@@ -8,8 +8,8 @@ flows:
     - gem install mysql
     - gem install ruby_gem
     - gem install ruby
-    - bundle show | grep ruby
-    - bundle show | grep mysql
+    #- bundle show | grep ruby
+    #- bundle show | grep mysql
   
     #- ./mvnw install
     #- ./mvnw --batch-mode release:prepare
