@@ -97,10 +97,10 @@ public class CmsRfcUtil {
 	 *
 	 * @param rfcCi the rfc ci
 	 * @param ci the ci
-	 * @param cmAttrValue the cm attr value
+	 * @param valueType the cm attr value
 	 * @return the cms rfc ci
 	 */
-	public CmsRfcCI mergeRfcAndCi(CmsRfcCI rfcCi, CmsCI ci, String cmAttrValue) {
+	public CmsRfcCI mergeRfcAndCi(CmsRfcCI rfcCi, CmsCI ci, String valueType) {
 		if (rfcCi == null && ci == null) return null;
 		
 		//TODO check if we need to remove this
@@ -137,7 +137,7 @@ public class CmsRfcUtil {
 				CmsRfcAttribute rfcAttrib = null;
 				if (rfcCi.getAttributes().containsKey(attr.getAttributeName())) {
 					rfcAttrib = rfcCi.getAttributes().get(attr.getAttributeName());
-					if ("df".equalsIgnoreCase(cmAttrValue)) {
+					if ("df".equalsIgnoreCase(valueType)) {
 						rfcAttrib.setOldValue(attr.getDfValue());
 					} else {
 						rfcAttrib.setOldValue(attr.getDjValue());
@@ -152,7 +152,7 @@ public class CmsRfcUtil {
 					}
 
 					rfcAttrib.setOwner(attr.getOwner());
-					if ("df".equalsIgnoreCase(cmAttrValue)) {
+					if ("df".equalsIgnoreCase(valueType)) {
 						rfcAttrib.setNewValue(attr.getDfValue());
 					} else {
 						rfcAttrib.setNewValue(attr.getDjValue());
