@@ -11,7 +11,7 @@ flows:
   pr:
     - echo "Running build for $GITHUB_PR_URL"
     - call: versionsCheck
-    - (name Maven build) mvn clean install
+    - (name Maven build) ./mvnw clean package -pl adapter,amq-plugin,antenna,cms-admin,cmsdal,controller,daq,display,inductor,oo-commons,opamp,search,sensor,transistor,transmitter,batch,oneops-admin,db-schema,oneops-model 
 
   versionsCheck:
     - (name JDK Version) java -version
