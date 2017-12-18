@@ -16,8 +16,5 @@
 <% end %>
 
 <div id="team_list">
-  <%= loading_indicator %>
-  <script>
-    <%= remote_function(:url => teams_cloud_path(@cloud), :method => :get) %>
-  </script>
+  <%= render 'team_list' %>
 </div>

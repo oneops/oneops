@@ -1,0 +1,37 @@
+<%= section_panel 'Users',
+                  :width => 'double',
+                  :menu  => [link_to(icon('square-o', 'Teams'), teams_assembly_path(@assembly), :remote => true, :class  => 'btn btn-mini'),
+                             link_to_function(icon('check-square-o', 'Users'), '', :class  => 'btn btn-mini active')] do %>
+  <%= list(@users,
+           :menu     => defined?(list_menu) && list_menu,
+           :toolbar  => {:sort_by       => [%w(Name name), ['Last Sign-in At', 'last_sign_in_at']],
+                         :filter_by     => %w(name team dto),
+                         :quick_filters => [{:label => 'All', :value => '', :selected => true},
+                                            {:icon => site_icon(:design), :value => 'dto=design'},
+                                            {:icon => site_icon(:transition), :value => 'dto=transition'},
+                                            {:iconL => site_icon(:operations), :value => 'dto=operations'},
+                                            {:label => 'Read-Only', :value => 'dto=ro'}]}) do |builder, user| %>
+    <% builder.itemid user[:id] %>
+    <% all_permissions = %w(design transition operations)
+       dto = all_permissions.map {|p| user[p.to_sym] ? p : ''}.join(' ')
+       teams = user[:teams]
+       last_sign_in_at = user[:last_sign_in_at] %>
+    <% builder.attributes raw(%(name="#{user[:name]}" last_sign_in_at="#{last_sign_in_at}" team="#{teams.join(' ')}" dto="#{dto.presence || 'ro'}")) %>
+    <% builder.status do %>
+      <% all_permissions.each do  |p| %>
+        <%= icon(site_icon(p), '&nbsp;&nbsp;', "fa-lg fa-fw #{'extra-muted' unless user[p.to_sym]}") %>
+      <% end %>
+    <% end %>
+    <% builder.top do %>
+    	<span class="topname"><%= user[:username] %></span>
+    	<span class="topdesc"><%= user[:name] %> <small class="text-black"><%= user[:email] %></small></span>
+    <% end %>
+    <% builder.middle do %>
+      <%= expandable_list(teams.map {|t| marker(t, t == Team::ADMINS ? 'label-info' : 'label-inverse')}, :visible_count => 5, :separator => ' ') %>
+    <% end %>
+    <% builder.bottom do %>
+      Last OneOps sign in: <b><%= last_sign_in_at ? time_ago_in_words(last_sign_in_at) : 'N/A' %></b>
+    <% end %>
+  <% end %>
+<% end %>
+<%= render 'download_users' if manages_access_for_assembly?(@assembly.ciId) %>
