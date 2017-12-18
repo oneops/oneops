@@ -50,6 +50,8 @@ provisioner:
     verify_api_cert: true
     ssl_verify_mode: :verify_peer
     log_level: :info
+transport:
+  max_ssh_sessions: 1
 verifier:
   name: busser
   ruby_bindir: /usr/bin
