@@ -4,7 +4,8 @@ module Devise
 
   module LdapAdapter
     class LdapConnect
-      def search_for_login
+      def search_for_login(login = nil)
+        @login = login if login
         DeviseLdapAuthenticatable::Logger.send("LDAP search for login: #{@attribute}=#{@login}")
         filter = Net::LDAP::Filter.eq(@attribute.to_s, @login.to_s)
         search_filter = ::Devise.ldap_search_filter_builder.call(@ldap)
@@ -15,6 +16,21 @@ module Devise
         ldap_entry = nil
         @ldap.search(:filter => filter) {|entry| ldap_entry = entry}
         ldap_entry
+      end
+
+      def search_for_logins(logins)
+        search_attr = @attribute.to_s
+        filter = logins.inject(nil) do |f, l|
+          ff = Net::LDAP::Filter.eq(search_attr, l.to_s)
+          f ? (f | ff) : ff
+        end
+        search_filter = ::Devise.ldap_search_filter_builder.call(@ldap)
+        if search_filter
+          filter = Net::LDAP::Filter.join(filter, search_filter)
+        end
+        ldap_entries = {}
+        @ldap.search(:filter => filter) {|entry| ldap_entries[entry[search_attr].first] = entry}
+        ldap_entries
       end
     end
   end
@@ -54,7 +70,7 @@ Devise.setup do |config|
   # config.allow_insecure_token_lookup = true
 
   # ==> LDAP Configuration
-  config.ldap_logger = true
+  config.ldap_logger = false
   config.ldap_create_user = true
   config.ldap_update_password = false
   #config.ldap_config = "#{Rails.root}/config/ldap.yml"

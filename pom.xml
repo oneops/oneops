@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.11.01-13-SNAPSHOT</version>
+  <version>17.11.01-16-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
- <scm>
+  <scm>
     <connection>scm:git:git://github.com/oneops/oneops.git</connection>
     <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
     <url>https://github.com/oneops/oneops</url>
@@ -674,6 +674,16 @@
         <groupId>org.aspectj</groupId>
         <artifactId>aspectjweaver</artifactId>
         <version>${aspectj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.opentable.components</groupId>
+        <artifactId>otj-pg-embedded</artifactId>
+        <version>0.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+        <version>4.2.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

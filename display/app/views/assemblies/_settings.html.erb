@@ -20,6 +20,11 @@
 <% if manages_access_for_assembly?(@assembly.ciId) %>
   <%= section_panel 'Delete Assembly', :width => 'single', :position => 'right' do %>
     <% if @instance_count > 0 %>
+        <p>This environment has <b><%= @instance_count %></b> <%= 'instance'.pluralize(@instance_count) %>.</p>
+        <p>
+          An assembly <b>can not be deleted</b> if it has deployed instances.
+          Please disable all environments and remove deployed instances before deleting the envrionment.
+        </p>
       <%= icon_button('trash', ' Delete', 'danger disabled') %>
     <% else %>
       <%= link_confirm_busy(icon_button('trash', ' Delete', 'danger'),

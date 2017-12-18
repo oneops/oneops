@@ -1232,14 +1232,13 @@ module ApplicationHelper
     return GENERAL_SITE_LINKS
   end
 
-  def team_list_permission_marking(team)
+  def team_list_permission_marking(team, perms = %w(cloud_services cloud_compliance cloud_support design transition operations))
+    admins = team.name == Team::ADMINS
     result = %w(manages_access org_scope).inject('') do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg text-error') if team.name == Team::ADMINS || team.send("#{perm}?")
-      a
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw text-error #{'extra-muted' unless admins || team.send("#{perm}?")}")
     end
-    result = %w(cloud_services cloud_compliance cloud_support design transition operations).inject(result) do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg') if team.send("#{perm}?")
-      a
+    result = perms.inject(result) do |a, perm|
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw #{'extra-muted' unless admins || team.send("#{perm}?")}")
     end
     raw(result)
   end

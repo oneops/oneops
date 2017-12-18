@@ -48,7 +48,8 @@
       <ul>
         <% quick_filters.each do |qf| %>
           <li class="<%= 'active' if qf[:selected] %>" data-filter-value="<%= qf[:value] %>">
-            <%= link_to_function(qf[:label], %(apply_list_quick_filter(this, "#{escape_javascript(qf[:value])}"))) %>
+            <% icon = qf[:icon] %>
+            <%= link_to_function(raw("#{icon(icon, nil, 'fa-lg') if icon.present?}#{qf[:label]}"), %(apply_list_quick_filter(this, "#{escape_javascript(qf[:value])}"))) %>
           </li>
         <% end %>
       </ul>
