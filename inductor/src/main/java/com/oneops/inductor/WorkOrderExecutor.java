@@ -28,12 +28,14 @@ import static com.oneops.inductor.InductorConstants.BEFORE_ATTACHMENT;
 import static com.oneops.inductor.InductorConstants.COMPLETE;
 import static com.oneops.inductor.InductorConstants.COMPUTE;
 import static com.oneops.inductor.InductorConstants.DELETE;
+import static com.oneops.inductor.InductorConstants.ERROR_RESPONSE_CODE;
 import static com.oneops.inductor.InductorConstants.EXTRA_RUN_LIST;
 import static com.oneops.inductor.InductorConstants.FAILED;
 import static com.oneops.inductor.InductorConstants.KNOWN;
 import static com.oneops.inductor.InductorConstants.LOG;
 import static com.oneops.inductor.InductorConstants.LOGGED_BY;
 import static com.oneops.inductor.InductorConstants.MONITOR;
+import static com.oneops.inductor.InductorConstants.OK_RESPONSE_CODE;
 import static com.oneops.inductor.InductorConstants.ONEOPS_USER;
 import static com.oneops.inductor.InductorConstants.REMOTE;
 import static com.oneops.inductor.InductorConstants.REPLACE;
@@ -44,6 +46,7 @@ import static java.lang.String.format;
 import com.codahale.metrics.MetricRegistry;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+import com.oneops.cms.dj.domain.CmsRfcCIBasic;
 import com.oneops.cms.dj.domain.RfcHint;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsCISimple;
@@ -205,7 +208,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     List<CmsRfcCISimple> extraRunListRfc = wo.getPayLoadEntry(EXTRA_RUN_LIST);
     //get distinct class names as there could be multiple entries for same class name
     return extraRunListRfc.stream()
-        .map(rfcSimple -> rfcSimple.getCiClassName())
+        .map(CmsRfcCIBasic::getCiClassName)
         .distinct()
         .map(className -> getRunListEntry(getShortenedClass(className),
             getRecipeAction(wo.getAction())))
@@ -223,12 +226,12 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
   private Map<String, String> buildResponseMessage(CmsWorkOrderSimple wo, String correlationId) {
     long t1 = System.currentTimeMillis();
     // state and resultCI gets set via chef response serialize and send to controller
-    String responseCode = "200";
+    String responseCode = OK_RESPONSE_CODE;
     String responseText = gson.toJson(wo);
 
     if (!COMPLETE.equalsIgnoreCase(wo.getDpmtRecordState())) {
       logger.warn("FAIL: " + wo.getDpmtRecordId() + " state:" + wo.getDpmtRecordState());
-      responseCode = "500";
+      responseCode = ERROR_RESPONSE_CODE;
     }
 
     Map<String, String> message = new HashMap<>();

@@ -28,8 +28,10 @@ import static com.oneops.inductor.InductorConstants.COMPLETE;
 import static com.oneops.inductor.InductorConstants.COMPUTE;
 import static com.oneops.inductor.InductorConstants.DELETE;
 import static com.oneops.inductor.InductorConstants.ENVIRONMENT;
+import static com.oneops.inductor.InductorConstants.ERROR_RESPONSE_CODE;
 import static com.oneops.inductor.InductorConstants.FAILED;
 import static com.oneops.inductor.InductorConstants.KEYPAIR;
+import static com.oneops.inductor.InductorConstants.OK_RESPONSE_CODE;
 import static com.oneops.inductor.InductorConstants.ONEOPS_USER;
 import static com.oneops.inductor.InductorConstants.PRIVATE;
 import static com.oneops.inductor.InductorConstants.PRIVATE_KEY;
@@ -86,7 +88,6 @@ import org.stringtemplate.v4.ST;
 /**
  * AbstractOrderExecutor- base class for WorkOrderExecutor and ActionOrderExecutor
  */
-
 public abstract class AbstractOrderExecutor {
 
   public static final String ONDEMAND = "ondemand";
@@ -167,7 +168,7 @@ public abstract class AbstractOrderExecutor {
   }
 
   /**
-   * Process the workorder or actionorder and return message to be put
+   * Process the work-order or action-order and return message to be put
    * in the controller response queue
    *
    * @param order wo/ao
@@ -176,6 +177,20 @@ public abstract class AbstractOrderExecutor {
    */
   abstract Map<String, String> process(CmsWorkOrderSimpleBase order, String correlationId)
       throws IOException;
+
+  /**
+   * Process the work-order or action-order and run the verification if it's completes successfully.
+   *
+   * @param wo wo/ao
+   * @param correlationID JMS correlationId.
+   * @return Process response map.
+   */
+  public Map<String, String> processAndVerify(CmsWorkOrderSimpleBase wo, String correlationID)
+      throws IOException {
+    Map<String, String> resMap = process(wo, correlationID);
+    String resCode = resMap.getOrDefault("task_result_code", ERROR_RESPONSE_CODE);
+    return resCode.equals(OK_RESPONSE_CODE) ? runVerification(wo, resMap) : resMap;
+  }
 
   protected void processStubbedCloud(CmsWorkOrderSimpleBase wo) {
     try {
@@ -927,13 +942,7 @@ public abstract class AbstractOrderExecutor {
    * @return log key.
    */
   public String getLogKey(CmsWorkOrderSimpleBase o) {
-    long cid;
-    if (o instanceof CmsWorkOrderSimple) {
-      cid = ((CmsWorkOrderSimple) o).getRfcCi().getCiId();
-    } else {
-      cid = ((CmsActionOrderSimple) o).getCi().getCiId();
-    }
-    return o.getRecordId() + ":" + cid + " - ";
+    return o.getRecordId() + ":" + o.getCiId() + " - ";
   }
 
   /**
@@ -1040,7 +1049,6 @@ public abstract class AbstractOrderExecutor {
       Map<String, String> responseMap) {
 
     if (config.isVerifyMode()) {
-      // CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
       String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
 

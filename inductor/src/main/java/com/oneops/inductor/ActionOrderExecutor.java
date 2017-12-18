@@ -72,8 +72,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
    * @param correlationId jms correlation Id
    */
   @Override
-  public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId)
-      throws IOException {
+  public Map<String, String> process(CmsWorkOrderSimpleBase o, String correlationId) {
 
     CmsActionOrderSimple ao = (CmsActionOrderSimple) o;
     long startTime = System.currentTimeMillis();
