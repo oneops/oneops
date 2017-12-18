@@ -189,31 +189,39 @@ class AssembliesController < ApplicationController
   end
 
   def clone
+    ci     = nil
     errors = nil
-    ci = {:ciName => params[:ciName], :ciAttributes => {:description => params[:description]}}
     export = params[:export]
     if export.present?
       action = 'save'
-      ci[:nsPath]      = private_catalog_designs_ns_path
-      ci[:ciClassName] = 'account.Design'
+      ci = Cms::Ci.build(:ciName       => params[:ciName],
+                         :nsPath       => private_catalog_designs_ns_path,
+                         :ciClassName  => 'account.Design',
+                         :ciAttributes => {:description => params[:description]})
     else
       action   = 'clone'
       org_name = params[:to_org].presence || current_user.organization.name
       org      = current_user.organizations.where('organizations.name = ?', org_name).first
       team     = current_user.manages_access?(org.id)
       if org && team
-        ci[:nsPath]      = organization_ns_path(org.name)
-        ci[:ciClassName] = 'account.Assembly'
-        ci[:ciAttributes][:owner] = @assembly.ciAttributes.owner
+        ci = Cms::Ci.build(:ciName       => params[:ciName],
+                           :nsPath       => organization_ns_path(org.name),
+                           :ciClassName  => 'account.Assembly',
+                           :ciAttributes => {:description => params[:description],
+                                             :owner       => current_user.email.presence || @assembly.ciAttributes.owner})
       else
         errors = ["No permission to create assembly in organization '#{org_name}'."]
       end
     end
 
+    if ci
+      ci.valid?
+      errors = ci.errors.full_messages
+    end
     if errors.blank?
       ci_id, message = Transistor.clone_assembly(@assembly.ciId, ci)
       if ci_id
-        Cms::Ci.headers['X-Cms-Scope'] = ci[:nsPath] if action == 'clone'
+        Cms::Ci.headers['X-Cms-Scope'] = ci.nsPath if action == 'clone'
         @new_ci = Cms::Ci.find(ci_id)
         if export.blank? && !is_admin?(org)
           current_user.update_attribute(:organization_id, org.id)
