@@ -481,6 +481,7 @@ Display::Application.routes.draw do
             post 'status',        :on => :member
             get 'compile_status', :on => :collection
             get 'log_data',       :on => :member
+            get 'preview',        :on => :collection
 
             resources :approvals, :only => [:index] do
               put 'settle', :on => :collection

@@ -36,6 +36,8 @@ import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.export.domain.DesignExportSimple;
 import com.oneops.transistor.export.domain.EnvironmentExportSimple;
 import com.oneops.transistor.service.*;
+import com.oneops.transistor.service.peristenceless.BomData;
+import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.transistor.snapshot.domain.Snapshot;
 import org.apache.log4j.Logger;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -61,12 +63,15 @@ public class TransistorRestController extends AbstractRestController {
 	private IaasManager iaasManager;
 	private DesignManager dManager;
 	private BomAsyncProcessor baProcessor;
+	private InMemoryBomProcessor imBomProcesor;
 	private ManifestAsyncProcessor maProcessor;
 	private CmsUtil util;
 	private SnapshotManager snapshotManager;
-	
-	
 
+
+	public void setImBomProcesor(InMemoryBomProcessor imBomProcesor) {
+		this.imBomProcesor = imBomProcesor;
+	}
 
 	public void setMaProcessor(ManifestAsyncProcessor maProcessor) {
 		this.maProcessor = maProcessor;
@@ -434,36 +439,171 @@ public class TransistorRestController extends AbstractRestController {
 
 	@RequestMapping(value="environments/{envId}/cost", method = RequestMethod.GET)
 	@ResponseBody
-	public BigDecimal calculateCost(@PathVariable long envId){
-		return getSum(getCostData(envId));
+	public Map<String, Object> calculateCost(@PathVariable long envId){
+		return getCostTotals(getCostData(envId));
 	}
+
 
 	@RequestMapping(value="environments/{envId}/estimated_cost_data", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, List<CostData>> getEstimatedCostData(@PathVariable long envId){
 		return envManager.getEnvEstimatedCostData(envId);
 	}
-	
+
 	@RequestMapping(value="environments/{envId}/estimated_cost", method = RequestMethod.GET)
 	@ResponseBody
-	public HashMap<String, BigDecimal> calculateEstimatedCost(@PathVariable long envId) {
-		HashMap<String, BigDecimal> result = new HashMap<>();
+	public Map<String, Map<String, Object>> calculateEstimatedCost(@PathVariable long envId) {
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
 		Map<String, List<CostData>> estimatedCostData = getEstimatedCostData(envId);
 		for (String type : estimatedCostData.keySet()) {
-			result.put(type, getSum(estimatedCostData.get(type)));
+			result.put(type, getCostTotals(estimatedCostData.get(type)));
 		}
 		return result;
 	}
 
 
-	private BigDecimal getSum(List<CostData> offerings) {
-		BigDecimal result = BigDecimal.ZERO;
-		for (CostData cost: offerings){
-			for (CmsCISimple offering: cost.getOfferings()){
-				result = result.add(new BigDecimal(offering.getCiAttributes().get("cost_rate")));
-			}
+	@RequestMapping(value="environments/{envId}/deployment_cost_data", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, List<CostData>> getDeploymentCostData(@PathVariable long envId){
+		BomData data = imBomProcesor.compileEnv(envId, "", null, null, false, false);
+		return envManager.getEnvEstimatedCostData(envId, data);
+	}
+
+	@RequestMapping(value="environments/{envId}/deployment_cost", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Map<String,Object>> calculateDeploymentCost(@PathVariable long envId) {
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
+		Map<String, List<CostData>> estimatedCostData = getDeploymentCostData(envId);
+		for (String type : estimatedCostData.keySet()) {
+			result.put(type, getCostTotals(estimatedCostData.get(type)));
 		}
 		return result;
+	}
+
+	
+
+	@RequestMapping(value="environments/{envId}/deployment_capacity_data", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, List<CapacityData>> getDeploymentCapacityData(@PathVariable long envId){
+		BomData data = imBomProcesor.compileEnv(envId, "", null, null, false, false);
+		return envManager.getEnvCapacity(envId, data);
+	}
+
+	@RequestMapping(value="environments/{envId}/deployment_capacity", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Map<String, Object>> getDeploymentCapacity(@PathVariable long envId){
+		HashMap<String, Map<String, Object>> result = new HashMap<>();
+		Map<String, List<CapacityData>> capacityData = getDeploymentCapacityData(envId);
+		for (String type : capacityData.keySet()) {
+			result.put(type, getCapacityTotals(capacityData.get(type)));
+		}
+		return result;
+	}
+
+
+	private Map<String, Object> getCapacityTotals(List<CapacityData> capacityData) {
+		Map<String, Object> map = new HashMap<>();
+		Map<String, Map<String, Integer>> byCloud = new HashMap<>();
+		Map<String, Map<String, Map<String, Integer>>> byPlatform = new HashMap<>();
+		
+		for (CapacityData capacity: capacityData){
+			String cloud = capacity.getCloud().getCiName();
+			String[] array = capacity.getRfc().getNsPath().split("/");
+			String platform = "";
+			if (array.length > 1) {
+				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
+			}
+			String size = capacity.getSize();
+			Map<String, Map<String, Integer>> byPlatformMap = byPlatform.getOrDefault(platform, new HashMap<>());
+			Map<String, Integer> bySizeMap = byPlatformMap.getOrDefault(cloud, new HashMap<>());
+			byPlatformMap.put(cloud, bySizeMap);
+			byPlatform.put(platform, byPlatformMap);
+			bySizeMap.put(size, bySizeMap.getOrDefault(size, 0)+1);
+
+			bySizeMap = byCloud.getOrDefault(cloud, new HashMap<>());
+			bySizeMap.put(size, bySizeMap.getOrDefault(size, 0)+1);
+			byCloud.put(cloud, bySizeMap);
+		}
+		map.put("by_cloud", byCloud);
+		map.put("by_platform", byPlatform);
+		return map;
+	}
+
+
+
+
+	private Map<String, Object> getCostTotals(List<CostData> offerings) {
+		Map<String, Object> map = new HashMap<>();
+		Map<String, BigDecimal> byCloud = new HashMap<>();
+		Map<String, BigDecimal> byPlatform = new HashMap<>();
+		Map<String, BigDecimal> byService = new HashMap<>();
+		BigDecimal total = BigDecimal.ZERO;
+		for (CostData cost: offerings){
+			String cloud = cost.getCloud().getCiName();
+			String[] array = cost.getRfc().getNsPath().split("/");
+			String platform = "";
+			if (array.length > 1) {
+				platform = String.join("/", array[array.length - 2], array[array.length - 1]);
+			}
+			for (CmsCISimple offering : cost.getOfferings()) {
+				BigDecimal rate = new BigDecimal(offering.getCiAttributes().get("cost_rate"));
+				String serviceType = offering.getCiAttributes().get("service_type");
+				byPlatform.put(platform, byPlatform.getOrDefault(platform, BigDecimal.ZERO).add(rate));
+				byService.put(serviceType, byService.getOrDefault(serviceType, BigDecimal.ZERO).add(rate));
+				byCloud.put(cloud, byCloud.getOrDefault(cloud, BigDecimal.ZERO).add(rate));
+				total = total.add(rate);
+			}
+		}
+		map.put("by_cloud", byCloud);
+		map.put("by_platform", byPlatform);
+		map.put("by_service", byService);
+		map.put("total", total);
+		return map;
+	}
+
+
+	@RequestMapping(value="environments/{envId}/deployments/preview", method = {RequestMethod.POST, RequestMethod.GET})
+	@ResponseBody
+	public BomData generateBomInMemory(
+			@PathVariable long envId,
+			@RequestParam(value = "suppressRfcs", required = false) Boolean suppressRfcs,
+			@RequestParam(value = "cost", required = false) Boolean cost,
+			@RequestParam(value = "capacity", required = false) Boolean capacity,
+			@RequestHeader(value="X-Cms-User", required = false)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+		try {
+			if (userId == null) userId = "oneops-system";
+			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
+			if (cost != null && cost) {
+				Map<String, List<CostData>> estimatedCostData = envManager.getEnvEstimatedCostData(envId, bomData);
+				Map<String, Map<String, Object>> costMap = new HashMap<>();
+				for (String type : estimatedCostData.keySet()) {
+					costMap.put(type, getCostTotals(estimatedCostData.get(type)));
+				}
+				bomData.addExtraData("cost", costMap);
+			}
+			if (capacity != null && capacity){
+				Map<String, List<CapacityData>> estimatedCapacityData = envManager.getEnvCapacity(envId, bomData);
+				Map<String, Map<String, Object>> capacityMap = new HashMap<>();
+				for (String type : estimatedCapacityData.keySet()) {
+					capacityMap.put(type, getCapacityTotals(estimatedCapacityData.get(type)));
+				}
+				bomData.addExtraData("capacity", capacityMap);
+        
+        
+        
+        
+			}
+			if (suppressRfcs!=null && suppressRfcs){
+				bomData.setCis(null);
+				bomData.setRelations(null);
+			}
+			return bomData;
+		} catch (CmsBaseException te) {
+			logger.error(te);
+			te.printStackTrace();
+			throw te;
+		}
 	}
 	
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
