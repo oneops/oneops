@@ -1424,31 +1424,15 @@
           </foreach> 
  	 </select>
 
-	 <select id="getOpenRfcLinks" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcLink">
-			select distinct rr.rfc_id as rfcId, r.relation_name as relationName, rfca.action_name as action,
-			coalesce(from_rc.ci_id, from_ci.ci_id) as fromCiId, 
-			(select fromcl.class_name from md_classes fromcl where fromcl.class_id = coalesce(from_rc.class_id, from_ci.class_id)) as fromClazzName,
-			coalesce(to_rc.ci_id, to_ci.ci_id) as toCiId, 
-			(select tocl.class_name from md_classes tocl where tocl.class_id = coalesce(to_rc.class_id, to_ci.class_id)) as toClazzName
-			from dj_rfc_relation rr
-			  join md_relations r on rr.relation_id = r.relation_id
-			  join ns_namespaces ns on rr.ns_id = ns.ns_id
-			  join dj_releases rls on rr.release_id = rls.release_id
-			  join dj_release_states rs on rls.release_state_id = rs.release_state_id
-			  join dj_rfc_ci_actions rfca on rr.action_id = rfca.action_id
-  			  left join dj_rfc_ci to_rc on rr.to_ci_id = to_rc.ci_id
-			  left join cm_ci to_ci on rr.to_ci_id = to_ci.ci_id
-			  left join dj_rfc_ci from_rc on rr.from_ci_id = from_rc.ci_id
-			  left join cm_ci from_ci on rr.from_ci_id = from_ci.ci_id
-			where ns.ns_path = #{nsPath}
-			and rs.state_name = 'open'
-			and (#{relName}::varchar is null or r.relation_name = #{relName})
-				 
-	</select>
-
 	 <select id="countCiRfcByReleaseId" parameterType="long" useCache="false" resultType="long">
 		SELECT count(1)
 		from dj_rfc_ci
+		where release_id = #{value}
+	 </select>
+
+	 <select id="countRelationRfcByReleaseId" parameterType="long" useCache="false" resultType="long">
+		SELECT count(1)
+		from dj_rfc_relation
 		where release_id = #{value}
 	 </select>
 

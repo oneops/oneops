@@ -129,7 +129,6 @@ class Transition::DeploymentsController < ApplicationController
   def compile_status
     if @environment.ciState != 'locked' && (@environment.comments.blank? || !@environment.comments.start_with?('ERROR:'))
       find_open_bom_release
-
       if request.format.json?
         if @release
           @release.rfcs = {:cis => @release.rfc_cis, :relations => @release.rfc_relations}
@@ -145,7 +144,7 @@ class Transition::DeploymentsController < ApplicationController
 
         @manifest = Cms::Release.find(@release.parentReleaseId)
         check_for_override
-          @cost, _ = Transistor.environment_cost(@environment, true, false)
+        @cost, _ = Transistor.environment_cost(@environment, true, false)
         end
       end
     end

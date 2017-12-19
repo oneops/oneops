@@ -474,4 +474,29 @@ public class CmsRfcCIBasic implements Serializable {
     this.hint = hint;
   }
 
+  @Override
+  public String toString() {
+    return "rfcId=" + rfcId +
+            ", releaseId=" + releaseId +
+            ", ciId=" + ciId +
+            ", nsPath='" + nsPath + '\'' +
+            ", ciClassName='" + ciClassName + '\'' +
+            ", ciName='" + ciName + '\'' +
+            ", ciState='" + ciState + '\'' +
+            ", rfcAction='" + rfcAction + '\'' +
+            ", createdBy='" + createdBy + '\'' +
+            ", updatedBy='" + updatedBy + '\'' +
+            ", rfcCreatedBy='" + rfcCreatedBy + '\'' +
+            ", rfcUpdatedBy='" + rfcUpdatedBy + '\'' +
+            ", execOrder=" + execOrder +
+            ", lastAppliedRfcId=" + lastAppliedRfcId +
+            ", comments='" + comments + '\'' +
+            ", isActiveInRelease=" + isActiveInRelease +
+            ", rfcCreated=" + rfcCreated +
+            ", rfcUpdated=" + rfcUpdated +
+            ", created=" + created +
+            ", updated=" + updated +
+            ", hint='" + hint + '\'' +
+            ", ";
+  }
 }

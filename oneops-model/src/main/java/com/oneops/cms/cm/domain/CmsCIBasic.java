@@ -280,4 +280,19 @@ public class CmsCIBasic implements Serializable {
     this.impl = impl;
   }
 
+  @Override
+  public String toString() {
+    return "ciId=" + ciId +
+            ", ciName='" + ciName + '\'' +
+            ", ciClassName='" + ciClassName + '\'' +
+            ", nsPath='" + nsPath + '\'' +
+            ", comments='" + comments + '\'' +
+            ", ciState='" + ciState + '\'' +
+            ", lastAppliedRfcId=" + lastAppliedRfcId +
+            ", createdBy='" + createdBy + '\'' +
+            ", updatedBy='" + updatedBy + '\'' +
+            ", created=" + created +
+            ", updated=" + updated +
+            ", ";
+  }
 }

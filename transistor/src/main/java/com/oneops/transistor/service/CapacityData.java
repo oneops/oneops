@@ -1,6 +1,11 @@
+package com.oneops.transistor.service;
+
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+
 /*******************************************************************************
  *
- *   Copyright 2015 Walmart, Inc.
+ *   Copyright 2016 Walmart, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,28 +20,28 @@
  *   limitations under the License.
  *
  *******************************************************************************/
-package com.oneops.cms.dj.domain;
 
-import com.oneops.cms.cm.domain.CmsLink;
+public class CapacityData {
+    private CmsRfcCISimple rfc;
+    private String size; 
+    private CmsCISimple cloud;
 
-public class CmsRfcLink extends CmsLink {
 
-  private long rfcId;
-  private String action;
+    public CmsRfcCISimple getRfc() {
+        return rfc;
+    }
 
-  public long getRfcId() {
-    return rfcId;
-  }
+    public CmsCISimple getCloud() {
+        return cloud;
+    }
 
-  public void setRfcId(long rfcId) {
-    this.rfcId = rfcId;
-  }
+    public String getSize() {
+        return size;
+    }
 
-  public String getAction() {
-    return action;
-  }
-
-  public void setAction(String action) {
-    this.action = action;
-  }
+    CapacityData(CmsRfcCISimple rfc, CmsCISimple cloud) {
+        this.rfc = rfc;
+        this.cloud = cloud;
+        this.size = rfc.getCiAttributes().get("size");
+    }
 }
