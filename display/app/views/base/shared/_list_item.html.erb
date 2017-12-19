@@ -22,15 +22,15 @@
     </div>
   <% end %>
 
-  <% if multi_select %>
-    <% if builder.include?(:selectable) && !builder[:selectable] %>
-      <i class="placeholder"></i>
-    <% else %>
-      <i class="fa fa-lg fa-square-o select" onclick="event.stopPropagation();toggle_select_item(this)"></i>
-    <% end %>
-  <% end %>
-
   <div class="content">
+    <% if multi_select %>
+      <% if builder.include?(:selectable) && !builder[:selectable] %>
+        <i class="placeholder"></i>
+      <% else %>
+        <i class="fa fa-lg fa-square-o select" onclick="event.stopPropagation();toggle_select_item(this)"></i>
+      <% end %>
+    <% end %>
+
     <div class="top">
       <%= image_tag(builder[:icon], :class => 'icon') if builder[:icon] %>
       <%= builder[:top] %>

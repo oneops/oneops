@@ -57,7 +57,7 @@ class Transition::ReleasesController < Base::ReleasesController
     if @release
       include_rfcs = params[:include_rfcs]
       unless include_rfcs.blank? || include_rfcs == 'false'
-        @release.rfc_cis = @release.rfc_cis unless include_rfcs == 'relations'
+        @release.rfc_cis       = @release.rfc_cis unless include_rfcs == 'relations'
         @release.rfc_relations = @release.rfc_relations unless include_rfcs == 'cis'
       end
     end

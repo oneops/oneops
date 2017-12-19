@@ -159,13 +159,11 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
 
   @Override
   public String getAction() {
-
     return getActionName();
   }
 
   @Override
   public String getNsPath() {
-
     return getCi().getNsPath();
   }
 
@@ -250,4 +248,13 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
     return getCi().getCiName();
   }
 
+  @Override
+  public long getRecordId() {
+    return getActionId();
+  }
+
+  @Override
+  public void setComments(String comments) {
+    //No-op
+  }
 }

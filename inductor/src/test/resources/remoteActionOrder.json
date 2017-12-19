@@ -23,7 +23,7 @@
     "ciId": 11962853,
     "ciName": "tomcat-9687230-1",
     "updated": "Mar 13, 2013 4:34:40 PM",
-    "ciClassName": "bom.Tomcat"
+    "ciClassName": "bom.oneops.1.Tomcat"
   },
   "actionId": 211465,
   "isCritical": false,

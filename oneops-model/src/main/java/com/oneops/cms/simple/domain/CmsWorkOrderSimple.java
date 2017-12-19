@@ -39,8 +39,8 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements
   public CmsCISimple box;
   public Map<String, List<CmsRfcCISimple>> payLoad;
   public Map<String, Map<String, CmsCISimple>> services;
-  public Map<String, String> searchTags = new HashMap<String, String>();
-  public Map<String, String> additionalInfo = new HashMap<String, String>();
+  public Map<String, String> searchTags = new HashMap<>();
+  public Map<String, String> additionalInfo = new HashMap<>();
   public Map<String, String> config;
 
 
@@ -106,10 +106,10 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements
    */
   public void addPayLoadEntry(String key, CmsRfcCISimple value) {
     if (this.payLoad == null) {
-      this.payLoad = new HashMap<String, List<CmsRfcCISimple>>();
+      this.payLoad = new HashMap<>();
     }
     if (!this.payLoad.containsKey(key)) {
-      this.payLoad.put(key, new ArrayList<CmsRfcCISimple>());
+      this.payLoad.put(key, new ArrayList<>());
     }
     this.payLoad.get(key).add(value);
   }
@@ -198,7 +198,6 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements
   /**
    * returns null
    */
-
   @Override
   public CmsRfcCISimple getPayLoadEntryAt(String payloadKey, int indx) {
     if (isPayLoadEntryPresent(payloadKey)) {
@@ -241,6 +240,11 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements
   @Override
   public String getCiName() {
     return getRfcCi().getCiName();
+  }
+
+  @Override
+  public long getRecordId() {
+    return getDpmtRecordId();
   }
 
   @Override

@@ -14,7 +14,7 @@ class Organization::UsersController < ApplicationController
             user = user_map[user_id]
             m[user_id] ||= []
             m[user_id] << team_map[tu.team_id].name
-            user.last_sign_in_at_for_current_org = tu.last_sign_in_at if user.last_sign_in_at_for_current_org && user.last_sign_in_at_for_current_org < tu.last_sign_in_at
+            user.last_sign_in_at_for_current_org = tu.last_sign_in_at if user && user.last_sign_in_at_for_current_org.blank? || (tu.last_sign_in_at.present? && user.last_sign_in_at_for_current_org < tu.last_sign_in_at)
           end
           m
         end
@@ -92,11 +92,21 @@ class Organization::UsersController < ApplicationController
   end
 
   def update
-    @user = current_user.organization.users.find(params[:id])
-    org_team_ids = current_user.organization.teams.map(&:id)
-    @user.team_ids = (@user.team_ids - org_team_ids + (params[:teams] || []).map(&:to_i))
-
-    check_reset_org
+    org          = current_user.organization
+    org_team_ids = org.teams.ids
+    new_team_ids = (params[:teams] || []).map(&:to_i)
+    @user        = org.users.find(params[:id]) # Safety check
+    if @user
+      admin_team    = org.admin_team
+      admin_team_id = admin_team.id
+      all_team_ids  = @user.team_ids
+      if admin_team.users.count == 1 && all_team_ids.include?(admin_team_id) && !new_team_ids.include?(admin_team_id)
+        flash[:error] = 'This user is last admin for this organization: can not remove user from admins.'
+      else
+        @user.team_ids = all_team_ids - org_team_ids + new_team_ids
+        check_reset_org
+      end
+    end
 
     index
   end
