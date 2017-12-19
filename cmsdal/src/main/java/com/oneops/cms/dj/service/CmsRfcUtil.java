@@ -97,10 +97,10 @@ public class CmsRfcUtil {
 	 *
 	 * @param rfcCi the rfc ci
 	 * @param ci the ci
-	 * @param cmAttrValue the cm attr value
+	 * @param valueType the cm attr value
 	 * @return the cms rfc ci
 	 */
-	public CmsRfcCI mergeRfcAndCi(CmsRfcCI rfcCi, CmsCI ci, String cmAttrValue) {
+	public CmsRfcCI mergeRfcAndCi(CmsRfcCI rfcCi, CmsCI ci, String valueType) {
 		if (rfcCi == null && ci == null) return null;
 		
 		//TODO check if we need to remove this
@@ -133,29 +133,34 @@ public class CmsRfcUtil {
 			rfcCi.setCreatedBy(ci.getCreatedBy());
 			rfcCi.setUpdatedBy(ci.getUpdatedBy());
 			
-	
 			for (CmsBasicAttribute attr : ci.getAttributes().values()) {
-				if (!rfcCi.getAttributes().containsKey(attr.getAttributeName())) {
-					CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
-					rfcAttr.setAttributeId(attr.getAttributeId());
-					rfcAttr.setAttributeName(attr.getAttributeName());
-					rfcAttr.setOwner(attr.getOwner());
-					if ("df".equalsIgnoreCase(cmAttrValue)) {
-						rfcAttr.setNewValue(attr.getDfValue());
+				CmsRfcAttribute rfcAttrib = null;
+				if (rfcCi.getAttributes().containsKey(attr.getAttributeName())) {
+					rfcAttrib = rfcCi.getAttributes().get(attr.getAttributeName());
+					if ("df".equalsIgnoreCase(valueType)) {
+						rfcAttrib.setOldValue(attr.getDfValue());
 					} else {
-						rfcAttr.setNewValue(attr.getDjValue());
+						rfcAttrib.setOldValue(attr.getDjValue());
 					}
-					rfcCi.addAttribute(rfcAttr);
-				} else {
-					if ("df".equalsIgnoreCase(cmAttrValue)) {
-						rfcCi.getAttributes().get(attr.getAttributeName()).setOldValue(attr.getDfValue());
+				}
+				if (!rfcCi.getAttributes().containsKey(attr.getAttributeName())
+						|| rfcCi.getRfcActionId() == 100) { // in case the rfc is of type "Add"
+					if (rfcAttrib == null) {
+						rfcAttrib = new CmsRfcAttribute();
+						rfcAttrib.setAttributeId(attr.getAttributeId());
+						rfcAttrib.setAttributeName(attr.getAttributeName());
+					}
+
+					rfcAttrib.setOwner(attr.getOwner());
+					if ("df".equalsIgnoreCase(valueType)) {
+						rfcAttrib.setNewValue(attr.getDfValue());
 					} else {
-						rfcCi.getAttributes().get(attr.getAttributeName()).setOldValue(attr.getDjValue());
+						rfcAttrib.setNewValue(attr.getDjValue());
 					}
+					rfcCi.addAttribute(rfcAttrib);
 				}
 			}
 		}
 		return rfcCi;
 	}
-
 }
