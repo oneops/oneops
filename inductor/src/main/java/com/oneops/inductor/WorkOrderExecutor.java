@@ -156,6 +156,193 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     return buildResponseMessage(wo, correlationId);
   }
 
+  /**
+   * Returns the circuit directory of the component.
+   *
+   * @param wo component work order.
+   * @return circuit root directory path.
+   */
+  public Path getCircuitDir(CmsWorkOrderSimple wo) {
+    String circuitName = getCookbookPath(wo.getRfcCi().getCiClassName());
+    return Paths.get(config.getCircuitDir().replace("packer", circuitName));
+  }
+
+  /**
+   * Returns the cookbook directory of the component.
+   *
+   * @param wo component work order.
+   * @return cookbook directory path.
+   */
+  public Path getCookbookDir(CmsWorkOrderSimple wo) {
+    String compName = getShortenedClass(wo.getRfcCi().getCiClassName());
+    Path circuitDir = getCircuitDir(wo);
+    return circuitDir.resolve("components/cookbooks/" + compName);
+  }
+
+  /**
+   * Returns the verification spec file path for the component action. The path is :
+   * {circuit_root}/components/cookbooks/user/test/integration/{action}/serverspec/{action}_spec.rb
+   *
+   * @param wo component work order.
+   * @return action spec file path.
+   */
+  public Path getActionSpecPath(CmsWorkOrderSimple wo) {
+    String action = wo.getRfcCi().getRfcAction();
+    return getCookbookDir(wo)
+        .resolve(format("test/integration/%s/serverspec/%s_spec.rb", action, action));
+  }
+
+
+  /**
+   * Returns the remote work order rsync command.
+   *
+   * @param o component work order.
+   * @param sshKey ssh key path.
+   * @param logKey log key.
+   * @return rsync command.
+   */
+  public String[] getRemoteWoRsyncCmd(CmsWorkOrderSimple o, String sshKey, String logKey) {
+    int size = rsyncCmdLine.length;
+    String host = getWorkOrderHost(o, logKey);
+
+    String[] cmd = Arrays.copyOf(rsyncCmdLine, size + 2);
+    // Some nasty hack due to legacy code :‑/
+    cmd[4] += format("-p 22 -qi %s", sshKey);
+    cmd[size] = format("%s/%d.json", config.getDataDir(), o.getDpmtRecordId());
+    cmd[size + 1] = format("oneops@%s:%s", host, getRemoteFileName(o));
+    return cmd;
+  }
+
+  /**
+   * Run verification tests for the component. Usually this is done after executing the work order.
+   *
+   * @param o work order
+   * @param responseMap response map result of work-order run.
+   * @return updated response map.
+   */
+  protected Map<String, String> runVerification(CmsWorkOrderSimpleBase o,
+      Map<String, String> responseMap) {
+
+    if (config.isVerifyMode()) {
+      CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
+      String logKey = getLogKey(wo) + " verify -> ";
+      long start = System.currentTimeMillis();
+
+      if (config.isCloudStubbed(wo)) {
+        logger.info(logKey + "Skipping verification for stubbed cloud.");
+        return responseMap;
+      }
+
+      if (!Files.exists(getActionSpecPath(wo))) {
+        logger.info(logKey + "Skipping verification. No spec found at : " + getActionSpecPath(wo));
+        return responseMap;
+      }
+
+      String action = wo.getRfcCi().getRfcAction();
+      String compName = getShortenedClass(wo.getRfcCi().getCiClassName());
+
+      try {
+        logger.info(
+            format("%sRunning '%s' verification for component '%s'", logKey, action, compName));
+        String host = getWorkOrderHost(wo, logKey);
+        String localWOPath = format("%s/%d.json", config.getDataDir(), wo.getDpmtRecordId());
+        String remoteWOPath = getRemoteFileName(wo);
+
+        boolean debugMode = isDebugEnabled(wo);
+        boolean isRemoteWO = isRemoteChefCall(wo);
+        logger.info(logKey + "Local WO Path: " + localWOPath);
+        logger.info(logKey + "Remote WO Path: " + remoteWOPath);
+        logger.info(logKey + "Circuit Path: " + getCircuitDir(wo));
+        logger.info(logKey + "Debug mode: " + debugMode);
+
+        // Copy remote work-order.
+        String sshKey = null;
+        if (isRemoteWO) {
+          sshKey = writePrivateKey(wo);
+          logger.info(logKey + "SSH key path: " + sshKey);
+          String[] cmdLine = getRemoteWoRsyncCmd(wo, sshKey, logKey);
+          logger.info(logKey + "### SYNC: " + remoteWOPath);
+          ProcessResult result = processRunner
+              .executeProcessRetry(new ExecutionContext(wo, cmdLine, logKey, retryCount));
+
+          if (result.getResultCode() > 0) {
+            wo.setComments(
+                "FATAL: " + generateRsyncErrorMessage(result.getResultCode(), host + ":22"));
+            handleRsyncFailure(wo, sshKey);
+            responseMap.put("task_result_code", "500");
+            return responseMap;
+          }
+        }
+
+        // Copy cookbook to tmp working directory.
+        Path workDir = Paths.get(format("/tmp/%s-%d", compName, wo.getDpmtRecordId()));
+        logger.info(logKey + "Working Dir: " + workDir);
+        PathUtils.delete(workDir);
+        PathUtils.copy(getCookbookDir(wo), workDir, config.getVerifyExcludePaths());
+
+        // Generate kitchen config.
+        String kitchenConfigPath = format("%s/%dk.yaml", workDir, wo.getDpmtRecordId());
+        logger.info(logKey + "Generating Kitchen Config : " + kitchenConfigPath);
+        String kitchenConfig = generateKitchenConfig(wo, sshKey, logKey);
+        Files.write(Paths.get(kitchenConfigPath), kitchenConfig.getBytes(), CREATE_NEW);
+
+        // Execute the kitchen verify
+        String woPath = isRemoteWO ? remoteWOPath : localWOPath;
+        String[] verifyArgs = config.getVerifyArgs().split("\\s");
+        String[] origCmd = {"kitchen", "verify"};
+        List<String> list = new ArrayList<String>(Arrays.asList(origCmd));
+        list.addAll(Arrays.asList(verifyArgs));
+        Object [] merge = list.toArray();
+        String[] cmd = Arrays.copyOf(merge,merge.length,String[].class);
+        ProcessResult result = new ProcessResult();
+        Map<String, String> envVars = new HashMap<>();
+        envVars.put("WORKORDER", woPath);
+        envVars.put("KITCHEN_YAML", kitchenConfigPath);
+        processRunner.executeProcess(cmd, logKey, result, envVars, workDir.toFile());
+        if (result.getResultCode() > 0) {
+          wo.setComments("FATAL: Spec verification failed!");
+          responseMap.put("task_result_code", "500");
+        }
+
+        // Clean up working dir.
+        if (!debugMode) {
+          PathUtils.delete(workDir);
+        }
+      } catch (Throwable t) {
+        logger.info(logKey + "Verification failed: " + t.getMessage());
+        logger.error("Verification failed", t);
+        responseMap.put("task_result_code", "500");
+      } finally {
+        logger.info(logKey + " Run Verification took: "
+            + MILLISECONDS.toSeconds(System.currentTimeMillis() - start) + " seconds.");
+      }
+    }
+
+    return responseMap;
+  }
+
+  /**
+   * Generate the kitchen yaml string for given local/remote work-order.
+   *
+   * @param wo work order.
+   * @param sshKey ssh key path for the work order.
+   * @param logKey log key
+   * @return kitchen yaml string for the work-order.
+   */
+  public String generateKitchenConfig(CmsWorkOrderSimple wo, String sshKey, String logKey) {
+    String inductorHome = config.getCircuitDir().replace("/packer", "");
+    ST st = new ST(verifyTemplate);
+    st.add("local", !isRemoteChefCall(wo));
+    st.add("circuit_root", getCircuitDir(wo));
+    st.add("inductor_home", inductorHome);
+    st.add("recipe_name", wo.getRfcCi().getRfcAction());
+    st.add("driver_host", getWorkOrderHost(wo, logKey));
+    st.add("platform_name", "centos-7.1");
+    st.add("user", ONEOPS_USER);
+    st.add("ssh_key", sshKey);
+    return st.render();
+  }
+
 
   @Override
   protected List<String> getRunList(CmsWorkOrderSimpleBase wo) {
