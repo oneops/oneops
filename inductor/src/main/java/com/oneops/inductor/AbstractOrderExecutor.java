@@ -182,6 +182,10 @@ public abstract class AbstractOrderExecutor {
       ((CmsWorkOrderSimple) (wo))
           .setDpmtRecordState(config.getStubResultCode() == 0 ? COMPLETE : FAILED);
       CmsCISimple resultCi = new CmsCISimple();
+      if (wo.getClassName().contains("Compute")) {
+        resultCi.addCiAttribute("private_ip", "1.0.0.0");
+        resultCi.addCiAttribute("metadata", "{\"owner\" : \"oneops@walmartlabs.com\"}");
+      }
       mergeRfcToResult(((CmsWorkOrderSimple) wo).getRfcCi(), resultCi);
       wo.setResultCi(resultCi);
     } else if (wo instanceof CmsActionOrderSimple) {
