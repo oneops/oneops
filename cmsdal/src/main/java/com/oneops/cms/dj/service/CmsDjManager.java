@@ -69,6 +69,7 @@ public interface CmsDjManager {
 	CmsDpmtApproval getDeploymentApproval(long approvalId);
 
 	List<CmsDeployment> findDeployment(String nsPath, String state, Boolean recursive, boolean latest);
+	List<CmsDeployment> findDeploymentsByTimePeriod(String nsPath, Boolean recursive, Date start, Date end);
 	long countDeployments(String nsPath, String state, Boolean recursive);
 	Map<String, Long> countDeploymentGroupByNsPath(String nsPath, String state);
 	List<CmsDeployment> findDeploymentByReleaseId(long releaseId, String state, boolean latest);

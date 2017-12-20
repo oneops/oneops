@@ -2,7 +2,9 @@
                   :menu           => (is_admin? ? [link_to(icon('plus', 'Add'), new_organization_team_path, :remote => true, :class => 'btn btn-mini')] : nil) do %>
   <%= list(@teams,
            :new_link => (is_admin? ? link_to('Add Team...', new_organization_team_path, :remote => true) : nil),
-           :toolbar  => {:sort_by => [%w(Name team_name), %w(Created created)], :filter_by => %w(team_name)}) do |builder, team| %>
+           :toolbar  => {:list_name => 'team_list',
+                         :sort_by => [%w(Name team_name), %w(Created created)],
+                         :filter_by => %w(team_name)}) do |builder, team| %>
     <% builder.itemid team.id %>
     <% builder.attributes raw(%(team_name="#{team.name}" created="#{team.created_at}")) %>
     <% builder.target link_to('', edit_organization_team_path(team), :remote => true) %>

@@ -4668,3 +4668,7 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 .dropdown-menu > li > a {
   color: inherit;
 }
+
+.extra-muted {
+  opacity: 0.3;
+}

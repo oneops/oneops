@@ -32,6 +32,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.google.gson.Gson;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,12 +66,12 @@ public class InductorTest {
   public void testProvider() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     WorkOrderExecutor executor = new WorkOrderExecutor(mock(Config.class), mock(Semaphore.class));
-    final String provider = executor.getProvider(wo);
+    String provider = executor.getProvider(wo);
     assertTrue(provider.equals("azure"));
   }
 
   @Test
-  public void testKitchenPath() {
+  public void testWOVerifyConfig() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
@@ -88,6 +89,38 @@ public class InductorTest {
     final String[] cmdLine = woExec.getRemoteWoRsyncCmd(wo, "sshkey", "");
     String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
     assertEquals(rsync, Arrays.toString(cmdLine));
+
+    // Assertions for windows computes.
+    assertFalse("WO should be managed via a non-windows compute.", woExec.isWinCompute(wo));
+    wo.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "M-WIN");
+    assertTrue("WO should be managed via a windows compute.", woExec.isWinCompute(wo));
+  }
+
+
+  @Test
+  public void testAOVerifyConfig() {
+    CmsActionOrderSimple ao = gson.fromJson(remoteAo, CmsActionOrderSimple.class);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setDataDir("/tmp/wos");
+
+    ActionOrderExecutor aoExec = new ActionOrderExecutor(cfg, mock(Semaphore.class));
+    assertEquals("/opt/oneops/inductor/circuit-oneops-1", aoExec.getCircuitDir(ao).toString());
+    assertEquals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat",
+        aoExec.getCookbookDir(ao).toString());
+    assertEquals(
+        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat/test/integration/status/serverspec/status_spec.rb",
+        aoExec.getActionSpecPath(ao).toString());
+
+    final String[] cmdLine = aoExec.getRemoteWoRsyncCmd(ao, "sshkey", "");
+    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/211465.json, oneops@inductor-test-host:/opt/oneops/workorder/tomcat.tomcat-9687230-1.json]";
+    assertEquals(rsync, Arrays.toString(cmdLine));
+
+    // Assertions for windows computes.
+    assertFalse("AO should be managed via a non-windows compute.", aoExec.isWinCompute(ao));
+    ao.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "L-WIN");
+    assertTrue("AO should be managed via a windows compute.", aoExec.isWinCompute(ao));
   }
 
   @Test
