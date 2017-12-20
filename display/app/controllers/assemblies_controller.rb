@@ -251,14 +251,15 @@ class AssembliesController < ApplicationController
     end
 
     aggregator = lambda do |h, u|
-      h[u.id] ||= {:user => u, :dto => Team::DTO_NONE, :teams => {}}
+      h[u.id] ||= {:user => u, :dto => Team::DTO_NONE, :manages_access =>  false, :teams => {}}
       h[u.id][:dto] |= Team.calculate_dto_permissions(u.design, u.transition, u.operations) if h[u.id][:dto] < Team::DTO_ALL
+      h[u.id][:manages_access] ||= u.manages_access
       h[u.id][:teams][u.team] = true
       h
     end
 
     org_id = org.id
-    select = 'users.*, teams.name as team, teams.design as design, teams.transition as transition, teams.operations as operations'
+    select = 'users.*, teams.name as team, teams.design as design, teams.transition as transition, teams.operations as operations, teams.manages_access as manages_access'
 
     where = {'teams.organization_id' => org_id, 'teams.org_scope' => true}
     users = User.joins(:teams).select(select).where(where).inject(users, &aggregator)
@@ -277,6 +278,7 @@ class AssembliesController < ApplicationController
        :name            => user.name,
        :created_at      => user.created_at,
        :last_sign_in_at => user.current_sign_in_at || user.last_sign_in_at,
+       :manages_access  => r[:manages_access],
        :design          => dto & Team::DTO_DESIGN > 0,
        :transition      => dto & Team::DTO_TRANSITION > 0,
        :operations      => dto & Team::DTO_OPERATIONS > 0,
@@ -288,7 +290,7 @@ class AssembliesController < ApplicationController
       format.js
 
       format.csv do
-        fields = [:id, :username, :email, :name, :created_at, :last_sign_in_at, :design, :transition, :operations, :teams]
+        fields = [:id, :username, :email, :name, :created_at, :last_sign_in_at, :manages_access, :design, :transition, :operations, :teams]
         data = @users.map do |u|
           fields.map do |f|
             value = u[f]

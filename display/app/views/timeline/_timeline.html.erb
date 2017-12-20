@@ -1,7 +1,7 @@
 <%= section_panel "Releases#{' & Deployments' if @environment}",
                   :width    => 'single',
                   :position => 'left',
-                  :menu     => @environment ? [link_to_function(icon('download'), "render_modal('deployment_list_download_modal')", :class  => 'btn btn-mini')] : nil do %>
+                  :menu     => @environment ? [link_to_function(icon('download'), "render_modal('deployment_list_download_modal')", :class => 'btn btn-mini')] : nil do %>
   <%= timeline_list([],
                     :paginate => {:url  => @environment ?
                                                page_assembly_transition_environment_timeline_path(@assembly, @environment) :
@@ -15,14 +15,15 @@
 <% if @environment %>
   <div id="deployment_list_download_modal" class="modal hide fade">
     <div class="modal-header">
-      <h3>Download list of deployments</h3>
+      <h3>Download list of deployments?</h3>
     </div>
     <div class="modal-body">
-      <p>You can export a list of past deployments for a given time period to a <i>csv</i> file.</p>
+      <p>You can export a list of past deployments for a given time period.</p>
+      <br>
       <%= form_tag assembly_transition_environment_deployments_path(@assembly, @environment),
                    :method => :get,
                    :target => '_blank',
-                   :class => 'form-horizontal' do %>
+                   :class  => 'form-horizontal' do %>
         <div class="control-group">
           <%= label_tag :deploymentListStartTime, 'From:', :class => 'control-label' %>
           <div class="controls">
@@ -41,14 +42,16 @@
 
     <div class="modal-footer">
       <%= link_to_function(raw(icon('times', 'cancel')), 'hide_modal()', :class => 'btn btn-danger') %>
-      <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
-        <%= icon('download', 'ok') %> <span class="caret"></span>
-      </a>
-      <ul class="dropdown-menu">
-        <li><%= link_to_function('to YAML', 'donwload_deployment_list("yaml")') %></li>
-        <li><%= link_to_function('to JSON', 'donwload_deployment_list("json")') %></li>
-        <li><%= link_to_function('to CSV', 'donwload_deployment_list("csv")') %></li>
-      </ul>
+      <div class="btn-group">
+        <a class="btn btn-success dropdown-toggle" data-toggle="dropdown" href="#">
+          <%= icon('download', 'ok') %> <span class="caret"></span>
+        </a>
+        <ul class="dropdown-menu">
+          <li><%= link_to_function(icon(site_icon(:yaml), content_tag(:small, 'to YAML'), 'faw-fw'), 'donwload_deployment_list("yaml")') %></li>
+          <li><%= link_to_function(icon(site_icon(:json), content_tag(:small, 'to JSON'), 'faw-fw'), 'donwload_deployment_list("json")') %></li>
+          <li><%= link_to_function(icon(site_icon(:csv), content_tag(:small, 'to CSV'), 'faw-fw'), 'donwload_deployment_list("csv")') %></li>
+        </ul>
+      </div>
     </div>
   </div>
   <script>

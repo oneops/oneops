@@ -29,7 +29,10 @@ module ApplicationHelper
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
                 :compute                => 'server',
-                :favorite               => 'bookmark'}
+                :favorite               => 'bookmark',
+                :json                   => 'file-code-o',
+                :yaml                   => 'file-text-o',
+                :csv                    => 'file-excel-o'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},

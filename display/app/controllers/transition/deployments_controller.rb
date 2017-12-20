@@ -64,9 +64,9 @@ class Transition::DeploymentsController < ApplicationController
       format.js {render :action => :index}
       format.json {render :json => @deployments}
       format.csv do
-        fields = [:deploymentId, :nsPath, :state, :created, :created_at, :created_by]
+        fields = [:deploymentId, :nsPath, :state, :created_at, :created_by, :comments]
         rows = @deployments.map do |d|
-          [d.deploymentId, d.nsPath[0..-5], d.deploymentState, d.created_timestamp, d.createdBy].join(',')
+          [d.deploymentId, d.nsPath[0..-5], d.deploymentState, d.created_timestamp, d.createdBy, d.comments].join(',')
         end
         render :text => fields.join(',') + "\n" + rows.join("\n")   #, :content_type => 'text/data_string'
       end
