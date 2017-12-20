@@ -124,27 +124,6 @@ public class InductorTest {
   }
 
   @Test
-  public void testAOVerifyConfig() {
-    CmsActionOrderSimple ao = gson.fromJson(remoteAo, CmsActionOrderSimple.class);
-    Config cfg = new Config();
-    cfg.setCircuitDir("/opt/oneops/inductor/packer");
-    cfg.setIpAttribute("public_ip");
-    cfg.setDataDir("/tmp/wos");
-
-    ActionOrderExecutor aoExec = new ActionOrderExecutor(cfg, mock(Semaphore.class));
-    assertEquals("/opt/oneops/inductor/circuit-oneops-1", aoExec.getCircuitDir(ao).toString());
-    assertEquals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat",
-        aoExec.getCookbookDir(ao).toString());
-    assertEquals(
-        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat/test/integration/status/serverspec/status_spec.rb",
-        aoExec.getActionSpecPath(ao).toString());
-
-    final String[] cmdLine = aoExec.getRemoteWoRsyncCmd(ao, "sshkey", "");
-    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/211465.json, oneops@inductor-test-host:/opt/oneops/workorder/tomcat.tomcat-9687230-1.json]";
-    assertEquals(rsync, Arrays.toString(cmdLine));
-  }
-
-  @Test
   public void testBomClass() {
     String bomPrefix = "bom\\.(.*\\.)*";
     String fqdnBomClass = bomPrefix + "Fqdn";
