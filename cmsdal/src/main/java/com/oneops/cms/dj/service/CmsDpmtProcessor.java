@@ -767,15 +767,31 @@ public class CmsDpmtProcessor {
     }
   }
 
-
   /**
-   * Count deployment.
+   * Returns a list of deployments for a given namespace and time period.
    *
-   * @param nsPath the ns path
-   * @param state the state
-   * @param recursive the recursive
-   * @return the long
+   * @param nsPath namespace
+   * @param recursive find deployments recursively for a given nsPath
+   * @param start start timestamp
+   * @param end end timestamp
+   * @return list of deployments
    */
+  public List<CmsDeployment> findDeploymentsByTimePeriod(String nsPath, Boolean recursive, Date start, Date end) {
+    String nsLike = null;
+    if (recursive != null && recursive) {
+      nsLike = CmsUtil.likefyNsPath(nsPath);
+    }
+    return dpmtMapper.findDeploymentsByTimePeriod(nsPath, nsLike, start, end);
+  }
+
+    /**
+     * Count deployment.
+     *
+     * @param nsPath the ns path
+     * @param state the state
+     * @param recursive the recursive
+     * @return the long
+     */
   public long countDeployment(String nsPath, String state, Boolean recursive) {
     if (recursive != null && recursive) {
       String nsLike = CmsUtil.likefyNsPath(nsPath);
