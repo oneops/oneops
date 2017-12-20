@@ -64,7 +64,7 @@ class Transistor < ActiveResource::Base
   def self.clone_assembly(assembly_id, ci)
     id = nil
     begin
-      id = JSON.parse(post("assemblies/#{assembly_id}/clone", {}, ci.to_json).body)['resultCiId']
+      id = JSON.parse(post("assemblies/#{assembly_id}/clone", {}, ci.attributes.to_json).body)['resultCiId']
     rescue Exception => e
       message = handle_exception e, "Failed to clone assembly '#{assembly_id}'"
       return nil, message

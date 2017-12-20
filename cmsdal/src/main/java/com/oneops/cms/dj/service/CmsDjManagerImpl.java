@@ -306,7 +306,10 @@ public class CmsDjManagerImpl implements CmsDjManager {
 		}
 	}
 
-	
+	public List<CmsDeployment> findDeploymentsByTimePeriod(String nsPath, Boolean recursive, Date start, Date end) {
+		return dpmtProcessor.findDeploymentsByTimePeriod(nsPath, recursive, start, end);
+	}
+
 	/* (non-Javadoc)
 	 * @see com.oneops.cms.dj.service.CmsDjManager#countDeployments(java.lang.String, java.lang.String, java.lang.Boolean)
 	 */
