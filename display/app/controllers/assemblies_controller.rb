@@ -289,7 +289,7 @@ class AssembliesController < ApplicationController
 
       format.csv do
         fields = [:id, :username, :email, :name, :created_at, :last_sign_in_at, :design, :transition, :operations, :teams]
-        data = users.map do |u|
+        data = @users.map do |u|
           fields.map do |f|
             value = u[f]
             value.is_a?(Array) ? value.join(' ') : value
@@ -298,7 +298,7 @@ class AssembliesController < ApplicationController
         render :text => fields.join(',') + "\n" + data.join("\n")   #, :content_type => 'text/data_string'
       end
 
-      format.yaml {render :text => users.to_yaml, :content_type => 'text/data_string'}
+      format.yaml {render :text => @users.to_yaml, :content_type => 'text/data_string'}
 
       format.any {render :json => users}
     end
