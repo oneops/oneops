@@ -4,15 +4,28 @@ class Transition::DeploymentsController < ApplicationController
 
   def index
     if @environment || @assembly
+      @source = params[:source].presence || (request.format.html? || request.format.xhr? ? 'es' : 'cms')
+
       ns_path = @environment ? "#{@environment.nsPath}/#{@environment.ciName}/bom" : assembly_ns_path(@assembly)
-      size    = (params[:size].presence || 1000).to_i
-      offset  = (params[:offset].presence || 0).to_i
-      sort    = params[:sort].presence || {'created' => 'desc'}
-      filter  = params[:filter]
-      search_params = {:nsPath => ns_path, :size => size, :from => offset, :sort => sort, :_silent => []}
-      search_params[:query] = filter if filter.present?
-      # @deployments = Cms::Deployment.all(:params => {:nsPath => ns_path})
-      @deployments = Cms::Deployment.search(search_params)
+
+      if @source == 'cms' || @source == 'simple'
+        search_params = {:nsPath => ns_path, :recursive => @environment.blank?}
+        %w(start end).each do |k|
+          date = params[k]
+          search_params[k] = Time.parse(date).to_i * 1000 if date.present?
+        end
+
+        @deployments = Cms::Deployment.all(:params => search_params)
+      else
+        size          = (params[:size].presence || 1000).to_i
+        offset        = (params[:offset].presence || 0).to_i
+        sort          = params[:sort].presence || {'created' => 'desc'}
+        filter        = params[:filter]
+        search_params = {:nsPath => ns_path, :size => size, :from => offset, :sort => sort, :_silent => []}
+        search_params[:query] = filter if filter.present?
+
+        @deployments = Cms::Deployment.search(search_params)
+      end
 
       set_pagination_response_headers(@deployments)
     else
@@ -50,6 +63,15 @@ class Transition::DeploymentsController < ApplicationController
       format.html {render 'transition/environments/_deployments'}
       format.js {render :action => :index}
       format.json {render :json => @deployments}
+      format.csv do
+        fields = [:deploymentId, :nsPath, :state, :created, :created_at, :created_by]
+        rows = @deployments.map do |d|
+          [d.deploymentId, d.nsPath[0..-5], d.deploymentState, d.created_timestamp, d.createdBy].join(',')
+        end
+        render :text => fields.join(',') + "\n" + rows.join("\n")   #, :content_type => 'text/data_string'
+      end
+
+      format.yaml {render :text => @deployments.as_json(:only => [:deploymentId, :releaseId, :nsPath, :deploymentState, :created, :createdBy, :updated, :comments, :description]).to_yaml, :content_type => 'text/data_string'}
     end
   end
 
