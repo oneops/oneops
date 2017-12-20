@@ -70,7 +70,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -939,36 +938,6 @@ public abstract class AbstractOrderExecutor {
   public abstract String getHost(CmsWorkOrderSimpleBase wo, String logKey);
 
   /**
-   * Checks if the remote wo/ao is managed via a <b>windows</b> compute.
-   * Currently we are relying on the managed via compute size attribute
-   * to determine the os type. This is used until we figure out a proper
-   * solution.
-   *
-   * @param o wo/ao.
-   * @return <code>true</code> if the wo/ao is managed via windows compute.
-   */
-  public boolean isWinCompute(CmsWorkOrderSimpleBase o) {
-    Map<String, String> compAttrs = Collections.emptyMap();
-    if (o instanceof CmsWorkOrderSimple) {
-      CmsWorkOrderSimple wo = (CmsWorkOrderSimple) o;
-      CmsRfcCISimple compute = wo.getPayLoadEntryAt(MANAGED_VIA, 0);
-      if (compute != null) {
-        compAttrs = compute.getCiAttributes();
-      }
-    } else if (o instanceof CmsActionOrderSimple) {
-      CmsActionOrderSimple ao = (CmsActionOrderSimple) o;
-      CmsCISimple compute = ao.getPayLoadEntryAt(MANAGED_VIA, 0);
-      if (compute != null) {
-        compAttrs = compute.getCiAttributes();
-      }
-    }
-
-    String computeSize = compAttrs.getOrDefault("size", "N/A").toUpperCase();
-    List<String> winSizes = Arrays.asList("S-WIN", "M-WIN", "L-WIN", "XL-WIN", "XL-WIN-LDO");
-    return winSizes.contains(computeSize);
-  }
-
-  /**
    * Returns inductor wo/ao order log key. Extra ' - ' for pattern matching -
    * daq InductorLogSink will parse this and insert into log store see
    * https://github.com/oneops/daq/wiki/schema for more info.
@@ -1086,11 +1055,6 @@ public abstract class AbstractOrderExecutor {
     if (config.isVerifyMode()) {
       String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
-
-      if (isWinCompute(wo)) {
-        logger.info(logKey + "Skipping verification for windows computes.");
-        return responseMap;
-      }
 
       if (config.isCloudStubbed(wo)) {
         logger.info(logKey + "Skipping verification for stubbed cloud.");
