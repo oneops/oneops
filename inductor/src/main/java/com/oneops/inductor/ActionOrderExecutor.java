@@ -34,7 +34,6 @@ import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.util.CmsUtil;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -54,7 +53,7 @@ import org.apache.log4j.Logger;
  */
 public class ActionOrderExecutor extends AbstractOrderExecutor {
 
-  private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
+  private static Logger logger = Logger.getLogger(ActionOrderExecutor.class);
   private Semaphore semaphore;
   private Config config;
 
@@ -106,14 +105,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     setTotalExecutionTime(ao, endTime - startTime);
     ao.putSearchTag(RESPONSE_ENQUE_TS, formatDate(new Date(), SEARCH_TS_PATTERN));
     String responseText = gson.toJson(ao);
-    // Mask secured fields before logging
-    CmsUtil.maskSecuredFields(ao, CmsUtil.ACTION_ORDER_TYPE);
-    String logResponseText = gson.toJson(ao);
-
-    // InductorLogSink will process this message
-    logger.info("{ \"resultCode\": " + responseCode + ", "
-        + " \"JMSCorrelationID:\": \"" + correlationId + "\", "
-        + "\"responseActionorder\": " + logResponseText + " }");
+    logger.info("{ ResultCode: " + responseCode + ", JMSCorrelationID: " + correlationId + " }");
 
     // Controller will process this message
     Map<String, String> message = new HashMap<>();

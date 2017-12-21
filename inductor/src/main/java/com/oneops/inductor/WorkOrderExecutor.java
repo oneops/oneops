@@ -75,12 +75,12 @@ import org.apache.log4j.Logger;
  */
 public class WorkOrderExecutor extends AbstractOrderExecutor {
 
+  private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
   private static final String BOM_CLASS_PREFIX = "bom\\.(.*\\.)*";
   private static final String FAIL_ON_DELETE_FAILURE_ATTR = "fail_on_delete_failure";
   private static final String BASE_INSTALL_TIME = "bInstallTime";
   private static final String REBOOT_RUN_LIST = "recipe[shared::reboot_vm]";
   private static final String STUB_RESP_COMPONENT_PREFIX = "stub.respTime.";
-  private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
 
   private Semaphore semaphore;
   private Config config;
