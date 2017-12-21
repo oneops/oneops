@@ -106,8 +106,6 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     setTotalExecutionTime(ao, endTime - startTime);
     ao.putSearchTag(RESPONSE_ENQUE_TS, formatDate(new Date(), SEARCH_TS_PATTERN));
     String responseText = gson.toJson(ao);
-    // Mask secured fields before logging
-    CmsUtil.maskSecuredFields(ao, CmsUtil.ACTION_ORDER_TYPE);
     String logResponseText = gson.toJson(ao);
 
     // InductorLogSink will process this message
