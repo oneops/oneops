@@ -44,10 +44,21 @@
 
   <div class="modal-footer">
     <%= link_to_function('cancel', 'hide_modal()', :class => 'btn btn-danger btn-large') %>
-    <% busy_options = {:url    => clone_assembly_path(@assembly),
-                       :method => :post,
-                       :with   => "'to_org='+$j('#assembly_clone_modal #to_org').val()+'&ciName='+$j('#assembly_clone_modal #ciName').val()+'&description='+$j('#assembly_clone_modal #description').val()#{"+'&export=#{params[:export]}'" unless clone}",
-                       :class  => 'btn btn-success btn-large'} %>
-    <%= link_busy('ok', busy_options) %>
+    <%= link_busy('ok',
+                  {:url        => clone_assembly_path(@assembly),
+                   :method     => :post,
+                   :with       => "'to_org='+$j('#assembly_clone_modal #to_org').val()+'&ciName='+$j('#assembly_clone_modal #ciName').val()+'&description='+$j('#assembly_clone_modal #description').val()#{"+'&export=#{params[:export]}'" unless clone}",
+                   :validation => 'validate_assembly_clone_form()',
+                   :class      => 'btn btn-success btn-large'}) %>
   </div>
 </div>
+<script>
+  window.validate_assembly_clone_form = function () {
+    var ciName = $j("#ciName")[0];
+    if (ciName.checkValidity && !ciName.checkValidity()) {
+      ciName.focus();
+      return false;
+    }
+    return true;
+  }
+</script>

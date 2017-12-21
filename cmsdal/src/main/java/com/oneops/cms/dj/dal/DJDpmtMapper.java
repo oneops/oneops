@@ -50,6 +50,7 @@ public interface DJDpmtMapper {
 	CmsDeployment getDeploymentSimple(long deploymentId);
 	List<CmsDeployment> findDeployment(@Param("nsPath") String nsPath,@Param("state") String state);
 	List<CmsDeployment> findDeploymentRecursive(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("state") String state);
+	List<CmsDeployment> findDeploymentsByTimePeriod(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("start") Date start, @Param("end") Date end);
 	List<CmsDeployment> findLatestDeployment(@Param("nsPath") String nsPath,@Param("state") String state);
 	List<CmsDeployment> findLatestDeploymentRecursive(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("state") String state);
 	List<CmsDeployment> findDeploymentByReleaseId(@Param("releaseId") long releaseId, @Param("state") String state);
