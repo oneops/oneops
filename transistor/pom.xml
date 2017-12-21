@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.11.01-17-SNAPSHOT</version>
+    <version>17.11.01-17</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>transistor</artifactId>
