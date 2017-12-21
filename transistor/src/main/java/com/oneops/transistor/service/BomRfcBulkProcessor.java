@@ -162,7 +162,7 @@ public class BomRfcBulkProcessor {
 			logger.info(bomNsPath + " >>> Done with SECURED_BY relations in " + (System.currentTimeMillis() - secByStartTime) + " ms.");
 
 			long entryPointStartTime = System.currentTimeMillis();
-			logger.info(bomNsPath + " >>> Processing ENTRYPOINT relations...");
+			logger.info(bomNsPath + " >>> Processing ENTRYPOINT relations....");
 			processEntryPointRel(platformCi, pc.getEntryPoints(), bomRfcMap, bomNsPath, nsId, userId, existingRels, releaseId);
 			logger.info(bomNsPath + " >>> Done with ENTRYPOINT relations in " + (System.currentTimeMillis() - entryPointStartTime) + " ms.");
 
