@@ -189,6 +189,10 @@ CREATE INDEX dj_deployment_rl_idx
  ON kloopzcm.dj_deployment
  ( release_id );
 
+CREATE INDEX dj_deployment_created_idx
+ ON kloopzcm.dj_deployment
+ ( created );
+
 CREATE TABLE kloopzcm.dj_dpmt_approvals (
                 approval_id BIGINT NOT NULL,
                 deployment_id BIGINT NOT NULL,
