@@ -216,7 +216,3 @@ ALTER TABLE kloopzcm.dj_deployment ADD COLUMN exec_model VARCHAR(100);
 ALTER TABLE kloopzcm.dj_deployment_rfc ADD COLUMN step SMALLINT;
 
 ALTER TABLE kloopzcm.cm_ops_procedures ADD COLUMN current_step SMALLINT;
-
-CREATE INDEX dj_deployment_created_idx
- ON kloopzcm.dj_deployment
- ( created );
