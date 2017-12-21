@@ -144,7 +144,7 @@ public class BomManagerImpl implements BomManager {
 						.sorted(String::compareTo)
 						.collect(Collectors.joining("\n", "", "\n"));
 				rfcs = rfcProcessor.getRfcRelationBy3(releaseId, true, null).stream()
-						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
+						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size() + " -- " + rfc.getComments())
 						.sorted(String::compareTo)
 						.collect(Collectors.joining("\n", rfcs, ""));
 				logger.debug(rfcs);
