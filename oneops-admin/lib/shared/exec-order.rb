@@ -84,13 +84,13 @@ def gen_gemfile_and_install (gems, dsl, ostype, log_level)
     if ostype =~ /windows/
       cmd = "c:/opscode/chef/embedded/bin/bundle #{method}"
     else
-      cmd = "bundle #{method}"
+      cmd = "bundle #{method} --full-index"
     end
     puts cmd  
     ec = system cmd
     
     if !ec || ec.nil?
-      puts "bundle #{method} failed with, #{$?}"
+      puts "bundle #{method} --full-index failed with, #{$?}"
       exit 1
     end
     duration = Time.now.to_i - start_time
