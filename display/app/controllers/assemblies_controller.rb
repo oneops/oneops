@@ -189,31 +189,39 @@ class AssembliesController < ApplicationController
   end
 
   def clone
+    ci     = nil
     errors = nil
-    ci = {:ciName => params[:ciName], :ciAttributes => {:description => params[:description]}}
     export = params[:export]
     if export.present?
       action = 'save'
-      ci[:nsPath]      = private_catalog_designs_ns_path
-      ci[:ciClassName] = 'account.Design'
+      ci = Cms::Ci.build(:ciName       => params[:ciName],
+                         :nsPath       => private_catalog_designs_ns_path,
+                         :ciClassName  => 'account.Design',
+                         :ciAttributes => {:description => params[:description]})
     else
       action   = 'clone'
       org_name = params[:to_org].presence || current_user.organization.name
       org      = current_user.organizations.where('organizations.name = ?', org_name).first
       team     = current_user.manages_access?(org.id)
       if org && team
-        ci[:nsPath]      = organization_ns_path(org.name)
-        ci[:ciClassName] = 'account.Assembly'
-        ci[:ciAttributes][:owner] = @assembly.ciAttributes.owner
+        ci = Cms::Ci.build(:ciName       => params[:ciName],
+                           :nsPath       => organization_ns_path(org.name),
+                           :ciClassName  => 'account.Assembly',
+                           :ciAttributes => {:description => params[:description],
+                                             :owner       => current_user.email.presence || @assembly.ciAttributes.owner})
       else
         errors = ["No permission to create assembly in organization '#{org_name}'."]
       end
     end
 
+    if ci
+      ci.valid?
+      errors = ci.errors.full_messages
+    end
     if errors.blank?
       ci_id, message = Transistor.clone_assembly(@assembly.ciId, ci)
       if ci_id
-        Cms::Ci.headers['X-Cms-Scope'] = ci[:nsPath] if action == 'clone'
+        Cms::Ci.headers['X-Cms-Scope'] = ci.nsPath if action == 'clone'
         @new_ci = Cms::Ci.find(ci_id)
         if export.blank? && !is_admin?(org)
           current_user.update_attribute(:organization_id, org.id)
@@ -243,14 +251,15 @@ class AssembliesController < ApplicationController
     end
 
     aggregator = lambda do |h, u|
-      h[u.id] ||= {:user => u, :dto => Team::DTO_NONE, :teams => {}}
+      h[u.id] ||= {:user => u, :dto => Team::DTO_NONE, :manages_access =>  false, :teams => {}}
       h[u.id][:dto] |= Team.calculate_dto_permissions(u.design, u.transition, u.operations) if h[u.id][:dto] < Team::DTO_ALL
+      h[u.id][:manages_access] ||= u.manages_access
       h[u.id][:teams][u.team] = true
       h
     end
 
     org_id = org.id
-    select = 'users.*, teams.name as team, teams.design as design, teams.transition as transition, teams.operations as operations'
+    select = 'users.*, teams.name as team, teams.design as design, teams.transition as transition, teams.operations as operations, teams.manages_access as manages_access'
 
     where = {'teams.organization_id' => org_id, 'teams.org_scope' => true}
     users = User.joins(:teams).select(select).where(where).inject(users, &aggregator)
@@ -269,6 +278,7 @@ class AssembliesController < ApplicationController
        :name            => user.name,
        :created_at      => user.created_at,
        :last_sign_in_at => user.current_sign_in_at || user.last_sign_in_at,
+       :manages_access  => r[:manages_access],
        :design          => dto & Team::DTO_DESIGN > 0,
        :transition      => dto & Team::DTO_TRANSITION > 0,
        :operations      => dto & Team::DTO_OPERATIONS > 0,
@@ -280,8 +290,8 @@ class AssembliesController < ApplicationController
       format.js
 
       format.csv do
-        fields = [:id, :username, :email, :name, :created_at, :last_sign_in_at, :design, :transition, :operations, :teams]
-        data = users.map do |u|
+        fields = [:id, :username, :email, :name, :created_at, :last_sign_in_at, :manages_access, :design, :transition, :operations, :teams]
+        data = @users.map do |u|
           fields.map do |f|
             value = u[f]
             value.is_a?(Array) ? value.join(' ') : value
@@ -290,7 +300,7 @@ class AssembliesController < ApplicationController
         render :text => fields.join(',') + "\n" + data.join("\n")   #, :content_type => 'text/data_string'
       end
 
-      format.yaml {render :text => users.to_yaml, :content_type => 'text/data_string'}
+      format.yaml {render :text => @users.to_yaml, :content_type => 'text/data_string'}
 
       format.any {render :json => users}
     end

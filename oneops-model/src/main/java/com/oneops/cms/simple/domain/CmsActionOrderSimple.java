@@ -38,7 +38,7 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
   public CmsCISimple box;
   public Map<String, List<CmsCISimple>> payLoad;
   public Map<String, Map<String, CmsCISimple>> services;
-  public Map<String, String> searchTags = new HashMap<String, String>();
+  public Map<String, String> searchTags = new HashMap<>();
 
   /**
    * Gets the cloud.

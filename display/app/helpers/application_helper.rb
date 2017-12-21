@@ -29,7 +29,10 @@ module ApplicationHelper
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
                 :compute                => 'server',
-                :favorite               => 'bookmark'}
+                :favorite               => 'bookmark',
+                :json                   => 'file-code-o',
+                :yaml                   => 'file-text-o',
+                :csv                    => 'file-excel-o'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -561,7 +564,8 @@ module ApplicationHelper
     call = %($j.ajax("#{call_options[:url]}", {type: "#{(call_options[:method].presence || :get).to_s.upcase}", data: #{call_options[:with] || "''"} + "&authenticity_token=" + encodeURIComponent($j("meta[name=csrf-token]").attr("content"))}))
 
     message = options[:message].presence || options[:busy]
-    link_to_function(link_text, %(show_busy(#{"'#{escape_javascript(message)}'" if message.present?}); #{call}), options)
+    validation = options.delete(:validation) || 'true'
+    link_to_function(link_text, %(#{"if (!(#{validation})) return;" if validation.present?} show_busy(#{"'#{escape_javascript(message)}'" if message.present?}); #{call}), options)
   end
 
   def truncate(text, length = 30, truncate_string = '...')

@@ -163,7 +163,7 @@ public class BomRfcBulkProcessor {
 
 			long entryPointStartTime = System.currentTimeMillis();
 			logger.info(bomNsPath + " >>> Processing ENTRYPOINT relations...");
-			processEntryPointRel(platformCi.getCiId(), pc.getEntryPoints(), bomRfcMap, bomNsPath, nsId, userId, existingRels, releaseId);
+			processEntryPointRel(platformCi, pc.getEntryPoints(), bomRfcMap, bomNsPath, nsId, userId, existingRels, releaseId);
 			logger.info(bomNsPath + " >>> Done with ENTRYPOINT relations in " + (System.currentTimeMillis() - entryPointStartTime) + " ms.");
 
 			if (!usePercent || !isPartial) {
@@ -757,7 +757,11 @@ public class BomRfcBulkProcessor {
 		rfc.setUpdatedBy(userId);
 
 		for (CmsCIAttribute mfstAttr : mfstAttrs.values()) {
-			rfc.addOrUpdateAttribute(mfstAttr.getAttributeName(), mfstAttr.getDfValue(), mfstAttr.getComments());
+			CmsRfcAttribute rfcAttribute = rfc.getAttribute(mfstAttr.getAttributeName());
+			if (rfcAttribute != null) {
+				rfcAttribute.setNewValue(mfstAttr.getDfValue());
+				rfcAttribute.setComments(mfstAttr.getComments());
+			}
 		}
 
 		if (existingRfc != null) {
@@ -798,7 +802,7 @@ public class BomRfcBulkProcessor {
 		Set<String> equalAttrs = new HashSet<>(rfcCi.getAttributes().size());
 		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
 			CmsCIAttribute existingAttr = baseCi.getAttribute(attr.getAttributeName());
-			if (Objects.equals(attr.getNewValue(), existingAttr.getDjValue())) {
+			if (Objects.equals(attr.getNewValue(), existingAttr == null ? null : existingAttr.getDjValue())) {
 				equalAttrs.add(attr.getAttributeName());
 			} else {
 				needUpdate = true;
@@ -890,12 +894,13 @@ public class BomRfcBulkProcessor {
 		return maxExecOrder;
 	}
 
-	private void processEntryPointRel(long platformCiId, List<CmsCIRelation> entryPoints, Map<Long, List<BomRfc>> bomsMap, String nsPath, long nsId, String userId, ExistingRelations existingRels, long releaseId) {
+	private void processEntryPointRel(CmsCI platform, List<CmsCIRelation> entryPoints, Map<Long, List<BomRfc>> bomsMap, String nsPath, long nsId, String userId, ExistingRelations existingRels, long releaseId) {
 		for (CmsCIRelation epRel : entryPoints) {
 			if (bomsMap.containsKey(epRel.getToCiId())) {
 				for (BomRfc bom : bomsMap.get(epRel.getToCiId())) {
 					if (bom.rfc != null) {
-						CmsRfcRelation entryPoint = bootstrapRfcRelation(platformCiId, bom.rfc.getCiId(), BASE_ENTRYPOINT, nsPath, nsId, userId, existingRels);
+						String comments = CmsUtil.generateRelComments(platform.getCiName(), platform.getCiClassName(), bom.rfc.getCiName(), bom.rfc.getCiClassName());
+						CmsRfcRelation entryPoint = bootstrapRfcRelation(platform.getCiId(), bom.rfc.getCiId(), BASE_ENTRYPOINT, nsPath, nsId, userId, comments, existingRels);
 						if (bom.rfc.getRfcId() > 0) {
 							entryPoint.setToRfcId(bom.rfc.getRfcId());
 						}
