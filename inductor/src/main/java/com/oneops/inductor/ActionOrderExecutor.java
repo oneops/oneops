@@ -105,9 +105,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     setTotalExecutionTime(ao, endTime - startTime);
     ao.putSearchTag(RESPONSE_ENQUE_TS, formatDate(new Date(), SEARCH_TS_PATTERN));
     String responseText = gson.toJson(ao);
-    logger.info(String
-        .format("{ \"resultCode\": %s,  \"JMSCorrelationID:\": \"%s\" }", responseCode,
-            correlationId));
+    logger.info("{ ResultCode: " + responseCode + ", JMSCorrelationID: " + correlationId + " }");
 
     // Controller will process this message
     Map<String, String> message = new HashMap<>();
