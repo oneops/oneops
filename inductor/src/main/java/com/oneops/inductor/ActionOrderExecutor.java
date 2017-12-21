@@ -54,7 +54,7 @@ import org.apache.log4j.Logger;
  */
 public class ActionOrderExecutor extends AbstractOrderExecutor {
 
-  private static Logger logger = Logger.getLogger(WorkOrderExecutor.class);
+  private static Logger logger = Logger.getLogger(ActionOrderExecutor.class);
   private Semaphore semaphore;
   private Config config;
 
@@ -106,12 +106,9 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     setTotalExecutionTime(ao, endTime - startTime);
     ao.putSearchTag(RESPONSE_ENQUE_TS, formatDate(new Date(), SEARCH_TS_PATTERN));
     String responseText = gson.toJson(ao);
-    String logResponseText = gson.toJson(ao);
-
-    // InductorLogSink will process this message
-    logger.info("{ \"resultCode\": " + responseCode + ", "
-        + " \"JMSCorrelationID:\": \"" + correlationId + "\", "
-        + "\"responseActionorder\": " + logResponseText + " }");
+    logger.info(String
+        .format("{ \"resultCode\": %s,  \"JMSCorrelationID:\": \"%s\" }", responseCode,
+            correlationId));
 
     // Controller will process this message
     Map<String, String> message = new HashMap<>();
