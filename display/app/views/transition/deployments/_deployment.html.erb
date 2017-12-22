@@ -310,7 +310,7 @@
               </td>
             </tr>
           <% end %>
-          <% if @cost %>
+          <% if @cost.is_a?(Hash) %>
             <tr class="cost-change">
               <td colspan="2">
                 <%= icon(site_icon(:cost), nil, 'fa-fw') %>
