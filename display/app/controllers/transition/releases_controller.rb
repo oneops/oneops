@@ -51,7 +51,7 @@ class Transition::ReleasesController < Base::ReleasesController
     if params[:latest] == 'true'
       @release = Cms::Release.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
     else
-    @release = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
+      @release = Cms::Release.first(:params => {:nsPath => "#{environment_ns_path(@environment)}/bom", :releaseState => 'open'})
     end
 
     if @release

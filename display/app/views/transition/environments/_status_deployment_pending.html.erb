@@ -14,18 +14,10 @@
         <% end %>
       </dd>
     <% end %>
-    <% if @cost %>
+    <% if @cost.is_a?(Hash) %>
       <dt><%= icon(site_icon(:cost), nil, 'fa-fw') %></dt>
       <dd>
-        <% old_cost = @cost['actual']
-           new_cost = @cost['estimated'] %>
-        <% if old_cost.blank? %>
-          This environment will cost <%= format_cost_rate(new_cost) %>
-        <% elsif new_cost == old_cost %>
-          Cost of this environment will <b>stay</b> at <%= format_cost_rate(new_cost) %>
-        <% else %>
-          Cost of this environment will <b><%= new_cost > old_cost ? 'increase' : 'decrease' %></b> by <%= format_cost_rate(new_cost - old_cost) %> to <%= format_cost_rate(new_cost) %>
-        <% end %>
+        <%= render 'transition/deployments/cost_change_info' %>
       </dd>
     <% end %>
   </dl>

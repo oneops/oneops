@@ -64,7 +64,7 @@ class Transistor < ActiveResource::Base
   def self.clone_assembly(assembly_id, ci)
     id = nil
     begin
-      id = JSON.parse(post("assemblies/#{assembly_id}/clone", {}, ci.to_json).body)['resultCiId']
+      id = JSON.parse(post("assemblies/#{assembly_id}/clone", {}, ci.attributes.to_json).body)['resultCiId']
     rescue Exception => e
       message = handle_exception e, "Failed to clone assembly '#{assembly_id}'"
       return nil, message
@@ -281,6 +281,14 @@ class Transistor < ActiveResource::Base
       return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/#{'estimated_' if pending}cost#{'_data' if details}"), nil
     rescue Exception => e
       return nil, handle_exception(e, "Failed to get cost for environment #{env.ciId} :")
+    end
+  end
+
+  def self.deployment_plan_preview(env, *flags)
+    begin
+      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/deployments/preview?#{flags.map {|f| "#{f}=true"}.join('&')}"), nil
+    rescue Exception => e
+      return nil, handle_exception(e, "Failed to get deployment plan preview for environment #{env.ciId} :")
     end
   end
 

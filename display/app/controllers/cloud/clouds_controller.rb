@@ -6,7 +6,6 @@ class Cloud::CloudsController < ApplicationController
   before_filter :authorize_create, :only => [:new, :create]
   before_filter :authorize_update, :only => [:update, :destroy, :update_teams]
   before_filter :authorize_support, :only => [:operations, :instances, :procedures, :reports]
-  before_filter :find_proxy, :only => [:destroy, :teams]
 
   def index
     @clouds = Cms::Ci.all(:params => {:nsPath => clouds_ns_path, :ciClassName => 'account.Cloud'}).sort_by(&:ciName)
@@ -17,7 +16,7 @@ class Cloud::CloudsController < ApplicationController
   end
 
   def show
-    render :json => @cloud, :status => @cloud ? :ok : :not_found
+    edit
   end
 
   def new
@@ -51,8 +50,9 @@ class Cloud::CloudsController < ApplicationController
   end
 
   def edit
+    load_teams
     respond_to do |format|
-      format.html
+      format.html {render :action => :edit}
       format.json { render_json_ci_response(true, @cloud) }
     end
   end
@@ -79,8 +79,12 @@ class Cloud::CloudsController < ApplicationController
 
     if cis.blank?
       ok = execute(@cloud, :destroy)
-      flash[:error] = "Cannot delete cloud '#{@cloud.ciName}': #{@cloud.errors.full_messages.join(';')}." unless ok
-      @proxy.destroy if ok && @proxy
+      if ok
+        @proxy = locate_proxy(params[:id], clouds_ns_path)
+        @proxy.destroy if @proxy
+      else
+        flash[:error] = "Cannot delete cloud '#{@cloud.ciName}': #{@cloud.errors.full_messages.join(';')}."
+      end
     else
       ok = false
       flash[:error] = "Cannot delete cloud '#{@cloud.ciName}': #{cis.size} existing #{'environment/platform'.pluralize(cis.size)} using this cloud."
@@ -145,23 +149,6 @@ class Cloud::CloudsController < ApplicationController
     end
   end
 
-  def teams
-    @teams = @proxy ? @proxy.teams : []
-    respond_to do |format|
-      format.js   { render :action => :teams }
-      format.json { render :json => @teams }
-    end
-  end
-
-  def update_teams
-    @teams = process_update_teams(@cloud)
-
-    respond_to do |format|
-      format.js   { render :action => :teams }
-      format.json { render :json => @teams }
-    end
-  end
-
   def locations
     render :json => load_available_clouds.to_map_with_value {|c| [c.ciName, "#{c.nsPath}/#{c.ciName}"]}
   end
@@ -207,6 +194,10 @@ class Cloud::CloudsController < ApplicationController
 
   protected
 
+  def ci_resource
+    @cloud
+  end
+
   def search_ns_path
     cloud_ns_path(@cloud)
   end
@@ -228,10 +219,6 @@ class Cloud::CloudsController < ApplicationController
 
   def authorize_support
     unauthorized unless @cloud && has_cloud_support?(@cloud.ciId)
-  end
-
-  def find_proxy
-    @proxy = locate_proxy(params[:id], clouds_ns_path)
   end
 
   def load_available_clouds

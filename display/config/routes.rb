@@ -60,6 +60,8 @@ Display::Application.routes.draw do
       get  'cost'
       get 'deployment_to_all_primary_check'
       put 'deployment_to_all_primary_check'
+      get 'obsolete_users'
+      delete 'obsolete_users'
 
       get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
@@ -296,6 +298,7 @@ Display::Application.routes.draw do
         get  'new_clone'
         post 'clone'
         get  'teams'
+        get  'users'
         put  'update_teams'
         get  'notifications'
         get  'reports'
@@ -478,6 +481,7 @@ Display::Application.routes.draw do
             post 'status',        :on => :member
             get 'compile_status', :on => :collection
             get 'log_data',       :on => :member
+            get 'preview',        :on => :collection
 
             resources :approvals, :only => [:index] do
               put 'settle', :on => :collection

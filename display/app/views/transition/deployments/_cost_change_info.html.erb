@@ -1,0 +1,10 @@
+<% old_cost = @cost['actual']['total']
+   new_cost = @cost['estimated']['total'] %>
+Environment cost will
+<% if old_cost.blank? || old_cost == 0 %>
+  be <%= format_cost_rate(new_cost) %>
+<% elsif new_cost == old_cost %>
+  <b>stay</b> at <%= format_cost_rate(new_cost) %>
+<% else %>
+  <b><%= new_cost > old_cost ? 'increase' : 'decrease' %></b> by <%= format_cost_rate(new_cost - old_cost) %> to <b><%= format_cost_rate(new_cost) %></b>
+<% end %>

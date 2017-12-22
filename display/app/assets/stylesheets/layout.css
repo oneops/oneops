@@ -3613,18 +3613,9 @@ div.modal-body .comment {
   width:  calc(100% - 20px);
 }
 
-/*div.modal-footer {
-  padding: 20px;
-  text-align: center;
+div.modal-footer .dropdown-menu {
+  text-align: left;
 }
-
-div.modal-footer .btn {
-  margin:    0 10px 0 10px;
-}
-
-div.modal-footer table {
-  margin:         0 auto;
-}*/
 
 div.edit-form-controls {
   text-align:   right;
@@ -4667,4 +4658,8 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 .dropdown-menu > li > a {
   color: inherit;
+}
+
+.extra-muted {
+  opacity: 0.3;
 }

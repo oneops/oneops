@@ -29,7 +29,10 @@ module ApplicationHelper
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
                 :compute                => 'server',
-                :favorite               => 'bookmark'}
+                :favorite               => 'bookmark',
+                :json                   => 'file-code-o',
+                :yaml                   => 'file-text-o',
+                :csv                    => 'file-excel-o'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -561,7 +564,8 @@ module ApplicationHelper
     call = %($j.ajax("#{call_options[:url]}", {type: "#{(call_options[:method].presence || :get).to_s.upcase}", data: #{call_options[:with] || "''"} + "&authenticity_token=" + encodeURIComponent($j("meta[name=csrf-token]").attr("content"))}))
 
     message = options[:message].presence || options[:busy]
-    link_to_function(link_text, %(show_busy(#{"'#{escape_javascript(message)}'" if message.present?}); #{call}), options)
+    validation = options.delete(:validation) || 'true'
+    link_to_function(link_text, %(#{"if (!(#{validation})) return;" if validation.present?} show_busy(#{"'#{escape_javascript(message)}'" if message.present?}); #{call}), options)
   end
 
   def truncate(text, length = 30, truncate_string = '...')
@@ -1232,14 +1236,13 @@ module ApplicationHelper
     return GENERAL_SITE_LINKS
   end
 
-  def team_list_permission_marking(team)
+  def team_list_permission_marking(team, perms = %w(cloud_services cloud_compliance cloud_support design transition operations))
+    admins = team.name == Team::ADMINS
     result = %w(manages_access org_scope).inject('') do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg text-error') if team.name == Team::ADMINS || team.send("#{perm}?")
-      a
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw text-error #{'extra-muted' unless admins || team.send("#{perm}?")}")
     end
-    result = %w(cloud_services cloud_compliance cloud_support design transition operations).inject(result) do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg') if team.send("#{perm}?")
-      a
+    result = perms.inject(result) do |a, perm|
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw #{'extra-muted' unless admins || team.send("#{perm}?")}")
     end
     raw(result)
   end
@@ -1286,7 +1289,7 @@ module ApplicationHelper
   end
 
   def format_cost_rate(rate, opts = {})
-    raw %(<span class="cost-rate">#{rate.to_human(:precision => opts[:precision] || 2)} <span class=""><sub>USD/hour</sub></span></span>)
+    raw %(<span class="cost-rate">#{rate.to_human(:precision => (opts[:precision] || 2))} <span class=""><sub>#{CostSummary::UNIT}</sub></span></span>)
   end
 
   def ci_doc_link(ci, label, opts = {})

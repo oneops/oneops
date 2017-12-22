@@ -36,8 +36,8 @@ shared:
   port: <%= ENV['LDAP_PORT'] || '3269' %>
   attribute: <%= ENV['LDAP_ATTRIBUTE'] || 'sAMAccountName' %>
   base: <%= ENV['LDAP_BASE'] || 'dc=wal-mart,dc=com' %>
-  admin_user: <%= ENV['LDAP_ADMIN_USER'] || 'cn=admin,dc=test,dc=com' %>
-  admin_password: <%= ENV['LDAP_ADMIN_PASSWORD'] || 'admin_password' %>
+  admin_user: <%= ENV['LDAP_ADMIN_USER'] || Settings.admin_user.presence || 'cn=admin,dc=test,dc=com' %>
+  admin_password: <%= ENV['LDAP_ADMIN_PASSWORD'] || Settings.admin_password.presence || 'admin_password' %>
   ssl: simple_tls
   # <<: *AUTHORIZATIONS
 

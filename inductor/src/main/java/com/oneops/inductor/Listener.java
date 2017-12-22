@@ -65,24 +65,16 @@ import org.springframework.stereotype.Component;
 public class Listener implements MessageListener, ApplicationContextAware {
 
   private static final Logger logger = Logger.getLogger(Listener.class);
-
   final private Gson gson = new Gson();
 
   private ApplicationContext applicationContext = null;
-
   // Number active work orders being processed
   private AtomicInteger activeThreads = new AtomicInteger(0);
-
   private Semaphore semaphore = null;
-
   private MessagePublisher messagePublisher = null;
-
   private Config config = null;
-
   private File dataDir = null;
-
   private WorkOrderExecutor workOrderExecutor;
-
   private ActionOrderExecutor actionOrderExecutor;
   private MetricRegistry registry;
 
@@ -180,26 +172,30 @@ public class Listener implements MessageListener, ApplicationContextAware {
         String type = msg.getStringProperty("type");
         CmsWorkOrderSimpleBase wo;
 
-        // WorkOrder
-        if (type.equals(WORK_ORDER_TYPE)) {
-          long t = System.currentTimeMillis();
-          wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
-          wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
-          preProcess(wo);
-          wo.putSearchTag("rfcAction", wo.getAction());
-          responseMsgMap = workOrderExecutor.process(wo, correlationID);
-          responseMsgMap = workOrderExecutor.runVerification(wo, responseMsgMap);
+        switch (type) {
+          // WorkOrder
+          case WORK_ORDER_TYPE: {
+            long t = System.currentTimeMillis();
+            wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
+            wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
+            preProcess(wo);
+            wo.putSearchTag("rfcAction", wo.getAction());
+            responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
+            break;
+          }
           // ActionOrder
-        } else if (type.equals(ACTION_ORDER_TYPE)) {
-          long t = System.currentTimeMillis();
-          wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);
-          wo.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
-          preProcess(wo);
-          responseMsgMap = actionOrderExecutor.process(wo, correlationID);
-        } else {
-          logger.error(new IllegalArgumentException("Unknown msg type - " + type));
-          msg.acknowledge();
-          return;
+          case ACTION_ORDER_TYPE: {
+            long t = System.currentTimeMillis();
+            wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);
+            wo.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
+            preProcess(wo);
+            responseMsgMap = actionOrderExecutor.processAndVerify(wo, correlationID);
+            break;
+          }
+          default:
+            logger.error(new IllegalArgumentException("Unknown msg type - " + type));
+            msg.acknowledge();
+            return;
         }
 
         // Controller will process this message
@@ -207,7 +203,6 @@ public class Listener implements MessageListener, ApplicationContextAware {
         responseMsgMap.put("type", type);
 
         long startTime = System.currentTimeMillis();
-
         if (!correlationID.equals("test")) {
           messagePublisher.publishMessage(responseMsgMap);
         }
@@ -215,16 +210,13 @@ public class Listener implements MessageListener, ApplicationContextAware {
         long duration = endTime - startTime;
 
         // ack message
-        logger.debug("send message took:" + duration + "ms");
+        logger.debug("Send message took:" + duration + "ms");
         msg.acknowledge();
-
       }
     } catch (JMSException | SecurityException | IOException | IllegalArgumentException e) {
       logger.error("Error occurred in processing message", e);
     } finally {
-      /*
-       * Decrement the total number of active threads consumed by 1
-       */
+      // Decrement the total number of active threads consumed by 1
       activeThreads.getAndDecrement();
       clearStateFile();
     }
@@ -312,14 +304,8 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   public InductorStatus getStatus() {
     InductorStatus stat = new InductorStatus();
-
-    // TODO: find way to get backlog, return stats
-    // int backLog = listenerContainer..getQueueBacklog();
     stat.setQueueBacklog(0);
     stat.setQueueName(config.getInQueue());
-    // stat.setRunning(isRunning);
-    // Date dateLastRun = new Date(lastRun);
-    // stat.setLastRun(dateLastRun);
     return stat;
   }
 

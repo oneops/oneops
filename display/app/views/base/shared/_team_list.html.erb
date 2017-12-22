@@ -1,0 +1,50 @@
+<% add_link = manages_access && teams_to_add.present? && link_to_function(icon('plus', 'Add...'), '$j("#teams_modal").modal("show")') %>
+<%= list(@teams,
+         :new_link => add_link,
+         :menu     => defined?(list_menu) && list_menu,
+         :toolbar  => {:sort_by       => [%w(Name name), %w(Created created)],
+                       :filter_by     => %w(name org_scope permissions),
+                       :quick_filters => [{:label => 'All', :value => '', :selected => true},
+                                          {:label => 'Added', :value => 'org_scope=false'}]}) do |builder, team| %>
+  <% builder.itemid team.id %>
+  <% builder.attributes raw(%(name="#{team.name}" created="#{team.created_at}" org_scope="#{team.org_scope?}" permissions="#{permissions.select {|p| team.send("#{p}?")}.join(',')}")) %>
+  <% builder.target link_to('', edit_organization_path(:anchor => "teams/team_list/#{team.id}")) if is_admin? %>
+  <% builder.status team_list_permission_marking(team, permissions) %>
+  <% builder.top team.name %>
+  <% if manages_access && !team.org_scope? %>
+    <% builder.menu do %>
+      <%= link_to(icon('trash', 'Remove'), url_for(:action => :update_teams, 'remove' => [team.id]), :method => :put, :remote => true) %>
+    <% end %>
+  <% end %>
+<% end %>
+<% if add_link %>
+  <div id="teams_modal" class="modal hide">
+    <div class="modal-header">
+      <button class="close" data-dismiss="modal">&times;</button>
+      <h3>Teams</h3>
+    </div>
+    <%= form_tag(url_for(:action => :update_teams), :method => :put, :remote => true, :class => 'form-inline') do %>
+      <div class="modal-body">
+        <div class="teams">
+          <% teams_to_add.each do |team| %>
+            <label>
+              <a class="btn">
+                <%= check_box_tag('add[]', team.id, false) %>
+                <%= team.name %>
+              </a>
+            </label>
+          <% end %>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
+        <%= submit_tag 'Save', :class => 'btn btn-success btn-large' %>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+<script>
+  $j('.teams :checkbox').on('change', function () {
+    $j('input[type="submit"]').prop('disabled', !$j('.teams :checkbox:checked').length);
+  }).change();
+</script>

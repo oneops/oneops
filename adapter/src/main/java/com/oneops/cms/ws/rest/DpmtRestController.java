@@ -273,6 +273,8 @@ public class DpmtRestController extends AbstractRestController {
 			@RequestParam(value="deploymentState", required = false) String state,
 			@RequestParam(value="latest", required = false) Boolean latest,
 			@RequestParam(value="recursive", required = false) Boolean recursive,
+			@RequestParam(value="start", required = false) Long start,
+			@RequestParam(value="end", required = false) Long end,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		
 		if (latest == null) latest = false;
@@ -280,7 +282,12 @@ public class DpmtRestController extends AbstractRestController {
 		List<CmsDeployment> dpmtList = null;
 		
 		if (nsPath != null) {
-			dpmtList =  djManager.findDeployment(nsPath, state, recursive, latest);
+			if (start != null || end != null) {
+				dpmtList = djManager.findDeploymentsByTimePeriod(nsPath, recursive, start == null ? null : new Date(start), end == null ? null : new Date(end));
+			}
+			else {
+				dpmtList = djManager.findDeployment(nsPath, state, recursive, latest);
+			}
 		} else if (releaseId != null) {
 			dpmtList =  djManager.findDeploymentByReleaseId(releaseId, state, latest);
 		}
