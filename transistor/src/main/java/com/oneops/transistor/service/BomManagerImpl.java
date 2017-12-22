@@ -368,7 +368,7 @@ public class BomManagerImpl implements BomManager {
 
 			Integer priority = Integer.valueOf(binding.getAttribute("priority").getDjValue());
 			Integer order = 1;
-			if (binding.getAttributes().containsKey("dpmt_order")) {
+			if (binding.getAttributes().containsKey("dpmt_order") && !binding.getAttribute("dpmt_order").getDjValue().isEmpty()) {
 				order = Integer.valueOf(binding.getAttribute("dpmt_order").getDjValue());
 			}
 			if (!result.containsKey(priority)) {
