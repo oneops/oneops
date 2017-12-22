@@ -358,7 +358,7 @@ public class BomManagerImpl implements BomManager {
 		return platsToProcess.keySet().stream().max(Comparator.comparingInt(i -> i)).orElse(0);
 	}
 
-	private SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> getOrderedClouds(List<CmsCIRelation> cloudRels, boolean reverse) {
+	SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> getOrderedClouds(List<CmsCIRelation> cloudRels, boolean reverse) {
 
 		SortedMap<Integer, SortedMap<Integer, List<CmsCIRelation>>> result = reverse ?
 				new TreeMap<>(Collections.reverseOrder())
