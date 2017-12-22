@@ -31,7 +31,6 @@ import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
 import com.oneops.cms.dj.service.CmsRfcProcessor;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.ExceptionConsolidator;
-import com.oneops.cms.util.CmsDJValidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
@@ -578,12 +577,15 @@ public class BomRfcBulkProcessor {
 
 		//hack for lb/fqdn update on replaced computes
 		for (CmsRfcCI rfc : replacedComputes) {
-			depOnToMap.get(rfc.getCiId()).stream()
-					  .filter(r -> {
-						  String fromClassName = r.getFromCi().getCiClassName();
-						  return fromClassName.equals("bom.Lb") || fromClassName.equals("bom.Fqdn");
-					  })
-					  .forEach(r -> createDummyUpdateRfc(existingCiMap.get(r.getFromCiId()), releaseId, rfc.getExecOrder() + 1, rfc.getCreatedBy()));
+			List<CmsCIRelation> depOns = depOnToMap.get(rfc.getCiId());
+			if (depOns != null) {
+				depOns.stream()
+                          .filter(r -> {
+                              String fromClassName = r.getFromCi().getCiClassName();
+                              return fromClassName.equals("bom.Lb") || fromClassName.equals("bom.Fqdn");
+                          })
+                          .forEach(r -> createDummyUpdateRfc(existingCiMap.get(r.getFromCiId()), releaseId, rfc.getExecOrder() + 1, rfc.getCreatedBy()));
+			}
 		}
 
 		if (!isPartial) {
