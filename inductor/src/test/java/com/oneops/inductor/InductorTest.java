@@ -46,6 +46,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
 
+/**
+ * Inductor AO/WO Unit tests.
+ */
 public class InductorTest {
 
   private final Gson gson = new Gson();
@@ -125,13 +128,13 @@ public class InductorTest {
 
   @Test
   public void testRemoteKitchenConfig() {
-    testKitchenConfig(remoteWo);
+    testKitchenConfig(remoteWo, true);
     testWinKitchenConfig(remoteWo);
   }
 
   @Test
   public void testLocalKitchenConfig() {
-    testKitchenConfig(localWo);
+    testKitchenConfig(localWo, false);
   }
 
   @Test
@@ -224,7 +227,13 @@ public class InductorTest {
     executor.runVerification(wo, mp);
   }
 
-  private void testKitchenConfig(String woString) {
+  /**
+   * Helper method to test local/remote WO kitchen yaml config.
+   *
+   * @param woString wo string.
+   * @param remote <code>true</code> if the wo is for remote compute.
+   */
+  private void testKitchenConfig(String woString, boolean remote) {
     CmsWorkOrderSimple wo = gson.fromJson(woString, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
@@ -236,7 +245,12 @@ public class InductorTest {
     String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
     Object yamlConfig = yaml.load(config);
     assertNotNull("Invalid kitchen config.", yamlConfig);
-    assertTrue(config.contains("chef_solo_path: /usr/local/bin/chef-solo"));
+    if (remote) {
+      assertTrue(config.contains("chef_solo_path: /usr/local/bin/chef-solo"));
+      assertTrue(config.contains("root_path: /tmp/kitchen"));
+      assertTrue(config.contains("ruby_bindir: /usr/bin"));
+      assertTrue(config.contains("root_path: /tmp/verifier"));
+    }
   }
 
   private void testWinKitchenConfig(String woString) {
