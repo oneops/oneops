@@ -577,7 +577,6 @@ public class BomRfcBulkProcessor {
 
 		//hack for lb/fqdn update on replaced computes
 		for (CmsRfcCI rfc : replacedComputes) {
-
 			List<CmsCIRelation> depOns = pc.getBomRelations().stream()
 					.filter(r -> r.getRelationName().equals(BOM_DEPENDS_ON)).collect(Collectors.toList());
 			if (depOns != null) {

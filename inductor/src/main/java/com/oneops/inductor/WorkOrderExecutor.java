@@ -155,8 +155,7 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     wo.putSearchTag(RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
     return buildResponseMessage(wo, correlationId);
   }
-
-
+  
   @Override
   protected List<String> getRunList(CmsWorkOrderSimpleBase wo) {
     ArrayList<String> runList = new ArrayList<>();
