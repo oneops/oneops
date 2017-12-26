@@ -45,15 +45,20 @@ provisioner:
   name: chef_solo
   cookbook_files_glob: "**/*"
   require_chef_omnibus: false
-  chef_solo_path: /usr/local/bin/chef-solo
+  chef_solo_path: <chef_solo_path>
+  root_path: <provisioner_root_path>
   solo_rb:
     verify_api_cert: true
     ssl_verify_mode: :verify_peer
     log_level: :info
+transport:
+  name: rsync
+  ssh_key: <ssh_key>
+  username: <user>
 verifier:
   name: busser
-  ruby_bindir: /usr/bin
-  gem_path: /usr/local/share/gems:/tmp/verifier/gems
+  ruby_bindir: <ruby_bindir>
+  root_path: <verifier_root_path>
 platforms:
   - name: <platform_name>
 suites:

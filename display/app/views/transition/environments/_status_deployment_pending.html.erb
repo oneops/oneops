@@ -14,7 +14,7 @@
         <% end %>
       </dd>
     <% end %>
-    <% if @cost %>
+    <% if @cost.is_a?(Hash) %>
       <dt><%= icon(site_icon(:cost), nil, 'fa-fw') %></dt>
       <dd>
         <%= render 'transition/deployments/cost_change_info' %>

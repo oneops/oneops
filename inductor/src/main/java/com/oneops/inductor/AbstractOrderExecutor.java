@@ -1042,6 +1042,13 @@ public abstract class AbstractOrderExecutor {
   public String generateKitchenConfig(CmsWorkOrderSimpleBase wo, String sshKey, String logKey) {
     String inductorHome = config.getCircuitDir().replace("/packer", "");
     ST st = new ST(verifyTemplate);
+
+    boolean isWin = isWinCompute(wo);
+    String chefSolo = isWin ? "c:/opscode/chef/embedded/bin/chef-solo" : "/usr/local/bin/chef-solo";
+    String rubyBindir = isWin ? "c:/opscode/chef/embedded/bin" : "/usr/bin";
+    String provisionerPath = isWin ? "c:/tmp/kitchen" : "/tmp/kitchen";
+    String verifierPath = isWin ? "c:/tmp/verifier" : "/tmp/verifier";
+
     st.add("local", !isRemoteChefCall(wo));
     st.add("circuit_root", getCircuitDir(wo));
     st.add("inductor_home", inductorHome);
@@ -1050,6 +1057,11 @@ public abstract class AbstractOrderExecutor {
     st.add("platform_name", "centos-7.1");
     st.add("user", ONEOPS_USER);
     st.add("ssh_key", sshKey);
+    st.add("windows", isWin);
+    st.add("chef_solo_path", chefSolo);
+    st.add("ruby_bindir", rubyBindir);
+    st.add("provisioner_root_path", provisionerPath);
+    st.add("verifier_root_path", verifierPath);
     return st.render();
   }
 
@@ -1086,11 +1098,6 @@ public abstract class AbstractOrderExecutor {
     if (config.isVerifyMode()) {
       String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
-
-      if (isWinCompute(wo)) {
-        logger.info(logKey + "Skipping verification for windows computes.");
-        return responseMap;
-      }
 
       if (config.isCloudStubbed(wo)) {
         logger.info(logKey + "Skipping verification for stubbed cloud.");
