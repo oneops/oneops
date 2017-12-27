@@ -90,7 +90,7 @@ ActiveRecord::Schema.define(version: 20161202025713) do
     t.datetime "updated_at",                               null: false
     t.integer  "cms_id"
     t.boolean  "assemblies",               default: true,  null: false
-    t.boolean  "catalogs",                 default: false, null: false
+    t.boolean  "catalogs",                 default: true,  null: false
     t.boolean  "services",                 default: false, null: false
     t.text     "announcement"
     t.string   "full_name",    limit: 100

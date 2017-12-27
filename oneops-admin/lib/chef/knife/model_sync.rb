@@ -6,7 +6,7 @@ class Chef
     class ModelSync < Chef::Knife::CookbookMetadata
       include ::BaseSync
 
-      banner "Loads class and relation metadata into CMS\nUsage: \n   knife model sync [COOKBOOKS...] (options)"
+      banner "Loads class and relation metadata into OneOps\nUsage: \n   circuit model [OPTIONS] [COOKBOOKS...]"
 
       option :all,
              :short       => "-a",

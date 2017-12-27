@@ -35,7 +35,7 @@ import org.activiti.engine.runtime.ProcessInstanceQuery;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.controller.cms.CMSClient;
 import com.oneops.controller.cms.DeploymentNotifier;

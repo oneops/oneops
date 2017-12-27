@@ -43,7 +43,6 @@ if ostype =~ /windows/
   prefix_root = 'c:/cygwin64'
   impl = 'oo::chef-12.11.18'
   json_context = prefix_root + json_context
-  file_cache_path = "C:/tmp/#{ci}"
 end
 
 def gen_gemfile_and_install (gems, dsl, ostype, log_level)
@@ -85,13 +84,13 @@ def gen_gemfile_and_install (gems, dsl, ostype, log_level)
     if ostype =~ /windows/
       cmd = "c:/opscode/chef/embedded/bin/bundle #{method}"
     else
-      cmd = "bundle #{method}"
+      cmd = "bundle #{method} --full-index"
     end
     puts cmd  
     ec = system cmd
     
     if !ec || ec.nil?
-      puts "bundle #{method} failed with, #{$?}"
+      puts "bundle #{method} --full-index failed with, #{$?}"
       exit 1
     end
     duration = Time.now.to_i - start_time
@@ -207,10 +206,19 @@ when "chef"
     end
     
     log_level = "info"
+    #Chef 12 specific config options - chef-client is used in Chef12 instead of chef-solo,
+    #and it's no longer thread safe, i.e. parallel chef runs may step on each other toes
+    #when accessing cache or node's json
+    #plus for security reasons we do not want chef to preserve attributes coming from WO
+    if version.split('.')[0].to_i >= 12
+      file_cache_path = "#{file_cache_path}/#{ci}"
+      config_content += "normal_attribute_whitelist []\n"
+      config_content += "node_path '#{file_cache_path}'\n"
+    end
     config_content += "log_level :#{log_level}\n"
     config_content += "formatter :#{formatter}\n"
     config_content += "verify_api_cert true\n"
-    config_content += "file_cache_path \"#{file_cache_path}\"\n"
+    config_content += "file_cache_path '#{file_cache_path}'\n"
     config_content += "lockfile \"#{file_cache_path}/#{ci}.lock\"\n"
 
     ['http','https','no'].each do |proxy|
@@ -220,17 +228,18 @@ when "chef"
       end
     end
 
-    if ostype =~ /windows/
-      config_content += "node_name \"#{ci}\"\n"
-    end
-
     puts "chef_config: #{chef_config}"
     File.open(chef_config, 'w') {|f| f.write(config_content) }
 
   if ostype =~ /windows/
-    cmd = "c:/opscode/chef/embedded/bin/chef-client.bat --local-mode -c #{chef_config} -j #{json_context}"
+    bindir = 'c:/opscode/chef/embedded/bin'
   else
     bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
+  end
+
+  if version.split('.')[0].to_i >= 12
+    cmd = "#{bindir}/chef-client --local-mode -c #{chef_config} -j #{json_context}"
+  else
     cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   end
   puts cmd
@@ -273,4 +282,3 @@ when "puppet"
     exit ec
   end
 end
-

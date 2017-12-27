@@ -8,9 +8,12 @@ Build and Install
 
 Build the jar file. It will be in `target/inductor-VERSION.jar`.
 
-	mvn clean package
-
-
+```
+	$ cd oneops
+	# -Dmaven.test.skip=true to skip test.
+	$ ./mvnw clean package -pl inductor -am 
+```
+	
 The inductor is packaged with oneops-admin gem. To build:
 
     cd <source dir>/oneops-admin
@@ -60,7 +63,7 @@ Misc
 The following configurations are used to skip the deployment steps. 
 > Use this only to cleanup/skip resources those are already decommissioned or removed.
 
-```ruby
+```
 
 # Config file - /path/to/inductor/clouds-enabled/<cloud>/conf/inductor.properties
 

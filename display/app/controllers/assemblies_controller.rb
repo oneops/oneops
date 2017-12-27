@@ -2,12 +2,10 @@ class AssembliesController < ApplicationController
   include ::TeamAccess, ::CostSummary, ::NotificationSummary, ::Health
 
   before_filter :find_assembly, :only => [:search, :show, :edit, :update, :destroy, :new_clone, :clone,
-                                          :teams, :update_teams, :reports, :notifications, :cost_rate, :cost, :health]
+                                          :teams, :update_teams, :users, :reports, :notifications, :cost_rate, :cost, :health]
 
   before_filter :authorize_create, :only => [:new, :create, :new_clone, :clone]
   before_filter :authorize_update, :only => [:update, :destroy, :update_teams]
-
-  before_filter :find_proxy, :only => [:destroy, :teams]
 
   swagger_controller :assemblies, 'Assembly Management'
 
@@ -160,17 +158,19 @@ class AssembliesController < ApplicationController
   end
 
   def destroy
-    count = instance_by_cloud_count
-    cloud_count = count.size
+    count          = instance_by_cloud_count
+    cloud_count    = count.size
     instance_count = count.values.sum
-
-    ok = instance_count == 0
+    ok             = instance_count == 0
 
     if ok
       ok = execute(@assembly, :destroy)
-      if ok && @proxy
-        @proxy.watched_by_users.clear
-        @proxy.destroy
+      if ok
+        @proxy = locate_proxy(params[:id], organization_ns_path)
+        if @proxy
+          @proxy.watched_by_users.clear
+          @proxy.destroy
+        end
       end
     else
       message = "Cannot delete assembly with deployments: there are #{instance_count} #{'instance'.pluralize(instance_count)} deployed to #{cloud_count} #{'cloud'.pluralize(cloud_count)}. Please disable all platforms in all environments before deleting the assembly."
@@ -189,31 +189,39 @@ class AssembliesController < ApplicationController
   end
 
   def clone
+    ci     = nil
     errors = nil
-    ci = {:ciName => params[:ciName], :ciAttributes => {:description => params[:description]}}
     export = params[:export]
     if export.present?
       action = 'save'
-      ci[:nsPath]      = private_catalog_designs_ns_path
-      ci[:ciClassName] = 'account.Design'
+      ci = Cms::Ci.build(:ciName       => params[:ciName],
+                         :nsPath       => private_catalog_designs_ns_path,
+                         :ciClassName  => 'account.Design',
+                         :ciAttributes => {:description => params[:description]})
     else
       action   = 'clone'
       org_name = params[:to_org].presence || current_user.organization.name
       org      = current_user.organizations.where('organizations.name = ?', org_name).first
       team     = current_user.manages_access?(org.id)
       if org && team
-        ci[:nsPath]      = organization_ns_path(org.name)
-        ci[:ciClassName] = 'account.Assembly'
-        ci[:ciAttributes][:owner] = @assembly.ciAttributes.owner
+        ci = Cms::Ci.build(:ciName       => params[:ciName],
+                           :nsPath       => organization_ns_path(org.name),
+                           :ciClassName  => 'account.Assembly',
+                           :ciAttributes => {:description => params[:description],
+                                             :owner       => current_user.email.presence || @assembly.ciAttributes.owner})
       else
         errors = ["No permission to create assembly in organization '#{org_name}'."]
       end
     end
 
+    if ci
+      ci.valid?
+      errors = ci.errors.full_messages
+    end
     if errors.blank?
       ci_id, message = Transistor.clone_assembly(@assembly.ciId, ci)
       if ci_id
-        Cms::Ci.headers['X-Cms-Scope'] = ci[:nsPath] if action == 'clone'
+        Cms::Ci.headers['X-Cms-Scope'] = ci.nsPath if action == 'clone'
         @new_ci = Cms::Ci.find(ci_id)
         if export.blank? && !is_admin?(org)
           current_user.update_attribute(:organization_id, org.id)
@@ -231,34 +239,79 @@ class AssembliesController < ApplicationController
     end
   end
 
-  def teams
-    @teams = @proxy ? @proxy.teams : []
-    respond_to do |format|
-      format.js   { render :action => :teams }
-      format.json { render :json => @teams }
-    end
-  end
-
-  def update_teams
-    unless @assembly && manages_access_for_assembly?(@assembly.ciId)
-      unauthorized
-      return
-    end
-
-    @teams = process_update_teams(@assembly)
-
-    respond_to do |format|
-      format.js   { render :action => :teams }
-      format.json { render :json => @teams }
-    end
-  end
-
   def tags
     render :json => AssemblyTag.new([current_user.organization.ci], locate_assemblies)
   end
 
+  def users
+    org = current_user.organization
+    users = org.admin_users.inject({})  do |h, u|
+      h[u.id] = {:user => u, :dto => Team::DTO_ALL, :teams => {Team::ADMINS => true}}
+      h
+    end
+
+    aggregator = lambda do |h, u|
+      h[u.id] ||= {:user => u, :dto => Team::DTO_NONE, :manages_access =>  false, :teams => {}}
+      h[u.id][:dto] |= Team.calculate_dto_permissions(u.design, u.transition, u.operations) if h[u.id][:dto] < Team::DTO_ALL
+      h[u.id][:manages_access] ||= u.manages_access
+      h[u.id][:teams][u.team] = true
+      h
+    end
+
+    org_id = org.id
+    select = 'users.*, teams.name as team, teams.design as design, teams.transition as transition, teams.operations as operations, teams.manages_access as manages_access'
+
+    where = {'teams.organization_id' => org_id, 'teams.org_scope' => true}
+    users = User.joins(:teams).select(select).where(where).inject(users, &aggregator)
+    users = User.joins(:teams_via_groups).select(select).where(where).inject(users, &aggregator)
+
+    where = {'teams.organization_id' => org_id, 'ci_proxies.ci_id' => @assembly.ciId}
+    users = User.joins(:teams => :ci_proxies).select(select).where(where).inject(users, &aggregator)
+    users = User.joins(:teams_via_groups => :ci_proxies).select(select).where(where).inject(users, &aggregator)
+
+    @users = users.values.sort_by {|u| u[:user].username}.map do |r|
+      user = r[:user]
+      dto  = r[:dto]
+      {:id              => user.id,
+       :username        => user.username,
+       :email           => user.email,
+       :name            => user.name,
+       :created_at      => user.created_at,
+       :last_sign_in_at => user.current_sign_in_at || user.last_sign_in_at,
+       :manages_access  => r[:manages_access],
+       :design          => dto & Team::DTO_DESIGN > 0,
+       :transition      => dto & Team::DTO_TRANSITION > 0,
+       :operations      => dto & Team::DTO_OPERATIONS > 0,
+       :teams           => r[:teams].keys
+      }
+    end
+
+    respond_to do |format|
+      format.js
+
+      format.csv do
+        fields = [:id, :username, :email, :name, :created_at, :last_sign_in_at, :manages_access, :design, :transition, :operations, :teams]
+        data = @users.map do |u|
+          fields.map do |f|
+            value = u[f]
+            value.is_a?(Array) ? value.join(' ') : value
+          end.join(',')
+        end
+        render :text => fields.join(',') + "\n" + data.join("\n")   #, :content_type => 'text/data_string'
+      end
+
+      format.yaml {render :text => @users.to_yaml, :content_type => 'text/data_string'}
+
+      format.any {render :json => users}
+    end
+  end
+
 
   protected
+
+  def ci_resource
+    @assembly
+  end
 
   def search_ns_path
     assembly_ns_path(@assembly)
@@ -299,10 +352,6 @@ class AssembliesController < ApplicationController
       a.platforms    = platforms[a.ciName] || []
       a.environments = environments[a.ciName] || []
     end
-  end
-
-  def find_proxy
-    @proxy = locate_proxy(params[:id], organization_ns_path)
   end
 
   def load_catalog_templates

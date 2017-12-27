@@ -16,7 +16,7 @@
   <% compact = toolbar[:compact] %>
   <%= link_to_function(compact ? icon('angle-double-down', content_tag(:span, 'Expand')) : icon('angle-double-up', content_tag(:span, 'Collapse')),
                        'toggle_compact(this)',
-                       :class => 'btn btn-mini',
+                       :class => 'btn btn-mini compact-toggle',
                        :style => 'margin-left:10px') unless compact.nil? %>
   <% if menu.present? %>
     <div class="btn-group menu pull-right">
@@ -48,7 +48,8 @@
       <ul>
         <% quick_filters.each do |qf| %>
           <li class="<%= 'active' if qf[:selected] %>" data-filter-value="<%= qf[:value] %>">
-            <%= link_to_function(qf[:label], %(apply_list_quick_filter(this, "#{escape_javascript(qf[:value])}"))) %>
+            <% icon = qf[:icon] %>
+            <%= link_to_function(raw("#{icon(icon, nil, 'fa-lg') if icon.present?}#{qf[:label]}"), %(apply_list_quick_filter(this, "#{escape_javascript(qf[:value])}"))) %>
           </li>
         <% end %>
       </ul>
@@ -177,7 +178,7 @@
 
     window.apply_list_filter = function(list, value) {
       if (!list.hasClass('list-paginated')) {
-        filter_list(list.find(".list-body ul"), list.find(".list-toolbar").attr("filters").split(","), value);
+        filter_list(list.find(".list-body > ul > li"), list.find(".list-toolbar").attr("filters").split(","), value);
       }
       update_filter_marker(list);
 
@@ -296,8 +297,15 @@
       //          filter_changed(filter_field[0]);
       //      }
       update_filter_marker(list);
-      if (list.find(".btn i.fa-angle-double-down").length) {
-        list.find(".list-body > ul > li .middle").hide();
+
+      var compact = localStorage.getItem(prefix + "compact"),
+          btn = list.find(".btn.compact-toggle");
+
+      if (compact) {
+        toggle_compact(btn, compact);
+      }
+      else if (btn && btn.find("i.fa-angle-double-down").length) {
+        toggle_compact(btn, "compact");
       }
 
       var quick_filter_value = list.find(".quick-filters li.active").attr('data-filter-value');

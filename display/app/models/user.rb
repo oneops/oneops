@@ -32,7 +32,11 @@ class User < ActiveRecord::Base
            :timeoutable
   end
 
+  attr_accessor :last_sign_in_at_for_current_org
+
   BLACKLIST_FOR_SERIALIZATION.concat([:authentication_token, :session_token, :eula_accepted_at, :show_wizard, :organization_id])
+  BLACKLIST_FOR_SERIALIZATION.delete(:current_sign_in_at)
+  BLACKLIST_FOR_SERIALIZATION.delete(:sign_in_count)
 
   validates_presence_of   :username
   validates_uniqueness_of :username, :case_sensitive => false
@@ -196,10 +200,10 @@ class User < ActiveRecord::Base
       select = 'bool_or(design) as design, bool_or(transition) as transition, bool_or(operations) as operations'
       where = {'teams.org_scope' => true, 'teams.organization_id' => organization_id}
       permissions = teams.select(select).where(where).group('teams_users.user_id').order(nil).first
-      dto |= calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
+      dto |= Team.calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
       unless dto >= Team::DTO_ALL   # No reason to go further if it is already has all permissions.
         permissions = teams_via_groups.select(select).where(where).group('group_members.user_id').order(nil).first
-        dto |= calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
+        dto |= Team.calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
       end
 
       unless dto >= Team::DTO_ALL
@@ -207,11 +211,11 @@ class User < ActiveRecord::Base
         where['teams.organization_id'] = organization_id
 
         permissions = teams.select(select).joins(:ci_proxies).where(where).group('teams_users.user_id').order(nil).first
-        dto |= calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
+        dto |= Team.calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
 
         unless dto >= Team::DTO_ALL
           permissions = teams_via_groups.select(select).joins(:ci_proxies).where(where).group('group_members.user_id').order(nil).first
-          dto |= calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
+          dto |= Team.calculate_dto_permissions(permissions.design, permissions.transition, permissions.operations) if permissions
         end
       end
     end
@@ -246,10 +250,10 @@ class User < ActiveRecord::Base
       select = 'bool_or(cloud_services) as services, bool_or(cloud_compliance) as compliance, bool_or(cloud_support) as support'
       where = {'teams.org_scope' => true, 'teams.organization_id' => organization_id}
       permissions = teams.select(select).where(where).group('teams_users.user_id').order(nil).first
-      cloud |= calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
+      cloud |= Team.calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
       unless cloud >= Team::CLOUD_ALL   # No reason to go further if it is already has all permissions.
         permissions = teams_via_groups.select(select).where(where).group('group_members.user_id').order(nil).first
-        cloud |= calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
+        cloud |= Team.calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
       end
 
       unless cloud >= Team::CLOUD_ALL
@@ -257,11 +261,11 @@ class User < ActiveRecord::Base
         where['teams.organization_id'] = organization_id
 
         permissions = teams.select(select).joins(:ci_proxies).where(where).group('teams_users.user_id').order(nil).first
-        cloud |= calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
+        cloud |= Team.calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
 
         unless cloud >= Team::CLOUD_ALL
           permissions = teams_via_groups.select(select).joins(:ci_proxies).where(where).group('group_members.user_id').order(nil).first
-          cloud |= calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
+          cloud |= Team.calculate_cloud_permissions(permissions.services, permissions.compliance, permissions.support) if permissions
         end
       end
     end
@@ -282,12 +286,8 @@ class User < ActiveRecord::Base
   end
 
   def last_sign_in_at_for_org(org_id)
-    team_users.joins(:team).where("teams.organization_id" => org_id)
+    team_users.joins(:team).where('teams.organization_id' => org_id)
       .order(:last_sign_in_at).last.try(:last_sign_in_at)
-  end
-
-  def last_sign_in_at_for_current_org
-    last_sign_in_at_for_org(organization_id)
   end
 
 
@@ -305,22 +305,18 @@ class User < ActiveRecord::Base
   private
 
   def check_organizations
-    ok = true
-    organizations.each do |o|
-      ok = o.users.count > 1
-      break unless ok
+    orgs = []
+    teams.joins(:users, :organization).
+      where(:name => Team::ADMINS).
+      select('count(users.id) as user_count, organizations.name as org_name').
+      group('teams.id, org_name').each do |t|
+      orgs << t.org_name if t.user_count == 1
     end
 
-    errors.add(:base, 'Can not orphan existing organizations.') unless ok
-    return ok
-  end
+    return true if orgs.blank?
 
-  def calculate_dto_permissions(design, transition, operations)
-    (design ? Team::DTO_DESIGN : 0)  + (transition ? Team::DTO_TRANSITION : 0)  + (operations ? Team::DTO_OPERATIONS : 0)
-  end
-
-  def calculate_cloud_permissions(services, compliance, support)
-    (services ? Team::CLOUD_SERVICES: 0)  + (compliance ? Team::CLOUD_COMPLIANCE : 0)  + (support ? Team::CLOUD_SUPPORT : 0)
+    errors.add(:base, "'#{username}' is last admin in #{'organization'.pluralize(orgs.size)}: #{orgs.sort.join(', ')}.")
+    return false
   end
 
   def generate_authentication_token

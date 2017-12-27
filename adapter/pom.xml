@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>17.09.20-24-SNAPSHOT</version>
+    <version>18.01.03-3-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops.cms</groupId>
   <artifactId>adapter</artifactId>
@@ -15,6 +15,11 @@
     <gitTag>${project.version}</gitTag>
   </properties>
   <dependencies>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>9.4.1212</version>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -131,6 +136,10 @@
     <dependency>
       <groupId>com.oneops</groupId>
       <artifactId>oo-commons</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
     </dependency>
   </dependencies>
   <build>

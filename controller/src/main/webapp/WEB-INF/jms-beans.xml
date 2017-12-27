@@ -52,8 +52,9 @@
     	<property name="wfController" ref="wfController" />
 		<property name="notifier" ref="deploymentNotifier"/>
 		<property name="cmsClient" ref="cmsClient"/>
-		<property name="deployer" ref="deployerImpl"/>
+			<property name="executionManager" ref="executionManager"/>
 		<property name="deployerEnabled" value="${DEPLOYER_ENABLED:false}"/>
+
     </bean>
 
 
@@ -68,7 +69,7 @@
     	<property name="woPublisher" ref="woPublisher" />
     	<property name="sensorClient" ref="sensorClient" />
     	<property name="controllerUtil" ref="controllerUtil" />
-		<property name="deployer" ref="deployerImpl" />
+			<property name="executionManager" ref="executionManager"/>
     </bean>
 
     <bean id="inductorPublisher" class="com.oneops.controller.jms.InductorPublisher" init-method="init" destroy-method="cleanup">
@@ -176,7 +177,7 @@
 	</bean>
 
 	<bean id="workflowListener" class="com.oneops.controller.jms.WorkflowListener">
-		<property name="deployer" ref="deployerImpl"/>
+    <property name="executionManager" ref="executionManager"/>
 	</bean>
 
 </beans>

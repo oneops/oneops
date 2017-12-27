@@ -18,7 +18,7 @@
 package com.oneops.antenna.senders.generic;
 
 import com.codahale.metrics.MetricRegistry;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.domain.URLSubscriber;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;
@@ -26,8 +26,8 @@ import org.mockito.Spy;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import static com.oneops.antenna.domain.NotificationSeverity.info;
-import static com.oneops.antenna.domain.NotificationType.ci;
+import static com.oneops.notification.NotificationSeverity.info;
+import static com.oneops.notification.NotificationType.ci;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 

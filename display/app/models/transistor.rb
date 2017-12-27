@@ -1,9 +1,9 @@
 class Transistor < ActiveResource::Base
-  self.site         = Settings.transistor_site
-  self.prefix       = '/transistor/rest'
-  self.timeout      = 600
-  self.element_name = ''
+  self.site                   = Settings.transistor_site
+  self.prefix                 = '/transistor/rest'
+  self.element_name           = ''
   self.include_format_in_path = false
+  self.timeout                = Settings.transistor_http_timeout
 
   def self.export_design(assembly, platform_ids = nil)
     begin
@@ -64,7 +64,7 @@ class Transistor < ActiveResource::Base
   def self.clone_assembly(assembly_id, ci)
     id = nil
     begin
-      id = JSON.parse(post("assemblies/#{assembly_id}/clone", {}, ci.to_json).body)['resultCiId']
+      id = JSON.parse(post("assemblies/#{assembly_id}/clone", {}, ci.attributes.to_json).body)['resultCiId']
     rescue Exception => e
       message = handle_exception e, "Failed to clone assembly '#{assembly_id}'"
       return nil, message
@@ -276,8 +276,20 @@ class Transistor < ActiveResource::Base
     end
   end
 
-  def self.custom_method_collection_url(method_name, options = {})
-    super.gsub(/.#{self.format.extension}/, '')
+  def self.environment_cost(env, pending = false, details = false)
+    begin
+      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/#{'estimated_' if pending}cost#{'_data' if details}"), nil
+    rescue Exception => e
+      return nil, handle_exception(e, "Failed to get cost for environment #{env.ciId} :")
+    end
+  end
+
+  def self.deployment_plan_preview(env, *flags)
+    begin
+      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/deployments/preview?#{flags.map {|f| "#{f}=true"}.join('&')}"), nil
+    rescue Exception => e
+      return nil, handle_exception(e, "Failed to get deployment plan preview for environment #{env.ciId} :")
+    end
   end
 
 

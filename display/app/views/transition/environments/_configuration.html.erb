@@ -11,7 +11,7 @@
 
 <% if has_transition?(@assembly.ciId) %>
   <%= section_panel 'Delete Environment', :width => 'single', :position => 'right' do %>
-    <% instance_count    = @deloyed_to_rels.size
+    <% instance_count    = @platform_instance_counts.values.sum
        active_deployment = @deployment && @deployment.deploymentState != 'complete' && @deployment.deploymentState != 'canceled' %>
     <% if instance_count > 0 || active_deployment %>
       <% if instance_count > 0 %>

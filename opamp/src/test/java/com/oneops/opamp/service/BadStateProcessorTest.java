@@ -274,9 +274,8 @@ public class BadStateProcessorTest {
 		bsp.processUnhealthyState(changeEvent);
 
 		ArgumentCaptor<Date> captor = ArgumentCaptor.forClass(Date.class);
-		verify(opsMock, times(2)).getCmsOpsProceduresCountForCiFromTime(anyLong(), any(), eq("ci_repair"), captor.capture());
+		verify(opsMock, times(1)).getCmsOpsProceduresCountForCiFromTime(anyLong(), any(), eq("ci_repair"), captor.capture());
 		List<Date> values = captor.getAllValues();
-		Assert.assertTrue(values.get(0).getTime() - minCheckTime4ProcCount < (60 * 1000L));
-		Assert.assertTrue(values.get(1).getTime() - ts1 < (60 * 1000L));
+		Assert.assertTrue(values.get(0).getTime() - ts1 < (60 * 1000L));
 	}
 }

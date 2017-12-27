@@ -33,6 +33,7 @@ import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.ds.CmsDataHelper;
+import com.oneops.cms.ds.ReadOnlyDataAccess;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.CmsException;
 import com.oneops.cms.exceptions.DJException;
@@ -127,6 +128,7 @@ public class CmRestController extends AbstractRestController {
 	
 	@RequestMapping(value="/cm/cis/{ciId}", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public CmsCI getCIById(
 			@PathVariable long ciId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
@@ -143,6 +145,7 @@ public class CmRestController extends AbstractRestController {
 
 	@RequestMapping(value="/cm/relations/{relId}", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public CmsCIRelation getRelationById(
 			@PathVariable long relId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope) {
@@ -160,6 +163,7 @@ public class CmRestController extends AbstractRestController {
 	
 	@RequestMapping(value="/cm/cis", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public List<CmsCI> getCIBy3(
 			@RequestParam("ns") String nsPath,  
 			@RequestParam("clazz") String clazzName, 
@@ -179,6 +183,7 @@ public class CmRestController extends AbstractRestController {
 
 	@RequestMapping(value="/cm/simple/cis/{ciId}", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public CmsCISimple getCISimpleById(@PathVariable long ciId, 
 			@RequestParam(value="value", required = false) String valueType,
 			@RequestParam(value="getEncrypted", required = false) String getEncrypted,
@@ -282,6 +287,7 @@ public class CmRestController extends AbstractRestController {
 
     @RequestMapping(value = "/cm/simple/cis/list", method = RequestMethod.POST)
     @ResponseBody
+		@ReadOnlyDataAccess
     public List<CmsCISimple> getCIcByIds(
             @RequestBody CiListRequest request,
             @RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
@@ -350,6 +356,7 @@ public class CmRestController extends AbstractRestController {
 
 	@RequestMapping(value="/cm/simple/cis", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public List<CmsCISimple> getCISimpleQuery(
 			@RequestParam(value="nsPath", required = false) String nsPath,
 			@RequestParam(value="ciClassName", required = false) String clazzName, 
@@ -415,6 +422,7 @@ public class CmRestController extends AbstractRestController {
 
 	@RequestMapping(value="/cm/simple/cis/count", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public Map<String, Long> getCountBy3(
 			@RequestParam(value="nsPath", required = true) String nsPath,
 			@RequestParam(value="ciClassName", required = false) String clazzName, 
@@ -535,6 +543,7 @@ public class CmRestController extends AbstractRestController {
 	
 	@RequestMapping(value="/cm/simple/relations/{ciRelId}", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public CmsCIRelationSimple getRelationSimpleById(
 			@PathVariable long ciRelId, 
 			@RequestParam(value="includeFromCi", required = false) String includeFromCi,
@@ -639,6 +648,7 @@ public class CmRestController extends AbstractRestController {
 
 	@RequestMapping(value="/cm/simple/relations", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public List<CmsCIRelationSimple> getCIRelationSimpleQuery(
 			@RequestParam(value="ciId", required = false) Long ciId,
 			@RequestParam(value="direction", required = false) String direction, 
@@ -686,9 +696,7 @@ public class CmRestController extends AbstractRestController {
 			if (recursive != null && recursive) {
 				RelationParam param = new RelationParam(nsPath, relationName, shortRelationName, targetClazz, recursive);
 				param.setFromClazz(fromClazz);
-				CmsDataHelper<RelationParam, List<CmsCIRelation>> dataHelper = new CmsDataHelper<>();
-				relList = dataHelper.execute(this::getNsLikeRelations, param,
-						isOrgLevelRecursiveAccess(nsPath, true), "getCIRelationSimpleQuery");
+				relList = getNsLikeRelations(param);
 
 			} else {	
 				relList = cmManager.getCIRelations(nsPath, relationName, shortRelationName, fromClazz, targetClazz);

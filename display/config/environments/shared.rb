@@ -15,7 +15,7 @@ Display::Application.configure do
 
   # Don't care if the mailer can't send
   config.action_mailer.raise_delivery_errors = true
-  config.action_mailer.perform_deliveries = true
+  config.action_mailer.perform_deliveries = false
   config.action_mailer.delivery_method = Settings.mail_delivery_method.to_sym
   smtp_settings = {:address              => Settings.smtp_address,
                    :enable_starttls_auto => false}

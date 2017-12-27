@@ -625,6 +625,10 @@ img.authicon {
   padding: 10px;
 }
 
+#overlay .wf > div.controls .cost-change {
+  font-size: 14px;
+}
+
 #overlay div.footer {
   clear:     both;
   float:     right;
@@ -1463,7 +1467,7 @@ img.authicon {
 .glance li {
   list-style-type: none;
   float:           left;
-  margin:          5px 15px;
+  margin:          5px 10px;
   min-width:       60px;
 }
 
@@ -1815,9 +1819,12 @@ img.authicon {
 
 .list-body li .status .popover {
   font-size: 12px;
-  left:      0 !important;
-  right:     auto;
-  width:     auto;
+  z-index: 20;
+  position:   relative;
+  /*left:       auto !important;*/
+  /*right:      0 !important;*/
+  /*right:     auto;*/
+  /*width:     auto;*/
 }
 
 .list-body li .menu {
@@ -1894,7 +1901,7 @@ img.authicon {
 
 .list-body li .content .top {
   position:          relative;
-  font-size:         20px;
+  font-size:         18px;
   font-weight:       normal;
   color:             #4183C4;
   line-height:       28px;
@@ -1907,10 +1914,6 @@ img.authicon {
 
 .list-body li .content .top .favorite {
   font-size: 12px;
-}
-
-.list-body li .content .top i.muted {
-  color: #777;
 }
 
 .list-body li:hover .content .top .topname {
@@ -1930,6 +1933,19 @@ img.authicon {
 
 .list-relation .list-body li .content .top {
   font-size: 16px;
+}
+
+.list-body li .content .top  i.icon {
+  color: #444;
+  position: relative;
+  float:    left;
+  height:   24px;
+  width:    24px;
+  margin:   6px 4px 0px 2px;
+}
+
+.list-body li .content .top i.muted {
+  color: #777;
 }
 
 .list-body li .content .top img {
@@ -1999,7 +2015,7 @@ img.authicon {
   line-height:       15px;
   margin:            5px 2px 0px 2px;
   color:             #888;
-  opacity:           0.9;
+  /*opacity:           0.9;*/
   white-space:       nowrap;
   overflow:          hidden;
   text-overflow:     ellipsis;
@@ -2516,6 +2532,10 @@ ul.status li.status-marker {
 
 ul.status li.status-marker:last-child {
   border-bottom: none;
+}
+
+ul.status li.status-marker .description dl {
+  margin-bottom: 0;
 }
 
 ul.status div.marker {
@@ -3593,18 +3613,9 @@ div.modal-body .comment {
   width:  calc(100% - 20px);
 }
 
-/*div.modal-footer {
-  padding: 20px;
-  text-align: center;
+div.modal-footer .dropdown-menu {
+  text-align: left;
 }
-
-div.modal-footer .btn {
-  margin:    0 10px 0 10px;
-}
-
-div.modal-footer table {
-  margin:         0 auto;
-}*/
 
 div.edit-form-controls {
   text-align:   right;
@@ -3658,11 +3669,6 @@ div.marker[data-toggle] {
 
 div.marker .label {
   font-weight: normal;
-  /*text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.3);*/
-}
-
-div.marker .label i {
-  font-weight: bold;
 }
 
 div.marker .label-marker-name {
@@ -4442,6 +4448,9 @@ hr {
   border-bottom: none;
 }
 
+.cost-rate {
+  white-space: nowrap;
+}
 .cost-rate b {
   margin-left: 5px;
 }
@@ -4649,4 +4658,8 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 .dropdown-menu > li > a {
   color: inherit;
+}
+
+.extra-muted {
+  opacity: 0.3;
 }

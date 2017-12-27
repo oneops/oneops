@@ -12,10 +12,7 @@
               :read_only => true}) %>
 <% end %>
 
-<% if current_user.organizations.where('organizations.name' => @organization.name).first %>
-  <% favs = current_user.favorites.where(:organization_id => @organization.id).order(:ci_name) %>
-  <%= render 'favorite_list', :favorites => favs %>
-<% else %>
+<% unless current_user.organizations.where('organizations.name' => @organization.name).first %>
   <%= section_panel 'Request Access', :width => 'single', :position => 'right' do %>
     <%= form_tag(organization_request_access_path(:org_name => @organization.name), :remote => true) do %>
       <span class="help-block">

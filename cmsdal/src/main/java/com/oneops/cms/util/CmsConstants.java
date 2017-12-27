@@ -44,14 +44,17 @@ public final class CmsConstants {
 	
 	//starting to put some relation constants 
 	public static final String ENTRYPOINT = "Entrypoint";
+
 	//base relations
 	public static final String BASE_REALIZED_AS = "base.RealizedAs";
 	public static final String BASE_COMPLIES_WITH = "base.CompliesWith";
+	public static final String BASE_DEPLOYED_TO = "base.DeployedTo";
 	public static final String DEPLOYED_TO = "base.DeployedTo";
 	public static final String BASE_PROVIDES = "base.Provides";
 	public static final String BASE_PLACED_IN = "base.PlacedIn";
 	public static final String BASE_CONSUMES = "base.Consumes";
 	public static final String BASE_REQUIRES = "base.Requires";
+	public static final String BASE_ENTRYPOINT = "base.Entrypoint";
 
 	//catalog relations
 	public static final String CATALOG_DEPENDS_ON = "catalog.DependsOn";
@@ -60,8 +63,21 @@ public final class CmsConstants {
 	public static final String CATALOG_VALUE_FOR = "catalog.ValueFor";
 
 	//manifest relations
-	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
+	public static final String MANIFEST_COMPOSED_OF = "manifest.ComposedOf";
+	public static final String MANIFEST_DEPENDS_ON = "manifest.DependsOn";
+	public static final String MANIFEST_ENTRYPOINT = "manifest.Entrypoint";
+	public static final String MANIFEST_ESCORTED_BY = "manifest.EscortedBy";
+	public static final String MANIFEST_LINKS_TO = "manifest.LinksTo";
+	public static final String MANIFEST_LOGGED_BY = "manifest.LoggedBy";
+	public static final String MANIFEST_MANAGED_VIA = "manifest.ManagedVia";
 	public static final String MANIFEST_REQUIRES = "manifest.Requires";
+	public static final String MANIFEST_SECURED_BY = "manifest.SecuredBy";
+	public static final String MANIFEST_WATCHED_BY = "manifest.WatchedBy";
+
+	//bom relations
+	public static final String BOM_DEPENDS_ON = "bom.DependsOn";
+	public static final String BOM_MANAGED_VIA = "bom.ManagedVia";
+	public static final String BOM_SECURED_BY = "bom.SecuredBy";
 
 	//mgmt relations
 	public static final String MGMT_CATALOG_WATCHEDBY = "mgmt.catalog.WatchedBy";

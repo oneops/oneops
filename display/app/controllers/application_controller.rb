@@ -22,7 +22,7 @@ class ApplicationController < ActionController::Base
   before_filter :check_reset_password unless Settings.authentication == 'ldap'
   before_filter :check_eula if Settings.eula
   before_filter :check_organization
-  before_filter :set_active_resource_headers
+  before_filter :set_active_resource_headers, :set_cms_data_consistency
 
   after_filter :process_flash_messages
 
@@ -41,7 +41,7 @@ class ApplicationController < ActionController::Base
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
                 :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
-                :has_support_permission?, :organization_ns_path, :check_pack_owner_group_membership?,
+                :bom_platform_ns_path, :has_support_permission?, :organization_ns_path, :check_pack_owner_group_membership?,
                 :semver_sort
 
   AR_CLASSES_WITH_HEADERS = [Cms::Ci, Cms::DjCi, Cms::Relation, Cms::DjRelation, Cms::RfcCi, Cms::RfcRelation,
@@ -586,8 +586,8 @@ class ApplicationController < ActionController::Base
 
   def authenticate_user_from_token
     return unless request.authorization.present? && request.authorization.split(' ', 2).first == 'Basic'
-    token, foo = Base64.decode64(request.authorization.split(' ', 2).last || '').split(/:/, 2)
-    user  = token.present? && User.where(:authentication_token => token.to_s).first
+    @auth_token, _ = Base64.decode64(request.authorization.split(' ', 2).last || '').split(/:/, 2)
+    user = @auth_token.present? && User.where(:authentication_token => @auth_token.to_s).first
 
     request.env["devise.skip_trackable"] = true   # do not update user record with "trackable" stats (i.e. sign_in_count, last_sign_in_at, etc...) for API requests.
     # Passing in store => false, so the user is not actually stored in the session and a token is needed for every request.
@@ -656,6 +656,16 @@ class ApplicationController < ActionController::Base
 
   def clear_active_resource_headers
     set_active_resource_headers(false)
+  end
+
+  def set_cms_data_consistency(value = nil, *classes)
+    (classes.presence || AR_CLASSES_WITH_HEADERS).each do |clazz|
+      if value.blank?
+        clazz.headers.delete('X-Cms-Data-Consistency')
+      else
+        clazz.headers['X-Cms-Data-Consistency'] = value
+      end
+    end
   end
 
   def check_eula

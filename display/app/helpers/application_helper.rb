@@ -29,7 +29,10 @@ module ApplicationHelper
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
                 :compute                => 'server',
-                :favorite               => 'bookmark'}
+                :favorite               => 'bookmark',
+                :json                   => 'file-code-o',
+                :yaml                   => 'file-text-o',
+                :csv                    => 'file-excel-o'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -496,10 +499,16 @@ module ApplicationHelper
     end
 
     def self.build_list_item_content(item_collection, template, options, group = nil, &block)
+      partial = options[:item_partial]
+      locals  = {:group        => group,
+                 :collapse     => options[:collapse],
+                 :multi_select => options[:menu].present?}
       item_collection.inject('') do |content, item|
         list_item_builder = ListItemBuilder.new(item, template, options)
+        locals[:builder] = list_item_builder
+        locals[:item]    = item
         template.capture list_item_builder, item, &block if block_given?
-        content << template.render(:partial => options[:item_partial], :locals => {:item => item, :group => group, :builder => list_item_builder, :collapse => options[:collapse], :multi_select => options[:menu].present?})
+        content << template.render(:partial => partial, :locals => locals)
       end
     end
   end
@@ -555,7 +564,8 @@ module ApplicationHelper
     call = %($j.ajax("#{call_options[:url]}", {type: "#{(call_options[:method].presence || :get).to_s.upcase}", data: #{call_options[:with] || "''"} + "&authenticity_token=" + encodeURIComponent($j("meta[name=csrf-token]").attr("content"))}))
 
     message = options[:message].presence || options[:busy]
-    link_to_function(link_text, %(show_busy(#{"'#{escape_javascript(message)}'" if message.present?}); #{call}), options)
+    validation = options.delete(:validation) || 'true'
+    link_to_function(link_text, %(#{"if (!(#{validation})) return;" if validation.present?} show_busy(#{"'#{escape_javascript(message)}'" if message.present?}); #{call}), options)
   end
 
   def truncate(text, length = 30, truncate_string = '...')
@@ -712,6 +722,23 @@ module ApplicationHelper
     end
   end
 
+  def health_icon(state)
+    case state
+      when 'unhealthy'
+        'exclamation-triangle'
+      when 'notify'
+        'exclamation-circle'
+      when 'overutilized'
+        'expand'
+      when 'underutilized'
+        'compress'
+      when 'good'
+        'check-circle'
+      else
+        'question-circle'
+    end
+  end
+
   def ops_state_legend
     OPS_HEALTH_LEGEND
   end
@@ -788,20 +815,8 @@ module ApplicationHelper
     result
   end
 
-  def instance_marker(platform_clouds, target)
-    clouds = platform_clouds["#{target.ciName}/#{target.ciAttributes.major_version}"]
-    return '', 0 unless clouds.present?
-    clouds = clouds.values
-    total = 0
-    content = clouds.sort_by {|info| info[:consumes].toCi.ciName}.inject('') do |a, info|
-      count  = info[:instances]
-      cloud  = info[:consumes]
-      status = cloud.relationAttributes.adminstatus
-      total += count
-      a + "#{cloud.toCi.ciName} - <strong class='#{state_to_text(status)}'>#{count}</strong><br>"
-    end
-    return status_marker('instances', total, 'label-info', total > 0 ? {'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Instances By Cloud', 'data-content' => content, 'data-trigger' => 'hover', 'data-placement' => 'top'} : {}),
-           total
+  def instance_marker(count)
+    return count ? status_marker('instances', count.to_i, 'label-info') : ''
   end
 
   def cloud_marker(cloud, primary, status)
@@ -810,6 +825,10 @@ module ApplicationHelper
                    cloud_admin_status_label(status),
                   :name_class => primary ? 'info' : '')
     link_to(marker, edit_cloud_path(cloud))
+  end
+
+  def health_marker(state)
+    status_marker('health', state, health_to_label(state))
   end
 
   def icon(name, text = '', icon_class = '')
@@ -1217,14 +1236,13 @@ module ApplicationHelper
     return GENERAL_SITE_LINKS
   end
 
-  def team_list_permission_marking(team)
+  def team_list_permission_marking(team, perms = %w(cloud_services cloud_compliance cloud_support design transition operations))
+    admins = team.name == Team::ADMINS
     result = %w(manages_access org_scope).inject('') do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg text-error') if team.name == Team::ADMINS || team.send("#{perm}?")
-      a
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw text-error #{'extra-muted' unless admins || team.send("#{perm}?")}")
     end
-    result = %w(cloud_services cloud_compliance cloud_support design transition operations).inject(result) do |a, perm|
-      a << icon(site_icon(perm), '&nbsp;&nbsp;', 'fa-lg') if team.send("#{perm}?")
-      a
+    result = perms.inject(result) do |a, perm|
+      a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw #{'extra-muted' unless admins || team.send("#{perm}?")}")
     end
     raw(result)
   end
@@ -1268,6 +1286,10 @@ module ApplicationHelper
     end
 
     render 'base/shared/graph_donut', :data => {:data => [data], :legend => legend}, :legend => false
+  end
+
+  def format_cost_rate(rate, opts = {})
+    raw %(<span class="cost-rate">#{rate.to_human(:precision => (opts[:precision] || 2))} <span class=""><sub>#{CostSummary::UNIT}</sub></span></span>)
   end
 
   def ci_doc_link(ci, label, opts = {})

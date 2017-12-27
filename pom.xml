@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.09.20-24-SNAPSHOT</version>
+  <version>18.01.03-3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
- <scm>
+  <scm>
     <connection>scm:git:git://github.com/oneops/oneops.git</connection>
     <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
     <url>https://github.com/oneops/oneops</url>
@@ -87,6 +87,7 @@
     <activiti.version>5.19.0</activiti.version>
     <slf4j.version>1.6.1</slf4j.version>
     <hazelcast.version>3.8.5</hazelcast.version>
+    <aspectj.version>1.8.11</aspectj.version>
   </properties>
   <modules>
     <module>adapter</module>
@@ -109,6 +110,7 @@
     <module>oneops-admin</module>
     <module>db-schema</module>
     <module>oneops-packer</module>
+    <module>oneops-model</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -490,7 +492,17 @@
       </dependency>
       <dependency>
         <groupId>com.oneops</groupId>
+        <artifactId>oo-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
         <artifactId>oo-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-model</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -657,6 +669,21 @@
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-spring</artifactId>
         <version>${hazelcast.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.aspectj</groupId>
+        <artifactId>aspectjweaver</artifactId>
+        <version>${aspectj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.opentable.components</groupId>
+        <artifactId>otj-pg-embedded</artifactId>
+        <version>0.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+        <version>4.2.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

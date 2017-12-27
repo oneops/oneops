@@ -31,7 +31,7 @@
             <% end %>
             <div class="controls" editable="<%= !read_only %>">
               <% pattern         = a.options[:pattern]
-                 pattern         = "(#{pattern})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present?
+                 pattern         = "(#{pattern})|(.*\\$OO_(GLOBAL|LOCAL|CLOUD)\\{.*\\}.*)" if pattern.present? && pattern.is_a?(String)
                  attribute_value = ci_attributes.send(a.attributeName)
                  data_type       = a.dataType
                  form_options    = a.options[:form]

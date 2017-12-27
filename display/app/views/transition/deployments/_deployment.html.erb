@@ -310,6 +310,14 @@
               </td>
             </tr>
           <% end %>
+          <% if @cost.is_a?(Hash) %>
+            <tr class="cost-change">
+              <td colspan="2">
+                <%= icon(site_icon(:cost), nil, 'fa-fw') %>
+                <%= render 'cost_change_info' %>
+              </td>
+            </tr>
+          <% end %>
           <tr id="controls_new">
             <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
             <td><%= render 'transition/deployments/action',

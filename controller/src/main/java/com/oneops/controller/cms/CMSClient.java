@@ -16,9 +16,9 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import static com.oneops.cms.cm.ops.domain.OpsActionState.failed;
+
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.ops.domain.CmsOpsAction;
@@ -47,6 +47,19 @@ import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.controller.util.ControllerUtil;
 import com.oneops.controller.workflow.WorkOrderContext;
 import com.oneops.controller.workflow.WorkflowController;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationType;
+import java.security.GeneralSecurityException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeanUtils;
@@ -62,18 +75,6 @@ import org.springframework.retry.support.RetryTemplate;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.GeneralSecurityException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-
 /**
  * The Class CMSClient.
  */
@@ -84,6 +85,7 @@ public class CMSClient {
     private static final int NSPATH_ENV_ELEM_NO = 3;
     private static final int NSPARTS_SIZE_MIN = 5;
     public static final String INPROGRESS = "inprogress";
+    public static final String CANCELLED = "canceled";
     public static final String COMPLETE = "complete";
     public static final String FAILED = "failed";
     public static final String PAUSED = "paused";
@@ -405,7 +407,7 @@ public class CMSClient {
     }
 
     public void updateWoState(CmsDeployment dpmt, CmsWorkOrderSimple wo, String newState, String error) {
-        updateWoState(wo, newState, dpmt, "", error, d -> cmsDpmtProcessor.updateDeployment(d));
+        updateWoState(wo, newState, dpmt, "", error, null);
     }
 
     public void updateWoState(CmsWorkOrderSimple wo, String newState, CmsDeployment dpmt, String execContextName,
@@ -427,14 +429,16 @@ public class CMSClient {
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
-                    updateDpmtFunc.accept(dpmt);
+                    if (updateDpmtFunc != null) {
+                        updateDpmtFunc.accept(dpmt);
+                    }
                     if (error != null) {
                         dpmtRec.setComments(error);
                     }
                 }
             }
             try {
-                cmsDpmtProcessor.updateDpmtRecord(dpmtRec);
+                cmsDpmtProcessor.updateDpmtRecordSimple(dpmtRec);
             } catch (CmsBaseException ce) {
                 logger.error(ce.getMessage(), ce);
                 throw ce;
@@ -600,10 +604,33 @@ public class CMSClient {
     /**
      * Gets the action orders.
      *
+     * @return the action orders
+     * @throws GeneralSecurityException the general security exception
+     */
+    public List<CmsActionOrderSimple>  getActionOrders(CmsOpsProcedure proc, int execOrder) throws GeneralSecurityException {
+        logger.info("Geting action orders for procedure id = " + proc.getProcedureId());
+        long startTime = System.currentTimeMillis();
+        try {
+            List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
+            logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
+            for (CmsActionOrderSimple ao : aoList) {
+                decryptAo(ao);
+            }
+            return aoList;
+        } catch (CmsBaseException rce) {
+            logger.error(rce);
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * Gets the action orders.
+     *
      * @param exec the exec
      * @return the action orders
      * @throws GeneralSecurityException the general security exception
      */
+
     public void getActionOrders(DelegateExecution exec) throws GeneralSecurityException {
         CmsOpsProcedure proc = (CmsOpsProcedure) exec.getVariable("proc");
         Integer execOrder = (Integer) exec.getVariable(CmsConstants.EXEC_ORDER);
@@ -614,6 +641,7 @@ public class CMSClient {
         	List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
         	logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
         	for (CmsActionOrderSimple ao : aoList) {
+              logger.info("Testing ao  " + ao.getCiId() + " bytes length : " + gson.toJson(ao).getBytes().length);
                 decryptAo(ao);
             }
             exec.setVariable("cmsaos", aoList);
@@ -629,6 +657,8 @@ public class CMSClient {
             exec.setVariable("proc", proc);
         }
     }
+
+
 
     /**
      * Update procedure state.
@@ -700,6 +730,40 @@ public class CMSClient {
             exec.setVariable("proc", proc);
         }
         logger.info("Client: put:ops action id " + aos.getActionId() + " to state " + newState);
+    }
+
+
+    public void updateActionOrderState(CmsActionOrderSimple aos, OpsActionState newState) {
+
+        aos.setActionState(newState);
+        try {
+            if (newState.getName().equalsIgnoreCase(COMPLETE)) {
+                CmsActionOrder ao = cmsUtil.custSimple2ActionOrder(aos);
+                opsProcedureProcessor.completeActionOrder(ao);
+            } else {
+                updateAoWithState(aos.getProcedureId(), aos.getActionId(), newState);
+            }
+            logger.info("Client: put:ops action id " + aos.getActionId() + " to state " + newState);
+        } catch (CmsBaseException rce) {
+            logger.error("failed while updating action order " + aos.getActionId() + " state with " + newState + " procedure : " + aos.getProcedureId(), rce);
+            CmsOpsAction action = new CmsOpsAction();
+            action.setActionId(aos.getActionId());
+            action.setProcedureId(aos.getProcedureId());
+            action.setActionState(failed);
+            opsProcedureProcessor.updateOpsAction(action);
+        }
+    }
+
+    public void failActionOrder(CmsActionOrder ao) {
+        updateAoWithState(ao.getProcedureId(), ao.getActionId(), failed);
+    }
+
+    private void updateAoWithState(long procedureId, long actionId, OpsActionState state) {
+        CmsOpsAction action = new CmsOpsAction();
+        action.setProcedureId(procedureId);
+        action.setActionId(actionId);
+        action.setActionState(state);
+        opsProcedureProcessor.updateOpsAction(action);
     }
 
     /**
