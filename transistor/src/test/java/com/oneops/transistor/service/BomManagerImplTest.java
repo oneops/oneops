@@ -54,6 +54,23 @@ public class BomManagerImplTest {
                 .mapToObj(i -> (ci(clouds[i], i)))
                 .collect(toMap(CmsCI::getCiName, Function.identity()));
     }
+    
+    @Test
+    public void testEmptyDeploymentOrderDoesNotThrowNFE(){
+        CmsCmProcessor cmProcessor =mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
+
+        String[] primaryClouds = {"c1", "c2"};
+        List<CmsCIRelation> platformCloudRels = Stream.of(primaryClouds)
+                .map(s -> (createPrimaryCloud(s)))
+                .collect(toList());
+        platformCloudRels.get(0).getAttribute("dpmt_order").setDjValue("");
+        try {
+            impl.getOrderedClouds(platformCloudRels, false);
+        } catch (NumberFormatException e){
+            fail("Shouldn't throw NFE");
+        }
+    }
 
 
     @Test(expectedExceptions = {})
