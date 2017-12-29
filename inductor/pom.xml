@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>18.01.03-3-SNAPSHOT</version>
+    <version>18.01.03-4-SNAPSHOT</version>
   </parent>
 
   <artifactId>inductor</artifactId>
@@ -24,16 +24,6 @@
     <dependency>
       <groupId>commons-httpclient</groupId>
       <artifactId>commons-httpclient</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-core</artifactId>
-      <version>${aws-java-sdk.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-route53</artifactId>
-      <version>${aws-java-sdk.version}</version>
     </dependency>
     <dependency>
       <groupId>com.oneops</groupId>
