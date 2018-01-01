@@ -1,118 +1,118 @@
 
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2012 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2013 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2013 (
 		CHECK ( log_time >= DATE '2013-01-01' AND log_time < DATE '2014-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2014 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2014 (
 		CHECK ( log_time >= DATE '2014-01-01' AND log_time < DATE '2015-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2015 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2015 (
 		CHECK ( log_time >= DATE '2015-01-01' AND log_time < DATE '2016-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2016 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2016 (
 		CHECK ( log_time >= DATE '2016-01-01' AND log_time < DATE '2017-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2017 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2017 (
 		CHECK ( log_time >= DATE '2017-01-01' AND log_time < DATE '2018-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_attr_log_2018 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_attr_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_attr_log);
 
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2012 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2013 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2013 (
 		CHECK ( log_time >= DATE '2013-01-01' AND log_time < DATE '2014-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2014 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2014 (
 		CHECK ( log_time >= DATE '2014-01-01' AND log_time < DATE '2015-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2015 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2015 (
 		CHECK ( log_time >= DATE '2015-01-01' AND log_time < DATE '2016-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2016 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2016 (
 		CHECK ( log_time >= DATE '2016-01-01' AND log_time < DATE '2017-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2017 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2017 (
 		CHECK ( log_time >= DATE '2017-01-01' AND log_time < DATE '2018-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
-CREATE TABLE kloopzcm.cm_ci_relation_log_2018 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_relation_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_relation_log);
 
 
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2012 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2013 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2013 (
 		CHECK ( log_time >= DATE '2013-01-01' AND log_time < DATE '2014-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2014 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2014 (
 		CHECK ( log_time >= DATE '2014-01-01' AND log_time < DATE '2015-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2015 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2015 (
 		CHECK ( log_time >= DATE '2015-01-01' AND log_time < DATE '2016-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2016 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2016 (
 		CHECK ( log_time >= DATE '2016-01-01' AND log_time < DATE '2017-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2017 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2017 (
 		CHECK ( log_time >= DATE '2017-01-01' AND log_time < DATE '2018-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
-CREATE TABLE kloopzcm.cm_ci_attribute_log_2018 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_attribute_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_attribute_log);
 
 
-CREATE TABLE kloopzcm.cm_ci_log_2012 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2012 (
 		CHECK ( log_time >= DATE '2012-01-01' AND log_time < DATE '2013-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
-CREATE TABLE kloopzcm.cm_ci_log_2013 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2013 (
 		CHECK ( log_time >= DATE '2013-01-01' AND log_time < DATE '2014-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
-CREATE TABLE kloopzcm.cm_ci_log_2014 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2014 (
 		CHECK ( log_time >= DATE '2014-01-01' AND log_time < DATE '2015-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
-CREATE TABLE kloopzcm.cm_ci_log_2015 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2015 (
 		CHECK ( log_time >= DATE '2015-01-01' AND log_time < DATE '2016-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
-CREATE TABLE kloopzcm.cm_ci_log_2016 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2016 (
 		CHECK ( log_time >= DATE '2016-01-01' AND log_time < DATE '2017-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
-CREATE TABLE kloopzcm.cm_ci_log_2017 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2017 (
 		CHECK ( log_time >= DATE '2017-01-01' AND log_time < DATE '2018-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
-CREATE TABLE kloopzcm.cm_ci_log_2018 (
+CREATE TABLE IF NOT EXISTS kloopzcm.cm_ci_log_2018 (
 		CHECK ( log_time >= DATE '2018-01-01' AND log_time < DATE '2019-01-01' )
 ) INHERITS (kloopzcm.cm_ci_log);
 
