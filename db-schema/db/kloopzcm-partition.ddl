@@ -138,10 +138,10 @@ BEGIN
 	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2016 VALUES (NEW.*);
     ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
             NEW.log_time < DATE '2018-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2018 VALUES (NEW.*);
+	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2017 VALUES (NEW.*);
 	    ELSIF ( NEW.log_time >= DATE '2018-01-01' AND
             NEW.log_time < DATE '2019-01-01' ) THEN
-	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2017 VALUES (NEW.*);
+	INSERT INTO kloopzcm.cm_ci_relation_attr_log_2018 VALUES (NEW.*);
 
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_attr_log_insert() function!';
