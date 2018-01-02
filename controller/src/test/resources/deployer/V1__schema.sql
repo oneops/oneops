@@ -127,8 +127,7 @@ BEGIN
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
     INSERT INTO kloopzcm.cm_ci_attribute_log_2016 VALUES (NEW.*);
-    ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
-            NEW.log_time < DATE '2018-01-01' ) THEN
+    ELSIF ( NEW.log_time >= DATE '2017-01-01' ) THEN
     INSERT INTO kloopzcm.cm_ci_attribute_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_attribute_log_insert() function!';
@@ -164,11 +163,8 @@ BEGIN
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
     INSERT INTO kloopzcm.cm_ci_log_2016 VALUES (NEW.*);
-    ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
-            NEW.log_time < DATE '2018-01-01' ) THEN
+    ELSIF ( NEW.log_time >= DATE '2017-01-01') THEN
     INSERT INTO kloopzcm.cm_ci_log_2017 VALUES (NEW.*);
-    ELSE
-        RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_log_insert() function!';
     END IF;
     RETURN NULL;
 END;
@@ -201,8 +197,7 @@ BEGIN
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
     INSERT INTO kloopzcm.cm_ci_relation_attr_log_2016 VALUES (NEW.*);
-    ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
-            NEW.log_time < DATE '2018-01-01' ) THEN
+    ELSIF ( NEW.log_time >= DATE '2017-01-01') THEN
     INSERT INTO kloopzcm.cm_ci_relation_attr_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_attr_log_insert() function!';
@@ -238,8 +233,7 @@ BEGIN
     ELSIF ( NEW.log_time >= DATE '2016-01-01' AND
             NEW.log_time < DATE '2017-01-01' ) THEN
     INSERT INTO kloopzcm.cm_ci_relation_log_2016 VALUES (NEW.*);
-    ELSIF ( NEW.log_time >= DATE '2017-01-01' AND
-            NEW.log_time < DATE '2018-01-01' ) THEN
+    ELSIF ( NEW.log_time >= DATE '2017-01-01') THEN
     INSERT INTO kloopzcm.cm_ci_relation_log_2017 VALUES (NEW.*);
     ELSE
         RAISE EXCEPTION 'Date out of range.  Fix the cm_ci_relation_log_insert() function!';
@@ -2880,7 +2874,7 @@ ALTER TABLE cm_ci_attribute_log_2016 OWNER TO kloopzcm;
 --
 
 CREATE TABLE cm_ci_attribute_log_2017 (
-    CONSTRAINT cm_ci_attribute_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date) AND (log_time < '2018-01-01'::date)))
+    CONSTRAINT cm_ci_attribute_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date)))
 )
 INHERITS (cm_ci_attribute_log);
 
@@ -3001,7 +2995,7 @@ ALTER TABLE cm_ci_log_2016 OWNER TO kloopzcm;
 --
 
 CREATE TABLE cm_ci_log_2017 (
-    CONSTRAINT cm_ci_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date) AND (log_time < '2018-01-01'::date)))
+    CONSTRAINT cm_ci_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date)))
 )
 INHERITS (cm_ci_log);
 
@@ -3105,7 +3099,7 @@ ALTER TABLE cm_ci_relation_attr_log_2016 OWNER TO kloopzcm;
 --
 
 CREATE TABLE cm_ci_relation_attr_log_2017 (
-    CONSTRAINT cm_ci_relation_attr_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date) AND (log_time < '2018-01-01'::date)))
+    CONSTRAINT cm_ci_relation_attr_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date)))
 )
 INHERITS (cm_ci_relation_attr_log);
 
@@ -3225,7 +3219,7 @@ ALTER TABLE cm_ci_relation_log_2016 OWNER TO kloopzcm;
 --
 
 CREATE TABLE cm_ci_relation_log_2017 (
-    CONSTRAINT cm_ci_relation_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date) AND (log_time < '2018-01-01'::date)))
+    CONSTRAINT cm_ci_relation_log_2017_log_time_check CHECK (((log_time >= '2017-01-01'::date)))
 )
 INHERITS (cm_ci_relation_log);
 
