@@ -115,7 +115,7 @@ def gen_gemfile_and_install (gems, dsl, ostype, log_level)
       `gem source`
     end
     
-    cmd_to_patch_azure_blob_sdk = "cp /usr/local/share/gems/gems/azure-0.6.4/lib/azure/core/http/http_request.rb tmpfile;sed -e \"s/2012-02-12/2014-02-14/\" tmpfile > /usr/local/share/gems/gems/azure-0.6.4/lib/azure/core/http/http_request.rb"
+    cmd_to_patch_azure_blob_sdk = "sed -i -e's/2012-02-12/2014-02-14/' \"$(dirname `gem which azure`)/azure/core/http/http_request.rb\""
     system cmd_to_patch_azure_blob_sdk
 end
 
@@ -234,7 +234,18 @@ when "chef"
   if ostype =~ /windows/
     bindir = 'c:/opscode/chef/embedded/bin'
   else
-    bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
+    # Let's use custom ruby if it is available.
+    # This assume that ruby is installed at a fixed location
+    # TODO: need to externalize a lot of this to be dynamic
+    # base on a config file or something.
+    custom_ruby_bindir = '/home/app-user/runtimes/ruby/2.0.0-p648/bin'
+    if File.exist?("#{custom_ruby_bindir}/chef-solo")
+      bindir = custom_ruby_bindir
+      ENV['GEM_PATH'] = '/home/app-user/runtimes/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
+      ENV['PATH'] = "#{custom_ruby_bindir}:#{ENV['PATH']}"
+    else # fall back to old method
+      bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
+    end
   end
 
   if version.split('.')[0].to_i >= 12
