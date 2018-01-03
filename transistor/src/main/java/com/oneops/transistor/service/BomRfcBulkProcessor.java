@@ -34,12 +34,12 @@ import com.oneops.cms.exceptions.ExceptionConsolidator;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
+import org.apache.log4j.Logger;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
-import org.apache.log4j.Logger;
 
 import static com.oneops.cms.util.CmsConstants.*;
 
@@ -577,18 +577,14 @@ public class BomRfcBulkProcessor {
 
 		//hack for lb/fqdn update on replaced computes
 		for (CmsRfcCI rfc : replacedComputes) {
-			List<CmsCIRelation> depOns = pc.getBomRelations().stream()
-					.filter(r -> r.getRelationName().equals(BOM_DEPENDS_ON)).collect(Collectors.toList());
-			if (depOns != null) {
-				depOns.stream()
-                          .filter(r -> {
-                              String fromClassName = r.getFromCi().getCiClassName();
-                              return fromClassName.equals("bom.Lb") || fromClassName.equals("bom.Fqdn");
-                          })
-                          .forEach(r -> createDummyUpdateRfc(existingCiMap.get(r.getFromCiId()), releaseId, rfc.getExecOrder() + 1, rfc.getCreatedBy()));
-			}
+			pc.getBomRelations().stream()
+					.filter(r -> {
+						String fromClassName = r.getFromCi().getCiClassName();
+						return r.getRelationName().equals(BOM_DEPENDS_ON) && r.getToCiId() == rfc.getCiId() && (fromClassName.equals("bom.Lb") || fromClassName.equals("bom.Fqdn"));
+					})
+					.forEach(r -> createDummyUpdateRfc(existingCiMap.get(r.getFromCiId()), releaseId, rfc.getExecOrder() + 1, rfc.getCreatedBy()));
 		}
-
+		
 		if (!isPartial) {
 			for (CmsCIRelation existingRel : existingRels.getExistingRels(BOM_DEPENDS_ON)) {
 				if (!djRelGoids.contains(existingRel.getRelationGoid())
