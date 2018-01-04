@@ -46,6 +46,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
 
+/**
+ * Inductor AO/WO Unit tests.
+ */
 public class InductorTest {
 
   private final Gson gson = new Gson();
@@ -124,6 +127,17 @@ public class InductorTest {
   }
 
   @Test
+  public void testRemoteKitchenConfig() {
+    testKitchenConfig(remoteWo, true);
+    testWinKitchenConfig(remoteWo);
+  }
+
+  @Test
+  public void testLocalKitchenConfig() {
+    testKitchenConfig(localWo, false);
+  }
+
+  @Test
   public void testBomClass() {
     String bomPrefix = "bom\\.(.*\\.)*";
     String fqdnBomClass = bomPrefix + "Fqdn";
@@ -185,30 +199,6 @@ public class InductorTest {
     assertEquals(envValue, envVars.get(envName));
   }
 
-  @Test
-  public void testRemoteKitchenConfig() {
-    testKitchenConfig(remoteWo);
-  }
-
-  @Test
-  public void testLocalKitchenConfig() {
-    testKitchenConfig(localWo);
-  }
-
-  private void testKitchenConfig(String woString) {
-    CmsWorkOrderSimple wo = gson.fromJson(woString, CmsWorkOrderSimple.class);
-    Config cfg = new Config();
-    cfg.setCircuitDir("/opt/oneops/inductor/packer");
-    cfg.setIpAttribute("public_ip");
-    cfg.setEnv("");
-    cfg.init();
-
-    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
-    String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
-    Object yamlConfig = yaml.load(config);
-    assertNotNull("Invalid kitchen config.", yamlConfig);
-  }
-
   /**
    * This could be used for local testing, Need to add key and modify the user-app.json accordingly
    */
@@ -237,4 +227,51 @@ public class InductorTest {
     executor.runVerification(wo, mp);
   }
 
+  /**
+   * Helper method to test local/remote WO kitchen yaml config.
+   *
+   * @param woString wo string.
+   * @param remote <code>true</code> if the wo is for remote compute.
+   */
+  private void testKitchenConfig(String woString, boolean remote) {
+    CmsWorkOrderSimple wo = gson.fromJson(woString, CmsWorkOrderSimple.class);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
+    Object yamlConfig = yaml.load(config);
+
+    assertNotNull("Invalid kitchen config.", yamlConfig);
+    if (remote) {
+      assertTrue(config.contains("chef_solo_path: /usr/local/bin/chef-solo"));
+      assertTrue(config.contains("root_path: /tmp/kitchen"));
+      assertTrue(config.contains("ruby_bindir: /usr/bin"));
+      assertTrue(config.contains("root_path: /tmp/verifier-190494"));
+    }
+  }
+
+  private void testWinKitchenConfig(String woString) {
+    CmsWorkOrderSimple winWO = gson.fromJson(woString, CmsWorkOrderSimple.class);
+    winWO.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "M-WIN");
+
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    String config = executor.generateKitchenConfig(winWO, "/tmp/sshkey", "logkey");
+    Object winYaml = yaml.load(config);
+
+    assertNotNull("Invalid kitchen config.", winYaml);
+    assertTrue(config.contains("chef_solo_path: c:/opscode/chef/embedded/bin/chef-solo"));
+    assertTrue(config.contains("root_path: c:/tmp/kitchen"));
+    assertTrue(config.contains("ruby_bindir: c:/opscode/chef/embedded/bin"));
+    assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
+  }
 }

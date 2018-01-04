@@ -189,10 +189,11 @@ public class Config {
    * Pass additional args for test-kitchen
    * LOG_LEVEL (debug, info, warn, error, fatal)
    * e.g.  --log-level=LOG_LEVEL
-   * --no-color
+   *       --no-color
    */
   @Value("${verify.args:}")
   private String verifyArgs;
+
   /**
    * Env vars read from {@link #env}. This will get initialized in ${@link #init()}
    */

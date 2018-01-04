@@ -50,7 +50,9 @@ public class PlatformBomGenerationContext {
         Map<String, List<CmsCIRelation>> relationMap = cmProcessor.getCIRelationsNaked(manifestNsPath, null, null, null, null).stream()
                 .collect(Collectors.groupingBy(CmsCIRelation::getRelationName, Collectors.toList()));
 
-        List<Long> ids = relationMap.get(MANIFEST_REQUIRES).stream().map(CmsCIRelation::getToCiId).collect(Collectors.toList());
+        List<CmsCIRelation> cmsCIRelations = relationMap.get(MANIFEST_REQUIRES);
+        if (cmsCIRelations==null) cmsCIRelations = new ArrayList<>();
+        List<Long> ids = cmsCIRelations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         components = cmProcessor.getCiByIdList(ids);
         Map<Long, CmsCI> componentMap = components.stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
 

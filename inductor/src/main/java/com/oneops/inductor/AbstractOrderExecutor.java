@@ -41,15 +41,6 @@ import static java.lang.String.format;
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.route53.AmazonRoute53;
-import com.amazonaws.services.route53.AmazonRoute53Client;
-import com.amazonaws.services.route53.model.DelegationSet;
-import com.amazonaws.services.route53.model.GetHostedZoneRequest;
-import com.amazonaws.services.route53.model.GetHostedZoneResult;
-import com.amazonaws.services.route53.model.HostedZone;
-import com.amazonaws.services.route53.model.ListHostedZonesResult;
 import com.google.common.base.Joiner;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -556,87 +547,29 @@ public abstract class AbstractOrderExecutor {
     }
   }
 
-
   /**
-   * getAuthoritativeServersByCloudService: gets dns servers
+   * Returns the authoritative server for the given DNS zone. It queries the
+   * NS record using platform dig command.
    *
    * @param cloudService CmsCISimple
+   * @return list of authoritative servers. Empty if it cou;dn't find any.
    */
   protected List<String> getAuthoritativeServersByCloudService(
       CmsCISimple cloudService) {
 
-    String dnsZoneName = cloudService.getCiAttributes().get("zone");
-    List<String> nameservers = new ArrayList<>();
-
-    // aws use the api
-    if (cloudService.getCiClassName().endsWith("AWS")) {
-      AWSCredentials awsCredentials;
-      if (cloudService.getCiAttributes().containsKey("dns_key")) {
-        awsCredentials = new BasicAWSCredentials(cloudService
-            .getCiAttributes().get("dns_key"), cloudService
-            .getCiAttributes().get("dns_secret"));
-      } else {
-        awsCredentials = new BasicAWSCredentials(config.getDnsKey(),
-            config.getDnsSecret());
-      }
-      return getAuthoritativeServersWithAwsCreds(awsCredentials,
-          dnsZoneName);
-
-      // else use ns record
-    } else {
-
-      String dnsZone = cloudService.getCiAttributes().get("zone");
-      String[] digCmd = new String[]{"/usr/bin/dig", "+short", "NS",
-          dnsZone};
-      ProcessResult result = processRunner.executeProcessRetry(digCmd, "",
-          retryCount);
-      if (result.getResultCode() > 0) {
-        logger.error("dig +short NS " + dnsZone + " returned: "
-            + result.getStdErr());
-      }
-
-      if (!result.getStdOut().equalsIgnoreCase("")) {
-        nameservers = Arrays.asList(result.getStdOut().split("\n"));
-      }
-
-    }
-    return nameservers;
-  }
-
-  /**
-   * Gets dns servers
-   *
-   * @param awsCredentials AWSCredentials
-   * @param zoneDomainName zoneDomainName
-   * @return dns servers
-   */
-  private List<String> getAuthoritativeServersWithAwsCreds(
-      AWSCredentials awsCredentials, String zoneDomainName) {
-
-    if (!zoneDomainName.endsWith(".")) {
-      zoneDomainName += ".";
+    List<String> nameServers = new ArrayList<>();
+    String dnsZone = cloudService.getCiAttributes().get("zone");
+    String[] digCmd = new String[]{"/usr/bin/dig", "+short", "NS", dnsZone};
+    ProcessResult result = processRunner.executeProcessRetry(digCmd, "", retryCount);
+    if (result.getResultCode() > 0) {
+      logger.error("dig +short NS " + dnsZone + " returned: " + result.getStdErr());
     }
 
-    AmazonRoute53 route53 = new AmazonRoute53Client(awsCredentials);
-    ListHostedZonesResult result = route53.listHostedZones();
-    List<HostedZone> zones = result.getHostedZones();
-    List<String> dnsServers = new ArrayList<>();
-    for (int i = 0; i < zones.size(); i++) {
-      HostedZone hostedZone = zones.get(i);
-      logger.info("zone: " + hostedZone.getName());
-      if (hostedZone.getName().equalsIgnoreCase(zoneDomainName)) {
-        logger.info("matched zone");
-        GetHostedZoneResult zone = route53
-            .getHostedZone(new GetHostedZoneRequest()
-                .withId(hostedZone.getId().replace(
-                    "/hostedzone/", "")));
-        DelegationSet delegationSet = zone.getDelegationSet();
-        dnsServers = delegationSet.getNameServers();
-        break;
-      }
+    String res = result.getStdOut();
+    if (!res.equalsIgnoreCase("")) {
+      nameServers = Arrays.asList(res.split("\n"));
     }
-    logger.info("dnsServer: " + dnsServers.toString());
-    return dnsServers;
+    return nameServers;
   }
 
   /**
@@ -1042,6 +975,12 @@ public abstract class AbstractOrderExecutor {
   public String generateKitchenConfig(CmsWorkOrderSimpleBase wo, String sshKey, String logKey) {
     String inductorHome = config.getCircuitDir().replace("/packer", "");
     ST st = new ST(verifyTemplate);
+
+    boolean isWin = isWinCompute(wo);
+    String chefSolo = isWin ? "c:/opscode/chef/embedded/bin/chef-solo" : "/usr/local/bin/chef-solo";
+    String rubyBindir = isWin ? "c:/opscode/chef/embedded/bin" : "/usr/bin";
+    String provisionerPath = isWin ? "c:/tmp/kitchen" : "/tmp/kitchen";
+
     st.add("local", !isRemoteChefCall(wo));
     st.add("circuit_root", getCircuitDir(wo));
     st.add("inductor_home", inductorHome);
@@ -1050,7 +989,23 @@ public abstract class AbstractOrderExecutor {
     st.add("platform_name", "centos-7.1");
     st.add("user", ONEOPS_USER);
     st.add("ssh_key", sshKey);
+    st.add("windows", isWin);
+    st.add("chef_solo_path", chefSolo);
+    st.add("ruby_bindir", rubyBindir);
+    st.add("provisioner_root_path", provisionerPath);
+    st.add("verifier_root_path", getVerifierPath(wo));
     return st.render();
+  }
+
+  /**
+   * Returns the platform specific unique verifier path.
+   *
+   * @param wo wo/ao.
+   * @return path string.
+   */
+  private String getVerifierPath(CmsWorkOrderSimpleBase wo) {
+    String path = isWinCompute(wo) ? "c:/tmp/verifier" : "/tmp/verifier";
+    return String.format("%s-%s", path, wo.getRecordId());
   }
 
   /**
@@ -1086,11 +1041,6 @@ public abstract class AbstractOrderExecutor {
     if (config.isVerifyMode()) {
       String logKey = getLogKey(wo) + " verify -> ";
       long start = System.currentTimeMillis();
-
-      if (isWinCompute(wo)) {
-        logger.info(logKey + "Skipping verification for windows computes.");
-        return responseMap;
-      }
 
       if (config.isCloudStubbed(wo)) {
         logger.info(logKey + "Skipping verification for stubbed cloud.");
