@@ -1,31 +1,27 @@
 package com.oneops;
 
 import com.google.common.collect.Lists;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class Platform {
+public class Platform extends OneopsObject {
 
-  private String id;
   private String pack;
   private String packVersion;
   private String source;
   private String enable;
+  private int totalComputes;
+  private int totalCores;
   private List<String> links;
   private Map<String, String> variables;
   private Map<String, String> encryptedvariables;
   private Map<String, Component> components;
   private Map<String, String> configuration;
   private Map<String, Map<String, String>> scale;
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
+  private List<String> activeClouds = new ArrayList<>();
 
   public String getPack() {
     return pack;
@@ -117,4 +113,27 @@ public class Platform {
     this.scale = scale;
   }
 
+  public int getTotalComputes() {
+    return totalComputes;
+  }
+
+  public void setTotalComputes(int totalComputes) {
+    this.totalComputes = totalComputes;
+  }
+
+  public int getTotalCores() {
+    return totalCores;
+  }
+
+  public void setTotalCores(int totalCores) {
+    this.totalCores = totalCores;
+  }
+
+  public List<String> getActiveClouds() {
+    return activeClouds;
+  }
+
+  public void setActiveClouds(List<String> activeClouds) {
+    this.activeClouds = activeClouds;
+  }
 }
