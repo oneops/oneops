@@ -237,7 +237,7 @@ public class OneOpsYamlReaderTest {
     // Platform 0
     List<Platform> platforms = assembly.getPlatformList();
     Platform p0 = platforms.get(0);
-    assertEquals("platform-0", p0.getId());
+    assertEquals("platform-0", p0.getName());
     assertEquals("source/pack-platform-0", p0.getPack());
     assertEquals("1", p0.getPackVersion());
     // Links
@@ -262,7 +262,7 @@ public class OneOpsYamlReaderTest {
     assertEquals("platform-0-config-0-value", config.get("config-0"));
     assertEquals("platform-0-config-1-value", config.get("config-1"));
     // Platform 1
-    assertEquals("platform-1", platforms.get(1).getId());
+    assertEquals("platform-1", platforms.get(1).getName());
     assertEquals("1", platforms.get(1).getConfiguration().get("version"));
     List<Component> pcomps = platforms.get(1).getComponentList();
     // Attachment
@@ -275,7 +275,7 @@ public class OneOpsYamlReaderTest {
     // Environment
     List<Environment> environments = assembly.getEnvironmentList();
     Environment e0 = environments.get(0);
-    assertEquals("environment-0", e0.getId());
+    assertEquals("environment-0", e0.getName());
     assertTrue(e0.isGlobaldns());
     assertEquals("redundant", e0.getAvailability());
     //Environment global variable
@@ -285,7 +285,7 @@ public class OneOpsYamlReaderTest {
     //Environment platform
     List<Platform> environmentPlatforms = e0.getPlatformList();
     Platform ep0 = environmentPlatforms.get(0);
-    assertEquals("platform-1", ep0.getId());
+    assertEquals("platform-1", ep0.getName());
     assertEquals("false", ep0.getEnable());
 
     //auto-healing
