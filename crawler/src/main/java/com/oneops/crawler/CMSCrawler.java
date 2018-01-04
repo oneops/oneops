@@ -289,6 +289,9 @@ public class CMSCrawler {
     }
 
     private void updateCrawlEntry(Environment env) {
+        if (crawlerDbUserName == null || crawlerDbUrl == null || crawlerDbPassword == null) {
+            return;
+        }
         try (Connection conn = DriverManager.getConnection(crawlerDbUrl, crawlerDbUserName, crawlerDbPassword)) {
             DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
 
@@ -320,6 +323,7 @@ public class CMSCrawler {
     private class ShutdownHook extends Thread {
         @Override
         public void run() {
+            log.info("Shutdown requested");
             shutDownRequested = true;
         }
     }
