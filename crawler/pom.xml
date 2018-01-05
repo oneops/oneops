@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.oneops</groupId>
         <artifactId>oneops-parent</artifactId>
-        <version>18.01.03-6-SNAPSHOT</version>
+        <version>18.01.03-7-SNAPSHOT</version>
     </parent>
 
     <groupId>com.oneops.cms</groupId>
@@ -108,7 +106,7 @@
                                             <!-- All elements that are excluded from your schema
                                                  (A Java regular expression. Use the pipe to separate several expressions).
                                                  Excludes match before includes, i.e. excludes have a higher priority -->
-                                            <excludes></excludes>
+                                            <excludes />
                                         </database>
 
                                         <target>
@@ -132,7 +130,7 @@
                                     <!-- Configure the database connection here -->
                                     <jdbc>
                                         <driver>org.postgresql.Driver</driver>
-                                        <url></url>
+                                        <url />
                                         <user>postgres</user>
                                         <password>postgres</password>
                                     </jdbc>
@@ -152,7 +150,7 @@
 
                                             <!-- The database schema (or in the absence of schema support, in your RDBMS this
                                                  can be the owner, user, database name) to be generated -->
-                                            <inputSchema></inputSchema>
+                                            <inputSchema />
 
                                             <!-- All elements that are generated from your schema
                                                  (A Java regular expression. Use the pipe to separate several expressions)
