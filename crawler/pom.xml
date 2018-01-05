@@ -9,6 +9,7 @@
 
     <groupId>com.oneops.cms</groupId>
     <artifactId>crawler</artifactId>
+    <packaging>jar</packaging>
     <name>OneOps :: Crawler</name>
     <build>
         <plugins>
