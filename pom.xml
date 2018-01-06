@@ -112,7 +112,6 @@
     <module>db-schema</module>
     <module>oneops-packer</module>
     <module>oneops-model</module>
-    <module>crawler</module>
     <module>oneops-gslb</module>
   </modules>
   <dependencyManagement>
