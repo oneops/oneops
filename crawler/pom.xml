@@ -4,11 +4,13 @@
     <parent>
         <groupId>com.oneops</groupId>
         <artifactId>oneops-parent</artifactId>
-        <version>18.01.03-7-SNAPSHOT</version>
+        <version>18.01.03-8-SNAPSHOT</version>
     </parent>
 
     <groupId>com.oneops.cms</groupId>
     <artifactId>crawler</artifactId>
+    <packaging>jar</packaging>
+    <name>OneOps :: Crawler</name>
     <build>
         <plugins>
             <plugin>
