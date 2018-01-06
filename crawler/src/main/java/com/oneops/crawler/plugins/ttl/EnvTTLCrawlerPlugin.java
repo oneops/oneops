@@ -45,6 +45,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     private EnvTTLConfig config;
 
     private int totalComputesTTLed = 0;
+    private int notificationFrequencyDays = 0;
 
     public EnvTTLCrawlerPlugin() {
         readConfig();
@@ -108,6 +109,10 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         String configString =  System.getProperty("ttl.config");
         log.info("ttl config string: " + configString);
         config = new Gson().fromJson(configString, EnvTTLConfig.class);
+
+        String frequency = System.getProperty("ttl.notification.frequency.days", "0");
+        this.notificationFrequencyDays = Integer.valueOf(frequency);
+        log.info("Notification frequency days: " + notificationFrequencyDays);
     }
 
     @Override
@@ -119,9 +124,18 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             ttlRecord = new EnvironmentTTLRecord();
             ttlRecord.setEnvironment(env);
             EnvironmentTTLRecord existingRecord =
-                    (EnvironmentTTLRecord) searchDal.get("oottl", "environment", ttlRecord, "" + env.getId());
+                    (EnvironmentTTLRecord) searchDal.get("oottl",
+                            "environment", ttlRecord, "" + env.getId());
             if (existingRecord != null) {
                 log.info("Existing ttl record: " + new Gson().toJson(existingRecord));
+                if (existingRecord.getLastProcessedAt() != null
+                        && (System.currentTimeMillis() - existingRecord.getLastProcessedAt().getTime()
+                        < notificationFrequencyDays * 24 * 60 * 60 * 1000)) {
+                    //its been less than configured notification interval time since last processed this env
+                    log.info("Not yet " + notificationFrequencyDays
+                            + " day(s) since last processed. Skipping this env: " + env.getPath());
+                    return;
+                }
             }
             boolean envHasComputes = false;
             for (Platform platform : env.getPlatforms().values()) {
@@ -154,18 +168,19 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     log.warn("!!!!!! TTL Plugin is Enabled. Doing a force deploy !!!!!!");
                     ooFacade.forceDeploy(env, ttlBotName);
                 }
-            } else if (envHasComputes) { //since no disable/destroy deployment happend, notify env owner and save to ES
+            } else if (envHasComputes) { //since no disable/destroy deployment happened, notify env owner and save to ES
                 if (ttlEnabled) {
                     sendTtlNotification(ttlRecord);
                 }
-
                 if (existingRecord != null) {
                     ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
                 }
             }
             if (ttlRecord != null && envHasComputes) {
                 setDates(ttlRecord, existingRecord);
-                if (saveToES) searchDal.push("oottl", "environment", ttlRecord, "" + env.getId());
+                if (saveToES) {
+                    searchDal.push("oottl", "environment", ttlRecord, "" + env.getId());
+                }
             }
         }
     }

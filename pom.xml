@@ -106,12 +106,12 @@
     <module>transistor</module>
     <module>transmitter</module>
     <module>batch</module>
+    <module>crawler</module>
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
     <module>oneops-packer</module>
     <module>oneops-model</module>
-    <module>crawler</module>
   </modules>
   <dependencyManagement>
     <dependencies>
