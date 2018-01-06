@@ -112,6 +112,7 @@
     <module>oneops-packer</module>
     <module>oneops-model</module>
     <module>crawler</module>
+    <module>oneops-gslb</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -504,6 +505,11 @@
       <dependency>
         <groupId>com.oneops</groupId>
         <artifactId>oneops-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-gslb</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -1,0 +1,88 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.oneops</groupId>
+    <artifactId>oneops-parent</artifactId>
+    <version>18.01.03-7-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>oneops-gslb</artifactId>
+  <packaging>jar</packaging>
+  <name>OneOps gslb</name>
+  
+   <properties>
+     <junit.version>4.7</junit.version>
+     <slf4j.version>1.6.1</slf4j.version>
+     <retrofit.version>2.3.0</retrofit.version>
+   </properties>
+  
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-log4j12</artifactId>
+        <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.retrofit2</groupId>
+      <artifactId>retrofit</artifactId>
+      <version>${retrofit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.retrofit2</groupId>
+      <artifactId>converter-gson</artifactId>
+      <version>${retrofit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-context</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.oneops</groupId>
+      <artifactId>oneops-model</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>torbit-client</finalName>
+    <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <filters>                         
+                <filter>                             
+                  <artifact>*:*</artifact>                           
+                  <excludes>                               
+                    <exclude>META-INF/*.SF</exclude>                             
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>           
+                  </excludes>                 
+                </filter>
+              </filters>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
