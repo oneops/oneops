@@ -12,7 +12,7 @@ flows:
     - echo "Running build for $GITHUB_PR_URL"
     - call: versionsCheck
     #- (name Maven build) mvn clean install
-    - (name Maven Wrapper Build) ./mvnw clean package -pl adapter,amq-plugin,antenna,cms-admin,cmsdal,controller,daq,display,inductor,oo-commons,opamp,search,sensor,transistor,transmitter,batch,oneops-admin,db-schema,oneops-model 
+    - (name Maven Wrapper Build) ./mvnw clean package -pl adapter,amq-plugin,antenna,cms-admin,cmsdal,controller,daq,display,inductor,oo-commons,opamp,search,sensor,transistor,transmitter,batch,oneops-admin,db-schema,oneops-model,crawler 
 
   versionsCheck:
     - (name JDK Version) java -version
