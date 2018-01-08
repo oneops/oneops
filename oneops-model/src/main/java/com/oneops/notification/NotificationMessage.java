@@ -37,7 +37,7 @@ public class NotificationMessage implements Serializable {
   private String templateParams;
   private String text;
   private String nsPath;
-  private Map<String, String> payload = new HashMap<>();
+  private Map<String, Object> payload = new HashMap<>();
   private long timestamp;
   private String environmentProfileName;
   private String adminStatus;
@@ -55,15 +55,19 @@ public class NotificationMessage implements Serializable {
     return prefix;
   }
 
-  public Map<String, String> getPayload() {
+  public Map<String, Object> getPayload() {
     return payload;
   }
+  
+  public String getPayloadString(String name){
+    return String.valueOf(payload.get(name));
+  }
 
-  public void putPayloadEntry(String name, String value) {
+  public void putPayloadEntry(String name, Object value) {
     this.payload.put(name, value);
   }
 
-  public void putPayloadEntries(Map<String, String> payloadEntries) {
+  public void putPayloadEntries(Map<String, Object> payloadEntries) {
     this.payload.putAll(payloadEntries);
   }
 

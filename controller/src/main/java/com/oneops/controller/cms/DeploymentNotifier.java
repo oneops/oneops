@@ -16,6 +16,7 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.notification.NotificationMessage;
 import com.oneops.notification.NotificationSeverity;
 import com.oneops.notification.NotificationType;
@@ -33,8 +34,9 @@ import org.apache.log4j.Logger;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
+import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_PENDING;
 
 
 public class DeploymentNotifier {
@@ -52,7 +54,7 @@ public class DeploymentNotifier {
     protected void sendDpmtNotification(CmsDeployment dpmt) {
         try {
             if (dpmt.getDeploymentState().equalsIgnoreCase(CMSClient.FAILED)) {
-                Map<String, String> payloadEntries = new HashMap<String, String>();
+                Map<String, Object> payloadEntries = new HashMap<>();
                 try {
                     CmsDpmtRecord[] drs = restTemplate.getForObject(serviceUrl + "/dj/simple/deployments/{deploymentId}/cis?state=failed", CmsDpmtRecord[].class, dpmt.getDeploymentId());
                     if (drs != null) {
@@ -74,8 +76,6 @@ public class DeploymentNotifier {
                 sendDeploymentNotification(dpmt, "Deployment started by "
                                 + (StringUtils.isBlank(dpmt.getUpdatedBy()) ? dpmt.getCreatedBy() : dpmt.getUpdatedBy()),
                         createDeploymentNotificationText(dpmt), NotificationSeverity.info, null);
-            } else {
-                return;
             }
         } catch (Exception e) {
             //we don't want to end-up with stuck deployment if the issue with sending notification, just log it and move on
@@ -97,7 +97,7 @@ public class DeploymentNotifier {
     }
 
     public void sendDeploymentNotification(CmsDeployment dpmt, String subject, String text,
-                                           NotificationSeverity severity, Map<String, String> payloadEntries) {
+                                           NotificationSeverity severity, Map<String, Object> payloadEntries) {
         NotificationMessage notify = new NotificationMessage();
         notify.setType(NotificationType.deployment);
         notify.setCmsId(dpmt.getDeploymentId());
@@ -116,6 +116,12 @@ public class DeploymentNotifier {
         notify.getPayload().put("ops", dpmt.getOps());
         if (payloadEntries != null) {
             notify.getPayload().putAll(payloadEntries);
+        }
+
+        if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PENDING)) {
+            CmsDpmtApproval[] approvals = restTemplate.getForObject(serviceUrl + "/dj/simple/approvals?deploymentId={deploymentId}", CmsDpmtApproval[].class, dpmt.getDeploymentId());
+            List<CmsDpmtApproval> list = Arrays.asList(approvals);
+            notify.getPayload().put("approvals", list);
         }
         antennaClient.executeAsync(notify);
     }
@@ -140,7 +146,7 @@ public class DeploymentNotifier {
             notify.setTimestamp(System.currentTimeMillis());
 
             if (proc.getArglist() != null) {
-                Map<String, String> payloadEntries = new HashMap<String, String>();
+                Map<String, Object> payloadEntries = new HashMap<>();
                 payloadEntries.put("repeatCount", String.valueOf(proc.getArglist()));
                 notify.putPayloadEntries(payloadEntries);
             }
