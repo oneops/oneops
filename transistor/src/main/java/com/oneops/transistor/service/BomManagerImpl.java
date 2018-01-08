@@ -46,8 +46,9 @@ public class BomManagerImpl implements BomManager {
 	private static final Logger logger = Logger.getLogger(BomManagerImpl.class);
 
 	private CmsCmProcessor cmProcessor;
-	private CmsRfcProcessor rfcProcessor;
-	private BomRfcBulkProcessor bomRfcProcessor;
+	private CmsRfcProcessor manifestRfcProcessor;
+	private CmsRfcProcessor bomRfcProcessor;
+	private BomRfcBulkProcessor bomGenerationProcessor;
 	private TransUtil trUtil;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
@@ -72,12 +73,15 @@ public class BomManagerImpl implements BomManager {
 		this.cmProcessor = cmProcessor;
 	}
 
-	public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
-		this.rfcProcessor = rfcProcessor;
+	public void setManifestRfcProcessor(CmsRfcProcessor manifestRfcProcessor) {
+		this.manifestRfcProcessor = manifestRfcProcessor;
+	}
+	public void setBomRfcProcessor(CmsRfcProcessor bomRfcProcessor) {
+		this.bomRfcProcessor = bomRfcProcessor;
 	}
 
-	public void setBomRfcProcessor(BomRfcBulkProcessor bomRfcProcessor) {
-		this.bomRfcProcessor = bomRfcProcessor;
+	public void setBomGenerationProcessor(BomRfcBulkProcessor bomGenerationProcessor) {
+		this.bomGenerationProcessor = bomGenerationProcessor;
 	}
 
 	public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
@@ -85,28 +89,28 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
-		long releaseId = generateBom(envId, userId, excludePlats, desc, commit);
-		if (releaseId > 0) {
-			return submitDeployment(releaseId, userId, desc);
-		} else {
-			return 0;
-		}
+	public long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
+		CmsRelease bomRelease = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
+		if (bomRelease == null) return 0;
+
+		dpmt.setNsPath(bomRelease.getNsPath());
+		dpmt.setReleaseId(bomRelease.getReleaseId());
+		dpmt.setCreatedBy(userId);
+		return dpmtProcessor.deployRelease(dpmt).getDeploymentId();
 	}
 
 	@Override
 	public long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
-		return generateBomForClouds(envId, userId, excludePlats, desc, commit);
+		CmsRelease bomRelease =  generateBomForClouds(envId, userId, excludePlats, desc, commit);
+		return bomRelease == null ? 0 : bomRelease.getReleaseId();
 	}
 
-	private long generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+	private CmsRelease generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		long startTime = System.currentTimeMillis();
 
-		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, excludePlats, userId, cmProcessor, cmsUtil, rfcProcessor);
+		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, excludePlats, userId, cmProcessor, cmsUtil, bomRfcProcessor);
 		String manifestNsPath = context.getManifestNsPath();
 		String bomNsPath = context.getBomNsPath();
-
-		check4openDeployment(bomNsPath);
 
 		trUtil.verifyAndCreateNS(bomNsPath);
 		trUtil.lockNS(bomNsPath);
@@ -117,11 +121,11 @@ public class BomManagerImpl implements BomManager {
 		}
 
 		//if we have an open bom release then return the release id
-		List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
+		List<CmsRelease> bomReleases = bomRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 		if (bomReleases.size() > 0) {
-			long bomReleaseId = bomReleases.get(0).getReleaseId();
-			logger.info("Existing open bom release " + bomReleaseId + " found, returning it");
-			return bomReleaseId;
+			CmsRelease bomRelease = bomReleases.get(0);
+			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
+			return bomRelease;
 		}
 
 		context.load();
@@ -131,19 +135,20 @@ public class BomManagerImpl implements BomManager {
 
 		long rfcCiCount = 0;
 		long rfcRelCount = 0;
-		long releaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "open");
+		CmsRelease bomRelease = updateParentReleaseId(bomNsPath, manifestNsPath, "open");
+		long releaseId = bomRelease == null ? 0 : bomRelease.getReleaseId();
 		if (releaseId > 0) {
-			rfcProcessor.brushExecOrder(releaseId);
-			rfcCiCount = rfcProcessor.getRfcCiCount(releaseId);
-			rfcRelCount = rfcProcessor.getRfcRelationCount(releaseId);
+			bomRfcProcessor.brushExecOrder(releaseId);
+			rfcCiCount = bomRfcProcessor.getRfcCiCount(releaseId);
+			rfcRelCount = bomRfcProcessor.getRfcRelationCount(releaseId);
 
 //			if (logger.isInfoEnabled()) {
 			if (logger.isDebugEnabled()) {
-				String rfcs = rfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
+				String rfcs = bomRfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
 						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getCiClassName() + " !! " + rfc.getCiName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
 						.sorted(String::compareTo)
 						.collect(Collectors.joining("\n", "", "\n"));
-				rfcs = rfcProcessor.getRfcRelationBy3(releaseId, true, null).stream()
+				rfcs = bomRfcProcessor.getRfcRelationBy3(releaseId, true, null).stream()
 						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size() + " -- " + rfc.getComments())
 						.sorted(String::compareTo)
 						.collect(Collectors.joining("\n", rfcs, ""));
@@ -153,7 +158,7 @@ public class BomManagerImpl implements BomManager {
 
 			if (rfcCiCount == 0) {
 				logger.info("No release because rfc count is 0. Cleaning up release.");
-				rfcProcessor.deleteRelease(releaseId);
+				bomRfcProcessor.deleteRelease(releaseId);
 			}
 		}
 		else {
@@ -162,11 +167,11 @@ public class BomManagerImpl implements BomManager {
 				cmProcessor.deleteCI(localVar.getCiId(), true, userId);
 			}
 			//if there is nothing to deploy update parent release on latest closed bom release
-			getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "closed");
+			updateParentReleaseId(bomNsPath, manifestNsPath, "closed");
 		}
 
 		logger.info(bomNsPath + " >>> Generated BOM in " + (System.currentTimeMillis() - startTime) + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
-		return releaseId;
+		return bomRelease;
 	}
 
 	private int generateBomForActiveClouds(EnvBomGenerationContext context) {
@@ -215,9 +220,9 @@ public class BomManagerImpl implements BomManager {
 
 								int maxExecOrder;
 								if (context.getDisabledPlatformIds().contains(platform.getCiId()) || platform.getCiState().equalsIgnoreCase("pending_deletion")) {
-									maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
+									maxExecOrder = bomGenerationProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
 								} else {
-									maxExecOrder = bomRfcProcessor.processManifestPlatform(context, platformContext, platformCloudRel, platExecOrder, true);
+									maxExecOrder = bomGenerationProcessor.processManifestPlatform(context, platformContext, platformCloudRel, platExecOrder, true);
 								}
 								stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
 								thisPlatMaxExecOrder = (maxExecOrder > thisPlatMaxExecOrder) ? maxExecOrder : thisPlatMaxExecOrder;
@@ -338,7 +343,7 @@ public class BomManagerImpl implements BomManager {
 							for (CmsCIRelation platformCloudRel : orderCloud) {
 								CmsCIRelationAttribute adminstatus = platformCloudRel.getAttribute("adminstatus");
 								if (adminstatus != null && CmsConstants.CLOUD_STATE_OFFLINE.equals(adminstatus.getDjValue())) {
-									int maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, context.getPlatformContext(platform), platformCloudRel, platExecOrder);
+									int maxExecOrder = bomGenerationProcessor.deleteManifestPlatform(context, context.getPlatformContext(platform), platformCloudRel, platExecOrder);
 									stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
 								}
 							}
@@ -386,7 +391,7 @@ public class BomManagerImpl implements BomManager {
 
 	@Override
 	public long submitDeployment(long releaseId, String userId, String desc){
-		CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
+		CmsRelease bomRelease = bomRfcProcessor.getReleaseById(releaseId);
 		CmsDeployment dpmt = new CmsDeployment();
 		dpmt.setNsPath(bomRelease.getNsPath());
 		dpmt.setReleaseId(bomRelease.getReleaseId());
@@ -399,16 +404,15 @@ public class BomManagerImpl implements BomManager {
 		return newDpmt.getDeploymentId();
 	}
 
-	private long getPopulateParentAndGetReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
-		List<CmsRelease> releases = rfcProcessor.getLatestRelease(nsPath, bomReleaseState);
-		if (releases.size() >0) {
-			CmsRelease bomRelease = releases.get(0);
-			List<CmsRelease> manifestReleases = rfcProcessor.getLatestRelease(manifestNsPath, "closed");
-			if (manifestReleases.size()>0) bomRelease.setParentReleaseId(manifestReleases.get(0).getReleaseId());
-			rfcProcessor.updateRelease(bomRelease);
-			return bomRelease.getReleaseId();
-		}
-		return 0;
+	private CmsRelease updateParentReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
+		List<CmsRelease> releases = bomRfcProcessor.getLatestRelease(nsPath, bomReleaseState);
+		if (releases.size() == 0) return null;
+
+		CmsRelease bomRelease = releases.get(0);
+		List<CmsRelease> manifestReleases = manifestRfcProcessor.getLatestRelease(manifestNsPath, "closed");
+		if (manifestReleases.size() > 0) bomRelease.setParentReleaseId(manifestReleases.get(0).getReleaseId());
+		bomRfcProcessor.updateRelease(bomRelease);
+		return bomRelease;
 	}
 
 	Map<Integer, List<CmsCI>> getOrderedPlatforms(EnvBomGenerationContext context) {
@@ -461,9 +465,9 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	private void commitManifestRelease(String manifestNsPath, String bomNsPath, String userId, String desc) {
-		List<CmsRelease> manifestReleases = rfcProcessor.getReleaseBy3(manifestNsPath, null, "open");
+		List<CmsRelease> manifestReleases = manifestRfcProcessor.getReleaseBy3(manifestNsPath, null, "open");
 		for (CmsRelease release : manifestReleases) {
-			rfcProcessor.commitRelease(release.getReleaseId(), true, null,false,userId, desc);
+			manifestRfcProcessor.commitRelease(release.getReleaseId(), true, null,false,userId, desc);
 		}
 		// now we have a special case for the LinksTo relations
 		// since nothing is really deleted but just marked as pending deletion until the bom is processed
@@ -475,11 +479,11 @@ public class BomManagerImpl implements BomManager {
 		}
 
 		//if we have new manifest release - discard open bom release
-		if (manifestReleases.size()>0) {
-			List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
+		if (manifestReleases.size() > 0) {
+			List<CmsRelease> bomReleases = manifestRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 			for (CmsRelease bomRel : bomReleases) {
 				bomRel.setReleaseState("canceled");
-				rfcProcessor.updateRelease(bomRel);
+				manifestRfcProcessor.updateRelease(bomRel);
 			}
 		}
 	}

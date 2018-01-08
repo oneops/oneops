@@ -1,20 +1,18 @@
-<% has_transition = has_transition?(@assembly.ciId) %>
 <% content_for :deploy_action do %>
   <ul class="status-actions">
     <li>
-      <% button = has_transition ? button(icon('check', 'Deploy'), nil, 'success') : button('View Deployment Plan', nil, 'primary')%>
-      <%= link_busy(button,
-                    :url    => new_assembly_transition_environment_deployment_path(@assembly, @environment),
+      <%= link_busy(button(icon(site_icon(:deployment), 'Deployment Plan'), nil, 'primary'),
+                    :url    => bom_assembly_transition_environment_deployments_path(@assembly, @environment),
                     :method => :get,
                     :busy   => 'Retrieving deployment plan...') %>
     </li>
   </ul>
 <% end %>
 <% if @environment.ciState == 'locked' %>
-  <div class="marker"><%= status_marker('deployment', 'generating', 'label-info') %></div>
+  <div class="marker"><%= status_marker('deployment', 'compiling', 'label-info') %></div>
   <div class="description">
     <ul>
-      <li><%= icon('info-circle', ' ', 'fa-fw') %>You must wait till deployment plan is generated before deploying</li>
+      <li><%= icon('info-circle', ' ', 'fa-fw') %>Deployment compilation is in progress. Deployment will start once compilation is done.</li>
     </ul>
     <%= yield :deploy_action %>
   </div>
@@ -41,12 +39,12 @@
     </ul>
     <ul class="status-actions">
       <li>
-        <%= link_busy(button('View Deployment', nil, 'primary'),
+        <%= link_busy(button(icon(site_icon(:deployment), 'View Deployment'), nil, 'primary'),
                       :url    => edit_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
                       :method => :get,
                       :busy   => 'Retrieving deployment plan...') %>
       </li>
-      <% if has_transition %>
+      <% if has_transition?(@assembly.ciId) %>
         <% if @deployment.deploymentState == 'active' %>
           <li><%= render 'transition/deployments/action', :action => 'pause' %></li>
         <% elsif @deployment.deploymentState == 'failed' %>
@@ -55,11 +53,13 @@
         <% elsif @deployment.deploymentState == 'paused' %>
           <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
           <li><%= render 'transition/deployments/action', :action => 'resume' %></li>
+        <% elsif @deployment.deploymentState == 'pending' %>
+          <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
         <% end %>
       <% end %>
     </ul>
   </div>
-<% elsif @bom_release %>
+<% elsif @environment.ciState == 'replace' || @bom_release # Second condition (open bom release without deployment)should not really happen but... %>
   <%= render 'status_deployment_pending' %>
 <% elsif @deployment %>
   <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
@@ -69,7 +69,7 @@
         <%= icon('check', ' ', 'fa-fw') %>Last deployment <%= @deployment.deploymentId %> <%= @deployment.deploymentState %>
         <strong><%= time_ago_in_words(@deployment.updated_timestamp) %></strong>
       </li>
-      <li><%= icon('user', ' ', 'fa-fw') %>Deployed by <%= highlight(@deployment.createdBy) %></li>
+      <li><%= icon('user', ' ', 'fa-fw') %>Deployed by <b><%= @deployment.createdBy %></b></li>
       <li><%= icon('clock-o', ' ', 'fa-fw') %>Duration of last deployment was
         <strong><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</strong>
       </li>

@@ -142,6 +142,39 @@ class Transistor < ActiveResource::Base
     end
   end
 
+  def self.deploy(environent_id, deployment, exclude)
+    begin
+      params = {:deployment => deployment, :exclude => exclude}
+      exit_code = JSON.parse(post("environments/#{environent_id}/deploy", {}, params.to_json).body)['exit_code']
+      return exit_code == 0
+    rescue Exception => e
+      message = handle_exception(e, "Failed to deploy environment '#{environent_id}' with #{deployment}.")
+      return nil, message
+    end
+  end
+
+  def self.preview_bom(environent_id, opts = {:commit => false})
+    begin
+      data = JSON.parse(post("environments/#{environent_id}/deployments/preview", {}, opts.to_json).body)
+      release  = data['release']
+      data['release'] = Cms::ReleaseBom.new(release) if release
+      rfcs = data['rfcs']
+      if rfcs
+        cis = rfcs['cis']
+        rfcs['cis'] = cis ? cis.map {|rfc| Cms::RfcCi.new(rfc, true)} : []
+        relations = rfcs['relations']
+        rfcs['relations'] = relations ? relations.map {|rfc| Cms::RfcRelation.new(rfc, true)} : []
+      else
+        data['rfcs'] = {'cis' => [], 'relations' => []}
+      end
+
+      return data, nil
+    rescue Exception => e
+      message = handle_exception(e, "Failed to preview bom for environment '#{environent_id}'")
+      return nil, message
+    end
+  end
+
   def self.discard_manifest(environent_id)
     begin
       return JSON.parse(put("environments/#{environent_id}/manifest/discard", {}, {}.to_json).body)['releaseId']
@@ -281,14 +314,6 @@ class Transistor < ActiveResource::Base
       return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/#{'estimated_' if pending}cost#{'_data' if details}"), nil
     rescue Exception => e
       return nil, handle_exception(e, "Failed to get cost for environment #{env.ciId} :")
-    end
-  end
-
-  def self.deployment_plan_preview(env, *flags)
-    begin
-      return get("environments/#{env.respond_to?(:ciId) ? env.ciId : env}/deployments/preview?#{flags.map {|f| "#{f}=true"}.join('&')}"), nil
-    rescue Exception => e
-      return nil, handle_exception(e, "Failed to get deployment plan preview for environment #{env.ciId} :")
     end
   end
 

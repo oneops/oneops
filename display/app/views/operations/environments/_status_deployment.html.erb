@@ -1,39 +1,18 @@
 <% has_transition = has_transition?(@assembly.ciId) %>
-<% content_for :force_deploy_action do %>
-  <% if has_transition %>
-    <ul class="status-actions">
-      <li>
-        <% platform_selection = capture do %>
-          <%= render 'transition/select_deploy_platforms', :platforms => @platforms.map(&:toCi) %>
-        <% end %>
-        <%= link_confirm_busy(button('Force Deploy', nil, 'inverse'),
-                              :url     => force_deploy_assembly_transition_environment_path(@assembly, @environment),
-                              :name    => 'commit_and_deploy',
-                              :method  => :post,
-                              :confirm => 'Force Deploy?',
-                              :body    => platform_selection,
-                              :with    => "'exclude_platforms='+deploy_platform_exclude_list()",
-                              :busy    => 'Preparing to deploy...') %>
-      </li>
-    </ul>
-  <% end %>
-<% end %>
 <% content_for :deploy_action do %>
-  <% if has_transition %>
-    <ul class="status-actions">
-      <li>
-        <%= link_busy(button(icon('check', 'Deploy'), nil, 'success'),
-                      :url    => new_assembly_transition_environment_deployment_path(@assembly, @environment),
-                      :method => :get,
-                      :busy   => 'Retrieving deployment plan...') %>
-      </li>
-    </ul>
-  <% end %>
+  <ul class="status-actions">
+    <li>
+      <%= link_busy(button(icon(site_icon(:deployment), 'Deployment Plan'), nil, 'primary'),
+                    :url    => bom_assembly_transition_environment_deployments_path(@assembly, @environment),
+                    :method => :get,
+                    :busy   => 'Retrieving deployment plan...') %>
+    </li>
+  </ul>
 <% end %>
 <% instance_count = @platform_instance_counts.values.sum %>
 <li class="status-marker">
   <% if @environment.ciState == 'locked' %>
-    <div class="marker"><%= status_marker('deployment', 'generating', 'label-info') %></div>
+    <div class="marker"><%= status_marker('deployment', 'compiling', 'label-info') %></div>
     <div class="description">
       <ul>
         <li><%= icon('info-circle', ' ', 'fa-fw') %>You must wait till deployment plan is generated before deploying</li>
@@ -64,7 +43,7 @@
       </ul>
       <ul class="status-actions">
         <li>
-          <%= link_busy(button('View Deployment', nil, 'primary'),
+          <%= link_busy(button(icon(site_icon(:deployment), 'View Deployment'), nil, 'primary'),
                         :url    => edit_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
                         :method => :get,
                         :busy   => 'Retrieving deployment plan...') %>
@@ -78,12 +57,14 @@
           <% elsif @deployment.deploymentState == 'paused' %>
             <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
             <li><%= render 'transition/deployments/action', :action => 'resume' %></li>
+          <% elsif @deployment.deploymentState == 'pending' %>
+            <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
           <% end %>
         <% end %>
       </ul>
     </div>
-  <% elsif @bom_release %>
-    <%= render 'transition/environments/status_deployment_pending' %>
+<% elsif @environment.ciState == 'replace' || @bom_release # Second condition (open bom release without deployment)should not really happen but... %>
+  <%= render 'transition/environments/status_deployment_pending' %>
   <% elsif @deployment %>
     <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
     <div class="description">
@@ -97,19 +78,28 @@
           <%= icon('clock-o', ' ', 'fa-fw') %>Duration of last deployment was
           <strong><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</strong>
         </li>
+        <li><%= icon('th-list', ' ', 'fa-fw') %><%= link_to(highlight('View', 'info'), assembly_transition_environment_path(@assembly, @environment, :anchor => 'timeline/timeline_list/filter::type=deployment')) %> history of deployments</li>
         <li><%= icon('check-circle-o',' ', 'fa-fw') %>Environment has total of <%= highlight(instance_count, 'info') %> deployed instances</li>
       </ul>
-      <%= yield :force_deploy_action %>
+      <% if has_transition %>
+        <ul class="status-actions">
+          <li>
+            <% platform_selection = capture do %>
+              <%= render 'transition/select_deploy_platforms', :platforms => @platforms.map(&:toCi) %>
+            <% end %>
+            <%= link_confirm_busy(button('Force Deploy', nil, 'inverse'),
+                                  :url     => bom_assembly_transition_environment_deployments_path(@assembly, @environment),
+                                  :name    => 'commit_and_deploy',
+                                  :method  => :post,
+                                  :confirm => 'Force Deploy?',
+                                  :body    => platform_selection,
+                                  :with    => "'commit=false&exclude_platforms='+deploy_platform_exclude_list()",
+                                  :busy    => 'Preparing to deploy...') %>
+          </li>
+        </ul>
+      <% end %>
     </div>
   <% else %>
     <div class="marker"><%= status_marker('deployment', 'none', 'label') %></div>
-    <div class="description">
-      <% if @release && @release.releaseState == 'closed' %>
-        <ul>
-          <li><%= icon('exclamation-triangle', ' ', 'fa-fw') %>Environment needs a deployment</li>
-        </ul>
-      <% end %>
-      <%= yield :force_deploy_action %>
-    </div>
   <% end %>
 </li>

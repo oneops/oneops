@@ -262,10 +262,12 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
+  # TODO deprected - use deployments_controller#bom for in-memory bom generation and preview
   def commit
     generate_bom(true)
   end
 
+  # TODO deprected - use deployments_controller#bom for in-memory bom generation and preview
   def force_deploy
     generate_bom(false)
   end
