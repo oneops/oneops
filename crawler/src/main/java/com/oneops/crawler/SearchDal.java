@@ -2,6 +2,7 @@ package com.oneops.crawler;
 
 import com.github.kevinsawicki.http.HttpRequest;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,8 +11,10 @@ import java.io.Serializable;
 public class SearchDal {
     private String esHost ;
     private final Logger log = LoggerFactory.getLogger(getClass());
+    Gson gson = null;
 
     public SearchDal() {
+        gson = new GsonBuilder().create();
         readConfig();
     }
 
@@ -48,7 +51,7 @@ public class SearchDal {
         }
         String response = HttpRequest.put("http://" + esHost
                 + ":9200/" + indexName + "/" + type + "/" + id)
-                .contentType("application/json").send(new Gson().toJson(object))
+                .contentType("application/json").send(gson.toJson(object))
                 .body();
     }
 
@@ -58,8 +61,8 @@ public class SearchDal {
             return null;
         }
         String response = HttpRequest.get("http://" + esHost
-                + ":9200/" + indexName + "/" + type + "/" + id)
+                + ":9200/" + indexName + "/" + type + "/" + id + "/_source")
                 .contentType("application/json").body();
-        return new Gson().fromJson(response, object.getClass());
+        return gson.fromJson(response, object.getClass());
     }
 }
