@@ -77,6 +77,10 @@ public class TorbitClient {
     };
   }
 
+  public void setTorbit(TorbitApi torbit) {
+    this.torbit = torbit;
+  }
+
   public TorbitApi getTorbit() {
     return torbit;
   }

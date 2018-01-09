@@ -98,7 +98,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return Arrays.asList(FQDN_CLASS);
   }
 
-  private ConcurrentMap<String, Cloud> cloudMap = new ConcurrentHashMap<>();
+  ConcurrentMap<String, Cloud> cloudMap = new ConcurrentHashMap<>();
 
   @Override
   public Response execute(CmsWorkOrderSimple wo) {
@@ -123,7 +123,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return false;
   }
 
-  private TorbitConfig getTorbitConfig(CmsWorkOrderSimple wo) {
+  TorbitConfig getTorbitConfig(CmsWorkOrderSimple wo) {
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
     if (services != null && services.containsKey(GDNS_SERVICE)) {
       Map<String, CmsCISimple> gdnsService = services.get(GDNS_SERVICE);
@@ -299,11 +299,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
       logger.info(context.logKey + "create MTDHost response  " + hostResponse);
     }
     if (hostResponse != null) {
-      updateWoResult(wo, mtdBase, hostResponse);
+      updateWoResult(wo, context, mtdBase, hostResponse);
     }
   }
 
-  private void  updateWoResult(CmsWorkOrderSimple wo, MTDBase mtdBase, MTDBaseHostResponse response) {
+  private void  updateWoResult(CmsWorkOrderSimple wo, Context context, MTDBase mtdBase, MTDBaseHostResponse response) {
     Map<String, String> resultAttrs = getResultCiAttributes(wo);
     Map<String, String> mtdMap = new HashMap<>();
     mtdMap.put("mtd_base_id", Integer.toString(mtdBase.getMtdBaseId()));
@@ -315,6 +315,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (deployment != null) {
       mtdMap.put("deploy_id", Integer.toString(deployment.getDeploymentId()));
     }
+    mtdMap.put("glb", context.platform + mtdBase.getMtdBaseName());
     resultAttrs.put("gslb_map", gson.toJson(mtdMap));
   }
 
@@ -368,7 +369,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private void updateMTDHost(Context context, CmsWorkOrderSimple wo, MTDBase mtdBase) throws Exception {
     MTDBaseHostRequest mtdbHostRequest = mtdBaseHostRequest(context, wo);
     MTDBaseHostResponse hostResponse = updateMTDHost(context, mtdbHostRequest, mtdBase);
-    updateWoResult(wo, mtdBase, hostResponse);
+    updateWoResult(wo, context, mtdBase, hostResponse);
   }
 
   private MTDBase getMTDBase(Context context) throws IOException {
@@ -496,7 +497,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return wo.resultCi.getCiAttributes();
   }
 
-  private List<MTDHostHealthCheck> getHealthChecks(CmsWorkOrderSimple wo, Context context) {
+  List<MTDHostHealthCheck> getHealthChecks(CmsWorkOrderSimple wo, Context context) {
     List<CmsRfcCISimple> dependsOn = wo.getPayLoad().get("DependsOn");
     List<MTDHostHealthCheck> hcList = new ArrayList<>();
     if (dependsOn != null) {
@@ -504,9 +505,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
       if (opt.isPresent()) {
         CmsRfcCISimple lb = opt.get();
         Map<String, String> attributes = lb.getCiAttributes();
+
         if (attributes.containsKey("listeners") && (attributes.containsKey("ecv_map"))) {
           String ecv = attributes.get("ecv_map");
           JsonElement element = jsonParser.parse(ecv);
+
           if (element instanceof JsonObject) {
             JsonObject root = (JsonObject) element;
             Set<Entry<String, JsonElement>> set = root.entrySet();
@@ -514,6 +517,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
                 collect(Collectors.toMap(s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
             logger.info(context.logKey + "listeners " + attributes.get("listeners"));
             JsonArray listeners = (JsonArray) jsonParser.parse(attributes.get("listeners"));
+
             listeners.forEach(s -> {
               String listener = s.getAsString();
               String[] config = listener.split(" ");
@@ -557,7 +561,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return null;
   }
 
-  private List<MTDTarget> getMTDTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
+  List<MTDTarget> getMTDTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
     List<LbCloud> lbClouds = getLbCloudMerged(wo);
     TorbitApi torbit = getClient(context);
     if (lbClouds != null && !lbClouds.isEmpty()) {
@@ -569,10 +573,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
       boolean isProximity = "proximity".equals(distribution);
       logger.info(context.logKey + "distribution config for fqdn : " + distribution);
       int weight = 0;
-      int reminder = 0;
       if (!isProximity) {
-        weight = 100/primaryClouds.size();
-        reminder = 100 - (weight * primaryClouds.size());
+        weight = 100;
       }
 
       List<MTDTarget> targetList = new ArrayList<>();
@@ -580,8 +582,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         for (LbCloud lbCloud : primaryClouds) {
           MTDTarget target = baseTarget(lbCloud, torbit).enabled(true);
           if (!isProximity) {
-            target.setWeightPercent(weight + (reminder > 0 ? 1 : 0));
-            reminder--;
+            target.setWeightPercent(weight);
           }
           targetList.add(target);
         }
@@ -633,7 +634,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     String cloudId = elements[elements.length - 2];
     CmsRfcCISimple cloudCi = cloudCiMap.get(Long.parseLong(cloudId));
     lc.cloud = cloudCi.getCiName();
-    lc.dnsRecord = cloudCi.getCiAttributes().get(ATTRIBUTE_DNS_RECORD);
+    lc.dnsRecord = lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD);
 
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lc.isPrimary = "1".equals(cloudAttributes.get(ATTRIBUTE_CLOUD_PRIORITY)) &&
@@ -671,7 +672,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return wo.getDpmtRecordId() + ":" + wo.getRfcCi().getCiId() + " - ";
   }
 
-  class Context {
+  static class Context {
     String platform;
     String environment;
     String assembly;
