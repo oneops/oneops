@@ -26,8 +26,7 @@ impl              = ARGV[0]
 json_context      = ARGV[1]
 cookbook_path     = ARGV[2] || ''
 service_cookbooks = ARGV[3] || ''
-primary_source    = ENV['rubygems_proxy'] || 'https://rubygems.org'
-secondary_source  = ENV['rubygemsbkp_proxy']
+gem_sources       = get_gem_sources
 ostype            = get_os_type(log_level)
 
 prefix_root = ''
@@ -56,10 +55,10 @@ when "chef"
   #we want to make sure rubygems sources on the VM match rubygems_proxy env variable from compute cloud service
   #otherwise changes to the cloud service will require updating compute component
   #have to be called after chef is installed on windows, as that's the chef installation that also installs rubygems
-  update_gem_sources(primary_source, secondary_source, log_level)
+  update_gem_sources(gem_sources, log_level)
 
   #Run bunle to insert/update neccessary gems if needed
-  gen_gemfile_and_install(primary_source, gem_list, log_level)
+  gen_gemfile_and_install(gem_sources, gem_list, log_level)
 
 
   chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
@@ -145,10 +144,10 @@ when "puppet"
 
   #we want to make sure rubygems sources on the VM match rubygems_proxy env variable from compute cloud service
   #otherwise changes to the cloud service will require updating compute component
-  update_gem_sources(primary_source, secondary_source, log_level)
+  update_gem_sources(gem_sources, log_level)
 
   #Run bunle to insert/update neccessary gems if needed
-  gen_gemfile_and_install(primary_source, gem_list, log_level)
+  gen_gemfile_and_install(gem_sources, gem_list, log_level)
 
   # run puppet apply for each item in the run_list
   context = JSON.parse(File.read(json_context))
