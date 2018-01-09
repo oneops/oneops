@@ -244,12 +244,13 @@ public class InductorTest {
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
     Object yamlConfig = yaml.load(config);
+
     assertNotNull("Invalid kitchen config.", yamlConfig);
     if (remote) {
       assertTrue(config.contains("chef_solo_path: /usr/local/bin/chef-solo"));
       assertTrue(config.contains("root_path: /tmp/kitchen"));
       assertTrue(config.contains("ruby_bindir: /usr/bin"));
-      assertTrue(config.contains("root_path: /tmp/verifier"));
+      assertTrue(config.contains("root_path: /tmp/verifier-190494"));
     }
   }
 
@@ -271,6 +272,6 @@ public class InductorTest {
     assertTrue(config.contains("chef_solo_path: c:/opscode/chef/embedded/bin/chef-solo"));
     assertTrue(config.contains("root_path: c:/tmp/kitchen"));
     assertTrue(config.contains("ruby_bindir: c:/opscode/chef/embedded/bin"));
-    assertTrue(config.contains("root_path: c:/tmp/verifier"));
+    assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
   }
 }
