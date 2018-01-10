@@ -17,10 +17,10 @@
  *******************************************************************************/
 package com.oneops.util;
 
-import junit.framework.Assert;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.commons.lang.ArrayUtils;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
@@ -122,7 +122,7 @@ public class SearchSenderTest {
 		}
 	}
 
-	@Test
+	//@Test
 	public void testMultipleFailures() {
 		System.out.println("running testMultipleFailures");
 		MessageSender sender = new MessageSender(5, searchPublisher);
@@ -135,7 +135,7 @@ public class SearchSenderTest {
 			int count = consumer.getCounter();
 			Thread.sleep(2000);
 			// verify that the failed messages are stored as files
-			Assert.assertFalse("retry directory should not be empty", isRetryDirectoryEmpty());
+			Assert.assertFalse(isRetryDirectoryEmpty(),"retry directory should not be empty");
 			// start broker
 			startBroker(searchBroker);
 			await().atMost(10, TimeUnit.SECONDS).until(() -> (consumer.getCounter() > count));
@@ -143,7 +143,7 @@ public class SearchSenderTest {
 			// stop the sender and verify that all messages sent so far reached the queue
 			sender.stop();
 			await().atMost(10, TimeUnit.SECONDS).until(() -> (consumer.getCounter() == sender.getCount()));
-			Assert.assertTrue("retry directory should be empty", isRetryDirectoryEmpty());
+			Assert.assertTrue(isRetryDirectoryEmpty(),"retry directory should be empty" );
 			
 			// start sender again and verify that the messages are getting processed as usual
 			sender.start();
