@@ -69,7 +69,7 @@ public class Assembly {
     List<Platform> platformList = Lists.newArrayList();
     for (Entry<String, Platform> entry : platforms.entrySet()) {
       Platform platform = entry.getValue();
-      platform.setId(entry.getKey());
+      platform.setName(entry.getKey());
       platformList.add(platform);
     }
     return platformList;
@@ -87,7 +87,7 @@ public class Assembly {
     List<Environment> environmentList = Lists.newArrayList();
     for (Entry<String, Environment> entry : environments.entrySet()) {
       Environment environment = entry.getValue();
-      environment.setId(entry.getKey());
+      environment.setName(entry.getKey());
       environmentList.add(environment);
     }
     return environmentList;

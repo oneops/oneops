@@ -79,7 +79,7 @@ public class BooModelTransformer {
     if (booPlatformList != null) {
       for (BooPlatform booPlatform : booPlatformList) {
         Platform platform = new Platform();
-        platform.setId(booPlatform.getName());
+        platform.setName(booPlatform.getName());
         platform.setPack(booPlatform.getPack());
         platform.setPackVersion(booPlatform.getPack_version());
         platform.setSource(booPlatform.getSource());
@@ -193,7 +193,7 @@ public class BooModelTransformer {
     if (booEnvironmentList != null) {
       for (BooEnvironment booEnvironment : booEnvironmentList) {
         Environment environment = new Environment();
-        environment.setId(booEnvironment.getName());
+        environment.setName(booEnvironment.getName());
         environment.setAvailability(booEnvironment.getAvailability());
         environment.setGlobaldns(Boolean.getBoolean(booEnvironment.getGlobal_dns()));
         environment.setProfile(booEnvironment.getProfile());

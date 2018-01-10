@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.01.03-4-SNAPSHOT</version>
+  <version>18.01.03-12-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -106,6 +106,7 @@
     <module>transistor</module>
     <module>transmitter</module>
     <module>batch</module>
+    <module>crawler</module>
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
