@@ -539,7 +539,6 @@ public class CmsWoProvider {
         workOrder.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(workOrder));
 
         addVarsForConfig(workOrder);
-        System.out.println("myWO: " + new Gson().toJson(workOrder));
         return workOrder;
     }
 
