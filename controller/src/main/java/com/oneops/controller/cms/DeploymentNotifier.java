@@ -16,17 +16,18 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
-import com.oneops.notification.NotificationMessage;
-import com.oneops.notification.NotificationSeverity;
-import com.oneops.notification.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
+import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.util.CmsConstants;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationSeverity;
+import com.oneops.notification.NotificationType;
 import com.oneops.util.ReliableExecutor;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.commons.lang.StringUtils;
@@ -34,7 +35,9 @@ import org.apache.log4j.Logger;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_PENDING;
 
@@ -49,6 +52,7 @@ public class DeploymentNotifier {
     private RestTemplate restTemplate;
     private ReliableExecutor<NotificationMessage> antennaClient;
     private static final String CI = "ci:";
+    private CmsDpmtProcessor cmsDpmtProcessor;
 
 
     protected void sendDpmtNotification(CmsDeployment dpmt) {
@@ -119,11 +123,8 @@ public class DeploymentNotifier {
         }
 
         if (DPMT_STATE_PENDING.equals(dpmt.getDeploymentState())) {
-            CmsDpmtApproval[] approvals = restTemplate.getForObject(serviceUrl + "/dj/simple/approvals?deploymentId={deploymentId}", CmsDpmtApproval[].class, dpmt.getDeploymentId());
-            if (approvals!=null && approvals.length>0) {
-                List<CmsDpmtApproval> list = Arrays.asList(approvals);
-                notify.getPayload().put("approvals", list);
-            }
+            List<CmsDpmtApproval> approvals = cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId());
+            notify.getPayload().put("approvals", approvals);
         }
         antennaClient.executeAsync(notify);
     }
@@ -153,7 +154,7 @@ public class DeploymentNotifier {
                 notify.putPayloadEntries(payloadEntries);
             }
             String subjectPrefix = NotificationMessage.buildSubjectPrefix(anchorCi.getNsPath());
-            
+
             if (proc.getProcedureState().equals(OpsProcedureState.failed)) {
                 notify.setSeverity(NotificationSeverity.critical);
                 notify.setSubject(subjectPrefix + CI + anchorCi.getCiName() + SCOLON_PROCEDURE + proc.getProcedureName() + " failed.");
@@ -178,7 +179,7 @@ public class DeploymentNotifier {
     private String buildNotificationPrefix(String nsPath) {
         String[] parts = nsPath.split("/");
         if (parts.length == 0) {
-        	return "";
+            return "";
         }
         String prefix = "Assembly: " + parts[2] + "; ";
         if (parts.length > 3) {
@@ -195,4 +196,11 @@ public class DeploymentNotifier {
         this.restTemplate = restTemplate;
     }
 
+    public void setCmsDpmtProcessor(CmsDpmtProcessor cmsDpmtProcessor) {
+        this.cmsDpmtProcessor = cmsDpmtProcessor;
+    }
+
+    public CmsDpmtProcessor getCmsDpmtProcessor() {
+        return cmsDpmtProcessor;
+    }
 }
