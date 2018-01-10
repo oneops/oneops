@@ -1,20 +1,10 @@
 package com.oneops.gslb.v2.domain;
 
 import com.google.gson.annotations.SerializedName;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class DeploymentResponse {
-
-  @SerializedName("links")
-  private Links links = null;
-
-  @SerializedName("metadata")
-  private Metadata metadata = null;
-
-  @SerializedName("errors")
-  private List<ResponseError> errors = new ArrayList<ResponseError>();
+public class DeploymentResponse extends BaseResponse {
 
   @SerializedName("deployment")
   private Deployment deployment = null;

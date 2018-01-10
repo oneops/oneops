@@ -5,16 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class DeploymentsResponse {
-
-  @SerializedName("links")
-  private Links links = null;
-
-  @SerializedName("metadata")
-  private Metadata metadata = null;
-
-  @SerializedName("errors")
-  private List<ResponseError> errors = new ArrayList<>();
+public class DeploymentsResponse extends BaseResponse {
 
   @SerializedName("deployments")
   private List<Deployment> deployments = new ArrayList<Deployment>();

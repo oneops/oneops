@@ -90,7 +90,7 @@ public class FqdnExecutorTest {
 
   private Context getContext() {
     Context context = new Context();
-    context.torbit = mock(TorbitClient.class);
+    context.torbitClient = mock(TorbitClient.class);
     return context;
   }
 

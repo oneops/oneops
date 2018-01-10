@@ -11,15 +11,11 @@ import com.oneops.cms.execution.Result;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.gslb.v2.domain.BaseResponse;
 import com.oneops.gslb.v2.domain.Cloud;
 import com.oneops.gslb.v2.domain.CreateMTDBaseRequest;
 import com.oneops.gslb.v2.domain.DataCenter;
 import com.oneops.gslb.v2.domain.DataCentersResponse;
-import com.oneops.gslb.v2.domain.DeployMTDConfig;
-import com.oneops.gslb.v2.domain.DeployMTDConfigRequest;
-import com.oneops.gslb.v2.domain.DeploymentResponse;
-import com.oneops.gslb.v2.domain.MTDBHostsVersion;
-import com.oneops.gslb.v2.domain.MTDBHostsVersionRequest;
 import com.oneops.gslb.v2.domain.MTDBase;
 import com.oneops.gslb.v2.domain.MTDBaseHostRequest;
 import com.oneops.gslb.v2.domain.MTDBaseHostResponse;
@@ -28,14 +24,10 @@ import com.oneops.gslb.v2.domain.MTDBaseResponse;
 import com.oneops.gslb.v2.domain.MTDDeployment;
 import com.oneops.gslb.v2.domain.MTDHost;
 import com.oneops.gslb.v2.domain.MTDHostHealthCheck;
-import com.oneops.gslb.v2.domain.MTDHosts;
 import com.oneops.gslb.v2.domain.MTDTarget;
 import com.oneops.gslb.v2.domain.ResponseError;
 import com.oneops.gslb.v2.domain.Version;
-import com.oneops.gslb.v2.domain.VersionRequest;
 import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -48,12 +40,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import okhttp3.ResponseBody;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 import retrofit2.Call;
-import retrofit2.Converter;
 
 @Component
 public class FqdnExecutor implements ComponentWoExecutor {
@@ -67,7 +56,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static final String ACTION_ADD = "add";
   private static final String ACTION_DELETE = "delete";
 
-  private static final String GSLB_PREFIX = "c1";
+  private static final String GSLB_PREFIX = "app";
   private static final String DEPLOYMENT_TYPE_LIVE = "live";
   private static final String MTDB_TYPE_GSLB = "GSLB";
   private static final String ATTRIBUTE_SERVICE_TYPE = "service_type";
@@ -142,10 +131,19 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return null;
   }
 
-  private void loadDataCenters(TorbitApi torbitApi) throws Exception {
-    DataCentersResponse dcResponse = execute(torbitApi.getDataCenters());
-    List<DataCenter> dataCenters= dcResponse.getDataCenters();
-    dataCenters.stream().flatMap(d -> d.getClouds().stream()).forEach(c -> cloudMap.put(c.getName(), c));
+  private <T extends BaseResponse> Resp<T> execute(Context context, Call<T> call, Class<T> respType) throws IOException, ExecutionException {
+    return context.torbitClient.execute(call, respType);
+  }
+
+  private void loadDataCenters(Context context) throws Exception {
+    Resp<DataCentersResponse> response = execute(context, context.torbitApi.getDataCenters(), DataCentersResponse.class);
+    if (response.isSuccessful()) {
+      List<DataCenter> dataCenters= response.getBody().getDataCenters();
+      dataCenters.stream().flatMap(d -> d.getClouds().stream()).forEach(c -> cloudMap.put(c.getName(), c));
+    }
+    else {
+      throw new ExecutionException("Failed while loading data centers " + getErrorMessages(response.getBody()));
+    }
   }
 
   private TorbitConfig getTorbitConfig(CmsCISimple torbitCI) {
@@ -212,17 +210,17 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   private void deleteGslb(CmsWorkOrderSimple wo, Context context) {
     try {
-      TorbitApi torbit = context.torbit.getTorbit();
+      TorbitApi torbit = context.torbitClient.getTorbit();
       MTDBase mtdBase = getMTDBase(context);
       if (mtdBase != null) {
-        retrofit2.Response<MTDBaseHostResponse> response = torbit.deletetMTDHost(mtdBase.getMtdBaseId(), context.platform).execute();
+        Resp<MTDBaseHostResponse> response = execute(context, torbit.deletetMTDHost(mtdBase.getMtdBaseId(), context.platform), MTDBaseHostResponse.class);
         if (response.isSuccessful()) {
-          MTDBaseHostResponse hostResponse = response.body();
+          MTDBaseHostResponse hostResponse = response.getBody();
           logger.info(context.logKey + "delete MTDHost response " + hostResponse);
         }
         else {
-          logger.info(context.logKey + "delete MTDHost response code " + response.code() + " message " + response.message() + " error " + response.errorBody());
-          MTDBaseHostResponse errorResp = getErrorResponse(MTDBaseHostResponse.class, context, response);
+          MTDBaseHostResponse errorResp = response.getBody();
+          logger.info(context.logKey + "delete MTDHost response code " + response.getCode() + " message " + response.getBody());
           if (errorMatches(errorResp.getErrors(), MTD_HOST_NOT_EXISTS_ERROR)) {
             logger.info(context.logKey + "MTDHost does not exist.");
           }
@@ -279,23 +277,20 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return new MTDBaseHostRequest().mtdHost(mtdHost);
   }
 
-  private TorbitApi getClient(Context context) {
-    return context.torbit.getTorbit();
-  }
 
   private void createMTDHost(Context context, CmsWorkOrderSimple wo, MTDBase mtdBase) throws Exception {
     MTDBaseHostRequest mtdbHostRequest = mtdBaseHostRequest(context, wo);
     logger.info(context.logKey + "create host request " + mtdbHostRequest);
-    retrofit2.Response<MTDBaseHostResponse> response = getClient(context).createMTDHost(mtdbHostRequest, mtdBase.getMtdBaseId()).execute();
-    MTDBaseHostResponse hostResponse = null;
+    Resp<MTDBaseHostResponse> response = execute(context, context.torbitApi.createMTDHost(mtdbHostRequest, mtdBase.getMtdBaseId()), MTDBaseHostResponse.class);
+    MTDBaseHostResponse hostResponse = response.getBody();
     if (!response.isSuccessful()) {
-      if (isHostExisting(context, response)) {
+      logger.info(context.logKey + "create MTDHost error response " + hostResponse);
+      if (errorMatches(hostResponse.getErrors(), MTD_HOST_EXISTS_ERROR)) {
         logger.info(context.logKey + "MTDHost already existing, so trying to update");
         hostResponse = updateMTDHost(context, mtdbHostRequest, mtdBase);
       }
     }
     else {
-      hostResponse = response.body();
       logger.info(context.logKey + "create MTDHost response  " + hostResponse);
     }
     if (hostResponse != null) {
@@ -319,51 +314,20 @@ public class FqdnExecutor implements ComponentWoExecutor {
     resultAttrs.put("gslb_map", gson.toJson(mtdMap));
   }
 
-  private <T> T getErrorResponse(Type type, Context context, retrofit2.Response<T> response) throws IOException {
-    Converter<ResponseBody, T> converter = context.torbit.getRetrofit().responseBodyConverter(type, new Annotation[0]);
-    return converter.convert(response.errorBody());
-  }
-
-  private boolean isHostExisting(Context context, retrofit2.Response<MTDBaseHostResponse> response) throws Exception {
-    MTDBaseHostResponse mtdResponse = getErrorResponse(MTDBaseHostResponse.class, context, response);
-    logger.info(context.logKey + "create MTDHost error response " + mtdResponse);
-    return errorMatches(mtdResponse.getErrors(), MTD_HOST_EXISTS_ERROR);
-  }
-
-  private boolean errorMatches(List<ResponseError> responseError, String error) {
-    if (responseError != null) {
-      Optional<ResponseError> matchinError = responseError.stream().
-          filter(r -> error.equals(r.getErrorCode())).findFirst();
-      if (matchinError.isPresent()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   private MTDBaseHostResponse updateMTDHost(Context context, MTDBaseHostRequest mtdbHostRequest, MTDBase mtdBase) throws Exception {
     logger.info(context.logKey + " update host request " + mtdbHostRequest);
-    retrofit2.Response<MTDBaseHostResponse> response = getClient(context).
-        updateMTDHost(mtdbHostRequest, mtdBase.getMtdBaseId(), mtdbHostRequest.getMtdHost().getMtdHostName()).execute();
+    Resp<MTDBaseHostResponse> response = execute(context,
+        context.torbitApi.updateMTDHost(mtdbHostRequest, mtdBase.getMtdBaseId(), mtdbHostRequest.getMtdHost().getMtdHostName()), MTDBaseHostResponse.class);
+    MTDBaseHostResponse hostResponse = response.getBody();
     if (response.isSuccessful()) {
-      MTDBaseHostResponse hostResponse = response.body();
       logger.info(context.logKey + "update MTDHost response " + hostResponse);
       return hostResponse;
     }
     else {
-      logger.info(context.logKey + "update MTDHost response code " + response.code() + " message " + response.message() + " error " + response.errorBody());
-      MTDBaseHostResponse errorResp = getErrorResponse(MTDBaseHostResponse.class, context, response);
-      String error = getErrorMessage(errorResp.getErrors());
+      logger.info(context.logKey + "update MTDHost response code " + response.getCode() + " message " + hostResponse);
+      String error = getErrorMessage(hostResponse.getErrors());
       throw new ExecutionException("updateMTDHost failed with " + error);
     }
-  }
-
-  private String getErrorMessage(List<ResponseError> errors) {
-    String message = null;
-    if (errors != null) {
-      message = errors.stream().map(ResponseError::getErrorCode).collect(Collectors.joining(" | "));
-    }
-    return message != null ? message : "unknown error";
   }
 
   private void updateMTDHost(Context context, CmsWorkOrderSimple wo, MTDBase mtdBase) throws Exception {
@@ -372,14 +336,14 @@ public class FqdnExecutor implements ComponentWoExecutor {
     updateWoResult(wo, context, mtdBase, hostResponse);
   }
 
-  private MTDBase getMTDBase(Context context) throws IOException {
+  private MTDBase getMTDBase(Context context) throws IOException, ExecutionException {
     MTDBase mtdBase = null;
-    MTDBaseResponse mtdBaseResponse = execute(getClient(context).getMTDBase(context.mtdBaseHost));
-    if (mtdBaseResponse == null) {
-      logger.info(context.logKey + "MTDBase could not be read for " + context.mtdBaseHost);
+    Resp<MTDBaseResponse> response = execute(context, context.torbitApi.getMTDBase(context.mtdBaseHost), MTDBaseResponse.class);
+    if (!response.isSuccessful()) {
+      logger.info(context.logKey + "MTDBase could not be read for " + context.mtdBaseHost + " error " + getErrorMessages(response.getBody()));
     }
     else {
-      mtdBase = mtdBaseResponse.getMtdBase();
+      mtdBase = response.getBody().getMtdBase();
     }
     logger.info(context.logKey + "mtdBase for host " + context.mtdBaseHost + " " + mtdBase);
     return mtdBase;
@@ -394,21 +358,22 @@ public class FqdnExecutor implements ComponentWoExecutor {
       }
       try {
         mtdBase = createOrGetMTDBase(context);
-      } catch (IOException e) {
+      } catch (Exception e) {
         logger.error(context.logKey + "MTDBase creation failed for " + context.mtdBaseHost + ", retry count " + retry, e);
       }
     }
     return mtdBase;
   }
 
-  private MTDBase createOrGetMTDBase(Context context) throws IOException {
+  private MTDBase createOrGetMTDBase(Context context) throws Exception {
     CreateMTDBaseRequest request = new CreateMTDBaseRequest().mtdBase(new MTDBaseRequest().mtdBaseName(context.mtdBaseHost).type(MTDB_TYPE_GSLB));
     logger.info(context.logKey + "MTDBase create request " + request);
-    retrofit2.Response<MTDBaseResponse> response = getClient(context).createMTDBase(request, context.config.getGroupId()).execute();
+    Resp<MTDBaseResponse> response = execute(context, context.torbitApi.createMTDBase(request, context.config.getGroupId()), MTDBaseResponse.class);
     MTDBase mtdBase = null;
     if (!response.isSuccessful()) {
-
-      if (isMTDBaseExisting(context, response)) {
+      MTDBaseResponse mtdBaseResponse = response.getBody();
+      logger.info(context.logKey + "create MTDBase error response " + mtdBaseResponse);
+      if (errorMatches(mtdBaseResponse.getErrors(), MTD_BASE_EXISTS_ERROR)) {
         logger.info(context.logKey + "create MTDBase failed with unique violation. try to get it.");
         //check if a MTDBase record exists already, probably created by another FQDN instance running parallel
         mtdBase = getMTDBase(context);
@@ -419,70 +384,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
     }
     else {
       logger.info(context.logKey + "MTDBase create response " + response);
-      mtdBase = response.body().getMtdBase();
+      mtdBase = response.getBody().getMtdBase();
     }
     return mtdBase;
-  }
-
-  private boolean isMTDBaseExisting(Context context, retrofit2.Response<MTDBaseResponse> response) throws IOException {
-    MTDBaseResponse mtdResponse = getErrorResponse(MTDBaseResponse.class, context, response);
-    logger.info(context.logKey + "create MTDBase error response " + mtdResponse);
-    return errorMatches(mtdResponse.getErrors(), MTD_BASE_EXISTS_ERROR);
-  }
-
-  private <T> T execute(Call<T> call) throws IOException {
-    retrofit2.Response<T> response = call.execute();
-    return response.body();
-  }
-
-  private void draftVersionAndDeploy(Context context, CmsWorkOrderSimple wo, MTDBase mtdBase) throws Exception {
-    CmsRfcCISimple rfc = wo.rfcCi;
-    VersionRequest version = new VersionRequest().description(
-        StringUtils.join(new Long[]{rfc.getCiId(), rfc.getReleaseId(), rfc.getRfcId()}, "-"));
-    TorbitApi torbit = getClient(context);
-
-    List<MTDTarget> targets = getMTDTargets(wo, context);
-    List<MTDHostHealthCheck> healthChecks = getHealthChecks(wo, context);
-    MTDHost mtdHost = new MTDHost().mtdHostName(GSLB_PREFIX).
-        mtdTargets(targets).mtdHealthChecks(healthChecks).
-        loadBalancingDistribution(1).isDcFailover(true);
-    MTDHosts hosts = new MTDHosts().addMtdHostItem(mtdHost);
-
-    MTDBHostsVersionRequest versionRequest = new MTDBHostsVersionRequest().
-        version(version).
-        mtdBaseId(mtdBase.getMtdBaseId()).
-        mtdHosts(hosts);
-
-    logger.info(context.logKey + "draft version request : " + versionRequest);
-
-    MTDBHostsVersion versionResponse = execute(torbit.createMTDHostsVersion(versionRequest));
-    if (versionResponse == null) {
-      failWo(wo, context.logKey,"MTD Host Version creation failed ", null);
-    }
-    else {
-      logger.info(context.logKey + "draft MTD host version response " + versionResponse);
-      int versionId = versionResponse.getVersion().getVersionId();
-
-      DeployMTDConfig deployRequest = new DeployMTDConfig().
-          deploymentType(DEPLOYMENT_TYPE_LIVE).
-          mtdBaseId(mtdBase.getMtdBaseId()).
-          versionId(versionId);
-      logger.info(context.logKey + "MTD version Deploy request " + deployRequest);
-      DeploymentResponse deployResponse = execute(torbit.deployMTDConfig(
-          new DeployMTDConfigRequest().deploy(deployRequest)));
-      if (deployResponse == null) {
-        failWo(wo, context.logKey, "MTD Host Version Deployment failed  ", null);
-      }
-      else {
-        logger.info(context.logKey + "deployment response " + deployResponse);
-        Map<String, String> resultAttrs = getResultCiAttributes(wo);
-        Map<String, String> mtdMap = new HashMap<>();
-        mtdMap.put("mtd_base_id", Integer.toString(mtdBase.getMtdBaseId()));
-        mtdMap.put("mtd_version", Integer.toString(versionId));
-        mtdMap.put("deploy_id", Integer.toString(deployResponse.getDeployment().getDeploymentId()));
-        resultAttrs.put("gslb_map", gson.toJson(mtdMap));
-      }
-    }
   }
 
   private Map<String, String> getResultCiAttributes(CmsWorkOrderSimple wo) {
@@ -563,7 +467,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   List<MTDTarget> getMTDTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
     List<LbCloud> lbClouds = getLbCloudMerged(wo);
-    TorbitApi torbit = getClient(context);
+
     if (lbClouds != null && !lbClouds.isEmpty()) {
       Map<Integer, List<LbCloud>> map = lbClouds.stream().collect(Collectors.groupingBy(l -> l.isPrimary ? 1 : 2));
       List<LbCloud> primaryClouds = map.get(1);
@@ -580,7 +484,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       List<MTDTarget> targetList = new ArrayList<>();
       if (primaryClouds != null) {
         for (LbCloud lbCloud : primaryClouds) {
-          MTDTarget target = baseTarget(lbCloud, torbit).enabled(true);
+          MTDTarget target = baseTarget(lbCloud, context).enabled(true);
           if (!isProximity) {
             target.setWeightPercent(weight);
           }
@@ -590,7 +494,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
       if (secondaryClouds != null) {
         for (LbCloud lbCloud : secondaryClouds) {
-          MTDTarget target = baseTarget(lbCloud, torbit);
+          MTDTarget target = baseTarget(lbCloud, context);
           target.setEnabled(false);
           target.setWeightPercent(0);
           targetList.add(target);
@@ -604,9 +508,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   }
 
-  private MTDTarget baseTarget(LbCloud lbCloud, TorbitApi torbitApi) throws Exception {
+  private MTDTarget baseTarget(LbCloud lbCloud, Context context) throws Exception {
     if (!cloudMap.containsKey(lbCloud.cloud)) {
-      loadDataCenters(torbitApi);
+      loadDataCenters(context);
     }
     Cloud cloud = cloudMap.get(lbCloud.cloud);
     return new MTDTarget().mtdTargetHost(lbCloud.dnsRecord).cloudId(cloud.getId()).dataCenterId(cloud.getDataCenterId());
@@ -642,6 +546,32 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return lc;
   }
 
+  private String getErrorMessages(BaseResponse response) {
+    if (response != null) {
+      return getErrorMessage(response.getErrors());
+    }
+    return null;
+  }
+
+  private String getErrorMessage(List<ResponseError> errors) {
+    String message = null;
+    if (errors != null) {
+      message = errors.stream().map(ResponseError::getErrorCode).collect(Collectors.joining(" | "));
+    }
+    return message != null ? message : "unknown error";
+  }
+
+  private boolean errorMatches(List<ResponseError> responseError, String error) {
+    if (responseError != null) {
+      Optional<ResponseError> matchinError = responseError.stream().
+          filter(r -> error.equals(r.getErrorCode())).findFirst();
+      if (matchinError.isPresent()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private Context getContext(CmsWorkOrderSimple wo, TorbitConfig config, String logKey) throws Exception {
     Map<String, List<CmsRfcCISimple>> payload = wo.getPayLoad();
     Context context = new Context();
@@ -658,8 +588,9 @@ public class FqdnExecutor implements ComponentWoExecutor {
     else
       context.mtdBaseHost = String.join(".", "." + context.environment, context.assembly,
           context.org, context.baseGslbDomain);
-    TorbitClient torbitClient = TorbitClient.getClient(config);
-    context.torbit = torbitClient;
+    TorbitClient torbitClient = new TorbitClient(config);
+    context.torbitClient = torbitClient;
+    context.torbitApi = torbitClient.getTorbit();
     context.config = config;
 
     logger.info(logKey + "Context - assembly : " + context.assembly + ", platform : " + context.platform + ", env : " +
@@ -681,7 +612,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
     String subdomain;
     String baseGslbDomain;
     String mtdBaseHost;
-    TorbitClient torbit;
+    TorbitClient torbitClient;
+    TorbitApi torbitApi;
     TorbitConfig config;
     String logKey;
   }

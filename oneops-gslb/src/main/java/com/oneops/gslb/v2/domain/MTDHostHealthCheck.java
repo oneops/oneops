@@ -3,7 +3,6 @@ package com.oneops.gslb.v2.domain;
 import java.util.Objects;
 import com.google.gson.annotations.SerializedName;
 
-
 public class MTDHostHealthCheck {
 
   @SerializedName("name")

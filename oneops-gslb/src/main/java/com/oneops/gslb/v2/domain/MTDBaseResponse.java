@@ -1,21 +1,11 @@
 package com.oneops.gslb.v2.domain;
 
 import com.google.gson.annotations.SerializedName;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDBaseResponse {
+public class MTDBaseResponse extends BaseResponse {
   
-  @SerializedName("links")
-  private Links links = null;
-
-  @SerializedName("metadata")
-  private Metadata metadata = null;
-
-  @SerializedName("errors")
-  private List<ResponseError> errors = new ArrayList<>();
-
   @SerializedName("mtd_base")
   private MTDBase mtdBase = null;
 

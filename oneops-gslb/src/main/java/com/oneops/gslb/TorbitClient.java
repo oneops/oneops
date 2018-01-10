@@ -2,6 +2,9 @@ package com.oneops.gslb;
 
 import com.google.common.net.HttpHeaders;
 import com.google.gson.Gson;
+import com.oneops.gslb.v2.domain.BaseResponse;
+import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
@@ -12,6 +15,9 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import org.apache.log4j.Logger;
+import retrofit2.Call;
+import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
@@ -23,10 +29,10 @@ public class TorbitClient {
 
   private Retrofit retrofit;
 
-  public static TorbitClient getClient(TorbitConfig config) throws Exception {
-    TorbitClient client = new TorbitClient();
-    client.newTorbitApi(config);
-    return client;
+  private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
+
+  public TorbitClient(TorbitConfig config) throws Exception {
+    newTorbitApi(config);
   }
 
   private void newTorbitApi(TorbitConfig config) throws Exception {
@@ -61,6 +67,28 @@ public class TorbitClient {
     this.torbit = retrofit.create(TorbitApi.class);
   }
 
+  public <T extends BaseResponse> Resp<T> execute(Call<T> call, Class<T> respType) throws IOException, ExecutionException {
+    Response<T> response = call.execute();
+    Resp<T> resp = new Resp<>();
+    resp.setSuccessful(response.isSuccessful());
+    if (response.isSuccessful()) {
+      resp.setBody(response.body());
+    }
+    else {
+      logger.info("response " + response.code() + " message " + response.message());
+      failForAuthErrors(response);
+      T t = (T) retrofit.responseBodyConverter(respType, new Annotation[0]).convert(response.errorBody());
+      resp.setBody(t);
+    }
+    resp.setCode(response.code());
+    return resp;
+  }
+
+  private void failForAuthErrors(Response<?> response) throws ExecutionException {
+    if (response.code() == 401 || response.code() == 403) {
+      throw new ExecutionException("Authentication failed while calling torbit");
+    }
+  }
 
   private X509TrustManager getTrustManager() {
     return new X509TrustManager() {
@@ -75,10 +103,6 @@ public class TorbitClient {
       public void checkServerTrusted(X509Certificate[] certs, String authType) {
       }
     };
-  }
-
-  public void setTorbit(TorbitApi torbit) {
-    this.torbit = torbit;
   }
 
   public TorbitApi getTorbit() {
