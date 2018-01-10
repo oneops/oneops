@@ -231,7 +231,7 @@
       <div class="problems alert alert-danger"><%= env_comments.sub(/^#{error_prefix}/, '') %></div>
       <div class="text-error" style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
     <% else %>
-      <div class="problems alert alert-info">No pending deployment changes are detected - nothing to do! All instances are up to date with current environment configuration.</div>
+      <div class="problems alert alert-info">Nothing to do - no pending deployment changes are detected. All instances are up to date with current environment configuration.</div>
     <% end %>
   </div>
   <% if @deployment %>
@@ -326,6 +326,9 @@
                 <%= render 'transition/deployments/action',
                            :action  => 'deploy',
                            :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %>
+              <% else %>
+                <%= button(icon('check', 'Deploy'), nil, 'btn btn-success disabled') %>
+                <br><small>There is another deployment in progress.  Recently committed changes can be deployed after current deployment completes or canceled.</small>
               <% end %>
             </td>
           </tr>
