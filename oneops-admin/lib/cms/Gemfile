@@ -1,9 +1,0 @@
-source 'http://rubygems.org'
-
-gem 'rake'
-gem 'newgem'
-gem 'hoe'
-
-gem 'activeresource', '>= 3.0.6'
-gem 'activemodel', '>= 3.0.6'
-gem 'activesupport', '>= 3.0.6'

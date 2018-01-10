@@ -21,19 +21,16 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.util.CloudUtil;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.AbstractMap;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -41,6 +38,7 @@ import static com.oneops.cms.util.CmsConstants.DEPLOYED_TO;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
 
 
 public class BomManagerImplTest {
@@ -56,7 +54,76 @@ public class BomManagerImplTest {
                 .mapToObj(i -> (ci(clouds[i], i)))
                 .collect(toMap(CmsCI::getCiName, Function.identity()));
     }
+    
+    @Test
+    public void testEmptyDeploymentOrderDoesNotThrowNFE(){
+        CmsCmProcessor cmProcessor =mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
 
+        String[] primaryClouds = {"c1", "c2"};
+        List<CmsCIRelation> platformCloudRels = Stream.of(primaryClouds)
+                .map(s -> (createPrimaryCloud(s)))
+                .collect(toList());
+        platformCloudRels.get(0).getAttribute("dpmt_order").setDjValue("");
+        try {
+            impl.getOrderedClouds(platformCloudRels, false);
+        } catch (NumberFormatException e){
+            fail("Shouldn't throw NFE");
+        }
+    }
+
+
+    @Test(expectedExceptions = {})
+    public void verifyOrderDeploymentOrder() {
+        CmsCI p1 = ci("p1", 1);
+        CmsCI p2 = ci("p2", 2);
+        CmsCI p3 = ci("p3", 3);
+        CmsCI p4 = ci("p4", 4);
+        CmsCI p5 = ci("p5", 5);
+        List<CmsCI> plats = Arrays.asList(p1, p2, p3, p4, p5);
+
+        List<CmsCIRelation> links = new ArrayList<>();
+        links.add(relation(CmsConstants.MANIFEST_LINKS_TO, p1, p2));
+        links.add(relation(CmsConstants.MANIFEST_LINKS_TO, p2, p3));
+        links.add(relation(CmsConstants.MANIFEST_LINKS_TO, p4, p3));
+
+        Set<Long> disabledPlats = new HashSet<>();
+        Set<Long> excludedPlats = new HashSet<>();
+
+        BomManagerImpl impl = mock(BomManagerImpl.class, CALLS_REAL_METHODS);
+        EnvBomGenerationContext context = mock(EnvBomGenerationContext.class);
+        doAnswer(i -> plats)
+                .when(context).getPlatforms();
+        doAnswer(i -> links)
+                .when(context).getLinksToRelations();
+        doAnswer(i -> disabledPlats)
+                .when(context).getDisabledPlatformIds();
+        doAnswer(i -> excludedPlats)
+                .when(context).getExcludedPlats();
+
+        Map<Integer, List<CmsCI>> expected = new HashMap<>();
+        expected.put(1, Arrays.asList(p3, p5));
+        expected.put(2, Arrays.asList(p2, p4));
+        expected.put(3, Arrays.asList(p1));
+        Map<Integer, List<CmsCI>> orderedPlats = impl.getOrderedPlatforms(context);
+        assertEquals(orderedPlats, expected);
+
+        excludedPlats.addAll(Arrays.asList(p2.getCiId(), p4.getCiId(), p5.getCiId()));
+        expected = new HashMap<>();
+        expected.put(1, Arrays.asList(p3));
+        expected.put(3, Arrays.asList(p1));
+        orderedPlats = impl.getOrderedPlatforms(context);
+        assertEquals(orderedPlats, expected);
+
+        excludedPlats.clear();
+        disabledPlats.addAll(Arrays.asList(p3.getCiId(), p5.getCiId()));
+        expected = new HashMap<>();
+        expected.put(2, Arrays.asList(p2, p4));
+        expected.put(3, Arrays.asList(p1));
+        expected.put(4, Arrays.asList(p3, p5));
+        orderedPlats = impl.getOrderedPlatforms(context);
+        assertEquals(orderedPlats, expected);
+    }
 
     @Test(expectedExceptions = {})
     public void somePrimaryOnManifestAllPrimaryDeployed() throws Exception {
@@ -73,26 +140,16 @@ public class BomManagerImplTest {
                 .collect(toList());
         platformCloudRels.addAll(secondaryCloudRels);
 
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Stream.of(clouds[((Long)invocation.getArguments()[0]).intValue()])
-                        .map(s -> (createPrimaryDeployedCloud(s)))
-                        .collect(toList());
-            }
-        }).when(cmProcessor).getToCIRelationsByNs(anyLong(),eq(DEPLOYED_TO),anyString(),eq("Fqdn"),anyString());
-        String nsPath = "/test/a1/bom/1";
+        PlatformBomGenerationContext context = platformContext("/test/a1/e1", "p1");
+        doAnswer(invocationOnMock -> Stream.of(clouds)
+                    .map(cloud -> (fqdnDeployedToRelation(cloud, "1")))
+                    .collect(Collectors.toList()))
+                .when(context).getBomRelations();
 
-        //returns valid entry point
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Stream.of(relation(ci("manifest.Fqdn","c1",1234),"Entrypoint"))
-                        .collect(toList());
-            }
-        }).when(cmProcessor).getFromCIRelations(anyLong(), anyString(), eq("Entrypoint"), anyString());
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "c1", 1234))))
+                .when(context).getEntryPoints();
 
-        CmsCI platform = ci("myPlat",1234);
-
-        impl.check4Secondary(mock(CmsCI.class), platformCloudRels, nsPath);
+        impl.check4Secondary(context, platformCloudRels);
     }
 
 
@@ -120,27 +177,19 @@ public class BomManagerImplTest {
                 .map(s -> (createSecondaryCloud(s)))
                 .collect(toList());
         platformCloudRels.addAll(secondaryCloudRels);
+
+        PlatformBomGenerationContext context = platformContext("/test/a1/e1", "p1");
         //returns all secondary clouds deployed
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Stream.of(clouds[((Long)invocation.getArguments()[0]).intValue()])
-                        .map(s -> (createSecondaryDeployedCloud(s)))
-                        .collect(toList());
-            }
-        }).when(cmProcessor).getToCIRelationsByNs(anyLong(),eq(DEPLOYED_TO),anyString(),eq("Fqdn"),anyString());
-        String nsPath = "/test/a1/bom/1";
+        doAnswer(invocationOnMock -> Stream.of(clouds)
+                    .map(cloud -> (fqdnDeployedToRelation(cloud, "2")))
+                    .collect(Collectors.toList()))
+                .when(context).getBomRelations();
 
-        //returns valid entry point
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Stream.of(relation(ci("manifest.Fqdn","c1",1234),"Entrypoint"))
-                        .collect(toList());
-            }
-        }).when(cmProcessor).getFromCIRelations(anyLong(), anyString(), eq("Entrypoint"), anyString());
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "c1", 1234))))
+                .when(context).getEntryPoints();
 
-        CmsCI platform = ci("myPlat",1234);
         //should not allow
-        impl.check4Secondary(platform, platformCloudRels, nsPath);
+        impl.check4Secondary(context, platformCloudRels);
     }
 
     @Test(expectedExceptions = {TransistorException.class},expectedExceptionsMessageRegExp=".* <c1,c2>.*")
@@ -158,30 +207,19 @@ public class BomManagerImplTest {
                 .collect(toList());
 
         platformCloudRels.addAll(secondaryCloudRels);
+
+        PlatformBomGenerationContext context = platformContext("/test/a1/e1", "p1");
         //returns all secondary clouds deployed
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                int index = ((Long) invocation.getArguments()[0]).intValue();
-                //index less than 1 , make primary Deployed
-                return Stream.of(clouds[index])
-                        .map(s -> (createPrimaryDeployedCloud(s)))
-                        .collect(toList());
+        doAnswer(invocationOnMock -> Stream.of(clouds)
+                    .map(cloud -> (fqdnDeployedToRelation(cloud, "1")))
+                    .collect(Collectors.toList()))
+                .when(context).getBomRelations();
 
-            }
-        }).when(cmProcessor).getToCIRelationsByNs(anyLong(), eq(DEPLOYED_TO), anyString(), eq("Fqdn"), anyString());
-        String nsPath = "/test/a1/bom/1";
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "c1", 1234))))
+                .when(context).getEntryPoints();
 
-        //returns valid entry point
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Stream.of(relation(ci("manifest.Fqdn", "c1", 1234), "Entrypoint"))
-                        .collect(toList());
-            }
-        }).when(cmProcessor).getFromCIRelations(anyLong(), anyString(), eq("Entrypoint"), anyString());
-
-        CmsCI platform = ci("myPlat", 1234);
         //should not allow
-        impl.check4Secondary(platform, platformCloudRels, nsPath);
+        impl.check4Secondary(context, platformCloudRels);
     }
 
 
@@ -199,35 +237,36 @@ public class BomManagerImplTest {
                 .map(s -> (createSecondaryCloud(s)))
                 .collect(toList());
         platformCloudRels.addAll(secondaryCloudRels);
+
+        PlatformBomGenerationContext context = platformContext("/test/a1/e1", "p1");
         //returns all secondary clouds deployed
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Stream.of(clouds[((Long)invocation.getArguments()[0]).intValue()])
-                        .map(s -> (createSecondaryDeployedCloud(s)))
-                        .collect(toList());
-            }
-        }).when(cmProcessor).getToCIRelationsByNs(anyLong(),eq(DEPLOYED_TO),anyString(),eq("Fqdn"),anyString());
-        String nsPath = "/test/a1/bom/1";
+        doAnswer(invocationOnMock -> Stream.of(clouds)
+                    .map(cloud -> (fqdnDeployedToRelation(cloud, "2")))
+                    .collect(Collectors.toList()))
+                .when(context).getBomRelations();
 
-        //returns valid entry point
-        doAnswer(new Answer<List<CmsCIRelation>>() {
-            public List<CmsCIRelation> answer(InvocationOnMock invocation) {
-                return Collections.EMPTY_LIST;
-            }
-        }).when(cmProcessor).getFromCIRelations(anyLong(), anyString(), eq("Entrypoint"), anyString());
+        doAnswer(i -> Collections.EMPTY_LIST)
+                .when(context).getEntryPoints();
 
-        CmsCI platform = ci("myPlat",1234);
-        //will allow to proceed
-        impl.check4Secondary(platform, platformCloudRels, nsPath);
+        //should not allow
+        impl.check4Secondary(context, platformCloudRels);
     }
 
-    private CmsCIRelation relation(CmsCI toCi,String relationName ) {
+    private CmsCIRelation relation(String relationName, CmsCI toCi) {
         CmsCIRelation rel = new CmsCIRelation();
-        rel.setToCi(toCi);
         rel.setRelationName(relationName);
+        rel.setToCi(toCi);
+        rel.setFromCiId((toCi.getCiId()));
         return rel;
     }
 
+
+    private CmsCIRelation relation(String relationName, CmsCI fromCi, CmsCI toCi) {
+        CmsCIRelation rel = relation(relationName, fromCi);
+        rel.setToCi(toCi);
+        rel.setToCiId((toCi.getCiId()));
+        return rel;
+    }
 
 
     @Test(expectedExceptions = {})
@@ -237,9 +276,7 @@ public class BomManagerImplTest {
         List<CmsCIRelation> platformCloudRels = Stream.of(clouds)
                 .map(s -> (createPrimaryCloud(s)))
                 .collect(toList());
-        String nsPath = "/test/a1/bom/1";
-        impl.check4Secondary(mock(CmsCI.class), platformCloudRels, nsPath);
-
+        impl.check4Secondary(platformContext("/test/a1/e1", "p1"), platformCloudRels);
     }
 
 
@@ -255,15 +292,13 @@ public class BomManagerImplTest {
         return cloudRel;
     }
 
-    private CmsCIRelation createPrimaryDeployedCloud(String c4) {
-        return getCmsCIRelation(c4, DEPLOYED_TO, Collections.unmodifiableMap(Stream.of(
-                entryRelAttribute("priority", "1", "1")
-        ).collect(toMap((e) -> e.getKey(), (e) -> e.getValue()))));
-    }
-    private CmsCIRelation createSecondaryDeployedCloud(String c4) {
-        return getCmsCIRelation(c4, DEPLOYED_TO, Collections.unmodifiableMap(Stream.of(
-                entryRelAttribute("priority", "2", "2")
-        ).collect(toMap((e) -> e.getKey(), (e) -> e.getValue()))));
+    private CmsCIRelation fqdnDeployedToRelation(String cloud, String priority) {
+        CmsCIRelation rel = getCmsCIRelation(cloud,
+                                             DEPLOYED_TO,
+                                             Stream.of(entryRelAttribute("priority", priority, priority))
+                                                     .collect(toMap((e) -> e.getKey(), (e) -> e.getValue())));
+        rel.setFromCi(ci("bom.Fqdn", "fqdn-" + cloud, 1234));
+        return rel;
     }
 
     private CmsCIRelation createInactivePrimaryCloud(String cloud) {
@@ -301,17 +336,25 @@ public class BomManagerImplTest {
         return atrrib;
     }
 
-    private CmsCI ci(String className,String cloud, int i) {
-        CmsCI ci = ci(cloud, i);
+    private CmsCI ci(String className,String ciName, int i) {
+        CmsCI ci = ci(ciName, i);
         ci.setCiClassName(className);
         return ci;
     }
-    private CmsCI ci(String cloud, int i) {
+    private CmsCI ci(String ciName, int ciId) {
         CmsCI ci = new CmsCI();
-        ci.setCiName(cloud);
-        ci.setCiId(i);
+        ci.setCiName(ciName);
+        ci.setCiId(ciId);
         return ci;
     }
 
-
+    private PlatformBomGenerationContext platformContext(String envNsPath, String platformName) {
+        CmsCI platform = new CmsCI();
+        platform.setCiId((long) (Math.random() * 10000));
+        platform.setNsPath(envNsPath + "/manifest/" + platformName + "/1");
+        PlatformBomGenerationContext context = mock(PlatformBomGenerationContext.class);
+        doAnswer(invocation -> platform).when(context).getPlatform();
+        doAnswer(invocation -> platform.getNsPath().replaceFirst("/manifest/", "/bom/")).when(context).getBomNsPath();
+        return context;
+    }
 }

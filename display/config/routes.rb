@@ -18,6 +18,8 @@ Display::Application.routes.draw do
   match '/auth/:provider/callback' => 'authentications#create', :via => [:get, :post]
 
   get 'r/ns'                                => 'redirect#ns',          :as => 'redirect_ns'
+  get 'r/ns/:path'                          => 'redirect#ns', :constraints => {:path => /[a-zA-Z0-9\-]+(\/[a-zA-Z0-9\-]+)+\/?/}
+  get 'r/:id'                               => 'redirect#ci'
   get 'r/ci/:id'                            => 'redirect#ci',          :as => 'redirect_ci'
   get 'r/release/:id'                       => 'redirect#release'
   get 'r/r/:id'                             => 'redirect#release',     :as => 'redirect_release'
@@ -28,15 +30,19 @@ Display::Application.routes.draw do
   get 'r/instances/:id'                     => 'redirect#instance'
   get 'r/i/:id'                             => 'redirect#instance',    :as => 'redirect_instance'
   get 'r/instances/:id/monitors/:monitor/d' => 'redirect#monitor_doc', :as => 'redirect_instance_monitor_doc'
+  get 'r/:id'                               => 'redirect#ci', :constraints => {:id => /\d+/}
 
-  get 'l/ci/:id'                 => 'lookup#ci',         :as => 'lookup_ci'
-  get 'l/ci/:id/:attribute_name' => 'lookup#ci',         :as => 'lookup_ci_attribute'
-  get 'l/release/:id'            => 'lookup#release'
-  get 'l/r/:id'                  => 'lookup#release',    :as => 'lookup_release'
-  get 'l/deployment/:id'         => 'lookup#deployment'
-  get 'l/d/:id'                  => 'lookup#deployment', :as => 'lookup_deployment'
-  get 'l/procedure/:id'          => 'lookup#procedure'
-  get 'l/p/:id'                  => 'lookup#procedure',  :as => 'lookup_procedure'
+  get 'l/ci/:id'                  => 'lookup#ci',         :as => 'lookup_ci'
+  get 'l/ci/:id/:attribute_name'  => 'lookup#ci',         :as => 'lookup_ci_attribute'
+  get 'l/rel/:id'                 => 'lookup#relation',   :as => 'lookup_relation'
+  get 'l/rel/:id/:attribute_name' => 'lookup#relation',   :as => 'lookup_relation_attribute'
+  get 'l/release/:id'             => 'lookup#release'
+  get 'l/r/:id'                   => 'lookup#release',    :as => 'lookup_release'
+  get 'l/deployment/:id'          => 'lookup#deployment'
+  get 'l/d/:id'                   => 'lookup#deployment', :as => 'lookup_deployment'
+  get 'l/procedure/:id'           => 'lookup#procedure'
+  get 'l/p/:id'                   => 'lookup#procedure',  :as => 'lookup_procedure'
+  get 'l/:id(/:attribute_name)'   => 'lookup#ci', :constraints => {:id => /\d+/}
 
   get '/api_docs' => 'welcome#api_docs'
 
@@ -54,6 +60,8 @@ Display::Application.routes.draw do
       get  'cost'
       get 'deployment_to_all_primary_check'
       put 'deployment_to_all_primary_check'
+      get 'obsolete_users'
+      delete 'obsolete_users'
 
       get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
@@ -290,6 +298,7 @@ Display::Application.routes.draw do
         get  'new_clone'
         post 'clone'
         get  'teams'
+        get  'users'
         put  'update_teams'
         get  'notifications'
         get  'reports'
@@ -472,6 +481,7 @@ Display::Application.routes.draw do
             post 'status',        :on => :member
             get 'compile_status', :on => :collection
             get 'log_data',       :on => :member
+            get 'preview',        :on => :collection
 
             resources :approvals, :only => [:index] do
               put 'settle', :on => :collection
@@ -535,17 +545,18 @@ Display::Application.routes.draw do
             put 'autoreplace', :on => :member
             put 'autoscale',   :on => :member
             get 'search',      :on => :member
-            get 'health',        :on => :member
+            get 'health',      :on => :member
           end
 
           resources :instances, :only => [:index]
 
-          get 'graph',         :on => :member
-          get 'notifications', :on => :member
-          get 'search',        :on => :member
-          get 'cost',          :on => :member
-          get 'cost_rate',     :on => :member
-          get 'health',        :on => :member
+          get 'graph',          :on => :member
+          get 'notifications',  :on => :member
+          get 'search',         :on => :member
+          get 'cost',           :on => :member
+          get 'cost_rate',      :on => :member
+          get 'cost_estimate',  :on => :member
+          get 'health',         :on => :member
         end
 
         resources :instances, :only => :none do
@@ -581,6 +592,7 @@ Display::Application.routes.draw do
       post 'charts', :on => :collection
     end
 
+    get ':image' => 'welcome#image_not_found', :constraints => {:image => /.*\.png/}
     match '*whatever' => 'welcome#not_found_error', :via => :all
   end
 

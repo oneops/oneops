@@ -4,6 +4,9 @@
             :toolbar => {:list_name => 'release_rfc_list',
                          :sort_by   => [%w(Timestamp timestamp), %w(Release release), %w(Type rfcType)],
                          :filter_by => %w(release attributeName rfcType relationName timestamp),
+                         :quick_filters => [{:label => 'All', :value => ''},
+                                            {:label => 'CIs', :value => 'rfcType=ci', :selected => true},
+                                            {:label => 'Relations', :value => 'rfcType=relation'}],
                          :compact   => true}) do |builder, target| %>
   <% is_ci = target.is_a?(Cms::RfcCi)
      rfc_id = target.rfcId

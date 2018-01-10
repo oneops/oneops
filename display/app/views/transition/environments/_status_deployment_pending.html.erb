@@ -1,0 +1,27 @@
+<div class="marker"><%= status_marker('deployment', 'pending', 'label-info') %></div>
+<div class="description">
+  <dl class="dl-horizontal">
+    <dt><%= icon(site_icon(:deployment), nil, 'fa-fw') %></dt>
+    <dd>Environment needs a deployment</dd>
+    <% if @platform_instance_counts %>
+      <% instance_count = @platform_instance_counts.values.sum %>
+      <dt><%= icon('check-circle-o', nil, 'fa-fw') %></dt>
+      <dd>
+        <% if instance_count > 0 %>
+          Environment has <b><%= instance_count %></b> deployed instances
+        <% else %>
+          Environment has no deployed instances
+        <% end %>
+      </dd>
+    <% end %>
+    <% if @cost.is_a?(Hash) %>
+      <dt><%= icon(site_icon(:cost), nil, 'fa-fw') %></dt>
+      <dd>
+        <%= render 'transition/deployments/cost_change_info' %>
+      </dd>
+    <% end %>
+  </dl>
+  <% if @release && @release.releaseState != 'open' %>
+    <%= yield :deploy_action %>
+  <% end %>
+</div>

@@ -1,19 +1,19 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.cms.md.service;
 
@@ -58,6 +58,17 @@ public class CmsMdManagerImpl implements CmsMdManager {
     @Override
     public CmsClazz updateClazz(CmsClazz clazz) {
         return mdProcessor.updateClazz(clazz);
+    }
+
+    /**
+     * Update clazz.
+     *
+     * @param clazz the clazz
+     * @return the cms clazz
+     */
+    @Override
+    public CmsClazz createOrUpdateClazz(CmsClazz clazz) {
+        return mdProcessor.createOrUpdateClazz(clazz);
     }
 
     /**
@@ -106,6 +117,17 @@ public class CmsMdManagerImpl implements CmsMdManager {
     }
 
     /**
+     * Update relation.
+     *
+     * @param relation the relation
+     * @return the cms relation
+     */
+    @Override
+    public CmsRelation createOrUpdateRelation(CmsRelation relation) {
+        return mdProcessor.createOrUpdateRelation(relation);
+    }
+
+    /**
      * Delete relation.
      *
      * @param relationId the relation id
@@ -145,7 +167,7 @@ public class CmsMdManagerImpl implements CmsMdManager {
 	 * @return the sub clazzes
 	 */
 	@Override
-	public List<String> getSubClazzes(String clsName){	
+	public List<String> getSubClazzes(String clsName){
 		return mdProcessor.getSubClazzes(clsName);
 	}
 
@@ -195,7 +217,7 @@ public class CmsMdManagerImpl implements CmsMdManager {
 	public CmsClazz getClazz(String clazzName) {
 		return mdProcessor.getClazz(clazzName);
 	}
-	
+
 
 	/**
 	 * Gets the relation.
@@ -231,8 +253,8 @@ public class CmsMdManagerImpl implements CmsMdManager {
 	public CmsRelation getRelationWithTargets(String relationName, int fromClassId, int toClassId) {
 		return mdProcessor.getRelationWithTargets(relationName, fromClassId, toClassId);
 	}
-	
-	
+
+
 	/**
 	 * Gets the all relations.
 	 *
@@ -248,9 +270,9 @@ public class CmsMdManagerImpl implements CmsMdManager {
 	 */
 	@Override
 	public void flushCache() {
-		mdProcessor.flushCache();		
+		mdProcessor.flushCache();
 	}
-	
+
 	/**
 	 * Gets the clazzes by package.
 	 *
@@ -266,5 +288,5 @@ public class CmsMdManagerImpl implements CmsMdManager {
 	public void invalidateCache() {
 		mdProcessor.invalidateCache();
 	}
-	
+
 }

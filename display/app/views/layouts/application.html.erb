@@ -135,7 +135,7 @@
           <button class="close" data-dismiss="modal">&times;</button>
           <h3></h3>
         </div>
-        <div class="modal-body" style="overflow:visible">
+        <div class="modal-body" style="overflow:auto;">
         </div>
         <div class="modal-footer">
           <a class="btn" data-dismiss="modal"><%= icon('files-o', 'Copy to clipboard') %></a>
@@ -207,14 +207,6 @@
                 <ul class="menu">
                   <% unless must_accept_eula %>
                     <li><%= link_to(icon('user', current_user.username), account_profile_path) %></li>
-                    <% if current_org && current_org.persisted? %>
-                      <li class="favorites-dropdown">
-                        <a class="dropdown-toggle" data-toggle="dropdown">
-                          <%= icon('bookmark', 'Favorites') %> <%= icon('caret-right', '', 'pull-right') %>
-                        </a>
-                        <%= render('layouts/favorites_dropdown') %>
-                      </li>
-                    <% end %>
                   <% end %>
                   <li>
                     <%= link_to(organizations_account_profile_path,

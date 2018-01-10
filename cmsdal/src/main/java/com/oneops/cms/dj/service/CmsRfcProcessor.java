@@ -791,6 +791,16 @@ public class CmsRfcProcessor {
 	}
 	
 	/**
+	 * Gets the open rfc ci by ci id.
+	 *
+	 * @param ciId the ci id
+	 * @return the open rfc ci by ci id
+	 */
+	public CmsRfcCI getOpenRfcCIByCiIdNoAttrs(long ciId) {
+		return djMapper.getOpenRfcCIByCiId(ciId);
+	}
+
+	/**
 	 * Gets the open rfcs by ci id list.
 	 * no attributes
 	 * @param ids - List of the ci id
@@ -1688,21 +1698,21 @@ public class CmsRfcProcessor {
     }
  
 	/**
-	 * get ci rfc links (simple call to get relations without extra info)
+	 * Get rfc CI count for a given release.
 	 *
-	 * @param  nsPath, relName
+	 * @param  releaseId
 	 */
-	public List<CmsRfcLink> getLinks(String nsPath, String relName) {
-		return djMapper.getOpenRfcLinks(nsPath, relName);
+	public long getRfcCiCount(long releaseId) {
+		return djMapper.countCiRfcByReleaseId(releaseId);
 	}
-    
+
 	/**
-	 * get ci rfc links (simple call to get relations without extra info)
+	 * Get rfc relation count for a given release.
 	 *
-	 * @param  nsPath, relName
+	 * @param  releaseId
 	 */
-	public long getRfcCount(long nsPath) {
-		return djMapper.countCiRfcByReleaseId(nsPath);
+	public long getRfcRelationCount(long releaseId) {
+		return djMapper.countRelationRfcByReleaseId(releaseId);
 	}
 
 	/**
@@ -1742,22 +1752,12 @@ public class CmsRfcProcessor {
 
     /**
      * Remove all rfcs and rfc relations for a given namespace  (not recursive).
-     * this is using map as a workaround to transfer "nsPath" parameter in as well 
-     * as "result" out (result contains stored procedure return value = number of rfcs deleted) 
-     * because MyBatis doesn't allow to map simple return types from a stored procedures
-     * 
-     *
      * @param  nsPath
      */
-    public long rmRfcs(String nsPath) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("nsPath", nsPath);
-        djMapper.rmRfcs(map);
-        try {
-            return Integer.parseInt(map.getOrDefault("result", "0").toString());
-        } catch (NumberFormatException e){
-            return 0;
-        }
+    public void rmRfcs(String nsPath) {
+        djMapper.rmRfcsByNs(nsPath);
+        djMapper.rmFromRelByNs(nsPath);
+        djMapper.rmToRelByNs(nsPath);
     }
 
     /**
@@ -1939,7 +1939,13 @@ public class CmsRfcProcessor {
 			ns.setNsPath(cmsAltNs.getNsPath());
 			ns = cmsNsProcessor.createNs(ns);
 		}
-		djMapper.createAltNs(ns.getNsId(), cmsAltNs.getTag(), rfcCi.getRfcId());
+		
+		Long tagId = djMapper.getTagId(cmsAltNs.getTag());
+		if (tagId==null){
+			djMapper.createTag(cmsAltNs.getTag());
+			tagId = djMapper.getTagId(cmsAltNs.getTag());
+		}
+		djMapper.createAltNs(ns.getNsId(), tagId, rfcCi.getRfcId());
 	}
 
 	public List<CmsAltNs> getAltNsBy(long rfcCI){

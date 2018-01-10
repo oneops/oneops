@@ -158,8 +158,11 @@
 
 
 
-	<update id="rmRfcCIfromRelease" parameterType="long" statementType="CALLABLE">
-	    {call dj_rm_rfc_ci(#{value})}
+	<update id="rmRfcCIfromRelease" parameterType="long" statementType="PREPARED">
+		update dj_rfc_ci  	
+		set is_active_in_release = false, 
+			updated = now()
+		where rfc_id = #{value}
 	 </update>
 
 	<update id="rmRfcRelationfromRelease" parameterType="long" statementType="PREPARED">
@@ -1421,31 +1424,15 @@
           </foreach> 
  	 </select>
 
-	 <select id="getOpenRfcLinks" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsRfcLink">
-			select distinct rr.rfc_id as rfcId, r.relation_name as relationName, rfca.action_name as action,
-			coalesce(from_rc.ci_id, from_ci.ci_id) as fromCiId, 
-			(select fromcl.class_name from md_classes fromcl where fromcl.class_id = coalesce(from_rc.class_id, from_ci.class_id)) as fromClazzName,
-			coalesce(to_rc.ci_id, to_ci.ci_id) as toCiId, 
-			(select tocl.class_name from md_classes tocl where tocl.class_id = coalesce(to_rc.class_id, to_ci.class_id)) as toClazzName
-			from dj_rfc_relation rr
-			  join md_relations r on rr.relation_id = r.relation_id
-			  join ns_namespaces ns on rr.ns_id = ns.ns_id
-			  join dj_releases rls on rr.release_id = rls.release_id
-			  join dj_release_states rs on rls.release_state_id = rs.release_state_id
-			  join dj_rfc_ci_actions rfca on rr.action_id = rfca.action_id
-  			  left join dj_rfc_ci to_rc on rr.to_ci_id = to_rc.ci_id
-			  left join cm_ci to_ci on rr.to_ci_id = to_ci.ci_id
-			  left join dj_rfc_ci from_rc on rr.from_ci_id = from_rc.ci_id
-			  left join cm_ci from_ci on rr.from_ci_id = from_ci.ci_id
-			where ns.ns_path = #{nsPath}
-			and rs.state_name = 'open'
-			and (#{relName}::varchar is null or r.relation_name = #{relName})
-				 
-	</select>
-
 	 <select id="countCiRfcByReleaseId" parameterType="long" useCache="false" resultType="long">
 		SELECT count(1)
 		from dj_rfc_ci
+		where release_id = #{value}
+	 </select>
+
+	 <select id="countRelationRfcByReleaseId" parameterType="long" useCache="false" resultType="long">
+		SELECT count(1)
+		from dj_rfc_relation
 		where release_id = #{value}
 	 </select>
 
@@ -1471,8 +1458,54 @@
            AND ns.ns_path = #{value}
 	 </select>
     
-    <update id="rmRfcs" parameterType="map" statementType="CALLABLE">
-       {#{result,jdbcType=INTEGER,mode=OUT} = call dj_rm_rfcs(#{nsPath})}
+	
+	
+	<update id="rmFromRelByNs" parameterType="string">
+			update dj_rfc_relation
+		set is_active_in_release = false,
+			updated = now()
+			where from_rfc_id in (
+				SELECT rfc_id
+				FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
+				WHERE rci.release_id = r.release_id
+				   AND r.release_state_id = rs.release_state_id
+				   AND rs.state_name = 'open'
+				   AND rci.is_active_in_release = true
+				   AND rci.ns_id = ns.ns_id
+				   AND ns.ns_path = #{value}
+			) 
+	</update>
+	<update id="rmToRelByNs" parameterType="string">
+		update dj_rfc_relation
+		set is_active_in_release = false,
+		updated = now()
+		where to_rfc_id in (
+			SELECT rfc_id
+			FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
+			WHERE rci.release_id = r.release_id
+			AND r.release_state_id = rs.release_state_id
+			AND rs.state_name = 'open'
+			AND rci.is_active_in_release = true
+			AND rci.ns_id = ns.ns_id
+			AND ns.ns_path = #{value}
+		)
+	</update>
+	
+	
+    <update id="rmRfcsByNs" parameterType="string" statementType="PREPARED">
+        update dj_rfc_ci  	
+		set is_active_in_release = false, 
+			updated = now() 
+			where rfc_id in (
+				SELECT rfc_id
+				FROM dj_rfc_ci rci, dj_releases r, dj_release_states rs, ns_namespaces ns
+				WHERE rci.release_id = r.release_id
+				   AND r.release_state_id = rs.release_state_id
+				   AND rs.state_name = 'open'
+				   AND rci.is_active_in_release = true
+				   AND rci.ns_id = ns.ns_id
+				   AND ns.ns_path = #{value}
+			)
     </update>
     
     <select id="countCiNotUpdatedByRfc" parameterType="map" useCache="false" resultType="long">
@@ -1725,13 +1758,24 @@
 		</if>
 	</select>
 
-	<insert id="createAltNs" parameterType="map" statementType="CALLABLE">
-		{call dj_create_alt_namespace(#{nsId}, #{tag}, #{rfcId})}
+	
+	<select id="getTagId" parameterType="string" resultType="long">
+		select tag_id from ns_opt_tag where tag = #{tag}
+	</select>
+	
+	<insert id="createTag" parameterType="string">
+		 insert into ns_opt_tag (tag_id, tag)
+        values
+        (nextval('cm_pk_seq'), #{tag})
+	</insert>
+	
+	<insert id="createAltNs" parameterType="map" statementType="PREPARED">
+		insert into dj_ns_opt (rfc_id, ns_id, created, tag_id) values (#{rfcId}, #{nsId}, now(), #{tagId}); 
 	</insert>
 
 
-	<delete id="deleteAltNs" parameterType="long" statementType="CALLABLE">
-		{call dj_delete_alt_namespace(#{nsId}, #{rfcId})}
+	<delete id="deleteAltNs" parameterType="long" statementType="PREPARED">
+		delete from dj_ns_opt where rfc_id= #{rfcId} and ns_id=#{nsId}
 	</delete>
 
 

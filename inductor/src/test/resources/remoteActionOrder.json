@@ -1,0 +1,218 @@
+{
+  "arglist": "",
+  "services":{},
+  "ci": {
+    "ciState": "default",
+    "ciGoid": "11962846-1999-11962853",
+    "ciAttributes": {
+      "use_security_manager": "false",
+      "environment": "{}",
+      "version": "6.0",
+      "ssl_port": "8443",
+      "install_dir": "/var/lib/tomcat6/webapps",
+      "server_port": "8005",
+      "java_options": "-Xmx128M -Djava.awt.headless=true",
+      "port": "8080",
+      "ajp_port": "8009"
+    },
+    "lastAppliedRfcId": 211418,
+    "nsPath": "/oneops/tom/vb1/bom/tomcat/1",
+    "impl": "oo::chef-10.16.6",
+    "created": "Mar 13, 2013 4:34:40 PM",
+    "createdBy": "mike@oneops.com",
+    "ciId": 11962853,
+    "ciName": "tomcat-9687230-1",
+    "updated": "Mar 13, 2013 4:34:40 PM",
+    "ciClassName": "bom.oneops.1.Tomcat"
+  },
+  "actionId": 211465,
+  "isCritical": false,
+  "cloud": {
+    "ciState": "default",
+    "ciGoid": "4701530-2093-9687221",
+    "ciAttributes": {
+      "authkey": "",
+      "subnet": "123"
+    },
+    "lastAppliedRfcId": 0,
+    "nsPath": "/oneops/providers/vagrant",
+    "impl": "oo::chef-10.16.6",
+    "created": "Jan 30, 2013 5:44:34 PM",
+    "createdBy": "mike@oneops.com",
+    "ciId": 9687221,
+    "comments": "",
+    "ciName": "schwankl",
+    "updated": "Jan 30, 2013 5:44:34 PM",
+    "ciClassName": "account.provider.Zone"
+  },
+  "created": "Mar 13, 2013 4:36:33 PM",
+  "execOrder": 0,
+  "ciId": 11962853,
+  "box": {
+    "ciState": "default",
+    "ciGoid": "11962713-1764-11962714",
+    "ciAttributes": {
+      "major_version": "1",
+      "source": "packer",
+      "availability": "single",
+      "pack": "tomcat",
+      "version": "0.4",
+      "is_active": "true",
+      "description": ""
+    },
+    "lastAppliedRfcId": 211269,
+    "nsPath": "/oneops/tom/vb1/manifest/tomcat/1",
+    "impl": "oo::chef-10.16.6",
+    "created": "Mar 13, 2013 4:31:57 PM",
+    "createdBy": "mike@oneops.com",
+    "ciId": 11962714,
+    "ciName": "tomcat",
+    "updated": "Mar 13, 2013 4:31:57 PM",
+    "ciClassName": "manifest.Platform"
+  },
+  "actionState": "pending",
+  "procId": 211464,
+  "payLoad": {
+    "ManagedVia": [
+      {
+        "ciState": "default",
+        "ciGoid": "11962846-1202-11962850",
+        "ciAttributes": {
+          "ostype": "ubuntu-12.04",
+          "private_ip": "inductor-test-host",
+          "public_ip": "inductor-test-host",
+          "instance_id": "compute-9687230-1-vb1-tom-oneops-11962850",
+          "size": "S",
+          "dns_record": "172.28.128.6",
+          "hosts": "{}"
+        },
+        "lastAppliedRfcId": 211409,
+        "nsPath": "/oneops/tom/vb1/bom/tomcat/1",
+        "impl": "oo::chef-10.16.6",
+        "created": "Mar 13, 2013 4:34:06 PM",
+        "createdBy": "mike@oneops.com",
+        "ciId": 11962850,
+        "ciName": "compute-9687230-1",
+        "updated": "Mar 13, 2013 4:34:06 PM",
+        "ciClassName": "bom.Compute"
+      }
+    ],
+    "Environment": [
+        {
+          "ciAttributes": {
+            "monitoring": "true",
+            "autorepair": "false",
+            "description": "",
+            "dpmtdelay": "60",
+            "subdomain": "s1edc.t-tom.oneops",
+            "domain": "dev.walmart.com",
+            "codpmt": "false",
+            "global_dns": "false",
+            "autoscale": "false",
+            "availability": "single"
+          },
+          "ciBaseAttributes": {},
+          "ciAttrProps": {},
+          "rfcId": 0,
+          "releaseId": 0,
+          "ciId": 78783,
+          "nsPath": "/oneops/t-tom",
+          "ciClassName": "manifest.Environment",
+          "ciName": "s1edc",
+          "ciGoid": "78502-1474-78783",
+          "createdBy": "mschwan",
+          "execOrder": 0,
+          "lastAppliedRfcId": 0,
+          "comments": "",
+          "isActiveInRelease": false,
+          "created": "Aug 23, 2013 6:43:32 AM",
+          "updated": "Aug 23, 2013 6:43:32 AM"
+        }
+      ],    
+    "RealizedAs": [
+      {
+        "ciState": "default",
+        "ciGoid": "11962713-1993-11962717",
+        "ciAttributes": {
+          "use_security_manager": "false",
+          "environment": "{}",
+          "version": "6.0",
+          "ssl_port": "8443",
+          "install_dir": "/var/lib/tomcat6/webapps",
+          "server_port": "8005",
+          "java_options": "-Xmx128M -Djava.awt.headless=true",
+          "port": "8080",
+          "ajp_port": "8009"
+        },
+        "lastAppliedRfcId": 211283,
+        "nsPath": "/oneops/tom/vb1/manifest/tomcat/1",
+        "impl": "oo::chef-10.16.6",
+        "created": "Mar 13, 2013 4:31:57 PM",
+        "createdBy": "mike@oneops.com",
+        "ciId": 11962717,
+        "ciName": "tomcat",
+        "updated": "Mar 13, 2013 4:31:57 PM",
+        "ciClassName": "manifest.Tomcat"
+      }
+    ],
+    "SecuredBy": [
+      {
+        "ciState": "default",
+        "ciGoid": "11962846-483215-11962847",
+        "ciAttributes": {
+          "private": "-----BEGIN RSA PRIVATE KEY-----\nMIIEogIBAAKCAQEAn5uHRnr3TXVHc/wzemzSYHdWg6snLngLTydnWztcIU7rLepp\nzHeXiFUVEOL35+FpDBMN1o7vkDwZM1RlMDkPLqh7p8xP6Vy4CA5IClCBS6eiB2Av\n+qGJFuaIjdB1dvw/35g+k1iFiii8vTvSMUl9LKzZ2ImlVyCfnF6fCqXFT5ghWhEH\n1szkwYpkr1XC7tTNOeQNwPCEvNguq4T8U3OkZ3lSdp+Np5w1y9AQJTQvFxUKYOlI\nPHyKchScjGOHYQmRjw2Dvp4KzlM2IGDekM+AQhkY9TNczS/FaEllCCvJUKf4MMZ+\nuWT9zw1eYYACVvjT4TPOr/2aSkO4C+hsezSlTwIDAQABAoIBAFLzlTnnPNKQCoPY\nZrTRDAHA5EDoWiPHljEcTJZY4ogZKRejBjuTSDk95wXwwGFOgLcazA1gGlf/NCW+\nThzi+uYIAMRz5nBllOvy6DQcJSa5x/dHYYhEHii9xejWl8YwUc4WpScVUco9Y+KB\nzbt580mdyFbHKxx+QxYVA1mYUFUN7M1P7xHJn5I/je/nglUCHOcrzptLmsl+gB03\ni8vAb6I1PXMo7OVz222irib1KMyySiX/KLbKPR54uAJJdgTL1b1qcrdEByMaK2cW\ngH72pViL1PnaEqYP1Gp7eewfdM1pvwlfavchlGTWRDHpRNkib3acFOCPAnYuqPBb\n0auIv0kCgYEAz+OKV6trSeqyDHIcsiT94HPF6LpwehMJ4IPfcLMfRPzRGiKAx1g9\nPWKxAqyWkDYoy6uCEFP+X/VFSbSc4atOmRll2IFm7RuRh4TrzmJcOtmX1DAL9Drn\nbmkQC7HHiz4hbIP2SZEEZrTccD6Ho8dHtvTSebk3D7x7ZrfHcMiw29MCgYEAxIuK\n6rDIpT/wehhPEButWPLRMNMay0IZVQyRv5TnVCkS9rvtaNyW71H2wuad0V8m8/nA\nL8TQqVYFeOVeZisVy+c944VB5AzVKNgoGIFuvJgnk7/3s306FBpVtBpSSZhjO36G\n3VwsSG/+2fKOfovJ+J7/6CLTxtCqcs/bnGhhzxUCgYBtFOP+ZIADZRbP2QCdqTNd\nluH93/Ys19iS6h9QL2z08gN2RyxzbSWVFDf1Q0ItoX1+gRvaHXiYOUaGCjNXZl/z\njZQXKq8rMxAFoAVrYckrSAmW2S8sk8vj71TwDfS6Z3t6STPuHh3FFpmke+sIUQSc\nR5I5NKpjo27M0xnfYC8M6QKBgES/utvU8po6/1b14dH0nHIcnWfCsAChIlNJjkHB\nSBl8NJHxsl2Xq4QS24nZOSLfcbSti7gp1AMnf8qGELsUHw+v10oadq3af0VGNuA7\nhgyZ/F4GLBKwnvwhKhFRk68CitNosqwDbcn4wuBho85H/2Hj3AfLBuDoZHa8lkjj\nijLxAoGABkvZsHAMlxtx4gHjoC9vR0QK0TXtHx2r59rbv15LWJpNv/Gf65dHPiH8\nwZET+4TAeUn1nt2ohUeZuwTsUmQ0vBIrfwgsjl1KbT3WsQbRzzFo/grS6WS41u/y\nwfOQl21D+fnsWcyAAmFx4P3O4NAKe95XMxoSwEq6NP/36j6q4U8=\n-----END RSA PRIVATE KEY-----\n",
+          "public": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCfm4dGevdNdUdz/DN6bNJgd1aDqycueAtPJ2dbO1whTust6mnMd5eIVRUQ4vfn4WkMEw3Wju+QPBkzVGUwOQ8uqHunzE/pXLgIDkgKUIFLp6IHYC/6oYkW5oiN0HV2/D/fmD6TWIWKKLy9O9IxSX0srNnYiaVXIJ+cXp8KpcVPmCFaEQfWzOTBimSvVcLu1M055A3A8IS82C6rhPxTc6RneVJ2n42nnDXL0BAlNC8XFQpg6Ug8fIpyFJyMY4dhCZGPDYO+ngrOUzYgYN6Qz4BCGRj1M1zNL8VoSWUIK8lQp/gwxn65ZP3PDV5hgAJW+NPhM86v/ZpKQ7gL6Gx7NKVP oneops\n"
+        },
+        "lastAppliedRfcId": 211401,
+        "nsPath": "/oneops/tom/vb1/bom/tomcat/1",
+        "impl": "oo::chef-10.16.6",
+        "created": "Mar 13, 2013 4:32:08 PM",
+        "createdBy": "mike@oneops.com",
+        "ciId": 11962847,
+        "ciName": "sshkeys-9687230-1",
+        "updated": "Mar 13, 2013 4:32:08 PM",
+        "ciClassName": "bom.Keypair"
+      }
+    ],
+    "DependsOn": [
+      {
+        "ciState": "default",
+        "ciGoid": "11962846-1202-11962850",
+        "ciAttributes": {
+          "ostype": "ubuntu-12.04",
+          "private_ip": "172.28.128.6",
+          "instance_id": "compute-9687230-1-vb1-tom-oneops-11962850",
+          "size": "S",
+          "dns_record": "172.28.128.6",
+          "hosts": "{}"
+        },
+        "lastAppliedRfcId": 211409,
+        "nsPath": "/oneops/tom/vb1/bom/tomcat/1",
+        "impl": "oo::chef-10.16.6",
+        "created": "Mar 13, 2013 4:34:06 PM",
+        "createdBy": "mike@oneops.com",
+        "ciId": 11962850,
+        "ciName": "compute-9687230-1",
+        "updated": "Mar 13, 2013 4:34:06 PM",
+        "ciClassName": "bom.Compute"
+      }
+    ]
+  },
+  "actionName": "status",
+  "token": {
+    "ciState": "default",
+    "ciGoid": "4701530-281251-9687225",
+    "ciAttributes": {
+      "path": "/opt/vagrant"
+    },
+    "lastAppliedRfcId": 0,
+    "nsPath": "/oneops/providers/vagrant",
+    "impl": "oo::chef-10.16.6",
+    "created": "Jan 30, 2013 5:45:36 PM",
+    "createdBy": "mike@oneops.com",
+    "ciId": 9687225,
+    "ciName": "mschwankl",
+    "updated": "Jan 30, 2013 5:45:36 PM",
+    "ciClassName": "account.provider.vagrant.Token"
+  }
+}

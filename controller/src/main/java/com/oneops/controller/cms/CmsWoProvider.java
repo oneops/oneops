@@ -17,6 +17,23 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import static com.oneops.cms.util.CmsConstants.ATTR_NAME_AUTO_COMPLY;
+import static com.oneops.cms.util.CmsConstants.ATTR_NAME_ENABLED;
+import static com.oneops.cms.util.CmsConstants.ATTR_RUN_ON;
+import static com.oneops.cms.util.CmsConstants.ATTR_RUN_ON_ACTION;
+import static com.oneops.cms.util.CmsConstants.ATTR_VALUE_TYPE_DF;
+import static com.oneops.cms.util.CmsConstants.BASE_COMPLIES_WITH;
+import static com.oneops.cms.util.CmsConstants.BASE_PROVIDES;
+import static com.oneops.cms.util.CmsConstants.CI_STATE_PENDING_DELETION;
+import static com.oneops.cms.util.CmsConstants.CLOUDSERVICEPREFIX;
+import static com.oneops.cms.util.CmsConstants.DEPENDS_ON;
+import static com.oneops.cms.util.CmsConstants.ENTRYPOINT;
+import static com.oneops.cms.util.CmsConstants.ESCORTED_BY;
+import static com.oneops.cms.util.CmsConstants.MANAGED_VIA;
+import static com.oneops.cms.util.CmsConstants.SECURED_BY;
+import static com.oneops.cms.util.CmsConstants.SERVICED_BY;
+import static com.oneops.cms.util.CmsConstants.ZONE_CLASS;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -46,15 +63,16 @@ import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.cms.util.domain.CmsVar;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
-import static com.oneops.cms.util.CmsConstants.*;
+import org.apache.commons.lang.StringUtils;
+import org.apache.log4j.Logger;
 
 
 /**
@@ -163,6 +181,41 @@ public class CmsWoProvider {
         return aosSimple;
     }
 
+    public CmsActionOrderSimple getAssembledAo(CmsActionOrder ao, Map<Long, CmsCI> manifestToTemplateMap) {
+        assembleAo(ao, manifestToTemplateMap);
+        return cmsUtil.custActionOrder2Simple(ao);
+    }
+
+    private boolean isCloudServiceAction(CmsActionOrder ao) {
+        return ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX);
+    }
+
+    public List<CmsActionOrder> getBaseActionOrders(long procedureId, OpsProcedureState state, Integer execOrder) {
+        checkControllerCache();
+        List<CmsActionOrder> aorders = opsMapper.getActionOrders(procedureId, state, execOrder);
+      List<CmsActionOrder> actionOrders = Collections.EMPTY_LIST;
+      if (!aorders.isEmpty()) {
+            aorders.forEach(ao -> {
+                CmsCI ci = cmProcessor.getCiById(ao.getCiId());
+                ao.setCi(ci);
+            });
+            populateWoBase(aorders);
+            // this is a special case for the cloud.Service usecase
+            actionOrders = aorders.stream().
+                filter(ao -> !isCloudServiceAction(ao)).collect(Collectors.toList());
+            List<CmsActionOrder> cloudServiceOrders = aorders.stream().
+              filter(ao -> isCloudServiceAction(ao)).collect(Collectors.toList());
+
+
+            if (!actionOrders.isEmpty()) {
+              List<CmsCI> envs = Collections.singletonList(getEnvAndPopulatePlatEnable(actionOrders.get(0).getBox()));
+              actionOrders.forEach(ao -> ao.putPayLoadEntry("Environment", envs));
+            }
+          actionOrders.addAll(cloudServiceOrders);
+        }
+        return actionOrders;
+    }
+
     /**
      * Gets the action orders.
      *
@@ -173,82 +226,70 @@ public class CmsWoProvider {
      */
     public List<CmsActionOrder> getActionOrders(long procedureId, OpsProcedureState state, Integer execOrder) {
         checkControllerCache();
-        List<CmsActionOrder> aorders = opsMapper.getActionOrders(procedureId, state, execOrder);
-        for (CmsActionOrder ao : aorders) {
-            CmsCI ci = cmProcessor.getCiById(ao.getCiId());
-            ao.setCi(ci);
-        }
-        populateWoBase(aorders);
-        CmsCI env = null;
-        List<CmsCI> envs = null;
+        List<CmsActionOrder> aorders = getBaseActionOrders(procedureId, state, execOrder);
         Map<Long, CmsCI> manifestToTemplateMap = new HashMap<>();
-        for (CmsActionOrder ao : aorders) {
-            // this is a special case for the cloud.Service usecase
-            if (ao.getCi().getCiClassName().startsWith(CLOUDSERVICEPREFIX)) {
-                continue;
-            }
-
-            if (env == null) {
-                env = getEnvAndPopulatePlatEnable(ao.getBox());
-                envs = new ArrayList<>();//TODO Collections.singletonList
-                envs.add(env);
-            }
-
-            //put Environment
-            ao.putPayLoadEntry("Environment", envs);
-            //put all the variables in payload
-            try {
-                Map<String, List<CmsCI>> resolvedVariableCIs = cmsUtil.getResolvedVariableCIs(ao.getCloud(), env, ao.getBox());
-                ao.getPayLoad().putAll(resolvedVariableCIs);
-            } catch (Exception e) {
-                logger.error("Error in generating action order while resolving variables for env: "
-                        + env.getNsPath() + "/" + env.getCiName() + ", action name: " + ao.getActionName() + ", for CiId: " + ao.getCiId());
-                //do not throw again because action-procedures may not need variables.. and if they do,
-                //and the variable is not defined or badly encrypted, the recipe would fail anyway
-            }
-
-            //put proxy
-            ao.putPayLoadEntry("ManagedVia", getCIRelatives(ao.getCiId(), "bom.ManagedVia", "from", null));
-            //put depends on
-            ao.putPayLoadEntry("DependsOn", getCIRelatives(ao.getCiId(), "bom.DependsOn", "from", null));
-            //put realized as
-            ao.putPayLoadEntry("RealizedAs", getCIRelatives(ao.getCiId(), "base.RealizedAs", "to", null));
-            //put key pairs SecuredBy
-            ao.putPayLoadEntry("SecuredBy", getKeyPairs(ao.getCi(), ao.getPayLoad().get("ManagedVia")));
-
-            // if this is custom action from attachment - get the attachment
-            if (ao.getActionName().equals("user-custom-attachment")) {
-                setAttachment(env, ao);
-            } else {
-                //lets get the payload def from the template
-                long manifestCiId = getRealizedAs(ao.getCiId());
-                //
-                List<CmsCI> attachments = getAttachments(ao, manifestCiId, env);
-                if (!attachments.isEmpty())
-                    ao.putPayLoadEntry(ESCORTED_BY, attachments);
-                if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-                    CmsCI manifestCi = cmProcessor.getCiById(manifestCiId);
-                    //process Escorted by relation
-                    CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
-                    if (templObj == null) {
-                        logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
-                    } else {
-                        manifestToTemplateMap.put(manifestCi.getCiId(), templObj);
-                    }
-                }
-
-                if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-                    throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
-                            "Can not find pack template for manifest component id=" + manifestCiId);
-                }
-                processPayLoadDef(ao, manifestToTemplateMap.get(manifestCiId), null, null, null);
-                String actionPayLoad = ao.getPayLoadDef();
-                processPayLoadDef(ao, actionPayLoad);
-            }
-
-            ao.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(ao));
-        }
+        aorders.stream().filter(ao -> !isCloudServiceAction(ao)).forEach(ao -> assembleAo(ao, manifestToTemplateMap));
         return aorders;
+    }
+
+    private void assembleAo(CmsActionOrder ao, Map<Long, CmsCI> manifestToTemplateMap) {
+        CmsCI env = getEnvFromAo(ao);
+        //put all the variables in payload
+        try {
+            Map<String, List<CmsCI>> resolvedVariableCIs = cmsUtil.getResolvedVariableCIs(ao.getCloud(), env, ao.getBox());
+            ao.getPayLoad().putAll(resolvedVariableCIs);
+        } catch (Exception e) {
+
+            logger.error("Error in generating action order while resolving variables for env: "
+                + env.getNsPath() + "/" + env.getCiName() + ", action name: " + ao.getActionName() + ", for CiId: " + ao.getCiId());
+            //do not throw again because action-procedures may not need variables.. and if they do,
+            //and the variable is not defined or badly encrypted, the recipe would fail anyway
+        }
+
+        //put proxy
+        ao.putPayLoadEntry("ManagedVia", getCIRelatives(ao.getCiId(), "bom.ManagedVia", "from", null));
+        //put depends on
+        ao.putPayLoadEntry("DependsOn", getCIRelatives(ao.getCiId(), "bom.DependsOn", "from", null));
+        //put realized as
+        ao.putPayLoadEntry("RealizedAs", getCIRelatives(ao.getCiId(), "base.RealizedAs", "to", null));
+        //put key pairs SecuredBy
+        ao.putPayLoadEntry("SecuredBy", getKeyPairs(ao.getCi(), ao.getPayLoad().get("ManagedVia")));
+
+        // if this is custom action from attachment - get the attachment
+        if (ao.getActionName().equals("user-custom-attachment")) {
+            setAttachment(env, ao);
+        } else {
+            //lets get the payload def from the template
+            long manifestCiId = getRealizedAs(ao.getCiId());
+            //
+            List<CmsCI> attachments = getAttachments(ao, manifestCiId, env);
+            if (!attachments.isEmpty())
+                ao.putPayLoadEntry(ESCORTED_BY, attachments);
+
+            manifestToTemplateMap.computeIfAbsent(manifestCiId, (manifestId) -> {
+                CmsCI manifestCi = cmProcessor.getCiById(manifestId);
+                //process Escorted by relation
+                CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
+                if (templObj == null) {
+                    logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
+                }
+                return templObj;
+            });
+
+            if (!manifestToTemplateMap.containsKey(manifestCiId)) {
+                throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
+                    "Can not find pack template for manifest component id=" + manifestCiId);
+            }
+            processPayLoadDef(ao, manifestToTemplateMap.get(manifestCiId), null, null, null);
+            String actionPayLoad = ao.getPayLoadDef();
+            processPayLoadDef(ao, actionPayLoad);
+        }
+
+        ao.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(ao));
+    }
+
+    private CmsCI getEnvFromAo(CmsActionOrder ao) {
+        return ao.getPayLoad().get("Environment").get(0);
     }
 
     private void setAttachment(CmsCI env, CmsActionOrder ao) {
@@ -314,18 +355,19 @@ public class CmsWoProvider {
     public List<CmsWorkOrderSimple> getWorkOrderIdsSimple(long deploymentId, String state, Integer execOrder, Integer limit) {
         List<CmsWorkOrderSimple> wosList = new ArrayList<>();
         List<CmsWorkOrder> woList = getWorkOrderIds(deploymentId, state, execOrder, limit);
+        woToWoSimple(woList, wosList);
+        return wosList;
+    }
 
+    private void woToWoSimple(List<CmsWorkOrder> woList, List<CmsWorkOrderSimple> wosList) {
         for (CmsWorkOrder wo : woList) {
             wosList.add(cmsUtil.custWorkOrder2Simple(wo));
         }
-
-        return wosList;
-
     }
 
     public List<CmsWorkOrder> getWorkOrderIds(long deploymentId, String state, Integer execOrder, Integer limit) {
-
-        List<CmsWorkOrder> workOrders = limit != null ? dpmtMapper.getWorkOrdersLimited(deploymentId, state, execOrder, limit)
+        List<CmsWorkOrder> workOrders = (limit != null && limit > 0)
+                ? dpmtMapper.getWorkOrdersLimited(deploymentId, state, execOrder, limit)
                 : dpmtMapper.getWorkOrders(deploymentId, state, execOrder);
         return workOrders;
     }
@@ -611,7 +653,7 @@ public class CmsWoProvider {
             wo.setCloud(getCloudForCloudService(anchorCiId));
         } else {
             wo.setBox(getBox(anchorCiId));
-            wo.setCloud(getCloud(anchorCiId));
+            wo.setCloud(getCloud(anchorCiId,wo.getBox()));
             wo.setServices(getServices(anchorCiId, wo.getCloud()));
         }
     }
@@ -739,7 +781,7 @@ public class CmsWoProvider {
             //this is total HACK for Netscaler needs to be generalized
             List<CmsCIRelation> netscaler = cmProcessor.getFromCIRelations(iaas.getCiId(), "manifest.Requires", "manifest.Netscaler");
             if (netscaler.size() > 0) {
-                for (Map.Entry<String, CmsCIAttribute> attrEntry : netscaler.get(0).getToCi().getAttributes().entrySet()) {
+                for (Entry<String, CmsCIAttribute> attrEntry : netscaler.get(0).getToCi().getAttributes().entrySet()) {
                     CmsCIAttribute nsAttr = attrEntry.getValue();
                     CmsRfcAttribute iaasNsAttr = new CmsRfcAttribute();
                     iaasNsAttr.setAttributeName(nsAttr.getAttributeName());
@@ -868,11 +910,15 @@ public class CmsWoProvider {
     }
 
 
-    private CmsCI getCloud(long ciId) {
+    private CmsCI getCloud(long ciId, CmsCI box) {
         List<CmsRfcRelation> cloudRels = cmrfcProcessor.getFromCIRelationsNakedNoAttrs(ciId, "base.DeployedTo", null, "account.Cloud");
+        //Add other attributes as CI attributes for work order, viz deploymentOrder, percentage
+
         if (cloudRels.size() > 0) {
             CmsCI cloud = cmProcessor.getCiById(cloudRels.get(0).getToCiId());
-            List<CmsRfcRelation> realizedAsRels = cmrfcProcessor.getToCIRelationsNaked(ciId, "base.RealizedAs", null, null);
+            //Get Clouds from
+          List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelationsByToCiIds(box.getCiId(), "base.Consumes", null,Collections.singletonList(cloud.getCiId()));
+          List<CmsRfcRelation> realizedAsRels = cmrfcProcessor.getToCIRelationsNaked(ciId, "base.RealizedAs", null, null);
             if (realizedAsRels.size() > 0 && realizedAsRels.get(0).getAttribute("priority") != null) {
                 String priority = realizedAsRels.get(0).getAttribute("priority").getNewValue();
                 CmsCIAttribute prAttr = new CmsCIAttribute();
@@ -880,6 +926,24 @@ public class CmsWoProvider {
                 prAttr.setDfValue(priority);
                 prAttr.setDjValue(priority);
                 cloud.addAttribute(prAttr);
+            }
+
+            if (platformCloudRels.size()>0 ) {
+              final Map<String, CmsCIRelationAttribute> consumeRelationAttributes = platformCloudRels
+                  .get(0)
+                  .getAttributes();
+              consumeRelationAttributes.keySet().stream()
+                  .filter(k -> !"priority".equals(k)).forEach(k -> {
+                    CmsCIAttribute relAttribute = new CmsCIAttribute();
+                    relAttribute.setAttributeName(k);
+                    relAttribute
+                        .setDfValue(consumeRelationAttributes.get(k).getDfValue());
+                    relAttribute
+                        .setDjValue(consumeRelationAttributes.get(k).getDjValue());
+                    cloud.addAttribute(relAttribute);
+                  }
+              );
+
             }
             return cloud;
         }

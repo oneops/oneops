@@ -19,67 +19,67 @@
 package com.oneops.inductor;
 
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
-import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 
 public class ExecutionContext {
-    private final CmsWorkOrderSimpleBase wo;
-    private  int retryCount;
-    private String[] cmd;
-    private String logKey;
-    private String host;
-    private String keyFile;
 
-    public ExecutionContext(CmsWorkOrderSimple wo, String[] cmd, String logKey,int retryCount) {
-        this.wo = wo;
-        this.cmd = cmd;
-        this.logKey = logKey;
-        this.retryCount=retryCount;
-    }
+  private final CmsWorkOrderSimpleBase wo;
+  private int retryCount;
+  private String[] cmd;
+  private String logKey;
+  private String host;
+  private String keyFile;
 
-    /**
-     * @param wo     work order
-     * @param cmd    command to execute
-     * @param logKey log key
-     */
-    public ExecutionContext(CmsWorkOrderSimpleBase wo, String[] cmd, String logKey, String host, String keyFile,int retryCount) {
-        this.wo = wo;
-        this.cmd = cmd;
-        this.logKey = logKey;
-        this.host = host;
-        this.keyFile = keyFile;
-        this.retryCount=retryCount;
-    }
+  public ExecutionContext(CmsWorkOrderSimpleBase wo, String[] cmd, String logKey, int retryCount) {
+    this.wo = wo;
+    this.cmd = cmd;
+    this.logKey = logKey;
+    this.retryCount = retryCount;
+  }
 
-    public CmsWorkOrderSimpleBase getWo() {
-        return wo;
-    }
+  /**
+   * @param wo work order
+   * @param cmd command to execute
+   * @param logKey log key
+   */
+  public ExecutionContext(CmsWorkOrderSimpleBase wo, String[] cmd, String logKey, String host,
+      String keyFile, int retryCount) {
+    this.wo = wo;
+    this.cmd = cmd;
+    this.logKey = logKey;
+    this.host = host;
+    this.keyFile = keyFile;
+    this.retryCount = retryCount;
+  }
 
-    public String[] getCmd() {
-        return cmd;
-    }
+  public CmsWorkOrderSimpleBase getWo() {
+    return wo;
+  }
 
-    public void setCmd(String[] cmd) {
-        this.cmd = cmd;
-    }
+  public String[] getCmd() {
+    return cmd;
+  }
 
-    public String getLogKey() {
-        return logKey;
-    }
+  public void setCmd(String[] cmd) {
+    this.cmd = cmd;
+  }
 
+  public String getLogKey() {
+    return logKey;
+  }
 
-    public String getHost() {
-        return host;
-    }
+  public String getHost() {
+    return host;
+  }
 
-    public String getKeyFile() {
-        return keyFile;
-    }
+  public String getKeyFile() {
+    return keyFile;
+  }
 
-    public int getRetryCount() {
-        return retryCount;
-    }
+  public int getRetryCount() {
+    return retryCount;
+  }
 
-    public void setRetryCount(int retryCount) {
-        this.retryCount = retryCount;
-    }
+  public void setRetryCount(int retryCount) {
+    this.retryCount = retryCount;
+  }
 }

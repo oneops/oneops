@@ -1,6 +1,7 @@
 <%= ci_list(@components,
             :menu    => has_transition?(@assembly.ciId) && [{:id => 'touch', :label => 'Touch', :url => touch_assembly_transition_environment_platform_components_path(@assembly, @environment, @platform), :method => :post, :param_name => 'componentCiIds'}],
-            :toolbar => {:sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created), %w(Updated updated)],
+            :toolbar => {:list_name => 'transition_platform_components',
+                         :sort_by   => [%w(Class ciClass), %w(Name ciName), %w(Created created), %w(Updated updated)],
                          :filter_by => %w(ciClass ciName),
                          :compact   => false}) do |builder, target| %>
   <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" updated="#{target.updated}" ciClass="#{target.ciClassName.split('.').last}")) %>

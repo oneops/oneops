@@ -3,11 +3,14 @@
 .settings/
 target/
 work/
+2.0.0-p648/
+out/
 .idea/
 *.iml
 *.ipr
 *.iws
 .vagrant/
 Gemfile.lock
+*.gemfile.lock
 vendor/
 dependency-reduced-pom.xml

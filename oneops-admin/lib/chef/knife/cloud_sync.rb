@@ -1,109 +1,79 @@
-require 'chef/knife'
-require 'chef/exceptions'
-require 'chef/knife/core/object_loader'
-require 'chef/json_compat'
-
-require 'bundler'
-ENV['BUNDLE_GEMFILE'] ||= File.dirname(__FILE__) + '/../../../Gemfile'
-require 'bundler/setup' if File.exists?(ENV['BUNDLE_GEMFILE'])
-
-Bundler.setup(:default)
-
-require 'cms'
-
-$:.unshift File.dirname(__FILE__)
-require 'cloud'
-
-# class ActiveResource::Connection
-# # Creates new Net::HTTP instance for communication with
-# # remote service and resources.
-# def http
-# http = Net::HTTP.new(@site.host, @site.port)
-# http.use_ssl = @site.is_a?(URI::HTTPS)
-# http.verify_mode = OpenSSL::SSL::VERIFY_NONE if http.use_ssl
-# http.read_timeout = @timeout if @timeout
-# #Here's the addition that allows you to see the output
-# http.set_debug_output $stderr
-# return http
-# end
-# end
+require 'chef/knife/base_sync'
 
 class Chef
   class Knife
     class CloudSync < Chef::Knife
+      include ::BaseSync
 
-      banner "knife cloud sync CLOUD (options)"
+      banner "Loads cloud templates into OneOps\nUsage: \n   circuit cloud [OPTIONS] [CLOUDS...]"
 
       option :all,
-        :short => "-a",
-        :long => "--all",
-        :description => "Sync all clouds"
+             :short       => "-a",
+             :long        => "--all",
+             :description => "Sync all clouds"
 
       option :register,
-        :short => "-r REGISTER",
-        :long => "--register REGISTER",
-        :description => "Specify the source register name to use during uploads"
-        
+             :short       => "-r REGISTER",
+             :long        => "--register REGISTER",
+             :description => "Specify the source register name to use during uploads"
+
       option :version,
-        :short => "-v VERSION",
-        :long => "--version VERSION",
-        :description => "Specify the source register version to use during uploads"
-        
+             :short       => "-v VERSION",
+             :long        => "--version VERSION",
+             :description => "Specify the source register version to use during uploads"
+
       option :cloud_path,
-        :short => "-o PATH:PATH",
-        :long => "--cloud-path PATH:PATH",
-        :description => "A colon-separated path to look for clouds in",
-        :proc => lambda { |o| o.split(":") }
+             :short       => "-o PATH:PATH",
+             :long        => "--cloud-path PATH:PATH",
+             :description => "A colon-separated path to look for clouds in",
+             :proc        => lambda {|o| o.split(":")}
 
       option :reload,
-        :long => "--reload",
-        :description => "Remove the current cloud before syncing"
-        
-      option :msg,
-        :short => '-m MSG',
-        :long => '--msg MSG',
-        :description => "Append a message to the comments"
-        
+             :long        => "--reload",
+             :description => "Remove the current cloud before syncing"
+
+
       def clouds_loader
         @clouds_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
       end
 
       def run
-        config[:register] ||= Chef::Config[:register]
-        config[:version] ||= Chef::Config[:version]
+        t1 = Time.now
+        ENV['CMS_TRACE'] = 'true' if config[:cms_trace]
+
+        config[:register]   ||= Chef::Config[:register]
+        config[:version]    ||= Chef::Config[:version]
         config[:cloud_path] ||= Chef::Config[:cloud_path]
 
-        #if not Chef::Config[:admin]
-        #  if Chef::Config[:useversion]
-        #      config[:source] = [config[:register], config[:version].split(".").first].join('.')
-        #  else
-        #      config[:source] = config[:register]
-        #  end
-        #end
-
-        comments = "#{ENV['USER']}:#{$0}"
-        comments += " #{config[:msg]}" if config[:msg]
+        @packs_loader ||= Knife::Core::ObjectLoader.new(Chef::Cloud, ui)
 
         if config[:all]
-          ui.info("Starting sync for all clouds")
-          Chef::Cloud.sync_all(config)
-          ui.info("Completed sync for all clouds")
+          files = (config[:cloud_path] || []).inject([]) {|a, dir| a + Dir.glob("#{dir}/*.rb").sort}
         else
-          if @name_args.empty?
-            ui.error "You must specify the cloud to sync or use the --all option."
-            exit 1
-          end
-          @name_args.each do |name|
-            ui.info("Starting sync for cloud #{name}")
-            cloud = Chef::Cloud.from_disk(name)
-            Chef::Log.debug(cloud.inspect)
-            cloud.sync(config)
-            ui.info("Completed sync for cloud #{name}!")
-          end
+          files = @name_args.inject([]) {|a, cloud| a << "#{cloud}.rb"}
         end
 
+        if files.blank? && config[:all].blank?
+          ui.error 'You must specify cloud name(s) or use the --all option to sync all.'
+          exit(1)
+        end
+
+        comments = "#{ENV['USER']}:#{$0} #{config[:msg]}"
+        files.each {|f| exit(1) unless sync_cloud(f, comments)}
+
+        t2 = Time.now
+        ui.info("\nProcessed #{files.size} clouds.\nDone at #{t2} in #{(t2 - t1).round(1)}sec")
       end
 
+      def sync_cloud(file, comments)
+        cloud = @packs_loader.load_from(config[:cloud_path], file)
+        ui.info("\n--------------------------------------------------")
+        ui.info(" #{cloud.name} ".blue(true))
+        ui.info('--------------------------------------------------')
+        cloud.sync(config, comments)
+        ui.info("\e[7m\e[32mSuccessfully synched\e[0m cloud #{cloud.name}")
+        return cloud
+      end
     end
   end
 end

@@ -45,3 +45,51 @@ CREATE TABLE md_class_attributes (
                 CONSTRAINT md_class_attributes_pk PRIMARY KEY (attribute_id)
 );
 
+CREATE TABLE ns_namespaces (
+                ns_id BIGINT NOT NULL,
+                ns_path VARCHAR(200) NOT NULL,
+                created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                CONSTRAINT ns_namespaces_pk PRIMARY KEY (ns_id)
+);
+
+
+CREATE TABLE dj_rfc_ci (
+                rfc_id BIGINT NOT NULL,
+                release_id BIGINT NOT NULL,
+                ci_id BIGINT NOT NULL,
+                ns_id BIGINT NOT NULL,
+                class_id INTEGER NOT NULL,
+                ci_name VARCHAR(200) NOT NULL,
+                ci_goid VARCHAR(256),
+                action_id INTEGER NOT NULL,
+                created_by VARCHAR(200),
+                updated_by VARCHAR(200),
+                execution_order SMALLINT,
+                is_active_in_release BOOLEAN DEFAULT TRUE NOT NULL,
+                last_rfc_id BIGINT,
+                comments VARCHAR(2000),
+                created TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                hint TEXT,
+                CONSTRAINT dj_rfc_ci_pk PRIMARY KEY (rfc_id)
+);
+
+CREATE TABLE ns_opt_tag (
+                tag_id BIGINT NOT NULL,
+                tag VARCHAR(64) NOT NULL,
+                CONSTRAINT tag_id PRIMARY KEY (tag_id)
+);
+
+
+
+CREATE TABLE dj_ns_opt (
+                rfc_id BIGINT NOT NULL,
+                ns_id BIGINT NOT NULL,
+                created TIMESTAMP NOT NULL,
+                tag_id BIGINT NOT NULL,
+                CONSTRAINT dj_ns_opt_pk PRIMARY KEY (rfc_id, ns_id)
+);
+
+
+
+create sequence cm_pk_seq;

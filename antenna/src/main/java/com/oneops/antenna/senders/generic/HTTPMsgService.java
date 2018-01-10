@@ -20,11 +20,16 @@ package com.oneops.antenna.senders.generic;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializer;
 import com.oneops.antenna.domain.BasicSubscriber;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.domain.URLSubscriber;
 import com.oneops.antenna.senders.NotificationSender;
+import java.util.Date;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -49,7 +54,8 @@ import static com.oneops.metrics.OneOpsMetrics.ANTENNA;
 public class HTTPMsgService implements NotificationSender {
 
     private static Logger logger = Logger.getLogger(HTTPMsgService.class);
-    private final Gson gson = new Gson();
+    private  Gson gson ;
+
 
     // Metrics
     private final MetricRegistry metrics;
@@ -70,6 +76,11 @@ public class HTTPMsgService implements NotificationSender {
         httpErr = metrics.meter(name(ANTENNA, "http.error"));
         hpom = metrics.meter(name(ANTENNA, "hpom.count"));
         hpomErr = metrics.meter(name(ANTENNA, "hpom.error"));
+        GsonBuilder builder = new GsonBuilder();
+
+        builder.registerTypeAdapter(Date.class,
+            (JsonSerializer<Date>) (date, typeOfSrc, context) -> new JsonPrimitive(date.getTime()));
+        gson = builder.create();
     }
 
     /**
@@ -92,7 +103,7 @@ public class HTTPMsgService implements NotificationSender {
         int timeout = urlSub.getTimeout();
         req.setConfig(RequestConfig.custom().setSocketTimeout(timeout > 0 ? timeout : 2000).build());
         String userName = urlSub.getUserName();
-        if (userName != null) {
+        if (userName != null && StringUtils.isNotEmpty(userName) && StringUtils.isNotEmpty(urlSub.getPassword()) ) {
             String auth = userName + ":" + urlSub.getPassword();
             req.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + new String(Base64.encodeBase64(auth.getBytes())));
         }

@@ -1,4 +1,5 @@
 module CostSummary
+  UNIT = 'USD/hour'
   def cost_rate
     @cost_rate = Search::Cost.cost_rate(search_ns_path)
     respond_to do |format|

@@ -9,17 +9,17 @@ license "Copyright OneOps, All rights reserved."
 grouping 'default',
          :access    => 'global',
          :namespace => true,
-         :packages  => ['base', 'mgmt']
+         :packages  => %w(base)
 
 grouping 'mgmt',
          :access    => 'global',
          :namespace => true,
-         :packages  => ['mgmt']
+         :packages  => %w(mgmt)
 
 grouping 'account',
          :access    => 'global',
          :namespace => true,
-         :packages  => %w(base account)
+         :packages  => %w(account)
 
 
 attribute 'description',
@@ -33,6 +33,7 @@ attribute 'description',
 
 attribute 'adminstatus',
           :description => 'Status',
+          :grouping    => 'account',
           :default     => 'active',
           :format      => {
             :important => true,

@@ -1,7 +1,8 @@
 <%= section_panel 'Components', :id => 'components_list', :width => 'single', :position => 'right' do %>
-  <% toolbar = {:list_name => 'component_instances',
+  <% toolbar = {:list_name => 'operations_platform_components',
                 :sort_by   => [%w(Name ciName), %w(Health health)],
-                :filter_by => %w(ciName health)} %>
+                :filter_by => %w(ciName health),
+                :compact   => false} %>
   <%= ci_list(@requires.map(&:toCi).sort_by(&:ciClassName), :toolbar => toolbar) do |builder, target| %>
     <% health = target.health
        state = nil
@@ -25,7 +26,7 @@
     <% builder.status do %>
       <% if health %>
         <%= content = health.inject('') {|c, (s, count)| c + "<span class='#{health_to_text(s)}'><strong>#{count}</strong> #{s}</span><br>"}
-            status_marker('health', state, health_to_label(state), 'data-toggle' => 'tooltip', 'data-html' => true, 'data-title' => content, 'data-trigger' => 'hover', 'data-placement' => 'bottom') %>
+            status_marker('health', state, health_to_label(state), 'data-toggle' => 'popover', 'data-html' => true, 'data-title' => 'Intance Counts by State', 'data-content' => content, 'data-trigger' => 'click', 'data-placement' => 'bottom') %>
       <% end %>
       <% if @policy_compliance %>
         <% violate_count = @policy_compliance[target.ciId] %>
@@ -41,13 +42,17 @@
   <% end %>
 <% end %>
 
-<%= section_panel 'Platform Status', :width => 'double', :position => 'left' do %>
+<%= section_panel 'Platform Health', :width => 'double', :position => 'left' do %>
   <ul class="status">
     <%= render 'base/shared/status_health',
-               :class_name     => 'Platform',
-               :instance_count => @instances.size,
-               :ops_states     => @ops_states,
-               :bom_release    => @bom_release %>
+               :scope        => 'platform',
+               :state_counts => @ops_state_counts,
+               :bom_status   => @bom_release ? 'pending' : 'disabled' %>
+  </ul>
+<% end %>
+
+<%= section_panel 'Platform Status', :width => 'double', :position => 'left' do %>
+  <ul class="status">
     <li id="status_autocomply" class="status-marker">
       <%= render 'status_autocomply' %>
     </li>

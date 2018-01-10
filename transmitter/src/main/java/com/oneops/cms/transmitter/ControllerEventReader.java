@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.cms.transmitter;
 
+import com.oneops.cms.cm.dal.CIMapper;
+import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.dal.OpsMapper;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
@@ -27,9 +29,8 @@ import com.oneops.cms.transmitter.dal.EventMapper;
 import com.oneops.cms.transmitter.domain.CMSEvent;
 import com.oneops.cms.transmitter.domain.CMSEventRecord;
 import com.oneops.cms.transmitter.domain.EventSource;
-import org.apache.ibatis.session.SqlSession;
-
 import java.util.List;
+import org.apache.ibatis.session.SqlSession;
 
 public class ControllerEventReader extends BaseEventReader {
     private static final String PUB_LOCK = "PUBLISHER_LOCK";
@@ -110,6 +111,15 @@ public class ControllerEventReader extends BaseEventReader {
         try (SqlSession session = sqlsf.openSession()) {
             OpsMapper opsMapper = session.getMapper(OpsMapper.class);
             CmsOpsProcedure procedure = opsMapper.getCmsOpsProcedure(record.getSourcePk());
+            if (procedure.getNsPath() == null) {
+                if (procedure.getCiId() > 0) {
+                    CIMapper ciMapper = session.getMapper(CIMapper.class);
+                    CmsCI ci = ciMapper.getCIById(procedure.getCiId());
+                    if (ci != null) {
+                        procedure.setNsPath(ci.getNsPath());
+                    }
+                }
+            }
             event = new CMSEvent();
             event.setEventId(record.getEventId());
             event.addHeaders("source", "opsprocedure");

@@ -1,41 +1,43 @@
 /*******************************************************************************
- *  
+ *
  *   Copyright 2015 Walmart, Inc.
- *  
+ *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
  *   You may obtain a copy of the License at
- *  
+ *
  *       http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *   Unless required by applicable law or agreed to in writing, software
  *   distributed under the License is distributed on an "AS IS" BASIS,
  *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *   See the License for the specific language governing permissions and
  *   limitations under the License.
- *  
+ *
  *******************************************************************************/
 package com.oneops.cms.collections;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.collections.def.CollectionLinkDefinition;
+import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Class CollectionProcessor.
  */
 public class CollectionProcessor {
 
-	private CmsCmRfcMrgProcessor cmrfcProcessor;
+  private static final String RELATION_ATTRIBUTE_SUFFIX = ".";
+  private CmsCmRfcMrgProcessor cmrfcProcessor;
 	private CmsCmProcessor cmProcessor;
-	
+
 	/**
 	 * Sets the cmrfc processor.
 	 *
@@ -62,9 +64,9 @@ public class CollectionProcessor {
 	 * @return the flat collection
 	 */
 	public List<CmsCI> getFlatCollection(long anchorCiId, CollectionLinkDefinition relationDef) {
-		
+
 		List<CmsCI> result = new ArrayList<CmsCI>();
-		
+
 		if ("from".equalsIgnoreCase(relationDef.getDirection())) {
 			List<CmsCIRelation> relations = null;
 			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
@@ -74,7 +76,8 @@ public class CollectionProcessor {
 			}
 			for (CmsCIRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmProcessor.getCiById(rel.getToCiId()));
+					final CmsCI aCi = cmProcessor.getCiById(rel.getToCiId());
+					result.add(addRelationAttributes(relationDef,rel,aCi));
 				}
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
@@ -87,12 +90,13 @@ public class CollectionProcessor {
 			List<CmsCIRelation> relations = null;
 			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
 				relations = cmProcessor.getToCIRelationsByAttrsNaked(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(),relationDef.getRelationAttrs());
-			} else {	
+			} else {
 				relations = cmProcessor.getToCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			}
 			for (CmsCIRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmProcessor.getCiById(rel.getFromCiId()));
+					CmsCI aCi = cmProcessor.getCiById(rel.getFromCiId());
+					result.add(addRelationAttributes(relationDef,rel,aCi));
 				}
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
@@ -101,32 +105,33 @@ public class CollectionProcessor {
 				}
 			}
 		}
-		
+
 		return result;
 	}
 
 	/**
 	 * Gets the flat collection rfc.
-	 *
 	 * @param anchorCiId the anchor ci id
 	 * @param relationDef the relation def
 	 * @return the flat collection rfc
 	 */
 	public List<CmsRfcCI> getFlatCollectionRfc(long anchorCiId, CollectionLinkDefinition relationDef) {
-		
-		List<CmsRfcCI> result = new ArrayList<CmsRfcCI>();
-		
+
+		List<CmsRfcCI> result = new ArrayList<>();
+
 		if ("from".equalsIgnoreCase(relationDef.getDirection())) {
 			List<CmsRfcRelation> relations = null;
-			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
+			if ((relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0) || relationDef.getReturnRelationAttributes()) {
 				relations = cmrfcProcessor.getFromCIRelationsByAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(), "df", relationDef.getRelationAttrs());
-			} else {	
+			} else {
 				relations = cmrfcProcessor.getFromCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			}
 			for (CmsRfcRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmrfcProcessor.getCiById(rel.getToCiId(), "df"));
+					CmsRfcCI aRfc= cmrfcProcessor.getCiById(rel.getToCiId(),"df");
+					result.add(addRelationRfcAttributes(relationDef,rel,aRfc ));
 				}
+				//
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
 						result.addAll(getFlatCollectionRfc(rel.getToCiId(), relDef));
@@ -135,14 +140,16 @@ public class CollectionProcessor {
 			}
 		} else {
 			List<CmsRfcRelation> relations = null;
-			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
+			if ((relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0) || relationDef.getReturnRelationAttributes() ) {
 				relations = cmrfcProcessor.getToCIRelationsByAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(), "df", relationDef.getRelationAttrs());
-			} else {	
+			} else {
 				relations = cmrfcProcessor.getToCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			}
 			for (CmsRfcRelation rel : relations) {
 				if (relationDef.getReturnObject()) {
-					result.add(cmrfcProcessor.getCiById(rel.getFromCiId(),"df"));
+					CmsRfcCI aRfc= cmrfcProcessor.getCiById(rel.getFromCiId(), "df");
+					result.add(addRelationRfcAttributes(relationDef,rel,aRfc ));
+
 				}
 				if (relationDef.getRelations() != null) {
 					for (CollectionLinkDefinition relDef : relationDef.getRelations()) {
@@ -151,11 +158,45 @@ public class CollectionProcessor {
 				}
 			}
 		}
-		
+
 		return result;
 	}
 
-    /**
+
+  private CmsRfcCI addRelationRfcAttributes(CollectionLinkDefinition relationDef,
+      CmsRfcRelation rel,
+      CmsRfcCI aRfc) {
+    if (relationDef.getReturnRelationAttributes()) {
+      rel.getAttributes().forEach((k, v) -> {
+        CmsRfcAttribute attribute = new CmsRfcAttribute();
+        attribute.setAttributeName(rel.getRelationName() + RELATION_ATTRIBUTE_SUFFIX + k);
+        attribute.setNewValue(v.getNewValue());
+        attribute.setOldValue(v.getOldValue());
+        aRfc.getAttributes().put(attribute.getAttributeName(), attribute);
+      });
+
+    }
+    return aRfc;
+  }
+
+
+
+	private CmsCI addRelationAttributes(CollectionLinkDefinition relationDef, CmsCIRelation rel,
+			CmsCI aCi) {
+		if(relationDef.getReturnRelationAttributes()){
+			rel.getAttributes().forEach((k,v)->{
+				CmsCIAttribute attribute = new CmsCIAttribute();
+				attribute.setAttributeName(rel.getRelationName()+ RELATION_ATTRIBUTE_SUFFIX +k);
+				attribute.setDfValue(v.getDfValue());
+				attribute.setDjValue(v.getDjValue());
+				aCi.getAttributes().put(attribute.getAttributeName(),attribute);
+			});
+		}
+		return aCi;
+	}
+
+
+  /**
      * Upsert collection rfc.
      *
      * @param rfcNode the rfc node

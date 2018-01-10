@@ -3,15 +3,15 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.08.30-01-SNAPSHOT</version>
+  <version>18.01.03-12-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
- <scm>
+  <scm>
     <connection>scm:git:git://github.com/oneops/oneops.git</connection>
     <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
     <url>https://github.com/oneops/oneops</url>
-    <tag>release-17.08.09-03</tag>
+    <tag>release-17.09.06-01</tag>
   </scm>
 
   <properties>
@@ -61,7 +61,7 @@
     <mockito-all.version>1.9.5</mockito-all.version>
     <mockito.version>1.9.5</mockito.version>
     <mockrunner.version>0.3.1</mockrunner.version>
-    <mybatis-spring.version>1.2.2</mybatis-spring.version>
+    <mybatis-spring.version>1.2.4</mybatis-spring.version>
     <mybatis.version>3.2.5</mybatis.version>
     <neethi.version>2.0.4</neethi.version>
     <org.springframework.security.version>3.2.8.RELEASE</org.springframework.security.version>
@@ -86,6 +86,8 @@
     <activiti-spring.version>5.19.0</activiti-spring.version>
     <activiti.version>5.19.0</activiti.version>
     <slf4j.version>1.6.1</slf4j.version>
+    <hazelcast.version>3.8.5</hazelcast.version>
+    <aspectj.version>1.8.11</aspectj.version>
   </properties>
   <modules>
     <module>adapter</module>
@@ -104,10 +106,12 @@
     <module>transistor</module>
     <module>transmitter</module>
     <module>batch</module>
+    <module>crawler</module>
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
     <module>oneops-packer</module>
+    <module>oneops-model</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -489,7 +493,17 @@
       </dependency>
       <dependency>
         <groupId>com.oneops</groupId>
+        <artifactId>oo-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
         <artifactId>oo-commons</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-model</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -647,11 +661,41 @@
         <artifactId>smackx</artifactId>
         <version>${smack.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.hazelcast</groupId>
+        <artifactId>hazelcast</artifactId>
+        <version>${hazelcast.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.hazelcast</groupId>
+        <artifactId>hazelcast-spring</artifactId>
+        <version>${hazelcast.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.aspectj</groupId>
+        <artifactId>aspectjweaver</artifactId>
+        <version>${aspectj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.opentable.components</groupId>
+        <artifactId>otj-pg-embedded</artifactId>
+        <version>0.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.flywaydb</groupId>
+        <artifactId>flyway-core</artifactId>
+        <version>4.2.0</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-clean-plugin</artifactId>
+          <version>3.0.0</version>
+        </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
@@ -687,6 +731,11 @@
               <exclude>**/IT*.java</exclude>
             </excludes>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>build-helper-maven-plugin</artifactId>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <groupId>org.jacoco</groupId>

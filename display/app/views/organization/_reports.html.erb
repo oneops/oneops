@@ -1,9 +1,9 @@
 <%= section_panel 'Compute Report', :width => 'triple', :position => 'left',
                   :id                      => 'org_report_section',
-                  :menu                    => [link_to('By Assembly', '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] == 'By Assembly'}", 'data-url' => compute_reports_path),
-                                               link_to('By Cloud', '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] != 'By Assembly'}", 'data-url' => compute_reports_path(:grouping => 'cloud'))] do %>
-  <% admin = is_admin?
-     if @quota_ci_ids.present? && admin %>
+                  :menu                    => [link_to('By Assembly', '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] != 'By Cloud'}", 'data-url' => compute_reports_path),
+                                               link_to('By Cloud',    '#reports', :class => "graph-grouping btn btn-mini #{'active' if params[:grouping] == 'By Cloud'}", 'data-url' => compute_reports_path(:grouping => 'cloud'))] do %>
+  <% admin = is_admin? %>
+  <% if @quota_ci_ids.present? && admin %>
     <script>
       <% org_ci = @current_user.organization.ci %>
       window.refresh_compute_quotas = function () {
@@ -13,11 +13,11 @@
           data: {
             cms_procedure: {
               ciId:           "<%= org_ci.ciId %>",
-              procedureName:  "Refresh Qouta",
+              procedureName:  "Refresh Quota",
               procedureState: "pending",
               procedureCiId:  0,
               definition:     Object.toJSON({
-                name: "Refresh Qouta",
+                name: "Refresh Quota",
                 flow: [{
                   nsPath:          "<%= org_ci.ciName %>/_clouds",
                   targetClassName: "account.Cloud",

@@ -1,0 +1,29 @@
+if ::File.exist?('/etc/oneops')
+  config = {}
+  ::File.read('/etc/oneops').split(/[, \n]+/).each do |line|
+    key,value = line.split('=')
+    config[key] = value
+  end
+  source "#{config['rubygems']}"
+else
+  `gem source`.split("\n").select{|l| (l =~ /^http/)}.each{|s| (source "#{s}")}
+end
+
+ruby "=2.0.0"
+
+gem 'test-kitchen', '=1.16.0'
+gem 'berkshelf', '>= 4.3.5', '< 6.0.0'
+gem 'httpclient', '=2.7.2'
+gem 'json', '=1.8.6'
+gem 'public_suffix', '=2.0.5'
+gem 'mixlib-shellout', '=2.2.7'
+gem 'buff-extensions', '=1.0.0'
+gem 'nio4r', '=1.2.1'
+gem 'ridley', '=4.6.1'
+gem 'kitchen-vagrant', '=1.1.0'
+gem 'busser', '=0.7.1'
+gem 'serverspec'
+gem 'busser-serverspec'
+gem 'kitchen-verifier-serverspec', '=0.4.0'
+gem 'net-ssh', '~>2.9'
+gem 'kitchen-transport-rsync', '=0.1.2'

@@ -4,15 +4,28 @@ class Transition::DeploymentsController < ApplicationController
 
   def index
     if @environment || @assembly
+      @source = params[:source].presence || (request.format.html? || request.format.xhr? ? 'es' : 'cms')
+
       ns_path = @environment ? "#{@environment.nsPath}/#{@environment.ciName}/bom" : assembly_ns_path(@assembly)
-      size    = (params[:size].presence || 1000).to_i
-      offset  = (params[:offset].presence || 0).to_i
-      sort    = params[:sort].presence || {'created' => 'desc'}
-      filter  = params[:filter]
-      search_params = {:nsPath => ns_path, :size => size, :from => offset, :sort => sort, :_silent => []}
-      search_params[:query] = filter if filter.present?
-      # @deployments = Cms::Deployment.all(:params => {:nsPath => ns_path})
-      @deployments = Cms::Deployment.search(search_params)
+
+      if @source == 'cms' || @source == 'simple'
+        search_params = {:nsPath => ns_path, :recursive => @environment.blank?}
+        %w(start end).each do |k|
+          date = params[k]
+          search_params[k] = Time.parse(date).to_i * 1000 if date.present?
+        end
+
+        @deployments = Cms::Deployment.all(:params => search_params)
+      else
+        size          = (params[:size].presence || 1000).to_i
+        offset        = (params[:offset].presence || 0).to_i
+        sort          = params[:sort].presence || {'created' => 'desc'}
+        filter        = params[:filter]
+        search_params = {:nsPath => ns_path, :size => size, :from => offset, :sort => sort, :_silent => []}
+        search_params[:query] = filter if filter.present?
+
+        @deployments = Cms::Deployment.search(search_params)
+      end
 
       set_pagination_response_headers(@deployments)
     else
@@ -50,6 +63,15 @@ class Transition::DeploymentsController < ApplicationController
       format.html {render 'transition/environments/_deployments'}
       format.js {render :action => :index}
       format.json {render :json => @deployments}
+      format.csv do
+        fields = [:deploymentId, :nsPath, :state, :created_at, :created_by, :comments]
+        rows = @deployments.map do |d|
+          [d.deploymentId, d.nsPath[0..-5], d.deploymentState, d.created_timestamp, d.createdBy, d.comments].join(',')
+        end
+        render :text => fields.join(',') + "\n" + rows.join("\n")   #, :content_type => 'text/data_string'
+      end
+
+      format.yaml {render :text => @deployments.as_json(:only => [:deploymentId, :releaseId, :nsPath, :deploymentState, :created, :createdBy, :updated, :comments, :description]).to_yaml, :content_type => 'text/data_string'}
     end
   end
 
@@ -129,6 +151,13 @@ class Transition::DeploymentsController < ApplicationController
   def compile_status
     if @environment.ciState != 'locked' && (@environment.comments.blank? || !@environment.comments.start_with?('ERROR:'))
       find_open_bom_release
+      if request.format.json?
+        if @release
+          @release.rfcs = {:cis => @release.rfc_cis, :relations => @release.rfc_relations}
+          @environment.bom = @release
+        end
+        render_json_ci_response(true, @environment)
+      else
       if @release
         # Deployment might have been already started in a separate browser session.
         @deployment = Cms::Deployment.latest(:releaseId => @release.releaseId)
@@ -137,6 +166,8 @@ class Transition::DeploymentsController < ApplicationController
 
         @manifest = Cms::Release.find(@release.parentReleaseId)
         check_for_override
+        @cost, _ = Transistor.environment_cost(@environment, true, false)
+        end
       end
     end
   end
@@ -274,6 +305,18 @@ class Transition::DeploymentsController < ApplicationController
       format.json { render_json_ci_response(@deployment.present?, @deployment) }
     end
   end
+
+  def preview
+    flags = params.slice(:cost, :capacity).keys.select {|k| params[k] != 'false'}
+    data, error = Transistor.deployment_plan_preview(@environment, *flags)
+      if data
+        render :json => data
+      else
+        render :json => {:errors => [error]}, :status => :internal_server_error
+        return
+      end
+  end
+
 
   protected
 

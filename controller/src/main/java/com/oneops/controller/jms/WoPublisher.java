@@ -23,10 +23,11 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.util.MessageData;
 import com.oneops.util.SearchPublisher;
+import org.apache.log4j.Logger;
+
+import javax.jms.JMSException;
 import java.util.HashMap;
 import java.util.Map;
-import javax.jms.JMSException;
-import org.apache.log4j.Logger;
 
 /**
  * JMS publisher class which publishes both work-orders and action-orders
@@ -52,7 +53,6 @@ public class WoPublisher {
 
   /**
    *
-   * @param workOrder
    * @throws JMSException
    */
   public void publishMessage(CmsWorkOrderSimpleBase cmsWoSimpleBase, String type, String id)

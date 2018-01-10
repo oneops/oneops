@@ -18,6 +18,7 @@
 package com.oneops.cms.util;
 
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.*;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -55,9 +56,12 @@ public class CmsUtil {
     public static final String LOCAL_VARS_PAYLOAD_NAME = "OO_LOCAL_VARS";
     public static final String WORK_ORDER_TYPE = "deploybom";
     public static final String ACTION_ORDER_TYPE = "opsprocedure";
+
     protected static final String GLOBALVARPFX = "$OO_GLOBAL{";
     protected static final String LOCALVARPFX = "$OO_LOCAL{";
     protected static final String CLOUDVARPFX = "$OO_CLOUD{";
+    protected static final String MASK = "##############";
+
     private static final String VAR_SEC_ATTR_FLAG = "secure";
     private static final String VAR_SEC_ATTR_VALUE = "encrypted_value";
     private static final String VAR_UNSEC_ATTR_VALUE = "value";
@@ -66,9 +70,11 @@ public class CmsUtil {
     private static final String CLOUDVARRPL = "\\$OO_CLOUD\\{";
     private static final String VARSUFFIX ="}";
     private static final String ATTR_PROP_OWNER = "owner";
-    protected static final String MASK = "##############";
     private static final String DJ_ATTR = "dj";
+
     private static final Logger logger = Logger.getLogger(CmsUtil.class);
+    private static Gson gson = new Gson();
+
     private CmsCmProcessor cmProcessor;
     private CmsRfcUtil rfcUtil;
     private CmsCrypto cmsCrypto;
@@ -256,6 +262,15 @@ public class CmsUtil {
                 }
             }
         }
+    }
+
+    public static String generateRelComments(String fromCiName, String fromCiClass, String toCiName, String toCiClass) {
+        Map<String, String> strMap = new HashMap<>();
+        strMap.put("fromCiName", fromCiName);
+        strMap.put("fromCiClass", fromCiClass);
+        strMap.put("toCiName", toCiName);
+        strMap.put("toCiClass", toCiClass);
+        return gson.toJson(strMap);
     }
 
     /**
@@ -1609,5 +1624,4 @@ public class CmsUtil {
     public void setCountOfErrorsToReport(int countOfErrorsToReport) {
         this.countOfErrorsToReport = countOfErrorsToReport;
     }
-
 }

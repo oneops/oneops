@@ -20,7 +20,7 @@ package com.oneops.antenna.jms;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
+import com.oneops.notification.NotificationMessage;
 import com.oneops.antenna.service.Dispatcher;
 import org.mockito.InjectMocks;
 import org.mockito.MockitoAnnotations;

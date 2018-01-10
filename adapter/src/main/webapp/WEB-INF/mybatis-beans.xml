@@ -2,25 +2,15 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:tx="http://www.springframework.org/schema/tx"
-       xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-                           http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd
+                           http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
                            http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd">
 
     <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"/>
 
-    <bean id="oneopsCMSDS" class="org.apache.commons.dbcp.BasicDataSource">
-        <property name="driverClassName" value="org.postgresql.Driver"/>
-        <property name="url" value="jdbc:postgresql://${CMS_DB_HOST}/kloopzdb?autoReconnect=true&amp;ApplicationName=adapter-${ONEOPS_COMPUTE_CI_ID:0}"/>
-        <property name="username" value="${CMS_DB_USER}"/>
-        <property name="password" value="${CMS_DB_PASS}"/>
-        <property name="maxActive" value="10"/>
-        <property name="maxIdle" value="5"/>
-        <property name="testOnBorrow" value="true"/>
-        <property name="validationQuery" value="select 1"/>
-        <property name="initialSize" value="5"/>
-        <property name="defaultAutoCommit" value="false"/>
-    </bean>
+    <context:annotation-config/>
+    <context:component-scan base-package="com.oneops.cms.ds"/>
 
     <!-- transaction manager, use JtaTransactionManager for global tx -->
     <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
@@ -35,42 +25,42 @@
     </bean>
 
     <bean id="clazzMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.md.dal.ClazzMapper"/>
+        <constructor-arg value="com.oneops.cms.md.dal.ClazzMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="nsMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.ns.dal.NSMapper"/>
+        <constructor-arg value="com.oneops.cms.ns.dal.NSMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="relationMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.md.dal.RelationMapper"/>
+        <constructor-arg value="com.oneops.cms.md.dal.RelationMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="ciMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.cm.dal.CIMapper"/>
+        <constructor-arg value="com.oneops.cms.cm.dal.CIMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="opsMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.cm.ops.dal.OpsMapper"/>
+        <constructor-arg value="com.oneops.cms.cm.ops.dal.OpsMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="djMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.dj.dal.DJMapper"/>
+        <constructor-arg value="com.oneops.cms.dj.dal.DJMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="dpmtMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.dj.dal.DJDpmtMapper"/>
+        <constructor-arg value="com.oneops.cms.dj.dal.DJDpmtMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 
     <bean id="utilMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">
-        <property name="mapperInterface" value="com.oneops.cms.util.dal.UtilMapper"/>
+        <constructor-arg value="com.oneops.cms.util.dal.UtilMapper"/>
         <property name="sqlSessionFactory" ref="sqlSessionFactory"/>
     </bean>
 

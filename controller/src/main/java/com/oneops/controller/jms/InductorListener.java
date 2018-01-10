@@ -23,6 +23,7 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.controller.sensor.SensorClient;
 import com.oneops.controller.util.ControllerUtil;
+import com.oneops.controller.workflow.ExecutionManager;
 import com.oneops.controller.workflow.WorkflowController;
 import com.oneops.sensor.client.SensorClientException;
 import java.text.SimpleDateFormat;
@@ -67,6 +68,7 @@ public class InductorListener implements MessageListener {
   private WoPublisher woPublisher;
   private SensorClient sensorClient;
   private ControllerUtil controllerUtil;
+  private ExecutionManager executionManager;
 
   public SensorClient getSensorClient() {
     return sensorClient;
@@ -197,18 +199,42 @@ public class InductorListener implements MessageListener {
     }
 
     if (woTaskResult.equalsIgnoreCase("200")) {
-      params.put("wostate", "complete");
+      params.put(CmsConstants.WORK_ORDER_STATE, "complete");
     } else {
-      params.put("wostate", "failed");
+      params.put(CmsConstants.WORK_ORDER_STATE, "failed");
     }
-    String woCorelationId = processId + executionId;
-    wfController.pokeSubProcess(processId, executionId, params);
+
+    handleWorkOrderFlow(processId, executionId, params, wo);
+
     final long processTime = System.currentTimeMillis() - startTime;
+    String woCorelationId = processId + executionId;
     wo.getSearchTags().put("cProcessTime",String.valueOf(processTime));
     setWoTimeStamps(wo);
     woPublisher.publishMessage(wo, type, woCorelationId);
     logger.info("Processed iResponse with id "+ corelationId + " result" + woTaskResult+" took(ms) " +processTime);
+  }
 
+  private void handleWorkOrderFlow(String processId, String executionId, Map<String,
+          Object> params, CmsWorkOrderSimpleBase wo) throws JMSException {
+    if (isRunByDeployer(wo)) {
+      if (wo instanceof CmsWorkOrderSimple) {
+        CmsWorkOrderSimple woSimple = ((CmsWorkOrderSimple)wo);
+        logger.info("handleWOResponse using ExecutionManager for deployment " + woSimple.getDeploymentId() + " rfc " + woSimple.getRfcId());
+        executionManager.handleWOResponse(woSimple, params);
+      }
+      else if (wo instanceof CmsActionOrderSimple){
+        CmsActionOrderSimple aoSimple = ((CmsActionOrderSimple)wo);
+        logger.info("handleAOResponse using ExecutionManager for procedure " + aoSimple.getProcedureId() + " action " + aoSimple.getActionId());
+        executionManager.handleAOResponse(aoSimple, params);
+      }
+    }
+    else {
+      wfController.pokeSubProcess(processId, executionId, params);
+    }
+  }
+
+  private boolean isRunByDeployer(CmsWorkOrderSimpleBase wo) {
+    return CmsConstants.DEPLOYMENT_MODEL_DEPLOYER.equals(wo.getSearchTags().get(CmsConstants.DEPLOYMENT_MODEL));
   }
 
   /**
@@ -254,9 +280,13 @@ public class InductorListener implements MessageListener {
   private void closeConnection() {
     try {
       session.close();
+
       connection.close();
     } catch (Exception ignore) {
     }
   }
 
+  public void setExecutionManager(ExecutionManager executionManager) {
+    this.executionManager = executionManager;
+  }
 }

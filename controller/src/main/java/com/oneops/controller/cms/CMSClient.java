@@ -16,9 +16,9 @@
  *******************************************************************************/
 package com.oneops.controller.cms;
 
+import static com.oneops.cms.cm.ops.domain.OpsActionState.failed;
+
 import com.google.gson.Gson;
-import com.oneops.antenna.domain.NotificationMessage;
-import com.oneops.antenna.domain.NotificationType;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.ops.domain.CmsOpsAction;
@@ -43,8 +43,12 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.controller.util.ControllerUtil;
+import com.oneops.controller.workflow.WorkOrderContext;
 import com.oneops.controller.workflow.WorkflowController;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.notification.NotificationType;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.apache.log4j.Logger;
@@ -79,13 +84,13 @@ public class CMSClient {
 
     private static final int NSPATH_ENV_ELEM_NO = 3;
     private static final int NSPARTS_SIZE_MIN = 5;
-    private static final String EXEC_ORDER = "execOrder";
     public static final String INPROGRESS = "inprogress";
+    public static final String CANCELLED = "canceled";
     public static final String COMPLETE = "complete";
     public static final String FAILED = "failed";
     public static final String PAUSED = "paused";
     public static final String PENDING = "pending";
-    private static final String DPMT = "dpmt";
+    public static final String DPMT = "dpmt";
 
     private RestTemplate restTemplate;
     @SuppressWarnings("unused")
@@ -102,7 +107,7 @@ public class CMSClient {
     private ControllerUtil controllerUtil;
     private OpsProcedureProcessor opsProcedureProcessor;
 
-    private static final String ONEOPS_SYSTEM_USER = "oneops-system";
+    public static final String ONEOPS_SYSTEM_USER = "oneops-system";
 
     public void setCmsDpmtProcessor(CmsDpmtProcessor cmsDpmtProcessor) {
         this.cmsDpmtProcessor = cmsDpmtProcessor;
@@ -185,7 +190,7 @@ public class CMSClient {
      */
     public void getWorkOrderIds(DelegateExecution exec) {
         CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
-        Integer execOrder = (Integer) exec.getVariable(EXEC_ORDER);
+        Integer execOrder = (Integer) exec.getVariable(CmsConstants.EXEC_ORDER);
         long startTime = System.currentTimeMillis();
         try {
             // if not - resubmit them, this is not normal situation but sometimes activiti completes subprocess
@@ -211,6 +216,38 @@ public class CMSClient {
         }
     }
 
+    public List<CmsWorkOrderSimple> getWorkOrderIdsNoLimit(CmsDeployment dpmt, int execOrder) {
+        long startTime = System.currentTimeMillis();
+        try {
+            List<CmsWorkOrderSimple> recList = cmsWoProvider.getWorkOrderIdsSimple(dpmt.getDeploymentId(), PENDING,
+                    execOrder, null);
+            logger.info(dpmt.getDeploymentId()+"-"+execOrder +" Got workOrderIds size: " + recList.size()
+                    + " took " +(System.currentTimeMillis()-startTime) +"ms");
+            return recList;
+        } catch (CmsBaseException e) {
+            logger.error(dpmt.getDeploymentId()+"-"+execOrder +" CmsException :", e);
+            handleWoError(dpmt, execOrder, e);
+            throw e;
+        }
+    }
+
+    private void handleWoError(CmsDeployment dpmt, int execOrder, CmsBaseException e) {
+        String descr = dpmt.getDescription();
+        if (descr == null) {
+            descr = "";
+        }
+        descr += "\n Can not get workorderIds for step #" + execOrder + ";\n " + e.getMessage();
+        dpmt.setDeploymentState(FAILED);
+        dpmt.setDescription(descr);
+        cmsDpmtProcessor.updateDeployment(dpmt);
+    }
+
+    private void handleWoError(CmsDeployment dpmt, String descr) {
+        dpmt.setDeploymentState(FAILED);
+        dpmt.setDescription(descr);
+        cmsDpmtProcessor.updateDeployment(dpmt);
+    }
+
     /**
      * Gets the work order.
      *
@@ -219,7 +256,7 @@ public class CMSClient {
      * @throws GeneralSecurityException the general security exception
      */
     public CmsWorkOrderSimple getWorkOrder(DelegateExecution exec, CmsWorkOrderSimple dpmtRec) {
-        Integer execOrder = (Integer) exec.getVariable(EXEC_ORDER);
+        Integer execOrder = (Integer) exec.getVariable(CmsConstants.EXEC_ORDER);
         CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
         logger.info("Geting work order pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
         long startTime = System.currentTimeMillis();
@@ -268,6 +305,46 @@ public class CMSClient {
         return null;
     }
 
+    public CmsWorkOrderSimple getWorkOrder(CmsDeployment dpmt, WorkOrderContext woContext) {
+        CmsWorkOrderSimple dpmtRec = woContext.getWoSimple();
+        int execOrder = woContext.getExecOrder();
+        logger.info("Geting work order pmtRec = " + dpmtRec.getDpmtRecordId() + " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
+        long startTime = System.currentTimeMillis();
+        try {
+
+            CmsWorkOrderSimple wo  = cmsWoProvider.getWorkOrderSimple(dpmtRec.getDpmtRecordId(), null, execOrder);
+            final long woCreationtime = System.currentTimeMillis() - startTime;
+            wo.getSearchTags().put("woCrtTime",String.valueOf(woCreationtime));
+            wo.getSearchTags().put(CmsConstants.DEPLOYMENT_MODEL, CmsConstants.DEPLOYMENT_MODEL_DEPLOYER);
+            logger.info("Time taken to get wo - " + woCreationtime + "ms; pmtRec = " + dpmtRec.getDpmtRecordId() +
+                    " for dpmt id = " + dpmtRec.getDeploymentId() + " rfcId =  " + dpmtRec.getRfcId() + " step #" + execOrder);
+
+            if (wo != null) {
+                decryptWo(wo);
+                CmsWorkOrderSimple strippedWo = controllerUtil.stripWO(wo);
+                return wo;
+            } else {
+                String descr = dpmt.getDescription();
+                if (descr == null) {
+                    descr = "";
+                }
+                descr += "\n Can not get workorder for rfc : " + dpmtRec.getRfcId() + "; execOrder : " + execOrder + ";\n ";
+                logger.error(descr);
+                woContext.setWoDispatchError(descr);
+                throw new RuntimeException(descr);
+            }
+        } catch (CmsBaseException e) {
+            String message = "CmsBaseException rfc : " + dpmtRec.getRfcId() + "; execOrder : " + execOrder;
+            logger.error(message, e);
+            woContext.setWoDispatchError(message);
+            throw e;
+        } catch (GeneralSecurityException e) {
+            String message = "Failed to decrypt workorder for rfc : " + dpmtRec.getRfcId() + "; execOrder : " + execOrder;
+            logger.error(message, e);
+            woContext.setWoDispatchError(message);
+            throw new RuntimeException(e);
+        }
+    }
 
     private void handleWoError2(DelegateExecution exec, CmsDeployment dpmt, String descr) {
         dpmt.setDeploymentState(FAILED);
@@ -313,7 +390,6 @@ public class CMSClient {
         }
     }
 
-
     /**
      * Update wo state.
      *
@@ -322,34 +398,47 @@ public class CMSClient {
      * @param newState the new state
      */
     public void updateWoState(DelegateExecution exec, CmsWorkOrderSimple wo, String newState) {
+        CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
+        updateWoState(wo, newState, dpmt, exec.getId(),
+                (String)exec.getVariable("error-message"),
+                d -> {
+                    exec.setVariable(DPMT, dpmt);
+                });
+    }
 
+    public void updateWoState(CmsDeployment dpmt, CmsWorkOrderSimple wo, String newState, String error) {
+        updateWoState(wo, newState, dpmt, "", error, null);
+    }
+
+    public void updateWoState(CmsWorkOrderSimple wo, String newState, CmsDeployment dpmt, String execContextName,
+                              String error, Consumer<CmsDeployment> updateDpmtFunc) {
         wo.setDpmtRecordState(newState);
-
         if (newState.equalsIgnoreCase(COMPLETE)) {
             completeWO(wo);
         } else {
             CmsDpmtRecord dpmtRec = new CmsDpmtRecord();
             if (newState.equalsIgnoreCase(INPROGRESS)) {
-                dpmtRec.setComments("start processing with task Id = " + exec.getId());
+                dpmtRec.setComments("start processing with task Id = " + execContextName);
             }
             dpmtRec.setDpmtRecordId(wo.getDpmtRecordId());
             dpmtRec.setDeploymentId(wo.getDeploymentId());
             dpmtRec.setDpmtRecordState(newState);
             dpmtRec.setComments(wo.getComments());
-            CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
             if (newState.equalsIgnoreCase(FAILED) && dpmt != null) {
                 if (dpmt.getContinueOnFailure() && !isDeleteWO(wo)) {  // we've failed and continue on failure flag is on, so we need to fail all linked managedVia orders. Otherwise if "compute" provisioning fails everything else will get stuck. We can't continue on failure however, if current order is delete RFC to prevent orphan instances.
                     failAllManagedViaWorkOrders(wo);
                 } else {
                     dpmt.setDeploymentState(FAILED);
-                    if (exec.getVariable("error-message") != null) {
-                        dpmtRec.setComments(exec.getVariable("error-message").toString());
+                    if (updateDpmtFunc != null) {
+                        updateDpmtFunc.accept(dpmt);
                     }
-                    exec.setVariable(DPMT, dpmt);
+                    if (error != null) {
+                        dpmtRec.setComments(error);
+                    }
                 }
             }
             try {
-                cmsDpmtProcessor.updateDpmtRecord(dpmtRec);
+                cmsDpmtProcessor.updateDpmtRecordSimple(dpmtRec);
             } catch (CmsBaseException ce) {
                 logger.error(ce.getMessage(), ce);
                 throw ce;
@@ -409,18 +498,23 @@ public class CMSClient {
         String processId = exec.getProcessInstanceId();
         String execId = exec.getId();
         // lets create strip down dpmt to update just a processId and updatedBy
+        updateDeploymentAndNotify(dpmt, processId + "!" + execId, "Activiti");
+    }
+
+    public void updateDeploymentAndNotify(CmsDeployment dpmt, String processId, String dpmtModel) {
         CmsDeployment dpmtParam = new CmsDeployment();
         dpmtParam.setDeploymentId(dpmt.getDeploymentId());
-        dpmtParam.setProcessId(processId + "!" + execId);
+        dpmtParam.setProcessId(processId);
         dpmtParam.setUpdatedBy(ONEOPS_SYSTEM_USER);
+        dpmtParam.setExecModel(dpmtModel);
         try {
-        	cmsDpmtProcessor.updateDeployment(dpmtParam);
+            cmsDpmtProcessor.updateDeploymentExecInfo(dpmtParam);
             deploymentNotifier.sendDpmtNotification(dpmt);
         } catch (CmsBaseException e) {
-			logger.error("CmsBaseException in updateDeployment", e);
-			e.printStackTrace();
-			throw e;
-		}
+            logger.error("CmsBaseException in updateDeployment", e);
+            throw e;
+        }
+
     }
 
 
@@ -434,35 +528,50 @@ public class CMSClient {
      */
     public void updateDpmtState(DelegateExecution exec, CmsDeployment dpmt, String newState) {
 
-        if (dpmt.getDeploymentState().equalsIgnoreCase("active")) {
+        if (dpmt.getDeploymentState().equalsIgnoreCase(CmsDpmtProcessor.DPMT_STATE_ACTIVE)) {
             CmsDeployment clone = new CmsDeployment();
             BeanUtils.copyProperties(dpmt, clone);
             dpmt = clone;  // Need to clone dpmt before setting the state, otherwise mybatis pulls the same instance that doesn't reflect actual db state
-            long failedWos = 0;
-            try {
-                failedWos = cmsDpmtProcessor.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", null);
-            } finally {
-                if (failedWos>0){
-                    clone.setDeploymentState(FAILED);
-                } else {
-                    clone.setDeploymentState(COMPLETE);
-                }
-            }
+            checkWoStateAndUpdateDpmt(dpmt);
         }
         // lets do the retries here
         logger.info("Client: put:update deployment " + dpmt.getDeploymentId() + " state to " + dpmt.getDeploymentState());
-
-        try {
-            dpmt.setFlagsToNull();
-        	cmsDpmtProcessor.updateDeployment(dpmt);
-            deploymentNotifier.sendDpmtNotification(dpmt);
-        } catch (CmsBaseException e) {
-			logger.error("CmsBaseException in updateDeployment", e);
-			e.printStackTrace();
-			throw e;
-		}
+        updateDeploymentEndState(dpmt);
     }
 
+    private void updateDeploymentEndState(CmsDeployment dpmt) {
+        try {
+            dpmt.setFlagsToNull();
+            cmsDpmtProcessor.updateDeployment(dpmt);
+            deploymentNotifier.sendDpmtNotification(dpmt);
+        } catch (CmsBaseException e) {
+            logger.error("CmsBaseException in updateDeployment", e);
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    private void checkWoStateAndUpdateDpmt(CmsDeployment dpmt) {
+        long failedWos = 0;
+        try {
+            failedWos = cmsDpmtProcessor.getDeploymentRecordCount(dpmt.getDeploymentId(), "failed", null);
+        } finally {
+            if (failedWos>0){
+                dpmt.setDeploymentState(FAILED);
+            } else {
+                dpmt.setDeploymentState(COMPLETE);
+            }
+        }
+    }
+
+    public void updateDpmtState(CmsDeployment dpmt, String newState) {
+        if (dpmt.getDeploymentState().equalsIgnoreCase(CmsDpmtProcessor.DPMT_STATE_ACTIVE)) {
+            checkWoStateAndUpdateDpmt(dpmt);
+        }
+        logger.info("Client: put:update deployment " + dpmt.getDeploymentId() + " state to " + dpmt.getDeploymentState());
+
+        updateDeploymentEndState(dpmt);
+    }
 
     /**
      * Inc exec order.
@@ -470,7 +579,7 @@ public class CMSClient {
      * @param exec the exec
      */
     public void incExecOrder(DelegateExecution exec) {
-        Integer newExecOrder = (Integer) exec.getVariable(EXEC_ORDER) + 1;
+        Integer newExecOrder = (Integer) exec.getVariable(CmsConstants.EXEC_ORDER) + 1;
         if (exec.hasVariable(DPMT)) {
             CmsDeployment dpmt = (CmsDeployment) exec.getVariable(DPMT);
             Set<Integer> autoPauseExecOrders = dpmt.getAutoPauseExecOrders();
@@ -489,7 +598,29 @@ public class CMSClient {
                 }
             }
         }
-        exec.setVariable(EXEC_ORDER, newExecOrder);
+        exec.setVariable(CmsConstants.EXEC_ORDER, newExecOrder);
+    }
+
+    /**
+     * Gets the action orders.
+     *
+     * @return the action orders
+     * @throws GeneralSecurityException the general security exception
+     */
+    public List<CmsActionOrderSimple>  getActionOrders(CmsOpsProcedure proc, int execOrder) throws GeneralSecurityException {
+        logger.info("Geting action orders for procedure id = " + proc.getProcedureId());
+        long startTime = System.currentTimeMillis();
+        try {
+            List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
+            logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
+            for (CmsActionOrderSimple ao : aoList) {
+                decryptAo(ao);
+            }
+            return aoList;
+        } catch (CmsBaseException rce) {
+            logger.error(rce);
+        }
+        return Collections.emptyList();
     }
 
     /**
@@ -499,9 +630,10 @@ public class CMSClient {
      * @return the action orders
      * @throws GeneralSecurityException the general security exception
      */
+
     public void getActionOrders(DelegateExecution exec) throws GeneralSecurityException {
         CmsOpsProcedure proc = (CmsOpsProcedure) exec.getVariable("proc");
-        Integer execOrder = (Integer) exec.getVariable(EXEC_ORDER);
+        Integer execOrder = (Integer) exec.getVariable(CmsConstants.EXEC_ORDER);
         logger.info("Geting action orders for procedure id = " + proc.getProcedureId());
         long startTime = System.currentTimeMillis();
         try {
@@ -509,6 +641,7 @@ public class CMSClient {
         	List<CmsActionOrderSimple> aoList = cmsWoProvider.getActionOrdersSimple(proc.getProcedureId(), OpsProcedureState.pending, execOrder);
         	logger.info("Got " + aoList.size() + " action orders for procedure id = " + proc.getProcedureId() + "; Time taken: " + (System.currentTimeMillis() - startTime) + "ms"  );
         	for (CmsActionOrderSimple ao : aoList) {
+              logger.info("Testing ao  " + ao.getCiId() + " bytes length : " + gson.toJson(ao).getBytes().length);
                 decryptAo(ao);
             }
             exec.setVariable("cmsaos", aoList);
@@ -524,6 +657,8 @@ public class CMSClient {
             exec.setVariable("proc", proc);
         }
     }
+
+
 
     /**
      * Update procedure state.
@@ -597,6 +732,40 @@ public class CMSClient {
         logger.info("Client: put:ops action id " + aos.getActionId() + " to state " + newState);
     }
 
+
+    public void updateActionOrderState(CmsActionOrderSimple aos, OpsActionState newState) {
+
+        aos.setActionState(newState);
+        try {
+            if (newState.getName().equalsIgnoreCase(COMPLETE)) {
+                CmsActionOrder ao = cmsUtil.custSimple2ActionOrder(aos);
+                opsProcedureProcessor.completeActionOrder(ao);
+            } else {
+                updateAoWithState(aos.getProcedureId(), aos.getActionId(), newState);
+            }
+            logger.info("Client: put:ops action id " + aos.getActionId() + " to state " + newState);
+        } catch (CmsBaseException rce) {
+            logger.error("failed while updating action order " + aos.getActionId() + " state with " + newState + " procedure : " + aos.getProcedureId(), rce);
+            CmsOpsAction action = new CmsOpsAction();
+            action.setActionId(aos.getActionId());
+            action.setProcedureId(aos.getProcedureId());
+            action.setActionState(failed);
+            opsProcedureProcessor.updateOpsAction(action);
+        }
+    }
+
+    public void failActionOrder(CmsActionOrder ao) {
+        updateAoWithState(ao.getProcedureId(), ao.getActionId(), failed);
+    }
+
+    private void updateAoWithState(long procedureId, long actionId, OpsActionState state) {
+        CmsOpsAction action = new CmsOpsAction();
+        action.setProcedureId(procedureId);
+        action.setActionId(actionId);
+        action.setActionState(state);
+        opsProcedureProcessor.updateOpsAction(action);
+    }
+
     /**
      * Gets the env4 release.
      *
@@ -651,7 +820,7 @@ public class CMSClient {
             logger.info("BOM deployment id = " + bomDpmtMap.get("deploymentId"));
         } catch (RestClientException e) {
             //should
-            logger.error("Deployment of manifest release " + release.getReleaseId() + " failed with error:\n" + e.getMessage());
+            logger.error("DeploymentExecution of manifest release " + release.getReleaseId() + " failed with error:\n" + e.getMessage());
         }
 
     }
@@ -808,6 +977,15 @@ public class CMSClient {
             }
         }
 
+    }
+
+    public boolean getVarByMatchingCriteriaBoolean(String varNameLike, String criteria) {
+        List<CmsVar> vars = cmsCmProcessor.getCmVarByLongestMatchingCriteria(varNameLike, criteria);
+        if (vars != null && !vars.isEmpty()) {
+            CmsVar var = vars.get(0);
+            return Boolean.valueOf(var.getValue());
+        }
+        return false;
     }
 }
 

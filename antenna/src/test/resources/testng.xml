@@ -8,7 +8,7 @@
             <package name="com.oneops.antenna.ws"/>
             <package name="com.oneops.antenna.jms"/>
             <package name="com.oneops.antenna.subscriptions"/>
-            <package name="com.oneops.antenna.domain"/>
+            <package name="com.oneops.antenna.domain.domain"/>
             <package name="com.oneops.antenna.senders.generic"/>
         </packages>
     </test>

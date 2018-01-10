@@ -17,12 +17,25 @@
  *******************************************************************************/
 package com.oneops.cms.ws.rest;
 
+import com.oneops.cms.dj.domain.CmsDpmtRecord;
+import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.service.CmsCmDjManager;
+import com.oneops.cms.dj.service.CmsDjManager;
+import com.oneops.cms.ds.ReadOnlyDataAccess;
+import com.oneops.cms.exceptions.CIValidationException;
+import com.oneops.cms.exceptions.DJException;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.AttrQueryCondition;
+import com.oneops.cms.ws.exceptions.CmsSecurityException;
+import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import javax.servlet.http.HttpServletResponse;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,21 +46,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-
-import com.oneops.cms.dj.domain.CmsDpmtRecord;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.dj.service.CmsCmDjManager;
-import com.oneops.cms.dj.service.CmsDjManager;
-import com.oneops.cms.exceptions.CIValidationException;
-import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.simple.domain.CmsRfcCISimple;
-import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.CmsUtil;
-import com.oneops.cms.util.domain.AttrQueryCondition;
-import com.oneops.cms.ws.exceptions.CmsSecurityException;
-import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 
 @Controller
 public class CmDjMergeController extends AbstractRestController {
@@ -93,6 +91,7 @@ public class CmDjMergeController extends AbstractRestController {
 	
 	@RequestMapping(value="/dj/simple/cis/{ciId}", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public CmsRfcCISimple getRfcById(@PathVariable long ciId, 
 			@RequestParam(value="releaseId", required = false) Long releaseId,
 			@RequestParam(value="attrProps", required = false) String attrProps,
@@ -136,6 +135,7 @@ public class CmDjMergeController extends AbstractRestController {
 	
 	@RequestMapping(value="/dj/simple/cis", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public List<CmsRfcCISimple> getRfcQuery(
 			@RequestParam(value="nsPath", required = false) String nsPath,
 			@RequestParam(value="ciClassName", required = false) String clazzName, 
@@ -243,6 +243,7 @@ public class CmDjMergeController extends AbstractRestController {
 	
 	@RequestMapping(value="/dj/simple/relations", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public List<CmsRfcRelationSimple> getCIRelationSimpleQuery(
 			@RequestParam(value="ciId", required = false) Long ciId,
 			@RequestParam(value="releaseId", required = false) Long releaseId,
@@ -323,6 +324,7 @@ public class CmDjMergeController extends AbstractRestController {
 
 	@RequestMapping(value="/dj/simple/relations/{ciRelationId}", method = RequestMethod.GET)
 	@ResponseBody
+	@ReadOnlyDataAccess
 	public CmsRfcRelationSimple getCIRelationSimpleById(@PathVariable long ciRelationId,
 			@RequestParam(value="includeFromCi", required = false) String includeFromCi,
 			@RequestParam(value="includeToCi", required = false) String includeToCi,

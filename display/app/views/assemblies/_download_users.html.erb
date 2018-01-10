@@ -1,0 +1,18 @@
+<%= section_panel 'User List', :width => 'single', :position => 'right' do %>
+  <p>
+      <span class="help-block">
+      Download full list of users with access to this assembly including their
+      DTO (design, transtion, operations) permissions and team membership.
+      </span>
+  </p>
+  <div class="btn-group">
+    <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+      <%= icon('download', 'Download Users') %> <span class="caret"></span>
+    </a>
+    <ul class="dropdown-menu">
+      <li><%= link_to(icon(site_icon(:yaml), content_tag(:small, 'to YAML'), 'faw-fw'), users_assembly_path(@assembly, :format => :yaml), :target => '_blank') %></li>
+      <li><%= link_to(icon(site_icon(:json), content_tag(:small, 'to JSON'), 'faw-fw'), users_assembly_path(@assembly, :format => :json), :target => '_blank') %></li>
+      <li><%= link_to(icon(site_icon(:csv), content_tag(:small, 'to CSV'), 'faw-fw'), users_assembly_path(@assembly, :format => :csv)) %></li>
+    </ul>
+  </div>
+<% end %>

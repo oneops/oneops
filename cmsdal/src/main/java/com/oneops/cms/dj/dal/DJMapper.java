@@ -22,12 +22,10 @@ import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcBasicAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcLink;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.dj.domain.TimelineRelease;
 import com.oneops.cms.util.TimelineQueryParam;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.apache.ibatis.annotations.Param;
 
@@ -83,6 +81,7 @@ public interface DJMapper {
   CmsRfcCI getRfcCIById(long rfcId);
 
   CmsRfcCI getOpenRfcCIByCiId(long ciId);
+  CmsRfcCI getOpenRfcCIByCiIdNoAttrs(long ciId);
 
   List<CmsRfcCI> getOpenRfcCIByCiIdList(@Param("ciIds") List<Long> ciIds);
 
@@ -193,16 +192,18 @@ public interface DJMapper {
   List<Long> getLinkedRfcRelationId(@Param("releaseId") long releaseId,
       @Param("isActive") Boolean isActive, @Param("rfcId") long rfcId);
 
-  List<CmsRfcLink> getOpenRfcLinks(@Param("nsPath") String nsPath,
-      @Param("relName") String relName);
-
   long countCiRfcByReleaseId(long releaseId);
+  long countRelationRfcByReleaseId(long releaseId);
 
   long countOpenRfcCisByNs(String nsPath);
 
   long countOpenRfcRelationsByNs(String nsPath);
 
-  void rmRfcs(Map<String, Object> params);
+  void rmRfcsByNs(String nsPath);
+  
+  void rmToRelByNs(String nsPath);
+  
+  void rmFromRelByNs(String nsPath);
 
   long countCiNotUpdatedByRfc(@Param("fromCiId") long fromCiId,
       @Param("relationName") String relationName,
@@ -220,9 +221,14 @@ public interface DJMapper {
   List<CmsRfcRelation> getRfcRelationsAppliedBetweenTwoReleases(@Param("nsPath") String nsPath,
       @Param("fromReleaseId") Long fromReleaseId, @Param("toReleaseId") Long toReleaseId);
 
-  void createAltNs(@Param("nsId") long nsId, @Param("tag") String tag, @Param("rfcId") long rfcId);
+  
+  Long getTagId(@Param("tag")String tag);
+  
+  void createTag(@Param("tag")String tag);
+  
+  void createAltNs(@Param("nsId") long nsId, @Param("tagId") long tagId, @Param("rfcId") long rfcId);
 
-  long deleteAltNs(@Param("nsId") long nsId, @Param("rfcId") long rfcId);
+  void deleteAltNs(@Param("nsId") long nsId, @Param("rfcId") long rfcId);
 
   List<CmsRfcCI> getRfcCIByAltNsAndTag(@Param("nsPath") String nsPath, @Param("tag") String tag,
       @Param("releaseId") Long releaseId, @Param("isActive") boolean isActive,

@@ -17,20 +17,18 @@
  *******************************************************************************/
 package com.oneops.cms.dj.dal;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.ibatis.annotations.Param;
-
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.domain.CmsDpmtStateChangeEvent;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
+import com.oneops.cms.dj.domain.TimelineDeployment;
 import com.oneops.cms.util.TimelineQueryParam;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * The Interface DJDpmtMapper.
@@ -49,8 +47,10 @@ public interface DJDpmtMapper {
 	void resetFailedRecords(CmsDeployment cmsDeployment);
 
 	CmsDeployment getDeployment(long deploymentId);
+	CmsDeployment getDeploymentSimple(long deploymentId);
 	List<CmsDeployment> findDeployment(@Param("nsPath") String nsPath,@Param("state") String state);
 	List<CmsDeployment> findDeploymentRecursive(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("state") String state);
+	List<CmsDeployment> findDeploymentsByTimePeriod(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("start") Date start, @Param("end") Date end);
 	List<CmsDeployment> findLatestDeployment(@Param("nsPath") String nsPath,@Param("state") String state);
 	List<CmsDeployment> findLatestDeploymentRecursive(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("state") String state);
 	List<CmsDeployment> findDeploymentByReleaseId(@Param("releaseId") long releaseId, @Param("state") String state);
@@ -72,8 +72,8 @@ public interface DJDpmtMapper {
 	List<CmsWorkOrder> getWorkOrdersLimited(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder, @Param("limit") Integer limit);
 	CmsWorkOrder getWorkOrder(@Param("dpmtRecordId") long dpmtRecordId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	
-	List<CmsRfcCI> getDeploymentRfcCIs(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
-	
+	List<CmsRfcCI> getDeploymentRfcCIs(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder,@Param("classNames") String[] classNames,@Param("action") String action);
+
 	List<CmsDpmtStateChangeEvent> getDeploymentStateHist(long deploymentId);
 	
 	List<Long> getToCiIdsForDeployment(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("relName") String relName);
@@ -84,4 +84,11 @@ public interface DJDpmtMapper {
 	CmsDpmtApproval getDpmtApproval(long approvalId);
 	List<TimelineDeployment> getDeploymentsByFilter(TimelineQueryParam queryParam);
 	List<TimelineDeployment> getDeploymentsByNsPath(TimelineQueryParam queryParam);
+	List<Map<String,Object>> getDeploymentRecordsCountByStates(@Param("deploymentId") long deploymentId, @Param("step") Integer step);
+	void updateDeploymentCurrentStep(CmsDeployment cmsDeployment);
+	void updateDeploymentExecInfo(CmsDeployment cmsDeployment);
+	void getDpmtLock(long deploymentId);
+	void createDeploymentExec(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("state") String state);
+	int getAndUpdateStepState(@Param("deploymentId") long deploymentId, @Param("step") int step, @Param("newState") String newState);
+
 }

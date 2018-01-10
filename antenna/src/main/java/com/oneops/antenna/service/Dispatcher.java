@@ -17,20 +17,31 @@
  *******************************************************************************/
 package com.oneops.antenna.service;
 
-import java.util.List;
-
-import com.oneops.antenna.domain.*;
-import org.apache.log4j.Logger;
-
 import com.google.gson.Gson;
+import com.oneops.antenna.domain.BasicSubscriber;
+import com.oneops.antenna.domain.EmailSubscriber;
+import com.oneops.notification.NotificationMessage;
+import com.oneops.antenna.domain.SNSSubscriber;
+import com.oneops.antenna.domain.SlackSubscriber;
+import com.oneops.antenna.domain.URLSubscriber;
+import com.oneops.antenna.domain.XMPPSubscriber;
+import com.oneops.notification.filter.NotificationFilter;
 import com.oneops.antenna.senders.NotificationSender;
 import com.oneops.antenna.subscriptions.SubscriberService;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
+import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.util.CmsUtil;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -50,6 +61,9 @@ public class Dispatcher {
     private final CmsCmProcessor cmProcessor;
     private final CmsDpmtProcessor dpmtProcessor;
     private final OpsProcedureProcessor procProcessor;
+    private final CmsUtil cmsUtil;
+    private DJDpmtMapper dpmtMapper;
+    private CmsMdProcessor cmsMdProcessor;
 
     @Autowired
     public Dispatcher(Gson gson,
@@ -61,7 +75,10 @@ public class Dispatcher {
                       NotificationSender slackSender,
                       CmsCmProcessor cmProcessor,
                       CmsDpmtProcessor dpmtProcessor,
-                      OpsProcedureProcessor procProcessor) {
+                      OpsProcedureProcessor procProcessor,
+        DJDpmtMapper dpmtMapper,
+        CmsMdProcessor mdProcessor,
+        CmsUtil cmsUtil) {
         this.gson = gson;
         this.sbrService = sbrService;
         this.eSender = eSender;
@@ -72,6 +89,9 @@ public class Dispatcher {
         this.cmProcessor = cmProcessor;
         this.dpmtProcessor = dpmtProcessor;
         this.procProcessor = procProcessor;
+        this.dpmtMapper =  dpmtMapper;
+        this.cmsMdProcessor = mdProcessor;
+        this.cmsUtil =cmsUtil;
     }
 
     /**
@@ -94,6 +114,7 @@ public class Dispatcher {
         try {
             for (BasicSubscriber sub : subscribers) {
                 NotificationMessage nMsg = msg;
+
                 if (sub.hasFilter() && !sub.getFilter().accept(nMsg)) {
                     continue;
                 }
@@ -105,7 +126,29 @@ public class Dispatcher {
                 } else if (sub instanceof SNSSubscriber) {
                     snsSender.postMessage(nMsg, sub);
                 } else if (sub instanceof URLSubscriber) {
-                    urlSender.postMessage(nMsg, sub);
+                  if (sub.getFilter() instanceof NotificationFilter) {
+                    NotificationFilter nFilter = NotificationFilter.class.cast(sub.getFilter());
+                    if (nFilter.isIncludeCi() && ArrayUtils.isNotEmpty(nFilter.getClassNames())) {
+                      final List<Long> ciIds = dpmtMapper
+                          .getDeploymentRfcCIs(msg.getCmsId(), null, null, nFilter.getClassNames(),
+                              nFilter.getActions())
+                          .stream()
+                          .map(rfc -> rfc.getCiId())
+                          .collect(Collectors.toList());
+                      if(ciIds.isEmpty()){
+                        // There are no ci's which sink is subscribed to , skip notifications.
+                        continue;
+                      }
+                      final List<CmsCISimple> cis = cmProcessor.getCiByIdList(ciIds).stream()
+                          .map(ci -> cmsUtil.custCI2CISimple(ci, "df")).collect(
+                              Collectors.toList());
+                      nMsg.setCis(cis);
+                    }
+                  }
+                  if(logger.isDebugEnabled()){
+                    logger.debug("nMsg " + gson.toJson(nMsg));
+                  }
+                  urlSender.postMessage(nMsg, sub);
                 } else if (sub instanceof XMPPSubscriber) {
                     xmppSender.postMessage(nMsg, sub);
                 } else if (sub instanceof SlackSubscriber) {

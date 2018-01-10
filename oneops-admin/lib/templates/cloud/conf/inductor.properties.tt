@@ -23,6 +23,7 @@ amq.authkey = <%=
   auth %>
 amq.in_queue = <%= @queue_name %>
 packer_home = <%= @inductor_dir %>/packer
+home_dir = <%= @home %>
 data_dir = <%= @home %>/data
 scan_path = <%= @home %>/retry
 scan_period = 5
@@ -39,3 +40,4 @@ max_consumers = <%= @max_consumers %>
 local_max_consumers = <%= @local_max_consumers %>
 env_vars = <%= @env_vars %>
 tunnel_metrics = <%= @tunnel_metrics %>
+verify.mode = <%= @verifier_mode %>

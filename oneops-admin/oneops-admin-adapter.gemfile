@@ -1,0 +1,3 @@
+source 'http://rubygems.org'
+
+gemspec :name => __FILE__.split(File::Separator).last.sub('.gemfile', '')

@@ -116,21 +116,26 @@
       return list.find(".list-body > ul > li:visible").has("i.select.fa-check-square-o");
     };
 
-    window.toggle_compact = function(source) {
+    window.toggle_compact = function(source, action) {
       var btn = $j(source);
       var i = btn.find("i");
-      var expanding = i.hasClass("fa-angle-double-down");
+      var expanding = action ? (action === 'expand') : i.hasClass("fa-angle-double-down");
       i.siblings("span").html(expanding ? " Collapse" : " Expand");
       i.toggleClass("fa-angle-double-down fa-angle-double-up");
       var list = btn.parents('.list');
-      var items = list.find(".list-body > ul > li:visible .middle");
+      var items = list.find(".list-body > ul > li .middle");
       if (expanding) {
+        i.addClass("fa-angle-double-up").removeClass("fa-angle-double-down");
         items.show();
-        list.find(".list-body > ul > li:visible i.fa-angle-down").removeClass("fa-angle-down").addClass("fa-angle-up")
+        list.find(".list-body > ul > li i.fa-angle-down").removeClass("fa-angle-down").addClass("fa-angle-up")
       }
       else {
+        i.addClass("fa-angle-double-down").removeClass("fa-angle-double-up");
         items.hide();
-        list.find(".list-body > ul > li:visible i.fa-angle-up").removeClass("fa-angle-up").addClass("fa-angle-down")
+        list.find(".list-body > ul > li i.fa-angle-up").removeClass("fa-angle-up").addClass("fa-angle-down")
+      }
+      if (localStorage) {
+        localStorage.setItem(LOCAL_STORAGE_KEY_PREFIX + list.find(".list-toolbar").attr("list-name") + "_list_compact", expanding ? 'expand' : 'compact');
       }
     };
 

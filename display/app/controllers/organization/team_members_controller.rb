@@ -50,10 +50,15 @@ class Organization::TeamMembersController < ApplicationController
     if params[:type] == 'group'
       @member = @team.groups.where((member_id =~ /\D/ ? 'groups.name' : 'groups.id') => member_id).first
       @team.groups.delete @member if @member
-
     else
       @member = @team.users.where((member_id =~ /\D/ ? 'users.username' : 'users.id') => member_id).first
-      @team.users.delete @member if @member
+      if @member
+        if @team.name == Team::ADMINS && @team.users.count == 1
+          error = 'Can not leave organizatio with no admins.'
+        else
+          @team.users.delete @member
+        end
+      end
     end
     error = "Team member '#{member_id}' not found" unless @member
 

@@ -5,7 +5,7 @@ class Search::Cost < Search::Base
 
   def self.cost_rate(ns_path)
     result        = nil
-    ns_path = "#{ns_path}#{'*bom/' unless ns_path.include?('bom/')}"
+    ns_path = "#{ns_path}#{'*bom/' unless ns_path.include?('/bom/') || ns_path.end_with?('/bom')}"
     ns_path = "#{ns_path}#{'/' unless ns_path.last == '/'}*"
 
     search_params = {
