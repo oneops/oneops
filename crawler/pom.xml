@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-parent</artifactId>
+        <version>18.01.03-12-SNAPSHOT</version>
+    </parent>
+
+    <groupId>com.oneops.cms</groupId>
+    <artifactId>crawler</artifactId>
+    <packaging>jar</packaging>
+    <name>OneOps :: Crawler</name>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/generated-sources/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <minimizeJar>false</minimizeJar>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
+        <profile>
+            <id>generate</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <!-- Specify the maven code generator plugin -->
+                        <!-- Use org.jooq            for the Open Source Edition
+                                 org.jooq.pro        for commercial editions,
+                                 org.jooq.pro-java-6 for commercial editions with Java 6 support,
+                                 org.jooq.trial      for the free trial edition
+
+                             Note: Only the Open Source Edition is hosted on Maven Central.
+                                   Import the others manually from your distribution -->
+                        <groupId>org.jooq</groupId>
+                        <artifactId>jooq-codegen-maven</artifactId>
+                        <version>3.10.0</version>
+
+                        <executions>
+                            <execution>
+                                <id>jooq-codegen</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Configure the database connection here -->
+                                    <jdbc>
+                                        <driver>org.postgresql.Driver</driver>
+                                        <url>jdbc:postgresql://localhost:5432/crawler</url>
+                                        <user>postgres</user>
+                                        <password>postgres</password>
+                                    </jdbc>
+
+                                    <generator>
+                                        <!-- The default code generator. You can override this one, to generate your own code style.
+                                             Supported generators:
+                                             - org.jooq.util.JavaGenerator
+                                             - org.jooq.util.ScalaGenerator
+                                             Defaults to org.jooq.util.JavaGenerator -->
+                                        <name>org.jooq.util.JavaGenerator</name>
+
+                                        <database>
+                                            <!-- The database type. The format here is:
+                                                 org.util.[database].[database]Database -->
+                                            <name>org.jooq.util.postgres.PostgresDatabase</name>
+
+                                            <!-- The database schema (or in the absence of schema support, in your RDBMS this
+                                                 can be the owner, user, database name) to be generated -->
+                                            <inputSchema>crawler</inputSchema>
+
+                                            <!-- All elements that are generated from your schema
+                                                 (A Java regular expression. Use the pipe to separate several expressions)
+                                                 Watch out for case-sensitivity. Depending on your database, this might be important! -->
+                                            <includes>.*</includes>
+
+                                            <!-- All elements that are excluded from your schema
+                                                 (A Java regular expression. Use the pipe to separate several expressions).
+                                                 Excludes match before includes, i.e. excludes have a higher priority -->
+                                            <excludes />
+                                        </database>
+
+                                        <target>
+                                            <!-- The destination package of your generated classes (within the destination directory) -->
+                                            <packageName>com.oneops.crawler.jooq.crawler</packageName>
+
+                                            <!-- The destination directory of your generated classes. Using Maven directory layout here -->
+                                            <directory>src/generated-sources/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
+                            <!-- now generate from cmsdb-->
+                            <execution>
+                                <id>jooq-cms-codegen</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>generate</goal>
+                                </goals>
+                                <configuration>
+                                    <!-- Configure the database connection here -->
+                                    <jdbc>
+                                        <driver>org.postgresql.Driver</driver>
+                                        <url />
+                                        <user>postgres</user>
+                                        <password>postgres</password>
+                                    </jdbc>
+
+                                    <generator>
+                                        <!-- The default code generator. You can override this one, to generate your own code style.
+                                             Supported generators:
+                                             - org.jooq.util.JavaGenerator
+                                             - org.jooq.util.ScalaGenerator
+                                             Defaults to org.jooq.util.JavaGenerator -->
+                                        <name>org.jooq.util.JavaGenerator</name>
+
+                                        <database>
+                                            <!-- The database type. The format here is:
+                                                 org.util.[database].[database]Database -->
+                                            <name>org.jooq.util.postgres.PostgresDatabase</name>
+
+                                            <!-- The database schema (or in the absence of schema support, in your RDBMS this
+                                                 can be the owner, user, database name) to be generated -->
+                                            <inputSchema />
+
+                                            <!-- All elements that are generated from your schema
+                                                 (A Java regular expression. Use the pipe to separate several expressions)
+                                                 Watch out for case-sensitivity. Depending on your database, this might be important! -->
+                                            <includes>.*</includes>
+
+                                            <!-- All elements that are excluded from your schema
+                                                 (A Java regular expression. Use the pipe to separate several expressions).
+                                                 Excludes match before includes, i.e. excludes have a higher priority -->
+                                            <excludes>.*_log.*</excludes>
+                                        </database>
+
+                                        <target>
+                                            <!-- The destination package of your generated classes (within the destination directory) -->
+                                            <packageName>com.oneops.crawler.jooq.cms</packageName>
+
+                                            <!-- The destination directory of your generated classes. Using Maven directory layout here -->
+                                            <directory>src/generated-sources/java</directory>
+                                        </target>
+                                    </generator>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+
+            </build>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq</artifactId>
+            <version>3.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-meta</artifactId>
+            <version>3.10.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen</artifactId>
+            <version>3.10.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>9.4.1212</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.kevinsawicki</groupId>
+            <artifactId>http-request</artifactId>
+            <version>6.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>2.7.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.5</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>6.11</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.oneops</groupId>
+            <artifactId>oneops-model</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.oneops.cms</groupId>
+            <artifactId>cmsdal</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+</project>

@@ -186,6 +186,15 @@ public class Config {
   private List<String> verifyExcludePaths;
 
   /**
+   * Pass additional args for test-kitchen
+   * LOG_LEVEL (debug, info, warn, error, fatal)
+   * e.g.  --log-level=LOG_LEVEL
+   *       --no-color
+   */
+  @Value("${verify.args:}")
+  private String verifyArgs;
+
+  /**
    * Env vars read from {@link #env}. This will get initialized in ${@link #init()}
    */
   private Map<String, String> envVars;
@@ -593,6 +602,14 @@ public class Config {
     this.circuitDir = circuitDir;
   }
 
+  public void setVerifyArgs(String verifyArgs) {
+    this.verifyArgs = verifyArgs;
+  }
+
+  public String getVerifyArgs() {
+    return verifyArgs;
+  }
+
   public boolean isVerifyMode() {
     return verifyMode;
   }
@@ -707,6 +724,7 @@ public class Config {
         ", rebootLimit=" + rebootLimit +
         ", verifyMode=" + verifyMode +
         ", verifyExcludePaths=" + verifyExcludePaths +
+        ", verifyArgs=" + verifyArgs +
         ", ipAddr='" + ipAddr + '\'' +
         '}';
   }
