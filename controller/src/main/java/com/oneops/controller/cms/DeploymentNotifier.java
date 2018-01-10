@@ -118,7 +118,7 @@ public class DeploymentNotifier {
             notify.getPayload().putAll(payloadEntries);
         }
 
-        if (dpmt.getDeploymentState().equalsIgnoreCase(DPMT_STATE_PENDING)) {
+        if (DPMT_STATE_PENDING.equals(dpmt.getDeploymentState())) {
             CmsDpmtApproval[] approvals = restTemplate.getForObject(serviceUrl + "/dj/simple/approvals?deploymentId={deploymentId}", CmsDpmtApproval[].class, dpmt.getDeploymentId());
             if (approvals!=null && approvals.length>0) {
                 List<CmsDpmtApproval> list = Arrays.asList(approvals);
