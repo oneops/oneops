@@ -9,9 +9,22 @@
       <%= f.hidden_field :releaseId %>
       <%= f.hidden_field :nsPath %>
       <%= f.hidden_field :continueOnFailure %>
-      <%= f.hidden_field :comments, :value => "#{@manifest.description}#{" #{@override.keys.join(' ')}" if @override}" %>
-      <%= f.hidden_field :ops, :value => warning if defined?(warning) && warning %>
+      <% ops = defined?(warning) && warning ? warning : ''
+         if @override.present?
+           ops += ";\n" if ops.present?
+           ops += override_desc
+         end %>
+      <%= f.hidden_field :ops, :value => ops %>
       <%= f.hidden_field :override_password, :value => '' if @override %>
+      <% override_desc = @override && @override.keys.join(' ')
+         comments = @manifest.description
+         if @override.present?
+           comments += ";\n" if comments.present?
+           comments += override_desc
+         end %>
+      <%= f.label :comments, 'Comments' %>
+      <%= f.text_area :comments, :value => comments, :placeholder => 'comments', :class => 'input-xxlarge' %>
+      <br>
       <%= f.button((icon('check', 'Deploy')), :data => {:disable_with => 'Deploying...'}, :class => 'btn btn-success', :name => 'deploy', :disabled => @override) %>
     <% end %>
   <% else %>
