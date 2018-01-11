@@ -631,7 +631,7 @@ public class CmsWoProvider {
                 "mgmt.manifest.Payload", "mgmt.manifest.Qpath");
         long anchorId = 0;
         if (wo instanceof CmsWorkOrder) {
-            anchorId = ((CmsWorkOrder) wo).getRfcCi().getRfcId();
+            anchorId = ((CmsWorkOrder) wo).getRfcCi().getCiId();
         } else if (wo instanceof CmsActionOrder) {
             anchorId = ((CmsActionOrder) wo).getCiId();
         }
