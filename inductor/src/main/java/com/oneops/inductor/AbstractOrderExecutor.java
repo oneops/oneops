@@ -980,7 +980,6 @@ public abstract class AbstractOrderExecutor {
     String chefSolo = isWin ? "c:/opscode/chef/embedded/bin/chef-solo" : "/usr/local/bin/chef-solo";
     String rubyBindir = isWin ? "c:/opscode/chef/embedded/bin" : "/usr/bin";
     String provisionerPath = isWin ? "c:/tmp/kitchen" : "/tmp/kitchen";
-    String verifierPath = isWin ? "c:/tmp/verifier" : "/tmp/verifier";
 
     st.add("local", !isRemoteChefCall(wo));
     st.add("circuit_root", getCircuitDir(wo));
@@ -994,8 +993,19 @@ public abstract class AbstractOrderExecutor {
     st.add("chef_solo_path", chefSolo);
     st.add("ruby_bindir", rubyBindir);
     st.add("provisioner_root_path", provisionerPath);
-    st.add("verifier_root_path", verifierPath);
+    st.add("verifier_root_path", getVerifierPath(wo));
     return st.render();
+  }
+
+  /**
+   * Returns the platform specific unique verifier path.
+   *
+   * @param wo wo/ao.
+   * @return path string.
+   */
+  private String getVerifierPath(CmsWorkOrderSimpleBase wo) {
+    String path = isWinCompute(wo) ? "c:/tmp/verifier" : "/tmp/verifier";
+    return String.format("%s-%s", path, wo.getRecordId());
   }
 
   /**
