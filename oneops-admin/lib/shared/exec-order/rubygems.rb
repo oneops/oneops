@@ -56,10 +56,13 @@ def update_gem_sources (expected_sources, log_level = 'info')
 end
 
 
-def get_gem_list (provisioner, version = nil)
+def get_gem_list (provisioner, version = nil, config_file_name = nil)
   require 'yaml'
 
-  config_file = get_file_from_parent_dir('exec-gems.yaml')
+  if config_file_name.nil?
+    config_file_name = 'exec-gems.yaml'
+  end
+  config_file = get_file_from_parent_dir(config_file_name)
   gem_config = YAML::load(File.read(config_file))
 
   gem_list  = gem_config['common'] + [[provisioner,version]]
@@ -110,29 +113,52 @@ def check_gem_update_needed (gems, log_level = 'info')
 end
 
 
-def gen_gemfile_and_install (gem_sources, gems, log_level)
+def gen_gemfile_and_install (gem_sources, gems, log_level, bundle_method = nil)
 
-    #2 scenarions when need to run bundle install
-    #  - if running for the first time
-    #  - if any gems from exec-gems.yaml have mismatching versions
+    if bundle_method.nil?
+      #2 scenarions when need to run bundle install
+      #  - if running for the first time
+      #  - if any gems from exec-gems.yaml have mismatching versions
 
-    if !File.exists?('Gemfile.lock')
-      puts 'Gemfile.lock is not found, will run bundle install.' if log_level == 'debug'
-      method = 'install'
-      create_gemfile(gem_sources, gems)
-    elsif check_gem_update_needed(gems, log_level)
-      puts 'Gemfile.lock is found, and gem update is required.' if log_level == 'debug'
-      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
-      create_gemfile(gem_sources, gems)
-      method = 'install'
+      if !File.exists?('Gemfile.lock')
+        puts 'Gemfile.lock is not found, will run bundle install.' if log_level == 'debug'
+        method = 'install'
+        create_gemfile(gem_sources, gems)
+      elsif check_gem_update_needed(gems, log_level)
+        puts 'Gemfile.lock is found, and gem update is required.' if log_level == 'debug'
+        ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+        create_gemfile(gem_sources, gems)
+        method = 'install'
+      else
+        puts 'Gemfile.lock is found, and no gem update is required.' if log_level == 'debug'
+        method = nil
+      end
     else
-      puts 'Gemfile.lock is found, and no gem update is required.' if log_level == 'debug'
-      method = nil
+      #if bundle method is provided
+      if bundle_method == 'package'
+        puts "bundle method is #{bundle_method}" if log_level == 'debug'
+        method = 'package'
+        create_gemfile(gem_sources, gems)
+
+        if(log_level == 'debug')
+          puts 'Gemfile content is:'
+          File.open('Gemfile').each do |line|
+            puts line
+          end
+        end
+      else
+        method = nil
+      end
     end
 
     if !method.nil?
       start_time = Time.now.to_i
-      cmd = "#{get_bin_dir}bundle #{method} --full-index"
+      cmd = case method
+              when 'install'
+                "#{get_bin_dir}bundle #{method} --full-index"
+              when 'package'
+                "#{get_bin_dir}bundle #{method} --no-install --no-prune"
+            end
       ec = system cmd
 
       if !ec || ec.nil?
