@@ -194,9 +194,8 @@ public class BomManagerImpl implements BomManager {
 						continue;
 					}
 
-					PlatformBomGenerationContext platformContext = context.getPlatformContext(platform);
 					if (checkSecondary) {
-						check4Secondary(platformContext, platformCloudRels);
+						check4Secondary(new PlatformBomGenerationContext(platform, context, cmProcessor, cmsUtil), platformCloudRels);
 					} else {
 						logger.info("check secondary not configured.");
 					}
@@ -213,6 +212,7 @@ public class BomManagerImpl implements BomManager {
 									continue;
 								}
 
+								PlatformBomGenerationContext platformContext = new PlatformBomGenerationContext(platform, context, cmProcessor, cmsUtil);
 								int maxExecOrder;
 								if (context.getDisabledPlatformIds().contains(platform.getCiId()) || platform.getCiState().equalsIgnoreCase("pending_deletion")) {
 									maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
