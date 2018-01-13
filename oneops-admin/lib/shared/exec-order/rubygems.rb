@@ -112,9 +112,9 @@ end
 
 def gen_gemfile_and_install (gem_sources, gems, log_level)
 
-    #Determine bundle method
-    #  - install if running for the first time
-    #  - update if any gems from exec-gems.yaml have mismatching versions
+    #2 scenarions when need to run bundle install
+    #  - if running for the first time
+    #  - if any gems from exec-gems.yaml have mismatching versions
 
     if !File.exists?('Gemfile.lock')
       puts 'Gemfile.lock is not found, will run bundle install.' if log_level == 'debug'
@@ -122,9 +122,9 @@ def gen_gemfile_and_install (gem_sources, gems, log_level)
       create_gemfile(gem_sources, gems)
     elsif check_gem_update_needed(gems, log_level)
       puts 'Gemfile.lock is found, and gem update is required.' if log_level == 'debug'
-      File.delete('Gemfile') #re-create Gemfile in case the exec-gems.yaml has changed
+      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
       create_gemfile(gem_sources, gems)
-      method = 'update'
+      method = 'install'
     else
       puts 'Gemfile.lock is found, and no gem update is required.' if log_level == 'debug'
       method = nil
