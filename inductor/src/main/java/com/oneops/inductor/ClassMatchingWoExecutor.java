@@ -51,4 +51,20 @@ public class ClassMatchingWoExecutor implements ComponentWoExecutor {
     return Response.getNotMatchingResponse();
   }
 
+  @Override
+  public Response executeAndVerify(CmsWorkOrderSimple wo) {
+    String className = wo.getRfcCi().getCiClassName();
+    if (executorMap.containsKey(className)) {
+      ComponentWoExecutor executor = executorMap.get(className);
+      logger.info("executing with verify by " + executor.getClass().getName());
+      return executor.executeAndVerify(wo);
+    }
+    return Response.getNotMatchingResponse();
+  }
+
+  @Override
+  public Response verify(CmsWorkOrderSimple wo, Response response) {
+    return response;
+  }
+
 }

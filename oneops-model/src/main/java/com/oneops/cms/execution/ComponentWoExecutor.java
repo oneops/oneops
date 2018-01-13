@@ -9,4 +9,14 @@ public interface ComponentWoExecutor {
 
   public Response execute(CmsWorkOrderSimple wo);
 
+  public Response verify(CmsWorkOrderSimple wo, Response response);
+
+  public default Response executeAndVerify(CmsWorkOrderSimple wo) {
+    Response response = execute(wo);
+    if (response.getResult() == Result.SUCCESS) {
+      response = verify(wo, response);
+    }
+    return response;
+  }
+
 }

@@ -4,7 +4,7 @@ import static java.util.Objects.hash;
 
 import java.util.Objects;
 
-public class TorbitConfig {
+public class Config {
 
   private String url;
 
@@ -14,22 +14,22 @@ public class TorbitConfig {
 
   private int groupId;
 
-  public TorbitConfig user(String user) {
+  public Config user(String user) {
     setUser(user);
     return this;
   }
 
-  public TorbitConfig authKey(String authKey) {
+  public Config authKey(String authKey) {
     setAuthKey(authKey);
     return this;
   }
 
-  public TorbitConfig url(String url) {
+  public Config url(String url) {
     setUrl(url);
     return this;
   }
 
-  public TorbitConfig groupId(int groupId) {
+  public Config groupId(int groupId) {
     setGroupId(groupId);
     return this;
   }
@@ -74,8 +74,8 @@ public class TorbitConfig {
   @Override
 
   public boolean equals(Object obj) {
-    if (obj != null && obj instanceof TorbitConfig) {
-      TorbitConfig c = (TorbitConfig)obj;
+    if (obj != null && obj instanceof Config) {
+      Config c = (Config)obj;
       return Objects.equals(c.url, url) && Objects.equals(c.authKey, authKey) &&
           Objects.equals(c.user, user) && Objects.equals(c.groupId, groupId);
     }

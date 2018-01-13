@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.oneops.gslb.v2.domain.BaseResponse;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.net.ConnectException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
@@ -31,11 +32,11 @@ public class TorbitClient {
 
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
-  public TorbitClient(TorbitConfig config) throws Exception {
+  public TorbitClient(Config config) throws Exception {
     newTorbitApi(config);
   }
 
-  private void newTorbitApi(TorbitConfig config) throws Exception {
+  private void newTorbitApi(Config config) throws Exception {
     Gson gson = new Gson();
     X509TrustManager trustManager = getTrustManager();
     TrustManager[] trustAllCerts = new TrustManager[]{trustManager};
@@ -68,7 +69,15 @@ public class TorbitClient {
   }
 
   public <T extends BaseResponse> Resp<T> execute(Call<T> call, Class<T> respType) throws IOException, ExecutionException {
-    Response<T> response = call.execute();
+    Response<T> response = null;
+    try {
+      response = call.execute();
+    } catch(ConnectException e) {
+      throw new ExecutionException("Exception connecting to torbit, check gdns service attributes");
+    } catch (Exception e) {
+      throw new ExecutionException("Exception calling torbit api " + e.getMessage());
+    }
+
     Resp<T> resp = new Resp<>();
     resp.setSuccessful(response.isSuccessful());
     if (response.isSuccessful()) {
@@ -86,7 +95,7 @@ public class TorbitClient {
 
   private void failForAuthErrors(Response<?> response) throws ExecutionException {
     if (response.code() == 401 || response.code() == 403) {
-      throw new ExecutionException("Authentication failed while calling torbit");
+      throw new ExecutionException("Authentication failed while calling torbit, check gdns service attributes");
     }
   }
 

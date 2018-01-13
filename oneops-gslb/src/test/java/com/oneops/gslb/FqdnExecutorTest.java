@@ -5,7 +5,7 @@ import static org.mockito.Mockito.mock;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.gslb.FqdnExecutor.Context;
+import com.oneops.gslb.MtdHandler.Context;
 import com.oneops.gslb.v2.domain.Cloud;
 import com.oneops.gslb.v2.domain.MTDHostHealthCheck;
 import com.oneops.gslb.v2.domain.MTDTarget;
@@ -19,22 +19,24 @@ import org.junit.Test;
 
 public class FqdnExecutorTest {
 
+  MtdHandler handler = new MtdHandler();
   FqdnExecutor executor = new FqdnExecutor();
 
   @Before
   public void init() {
     loadCloudMap();
+    handler.woHelper = new WoHelper();
   }
 
   private void loadCloudMap() {
-    executor.cloudMap.put("cl1", new Cloud().name("cl1").id(10));
-    executor.cloudMap.put("cl2", new Cloud().name("cl2").id(12));
+    handler.cloudMap.put("cl1", new Cloud().name("cl1").id(10));
+    handler.cloudMap.put("cl2", new Cloud().name("cl2").id(12));
   }
 
   @Test
   public void testTorbitConfig() {
     CmsWorkOrderSimple wo = woBase();
-    TorbitConfig torbitConfig = executor.getTorbitConfig(wo);
+    Config torbitConfig = executor.getTorbitConfig(wo);
     Assert.assertNull(torbitConfig);
     addLbPayload(wo);
     torbitConfig = executor.getTorbitConfig(wo);
@@ -53,7 +55,7 @@ public class FqdnExecutorTest {
     CmsWorkOrderSimple wo = wo();
     Context context = getContext();
     try {
-      List<MTDTarget> mtdTargets = executor.getMTDTargets(wo, context);
+      List<MTDTarget> mtdTargets = handler.getMTDTargets(wo, context);
       Assert.assertEquals(2, mtdTargets.size());
       MTDTarget target1 = mtdTargets.get(0);
       Assert.assertEquals(Long.valueOf(10), new Long(target1.getCloudId()));
@@ -76,7 +78,7 @@ public class FqdnExecutorTest {
     CmsWorkOrderSimple wo = wo();
     Context context = getContext();
     try {
-      List<MTDHostHealthCheck> healthChecks = executor.getHealthChecks(wo, context);
+      List<MTDHostHealthCheck> healthChecks = handler.getHealthChecks(wo, context);
       Assert.assertEquals(1, healthChecks.size());
       MTDHostHealthCheck healthCheck = healthChecks.get(0);
       Assert.assertEquals(80, healthCheck.getPort().longValue());

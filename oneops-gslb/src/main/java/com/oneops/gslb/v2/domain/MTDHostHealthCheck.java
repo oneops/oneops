@@ -41,6 +41,15 @@ public class MTDHostHealthCheck {
   @SerializedName("network")
   private String network = null;
 
+  @SerializedName("interval")
+  private String interval = null;
+
+  @SerializedName("retry_delay")
+  private String retryDelay = null;
+
+  @SerializedName("timeout")
+  private String timeout = null;
+
   public MTDHostHealthCheck name(String name) {
     this.name = name;
     return this;
@@ -197,6 +206,44 @@ public class MTDHostHealthCheck {
     this.network = network;
   }
 
+  public MTDHostHealthCheck interval(String interval) {
+    this.interval = interval;
+    return this;
+  }
+
+  public MTDHostHealthCheck retryDelay(String retryDelay) {
+    this.retryDelay = retryDelay;
+    return this;
+  }
+
+  public MTDHostHealthCheck timeout(String timeout) {
+    this.timeout = timeout;
+    return this;
+  }
+
+  public String getInterval() {
+    return interval;
+  }
+
+  public void setInterval(String interval) {
+    this.interval = interval;
+  }
+
+  public String getRetryDelay() {
+    return retryDelay;
+  }
+
+  public void setRetryDelay(String retryDelay) {
+    this.retryDelay = retryDelay;
+  }
+
+  public String getTimeout() {
+    return timeout;
+  }
+
+  public void setTimeout(String timeout) {
+    this.timeout = timeout;
+  }
 
   @Override
   public boolean equals(java.lang.Object o) {
