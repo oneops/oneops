@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.oneops.cms.dj.service.CmsDpmtProcessor.APPROVAL_STATE_PENDING;
 import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_PENDING;
 
 
@@ -124,7 +125,7 @@ public class DeploymentNotifier {
         }
 
         if (DPMT_STATE_PENDING.equals(dpmt.getDeploymentState())) {
-            List<CmsDpmtApproval> pendingApprovals = cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId()).stream().filter(cmsDpmtApproval -> CmsDpmtProcessor.APPROVAL_STATE_PENDING.equals(cmsDpmtApproval.getState())).collect(Collectors.toList());
+            List<CmsDpmtApproval> pendingApprovals = cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId()).stream().filter(approval -> APPROVAL_STATE_PENDING.equals(approval.getState())).collect(Collectors.toList());
             notify.getPayload().put("approvals", pendingApprovals);
         }
         antennaClient.executeAsync(notify);
