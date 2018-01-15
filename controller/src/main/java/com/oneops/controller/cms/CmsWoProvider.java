@@ -489,6 +489,9 @@ public class CmsWoProvider {
             workOrder.putPayLoadEntry(REQUIRES_COMPUTES_PAYLOAD_NAME, getRequiresComputes(workOrder.getRfcCi()));
         }
 
+        //add the managed-via ci's compute cloud service and then read env_vars of that cloud-service. set those env_vars to wo.config
+        setEnvVars(workOrder, workOrder.getPayLoad().get(MANAGED_VIA));
+	
         //fetch and update offerings
         List<CmsRfcCI> offerings = new ArrayList<>();
         try {
@@ -507,6 +510,30 @@ public class CmsWoProvider {
         addVarsForConfig(workOrder);
 
         return workOrder;
+    }
+
+    private void setEnvVars(CmsWorkOrder workOrder, List<CmsRfcCI> managedVia) {
+        if (managedVia != null && managedVia.size() > 0) {
+            long managedViaCiId = managedVia.get(0).getCiId();
+            if (managedViaCiId > 0) {
+                Map<String, Map<String, CmsCI>> cloudServices = getServices(managedViaCiId, workOrder.getCloud());
+                Map<String, CmsCI> cloudService = cloudServices.get("compute");
+                if (cloudService != null) {
+                    CmsCI cloudServiceCi = cloudService.get(workOrder.getCloud().getCiName());
+                    if (cloudServiceCi != null) {
+                        CmsCIAttribute envVarsAttribute = cloudServiceCi.getAttribute("env_vars");
+                        if (envVarsAttribute != null) {
+                            Map<String, String> config = workOrder.getConfig();
+                            if (config == null) {
+                                config = new HashMap<>();
+                            }
+                            config.put("env_vars", envVarsAttribute.getDfValue());
+                            workOrder.setConfig(config);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void addVarsForConfig(CmsWorkOrder workOrder) {
