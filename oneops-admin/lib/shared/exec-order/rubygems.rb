@@ -24,9 +24,9 @@ end
 def update_gem_sources (expected_sources, log_level = 'info')
   gem = "#{get_bin_dir}gem"
 
-  puts "Expected gem sources: #{expected_sources}" if log_level == 'debug'
+  puts "Expected gem sources: #{expected_sources.inspect}"
   actual_sources = `#{gem} source`.split("\n").select{|l| (l =~ /^http/)}
-  puts "Actual gem sources: #{actual_sources}" if log_level == 'debug'
+  puts "Actual gem sources: #{actual_sources.inspect}"
 
   if expected_sources != actual_sources
     puts 'Expected gem sources do not match the actual gem sources. Updating...'
@@ -42,7 +42,7 @@ def update_gem_sources (expected_sources, log_level = 'info')
     `#{gem} source --add #{expected_sources[1]}` if expected_sources[1]
 
   else
-    puts 'Expected gem sources match the actual gem sources.' if log_level == 'debug'
+    puts 'Expected gem sources match the actual gem sources.'
   end
 
 
@@ -100,7 +100,7 @@ def check_gem_update_needed (gems, log_level = 'info')
 
   gems.each do |g|
     if !is_gem_installed?(g[0],g[1])
-      puts "Gem #{g[0]} version #{g[1]} is not installed." if log_level == 'debug'
+      puts "Gem #{g[0]} version #{g[1]} is not installed."
       update_needed = true
       break
     end
@@ -117,16 +117,16 @@ def gen_gemfile_and_install (gem_sources, gems, log_level)
     #  - if any gems from exec-gems.yaml have mismatching versions
 
     if !File.exists?('Gemfile.lock')
-      puts 'Gemfile.lock is not found, will run bundle install.' if log_level == 'debug'
+      puts 'Gemfile.lock is not found, will run bundle install.'
       method = 'install'
       create_gemfile(gem_sources, gems)
     elsif check_gem_update_needed(gems, log_level)
-      puts 'Gemfile.lock is found, and gem update is required.' if log_level == 'debug'
+      puts 'Gemfile.lock is found, and gem update is required.'
       ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
       create_gemfile(gem_sources, gems)
       method = 'install'
     else
-      puts 'Gemfile.lock is found, and no gem update is required.' if log_level == 'debug'
+      puts 'Gemfile.lock is found, and no gem update is required.'
       method = nil
     end
 
