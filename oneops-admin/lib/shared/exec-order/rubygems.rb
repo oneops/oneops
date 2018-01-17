@@ -110,24 +110,28 @@ def check_gem_update_needed (gems, log_level = 'info')
 end
 
 
-def gen_gemfile_and_install (gem_sources, gems, log_level)
+def gen_gemfile_and_install (gem_sources, gems, component, log_level)
 
     #2 scenarions when need to run bundle install
     #  - if running for the first time
     #  - if any gems from exec-gems.yaml have mismatching versions
 
+    method = nil
     if !File.exists?('Gemfile.lock')
       puts 'Gemfile.lock is not found, will run bundle install.'
       method = 'install'
       create_gemfile(gem_sources, gems)
     elsif check_gem_update_needed(gems, log_level)
-      puts 'Gemfile.lock is found, and gem update is required.'
-      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
-      create_gemfile(gem_sources, gems)
-      method = 'install'
+      if ['objectstore','compute','volume', 'os'].include?(component)
+        puts "Gemfile.lock is found, and gem update is required for component: #{component}"
+        ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+        create_gemfile(gem_sources, gems)
+        method = 'install'
+      else
+        puts "Gem update is required but will not be run for component: #{component}"
+      end
     else
       puts 'Gemfile.lock is found, and no gem update is required.'
-      method = nil
     end
 
     if !method.nil?
