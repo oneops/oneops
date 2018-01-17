@@ -210,7 +210,7 @@ public class InductorTest {
     cfg.init();
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     final String vars = executor.getProxyEnvVars(wo);
-    assertTrue(StringUtils.isEmpty(vars));
+    assertTrue(vars.equals("class=user pack=circuit-oneops-1"));
   }
   @Test
   public void testWoExecutorConfigWithNoCloudServiceEnvVar(){
@@ -223,7 +223,7 @@ public class InductorTest {
     cfg.init();
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     final String vars = executor.getProxyEnvVars(wo);
-    assertTrue(vars.equals("rubygems_proxy=http://repos.org/gemrepo/ rubygemsbkp_proxy=http://dal-repos.org/gemrepo/ ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ "));
+    assertTrue(vars.equals("rubygems_proxy=http://repos.org/gemrepo/ rubygemsbkp_proxy=http://dal-repos.org/gemrepo/ ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
   }
 
   @Test
@@ -242,7 +242,7 @@ public class InductorTest {
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
     final String vars = executor.getProxyEnvVars(wo);
 
-    assertTrue(vars.equals("rubygems_proxy=compute_proxy rubygemsbkp_proxy=compute_proxy_backup ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ "));
+    assertTrue(vars.equals("rubygems_proxy=compute_proxy rubygemsbkp_proxy=compute_proxy_backup ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
   }
 
   /**

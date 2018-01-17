@@ -1243,7 +1243,8 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
       vars += proxy + " ";
     }
 
-    return vars;
+    return vars +"class="+ normalizeClassName(wo) +" pack=" + getCookbookPath(wo.getClassName());
+
   }
 
   /**
