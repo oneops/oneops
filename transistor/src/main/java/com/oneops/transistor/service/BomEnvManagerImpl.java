@@ -369,7 +369,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		String bomNsPath = getNs(env) + "/bom";
 
 		// rfcs (adds and updates)
-		List<CmsRfcRelation> rfcRelations = rfcProcessor.getOpenRfcRelationsNsLikeNakedNoAttrs(null, "DeployedTo", bomNsPath, null, "account.Cloud");
+		List<CmsRfcRelation> rfcRelations = rfcProcessor.getOpenRfcRelationsNsLikeNakedNoAttrs(null, "DeployedTo", bomNsPath, null, null);
 		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(Collectors.toSet());
 		// existing cis
 		
