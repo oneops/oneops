@@ -85,13 +85,10 @@ def create_gemfile(gem_sources, gems)
 end
 
 
-def is_gem_installed?(gem, version)
-  out = `#{get_bin_dir}gem list ^#{gem}$ -i -v #{version}`.chomp
-  if out == 'true'
-    true
-  else
-    false
-  end
+def is_gem_installed?(gem, version = nil)
+  cmd = "#{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
+  out = `#{cmd}`.chomp
+  out == 'true' ? true : false
 end
 
 
@@ -110,32 +107,32 @@ def check_gem_update_needed (gems, log_level = 'info')
 end
 
 
-def gen_gemfile_and_install (gem_sources, gems, component, log_level)
+def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_level)
 
     #2 scenarions when need to run bundle install
-    #  - if running for the first time
-    #  - if any gems from exec-gems.yaml have mismatching versions
+    #  1) if running for the first time - determined by checking if provisioner gem (chef, puppet) is installed.
+    # Not checking its version though, it would be done in the below check
+    #  2) if any gems from exec-gems.yaml (including provisioner gem itself) have mismatching versions
 
     method = nil
-    if !File.exists?('Gemfile.lock')
-      puts 'Gemfile.lock is not found, will run bundle install.'
+    if !is_gem_installed?(provisioner)
+      puts "Provisioner #{provisioner} is not installed, will run bundle install."
       method = 'install'
-      create_gemfile(gem_sources, gems)
     elsif check_gem_update_needed(gems, log_level)
       if ['objectstore','compute','volume', 'os'].include?(component)
-        puts "Gemfile.lock is found, and gem update is required for component: #{component}"
-        ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
-        create_gemfile(gem_sources, gems)
+        puts "Gem update is required for component: #{component}"
         method = 'install'
       else
         puts "Gem update is required but will not be run for component: #{component}"
       end
     else
-      puts 'Gemfile.lock is found, and no gem update is required.'
+      puts 'No gem update is required.'
     end
 
     if !method.nil?
       start_time = Time.now.to_i
+     ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+      create_gemfile(gem_sources, gems)
       cmd = "#{get_bin_dir}bundle #{method} --full-index"
       ec = system cmd
 
