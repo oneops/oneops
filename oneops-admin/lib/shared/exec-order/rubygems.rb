@@ -1,7 +1,7 @@
 def get_gem_sources_from_file
   rubygems_proxy = []
-  if File.file?('/opt/oneops/rubygems_proxy')
-    rubygems_proxy = File.read('/opt/oneops/rubygems_proxy').split("\n").select{|l| (l =~ /^http/)}
+  if File.file?(get_proxy_file_name)
+    rubygems_proxy = File.read(get_proxy_file_name).split("\n").select{|l| (l =~ /^http/)}
   end
 
   rubygems_proxy
@@ -46,7 +46,7 @@ def update_gem_sources (expected_sources, log_level = 'info')
   end
 
 
-  proxy_file = '/opt/oneops/rubygems_proxy'
+  proxy_file = get_proxy_file_name
   if !File.exists?(proxy_file) || get_gem_sources_from_file != expected_sources
     puts 'Rubygems_proxy config file is outdated. Updating...'
     File.open(proxy_file, 'w') do |f|
