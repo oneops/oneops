@@ -19,3 +19,7 @@ end
 def get_file_from_parent_dir(filename)
   File.join(File.expand_path('..',File.dirname(__FILE__)),filename)
 end
+
+def get_proxy_file_name
+  (get_os_type =~ /windows/ ? 'c:/cygwin64' : '') + '/opt/oneops/rubygems_proxy'
+end
