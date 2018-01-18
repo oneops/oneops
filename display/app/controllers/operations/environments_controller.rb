@@ -37,7 +37,7 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
         load_platform_instances_info
 
-        requires = Cms::DjRelation.all(:params => {:nsPath       => manifest_ns_path,
+        requires = Cms::Relation.all(:params => {:nsPath       => manifest_ns_path,
                                                    :recursive    => true,
                                                    :relationName => 'manifest.Requires'})
         @ops_state_counts = Operations::Sensor.component_states(requires.map(&:toCiId)).inject({}) do |counts, (id, component_counts)|
