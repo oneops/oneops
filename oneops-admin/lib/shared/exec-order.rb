@@ -38,6 +38,11 @@ if ostype =~ /windows/
   json_context = prefix_root + json_context
 end
 dsl, version = impl.split('::')[1].split('-') # ex) oo::chef-10.16.6::optional_uri_for_cookbook_or_module
+if !ENV['class'].nil? && !ENV['class'].empty?
+  component = ENV['class'].downcase
+else
+  component = json_context.split('/').last.split('.').first.downcase
+end
 
 # set cwd to same dir as the exe-order.rb file
 Dir.chdir File.dirname(__FILE__)
@@ -58,7 +63,7 @@ when "chef"
   update_gem_sources(gem_sources, log_level)
 
   #Run bunle to insert/update neccessary gems if needed
-  gen_gemfile_and_install(gem_sources, gem_list, log_level)
+  gen_gemfile_and_install(gem_sources, gem_list, component, dsl, log_level)
 
 
   chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
@@ -147,7 +152,7 @@ when "puppet"
   update_gem_sources(gem_sources, log_level)
 
   #Run bunle to insert/update neccessary gems if needed
-  gen_gemfile_and_install(gem_sources, gem_list, log_level)
+  gen_gemfile_and_install(gem_sources, gem_list, component, dsl, log_level)
 
   # run puppet apply for each item in the run_list
   context = JSON.parse(File.read(json_context))
