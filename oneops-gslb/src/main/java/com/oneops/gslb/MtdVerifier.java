@@ -7,12 +7,12 @@ import com.google.gson.JsonParser;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.gslb.v2.domain.MTDBHostsVersion;
-import com.oneops.gslb.v2.domain.MTDBase;
-import com.oneops.gslb.v2.domain.MTDBaseResponse;
-import com.oneops.gslb.v2.domain.MTDHost;
-import com.oneops.gslb.v2.domain.MTDHostHealthCheck;
-import com.oneops.gslb.v2.domain.MTDTarget;
+import com.oneops.gslb.v2.domain.MtdBase;
+import com.oneops.gslb.v2.domain.MtdBaseResponse;
+import com.oneops.gslb.v2.domain.MtdHost;
+import com.oneops.gslb.v2.domain.MtdHostHealthCheck;
+import com.oneops.gslb.v2.domain.MtdHostResponse;
+import com.oneops.gslb.v2.domain.MtdTarget;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class MtdVerifier {
 
-  private static final Logger logger = Logger.getLogger(MtdHandler.class);
+  private static final Logger logger = Logger.getLogger(MtdVerifier.class);
 
   @Autowired
   WoHelper woHelper;
@@ -58,19 +58,13 @@ public class MtdVerifier {
   private void verifyDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     TorbitClient client = context.torbitClient;
     TorbitApi torbit = context.torbit;
-    Resp<MTDBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MTDBaseResponse.class);
+    Resp<MtdBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MtdBaseResponse.class);
     logger.info(context.logKey + "verifying mtd host not exists ");
     if (resp.isSuccessful()) {
       logger.info(context.logKey + "mtd base exists, trying to get mtd host");
-      MTDBase mtdBase = resp.getBody().getMtdBase();
-      Resp<MTDBHostsVersion> hostResp = client.execute(torbit.getMTDHostsVersion(mtdBase.getVersion().getVersionId().getInt64()),
-          MTDBHostsVersion.class);
-      if (hostResp.isSuccessful()) {
-        logger.info(context.logKey + "mtd base has a deployed version " + hostResp.getBody().getVersion().getVersionId());
-        Optional<MTDHost> opt = hostResp.getBody().getMtdHosts().getMtdHost().stream().
-            filter(h -> context.platform.equals(h.getMtdHostName())).findFirst();
-        verify(() -> !opt.isPresent(), "mtd host is not available");
-      }
+      MtdBase mtdBase = resp.getBody().getMtdBase();
+      Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.getMtdBaseId(), context.platform), MtdHostResponse.class);
+      verify(() -> !hostResp.isSuccessful(), "mtd host is not available");
     }
   }
 
@@ -79,45 +73,41 @@ public class MtdVerifier {
     TorbitApi torbit = context.torbit;
 
     logger.info(context.logKey + "verifying for platform " + context.platform);
-    Resp<MTDBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MTDBaseResponse.class);
+    Resp<MtdBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MtdBaseResponse.class);
     logger.info(context.logKey + "verifying mtd base ");
     verify(() -> resp.isSuccessful(), "mtd base exists");
-    MTDBase mtdBase = resp.getBody().getMtdBase();
+    MtdBase mtdBase = resp.getBody().getMtdBase();
     verify(() -> context.mtdBaseHost.equals(mtdBase.getMtdBaseName()), "mtd base name match");
 
-    Resp<MTDBHostsVersion> hostResp = client.execute(torbit.getMTDHostsVersion(mtdBase.getVersion().getVersionId().getInt64()),
-        MTDBHostsVersion.class);
+    Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.getMtdBaseId(), context.platform), MtdHostResponse.class);
     logger.info(context.logKey + "verifying mtd host version exists");
     verify(() -> hostResp.isSuccessful(), "mtd host version exists");
-    Optional<MTDHost> opt = hostResp.getBody().getMtdHosts().getMtdHost().stream().
-        filter(h -> context.platform.equals(h.getMtdHostName())).findFirst();
-    verify(() -> opt.isPresent(), "mtd host is available");
-    MTDHost host = opt.get();
 
+    MtdHost host = hostResp.getBody().getMtdHost();
     logger.info(context.logKey + "verifying mtd host targets");
-    List<MTDTarget> targets = host.getMtdTargets();
+    List<MtdTarget> targets = host.getMtdTargets();
     logger.info(context.logKey + "configured mtd targets " + targets.stream().
-        map(MTDTarget::getMtdTargetHost).
+        map(MtdTarget::getMtdTargetHost).
         collect(Collectors.joining(",")));
-    Map<String, MTDTarget> map = targets.stream().collect(Collectors.toMap(MTDTarget::getMtdTargetHost, Function.identity()));
+    Map<String, MtdTarget> map = targets.stream().collect(Collectors.toMap(MtdTarget::getMtdTargetHost, Function.identity()));
     List<Lb> lbList = getLbVips(wo);
     logger.info(context.logKey + "expected targets " +
         lbList.stream().map(l -> l.vip).collect(Collectors.joining(",")));
     for (Lb lb : lbList) {
       verify(() -> map.containsKey(lb.vip), "lb vip present in MTD target");
-      MTDTarget target = map.get(lb.vip);
+      MtdTarget target = map.get(lb.vip);
       verify(() -> lb.isPrimary ? target.getEnabled() : !target.getEnabled(), "mtd target enabled/disabled based on cloud status");
     }
 
     logger.info(context.logKey + "verifying mtd health checks");
-    List<MTDHostHealthCheck> healthChecks = host.getMtdHealthChecks();
+    List<MtdHostHealthCheck> healthChecks = host.getMtdHealthChecks();
     Map<Integer, EcvListener> expectedChecksMap = getHealthChecks(wo, context).stream().
         collect(Collectors.toMap(e -> e.port, Function.identity()));
     verify(() -> ((healthChecks != null ? healthChecks.size() : 0) ==
             (expectedChecksMap != null ? expectedChecksMap.size() : 0)),
         "all health checks are configured");
     if (healthChecks != null) {
-      for (MTDHostHealthCheck healthCheck : healthChecks) {
+      for (MtdHostHealthCheck healthCheck : healthChecks) {
         verify(() -> expectedChecksMap.containsKey(healthCheck.getPort()), "mtd health check available for port");
         EcvListener listener = expectedChecksMap.get(healthCheck.getPort());
         verify(() -> listener.protocol.equals(healthCheck.getProtocol()), "mtd health protocol matches");

@@ -4,15 +4,15 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDBaseHostResponse extends BaseResponse {
+public class MtdBaseHostResponse extends BaseResponse {
 
   @SerializedName("version")
   private Version version = null;
 
   @SerializedName("deployment")
-  private MTDDeployment deployment = null;
+  private MtdDeployment deployment = null;
 
-  public MTDBaseHostResponse links(Links links) {
+  public MtdBaseHostResponse links(Links links) {
     this.links = links;
     return this;
   }
@@ -25,7 +25,7 @@ public class MTDBaseHostResponse extends BaseResponse {
     this.links = links;
   }
 
-  public MTDBaseHostResponse metadata(Metadata metadata) {
+  public MtdBaseHostResponse metadata(Metadata metadata) {
     this.metadata = metadata;
     return this;
   }
@@ -38,12 +38,12 @@ public class MTDBaseHostResponse extends BaseResponse {
     this.metadata = metadata;
   }
 
-  public MTDBaseHostResponse errors(List<ResponseError> errors) {
+  public MtdBaseHostResponse errors(List<ResponseError> errors) {
     this.errors = errors;
     return this;
   }
 
-  public MTDBaseHostResponse addErrorsItem(ResponseError errorsItem) {
+  public MtdBaseHostResponse addErrorsItem(ResponseError errorsItem) {
     this.errors.add(errorsItem);
     return this;
   }
@@ -56,7 +56,7 @@ public class MTDBaseHostResponse extends BaseResponse {
     this.errors = errors;
   }
 
-  public MTDBaseHostResponse version(Version version) {
+  public MtdBaseHostResponse version(Version version) {
     this.version = version;
     return this;
   }
@@ -69,16 +69,16 @@ public class MTDBaseHostResponse extends BaseResponse {
     this.version = version;
   }
 
-  public MTDBaseHostResponse deployment(MTDDeployment deployment) {
+  public MtdBaseHostResponse deployment(MtdDeployment deployment) {
     this.deployment = deployment;
     return this;
   }
 
-  public MTDDeployment getDeployment() {
+  public MtdDeployment getDeployment() {
     return deployment;
   }
 
-  public void setDeployment(MTDDeployment deployment) {
+  public void setDeployment(MtdDeployment deployment) {
     this.deployment = deployment;
   }
 
@@ -91,7 +91,7 @@ public class MTDBaseHostResponse extends BaseResponse {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBaseHostResponse mtdBaseHostResponse = (MTDBaseHostResponse) o;
+    MtdBaseHostResponse mtdBaseHostResponse = (MtdBaseHostResponse) o;
     return Objects.equals(this.links, mtdBaseHostResponse.links) &&
         Objects.equals(this.metadata, mtdBaseHostResponse.metadata) &&
         Objects.equals(this.errors, mtdBaseHostResponse.errors) &&

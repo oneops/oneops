@@ -23,7 +23,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static final String ATTRIBUTE_AUTH_KEY = "auth_key";
   private static final String ATTRIBUTE_GROUP_ID = "group_id";
 
-  private static final String ATTRIBUTE_SERVICE_TYPE = "service_type";
+  static final String ATTRIBUTE_SERVICE_TYPE = "service_type";
 
   private static final String TORBIT_SERVICE_CLASS = "cloud.service.oneops.1.Torbit";
 

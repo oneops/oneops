@@ -7,8 +7,8 @@ import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.gslb.MtdHandler.Context;
 import com.oneops.gslb.v2.domain.Cloud;
-import com.oneops.gslb.v2.domain.MTDHostHealthCheck;
-import com.oneops.gslb.v2.domain.MTDTarget;
+import com.oneops.gslb.v2.domain.MtdHostHealthCheck;
+import com.oneops.gslb.v2.domain.MtdTarget;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -55,14 +55,14 @@ public class FqdnExecutorTest {
     CmsWorkOrderSimple wo = wo();
     Context context = getContext();
     try {
-      List<MTDTarget> mtdTargets = handler.getMTDTargets(wo, context);
+      List<MtdTarget> mtdTargets = handler.getMTDTargets(wo, context);
       Assert.assertEquals(2, mtdTargets.size());
-      MTDTarget target1 = mtdTargets.get(0);
+      MtdTarget target1 = mtdTargets.get(0);
       Assert.assertEquals(Long.valueOf(10), new Long(target1.getCloudId()));
       Assert.assertEquals(true, target1.getEnabled());
       Assert.assertEquals("1.1.1.0",target1.getMtdTargetHost());
 
-      MTDTarget target2 = mtdTargets.get(1);
+      MtdTarget target2 = mtdTargets.get(1);
       Assert.assertEquals(Long.valueOf(12), new Long(target2.getCloudId()));
       Assert.assertEquals(true, target2.getEnabled());
       Assert.assertEquals("1.1.1.1",target2.getMtdTargetHost());
@@ -78,9 +78,9 @@ public class FqdnExecutorTest {
     CmsWorkOrderSimple wo = wo();
     Context context = getContext();
     try {
-      List<MTDHostHealthCheck> healthChecks = handler.getHealthChecks(wo, context);
+      List<MtdHostHealthCheck> healthChecks = handler.getHealthChecks(wo, context);
       Assert.assertEquals(1, healthChecks.size());
-      MTDHostHealthCheck healthCheck = healthChecks.get(0);
+      MtdHostHealthCheck healthCheck = healthChecks.get(0);
       Assert.assertEquals(80, healthCheck.getPort().longValue());
       Assert.assertEquals("http", healthCheck.getProtocol());
       Assert.assertEquals("/", healthCheck.getTestObjectPath());

@@ -4,15 +4,15 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDBHostsVersion extends BaseResponse {
+public class MtdbHostsVersion extends BaseResponse {
 
   @SerializedName("version")
   private Version version = null;
 
   @SerializedName("mtd_hosts")
-  private MTDHosts mtdHosts = null;
+  private MtdHosts mtdHosts = null;
 
-  public MTDBHostsVersion links(Links links) {
+  public MtdbHostsVersion links(Links links) {
     this.links = links;
     return this;
   }
@@ -25,7 +25,7 @@ public class MTDBHostsVersion extends BaseResponse {
     this.links = links;
   }
 
-  public MTDBHostsVersion metadata(Metadata metadata) {
+  public MtdbHostsVersion metadata(Metadata metadata) {
     this.metadata = metadata;
     return this;
   }
@@ -38,12 +38,12 @@ public class MTDBHostsVersion extends BaseResponse {
     this.metadata = metadata;
   }
 
-  public MTDBHostsVersion errors(List<ResponseError> errors) {
+  public MtdbHostsVersion errors(List<ResponseError> errors) {
     this.errors = errors;
     return this;
   }
 
-  public MTDBHostsVersion addErrorsItem(ResponseError errorsItem) {
+  public MtdbHostsVersion addErrorsItem(ResponseError errorsItem) {
     this.errors.add(errorsItem);
     return this;
   }
@@ -56,7 +56,7 @@ public class MTDBHostsVersion extends BaseResponse {
     this.errors = errors;
   }
 
-  public MTDBHostsVersion version(Version version) {
+  public MtdbHostsVersion version(Version version) {
     this.version = version;
     return this;
   }
@@ -69,16 +69,16 @@ public class MTDBHostsVersion extends BaseResponse {
     this.version = version;
   }
 
-  public MTDBHostsVersion mtdHosts(MTDHosts mtdHosts) {
+  public MtdbHostsVersion mtdHosts(MtdHosts mtdHosts) {
     this.mtdHosts = mtdHosts;
     return this;
   }
 
-  public MTDHosts getMtdHosts() {
+  public MtdHosts getMtdHosts() {
     return mtdHosts;
   }
 
-  public void setMtdHosts(MTDHosts mtdHosts) {
+  public void setMtdHosts(MtdHosts mtdHosts) {
     this.mtdHosts = mtdHosts;
   }
 
@@ -91,7 +91,7 @@ public class MTDBHostsVersion extends BaseResponse {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBHostsVersion mtdbHostsVersion = (MTDBHostsVersion) o;
+    MtdbHostsVersion mtdbHostsVersion = (MtdbHostsVersion) o;
     return Objects.equals(this.links, mtdbHostsVersion.links) &&
         Objects.equals(this.metadata, mtdbHostsVersion.metadata) &&
         Objects.equals(this.errors, mtdbHostsVersion.errors) &&

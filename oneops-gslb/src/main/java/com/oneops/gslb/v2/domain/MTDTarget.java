@@ -3,7 +3,7 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class MTDTarget {
+public class MtdTarget {
 
   @SerializedName("mtd_target_host")
   private String mtdTargetHost = null;
@@ -20,7 +20,7 @@ public class MTDTarget {
   @SerializedName("weight_percent")
   private Integer weightPercent = null;
 
-  public MTDTarget mtdTargetHost(String mtdTargetHost) {
+  public MtdTarget mtdTargetHost(String mtdTargetHost) {
     this.mtdTargetHost = mtdTargetHost;
     return this;
   }
@@ -33,7 +33,7 @@ public class MTDTarget {
     this.mtdTargetHost = mtdTargetHost;
   }
 
-  public MTDTarget dataCenterId(Integer dataCenterId) {
+  public MtdTarget dataCenterId(Integer dataCenterId) {
     this.dataCenterId = dataCenterId;
     return this;
   }
@@ -46,7 +46,7 @@ public class MTDTarget {
     this.dataCenterId = dataCenterId;
   }
 
-  public MTDTarget cloudId(Integer cloudId) {
+  public MtdTarget cloudId(Integer cloudId) {
     this.cloudId = cloudId;
     return this;
   }
@@ -59,7 +59,7 @@ public class MTDTarget {
     this.cloudId = cloudId;
   }
 
-  public MTDTarget enabled(Boolean enabled) {
+  public MtdTarget enabled(Boolean enabled) {
     this.enabled = enabled;
     return this;
   }
@@ -72,7 +72,7 @@ public class MTDTarget {
     this.enabled = enabled;
   }
 
-  public MTDTarget weightPercent(Integer weightPercent) {
+  public MtdTarget weightPercent(Integer weightPercent) {
     this.weightPercent = weightPercent;
     return this;
   }
@@ -94,7 +94,7 @@ public class MTDTarget {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDTarget modelsMTDTarget = (MTDTarget) o;
+    MtdTarget modelsMTDTarget = (MtdTarget) o;
     return Objects.equals(this.mtdTargetHost, modelsMTDTarget.mtdTargetHost) &&
         Objects.equals(this.dataCenterId, modelsMTDTarget.dataCenterId) &&
         Objects.equals(this.cloudId, modelsMTDTarget.cloudId) &&

@@ -4,15 +4,15 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class DeployMTDConfigRequest {
+public class DeployMtdConfigRequest {
 
   @SerializedName("do_not_sync_externally")
   private Boolean doNotSyncExternally = null;
 
   @SerializedName("deploy")
-  private DeployMTDConfig deploy = null;
+  private DeployMtdConfig deploy = null;
 
-  public DeployMTDConfigRequest doNotSyncExternally(Boolean doNotSyncExternally) {
+  public DeployMtdConfigRequest doNotSyncExternally(Boolean doNotSyncExternally) {
     this.doNotSyncExternally = doNotSyncExternally;
     return this;
   }
@@ -25,16 +25,16 @@ public class DeployMTDConfigRequest {
     this.doNotSyncExternally = doNotSyncExternally;
   }
 
-  public DeployMTDConfigRequest deploy(DeployMTDConfig deploy) {
+  public DeployMtdConfigRequest deploy(DeployMtdConfig deploy) {
     this.deploy = deploy;
     return this;
   }
 
-  public DeployMTDConfig getDeploy() {
+  public DeployMtdConfig getDeploy() {
     return deploy;
   }
 
-  public void setDeploy(DeployMTDConfig deploy) {
+  public void setDeploy(DeployMtdConfig deploy) {
     this.deploy = deploy;
   }
 
@@ -47,7 +47,7 @@ public class DeployMTDConfigRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DeployMTDConfigRequest apiDeployMTDConfigRequest = (DeployMTDConfigRequest) o;
+    DeployMtdConfigRequest apiDeployMTDConfigRequest = (DeployMtdConfigRequest) o;
     return Objects.equals(this.doNotSyncExternally, apiDeployMTDConfigRequest.doNotSyncExternally) &&
         Objects.equals(this.deploy, apiDeployMTDConfigRequest.deploy);
   }

@@ -3,7 +3,7 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class MTDBaseVersion {
+public class MtdBaseVersion {
 
   @SerializedName("version_id")
   private SqlNullInt64 versionId = null;
@@ -14,7 +14,7 @@ public class MTDBaseVersion {
   @SerializedName("description")
   private SqlNullString description = null;
 
-  public MTDBaseVersion versionId(SqlNullInt64 versionId) {
+  public MtdBaseVersion versionId(SqlNullInt64 versionId) {
     this.versionId = versionId;
     return this;
   }
@@ -27,7 +27,7 @@ public class MTDBaseVersion {
     this.versionId = versionId;
   }
 
-  public MTDBaseVersion version(SqlNullInt64 version) {
+  public MtdBaseVersion version(SqlNullInt64 version) {
     this.version = version;
     return this;
   }
@@ -40,7 +40,7 @@ public class MTDBaseVersion {
     this.version = version;
   }
 
-  public MTDBaseVersion description(SqlNullString description) {
+  public MtdBaseVersion description(SqlNullString description) {
     this.description = description;
     return this;
   }
@@ -62,7 +62,7 @@ public class MTDBaseVersion {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBaseVersion modelsMTDVersion = (MTDBaseVersion) o;
+    MtdBaseVersion modelsMTDVersion = (MtdBaseVersion) o;
     return Objects.equals(this.versionId, modelsMTDVersion.versionId) &&
         Objects.equals(this.version, modelsMTDVersion.version) &&
         Objects.equals(this.description, modelsMTDVersion.description);

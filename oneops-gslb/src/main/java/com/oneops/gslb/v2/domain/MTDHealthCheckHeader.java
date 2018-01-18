@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDHealthCheckHeader {
+public class MtdHealthCheckHeader {
 
   @SerializedName("name")
   private String name = null;
@@ -13,7 +13,7 @@ public class MTDHealthCheckHeader {
   @SerializedName("value")
   private List<String> value = new ArrayList<String>();
 
-  public MTDHealthCheckHeader name(String name) {
+  public MtdHealthCheckHeader name(String name) {
     this.name = name;
     return this;
   }
@@ -26,12 +26,12 @@ public class MTDHealthCheckHeader {
     this.name = name;
   }
 
-  public MTDHealthCheckHeader value(List<String> value) {
+  public MtdHealthCheckHeader value(List<String> value) {
     this.value = value;
     return this;
   }
 
-  public MTDHealthCheckHeader addValueItem(String valueItem) {
+  public MtdHealthCheckHeader addValueItem(String valueItem) {
     this.value.add(valueItem);
     return this;
   }
@@ -53,7 +53,7 @@ public class MTDHealthCheckHeader {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDHealthCheckHeader apiMTDHealthCheckHeaderRead = (MTDHealthCheckHeader) o;
+    MtdHealthCheckHeader apiMTDHealthCheckHeaderRead = (MtdHealthCheckHeader) o;
     return Objects.equals(this.name, apiMTDHealthCheckHeaderRead.name) &&
         Objects.equals(this.value, apiMTDHealthCheckHeaderRead.value);
   }

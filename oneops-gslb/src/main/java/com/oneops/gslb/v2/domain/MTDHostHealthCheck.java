@@ -3,7 +3,7 @@ package com.oneops.gslb.v2.domain;
 import java.util.Objects;
 import com.google.gson.annotations.SerializedName;
 
-public class MTDHostHealthCheck {
+public class MtdHostHealthCheck {
 
   @SerializedName("name")
   private String name = null;
@@ -50,7 +50,7 @@ public class MTDHostHealthCheck {
   @SerializedName("timeout")
   private String timeout = null;
 
-  public MTDHostHealthCheck name(String name) {
+  public MtdHostHealthCheck name(String name) {
     this.name = name;
     return this;
   }
@@ -63,7 +63,7 @@ public class MTDHostHealthCheck {
     this.name = name;
   }
 
-  public MTDHostHealthCheck protocol(String protocol) {
+  public MtdHostHealthCheck protocol(String protocol) {
     this.protocol = protocol;
     return this;
   }
@@ -76,7 +76,7 @@ public class MTDHostHealthCheck {
     this.protocol = protocol;
   }
 
-  public MTDHostHealthCheck port(Integer port) {
+  public MtdHostHealthCheck port(Integer port) {
     this.port = port;
     return this;
   }
@@ -89,7 +89,7 @@ public class MTDHostHealthCheck {
     this.port = port;
   }
 
-  public MTDHostHealthCheck testObjectPath(String testObjectPath) {
+  public MtdHostHealthCheck testObjectPath(String testObjectPath) {
     this.testObjectPath = testObjectPath;
     return this;
   }
@@ -102,7 +102,7 @@ public class MTDHostHealthCheck {
     this.testObjectPath = testObjectPath;
   }
 
-  public MTDHostHealthCheck headers(Object headers) {
+  public MtdHostHealthCheck headers(Object headers) {
     this.headers = headers;
     return this;
   }
@@ -115,7 +115,7 @@ public class MTDHostHealthCheck {
     this.headers = headers;
   }
 
-  public MTDHostHealthCheck expectedStatus(Integer expectedStatus) {
+  public MtdHostHealthCheck expectedStatus(Integer expectedStatus) {
     this.expectedStatus = expectedStatus;
     return this;
   }
@@ -128,7 +128,7 @@ public class MTDHostHealthCheck {
     this.expectedStatus = expectedStatus;
   }
 
-  public MTDHostHealthCheck expectedBody(String expectedBody) {
+  public MtdHostHealthCheck expectedBody(String expectedBody) {
     this.expectedBody = expectedBody;
     return this;
   }
@@ -141,7 +141,7 @@ public class MTDHostHealthCheck {
     this.expectedBody = expectedBody;
   }
 
-  public MTDHostHealthCheck failsForDown(Integer failsForDown) {
+  public MtdHostHealthCheck failsForDown(Integer failsForDown) {
     this.failsForDown = failsForDown;
     return this;
   }
@@ -154,7 +154,7 @@ public class MTDHostHealthCheck {
     this.failsForDown = failsForDown;
   }
 
-  public MTDHostHealthCheck pass(Boolean pass) {
+  public MtdHostHealthCheck pass(Boolean pass) {
     this.pass = pass;
     return this;
   }
@@ -167,7 +167,7 @@ public class MTDHostHealthCheck {
     this.pass = pass;
   }
 
-  public MTDHostHealthCheck tls(Boolean tls) {
+  public MtdHostHealthCheck tls(Boolean tls) {
     this.tls = tls;
     return this;
   }
@@ -180,7 +180,7 @@ public class MTDHostHealthCheck {
     this.tls = tls;
   }
 
-  public MTDHostHealthCheck requestBody(String requestBody) {
+  public MtdHostHealthCheck requestBody(String requestBody) {
     this.requestBody = requestBody;
     return this;
   }
@@ -193,7 +193,7 @@ public class MTDHostHealthCheck {
     this.requestBody = requestBody;
   }
 
-  public MTDHostHealthCheck network(String network) {
+  public MtdHostHealthCheck network(String network) {
     this.network = network;
     return this;
   }
@@ -206,17 +206,17 @@ public class MTDHostHealthCheck {
     this.network = network;
   }
 
-  public MTDHostHealthCheck interval(String interval) {
+  public MtdHostHealthCheck interval(String interval) {
     this.interval = interval;
     return this;
   }
 
-  public MTDHostHealthCheck retryDelay(String retryDelay) {
+  public MtdHostHealthCheck retryDelay(String retryDelay) {
     this.retryDelay = retryDelay;
     return this;
   }
 
-  public MTDHostHealthCheck timeout(String timeout) {
+  public MtdHostHealthCheck timeout(String timeout) {
     this.timeout = timeout;
     return this;
   }
@@ -253,7 +253,7 @@ public class MTDHostHealthCheck {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDHostHealthCheck modelsMTDHealthCheck = (MTDHostHealthCheck) o;
+    MtdHostHealthCheck modelsMTDHealthCheck = (MtdHostHealthCheck) o;
     return Objects.equals(this.name, modelsMTDHealthCheck.name) &&
         Objects.equals(this.protocol, modelsMTDHealthCheck.protocol) &&
         Objects.equals(this.port, modelsMTDHealthCheck.port) &&

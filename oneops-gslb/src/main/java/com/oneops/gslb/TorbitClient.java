@@ -16,6 +16,8 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.logging.HttpLoggingInterceptor;
+import okhttp3.logging.HttpLoggingInterceptor.Level;
 import org.apache.log4j.Logger;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -30,7 +32,7 @@ public class TorbitClient {
 
   private Retrofit retrofit;
 
-  private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
+  private static final Logger logger = Logger.getLogger(TorbitClient.class);
 
   public TorbitClient(Config config) throws Exception {
     newTorbitApi(config);
@@ -43,6 +45,8 @@ public class TorbitClient {
     SSLContext sslContext = SSLContext.getInstance("TLS");
     sslContext.init(null, trustAllCerts, new SecureRandom());
     SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+    HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(m -> logger.info(m));
+    logInterceptor.setLevel(Level.BASIC);
     OkHttpClient client = new OkHttpClient().newBuilder()
         .sslSocketFactory(socketFactory, trustManager)
         .followSslRedirects(false)
@@ -51,6 +55,7 @@ public class TorbitClient {
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(logInterceptor)
         .addInterceptor(chain -> {
           Request req = chain.request().newBuilder()
               .addHeader(HttpHeaders.CONTENT_TYPE, JSON.toString())

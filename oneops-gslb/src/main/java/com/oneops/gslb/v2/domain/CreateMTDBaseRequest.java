@@ -3,21 +3,21 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class CreateMTDBaseRequest {
+public class CreateMtdBaseRequest {
 
   @SerializedName("mtd_base")
-  private MTDBaseRequest mtdBase = null;
+  private MtdBaseRequest mtdBase = null;
 
-  public CreateMTDBaseRequest mtdBase(MTDBaseRequest mtdBase) {
+  public CreateMtdBaseRequest mtdBase(MtdBaseRequest mtdBase) {
     this.mtdBase = mtdBase;
     return this;
   }
 
-  public MTDBaseRequest getMtdBase() {
+  public MtdBaseRequest getMtdBase() {
     return mtdBase;
   }
 
-  public void setMtdBase(MTDBaseRequest mtdBase) {
+  public void setMtdBase(MtdBaseRequest mtdBase) {
     this.mtdBase = mtdBase;
   }
 
@@ -30,7 +30,7 @@ public class CreateMTDBaseRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    CreateMTDBaseRequest createMTDBaseRequest = (CreateMTDBaseRequest) o;
+    CreateMtdBaseRequest createMTDBaseRequest = (CreateMtdBaseRequest) o;
     return Objects.equals(this.mtdBase, createMTDBaseRequest.mtdBase);
   }
 

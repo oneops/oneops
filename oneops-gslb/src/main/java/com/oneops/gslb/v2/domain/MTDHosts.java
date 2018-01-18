@@ -5,26 +5,26 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDHosts {
+public class MtdHosts {
 
   @SerializedName("mtd_host")
-  private List<MTDHost> mtdHost = new ArrayList<MTDHost>();
+  private List<MtdHost> mtdHost = new ArrayList<MtdHost>();
 
-  public MTDHosts mtdHost(List<MTDHost> mtdHost) {
+  public MtdHosts mtdHost(List<MtdHost> mtdHost) {
     this.mtdHost = mtdHost;
     return this;
   }
 
-  public MTDHosts addMtdHostItem(MTDHost mtdHostItem) {
+  public MtdHosts addMtdHostItem(MtdHost mtdHostItem) {
     this.mtdHost.add(mtdHostItem);
     return this;
   }
 
-  public List<MTDHost> getMtdHost() {
+  public List<MtdHost> getMtdHost() {
     return mtdHost;
   }
 
-  public void setMtdHost(List<MTDHost> mtdHost) {
+  public void setMtdHost(List<MtdHost> mtdHost) {
     this.mtdHost = mtdHost;
   }
 
@@ -37,7 +37,7 @@ public class MTDHosts {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDHosts apiMTDHostsRead = (MTDHosts) o;
+    MtdHosts apiMTDHostsRead = (MtdHosts) o;
     return Objects.equals(this.mtdHost, apiMTDHostsRead.mtdHost);
   }
 

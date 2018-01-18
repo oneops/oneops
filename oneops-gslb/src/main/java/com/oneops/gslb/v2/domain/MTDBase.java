@@ -3,7 +3,7 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class MTDBase {
+public class MtdBase {
 
   @SerializedName("mtd_base_id")
   private Integer mtdBaseId = null;
@@ -12,9 +12,9 @@ public class MTDBase {
   private String mtdBaseName = null;
 
   @SerializedName("version")
-  private MTDBaseVersion version = null;
+  private MtdBaseVersion version = null;
 
-  public MTDBase mtdBaseId(Integer mtdBaseId) {
+  public MtdBase mtdBaseId(Integer mtdBaseId) {
     this.mtdBaseId = mtdBaseId;
     return this;
   }
@@ -27,7 +27,7 @@ public class MTDBase {
     this.mtdBaseId = mtdBaseId;
   }
 
-  public MTDBase mtdBaseName(String mtdBaseName) {
+  public MtdBase mtdBaseName(String mtdBaseName) {
     this.mtdBaseName = mtdBaseName;
     return this;
   }
@@ -40,16 +40,16 @@ public class MTDBase {
     this.mtdBaseName = mtdBaseName;
   }
 
-  public MTDBase version(MTDBaseVersion version) {
+  public MtdBase version(MtdBaseVersion version) {
     this.version = version;
     return this;
   }
 
-  public MTDBaseVersion getVersion() {
+  public MtdBaseVersion getVersion() {
     return version;
   }
 
-  public void setVersion(MTDBaseVersion version) {
+  public void setVersion(MtdBaseVersion version) {
     this.version = version;
   }
 
@@ -62,7 +62,7 @@ public class MTDBase {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBase modelsMTDBase = (MTDBase) o;
+    MtdBase modelsMTDBase = (MtdBase) o;
     return Objects.equals(this.mtdBaseId, modelsMTDBase.mtdBaseId) &&
         Objects.equals(this.mtdBaseName, modelsMTDBase.mtdBaseName) &&
         Objects.equals(this.version, modelsMTDBase.version);

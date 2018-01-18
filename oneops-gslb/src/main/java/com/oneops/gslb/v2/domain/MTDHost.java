@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDHost {
+public class MtdHost {
 
   @SerializedName("mtd_host_name")
   private String mtdHostName = null;
@@ -14,10 +14,10 @@ public class MTDHost {
   private String fallbackTarget = null;
 
   @SerializedName("mtd_health_checks")
-  private List<MTDHostHealthCheck> mtdHealthChecks = new ArrayList<>();
+  private List<MtdHostHealthCheck> mtdHealthChecks = new ArrayList<>();
 
   @SerializedName("mtd_targets")
-  private List<MTDTarget> mtdTargets = new ArrayList<>();
+  private List<MtdTarget> mtdTargets = new ArrayList<>();
 
   @SerializedName("is_dc_failover")
   private Boolean isDcFailover = null;
@@ -28,7 +28,7 @@ public class MTDHost {
   @SerializedName("dc_fallback_targets")
   private List<DCFallbackTarget> dcFallbackTargets = new ArrayList<>();
 
-  public MTDHost mtdHostName(String mtdHostName) {
+  public MtdHost mtdHostName(String mtdHostName) {
     this.mtdHostName = mtdHostName;
     return this;
   }
@@ -41,7 +41,7 @@ public class MTDHost {
     this.mtdHostName = mtdHostName;
   }
 
-  public MTDHost fallbackTarget(String fallbackTarget) {
+  public MtdHost fallbackTarget(String fallbackTarget) {
     this.fallbackTarget = fallbackTarget;
     return this;
   }
@@ -54,43 +54,43 @@ public class MTDHost {
     this.fallbackTarget = fallbackTarget;
   }
 
-  public MTDHost mtdHealthChecks(List<MTDHostHealthCheck> mtdHealthChecks) {
+  public MtdHost mtdHealthChecks(List<MtdHostHealthCheck> mtdHealthChecks) {
     this.mtdHealthChecks = mtdHealthChecks;
     return this;
   }
 
-  public MTDHost addMtdHealthChecksItem(MTDHostHealthCheck mtdHealthChecksItem) {
+  public MtdHost addMtdHealthChecksItem(MtdHostHealthCheck mtdHealthChecksItem) {
     this.mtdHealthChecks.add(mtdHealthChecksItem);
     return this;
   }
 
-  public List<MTDHostHealthCheck> getMtdHealthChecks() {
+  public List<MtdHostHealthCheck> getMtdHealthChecks() {
     return mtdHealthChecks;
   }
 
-  public void setMtdHealthChecks(List<MTDHostHealthCheck> mtdHealthChecks) {
+  public void setMtdHealthChecks(List<MtdHostHealthCheck> mtdHealthChecks) {
     this.mtdHealthChecks = mtdHealthChecks;
   }
 
-  public MTDHost mtdTargets(List<MTDTarget> mtdTargets) {
+  public MtdHost mtdTargets(List<MtdTarget> mtdTargets) {
     this.mtdTargets = mtdTargets;
     return this;
   }
 
-  public MTDHost addMtdTargetsItem(MTDTarget mtdTargetsItem) {
+  public MtdHost addMtdTargetsItem(MtdTarget mtdTargetsItem) {
     this.mtdTargets.add(mtdTargetsItem);
     return this;
   }
 
-  public List<MTDTarget> getMtdTargets() {
+  public List<MtdTarget> getMtdTargets() {
     return mtdTargets;
   }
 
-  public void setMtdTargets(List<MTDTarget> mtdTargets) {
+  public void setMtdTargets(List<MtdTarget> mtdTargets) {
     this.mtdTargets = mtdTargets;
   }
 
-  public MTDHost isDcFailover(Boolean isDcFailover) {
+  public MtdHost isDcFailover(Boolean isDcFailover) {
     this.isDcFailover = isDcFailover;
     return this;
   }
@@ -103,7 +103,7 @@ public class MTDHost {
     this.isDcFailover = isDcFailover;
   }
 
-  public MTDHost loadBalancingDistribution(Integer loadBalancingDistribution) {
+  public MtdHost loadBalancingDistribution(Integer loadBalancingDistribution) {
     this.loadBalancingDistribution = loadBalancingDistribution;
     return this;
   }
@@ -116,12 +116,12 @@ public class MTDHost {
     this.loadBalancingDistribution = loadBalancingDistribution;
   }
 
-  public MTDHost dcFallbackTargets(List<DCFallbackTarget> dcFallbackTargets) {
+  public MtdHost dcFallbackTargets(List<DCFallbackTarget> dcFallbackTargets) {
     this.dcFallbackTargets = dcFallbackTargets;
     return this;
   }
 
-  public MTDHost addDcFallbackTargetsItem(DCFallbackTarget dcFallbackTargetsItem) {
+  public MtdHost addDcFallbackTargetsItem(DCFallbackTarget dcFallbackTargetsItem) {
     this.dcFallbackTargets.add(dcFallbackTargetsItem);
     return this;
   }
@@ -143,7 +143,7 @@ public class MTDHost {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDHost apiMTDHostRead = (MTDHost) o;
+    MtdHost apiMTDHostRead = (MtdHost) o;
     return Objects.equals(this.mtdHostName, apiMTDHostRead.mtdHostName) &&
         Objects.equals(this.fallbackTarget, apiMTDHostRead.fallbackTarget) &&
         Objects.equals(this.mtdHealthChecks, apiMTDHostRead.mtdHealthChecks) &&

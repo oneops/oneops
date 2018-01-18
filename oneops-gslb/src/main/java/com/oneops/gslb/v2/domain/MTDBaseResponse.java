@@ -4,12 +4,12 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDBaseResponse extends BaseResponse {
+public class MtdBaseResponse extends BaseResponse {
   
   @SerializedName("mtd_base")
-  private MTDBase mtdBase = null;
+  private MtdBase mtdBase = null;
 
-  public MTDBaseResponse links(Links links) {
+  public MtdBaseResponse links(Links links) {
     this.links = links;
     return this;
   }
@@ -22,7 +22,7 @@ public class MTDBaseResponse extends BaseResponse {
     this.links = links;
   }
 
-  public MTDBaseResponse metadata(Metadata metadata) {
+  public MtdBaseResponse metadata(Metadata metadata) {
     this.metadata = metadata;
     return this;
   }
@@ -35,12 +35,12 @@ public class MTDBaseResponse extends BaseResponse {
     this.metadata = metadata;
   }
 
-  public MTDBaseResponse errors(List<ResponseError> errors) {
+  public MtdBaseResponse errors(List<ResponseError> errors) {
     this.errors = errors;
     return this;
   }
 
-  public MTDBaseResponse addErrorsItem(ResponseError errorsItem) {
+  public MtdBaseResponse addErrorsItem(ResponseError errorsItem) {
     this.errors.add(errorsItem);
     return this;
   }
@@ -53,16 +53,16 @@ public class MTDBaseResponse extends BaseResponse {
     this.errors = errors;
   }
 
-  public MTDBaseResponse mtdBase(MTDBase mtdBase) {
+  public MtdBaseResponse mtdBase(MtdBase mtdBase) {
     this.mtdBase = mtdBase;
     return this;
   }
 
-  public MTDBase getMtdBase() {
+  public MtdBase getMtdBase() {
     return mtdBase;
   }
 
-  public void setMtdBase(MTDBase mtdBase) {
+  public void setMtdBase(MtdBase mtdBase) {
     this.mtdBase = mtdBase;
   }
 
@@ -75,7 +75,7 @@ public class MTDBaseResponse extends BaseResponse {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBaseResponse apiReadMTDBaseResponse = (MTDBaseResponse) o;
+    MtdBaseResponse apiReadMTDBaseResponse = (MtdBaseResponse) o;
     return Objects.equals(this.links, apiReadMTDBaseResponse.links) &&
         Objects.equals(this.metadata, apiReadMTDBaseResponse.metadata) &&
         Objects.equals(this.errors, apiReadMTDBaseResponse.errors) &&

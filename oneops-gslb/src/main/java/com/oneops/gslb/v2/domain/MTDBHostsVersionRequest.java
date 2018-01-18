@@ -3,10 +3,10 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class MTDBHostsVersionRequest {
+public class MtdbHostsVersionRequest {
 
   @SerializedName("mtd_hosts")
-  private MTDHosts mtdHosts = null;
+  private MtdHosts mtdHosts = null;
 
   @SerializedName("mtd_base_id")
   private Integer mtdBaseId = null;
@@ -14,20 +14,20 @@ public class MTDBHostsVersionRequest {
   @SerializedName("version")
   private VersionRequest version = null;
 
-  public MTDBHostsVersionRequest mtdHosts(MTDHosts mtdHosts) {
+  public MtdbHostsVersionRequest mtdHosts(MtdHosts mtdHosts) {
     this.mtdHosts = mtdHosts;
     return this;
   }
 
-  public MTDHosts getMtdHosts() {
+  public MtdHosts getMtdHosts() {
     return mtdHosts;
   }
 
-  public void setMtdHosts(MTDHosts mtdHosts) {
+  public void setMtdHosts(MtdHosts mtdHosts) {
     this.mtdHosts = mtdHosts;
   }
 
-  public MTDBHostsVersionRequest mtdBaseId(Integer mtdBaseId) {
+  public MtdbHostsVersionRequest mtdBaseId(Integer mtdBaseId) {
     this.mtdBaseId = mtdBaseId;
     return this;
   }
@@ -40,7 +40,7 @@ public class MTDBHostsVersionRequest {
     this.mtdBaseId = mtdBaseId;
   }
 
-  public MTDBHostsVersionRequest version(VersionRequest version) {
+  public MtdbHostsVersionRequest version(VersionRequest version) {
     this.version = version;
     return this;
   }
@@ -62,7 +62,7 @@ public class MTDBHostsVersionRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBHostsVersionRequest mtdHostsVersionRequest = (MTDBHostsVersionRequest) o;
+    MtdbHostsVersionRequest mtdHostsVersionRequest = (MtdbHostsVersionRequest) o;
     return Objects.equals(this.mtdHosts, mtdHostsVersionRequest.mtdHosts) &&
         Objects.equals(this.mtdBaseId, mtdHostsVersionRequest.mtdBaseId) &&
         Objects.equals(this.version, mtdHostsVersionRequest.version);

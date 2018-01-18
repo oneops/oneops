@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
 
-public class MTDBaseRequest {
+public class MtdBaseRequest {
 
   @SerializedName("mtd_base_name")
   private String mtdBaseName = null;
@@ -12,7 +12,7 @@ public class MTDBaseRequest {
   @SerializedName("type")
   private String type = null;
 
-  public MTDBaseRequest mtdBaseName(String mtdBaseName) {
+  public MtdBaseRequest mtdBaseName(String mtdBaseName) {
     this.mtdBaseName = mtdBaseName;
     return this;
   }
@@ -25,7 +25,7 @@ public class MTDBaseRequest {
     this.mtdBaseName = mtdBaseName;
   }
 
-  public MTDBaseRequest type(String type) {
+  public MtdBaseRequest type(String type) {
     this.type = type;
     return this;
   }
@@ -47,7 +47,7 @@ public class MTDBaseRequest {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDBaseRequest apiNewMTDBase = (MTDBaseRequest) o;
+    MtdBaseRequest apiNewMTDBase = (MtdBaseRequest) o;
     return Objects.equals(this.mtdBaseName, apiNewMTDBase.mtdBaseName) &&
         Objects.equals(this.type, apiNewMTDBase.type);
   }

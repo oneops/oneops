@@ -3,7 +3,7 @@ package com.oneops.gslb.v2.domain;
 import com.google.gson.annotations.SerializedName;
 import java.util.Objects;
 
-public class DeployMTDConfig {
+public class DeployMtdConfig {
 
   @SerializedName("mtd_base_id")
   private Integer mtdBaseId = null;
@@ -17,7 +17,7 @@ public class DeployMTDConfig {
   @SerializedName("deployment_method")
   private String deploymentMethod = null;
 
-  public DeployMTDConfig mtdBaseId(Integer mtdBaseId) {
+  public DeployMtdConfig mtdBaseId(Integer mtdBaseId) {
     this.mtdBaseId = mtdBaseId;
     return this;
   }
@@ -30,7 +30,7 @@ public class DeployMTDConfig {
     this.mtdBaseId = mtdBaseId;
   }
 
-  public DeployMTDConfig versionId(Integer versionId) {
+  public DeployMtdConfig versionId(Integer versionId) {
     this.versionId = versionId;
     return this;
   }
@@ -43,7 +43,7 @@ public class DeployMTDConfig {
     this.versionId = versionId;
   }
 
-  public DeployMTDConfig deploymentType(String deploymentType) {
+  public DeployMtdConfig deploymentType(String deploymentType) {
     this.deploymentType = deploymentType;
     return this;
   }
@@ -56,7 +56,7 @@ public class DeployMTDConfig {
     this.deploymentType = deploymentType;
   }
 
-  public DeployMTDConfig deploymentMethod(String deploymentMethod) {
+  public DeployMtdConfig deploymentMethod(String deploymentMethod) {
     this.deploymentMethod = deploymentMethod;
     return this;
   }
@@ -78,7 +78,7 @@ public class DeployMTDConfig {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    DeployMTDConfig deployMTDConfig = (DeployMTDConfig) o;
+    DeployMtdConfig deployMTDConfig = (DeployMtdConfig) o;
     return Objects.equals(this.mtdBaseId, deployMTDConfig.mtdBaseId) &&
         Objects.equals(this.versionId, deployMTDConfig.versionId) &&
         Objects.equals(this.deploymentType, deployMTDConfig.deploymentType) &&

@@ -3,24 +3,17 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>18.01.03-15-SNAPSHOT</version>
+    <version>18.01.15-5-SNAPSHOT</version>
   </parent>
 
   <artifactId>oneops-gslb</artifactId>
   <packaging>jar</packaging>
   <name>OneOps gslb</name>
   
-   <properties>
-     <junit.version>4.7</junit.version>
-     <slf4j.version>1.6.1</slf4j.version>
-     <retrofit.version>2.3.0</retrofit.version>
-   </properties>
-  
   <dependencies>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -29,19 +22,24 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-log4j12</artifactId>
-        <version>${slf4j.version}</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
     </dependency>
     <dependency>
       <groupId>com.squareup.retrofit2</groupId>
       <artifactId>retrofit</artifactId>
-      <version>${retrofit.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>logging-interceptor</artifactId>
     </dependency>
     <dependency>
       <groupId>com.squareup.retrofit2</groupId>
       <artifactId>converter-gson</artifactId>
-      <version>${retrofit.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>

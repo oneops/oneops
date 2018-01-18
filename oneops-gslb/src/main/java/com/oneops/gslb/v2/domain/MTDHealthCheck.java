@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class MTDHealthCheck {
+public class MtdHealthCheck {
 
   @SerializedName("name")
   private String name = null;
@@ -20,7 +20,7 @@ public class MTDHealthCheck {
   private String testObjectPath = null;
 
   @SerializedName("headers")
-  private List<MTDHealthCheckHeader> headers = new ArrayList<MTDHealthCheckHeader>();
+  private List<MtdHealthCheckHeader> headers = new ArrayList<MtdHealthCheckHeader>();
 
   @SerializedName("expected_status")
   private Integer expectedStatus = null;
@@ -43,7 +43,7 @@ public class MTDHealthCheck {
   @SerializedName("pass")
   private Boolean pass = null;
 
-  public MTDHealthCheck name(String name) {
+  public MtdHealthCheck name(String name) {
     this.name = name;
     return this;
   }
@@ -56,7 +56,7 @@ public class MTDHealthCheck {
     this.name = name;
   }
 
-  public MTDHealthCheck protocol(String protocol) {
+  public MtdHealthCheck protocol(String protocol) {
     this.protocol = protocol;
     return this;
   }
@@ -69,7 +69,7 @@ public class MTDHealthCheck {
     this.protocol = protocol;
   }
 
-  public MTDHealthCheck port(Integer port) {
+  public MtdHealthCheck port(Integer port) {
     this.port = port;
     return this;
   }
@@ -82,7 +82,7 @@ public class MTDHealthCheck {
     this.port = port;
   }
 
-  public MTDHealthCheck testObjectPath(String testObjectPath) {
+  public MtdHealthCheck testObjectPath(String testObjectPath) {
     this.testObjectPath = testObjectPath;
     return this;
   }
@@ -95,25 +95,25 @@ public class MTDHealthCheck {
     this.testObjectPath = testObjectPath;
   }
 
-  public MTDHealthCheck headers(List<MTDHealthCheckHeader> headers) {
+  public MtdHealthCheck headers(List<MtdHealthCheckHeader> headers) {
     this.headers = headers;
     return this;
   }
 
-  public MTDHealthCheck addHeadersItem(MTDHealthCheckHeader headersItem) {
+  public MtdHealthCheck addHeadersItem(MtdHealthCheckHeader headersItem) {
     this.headers.add(headersItem);
     return this;
   }
 
-  public List<MTDHealthCheckHeader> getHeaders() {
+  public List<MtdHealthCheckHeader> getHeaders() {
     return headers;
   }
 
-  public void setHeaders(List<MTDHealthCheckHeader> headers) {
+  public void setHeaders(List<MtdHealthCheckHeader> headers) {
     this.headers = headers;
   }
 
-  public MTDHealthCheck expectedStatus(Integer expectedStatus) {
+  public MtdHealthCheck expectedStatus(Integer expectedStatus) {
     this.expectedStatus = expectedStatus;
     return this;
   }
@@ -126,7 +126,7 @@ public class MTDHealthCheck {
     this.expectedStatus = expectedStatus;
   }
 
-  public MTDHealthCheck expectedBody(String expectedBody) {
+  public MtdHealthCheck expectedBody(String expectedBody) {
     this.expectedBody = expectedBody;
     return this;
   }
@@ -139,7 +139,7 @@ public class MTDHealthCheck {
     this.expectedBody = expectedBody;
   }
 
-  public MTDHealthCheck failsForDown(Integer failsForDown) {
+  public MtdHealthCheck failsForDown(Integer failsForDown) {
     this.failsForDown = failsForDown;
     return this;
   }
@@ -152,7 +152,7 @@ public class MTDHealthCheck {
     this.failsForDown = failsForDown;
   }
 
-  public MTDHealthCheck interval(String interval) {
+  public MtdHealthCheck interval(String interval) {
     this.interval = interval;
     return this;
   }
@@ -165,7 +165,7 @@ public class MTDHealthCheck {
     this.interval = interval;
   }
 
-  public MTDHealthCheck retryDelay(String retryDelay) {
+  public MtdHealthCheck retryDelay(String retryDelay) {
     this.retryDelay = retryDelay;
     return this;
   }
@@ -178,7 +178,7 @@ public class MTDHealthCheck {
     this.retryDelay = retryDelay;
   }
 
-  public MTDHealthCheck timeout(String timeout) {
+  public MtdHealthCheck timeout(String timeout) {
     this.timeout = timeout;
     return this;
   }
@@ -191,7 +191,7 @@ public class MTDHealthCheck {
     this.timeout = timeout;
   }
 
-  public MTDHealthCheck pass(Boolean pass) {
+  public MtdHealthCheck pass(Boolean pass) {
     this.pass = pass;
     return this;
   }
@@ -213,7 +213,7 @@ public class MTDHealthCheck {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDHealthCheck apiMTDHealthCheckRead = (MTDHealthCheck) o;
+    MtdHealthCheck apiMTDHealthCheckRead = (MtdHealthCheck) o;
     return Objects.equals(this.name, apiMTDHealthCheckRead.name) &&
         Objects.equals(this.protocol, apiMTDHealthCheckRead.protocol) &&
         Objects.equals(this.port, apiMTDHealthCheckRead.port) &&

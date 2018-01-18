@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.Date;
 import java.util.Objects;
 
-public class MTDDeployment {
+public class MtdDeployment {
 
   @SerializedName("deployment_id")
   private Integer deploymentId = null;
@@ -39,7 +39,7 @@ public class MTDDeployment {
   @SerializedName("Version")
   private Version version = null;
 
-  public MTDDeployment deploymentId(Integer deploymentId) {
+  public MtdDeployment deploymentId(Integer deploymentId) {
     this.deploymentId = deploymentId;
     return this;
   }
@@ -52,7 +52,7 @@ public class MTDDeployment {
     this.deploymentId = deploymentId;
   }
 
-  public MTDDeployment deploymentType(String deploymentType) {
+  public MtdDeployment deploymentType(String deploymentType) {
     this.deploymentType = deploymentType;
     return this;
   }
@@ -65,7 +65,7 @@ public class MTDDeployment {
     this.deploymentType = deploymentType;
   }
 
-  public MTDDeployment deploymentMethod(String deploymentMethod) {
+  public MtdDeployment deploymentMethod(String deploymentMethod) {
     this.deploymentMethod = deploymentMethod;
     return this;
   }
@@ -78,7 +78,7 @@ public class MTDDeployment {
     this.deploymentMethod = deploymentMethod;
   }
 
-  public MTDDeployment originId(SqlNullInt64 originId) {
+  public MtdDeployment originId(SqlNullInt64 originId) {
     this.originId = originId;
     return this;
   }
@@ -91,7 +91,7 @@ public class MTDDeployment {
     this.originId = originId;
   }
 
-  public MTDDeployment luaTenantId(SqlNullInt64 luaTenantId) {
+  public MtdDeployment luaTenantId(SqlNullInt64 luaTenantId) {
     this.luaTenantId = luaTenantId;
     return this;
   }
@@ -104,7 +104,7 @@ public class MTDDeployment {
     this.luaTenantId = luaTenantId;
   }
 
-  public MTDDeployment luaTenantDbTenantId(SqlNullInt64 luaTenantDbTenantId) {
+  public MtdDeployment luaTenantDbTenantId(SqlNullInt64 luaTenantDbTenantId) {
     this.luaTenantDbTenantId = luaTenantDbTenantId;
     return this;
   }
@@ -117,7 +117,7 @@ public class MTDDeployment {
     this.luaTenantDbTenantId = luaTenantDbTenantId;
   }
 
-  public MTDDeployment mtdBaseId(SqlNullInt64 mtdBaseId) {
+  public MtdDeployment mtdBaseId(SqlNullInt64 mtdBaseId) {
     this.mtdBaseId = mtdBaseId;
     return this;
   }
@@ -130,7 +130,7 @@ public class MTDDeployment {
     this.mtdBaseId = mtdBaseId;
   }
 
-  public MTDDeployment created(Date created) {
+  public MtdDeployment created(Date created) {
     this.created = created;
     return this;
   }
@@ -143,7 +143,7 @@ public class MTDDeployment {
     this.created = created;
   }
 
-  public MTDDeployment createdUnixMs(Long createdUnixMs) {
+  public MtdDeployment createdUnixMs(Long createdUnixMs) {
     this.createdUnixMs = createdUnixMs;
     return this;
   }
@@ -156,7 +156,7 @@ public class MTDDeployment {
     this.createdUnixMs = createdUnixMs;
   }
 
-  public MTDDeployment user(ShortUser user) {
+  public MtdDeployment user(ShortUser user) {
     this.user = user;
     return this;
   }
@@ -169,7 +169,7 @@ public class MTDDeployment {
     this.user = user;
   }
 
-  public MTDDeployment version(Version version) {
+  public MtdDeployment version(Version version) {
     this.version = version;
     return this;
   }
@@ -191,7 +191,7 @@ public class MTDDeployment {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    MTDDeployment modelsDeployment = (MTDDeployment) o;
+    MtdDeployment modelsDeployment = (MtdDeployment) o;
     return Objects.equals(this.deploymentId, modelsDeployment.deploymentId) &&
         Objects.equals(this.deploymentType, modelsDeployment.deploymentType) &&
         Objects.equals(this.deploymentMethod, modelsDeployment.deploymentMethod) &&
