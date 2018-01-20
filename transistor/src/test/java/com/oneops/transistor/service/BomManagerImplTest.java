@@ -192,6 +192,33 @@ public class BomManagerImplTest {
         impl.check4Secondary(context, platformCloudRels);
     }
 
+    @Test
+    public void changingSomeDeployedPrimaryToInactiveAndOthersToSecondary() throws Exception {
+        CmsCmProcessor cmProcessor =mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
+        String[] inactivePrimaryClouds = {"c1"};
+        String[] activeSecondaryClouds = {"c2"};
+        List<CmsCIRelation> platformCloudRels = Stream.of(inactivePrimaryClouds)
+                .map(s -> (createInactivePrimaryCloud(s)))
+                .collect(toList());
+        List<CmsCIRelation> secondaryCloudRels = Stream.of(activeSecondaryClouds)
+                .map(s -> (createSecondaryCloud(s)))
+                .collect(toList());
+        platformCloudRels.addAll(secondaryCloudRels);
+
+        PlatformBomGenerationContext context = platformContext("/test/a1/e1", "p1");
+        doAnswer(invocationOnMock -> Stream.of(clouds)
+                    .map(cloud -> (fqdnDeployedToRelation(cloud, "1")))
+                    .collect(Collectors.toList()))
+                .when(context).getBomRelations();
+
+        doAnswer(i -> Arrays.asList(relation("Entrypoint", ci("manifest.Fqdn", "fqdn", 1234))))
+                .when(context).getEntryPoints();
+
+        //should allow
+        impl.check4Secondary(context, platformCloudRels);
+    }
+
     @Test(expectedExceptions = {TransistorException.class},expectedExceptionsMessageRegExp=".* <c1,c2>.*")
     public void primaryOfflineDeployingSecondaryMakingAllSec() throws Exception {
         CmsCmProcessor cmProcessor = mock(CmsCmProcessor.class);

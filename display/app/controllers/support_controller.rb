@@ -70,7 +70,7 @@ class SupportController < ReportsController
           o.user_count  = count.user_count
           o.team_count  = count.team_count
           o.group_count = count.group_count
-          o.admin_count = admin_counts[o.id].admin_count
+          o.admin_count = admin_counts[o.id] ? admin_counts[o.id].admin_count : 0
         end
       end
     else
@@ -233,47 +233,6 @@ class SupportController < ReportsController
       ok = doc.save
     end
     render_json_ci_response(ok, doc)
-  end
-
-  def obsolete_users
-    ldap          = Settings.authentication == 'ldap' && Devise::LdapAdapter.ldap_connect(nil)
-    obsolte_users = []
-    total         = 0
-    User.select('id, username, email, name, created_at, current_sign_in_at, sign_in_count').
-      where('current_sign_in_at < ?', params[:since]).
-      find_in_batches(:batch_size => (params[:batch_size] || 20).to_i) do |batch|
-      total += batch.size
-      if ldap
-        entries = ldap.search_for_logins(batch.map(&:username))
-        batch.each do |u|
-          unless entries[u.username]
-            obsolte_users << u
-          end
-        end
-      end
-    end
-
-    if request.delete?
-      if params[:count].to_i == obsolte_users.size
-        deleted_users = []
-        not_deleted_users = []
-        obsolte_users.each do |u|
-          next unless u[:username] == 'foobar3' || u[:username] == 'foobar9'
-          if u.destroy
-            deleted_users << u
-          else
-            u[:errors] = user.errors.full_messages
-            not_deleted_users << u
-          end
-        end
-        render :json => {:total => total, :deleted => deleted_users.size, :obsolete => not_deleted_users.size, :deleted_users => deleted_users, :obsolete_users => not_deleted_users}.to_json
-      else
-        render :json => {:errors => ['Provide correct obsolete user count to confirm delete request']}, :status => :unprocessable_entity
-      end
-    else
-      render :json => {:total => total, :obsolete => obsolte_users.size, :obsolete_users => obsolte_users}.to_json
-    end
-
   end
 
 
