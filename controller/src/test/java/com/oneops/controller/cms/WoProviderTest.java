@@ -181,6 +181,15 @@ public class WoProviderTest {
 		woProvider.processCustomPayloads(wo, manifestToTemplateMap, null, vars, vars, vars);
 		Assert.assertEquals(wo.getPayLoad().get("os").get(0).getCiName(), "os-bom-ci");
 		Assert.assertEquals(wo.getPayLoad().get("userPayload").get(0).getCiName(), "user-bom-ci");
+
+		//now assert that the os payload is not overwritten if the payloadName is same for current ci and its compute
+		wo = new CmsWorkOrder();
+		wo.setRfcCi(userCi);
+		manifestToTemplateMap = new HashMap<>();
+		wo.addPayLoadEntry("RealizedAs", userManifestRfcCi);
+		userPayloadDef.setCiName("os");
+		woProvider.processCustomPayloads(wo, manifestToTemplateMap, null, vars, vars, vars);
+		Assert.assertEquals(wo.getPayLoad().get("os").get(0).getCiName(), "user-bom-ci");
 	}
 
 	public class ComputeManifestCiMatcher extends ArgumentMatcher<CmsCI> {
