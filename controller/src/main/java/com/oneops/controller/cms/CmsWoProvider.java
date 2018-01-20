@@ -455,52 +455,8 @@ public class CmsWoProvider {
 
         // now lets process the custom payloads and this will override the default ones as well
 
-        //lets get the payload def from the template
-        long manifestCiId = workOrder.getPayLoad().get("RealizedAs").get(0).getCiId();
-        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-            CmsCI manifestCi = cmProcessor.getCiById(manifestCiId);
-            CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
-            if (templObj == null) {
-                logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
-            } else {
-                manifestToTemplateMap.put(manifestCi.getCiId(), templObj);
-            }
-        }
-
-        List<CmsRfcCI> managedVia = getRfcCIRelatives(workOrder.getRfcCi(), "bom.ManagedVia",
-                "from", null, "df");
-
-        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-            //throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
-        	//Don't throw an exception in case no pack component could be found.
-        	//If this is the case - pack component was removed and this should be a delete WO
-        	logger.warn("Can not find pack template for manifest component id=" + manifestCiId + "; name - " + workOrder.getPayLoad().get("RealizedAs").get(0).getCiName());
-        } else {
-            CmsCI managedViaTemplateCi = null;
-            long managedViaBomCid = 0;
-            if (managedVia != null && managedVia.size() > 0) {
-                CmsRfcCI managedViaEntity = managedVia.get(0);
-                managedViaBomCid = managedViaEntity.getCiId();
-                CmsCI managedViaManifestCi = new CmsCI();
-                long managedViaManifestCiId = getRealizedAs(managedViaEntity.getCiId());
-                managedViaManifestCi.setCiId(managedViaManifestCiId);
-                managedViaManifestCi.setCiClassName(managedViaEntity.getCiClassName().replace("bom.", "manifest."));
-
-                logger.info("passing this ci to function: " + managedViaManifestCi);
-                managedViaTemplateCi = cmProcessor.getTemplateObjForManifestObj(managedViaManifestCi, env);
-                if (managedViaTemplateCi == null) {
-                    logger.warn("template ci not found for ci id: " +  managedViaManifestCi.getCiId());
-                }
-            }
-        	processPayLoadDef(workOrder, manifestToTemplateMap.get(manifestCiId), managedViaTemplateCi, managedViaBomCid, cloudVars, globalVars, localVars);
-        }	
-
+        processCustomPayloads(workOrder, manifestToTemplateMap, env, globalVars, localVars, cloudVars);
         //from here all payloads are default ones unless overriden by the custom payload definitions
-        //put proxy
-        if (!workOrder.getPayLoad().containsKey(MANAGED_VIA)) {
-            workOrder.putPayLoadEntry(MANAGED_VIA, managedVia);
-        }
-
         //put depends on
         if (!workOrder.getPayLoad().containsKey(DEPENDS_ON)) {
             workOrder.putPayLoadEntry(DEPENDS_ON, getRfcCIRelatives(workOrder.getRfcCi(), "bom.DependsOn", "from", null, "df"));
@@ -543,6 +499,54 @@ public class CmsWoProvider {
 
         addVarsForConfig(workOrder);
         return workOrder;
+    }
+
+    protected void processCustomPayloads(CmsWorkOrder workOrder, Map<Long, CmsCI> manifestToTemplateMap, CmsCI env,
+                                         Map<String, String> globalVars, Map<String, String> localVars, Map<String, String> cloudVars) {
+        //lets get the payload def from the template
+        long manifestCiId = workOrder.getPayLoad().get("RealizedAs").get(0).getCiId();
+        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
+            CmsCI manifestCi = cmProcessor.getCiById(manifestCiId);
+            CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
+            if (templObj == null) {
+                logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
+            } else {
+                manifestToTemplateMap.put(manifestCi.getCiId(), templObj);
+            }
+        }
+
+        List<CmsRfcCI> managedVia = getRfcCIRelatives(workOrder.getRfcCi(), "bom.ManagedVia",
+                "from", null, "df");
+
+        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
+            //throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
+            //Don't throw an exception in case no pack component could be found.
+            //If this is the case - pack component was removed and this should be a delete WO
+            logger.warn("Can not find pack template for manifest component id=" + manifestCiId + "; name - "
+                    + workOrder.getPayLoad().get("RealizedAs").get(0).getCiName());
+        } else {
+            CmsCI managedViaTemplateCi = null;
+            long managedViaBomCid = 0;
+            if (managedVia != null && managedVia.size() > 0) {
+                CmsRfcCI managedViaEntity = managedVia.get(0);
+                managedViaBomCid = managedViaEntity.getCiId();
+                CmsCI managedViaManifestCi = new CmsCI();
+                long managedViaManifestCiId = getRealizedAs(managedViaEntity.getCiId());
+                managedViaManifestCi.setCiId(managedViaManifestCiId);
+                managedViaManifestCi.setCiClassName(managedViaEntity.getCiClassName().replace("bom.", "manifest."));
+
+                managedViaTemplateCi = cmProcessor.getTemplateObjForManifestObj(managedViaManifestCi, env);
+                if (managedViaTemplateCi == null) {
+                    logger.warn("template ci not found for ci id: " +  managedViaManifestCi.getCiId());
+                }
+            }
+            processPayLoadDef(workOrder, manifestToTemplateMap.get(manifestCiId), managedViaTemplateCi, managedViaBomCid, cloudVars, globalVars, localVars);
+        }
+
+        //put proxy
+        if (!workOrder.getPayLoad().containsKey(MANAGED_VIA)) {
+            workOrder.putPayLoadEntry(MANAGED_VIA, managedVia);
+        }
     }
 
     private void setEnvVars(CmsWorkOrder workOrder, List<CmsRfcCI> managedVia) {
