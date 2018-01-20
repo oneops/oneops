@@ -179,7 +179,6 @@ public class WoProviderTest {
 		HashMap<String, String> vars = new HashMap<>();
 		wo.setRfcCi(userCi);
 		woProvider.processCustomPayloads(wo, manifestToTemplateMap, null, vars, vars, vars);
-		System.out.println("myWOPay: " + gson.toJson(wo.getPayLoad(), Map.class));
 		Assert.assertEquals(wo.getPayLoad().get("os").get(0).getCiName(), "os-bom-ci");
 		Assert.assertEquals(wo.getPayLoad().get("userPayload").get(0).getCiName(), "user-bom-ci");
 	}
