@@ -206,6 +206,35 @@
               </arguments>
             </configuration>
           </execution>
+
+          <!-- cache exec-gems-->
+          <execution>
+            <id>cache-exec-gems</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>${basedir}/lib/shared/cache-exec-gems.rb</executable>
+            </configuration>
+          </execution>
+          <execution>
+            <id>exec-gems-tar-az</id>
+            <phase>package</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>tar</executable>
+              <arguments>
+                <argument>-czf</argument>
+                <argument>${project.build.directory}/exec-gems-cache-${project.version}.tar.gz</argument>
+                <argument>-C</argument>
+                <argument>${basedir}/lib/shared/vendor/cache</argument>
+                <argument>.</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
