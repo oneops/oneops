@@ -27,6 +27,8 @@ import com.oneops.notification.NotificationSeverity;
 import com.oneops.notification.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -54,7 +56,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
         searchDal.createIndex("oottl", "{\n" +
                 "  \"mappings\": {\n" +
-                "        \"environment\" : {\n" +
+                "        \"platform\" : {\n" +
                 "                \"properties\" : {\n" +
                 "                        \"nsPath\" : {\n" +
                 "                                \"type\" : \"string\",\n" +
@@ -117,77 +119,74 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     @Override
     public void processEnvironment(Environment env, List<Deployment> deployments) {
-        if (isEligible(env, deployments)) {
+        List<Long> eligiblePlatformIds = getEligiblePlatformIds(env, deployments);
+        if (eligiblePlatformIds != null && eligiblePlatformIds.size() > 0) {
             //log.info("Processing TTL for Env: " + env + " " + env.getNsPath());
-            boolean disabledAnyPlatform = false;
-            EnvironmentTTLRecord ttlRecord = null;
-            ttlRecord = new EnvironmentTTLRecord();
-            ttlRecord.setEnvironment(env);
-            EnvironmentTTLRecord existingRecord =
-                    (EnvironmentTTLRecord) searchDal.get("oottl",
-                            "environment", ttlRecord, "" + env.getId());
-            if (existingRecord != null) {
-                log.info("Existing ttl record: " + new Gson().toJson(existingRecord));
-                if (existingRecord.getLastProcessedAt() != null
-                        && (System.currentTimeMillis() - existingRecord.getLastProcessedAt().getTime()
-                        < notificationFrequencyDays * 24 * 60 * 60 * 1000)) {
-                    //its been less than configured notification interval time since last processed this env
-                    log.info("Not yet " + notificationFrequencyDays
-                            + " day(s) since last processed. Skipping this env: " + env.getPath());
-                    return;
-                }
-            }
-            boolean envHasComputes = false;
             for (Platform platform : env.getPlatforms().values()) {
-                if (platform.getTotalComputes() > 0) {
-                    envHasComputes = true;
+                if (eligiblePlatformIds.contains(platform.getId()) && platform.getTotalComputes() > 0) {
+                    EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
+                    ttlRecord.setEnvironmentProfile(env.getProfile());
+                    ttlRecord.setEnvironmentId(env.getId());
+                    ttlRecord.setPlatform(platform);
+                    EnvironmentTTLRecord existingRecord =
+                            (EnvironmentTTLRecord) searchDal.get("oottl",
+                                    "platform", ttlRecord, "" + platform.getId());
+                    if (existingRecord != null) {
+                        log.info("Existing ttl record: " + new Gson().toJson(existingRecord));
+                        if (existingRecord.getLastProcessedAt() != null
+                                && (System.currentTimeMillis() - existingRecord.getLastProcessedAt().getTime()
+                                < notificationFrequencyDays * 24 * 60 * 60 * 1000)) {
+                            //its been less than configured notification interval time since last processed this env
+                            log.info("Not yet " + notificationFrequencyDays
+                                    + " day(s) since last processed. Skipping this platform: " + platform.getPath()
+                                    + "/" + platform.getName());
+                            return;
+                        }
+                    }
                     totalComputesTTLed += platform.getTotalComputes();
                     log.info("Total computes TTLed till now: " + totalComputesTTLed);
 
                     ttlRecord.setScanOnly(true); //by default, the scan-only is true
-                    if (existingRecord != null
-                            && existingRecord.getPlannedDestroyDate() != null
-                            && Calendar.getInstance().getTime().compareTo(existingRecord.getPlannedDestroyDate()) >= 0) {
-                        //current date is greater than or equal to "plannedDestroyDate" - meaning user was sent multiple notifications
-                        //go ahead with destroy
-                        log.info("Time is up for the env: " + env.getPath() + " env ci id: " + env.getId());
-                        if (! ttlEnabled) {
-                            log.info("TTL plugin is disabled, will not disable the platform " + platform.getName());
-                        } else {
-                            ttlRecord.setScanOnly(false);
-                            ooFacade.disablePlatform(platform, ttlBotName);
+                    if (existingRecord != null && existingRecord.getPlannedDestroyDate() != null) {
+
+                        if (Calendar.getInstance().getTime().compareTo(existingRecord.getPlannedDestroyDate()) >= 0) {
+                            //current date is greater than or equal to "plannedDestroyDate" - meaning user was sent multiple notifications
+                            //go ahead with destroy
+                            log.info("Time is up for the platform: " + platform.getPath() + "/" + platform.getName()
+                                    + " platform ci id: " + platform.getId() + " total computes: " + platform.getTotalComputes());
+                            if (! ttlEnabled) {
+                                log.info("TTL plugin is disabled, will not disable the platform " + platform.getName());
+                            } else {
+                                ttlRecord.setScanOnly(false);
+                                ooFacade.disablePlatform(platform, ttlBotName);
+                                log.warn("!!!!!! TTL Plugin is Enabled. Doing a force deploy !!!!!!");
+                                ooFacade.forceDeploy(env, platform, ttlBotName);
+                                ttlRecord.setActualDestroyDate(new Date());
+                                break; //Deploy only one platform at a time
+                            }
+                        } else { // still in grace period
+                            if (ttlEnabled) {
+                                sendTtlNotification(ttlRecord);
+                                if (existingRecord != null) {
+                                    ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
+                                }
+                            }
                         }
-                        disabledAnyPlatform = true;
+                    }
+                    setDates(ttlRecord, existingRecord);
+                    if (saveToES) {
+                        searchDal.push("oottl", "platform", ttlRecord, "" + platform.getId());
                     }
                 }
             }
-            if (disabledAnyPlatform) {
-                if (! ttlEnabled) {
-                    log.info("TTL plugin is disabled, will not trigger the disable-deployment");
-                } else {
-                    log.warn("!!!!!! TTL Plugin is Enabled. Doing a force deploy !!!!!!");
-                    ooFacade.forceDeploy(env, ttlBotName);
-                }
-            } else if (envHasComputes) { //since no disable/destroy deployment happened, notify env owner and save to ES
-                if (ttlEnabled) {
-                    sendTtlNotification(ttlRecord);
-                }
-                if (existingRecord != null) {
-                    ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
-                }
-            }
-            if (ttlRecord != null && envHasComputes) {
-                setDates(ttlRecord, existingRecord);
-                if (saveToES) {
-                    searchDal.push("oottl", "environment", ttlRecord, "" + env.getId());
-                }
-            }
+        } else {
+            log.info("There are no eligible platforms in this env: " + env.getPath() + "/" + env.getName());
         }
     }
 
-    private boolean isEligible(Environment env, List<Deployment> deployments) {
+    private ArrayList<Long> getEligiblePlatformIds(Environment env, List<Deployment> deployments) {
         if (deployments.size() == 0) {
-            return false;
+            return null;
         }
         if (config != null && config.getOrgs() != null) {
             boolean orgToBeProcessed = false;
@@ -201,15 +200,17 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             }
             if (! orgToBeProcessed) {
                 log.info("org not configured for ttl: " + env.getPath());
-                return false;
+                return null;
             }
         }
+
+        ArrayList<Long> eligiblePlatforms = new ArrayList<>();
 
         for (Platform platform : env.getPlatforms().values()) {
             if (config != null && config.getPacks() != null) {
                 boolean packToBeProcessed = false;
 
-                //Check if the org of this env enabled for ttl
+                //Check if the pack is enabled for ttl
                 for (String pack : config.getPacks()) {
                     if (platform.getPack().toLowerCase().equals(pack)) {
                         packToBeProcessed = true;
@@ -218,39 +219,57 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 }
                 if (! packToBeProcessed) {
                     log.info("pack not configured for ttl: " + platform.getPack());
-                    return false;
+                    continue;
                 }
             }
 
             for (String cloud : platform.getActiveClouds()) {
                 if (cloud.toLowerCase().contains("prod")) {
                     log.info(platform.getId() + " Platform in Env not eligible because of prod clouds: " + platform.getPath());
-                    return false;
+                } else {
+                    eligiblePlatforms.add(platform.getId());
                 }
             }
         }
 
-        Deployment lastDeploy = deployments.get(0);
+        Deployment lastDeploy = findLastDeploymentByUser(deployments);
+        if (lastDeploy == null) {
+            return null;
+        }
         Date lastDeployDate = lastDeploy.getCreatedAt();
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DATE, 0 - noDeploymentDays);
         Date noDeploymentDate = cal.getTime();
         Object envProfile = env.getProfile();
-        log.info(env.getPath() + " this env " + env + "with profile ["
+        log.info(env.getPath() + " this env " + env + " with profile ["
                 + env.getProfile() + "] last deployed on : " + lastDeploy.getCreatedAt());
         if ( envProfile != null
                 && ! envProfile.toString().toLowerCase().contains("prod")
                 && lastDeployDate.compareTo(noDeploymentDate) < 0
-                && ! lastDeploy.getCreatedBy().equalsIgnoreCase(ttlBotName)
+                && ! deployments.get(0).getState().equalsIgnoreCase("active")
                 ) {
-            return true;
+            return eligiblePlatforms;
         }
-        return false;
+        return null;
+    }
+
+    private Deployment findLastDeploymentByUser(List<Deployment> deployments) {
+        Deployment lastDeployment = null;
+        for (Deployment deployment : deployments) {
+            if (! deployment.getCreatedBy().equalsIgnoreCase(ttlBotName)) {
+                lastDeployment = deployment;
+                break;
+            }
+        }
+        return lastDeployment;
     }
 
     private void setDates(EnvironmentTTLRecord ttlRecord, EnvironmentTTLRecord existingTtlRecord) {
-        ttlRecord.setLastProcessedAt(new Date(System.currentTimeMillis()));
-
+        ttlRecord.setLastProcessedAt(new Date());
+        if (! ttlEnabled) {
+            ttlRecord.setPlannedDestroyDate(null);
+            return;
+        }
         if (existingTtlRecord == null || existingTtlRecord.getPlannedDestroyDate() == null) {
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.DAY_OF_MONTH, gracePeriodDays);
@@ -260,15 +279,16 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     }
 
     private void sendTtlNotification(EnvironmentTTLRecord ttlRecord) {
-        Environment environment = ttlRecord.getEnvironment();
+        Platform platform = ttlRecord.getPlatform();
+        String platformFullNsPath = platform.getPath() + "/" + platform.getName();
         NotificationMessage msg = new NotificationMessage();
-        msg.setSubject("This Environment will be soon decommissioned : "
-                + environment.getPath() + "/" + environment.getName());
-        msg.setText("The environment " + environment.getPath()
+        msg.setSubject("This OneOps platform to be soon decommissioned: "
+                + platformFullNsPath);
+        msg.setText("The OneOps Environment Platform " + platformFullNsPath
                 + " seems inactive for long time and will be auto-decommissioned by OneOps after "
                 + ttlRecord.getPlannedDestroyDate());
-        msg.setNsPath(environment.getPath() + "/" + environment.getName());
-        msg.setCmsId(environment.getId());
+        msg.setNsPath(platform.getPath());
+        msg.setCmsId(ttlRecord.getEnvironmentId());
         msg.setType(NotificationType.deployment);
 //        msg.setSource("deployment");
         msg.setTimestamp(System.currentTimeMillis());
@@ -277,10 +297,10 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         int ooResponse = ooFacade.sendNotification(msg);
         log.info("notification msg to be posted: " + new Gson().toJson(msg));
         if (ooResponse != 200) {
-            log.warn("Notification could not be sent for env " + environment.getId()
+            log.warn("Notification could not be sent for platform " + platform.getId()
                     + ". Error code from OO: " + ooResponse);
         } else {
-            log.info("############# Notification sent for env id: " + ttlRecord.getEnvironment().getId());
+            log.info("############# Notification sent for platform id: " + ttlRecord.getPlatform().getId());
         }
     }
 }

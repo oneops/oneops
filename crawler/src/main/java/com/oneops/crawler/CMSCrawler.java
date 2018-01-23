@@ -23,6 +23,7 @@ import static com.oneops.crawler.jooq.cms.Tables.*;
 import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Platform;
+import com.oneops.crawler.jooq.cms.Sequences;
 import com.oneops.crawler.plugins.ttl.EnvTTLCrawlerPlugin;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -35,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Timestamp;
@@ -61,6 +63,7 @@ public class CMSCrawler {
 
     boolean fullSweepAtStart = true;
     boolean shutDownRequested = false;
+    boolean syncClouds = false;
 
     public CMSCrawler() {
         //read and init the secrets
@@ -93,6 +96,11 @@ public class CMSCrawler {
         cmsDbPassword = System.getProperty("cms.db.user.password");
         cmsDbUrl = System.getProperty("cms.db.url");
 
+        String cloudSyncEnabledProperty = System.getProperty("crawler.cloud.metadata.sync.enabled");
+        if ("true".equalsIgnoreCase(cloudSyncEnabledProperty)) {
+            syncClouds = true;
+        }
+
         //log.info("crawlerDbUserName: " + crawlerDbUserName + "; crawlerDbPassword: " + crawlerDbPassword + " crawlerDbUrl: " + crawlerDbUrl);
     }
 
@@ -111,16 +119,20 @@ public class CMSCrawler {
 
     public void crawl() {
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
-
-        EnvTTLCrawlerPlugin plugin = new EnvTTLCrawlerPlugin(); //TODO: auto-discover plugins from jars
-
         try (Connection conn = DriverManager.getConnection(cmsDbUrl, cmsDbUserName, cmsDbPassword)) {
             init(conn);
             List<Environment> envs = getOneopsEnvironments(conn);
+            EnvTTLCrawlerPlugin plugin = new EnvTTLCrawlerPlugin(); //TODO: auto-discover plugins from jars
+            long envsLastFetchedAt = System.currentTimeMillis();
+
             while (true && !shutDownRequested) {
+                if ((System.currentTimeMillis() - envsLastFetchedAt)/(1000 * 60 * 60 * 24) >= 1 ) { //been a day
+                    envs = getOneopsEnvironments(conn);//refresh the environment list
+                }
+                log.info("Starting to crawl all environments..");
                 for (Environment env : envs) {
                     if (shutDownRequested) {
-                        log.info("Shutdown was requested, exiting !");
+                        log.info("Shutdown requested, exiting !");
                         break;
                     }
                     populateEnv(env, conn);
@@ -128,10 +140,100 @@ public class CMSCrawler {
                     plugin.processEnvironment(env, deployments);
                     updateCrawlEntry(env);
                 }
+                log.info("crawled all environments, will go over again.");
+
+                crawlClouds(conn);
+                Thread.sleep(20000);//sleep for 20 seconds
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
+    }
+
+    private void crawlClouds(Connection conn) {
+
+        DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
+
+        log.info("Fetching all clouds..");
+        Result<Record> cloudRecords = create.select().from(CM_CI)
+                .join(MD_CLASSES).on(CM_CI.CLASS_ID.eq(MD_CLASSES.CLASS_ID))
+                .join(NS_NAMESPACES).on(CM_CI.NS_ID.eq(NS_NAMESPACES.NS_ID))
+                .where(MD_CLASSES.CLASS_NAME.eq("account.Cloud"))
+                .fetch(); //all the env cis
+        log.info("Got all clouds ");
+
+
+        for (Record r : cloudRecords) {
+            if (shutDownRequested) {
+                log.info("Shutdown requested, exiting !");
+                break;
+            }
+
+            long cloudId = r.getValue(CM_CI.CI_ID);
+            String cloudName = r.getValue(CM_CI.CI_NAME);
+            String cloudNS = r.getValue(NS_NAMESPACES.NS_PATH);
+            if (syncClouds) {
+                syncCloudVariables(cloudId, cloudName, cloudNS, conn);
+            }
+        }
+    }
+
+    private void syncCloudVariables(long cloudId, String cloudName, String cloudNS, Connection conn) {
+        DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
+        Integer valueForRelationId = create.select().from(MD_RELATIONS)
+                .where(MD_RELATIONS.RELATION_NAME.eq("account.ValueFor"))
+                .fetchAny().getValue(MD_RELATIONS.RELATION_ID);
+
+        int varClassId = create.select().from(MD_CLASSES)
+                .where(MD_CLASSES.CLASS_NAME.eq("account.Cloudvar"))
+                .fetchAny().getValue(MD_CLASSES.CLASS_ID);
+
+        int valueAttributeId = create.select().from(MD_CLASSES)
+                .join(MD_CLASS_ATTRIBUTES).on(MD_CLASSES.CLASS_ID.eq(MD_CLASS_ATTRIBUTES.CLASS_ID))
+                .where(MD_CLASS_ATTRIBUTES.ATTRIBUTE_NAME.eq("value")
+                        .and(MD_CLASSES.CLASS_NAME.eq("base.Cloudvar")))
+                .fetchAny().getValue(MD_CLASS_ATTRIBUTES.ATTRIBUTE_ID);
+
+        int secureAttributeId = create.select().from(MD_CLASSES).join(MD_CLASS_ATTRIBUTES).on(MD_CLASSES.CLASS_ID.eq(MD_CLASS_ATTRIBUTES.CLASS_ID))
+                .where(MD_CLASS_ATTRIBUTES.ATTRIBUTE_NAME.eq("secure")
+                        .and(MD_CLASSES.CLASS_NAME.eq("base.Cloudvar")))
+                .fetchAny().getValue(MD_CLASS_ATTRIBUTES.ATTRIBUTE_ID);
+
+        String varNS = cloudNS + "/" + cloudName;
+
+        String value = "M";
+
+        if (cloudName.toLowerCase().contains("prod")
+                || cloudName.toLowerCase().contains("azure")) {
+            value = "M";
+        }
+
+        long varNsId = create.select().from(NS_NAMESPACES)
+                .where(NS_NAMESPACES.NS_PATH.eq(varNS))
+                .fetchAny().getValue(NS_NAMESPACES.NS_ID);
+
+        //insert variable ci
+        long nextID = create.nextval(Sequences.CM_PK_SEQ);
+        long newVarId = nextID;
+        create.insertInto(CM_CI, CM_CI.CI_ID, CM_CI.NS_ID, CM_CI.CI_NAME, CM_CI.CLASS_ID, CM_CI.CI_GOID, CM_CI.CI_STATE_ID)
+                .values(nextID, varNsId, "size", varClassId, varNsId + "-" + varClassId + "-" + nextID, 100).returning(CM_CI.CI_ID)
+                .fetchOne().getValue(CM_CI.CI_ID);
+
+        nextID = create.nextval(Sequences.CM_PK_SEQ);
+        //insert attributes
+        create.insertInto(CM_CI_ATTRIBUTES, CM_CI_ATTRIBUTES.CI_ATTRIBUTE_ID, CM_CI_ATTRIBUTES.CI_ID, CM_CI_ATTRIBUTES.ATTRIBUTE_ID, CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE, CM_CI_ATTRIBUTES.DJ_ATTRIBUTE_VALUE)
+                .values(nextID, newVarId, valueAttributeId, value, value).execute();
+
+        nextID = create.nextval(Sequences.CM_PK_SEQ);
+        create.insertInto(CM_CI_ATTRIBUTES, CM_CI_ATTRIBUTES.CI_ATTRIBUTE_ID, CM_CI_ATTRIBUTES.CI_ID, CM_CI_ATTRIBUTES.ATTRIBUTE_ID, CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE, CM_CI_ATTRIBUTES.DJ_ATTRIBUTE_VALUE)
+                .values(nextID, newVarId, secureAttributeId, "false", "false").execute();
+
+        String relationGoId = newVarId + "-" + valueForRelationId + "-" + cloudId;
+        nextID = create.nextval(Sequences.CM_PK_SEQ);
+        create.insertInto(CM_CI_RELATIONS, CM_CI_RELATIONS.CI_RELATION_ID, CM_CI_RELATIONS.NS_ID, CM_CI_RELATIONS.RELATION_ID,
+                CM_CI_RELATIONS.FROM_CI_ID, CM_CI_RELATIONS.TO_CI_ID, CM_CI_RELATIONS.RELATION_GOID, CM_CI_RELATIONS.CI_STATE_ID)
+                .values(nextID, varNsId, valueForRelationId, newVarId, cloudId, relationGoId, 100).execute();
+
     }
 
     private void init(Connection conn) {
@@ -175,6 +277,7 @@ public class CMSCrawler {
                 .where(MD_RELATIONS.RELATION_NAME.eq("manifest.ComposedOf"))
                 .and(CM_CI_RELATIONS.FROM_CI_ID.eq(env.getId()))
                 .fetch();
+        int totalCores = 0;
         for (Record platformRel : platformRels) {
             long platformId = platformRel.getValue(CM_CI_RELATIONS.TO_CI_ID);
             Platform platform = new Platform();
@@ -185,9 +288,10 @@ public class CMSCrawler {
             platform.setActiveClouds(getActiveClouds(platform, conn));
 
             //now calculate total cores of the env - including all platforms
-            env.setTotalCores(env.getTotalCores() + platform.getTotalCores());
+            totalCores += platform.getTotalCores();
             env.addPlatform(platform);
         }
+        env.setTotalCores(totalCores);
     }
 
     private List<Deployment> getDeployments(Connection conn, Environment env) {
