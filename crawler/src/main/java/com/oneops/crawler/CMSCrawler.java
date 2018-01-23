@@ -140,9 +140,13 @@ public class CMSCrawler {
                     plugin.processEnvironment(env, deployments);
                     updateCrawlEntry(env);
                 }
+
                 log.info("crawled all environments, will go over again.");
 
-                crawlClouds(conn);
+                if (syncClouds) {
+                    crawlClouds(conn);
+                }
+
                 Thread.sleep(20000);//sleep for 20 seconds
             }
         } catch (Throwable e) {
