@@ -1,7 +1,7 @@
 class User < ActiveRecord::Base
   has_many :authentications, :dependent => :destroy
   belongs_to :organization
-  has_many :team_users
+  has_many :team_users, :dependent => :destroy
   has_many :teams, through: :team_users
   has_many :teams_via_groups, -> {uniq}, :class_name => 'Team', :through => :groups, :source => :teams
   # has_and_belongs_to_many :current_org_teams, -> {where(['teams.organization_id == users.organization_id'])}, :class_name => 'Team'

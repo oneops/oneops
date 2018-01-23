@@ -4,15 +4,21 @@ module Devise
 
   module LdapAdapter
     class LdapConnect
-      def search_for_login(login = nil)
-        @login = login if login
-        DeviseLdapAuthenticatable::Logger.send("LDAP search for login: #{@attribute}=#{@login}")
-        filter = Net::LDAP::Filter.eq(@attribute.to_s, @login.to_s)
-        search_filter = ::Devise.ldap_search_filter_builder.call(@ldap)
-        if search_filter
-          DeviseLdapAuthenticatable::Logger.send("LDAP search with filter #{search_filter.to_s}")
-          filter = Net::LDAP::Filter.join(filter, search_filter)
-        end
+      # def search_for_login(login = nil)
+      #   @login = login if login
+      #   DeviseLdapAuthenticatable::Logger.send("LDAP search for login: #{@attribute}=#{@login}")
+      #   filter = Net::LDAP::Filter.eq(@attribute.to_s, @login.to_s)
+      #   search_filter = ::Devise.ldap_search_filter_builder.call(@ldap)
+      #   if search_filter
+      #     DeviseLdapAuthenticatable::Logger.send("LDAP search with filter #{search_filter.to_s}")
+      #     filter = Net::LDAP::Filter.join(filter, search_filter)
+      #   end
+      #   ldap_entry = nil
+      #   @ldap.search(:filter => filter) {|entry| ldap_entry = entry}
+      #   ldap_entry
+      # end
+
+      def search(filter)
         ldap_entry = nil
         @ldap.search(:filter => filter) {|entry| ldap_entry = entry}
         ldap_entry
@@ -24,12 +30,13 @@ module Devise
           ff = Net::LDAP::Filter.eq(search_attr, l.to_s)
           f ? (f | ff) : ff
         end
-        search_filter = ::Devise.ldap_search_filter_builder.call(@ldap)
-        if search_filter
-          filter = Net::LDAP::Filter.join(filter, search_filter)
-        end
+        # search_filter = ::Devise.ldap_search_filter_builder.call(@ldap)
+        # if search_filter
+        #   filter = Net::LDAP::Filter.join(filter, search_filter)
+        # end
+        login_map = logins.to_map {|l| l.downcase}
         ldap_entries = {}
-        @ldap.search(:filter => filter) {|entry| ldap_entries[entry[search_attr].first] = entry}
+        @ldap.search(:filter => filter) {|entry| ldap_entries[login_map[entry[search_attr].first.downcase]] = entry}
         ldap_entries
       end
     end
@@ -70,7 +77,7 @@ Devise.setup do |config|
   # config.allow_insecure_token_lookup = true
 
   # ==> LDAP Configuration
-  config.ldap_logger = false
+  config.ldap_logger = true
   config.ldap_create_user = true
   config.ldap_update_password = false
   #config.ldap_config = "#{Rails.root}/config/ldap.yml"
@@ -79,7 +86,7 @@ Devise.setup do |config|
   config.ldap_use_admin_to_bind = true
   #config.ldap_ad_group_check = false
   config.ldap_auth_username_builder = Proc.new() { |attribute, login, ldap| Settings.ldap_domain ? "#{login}@#{Settings.ldap_domain}" : login }
-  config.ldap_search_filter_builder = Proc.new() { |ldap| Net::LDAP::Filter.present('mail') }
+  # config.ldap_search_filter_builder = Proc.new() { |ldap| Net::LDAP::Filter.present('mail') }
 
   # ==> Mailer Configuration
   # Configure the e-mail address which will be shown in DeviseMailer.

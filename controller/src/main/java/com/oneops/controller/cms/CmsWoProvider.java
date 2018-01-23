@@ -246,8 +246,10 @@ public class CmsWoProvider {
             //and the variable is not defined or badly encrypted, the recipe would fail anyway
         }
 
+
+        List<CmsCI> managedVia = getCIRelatives(ao.getCiId(), "bom.ManagedVia", "from", null);
         //put proxy
-        ao.putPayLoadEntry("ManagedVia", getCIRelatives(ao.getCiId(), "bom.ManagedVia", "from", null));
+        ao.putPayLoadEntry("ManagedVia", managedVia);
         //put depends on
         ao.putPayLoadEntry("DependsOn", getCIRelatives(ao.getCiId(), "bom.DependsOn", "from", null));
         //put realized as
@@ -261,6 +263,7 @@ public class CmsWoProvider {
         } else {
             //lets get the payload def from the template
             long manifestCiId = getRealizedAs(ao.getCiId());
+
             //
             List<CmsCI> attachments = getAttachments(ao, manifestCiId, env);
             if (!attachments.isEmpty())
@@ -275,12 +278,23 @@ public class CmsWoProvider {
                 }
                 return templObj;
             });
+            CmsCI managedViaTemplateCi = null;
+            long managedViaBomCid = 0;
+            if (managedVia != null && managedVia.size() > 0) {
+                CmsCI managedViaEntity = managedVia.get(0);
+                managedViaBomCid = managedViaEntity.getCiId();
+                CmsCI managedViaManifestCi = new CmsCI();
+                long managedViaManifestCiId = getRealizedAs(managedViaEntity.getCiId());
+                managedViaManifestCi.setCiId(managedViaManifestCiId);
+                managedViaManifestCi.setCiClassName(managedViaEntity.getCiClassName().replace("bom", "manifest"));
+                managedViaTemplateCi = cmProcessor.getTemplateObjForManifestObj(managedViaManifestCi, env);
+            }
 
             if (!manifestToTemplateMap.containsKey(manifestCiId)) {
                 throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
                     "Can not find pack template for manifest component id=" + manifestCiId);
             }
-            processPayLoadDef(ao, manifestToTemplateMap.get(manifestCiId), null, null, null);
+            processPayLoadDef(ao, manifestToTemplateMap.get(manifestCiId), managedViaTemplateCi, managedViaBomCid,null, null, null);
             String actionPayLoad = ao.getPayLoadDef();
             processPayLoadDef(ao, actionPayLoad);
         }
@@ -375,6 +389,7 @@ public class CmsWoProvider {
     public CmsWorkOrderSimple getWorkOrderSimple(long dpmtRecordId, String state, Integer execOrder) {
         checkControllerCache();
         CmsWorkOrder wo = getWorkOrder(dpmtRecordId, state, execOrder);
+        CmsWorkOrderSimple returnObj = null;
         if (wo != null) {
             return cmsUtil.custWorkOrder2Simple(wo);
         } else {
@@ -440,33 +455,8 @@ public class CmsWoProvider {
 
         // now lets process the custom payloads and this will override the default ones as well
 
-        //lets get the payload def from the template
-        long manifestCiId = workOrder.getPayLoad().get("RealizedAs").get(0).getCiId();
-        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-            CmsCI manifestCi = cmProcessor.getCiById(manifestCiId);
-            CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
-            if (templObj == null) {
-                logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
-            } else {
-                manifestToTemplateMap.put(manifestCi.getCiId(), templObj);
-            }
-        }
-
-        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
-            //throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
-        	//Don't throw an exception in case no pack component could be found.
-        	//If this is the case - pack component was removed and this should be a delete WO
-        	logger.warn("Can not find pack template for manifest component id=" + manifestCiId + "; name - " + workOrder.getPayLoad().get("RealizedAs").get(0).getCiName());
-        } else {
-        	processPayLoadDef(workOrder, manifestToTemplateMap.get(manifestCiId), cloudVars, globalVars, localVars);
-        }	
-
+        processCustomPayloads(workOrder, manifestToTemplateMap, env, globalVars, localVars, cloudVars);
         //from here all payloads are default ones unless overriden by the custom payload definitions
-        //put proxy
-        if (!workOrder.getPayLoad().containsKey(MANAGED_VIA)) {
-            workOrder.putPayLoadEntry(MANAGED_VIA, getRfcCIRelatives(workOrder.getRfcCi(), "bom.ManagedVia", "from", null, "df"));
-        }
-
         //put depends on
         if (!workOrder.getPayLoad().containsKey(DEPENDS_ON)) {
             workOrder.putPayLoadEntry(DEPENDS_ON, getRfcCIRelatives(workOrder.getRfcCi(), "bom.DependsOn", "from", null, "df"));
@@ -508,8 +498,55 @@ public class CmsWoProvider {
         workOrder.putPayLoadEntry(EXTRA_RUNLIST_PAYLOAD_NAME, getMatchingCloudCompliance(workOrder));
 
         addVarsForConfig(workOrder);
-
         return workOrder;
+    }
+
+    protected void processCustomPayloads(CmsWorkOrder workOrder, Map<Long, CmsCI> manifestToTemplateMap, CmsCI env,
+                                         Map<String, String> globalVars, Map<String, String> localVars, Map<String, String> cloudVars) {
+        //lets get the payload def from the template
+        long manifestCiId = workOrder.getPayLoad().get("RealizedAs").get(0).getCiId();
+        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
+            CmsCI manifestCi = cmProcessor.getCiById(manifestCiId);
+            CmsCI templObj = cmProcessor.getTemplateObjForManifestObj(manifestCi, env);
+            if (templObj == null) {
+                logger.error("Can not find manifest template object for manifest ci id = " + manifestCi.getCiId() + " ciName" + manifestCi.getCiName());
+            } else {
+                manifestToTemplateMap.put(manifestCi.getCiId(), templObj);
+            }
+        }
+
+        List<CmsRfcCI> managedVia = getRfcCIRelatives(workOrder.getRfcCi(), "bom.ManagedVia",
+                "from", null, "df");
+
+        if (!manifestToTemplateMap.containsKey(manifestCiId)) {
+            //throw new DJException(CmsError.CMS_CANT_FIGURE_OUT_TEMPLATE_FOR_MANIFEST_ERROR,
+            //Don't throw an exception in case no pack component could be found.
+            //If this is the case - pack component was removed and this should be a delete WO
+            logger.warn("Can not find pack template for manifest component id=" + manifestCiId + "; name - "
+                    + workOrder.getPayLoad().get("RealizedAs").get(0).getCiName());
+        } else {
+            CmsCI managedViaTemplateCi = null;
+            long managedViaBomCid = 0;
+            if (managedVia != null && managedVia.size() > 0) {
+                CmsRfcCI managedViaEntity = managedVia.get(0);
+                managedViaBomCid = managedViaEntity.getCiId();
+                CmsCI managedViaManifestCi = new CmsCI();
+                long managedViaManifestCiId = getRealizedAs(managedViaEntity.getCiId());
+                managedViaManifestCi.setCiId(managedViaManifestCiId);
+                managedViaManifestCi.setCiClassName(managedViaEntity.getCiClassName().replace("bom.", "manifest."));
+
+                managedViaTemplateCi = cmProcessor.getTemplateObjForManifestObj(managedViaManifestCi, env);
+                if (managedViaTemplateCi == null) {
+                    logger.warn("template ci not found for ci id: " +  managedViaManifestCi.getCiId());
+                }
+            }
+            processPayLoadDef(workOrder, manifestToTemplateMap.get(manifestCiId), managedViaTemplateCi, managedViaBomCid, cloudVars, globalVars, localVars);
+        }
+
+        //put proxy
+        if (!workOrder.getPayLoad().containsKey(MANAGED_VIA)) {
+            workOrder.putPayLoadEntry(MANAGED_VIA, managedVia);
+        }
     }
 
     private void setEnvVars(CmsWorkOrder workOrder, List<CmsRfcCI> managedVia) {
@@ -618,27 +655,69 @@ public class CmsWoProvider {
         return ((attribute != null) && Boolean.valueOf(attribute.getDjValue()));
     }
 
-    private void processPayLoadDef(CmsWorkOrderBase wo, CmsCI templateCi, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
+    private void processPayLoadDef(CmsWorkOrderBase wo, CmsCI templateCi, CmsCI managedViaTemplateCi,
+                                   long managedViaBomCid, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
 
-        List<CmsCIRelation> payloadRels = cmProcessor.getFromCIRelations(templateCi.getCiId(), "mgmt.manifest.Payload", "mgmt.manifest.Qpath");
-        for (CmsCIRelation payloadRel : payloadRels) {
-            processPayLoadQPath(wo, payloadRel.getToCi().getCiName(), payloadRel.getToCi().getAttribute("definition").getDfValue(), cloudVars, globalVars, localVars);
+        List<CmsCIRelation> payloadRels = cmProcessor.getFromCIRelations(templateCi.getCiId(),
+                "mgmt.manifest.Payload", "mgmt.manifest.Qpath");
+        long anchorId = 0;
+        if (wo instanceof CmsWorkOrder) {
+            anchorId = ((CmsWorkOrder) wo).getRfcCi().getCiId();
+        } else if (wo instanceof CmsActionOrder) {
+            anchorId = ((CmsActionOrder) wo).getCiId();
+        }
+        populatePayloads(wo, payloadRels, anchorId, cloudVars, globalVars, localVars, true);
+
+        if (managedViaTemplateCi != null) {
+            List<CmsCIRelation> managedViasPayloadRels = cmProcessor.getFromCIRelations(managedViaTemplateCi.getCiId(),
+                    "mgmt.manifest.Payload", "mgmt.manifest.Qpath");
+            populatePayloads(wo, managedViasPayloadRels, managedViaBomCid, cloudVars, globalVars, localVars, false);
+        } else {
+            logger.info("managedViaTemplateCi null for : " + templateCi.getCiClassName());
         }
     }
 
-    private void processPayLoadQPath(CmsWorkOrderBase wo, String key, String qPath, Map<String, String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
-        if (qPath == null) return;
-        CollectionLinkDefinition payloadDef = gson.fromJson(qPath, CollectionLinkDefinition.class);
-        if (wo instanceof CmsWorkOrder) {
-            List<CmsRfcCI> payload = colProcessor.getFlatCollectionRfc(((CmsWorkOrder) wo).getRfcCi().getCiId(), payloadDef);
-            for (CmsRfcCI cmsRfcCI : payload) {
-                cmsUtil.processAllVars(cmsRfcCI, cloudVars, globalVars, localVars);
+    private void populatePayloads(CmsWorkOrderBase wo, List<CmsCIRelation> payloadRels, long anchorId, Map<String, String> cloudVars,
+                                  Map<String, String> globalVars, Map<String, String> localVars, boolean overwrite) {
+        logger.info("total # of payloads: " + payloadRels.size());
+        for (CmsCIRelation payloadRel : payloadRels) {
+            String payloadName = payloadRel.getToCi().getCiName();
+            String payloadDefinition = payloadRel.getToCi().getAttribute("definition").getDfValue();
+            if (wo instanceof CmsWorkOrder) {
+                CmsWorkOrder workOrder = (CmsWorkOrder) wo;
+                List<CmsRfcCI>  payloadValue = processPayLoadQPath(anchorId, payloadDefinition, cloudVars, globalVars, localVars);
+                Map<String, List<CmsRfcCI>> payload = workOrder.getPayLoad();
+                if (overwrite || payload == null || payload.get(payloadName) == null) {
+                    ((CmsWorkOrder) wo).putPayLoadEntry(payloadName, payloadValue);
+                }
+            } else if (wo instanceof CmsActionOrder) {
+                CmsActionOrder actionOrder = (CmsActionOrder) wo;
+                List<CmsCI> payloadValue = processPayLoadQPath(anchorId, payloadDefinition);
+                Map<String, List<CmsCI>> payload = actionOrder.getPayLoad();
+
+                if (overwrite || payload == null || payload.get(payloadName) == null) {
+                    actionOrder.putPayLoadEntry(payloadName, payloadValue);
+                }
             }
-            ((CmsWorkOrder) wo).putPayLoadEntry(key, payload);
-        } else if (wo instanceof CmsActionOrder) {
-            List<CmsCI> payload = colProcessor.getFlatCollection(((CmsActionOrder) wo).getCiId(), payloadDef);
-            ((CmsActionOrder) wo).putPayLoadEntry(key, payload);
         }
+    }
+
+    private List<CmsRfcCI> processPayLoadQPath(long anchorId, String qPath, Map<String,
+            String> cloudVars, Map<String, String> globalVars, Map<String, String> localVars) {
+        if (qPath == null) return null;
+        CollectionLinkDefinition payloadDef = gson.fromJson(qPath, CollectionLinkDefinition.class);
+        List<CmsRfcCI> payload = colProcessor.getFlatCollectionRfc(anchorId, payloadDef);
+        for (CmsRfcCI cmsRfcCI : payload) {
+            cmsUtil.processAllVars(cmsRfcCI, cloudVars, globalVars, localVars);
+        }
+        return payload;
+    }
+
+    private List<CmsCI> processPayLoadQPath(long anchorId, String qPath) {
+        if (qPath == null) return null;
+        CollectionLinkDefinition payloadDef = gson.fromJson(qPath, CollectionLinkDefinition.class);
+        List<CmsCI> payload = colProcessor.getFlatCollection(anchorId, payloadDef);
+        return payload;
     }
 
     private void processPayLoadDef(CmsWorkOrderBase wo, String payloadDefStr) {

@@ -18,6 +18,7 @@
 package com.oneops.transistor.service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
@@ -252,11 +253,12 @@ public class BomManagerImpl implements BomManager {
 			return;
 		}
 
+		Function<CmsCIRelation, Integer> getPriority = (deployedTo) -> deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);
 		CmsCIRelation entryPoint = entryPoints.get(0);
 		//get manifest clouds and priority; what is intended
 		Map<Long, Integer> intendedCloudPriority = platformCloudRels.stream()
 				.filter(cloudUtil::isCloudActive)
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> i));
+				.collect(toMap(CmsCIRelationBasic::getToCiId, getPriority, (i, j) -> i));
 		//are there any secondary clouds for deployment
 		long numberOfSecondaryClouds = intendedCloudPriority.entrySet().stream()
 				.filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS)))
@@ -268,8 +270,8 @@ public class BomManagerImpl implements BomManager {
 		String entryPointClass = trUtil.getShortClazzName(entryPoint.getToCi().getCiClassName());
 		Set<Long> cloudIds = platformCloudRels.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet());
 		Map<Long, Integer> existingCloudPriority = context.getBomRelations().stream()
-				.filter(r -> cloudIds.contains(r.getToCiId()) && r.getFromCi().getCiClassName().equals(entryPointClass))
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, Math::max));
+				.filter(r -> cloudIds.contains(r.getToCiId()) && r.getRelationName().equals(DEPLOYED_TO) && trUtil.getShortClazzName(r.getFromCi().getCiClassName()).equals(entryPointClass))
+				.collect(toMap(CmsCIRelationBasic::getToCiId, getPriority, Math::max));
 
 		HashMap<Long, Integer> computedCloudPriority = new HashMap<>(existingCloudPriority);
 		computedCloudPriority.putAll(intendedCloudPriority);
@@ -277,7 +279,7 @@ public class BomManagerImpl implements BomManager {
 		//Now, take  all offline clouds from
 		Map<Long, Integer> offlineClouds = platformCloudRels.stream()
 				.filter(cloudUtil::isCloudOffline)
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> i));
+				.collect(toMap(CmsCIRelationBasic::getToCiId, getPriority, (i, j) -> i));
 		if(!offlineClouds.isEmpty()){
 			offlineClouds.forEach((k,v)->{
 				if(computedCloudPriority.containsKey(k)){
@@ -291,8 +293,7 @@ public class BomManagerImpl implements BomManager {
 			//throw transistor exception
 			String message;
 			String clouds = platformCloudRels.stream()
-					.filter(rel->!cloudUtil.isCloudActive(rel))
-					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
+					.filter(rel-> !cloudUtil.isCloudActive(rel) && (getPriority.apply(rel) == PRIMARY_CLOUD_STATUS))
 					.map(rel -> rel.getToCi().getCiName())
 					.collect(joining(","));
 
@@ -304,10 +305,6 @@ public class BomManagerImpl implements BomManager {
 
 			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
-	}
-
-	private Integer getPriority(CmsCIRelation deployedTo) {
-		return deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);
 	}
 
 	private int generateBomForOfflineClouds(EnvBomGenerationContext context, int startingExecOrder) {

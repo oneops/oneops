@@ -1,7 +1,7 @@
 def get_gem_sources_from_file
   rubygems_proxy = []
-  if File.file?('/opt/oneops/rubygems_proxy')
-    rubygems_proxy = File.read('/opt/oneops/rubygems_proxy').split("\n").select{|l| (l =~ /^http/)}
+  if File.file?(get_proxy_file_name)
+    rubygems_proxy = File.read(get_proxy_file_name).split("\n").select{|l| (l =~ /^http/)}
   end
 
   rubygems_proxy
@@ -46,7 +46,7 @@ def update_gem_sources (expected_sources, log_level = 'info')
   end
 
 
-  proxy_file = '/opt/oneops/rubygems_proxy'
+  proxy_file = get_proxy_file_name
   if !File.exists?(proxy_file) || get_gem_sources_from_file != expected_sources
     puts 'Rubygems_proxy config file is outdated. Updating...'
     File.open(proxy_file, 'w') do |f|
@@ -88,13 +88,10 @@ def create_gemfile(gem_sources, gems)
 end
 
 
-def is_gem_installed?(gem, version)
-  out = `#{get_bin_dir}gem list ^#{gem}$ -i -v #{version}`.chomp
-  if out == 'true'
-    true
-  else
-    false
-  end
+def is_gem_installed?(gem, version = nil)
+  cmd = "#{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
+  out = `#{cmd}`.chomp
+  out == 'true' ? true : false
 end
 
 
@@ -113,57 +110,47 @@ def check_gem_update_needed (gems, log_level = 'info')
 end
 
 
-def gen_gemfile_and_install (gem_sources, gems, log_level, bundle_method = nil)
+def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_level)
 
-  if bundle_method.nil?
     #2 scenarions when need to run bundle install
-    #  - if running for the first time
-    #  - if any gems from exec-gems.yaml have mismatching versions
+    #  1) if running for the first time - determined by checking if provisioner gem (chef, puppet) is installed.
+    # Not checking its version though, it would be done in the below check
+    #  2) if any gems from exec-gems.yaml (including provisioner gem itself) have mismatching versions
 
-    if !File.exists?('Gemfile.lock')
-      puts 'Gemfile.lock is not found, will run bundle install.' if log_level == 'debug'
+    method = nil
+    if !is_gem_installed?(provisioner)
+      puts "Provisioner #{provisioner} is not installed, will run bundle install."
       method = 'install'
-      create_gemfile(gem_sources, gems)
     elsif check_gem_update_needed(gems, log_level)
-      puts 'Gemfile.lock is found, and gem update is required.' if log_level == 'debug'
-      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
-      create_gemfile(gem_sources, gems)
-      method = 'install'
-    else
-      puts 'Gemfile.lock is found, and no gem update is required.' if log_level == 'debug'
-      method = nil
-    end
-  else
-    #if bundle method is provided
-    if bundle_method == 'package'
-      puts "bundle method is #{bundle_method}" if log_level == 'debug'
-      method = 'package'
-      create_gemfile(gem_sources, gems)
-
-      puts 'Gemfile content is:'
-      File.open('Gemfile').each do |line|
-        puts line
+      if ['objectstore','compute','volume', 'os'].include?(component)
+        puts "Gem update is required for component: #{component}"
+        method = 'install'
+      else
+        puts "Gem update is required but will not be run for component: #{component}"
       end
     else
-      method = nil
+      puts 'No gem update is required.'
     end
-  end
 
-  if !method.nil?
-    start_time = Time.now.to_i
-    cmd = case method
-            when 'install'
-              "#{get_bin_dir}bundle #{method} --full-index"
-            when 'package'
-              "#{get_bin_dir}bundle #{method} --no-install --no-prune"
-          end
-    ec = system cmd
+    if !method.nil?
+      start_time = Time.now.to_i
+      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+      create_gemfile(gem_sources, gems)
 
-    if !ec || ec.nil?
-      puts "#{cmd} failed with, #{$?}"
-      exit 1
+      cmd = "#{get_bin_dir}bundle #{method} --local"
+      ec = system cmd
+      if !ec || ec.nil?
+        puts "#{cmd} failed with, #{$?}"
+        puts 'fetching gems from remote sources'
+
+        cmd = "#{get_bin_dir}bundle #{method} --full-index"
+        ec = system cmd
+        if !ec || ec.nil?
+          puts "#{cmd} failed with, #{$?}"
+          exit 1
+        end
+      end
+
+      puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
     end
-    puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
-
-  end
 end
