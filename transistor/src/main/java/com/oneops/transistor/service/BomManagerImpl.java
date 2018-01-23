@@ -196,7 +196,7 @@ public class BomManagerImpl implements BomManager {
 					}
 
 					if (checkSecondary) {
-						check4Secondary(new PlatformBomGenerationContext(platform, context, cmProcessor, cmsUtil), platformCloudRels);
+						check4Secondary(context.loadPlatformContext(platform), platformCloudRels);
 					} else {
 						logger.info("check secondary not configured.");
 					}
@@ -213,7 +213,9 @@ public class BomManagerImpl implements BomManager {
 									continue;
 								}
 
-								PlatformBomGenerationContext platformContext = new PlatformBomGenerationContext(platform, context, cmProcessor, cmsUtil);
+								// Must load platform context again in case it was dirty after variable interpolation - the 'loadPlatformContext'
+								// is smart to do partial reload if necessary.
+								PlatformBomGenerationContext platformContext = context.loadPlatformContext(platform);
 								int maxExecOrder;
 								if (context.getDisabledPlatformIds().contains(platform.getCiId()) || platform.getCiState().equalsIgnoreCase("pending_deletion")) {
 									maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
@@ -335,7 +337,7 @@ public class BomManagerImpl implements BomManager {
 							for (CmsCIRelation platformCloudRel : orderCloud) {
 								CmsCIRelationAttribute adminstatus = platformCloudRel.getAttribute("adminstatus");
 								if (adminstatus != null && CmsConstants.CLOUD_STATE_OFFLINE.equals(adminstatus.getDjValue())) {
-									int maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, context.getPlatformContext(platform), platformCloudRel, platExecOrder);
+									int maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, context.loadPlatformContext(platform), platformCloudRel, platExecOrder);
 									stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
 								}
 							}

@@ -111,7 +111,7 @@ public class FlexManagerImpl implements FlexManager {
 			CmsCIRelationAttribute adminstatus = cloudRel.getAttribute("adminstatus");
 			if (adminstatus == null || CmsConstants.CLOUD_STATE_ACTIVE.equals(adminstatus.getDjValue())) {
 				bomRfcProcessor.processManifestPlatform(context,
-														context.getPlatformContext(platform),
+														context.loadPlatformContext(platform),
 														cloudRel,
 														1,
 														false);
