@@ -64,6 +64,7 @@ public class CMSCrawler {
     boolean fullSweepAtStart = true;
     boolean shutDownRequested = false;
     boolean syncClouds = false;
+    int crawlFrequencyHours = 6;
 
     public CMSCrawler() {
         //read and init the secrets
@@ -101,6 +102,10 @@ public class CMSCrawler {
             syncClouds = true;
         }
 
+        String frequencyProperty = System.getProperty("crawler.freqency.hrs");
+        if (frequencyProperty != null) {
+            crawlFrequencyHours = Integer.parseInt(frequencyProperty);
+        }
         //log.info("crawlerDbUserName: " + crawlerDbUserName + "; crawlerDbPassword: " + crawlerDbPassword + " crawlerDbUrl: " + crawlerDbUrl);
     }
 
@@ -147,7 +152,7 @@ public class CMSCrawler {
                     crawlClouds(conn);
                 }
 
-                Thread.sleep(20000);//sleep for 20 seconds
+                Thread.sleep(crawlFrequencyHours * 60 * 60 * 1000);//sleep before next crawl
             }
         } catch (Throwable e) {
             e.printStackTrace();
