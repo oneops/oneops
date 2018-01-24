@@ -118,11 +118,7 @@ public class EnvTTLTest {
                 Mockito.anyObject(), Mockito.eq("" + platform_2.getId())))
                 .thenReturn(ttlRecord);
         env.setProfile("QA");
-        try {
-            ttlPlugin.processEnvironment(env, deployments);
-        } catch (Throwable t) {
-            t.printStackTrace();
-        }
+        ttlPlugin.processEnvironment(env, deployments);
 
         Mockito.verify(ooFacade, Mockito.times(1)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         //second platform should not be disabled in the same run
