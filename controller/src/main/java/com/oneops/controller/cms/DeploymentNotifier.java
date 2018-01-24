@@ -140,7 +140,7 @@ public class DeploymentNotifier {
         List<CmsCI> orgList = cmsCmProcessor.getCiBy3("/", null, orgName);
         if (orgList != null && orgList.size() > 0) {
             CmsCI org = orgList.get(0);
-            notify.getPayload().put("orgId", org.getCiId());
+            notify.getPayload().put("orgId", ""+org.getCiId());
             notify.getPayload().put("orgName", org.getCiName());
             if (org.getAttribute("owner")!=null) {
                 notify.getPayload().put("orgOwner", org.getAttribute("owner").getDfValue());
@@ -155,7 +155,7 @@ public class DeploymentNotifier {
         List<CmsCI> assemblyList = cmsCmProcessor.getCiBy3("/"+ orgName, null, assemblyName);
         if (assemblyList != null && assemblyList.size() > 0) {
             CmsCI assembly = assemblyList.get(0);
-            notify.getPayload().put("assemblyId", assembly.getCiId());
+            notify.getPayload().put("assemblyId", ""+assembly.getCiId());
             notify.getPayload().put("assemblyName", assembly.getCiName());
             if (assembly.getAttribute("owner")!=null) {
                 notify.getPayload().put("assemblyOwner", assembly.getAttribute("owner").getDfValue());
