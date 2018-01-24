@@ -40,9 +40,18 @@ public class CmsDeploymentPlan implements Serializable {
 	private long nsId;
 	private long releaseId;
 	private long ciRfcCount;
+	private String mode;
 	private double planGenerationTime;
 	private Date created;
-	
+
+	public String getMode() {
+		return mode;
+	}
+
+	public void setMode(String mode) {
+		this.mode = mode;
+	}
+
 	public String getId() {
 		return id;
 	}

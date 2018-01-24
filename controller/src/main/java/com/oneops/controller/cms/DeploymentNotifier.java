@@ -140,31 +140,35 @@ public class DeploymentNotifier {
         List<CmsCI> orgList = cmsCmProcessor.getCiBy3("/", null, orgName);
         if (orgList != null && orgList.size() > 0) {
             CmsCI org = orgList.get(0);
-            notify.getPayload().put("orgId", org.getCiId());
-            notify.getPayload().put("orgName", org.getCiName());
+            Map<String, Object>orgMap = new HashMap<>();
+            orgMap.put("id", org.getCiId());
+            orgMap.put("name", org.getCiName());
             if (org.getAttribute("owner")!=null) {
-                notify.getPayload().put("orgOwner", org.getAttribute("owner").getDfValue());
+                orgMap.put("owner", org.getAttribute("owner").getDfValue());
             }
             CmsCIAttribute tags = org.getAttribute("tags");
             if (tags != null && tags.getDjValue() != null && !tags.getDjValue().isEmpty()) {
-                notify.getPayload().put("orgTags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
+                orgMap.put("tags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
                 }.getType()));
             }
+            notify.getPayload().put("organization", orgMap);
         }
         
         List<CmsCI> assemblyList = cmsCmProcessor.getCiBy3("/"+ orgName, null, assemblyName);
         if (assemblyList != null && assemblyList.size() > 0) {
             CmsCI assembly = assemblyList.get(0);
-            notify.getPayload().put("assemblyId", assembly.getCiId());
-            notify.getPayload().put("assemblyName", assembly.getCiName());
+            Map<String, Object>assemblyMap = new HashMap<>();
+            assemblyMap.put("id", assembly.getCiId());
+            assemblyMap.put("name", assembly.getCiName());
             if (assembly.getAttribute("owner")!=null) {
-                notify.getPayload().put("assemblyOwner", assembly.getAttribute("owner").getDfValue());
+                assemblyMap.put("owner", assembly.getAttribute("owner").getDfValue());
             }
             CmsCIAttribute tags = assembly.getAttribute("tags");
             if (tags != null && tags.getDjValue() != null && !tags.getDjValue().isEmpty()) {
-                notify.getPayload().put("assemblyTags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
+                assemblyMap.put("tags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
                 }.getType()));
             }
+            notify.getPayload().put("assembly", assemblyMap);
         }
         
         if (payloadEntries != null) {
