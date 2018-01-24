@@ -17,6 +17,9 @@
 package com.oneops.controller.cms;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
@@ -24,7 +27,6 @@ import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsDpmtApproval;
 import com.oneops.cms.dj.domain.CmsDpmtRecord;
 import com.oneops.cms.dj.service.CmsDpmtProcessor;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
@@ -39,10 +41,10 @@ import org.apache.log4j.Logger;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static com.oneops.cms.dj.service.CmsDpmtProcessor.APPROVAL_STATE_PENDING;
 import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_PENDING;
@@ -176,10 +178,30 @@ public class DeploymentNotifier {
         }
 
         if (DPMT_STATE_PENDING.equals(dpmt.getDeploymentState())) {
-            List<CmsDpmtApproval> pendingApprovals = cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId()).stream().filter(approval -> APPROVAL_STATE_PENDING.equals(approval.getState())).collect(Collectors.toList());
-            notify.getPayload().put("approvals", pendingApprovals);
+            addAllPendingApprovals(dpmt, notify);
         }
         antennaClient.executeAsync(notify);
+    }
+
+    private void addAllPendingApprovals(CmsDeployment dpmt, NotificationMessage notify) {
+        List<Map<String, Object>> pendingApprovals = new ArrayList<>();
+        Map<String, Object> approvalMap = new HashMap<>();
+        cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId()).stream().filter(approval -> APPROVAL_STATE_PENDING.equals(approval.getState()) && !approval.getIsExpired()).forEach(
+                approval -> {
+                    approvalMap.put("approvalId", approval.getApprovalId());
+                    approvalMap.put("governCiId", approval.getGovernCiId());
+                    try {
+                        String nsPath = new JsonParser().parse(approval.getGovernCiJson()).getAsJsonObject().get("nsPath").getAsString();
+                        
+                        approvalMap.put("cloud", nsPath.substring(nsPath.lastIndexOf("/")+1));
+                    } catch (Exception ignore) {
+                        ignore.printStackTrace();
+                    }
+                    pendingApprovals.add(approvalMap);
+                }
+        );
+
+        notify.getPayload().put("approvals", pendingApprovals);
     }
 
     /**
