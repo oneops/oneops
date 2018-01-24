@@ -13,6 +13,8 @@ import com.oneops.gslb.v2.domain.MtdHost;
 import com.oneops.gslb.v2.domain.MtdHostHealthCheck;
 import com.oneops.gslb.v2.domain.MtdHostResponse;
 import com.oneops.gslb.v2.domain.MtdTarget;
+import com.oneops.infoblox.InfobloxClient;
+import com.oneops.infoblox.model.cname.CNAME;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,14 +23,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class MtdVerifier {
+public class FqdnVerifier {
 
-  private static final Logger logger = Logger.getLogger(MtdVerifier.class);
+  private static final Logger logger = Logger.getLogger(FqdnVerifier.class);
 
   @Autowired
   WoHelper woHelper;
@@ -42,10 +45,12 @@ public class MtdVerifier {
       context.logKey = logKey;
 
       if (woHelper.isDeleteAction(wo)) {
-        verifyDelete(wo, context);
+        verifyMtdDelete(wo, context);
+        verifyInfobloxDelete(wo, context);
       }
       else {
         verifyMtdHost(wo, context);
+        verifyInfoblox(wo, context);
       }
 
     } catch (Exception e) {
@@ -55,7 +60,66 @@ public class MtdVerifier {
     return response;
   }
 
-  private void verifyDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+  private void verifyInfoblox(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+    InfobloxClient infobloxClient = getInfoBloxClient(wo);
+    String cname = context.platform + context.mtdBaseHost;
+    for (String alias : getAliases(wo, context)) {
+      List<CNAME> cnames = infobloxClient.getCNameRec(alias);
+      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname), "cname verify failed " + alias);
+    }
+  }
+
+
+  private void verifyInfobloxDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+    InfobloxClient infobloxClient = getInfoBloxClient(wo);
+    for (String alias : getAliases(wo, context)) {
+      List<CNAME> cnames = infobloxClient.getCNameRec(alias);
+      verify(() ->cnames == null || cnames.isEmpty(), "cname delete verify failed");
+    };
+  }
+
+  private List<String> getAliases(CmsWorkOrderSimple wo, VerifyContext context) {
+    List<String> list = new ArrayList<>();
+    String suffix = getDomainSuffix(wo, context);
+    list.add(context.platform + suffix);
+
+    String aliasesContent = wo.getRfcCi().getCiBaseAttributes().get("aliases");
+    if (StringUtils.isNotBlank(aliasesContent)) {
+      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliasesContent);
+
+      for (JsonElement alias : aliasArray) {
+        list.add(alias.getAsString() + suffix);
+      }
+    }
+
+    aliasesContent = wo.getRfcCi().getCiBaseAttributes().get("full_aliases");
+    if (StringUtils.isNotBlank(aliasesContent)) {
+      JsonArray aliasArray = (JsonArray) jsonParser.parse(aliasesContent);
+      for (JsonElement alias : aliasArray) {
+        list.add(alias.getAsString());
+      }
+    }
+    return list;
+  }
+
+  private String getDomainSuffix(CmsWorkOrderSimple wo, VerifyContext context) {
+    String cloud = wo.getCloud().getCiName();
+    Map<String, String> dnsAttrs = wo.getServices().get("dns").get(cloud).getCiAttributes();
+    return "." + context.subDomain + "." + dnsAttrs.get("zone");
+  }
+
+
+  private InfobloxClient getInfoBloxClient(CmsWorkOrderSimple wo) {
+    String cloud = wo.getCloud().getCiName();
+    Map<String, String> dnsAttrs = wo.getServices().get("dns").get(cloud).getCiAttributes();
+    return InfobloxClient.builder().endPoint(dnsAttrs.get("host")).
+        userName(dnsAttrs.get("username")).
+        password(dnsAttrs.get("password")).
+        tlsVerify(false).
+        build();
+  }
+
+  private void verifyMtdDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     TorbitClient client = context.torbitClient;
     TorbitApi torbit = context.torbit;
     Resp<MtdBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MtdBaseResponse.class);
@@ -191,8 +255,7 @@ public class MtdVerifier {
     return wo.getBox().getCiName();
   }
 
-  private String getMtdBase(CmsWorkOrderSimple wo) {
-    String mtdBaseHost;
+  private void loadContext(CmsWorkOrderSimple wo, VerifyContext context) {
     Map<String, List<CmsRfcCISimple>> payload = wo.getPayLoad();
     String assembly = payload.get("Assembly").get(0).getCiName();
     CmsRfcCISimple env = payload.get("Environment").get(0);
@@ -201,18 +264,19 @@ public class MtdVerifier {
     String subdomain = env.getCiAttributes().get("subdomain");
     String cloud = wo.cloud.getCiName();
     String baseGslbDomain = wo.services.get("gdns").get(cloud).getCiAttributes().get("gslb_base_domain");
+    context.subDomain = subdomain != null ? subdomain : environment + "." + assembly + "." + org;
     if (subdomain != null)
-      mtdBaseHost = "." + subdomain + "." + baseGslbDomain;
+      context.mtdBaseHost = "." + context.subDomain + "." + baseGslbDomain;
     else
-      mtdBaseHost = "." + environment + "." + assembly + "." + org + "." + baseGslbDomain;
-    return mtdBaseHost;
+      context.mtdBaseHost = "." + context.subDomain + "." + baseGslbDomain;
   }
+
 
   private VerifyContext getContext(CmsWorkOrderSimple wo, Config config) throws Exception {
     VerifyContext context = new VerifyContext();
     context.torbitClient = new TorbitClient(config);
     context.torbit = context.torbitClient.getTorbit();
-    context.mtdBaseHost = getMtdBase(wo);
+    loadContext(wo, context);
     context.platform = getPlatform(wo);
     return context;
   }
@@ -235,6 +299,7 @@ public class MtdVerifier {
     String mtdBaseHost;
     String platform;
     String logKey;
+    String subDomain;
   }
 
 }

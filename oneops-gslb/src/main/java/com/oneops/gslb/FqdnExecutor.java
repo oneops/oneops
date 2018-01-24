@@ -9,6 +9,7 @@ import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -36,7 +37,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
   WoHelper woHelper;
 
   @Autowired
-  MtdVerifier mtdVerifier;
+  FqdnVerifier verifier;
+
+  @Autowired
+  DnsHandler dnsHandler;
 
   @Override
   public List<String> getComponentClasses() {
@@ -45,21 +49,31 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   @Override
   public Response execute(CmsWorkOrderSimple wo) {
-    if (wo.getClassName().equals(FQDN_CLASS) && isTorbitServiceType(wo)) {
-      Config config = getTorbitConfig(wo);
+    if (wo.getClassName().equals(FQDN_CLASS) && isLocalWo(wo) && isTorbitServiceType(wo)) {
+      String logKey = woHelper.getLogKey(wo);
+      Context context = getContext(wo, logKey);
+      Config config = getTorbitConfig(wo, logKey);
       if (config != null) {
-        return mtdHandler.setupTorbitGdns(wo, config);
+        mtdHandler.setupTorbitGdns(wo, config, context);
+        if (!woHelper.isFailed(wo)) {
+          dnsHandler.setupCNames(wo, context);
+        }
+        return woHelper.formResponse(wo, logKey);
       }
     }
     logger.info("wo " + wo.rfcCi.getRfcId() + " deployment " + wo.getDeploymentId() + " - fqdn does not have torbit service type");
     return Response.getNotMatchingResponse();
   }
 
+  private boolean isLocalWo(CmsWorkOrderSimple wo) {
+    return !wo.isPayLoadEntryPresent("ManagedVia");
+  }
+
   @Override
   public Response verify(CmsWorkOrderSimple wo, Response response) {
-    Config config = getTorbitConfig(wo);
+    Config config = getTorbitConfig(wo, "");
     if (config != null) {
-      return mtdVerifier.verify(wo, response, config);
+      return verifier.verify(wo, response, config);
     }
     Response failResp = new Response();
     failResp.setResult(Result.FAILED);
@@ -70,13 +84,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
     CmsRfcCISimple realizedAs = woHelper.getRealizedAs(wo);
     if (realizedAs != null) {
       String serviceType = realizedAs.getCiAttributes().get(ATTRIBUTE_SERVICE_TYPE);
-      logger.info("fqdn service type  " + serviceType);
+      logger.info(wo.getCiId() + " : fqdn service type  " + serviceType);
       return "torbit".equals(serviceType);
     }
     return false;
   }
 
-  Config getTorbitConfig(CmsWorkOrderSimple wo) {
+  Config getTorbitConfig(CmsWorkOrderSimple wo, String logKey) {
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
     if (services != null && services.containsKey(GDNS_SERVICE)) {
       Map<String, CmsCISimple> gdnsService = services.get(GDNS_SERVICE);
@@ -87,10 +101,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
           return getTorbitConfig(gdns);
         }
       }
-      logger.info(wo.getCiId() + " - workorder does not have required elements - lb, torbit gdns");
+      logger.info(logKey + "workorder does not have required elements - lb, torbit gdns");
     }
     else {
-      logger.info(wo.getCiId() + " - gdns service not found in workorder");
+      logger.info(logKey + "gdns service not found in workorder");
     }
     return null;
   }
@@ -108,6 +122,28 @@ public class FqdnExecutor implements ComponentWoExecutor {
           groupId(Integer.parseInt(attributes.get(ATTRIBUTE_GROUP_ID)));
     }
     return config;
+  }
+
+  private Context getContext(CmsWorkOrderSimple wo, String logKey) {
+    Map<String, List<CmsRfcCISimple>> payload = wo.getPayLoad();
+    Context context = new Context();
+    context.setAssembly(payload.get("Assembly").get(0).getCiName());
+    context.setPlatform(wo.getBox().getCiName());
+    CmsRfcCISimple env = payload.get("Environment").get(0);
+    context.setEnvironment(env.getCiName());
+    context.setOrg(payload.get("Organization").get(0).getCiName());
+    String subdomain = env.getCiAttributes().get("subdomain");
+    context.setSubdomain(StringUtils.isNotBlank(subdomain) ? subdomain :
+        String.join(".", context.getEnvironment(), context.getAssembly(), context.getOrg()));
+
+    context.setCloud(wo.cloud.getCiName());
+    context.setBaseGslbDomain(wo.services.get("gdns").get(context.getCloud()).getCiAttributes().get("gslb_base_domain"));
+    context.setLogKey(logKey);
+
+    logger.info(logKey + "Context - assembly : " + context.getAssembly() + ", platform : " + context.getPlatform() + ", env : " +
+        context.getEnvironment() + ", org : " + context.getOrg() + ", subdomain : " + context.getSubdomain() + ", cloud : " +
+        context.getCloud() + ", baseGslbDomain : " + context.getBaseGslbDomain());
+    return context;
   }
 
 }

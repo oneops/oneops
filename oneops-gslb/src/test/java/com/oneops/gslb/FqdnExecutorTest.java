@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.gslb.MtdHandler.Context;
 import com.oneops.gslb.v2.domain.Cloud;
 import com.oneops.gslb.v2.domain.MtdHostHealthCheck;
 import com.oneops.gslb.v2.domain.MtdTarget;
@@ -36,13 +35,13 @@ public class FqdnExecutorTest {
   @Test
   public void testTorbitConfig() {
     CmsWorkOrderSimple wo = woBase();
-    Config torbitConfig = executor.getTorbitConfig(wo);
+    Config torbitConfig = executor.getTorbitConfig(wo, "");
     Assert.assertNull(torbitConfig);
     addLbPayload(wo);
-    torbitConfig = executor.getTorbitConfig(wo);
+    torbitConfig = executor.getTorbitConfig(wo, "");
     Assert.assertNull(torbitConfig);
     addGdnsService(wo);
-    torbitConfig = executor.getTorbitConfig(wo);
+    torbitConfig = executor.getTorbitConfig(wo, "");
     Assert.assertNotNull(torbitConfig);
     Map<String, String> attributes = wo.getServices().get("gdns").get(wo.getCloud().getCiName()).getCiAttributes();
     Assert.assertEquals(torbitConfig.getUrl(), attributes.get("endpoint"));
@@ -92,7 +91,7 @@ public class FqdnExecutorTest {
 
   private Context getContext() {
     Context context = new Context();
-    context.torbitClient = mock(TorbitClient.class);
+    context.setTorbitClient(mock(TorbitClient.class));
     return context;
   }
 

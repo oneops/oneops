@@ -45,6 +45,10 @@ public class WoHelper {
     wo.setComments(message +  (e != null ? " caused by - " + e.getMessage() : ""));
   }
 
+  public boolean isFailed(CmsWorkOrderSimple wo) {
+    return FAILED.equals(wo.getDpmtRecordState());
+  }
+
   public Response formResponse(CmsWorkOrderSimple wo, String logKey) {
     Response response = new Response();
     Map<String, String> map = new HashMap<>();
