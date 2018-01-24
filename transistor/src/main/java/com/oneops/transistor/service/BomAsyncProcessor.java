@@ -17,12 +17,16 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsRelease;
 import org.apache.log4j.Logger;
 
 import com.oneops.cms.exceptions.CmsBaseException;
@@ -39,6 +43,7 @@ public class BomAsyncProcessor {
     private BomManager bomManager;
     private FlexManager flexManager;
     private EnvSemaphore envSemaphore;
+    private Gson gson = new Gson();
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
@@ -66,8 +71,12 @@ public class BomAsyncProcessor {
                 long startTime = System.currentTimeMillis();
                 CmsCI environment = cmProcessor.getCiById(envId);
                 bomManager.check4openDeployment(environment.getNsPath() + "/" + environment.getCiName() + "/bom");
-                bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
-                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + (Math.round((System.currentTimeMillis() - startTime) / 100) / 10.0) + " seconds.";
+                CmsRelease bomRelease = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
+                Map releaseInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
+                releaseInfo.put("createdBy", userId);
+                releaseInfo.put("mode", "persistent");
+                releaseInfo.put("releaseId", bomRelease.getReleaseId());
+                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. releaseInfo=" + gson.toJson(releaseInfo);
             } catch (Exception e) {
                 logger.error("Exception in build bom ", e);
                 envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();

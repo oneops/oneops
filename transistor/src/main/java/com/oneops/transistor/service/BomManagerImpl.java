@@ -21,6 +21,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.*;
 import com.oneops.transistor.util.CloudUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -46,6 +47,9 @@ import static java.util.stream.Collectors.toSet;
 public class BomManagerImpl implements BomManager {
 	private static final Logger logger = Logger.getLogger(BomManagerImpl.class);
 
+	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
+	private static final boolean check4Services = Boolean.valueOf(getProperty("transistor.checkServices", "true"));
+
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor manifestRfcProcessor;
 	private CmsRfcProcessor bomRfcProcessor;
@@ -54,9 +58,7 @@ public class BomManagerImpl implements BomManager {
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
 	private CloudUtil cloudUtil;
-
-	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
-	private static final boolean check4Services = Boolean.valueOf(getProperty("transistor.checkServices", "true"));
+	private Gson gson = new Gson();
 
 	public void setCloudUtil(CloudUtil cloudUtil) {
 		this.cloudUtil = cloudUtil;
@@ -77,6 +79,7 @@ public class BomManagerImpl implements BomManager {
 	public void setManifestRfcProcessor(CmsRfcProcessor manifestRfcProcessor) {
 		this.manifestRfcProcessor = manifestRfcProcessor;
 	}
+
 	public void setBomRfcProcessor(CmsRfcProcessor bomRfcProcessor) {
 		this.bomRfcProcessor = bomRfcProcessor;
 	}
@@ -90,20 +93,20 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
+	public CmsRelease generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
 		CmsRelease bomRelease = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
-		if (bomRelease == null) return 0;
-
-		dpmt.setNsPath(bomRelease.getNsPath());
-		dpmt.setReleaseId(bomRelease.getReleaseId());
-		dpmt.setCreatedBy(userId);
-		return dpmtProcessor.deployRelease(dpmt).getDeploymentId();
+		if (bomRelease != null) {
+			dpmt.setNsPath(bomRelease.getNsPath());
+			dpmt.setReleaseId(bomRelease.getReleaseId());
+			dpmt.setCreatedBy(userId);
+			dpmtProcessor.deployRelease(dpmt);
+		}
+		return bomRelease;
 	}
 
 	@Override
-	public long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
-		CmsRelease bomRelease =  generateBomForClouds(envId, userId, excludePlats, desc, commit);
-		return bomRelease == null ? 0 : bomRelease.getReleaseId();
+	public CmsRelease generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+		return generateBomForClouds(envId, userId, excludePlats, desc, commit);
 	}
 
 	private CmsRelease generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
@@ -143,6 +146,33 @@ public class BomManagerImpl implements BomManager {
 			rfcCiCount = bomRfcProcessor.getRfcCiCount(releaseId);
 			rfcRelCount = bomRfcProcessor.getRfcRelationCount(releaseId);
 
+			if (rfcCiCount == 0) {
+				logger.info("No release because rfc count is 0. Cleaning up release.");
+				bomRfcProcessor.deleteRelease(releaseId);
+				bomRelease = null;
+			}
+		}
+		else {
+			//if there is no open release check if there are global vars in pending_deletion state. If yes delete it.
+			for (CmsCI localVar : cmProcessor.getCiByNsLikeByStateNaked(manifestNsPath, "manifest.Globalvar", "pending_deletion")) {
+				cmProcessor.deleteCI(localVar.getCiId(), true, userId);
+			}
+			//if there is nothing to deploy update parent release on latest closed bom release
+			updateParentReleaseId(bomNsPath, manifestNsPath, "closed");
+		}
+
+		long duration = System.currentTimeMillis() - startTime;
+		logger.info(bomNsPath + " >>> Generated BOM in " + duration + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
+
+		if (bomRelease != null) {
+			Map<String, Object> bomReleaseDesc = new HashMap<>();
+			bomReleaseDesc.put("rfcCiCount", rfcCiCount);
+			bomReleaseDesc.put("rfcRelationCount", rfcRelCount);
+			bomReleaseDesc.put("manifestCommit", commit);
+			bomReleaseDesc.put("generationTime", duration);
+			bomRelease.setDescription(gson.toJson(bomReleaseDesc));
+			bomRfcProcessor.updateRelease(bomRelease);
+
 //			if (logger.isInfoEnabled()) {
 			if (logger.isDebugEnabled()) {
 				String rfcs = bomRfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
@@ -157,21 +187,7 @@ public class BomManagerImpl implements BomManager {
 //				System.out.println(rfcs);
 			}
 
-			if (rfcCiCount == 0) {
-				logger.info("No release because rfc count is 0. Cleaning up release.");
-				bomRfcProcessor.deleteRelease(releaseId);
-			}
 		}
-		else {
-			//if there is no open release check if there are global vars in pending_deletion state. If yes delete it.
-			for (CmsCI localVar : cmProcessor.getCiByNsLikeByStateNaked(manifestNsPath, "manifest.Globalvar", "pending_deletion")) {
-				cmProcessor.deleteCI(localVar.getCiId(), true, userId);
-			}
-			//if there is nothing to deploy update parent release on latest closed bom release
-			updateParentReleaseId(bomNsPath, manifestNsPath, "closed");
-		}
-
-		logger.info(bomNsPath + " >>> Generated BOM in " + (System.currentTimeMillis() - startTime) + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
 		return bomRelease;
 	}
 

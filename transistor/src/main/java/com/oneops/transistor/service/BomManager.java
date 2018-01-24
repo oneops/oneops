@@ -20,13 +20,14 @@ package com.oneops.transistor.service;
 import java.util.Set;
 
 import com.oneops.cms.dj.domain.CmsDeployment;
+import com.oneops.cms.dj.domain.CmsRelease;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
 public interface BomManager {
-    long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
+    CmsRelease generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit);
 
-    long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit);
+    CmsRelease generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit);
 
     long submitDeployment(long releaseId, String userId, String desc);
 
