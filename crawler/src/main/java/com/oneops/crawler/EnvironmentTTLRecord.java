@@ -1,23 +1,27 @@
 package com.oneops.crawler;
 
 import com.oneops.Environment;
+import com.oneops.Platform;
 
 import java.io.Serializable;
 import java.util.Date;
 
 public class EnvironmentTTLRecord implements Serializable {
-    Environment environment;
+    String environmentProfile;
+    long environmentId;
+    Platform platform;
     Date lastProcessedAt;
     boolean scanOnly;
     int userNotifiedTimes;
     Date plannedDestroyDate;
+    Date actualDestroyDate;
 
-    public Environment getEnvironment() {
-        return environment;
+    public String getEnvironmentProfile() {
+        return environmentProfile;
     }
 
-    public void setEnvironment(Environment environment) {
-        this.environment = environment;
+    public void setEnvironmentProfile(String environmentProfile) {
+        this.environmentProfile = environmentProfile;
     }
 
     public Date getLastProcessedAt() {
@@ -50,5 +54,29 @@ public class EnvironmentTTLRecord implements Serializable {
 
     public void setPlannedDestroyDate(Date plannedDestroyDate) {
         this.plannedDestroyDate = plannedDestroyDate;
+    }
+
+    public Date getActualDestroyDate() {
+        return actualDestroyDate;
+    }
+
+    public void setActualDestroyDate(Date actualDestroyDate) {
+        this.actualDestroyDate = actualDestroyDate;
+    }
+
+    public Platform getPlatform() {
+        return platform;
+    }
+
+    public void setPlatform(Platform platform) {
+        this.platform = platform;
+    }
+
+    public long getEnvironmentId() {
+        return environmentId;
+    }
+
+    public void setEnvironmentId(long environmentId) {
+        this.environmentId = environmentId;
     }
 }
