@@ -46,7 +46,7 @@ public class TorbitClient {
     sslContext.init(null, trustAllCerts, new SecureRandom());
     SSLSocketFactory socketFactory = sslContext.getSocketFactory();
     HttpLoggingInterceptor logInterceptor = new HttpLoggingInterceptor(m -> logger.info(m));
-    logInterceptor.setLevel(Level.BASIC);
+    logInterceptor.setLevel(Level.BODY);
     OkHttpClient client = new OkHttpClient().newBuilder()
         .sslSocketFactory(socketFactory, trustManager)
         .followSslRedirects(false)

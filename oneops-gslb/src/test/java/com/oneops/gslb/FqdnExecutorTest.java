@@ -43,7 +43,7 @@ public class FqdnExecutorTest {
     addGdnsService(wo);
     torbitConfig = executor.getTorbitConfig(wo, "");
     Assert.assertNotNull(torbitConfig);
-    Map<String, String> attributes = wo.getServices().get("gdns").get(wo.getCloud().getCiName()).getCiAttributes();
+    Map<String, String> attributes = wo.getServices().get("torbit").get(wo.getCloud().getCiName()).getCiAttributes();
     Assert.assertEquals(torbitConfig.getUrl(), attributes.get("endpoint"));
     Assert.assertEquals(torbitConfig.getAuthKey(), attributes.get("auth_key"));
     Assert.assertEquals(torbitConfig.getUser(), attributes.get("user_name"));
@@ -181,9 +181,9 @@ public class FqdnExecutorTest {
     gdns.addCiAttribute("group_id", "101");
     gdns.addCiAttribute("user_name", "test-oo");
     gdns.addCiAttribute("gslb_base_domain", "xyz.com");
-    gdns.setCiName("gdns-torbit");
+    gdns.setCiName("torbit");
     gdnsService.put("cl1", gdns);
-    services.put("gdns", gdnsService);
+    services.put("torbit", gdnsService);
     wo.setServices(services);
   }
 

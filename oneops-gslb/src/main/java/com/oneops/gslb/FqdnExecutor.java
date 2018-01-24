@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class FqdnExecutor implements ComponentWoExecutor {
 
   private static String FQDN_CLASS = "bom.oneops.1.Fqdn";
-  private static final String GDNS_SERVICE = "gdns";
+  private static final String SERVICE_TYPE_TORBIT = "torbit";
   private static final String ATTRIBUTE_USER = "user_name";
   private static final String ATTRIBUTE_ENDPOINT = "endpoint";
   private static final String ATTRIBUTE_AUTH_KEY = "auth_key";
@@ -85,15 +85,16 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (realizedAs != null) {
       String serviceType = realizedAs.getCiAttributes().get(ATTRIBUTE_SERVICE_TYPE);
       logger.info(wo.getCiId() + " : fqdn service type  " + serviceType);
-      return "torbit".equals(serviceType);
+      return "torbit".equals(serviceType) &&
+          wo.getServices() != null && wo.getServices().containsKey(SERVICE_TYPE_TORBIT);
     }
     return false;
   }
 
   Config getTorbitConfig(CmsWorkOrderSimple wo, String logKey) {
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
-    if (services != null && services.containsKey(GDNS_SERVICE)) {
-      Map<String, CmsCISimple> gdnsService = services.get(GDNS_SERVICE);
+    if (services != null && services.containsKey(SERVICE_TYPE_TORBIT)) {
+      Map<String, CmsCISimple> gdnsService = services.get(SERVICE_TYPE_TORBIT);
       CmsCISimple gdns;
       //proceed only if the gdns service has torbit and there is lb payload
       if ((gdns = gdnsService.get(wo.cloud.getCiName())) != null && wo.getPayLoad().containsKey(WoHelper.LB_PAYLOAD)) {
@@ -104,7 +105,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       logger.info(logKey + "workorder does not have required elements - lb, torbit gdns");
     }
     else {
-      logger.info(logKey + "gdns service not found in workorder");
+      logger.info(logKey + "torbit service not found in workorder");
     }
     return null;
   }
@@ -137,7 +138,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
         String.join(".", context.getEnvironment(), context.getAssembly(), context.getOrg()));
 
     context.setCloud(wo.cloud.getCiName());
-    context.setBaseGslbDomain(wo.services.get("gdns").get(context.getCloud()).getCiAttributes().get("gslb_base_domain"));
+    context.setBaseGslbDomain(wo.services.get(SERVICE_TYPE_TORBIT).get(context.getCloud()).getCiAttributes().get("gslb_base_domain"));
     context.setLogKey(logKey);
 
     logger.info(logKey + "Context - assembly : " + context.getAssembly() + ", platform : " + context.getPlatform() + ", env : " +

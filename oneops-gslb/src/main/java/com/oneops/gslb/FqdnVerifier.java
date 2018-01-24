@@ -263,7 +263,7 @@ public class FqdnVerifier {
     String org = payload.get("Organization").get(0).getCiName();
     String subdomain = env.getCiAttributes().get("subdomain");
     String cloud = wo.cloud.getCiName();
-    String baseGslbDomain = wo.services.get("gdns").get(cloud).getCiAttributes().get("gslb_base_domain");
+    String baseGslbDomain = wo.services.get("torbit").get(cloud).getCiAttributes().get("gslb_base_domain");
     context.subDomain = subdomain != null ? subdomain : environment + "." + assembly + "." + org;
     if (subdomain != null)
       context.mtdBaseHost = "." + context.subDomain + "." + baseGslbDomain;
