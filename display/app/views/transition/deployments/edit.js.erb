@@ -1,17 +1,10 @@
 <% if (@deployment && @deployment.deploymentState != 'complete' && @platforms.present?) ||
        @environment.ciState == 'locked'  ||
        @environment.comments.present? %>
-  var overlay = $j("#overlay");
-  var visible = overlay.is(":visible");
   if (window.stop_deployment_polling) {
     stop_deployment_polling();
   }
-  overlay.html('<%= escape_javascript(render('deployment')) %>');
-  if (!visible) {
-    hide_modal();
-    block("container");
-    Effect.SlideDown('overlay', { duration: 0.3 });
-  }
+  $j("#overlay").html('<%= escape_javascript(render('deployment')) %>');
 <% else %>
   window.location.reload();
 <% end %>

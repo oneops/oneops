@@ -35,6 +35,9 @@ common:
     -
       - fog-softlayer
       - 1.1.3
+    -
+      - parallel
+      - 1.3.3
 
 chef-10.16.6:
     # workaround for chef install dependency issues

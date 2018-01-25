@@ -98,7 +98,7 @@
     </bean>
 
 
-	<bean id="bomRfcProcessor" class="com.oneops.transistor.service.BomRfcBulkProcessor">
+	<bean id="bomGenerationProcessor" class="com.oneops.transistor.service.BomRfcBulkProcessor">
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
@@ -107,9 +107,10 @@
     </bean>
 
 	<bean id="bomManager" class="com.oneops.transistor.service.BomManagerImpl">
-		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
+		<property name="bomGenerationProcessor" ref="bomGenerationProcessor" />
 		<property name="cmProcessor" ref="cmsCmProcessor" />
-		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+		<property name="manifestRfcProcessor" ref="cmsRfcProcessor" />
+		<property name="bomRfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
 		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
 		<property name="cmsUtil" ref="cmsUtil" />
@@ -121,7 +122,7 @@
 		<property name="cmRfcMrgProcessor" ref="cmsCmRfcMrgProcessor" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
         <property name="trUtil" ref="trUtil" />
-		<property name="bomRfcProcessor" ref="bomRfcProcessor" />
+		<property name="bomGenerationProcessor" ref="bomGenerationProcessor" />
 		<property name="bomManager" ref="bomManager"/>
 		<property name="cmsUtil" ref="cmsUtil" />
     </bean>
@@ -152,22 +153,25 @@
 
 
 	<bean id="baProcessor" class="com.oneops.transistor.service.BomAsyncProcessor" >
+		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="bomManager" ref="bomManager" />
         <property name="envSemaphore" ref="envSemaphore" />
 	  	<property name="flexManager" ref="flexManager" />
     </bean>
 
-
 	
 	<bean id="baProcessorIM" class="com.oneops.transistor.service.peristenceless.InMemoryBomProcessor" >
 		<property name="bomManager" ref="bomManagerIM" />
 		<property name="threadLocalDJMapper" ref="threadLocalDJMapper"/>
+		<property name="envSemaphore" ref="envSemaphore" />
 	</bean>
 
+
 	<bean id="bomManagerIM" class="com.oneops.transistor.service.BomManagerImpl">
-		<property name="bomRfcProcessor" ref="bomRfcProcessorIM" />
+		<property name="bomGenerationProcessor" ref="bomRfcProcessorIM" />
 		<property name="cmProcessor" ref="cmsCmProcessorIM" />
-		<property name="rfcProcessor" ref="cmsRfcProcessorIM" />
+		<property name="manifestRfcProcessor" ref="cmsRfcProcessor" />
+		<property name="bomRfcProcessor" ref="cmsRfcProcessorIM" />
 		<property name="trUtil" ref="trUtil" />
 		<property name="dpmtProcessor" ref="cmsDpmtProcessor" />
 		<property name="cmsUtil" ref="cmsUtil" />

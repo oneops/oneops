@@ -1,0 +1,4 @@
+hide_modal();
+<% if @environment.errors.blank? %>
+  $j("#overlay").html('<%= escape_javascript(render('deployment')) %>');
+<% end %>
