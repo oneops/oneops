@@ -439,15 +439,14 @@ public abstract class AbstractOrderExecutor {
   /**
    * Populates list of proxies from a json string
    */
-  protected void updateProxyList(ArrayList<String> proxyList, String jsonProxyHash) {
-    Map<String, String> proxyMap = gson.fromJson(jsonProxyHash, Map.class);
+  protected void updateProxyList(ArrayList<String> proxyList, Map<String, String> proxyMap) {
     if (proxyMap != null) {
       for (String key : proxyMap.keySet()) {
         proxyList.add(key + "_proxy=" + proxyMap.get(key));
       }
     }
-
   }
+
 
   /**
    * Chef-solo command builder

@@ -179,7 +179,7 @@ public class Config {
   @Value("${reboot_limit:5}")
   private int rebootLimit;
 
-  @Value("${verify.mode:false}")
+  @Value("#{T(java.lang.Boolean).valueOf('${verify.mode}')}")
   private boolean verifyMode;
 
   @Value("#{'${verify.exclude.paths:Berksfile}'.split(',')}")

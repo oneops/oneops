@@ -398,6 +398,9 @@
         }
       ]
     },
+  "config": {
+  "env_vars": "{ \"rubygems\":\"http://repos.org/gemrepo/\",\"rubygemsbkp\":\"http://dal-repos.org/gemrepo/\",\"ruby\":\"\",\"DATACENTER\":\"dal\",\"misc\":\"http://repos.org/mirrored-assets/apache.mirrors.pair.com/\" }"
+    },
     "dpmtRecordId": 190494,
     "deploymentId": 190490,
     "rfcId": 190471,

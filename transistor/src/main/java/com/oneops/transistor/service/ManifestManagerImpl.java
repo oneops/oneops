@@ -333,6 +333,7 @@ public class ManifestManagerImpl implements ManifestManager {
 
 //			manifestRfcProcessor.setCiRelationId(rfcRelation);
 			
+
 			rfcProcessor.createRfcRelationNoCheck(rfcRelation, userId);
 		}
 		
