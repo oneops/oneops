@@ -62,7 +62,7 @@
         <property name="iaasManager" ref="iaasManager"/>
         <property name="dManager" ref="dManager"/>
         <property name="baProcessor" ref="baProcessor"/>
-        <property name="imBomProcesor" ref="baProcessorIM"/>
+        <property name="imBomProcessor" ref="baProcessorIM"/>
         <property name="maProcessor" ref="maProcessor"/>
         <property name="util" ref="cmsUtil"/>
         <property name="snapshotManager" ref="snapshotManager"/>

@@ -42,7 +42,7 @@ public class FlexManagerImpl implements FlexManager {
 	private CmsCmRfcMrgProcessor cmRfcMrgProcessor;
 	private CmsRfcProcessor rfcProcessor;
 	private TransUtil trUtil;
-	private BomRfcBulkProcessor bomRfcProcessor;
+	private BomRfcBulkProcessor bomGenerationProcessor;
 	private CmsUtil cmsUtil;
 
 	private BomManager bomManager;
@@ -67,8 +67,8 @@ public class FlexManagerImpl implements FlexManager {
 		this.trUtil = trUtil;
 	}
 
-	public void setBomRfcProcessor(BomRfcBulkProcessor bomRfcProcessor) {
-		this.bomRfcProcessor = bomRfcProcessor;
+	public void setBomGenerationProcessor(BomRfcBulkProcessor bomGenerationProcessor) {
+		this.bomGenerationProcessor = bomGenerationProcessor;
 	}
 
 	public void setBomManager(BomManager bomManager) {
@@ -110,11 +110,11 @@ public class FlexManagerImpl implements FlexManager {
 		for (CmsCIRelation cloudRel : cloudRels) {
 			CmsCIRelationAttribute adminstatus = cloudRel.getAttribute("adminstatus");
 			if (adminstatus == null || CmsConstants.CLOUD_STATE_ACTIVE.equals(adminstatus.getDjValue())) {
-				bomRfcProcessor.processManifestPlatform(context,
-														context.getPlatformContext(platform),
-														cloudRel,
-														1,
-														false);
+				bomGenerationProcessor.processManifestPlatform(context,
+															   context.loadPlatformContext(platform),
+															   cloudRel,
+															   1,
+															   false);
 			}
 		}
 		

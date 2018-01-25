@@ -4663,3 +4663,7 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 .extra-muted {
   opacity: 0.3;
 }
+
+form.deploy-action textarea {
+  height: 80px;
+}
