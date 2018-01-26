@@ -1,7 +1,6 @@
 package com.oneops.search.msg.processor.ci;
 
 import com.google.gson.Gson;
-import com.oneops.boo.Boo;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.search.domain.CmsDeploymentPlan;
 import com.oneops.search.msg.index.Indexer;
