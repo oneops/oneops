@@ -290,7 +290,22 @@
               </artifacts>
             </configuration>
           </execution>
-
+          <execution>
+            <id>exec-gems-cache-register</id>
+            <phase>package</phase>
+            <goals>
+              <goal>attach-artifact</goal>
+            </goals>
+            <configuration>
+              <artifacts>
+                <artifact>
+                  <file>${project.build.directory}/exec-gems-cache-${project.version}.tar.gz</file>
+                  <type>tar.gz</type>
+                  <classifier>exec-gems-cache</classifier>
+                </artifact>
+              </artifacts>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>
