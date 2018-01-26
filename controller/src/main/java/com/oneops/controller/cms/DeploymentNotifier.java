@@ -136,41 +136,45 @@ public class DeploymentNotifier {
         notify.getPayload().put("comments", dpmt.getComments());
         notify.getPayload().put("ops", dpmt.getOps());
         
-        String[] nsPathParts = nsPath.split("/");
-        String orgName = nsPathParts[1];
-        String assemblyName = nsPathParts[2];
-        List<CmsCI> orgList = cmsCmProcessor.getCiBy3("/", null, orgName);
-        if (orgList != null && orgList.size() > 0) {
-            CmsCI org = orgList.get(0);
-            Map<String, Object>orgMap = new HashMap<>();
-            orgMap.put("id", org.getCiId());
-            orgMap.put("name", org.getCiName());
-            if (org.getAttribute("owner")!=null) {
-                orgMap.put("owner", org.getAttribute("owner").getDfValue());
+        if (nsPath!=null) {
+            String[] nsPathParts = nsPath.split("/");
+
+            String orgName = nsPathParts[1];
+            String assemblyName = nsPathParts[2];
+            List<CmsCI> orgList = cmsCmProcessor.getCiBy3("/", null, orgName);
+            if (orgList != null && orgList.size() > 0) {
+                CmsCI org = orgList.get(0);
+                Map<String, Object> orgMap = new HashMap<>();
+                orgMap.put("id", org.getCiId());
+                orgMap.put("name", org.getCiName());
+                if (org.getAttribute("owner") != null) {
+                    orgMap.put("owner", org.getAttribute("owner").getDfValue());
+                }
+                CmsCIAttribute tags = org.getAttribute("tags");
+                if (tags != null && tags.getDjValue() != null && !tags.getDjValue().isEmpty()) {
+                    orgMap.put("tags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
+                    }.getType()));
+                }
+                notify.getPayload().put("organization", orgMap);
             }
-            CmsCIAttribute tags = org.getAttribute("tags");
-            if (tags != null && tags.getDjValue() != null && !tags.getDjValue().isEmpty()) {
-                orgMap.put("tags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
-                }.getType()));
+
+
+            List<CmsCI> assemblyList = cmsCmProcessor.getCiBy3("/" + orgName, null, assemblyName);
+            if (assemblyList != null && assemblyList.size() > 0) {
+                CmsCI assembly = assemblyList.get(0);
+                Map<String, Object> assemblyMap = new HashMap<>();
+                assemblyMap.put("id", assembly.getCiId());
+                assemblyMap.put("name", assembly.getCiName());
+                if (assembly.getAttribute("owner") != null) {
+                    assemblyMap.put("owner", assembly.getAttribute("owner").getDfValue());
+                }
+                CmsCIAttribute tags = assembly.getAttribute("tags");
+                if (tags != null && tags.getDjValue() != null && !tags.getDjValue().isEmpty()) {
+                    assemblyMap.put("tags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
+                    }.getType()));
+                }
+                notify.getPayload().put("assembly", assemblyMap);
             }
-            notify.getPayload().put("organization", orgMap);
-        }
-        
-        List<CmsCI> assemblyList = cmsCmProcessor.getCiBy3("/"+ orgName, null, assemblyName);
-        if (assemblyList != null && assemblyList.size() > 0) {
-            CmsCI assembly = assemblyList.get(0);
-            Map<String, Object>assemblyMap = new HashMap<>();
-            assemblyMap.put("id", assembly.getCiId());
-            assemblyMap.put("name", assembly.getCiName());
-            if (assembly.getAttribute("owner")!=null) {
-                assemblyMap.put("owner", assembly.getAttribute("owner").getDfValue());
-            }
-            CmsCIAttribute tags = assembly.getAttribute("tags");
-            if (tags != null && tags.getDjValue() != null && !tags.getDjValue().isEmpty()) {
-                assemblyMap.put("tags", new Gson().fromJson(tags.getDjValue(), new TypeToken<HashMap<String, String>>() {
-                }.getType()));
-            }
-            notify.getPayload().put("assembly", assemblyMap);
         }
         
         if (payloadEntries != null) {
