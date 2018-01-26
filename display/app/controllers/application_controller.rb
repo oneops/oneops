@@ -589,10 +589,16 @@ class ApplicationController < ActionController::Base
     @auth_token, _ = Base64.decode64(request.authorization.split(' ', 2).last || '').split(/:/, 2)
     user = @auth_token.present? && User.where(:authentication_token => @auth_token.to_s).first
 
-    request.env["devise.skip_trackable"] = true   # do not update user record with "trackable" stats (i.e. sign_in_count, last_sign_in_at, etc...) for API requests.
-    # Passing in store => false, so the user is not actually stored in the session and a token is needed for every request.
-    sign_in(user, store: false) if user
-    request.env["devise.skip_trackable"] = false
+    if user
+      # do not update user record with "trackable" stats (i.e. sign_in_count, last_sign_in_at, etc...) for API requests.
+      request.env["devise.skip_trackable"] = true
+      # Passing in store => false, so the user is not actually stored in the session and a token is needed for every request.
+      sign_in(user, store: false)
+      request.env["devise.skip_trackable"] = false
+      # However, Let update user's sign_in timestamps periodically - so API only accounts will show as "active".
+      now = Time.now
+      user.update_attributes(:current_sign_in_at => now, :last_sign_in_at => now) if now - user.current_sign_in_at > 24.hours
+    end
   end
 
   def check_username
