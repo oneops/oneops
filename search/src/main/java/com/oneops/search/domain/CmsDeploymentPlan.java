@@ -36,6 +36,7 @@ public class CmsDeploymentPlan implements Serializable {
 	private double planGenerationTime;
 	private String mode;
 	private Boolean manifestCommit;
+	private Boolean autoDeploy;
 
 	private Date created;
 
@@ -117,6 +118,14 @@ public class CmsDeploymentPlan implements Serializable {
 
 	public void setManifestCommit(Boolean manifestCommit) {
 		this.manifestCommit = manifestCommit;
+	}
+
+	public Boolean getAutoDeploy() {
+		return autoDeploy;
+	}
+
+	public void setAutoDeploy(Boolean autoDeploy) {
+		this.autoDeploy = autoDeploy;
 	}
 
 	public Date getCreated() {

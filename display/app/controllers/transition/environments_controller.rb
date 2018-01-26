@@ -534,6 +534,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     respond_to do |format|
       format.js do
         if ok
+          @platforms = load_platforms
           render :action => :commit
         else
           flash[:error] = message

@@ -1,6 +1,7 @@
 package com.oneops.search.msg.processor.ci;
 
 import com.google.gson.Gson;
+import com.oneops.boo.Boo;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.search.domain.CmsDeploymentPlan;
 import com.oneops.search.msg.index.Indexer;
@@ -63,6 +64,7 @@ public class DeploymentPlanProcessor implements CISImpleProcessor{
                 Long releaseId = (Long) releaseInfo.get("releaseId");
                 if (releaseId != null) {
                     deploymentPlan.setReleaseId(releaseId);
+                    deploymentPlan.setAutoDeploy((Boolean) releaseInfo.get("autoDeploy"));
                 }
                 indexer.index(null, "plan", GSON_ES.toJson(deploymentPlan));
             }
