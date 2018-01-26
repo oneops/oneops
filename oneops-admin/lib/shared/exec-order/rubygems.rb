@@ -56,10 +56,13 @@ def update_gem_sources (expected_sources, log_level = 'info')
 end
 
 
-def get_gem_list (provisioner, version = nil)
+def get_gem_list (provisioner, version = nil, config_file_name = nil)
   require 'yaml'
 
-  config_file = get_file_from_parent_dir('exec-gems.yaml')
+  if config_file_name.nil?
+    config_file_name = 'exec-gems.yaml'
+  end
+  config_file = get_file_from_parent_dir(config_file_name)
   gem_config = YAML::load(File.read(config_file))
 
   gem_list  = gem_config['common'] + [[provisioner,version]]
@@ -131,16 +134,23 @@ def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_leve
 
     if !method.nil?
       start_time = Time.now.to_i
-     ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
       create_gemfile(gem_sources, gems)
-      cmd = "#{get_bin_dir}bundle #{method} --full-index"
-      ec = system cmd
 
+      cmd = "#{get_bin_dir}bundle #{method} --local"
+      ec = system cmd
       if !ec || ec.nil?
         puts "#{cmd} failed with, #{$?}"
-        exit 1
-      end
-      puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
+        puts 'fetching gems from remote sources'
 
+        cmd = "#{get_bin_dir}bundle #{method} --full-index"
+        ec = system cmd
+        if !ec || ec.nil?
+          puts "#{cmd} failed with, #{$?}"
+          exit 1
+        end
+      end
+
+      puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
     end
 end
