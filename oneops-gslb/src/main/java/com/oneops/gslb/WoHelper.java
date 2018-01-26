@@ -15,6 +15,7 @@ public class WoHelper {
 
   private static final String REALIZED_AS = "RealizedAs";
   public static final String LB_PAYLOAD = "lb";
+  public static final String CLOUDS_PAYLOAD = "fqdnclouds";
   public static final String FAILED = "failed";
 
   private static final String ACTION_ADD = "add";

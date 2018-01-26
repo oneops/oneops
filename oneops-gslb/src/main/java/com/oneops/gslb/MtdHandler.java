@@ -430,8 +430,8 @@ public class MtdHandler {
   private List<LbCloud> getLbCloudMerged(CmsWorkOrderSimple wo) throws Exception {
     Map<String, List<CmsRfcCISimple>> map = wo.getPayLoad();
     List<CmsRfcCISimple> lbs = map.get(WoHelper.LB_PAYLOAD);
-    if (map.containsKey("clouds")) {
-      Map<Long, CmsRfcCISimple> cloudCiMap = map.get("clouds").stream()
+    if (map.containsKey(WoHelper.CLOUDS_PAYLOAD)) {
+      Map<Long, CmsRfcCISimple> cloudCiMap = map.get(WoHelper.CLOUDS_PAYLOAD).stream()
           .collect(Collectors.toMap(c -> c.getCiId(), Function.identity()));
       List<LbCloud> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).collect(Collectors.toList());
       return list;

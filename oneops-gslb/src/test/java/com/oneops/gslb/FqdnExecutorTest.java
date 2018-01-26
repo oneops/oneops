@@ -167,7 +167,7 @@ public class FqdnExecutorTest {
     cl2.addCiAttribute("base.Consumes.priority", "1");
     cl2.setCiClassName("account.Cloud");
 
-    wo.putPayLoadEntry("clouds", Arrays.asList(cl1, cl2));
+    wo.putPayLoadEntry("fqdnclouds", Arrays.asList(cl1, cl2));
   }
 
   private void addGdnsService(CmsWorkOrderSimple wo) {
