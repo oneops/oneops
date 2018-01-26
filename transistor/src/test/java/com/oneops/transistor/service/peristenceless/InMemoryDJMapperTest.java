@@ -89,6 +89,9 @@ public class InMemoryDJMapperTest {
 
     @Test
     public void testGetLatestRelease() throws Exception {
+        CmsRelease release = new CmsRelease();
+        release.setReleaseId(1);
+        mapper.createRelease(release);
         assertEquals(mapper.getLatestRelease("", "").size(), 1);
     }
 
