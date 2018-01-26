@@ -35,7 +35,7 @@
 			<list>
 			   <ref bean="jsonMessageConverter" />
 			</list>  
-		</property>  
+		</property> 
 	</bean> 
 
 
@@ -64,6 +64,8 @@
 		</property>
 		<property name="serviceUrl" value="http://${CMS_API_HOST:localhost}:8080/adapter/rest/"/>
 		<property name="restTemplate" ref="woRestTemplate" />
+		<property name="cmsDpmtProcessor" ref="cmsDpmtProcessor"/>
+		<property name="cmsCmProcessor" ref="cmsCmProcessor"/>
    	</bean>
 
 </beans>
