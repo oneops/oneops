@@ -1,7 +1,7 @@
 def get_gem_sources_from_file
   rubygems_proxy = []
-  if File.file?('/opt/oneops/rubygems_proxy')
-    rubygems_proxy = File.read('/opt/oneops/rubygems_proxy').split("\n").select{|l| (l =~ /^http/)}
+  if File.file?(get_proxy_file_name)
+    rubygems_proxy = File.read(get_proxy_file_name).split("\n").select{|l| (l =~ /^http/)}
   end
 
   rubygems_proxy
@@ -24,9 +24,9 @@ end
 def update_gem_sources (expected_sources, log_level = 'info')
   gem = "#{get_bin_dir}gem"
 
-  puts "Expected gem sources: #{expected_sources}" if log_level == 'debug'
+  puts "Expected gem sources: #{expected_sources.inspect}"
   actual_sources = `#{gem} source`.split("\n").select{|l| (l =~ /^http/)}
-  puts "Actual gem sources: #{actual_sources}" if log_level == 'debug'
+  puts "Actual gem sources: #{actual_sources.inspect}"
 
   if expected_sources != actual_sources
     puts 'Expected gem sources do not match the actual gem sources. Updating...'
@@ -42,11 +42,11 @@ def update_gem_sources (expected_sources, log_level = 'info')
     `#{gem} source --add #{expected_sources[1]}` if expected_sources[1]
 
   else
-    puts 'Expected gem sources match the actual gem sources.' if log_level == 'debug'
+    puts 'Expected gem sources match the actual gem sources.'
   end
 
 
-  proxy_file = '/opt/oneops/rubygems_proxy'
+  proxy_file = get_proxy_file_name
   if !File.exists?(proxy_file) || get_gem_sources_from_file != expected_sources
     puts 'Rubygems_proxy config file is outdated. Updating...'
     File.open(proxy_file, 'w') do |f|
@@ -85,13 +85,10 @@ def create_gemfile(gem_sources, gems)
 end
 
 
-def is_gem_installed?(gem, version)
-  out = `#{get_bin_dir}gem list ^#{gem}$ -i -v #{version}`.chomp
-  if out == 'true'
-    true
-  else
-    false
-  end
+def is_gem_installed?(gem, version = nil)
+  cmd = "#{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
+  out = `#{cmd}`.chomp
+  out == 'true' ? true : false
 end
 
 
@@ -100,7 +97,7 @@ def check_gem_update_needed (gems, log_level = 'info')
 
   gems.each do |g|
     if !is_gem_installed?(g[0],g[1])
-      puts "Gem #{g[0]} version #{g[1]} is not installed." if log_level == 'debug'
+      puts "Gem #{g[0]} version #{g[1]} is not installed."
       update_needed = true
       break
     end
@@ -110,28 +107,32 @@ def check_gem_update_needed (gems, log_level = 'info')
 end
 
 
-def gen_gemfile_and_install (gem_sources, gems, log_level)
+def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_level)
 
-    #Determine bundle method
-    #  - install if running for the first time
-    #  - update if any gems from exec-gems.yaml have mismatching versions
+    #2 scenarions when need to run bundle install
+    #  1) if running for the first time - determined by checking if provisioner gem (chef, puppet) is installed.
+    # Not checking its version though, it would be done in the below check
+    #  2) if any gems from exec-gems.yaml (including provisioner gem itself) have mismatching versions
 
-    if !File.exists?('Gemfile.lock')
-      puts 'Gemfile.lock is not found, will run bundle install.' if log_level == 'debug'
+    method = nil
+    if !is_gem_installed?(provisioner)
+      puts "Provisioner #{provisioner} is not installed, will run bundle install."
       method = 'install'
-      create_gemfile(gem_sources, gems)
     elsif check_gem_update_needed(gems, log_level)
-      puts 'Gemfile.lock is found, and gem update is required.' if log_level == 'debug'
-      File.delete('Gemfile') #re-create Gemfile in case the exec-gems.yaml has changed
-      create_gemfile(gem_sources, gems)
-      method = 'update'
+      if ['objectstore','compute','volume', 'os'].include?(component)
+        puts "Gem update is required for component: #{component}"
+        method = 'install'
+      else
+        puts "Gem update is required but will not be run for component: #{component}"
+      end
     else
-      puts 'Gemfile.lock is found, and no gem update is required.' if log_level == 'debug'
-      method = nil
+      puts 'No gem update is required.'
     end
 
     if !method.nil?
       start_time = Time.now.to_i
+     ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+      create_gemfile(gem_sources, gems)
       cmd = "#{get_bin_dir}bundle #{method} --full-index"
       ec = system cmd
 

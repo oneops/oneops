@@ -1212,36 +1212,39 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
    *
    * @param wo CmsWorkOrderSimple
    */
-  private String getProxyEnvVars(CmsWorkOrderSimple wo) {
+  protected String getProxyEnvVars(CmsWorkOrderSimple wo) {
     String vars = "";
-    ArrayList<String> proxyList = new ArrayList<String>();
+    ArrayList<String> proxyList = new ArrayList<>();
+    Map<String, String> proxyMap = new HashMap<>();
 
     // use proxy_map from compute cloud service
     String cloudName = wo.getCloud().getCiName();
     if (wo.getServices().containsKey("compute")
         && wo.getServices().get("compute").get(cloudName)
         .getCiAttributes().containsKey("env_vars")) {
-
-      updateProxyList(proxyList,
-          wo.getServices().get("compute").get(cloudName)
-              .getCiAttributes().get("env_vars"));
+     proxyMap = gson.fromJson( wo.getServices().get("compute").get(cloudName)
+          .getCiAttributes().get("env_vars"),Map.class);
+    }else if(wo.getConfig()!=null && wo.getConfig().get("env_vars")!=null){
+      proxyMap = gson.fromJson( wo.getConfig().get("env_vars"),Map.class);
     }
+
 
     // get http proxy by managed_via
     CmsRfcCISimple getMgmtCi = wo.getPayLoad()
         .get(MANAGED_VIA).get(0);
 
     if (getMgmtCi.getCiAttributes().containsKey("proxy_map")) {
-
       String jsonProxyHash = getMgmtCi.getCiAttributes().get("proxy_map");
-      updateProxyList(proxyList, jsonProxyHash);
+      Map<String, String> computeProxyMap = gson.fromJson( jsonProxyHash,Map.class);
+      proxyMap.putAll(computeProxyMap);
     }
-
+    updateProxyList(proxyList, proxyMap);
     for (String proxy : proxyList) {
       vars += proxy + " ";
     }
 
-    return vars;
+    return vars +"class="+ normalizeClassName(wo) +" pack=" + getCookbookPath(wo.getClassName());
+
   }
 
   /**

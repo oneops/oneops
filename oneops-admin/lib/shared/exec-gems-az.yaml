@@ -29,6 +29,9 @@ common:
     -
       - fog-softlayer
       - 1.1.3
+    -
+      - parallel
+      - 1.3.3
 
 chef-10.16.6:
     # workaround for chef install dependency issues
@@ -78,7 +81,7 @@ chef-11.4.0:
       - 6.22.0
     -
       - fog-azure-rm
-      - 0.4.1
+      - 0.4.4
 
 puppet:
     -
@@ -97,7 +100,7 @@ chef-11.18.12:
       - 1.25.0
     -
       - fog-azure-rm
-      - 0.4.1
+      - 0.4.4
     -
       - rack
       - 1.6.4

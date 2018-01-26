@@ -415,7 +415,7 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
       String debugFlag = getDebugFlag(ao);
       // run the chef command
       String remoteCmd = String
-          .format("sudo shared/exec-order.rb %s %s %s %s", ao.getCi().getImpl(), remoteFileName,
+          .format("sudo %s shared/exec-order.rb %s %s %s %s"," class="+ normalizeClassName(ao) +" pack=" + getCookbookPath(ao.getClassName()), ao.getCi().getImpl(), remoteFileName,
               cookbookPath, debugFlag);
       String[] cmd;
       cmd = (String[]) ArrayUtils

@@ -23,7 +23,7 @@
       <button class="close" data-dismiss="modal">&times;</button>
       <h3>Teams</h3>
     </div>
-    <%= form_tag(url_for(:action => :update_teams), :method => :put, :remote => true, :class => 'form-inline') do %>
+    <%= form_tag(url_for(:action => :update_teams, :id => ci), :method => :put, :remote => true, :class => 'form-inline') do %>
       <div class="modal-body">
         <div class="teams">
           <% teams_to_add.each do |team| %>

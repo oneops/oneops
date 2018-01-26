@@ -36,6 +36,7 @@ public class EnvTTLTest {
         //create platform mocks and set them to above env
         platform_1 = new Platform();
         platform_1.setName("platform_1");
+        platform_1.setId(101);
         platform_1.setPath("/testOrg/testAssembly");
         platform_1.setTotalComputes(10);
 
@@ -46,6 +47,7 @@ public class EnvTTLTest {
 
         platform_2 = new Platform();
         platform_2.setName("platform_2");
+        platform_2.setId(102);
         platform_2.setPath("/testOrg/testAssembly");
         platform_2.setTotalComputes(100);
 
@@ -64,6 +66,7 @@ public class EnvTTLTest {
         cal.add(Calendar.DATE, -70);//older than 2 months
         deployment.setCreatedAt(cal.getTime());
         deployment.setCreatedBy("user_1");
+        deployment.setState("complete");
 
         deployments = new ArrayList<>();
         deployments.add(deployment);
@@ -87,7 +90,8 @@ public class EnvTTLTest {
         ttlPlugin.processEnvironment(env, deployments);
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
-        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_1, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_2, ttlPlugin.ttlBotName);
     }
 
     @Test
@@ -107,15 +111,31 @@ public class EnvTTLTest {
         deployments = new ArrayList<>();
         deployments.add(deployment);
 
-        Mockito.when(searchDal.get(Mockito.eq("oottl"), Mockito.eq("environment"),
-                Mockito.anyObject(), Mockito.eq("" + env.getId())))
+        Mockito.when(searchDal.get(Mockito.eq("oottl"), Mockito.eq("platform"),
+                Mockito.anyObject(), Mockito.eq("" + platform_1.getId())))
+                .thenReturn(ttlRecord);
+        Mockito.when(searchDal.get(Mockito.eq("oottl"), Mockito.eq("platform"),
+                Mockito.anyObject(), Mockito.eq("" + platform_2.getId())))
                 .thenReturn(ttlRecord);
         env.setProfile("QA");
         ttlPlugin.processEnvironment(env, deployments);
 
         Mockito.verify(ooFacade, Mockito.times(1)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
+        //second platform should not be disabled in the same run
+        Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(1)).forceDeploy(env, platform_1, ttlPlugin.ttlBotName);
+        //second platform should not be deployed in the same run
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_2, ttlPlugin.ttlBotName);
+
+        Mockito.reset(ooFacade);
+        //now simulate the platform_1 is ttled already
+        platform_1.setTotalComputes(0);
+        ttlPlugin.processEnvironment(env, deployments);
+        Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         Mockito.verify(ooFacade, Mockito.times(1)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
-        Mockito.verify(ooFacade, Mockito.times(1)).forceDeploy(env, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_1, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(1)).forceDeploy(env, platform_2, ttlPlugin.ttlBotName);
+
     }
 
     @Test
@@ -137,7 +157,8 @@ public class EnvTTLTest {
 
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
-        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_1, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_2, ttlPlugin.ttlBotName);
     }
 
     @Test
@@ -159,7 +180,8 @@ public class EnvTTLTest {
 
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
-        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_1, ttlPlugin.ttlBotName);
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(env, platform_2, ttlPlugin.ttlBotName);
     }
 }
 
