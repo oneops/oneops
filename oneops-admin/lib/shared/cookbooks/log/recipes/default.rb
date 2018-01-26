@@ -90,6 +90,5 @@ end
 #execute "/sbin/service logstash-forwarder restart"     
 #ensure the service is running
 service 'logstash-forwarder' do
-  provider Chef::Provider::Service::Init
   action :start
 end

@@ -40,7 +40,7 @@ import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 @Service
 public class CIMessageProcessor implements MessageProcessor {
     private static Logger logger = Logger.getLogger(CIMessageProcessor.class);
-    private static final String SUCCESS_PREFIX = "SUCCESS:";
+    public  static final String ENV_SUCCESS_PREFIX = "SUCCESS: Generation time taken: ";
     private static final int RETRY_COUNT = 5;
     private static final long TIME_TO_WAIT = 5000;
     
@@ -83,7 +83,7 @@ public class CIMessageProcessor implements MessageProcessor {
         CmsCISimple simpleCI = cmsUtil.custCI2CISimple(ci, "df");
         indexer.indexEvent("ci", GSON_ES.toJson(simpleCI));
         //For plan generation metrics
-        if ("manifest.Environment".equals(ci.getCiClassName()) && StringUtils.isNotEmpty(ci.getComments()) && ci.getComments().startsWith(SUCCESS_PREFIX)) {
+        if ("manifest.Environment".equals(ci.getCiClassName()) && StringUtils.isNotEmpty(ci.getComments()) && ci.getComments().startsWith(ENV_SUCCESS_PREFIX)) {
             deploymentPlanProcessor.process(simpleCI);
         } else if ("account.Policy".equals(ci.getCiClassName()) || "mgmt.manifest.Policy".equals(ci.getCiClassName())) {
             policyProcessor.process(simpleCI);

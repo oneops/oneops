@@ -30,14 +30,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Transactional
 public class EnvSemaphore {
-	
-	protected static final String DEFAULT_STATE = "default";
-	protected static final String LOCKED_STATE = "locked";
-	protected static final String MANIFEST_LOCKED_STATE = "manifest_locked";
+
+	public static final String DEFAULT_STATE = "default";
+	public static final String LOCKED_STATE = "locked";
+	public static final String MANIFEST_LOCKED_STATE = "manifest_locked";
+	public static final String REPLACE_STATE = "replace";
 	protected static final String ERROR_PREFIX = "ERROR:";
-	protected  static final String MANIFEST_ERROR=ERROR_PREFIX+"MANIFEST:";
-	protected  static final String BOM_ERROR=ERROR_PREFIX+"BOM:";
-	protected static final String SUCCESS_PREFIX = "SUCCESS:";
+	protected static final String MANIFEST_ERROR = ERROR_PREFIX + "MANIFEST:";
+	public static final String BOM_ERROR = ERROR_PREFIX + "BOM:";
+	public static final String SUCCESS_PREFIX = "SUCCESS:";
 	protected static final String COMPILE_INTERRUPTED = "Environment compilation was interrupted, please recompile!";
 	private static final Logger logger = Logger.getLogger(EnvSemaphore.class);
 	private Set<Long> envUnderProcess = ConcurrentHashMap.newKeySet();
@@ -77,9 +78,13 @@ public class EnvSemaphore {
 	}
 
 	public void unlockEnv(long envId, String envMsg, String processId) {
+		unlockEnv(envId, envMsg, processId, DEFAULT_STATE);
+	}
+
+	public void unlockEnv(long envId, String envMsg, String processId, String state) {
 		cmUtilProcessor.releaseLock(getLockName(envId), processId);
 		CmsCI env = cmManager.getCiById(envId);
-		env.setCiState(DEFAULT_STATE);
+		env.setCiState(state);
 
 		env.setComments(envMsg);
 		cmManager.updateCI(env);

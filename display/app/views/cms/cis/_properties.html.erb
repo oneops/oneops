@@ -8,10 +8,19 @@
   <dl class="dl-horizontal">
     <% unless editable %>
       <dt>Name</dt>
-      <dd><%= ci.ciName %></dd>
+      <dd><%= ci.ciName %> <span class="muted">(<%= ci.ciClassName %>)</span></dd>
     <% end %>
     <dt>Id</dt>
-    <dd><%= ci.ciId %></dd>
+    <dd>
+      <%
+        begin
+          url = url_for(:action => :show, :format => :json)
+        rescue
+          url = lookup_ci_path(ci)
+        end
+      %>
+      <%= link_to(ci.ciId, url, :target => '_blank') %>
+    </dd>
     <dt>Namespace</dt>
     <dd><%= ci.nsPath %></dd>
     <% unless editable %>

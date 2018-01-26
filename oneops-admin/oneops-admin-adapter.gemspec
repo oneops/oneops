@@ -45,4 +45,5 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'fog', '= 1.38.0'
   s.add_dependency 'nokogiri', '= 1.5.11'
+  s.add_dependency 'fog-openstack', '= 0.1.21'
 end

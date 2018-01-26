@@ -33,6 +33,7 @@ import static org.mockito.Mockito.mock;
 
 import com.google.gson.Gson;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,6 +43,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
@@ -198,6 +200,50 @@ public class InductorTest {
     envVars = p.getEnvVars(localCmd, extraVars);
     assertEquals(envValue, envVars.get(envName));
   }
+  @Test
+  public void testWoExecutorConfigWithEmptyCloudServiceEnvVar(){
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    final String vars = executor.getProxyEnvVars(wo);
+    assertTrue(vars.equals("class=user pack=circuit-oneops-1"));
+  }
+  @Test
+  public void testWoExecutorConfigWithNoCloudServiceEnvVar(){
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
+    wo.setServices(Collections.EMPTY_MAP);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    final String vars = executor.getProxyEnvVars(wo);
+    assertTrue(vars.equals("rubygems_proxy=http://repos.org/gemrepo/ rubygemsbkp_proxy=http://dal-repos.org/gemrepo/ ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
+  }
+
+  @Test
+  public void testWoExecutorConfigWithCloudCloudServiceEnvVarOverriding(){
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
+    HashMap<String,String> m = new HashMap<>();
+    m.put("rubygems","compute_proxy");
+    m.put("rubygemsbkp","compute_proxy_backup");
+    wo.getPayLoad().get(MANAGED_VIA).get(0).addCiAttribute("proxy_map",gson.toJson(m));
+    wo.setServices(Collections.EMPTY_MAP);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    final String vars = executor.getProxyEnvVars(wo);
+
+    assertTrue(vars.equals("rubygems_proxy=compute_proxy rubygemsbkp_proxy=compute_proxy_backup ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
+  }
 
   /**
    * This could be used for local testing, Need to add key and modify the user-app.json accordingly
@@ -274,4 +320,6 @@ public class InductorTest {
     assertTrue(config.contains("ruby_bindir: c:/opscode/chef/embedded/bin"));
     assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
   }
+
+
 }
