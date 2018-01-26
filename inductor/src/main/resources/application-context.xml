@@ -14,6 +14,9 @@
   <!-- spring 3+ way to get config -->
   <!-- Common lib components -->
 
+  <import resource="classpath*:executor-context.xml"/>
+
+
   <bean id="metricRegistry" class="com.codahale.metrics.MetricRegistry"/>
   <bean id="propertyPlaceholderConfigurer"
     class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">

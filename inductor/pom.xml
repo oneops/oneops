@@ -30,6 +30,10 @@
       <artifactId>oo-commons</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.oneops</groupId>
+      <artifactId>oneops-gslb</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
     </dependency>
