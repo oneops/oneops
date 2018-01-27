@@ -74,7 +74,6 @@
 
     <bean id="inductorPublisher" class="com.oneops.controller.jms.InductorPublisher" init-method="init" destroy-method="cleanup">
     	<property name="connFactory" ref="jmsFactory" />
-    	<property name="woPublisher" ref="woPublisher" />
     </bean>
 
     <bean id="monPublisher" class="com.oneops.sensor.client.MonitorPublisher" init-method="init" destroy-method="cleanup">

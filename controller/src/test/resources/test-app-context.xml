@@ -44,7 +44,6 @@
 	
 	<bean id="inductorPublisher" class="com.oneops.controller.jms.InductorPublisher">
 		<property name="connFactory" ref="stubConnectionFactory" />
-		<property name="woPublisher" ref="woPublisher" />
 	</bean>
 	
 	<bean id="woPublisher" class="com.oneops.controller.jms.WoPublisher" init-method="init">
