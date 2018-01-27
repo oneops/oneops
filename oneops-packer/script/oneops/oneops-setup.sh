@@ -5,8 +5,13 @@ export OO_HOME='/home/oneops'
 export GITHUB_URL='https://github.com/oneops'
 export PATH=$PATH:/usr/local/bin
 
+
+if [ ! -d $BUILD_BASE ]; then
+  mkdir -p $BUILD_BASE
+fi
+
 if [ ! -d $OO_HOME ]; then
-  mkdir -p /home/oneops
+  mkdir -p $OO_HOME
 fi
 
 mv /tmp/oneops-continuous.tar.gz $OO_HOME/oneops-continuous.tar.gz

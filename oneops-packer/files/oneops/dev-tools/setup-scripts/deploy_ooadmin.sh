@@ -5,10 +5,10 @@ set -e
 echo "Deploying OneOps Admin "
 
 cd $OO_HOME/dist/oneops-admin-inductor
-INDUCTOR_GEM=\$(ls *.gem)
-INDUCTOR_GEMFILE=\$(ls oneops-admin-inductor*.gemfile)
-gem install \$INDUCTOR_GEM --ignore-dependencies --no-ri --no-rdoc
-bundle install --gemfile=\$INDUCTOR_GEMFILE --local
+INDUCTOR_GEM=$(ls *.gem)
+INDUCTOR_GEMFILE=$(ls oneops-admin-inductor*.gemfile)
+gem install $INDUCTOR_GEM --ignore-dependencies --no-ri --no-rdoc
+bundle install --gemfile=$INDUCTOR_GEMFILE --local
 
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
@@ -68,8 +68,8 @@ inductor add --mqhost localhost \
 --local_max_consumers 10 \
 --authkey superuser:amqpass \
 --amq_truststore_location /opt/oneops/inductor/lib/client.ts \
---additional_java_args \"\" \
---env_vars \"\" \
+--additional_java_args "" \
+--env_vars "" \
 --verifier_mode true
 mkdir -p /opt/oneops/inductor/lib
 \cp /opt/activemq/conf/client.ts /opt/oneops/inductor/lib/client.ts

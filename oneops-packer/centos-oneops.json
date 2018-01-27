@@ -51,7 +51,7 @@
       "type": "file",
       "source": "files/oneops/create_user.sh",
       "destination": "/tmp/create_user.sh"
-    },    
+    },
     {
       "type": "file",
       "source": "files/oneops/deploy_circuits.sh",
@@ -60,6 +60,141 @@
     {
       "type": "shell",
       "inline": [ "sudo mkdir -p /home/oneops", "sudo mv /tmp/deploy_circuits.sh /home/oneops/deploy_circuits.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/deploy_amq.sh",
+      "destination": "/tmp/deploy_amq.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/deploy_amq.sh /home/oneops/deploy_amq.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/deploy_display.sh",
+      "destination": "/tmp/deploy_display.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/deploy_display.sh /home/oneops/deploy_display.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/deploy_java.sh",
+      "destination": "/tmp/deploy_java.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/deploy_java.sh /home/oneops/deploy_java.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/deploy_ooadmin.sh",
+      "destination": "/tmp/deploy_ooadmin.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/deploy_ooadmin.sh /home/oneops/deploy_ooadmin.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/deploy_search.sh",
+      "destination": "/tmp/deploy_search.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/deploy_search.sh /home/oneops/deploy_search.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/init_db.sh",
+      "destination": "/tmp/init_db.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/init_db.sh /home/oneops/init_db.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/hudson.tasks.Maven.xml",
+      "destination": "/tmp/hudson.tasks.Maven.xml"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/hudson.tasks.Maven.xml /home/oneops/hudson.tasks.Maven.xml" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/inductor_answers",
+      "destination": "/tmp/inductor_answers"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/inductor_answers /home/oneops/inductor_answers" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/install_build_srvr.sh",
+      "destination": "/tmp/install_build_srvr.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/install_build_srvr.sh /home/oneops/install_build_srvr.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/oneops_build.sh",
+      "destination": "/tmp/oneops_build.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/oneops_build.sh /home/oneops/oneops_build.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/oo_setup.sh",
+      "destination": "/tmp/oo_setup.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/oo_setup.sh /home/oneops/oo_setup.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/oo_test.rb",
+      "destination": "/tmp/oo_test.rb"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/oo_test.rb /home/oneops/oo_test.rb" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/start-consumer.sh",
+      "destination": "/tmp/start-consumer.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/start-consumer.sh /home/oneops/start-consumer.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/start-display.sh",
+      "destination": "/tmp/start-display.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/start-display.sh /home/oneops/start-display.sh" ]
+    },
+    {
+      "type": "file",
+      "source": "files/oneops/dev-tools/setup-scripts/tom_setenv.sh",
+      "destination": "/tmp/tom_setenv.sh"
+    },
+    {
+      "type": "shell",
+      "inline": [ "sudo mv /tmp/tom_setenv.sh /home/oneops/tom_setenv.sh" ]
     },
     {
       "environment_vars": [
