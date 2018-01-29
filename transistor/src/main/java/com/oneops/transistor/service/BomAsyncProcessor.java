@@ -61,7 +61,7 @@ public class BomAsyncProcessor {
         this.envSemaphore = envSemaphore;
     }
 
-    public void compileEnv(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
+    public void compileEnv(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, String desc, boolean commit) {
         final String processId = UUID.randomUUID().toString();
         envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE, processId);
 
@@ -71,10 +71,18 @@ public class BomAsyncProcessor {
                 long startTime = System.currentTimeMillis();
                 CmsCI environment = cmProcessor.getCiById(envId);
                 bomManager.check4openDeployment(environment.getNsPath() + "/" + environment.getCiName() + "/bom");
-                CmsRelease bomRelease = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
+                CmsRelease bomRelease;
+                boolean deploy =(dpmt != null);
+                if (deploy) {
+                    bomRelease = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
+                }
+                else {
+                    bomRelease = bomManager.generateBom(envId, userId, excludePlats, desc, commit);
+                }
                 Map releaseInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
                 releaseInfo.put("createdBy", userId);
                 releaseInfo.put("mode", "persistent");
+                releaseInfo.put("autoDeploy", deploy);
                 releaseInfo.put("releaseId", bomRelease.getReleaseId());
                 envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. releaseInfo=" + gson.toJson(releaseInfo);
             } catch (Exception e) {

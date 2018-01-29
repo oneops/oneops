@@ -49,7 +49,6 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -654,16 +653,12 @@ public class TransistorRestController extends AbstractRestController {
 
 			Set<Long> excludePlats = toSet(params.get("exclude"));
 
-			CmsDeployment dpmt = new CmsDeployment();
-			dpmt.setCreatedBy(userId);
-			dpmt.setComments(params.get("description"));
-
 			boolean commit = true;//Default: Go ahead with the commit.
 			if (params.get("commit") != null && ! Boolean.valueOf(params.get("commit"))) {
 				commit = false;
 			}
 
-			baProcessor.compileEnv(envId, userId, excludePlats, dpmt, commit);
+			baProcessor.compileEnv(envId, userId, excludePlats, null, params.get("description"), commit);
 			long exitCode = 0;
 			Map<String,Long> result = new HashMap<>(1);
 			result.put("exit_code", exitCode);
@@ -761,11 +756,11 @@ public class TransistorRestController extends AbstractRestController {
 	public Map<String, Long> generateBom(
 			@PathVariable long envId,
 			@RequestBody DeployRequest deloyRequest,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+			@RequestHeader(value="X-Cms-User", required = true)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = true)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
-			baProcessor.compileEnv(envId, userId, toSet(deloyRequest.getExclude()), deloyRequest.getDeployment(), false);
+			baProcessor.compileEnv(envId, userId, toSet(deloyRequest.getExclude()), deloyRequest.getDeployment(), null, false);
 			long exitCode = 0;
 			Map<String,Long> result = new HashMap<>(1);
 			result.put("exit_code", exitCode);
@@ -799,7 +794,7 @@ public class TransistorRestController extends AbstractRestController {
 			dpmt.setCreatedBy(userId);
 			dpmt.setComments(desc);
 
-			baProcessor.compileEnv(envId, userId, toSet(paramMap.get("exclude")), dpmt, commit);
+			baProcessor.compileEnv(envId, userId, toSet(paramMap.get("exclude")), dpmt, null, commit);
 
 			Map<String, Long> result = new HashMap<>(1);
 			result.put("deploymentId", 0L);

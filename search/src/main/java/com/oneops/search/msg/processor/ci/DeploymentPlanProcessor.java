@@ -63,6 +63,7 @@ public class DeploymentPlanProcessor implements CISImpleProcessor{
                 Long releaseId = (Long) releaseInfo.get("releaseId");
                 if (releaseId != null) {
                     deploymentPlan.setReleaseId(releaseId);
+                    deploymentPlan.setAutoDeploy((Boolean) releaseInfo.get("autoDeploy"));
                 }
                 indexer.index(null, "plan", GSON_ES.toJson(deploymentPlan));
             }
