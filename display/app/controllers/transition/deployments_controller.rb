@@ -287,16 +287,13 @@ class Transition::DeploymentsController < ApplicationController
     if @deployment.deploymentState == 'pending' && (approving || deployment_state == 'canceled')
       load_approvals
       if @approvals.present?
-        comments = cms_deployment[:comments]
-        approvals_to_settle = @approvals
-        if approving
-          govern_ci_map = Cms::Ci.all(:params => {:ids => @approvals.map(&:governCiId).join(',')}).
-            select {|ci| ci.ciAttributes.attributes['approval_auth_type'] == 'none'}.
-            to_map(&:ciId)
-          approvals_to_settle = approvals_to_settle.select {|a| a.state == 'pending' && govern_ci_map[a.governCiId]}
-        end
+        govern_ci_map = Cms::Ci.all(:params => {:ids => @approvals.map(&:governCiId).join(',')}).
+          select {|ci| ci.ciAttributes.attributes['approval_auth_type'] == 'none'}.
+          to_map(&:ciId)
+        approvals_to_settle = @approvals.select {|a| a.state == 'pending' && govern_ci_map[a.governCiId]}
 
         if approvals_to_settle.present?
+          comments = cms_deployment[:comments]
           approvals_to_settle = approvals_to_settle.map do |a|
             {:approvalId   => a.approvalId,
              :deploymentId => @deployment.deploymentId,
