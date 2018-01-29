@@ -49,6 +49,7 @@ public class InductorPublisher {
     private static final String QUEUE_SUFFIX = ".ind-wo";
     private static final String SHARED_QUEUE = "shared" + QUEUE_SUFFIX;
     private static final String USE_SHARED_FLAG = "com.oneops.controller.use-shared-queue";
+    private static final String SHARED_QUEUE_PREFIX = "com.oneops.controller.queue.prefix.";
     private static final String CONTROLLLER_VERSION_SEARCH_TAG = "cVersion";
     private static Logger logger = Logger.getLogger(InductorPublisher.class);
     final private Gson gson = new Gson();
@@ -59,7 +60,6 @@ public class InductorPublisher {
     private Connection connection = null;
     private Session session = null;
     private ActiveMQConnectionFactory connFactory;
-    private WoPublisher woPublisher;
 
     /**
      * Sets the conn factory.
@@ -119,13 +119,8 @@ public class InductorPublisher {
         message.setJMSCorrelationID(corelationId);
         message.setStringProperty("task_id", corelationId);
         message.setStringProperty("type", woType);
-        String queueName;
-        if ("true".equals(System.getProperty(USE_SHARED_FLAG))) {
-            queueName = SHARED_QUEUE;
-        } else {
-            queueName = (wo.getCloud().getCiAttributes().get("location").replaceAll("/", ".") + QUEUE_SUFFIX).substring(
-                    1);
-        }
+
+        String queueName = getQueue(wo);
         bindingQueusMap.computeIfAbsent(queueName, k -> {
             try {
                 return newMessageProducer(k);
@@ -140,6 +135,27 @@ public class InductorPublisher {
 
         logger.info("Posted message with id "+ corelationId +" to q: "+queueName);
 
+    }
+
+    String getQueue(CmsWorkOrderSimpleBase wo) {
+        String queueName = null;
+        String location = wo.getCloud().getCiAttributes().get("location");
+        if ("true".equals(System.getProperty(USE_SHARED_FLAG))) {
+            String cloudName = StringUtils.substringAfterLast(location, "/");
+            if (StringUtils.isNotBlank(cloudName)) {
+                String prefix = StringUtils.substringBefore(cloudName, "-");
+                String queuePrefix = System.getProperty(SHARED_QUEUE_PREFIX + prefix);
+                if (StringUtils.isNotBlank(queuePrefix)) {
+                    queueName = queuePrefix + "." + SHARED_QUEUE;
+                }
+            }
+            if (queueName == null)
+                queueName = SHARED_QUEUE;
+        } else {
+            queueName = (location.replaceAll("/", ".") + QUEUE_SUFFIX).substring(
+                1);
+        }
+        return queueName;
     }
 
     protected String getCtxtId(CmsWorkOrderSimpleBase wo) {
@@ -198,14 +214,5 @@ public class InductorPublisher {
         } catch (Exception ignore) {
         }
     }
-
-
-    /**
-     * @param woPublisher setter
-     */
-    public void setWoPublisher(WoPublisher woPublisher) {
-        this.woPublisher = woPublisher;
-    }
-
 
 }
