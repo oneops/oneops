@@ -270,22 +270,27 @@ class Transition::DeploymentsController < ApplicationController
   end
 
   def update
-    # TODO 7/27/2015  This is just a temp code for backward compatibility to mimic old-style deploymet approvals/rejection by
-    # auto approving/rejecting all pending approval records.  This should be removed eventually.  All deployment
-    # approvals/rejections should be done via new deployment approval record settling.
     cms_deployment = params[:cms_deployment]
     deployment_state = cms_deployment[:deploymentState]
 
+    # TODO 7/27/2015  This is just a temp code for backward compatibility to mimic old-style deployment approvals/rejection by
+    # auto approving/rejecting all pending approval records.  This should be removed eventually.  All deployment
+    # approvals/rejections should be done via new deployment approval record settling.
+    # 01/29/2018  While old-style approval should be removed, meanwhile adding "approval_token" check to ensure this will work
+    # for "unsecured" support/compliance governing CIs.
     approving = deployment_state == 'active'
     if @deployment.deploymentState == 'pending' && (approving || deployment_state == 'canceled')
       load_approvals
       if @approvals.present?
         comments = cms_deployment[:comments]
-        approvals_to_settle = @approvals.select {|a| a.state == 'pending'}.map do |a|
+        govern_ci_map = Cms::Ci.all(:params => {:ids => @approvals.map(&:governCiId).join(',')}).
+          select {|ci| ci.ciAttributes.attributes['approval_auth_type'] == 'none'}.
+          to_map(&:ciId)
+        approvals_to_settle = @approvals.select {|a| a.state == 'pending' && govern_ci_map[a.governCiId]}.map do |a|
           {:approvalId   => a.approvalId,
            :deploymentId => @deployment.deploymentId,
            :state        => approving ? 'approved' : 'rejected',
-           :expiresIn    => 1,
+           :expiresIn    => -1,
            :comments     => "#{'!! ' if approving}#{comments}"}
         end
 
