@@ -306,6 +306,8 @@ class Transition::DeploymentsController < ApplicationController
           end
           ok, message = Cms::DeploymentApproval.settle(approvals_to_settle)
           @deployment.errors.add(:base, message) unless ok
+        elsif !approving
+          ok = execute(@deployment, :update_attributes, cms_deployment)
         else
           ok = true
         end
