@@ -1,12 +1,12 @@
 <% deploying      = deployment && !%w(complete canceled).index(deployment.deploymentState)
-   generating     = environment.ciState == 'locked'
+   compiling      = environment.ciState == 'locked'
    has_transition = has_transition?(@assembly.ciId) %>
 <div class="alert alert-block alert-info attention">
   <strong>Open Environment Release</strong> &raquo;
   <% if deploying %>
-    Review open environment release. <small>(You can not commit while deployment is in progress.)</small>
-  <% elsif generating %>
-    Review open environment release. <small>(You can not commit while deployment plan generation is in progress.)</small>
+    Review open environment release.
+  <% elsif compiling %>
+    Review open environment release. <small>(You can not commit while deployment preparation is in progress.)</small>
   <% elsif has_transition %>
     Review, commit and deploy open environment release.
   <% else %>
@@ -17,10 +17,10 @@
                 assembly_transition_environment_path(assembly, environment, :anchor => path_to_release(release).split('#').last),
                 :class => 'btn btn-small btn-primary') %>
     <% if has_transition %>
-      <% if deploying || generating %>
+      <% if compiling %>
         <%= button('Commit & Deploy', 'small', 'success disabled') %>
       <% else %>
-        <%= render 'transition/commit_and_deploy_prompt', :button_size => 'small' %>
+        <%= render 'transition/commit_and_deploy_prompt', :button_label => deploying ? 'Commit' : 'Commit & Deploy', :button_size => 'small' %>
       <% end %>
     <% end %>
   </div>

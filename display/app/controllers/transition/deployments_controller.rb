@@ -144,13 +144,20 @@ class Transition::DeploymentsController < ApplicationController
   end
 
   def bom
-    data, message = Transistor.preview_bom(@environment.ciId,
-                                           :commit      => params[:commit] == 'true',
-                                           :description => params[:desc],
-                                           :exclude     => params[:exclude_platforms],
-                                           :includeRFCs => 'cis',
-                                           :cost        => request.xhr? ? true : params[:cost] == 'true',
-                                           :capacity    => params[:capacity] == 'true')
+    data = nil
+    if @environment.ciState == 'locked'
+      message = 'Cannot commit while deployment preparation is in progress.'
+    elsif @environment.ciState == 'manifest_locked'
+      message = 'Cannot commit while design pull is in progress.'
+    else
+      data, message = Transistor.preview_bom(@environment.ciId,
+                                             :commit      => params[:commit] == 'true',
+                                             :description => params[:desc],
+                                             :exclude     => params[:exclude_platforms],
+                                             :includeRFCs => 'cis',
+                                             :cost        => request.xhr? ? true : params[:cost] == 'true',
+                                             :capacity    => params[:capacity] == 'true')
+    end
 
     respond_to do |format|
       format.js do
@@ -158,7 +165,6 @@ class Transition::DeploymentsController < ApplicationController
           @rfc_cis = data['rfcs']['cis']
           if @rfc_cis.present?
             @manifest = Cms::Release.find(data['release'].parentReleaseId)
-  # @release = Cms::Release.first(:params => {:nsPath => environment_bom_ns_path(@environment), :releaseState => 'open'}) if Rails.env.shaared?
             @deployment = Cms::Deployment.build(:nsPath => environment_bom_ns_path(@environment))
             @last_deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
             load_clouds_and_platforms
@@ -201,7 +207,7 @@ class Transition::DeploymentsController < ApplicationController
     override_password = deployment_hash.delete(:override_password)
     @deployment       = Cms::Deployment.build(deployment_hash)
 
-    release_id = params[:releaseId]
+    release_id = deployment_hash[:releaseId]
     if release_id.blank?
       ok = verify_override(override_password)
       if ok
@@ -229,7 +235,6 @@ class Transition::DeploymentsController < ApplicationController
       # TODO - deprecated (old way)
       ok = verify_override(override_password)
       ok = execute(@deployment, :save) if ok
-
       respond_to do |format|
         format.js do
           if ok
@@ -244,7 +249,7 @@ class Transition::DeploymentsController < ApplicationController
           end
         end
 
-        format.json { render_json_ci_response(ok, @deployment) }
+        format.json {render_json_ci_response(ok, @deployment) }
       end
     end
   end
@@ -283,18 +288,22 @@ class Transition::DeploymentsController < ApplicationController
       load_approvals
       if @approvals.present?
         comments = cms_deployment[:comments]
-        govern_ci_map = Cms::Ci.all(:params => {:ids => @approvals.map(&:governCiId).join(',')}).
-          select {|ci| ci.ciAttributes.attributes['approval_auth_type'] == 'none'}.
-          to_map(&:ciId)
-        approvals_to_settle = @approvals.select {|a| a.state == 'pending' && govern_ci_map[a.governCiId]}.map do |a|
-          {:approvalId   => a.approvalId,
-           :deploymentId => @deployment.deploymentId,
-           :state        => approving ? 'approved' : 'rejected',
-           :expiresIn    => -1,
-           :comments     => "#{'!! ' if approving}#{comments}"}
+        approvals_to_settle = @approvals
+        if approving
+          govern_ci_map = Cms::Ci.all(:params => {:ids => @approvals.map(&:governCiId).join(',')}).
+            select {|ci| ci.ciAttributes.attributes['approval_auth_type'] == 'none'}.
+            to_map(&:ciId)
+          approvals_to_settle = approvals_to_settle.select {|a| a.state == 'pending' && govern_ci_map[a.governCiId]}
         end
 
         if approvals_to_settle.present?
+          approvals_to_settle = approvals_to_settle.map do |a|
+            {:approvalId   => a.approvalId,
+             :deploymentId => @deployment.deploymentId,
+             :state        => approving ? 'approved' : 'rejected',
+             :expiresIn    => -1,
+             :comments     => "#{'!! ' if approving}#{comments}"}
+          end
           ok, message = Cms::DeploymentApproval.settle(approvals_to_settle)
           @deployment.errors.add(:base, message) unless ok
         else
