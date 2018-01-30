@@ -25,12 +25,17 @@ import com.oneops.notification.NotificationMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class OneOpsFacade {
     private String cmsApiHost ;
     private final Logger log = LoggerFactory.getLogger(getClass());
+    private Gson gson;
 
     public OneOpsFacade() {
         readConfig();
+        gson = new Gson();
     }
 
     public void setCmsApiHost(String cmsApiHost) {
@@ -41,11 +46,29 @@ public class OneOpsFacade {
         cmsApiHost = System.getProperty("cms.api.host");
     }
 
-    public void forceDeploy(Environment env, String userName) {
+    public void forceDeploy(Environment env, Platform platform, String userName) {
+        Map<String, Platform> platformMap = env.getPlatforms();
+        if (platformMap == null || platformMap.size() == 0) {
+            return;
+        }
+
+        StringBuilder excludePlatforms = new StringBuilder();
+        if (platform != null) {
+            for (String platformName : platformMap.keySet()) {
+
+                if (! platformName.equals(platformName)) {
+                    if (excludePlatforms.length() > 0) excludePlatforms.append(",");
+                    excludePlatforms.append(platformMap.get(platformName).getId());
+                }
+            }
+        }
+        HashMap<String, String> params = new HashMap<>();
+        params.put("exclude", excludePlatforms.toString());
+
         log.info("deploying environment id: " + env.getId());
         HttpRequest request = HttpRequest.post("http://transistor." + cmsApiHost
                 + "/transistor/rest/environments/" + env.getId() + "/deployments/deploy")
-                .contentType("application/json").header("X-Cms-User", userName).send("{}");
+                .contentType("application/json").header("X-Cms-User", userName).send(gson.toJson(params));;
         String response = request.body();
         log.info("OO response : " + response);
     }
@@ -65,7 +88,7 @@ public class OneOpsFacade {
         String antennaUrl = "http://antenna." + cmsApiHost + ":8080/antenna/rest/notify/";
         log.info("sending notification on " + antennaUrl);
         HttpRequest request = HttpRequest.post(antennaUrl)
-                .contentType("application/json").send(new Gson().toJson(msg));
+                .contentType("application/json").send(gson.toJson(msg));
         return request.code();
     }
 }

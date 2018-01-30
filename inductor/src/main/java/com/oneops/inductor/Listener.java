@@ -31,8 +31,11 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.execution.Response;
+import com.oneops.cms.execution.Result;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -48,8 +51,10 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import org.apache.commons.httpclient.util.DateParseException;
+import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -77,6 +82,9 @@ public class Listener implements MessageListener, ApplicationContextAware {
   private WorkOrderExecutor workOrderExecutor;
   private ActionOrderExecutor actionOrderExecutor;
   private MetricRegistry registry;
+
+  @Autowired
+  ClassMatchingWoExecutor classMatchingWoExecutor;
 
   /**
    * allow it to run via cmdline
@@ -180,7 +188,15 @@ public class Listener implements MessageListener, ApplicationContextAware {
             wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
             preProcess(wo);
             wo.putSearchTag("rfcAction", wo.getAction());
-            responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
+            Response response = runWithMatchingExecutor(wo);
+            if (response == null || response.getResult() == Result.NOT_MATCHED) {
+              responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
+            }
+            else {
+              responseMsgMap = response.getResponseMap();
+              responseMsgMap.put("correlationID", correlationID);
+              postExecTags(wo);
+            }
             break;
           }
           // ActionOrder
@@ -222,9 +238,30 @@ public class Listener implements MessageListener, ApplicationContextAware {
     }
   }
 
+  private Response runWithMatchingExecutor(CmsWorkOrderSimpleBase wo) {
+    preExecTags(wo);
+    Response response;
+    if (config.isVerifyMode()) {
+      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo);
+    }
+    else {
+      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo);
+    }
+    return response;
+  }
+
   private void preProcess(CmsWorkOrderSimpleBase wo) {
     setStateFile(wo);
     setQueueTime(wo);
+  }
+
+  private void preExecTags(CmsWorkOrderSimpleBase wo) {
+    wo.putSearchTag("inductor", config.getIpAddr());
+  }
+
+  private void postExecTags(CmsWorkOrderSimpleBase wo) {
+    wo.putSearchTag(
+        CmsConstants.RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
   }
 
   private CmsWorkOrderSimpleBase getWorkOrderOf(String msgText, Class c) {

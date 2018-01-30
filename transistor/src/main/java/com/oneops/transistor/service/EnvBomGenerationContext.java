@@ -131,12 +131,15 @@ class EnvBomGenerationContext {
         return linksToRelations;
     }
 
-    PlatformBomGenerationContext getPlatformContext(CmsCI platform) {
+    PlatformBomGenerationContext loadPlatformContext(CmsCI platform) {
         long platformId = platform.getCiId();
         PlatformBomGenerationContext pc = platformContextMap.get(platformId);
         if (pc == null) {
             pc = new PlatformBomGenerationContext(platform, this, cmProcessor, cmsUtil);
             platformContextMap.put(platformId, pc);
+        }
+        else {
+            pc = new PlatformBomGenerationContext(pc, cmProcessor);  // have to partially reload because manifest CIs could be "dirty" after variable interpolation
         }
         return pc;
     }

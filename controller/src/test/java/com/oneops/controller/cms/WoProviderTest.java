@@ -20,10 +20,18 @@ package com.oneops.controller.cms;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.jms.JMSException;
 
+import com.oneops.cms.collections.CollectionProcessor;
+import com.oneops.cms.collections.def.CollectionLinkDefinition;
+import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.dj.service.CmsCmRfcMrgProcessor;
+import org.mockito.ArgumentMatcher;
+import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.testng.Assert;
@@ -43,6 +51,7 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsWorkOrder;
 import com.oneops.cms.util.CmsConstants;
 
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.*;
 
 public class WoProviderTest {
@@ -50,7 +59,9 @@ public class WoProviderTest {
 	private static ApplicationContext context;
 	
 	private CmsCmProcessor cmProcessor;
+	private CmsCmRfcMrgProcessor cmsCmRfcMrgProcessor;
 	private CmsWoProvider woProvider;
+	private CollectionProcessor colProcessor;
 
 	private Gson gson = new Gson();
 
@@ -61,10 +72,159 @@ public class WoProviderTest {
 	@BeforeClass
 	public void setUp() throws JMSException{
 		context = new ClassPathXmlApplicationContext("**/test-wo-context.xml");
-		cmProcessor = (CmsCmProcessor) context.getBean(CmsCmProcessor.class);
-		woProvider = (CmsWoProvider) context.getBean(CmsWoProvider.class);
+		cmProcessor = context.getBean(CmsCmProcessor.class);
+		woProvider = context.getBean(CmsWoProvider.class);
+		cmsCmRfcMrgProcessor = context.getBean(CmsCmRfcMrgProcessor.class);
+		colProcessor = context.getBean(CollectionProcessor.class);
 	}
-	
+
+	@Test
+	public void testGetWorkOrderManagedViaPayload() {
+		long computeBomCiId = 1235;
+		long computeManifestCiId = 1234;
+		long managedViaTemplateCiId = 1233;
+
+		long userBomCiId = 2235;
+		long userManifestCiId = 2234;
+		long userTemplateCiId = 2233;
+
+		CmsRfcCI managedViaCompute = new CmsRfcCI();//bom compute
+		managedViaCompute.setCiId(computeBomCiId);
+		managedViaCompute.setCiClassName("bom.Compute");
+
+		CmsRfcRelation relation = new CmsRfcRelation();
+		relation.setToRfcCi(managedViaCompute);
+
+		List<CmsRfcRelation> managedViaRels = new ArrayList<>();
+		managedViaRels.add(relation);
+
+		when(cmsCmRfcMrgProcessor.getFromCIRelations(anyLong(), Mockito.eq("bom.ManagedVia"), anyString(), anyString())).thenReturn(managedViaRels);
+
+		//mock the cmsdal realizedAs call to get the manifest ci for compute bom
+		List<CmsCIRelation> manifestComputeRelations = new ArrayList<>();
+		CmsCIRelation manifestComputeRelation = new CmsCIRelation();
+		manifestComputeRelation.setFromCiId(computeManifestCiId);
+		manifestComputeRelations.add(manifestComputeRelation);
+
+		when(cmProcessor.getToCIRelationsNakedNoAttrs(anyLong(), Mockito.eq("base.RealizedAs"), anyString(), anyString())).thenReturn(manifestComputeRelations);
+
+		//mock cmsdal getPayloadDef
+		CollectionLinkDefinition collLinkDef = new CollectionLinkDefinition();
+		collLinkDef.setTargetCiName("os");//just to indentify
+
+		List<CmsCIRelation> managedViasPayloadRels = new ArrayList<>();
+		CmsCIRelation managedViasPayloadRel = new CmsCIRelation();
+		CmsCI payloadDef = new CmsCI();
+		payloadDef.setCiName("os");
+		CmsCIAttribute payloadDefString = new CmsCIAttribute();
+		payloadDefString.setAttributeName("definition");
+		payloadDefString.setDfValue(gson.toJson(collLinkDef));
+		payloadDef.addAttribute(payloadDefString);
+		managedViasPayloadRel.setToCi(payloadDef);
+		managedViasPayloadRels.add(managedViasPayloadRel);
+
+		when(cmProcessor.getFromCIRelations(managedViaTemplateCiId, "mgmt.manifest.Payload", "mgmt.manifest.Qpath")).thenReturn(managedViasPayloadRels);
+
+		//now for user ci payload
+		CollectionLinkDefinition userCollLinkDef = new CollectionLinkDefinition();
+		userCollLinkDef.setTargetCiName("userPayload");//just to indentify
+
+		List<CmsCIRelation> userPayloadRels = new ArrayList<>();
+		CmsCIRelation userPayloadRel = new CmsCIRelation();
+		CmsCI userPayloadDef = new CmsCI();
+		userPayloadDef.setCiName("userPayload");
+		CmsCIAttribute userPayloadDefString = new CmsCIAttribute();
+		userPayloadDefString.setAttributeName("definition");
+		userPayloadDefString.setDfValue(gson.toJson(userCollLinkDef));
+		userPayloadDef.addAttribute(userPayloadDefString);
+		userPayloadRel.setToCi(userPayloadDef);
+		userPayloadRels.add(userPayloadRel);
+		when(cmProcessor.getFromCIRelations(userTemplateCiId, "mgmt.manifest.Payload", "mgmt.manifest.Qpath")).thenReturn(userPayloadRels);
+
+		//colprocessor
+		List<CmsRfcCI> osCis = new ArrayList<>();
+		CmsRfcCI osCi = new CmsRfcCI();
+		osCis.add(osCi);
+		osCi.setCiName("os-bom-ci");
+
+		//payload result for user ci
+		List<CmsRfcCI> userCis = new ArrayList<>();
+		CmsRfcCI userCi = new CmsRfcCI();
+		userCis.add(userCi);
+		userCi.setCiName("user-bom-ci");
+		userCi.setCiId(userBomCiId);
+
+		when(colProcessor.getFlatCollectionRfc(anyLong(), argThat(new OsCollectionLinkDefinitionMatcher()))).thenReturn(osCis);
+		when(colProcessor.getFlatCollectionRfc(anyLong(), argThat(new UserCollectionLinkDefinitionMatcher()))).thenReturn(userCis);
+
+		CmsWorkOrder wo = new CmsWorkOrder();
+		HashMap<Long, CmsCI> manifestToTemplateMap = new HashMap<>();
+		CmsRfcCI userManifestRfcCi = new CmsRfcCI();
+
+		userManifestRfcCi.setCiId(userManifestCiId);
+		wo.addPayLoadEntry("RealizedAs", userManifestRfcCi);
+
+		CmsCI userManifestCi = new CmsCI();
+		userManifestCi.setCiId(userManifestCiId);
+		CmsCI userTemplateCi = new CmsCI();
+		userTemplateCi.setCiId(userTemplateCiId);
+		//mock the cmsdal getTemplateObj
+		CmsCI managedViaTemplateCi = new CmsCI();
+		managedViaTemplateCi.setCiId(managedViaTemplateCiId);
+		when(cmProcessor.getTemplateObjForManifestObj(Mockito.eq(userManifestCi), anyObject())).thenReturn(userTemplateCi);
+		when(cmProcessor.getTemplateObjForManifestObj(argThat(new ComputeManifestCiMatcher()), anyObject())).thenReturn(managedViaTemplateCi);
+
+		when(cmProcessor.getCiById(userManifestCiId)).thenReturn(userManifestCi);
+
+		HashMap<String, String> vars = new HashMap<>();
+		wo.setRfcCi(userCi);
+		woProvider.processCustomPayloads(wo, manifestToTemplateMap, null, vars, vars, vars);
+		Assert.assertEquals(wo.getPayLoad().get("os").get(0).getCiName(), "os-bom-ci");
+		Assert.assertEquals(wo.getPayLoad().get("userPayload").get(0).getCiName(), "user-bom-ci");
+
+		//now assert that the os payload is not overwritten if the payloadName is same for current ci and its compute
+		wo = new CmsWorkOrder();
+		wo.setRfcCi(userCi);
+		manifestToTemplateMap = new HashMap<>();
+		wo.addPayLoadEntry("RealizedAs", userManifestRfcCi);
+		userPayloadDef.setCiName("os");
+		woProvider.processCustomPayloads(wo, manifestToTemplateMap, null, vars, vars, vars);
+		Assert.assertEquals(wo.getPayLoad().get("os").get(0).getCiName(), "user-bom-ci");
+	}
+
+	public class ComputeManifestCiMatcher extends ArgumentMatcher<CmsCI> {
+		@Override
+		public boolean matches(Object object) {
+			if (object instanceof CmsCI) {
+				CmsCI obj = (CmsCI) object;
+				return obj.getCiId() == 1234;
+			}
+			return false;
+		}
+	}
+
+	public class OsCollectionLinkDefinitionMatcher extends ArgumentMatcher<CollectionLinkDefinition> {
+		@Override
+		public boolean matches(Object object) {
+			if (object instanceof CollectionLinkDefinition) {
+				CollectionLinkDefinition obj = (CollectionLinkDefinition) object;
+				return obj.getTargetCiName().equalsIgnoreCase("os");
+			}
+			return false;
+		}
+	}
+
+	public class UserCollectionLinkDefinitionMatcher extends ArgumentMatcher<CollectionLinkDefinition> {
+		@Override
+		public boolean matches(Object object) {
+			if (object instanceof CollectionLinkDefinition) {
+				CollectionLinkDefinition obj = (CollectionLinkDefinition) object;
+				return obj.getTargetCiName().equalsIgnoreCase("userPayload");
+			}
+			return false;
+		}
+	}
+
 	@Test
 	public void testWoComplianceObject() {
 		CmsWorkOrder wo = getTestWorkOrder();

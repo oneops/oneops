@@ -18,8 +18,10 @@
 package com.oneops.transistor.service;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.*;
 import com.oneops.transistor.util.CloudUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -45,16 +47,18 @@ import static java.util.stream.Collectors.toSet;
 public class BomManagerImpl implements BomManager {
 	private static final Logger logger = Logger.getLogger(BomManagerImpl.class);
 
+	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
+	private static final boolean check4Services = Boolean.valueOf(getProperty("transistor.checkServices", "true"));
+
 	private CmsCmProcessor cmProcessor;
-	private CmsRfcProcessor rfcProcessor;
-	private BomRfcBulkProcessor bomRfcProcessor;
+	private CmsRfcProcessor manifestRfcProcessor;
+	private CmsRfcProcessor bomRfcProcessor;
+	private BomRfcBulkProcessor bomGenerationProcessor;
 	private TransUtil trUtil;
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
 	private CloudUtil cloudUtil;
-
-	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
-	private static final boolean check4Services = Boolean.valueOf(getProperty("transistor.checkServices", "true"));
+	private Gson gson = new Gson();
 
 	public void setCloudUtil(CloudUtil cloudUtil) {
 		this.cloudUtil = cloudUtil;
@@ -72,12 +76,16 @@ public class BomManagerImpl implements BomManager {
 		this.cmProcessor = cmProcessor;
 	}
 
-	public void setRfcProcessor(CmsRfcProcessor rfcProcessor) {
-		this.rfcProcessor = rfcProcessor;
+	public void setManifestRfcProcessor(CmsRfcProcessor manifestRfcProcessor) {
+		this.manifestRfcProcessor = manifestRfcProcessor;
 	}
 
-	public void setBomRfcProcessor(BomRfcBulkProcessor bomRfcProcessor) {
+	public void setBomRfcProcessor(CmsRfcProcessor bomRfcProcessor) {
 		this.bomRfcProcessor = bomRfcProcessor;
+	}
+
+	public void setBomGenerationProcessor(BomRfcBulkProcessor bomGenerationProcessor) {
+		this.bomGenerationProcessor = bomGenerationProcessor;
 	}
 
 	public void setDpmtProcessor(CmsDpmtProcessor dpmtProcessor) {
@@ -85,28 +93,28 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public long generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
-		long releaseId = generateBom(envId, userId, excludePlats, desc, commit);
-		if (releaseId > 0) {
-			return submitDeployment(releaseId, userId, desc);
-		} else {
-			return 0;
+	public CmsRelease generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
+		CmsRelease bomRelease = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
+		if (bomRelease != null) {
+			dpmt.setNsPath(bomRelease.getNsPath());
+			dpmt.setReleaseId(bomRelease.getReleaseId());
+			dpmt.setCreatedBy(userId);
+			dpmtProcessor.deployRelease(dpmt);
 		}
+		return bomRelease;
 	}
 
 	@Override
-	public long generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+	public CmsRelease generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		return generateBomForClouds(envId, userId, excludePlats, desc, commit);
 	}
 
-	private long generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+	private CmsRelease generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		long startTime = System.currentTimeMillis();
 
-		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, excludePlats, userId, cmProcessor, cmsUtil, rfcProcessor);
+		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, excludePlats, userId, cmProcessor, cmsUtil, bomRfcProcessor);
 		String manifestNsPath = context.getManifestNsPath();
 		String bomNsPath = context.getBomNsPath();
-
-		check4openDeployment(bomNsPath);
 
 		trUtil.verifyAndCreateNS(bomNsPath);
 		trUtil.lockNS(bomNsPath);
@@ -117,11 +125,11 @@ public class BomManagerImpl implements BomManager {
 		}
 
 		//if we have an open bom release then return the release id
-		List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
+		List<CmsRelease> bomReleases = bomRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 		if (bomReleases.size() > 0) {
-			long bomReleaseId = bomReleases.get(0).getReleaseId();
-			logger.info("Existing open bom release " + bomReleaseId + " found, returning it");
-			return bomReleaseId;
+			CmsRelease bomRelease = bomReleases.get(0);
+			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
+			return bomRelease;
 		}
 
 		context.load();
@@ -131,29 +139,17 @@ public class BomManagerImpl implements BomManager {
 
 		long rfcCiCount = 0;
 		long rfcRelCount = 0;
-		long releaseId = getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "open");
+		CmsRelease bomRelease = updateParentReleaseId(bomNsPath, manifestNsPath, "open");
+		long releaseId = bomRelease == null ? 0 : bomRelease.getReleaseId();
 		if (releaseId > 0) {
-			rfcProcessor.brushExecOrder(releaseId);
-			rfcCiCount = rfcProcessor.getRfcCiCount(releaseId);
-			rfcRelCount = rfcProcessor.getRfcRelationCount(releaseId);
-
-//			if (logger.isInfoEnabled()) {
-			if (logger.isDebugEnabled()) {
-				String rfcs = rfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
-						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getCiClassName() + " !! " + rfc.getCiName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
-						.sorted(String::compareTo)
-						.collect(Collectors.joining("\n", "", "\n"));
-				rfcs = rfcProcessor.getRfcRelationBy3(releaseId, true, null).stream()
-						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size() + " -- " + rfc.getComments())
-						.sorted(String::compareTo)
-						.collect(Collectors.joining("\n", rfcs, ""));
-				logger.debug(rfcs);
-//				System.out.println(rfcs);
-			}
+			bomRfcProcessor.brushExecOrder(releaseId);
+			rfcCiCount = bomRfcProcessor.getRfcCiCount(releaseId);
+			rfcRelCount = bomRfcProcessor.getRfcRelationCount(releaseId);
 
 			if (rfcCiCount == 0) {
 				logger.info("No release because rfc count is 0. Cleaning up release.");
-				rfcProcessor.deleteRelease(releaseId);
+				bomRfcProcessor.deleteRelease(releaseId);
+				bomRelease = null;
 			}
 		}
 		else {
@@ -162,11 +158,37 @@ public class BomManagerImpl implements BomManager {
 				cmProcessor.deleteCI(localVar.getCiId(), true, userId);
 			}
 			//if there is nothing to deploy update parent release on latest closed bom release
-			getPopulateParentAndGetReleaseId(bomNsPath, manifestNsPath, "closed");
+			updateParentReleaseId(bomNsPath, manifestNsPath, "closed");
 		}
 
-		logger.info(bomNsPath + " >>> Generated BOM in " + (System.currentTimeMillis() - startTime) + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
-		return releaseId;
+		long duration = System.currentTimeMillis() - startTime;
+		logger.info(bomNsPath + " >>> Generated BOM in " + duration + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
+
+		if (bomRelease != null) {
+			Map<String, Object> bomReleaseDesc = new HashMap<>();
+			bomReleaseDesc.put("rfcCiCount", rfcCiCount);
+			bomReleaseDesc.put("rfcRelationCount", rfcRelCount);
+			bomReleaseDesc.put("manifestCommit", commit);
+			bomReleaseDesc.put("generationTime", duration);
+			bomRelease.setDescription(gson.toJson(bomReleaseDesc));
+			bomRfcProcessor.updateRelease(bomRelease);
+
+//			if (logger.isInfoEnabled()) {
+			if (logger.isDebugEnabled()) {
+				String rfcs = bomRfcProcessor.getRfcCIBy3(releaseId, true, null).stream()
+						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getCiClassName() + " !! " + rfc.getCiName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size())
+						.sorted(String::compareTo)
+						.collect(Collectors.joining("\n", "", "\n"));
+				rfcs = bomRfcProcessor.getRfcRelationBy3(releaseId, true, null).stream()
+						.map(rfc -> rfc.getNsPath() + " " + rfc.getExecOrder() + " !! " + rfc.getRelationName() + " -- " + rfc.getRfcAction() + " -- " + rfc.getAttributes().size() + " -- " + rfc.getComments())
+						.sorted(String::compareTo)
+						.collect(Collectors.joining("\n", rfcs, ""));
+				logger.debug(rfcs);
+//				System.out.println(rfcs);
+			}
+
+		}
+		return bomRelease;
 	}
 
 	private int generateBomForActiveClouds(EnvBomGenerationContext context) {
@@ -195,7 +217,7 @@ public class BomManagerImpl implements BomManager {
 					}
 
 					if (checkSecondary) {
-						check4Secondary(new PlatformBomGenerationContext(platform, context, cmProcessor, cmsUtil), platformCloudRels);
+						check4Secondary(context.loadPlatformContext(platform), platformCloudRels);
 					} else {
 						logger.info("check secondary not configured.");
 					}
@@ -212,12 +234,14 @@ public class BomManagerImpl implements BomManager {
 									continue;
 								}
 
-								PlatformBomGenerationContext platformContext = new PlatformBomGenerationContext(platform, context, cmProcessor, cmsUtil);
+								// Must load platform context again in case it was dirty after variable interpolation - the 'loadPlatformContext'
+								// is smart to do partial reload if necessary.
+								PlatformBomGenerationContext platformContext = context.loadPlatformContext(platform);
 								int maxExecOrder;
 								if (context.getDisabledPlatformIds().contains(platform.getCiId()) || platform.getCiState().equalsIgnoreCase("pending_deletion")) {
-									maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
+									maxExecOrder = bomGenerationProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
 								} else {
-									maxExecOrder = bomRfcProcessor.processManifestPlatform(context, platformContext, platformCloudRel, platExecOrder, true);
+									maxExecOrder = bomGenerationProcessor.processManifestPlatform(context, platformContext, platformCloudRel, platExecOrder, true);
 								}
 								stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
 								thisPlatMaxExecOrder = (maxExecOrder > thisPlatMaxExecOrder) ? maxExecOrder : thisPlatMaxExecOrder;
@@ -252,11 +276,12 @@ public class BomManagerImpl implements BomManager {
 			return;
 		}
 
+		Function<CmsCIRelation, Integer> getPriority = (deployedTo) -> deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);
 		CmsCIRelation entryPoint = entryPoints.get(0);
 		//get manifest clouds and priority; what is intended
 		Map<Long, Integer> intendedCloudPriority = platformCloudRels.stream()
 				.filter(cloudUtil::isCloudActive)
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> i));
+				.collect(toMap(CmsCIRelationBasic::getToCiId, getPriority, (i, j) -> i));
 		//are there any secondary clouds for deployment
 		long numberOfSecondaryClouds = intendedCloudPriority.entrySet().stream()
 				.filter(entry -> (entry.getValue().equals(SECONDARY_CLOUD_STATUS)))
@@ -268,8 +293,8 @@ public class BomManagerImpl implements BomManager {
 		String entryPointClass = trUtil.getShortClazzName(entryPoint.getToCi().getCiClassName());
 		Set<Long> cloudIds = platformCloudRels.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet());
 		Map<Long, Integer> existingCloudPriority = context.getBomRelations().stream()
-				.filter(r -> cloudIds.contains(r.getToCiId()) && r.getFromCi().getCiClassName().equals(entryPointClass))
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, Math::max));
+				.filter(r -> cloudIds.contains(r.getToCiId()) && r.getRelationName().equals(DEPLOYED_TO) && trUtil.getShortClazzName(r.getFromCi().getCiClassName()).equals(entryPointClass))
+				.collect(toMap(CmsCIRelationBasic::getToCiId, getPriority, Math::max));
 
 		HashMap<Long, Integer> computedCloudPriority = new HashMap<>(existingCloudPriority);
 		computedCloudPriority.putAll(intendedCloudPriority);
@@ -277,7 +302,7 @@ public class BomManagerImpl implements BomManager {
 		//Now, take  all offline clouds from
 		Map<Long, Integer> offlineClouds = platformCloudRels.stream()
 				.filter(cloudUtil::isCloudOffline)
-				.collect(toMap(CmsCIRelationBasic::getToCiId, this::getPriority, (i, j) -> i));
+				.collect(toMap(CmsCIRelationBasic::getToCiId, getPriority, (i, j) -> i));
 		if(!offlineClouds.isEmpty()){
 			offlineClouds.forEach((k,v)->{
 				if(computedCloudPriority.containsKey(k)){
@@ -291,8 +316,7 @@ public class BomManagerImpl implements BomManager {
 			//throw transistor exception
 			String message;
 			String clouds = platformCloudRels.stream()
-					.filter(rel->!cloudUtil.isCloudActive(rel))
-					.filter(rel -> (getPriority(rel) == PRIMARY_CLOUD_STATUS))
+					.filter(rel-> !cloudUtil.isCloudActive(rel) && (getPriority.apply(rel) == PRIMARY_CLOUD_STATUS))
 					.map(rel -> rel.getToCi().getCiName())
 					.collect(joining(","));
 
@@ -304,10 +328,6 @@ public class BomManagerImpl implements BomManager {
 
 			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
-	}
-
-	private Integer getPriority(CmsCIRelation deployedTo) {
-		return deployedTo.getAttribute("priority") != null ? Integer.valueOf(deployedTo.getAttribute("priority").getDjValue()) : Integer.valueOf(0);
 	}
 
 	private int generateBomForOfflineClouds(EnvBomGenerationContext context, int startingExecOrder) {
@@ -338,7 +358,7 @@ public class BomManagerImpl implements BomManager {
 							for (CmsCIRelation platformCloudRel : orderCloud) {
 								CmsCIRelationAttribute adminstatus = platformCloudRel.getAttribute("adminstatus");
 								if (adminstatus != null && CmsConstants.CLOUD_STATE_OFFLINE.equals(adminstatus.getDjValue())) {
-									int maxExecOrder = bomRfcProcessor.deleteManifestPlatform(context, context.getPlatformContext(platform), platformCloudRel, platExecOrder);
+									int maxExecOrder = bomGenerationProcessor.deleteManifestPlatform(context, context.loadPlatformContext(platform), platformCloudRel, platExecOrder);
 									stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
 								}
 							}
@@ -386,7 +406,7 @@ public class BomManagerImpl implements BomManager {
 
 	@Override
 	public long submitDeployment(long releaseId, String userId, String desc){
-		CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
+		CmsRelease bomRelease = bomRfcProcessor.getReleaseById(releaseId);
 		CmsDeployment dpmt = new CmsDeployment();
 		dpmt.setNsPath(bomRelease.getNsPath());
 		dpmt.setReleaseId(bomRelease.getReleaseId());
@@ -399,16 +419,15 @@ public class BomManagerImpl implements BomManager {
 		return newDpmt.getDeploymentId();
 	}
 
-	private long getPopulateParentAndGetReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
-		List<CmsRelease> releases = rfcProcessor.getLatestRelease(nsPath, bomReleaseState);
-		if (releases.size() >0) {
-			CmsRelease bomRelease = releases.get(0);
-			List<CmsRelease> manifestReleases = rfcProcessor.getLatestRelease(manifestNsPath, "closed");
-			if (manifestReleases.size()>0) bomRelease.setParentReleaseId(manifestReleases.get(0).getReleaseId());
-			rfcProcessor.updateRelease(bomRelease);
-			return bomRelease.getReleaseId();
-		}
-		return 0;
+	private CmsRelease updateParentReleaseId(String nsPath, String manifestNsPath, String bomReleaseState) {
+		List<CmsRelease> releases = bomRfcProcessor.getLatestRelease(nsPath, bomReleaseState);
+		if (releases.size() == 0) return null;
+
+		CmsRelease bomRelease = releases.get(0);
+		List<CmsRelease> manifestReleases = manifestRfcProcessor.getLatestRelease(manifestNsPath, "closed");
+		if (manifestReleases.size() > 0) bomRelease.setParentReleaseId(manifestReleases.get(0).getReleaseId());
+		bomRfcProcessor.updateRelease(bomRelease);
+		return bomRelease;
 	}
 
 	Map<Integer, List<CmsCI>> getOrderedPlatforms(EnvBomGenerationContext context) {
@@ -461,9 +480,9 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	private void commitManifestRelease(String manifestNsPath, String bomNsPath, String userId, String desc) {
-		List<CmsRelease> manifestReleases = rfcProcessor.getReleaseBy3(manifestNsPath, null, "open");
+		List<CmsRelease> manifestReleases = manifestRfcProcessor.getReleaseBy3(manifestNsPath, null, "open");
 		for (CmsRelease release : manifestReleases) {
-			rfcProcessor.commitRelease(release.getReleaseId(), true, null,false,userId, desc);
+			manifestRfcProcessor.commitRelease(release.getReleaseId(), true, null,false,userId, desc);
 		}
 		// now we have a special case for the LinksTo relations
 		// since nothing is really deleted but just marked as pending deletion until the bom is processed
@@ -475,11 +494,11 @@ public class BomManagerImpl implements BomManager {
 		}
 
 		//if we have new manifest release - discard open bom release
-		if (manifestReleases.size()>0) {
-			List<CmsRelease> bomReleases = rfcProcessor.getReleaseBy3(bomNsPath, null, "open");
+		if (manifestReleases.size() > 0) {
+			List<CmsRelease> bomReleases = manifestRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 			for (CmsRelease bomRel : bomReleases) {
 				bomRel.setReleaseState("canceled");
-				rfcProcessor.updateRelease(bomRel);
+				manifestRfcProcessor.updateRelease(bomRel);
 			}
 		}
 	}

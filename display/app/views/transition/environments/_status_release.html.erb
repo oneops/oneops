@@ -27,15 +27,7 @@
           </li>
         <% end %>
         <% if compiling %>
-          <li>
-            <div class="alert alert-warning">You can not commit or discard while deployment plan generation is in
-              progress.
-            </div>
-          </li>
-        <% elsif deploying %>
-          <li>
-            <div class="alert alert-warning">You can not commit while deployment is in progress.</div>
-          </li>
+          <li><div class="alert alert-warning">You can not commit or discard while deployment preparation is in progress.</div></li>
         <% end %>
         <% error_prefix = 'ERROR:BOM:' %>
         <% if comments.present? && comments.start_with?(error_prefix) %>
@@ -61,10 +53,10 @@
             <% end %>
           </li>
           <li>
-            <% if compiling || deploying %>
+            <% if compiling %>
               <%= button('Commit', nil, 'success disabled') %>
             <% else %>
-              <%= render 'transition/commit_and_deploy_prompt', :platforms => @platforms.map(&:toCi) %>
+              <%= render 'transition/commit_and_deploy_prompt', :button_label => deploying ? 'Commit' : 'Commit & Deploy', :platforms => @platforms.map(&:toCi) %>
             <% end %>
           </li>
         <% end %>

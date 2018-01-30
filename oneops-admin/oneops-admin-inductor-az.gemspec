@@ -35,6 +35,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'rack', '= 1.6.8'
   s.add_dependency 'json', '= 1.8.6'
   s.add_dependency 'fog', '= 1.38.0'
+  s.add_dependency 'fog-openstack', '= 0.1.21'
   s.add_dependency 'ffi', '= 1.9.10'
   s.add_dependency 'nokogiri', '~> 1.6.0'
   s.add_dependency 'ohai', '= 7.4.1'

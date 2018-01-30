@@ -218,17 +218,14 @@ class Cloud::ServicesController < ApplicationController
   end
 
   def available
-    @service_classes = Cms::Ci.all(:params => {:nsPath      => '/public',
-                                               :ciClassName => 'mgmt.Cloud',
-                                               :recursive   => true}).inject({}) do |m, cloud|
-      Cms::Relation.all(:params => {:ciId              => cloud.ciId,
-                                    :direction         => 'from',
-                                    :relationShortName => 'Provides',
-                                    :recursive         => true}).each do |r|
-        type = r.relationAttributes.service
-        m[type] ||= []
-        m[type] << r.toCi
-      end
+    @service_classes = Cms::Relation.all(:params => {:nsPath            => '/public',
+                                                     :relationShortName => 'Provides',
+                                                     :fromClassName     => 'mgmt.Cloud',
+                                                     :includeToCi       => true,
+                                                     :recursive         => true}).inject({}) do |m, r|
+      type = r.relationAttributes.service
+      m[type] ||= []
+      m[type] << r.toCi
       m
     end
     render :json => @service_classes

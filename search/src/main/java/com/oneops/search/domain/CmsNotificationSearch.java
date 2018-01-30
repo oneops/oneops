@@ -52,7 +52,7 @@ public class CmsNotificationSearch extends NotificationMessage {
 	 * 
 	 * @param payload
 	 */
-	public void setPayload(Map<String,String> payload){
+	public void setPayload(Map<String,Object> payload){
 		this.getPayload().putAll(payload);
 	}
 

@@ -60,8 +60,6 @@ Display::Application.routes.draw do
       get  'cost'
       get 'deployment_to_all_primary_check'
       put 'deployment_to_all_primary_check'
-      get 'obsolete_users'
-      delete 'obsolete_users'
 
       get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
@@ -476,12 +474,14 @@ Display::Application.routes.draw do
           end
 
           resources :deployments, :only => [:new, :create, :edit, :update, :show, :index] do
-            get 'latest',         :on => :collection
-            get 'status',         :on => :member
-            post 'status',        :on => :member
-            get 'compile_status', :on => :collection
-            get 'log_data',       :on => :member
-            get 'preview',        :on => :collection
+            get  'latest',         :on => :collection
+            get  'compile_status', :on => :collection
+            post 'compile_status', :on => :collection
+            get  'bom',            :on => :collection
+            post 'bom',            :on => :collection
+            get  'status',         :on => :member
+            post 'status',         :on => :member
+            get  'log_data',       :on => :member
 
             resources :approvals, :only => [:index] do
               put 'settle', :on => :collection

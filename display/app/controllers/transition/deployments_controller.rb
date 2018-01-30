@@ -120,7 +120,7 @@ class Transition::DeploymentsController < ApplicationController
 
   def show
     @release = Cms::ReleaseBom.find(@deployment.releaseId)
-    release_rfc_cis = @release.rfc_cis.inject({}) {|h, c| h.update(c.rfcId => c) }
+    release_rfc_cis = @release.rfc_cis.inject({}) {|h, c| h.update(c.rfcId => c)}
     @rfc_cis = @deployment.rfc_cis.collect { |rfc| release_rfc_cis[rfc.rfcId].deployment = rfc; release_rfc_cis[rfc.rfcId] }
     release_rfc_relations = @release.rfc_relations.inject({}) {|h, c| h.update(c.rfcId => c) }
     @rfc_relations = @deployment.rfc_relations.collect { |rfc| release_rfc_relations[rfc.rfcId].deployment = rfc; release_rfc_relations[rfc.rfcId] }
@@ -143,31 +143,61 @@ class Transition::DeploymentsController < ApplicationController
     end
   end
 
+  def bom
+    data = nil
+    if @environment.ciState == 'locked'
+      message = 'Cannot commit while deployment preparation is in progress.'
+    elsif @environment.ciState == 'manifest_locked'
+      message = 'Cannot commit while design pull is in progress.'
+    else
+      data, message = Transistor.preview_bom(@environment.ciId,
+                                             :commit      => params[:commit] == 'true',
+                                             :description => params[:desc],
+                                             :exclude     => params[:exclude_platforms],
+                                             :includeRFCs => 'cis',
+                                             :cost        => request.xhr? ? true : params[:cost] == 'true',
+                                             :capacity    => params[:capacity] == 'true')
+    end
+
+    respond_to do |format|
+      format.js do
+        if data
+          @rfc_cis = data['rfcs']['cis']
+          if @rfc_cis.present?
+            @manifest = Cms::Release.find(data['release'].parentReleaseId)
+            @deployment = Cms::Deployment.build(:nsPath => environment_bom_ns_path(@environment))
+            @last_deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
+            load_clouds_and_platforms
+            load_ops_state_data
+            check_for_override
+            @cost, _ = data['cost']
+          end
+        else
+          flash[:error] = message
+          render :js => 'hide_modal();'
+        end
+      end
+
+      format.json {render_json_ci_response(data.present?, data, [message])}
+    end
+  end
+
   def new
     compile_status
     render :action => :edit
   end
 
   def compile_status
+    # TODO - deprecated (old way)
     if @environment.ciState != 'locked' && (@environment.comments.blank? || !@environment.comments.start_with?('ERROR:'))
       find_open_bom_release
-      if request.format.json?
-        if @release
-          @release.rfcs = {:cis => @release.rfc_cis, :relations => @release.rfc_relations}
-          @environment.bom = @release
-        end
-        render_json_ci_response(true, @environment)
-      else
       if @release
-        # Deployment might have been already started in a separate browser session.
         @deployment = Cms::Deployment.latest(:releaseId => @release.releaseId)
-        @deployment = Cms::Deployment.build(:releaseId => @release.releaseId) unless @deployment && @deployment.deploymentState == 'active'
+        load_state_history
+        load_approvals
         load_bom_release_data
 
         @manifest = Cms::Release.find(@release.parentReleaseId)
-        check_for_override
-        @cost, _ = Transistor.environment_cost(@environment, true, false)
-        end
       end
     end
   end
@@ -176,30 +206,51 @@ class Transition::DeploymentsController < ApplicationController
     deployment_hash   = params[:cms_deployment]
     override_password = deployment_hash.delete(:override_password)
     @deployment       = Cms::Deployment.build(deployment_hash)
-    ok                = true
 
-    if check_for_override
-      ok = current_user.authenticate(override_password)
-      @deployment.errors.add(:base, 'invalid password, you must provide valid password to proceed') unless ok
-    end
-
-    ok = execute(@deployment, :save) if ok
-
-    respond_to do |format|
-      format.js do
-        if ok
-          @release = Cms::ReleaseBom.find(@deployment.releaseId)
-          load_state_history
-          load_approvals
-          load_bom_release_data
-          render :action => :edit
+    release_id = deployment_hash[:releaseId]
+    if release_id.blank?
+      ok = verify_override(override_password)
+      if ok
+        deployment = Cms::Deployment.latest(:nsPath => environment_bom_ns_path(@environment))
+        if @environment.ciState == 'locked' ||
+            (deployment && %w(active paused failed).include?(@deployment.deploymentState))
+          ok = false
+          @environment.errors.add('Cannot deploy: there is already an active deployment in progress for this environment.')
         else
-          flash[:error] = "Failed to create deployment: #{@deployment.errors.full_messages.join(';')}."
-          render :js => ''
+          ok, message = Transistor.deploy(@environment.ciId, @deployment, params[:exclude_platforms])
+          if ok
+            @environment.ciState = 'locked'
+            @deployment = nil
+          else
+            @environment.errors.add(:base, message)
+          end
         end
       end
 
-      format.json { render_json_ci_response(ok, @deployment) }
+      respond_to do |format|
+        format.js {flash[:error] = @environment.errors.full_messages.join(';') unless ok}
+        format.json { render_json_ci_response(ok, @environment, message) }
+      end
+    else
+      # TODO - deprecated (old way)
+      ok = verify_override(override_password)
+      ok = execute(@deployment, :save) if ok
+      respond_to do |format|
+        format.js do
+          if ok
+            @release = Cms::ReleaseBom.find(@deployment.releaseId)
+            load_state_history
+            load_approvals
+            load_bom_release_data
+            render :action => :edit
+          else
+            flash[:error] = "Failed to create deployment: #{@deployment.errors.full_messages.join(';')}."
+            render :js => ''
+          end
+        end
+
+        format.json {render_json_ci_response(ok, @deployment) }
+      end
     end
   end
 
@@ -224,28 +275,36 @@ class Transition::DeploymentsController < ApplicationController
   end
 
   def update
-    # TODO 7/27/2015  This is just a temp code for backward compatibility to mimic old-style deploymet approvals/rejection by
-    # auto approving/rejecting all pending approval records.  This should be removed eventually.  All deployment
-    # approvals/rejections should be done via new deployment approval record settling.
     cms_deployment = params[:cms_deployment]
     deployment_state = cms_deployment[:deploymentState]
 
+    # TODO 7/27/2015  This is just a temp code for backward compatibility to mimic old-style deployment approvals/rejection by
+    # auto approving/rejecting all pending approval records.  This should be removed eventually.  All deployment
+    # approvals/rejections should be done via new deployment approval record settling.
+    # 01/29/2018  While old-style approval should be removed, meanwhile adding "approval_token" check to ensure this will work
+    # for "unsecured" support/compliance governing CIs.
     approving = deployment_state == 'active'
     if @deployment.deploymentState == 'pending' && (approving || deployment_state == 'canceled')
-      comments = cms_deployment[:comments]
       load_approvals
       if @approvals.present?
-        approvals_to_settle = @approvals.select {|a| a.state == 'pending'}.map do |a|
-          {:approvalId   => a.approvalId,
-           :deploymentId => @deployment.deploymentId,
-           :state        => approving ? 'approved' : 'rejected',
-           :expiresIn    => 1,
-           :comments     => "#{'!! ' if approving}#{comments}"}
-        end
+        govern_ci_map = Cms::Ci.all(:params => {:ids => @approvals.map(&:governCiId).join(',')}).
+          select {|ci| ci.ciAttributes.attributes['approval_auth_type'] == 'none'}.
+          to_map(&:ciId)
+        approvals_to_settle = @approvals.select {|a| a.state == 'pending' && govern_ci_map[a.governCiId]}
 
         if approvals_to_settle.present?
+          comments = cms_deployment[:comments]
+          approvals_to_settle = approvals_to_settle.map do |a|
+            {:approvalId   => a.approvalId,
+             :deploymentId => @deployment.deploymentId,
+             :state        => approving ? 'approved' : 'rejected',
+             :expiresIn    => -1,
+             :comments     => "#{'!! ' if approving}#{comments}"}
+          end
           ok, message = Cms::DeploymentApproval.settle(approvals_to_settle)
           @deployment.errors.add(:base, message) unless ok
+        elsif !approving
+          ok = execute(@deployment, :update_attributes, cms_deployment)
         else
           ok = true
         end
@@ -306,23 +365,13 @@ class Transition::DeploymentsController < ApplicationController
     end
   end
 
-  def preview
-    flags = params.slice(:cost, :capacity).keys.select {|k| params[k] != 'false'}
-    data, error = Transistor.deployment_plan_preview(@environment, *flags)
-      if data
-        render :json => data
-      else
-        render :json => {:errors => [error]}, :status => :internal_server_error
-        return
-      end
-  end
-
 
   protected
 
   def read_only_request?
     action_name == 'status' || action_name == 'log_data' || super
   end
+
 
   private
 
@@ -432,5 +481,12 @@ class Transition::DeploymentsController < ApplicationController
       end
     end
     @override = {:SIMULTANEOUS_DEPLOYMENT_TO_ALL_PRIMARY => {:platforms => platforms}} if platforms.present?
+  end
+
+  def verify_override(override_password)
+    return true unless check_for_override
+    ok = current_user.authenticate(override_password)
+    @deployment.errors.add(:base, 'invalid password, you must provide valid password to proceed') unless ok
+    ok
   end
 end
