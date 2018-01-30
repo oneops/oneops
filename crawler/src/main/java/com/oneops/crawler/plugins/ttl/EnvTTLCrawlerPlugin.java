@@ -282,9 +282,11 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     private void sendTtlNotification(EnvironmentTTLRecord ttlRecord) {
         Platform platform = ttlRecord.getPlatform();
         NotificationMessage msg = new NotificationMessage();
-        msg.setSubject("Critical: OneOps soon deleting your unused environment");
-        msg.setText("Below OneOps Environment Platform seems inactive for long time and will be auto-decommissioned by OneOps on date: "
-                + ttlRecord.getPlannedDestroyDate());
+        msg.setSubject("Critical: Upcoming Deletion of Your OneOps Environment");
+        msg.setText("The referenced OneOps Environment Platform was detected to be "
+            + "inactive for a long time. The automated decommissioning of the enviroment "
+            + "will be performed on  " + ttlRecord.getPlannedDestroyDate() + ". "
+            + "Please contact OneOps Support, if you have any objections.");
         msg.setNsPath(platform.getPath());
         msg.setCmsId(ttlRecord.getEnvironmentId());
         msg.setType(NotificationType.deployment);
