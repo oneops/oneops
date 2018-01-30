@@ -1,12 +1,15 @@
 <% div_id = random_dom_id %>
 <p>Restrict deployment to the selected platforms</p>
-<div class="alert">
-  <strong><%= icon('info-circle') %></i></strong>
-  <small>
-    You can opt to pick only certain platforms for this deployment.  All current release changes will be
-    commited. However, only changes for selected platforms will be deployed at this time.
-  </small>
-</div>
+<% if defined?(commit) && commit %>
+  <div class="alert">
+    <strong><%= icon('info-circle') %></i></strong>
+      <small>
+        <b>Current release changes will be commited for all platforms.</b>
+        However, you can choose to deploy only certain platforms at this time (after commit).
+        Deployment plan will be generated only for selected platforms.
+      </small>
+  </div>
+<% end %>
 <div id="<%= div_id %>">
   <div class="btn-group selection" style="margin-bottom: 10px">
     <button class="btn btn-small" onclick="set_check_box($j('#<%= div_id %> .check-box'))" title="Select All"><i class="fa fa-lg fa-check-square-o"></i></button>
@@ -15,7 +18,7 @@
   <table class="table table-condensed">
     <tbody id="select_deploy_platforms">
       <% if platforms %>
-        <%= render('transition/select_platform_list', :platforms => platforms) %>
+        <%= render('base/environments/select_platform_list', :platforms => platforms) %>
       <% else %>
         <tr><td colspan="2"><i class="fa-spinner fa-spin"></i> Loading platform selection list...</td></tr>
       <% end %>

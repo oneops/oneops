@@ -76,9 +76,9 @@ public class CmsDpmtProcessor {
   public static final String DPMT_STATE_PAUSED = "paused";
   public static final String DPMT_STATE_COMPLETE = "complete";
 
-  private static final String APPROVAL_STATE_PENDING = "pending";
-  private static final String APPROVAL_STATE_APPROVED = "approved";
-  private static final String APPROVAL_STATE_REJECTED = "rejected";
+  public static final String APPROVAL_STATE_PENDING = "pending";
+  public static final String APPROVAL_STATE_APPROVED = "approved";
+  public static final String APPROVAL_STATE_REJECTED = "rejected";
   //private static final String APPROVAL_STATE_EXPIRED = "expired";
 
 

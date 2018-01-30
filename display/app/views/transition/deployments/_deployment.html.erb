@@ -12,8 +12,8 @@
       <div class="scope">
         <%= icon(site_icon!(:assembly)) %> Assembly <%= link_to(@assembly.ciName, assembly_transition_path(@assembly)) %> <b> > </b>&nbsp;
         <%= icon(site_icon!("#{@environment.ciAttributes.availability}_availability")) %> Environment <%= link_to(@environment.ciName, assembly_transition_environment_path(@assembly, @environment)) %>
-        <% if @release %>
-          <b> > </b>&nbsp; <%= icon(site_icon!(:release)) %> Release <%= link_to(@release.parentReleaseId, assembly_transition_environment_timeline_release_path(@assembly, @environment, @release)) %>
+        <% if @manifest %>
+          <b> > </b>&nbsp; <%= icon(site_icon!(:release)) %> Release <%= link_to(@manifest.releaseId, assembly_transition_environment_timeline_release_path(@assembly, @environment, @manifest.releaseId)) %>
         <% end %>
 
       </div>
@@ -58,7 +58,7 @@
                     <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => false %>
                   <% elsif deployment_state != 'canceled' %>
                     <% exec_order_paused = @deployment.attributes['autoPauseExecOrders'].try(:include?, (exec_order)) ? true : false %>
-                    <% rfcs_states = order_rfcs.map{|rfcs| @deployment_rfc_cis_info.try(:[], rfcs.rfcId).try(:[], :state)} %>
+                    <% rfcs_states = order_rfcs.map{|rfc| @deployment_rfc_cis_info.try(:[], rfc.rfcId).try(:[], :state)} %>
                     <% exec_order_enabled = rfcs_states.all?{|rfcs_state| rfcs_state == 'pending'} %>
                     <% if exec_order_enabled %>
                       <%= render 'transition/deployments/deployment_autopause_checkbox', :exec_order => exec_order, :paused => exec_order_paused %>
@@ -224,12 +224,14 @@
       <% end %>
     <% elsif @environment.ciState == 'locked' %>
       <div class="problems alert alert-warning">
-        Generating deployment plan. You can view deployment plan and start deployment after plan generation is done.
+        Saving deployment plan and preparing to deploy.
       </div>
       <div style="text-align: center; padding: 50px 0"><%= icon('refresh', '', 'fa-spin fa-4x') %></div>
-    <% else env_comments.present? && env_comments.start_with?(error_prefix) %>
+    <% elsif env_comments.present? && env_comments.start_with?(error_prefix) %>
       <div class="problems alert alert-danger"><%= env_comments.sub(/^#{error_prefix}/, '') %></div>
       <div class="text-error" style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
+    <% else %>
+      <div class="problems alert alert-info">Nothing to do - no pending deployment changes are detected. All instances are up to date with current environment configuration.</div>
     <% end %>
   </div>
   <% if @deployment %>
@@ -295,8 +297,8 @@
                     <% end %>
                     It appears that deployment order was NOT configured properly for clouds used by <%= overide_plats.size > 1 ? 'these plaforms' : 'this platform' %>. <br/>
                     It is <b>strongly advised NOT TO PROCEED</b> with this deployment as it is <b>likely to result in operation
-                    outage</b> for your application.  Instead, discard this deployment plan and configure appropriate deployment order
-                    for your primary clouds in each platform.
+                    outage</b> for your application.  Instead, configure appropriate deployment order
+                    for your primary clouds in each platform before proceeding wih deployment.
                     If you decide to ignore this warning and to proceed with deployment you must enter your password below to acknowledge
                     potential adverse consenquences of executing this deployment plan.
                   </div>
@@ -319,18 +321,24 @@
             </tr>
           <% end %>
           <tr id="controls_new">
-            <td><%= render 'transition/deployments/action', :action => 'discard' %></td>
-            <td><%= render 'transition/deployments/action',
-                           :action => 'deploy',
-                           :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %></td>
+            <td colspan="2">
+              <% if (!@last_deployment || @last_deployment.deploymentState == 'complete' || @last_deployment.deploymentState == 'canceled') && has_transition?(@assembly.ciId) %>
+                <%= render 'transition/deployments/action',
+                           :action  => 'deploy',
+                           :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %>
+              <% else %>
+                <%= button(icon('check', 'Deploy'), nil, 'btn btn-success disabled') %>
+                <br><small>There is another deployment in progress.  Recently committed changes can be deployed after current deployment is complete or canceled.</small>
+              <% end %>
+            </td>
           </tr>
         <% end %>
       </table>
     </div>
   <% end %>
   <div class="footer">
-  	<% if @deployment %>
-  	  Close will NOT cancel or interrupt or discard the deployment.&nbsp;
+  	<% if deployment_persisted && !%w(failed canceled).include?(@deployment.deploymentState) %>
+  	  Closing overlay will NOT cancel, interrupt or fail the deployment.&nbsp;
   	<% end %>
 
   	<%= link_to_function 'Close', 'close_deployment_overlay()', :class => 'btn' %>
@@ -558,4 +566,10 @@
 
     return true;
   };
+
+  if (!$j("#overlay").is(":visible")) {
+    hide_modal();
+    block("container");
+    Effect.SlideDown('overlay', {duration: 0.3});
+  }
 </script>

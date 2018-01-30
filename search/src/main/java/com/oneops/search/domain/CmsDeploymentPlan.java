@@ -24,39 +24,28 @@ import org.springframework.data.elasticsearch.annotations.Document;
 
 @Document(indexName = "cms")
 public class CmsDeploymentPlan implements Serializable {
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
 	private String id;
 	private String nsPath;
 	private String createdBy;
-	private String commitedBy;
-	private String ciClassName;
-	private String releaseName;
 	private long ciId;
-	private long nsId;
 	private long releaseId;
 	private long ciRfcCount;
+	private long relationRfcCount;
 	private double planGenerationTime;
+	private String mode;
+	private Boolean manifestCommit;
+	private Boolean autoDeploy;
+
 	private Date created;
-	
+
 	public String getId() {
 		return id;
 	}
 
 	public void setId(String id) {
 		this.id = id;
-	}
-
-	public long getNsId() {
-		return nsId;
-	}
-
-	public void setNsId(long nsId) {
-		this.nsId = nsId;
 	}
 
 	public String getNsPath() {
@@ -75,36 +64,12 @@ public class CmsDeploymentPlan implements Serializable {
 		this.createdBy = createdBy;
 	}
 
-	public String getCommitedBy() {
-		return commitedBy;
+	public long getCiId() {
+		return ciId;
 	}
 
-	public void setCommitedBy(String commitedBy) {
-		this.commitedBy = commitedBy;
-	}
-
-	public Date getCreated() {
-		return created;
-	}
-
-	public void setCreated(Date created) {
-		this.created = created;
-	}
-
-	public long getCiRfcCount() {
-		return ciRfcCount;
-	}
-
-	public void setCiRfcCount(long ciRfcCount) {
-		this.ciRfcCount = ciRfcCount;
-	}
-
-	public double getPlanGenerationTime() {
-		return planGenerationTime;
-	}
-
-	public void setPlanGenerationTime(double planGenerationTime) {
-		this.planGenerationTime = planGenerationTime;
+	public void setCiId(long ciId) {
+		this.ciId = ciId;
 	}
 
 	public long getReleaseId() {
@@ -115,28 +80,59 @@ public class CmsDeploymentPlan implements Serializable {
 		this.releaseId = releaseId;
 	}
 
-	public String getCiClassName() {
-		return ciClassName;
+	public long getCiRfcCount() {
+		return ciRfcCount;
 	}
 
-	public void setCiClassName(String ciClassName) {
-		this.ciClassName = ciClassName;
+	public void setCiRfcCount(long ciRfcCount) {
+		this.ciRfcCount = ciRfcCount;
 	}
 
-	public long getCiId() {
-		return ciId;
+	public long getRelationRfcCount() {
+		return relationRfcCount;
 	}
 
-	public void setCiId(long ciId) {
-		this.ciId = ciId;
+	public void setRelationRfcCount(long relationRfcCount) {
+		this.relationRfcCount = relationRfcCount;
 	}
 
-	public String getReleaseName() {
-		return releaseName;
+	public double getPlanGenerationTime() {
+		return planGenerationTime;
 	}
 
-	public void setReleaseName(String releaseName) {
-		this.releaseName = releaseName;
+	public void setPlanGenerationTime(double planGenerationTime) {
+		this.planGenerationTime = planGenerationTime;
 	}
 
+	public String getMode() {
+		return mode;
+	}
+
+	public void setMode(String mode) {
+		this.mode = mode;
+	}
+
+	public Boolean getManifestCommit() {
+		return manifestCommit;
+	}
+
+	public void setManifestCommit(Boolean manifestCommit) {
+		this.manifestCommit = manifestCommit;
+	}
+
+	public Boolean getAutoDeploy() {
+		return autoDeploy;
+	}
+
+	public void setAutoDeploy(Boolean autoDeploy) {
+		this.autoDeploy = autoDeploy;
+	}
+
+	public Date getCreated() {
+		return created;
+	}
+
+	public void setCreated(Date created) {
+		this.created = created;
+	}
 }

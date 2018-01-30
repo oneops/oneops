@@ -36,12 +36,37 @@ attribute 'enabled',
           }
 
 attribute 'approval',
-          :description => 'Deployment Approval',
+          :description => 'Require Approval',
+          :required    => 'required',
           :default     => 'true',
           :format      => {
             :help     => 'When selected requires deployment approval',
             :category => '3.Deployment',
             :form     => {:field => 'checkbox'},
             :order    => 1
+          }
+
+attribute 'approval_auth_type',
+          :description => 'Approval Auth',
+          :required    => 'required',
+          :default     => 'none',
+          :format => {
+              :help     => 'Security scheme for approval settlement requests.',
+              :category => '3.Deployment',
+              :order    => 2,
+              :form     => {'field'              => 'select',
+                            'options_for_select' => [['None', 'none'],
+                                                     ['Token', 'token']]
+              }
+          }
+
+attribute 'approval_token',
+          :description => 'Approval Token',
+          :encrypted => true,
+          :format => {
+              :help => 'Approval settlement requests must pass this token.',
+              :category => '3.Deployment',
+              :order    => 3,
+              :filter   => {'all' => {'visible' => 'approval_auth_type:eq:token'}},
           }
 

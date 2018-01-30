@@ -101,7 +101,9 @@ public class InMemoryDJMapper implements DJMapper{
     @Override
     public List<CmsRelease> getLatestRelease(String nsPath, String releaseState) {
         ArrayList<CmsRelease> cmsReleases = new ArrayList<>();
-        cmsReleases.add(release);
+        if (release != null) {
+            cmsReleases.add(release);
+        }
         return cmsReleases;
     }
 
@@ -479,7 +481,7 @@ public class InMemoryDJMapper implements DJMapper{
                 ", ciId=" + ciId +
                 ", cis=" + cis.size() +
                 ", relations=" + relations.size() +
-                ", release=" + release.getReleaseId() +
+                ", release=" + (release == null ? 0 : release.getReleaseId()) +
                 '}';
     }
 }

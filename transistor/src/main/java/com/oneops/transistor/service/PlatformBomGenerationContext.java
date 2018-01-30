@@ -21,6 +21,8 @@ public class PlatformBomGenerationContext {
     private String manifestNsPath;
     private String bomNsPath;
 
+    private Map<String, List<CmsCIRelation>> manifestRelationMap;
+
     private List<CmsCI> components;
     private List<CmsCI> monitors;
     private List<CmsCI> attachments;
@@ -38,6 +40,19 @@ public class PlatformBomGenerationContext {
 
     private List<CmsCIRelation> bomRelations;
 
+    PlatformBomGenerationContext(PlatformBomGenerationContext pc, CmsCmProcessor cmProcessor) {
+        long t = System.currentTimeMillis();
+        platform = pc.platform;
+        manifestNsPath = pc.manifestNsPath;
+        bomNsPath = pc.bomNsPath;
+        variables = pc.variables;
+        manifestRelationMap = pc.manifestRelationMap;
+        loadManifestCIs(cmProcessor);   // have to reload manifest CIs because they could be "dirty" after variable interpolation
+        bomRelations = pc.bomRelations;
+
+        logger.info(manifestNsPath + " >>> Reloaded platform bom generation context in " + (System.currentTimeMillis() - t) + " ms.");
+    }
+
     PlatformBomGenerationContext(CmsCI platformCi, EnvBomGenerationContext envContext, CmsCmProcessor cmProcessor, CmsUtil cmsUtil) {
         long t = System.currentTimeMillis();
 
@@ -47,22 +62,29 @@ public class PlatformBomGenerationContext {
         manifestNsPath = envContext.getManifestNsPath() + nsSuffix;
         bomNsPath = envContext.getBomNsPath() + nsSuffix;
 
-        Map<String, List<CmsCIRelation>> relationMap = cmProcessor.getCIRelationsNaked(manifestNsPath, null, null, null, null).stream()
+        variables = cmsUtil.getLocalVars(platformCi);
+
+        manifestRelationMap = cmProcessor.getCIRelationsNaked(manifestNsPath, null, null, null, null).stream()
                 .collect(Collectors.groupingBy(CmsCIRelation::getRelationName, Collectors.toList()));
 
-        List<CmsCIRelation> cmsCIRelations = relationMap.get(MANIFEST_REQUIRES);
-        if (cmsCIRelations==null) cmsCIRelations = new ArrayList<>();
-        List<Long> ids = cmsCIRelations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toList());
+        loadManifestCIs(cmProcessor);
+
+        bomRelations = cmProcessor.getCIRelations(bomNsPath, null, null, null, null);
+
+        logger.info(manifestNsPath + " >>> Loaded platform bom generation context in " + (System.currentTimeMillis() - t) + " ms.");
+    }
+
+    private void loadManifestCIs(CmsCmProcessor cmProcessor) {
+        List<CmsCIRelation> cmsCIRelations = manifestRelationMap.get(MANIFEST_REQUIRES);
+        List<Long> ids = cmsCIRelations == null ? new ArrayList<>() : cmsCIRelations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         components = cmProcessor.getCiByIdList(ids);
         Map<Long, CmsCI> componentMap = components.stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
 
-        variables = cmsUtil.getLocalVars(platformCi);
-
-        dependsOns = relationMap.computeIfAbsent(MANIFEST_DEPENDS_ON, k -> new ArrayList<>());
+        dependsOns = manifestRelationMap.computeIfAbsent(MANIFEST_DEPENDS_ON, k -> new ArrayList<>());
         dependsOns.forEach(r -> {
-                    r.setFromCi(componentMap.get(r.getFromCiId()));
-                    r.setToCi(componentMap.get(r.getToCiId()));
-                });
+            r.setFromCi(componentMap.get(r.getFromCiId()));
+            r.setToCi(componentMap.get(r.getToCiId()));
+        });
         dependsOnFromMap = new HashMap<>();
         dependsOnToMap = new HashMap<>();
         for (CmsCIRelation rel : dependsOns) {
@@ -72,40 +94,36 @@ public class PlatformBomGenerationContext {
             dependsOnToMap.get(rel.getToCiId()).add(rel);
         }
 
-        ids = relationMap.computeIfAbsent(MANIFEST_WATCHED_BY, k -> new ArrayList<>()).stream()
+        ids = manifestRelationMap.computeIfAbsent(MANIFEST_WATCHED_BY, k -> new ArrayList<>()).stream()
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         monitors = cmProcessor.getCiByIdList(ids);
 
-        ids = relationMap.computeIfAbsent(MANIFEST_ESCORTED_BY, k -> new ArrayList<>()).stream()
+        ids = manifestRelationMap.computeIfAbsent(MANIFEST_ESCORTED_BY, k -> new ArrayList<>()).stream()
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         attachments = cmProcessor.getCiByIdList(ids);
 
-        ids = relationMap.computeIfAbsent(MANIFEST_LOGGED_BY, k -> new ArrayList<>()).stream()
+        ids = manifestRelationMap.computeIfAbsent(MANIFEST_LOGGED_BY, k -> new ArrayList<>()).stream()
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         logs = cmProcessor.getCiByIdList(ids);
 
-        securedByMap = relationMap.computeIfAbsent(MANIFEST_SECURED_BY, k -> new ArrayList<>()).stream()
+        securedByMap = manifestRelationMap.computeIfAbsent(MANIFEST_SECURED_BY, k -> new ArrayList<>()).stream()
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 })
                 .collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        managedViaMap = relationMap.computeIfAbsent(MANIFEST_MANAGED_VIA, k -> new ArrayList<>()).stream()
+        managedViaMap = manifestRelationMap.computeIfAbsent(MANIFEST_MANAGED_VIA, k -> new ArrayList<>()).stream()
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 }).collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        entryPoints = relationMap.computeIfAbsent(MANIFEST_ENTRYPOINT, k -> new ArrayList<>());
+        entryPoints = manifestRelationMap.computeIfAbsent(MANIFEST_ENTRYPOINT, k -> new ArrayList<>());
         entryPoints.forEach(r -> {
-            r.setFromCi(platformCi);
+            r.setFromCi(platform);
             r.setToCi(componentMap.get(r.getToCiId()));
         });
-
-        bomRelations = cmProcessor.getCIRelations(bomNsPath, null, null, null, null);
-
-        logger.info(manifestNsPath + " >>> Loaded platform bom generation context in " + (System.currentTimeMillis() - t) + " ms.");
     }
 
     String getManifestNsPath() {

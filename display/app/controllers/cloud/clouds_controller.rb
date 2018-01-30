@@ -39,6 +39,7 @@ class Cloud::CloudsController < ApplicationController
     respond_to do |format|
       format.html do
         if ok
+          load_teams
           render(:action => :edit)
         else
           load_available_clouds

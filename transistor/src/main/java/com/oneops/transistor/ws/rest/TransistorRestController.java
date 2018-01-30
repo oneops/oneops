@@ -19,6 +19,7 @@ package com.oneops.transistor.ws.rest;
 
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.exceptions.CIValidationException;
@@ -30,6 +31,7 @@ import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.transistor.domain.DeployRequest;
 import com.oneops.transistor.domain.IaasRequest;
 import com.oneops.transistor.exceptions.DesignExportException;
 import com.oneops.transistor.exceptions.TransistorException;
@@ -63,14 +65,14 @@ public class TransistorRestController extends AbstractRestController {
 	private IaasManager iaasManager;
 	private DesignManager dManager;
 	private BomAsyncProcessor baProcessor;
-	private InMemoryBomProcessor imBomProcesor;
+	private InMemoryBomProcessor imBomProcessor;
 	private ManifestAsyncProcessor maProcessor;
 	private CmsUtil util;
 	private SnapshotManager snapshotManager;
 
 
-	public void setImBomProcesor(InMemoryBomProcessor imBomProcesor) {
-		this.imBomProcesor = imBomProcesor;
+	public void setImBomProcessor(InMemoryBomProcessor imBomProcessor) {
+		this.imBomProcessor = imBomProcessor;
 	}
 
 	public void setMaProcessor(ManifestAsyncProcessor maProcessor) {
@@ -247,7 +249,7 @@ public class TransistorRestController extends AbstractRestController {
 			
 			CmsCI targetCI = util.custCISimple2CI(targetCISimple, null);
 			
-			long resultCiId = 0;
+			long resultCiId;
 			if ("account.Assembly".equals(targetCI.getCiClassName())) {
 				resultCiId = dManager.cloneAssembly(targetCI, fromAssemblyId, userId, scope);
 			} else if ("account.Design".equals(targetCI.getCiClassName())) {
@@ -305,7 +307,6 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
-		if (userId == null) userId = "oneops-system";
 		try {
 			return dManager.exportDesign(assemblyId, platformIds, scope);
 		}  catch (CmsBaseException te) {
@@ -322,7 +323,6 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
-		if (userId == null) userId = "oneops-system";
 		try {
 			dManager.updateOwner(assemblyId);
 			return "All Done";
@@ -359,7 +359,6 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 
-		if (userId == null) userId = "oneops-system";
 		try {
 			return dManager.exportEnvironment(envId, platformIds, scope);
 		}  catch (CmsBaseException te) {
@@ -465,7 +464,7 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/deployment_cost_data", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, List<CostData>> getDeploymentCostData(@PathVariable long envId){
-		BomData data = imBomProcesor.compileEnv(envId, "", null, null, false, false);
+		BomData data = imBomProcessor.compileEnv(envId, "", null, null, false);
 		return envManager.getEnvEstimatedCostData(envId, data);
 	}
 
@@ -485,7 +484,7 @@ public class TransistorRestController extends AbstractRestController {
 	@RequestMapping(value="environments/{envId}/deployment_capacity_data", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String, List<CapacityData>> getDeploymentCapacityData(@PathVariable long envId){
-		BomData data = imBomProcesor.compileEnv(envId, "", null, null, false, false);
+		BomData data = imBomProcessor.compileEnv(envId, "", null, null, false);
 		return envManager.getEnvCapacity(envId, data);
 	}
 
@@ -562,50 +561,86 @@ public class TransistorRestController extends AbstractRestController {
 	}
 
 
-	@RequestMapping(value="environments/{envId}/deployments/preview", method = {RequestMethod.POST, RequestMethod.GET})
+	@RequestMapping(value = "environments/{envId}/deployments/preview", method = RequestMethod.POST)
 	@ResponseBody
-	public BomData generateBomInMemory(
+	public Map<String, Object> generateBomInMemory(
 			@PathVariable long envId,
-			@RequestParam(value = "suppressRfcs", required = false) Boolean suppressRfcs,
+			@RequestBody Map<String, Object> params,
+			@RequestHeader(value = "X-Cms-User", required = false) String userId,
+			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+		return generateBomInMemory(envId,
+								   (Boolean) params.get("commit"),
+								   (String) params.get("description"),
+								   (String) params.get("exclude"),
+								   (String) params.get("includeRFCs"),
+								   (Boolean) params.get("cost"),
+								   (Boolean) params.get("capacity"),
+								   userId,
+								   scope);
+	}
+
+
+	@RequestMapping(value = "environments/{envId}/deployments/preview", method = RequestMethod.GET)
+	@ResponseBody
+	public Map<String, Object> generateBomInMemory(
+			@PathVariable long envId,
+			@RequestParam(value = "commit", required = false) Boolean commit,
+			@RequestParam(value = "description", required = false) String description,
+			@RequestParam(value = "exclude", required = false) String excludePlatforms,
+			@RequestParam(value = "includeRFCs", required = false) String includeRFCs,
 			@RequestParam(value = "cost", required = false) Boolean cost,
 			@RequestParam(value = "capacity", required = false) Boolean capacity,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+			@RequestHeader(value = "X-Cms-User", required = false) String userId,
+			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
 		try {
 			if (userId == null) userId = "oneops-system";
-			BomData bomData = imBomProcesor.compileEnv(envId, userId, null, null, false, false);
+			BomData bomData = imBomProcessor.compileEnv(envId, userId, toSet(excludePlatforms), description, commit == null ? false : commit);
+			Map<String, Object> response = new HashMap<>();
+			response.put("release", bomData.getRelease());
+			if (includeRFCs != null) {
+				Map<String, Collection<Object>> rfcs = new HashMap<>();
+
+				if (includeRFCs.contains("cis")) {
+					Collection<CmsRfcCI> cis = bomData.getCis();
+					rfcs.put("cis", cis == null ? new ArrayList() : cis.stream().map(rfc -> util.custRfcCI2RfcCISimple(rfc)).collect(Collectors.toList()));
+				}
+
+				if (includeRFCs.contains("relations")) {
+					Collection<CmsRfcRelation> relations = bomData.getRelations();
+					rfcs.put("relations", relations == null ? new ArrayList() : relations.stream().map(rfc -> util.custRfcRel2RfcRelSimple(rfc)).collect(Collectors.toList()));
+				}
+
+				response.put("rfcs", rfcs);
+			}
+
 			if (cost != null && cost) {
 				Map<String, List<CostData>> estimatedCostData = envManager.getEnvEstimatedCostData(envId, bomData);
 				Map<String, Map<String, Object>> costMap = new HashMap<>();
 				for (String type : estimatedCostData.keySet()) {
 					costMap.put(type, getCostTotals(estimatedCostData.get(type)));
 				}
-				bomData.addExtraData("cost", costMap);
+				response.put("cost", costMap);
 			}
-			if (capacity != null && capacity){
+
+			if (capacity != null && capacity) {
 				Map<String, List<CapacityData>> estimatedCapacityData = envManager.getEnvCapacity(envId, bomData);
 				Map<String, Map<String, Object>> capacityMap = new HashMap<>();
 				for (String type : estimatedCapacityData.keySet()) {
 					capacityMap.put(type, getCapacityTotals(estimatedCapacityData.get(type)));
 				}
-				bomData.addExtraData("capacity", capacityMap);
-        
-        
-        
-        
+				response.put("capacity", capacityMap);
 			}
-			if (suppressRfcs!=null && suppressRfcs){
-				bomData.setCis(null);
-				bomData.setRelations(null);
-			}
-			return bomData;
+
+			return response;
 		} catch (CmsBaseException te) {
 			logger.error(te);
 			te.printStackTrace();
 			throw te;
 		}
 	}
-	
+
+
+	// Used by old/deprecated deployment flow in UI.
 	@RequestMapping(value="environments/{envId}/deployments", method = RequestMethod.POST)
 	@ResponseBody
 	public Map<String,Long> generateBom(
@@ -615,13 +650,15 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
-			String desc = params.get("description");
+
 			Set<Long> excludePlats = toSet(params.get("exclude"));
+
 			boolean commit = true;//Default: Go ahead with the commit.
 			if (params.get("commit") != null && ! Boolean.valueOf(params.get("commit"))) {
 				commit = false;
 			}
-			baProcessor.compileEnv(envId, userId, excludePlats, desc, false, commit);
+
+			baProcessor.compileEnv(envId, userId, excludePlats, null, params.get("description"), commit);
 			long exitCode = 0;
 			Map<String,Long> result = new HashMap<>(1);
 			result.put("exit_code", exitCode);
@@ -633,26 +670,6 @@ public class TransistorRestController extends AbstractRestController {
 		}
 	}
 
-	@RequestMapping(value="environments/{envId}/bom/generate", method = RequestMethod.GET)
-	@ResponseBody
-	public Map<String,Long> generateBomGet(
-			@PathVariable long envId,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
-		try {
-			if (userId == null) userId = "oneops-system";
-			baProcessor.compileEnv(envId, userId, null, "", false, true);
-			long exitCode = 0;
-			Map<String,Long> result = new HashMap<>(1);
-			result.put("exit_code", exitCode);
-			return result;
-		} catch (CmsBaseException te) {
-			logger.error(te);
-			te.printStackTrace();
-			throw te;
-		}
-	}
-	
 	@RequestMapping(value="environments/{envId}/bom/discard", method = RequestMethod.PUT)
 	@ResponseBody
 	public Map<String,Long> discardBom(
@@ -660,7 +677,6 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
-			if (userId == null) userId = "oneops-system";
 			long releaseId = envManager.discardEnvBom(envId);
 			return toReleaseMap(releaseId);
 		} catch (CmsBaseException te) {
@@ -700,8 +716,6 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
-			if (userId == null) userId = "oneops-system";
-			
 			long releaseId = envManager.discardEnvBom(envId);
 			Map<String,Long> result = new HashMap<>(1);
 			result.put("releaseId", releaseId);
@@ -722,8 +736,6 @@ public class TransistorRestController extends AbstractRestController {
 			@RequestHeader(value="X-Cms-User", required = false)  String userId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
 		try {
-			if (userId == null) userId = "oneops-system";
-	
 			baProcessor.resetEnv(envId);
 			
 			Map<String, String> result = new HashMap<>(1);
@@ -736,53 +748,71 @@ public class TransistorRestController extends AbstractRestController {
 		}
 
 	}
-	
-	
-	@RequestMapping(value="environments/{envId}/deployments/deploy", method = RequestMethod.POST)
+
+
+	// Used by UI (display).
+	@RequestMapping(value="environments/{envId}/deploy", method = RequestMethod.POST)
 	@ResponseBody
-	public Map<String,Long> generateAndDeployBom(
+	public Map<String, Long> generateBom(
 			@PathVariable long envId,
-			@RequestBody Map<String,String> paramMap,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId,
-			@RequestHeader(value="X-Cms-Scope", required = false)  String scope){
+			@RequestBody DeployRequest deloyRequest,
+			@RequestHeader(value="X-Cms-User", required = true)  String userId,
+			@RequestHeader(value="X-Cms-Scope", required = true)  String scope){
 		try {
 			if (userId == null) userId = "oneops-system";
-	
-			long startTime = System.currentTimeMillis(); 
-	
+			baProcessor.compileEnv(envId, userId, toSet(deloyRequest.getExclude()), deloyRequest.getDeployment(), null, false);
+			long exitCode = 0;
 			Map<String,Long> result = new HashMap<>(1);
-	
-			//long dpmtId = bomManager.generateAndDeployBom(envId, userId, descMap.get("description"));
-			Set<Long> excludePlats = toSet(paramMap.get("exclude"));
-			boolean commit = true;//Default: Go ahead with the commit.
-			if (paramMap.get("commit") != null && ! Boolean.valueOf(paramMap.get("commit"))) {
-				commit = false;
-			}
-			baProcessor.compileEnv(envId, userId, excludePlats, paramMap.get("description"), true, commit);
-			result.put("deploymentId", 0L);
-	
-			long tookTime = System.currentTimeMillis() - startTime;
-			logger.debug("Time to generate Bom - " + tookTime);
-			
+			result.put("exit_code", exitCode);
 			return result;
 		} catch (CmsBaseException te) {
 			logger.error(te);
 			te.printStackTrace();
 			throw te;
 		}
-
 	}
 
-	
+	// Used by OpAmp (to auto-replace).
+	@RequestMapping(value = "environments/{envId}/deployments/deploy", method = RequestMethod.POST)
+	@ResponseBody
+	public Map<String, Long> generateAndDeployBom(
+			@PathVariable long envId,
+			@RequestBody Map<String, String> paramMap,
+			@RequestHeader(value = "X-Cms-User", required = false) String userId,
+			@RequestHeader(value = "X-Cms-Scope", required = false) String scope) {
+		try {
+			if (userId == null) userId = "oneops-system";
+
+			boolean commit = true;//Default: Go ahead with the commit.
+			if (paramMap.get("commit") != null && !Boolean.valueOf(paramMap.get("commit"))) {
+				commit = false;
+			}
+
+			String desc = paramMap.get("description");
+
+			CmsDeployment dpmt = new CmsDeployment();
+			dpmt.setCreatedBy(userId);
+			dpmt.setComments(desc);
+
+			baProcessor.compileEnv(envId, userId, toSet(paramMap.get("exclude")), dpmt, null, commit);
+
+			Map<String, Long> result = new HashMap<>(1);
+			result.put("deploymentId", 0L);
+			return result;
+		} catch (CmsBaseException te) {
+			logger.error(te);
+			te.printStackTrace();
+			throw te;
+		}
+	}
+
+
 	@RequestMapping(value="environments/{envId}/reset", method = RequestMethod.GET)
 	@ResponseBody
 	public Map<String,Long> resetBom(
 			@PathVariable long envId,
-			@RequestHeader(value="X-Cms-User", required = false)  String userId){
-
-		if (userId == null) userId = "oneops-system";
-
-		long startTime = System.currentTimeMillis(); 
+			@RequestHeader(value="X-Cms-User", required = false)  String userId) {
+		long startTime = System.currentTimeMillis();
 
 		Map<String,Long> result = new HashMap<>(1);
 
@@ -1175,5 +1205,4 @@ public class TransistorRestController extends AbstractRestController {
 	private Map<String,Long> toReleaseMap(long releaseId) {
 		return Collections.singletonMap(RELEASE_ID,releaseId);
 	}
-
 }

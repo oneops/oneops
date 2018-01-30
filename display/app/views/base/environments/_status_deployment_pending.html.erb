@@ -1,4 +1,4 @@
-<div class="marker"><%= status_marker('deployment', 'pending', 'label-info') %></div>
+<div class="marker"><%= status_marker('deployment', 'needed', 'label-info') %></div>
 <div class="description">
   <dl class="dl-horizontal">
     <dt><%= icon(site_icon(:deployment), nil, 'fa-fw') %></dt>
@@ -14,14 +14,6 @@
         <% end %>
       </dd>
     <% end %>
-    <% if @cost.is_a?(Hash) %>
-      <dt><%= icon(site_icon(:cost), nil, 'fa-fw') %></dt>
-      <dd>
-        <%= render 'transition/deployments/cost_change_info' %>
-      </dd>
-    <% end %>
   </dl>
-  <% if @release && @release.releaseState != 'open' %>
-    <%= yield :deploy_action %>
-  <% end %>
+  <%= yield :deploy_action %>
 </div>
