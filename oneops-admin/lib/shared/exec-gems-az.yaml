@@ -39,6 +39,9 @@ common:
     -
       - activesupport
       - 3.2.11
+    -
+      - nexus_cli
+      - 3.0.0
 chef-10.16.6:
     # workaround for chef install dependency issues
     # http://stackoverflow.com/questions/14738091/cant-install-chef-gem-version-conflict-with-net-ssh-net-ssh-multi-net-ssh-gate

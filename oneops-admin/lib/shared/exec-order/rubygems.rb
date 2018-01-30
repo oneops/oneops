@@ -89,7 +89,7 @@ end
 
 
 def is_gem_installed?(gem, version = nil)
-  cmd = "#{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
+  cmd = "bundle #{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
   out = `#{cmd}`.chomp
   out == 'true' ? true : false
 end
@@ -122,7 +122,7 @@ def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_leve
       puts "Provisioner #{provisioner} is not installed, will run bundle install."
       method = 'install'
     elsif check_gem_update_needed(gems, log_level)
-      if ['objectstore','compute','volume', 'os'].include?(component)
+      if ['objectstore','compute','volume', 'os', 'artifact'].include?(component)
         puts "Gem update is required for component: #{component}"
         method = 'install'
       else
