@@ -194,9 +194,11 @@ public class DeploymentNotifier {
                 approval -> {
                     approvalMap.put("approvalId", approval.getApprovalId());
                     approvalMap.put("governCiId", approval.getGovernCiId());
+                    
                     try {
-                        String nsPath = new JsonParser().parse(approval.getGovernCiJson()).getAsJsonObject().get("nsPath").getAsString();
-                        
+                        JsonObject asJsonObject = new JsonParser().parse(approval.getGovernCiJson()).getAsJsonObject();
+                        approvalMap.put("governCiName", asJsonObject.get("ciName"));
+                        String nsPath = asJsonObject.get("nsPath").getAsString();
                         approvalMap.put("cloud", nsPath.substring(nsPath.lastIndexOf("/")+1));
                     } catch (Exception ignore) {
                         ignore.printStackTrace();
