@@ -73,7 +73,7 @@ def get_gem_list (provisioner, version = nil, config_file_name = nil)
 end
 
 
-def create_gemfile(gem_sources, gems)
+def create_gemfile(gem_sources, gems, output="file")
   gemfile_content = "source '#{gem_sources[0]}'\n"
 
   gems.each do |gem_set|
@@ -83,8 +83,11 @@ def create_gemfile(gem_sources, gems)
       gemfile_content += "gem '#{gem_set[0]}'\n"
     end
   end
-
-  File.open('Gemfile', 'w') {|f| f.write(gemfile_content) }
+  if output.eql?('file')
+    File.open('Gemfile', 'w') {|f| f.write(gemfile_content) }
+  else
+    return gemfile_content
+  end
 end
 
 
@@ -111,46 +114,38 @@ end
 
 
 def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_level)
+  required_gems = create_gemfile(gem_sources, gems, 'stdout')
 
-    #2 scenarions when need to run bundle install
-    #  1) if running for the first time - determined by checking if provisioner gem (chef, puppet) is installed.
-    # Not checking its version though, it would be done in the below check
-    #  2) if any gems from exec-gems.yaml (including provisioner gem itself) have mismatching versions
+  method = nil
 
-    method = nil
-    if !is_gem_installed?(provisioner)
-      puts "Provisioner #{provisioner} is not installed, will run bundle install."
-      method = 'install'
-    elsif check_gem_update_needed(gems, log_level)
-      if ['objectstore','compute','volume', 'os'].include?(component)
-        puts "Gem update is required for component: #{component}"
-        method = 'install'
-      else
-        puts "Gem update is required but will not be run for component: #{component}"
-      end
+  if ::File.file?('Gemfile')
+    current_gemfile = File.open('Gemfile', 'r') { |f| f.read }
+    if current_gemfile.eql?(required_gems)
+      puts "Required gems are current with bundle Gemfile"
     else
-      puts 'No gem update is required.'
-    end
-
-    if !method.nil?
-      start_time = Time.now.to_i
+      method = "install"
       ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
-      create_gemfile(gem_sources, gems)
+      create_gemfile(gem_sources,gems)
+    end
+  else
+    method = "install"
+  end
 
-      cmd = "#{get_bin_dir}bundle #{method} --local"
+  if method.eql?("install")
+    start_time = Time.now.to_i
+    cmd = "#{get_bin_dir}bundle #{method} --local"
+    ec = system cmd
+    if !ec || ec.nil?
+      puts "#{cmd} failed with, #{$?}"
+      puts 'fetching gems from remote sources'
+
+      cmd = "#{get_bin_dir}bundle #{method} --full-index"
       ec = system cmd
       if !ec || ec.nil?
         puts "#{cmd} failed with, #{$?}"
-        puts 'fetching gems from remote sources'
-
-        cmd = "#{get_bin_dir}bundle #{method} --full-index"
-        ec = system cmd
-        if !ec || ec.nil?
-          puts "#{cmd} failed with, #{$?}"
-          exit 1
-        end
+        exit 1
       end
-
-      puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
     end
+    puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
+  end
 end
