@@ -3,3 +3,6 @@ yum -y install vim-common git libxml2 libxml2-devel libxslt libxslt-devel java-1
 
 #build-essential
 yum -y install autoconf bison flex gcc gcc-c++ kernel-devel make m4 patch
+
+#addtional rpms
+yum -y install graphviz
