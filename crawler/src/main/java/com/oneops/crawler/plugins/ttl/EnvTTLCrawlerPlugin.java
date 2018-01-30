@@ -128,6 +128,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     ttlRecord.setEnvironmentProfile(env.getProfile());
                     ttlRecord.setEnvironmentId(env.getId());
                     ttlRecord.setPlatform(platform);
+
                     EnvironmentTTLRecord existingRecord =
                             (EnvironmentTTLRecord) searchDal.get("oottl",
                                     "platform", ttlRecord, "" + platform.getId());
@@ -280,12 +281,9 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     private void sendTtlNotification(EnvironmentTTLRecord ttlRecord) {
         Platform platform = ttlRecord.getPlatform();
-        String platformFullNsPath = platform.getPath() + "/" + platform.getName();
         NotificationMessage msg = new NotificationMessage();
-        msg.setSubject("This OneOps platform to be soon decommissioned: "
-                + platformFullNsPath);
-        msg.setText("The OneOps Environment Platform " + platformFullNsPath
-                + " seems inactive for long time and will be auto-decommissioned by OneOps after "
+        msg.setSubject("Critical: OneOps soon deleting your unused environment");
+        msg.setText("Below OneOps Environment Platform seems inactive for long time and will be auto-decommissioned by OneOps on date: "
                 + ttlRecord.getPlannedDestroyDate());
         msg.setNsPath(platform.getPath());
         msg.setCmsId(ttlRecord.getEnvironmentId());
@@ -300,7 +298,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             log.warn("Notification could not be sent for platform " + platform.getId()
                     + ". Error code from OO: " + ooResponse);
         } else {
-            log.info("############# Notification sent for platform id: " + ttlRecord.getPlatform().getId());
+            log.info("##### Notification sent for platform id: " + ttlRecord.getPlatform().getId());
         }
     }
 }
