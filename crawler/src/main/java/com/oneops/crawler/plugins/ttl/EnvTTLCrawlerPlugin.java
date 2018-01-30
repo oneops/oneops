@@ -289,7 +289,6 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             + "Please contact OneOps Support, if you have any objections.");
         msg.setNsPath(platform.getPath());
         msg.setCmsId(ttlRecord.getEnvironmentId());
-        ttlR
         msg.setType(NotificationType.deployment);
 //        msg.setSource("deployment");
         msg.setTimestamp(System.currentTimeMillis());
