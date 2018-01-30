@@ -2,6 +2,7 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
   include ::NotificationSummary, ::CostSummary, ::Health
 
   before_filter :find_assembly_and_environment
+  before_filter :weak_ci_relation_data_consistency, :only => [:search]
 
   def index
     @environments = Cms::Relation.all(:params => {:ciId              => @assembly.ciId,
