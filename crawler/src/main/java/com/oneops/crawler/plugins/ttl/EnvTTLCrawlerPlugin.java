@@ -48,6 +48,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     private int totalComputesTTLed = 0;
     private int notificationFrequencyDays = 0;
+    private String prodCloudRegex;
 
     public EnvTTLCrawlerPlugin() {
         readConfig();
@@ -115,6 +116,9 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         String frequency = System.getProperty("ttl.notification.frequency.days", "0");
         this.notificationFrequencyDays = Integer.valueOf(frequency);
         log.info("Notification frequency days: " + notificationFrequencyDays);
+
+        prodCloudRegex = System.getProperty("ttl.prod.clouds.regex", ".*prod.*");
+        log.info("regex for production clouds: [" + prodCloudRegex + "]");
     }
 
     @Override
@@ -207,7 +211,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
         ArrayList<Long> eligiblePlatforms = new ArrayList<>();
 
-        for (Platform platform : env.getPlatforms().values()) {
+        platforms: for (Platform platform : env.getPlatforms().values()) {
             if (config != null && config.getPacks() != null) {
                 boolean packToBeProcessed = false;
 
@@ -225,12 +229,13 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             }
 
             for (String cloud : platform.getActiveClouds()) {
-                if (cloud.toLowerCase().contains("prod")) {
-                    log.info(platform.getId() + " Platform in Env not eligible because of prod clouds: " + platform.getPath());
-                } else {
-                    eligiblePlatforms.add(platform.getId());
+                if (cloud.toLowerCase().matches(prodCloudRegex)) {
+                    log.info(platform.getId() + " Platform not eligible because of prod clouds: "
+                            + platform.getPath());
+                    continue platforms;
                 }
             }
+            eligiblePlatforms.add(platform.getId());
         }
 
         Deployment lastDeploy = findLastDeploymentByUser(deployments);
