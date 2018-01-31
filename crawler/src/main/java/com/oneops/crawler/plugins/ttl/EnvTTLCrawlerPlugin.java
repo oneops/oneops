@@ -230,7 +230,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
             for (String cloud : platform.getActiveClouds()) {
                 if (cloud.toLowerCase().matches(prodCloudRegex)) {
-                    log.info(platform.getId() + " Platform in Env not eligible because of prod clouds: "
+                    log.info(platform.getId() + " Platform not eligible because of prod clouds: "
                             + platform.getPath());
                 } else {
                     eligiblePlatforms.add(platform.getId());
