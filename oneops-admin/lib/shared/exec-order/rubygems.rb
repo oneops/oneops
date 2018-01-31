@@ -122,7 +122,7 @@ def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_leve
       puts "Provisioner #{provisioner} is not installed, will run bundle install."
       method = 'install'
     elsif check_gem_update_needed(gems, log_level)
-      if ['objectstore','compute','volume', 'os', 'artifact'].include?(component)
+      if ['objectstore','compute','volume', 'os'].include?(component)
         puts "Gem update is required for component: #{component}"
         method = 'install'
       else
