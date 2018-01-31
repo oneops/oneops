@@ -211,7 +211,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
         ArrayList<Long> eligiblePlatforms = new ArrayList<>();
 
-        for (Platform platform : env.getPlatforms().values()) {
+        platforms: for (Platform platform : env.getPlatforms().values()) {
             if (config != null && config.getPacks() != null) {
                 boolean packToBeProcessed = false;
 
@@ -232,10 +232,10 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 if (cloud.toLowerCase().matches(prodCloudRegex)) {
                     log.info(platform.getId() + " Platform not eligible because of prod clouds: "
                             + platform.getPath());
-                } else {
-                    eligiblePlatforms.add(platform.getId());
+                    continue platforms;
                 }
             }
+            eligiblePlatforms.add(platform.getId());
         }
 
         Deployment lastDeploy = findLastDeploymentByUser(deployments);
