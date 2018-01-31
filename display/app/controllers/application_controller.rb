@@ -672,11 +672,11 @@ class ApplicationController < ActionController::Base
         clazz.headers['X-Cms-Data-Consistency'] = value
       end
     end
-    if Rails.env.shared?
-      Rails.logger.info '============ '
-      Rails.logger.info "== X-Cms-Data-Consistency #{value.blank? ? 'default' : "#{value} for: #{classes.present? ? classes.map(&:name).join(', ') : 'all'}"}"
-      Rails.logger.info '============ '
-    end
+    # if Rails.env.shared?
+    #   Rails.logger.info '============ '
+    #   Rails.logger.info "== X-Cms-Data-Consistency #{value.blank? ? 'default' : "#{value} for: #{classes.present? ? classes.map(&:name).join(', ') : 'all'}"}"
+    #   Rails.logger.info '============ '
+    # end
   end
 
   def weak_ci_relation_data_consistency
