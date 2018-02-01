@@ -15,7 +15,7 @@
     </bean>
 
     <!-- Enable annotation scanning. -->
-    <context:component-scan base-package="com.oneops.opamp.ws"/>
+    <context:component-scan base-package="com.oneops.opamp.ws, com.oneops.opamp.rs, com.walmart.oneops.azure.integration"/>
 
     <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
     <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
@@ -67,5 +67,38 @@
         <property name="config" ref="ecvConfig"/>
         <property name="authUtil" ref="authUtil"/>
     </bean>
+
+	<!-- Beans for Compute Replacement API -->
+
+	<bean id="computeService" class="com.oneops.opamp.service.ComputeService">
+		<property name="envProcessor" ref="envProcessor" />
+		<property name="cmManager" ref="cmsCmManager" />
+		<property name="restTemplate" ref="restTemplate" />
+		<property name="transistorUrl"
+			value="${TRANSISTOR_HOST:http://cmsapi}:8080/transistor/rest/" />
+
+	</bean>
+
+	<bean id="opampRsController" class="com.oneops.opamp.rs.OpampRsController">
+		<property name="computeService" ref="computeService" />
+	</bean>
+
+	<bean id="azureServiceBus" class="com.walmart.oneops.azure.integration.AzureServiceBus"
+		init-method="init" destroy-method="destroy">
+		<property name="azureServiceBusEventsListner" ref="azureServiceBusEventsListner" />
+	</bean>
+
+	<bean id="azureServiceBusEventsListner"
+		class="com.walmart.oneops.azure.integration.AzureServiceBusEventsListner">
+		<property name="azureEventsHandler" ref="azureEventsHandler" />
+	</bean>
+
+	<bean id="azureEventsHandler" class="com.walmart.oneops.azure.integration.AzureEventsHandler">
+		<property name="cmManager" ref="cmsCmManager" />
+		<property name="computeService" ref="computeService" />
+		<property name="objectMapper" ref="objectMapper" />
+	</bean>
+
+	<bean id="objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper" />
 
 </beans>
