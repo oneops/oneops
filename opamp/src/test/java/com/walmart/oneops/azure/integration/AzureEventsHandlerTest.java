@@ -16,9 +16,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Before;
-import org.junit.Test;
-
+//import org.junit.Before;
+//import org.junit.Test;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmManager;
@@ -29,13 +30,14 @@ public class AzureEventsHandlerTest {
 
 	String event;
 
-	@Before
+	//@Before
+	@BeforeTest
 	public void init() throws IOException {
 		event = createMessage();
 
 	}
 
-	@Test
+	@Test(enabled=true)
 	public void testAzureEventsHandler_submitEventAction() {
 
 		AzureEventsHandler azureEventsHandler = new AzureEventsHandler();
@@ -70,7 +72,7 @@ public class AzureEventsHandlerTest {
 
 	}
 
-	@Test
+	@Test(enabled=true)
 	public void testAzureEventsHandler_parseResourceIdFromEvent() {
 
 		AzureEventsHandler azureEventsHandler = new AzureEventsHandler();
@@ -91,7 +93,7 @@ public class AzureEventsHandlerTest {
 	}
 
 	
-	@Test
+	@Test(enabled=true)
 	public void testAzureEventsHandler_getCidForAzureResourceID() {
 
 		AzureEventsHandler azureEventsHandler;

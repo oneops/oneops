@@ -6,8 +6,10 @@ import static org.mockito.Mockito.mock;
 import javax.jms.JMSException;
 import javax.naming.NamingException;
 
-import org.junit.Before;
-import org.junit.Test;
+//import org.junit.Before;
+//import org.junit.Test;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -18,7 +20,8 @@ public class AzureServiceBusTest {
 	AzureServiceBus azureServiceBus = new AzureServiceBus();
 	AzureServiceBusEventsListner azureServiceBusEventsListner = new AzureServiceBusEventsListner();
 
-	@Before
+	//@Before
+	@BeforeTest
 	public void before() throws Exception {
 
 		azureServiceBus.setAzureServiceBusEventsListner(azureServiceBusEventsListner);
@@ -40,7 +43,7 @@ public class AzureServiceBusTest {
 
 	}
 
-	@Test
+	@Test(enabled=true)
 	public void testAzureServiceInitializationUT() {
 
 		

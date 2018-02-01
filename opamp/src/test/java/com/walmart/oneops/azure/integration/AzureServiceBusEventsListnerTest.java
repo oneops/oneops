@@ -21,8 +21,10 @@ import javax.jms.Session;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.log4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
+//import org.junit.Before;
+//import org.junit.Test;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
 import org.mockito.Mockito;
 
@@ -36,14 +38,15 @@ public class AzureServiceBusEventsListnerTest {
 	ConnectionFactory connectionFactory;
 	AzureEventsHandler azureEventsHandler;
 
-	@Before
+	//@Before
+	@BeforeTest
 	public void init() {
 		azureServiceBusEventsListner = new AzureServiceBusEventsListner();
 		connectionFactory = new ActiveMQConnectionFactory(url);
 		azureEventsHandler = mock(AzureEventsHandler.class, Mockito.RETURNS_DEEP_STUBS);
 	}
 
-	@Test
+	@Test(enabled=true)
 	public void testAzureServiceBusEventsListnerStartup() {
 		logger.info("Testing testAzureServiceBusEventsListnerStartup()");
 		try
