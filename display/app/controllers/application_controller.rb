@@ -69,116 +69,6 @@ class ApplicationController < ActionController::Base
     render :nothing => true, :status => :ok
   end
 
-  def search
-    @source = params[:source].presence || (request.format.json? ? 'cms' : 'es')
-
-    return if request.format == 'text/html'
-
-    min_ns_path = search_ns_path
-    ns_path     = params[:ns_path] || min_ns_path
-    unless ns_path.start_with?(min_ns_path)
-      unauthorized('Invalid namespace')
-      return
-    end
-
-    class_name = params[:class_name]
-    rel_name   = params[:relation_name]
-    attr_name  = params[:attr_name]
-    attr_value = params[:attr_value]
-
-    @search_results = []
-
-    if @source == 'cms' || @source == 'simple'
-      # CMS search.
-      query_params = {:nsPath => ns_path, :recursive => true}
-
-
-      query_params[:ciClassName] = class_name if class_name.present?
-      query_params[rel_name.include?('.') ? :relationName : :relationShortName] = rel_name if rel_name.present?
-
-      if attr_name.present? && attr_value.present?
-        attr_operator       = params[:attr_operator] || 'eq'
-        attr_value          = "%#{attr_value}%" if attr_operator == 'like'
-        query_params[:attr] = "#{attr_name}:#{attr_operator}:#{attr_value}"
-      end
-
-      if rel_name.present?
-        query_params[:includeFromCi]   = true unless params[:include_from_ci] == 'false'
-        query_params[:includeToCi]     = true unless params[:include_to_ci] == 'false'
-        class_name                     = params[:from_class_name]
-        query_params[:fromClassName]   = class_name if class_name.present?
-        class_name                     = params[:to_class_name]
-        query_params[:targetClassName] = class_name if class_name.present?
-        clazz                          = Cms::Relation
-      else
-        clazz = Cms::Ci
-      end
-
-      @search_results = clazz.all(:params => query_params) if query_params.size > 2
-    else
-      # ES search.
-      query    = params[:query].presence
-      max_size = (params[:max_size].presence || 1000).to_i
-
-      if query.present? || class_name.present?
-        begin
-          search_params = {:nsPath => "#{ns_path}#{'*' unless ns_path.include?('*')}", :size => max_size}
-          search_params[:query] = {:query => query, :fields => %w(ciAttributes.* ciClassName ciName), :lenient => true} if query.present?
-          # search_params[:query]                = query if query.present?
-          search_params['ciClassName.keyword'] = class_name if class_name.present?
-          @search_results = Cms::Ci.search(search_params)
-        rescue Exception => e
-          @error = e.message
-        end
-      end
-    end
-
-    unless @search_results || is_admin? || has_org_scope?
-      org_ns_path = organization_ns_path
-      prefixes = current_user.organization.ci_proxies.where(:ns_path => org_ns_path).joins(:teams).where('teams.id IN (?)', current_user.all_team_ids).pluck(:ci_name).inject([]) do |a, ci_name|
-        a << "#{org_ns_path}/#{ci_name}"
-      end
-      if prefixes.present?
-        reg_exp = /^(#{prefixes.join(')|(')})/
-        @search_results = @search_results.select {|r| r.nsPath =~ reg_exp}
-      else
-        @search_results = []
-      end
-    end
-
-    if @search_results.present? && attr_name.present? && attr_value.blank?
-      split = attr_name.split('.')
-      split = split.unshift(rel_name.present? ? 'relationAttributes' : 'ciAttributes') if split.size == 1
-      @search_results = @search_results.map do |r|
-        split.inject(r) do |r, name|
-          rr = r.try(name.to_sym)
-          break r unless r
-          rr
-        end
-      end
-    end
-
-    respond_to do |format|
-      format.js { render 'base/search/search' }
-
-      format.json do
-        if @error
-          render :json => {:errors => [@error]}, :status => :unprocessable_entity
-        else
-          render :json => @search_results
-        end
-      end
-
-      format.text do
-        if @error
-          render :text => @error, :status => :unprocessable_entity
-        else
-          render :text => @search_results.join(params[:delimeter] || ' ')
-        end
-      end
-    end
-  end
-
 
   protected
 
@@ -672,11 +562,11 @@ class ApplicationController < ActionController::Base
         clazz.headers['X-Cms-Data-Consistency'] = value
       end
     end
-    # if Rails.env.shared?
-    #   Rails.logger.info '============ '
-    #   Rails.logger.info "== X-Cms-Data-Consistency #{value.blank? ? 'default' : "#{value} for: #{classes.present? ? classes.map(&:name).join(', ') : 'all'}"}"
-    #   Rails.logger.info '============ '
-    # end
+    if value.present? && Rails.env.shared?
+      Rails.logger.info '========================= '
+      Rails.logger.info "== X-Cms-Data-Consistency #{value.blank? ? 'default' : "#{value} for: #{classes.present? ? classes.map(&:name).join(', ') : 'all'}"}"
+      Rails.logger.info '========================= '
+    end
   end
 
   def weak_ci_relation_data_consistency
@@ -870,9 +760,9 @@ class ApplicationController < ActionController::Base
 
   def unauthorized(message = 'Unauthorized access!', redirect_path = root_path)
     respond_to do |format|
-      format.html { redirect_to redirect_path, :alert => message }
-      format.js   { render :js => "$j('.modal').modal('hide'); flash(null, 'Unauthorized access!')" }
-      format.json { render :json => {:errors => [message]}, :status => :unauthorized }
+      format.html {redirect_to redirect_path, :alert => message}
+      format.js   {render :js => %($j('.modal').modal('hide'); flash(null, "#{escape_javascript(message)}"))}
+      format.json {render :json => {:errors => [message]}, :status => :unauthorized}
     end
   end
 
@@ -888,7 +778,7 @@ class ApplicationController < ActionController::Base
     Rails.logger.warn "CI not found: #{message}"
     respond_to do |format|
       format.html {redirect_to not_found_url}
-      format.js {render :status => :not_found}
+      format.js   {render :status => :not_found}
       format.json {render :json => {:errors => [message]}, :status => :not_found}
     end
   end
