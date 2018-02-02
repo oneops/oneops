@@ -71,20 +71,26 @@ public class BomAsyncProcessor {
                 long startTime = System.currentTimeMillis();
                 CmsCI environment = cmProcessor.getCiById(envId);
                 bomManager.check4openDeployment(environment.getNsPath() + "/" + environment.getCiName() + "/bom");
-                CmsRelease bomRelease;
-                boolean deploy =(dpmt != null);
+                Map bomInfo;
+                boolean deploy = (dpmt != null);
                 if (deploy) {
-                    bomRelease = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
+                    bomInfo = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
                 }
                 else {
-                    bomRelease = bomManager.generateBom(envId, userId, excludePlats, desc, commit);
+                    bomInfo = bomManager.generateBom(envId, userId, excludePlats, desc, commit);
                 }
-                Map releaseInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
-                releaseInfo.put("createdBy", userId);
-                releaseInfo.put("mode", "persistent");
-                releaseInfo.put("autoDeploy", deploy);
-                releaseInfo.put("releaseId", bomRelease.getReleaseId());
-                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. releaseInfo=" + gson.toJson(releaseInfo);
+                Map<String, Object> bomGenerationInfo = new HashMap<>();
+                bomGenerationInfo.put("rfcCiCount", bomInfo.get("rfcCiCount"));
+                bomGenerationInfo.put("rfcRelationCount", bomInfo.get("rfcRelationCount"));
+                bomGenerationInfo.put("manifestCommit", bomInfo.get("manifestCommit"));
+                bomGenerationInfo.put("createdBy", userId);
+                bomGenerationInfo.put("mode", "persistent");
+                bomGenerationInfo.put("autoDeploy", deploy);
+                CmsRelease bomRelease = (CmsRelease) bomInfo.get("release");
+                if (bomRelease != null) {
+                    bomGenerationInfo.put("releaseId", bomRelease.getReleaseId());
+                }
+                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. releaseInfo=" + gson.toJson(bomGenerationInfo);
             } catch (Exception e) {
                 logger.error("Exception in build bom ", e);
                 envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();

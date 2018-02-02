@@ -389,8 +389,14 @@ public class CmsDpmtProcessor {
           .equalsIgnoreCase(existingDpmt.getDeploymentState()) || DPMT_STATE_PENDING
           .equalsIgnoreCase(existingDpmt.getDeploymentState())) {
         dpmtMapper.cancelDeployment(dpmt);
-        logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " with new state  " + dpmt
-            .getDeploymentState());
+        logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " with new state  " + dpmt.getDeploymentState());
+
+        // Also automatically cancel open deployment release.
+        long releaseId = existingDpmt.getReleaseId();
+        CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
+        bomRelease.setReleaseState("canceled");
+        rfcProcessor.updateRelease(bomRelease);
+        logger.info("Canceled deployment release releaseId " + releaseId);
       } else {
         String errMsg =
             "The deployment is not in failed/active state - " + existingDpmt.getDeploymentState();
