@@ -1,0 +1,7 @@
+<%= render 'base/search/search',
+           :ns_path       => search_ns_path,
+           :package       => 'bom',
+           :quick_filters => {'Compute Instances by IP...' => {:filters => {:package     => 'bom',
+                                                                            'class-name' => '*Compute',
+                                                                            'query'      => 'IP'},
+                                                               :run     => false}} %>

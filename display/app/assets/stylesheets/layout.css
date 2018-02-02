@@ -113,6 +113,10 @@ body {
   margin-top: 10px;
 }
 
+.sidebar .main::-webkit-scrollbar {
+  display: none;
+}
+
 .sidebar ul.menu {
   list-style: none;
   margin:     0px 16px 0px 9px;
@@ -1971,6 +1975,10 @@ img.authicon {
   text-overflow:     ellipsis;
   -o-text-overflow:  ellipsis;
   -ms-text-overflow: ellipsis;
+}
+
+.list-body li .content .middle dl dd {
+  white-space: normal;
 }
 
 .list-body li .content .middle a:link, .list-body li .content .middle a:active, .list-body li .content .middle a:visited {
@@ -4330,6 +4338,10 @@ hr {
   max-height: 400px;
   overflow-y: auto;
   overflow-x: visible;
+}
+
+.org_dropdown::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar.light {

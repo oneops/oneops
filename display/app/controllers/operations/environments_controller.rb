@@ -1,8 +1,7 @@
 class Operations::EnvironmentsController < Base::EnvironmentsController
-  include ::NotificationSummary, ::CostSummary, ::Health
+  include ::NotificationSummary, ::CostSummary, ::Health, ::Search
 
   before_filter :find_assembly_and_environment
-  before_filter :weak_ci_relation_data_consistency, :only => [:search]
 
   def index
     @environments = Cms::Relation.all(:params => {:ciId              => @assembly.ciId,
@@ -81,14 +80,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
       ops_states = Operations::Sensor.states(@instances)
       @graph = environment_graph(@environment, composedof_rels, requires_rels, realizedas_rels, cis_bom, ops_states)
-    end
-  end
-
-  def search
-    if request.format.html?
-      render '_search'
-    else
-      super
     end
   end
 
