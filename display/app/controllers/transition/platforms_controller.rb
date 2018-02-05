@@ -1,4 +1,5 @@
 class Transition::PlatformsController < Base::PlatformsController
+  include ::Search
   before_filter :find_assembly_environment_platform
   before_filter :load_scale_relations, :only => [:edit, :update, :show]
   before_filter :find_cloud, :only => [:cloud_configuration, :cloud_priority]
@@ -182,6 +183,13 @@ class Transition::PlatformsController < Base::PlatformsController
 
       format.json { render_json_ci_response(ok, @cloud) }
     end
+  end
+
+
+  protected
+
+  def search_ns_path
+    @platform.nsPath
   end
 
 

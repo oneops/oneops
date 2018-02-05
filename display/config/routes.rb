@@ -425,6 +425,7 @@ Display::Application.routes.draw do
             put 'cloud_configuration', :on => :member
             put 'cloud_priority',      :on => :member
             get 'history',             :on => :member
+            get 'search',              :on => :member
 
             resources :components, :only => [:index, :show, :edit, :update] do
               get  'history',           :on => :member

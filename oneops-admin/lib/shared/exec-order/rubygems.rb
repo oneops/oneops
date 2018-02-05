@@ -89,7 +89,7 @@ end
 
 
 def is_gem_installed?(gem, version = nil)
-  cmd = "#{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
+  cmd = "#{get_bin_dir}bundle #{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
   out = `#{cmd}`.chomp
   out == 'true' ? true : false
 end

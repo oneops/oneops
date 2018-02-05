@@ -57,12 +57,12 @@ public interface CIMapper {
 	List<CmsCI> getCIby3NsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("shortClazz") String shortClazz, @Param("name") String name);
 	List<CmsCI> getCIbyStateNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("state") String state);
 	List<CmsCI> getCIby3with2Names(@Param("ns") String ns, @Param("clazz") String clazz, @Param("name") String name, @Param("altName") String altName);
-	List<CmsCI> getCIbyAttributes(@Param("ns") String ns, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList);
-	List<CmsCI> getCIbyAttributesNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList);
+	List<CmsCI> getCIbyAttributes(@Param("ns") String ns, @Param("clazz") String clazz, @Param("shortClazz") String shortName, @Param("attrList") List<AttrQueryCondition> attrList);
+	List<CmsCI> getCIbyAttributesNsLike(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("shortClazz") String shortName, @Param("attrList") List<AttrQueryCondition> attrList);
 
 
-	List<CmsCI> getCIbyAttributesWithAltNs(@Param("ns") String ns, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList, @Param("altNs")String altNs, @Param("tag")String tag);
-	List<CmsCI> getCIbyAttributesNsLikeWithAltNs(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("attrList") List<AttrQueryCondition> attrList, @Param("altNs")String altNs, @Param("tag")String tag);
+	List<CmsCI> getCIbyAttributesWithAltNs(@Param("ns") String ns, @Param("clazz") String clazz, @Param("shortClazz") String shortName, @Param("attrList") List<AttrQueryCondition> attrList, @Param("altNs")String altNs, @Param("tag")String tag);
+	List<CmsCI> getCIbyAttributesNsLikeWithAltNs(@Param("ns") String ns, @Param("nsLike") String nsLike, @Param("clazz") String clazz, @Param("shortClazz") String shortName, @Param("attrList") List<AttrQueryCondition> attrList, @Param("altNs")String altNs, @Param("tag")String tag);
 
 
 	List<CmsCIAttribute> getCIAttrs(long ciId); 

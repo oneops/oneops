@@ -1,5 +1,5 @@
 namespace :user do
-  desc "Obsolete users \nUsage:\n\trake user:obsolete[inactive_since?,org?,verbose?,batch_size?]\n\t e.g.:\n\t\take user:obsolete[2017-01-01,some-org,true]"
+  desc "List obsolete users to a csv file 'obsolete_users_SINCE_in_ORG.csv'\nUsage:\n\trake user:obsolete[inactive_since?,org?,verbose?,batch_size?]\n\t e.g.:\n\t\take user:obsolete[2017-01-01,some-org,true]"
   task :obsolete, [:inactive_since, :org, :verbose, :batch_size] => :environment  do |t, args|
     t              = Time.now
     obsolte_users  = []

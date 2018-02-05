@@ -1,8 +1,10 @@
 class OrganizationController < ApplicationController
-  include ::CostSummary, ::NotificationSummary
+  include ::Search, ::CostSummary, ::NotificationSummary
 
   before_filter :authorize_admin, :only => [:update, :announcement]
   skip_before_filter :check_organization, :only => [:public_profile, :request_access, :lookup]
+
+  swagger_controller :organization, 'Organization Management'
 
   def show
     respond_to do  |format|

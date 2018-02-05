@@ -93,23 +93,25 @@ public class BomManagerImpl implements BomManager {
 	}
 
 	@Override
-	public CmsRelease generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
-		CmsRelease bomRelease = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
+	public Map<String, Object> generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
+		Map<String, Object> bomInfo = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
+		CmsRelease bomRelease = (CmsRelease) bomInfo.get("release");
 		if (bomRelease != null) {
 			dpmt.setNsPath(bomRelease.getNsPath());
 			dpmt.setReleaseId(bomRelease.getReleaseId());
 			dpmt.setCreatedBy(userId);
-			dpmtProcessor.deployRelease(dpmt);
+			CmsDeployment deployment = dpmtProcessor.deployRelease(dpmt);
+			bomInfo.put("deployment", deployment);
 		}
-		return bomRelease;
+		return bomInfo;
 	}
 
 	@Override
-	public CmsRelease generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+	public Map<String, Object> generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		return generateBomForClouds(envId, userId, excludePlats, desc, commit);
 	}
 
-	private CmsRelease generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+	private Map<String, Object> generateBomForClouds(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		long startTime = System.currentTimeMillis();
 
 		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, excludePlats, userId, cmProcessor, cmsUtil, bomRfcProcessor);
@@ -127,9 +129,14 @@ public class BomManagerImpl implements BomManager {
 		//if we have an open bom release then return the release id
 		List<CmsRelease> bomReleases = bomRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 		if (bomReleases.size() > 0) {
+			// Should really happen as commit above will close any open bom releases. But...
 			CmsRelease bomRelease = bomReleases.get(0);
 			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
-			return bomRelease;
+
+			Map<String, Object> bomInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
+			bomInfo.put("release", bomRelease);
+
+			return bomInfo;
 		}
 
 		context.load();
@@ -164,14 +171,17 @@ public class BomManagerImpl implements BomManager {
 		long duration = System.currentTimeMillis() - startTime;
 		logger.info(bomNsPath + " >>> Generated BOM in " + duration + " ms. Created rfcs: " + rfcCiCount + " CIs, " + rfcRelCount + " relations.");
 
+		Map<String, Object> bomInfo = new HashMap<>();
+		bomInfo.put("rfcCiCount", rfcCiCount);
+		bomInfo.put("rfcRelationCount", rfcRelCount);
+		bomInfo.put("manifestCommit", commit);
+		bomInfo.put("generationTime", duration);
+
 		if (bomRelease != null) {
-			Map<String, Object> bomReleaseDesc = new HashMap<>();
-			bomReleaseDesc.put("rfcCiCount", rfcCiCount);
-			bomReleaseDesc.put("rfcRelationCount", rfcRelCount);
-			bomReleaseDesc.put("manifestCommit", commit);
-			bomReleaseDesc.put("generationTime", duration);
-			bomRelease.setDescription(gson.toJson(bomReleaseDesc));
+			bomRelease.setDescription(gson.toJson(bomInfo));
 			bomRfcProcessor.updateRelease(bomRelease);
+
+			bomInfo.put("release", bomRelease);
 
 //			if (logger.isInfoEnabled()) {
 			if (logger.isDebugEnabled()) {
@@ -188,7 +198,7 @@ public class BomManagerImpl implements BomManager {
 			}
 
 		}
-		return bomRelease;
+		return bomInfo;
 	}
 
 	private int generateBomForActiveClouds(EnvBomGenerationContext context) {

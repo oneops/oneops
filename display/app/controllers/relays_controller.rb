@@ -4,7 +4,7 @@ class RelaysController < ApplicationController
                      :only => [:notify]
   before_filter :clear_active_resource_headers, :only => [:notify]
 
-  before_filter :weak_cms_data_consistency, :only => [:notify]
+  before_filter :weak_ci_relation_data_consistency, :only => [:notify]
 
   http_basic_authenticate_with :name     => Settings.notification_hook.user,
                                :password => Settings.notification_hook.password,
@@ -96,10 +96,6 @@ class RelaysController < ApplicationController
 
 
   private
-
-  def weak_cms_data_consistency
-    set_cms_data_consistency('weak', Cms::Ci, Cms::Relation)
-  end
 
   def check_correlation_filter(notification)
     payload = notification[:payload]

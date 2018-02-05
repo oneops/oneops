@@ -38,7 +38,7 @@
                          'updateMonitorChart(this, null, -0.5)',
                          :class => 'btn btn-mini') %>
     <%= link_to_function(icon('angle-right', nil, 'fa-lg'),
-                         'updateMonitorChart(this, null, 1)',
+                         'updateMonitorChart(this, null, 0.5)',
                          :class => 'btn btn-mini') %>
     <%= link_to_function(icon('angle-double-right', nil, 'fa-lg'),
                          'updateMonitorChart(this, null, 1)',
@@ -108,7 +108,7 @@
       rangeEl.val(range);
     }
     else if (shift == -1) {
-      end = parseInt(startEl.val() - length);
+      end = parseInt(endEl.val() - length);
     }
     else if (shift == -0.5) {
       end = parseInt(endEl.val()) - Math.round(length / 2);
