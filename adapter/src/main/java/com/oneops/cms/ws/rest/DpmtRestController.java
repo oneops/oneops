@@ -442,11 +442,12 @@ public class DpmtRestController extends AbstractRestController {
 	public CmsDpmtApproval dpmtApprove(
 			@RequestBody CmsDpmtApproval approval, @PathVariable long approvalId,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
-			@RequestHeader(value="X-Cms-User", required = true)  String userId){
+			@RequestHeader(value="X-Cms-User", required = true)  String userId,
+			@RequestHeader(value="X-Approval-Token", required = false) String approvalToken){
 		
 		approval.setUpdatedBy(userId);
 		
-	    djManager.updateApprovalList(Arrays.asList(approval));
+	    djManager.updateApprovalList(Arrays.asList(approval), approvalToken);
 	    return djManager.getDeploymentApproval(approval.getApprovalId());
 	}
 
@@ -455,14 +456,16 @@ public class DpmtRestController extends AbstractRestController {
 	public List<CmsDpmtApproval> dpmtApprove(
 			@RequestBody CmsDpmtApproval[] approvals,
 			@RequestHeader(value="X-Cms-Scope", required = false)  String scope,
-			@RequestHeader(value="X-Cms-User", required = true)  String userId){
+			@RequestHeader(value="X-Cms-User", required = true)  String userId,
+			@RequestHeader(value="X-Approval-Token", required = false) String approvalToken
+	){
 		
 		List<CmsDpmtApproval> toApprove = new ArrayList<>();
 		for (CmsDpmtApproval approval : approvals) {
 			approval.setUpdatedBy(userId);
 			toApprove.add(approval);
 		}
-	    return djManager.updateApprovalList(toApprove);
+	    return djManager.updateApprovalList(toApprove, approvalToken);
 	}
 
 }
