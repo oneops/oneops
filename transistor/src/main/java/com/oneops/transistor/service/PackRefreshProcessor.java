@@ -153,7 +153,8 @@ public class PackRefreshProcessor {
         List<CmsCIRelation> templateRels = cmProcessor.getFromCIRelations(templatePlatform.getCiId(), null, "Requires", null);
         List<CmsCIRelation> designRels = cmProcessor.getFromCIRelations(designPlatform.getCiId(), null, "Requires", null);
 
-        List<CmsCIRelation> existingDependsOnRels =  new ArrayList<>(context.existingCatalogPlatRels.get("catalog.DependsOn").values());
+        Map<String, CmsCIRelation> stringCmsCIRelationMap = context.existingCatalogPlatRels.get("catalog.DependsOn");
+        List<CmsCIRelation> existingDependsOnRels =  (stringCmsCIRelationMap==null?new ArrayList<>():new ArrayList<>(stringCmsCIRelationMap.values()));
 
         List<CmsCIRelation> templInternalRels = new ArrayList<CmsCIRelation>();
         Map<String, Edge> edges = new HashMap<String, Edge>();

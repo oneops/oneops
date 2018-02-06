@@ -1,4 +1,5 @@
 class SupportController < ReportsController
+  include ::Search
   skip_before_filter :check_reset_password, :check_eula, :check_username, :check_organization, :set_active_resource_headers
   before_filter :clear_active_resource_headers
   before_filter :authorize

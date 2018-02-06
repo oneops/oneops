@@ -28,4 +28,5 @@
            :items => [{:label => 'summary', :template => 'summary', :selected => true},
                       {:label => 'graph', :url => graph_assembly_operations_environment_platform_path(@assembly, @environment, @platform)},
                       {:label => 'health', :url => assembly_operations_environment_platform_instances_path(@assembly, @environment, @platform, :instances_state => params[:instances_state] || 'unhealthy,notify')},
-                      {:label => 'procedures', :template => 'procedures'}] %>
+                      {:label => 'procedures', :template => 'procedures'},
+                      {:label => icon('search'), :id => 'search', :template => 'search'}] %>
