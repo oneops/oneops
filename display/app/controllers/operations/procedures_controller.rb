@@ -3,11 +3,51 @@ class Operations::ProceduresController < ApplicationController
 
   helper_method :allow_access?
 
+  swagger_controller :procedures, 'Operations Procedures/Actions Management'
+
+  swagger_api :index do
+    summary 'Fetches operations procedures.'
+    notes 'Returns a list of most recently created operations procedures (including individual actions) for a given ' \
+          'anchor (use <b>ciId</b> param) or action target CI (use <b>actionCiId</b> param) or namespace (use <b>ns_path</b> param).'
+    param_org_name
+    param :query, 'ciId', :string, :optional, 'Return procedures created by (i.e. anchored on) CI with this id.'
+    param :query, 'anchorCiId', :string, :optional, 'Return procedures with any of the actions targeted to CI with this id regardless of procedure anchor CI.  This allows to query for any procedures which included actions for a given CI.'
+    param :query, 'ns_path', :string, :optional, 'Return procedures for anchor CIs in this namespace (recursively).'
+    param :query, 'state', :string, :optional, 'Commas separated list of procedure states to filter results.'
+    param :query, 'name', :string, :optional, 'Procedure name (the same action name except for some cases of dedicated pack-defined procedures) to filter results.'
+    param :query, 'size', :number, :optional, 'Max number of procedures to return (default and max value is 100).'
+    param :query, 'include_actions', :boolean, :optional, 'true|false. Include actions in response - applicable only when querying by <b>ns_path</b> (default: true).'
+    response :unauthorized
+    response :unprocessable_entity
+  end
   def index
     anchor_ci_id = params[:ciId]
-    return unauthorized unless allow_access?(anchor_ci_id, true)
+    action_ci_id = params[:actionCiId]
+    ns_path      = params[:ns_path]
+    search_params = {}
+    if anchor_ci_id.present?
+      return unauthorized unless allow_access?(anchor_ci_id, true)
+      search_params[:ciId] = anchor_ci_id
+    elsif action_ci_id.present?
+      return unauthorized unless allow_access?(action_ci_id, true)
+      search_params[:actionCiId] = action_ci_id
+    elsif ns_path.present?
+      return unauthorized unless allow_access_to_ns_path?(ns_path, true)
+      search_params[:nsPath]    = ns_path
+      search_params[:recursive] = true
+      search_params[:actions]   = params[:include_actions] != 'false'
+    else
+      render :json => {:errors => ['ciId or actionCiId or ns_path must be specified!']}, :status => :unprocessable_entity
+      return
+    end
 
-    @procedures = Cms::Procedure.all(:params => {:ciId => anchor_ci_id, :limit => 100})
+    limit = params[:size].to_i
+    state = params[:state]
+    name  = params[:name]
+    search_params[:limit] = limit > 100 || limit < 1 ? 100 : limit
+    search_params[:state] = state if state.present?
+    search_params[:procedureName] = name if name.present?
+    @procedures = Cms::Procedure.all(:params => search_params)
 
     respond_to do |format|
       format.js
@@ -233,9 +273,13 @@ class Operations::ProceduresController < ApplicationController
       return false unless @anchor_ci
     end
 
+    return allow_access_to_ns_path?(@anchor_ci.nsPath, read_only)
+  end
+
+  def allow_access_to_ns_path?(ns_path, read_only)
     return true if is_admin?
 
-    root, org, assembly, other = @anchor_ci.nsPath.split('/')
+    _, _, assembly, _ = ns_path.split('/')
     if assembly && !assembly.start_with?('_')
       return read_only ? current_user.has_any_dto?(assembly) : has_operations?(assembly)
     elsif @anchor_ci.ciClassName == 'account.Cloud'
