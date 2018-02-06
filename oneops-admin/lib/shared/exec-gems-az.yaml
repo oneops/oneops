@@ -32,6 +32,9 @@ common:
     -
       - parallel
       - 1.3.3
+    -
+      - ffi
+      - 1.9.18
     # gem dependencies for artifact component
     -
       - i18n
