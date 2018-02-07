@@ -97,31 +97,36 @@ public class DnsHandler {
   }
 
   private void addOrUpdateCNames(CmsWorkOrderSimple wo, Context context, Collection<String> aliases, InfobloxClient infoBloxClient) {
-    logger.info(context.getLogKey() + "add/update cnames " + aliases);
+    logger.info(context.getLogKey() + "cnames to be added/updated " + aliases);
     String cname = context.getPlatform() + context.getMtdBaseHost();
     for (String alias : aliases) {
       try {
         List<CNAME> existingCnames = infoBloxClient.getCNameRec(alias);
         if (existingCnames == null || existingCnames.isEmpty()) {
+          logger.info(context.getLogKey() + "cname not found, trying to add " + alias);
           CNAME addedCname = infoBloxClient.createCNameRec(alias, cname);
           if (!cname.equals(addedCname.canonical())) {
             woHelper.failWo(wo, context.getLogKey(), "Failed to create cname ", null);
             break;
           }
           else {
-            logger.info(context.getLogKey() + "cnames added successfully");
+            logger.info(context.getLogKey() + "cname added successfully");
           }
         }
         else {
           if (existingCnames.size() > 1 || cname.equals(existingCnames.get(0))) {
+            logger.info(context.getLogKey() + "cname for " + alias + " found already with different alias " + existingCnames + ", trying to update");
             List<CNAME> updatedCnames = infoBloxClient.modifyCNameRec(alias, cname);
             if (updatedCnames.isEmpty() || !cname.equals(updatedCnames.get(0).canonical())) {
               woHelper.failWo(wo, context.getLogKey(), "Failed to update cname ", null);
               break;
             }
             else {
-              logger.info(context.getLogKey() + "cnames updated successfully");
+              logger.info(context.getLogKey() + "cname updated successfully");
             }
+          }
+          else {
+            logger.info(context.getLogKey() + "cname already exists, no change needed " + alias);
           }
         }
       } catch (IOException e) {

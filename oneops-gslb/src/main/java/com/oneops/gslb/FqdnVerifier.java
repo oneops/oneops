@@ -126,8 +126,8 @@ public class FqdnVerifier {
     logger.info(context.logKey + "verifying mtd host not exists ");
     if (resp.isSuccessful()) {
       logger.info(context.logKey + "mtd base exists, trying to get mtd host");
-      MtdBase mtdBase = resp.getBody().getMtdBase();
-      Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.getMtdBaseId(), context.platform), MtdHostResponse.class);
+      MtdBase mtdBase = resp.getBody().mtdBase();
+      Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.mtdBaseId(), context.platform), MtdHostResponse.class);
       verify(() -> !hostResp.isSuccessful(), "mtd host is not available");
     }
   }
@@ -140,31 +140,31 @@ public class FqdnVerifier {
     Resp<MtdBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MtdBaseResponse.class);
     logger.info(context.logKey + "verifying mtd base ");
     verify(() -> resp.isSuccessful(), "mtd base exists");
-    MtdBase mtdBase = resp.getBody().getMtdBase();
-    verify(() -> context.mtdBaseHost.equals(mtdBase.getMtdBaseName()), "mtd base name match");
+    MtdBase mtdBase = resp.getBody().mtdBase();
+    verify(() -> context.mtdBaseHost.equals(mtdBase.mtdBaseName()), "mtd base name match");
 
-    Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.getMtdBaseId(), context.platform), MtdHostResponse.class);
+    Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.mtdBaseId(), context.platform), MtdHostResponse.class);
     logger.info(context.logKey + "verifying mtd host version exists");
     verify(() -> hostResp.isSuccessful(), "mtd host version exists");
 
-    MtdHost host = hostResp.getBody().getMtdHost();
+    MtdHost host = hostResp.getBody().mtdHost();
     logger.info(context.logKey + "verifying mtd host targets");
-    List<MtdTarget> targets = host.getMtdTargets();
+    List<MtdTarget> targets = host.mtdTargets();
     logger.info(context.logKey + "configured mtd targets " + targets.stream().
-        map(MtdTarget::getMtdTargetHost).
+        map(MtdTarget::mtdTargetHost).
         collect(Collectors.joining(",")));
-    Map<String, MtdTarget> map = targets.stream().collect(Collectors.toMap(MtdTarget::getMtdTargetHost, Function.identity()));
+    Map<String, MtdTarget> map = targets.stream().collect(Collectors.toMap(MtdTarget::mtdTargetHost, Function.identity()));
     List<Lb> lbList = getLbVips(wo);
     logger.info(context.logKey + "expected targets " +
         lbList.stream().map(l -> l.vip).collect(Collectors.joining(",")));
     for (Lb lb : lbList) {
       verify(() -> map.containsKey(lb.vip), "lb vip present in MTD target");
       MtdTarget target = map.get(lb.vip);
-      verify(() -> lb.isPrimary ? target.getEnabled() : !target.getEnabled(), "mtd target enabled/disabled based on cloud status");
+      verify(() -> lb.isPrimary ? target.enabled() : !target.enabled(), "mtd target enabled/disabled based on cloud status");
     }
 
     logger.info(context.logKey + "verifying mtd health checks");
-    List<MtdHostHealthCheck> healthChecks = host.getMtdHealthChecks();
+    List<MtdHostHealthCheck> healthChecks = host.mtdHealthChecks();
     Map<Integer, EcvListener> expectedChecksMap = getHealthChecks(wo, context).stream().
         collect(Collectors.toMap(e -> e.port, Function.identity()));
     verify(() -> ((healthChecks != null ? healthChecks.size() : 0) ==
@@ -172,11 +172,11 @@ public class FqdnVerifier {
         "all health checks are configured");
     if (healthChecks != null) {
       for (MtdHostHealthCheck healthCheck : healthChecks) {
-        verify(() -> expectedChecksMap.containsKey(healthCheck.getPort()), "mtd health check available for port");
-        EcvListener listener = expectedChecksMap.get(healthCheck.getPort());
-        verify(() -> listener.protocol.equals(healthCheck.getProtocol()), "mtd health protocol matches");
+        verify(() -> expectedChecksMap.containsKey(healthCheck.port()), "mtd health check available for port");
+        EcvListener listener = expectedChecksMap.get(healthCheck.port());
+        verify(() -> listener.protocol.equals(healthCheck.protocol()), "mtd health protocol matches");
         if (listener.ecv != null && !listener.ecv.isEmpty()) {
-          verify(() -> listener.ecv.equals(healthCheck.getTestObjectPath()), "mtd health ecv matches");
+          verify(() -> listener.ecv.equals(healthCheck.testObjectPath()), "mtd health ecv matches");
         }
       }
     }
