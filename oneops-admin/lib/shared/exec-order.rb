@@ -9,7 +9,6 @@ require 'yaml'
 require 'optparse'
 Dir[File.join(File.expand_path(File.dirname(__FILE__)), 'exec-order','*.rb')].each {|f| require f }
 
-`gem install ffi -v 1.9.18`
 log_level = "info"
 formatter = "null"
 options = {}
@@ -133,7 +132,6 @@ when "chef"
     # base on a config file or something.
 
     custom_ruby_bindir = '/home/oneops/ruby/2.0.0-p648/bin'
-    puts "I am in here and File.exist?('custom_ruby_bindir/chef-solo') returns #{File.exist?("#{custom_ruby_bindir}/chef-solo")} "
     if File.exist?("#{custom_ruby_bindir}/chef-solo")
       bindir = custom_ruby_bindir
       ENV['GEM_PATH'] = '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
