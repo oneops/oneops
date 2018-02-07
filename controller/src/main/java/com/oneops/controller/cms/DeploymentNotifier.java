@@ -189,9 +189,10 @@ public class DeploymentNotifier {
 
     private void addAllPendingApprovals(CmsDeployment dpmt, NotificationMessage notify) {
         List<Map<String, Object>> pendingApprovals = new ArrayList<>();
-        Map<String, Object> approvalMap = new HashMap<>();
+       
         cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId()).stream().filter(approval -> APPROVAL_STATE_PENDING.equals(approval.getState()) && !approval.getIsExpired()).forEach(
                 approval -> {
+                    Map<String, Object> approvalMap = new HashMap<>();
                     approvalMap.put("approvalId", approval.getApprovalId());
                     approvalMap.put("governCiId", approval.getGovernCiId());
                     
