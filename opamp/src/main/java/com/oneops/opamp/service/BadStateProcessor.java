@@ -561,7 +561,7 @@ public class BadStateProcessor {
 		Map<String, Integer> result = new HashMap<>(1);
 
 		CmsCI platform = envProcessor.getPlatform4Bom(ciId);
-		logger.info("Platform name for compute : " + platform.getCiName());
+		logger.info("Platform name for ciId : " + platform.getCiName());
 
 		CmsCI env = envProcessor.getEnv4Platform(platform);
 		logger.info("Oneops environment for ciId : " + env.getCiId() + ": " + env.getCiName());

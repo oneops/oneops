@@ -89,6 +89,7 @@
     <slf4j.version>1.6.1</slf4j.version>
     <hazelcast.version>3.8.5</hazelcast.version>
     <aspectj.version>1.8.11</aspectj.version>
+    <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
   </properties>
   <modules>
     <module>adapter</module>
@@ -703,6 +704,15 @@
         <artifactId>logging-interceptor</artifactId>
         <version>${okhttp.version}</version>
       </dependency>
+      
+      	<!-- Begin: Added dependency to connect to Azure Service Bus -->
+	<dependency>
+		<groupId>org.apache.qpid</groupId>
+		<artifactId>qpid-jms-client</artifactId>
+		<version>${qpid-jms-client.version}</version>
+	</dependency>
+	<!-- End: Added dependency to connect to Azure Service Bus -->
+	
     </dependencies>
   </dependencyManagement>
   <build>

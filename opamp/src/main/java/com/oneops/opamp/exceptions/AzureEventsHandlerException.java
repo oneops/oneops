@@ -1,6 +1,6 @@
 package com.oneops.opamp.exceptions;
 
-public class AzureEventsHandlerException  extends Exception{
+public class AzureEventsHandlerException  extends RuntimeException{
 	private static final long serialVersionUID = 1L;
 	
 	/**

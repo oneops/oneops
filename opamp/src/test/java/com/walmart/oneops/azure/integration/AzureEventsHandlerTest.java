@@ -67,10 +67,10 @@ public class AzureEventsHandlerTest {
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
 		azureEventsHandler.setCmManager(cmManager);
 
-		Map<String, Integer> replaceComputeByCidResponeMap = new HashMap<String, Integer>(1);
-		replaceComputeByCidResponeMap.put("deploymentId", 0);
+		Map<String, Integer> replaceByCidResponeMap = new HashMap<String, Integer>(1);
+		replaceByCidResponeMap.put("deploymentId", 0);
 
-		when(bsProcessor.replaceByCid(anyLong(), anyString(), anyString())).thenReturn(replaceComputeByCidResponeMap);
+		when(bsProcessor.replaceByCid(anyLong(), anyString(), anyString())).thenReturn(replaceByCidResponeMap);
 		azureEventsHandler.setBsProcessor(bsProcessor);
 
 		ObjectMapper objectMapper = new ObjectMapper();
@@ -126,7 +126,6 @@ public class AzureEventsHandlerTest {
 
 		AzureEventsHandler azureEventsHandler;
 		CmsCmManager cmManager;
-		// ComputeService computeService;
 		ObjectMapper objectMapper;
 
 		cmManager = mock(com.oneops.cms.cm.service.CmsCmManagerImpl.class);
@@ -174,12 +173,12 @@ public class AzureEventsHandlerTest {
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
 		azureEventsHandler.setCmManager(cmManager);
 
-		Map<String, Integer> replaceComputeByCidResponeMap = new HashMap<String, Integer>(1);
-		replaceComputeByCidResponeMap.put("deploymentId", 0);
+		Map<String, Integer> replaceByCidResponeMap = new HashMap<String, Integer>(1);
+		replaceByCidResponeMap.put("deploymentId", 0);
 
 		BadStateProcessor bsProcessor = mock(com.oneops.opamp.service.BadStateProcessor.class);
 		when(bsProcessor.replaceByCid(anyLong(), anyString(), anyString()))
-				.thenThrow(new RuntimeException("Compute replacement method should not have been called"));
+				.thenThrow(new RuntimeException("Cid replacement method should not have been called"));
 		azureEventsHandler.setBsProcessor(bsProcessor);
 
 		ObjectMapper objectMapper = new ObjectMapper();
@@ -216,11 +215,11 @@ public class AzureEventsHandlerTest {
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
 		azureEventsHandler.setCmManager(cmManager);
 
-		Map<String, Integer> replaceComputeByCidResponeMap = new HashMap<String, Integer>(1);
-		replaceComputeByCidResponeMap.put("deploymentId", 0);
+		Map<String, Integer> replaceByCidResponeMap = new HashMap<String, Integer>(1);
+		replaceByCidResponeMap.put("deploymentId", 0);
 
 		when(bsProcessor.replaceByCid(anyLong(), anyString(), anyString()))
-				.thenThrow(new RuntimeException("Compute replacement method should not have been called"));
+				.thenThrow(new RuntimeException("Cid replacement method should not have been called"));
 		azureEventsHandler.setBsProcessor(bsProcessor);
 
 		ObjectMapper objectMapper = new ObjectMapper();

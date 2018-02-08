@@ -81,20 +81,20 @@ public class AzureEventsHandler {
 
 			if (ciList.size() < 1) {
 
-				logger.error("No matching compute instance_id found for AzureEvent resourceId: " + resourceId);
+				logger.error("No matching ciId instance_id found for AzureEvent resourceId: " + resourceId);
 
 			} else {
-				logger.info("Replace Compute for resourceId: " + resourceId + " ,Cid: " + ciList.get(0).getCiId());
-				Map<String, Integer> computeServiceRespMap = bsProcessor.replaceByCid(ciList.get(0).getCiId(), userId,
+				logger.info("Replace ciId for resourceId: " + resourceId + " ,Cid: " + ciList.get(0).getCiId());
+				Map<String, Integer> bsProcessorRespMap = bsProcessor.replaceByCid(ciList.get(0).getCiId(), userId,
 						description);
 
-				logger.info("computeService Response : " + computeServiceRespMap.get("deploymentId")
-						+ " for resourceId: " + resourceId + " CiId: " + ciList.get(0).getCiId());
-				if (computeServiceRespMap.get("deploymentId") == Integer.valueOf(0)) {
-					logger.info("Compute was replacement request was submitted successfully  for resourceId: "
-							+ resourceId + " CiId: " + ciList.get(0).getCiId());
+				logger.info("Response : " + bsProcessorRespMap.get("deploymentId") + " for resourceId: " + resourceId
+						+ " CiId: " + ciList.get(0).getCiId());
+				if (bsProcessorRespMap.get("deploymentId") == Integer.valueOf(0)) {
+					logger.info("CiId was replacement request was submitted successfully  for resourceId: " + resourceId
+							+ " CiId: " + ciList.get(0).getCiId());
 				} else {
-					logger.error("ComputeService unable to replace compute for resourceId: " + resourceId + " CiId: "
+					logger.error("unable to replace CiId for resourceId: " + resourceId + " CiId: "
 							+ ciList.get(0).getCiId());
 
 				}
@@ -157,13 +157,6 @@ public class AzureEventsHandler {
 	public void setCmManager(CmsCmManager cmManager) {
 		this.cmManager = cmManager;
 	}
-
-	/*
-	 * public ComputeService getComputeService() { return computeService; }
-	 * 
-	 * public void setComputeService(ComputeService computeService) {
-	 * this.computeService = computeService; }
-	 */
 
 	public ObjectMapper getObjectMapper() {
 		return objectMapper;

@@ -41,7 +41,6 @@ import com.oneops.opamp.service.BadStateProcessor;
 public class OpampRsController {
 
 	private static Logger logger = Logger.getLogger(OpampRsController.class);
-
 	BadStateProcessor bsProcessor;
 
 	@RequestMapping(value = "/cid/{ciId}", method = RequestMethod.PUT)
@@ -60,7 +59,7 @@ public class OpampRsController {
 
 		} catch (Exception e) {
 
-			logger.error("Exception while processing replaceComputeByCidAPI for Cid: {}" + ciId + " :" + e);
+			logger.error("Exception while processing replaceByCid - API for Cid: {}" + ciId + " :" + e);
 			result.put("deploymentId", 1);
 			return result;
 		}
