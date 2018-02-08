@@ -1,5 +1,6 @@
 package com.oneops.cms.execution;
 
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.util.List;
 
@@ -18,5 +19,7 @@ public interface ComponentWoExecutor {
     }
     return response;
   }
+
+  public Response execute(CmsActionOrderSimple ao);
 
 }

@@ -41,7 +41,8 @@ public class WoHelper {
   }
 
   public void failWo(CmsWorkOrderSimple wo, String logKey, String message, Exception e) {
-    logger.error(logKey + message, e);
+    String logMsg = (e != null) ? logKey + message + " : " + e.getMessage() : logKey + message;
+    logger.error(logMsg, e);
     wo.setDpmtRecordState(FAILED);
     wo.setComments(message +  (e != null ? " caused by - " + e.getMessage() : ""));
   }

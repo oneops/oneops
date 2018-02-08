@@ -186,6 +186,10 @@ public class Listener implements MessageListener, ApplicationContextAware {
             long t = System.currentTimeMillis();
             wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
             wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
+
+            String logKey = workOrderExecutor.getLogKey(wo);
+            logger.info(logKey + " Inductor: " + config.getIpAddr());
+
             preProcess(wo);
             wo.putSearchTag("rfcAction", wo.getAction());
             Response response = runWithMatchingExecutor(wo);

@@ -1,41 +1,21 @@
 package com.oneops.gslb.v2.domain;
 
 import com.google.gson.annotations.SerializedName;
-import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public abstract class BaseResponse {
 
   @SerializedName("links")
-  protected Links links = null;
+  @Nullable
+  public abstract Links links();
 
   @SerializedName("metadata")
-  protected Metadata metadata = null;
+  @Nullable
+  public abstract Metadata metadata();
 
   @SerializedName("errors")
-  protected List<ResponseError> errors = new ArrayList<>();
+  @Nullable
+  public abstract List<ResponseError> errors();
 
-  public Links getLinks() {
-    return links;
-  }
-
-  public void setLinks(Links links) {
-    this.links = links;
-  }
-
-  public Metadata getMetadata() {
-    return metadata;
-  }
-
-  public void setMetadata(Metadata metadata) {
-    this.metadata = metadata;
-  }
-
-  public List<ResponseError> getErrors() {
-    return errors;
-  }
-
-  public void setErrors(List<ResponseError> errors) {
-    this.errors = errors;
-  }
 }

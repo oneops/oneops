@@ -3,6 +3,7 @@ package com.oneops.gslb;
 import com.oneops.cms.execution.ComponentWoExecutor;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
@@ -23,10 +24,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static final String ATTRIBUTE_ENDPOINT = "endpoint";
   private static final String ATTRIBUTE_AUTH_KEY = "auth_key";
   private static final String ATTRIBUTE_GROUP_ID = "group_id";
+  private static final String ATTRIBUTE_GDNS = "global_dns";
 
   static final String ATTRIBUTE_SERVICE_TYPE = "service_type";
 
   private static final String TORBIT_SERVICE_CLASS = "cloud.service.oneops.1.Torbit";
+  private static final String PAYLOAD_ENVIRONMENT = "Environment";
+
 
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
@@ -49,11 +53,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   @Override
   public Response execute(CmsWorkOrderSimple wo) {
-    if (wo.getClassName().equals(FQDN_CLASS) && isLocalWo(wo) && isTorbitServiceType(wo)) {
-      String logKey = woHelper.getLogKey(wo);
+    String logKey = woHelper.getLogKey(wo);
+    if (wo.getClassName().equals(FQDN_CLASS) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
       Context context = getContext(wo, logKey);
       Config config = getTorbitConfig(wo, logKey);
       if (config != null) {
+        logger.info(logKey + "FqdnExecutor executing workorder dpmt " + wo.getDeploymentId() + " action : " + wo.rfcCi.getRfcAction());
         mtdHandler.setupTorbitGdns(wo, config, context);
         if (!woHelper.isFailed(wo)) {
           dnsHandler.setupCNames(wo, context);
@@ -61,7 +66,8 @@ public class FqdnExecutor implements ComponentWoExecutor {
         return woHelper.formResponse(wo, logKey);
       }
     }
-    logger.info("wo " + wo.rfcCi.getRfcId() + " deployment " + wo.getDeploymentId() + " - fqdn does not have torbit service type");
+    logger.info(logKey + "not executing by FqdnExecutor as these conditions are not met :: "
+        + "[fqdn service_type set as torbit && gdns enabled for env && local workorder && torbit cloud service configured]");
     return Response.getNotMatchingResponse();
   }
 
@@ -87,6 +93,17 @@ public class FqdnExecutor implements ComponentWoExecutor {
       logger.info(wo.getCiId() + " : fqdn service type  " + serviceType);
       return "torbit".equals(serviceType) &&
           wo.getServices() != null && wo.getServices().containsKey(SERVICE_TYPE_TORBIT);
+    }
+    return false;
+  }
+
+  private boolean isGdnsEnabled(CmsWorkOrderSimple wo) {
+    if (wo.isPayLoadEntryPresent(PAYLOAD_ENVIRONMENT)) {
+      CmsRfcCISimple env = wo.getPayLoadEntryAt(PAYLOAD_ENVIRONMENT, 0);
+      Map<String, String> attrs = env.getCiAttributes();
+      if (attrs.containsKey(ATTRIBUTE_GDNS)) {
+        return "true".equals(attrs.get(ATTRIBUTE_GDNS));
+      }
     }
     return false;
   }
@@ -145,6 +162,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
         context.getEnvironment() + ", org : " + context.getOrg() + ", subdomain : " + context.getSubdomain() + ", cloud : " +
         context.getCloud() + ", baseGslbDomain : " + context.getBaseGslbDomain());
     return context;
+  }
+
+  @Override
+  public Response execute(CmsActionOrderSimple ao) {
+    return Response.getNotMatchingResponse();
   }
 
 }
