@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.01.29-4-SNAPSHOT</version>
+  <version>18.01.29-9-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -87,8 +87,10 @@
     <activiti-spring.version>5.19.0</activiti-spring.version>
     <activiti.version>5.19.0</activiti.version>
     <slf4j.version>1.6.1</slf4j.version>
-    <hazelcast.version>3.8.5</hazelcast.version>
     <aspectj.version>1.8.11</aspectj.version>
+    <autovalue.version>1.5.3</autovalue.version>
+    <autovalue-gson.version>0.4.5</autovalue-gson.version>
+    <jsr305.version>3.0.2</jsr305.version>
     <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
   </properties>
   <modules>
@@ -670,16 +672,6 @@
         <version>${smack.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast</artifactId>
-        <version>${hazelcast.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast-spring</artifactId>
-        <version>${hazelcast.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.aspectj</groupId>
         <artifactId>aspectjweaver</artifactId>
         <version>${aspectj.version}</version>
@@ -704,15 +696,29 @@
         <artifactId>logging-interceptor</artifactId>
         <version>${okhttp.version}</version>
       </dependency>
-      
-      	<!-- Begin: Added dependency to connect to Azure Service Bus -->
+      <dependency>
+        <groupId>com.google.auto.value</groupId>
+        <artifactId>auto-value</artifactId>
+        <version>${autovalue.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ryanharter.auto.value</groupId>
+        <artifactId>auto-value-gson</artifactId>
+        <version>${autovalue-gson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>${jsr305.version}</version>
+      </dependency>
+      <!-- Begin: Added dependency to connect to Azure Service Bus -->
 	<dependency>
 		<groupId>org.apache.qpid</groupId>
 		<artifactId>qpid-jms-client</artifactId>
 		<version>${qpid-jms-client.version}</version>
 	</dependency>
 	<!-- End: Added dependency to connect to Azure Service Bus -->
-	
+      
     </dependencies>
   </dependencyManagement>
   <build>
