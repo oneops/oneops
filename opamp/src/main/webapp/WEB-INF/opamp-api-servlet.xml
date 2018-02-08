@@ -68,20 +68,14 @@
         <property name="authUtil" ref="authUtil"/>
     </bean>
 
-	<!-- Beans for Compute Replacement API -->
-
-	<bean id="computeService" class="com.oneops.opamp.service.ComputeService">
-		<property name="envProcessor" ref="envProcessor" />
-		<property name="cmManager" ref="cmsCmManager" />
-		<property name="restTemplate" ref="restTemplate" />
-		<property name="transistorUrl"
-			value="${TRANSISTOR_HOST:http://cmsapi}:8080/transistor/rest/" />
-
-	</bean>
+	<!--Begin: Beans for ci replacement API Replacement API -->
 
 	<bean id="opampRsController" class="com.oneops.opamp.rs.OpampRsController">
-		<property name="computeService" ref="computeService" />
+		<property name="bsProcessor" ref="bsProcessor" />
 	</bean>
+	<!-- End: Beans for ci replacement API Replacement API -->
+
+	<!-- Begin: Beans for Azure Service Bus Integration -->
 
 	<bean id="azureServiceBus" class="com.walmart.oneops.azure.integration.AzureServiceBus"
 		init-method="init" destroy-method="destroy">
@@ -95,10 +89,10 @@
 
 	<bean id="azureEventsHandler" class="com.walmart.oneops.azure.integration.AzureEventsHandler">
 		<property name="cmManager" ref="cmsCmManager" />
-		<property name="computeService" ref="computeService" />
+		<property name="bsProcessor" ref="bsProcessor" />
 		<property name="objectMapper" ref="objectMapper" />
 	</bean>
 
 	<bean id="objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper" />
-
+	<!-- End: Beans for Azure Service Bus Integration -->
 </beans>

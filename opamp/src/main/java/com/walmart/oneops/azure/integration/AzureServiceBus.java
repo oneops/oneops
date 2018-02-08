@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *
+ *   Copyright 2015 Walmart, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ *******************************************************************************/
 package com.walmart.oneops.azure.integration;
 
 import java.util.Properties;
@@ -16,6 +33,10 @@ import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+/**
+ * @author dsing17
+ *
+ */
 @Component
 public class AzureServiceBus {
 	private static Logger logger = Logger.getLogger(AzureServiceBus.class);
@@ -29,12 +50,6 @@ public class AzureServiceBus {
 	@Value("${AzureServiceBus.MonitoringQueue}")
 	private String QUEUE_NAME;
 
-/*	private String CONNECTION_NAME="amqpwss://wmoneopsmonitoringdev01.servicebus.windows.net:443/$servicebus/websocket?amqp.idleTimeout=150000";
-	private String QUEUE_NAME = "q.com.wm.oneops.monitoring";
-	private String sasKeyName="OneOpsSharedAccessKey";	
-	private String sasKey="nYMwPqMBa27yko1t7BHt6rDFGoqqCo6YE7er6VOI6vI=";
-	*/
-	
 	private String CONNECTION_JNDI_NAME = "azureServiceBusConnectionString";
 	private String QUEUE_JNDI_NAME = "QUEUE";
 	private String INITIAL_CONTEXT_FACTORY_NAME = "org.apache.qpid.jms.jndi.JmsInitialContextFactory";
@@ -44,7 +59,6 @@ public class AzureServiceBus {
 	private MessageConsumer azureServiceBusReceiver;
 
 	private AzureServiceBusEventsListner azureServiceBusEventsListner;
-
 
 	public Connection getAzureServiceBusConnection() {
 		return azureServiceBusConnection;
@@ -62,7 +76,6 @@ public class AzureServiceBus {
 		this.azureServiceBusReceiveSession = azureServiceBusReceiveSession;
 	}
 
-
 	public AzureServiceBusEventsListner getAzureServiceBusEventsListner() {
 		return azureServiceBusEventsListner;
 	}
@@ -70,6 +83,7 @@ public class AzureServiceBus {
 	public void setAzureServiceBusEventsListner(AzureServiceBusEventsListner azureServiceBusEventsListner) {
 		this.azureServiceBusEventsListner = azureServiceBusEventsListner;
 	}
+
 	public MessageConsumer getAzureServiceBusReceiver() {
 		return azureServiceBusReceiver;
 	}
@@ -77,6 +91,11 @@ public class AzureServiceBus {
 	public void setAzureServiceBusReceiver(MessageConsumer azureServiceBusReceiver) {
 		this.azureServiceBusReceiver = azureServiceBusReceiver;
 	}
+
+	/**
+	 * @throws JMSException
+	 * @throws NamingException
+	 */
 	public void init() throws JMSException, NamingException {
 
 		logger.info("intializing Azure Service Bus...");
@@ -109,18 +128,17 @@ public class AzureServiceBus {
 		logger.info("Azure Service Bus Connection started");
 
 	}
-	
+
 	public void destroy() {
 		try {
-			if (azureServiceBusConnection!=null) {
+			if (azureServiceBusConnection != null) {
 				azureServiceBusConnection.close();
 			}
-			
+
 		} catch (JMSException e) {
-			logger.error("Error while closing AzureServiceBus connection: "+e);
+			logger.error("Error while closing AzureServiceBus connection: " + e);
 			e.printStackTrace();
 		}
-		
-		
+
 	}
 }

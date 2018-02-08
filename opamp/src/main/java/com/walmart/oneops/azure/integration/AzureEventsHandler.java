@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *
+ *   Copyright 2015 Walmart, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ *******************************************************************************/
 package com.walmart.oneops.azure.integration;
 
 import java.io.IOException;
@@ -15,8 +32,13 @@ import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.util.domain.AttrQueryCondition;
 import com.oneops.opamp.exceptions.AzureEventsHandlerException;
-import com.oneops.opamp.service.ComputeService;
+import com.oneops.opamp.service.BadStateProcessor;
+import com.oneops.opamp.util.IConstants;
 
+/**
+ * @author dsing17
+ *
+ */
 public class AzureEventsHandler {
 
 	private static Logger logger = Logger.getLogger(AzureEventsHandler.class);
@@ -26,32 +48,55 @@ public class AzureEventsHandler {
 	private String oneopsSearchNsPathByAttributeName = "instance_id";
 	private String oneopsSearchNsPathByAttributeCondition = "eq";
 	private CmsCmManager cmManager;
-	private ComputeService computeService;
+	private BadStateProcessor bsProcessor;
 	private ObjectMapper objectMapper;
 
+	/**
+	 * @param event
+	 * @throws AzureEventsHandlerException
+	 */
 	public void submitEventAction(String event) throws AzureEventsHandlerException {
 		logger.info("Starting to process event data...");
-		String resourceId;
+
 		try {
-			resourceId = parseResourceIdFromEvent(event);
+			String resourceId = parseEventForEventAttribute(event,
+					IConstants.AzureServiceBus_Event_attribute_resourceId);
+			String status = parseEventForEventAttribute(event, IConstants.AzureServiceBus_Event_attribute_status);
+			String resourceProviderName = parseEventForEventAttribute(event,
+					IConstants.AzureServiceBus_Event_attribute_resourceProviderName);
+
+			if (!status.equals(IConstants.AzureServiceBus_Event_attribute_status_failed) || !resourceProviderName
+					.equals(IConstants.AzureServiceBus_Event_attribute_resourceProviderName_Value)) {
+				logger.error("EventType not supported : " + event);
+				return;
+
+			}
+			String userId = IConstants.ONEOPS_AUTOREPLACE_USER;
+			logger.info("userId :" + userId);
+
+			String description = "Auto-Replace triggered by Azure Service Bus";
 
 			List<CmsCI> ciList = getCidForAzureResourceID(resourceId);
 			logger.info("ciList: " + ciList);
 
 			if (ciList.size() < 1) {
-				
+
 				logger.error("No matching compute instance_id found for AzureEvent resourceId: " + resourceId);
 
 			} else {
 				logger.info("Replace Compute for resourceId: " + resourceId + " ,Cid: " + ciList.get(0).getCiId());
-				Map<String, Integer> computeServiceRespMap= computeService.replaceComputeByCid(ciList.get(0).getCiId());
-				
-				logger.info("computeService Response : "+computeServiceRespMap.get("deploymentId") + " for resourceId: "+resourceId +" CiId: "+ciList.get(0).getCiId());
+				Map<String, Integer> computeServiceRespMap = bsProcessor.replaceByCid(ciList.get(0).getCiId(), userId,
+						description);
+
+				logger.info("computeService Response : " + computeServiceRespMap.get("deploymentId")
+						+ " for resourceId: " + resourceId + " CiId: " + ciList.get(0).getCiId());
 				if (computeServiceRespMap.get("deploymentId") == Integer.valueOf(0)) {
-					logger.info("Compute was replacement request was submitted successfully  for resourceId: "+resourceId +" CiId: "+ciList.get(0).getCiId());
+					logger.info("Compute was replacement request was submitted successfully  for resourceId: "
+							+ resourceId + " CiId: " + ciList.get(0).getCiId());
 				} else {
-					logger.error("ComputeService unable to replace compute for resourceId: "+resourceId +" CiId: "+ciList.get(0).getCiId());
-					
+					logger.error("ComputeService unable to replace compute for resourceId: " + resourceId + " CiId: "
+							+ ciList.get(0).getCiId());
+
 				}
 
 			}
@@ -65,15 +110,28 @@ public class AzureEventsHandler {
 		}
 	}
 
-	public String parseResourceIdFromEvent(String event) throws JsonProcessingException, IOException {
+	/**
+	 * @param event
+	 * @param attribute
+	 * @return
+	 * @throws JsonProcessingException
+	 * @throws IOException
+	 */
+	public String parseEventForEventAttribute(String event, String attribute)
+			throws JsonProcessingException, IOException {
 
 		JsonNode rootNode = objectMapper.readTree(event);
-		String resourceId = rootNode.get("resourceId").asText();
+		String resourceId = rootNode.get(attribute).asText();
+
 		logger.info("resourceId: " + resourceId);
 		return resourceId;
 
 	}
 
+	/**
+	 * @param resourceId
+	 * @return
+	 */
 	public List<CmsCI> getCidForAzureResourceID(String resourceId) {
 		logger.info("Initializing AttrQueryCondition....");
 		AttrQueryCondition attrCondsObject = new AttrQueryCondition();
@@ -84,9 +142,10 @@ public class AzureEventsHandler {
 		List<AttrQueryCondition> attrConds = new ArrayList<AttrQueryCondition>();
 		attrConds.add(attrCondsObject);
 		logger.info("retriving CMS data for Azure event resourceID...");
-		System.out.println("cmManager : "+cmManager);
-		System.out.println("attrConds hash: "+attrConds.hashCode());
-		List<CmsCI> ciList = cmManager.getCiByAttributes(oneopsSearchNsPath, null, attrConds, oneopsSearchNsPathRecursively);
+		System.out.println("cmManager : " + cmManager);
+		System.out.println("attrConds hash: " + attrConds.hashCode());
+		List<CmsCI> ciList = cmManager.getCiByAttributes(oneopsSearchNsPath, null, attrConds,
+				oneopsSearchNsPathRecursively);
 		return ciList;
 
 	}
@@ -99,13 +158,12 @@ public class AzureEventsHandler {
 		this.cmManager = cmManager;
 	}
 
-	public ComputeService getComputeService() {
-		return computeService;
-	}
-
-	public void setComputeService(ComputeService computeService) {
-		this.computeService = computeService;
-	}
+	/*
+	 * public ComputeService getComputeService() { return computeService; }
+	 * 
+	 * public void setComputeService(ComputeService computeService) {
+	 * this.computeService = computeService; }
+	 */
 
 	public ObjectMapper getObjectMapper() {
 		return objectMapper;
@@ -114,4 +172,13 @@ public class AzureEventsHandler {
 	public void setObjectMapper(ObjectMapper objectMapper) {
 		this.objectMapper = objectMapper;
 	}
+
+	public BadStateProcessor getBsProcessor() {
+		return bsProcessor;
+	}
+
+	public void setBsProcessor(BadStateProcessor bsProcessor) {
+		this.bsProcessor = bsProcessor;
+	}
+
 }

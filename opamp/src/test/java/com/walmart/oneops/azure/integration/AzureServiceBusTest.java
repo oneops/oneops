@@ -1,3 +1,20 @@
+/*******************************************************************************
+ *
+ *   Copyright 2015 Walmart, Inc.
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *   you may not use this file except in compliance with the License.
+ *   You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *   Unless required by applicable law or agreed to in writing, software
+ *   distributed under the License is distributed on an "AS IS" BASIS,
+ *   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *   See the License for the specific language governing permissions and
+ *   limitations under the License.
+ *
+ *******************************************************************************/
 package com.walmart.oneops.azure.integration;
 
 import static org.junit.Assert.assertNotNull;
@@ -5,22 +22,23 @@ import static org.mockito.Mockito.mock;
 
 import javax.jms.JMSException;
 import javax.naming.NamingException;
-
-//import org.junit.Before;
-//import org.junit.Test;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+import org.apache.log4j.Logger;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 
+/**
+ * @author dsing17
+ *
+ */
 public class AzureServiceBusTest {
 
-
+	private static Logger logger = Logger.getLogger(AzureServiceBusTest.class);
 	AzureServiceBus azureServiceBus = new AzureServiceBus();
 	AzureServiceBusEventsListner azureServiceBusEventsListner = new AzureServiceBusEventsListner();
 
-	//@Before
 	@BeforeTest
 	public void before() throws Exception {
 
@@ -46,8 +64,6 @@ public class AzureServiceBusTest {
 	@Test(enabled=true)
 	public void testAzureServiceInitializationUT() {
 
-		
-		System.out.println(azureServiceBus);
 		try {
 			azureServiceBus.init();
 			assertNotNull("Test AzureSewrviceBus Connection", azureServiceBus.getAzureServiceBusConnection());
@@ -56,11 +72,11 @@ public class AzureServiceBusTest {
 
 		} catch (JMSException e) {
 			
-			System.out.println("Exception while initializing Service Bus " + e);
+			logger.error("Exception while initializing Service Bus " + e);
 			e.printStackTrace();
 		} catch (NamingException e) {
 			
-			System.out.println("Exception while initializing Service Bus " + e);
+			logger.error("Exception while initializing Service Bus " + e);
 			e.printStackTrace();
 		}
 
