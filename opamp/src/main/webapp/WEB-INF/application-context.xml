@@ -151,6 +151,14 @@
        	<property name="maxDaysRepair" value="${maxDaysRepair:11}"/>
 		<property name="maxPastDaysForProcedureCount" value="${maxPastDaysForProcedureCount:15}"/>
 	</bean>
+	<bean id="computeProcessor" class="com.oneops.opamp.service.ComputeProcessor">
+		<property name="envProcessor" ref="envProcessor" /> 
+		<property name="cmManager" ref="cmsCmManager" /> 
+       	<property name="restTemplate" ref="restTemplate" />  
+       	<property name="transistorUrl" value="${TRANSISTOR_HOST:http://cmsapi}:8080/transistor/rest/"/>  
+  
+	</bean>
+
 
 	<bean id="jsonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" >
 		<property name="supportedMediaTypes" value="application/json" />
