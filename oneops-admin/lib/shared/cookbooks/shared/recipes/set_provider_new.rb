@@ -45,14 +45,17 @@ when /ibm/
   })
 
 when /openstack/
-
+  domain = cloud.key?('domain') ? cloud[:domain] : 'default'
+  
   provider = Fog::Compute.new({
     :provider => 'OpenStack',
     :openstack_api_key => cloud[:password],
     :openstack_username => cloud[:username],
     :openstack_tenant => cloud[:tenant],
-    :openstack_auth_url => cloud[:endpoint]
-  })
+    :openstack_auth_url => cloud[:endpoint],
+    :openstack_project_name => cloud[:tenant],
+    :openstack_domain_name => domain,
+  })  
     
 when /rackspace/
 
@@ -134,13 +137,17 @@ end
 
 case storage_class
 when /cinder/
-    node.set["storage_provider"] = Fog::Volume.new({ 
-      :provider => 'OpenStack',
-      :openstack_api_key => storage[:password],
-      :openstack_username => storage[:username],
-      :openstack_tenant => storage[:tenant],
-      :openstack_auth_url => storage[:endpoint]
-    })  
+  domain = storage.key?('domain') ? storage[:domain] : 'default'
+
+  node.set["storage_provider"] = Fog::Volume.new({ 
+    :provider => 'OpenStack',
+    :openstack_api_key => storage[:password],
+    :openstack_username => storage[:username],
+    :openstack_tenant => storage[:tenant],
+    :openstack_auth_url => storage[:endpoint],
+    :openstack_project_name => storage[:tenant],
+    :openstack_domain_name => domain
+  })  
 when /rackspace/
   node.set[:storage_provider] = Fog::Rackspace::BlockStorage.new({
     :rackspace_api_key => cloud[:password],
