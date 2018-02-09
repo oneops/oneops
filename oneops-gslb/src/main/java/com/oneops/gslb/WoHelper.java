@@ -3,6 +3,7 @@ package com.oneops.gslb;
 import com.google.gson.Gson;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
+import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.util.HashMap;
@@ -77,6 +78,18 @@ public class WoHelper {
 
   public boolean isDeleteAction(CmsWorkOrderSimple wo) {
     return ACTION_DELETE.equals(wo.getAction());
+  }
+
+  public Map<String, String> getResultCiAttributes(CmsWorkOrderSimple wo) {
+    if (wo.resultCi == null) {
+      CmsCISimple ci = new CmsCISimple();
+      CmsRfcCISimple rfc = wo.getRfcCi();
+      ci.setCiId(rfc.getCiId());
+      ci.setCiName(rfc.getCiName());
+      ci.setCiClassName(rfc.getCiClassName());
+      wo.setResultCi(ci);
+    }
+    return wo.resultCi.getCiAttributes();
   }
 
 }

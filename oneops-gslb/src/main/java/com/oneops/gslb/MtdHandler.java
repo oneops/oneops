@@ -5,7 +5,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.gslb.v2.domain.BaseResponse;
@@ -178,6 +177,9 @@ public class MtdHandler {
 
   private MtdBaseHostRequest mtdBaseHostRequest(Context context, CmsWorkOrderSimple wo) throws Exception {
     List<MtdTarget> targets = getMtdTargets(wo, context);
+    if (targets != null) {
+      context.setTargets(targets.stream().filter(MtdTarget::enabled).map(MtdTarget::mtdTargetHost).collect(Collectors.toList()));
+    }
     List<MtdHostHealthCheck> healthChecks = getHealthChecks(wo, context);
     MtdHost mtdHost = MtdHost.create(context.getPlatform(), null, healthChecks, targets,
         true, 1, null);
@@ -211,7 +213,7 @@ public class MtdHandler {
   }
 
   private void  updateWoResult(CmsWorkOrderSimple wo, Context context, MtdBase mtdBase, MtdBaseHostResponse response) {
-    Map<String, String> resultAttrs = getResultCiAttributes(wo);
+    Map<String, String> resultAttrs = woHelper.getResultCiAttributes(wo);
     Map<String, String> mtdMap = new HashMap<>();
     mtdMap.put("mtd_base_id", Integer.toString(mtdBase.mtdBaseId()));
     Version version = response.version();
@@ -222,7 +224,8 @@ public class MtdHandler {
     if (deployment != null) {
       mtdMap.put("deploy_id", Integer.toString(deployment.deploymentId()));
     }
-    mtdMap.put("glb", context.getPlatform() + mtdBase.mtdBaseName());
+    String glb = context.getPlatform() + mtdBase.mtdBaseName();
+    mtdMap.put("glb", glb);
     resultAttrs.put("gslb_map", gson.toJson(mtdMap));
     resultAttrs.put(FqdnExecutor.ATTRIBUTE_SERVICE_TYPE, "torbit");
   }
@@ -306,18 +309,6 @@ public class MtdHandler {
     return mtdBase;
   }
 
-  private Map<String, String> getResultCiAttributes(CmsWorkOrderSimple wo) {
-    if (wo.resultCi == null) {
-      CmsCISimple ci = new CmsCISimple();
-      CmsRfcCISimple rfc = wo.getRfcCi();
-      ci.setCiId(rfc.getCiId());
-      ci.setCiName(rfc.getCiName());
-      ci.setCiClassName(rfc.getCiClassName());
-      wo.setResultCi(ci);
-    }
-    return wo.resultCi.getCiAttributes();
-  }
-
   List<MtdHostHealthCheck> getHealthChecks(CmsWorkOrderSimple wo, Context context) {
     List<CmsRfcCISimple> dependsOn = wo.getPayLoad().get("DependsOn");
     List<MtdHostHealthCheck> hcList = new ArrayList<>();
@@ -344,7 +335,7 @@ public class MtdHandler {
               String[] config = listener.split(" ");
               if (config.length >= 2) {
                 String protocol = config[0];
-                int port = Integer.parseInt(config[1]);
+                int port = Integer.parseInt(config[config.length-1]);
                 String healthConfig = ecvMap.get(port);
 
                 if ((protocol.startsWith("http"))) {
