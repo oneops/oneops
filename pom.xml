@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.01.29-9-SNAPSHOT</version>
+  <version>18.02.08-3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -712,13 +712,12 @@
         <version>${jsr305.version}</version>
       </dependency>
       <!-- Begin: Added dependency to connect to Azure Service Bus -->
-	<dependency>
-		<groupId>org.apache.qpid</groupId>
-		<artifactId>qpid-jms-client</artifactId>
-		<version>${qpid-jms-client.version}</version>
-	</dependency>
-	<!-- End: Added dependency to connect to Azure Service Bus -->
-      
+ 	<dependency>
+ 		<groupId>org.apache.qpid</groupId>
+ 		<artifactId>qpid-jms-client</artifactId>
+ 		<version>${qpid-jms-client.version}</version>
+ 	</dependency>
+ 	<!-- End: Added dependency to connect to Azure Service Bus -->
     </dependencies>
   </dependencyManagement>
   <build>
