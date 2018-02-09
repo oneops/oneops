@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.web.client.RestTemplate;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.oneops.cms.cm.domain.CmsCI;
@@ -47,13 +48,28 @@ public class OpampRsControllerTest {
 	String userId = "TestUser";
 	String description = "TestDescription";
 
+	OpampRsController opampRsController;
+	BadStateProcessor bsProcessor;
+	EnvPropsProcessor envProcessor;
+	RestTemplate restTemplate;
+	CmsCmManager cmManager;
+	CmsCI platform;
+	CmsCI env;
+
+	@BeforeMethod
+	private void init() {
+		opampRsController = new OpampRsController();
+		bsProcessor = new BadStateProcessor();
+		envProcessor = mock(EnvPropsProcessor.class);
+		restTemplate = mock(RestTemplate.class);
+		cmManager = mock(CmsCmManager.class);
+		platform = mock(CmsCI.class);
+		env = mock(CmsCI.class);
+
+	}
+
 	@Test(enabled = true)
 	public void OpampRsController_replaceByCid_OpenRelease() {
-
-		OpampRsController opampRsController = new OpampRsController();
-		BadStateProcessor bsProcessor = new BadStateProcessor();
-
-		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
 
 		when(envProcessor.isOpenRelease4Env(anyObject())).thenReturn(true);
 		when(envProcessor.getPlatform4Bom(anyLong())).thenReturn(new CmsCI());
@@ -62,8 +78,6 @@ public class OpampRsControllerTest {
 
 		bsProcessor.setEnvProcessor(envProcessor);
 		opampRsController.setBsProcessor(bsProcessor);
-
-		RestTemplate restTemplate = mock(RestTemplate.class);
 
 		Map<String, Integer> responseFromTransistor = new HashMap<String, Integer>(1);
 		Integer expectedDeploymentId = Integer.valueOf(1);
@@ -80,17 +94,6 @@ public class OpampRsControllerTest {
 
 	@Test(enabled = true)
 	public void OpampRsController_replaceByCid_ClosedRelease() {
-
-		OpampRsController opampRsController = new OpampRsController();
-		BadStateProcessor bsProcessor = new BadStateProcessor();
-
-		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
-		CmsCmManager cmManager = mock(CmsCmManager.class);
-		;
-		RestTemplate restTemplate = mock(RestTemplate.class);
-
-		CmsCI platform = mock(CmsCI.class);
-		CmsCI env = mock(CmsCI.class);
 
 		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
 		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
@@ -119,17 +122,6 @@ public class OpampRsControllerTest {
 	@Test(enabled = true)
 	public void OpampRsController_replaceByCid_AutoReplaceEnabled() {
 
-		OpampRsController opampRsController = new OpampRsController();
-		BadStateProcessor bsProcessor = new BadStateProcessor();
-
-		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
-		CmsCmManager cmManager = mock(CmsCmManager.class);
-		;
-		RestTemplate restTemplate = mock(RestTemplate.class);
-
-		CmsCI platform = mock(CmsCI.class);
-		CmsCI env = mock(CmsCI.class);
-
 		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
 		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
 		when(envProcessor.isOpenRelease4Env(env)).thenReturn(false);
@@ -156,16 +148,6 @@ public class OpampRsControllerTest {
 
 	@Test(enabled = true)
 	public void OpampRsController_replaceByCid_AutoReplaceDisabled() {
-		OpampRsController opampRsController = new OpampRsController();
-		BadStateProcessor bsProcessor = new BadStateProcessor();
-
-		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
-		CmsCmManager cmManager = mock(CmsCmManager.class);
-		;
-		RestTemplate restTemplate = mock(RestTemplate.class);
-
-		CmsCI platform = mock(CmsCI.class);
-		CmsCI env = mock(CmsCI.class);
 
 		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
 		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
