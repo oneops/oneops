@@ -2,6 +2,7 @@ package com.oneops.gslb;
 
 import static org.apache.commons.lang.StringUtils.isNotEmpty;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
@@ -12,6 +13,7 @@ import com.oneops.infoblox.InfobloxClient;
 import com.oneops.infoblox.model.cname.CNAME;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,7 @@ public class DnsHandler {
   WoHelper woHelper;
 
   private JsonParser jsonParser = new JsonParser();
+  private Gson gson = new Gson();
 
   private static final Logger logger = Logger.getLogger(DnsHandler.class);
 
@@ -74,7 +77,8 @@ public class DnsHandler {
 
     Set<String> currentAliases = new HashSet<>();
     Map<String, String> ciAttributes = rfc.getCiAttributes();
-    currentAliases.add(getFullAlias(context.getPlatform(), context));
+    String defaultAlias = getFullAlias(context.getPlatform(), context);
+    currentAliases.add(defaultAlias);
     addAlias(ciAttributes.get(ATTRIBUTE_ALIAS), currentAliases, t -> (getFullAlias(t, context)));
     addAlias(ciAttributes.get(ATTRIBUTE_FULL_ALIAS), currentAliases, Function.identity());
 
@@ -89,7 +93,17 @@ public class DnsHandler {
       List<String> aliasesToRemove = oldAliases.stream().filter(a -> !currentAliases.contains(a)).collect(Collectors.toList());
       deleteCNames(wo, context, aliasesToRemove, infoBloxClient);
       addOrUpdateCNames(wo, context, currentAliases, infoBloxClient);
+      if (!woHelper.isFailed(wo)) {
+        updateWoResult(wo, context, defaultAlias);
+      }
     }
+  }
+
+  private void updateWoResult(CmsWorkOrderSimple wo, Context context, String defaultAlias) {
+    Map<String, String> resultAttrs = woHelper.getResultCiAttributes(wo);
+    Map<String, String> entriesMap = new HashMap<>();
+    entriesMap.put(defaultAlias, context.getTargets() != null ? context.getTargets().toString() : "");
+    resultAttrs.put("entries", gson.toJson(entriesMap));
   }
 
   private String getFullAlias(String alias, Context context) {

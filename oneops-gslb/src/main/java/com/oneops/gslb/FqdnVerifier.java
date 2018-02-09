@@ -167,6 +167,8 @@ public class FqdnVerifier {
     List<MtdHostHealthCheck> healthChecks = host.mtdHealthChecks();
     Map<Integer, EcvListener> expectedChecksMap = getHealthChecks(wo, context).stream().
         collect(Collectors.toMap(e -> e.port, Function.identity()));
+    logger.info(context.logKey + "expectedChecksMap : " + expectedChecksMap.size() + " " + expectedChecksMap);
+    logger.info(context.logKey + "actual health checks : " + healthChecks);
     verify(() -> ((healthChecks != null ? healthChecks.size() : 0) ==
             (expectedChecksMap != null ? expectedChecksMap.size() : 0)),
         "all health checks are configured");
@@ -225,7 +227,7 @@ public class FqdnVerifier {
       String listener = s.getAsString();
       String[] config = listener.split(" ");
         String protocol = config[0];
-        int port = Integer.parseInt(config[1]);
+        int port = Integer.parseInt(config[config.length-1]);
         String healthConfig = ecvMap.get(port);
         if (healthConfig != null && !healthConfig.isEmpty()) {
           EcvListener ecvListener = new EcvListener();
@@ -291,6 +293,10 @@ public class FqdnVerifier {
     int port;
     String protocol;
     String ecv;
+
+    public String toString() {
+      return "[protocol: " +  protocol + ", port: " + port + ", ecv: " + ecv + "]";
+    }
   }
 
   class VerifyContext {

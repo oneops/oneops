@@ -1,5 +1,6 @@
 package com.oneops.gslb;
 
+import java.util.List;
 import java.util.Map;
 
 public class Context {
@@ -17,6 +18,7 @@ public class Context {
   private Config config;
   private String logKey;
   private Map<String, String> dnsAttrs;
+  private List<String> targets;
 
   public String getPlatform() {
     return platform;
@@ -120,5 +122,13 @@ public class Context {
 
   public void setDnsAttrs(Map<String, String> dnsAttrs) {
     this.dnsAttrs = dnsAttrs;
+  }
+
+  public List<String> getTargets() {
+    return targets;
+  }
+
+  public void setTargets(List<String> targets) {
+    this.targets = targets;
   }
 }
