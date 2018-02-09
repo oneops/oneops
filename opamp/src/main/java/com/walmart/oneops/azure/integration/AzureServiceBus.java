@@ -31,13 +31,13 @@ import javax.naming.NamingException;
 
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+//import org.springframework.stereotype.Component;
 
 /**
  * @author dsing17
  *
  */
-@Component
+// @Component
 public class AzureServiceBus {
 	private static Logger logger = Logger.getLogger(AzureServiceBus.class);
 
@@ -136,7 +136,10 @@ public class AzureServiceBus {
 			}
 
 		} catch (JMSException e) {
-			logger.error("Error while closing AzureServiceBus connection: " + e);
+			logger.error("Error while closing AzureServiceBus connection: ", e);
+			e.printStackTrace();
+		} catch (Exception e) {
+			logger.error("Error while closing AzureServiceBus connection: ", e);
 			e.printStackTrace();
 		}
 

@@ -122,7 +122,7 @@ public class AzureServiceBusEventsListnerTest {
 			line = buf.readLine();
 		}
 		String fileAsString = sb.toString();
-		System.out.println("Contents : " + fileAsString);
+		logger.info("Contents : " + fileAsString);
 		buf.close();
 		return fileAsString;
 

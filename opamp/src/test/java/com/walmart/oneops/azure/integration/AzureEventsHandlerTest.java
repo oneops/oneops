@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,7 +50,7 @@ import com.oneops.opamp.util.IConstants;
  *
  */
 public class AzureEventsHandlerTest {
-
+	private static Logger logger = Logger.getLogger(AzureEventsHandlerTest.class);
 	@Test(enabled = true)
 	public void testAzureEventsHandler_submitEventAction() {
 
@@ -251,7 +252,7 @@ public class AzureEventsHandlerTest {
 			line = buf.readLine();
 		}
 		String fileAsString = sb.toString();
-		System.out.println("Contents : " + fileAsString);
+		logger.info("Contents : " + fileAsString);
 		buf.close();
 		return fileAsString;
 

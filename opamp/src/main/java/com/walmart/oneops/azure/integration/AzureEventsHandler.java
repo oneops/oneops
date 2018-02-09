@@ -121,10 +121,10 @@ public class AzureEventsHandler {
 			throws JsonProcessingException, IOException {
 
 		JsonNode rootNode = objectMapper.readTree(event);
-		String resourceId = rootNode.get(attribute).asText();
+		String attributeValue = rootNode.get(attribute).asText();
 
-		logger.info("resourceId: " + resourceId);
-		return resourceId;
+		logger.info(attribute+" :" + attributeValue);
+		return attributeValue;
 
 	}
 
@@ -142,8 +142,7 @@ public class AzureEventsHandler {
 		List<AttrQueryCondition> attrConds = new ArrayList<AttrQueryCondition>();
 		attrConds.add(attrCondsObject);
 		logger.info("retriving CMS data for Azure event resourceID...");
-		System.out.println("cmManager : " + cmManager);
-		System.out.println("attrConds hash: " + attrConds.hashCode());
+
 		List<CmsCI> ciList = cmManager.getCiByAttributes(oneopsSearchNsPath, null, attrConds,
 				oneopsSearchNsPathRecursively);
 		return ciList;
