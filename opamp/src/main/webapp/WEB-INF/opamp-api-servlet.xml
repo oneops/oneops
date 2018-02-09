@@ -16,7 +16,7 @@
 
     <!-- Enable annotation scanning. -->
     <context:component-scan base-package="com.oneops.opamp.ws, com.oneops.opamp.rs"/>
-	<!-- <context:component-scan base-package="com.oneops.opamp.ws, com.oneops.opamp.rs, com.walmart.oneops.azure.integration"/> -->
+	
     <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
     <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
 
