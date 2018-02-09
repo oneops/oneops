@@ -37,7 +37,6 @@ import com.oneops.opamp.service.BadStateProcessor;
  */
 @RestController
 
-//@RequestMapping(value = "/replace")
 public class OpampRsController {
 
 	private static Logger logger = Logger.getLogger(OpampRsController.class);

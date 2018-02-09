@@ -93,7 +93,7 @@ public class OpampRsControllerTest {
 	}
 
 	@Test(enabled = true)
-	public void OpampRsController_replaceByCid_ClosedRelease() {
+	public void opampRsController_replaceByCid_ClosedRelease() {
 
 		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
 		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
@@ -120,7 +120,7 @@ public class OpampRsControllerTest {
 	}
 
 	@Test(enabled = true)
-	public void OpampRsController_replaceByCid_AutoReplaceEnabled() {
+	public void opampRsController_replaceByCid_AutoReplaceEnabled() {
 
 		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
 		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
@@ -147,7 +147,7 @@ public class OpampRsControllerTest {
 	}
 
 	@Test(enabled = true)
-	public void OpampRsController_replaceByCid_AutoReplaceDisabled() {
+	public void opampRsController_replaceByCid_AutoReplaceDisabled() {
 
 		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
 		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);

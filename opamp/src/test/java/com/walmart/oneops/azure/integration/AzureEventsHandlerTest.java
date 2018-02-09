@@ -114,8 +114,7 @@ public class AzureEventsHandlerTest {
 			String resourceProviderName = azureEventsHandler.parseEventForEventAttribute(event,
 					IConstants.AzureServiceBus_Event_attribute_resourceProviderName);
 
-			assertEquals(resourceId,
-					"/subscriptions/dc9b1404-d1f8-42be-af6c-b2a6d307d094/resourceGroups/boititba-TestAzureMonitor-304243215-DEV-eus2/providers/Microsoft.Compute/virtualMachines/tomcat-DEV-TestAzureMonitoring-boititba-304249915");
+			assertEquals(resourceId,"r-304249915");
 
 			assertEquals(status, IConstants.AzureServiceBus_Event_attribute_status_failed);
 			assertEquals(resourceProviderName, IConstants.AzureServiceBus_Event_attribute_resourceProviderName_Value);
@@ -135,8 +134,7 @@ public class AzureEventsHandlerTest {
 		azureEventsHandler.setCmManager(cmManager);
 		azureEventsHandler.setObjectMapper(objectMapper);
 		azureEventsHandler.setBsProcessor(bsProcessor);
-		String resourceId = "/subscriptions/dc9b1404-d1f8-42be-af6c-b2a6d307d094/resourceGroups/boititba-TestAzureMonitor-304243215-DEV-eus2/providers/Microsoft.Compute/virtualMachines/tomcat-DEV-TestAzureMonitoring-boititba-304249915";
-
+		String resourceId = "r-304249915";
 		try {
 			List<CmsCI> cidList = azureEventsHandler.getCidForAzureResourceID(resourceId);
 
