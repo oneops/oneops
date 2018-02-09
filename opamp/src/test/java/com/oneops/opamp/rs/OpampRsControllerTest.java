@@ -69,7 +69,7 @@ public class OpampRsControllerTest {
 	}
 
 	@Test(enabled = true)
-	public void OpampRsController_replaceByCid_OpenRelease() {
+	public void opampRsController_replaceByCid_OpenRelease() {
 
 		when(envProcessor.isOpenRelease4Env(anyObject())).thenReturn(true);
 		when(envProcessor.getPlatform4Bom(anyLong())).thenReturn(new CmsCI());
