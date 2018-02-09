@@ -256,7 +256,6 @@ public class BadStateProcessor {
 					notifier.sendReplaceNotification(event);
 					String userId = IConstants.ONEOPS_AUTOREPLACE_USER;
 					String description = "Auto-Replace by OneOps";
-					// replace(ciId, env);
 					replace(ciId, env, userId, description);
 				}
 			} else {
@@ -348,7 +347,6 @@ public class BadStateProcessor {
 			params.put("envId", String.valueOf(env.getCiId()));
 
 			Map<String, String> request = new HashMap<>();
-			// request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
 			request.put("description", description + ", user " + userId + ", [" + env.getNsPath() + "]");
 
 			CmsCI platformOfBomCi = envProcessor.getPlatform4Bom(ciId);
@@ -366,7 +364,6 @@ public class BadStateProcessor {
 			}
 			// TODO move it to the bean
 			HttpHeaders headers = new HttpHeaders();
-			// headers.set(X_CMS_USER, ONEOPS_AUTOREPLACE_USER);
 			headers.set(X_CMS_USER, userId);
 
 			headers.setContentType(MediaType.APPLICATION_JSON);
@@ -421,20 +418,6 @@ public class BadStateProcessor {
 		}
 		return false;
 	}
-
-	/*
-	 * private List<Long> getBadDependents(long ciId) {
-	 * 
-	 * List<CmsCIRelation> dependsOnRels =
-	 * cmProcessor.getToCIRelationsNakedNoAttrs(ciId, null, "DependsOn",null);
-	 * List<Long> badDependents = new ArrayList<Long>(); if (dependsOnRels.size()
-	 * >0) { for (CmsCIRelation rel : dependsOnRels) { String ciOpsState =
-	 * coProcessor.getCIstate(rel.getFromCiId()); if
-	 * ("unhealthy".equalsIgnoreCase(ciOpsState)) {
-	 * badDependents.add(rel.getFromCiId()); } else {
-	 * badDependents.addAll(getBadDependents(rel.getFromCiId())); } } } return
-	 * badDependents; }
-	 */
 
 	/**
 	 * Submit repair procedure.
@@ -553,7 +536,7 @@ public class BadStateProcessor {
 			String userId = IConstants.ONEOPS_AUTOREPLACE_USER;
 			String description = "Auto-Replace by OneOps";
 			replace(event.getCiId(), env, userId, description);
-			// replace(event.getCiId(), env);
+			
 		}
 	}
 

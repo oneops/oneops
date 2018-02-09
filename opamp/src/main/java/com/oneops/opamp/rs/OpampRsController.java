@@ -37,13 +37,13 @@ import com.oneops.opamp.service.BadStateProcessor;
  */
 @RestController
 
-@RequestMapping(value = "/replace")
+//@RequestMapping(value = "/replace")
 public class OpampRsController {
 
 	private static Logger logger = Logger.getLogger(OpampRsController.class);
 	BadStateProcessor bsProcessor;
 
-	@RequestMapping(value = "/cid/{ciId}", method = RequestMethod.PUT)
+	@RequestMapping(value = "/replace/cid/{ciId}", method = RequestMethod.PUT)
 	@ResponseBody
 
 	public Map<String, Integer> replaceByCid(@PathVariable long ciId,
