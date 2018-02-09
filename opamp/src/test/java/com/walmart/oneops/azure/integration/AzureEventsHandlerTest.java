@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,19 +52,28 @@ import com.oneops.opamp.util.IConstants;
  */
 public class AzureEventsHandlerTest {
 	private static Logger logger = Logger.getLogger(AzureEventsHandlerTest.class);
+	AzureEventsHandler azureEventsHandler;
+	CmsCmManager cmManager;
+	BadStateProcessor bsProcessor;
+	List<CmsCI> ciList;
+	ObjectMapper objectMapper ;
+	long expectedCiD = 999L;
+	CmsCI cmsCI; 
+	@BeforeMethod
+	private void init() {
+		azureEventsHandler = new AzureEventsHandler();
+		cmManager = mock(com.oneops.cms.cm.service.CmsCmManagerImpl.class);
+		bsProcessor = mock(com.oneops.opamp.service.BadStateProcessor.class);
+		objectMapper = new ObjectMapper();
+		ciList = new ArrayList<CmsCI>();
+		cmsCI = new CmsCI();
+		cmsCI.setCiId(expectedCiD);
+		ciList.add(cmsCI);
+
+	}
+	
 	@Test(enabled = true)
 	public void testAzureEventsHandler_submitEventAction() {
-
-		AzureEventsHandler azureEventsHandler = new AzureEventsHandler();
-		CmsCmManager cmManager = mock(com.oneops.cms.cm.service.CmsCmManagerImpl.class);
-
-		BadStateProcessor bsProcessor = mock(com.oneops.opamp.service.BadStateProcessor.class);
-
-		List<CmsCI> ciList = new ArrayList<CmsCI>();
-		CmsCI cmsCI = new CmsCI();
-		long cId = 999L;
-		cmsCI.setCiId(cId);
-		ciList.add(cmsCI);
 
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
 		azureEventsHandler.setCmManager(cmManager);
@@ -72,9 +82,8 @@ public class AzureEventsHandlerTest {
 		replaceByCidResponeMap.put("deploymentId", 0);
 
 		when(bsProcessor.replaceByCid(anyLong(), anyString(), anyString())).thenReturn(replaceByCidResponeMap);
-		azureEventsHandler.setBsProcessor(bsProcessor);
 
-		ObjectMapper objectMapper = new ObjectMapper();
+		azureEventsHandler.setBsProcessor(bsProcessor);
 		azureEventsHandler.setObjectMapper(objectMapper);
 
 		try {
@@ -96,10 +105,6 @@ public class AzureEventsHandlerTest {
 
 		try {
 			String event = createMessage("AzureServiceBus_Event.json");
-			AzureEventsHandler azureEventsHandler = new AzureEventsHandler();
-
-			ObjectMapper objectMapper = new ObjectMapper();
-
 			azureEventsHandler.setObjectMapper(objectMapper);
 
 			String resourceId = azureEventsHandler.parseEventForEventAttribute(event,
@@ -125,23 +130,8 @@ public class AzureEventsHandlerTest {
 	@Test(enabled = true)
 	public void testAzureEventsHandler_getCidForAzureResourceID() {
 
-		AzureEventsHandler azureEventsHandler;
-		CmsCmManager cmManager;
-		ObjectMapper objectMapper;
-
-		cmManager = mock(com.oneops.cms.cm.service.CmsCmManagerImpl.class);
-		List<CmsCI> ciList = new ArrayList<CmsCI>();
-		CmsCI cmsCI = new CmsCI();
-		long expectedCiD = 999L;
-		cmsCI.setCiId(expectedCiD);
-		ciList.add(cmsCI);
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
-
-		BadStateProcessor bsProcessor = mock(com.oneops.opamp.service.BadStateProcessor.class);
-
-		objectMapper = new ObjectMapper();
-
-		azureEventsHandler = new AzureEventsHandler();
+	
 		azureEventsHandler.setCmManager(cmManager);
 		azureEventsHandler.setObjectMapper(objectMapper);
 		azureEventsHandler.setBsProcessor(bsProcessor);
@@ -162,27 +152,17 @@ public class AzureEventsHandlerTest {
 	@Test(enabled = true)
 	public void testAzureEventsHandler_submitEventAction_WithEventAttributeStatus_NotFailed() {
 
-		AzureEventsHandler azureEventsHandler = new AzureEventsHandler();
-		CmsCmManager cmManager = mock(com.oneops.cms.cm.service.CmsCmManagerImpl.class);
-
-		List<CmsCI> ciList = new ArrayList<CmsCI>();
-		CmsCI cmsCI = new CmsCI();
-		long cId = 999L;
-		cmsCI.setCiId(cId);
-		ciList.add(cmsCI);
-
+	
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
 		azureEventsHandler.setCmManager(cmManager);
 
 		Map<String, Integer> replaceByCidResponeMap = new HashMap<String, Integer>(1);
 		replaceByCidResponeMap.put("deploymentId", 0);
 
-		BadStateProcessor bsProcessor = mock(com.oneops.opamp.service.BadStateProcessor.class);
 		when(bsProcessor.replaceByCid(anyLong(), anyString(), anyString()))
 				.thenThrow(new RuntimeException("Cid replacement method should not have been called"));
 		azureEventsHandler.setBsProcessor(bsProcessor);
 
-		ObjectMapper objectMapper = new ObjectMapper();
 		azureEventsHandler.setObjectMapper(objectMapper);
 
 		try {
@@ -202,17 +182,6 @@ public class AzureEventsHandlerTest {
 	@Test(enabled = true)
 	public void testAzureEventsHandler_submitEventAction_WithEventAttribute_ResourceProviderName_NotMS() {
 
-		AzureEventsHandler azureEventsHandler = new AzureEventsHandler();
-		CmsCmManager cmManager = mock(com.oneops.cms.cm.service.CmsCmManagerImpl.class);
-
-		BadStateProcessor bsProcessor = mock(com.oneops.opamp.service.BadStateProcessor.class);
-
-		List<CmsCI> ciList = new ArrayList<CmsCI>();
-		CmsCI cmsCI = new CmsCI();
-		long cId = 999L;
-		cmsCI.setCiId(cId);
-		ciList.add(cmsCI);
-
 		when(cmManager.getCiByAttributes(eq("/"), eq(null), anyList(), eq(true))).thenReturn(ciList);
 		azureEventsHandler.setCmManager(cmManager);
 
@@ -223,7 +192,6 @@ public class AzureEventsHandlerTest {
 				.thenThrow(new RuntimeException("Cid replacement method should not have been called"));
 		azureEventsHandler.setBsProcessor(bsProcessor);
 
-		ObjectMapper objectMapper = new ObjectMapper();
 		azureEventsHandler.setObjectMapper(objectMapper);
 
 		try {
