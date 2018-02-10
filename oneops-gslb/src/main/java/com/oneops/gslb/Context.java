@@ -19,6 +19,7 @@ public class Context {
   private String logKey;
   private Map<String, String> dnsAttrs;
   private List<String> targets;
+  private boolean isPlatformDisabled;
 
   public String getPlatform() {
     return platform;
@@ -130,5 +131,13 @@ public class Context {
 
   public void setTargets(List<String> targets) {
     this.targets = targets;
+  }
+
+  public boolean isPlatformDisabled() {
+    return isPlatformDisabled;
+  }
+
+  public void setPlatformDisabled(boolean platformDisabled) {
+    isPlatformDisabled = platformDisabled;
   }
 }
