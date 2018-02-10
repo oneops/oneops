@@ -7,7 +7,9 @@ import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.log4j.Logger;
 import org.springframework.stereotype.Component;
 
@@ -90,6 +92,17 @@ public class WoHelper {
       wo.setResultCi(ci);
     }
     return wo.resultCi.getCiAttributes();
+  }
+
+  public CmsRfcCISimple getLbFromDependsOn(CmsWorkOrderSimple wo) {
+    List<CmsRfcCISimple> dependsOn = wo.getPayLoad().get("DependsOn");
+    if (dependsOn != null) {
+      Optional<CmsRfcCISimple> opt = dependsOn.stream().filter(rfc -> "bom.oneops.1.Lb".equals(rfc.getCiClassName())).findFirst();
+      if (opt.isPresent()) {
+        return opt.get();
+      }
+    }
+    return null;
   }
 
 }
