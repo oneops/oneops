@@ -17,4 +17,5 @@
 <%= render 'base/shared/page_nav_pages',
            :items => [{:label => 'summary', :template => 'summary', :selected => true},
                       {:label => 'variables', :url => assembly_transition_environment_platform_variables_path(@assembly, @environment, @platform)},
-                      {:label => 'diagram', :url => diagram_assembly_transition_environment_platform_path(@assembly, @environment, @platform)}] %>
+                      {:label => 'diagram', :url => diagram_assembly_transition_environment_platform_path(@assembly, @environment, @platform)},
+                      {:label => icon('search'), :id => 'search', :template => 'search'}] %>

@@ -92,6 +92,7 @@
     <autovalue-gson.version>0.4.5</autovalue-gson.version>
     <jsr305.version>3.0.2</jsr305.version>
     <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
+
   </properties>
   <modules>
     <module>adapter</module>
@@ -718,6 +719,7 @@
  		<version>${qpid-jms-client.version}</version>
  	</dependency>
  	<!-- End: Added dependency to connect to Azure Service Bus -->
+
     </dependencies>
   </dependencyManagement>
   <build>

@@ -113,6 +113,10 @@ body {
   margin-top: 10px;
 }
 
+.sidebar .main::-webkit-scrollbar {
+  display: none;
+}
+
 .sidebar ul.menu {
   list-style: none;
   margin:     0px 16px 0px 9px;
@@ -1973,6 +1977,10 @@ img.authicon {
   -ms-text-overflow: ellipsis;
 }
 
+.list-body li .content .middle dl dd {
+  white-space: normal;
+}
+
 .list-body li .content .middle a:link, .list-body li .content .middle a:active, .list-body li .content .middle a:visited {
   text-decoration: none;
 }
@@ -2604,11 +2612,11 @@ ul.status div.description .menu .dropdown-menu > li > a {
 }
 
 ul.status div.description > .dl-horizontal > dt {
-  width: 20px;
+  width: 18px;
 }
 
 ul.status div.description > .dl-horizontal > dd {
-  margin-left: 30px;
+  margin-left: 26px;
 }
 
 ul.status .alert {
@@ -2660,7 +2668,7 @@ ul.status div.description ul:not(.dropdown-menu) li ul:not(.dropdown-menu) {
 
 ul.status div.description ul.status-actions, div.release ul.status-actions {
   margin-top:       0px;
-  padding:          10px 10px 10px 18px;
+  padding:          10px 10px 10px 0px;
   list-style-type:  none;
   list-style-image: none;
 }
@@ -4332,6 +4340,10 @@ hr {
   overflow-x: visible;
 }
 
+.org_dropdown::-webkit-scrollbar {
+  display: none;
+}
+
 .sidebar.light {
   background: white;
 }
@@ -4624,7 +4636,9 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 .tooltip {
   white-space: normal
 }
-
+.alert.deployment-problems {
+  margin-top: 10px;
+}
 .deployment-problems div:not(:last-child) {
   margin-bottom: 5px;
 }

@@ -1,100 +1,30 @@
 package com.oneops.gslb.v2.domain;
 
+import com.google.auto.value.AutoValue;
+import com.google.gson.Gson;
+import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.SerializedName;
-import java.util.Objects;
+import javax.annotation.Nullable;
 
-public class MtdBase {
+@AutoValue
+public abstract class MtdBase {
 
   @SerializedName("mtd_base_id")
-  private Integer mtdBaseId = null;
+  public abstract Integer mtdBaseId();
 
   @SerializedName("mtd_base_name")
-  private String mtdBaseName = null;
+  public abstract String mtdBaseName();
 
   @SerializedName("version")
-  private MtdBaseVersion version = null;
+  @Nullable
+  public abstract MtdBaseVersion version();
 
-  public MtdBase mtdBaseId(Integer mtdBaseId) {
-    this.mtdBaseId = mtdBaseId;
-    return this;
+  public static MtdBase create(Integer mtdBaseId, String mtdBaseName, MtdBaseVersion version) {
+    return new AutoValue_MtdBase(mtdBaseId, mtdBaseName, version);
   }
 
-  public Integer getMtdBaseId() {
-    return mtdBaseId;
-  }
-
-  public void setMtdBaseId(Integer mtdBaseId) {
-    this.mtdBaseId = mtdBaseId;
-  }
-
-  public MtdBase mtdBaseName(String mtdBaseName) {
-    this.mtdBaseName = mtdBaseName;
-    return this;
-  }
-
-  public String getMtdBaseName() {
-    return mtdBaseName;
-  }
-
-  public void setMtdBaseName(String mtdBaseName) {
-    this.mtdBaseName = mtdBaseName;
-  }
-
-  public MtdBase version(MtdBaseVersion version) {
-    this.version = version;
-    return this;
-  }
-
-  public MtdBaseVersion getVersion() {
-    return version;
-  }
-
-  public void setVersion(MtdBaseVersion version) {
-    this.version = version;
-  }
-
-
-  @Override
-  public boolean equals(java.lang.Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    MtdBase modelsMTDBase = (MtdBase) o;
-    return Objects.equals(this.mtdBaseId, modelsMTDBase.mtdBaseId) &&
-        Objects.equals(this.mtdBaseName, modelsMTDBase.mtdBaseName) &&
-        Objects.equals(this.version, modelsMTDBase.version);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(mtdBaseId, mtdBaseName, version);
-  }
-
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("class MTDBase {\n");
-    
-    sb.append("    mtdBaseId: ").append(toIndentedString(mtdBaseId)).append("\n");
-    sb.append("    mtdBaseName: ").append(toIndentedString(mtdBaseName)).append("\n");
-    sb.append("    version: ").append(toIndentedString(version)).append("\n");
-    sb.append("}");
-    return sb.toString();
-  }
-
-  /**
-   * Convert the given object to string with each line indented by 4 spaces
-   * (except the first line).
-   */
-  private String toIndentedString(java.lang.Object o) {
-    if (o == null) {
-      return "null";
-    }
-    return o.toString().replace("\n", "\n    ");
+  public static TypeAdapter<MtdBase> typeAdapter(Gson gson) {
+    return new AutoValue_MtdBase.GsonTypeAdapter(gson);
   }
   
 }

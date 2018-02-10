@@ -143,6 +143,7 @@
         <property name="cmProcessor" ref="cmsCmProcessor"/>
         <property name="nsMapper" ref="nsMapper"/>
         <property name="rfcProcessor" ref="cmsRfcProcessor"/>
+        <property name="cmsCrypto" ref="cmsCrypto"/>
     </bean>
 
 

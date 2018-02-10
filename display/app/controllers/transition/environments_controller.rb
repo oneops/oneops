@@ -1,4 +1,5 @@
 class Transition::EnvironmentsController < Base::EnvironmentsController
+  include ::Search
   before_filter :find_assembly_and_environment
 
   def index
@@ -317,14 +318,6 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
           render(:json   => {:errors => [message]}, :status => :unprocessable_entity)
         end
       end
-    end
-  end
-
-  def search
-    if request.format.html?
-      render '_search'
-    else
-      super
     end
   end
 

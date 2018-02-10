@@ -18,7 +18,6 @@
 package com.oneops.transistor.service.peristenceless;
 
 import com.google.gson.Gson;
-import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.service.BomManager;
@@ -60,11 +59,14 @@ public class InMemoryBomProcessor {
             String envMsg = null;
             try {
                 envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE, processId);
-                CmsRelease bomRelease = bomManager.generateBom(envId, userId, excludePlats, desc, true);
-                Map releaseInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
-                releaseInfo.put("createdBy", userId);
-                releaseInfo.put("mode", "memory");
-                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. releaseInfo=" + gson.toJson(releaseInfo);
+                Map bomInfo = bomManager.generateBom(envId, userId, excludePlats, desc, true);
+                Map<String, Object> bomGenerationInfo = new HashMap<>();
+                bomGenerationInfo.put("rfcCiCount", bomInfo.get("rfcCiCount"));
+                bomGenerationInfo.put("rfcRelationCount", bomInfo.get("rfcRelationCount"));
+                bomGenerationInfo.put("manifestCommit", bomInfo.get("manifestCommit"));
+                bomGenerationInfo.put("createdBy", userId);
+                bomGenerationInfo.put("mode", "memory");
+                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
             } catch (Exception e) {
                 logger.error("Exception while generating BOM in memory: ", e);
                 envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
@@ -74,7 +76,7 @@ public class InMemoryBomProcessor {
             }
         } else {
             try {
-                CmsRelease bomRelease = bomManager.generateBom(envId, userId, excludePlats, desc, false);
+                bomManager.generateBom(envId, userId, excludePlats, desc, false);
                 logger.info("Generation time taken: " + (System.currentTimeMillis() - startTime) + " ms");
             } catch (Exception e) {
                 logger.error("Exception in build bom ", e);

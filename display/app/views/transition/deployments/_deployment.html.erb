@@ -328,7 +328,7 @@
                            :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %>
               <% else %>
                 <%= button(icon('check', 'Deploy'), nil, 'btn btn-success disabled') %>
-                <br><small>There is another deployment in progress.  Recently committed changes can be deployed after current deployment completes or canceled.</small>
+                <br><small>There is another deployment in progress.  Recently committed changes can be deployed after current deployment is complete or canceled.</small>
               <% end %>
             </td>
           </tr>
