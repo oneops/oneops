@@ -1,4 +1,3 @@
-display/startdisplay.sh
 .classpath
 .project
 .settings/
@@ -15,5 +14,3 @@ Gemfile.lock
 *.gemfile.lock
 vendor/
 dependency-reduced-pom.xml
-oneops-admin/lib/shared/.bundle/
-*.gitignore
