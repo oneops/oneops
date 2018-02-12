@@ -121,6 +121,19 @@
       <groupId>org.apache.httpcomponents</groupId>
       <artifactId>httpclient</artifactId>
     </dependency>
+    <!-- Begin: Added dependency to connect to Azure Service Bus -->
+ 	<dependency>
+ 		<groupId>org.apache.qpid</groupId>
+ 		<artifactId>qpid-jms-client</artifactId>
+ 	</dependency>
+ 	<!-- End: Added dependency to connect to Azure Service Bus -->
+ 
+ 	<dependency>
+ 		<groupId>org.springframework</groupId>
+ 		<artifactId>spring-test</artifactId>
+ 		<scope>test</scope>
+ 	</dependency>
+ 	
   </dependencies>
   <build>
     <plugins>
