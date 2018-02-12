@@ -95,8 +95,11 @@ public class AzureServiceBus {
 	 * @throws JMSException
 	 * @throws NamingException
 	 */
-	public void init() throws JMSException, NamingException {
+	public void init() {
 
+		try {
+			
+		
 		logger.info("intializing Azure Service Bus...");
 
 		Properties properties = new Properties();
@@ -125,7 +128,13 @@ public class AzureServiceBus {
 		azureServiceBusReceiver.setMessageListener(azureServiceBusEventsListner);
 		azureServiceBusConnection.start();
 		logger.info("Azure Service Bus Connection started");
-
+		} catch (JMSException e) {
+			logger.warn("Error while initializing Azure Service Bus", e);
+		} catch (NamingException e) {
+			logger.warn("Error while initializing Azure Service Bus", e);
+		} catch (Exception e) {
+			logger.warn("Error while initializing Azure Service Bus", e);
+		}
 	}
 
 	public void destroy() {

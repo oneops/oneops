@@ -70,15 +70,11 @@ public class AzureServiceBusTest {
 			assertNotNull(azureServiceBus.getAzureServiceBusReceiveSession());
 			assertNotNull(azureServiceBus.getAzureServiceBusReceiver());
 
-		} catch (JMSException e) {
+		} catch (Exception e) {
 			
 			logger.error("Exception while initializing Service Bus " + e);
 			e.printStackTrace();
-		} catch (NamingException e) {
-			
-			logger.error("Exception while initializing Service Bus " + e);
-			e.printStackTrace();
-		}
+		} 
 
 	}
 
