@@ -127,10 +127,6 @@ public class AzureServiceBus {
 		azureServiceBusReceiver.setMessageListener(azureServiceBusEventsListner);
 		azureServiceBusConnection.start();
 		logger.info("Azure Service Bus Connection started");
-		} catch (JMSException e) {
-			logger.warn("Error while initializing Azure Service Bus", e);
-		} catch (NamingException e) {
-			logger.warn("Error while initializing Azure Service Bus", e);
 		} catch (Exception e) {
 			logger.warn("Error while initializing Azure Service Bus", e);
 		}
