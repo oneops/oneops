@@ -32,8 +32,11 @@ public class DnsHandler {
   @Autowired
   WoHelper woHelper;
 
-  private JsonParser jsonParser = new JsonParser();
-  private Gson gson = new Gson();
+  @Autowired
+  JsonParser jsonParser;
+
+  @Autowired
+  Gson gson;
 
   private static final Logger logger = Logger.getLogger(DnsHandler.class);
 
