@@ -1,4 +1,8 @@
-source 'https://rubygems.org'
+Dir.glob('../exec-order/*.rb').each do |lib|
+  require lib
+end
+source "#{get_gem_sources[0]}"
+
 gem 'fog', '1.29.0'
 gem 'aws-s3', '0.6.3'
 gem 'ghost', '0.3.0'
