@@ -246,10 +246,10 @@ public class Listener implements MessageListener, ApplicationContextAware {
     preExecTags(wo);
     Response response;
     if (config.isVerifyMode()) {
-      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo);
+      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo, config.getDataDir());
     }
     else {
-      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo);
+      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo, config.getDataDir());
     }
     return response;
   }

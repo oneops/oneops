@@ -2,6 +2,8 @@ package com.oneops.gslb;
 
 import static org.mockito.Mockito.mock;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonParser;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
@@ -25,6 +27,10 @@ public class FqdnExecutorTest {
   public void init() {
     loadCloudMap();
     handler.woHelper = new WoHelper();
+    handler.jsonParser = new JsonParser();
+    Gson gson = new Gson();
+    handler.gson = gson;
+    handler.woHelper.gson = gson;
   }
 
   private void loadCloudMap() {

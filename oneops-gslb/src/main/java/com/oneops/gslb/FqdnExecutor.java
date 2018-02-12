@@ -1,5 +1,6 @@
 package com.oneops.gslb;
 
+import com.google.gson.Gson;
 import com.oneops.cms.execution.ComponentWoExecutor;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
@@ -31,7 +32,6 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private static final String TORBIT_SERVICE_CLASS = "cloud.service.oneops.1.Torbit";
   private static final String PAYLOAD_ENVIRONMENT = "Environment";
 
-
   private static final Logger logger = Logger.getLogger(FqdnExecutor.class);
 
   @Autowired
@@ -46,18 +46,23 @@ public class FqdnExecutor implements ComponentWoExecutor {
   @Autowired
   DnsHandler dnsHandler;
 
+  @Autowired
+  Gson gsonPretty;
+
   @Override
   public List<String> getComponentClasses() {
     return Arrays.asList(FQDN_CLASS);
   }
 
   @Override
-  public Response execute(CmsWorkOrderSimple wo) {
+  public Response execute(CmsWorkOrderSimple wo, String dataDir) {
     String logKey = woHelper.getLogKey(wo);
     if (wo.getClassName().equals(FQDN_CLASS) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
       Context context = getContext(wo, logKey);
       Config config = getTorbitConfig(wo, logKey);
       if (config != null) {
+        String fileName = dataDir + "/" + wo.getDpmtRecordId() + ".json";
+        writeRequest(gsonPretty.toJson(wo), fileName);
         logger.info(logKey + "FqdnExecutor executing workorder dpmt " + wo.getDeploymentId() + " action : " + wo.rfcCi.getRfcAction());
         mtdHandler.setupTorbitGdns(wo, config, context);
         if (!woHelper.isFailed(wo)) {

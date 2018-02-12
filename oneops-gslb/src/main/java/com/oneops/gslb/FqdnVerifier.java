@@ -14,6 +14,7 @@ import com.oneops.gslb.v2.domain.MtdHostHealthCheck;
 import com.oneops.gslb.v2.domain.MtdHostResponse;
 import com.oneops.gslb.v2.domain.MtdTarget;
 import com.oneops.infoblox.InfobloxClient;
+import com.oneops.infoblox.model.a.ARec;
 import com.oneops.infoblox.model.cname.CNAME;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,12 +46,20 @@ public class FqdnVerifier {
       context.logKey = logKey;
 
       if (woHelper.isDeleteAction(wo)) {
-        verifyMtdDelete(wo, context);
-        verifyInfobloxDelete(wo, context);
+        if ("true".equals(wo.getBox().getCiAttributes().get("is_platform_enabled"))) {
+          logger.info(context.logKey + "platform is enabled, test only cname deletion");
+          verifyMtdHost(wo, context);
+          verifyCloudCnameDelete(wo, context, getInfoBloxClient(wo));
+          verifyCnames(wo, context, false);
+        }
+        else {
+          verifyMtdDelete(wo, context);
+          verifyInfobloxDelete(wo, context);
+        }
       }
       else {
         verifyMtdHost(wo, context);
-        verifyInfoblox(wo, context);
+        verifyCnames(wo, context, true);
       }
 
     } catch (Exception e) {
@@ -60,22 +69,45 @@ public class FqdnVerifier {
     return response;
   }
 
-  private void verifyInfoblox(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+  private void verifyCnames(CmsWorkOrderSimple wo, VerifyContext context, boolean verifyCloudDnsRecord) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     String cname = context.platform + context.mtdBaseHost;
     for (String alias : getAliases(wo, context)) {
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
-      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname), "cname verify failed " + alias);
+      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
+          "cname verify failed " + alias);
+    }
+    if (verifyCloudDnsRecord) {
+      String cloudCname = getCloudCname(wo, context);
+      List<ARec> records = infobloxClient.getARec(cloudCname);
+      CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
+      String lbVip = lb.getCiAttributes().get(MtdHandler.ATTRIBUTE_DNS_RECORD);
+      if (StringUtils.isNotBlank(lbVip)) {
+        verify(() ->records != null && records.size() == 1 && records.get(0).ipv4Addr().equals(lbVip),
+            "cloud cname verify failed " + cloudCname);
+      }
     }
   }
-
 
   private void verifyInfobloxDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     for (String alias : getAliases(wo, context)) {
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
-      verify(() ->cnames == null || cnames.isEmpty(), "cname delete verify failed");
+      verify(() ->cnames == null || cnames.isEmpty(), "cname delete verify failed " + alias);
     };
+    verifyCloudCnameDelete(wo, context, infobloxClient);
+  }
+
+  private void verifyCloudCnameDelete(CmsWorkOrderSimple wo, VerifyContext context, InfobloxClient infobloxClient) throws Exception {
+    String cloudCname = getCloudCname(wo, context);
+    List<CNAME> cnames = infobloxClient.getCNameRec(cloudCname);
+    verify(() ->cnames == null || cnames.isEmpty(), "cloud cname delete verify failed " + cloudCname);
+  }
+
+  private String getCloudCname(CmsWorkOrderSimple wo, VerifyContext context) {
+    String cloud = wo.getCloud().getCiName();
+    Map<String, String> dnsAttrs = wo.getServices().get("dns").get(cloud).getCiAttributes();
+    return context.platform + "." + context.subDomain + "." + cloud + "." + dnsAttrs.get("zone");
   }
 
   private List<String> getAliases(CmsWorkOrderSimple wo, VerifyContext context) {
@@ -189,7 +221,7 @@ public class FqdnVerifier {
     List<CmsRfcCISimple> lbs = map.get(WoHelper.LB_PAYLOAD);
     Map<Long, CmsRfcCISimple> cloudCiMap = map.get(WoHelper.CLOUDS_PAYLOAD).stream()
         .collect(Collectors.toMap(c -> c.getCiId(), Function.identity()));
-    List<Lb> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).collect(Collectors.toList());
+    List<Lb> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).filter(lb -> StringUtils.isNotBlank(lb.vip)).collect(Collectors.toList());
     return list;
   }
 
@@ -204,7 +236,8 @@ public class FqdnVerifier {
 
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lb.isPrimary = "1".equals(cloudAttributes.get("base.Consumes.priority")) &&
-        "active".equals(cloudAttributes.get("base.Consumes.adminstatus"));
+        "active".equals(cloudAttributes.get("base.Consumes.adminstatus")) ||
+            "inactive".equals(cloudAttributes.get("base.Consumes.adminstatus"));
     return lb;
   }
 

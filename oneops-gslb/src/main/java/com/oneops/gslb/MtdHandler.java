@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -47,16 +48,15 @@ public class MtdHandler {
   private static final String MTDB_TYPE_GSLB = "GSLB";
 
   private static final String CLOUD_STATUS_ACTIVE = "active";
+  private static final String CLOUD_STATUS_INACTIVE = "inactive";
   private static final String ATTRIBUTE_CLOUD_STATUS = "base.Consumes.adminstatus";
   private static final String ATTRIBUTE_CLOUD_PRIORITY = "base.Consumes.priority";
-  private static final String ATTRIBUTE_DNS_RECORD = "dns_record";
+  public static final String ATTRIBUTE_DNS_RECORD = "dns_record";
+  private static final String ATTRIBUTE_PLATFORM_ENABLED = "is_platform_enabled";
 
   private static final String MTD_BASE_EXISTS_ERROR = "DB_UNIQUENESS_VIOLATION";
   private static final String MTD_HOST_EXISTS_ERROR = "MTD_HOST_EXISTS_ON_MTD_BASE";
   private static final String MTD_HOST_NOT_EXISTS_ERROR = "COULD_NOT_FIND_MTD_HOST";
-
-  private Gson gson = new Gson();
-  private JsonParser jsonParser = new JsonParser();
 
   private static final Logger logger = Logger.getLogger(MtdHandler.class);
 
@@ -64,6 +64,13 @@ public class MtdHandler {
 
   @Autowired
   WoHelper woHelper;
+
+  @Autowired
+  Gson gson;
+
+  @Autowired
+  JsonParser jsonParser;
+
 
   public void setupTorbitGdns(CmsWorkOrderSimple wo, Config config, Context context) {
     String logKey = context.getLogKey();
@@ -74,7 +81,16 @@ public class MtdHandler {
         addGslb(wo, context);
       }
       else if(woHelper.isDeleteAction(wo)) {
-        deleteGslb(wo, context);
+        logger.info(logKey + "handling delete rfc action");
+        //delete mtd host only if it is a platform disable
+        if (checkForPlatformDisable(wo, context)) {
+          logger.info(logKey + "platform getting disabled, removing mtd host");
+          deleteGslb(wo, context);
+        }
+        else {
+          logger.info(logKey + "platform is not disabled, continuing with update mtd");
+          updateGslb(wo, context);
+        }
       }
       else {
         //update/replace actions
@@ -83,6 +99,14 @@ public class MtdHandler {
     } catch(Exception e) {
       woHelper.failWo(wo, logKey,"Exception performing " + wo.getAction() + " GSLB ", e);
     }
+  }
+
+  private boolean checkForPlatformDisable(CmsWorkOrderSimple wo, Context context) {
+    Map<String, String> platformAttributes = wo.getBox().getCiAttributes();
+    if (platformAttributes.containsKey(ATTRIBUTE_PLATFORM_ENABLED)) {
+      context.setPlatformDisabled("false".equals(platformAttributes.get(ATTRIBUTE_PLATFORM_ENABLED)));
+    }
+    return context.isPlatformDisabled();
   }
 
   private <T extends BaseResponse> Resp<T> execute(Context context, Call<T> call, Class<T> respType) throws IOException, ExecutionException {
@@ -310,48 +334,44 @@ public class MtdHandler {
   }
 
   List<MtdHostHealthCheck> getHealthChecks(CmsWorkOrderSimple wo, Context context) {
-    List<CmsRfcCISimple> dependsOn = wo.getPayLoad().get("DependsOn");
     List<MtdHostHealthCheck> hcList = new ArrayList<>();
-    if (dependsOn != null) {
-      Optional<CmsRfcCISimple> opt = dependsOn.stream().filter(rfc -> "bom.oneops.1.Lb".equals(rfc.getCiClassName())).findFirst();
-      if (opt.isPresent()) {
-        CmsRfcCISimple lb = opt.get();
-        Map<String, String> attributes = lb.getCiAttributes();
+    CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
+    if (lb != null) {
+      Map<String, String> attributes = lb.getCiAttributes();
 
-        if (attributes.containsKey("listeners") && (attributes.containsKey("ecv_map"))) {
-          String ecv = attributes.get("ecv_map");
-          JsonElement element = jsonParser.parse(ecv);
+      if (attributes.containsKey("listeners") && (attributes.containsKey("ecv_map"))) {
+        String ecv = attributes.get("ecv_map");
+        JsonElement element = jsonParser.parse(ecv);
 
-          if (element instanceof JsonObject) {
-            JsonObject root = (JsonObject) element;
-            Set<Entry<String, JsonElement>> set = root.entrySet();
-            Map<Integer, String> ecvMap = set.stream().
-                collect(Collectors.toMap(s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
-            logger.info(context.getLogKey() + "listeners " + attributes.get("listeners"));
-            JsonArray listeners = (JsonArray) jsonParser.parse(attributes.get("listeners"));
+        if (element instanceof JsonObject) {
+          JsonObject root = (JsonObject) element;
+          Set<Entry<String, JsonElement>> set = root.entrySet();
+          Map<Integer, String> ecvMap = set.stream().
+              collect(Collectors.toMap(s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
+          logger.info(context.getLogKey() + "listeners " + attributes.get("listeners"));
+          JsonArray listeners = (JsonArray) jsonParser.parse(attributes.get("listeners"));
 
-            listeners.forEach(s -> {
-              String listener = s.getAsString();
-              String[] config = listener.split(" ");
-              if (config.length >= 2) {
-                String protocol = config[0];
-                int port = Integer.parseInt(config[config.length-1]);
-                String healthConfig = ecvMap.get(port);
+          listeners.forEach(s -> {
+            String listener = s.getAsString();
+            String[] config = listener.split(" ");
+            if (config.length >= 2) {
+              String protocol = config[0];
+              int port = Integer.parseInt(config[config.length-1]);
+              String healthConfig = ecvMap.get(port);
 
-                if ((protocol.startsWith("http"))) {
-                  if (healthConfig != null) {
-                    logger.info(context.getLogKey() + "healthConfig : " + healthConfig);
-                    String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-                    MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, path, 200);
-                    hcList.add(healthCheck);
-                  }
-                }
-                else if ("tcp".equals(protocol)) {
-                  hcList.add(newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, null, null));
+              if ((protocol.startsWith("http"))) {
+                if (healthConfig != null) {
+                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig);
+                  String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
+                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, path, 200);
+                  hcList.add(healthCheck);
                 }
               }
-            });
-          }
+              else if ("tcp".equals(protocol)) {
+                hcList.add(newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, null, null));
+              }
+            }
+          });
         }
       }
     }
@@ -383,15 +403,13 @@ public class MtdHandler {
       List<MtdTarget> targetList = new ArrayList<>();
       if (primaryClouds != null) {
         for (LbCloud lbCloud : primaryClouds) {
-          MtdTarget target = newTarget(lbCloud, context, true, weight);
-          targetList.add(target);
+          addTarget(lbCloud, context, true, weight, targetList);
         }
       }
 
       if (secondaryClouds != null) {
         for (LbCloud lbCloud : secondaryClouds) {
-          MtdTarget target = newTarget(lbCloud, context, false, 0);
-          targetList.add(target);
+          addTarget(lbCloud, context, false, 0, targetList);
         }
       }
       return targetList;
@@ -402,13 +420,15 @@ public class MtdHandler {
 
   }
 
-  private MtdTarget newTarget(LbCloud lbCloud, Context context, Boolean enabled, Integer weightPercent) throws Exception {
-    if (!cloudMap.containsKey(lbCloud.cloud)) {
-      loadDataCenters(context);
+  private void addTarget(LbCloud lbCloud, Context context, Boolean enabled, Integer weightPercent, List<MtdTarget> targetList) throws Exception {
+    if (StringUtils.isNotBlank(lbCloud.dnsRecord)) {
+      if (!cloudMap.containsKey(lbCloud.cloud)) {
+        loadDataCenters(context);
+      }
+      Cloud cloud = cloudMap.get(lbCloud.cloud);
+      logger.info("target dns record " + lbCloud.dnsRecord);
+      targetList.add(MtdTarget.create(lbCloud.dnsRecord, cloud.dataCenterId(), cloud.id(), enabled, weightPercent));
     }
-    Cloud cloud = cloudMap.get(lbCloud.cloud);
-    logger.info("target dns record " + lbCloud.dnsRecord);
-    return MtdTarget.create(lbCloud.dnsRecord, cloud.dataCenterId(), cloud.id(), enabled, weightPercent);
   }
 
   private List<LbCloud> getLbCloudMerged(CmsWorkOrderSimple wo) throws Exception {
@@ -437,7 +457,8 @@ public class MtdHandler {
 
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lc.isPrimary = "1".equals(cloudAttributes.get(ATTRIBUTE_CLOUD_PRIORITY)) &&
-        CLOUD_STATUS_ACTIVE.equals(cloudAttributes.get(ATTRIBUTE_CLOUD_STATUS));
+        (CLOUD_STATUS_ACTIVE.equals(cloudAttributes.get(ATTRIBUTE_CLOUD_STATUS)) ||
+            CLOUD_STATUS_INACTIVE.equals(cloudAttributes.get(ATTRIBUTE_CLOUD_STATUS)));
     return lc;
   }
 
