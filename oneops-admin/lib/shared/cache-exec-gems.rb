@@ -3,8 +3,13 @@ require 'optparse'
 require 'yaml'
 Dir[File.join(File.expand_path(File.dirname(__FILE__)), 'exec-order','*.rb')].each {|f| require f }
 
-# set cwd to same dir as the cache-exec-gems.rb file
-Dir.chdir File.dirname(__FILE__)
+puts File.dirname(__FILE__)
+# set cwd to shared/cookbooks directory
+Dir.chdir File.expand_path('cookbooks',File.dirname(__FILE__))
+Dir.glob('*.gemfile*').each do |f|
+  File.delete f
+end
+
 
 log_level = "debug"
 gem_sources  = get_gem_sources
@@ -37,15 +42,23 @@ config_files.each do |config_file|
             exit 1
           end
           puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
-
-          if File.exists?('Gemfile')
-            File.delete('Gemfile')
-          end
-          if File.exists?('Gemfile.lock')
-            File.delete('Gemfile.lock')
+        elsif version == '12.11.18'
+          gem_list = get_gem_list(dsl, version, config_file.split('/').last)
+          create_gemfile(gem_sources, gem_list)
+          puts 'Gemfile content is:'
+          File.open('Gemfile').each do |line|
+            puts line
           end
         else
-          puts "skipping packaging gems for chef 12.11.18"
+          puts "skipping packaging gems for chef #{version}"
+        end
+
+        config_file_base_name = File.basename("#{config_file.split('/').last}", '.yaml')
+        if File.exists?('Gemfile')
+          File.rename('Gemfile', "#{config_file_base_name}-#{dsl}-#{version}.gemfile")
+        end
+        if File.exists?('Gemfile.lock')
+          File.rename('Gemfile.lock',"#{config_file_base_name}-#{dsl}-#{version}.gemfile.lock")
         end
     end
   end
