@@ -29,6 +29,7 @@ import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.OpsException;
 import com.oneops.opamp.exceptions.OpampException;
 import com.oneops.opamp.util.EventUtil;
+import com.oneops.opamp.util.IConstants;
 import com.oneops.ops.CiOpsProcessor;
 import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.CiOpenEvent;
@@ -247,7 +248,11 @@ public class BadStateProcessor {
 				} else {
 					logger.info("ciId: [" + ciId + "] is being auto-replaced");
 					notifier.sendReplaceNotification(event);
-					replace(ciId, env);
+					logger.info("ciId: [" + ciId + "] is being auto-replaced");
+					notifier.sendReplaceNotification(event);
+					String userId = IConstants.ONEOPS_AUTOREPLACE_USER;
+					String description = "Auto-Replace by OneOps";
+					replace(ciId, env, userId, description);
 				}
 			} else {
 				submitRepairProcedure(event, ! isAutoReplaceEnabled && envProcessor.isRepairDelayEnabled(platform), unhealthyStartTime, proceduresCount, coolOffPeriodMillis);
@@ -326,12 +331,11 @@ public class BadStateProcessor {
 		return DEFAULT_MIN_REPAIRS_BEFORE_REPLACE;
 	}
 
-	private void replace(long ciId, CmsCI env) throws OpampException {
+	public void replace(long ciId, CmsCI env, String userId, String description) throws OpampException {
 		try {
 			// first mark the ci state as "replace"
-			cmManager.updateCiState(ciId, "replace", "bom.ManagedVia", "to",
-					false, ONEOPS_AUTOREPLACE_USER);
-			logger.info("marked the ciId [" + ciId + "] for replace using headers using user"+ONEOPS_AUTOREPLACE_USER);
+			cmManager.updateCiState(ciId, "replace", "bom.ManagedVia", "to", false, userId);
+			logger.info("marked the ciId [" + ciId + "] for replace using headers using user" + userId);
 			// now submit the deployment
 			Map<String, String> params = new HashMap<>();
 			params.put("envId", String.valueOf(env.getCiId()));
@@ -339,7 +343,7 @@ public class BadStateProcessor {
 
 
 			Map<String, String> request = new HashMap<>();
-			request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
+			request.put("description", description + ", user " + userId + ", [" + env.getNsPath() + "]");
 
 
 			CmsCI platformOfBomCi = envProcessor.getPlatform4Bom(ciId);
@@ -356,7 +360,7 @@ public class BadStateProcessor {
 			}
 			//TODO move it to the bean
 			HttpHeaders headers = new HttpHeaders();
-			headers.set(X_CMS_USER, ONEOPS_AUTOREPLACE_USER);
+			headers.set(X_CMS_USER, userId);
 			headers.setContentType(MediaType.APPLICATION_JSON);
 			HttpEntity<Map<String, String>> requestWitHeaders = new HttpEntity<>(request, headers);
 
@@ -538,9 +542,53 @@ public class BadStateProcessor {
 			notifier.sendPostponedReplaceNotification(event);
 		} else {		
 			notifier.sendDefunctNotification(event);		
-			replace(event.getCiId(), env);
+			String userId = IConstants.ONEOPS_AUTOREPLACE_USER;
+			String description = "Auto-Replace by OneOps";
+			replace(event.getCiId(), env, userId, description);
 		}
 	}
+	
+	
+	public Map<String, Integer> replaceByCid(long ciId, String XCmsUser, String description) {
+		Map<String, Integer> result = new HashMap<>(1);
+
+		CmsCI platform = envProcessor.getPlatform4Bom(ciId);
+		logger.info("Platform name for ciId : " + platform.getCiName());
+
+		CmsCI env = envProcessor.getEnv4Platform(platform);
+		logger.info("Oneops environment for ciId : " + env.getCiId() + ": " + env.getCiName());
+
+		boolean isAutoReplaceEnabledForPlatform = envProcessor.isAutoReplaceEnabled(platform);
+		logger.info("isAutoReplaceEnabledForPlatform: " + isAutoReplaceEnabledForPlatform);
+
+		if (!isAutoReplaceEnabledForPlatform) {
+			logger.error("Auto Replace not enabled for CiId: " + ciId);
+			result.put("deploymentId", 1);
+			return result;
+		}
+		boolean releaseStatus = envProcessor.isOpenRelease4Env(env);
+		logger.info("releaseStatus: " + releaseStatus);
+
+		if (!releaseStatus) {
+			try {
+				replace(ciId, env, XCmsUser, description);
+				result.put("deploymentId", 0);
+				return result;
+			} catch (OpampException e) {
+
+				logger.error("Exception while processing replaceByCid for Cid: " + ciId + " :" + e);
+				result.put("deploymentId", 1);
+				return result;
+
+			}
+
+		}
+		result.put("deploymentId", 1);
+		return result;
+
+	}
+
+	
 	
 	public EventUtil getEventUtil() {
 		return eventUtil;

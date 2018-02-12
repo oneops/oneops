@@ -15,8 +15,8 @@
     </bean>
 
     <!-- Enable annotation scanning. -->
-    <context:component-scan base-package="com.oneops.opamp.ws"/>
-
+    <context:component-scan base-package="com.oneops.opamp.ws, com.oneops.opamp.rs"/>
+	
     <!-- Define the OXM marshaller which is used to convert the Objects <-> XML. -->
     <bean id="oxmMarshaller" class="org.springframework.oxm.xstream.XStreamMarshaller"/>
 
@@ -68,4 +68,31 @@
         <property name="authUtil" ref="authUtil"/>
     </bean>
 
+	<!--Begin: Beans for ci replacement API Replacement API -->
+
+	<bean id="opampRsController" class="com.oneops.opamp.rs.OpampRsController">
+		<property name="bsProcessor" ref="bsProcessor" />
+	</bean>
+	<!-- End: Beans for ci replacement API Replacement API -->
+
+	<!-- Begin: Beans for Azure Service Bus Integration -->
+
+	<bean id="azureServiceBus" class="com.walmart.oneops.azure.integration.AzureServiceBus"
+		init-method="init" destroy-method="destroy">
+		<property name="azureServiceBusEventsListner" ref="azureServiceBusEventsListner" />
+	</bean>
+
+	<bean id="azureServiceBusEventsListner"
+		class="com.walmart.oneops.azure.integration.AzureServiceBusEventsListner">
+		<property name="azureEventsHandler" ref="azureEventsHandler" />
+	</bean>
+
+	<bean id="azureEventsHandler" class="com.walmart.oneops.azure.integration.AzureEventsHandler">
+		<property name="cmManager" ref="cmsCmManager" />
+		<property name="bsProcessor" ref="bsProcessor" />
+		<property name="objectMapper" ref="objectMapper" />
+	</bean>
+
+	<bean id="objectMapper" class="com.fasterxml.jackson.databind.ObjectMapper" />
+	<!-- End: Beans for Azure Service Bus Integration -->
 </beans>
