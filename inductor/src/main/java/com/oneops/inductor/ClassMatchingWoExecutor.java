@@ -43,13 +43,13 @@ public class ClassMatchingWoExecutor implements ComponentWoExecutor {
   }
 
   @Override
-  public Response execute(CmsWorkOrderSimple wo) {
-    return executeInternal(wo.getRfcCi().getCiClassName(), e -> e.execute(wo));
+  public Response execute(CmsWorkOrderSimple wo, String dataDir) {
+    return executeInternal(wo.getRfcCi().getCiClassName(), e -> e.execute(wo, dataDir));
   }
 
   @Override
-  public Response executeAndVerify(CmsWorkOrderSimple wo) {
-    return executeInternal(wo.getRfcCi().getCiClassName(), e -> e.executeAndVerify(wo));
+  public Response executeAndVerify(CmsWorkOrderSimple wo, String dataDir) {
+    return executeInternal(wo.getRfcCi().getCiClassName(), e -> e.executeAndVerify(wo, dataDir));
   }
 
   @Override

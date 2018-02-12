@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -57,15 +58,19 @@ public class MtdHandler {
   private static final String MTD_HOST_EXISTS_ERROR = "MTD_HOST_EXISTS_ON_MTD_BASE";
   private static final String MTD_HOST_NOT_EXISTS_ERROR = "COULD_NOT_FIND_MTD_HOST";
 
-  private Gson gson = new Gson();
-  private JsonParser jsonParser = new JsonParser();
-
   private static final Logger logger = Logger.getLogger(MtdHandler.class);
 
   ConcurrentMap<String, Cloud> cloudMap = new ConcurrentHashMap<>();
 
   @Autowired
   WoHelper woHelper;
+
+  @Autowired
+  Gson gson;
+
+  @Autowired
+  JsonParser jsonParser;
+
 
   public void setupTorbitGdns(CmsWorkOrderSimple wo, Config config, Context context) {
     String logKey = context.getLogKey();
@@ -398,15 +403,13 @@ public class MtdHandler {
       List<MtdTarget> targetList = new ArrayList<>();
       if (primaryClouds != null) {
         for (LbCloud lbCloud : primaryClouds) {
-          MtdTarget target = newTarget(lbCloud, context, true, weight);
-          targetList.add(target);
+          addTarget(lbCloud, context, true, weight, targetList);
         }
       }
 
       if (secondaryClouds != null) {
         for (LbCloud lbCloud : secondaryClouds) {
-          MtdTarget target = newTarget(lbCloud, context, false, 0);
-          targetList.add(target);
+          addTarget(lbCloud, context, false, 0, targetList);
         }
       }
       return targetList;
@@ -417,13 +420,15 @@ public class MtdHandler {
 
   }
 
-  private MtdTarget newTarget(LbCloud lbCloud, Context context, Boolean enabled, Integer weightPercent) throws Exception {
-    if (!cloudMap.containsKey(lbCloud.cloud)) {
-      loadDataCenters(context);
+  private void addTarget(LbCloud lbCloud, Context context, Boolean enabled, Integer weightPercent, List<MtdTarget> targetList) throws Exception {
+    if (StringUtils.isNotBlank(lbCloud.dnsRecord)) {
+      if (!cloudMap.containsKey(lbCloud.cloud)) {
+        loadDataCenters(context);
+      }
+      Cloud cloud = cloudMap.get(lbCloud.cloud);
+      logger.info("target dns record " + lbCloud.dnsRecord);
+      targetList.add(MtdTarget.create(lbCloud.dnsRecord, cloud.dataCenterId(), cloud.id(), enabled, weightPercent));
     }
-    Cloud cloud = cloudMap.get(lbCloud.cloud);
-    logger.info("target dns record " + lbCloud.dnsRecord);
-    return MtdTarget.create(lbCloud.dnsRecord, cloud.dataCenterId(), cloud.id(), enabled, weightPercent);
   }
 
   private List<LbCloud> getLbCloudMerged(CmsWorkOrderSimple wo) throws Exception {

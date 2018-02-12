@@ -221,7 +221,7 @@ public class FqdnVerifier {
     List<CmsRfcCISimple> lbs = map.get(WoHelper.LB_PAYLOAD);
     Map<Long, CmsRfcCISimple> cloudCiMap = map.get(WoHelper.CLOUDS_PAYLOAD).stream()
         .collect(Collectors.toMap(c -> c.getCiId(), Function.identity()));
-    List<Lb> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).collect(Collectors.toList());
+    List<Lb> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).filter(lb -> StringUtils.isNotBlank(lb.vip)).collect(Collectors.toList());
     return list;
   }
 
