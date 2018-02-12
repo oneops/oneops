@@ -133,11 +133,11 @@ public class AzureServiceBus {
 				azureServiceBusReceiver.setMessageListener(azureServiceBusEventsListner);
 				azureServiceBusConnection.start();
 				logger.info("Azure Service Bus Connection started");
-
 			} else {
 				logger.warn("Azure Service Bus integration is disabled.");
 
 			}
+
 		} catch (Exception e) {
 			logger.warn("Error while initializing Azure Service Bus", e);
 		}
