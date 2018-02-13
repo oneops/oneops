@@ -18,7 +18,7 @@ public class Context {
   private Config config;
   private String logKey;
   private Map<String, String> dnsAttrs;
-  private List<String> targets;
+  private List<String> primaryTargets;
   private boolean isPlatformDisabled;
 
   public String getPlatform() {
@@ -125,12 +125,12 @@ public class Context {
     this.dnsAttrs = dnsAttrs;
   }
 
-  public List<String> getTargets() {
-    return targets;
+  public List<String> getPrimaryTargets() {
+    return primaryTargets;
   }
 
-  public void setTargets(List<String> targets) {
-    this.targets = targets;
+  public void setPrimaryTargets(List<String> primaryTargets) {
+    this.primaryTargets = primaryTargets;
   }
 
   public boolean isPlatformDisabled() {

@@ -202,7 +202,7 @@ public class MtdHandler {
   private MtdBaseHostRequest mtdBaseHostRequest(Context context, CmsWorkOrderSimple wo) throws Exception {
     List<MtdTarget> targets = getMtdTargets(wo, context);
     if (targets != null) {
-      context.setTargets(targets.stream().filter(MtdTarget::enabled).map(MtdTarget::mtdTargetHost).collect(Collectors.toList()));
+      context.setPrimaryTargets(targets.stream().filter(MtdTarget::enabled).map(MtdTarget::mtdTargetHost).collect(Collectors.toList()));
     }
     List<MtdHostHealthCheck> healthChecks = getHealthChecks(wo, context);
     MtdHost mtdHost = MtdHost.create(context.getPlatform(), null, healthChecks, targets,
@@ -353,22 +353,27 @@ public class MtdHandler {
 
           listeners.forEach(s -> {
             String listener = s.getAsString();
+            //listeners are generally in this format 'http <lb-port> http <app-port>', gslb needs to use the lb-port for health checks
+            //ecv map is configured as '<app-port> : <ecv-url>', so we need to use the app-port from listener configuration to lookup the ecv config from ecv map
             String[] config = listener.split(" ");
             if (config.length >= 2) {
               String protocol = config[0];
-              int port = Integer.parseInt(config[config.length-1]);
-              String healthConfig = ecvMap.get(port);
+              int lbPort = Integer.parseInt(config[1]);
+              int ecvPort = Integer.parseInt(config[config.length-1]);
+
+              String healthConfig = ecvMap.get(ecvPort);
 
               if ((protocol.startsWith("http"))) {
                 if (healthConfig != null) {
-                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig);
                   String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, path, 200);
+                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig + ", health check configuration, protocol: " + protocol + ", port: " + lbPort + ", path " + path);
+                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, path, 200);
                   hcList.add(healthCheck);
                 }
               }
               else if ("tcp".equals(protocol)) {
-                hcList.add(newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, null, null));
+                logger.info(context.getLogKey() + "health check configuration, protocol: " + protocol + ", port: " + lbPort);
+                hcList.add(newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, null, null));
               }
             }
           });
