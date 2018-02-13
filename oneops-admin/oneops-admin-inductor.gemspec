@@ -55,4 +55,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'fog-vsphere', '= 1.5.1'
   s.add_dependency 'fog-openstack', '= 0.1.21'
   s.add_dependency 'crack', '= 0.4.3'
+  s.add_dependency 'mixlib-config', '= 2.2.4'
 end
