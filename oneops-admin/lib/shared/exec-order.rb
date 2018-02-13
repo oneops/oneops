@@ -25,6 +25,7 @@ impl              = ARGV[0]
 json_context      = ARGV[1]
 cookbook_path     = ARGV[2] || ''
 service_cookbooks = ARGV[3] || ''
+
 gem_sources       = get_gem_sources
 ostype            = get_os_type(log_level)
 
@@ -47,6 +48,16 @@ if !ENV['class'].nil? && !ENV['class'].empty?
   component = ENV['class'].downcase
 else
   component = json_context.split('/').last.split('.').first.downcase
+end
+
+result = update_ruby(component)
+
+if result[:updated] 
+  system "#{result[:ruby_bin]} shared/exec-order.rb #{impl} #{json_context} #{cookbook_path} #{service_cookbooks}"
+  if $?.exitstatus != 0
+    puts "CHEF SOLO failed, #{$?}"
+  end
+  exit $?.exitstatus
 end
 
 # set cwd to same dir as the exe-order.rb file
@@ -130,11 +141,14 @@ when "chef"
     # This assume that ruby is installed at a fixed location
     # TODO: need to externalize a lot of this to be dynamic
     # base on a config file or something.
+    custom_ruby_bindir = File.exists?('/home/oneops/ruby/2.0.0-p648/bin') ?
+      '/home/oneops/ruby/2.0.0-p648/bin' : '/home/oneops/ruby/ruby-2.0.0-p648/bin'
 
-    custom_ruby_bindir = '/home/oneops/ruby/2.0.0-p648/bin'
     if File.exist?("#{custom_ruby_bindir}/chef-solo")
       bindir = custom_ruby_bindir
-      ENV['GEM_PATH'] = '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
+      ENV['GEM_PATH'] = File.exists?('/home/oneops/ruby/ruby-2.0.0-p648/lib/ruby/gems/2.0.0') ?
+        '/home/oneops/ruby/ruby-2.0.0-p648/lib/ruby/gems/2.0.0' :
+        '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
       ENV['PATH'] = "#{custom_ruby_bindir}:#{ENV['PATH']}"
     else # fall back to old method
       bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp
