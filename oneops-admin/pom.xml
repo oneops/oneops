@@ -230,7 +230,7 @@
                 <argument>-czf</argument>
                 <argument>${project.build.directory}/exec-gems-cache-${project.version}.tar.gz</argument>
                 <argument>-C</argument>
-                <argument>${basedir}/lib/shared/vendor/cache</argument>
+                <argument>${basedir}/lib/shared/cookbooks/vendor/cache</argument>
                 <argument>.</argument>
               </arguments>
             </configuration>
