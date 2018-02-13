@@ -40,14 +40,17 @@ import org.springframework.beans.factory.annotation.Value;
 public class AzureServiceBus {
 	private static Logger logger = Logger.getLogger(AzureServiceBus.class);
 
-	@Value("${AzureServiceBus.ConnectionString}")
+	@Value("${AzureServiceBus.ConnectionString:}")
 	private String CONNECTION_NAME;
-	@Value("${azureServiceBus.sasKeyName}")
+	@Value("${AzureServiceBus.SasKeyName:}")
 	private String sasKeyName;
-	@Value("${azureServiceBus.sasKey}")
+	@Value("${AzureServiceBus.SasKey:}")
 	private String sasKey;
-	@Value("${AzureServiceBus.MonitoringQueue}")
+	@Value("${AzureServiceBus.MonitoringQueue:}")
 	private String QUEUE_NAME;
+	@Value("${AzureServiceBus.IsAzureServiceBusIntegrationEnabled:false}")
+	private boolean isAzureServiceBusIntegrationEnabled;
+	
 
 	private String CONNECTION_JNDI_NAME = "azureServiceBusConnectionString";
 	private String QUEUE_JNDI_NAME = "QUEUE";
@@ -99,34 +102,42 @@ public class AzureServiceBus {
 	public void init() {
 
 		try {
-		logger.info("intializing Azure Service Bus...");
+			if (isAzureServiceBusIntegrationEnabled) {
 
-		Properties properties = new Properties();
-		properties.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY_NAME);
+				logger.info("intializing Azure Service Bus...");
 
-		properties.put("connectionfactory." + CONNECTION_JNDI_NAME, CONNECTION_NAME);
-		properties.put("queue." + QUEUE_JNDI_NAME, QUEUE_NAME);
+				Properties properties = new Properties();
+				properties.put(Context.INITIAL_CONTEXT_FACTORY, INITIAL_CONTEXT_FACTORY_NAME);
 
-		logger.info("Iniializing Context..");
-		Context context = new InitialContext(properties);
-		logger.info("Iniialized Context..");
+				properties.put("connectionfactory." + CONNECTION_JNDI_NAME, CONNECTION_NAME);
+				properties.put("queue." + QUEUE_JNDI_NAME, QUEUE_NAME);
 
-		ConnectionFactory cf = (ConnectionFactory) context.lookup(CONNECTION_JNDI_NAME);
+				logger.info("Iniializing Context..");
+				Context context = new InitialContext(properties);
+				logger.info("Iniialized Context..");
 
-		logger.info("Created connection Factory..");
-		Destination queue = (Destination) context.lookup(QUEUE_JNDI_NAME);
+				ConnectionFactory cf = (ConnectionFactory) context.lookup(CONNECTION_JNDI_NAME);
 
-		logger.info("Created connection..");
-		azureServiceBusConnection = cf.createConnection(sasKeyName, sasKey);
+				logger.info("Created connection Factory..");
+				Destination queue = (Destination) context.lookup(QUEUE_JNDI_NAME);
 
-		logger.info("Starting Receive session..");
-		azureServiceBusReceiveSession = azureServiceBusConnection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-		logger.info("Starting receiver..");
-		azureServiceBusReceiver = azureServiceBusReceiveSession.createConsumer(queue);
+				logger.info("Created connection..");
+				azureServiceBusConnection = cf.createConnection(sasKeyName, sasKey);
 
-		azureServiceBusReceiver.setMessageListener(azureServiceBusEventsListner);
-		azureServiceBusConnection.start();
-		logger.info("Azure Service Bus Connection started");
+				logger.info("Starting Receive session..");
+				azureServiceBusReceiveSession = azureServiceBusConnection.createSession(false,
+						Session.CLIENT_ACKNOWLEDGE);
+				logger.info("Starting receiver..");
+				azureServiceBusReceiver = azureServiceBusReceiveSession.createConsumer(queue);
+
+				azureServiceBusReceiver.setMessageListener(azureServiceBusEventsListner);
+				azureServiceBusConnection.start();
+				logger.info("Azure Service Bus Connection started");
+			} else {
+				logger.warn("Azure Service Bus integration is disabled.");
+
+			}
+
 		} catch (Exception e) {
 			logger.warn("Error while initializing Azure Service Bus", e);
 		}
