@@ -45,4 +45,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'net-ldap', '= 0.6.1'
   s.add_dependency 'fog-azure-rm', '= 0.4.4'
   s.add_dependency 'crack', '= 0.4.3'
+  s.add_dependency 'mixlib-config', '= 2.2.4'
+
 end
