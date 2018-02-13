@@ -20,13 +20,11 @@ package com.walmart.oneops.azure.integration;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 
-import javax.jms.JMSException;
-import javax.naming.NamingException;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
 import org.apache.log4j.Logger;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
 
 /**
@@ -47,7 +45,7 @@ public class AzureServiceBusTest {
 		ReflectionTestUtils.setField(azureServiceBus, "sasKeyName", "TESTsasKeyName", String.class);
 		ReflectionTestUtils.setField(azureServiceBus, "sasKey", "TESTsasKey", String.class);
 		ReflectionTestUtils.setField(azureServiceBus, "QUEUE_NAME", "TESTQUEUE_NAME", String.class);
-		
+		ReflectionTestUtils.setField(azureServiceBus, "isAzureServiceBusIntegrationEnabled", true, boolean.class);
 		
 		
 		org.apache.qpid.jms.JmsConnection azureServiceBusConnection = mock(org.apache.qpid.jms.JmsConnection.class, Mockito.RETURNS_DEEP_STUBS);
@@ -70,15 +68,12 @@ public class AzureServiceBusTest {
 			assertNotNull(azureServiceBus.getAzureServiceBusReceiveSession());
 			assertNotNull(azureServiceBus.getAzureServiceBusReceiver());
 
-		} catch (JMSException e) {
+		} catch (Exception e) {
 			
 			logger.error("Exception while initializing Service Bus " + e);
 			e.printStackTrace();
-		} catch (NamingException e) {
-			
-			logger.error("Exception while initializing Service Bus " + e);
-			e.printStackTrace();
-		}
+		} 
+
 
 	}
 
