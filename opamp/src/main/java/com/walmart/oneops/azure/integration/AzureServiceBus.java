@@ -40,15 +40,15 @@ import org.springframework.beans.factory.annotation.Value;
 public class AzureServiceBus {
 	private static Logger logger = Logger.getLogger(AzureServiceBus.class);
 
-	@Value("${AzureServiceBus.ConnectionString}")
+	@Value("${AzureServiceBus.ConnectionString:}")
 	private String CONNECTION_NAME;
-	@Value("${AzureServiceBus.SasKeyName}")
+	@Value("${AzureServiceBus.SasKeyName:}")
 	private String sasKeyName;
-	@Value("${AzureServiceBus.SasKey}")
+	@Value("${AzureServiceBus.SasKey:}")
 	private String sasKey;
-	@Value("${AzureServiceBus.MonitoringQueue}")
+	@Value("${AzureServiceBus.MonitoringQueue:}")
 	private String QUEUE_NAME;
-	@Value("${AzureServiceBus.IsAzureServiceBusIntegrationEnabled}")
+	@Value("${AzureServiceBus.IsAzureServiceBusIntegrationEnabled:false}")
 	private boolean isAzureServiceBusIntegrationEnabled;
 	
 
