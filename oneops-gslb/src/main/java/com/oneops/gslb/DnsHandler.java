@@ -108,7 +108,7 @@ public class DnsHandler {
       addOrUpdateCNames(wo, context, currentAliases, infoBloxClient, entriesMap);
       addOrUpdateCloudEntry(wo, context, infoBloxClient, entriesMap);
       if (!woHelper.isFailed(wo)) {
-        updateWoResult(wo, entriesMap);
+        updateWoResult(wo, entriesMap, context);
       }
     }
   }
@@ -166,8 +166,10 @@ public class DnsHandler {
 
   }
 
-  private void updateWoResult(CmsWorkOrderSimple wo, Map<String, String> entriesMap) {
+  private void updateWoResult(CmsWorkOrderSimple wo, Map<String, String> entriesMap, Context context) {
     Map<String, String> resultAttrs = woHelper.getResultCiAttributes(wo);
+    String domainName = context.getPlatform() + context.getMtdBaseHost();
+    entriesMap.put(domainName, context.getPrimaryTargets() != null ? context.getPrimaryTargets().toString() : "");
     resultAttrs.put("entries", gson.toJson(entriesMap));
   }
 

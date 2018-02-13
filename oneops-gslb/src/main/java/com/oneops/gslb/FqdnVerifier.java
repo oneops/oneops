@@ -61,7 +61,6 @@ public class FqdnVerifier {
         verifyMtdHost(wo, context);
         verifyCnames(wo, context, true);
       }
-
     } catch (Exception e) {
       woHelper.failWo(wo, logKey, "wo failed during verify", e);
       response = woHelper.formResponse(wo, logKey);
@@ -72,19 +71,28 @@ public class FqdnVerifier {
   private void verifyCnames(CmsWorkOrderSimple wo, VerifyContext context, boolean verifyCloudDnsRecord) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     String cname = context.platform + context.mtdBaseHost;
+    verify(() -> wo.getResultCi().getCiAttributes().containsKey("entries"), "result ci has entries attribute");
+    JsonObject entriesMap = (JsonObject) jsonParser.parse(wo.getResultCi().getCiAttributes().get("entries"));
+    logger.info(context.logKey + "entries map result ci attribute " + entriesMap.toString());
     for (String alias : getAliases(wo, context)) {
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
       verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
           "cname verify failed " + alias);
+      verify(() -> cname.equals(entriesMap.get(alias).getAsString()), "result ci entries attribute has entry for alias " + alias);
     }
+    verify(() -> entriesMap.get(cname) != null, "result ci entries attribute value for " + cname + " is present ");
+
     if (verifyCloudDnsRecord) {
       String cloudCname = getCloudCname(wo, context);
+
       List<ARec> records = infobloxClient.getARec(cloudCname);
       CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
       String lbVip = lb.getCiAttributes().get(MtdHandler.ATTRIBUTE_DNS_RECORD);
+      logger.info(context.logKey + "records " + records.size());
       if (StringUtils.isNotBlank(lbVip)) {
-        verify(() ->records != null && records.size() == 1 && records.get(0).ipv4Addr().equals(lbVip),
+        verify(() -> records != null && records.size() == 1 && records.get(0).ipv4Addr().equals(lbVip),
             "cloud cname verify failed " + cloudCname);
+        verify(() -> lbVip.equals(entriesMap.get(cloudCname).getAsString()), "result ci entries attribute has entry for cloud cname " + cloudCname);
       }
     }
   }
@@ -194,6 +202,7 @@ public class FqdnVerifier {
       MtdTarget target = map.get(lb.vip);
       verify(() -> lb.isPrimary ? target.enabled() : !target.enabled(), "mtd target enabled/disabled based on cloud status");
     }
+    context.primaryTargets = lbList.stream().filter(lb -> lb.isPrimary).map(lb -> lb.vip).collect(Collectors.toList());
 
     logger.info(context.logKey + "verifying mtd health checks");
     List<MtdHostHealthCheck> healthChecks = host.mtdHealthChecks();
@@ -214,6 +223,7 @@ public class FqdnVerifier {
         }
       }
     }
+    verify(() -> wo.getResultCi() != null && wo.getResultCi().getCiAttributes().containsKey("gslb_map"), "result ci contains gslb_map attribute");
   }
 
   private List<Lb> getLbVips(CmsWorkOrderSimple wo) {
@@ -260,18 +270,19 @@ public class FqdnVerifier {
       String listener = s.getAsString();
       String[] config = listener.split(" ");
         String protocol = config[0];
-        int port = Integer.parseInt(config[config.length-1]);
-        String healthConfig = ecvMap.get(port);
+        int lbPort = Integer.parseInt(config[1]);
+        int ecvPort = Integer.parseInt(config[config.length-1]);
+        String healthConfig = ecvMap.get(ecvPort);
         if (healthConfig != null && !healthConfig.isEmpty()) {
           EcvListener ecvListener = new EcvListener();
           if ((protocol.startsWith("http"))) {
             String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-            ecvListener.port = port;
+            ecvListener.port = lbPort;
             ecvListener.protocol = protocol;
             ecvListener.ecv = path;
           }
           else {
-            ecvListener.port = port;
+            ecvListener.port = lbPort;
             ecvListener.protocol = protocol;
           }
           ecvListeners.add(ecvListener);
@@ -339,6 +350,7 @@ public class FqdnVerifier {
     String platform;
     String logKey;
     String subDomain;
+    List<String> primaryTargets;
   }
 
 }
