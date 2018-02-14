@@ -36,7 +36,7 @@
             <li><%= icon('exclamation', nil, 'fa-fw') %> <b>continue on failure</b> was requested</li>
           <% end %>
           <% if @deployment.comments.present? %>
-            <li><%= icon('comment', nil, 'fa-fw') %> <%= @deployment.comments %></li>
+            <li><%= icon('comment', nil, 'fa-fw') %> <%= sub_url_links(@deployment.comments) %></li>
           <% end %>
           <% if @deployment.ops.present? %>
             <li><%= icon('exclamation-triangle', nil, 'fa-fw') %> <%= @deployment.ops %></li>
