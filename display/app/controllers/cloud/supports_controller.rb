@@ -1,8 +1,11 @@
 class Cloud::SupportsController < ApplicationController
+  SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT = 'cloud_support_management'
+
   before_filter :find_cloud_and_support
   before_filter :authorize_write, :only => [:new, :create, :update, :destroy]
 
   def index
+    xx.select {|x| y= (x.ciAttributes.service_url == 'http://services.warn.walmart.com/noc-service/services/noc/deployment/req'); puts (x.nsPath.ljust(3) + x.ciAttributes.service_url)  unless y; !y }.size
     @supports = Cms::Relation.all(:params => {:ciId         => @cloud.ciId,
                                               :direction    => 'from',
                                               :relationName => 'base.SupportedBy'}).map(&:toCi)
@@ -68,6 +71,6 @@ class Cloud::SupportsController < ApplicationController
   end
 
   def authorize_write
-    unauthorized unless @cloud && has_cloud_support?(@cloud.ciId)
+    unauthorized unless @cloud && has_cloud_support?(@cloud.ciId) && has_support_permission?(SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT)
   end
 end
