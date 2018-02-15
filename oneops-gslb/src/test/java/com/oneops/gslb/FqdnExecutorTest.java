@@ -2,6 +2,8 @@ package com.oneops.gslb;
 
 import static org.mockito.Mockito.mock;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonParser;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
@@ -25,11 +27,15 @@ public class FqdnExecutorTest {
   public void init() {
     loadCloudMap();
     handler.woHelper = new WoHelper();
+    handler.jsonParser = new JsonParser();
+    Gson gson = new Gson();
+    handler.gson = gson;
+    handler.woHelper.gson = gson;
   }
 
   private void loadCloudMap() {
-    handler.cloudMap.put("cl1", new Cloud().name("cl1").id(10));
-    handler.cloudMap.put("cl2", new Cloud().name("cl2").id(12));
+    handler.cloudMap.put("cl1", Cloud.create(10, "cl1", 5, null));
+    handler.cloudMap.put("cl2", Cloud.create(12, "cl2", 5, null));
   }
 
   @Test
@@ -50,21 +56,21 @@ public class FqdnExecutorTest {
   }
 
   @Test
-  public void testMTDTargets() {
+  public void testMtdTargets() {
     CmsWorkOrderSimple wo = wo();
     Context context = getContext();
     try {
-      List<MtdTarget> mtdTargets = handler.getMTDTargets(wo, context);
+      List<MtdTarget> mtdTargets = handler.getMtdTargets(wo, context);
       Assert.assertEquals(2, mtdTargets.size());
       MtdTarget target1 = mtdTargets.get(0);
-      Assert.assertEquals(Long.valueOf(10), new Long(target1.getCloudId()));
-      Assert.assertEquals(true, target1.getEnabled());
-      Assert.assertEquals("1.1.1.0",target1.getMtdTargetHost());
+      Assert.assertEquals(Long.valueOf(10), new Long(target1.cloudId()));
+      Assert.assertEquals(true, target1.enabled());
+      Assert.assertEquals("1.1.1.0",target1.mtdTargetHost());
 
       MtdTarget target2 = mtdTargets.get(1);
-      Assert.assertEquals(Long.valueOf(12), new Long(target2.getCloudId()));
-      Assert.assertEquals(true, target2.getEnabled());
-      Assert.assertEquals("1.1.1.1",target2.getMtdTargetHost());
+      Assert.assertEquals(Long.valueOf(12), new Long(target2.cloudId()));
+      Assert.assertEquals(true, target2.enabled());
+      Assert.assertEquals("1.1.1.1",target2.mtdTargetHost());
 
     } catch(Exception e) {
       e.printStackTrace();
@@ -73,16 +79,16 @@ public class FqdnExecutorTest {
   }
 
   @Test
-  public void testMTDHealthCheck() {
+  public void testMtdHealthCheck() {
     CmsWorkOrderSimple wo = wo();
     Context context = getContext();
     try {
       List<MtdHostHealthCheck> healthChecks = handler.getHealthChecks(wo, context);
       Assert.assertEquals(1, healthChecks.size());
       MtdHostHealthCheck healthCheck = healthChecks.get(0);
-      Assert.assertEquals(80, healthCheck.getPort().longValue());
-      Assert.assertEquals("http", healthCheck.getProtocol());
-      Assert.assertEquals("/", healthCheck.getTestObjectPath());
+      Assert.assertEquals(80, healthCheck.port().longValue());
+      Assert.assertEquals("http", healthCheck.protocol());
+      Assert.assertEquals("/", healthCheck.testObjectPath());
     } catch(Exception e) {
       e.printStackTrace();
       Assert.fail(e.getMessage());

@@ -2,6 +2,7 @@ package com.oneops.gslb;
 
 import com.google.common.net.HttpHeaders;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.oneops.gslb.v2.domain.BaseResponse;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -39,7 +40,7 @@ public class TorbitClient {
   }
 
   private void newTorbitApi(Config config) throws Exception {
-    Gson gson = new Gson();
+    Gson gson = new GsonBuilder().registerTypeAdapterFactory(AutoValueGsonFactory.create()).create();
     X509TrustManager trustManager = getTrustManager();
     TrustManager[] trustAllCerts = new TrustManager[]{trustManager};
     SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -78,7 +79,7 @@ public class TorbitClient {
     try {
       response = call.execute();
     } catch(ConnectException e) {
-      throw new ExecutionException("Exception connecting to torbit, check gdns service attributes");
+      throw new ExecutionException("Exception connecting to torbit, check torbit cloud service attributes");
     } catch (Exception e) {
       throw new ExecutionException("Exception calling torbit api " + e.getMessage());
     }
@@ -100,7 +101,7 @@ public class TorbitClient {
 
   private void failForAuthErrors(Response<?> response) throws ExecutionException {
     if (response.code() == 401 || response.code() == 403) {
-      throw new ExecutionException("Authentication failed while calling torbit, check gdns service attributes");
+      throw new ExecutionException("Authentication failed while calling torbit, check torbit cloud service attributes");
     }
   }
 

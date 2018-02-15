@@ -134,7 +134,7 @@ when "chef"
   if version.split('.')[0].to_i >= 12
     cmd = "#{bindir}/chef-client --local-mode -c #{chef_config} -j #{json_context}"
   else
-    cmd = "bundle exec #{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
+    cmd = "#{bindir}/chef-solo -l #{log_level} -F #{formatter} -c #{chef_config} -j #{json_context}"
   end
   puts cmd
   system cmd

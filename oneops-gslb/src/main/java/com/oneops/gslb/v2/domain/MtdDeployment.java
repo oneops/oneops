@@ -1,246 +1,69 @@
 package com.oneops.gslb.v2.domain;
 
+import com.google.auto.value.AutoValue;
+import com.google.gson.Gson;
+import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.SerializedName;
 import java.util.Date;
-import java.util.Objects;
+import javax.annotation.Nullable;
 
-public class MtdDeployment {
+@AutoValue
+public abstract class MtdDeployment {
 
   @SerializedName("deployment_id")
-  private Integer deploymentId = null;
+  @Nullable
+  public abstract Integer deploymentId();
 
   @SerializedName("deployment_type")
-  private String deploymentType = null;
+  @Nullable
+  public abstract String deploymentType();
 
   @SerializedName("deployment_method")
-  private String deploymentMethod = null;
+  @Nullable
+  public abstract String deploymentMethod();
 
   @SerializedName("origin_id")
-  private SqlNullInt64 originId = null;
+  @Nullable
+  public abstract SqlNullInt64 originId();
 
   @SerializedName("lua_tenant_id")
-  private SqlNullInt64 luaTenantId = null;
+  @Nullable
+  public abstract SqlNullInt64 luaTenantId();
 
   @SerializedName("lua_tenant_db_tenant_id")
-  private SqlNullInt64 luaTenantDbTenantId = null;
+  @Nullable
+  public abstract SqlNullInt64 luaTenantDbTenantId();
 
   @SerializedName("mtd_base_id")
-  private SqlNullInt64 mtdBaseId = null;
+  @Nullable
+  public abstract SqlNullInt64 mtdBaseId();
 
   @SerializedName("created")
-  private Date created = null;
+  @Nullable
+  public abstract Date created();
 
   @SerializedName("created_unix_ms")
-  private Long createdUnixMs = null;
+  @Nullable
+  public abstract Long createdUnixMs();
 
   @SerializedName("User")
-  private ShortUser user = null;
+  @Nullable
+  public abstract ShortUser user();
 
   @SerializedName("Version")
-  private Version version = null;
+  @Nullable
+  public abstract Version version();
 
-  public MtdDeployment deploymentId(Integer deploymentId) {
-    this.deploymentId = deploymentId;
-    return this;
-  }
-
-  public Integer getDeploymentId() {
-    return deploymentId;
-  }
-
-  public void setDeploymentId(Integer deploymentId) {
-    this.deploymentId = deploymentId;
-  }
-
-  public MtdDeployment deploymentType(String deploymentType) {
-    this.deploymentType = deploymentType;
-    return this;
-  }
-
-  public String getDeploymentType() {
-    return deploymentType;
-  }
-
-  public void setDeploymentType(String deploymentType) {
-    this.deploymentType = deploymentType;
-  }
-
-  public MtdDeployment deploymentMethod(String deploymentMethod) {
-    this.deploymentMethod = deploymentMethod;
-    return this;
-  }
-
-  public String getDeploymentMethod() {
-    return deploymentMethod;
-  }
-
-  public void setDeploymentMethod(String deploymentMethod) {
-    this.deploymentMethod = deploymentMethod;
-  }
-
-  public MtdDeployment originId(SqlNullInt64 originId) {
-    this.originId = originId;
-    return this;
-  }
-
-  public SqlNullInt64 getOriginId() {
-    return originId;
-  }
-
-  public void setOriginId(SqlNullInt64 originId) {
-    this.originId = originId;
-  }
-
-  public MtdDeployment luaTenantId(SqlNullInt64 luaTenantId) {
-    this.luaTenantId = luaTenantId;
-    return this;
-  }
-
-  public SqlNullInt64 getLuaTenantId() {
-    return luaTenantId;
-  }
-
-  public void setLuaTenantId(SqlNullInt64 luaTenantId) {
-    this.luaTenantId = luaTenantId;
-  }
-
-  public MtdDeployment luaTenantDbTenantId(SqlNullInt64 luaTenantDbTenantId) {
-    this.luaTenantDbTenantId = luaTenantDbTenantId;
-    return this;
-  }
-
-  public SqlNullInt64 getLuaTenantDbTenantId() {
-    return luaTenantDbTenantId;
-  }
-
-  public void setLuaTenantDbTenantId(SqlNullInt64 luaTenantDbTenantId) {
-    this.luaTenantDbTenantId = luaTenantDbTenantId;
-  }
-
-  public MtdDeployment mtdBaseId(SqlNullInt64 mtdBaseId) {
-    this.mtdBaseId = mtdBaseId;
-    return this;
-  }
-
-  public SqlNullInt64 getMtdBaseId() {
-    return mtdBaseId;
-  }
-
-  public void setMtdBaseId(SqlNullInt64 mtdBaseId) {
-    this.mtdBaseId = mtdBaseId;
-  }
-
-  public MtdDeployment created(Date created) {
-    this.created = created;
-    return this;
-  }
-
-  public Date getCreated() {
-    return created;
-  }
-
-  public void setCreated(Date created) {
-    this.created = created;
-  }
-
-  public MtdDeployment createdUnixMs(Long createdUnixMs) {
-    this.createdUnixMs = createdUnixMs;
-    return this;
-  }
-
-  public Long getCreatedUnixMs() {
-    return createdUnixMs;
-  }
-
-  public void setCreatedUnixMs(Long createdUnixMs) {
-    this.createdUnixMs = createdUnixMs;
-  }
-
-  public MtdDeployment user(ShortUser user) {
-    this.user = user;
-    return this;
-  }
-
-  public ShortUser getUser() {
-    return user;
-  }
-
-  public void setUser(ShortUser user) {
-    this.user = user;
-  }
-
-  public MtdDeployment version(Version version) {
-    this.version = version;
-    return this;
-  }
-
-  public Version getVersion() {
-    return version;
-  }
-
-  public void setVersion(Version version) {
-    this.version = version;
-  }
-
-
-  @Override
-  public boolean equals(java.lang.Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    MtdDeployment modelsDeployment = (MtdDeployment) o;
-    return Objects.equals(this.deploymentId, modelsDeployment.deploymentId) &&
-        Objects.equals(this.deploymentType, modelsDeployment.deploymentType) &&
-        Objects.equals(this.deploymentMethod, modelsDeployment.deploymentMethod) &&
-        Objects.equals(this.originId, modelsDeployment.originId) &&
-        Objects.equals(this.luaTenantId, modelsDeployment.luaTenantId) &&
-        Objects.equals(this.luaTenantDbTenantId, modelsDeployment.luaTenantDbTenantId) &&
-        Objects.equals(this.mtdBaseId, modelsDeployment.mtdBaseId) &&
-        Objects.equals(this.created, modelsDeployment.created) &&
-        Objects.equals(this.createdUnixMs, modelsDeployment.createdUnixMs) &&
-        Objects.equals(this.user, modelsDeployment.user) &&
-        Objects.equals(this.version, modelsDeployment.version);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(deploymentId, deploymentType, deploymentMethod, originId, luaTenantId, luaTenantDbTenantId, mtdBaseId, created, createdUnixMs, user, version);
-  }
-
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("class MTDDeployment {\n");
-    
-    sb.append("    deploymentId: ").append(toIndentedString(deploymentId)).append("\n");
-    sb.append("    deploymentType: ").append(toIndentedString(deploymentType)).append("\n");
-    sb.append("    deploymentMethod: ").append(toIndentedString(deploymentMethod)).append("\n");
-    sb.append("    originId: ").append(toIndentedString(originId)).append("\n");
-    sb.append("    luaTenantId: ").append(toIndentedString(luaTenantId)).append("\n");
-    sb.append("    luaTenantDbTenantId: ").append(toIndentedString(luaTenantDbTenantId)).append("\n");
-    sb.append("    mtdBaseId: ").append(toIndentedString(mtdBaseId)).append("\n");
-    sb.append("    created: ").append(toIndentedString(created)).append("\n");
-    sb.append("    createdUnixMs: ").append(toIndentedString(createdUnixMs)).append("\n");
-    sb.append("    user: ").append(toIndentedString(user)).append("\n");
-    sb.append("    version: ").append(toIndentedString(version)).append("\n");
-    sb.append("}");
-    return sb.toString();
-  }
-
-  /**
-   * Convert the given object to string with each line indented by 4 spaces
-   * (except the first line).
-   */
-  private String toIndentedString(java.lang.Object o) {
-    if (o == null) {
-      return "null";
-    }
-    return o.toString().replace("\n", "\n    ");
+  public static MtdDeployment create(Integer deploymentId, String deploymentType, String deploymentMethod,
+      SqlNullInt64 originId, SqlNullInt64 luaTenantId, SqlNullInt64 luaTenantDbTenantId, SqlNullInt64 mtdBaseId,
+      Date created, Long createdUnixMs, ShortUser user, Version version) {
+    return new AutoValue_MtdDeployment(deploymentId, deploymentType, deploymentMethod, originId, luaTenantId,
+        luaTenantDbTenantId, mtdBaseId, created, createdUnixMs, user, version);
   }
   
-}
+  public static TypeAdapter<MtdDeployment> typeAdapter(Gson gson) {
+    return new AutoValue_MtdDeployment.GsonTypeAdapter(gson);
+  }
+  
 
+}
