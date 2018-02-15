@@ -133,6 +133,10 @@ public class DnsHandler {
       entriesMap.put(cloudEntry, lbVip);
       boolean alreadyExists = false;
       try {
+        logger.info(context.getLogKey() + "cloud dns entry: " + cloudEntry + ", deleting the current entry and recreating it");
+        List<String> list = infobloxClient.deleteARec(cloudEntry);
+        logger.info(context.getLogKey() + "infoblox deleted cloud entries count " + list.size());
+
         List<ARec> records = infobloxClient.getARec(cloudEntry);
         if (records != null && records.size() == 1) {
           alreadyExists = true;
@@ -144,6 +148,7 @@ public class DnsHandler {
       } catch (IOException e) {
         woHelper.failWo(wo, context.getLogKey(),"Exception while getting cloud dns entry ", e);
       }
+
       try {
         if (alreadyExists) {
           logger.info(context.getLogKey() + "updating cloud dns entry ");
@@ -152,7 +157,8 @@ public class DnsHandler {
         else {
           try {
             logger.info(context.getLogKey() + "creating cloud dns entry ");
-            infobloxClient.createARec(cloudEntry, lbVip);
+            ARec aRecord = infobloxClient.createARec(cloudEntry, lbVip);
+            logger.info(context.getLogKey() + "arecord created " + aRecord);
           } catch (Exception e) {
             logger.error(context.getLogKey() + "Exception while creating cloud dns entry : " +  e.getMessage(), e);
             logger.info(context.getLogKey() + "trying to update cloud dns entry");
@@ -184,8 +190,8 @@ public class DnsHandler {
 
   private void addOrUpdateCNames(CmsWorkOrderSimple wo, Context context,
       Collection<String> aliases, InfobloxClient infoBloxClient, Map<String, String> entriesMap) {
-    logger.info(context.getLogKey() + "cnames to be added/updated " + aliases);
     String cname = context.getPlatform() + context.getMtdBaseHost();
+    logger.info(context.getLogKey() + "aliases to be added/updated " + aliases + ", cname : " + cname);
     for (String alias : aliases) {
       try {
         entriesMap.put(alias, cname);
@@ -208,7 +214,7 @@ public class DnsHandler {
             break;
           }
           else {
-            logger.info(context.getLogKey() + "cname added successfully");
+            logger.info(context.getLogKey() + "cname added successfully " + alias);
           }
         }
         else {
