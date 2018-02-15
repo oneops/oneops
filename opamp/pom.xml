@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>18.02.08-8-SNAPSHOT</version>
+    <version>18.02.08-8</version>
   </parent>
   <groupId>com.oneops</groupId>
   <artifactId>opamp</artifactId>
