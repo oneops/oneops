@@ -1,4 +1,6 @@
 #\<% load "<circuit_root>/monkey_patch.rb" %>
+\<% chef_path = '$([[ -e "/home/oneops/ruby/2.0.0-p648/bin/chef-solo" ]] && echo "GEM_PATH=/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0 GEM_HOME=/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0 PATH=/home/oneops/ruby/2.0.0-p648/bin:$PATH /home/oneops/ruby/2.0.0-p648/bin/chef-solo" || echo "<chef_solo_path>")' %>
+\<% ruby_path = '$([[ -e "/home/oneops/ruby/2.0.0-p648/bin" ]] && echo "/home/oneops/ruby/2.0.0-p648/bin" || echo "<ruby_bindir>")' %>
 ---
 <if(local)>
 driver:
@@ -45,7 +47,7 @@ provisioner:
   name: chef_solo
   cookbook_files_glob: "**/*"
   require_chef_omnibus: false
-  chef_solo_path: '$([[ -e "/home/oneops/ruby/2.0.0-p648/bin/chef-solo" ]] && echo "GEM_PATH=/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0 GEM_HOME=/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0 PATH=/home/oneops/ruby/2.0.0-p648/bin:$PATH /home/oneops/ruby/2.0.0-p648/bin/chef-solo" || echo "/usr/local/bin/chef-solo")'
+  chef_solo_path: \<%= chef_path %>
   root_path: <provisioner_root_path>
   solo_rb:
     verify_api_cert: true
@@ -57,7 +59,7 @@ transport:
   username: <user>
 verifier:
   name: busser
-  ruby_bindir: '$([[ -e "/home/oneops/ruby/2.0.0-p648/bin" ]] && echo "/home/oneops/ruby/2.0.0-p648/bin" || echo "/usr/bin")'
+  ruby_bindir: \<%= ruby_path %>
   root_path: <verifier_root_path>
 platforms:
   - name: <platform_name>
