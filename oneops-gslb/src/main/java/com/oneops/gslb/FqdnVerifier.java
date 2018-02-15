@@ -257,7 +257,7 @@ public class FqdnVerifier {
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lb.isPrimary = "1".equals(cloudAttributes.get("base.Consumes.priority")) &&
         "active".equals(cloudAttributes.get("base.Consumes.adminstatus")) ||
-            "inactive".equals(cloudAttributes.get("base.Consumes.adminstatus"));
+        "inactive".equals(cloudAttributes.get("base.Consumes.adminstatus"));
     return lb;
   }
 
@@ -279,24 +279,24 @@ public class FqdnVerifier {
     listeners.forEach(s -> {
       String listener = s.getAsString();
       String[] config = listener.split(" ");
-        String protocol = config[0];
-        int lbPort = Integer.parseInt(config[1]);
-        int ecvPort = Integer.parseInt(config[config.length-1]);
-        String healthConfig = ecvMap.get(ecvPort);
-        if (healthConfig != null && !healthConfig.isEmpty()) {
-          EcvListener ecvListener = new EcvListener();
-          if ((protocol.startsWith("http"))) {
-            String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-            ecvListener.port = lbPort;
-            ecvListener.protocol = protocol;
-            ecvListener.ecv = path;
-          }
-          else {
-            ecvListener.port = lbPort;
-            ecvListener.protocol = protocol;
-          }
-          ecvListeners.add(ecvListener);
+      String protocol = config[0];
+      int lbPort = Integer.parseInt(config[1]);
+      int ecvPort = Integer.parseInt(config[config.length-1]);
+      String healthConfig = ecvMap.get(ecvPort);
+      if (healthConfig != null && !healthConfig.isEmpty()) {
+        EcvListener ecvListener = new EcvListener();
+        if ((protocol.startsWith("http"))) {
+          String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
+          ecvListener.port = lbPort;
+          ecvListener.protocol = protocol;
+          ecvListener.ecv = path;
         }
+        else {
+          ecvListener.port = lbPort;
+          ecvListener.protocol = protocol;
+        }
+        ecvListeners.add(ecvListener);
+      }
     });
     return ecvListeners;
   }
