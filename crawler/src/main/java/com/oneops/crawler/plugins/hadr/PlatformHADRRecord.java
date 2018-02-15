@@ -2,7 +2,7 @@ package com.oneops.crawler.plugins.hadr;
 
 import java.io.Serializable;
 
-public class EnvironmentHADRRecord implements Serializable {
+public class PlatformHADRRecord implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -294,10 +294,11 @@ public class EnvironmentHADRRecord implements Serializable {
 	        this.cCount = cCount;
 	    }
 
+	    //TODO: remove toString() after testing
 	    @Override
 	    public String toString()
 	    {
-	        return "EnvironmentHADRRecord [total = "+total+", nsPath = "+nsPath+", platform = "+platform+", ctoOrg = "+ctoOrg+", ctoDirect = "+ctoDirect+", ooUrl = "+ooUrl+", envsInAssembly = "+envsInAssembly+", assembly = "+assembly+", sClouds = "+sClouds+", createdTS = "+createdTS+", env = "+env+", pack = "+pack+", vp = "+vp+", org = "+org+", packVersion = "+packVersion+", isDR = "+isDR+", plat = "+plat+", source = "+source+", secondaryClouds = "+secondaryClouds+", pClouds = "+pClouds+", primaryClouds = "+primaryClouds+", sourcePack = "+sourcePack+", isHA = "+isHA+", cCount = "+cCount+"]";
+	        return "PlatformHADRRecord [total = "+total+", nsPath = "+nsPath+", platform = "+platform+", ctoOrg = "+ctoOrg+", ctoDirect = "+ctoDirect+", ooUrl = "+ooUrl+", envsInAssembly = "+envsInAssembly+", assembly = "+assembly+", sClouds = "+sClouds+", createdTS = "+createdTS+", env = "+env+", pack = "+pack+", vp = "+vp+", org = "+org+", packVersion = "+packVersion+", isDR = "+isDR+", plat = "+plat+", source = "+source+", secondaryClouds = "+secondaryClouds+", pClouds = "+pClouds+", primaryClouds = "+primaryClouds+", sourcePack = "+sourcePack+", isHA = "+isHA+", cCount = "+cCount+"]";
 	    }
 	}
 	
