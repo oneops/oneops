@@ -9,3 +9,4 @@ def is_propagate_update
   end
   return false
 end
+
