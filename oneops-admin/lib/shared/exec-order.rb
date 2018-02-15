@@ -63,7 +63,7 @@ when "chef"
   update_gem_sources(gem_sources, log_level)
 
   #Run bunle to insert/update neccessary gems if needed
-  gen_gemfile_and_install(gem_sources, gem_list, component, dsl, log_level)
+  install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
 
 
   chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
