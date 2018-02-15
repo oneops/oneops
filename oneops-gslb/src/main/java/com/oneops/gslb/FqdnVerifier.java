@@ -48,9 +48,9 @@ public class FqdnVerifier {
       if (woHelper.isDeleteAction(wo)) {
         if ("true".equals(wo.getBox().getCiAttributes().get("is_platform_enabled"))) {
           logger.info(context.logKey + "platform is enabled, test only cname deletion");
-          verifyMtdHost(wo, context);
+          verifyMtdHost(wo, context, false);
           verifyCloudCnameDelete(wo, context, getInfoBloxClient(wo));
-          verifyCnames(wo, context, false);
+          verifyCnames(wo, context);
         }
         else {
           verifyMtdDelete(wo, context);
@@ -58,8 +58,8 @@ public class FqdnVerifier {
         }
       }
       else {
-        verifyMtdHost(wo, context);
-        verifyCnames(wo, context, true);
+        verifyMtdHost(wo, context, true);
+        verifyCnamesWithResultEntries(wo, context);
       }
     } catch (Exception e) {
       woHelper.failWo(wo, logKey, "wo failed during verify", e);
@@ -68,7 +68,7 @@ public class FqdnVerifier {
     return response;
   }
 
-  private void verifyCnames(CmsWorkOrderSimple wo, VerifyContext context, boolean verifyCloudDnsRecord) throws Exception {
+  private void verifyCnamesWithResultEntries(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     String cname = context.platform + context.mtdBaseHost;
     verify(() -> wo.getResultCi().getCiAttributes().containsKey("entries"), "result ci has entries attribute");
@@ -82,18 +82,26 @@ public class FqdnVerifier {
     }
     verify(() -> entriesMap.get(cname) != null, "result ci entries attribute value for " + cname + " is present ");
 
-    if (verifyCloudDnsRecord) {
-      String cloudCname = getCloudCname(wo, context);
+    String cloudCname = getCloudCname(wo, context);
 
-      List<ARec> records = infobloxClient.getARec(cloudCname);
-      CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
-      String lbVip = lb.getCiAttributes().get(MtdHandler.ATTRIBUTE_DNS_RECORD);
-      logger.info(context.logKey + "records " + records.size());
-      if (StringUtils.isNotBlank(lbVip)) {
-        verify(() -> records != null && records.size() == 1 && records.get(0).ipv4Addr().equals(lbVip),
-            "cloud cname verify failed " + cloudCname);
-        verify(() -> lbVip.equals(entriesMap.get(cloudCname).getAsString()), "result ci entries attribute has entry for cloud cname " + cloudCname);
-      }
+    List<ARec> records = infobloxClient.getARec(cloudCname.toLowerCase());
+    CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
+    String lbVip = lb.getCiAttributes().get(MtdHandler.ATTRIBUTE_DNS_RECORD);
+    logger.info(context.logKey + "cloud entry records " + records.size());
+    if (StringUtils.isNotBlank(lbVip)) {
+      verify(() -> records != null && records.size() == 1 && records.get(0).ipv4Addr().equals(lbVip),
+          "cloud cname verify failed " + cloudCname);
+      verify(() -> lbVip.equals(entriesMap.get(cloudCname).getAsString()), "result ci entries attribute has entry for cloud cname " + cloudCname);
+    }
+  }
+
+  private void verifyCnames(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+    InfobloxClient infobloxClient = getInfoBloxClient(wo);
+    String cname = context.platform + context.mtdBaseHost;
+    for (String alias : getAliases(wo, context)) {
+      List<CNAME> cnames = infobloxClient.getCNameRec(alias);
+      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
+          "cname verify failed " + alias);
     }
   }
 
@@ -123,7 +131,7 @@ public class FqdnVerifier {
     String suffix = getDomainSuffix(wo, context);
     list.add(context.platform + suffix);
 
-    String aliasesContent = wo.getRfcCi().getCiBaseAttributes().get("aliases");
+    String aliasesContent = wo.getRfcCi().getCiAttributes().get("aliases");
     if (StringUtils.isNotBlank(aliasesContent)) {
       JsonArray aliasArray = (JsonArray) jsonParser.parse(aliasesContent);
 
@@ -132,7 +140,7 @@ public class FqdnVerifier {
       }
     }
 
-    aliasesContent = wo.getRfcCi().getCiBaseAttributes().get("full_aliases");
+    aliasesContent = wo.getRfcCi().getCiAttributes().get("full_aliases");
     if (StringUtils.isNotBlank(aliasesContent)) {
       JsonArray aliasArray = (JsonArray) jsonParser.parse(aliasesContent);
       for (JsonElement alias : aliasArray) {
@@ -172,7 +180,7 @@ public class FqdnVerifier {
     }
   }
 
-  private void verifyMtdHost(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+  private void verifyMtdHost(CmsWorkOrderSimple wo, VerifyContext context, boolean verifyResultEntries) throws Exception {
     TorbitClient client = context.torbitClient;
     TorbitApi torbit = context.torbit;
 
@@ -223,7 +231,9 @@ public class FqdnVerifier {
         }
       }
     }
-    verify(() -> wo.getResultCi() != null && wo.getResultCi().getCiAttributes().containsKey("gslb_map"), "result ci contains gslb_map attribute");
+    if (verifyResultEntries)
+      verify(() -> wo.getResultCi() != null && wo.getResultCi().getCiAttributes().containsKey("gslb_map"),
+          "result ci contains gslb_map attribute");
   }
 
   private List<Lb> getLbVips(CmsWorkOrderSimple wo) {
@@ -247,7 +257,7 @@ public class FqdnVerifier {
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lb.isPrimary = "1".equals(cloudAttributes.get("base.Consumes.priority")) &&
         "active".equals(cloudAttributes.get("base.Consumes.adminstatus")) ||
-            "inactive".equals(cloudAttributes.get("base.Consumes.adminstatus"));
+        "inactive".equals(cloudAttributes.get("base.Consumes.adminstatus"));
     return lb;
   }
 
@@ -269,24 +279,24 @@ public class FqdnVerifier {
     listeners.forEach(s -> {
       String listener = s.getAsString();
       String[] config = listener.split(" ");
-        String protocol = config[0];
-        int lbPort = Integer.parseInt(config[1]);
-        int ecvPort = Integer.parseInt(config[config.length-1]);
-        String healthConfig = ecvMap.get(ecvPort);
-        if (healthConfig != null && !healthConfig.isEmpty()) {
-          EcvListener ecvListener = new EcvListener();
-          if ((protocol.startsWith("http"))) {
-            String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-            ecvListener.port = lbPort;
-            ecvListener.protocol = protocol;
-            ecvListener.ecv = path;
-          }
-          else {
-            ecvListener.port = lbPort;
-            ecvListener.protocol = protocol;
-          }
-          ecvListeners.add(ecvListener);
+      String protocol = config[0];
+      int lbPort = Integer.parseInt(config[1]);
+      int ecvPort = Integer.parseInt(config[config.length-1]);
+      String healthConfig = ecvMap.get(ecvPort);
+      if (healthConfig != null && !healthConfig.isEmpty()) {
+        EcvListener ecvListener = new EcvListener();
+        if ((protocol.startsWith("http"))) {
+          String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
+          ecvListener.port = lbPort;
+          ecvListener.protocol = protocol;
+          ecvListener.ecv = path;
         }
+        else {
+          ecvListener.port = lbPort;
+          ecvListener.protocol = protocol;
+        }
+        ecvListeners.add(ecvListener);
+      }
     });
     return ecvListeners;
   }

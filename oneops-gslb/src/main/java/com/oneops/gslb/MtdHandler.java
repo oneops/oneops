@@ -36,9 +36,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import retrofit2.Call;
 
@@ -62,6 +64,18 @@ public class MtdHandler {
 
   ConcurrentMap<String, Cloud> cloudMap = new ConcurrentHashMap<>();
 
+  @Value("${mtd.timeout:2s}")
+  String timeOut;
+
+  @Value("${mtd.inteval:5s}")
+  String interval;
+
+  @Value("${mtd.retryDelay:30s}")
+  String retryDelay;
+
+  @Value("${mtd.failsForDown:3}")
+  int failureCountToMarkDown;
+
   @Autowired
   WoHelper woHelper;
 
@@ -71,6 +85,11 @@ public class MtdHandler {
   @Autowired
   JsonParser jsonParser;
 
+  @PostConstruct
+  public void init() {
+   logger.info("initialized with mtd timeout: " + timeOut + ", interval: " + interval +
+       ", retryDelay: " + retryDelay + ", failureCountToMarkDown: " + failureCountToMarkDown);
+  }
 
   public void setupTorbitGdns(CmsWorkOrderSimple wo, Config config, Context context) {
     String logKey = context.getLogKey();
@@ -384,9 +403,8 @@ public class MtdHandler {
   }
 
   private MtdHostHealthCheck newHealthCheck(String name, String protocol, int port, String testObjectPath, Integer expectedStatus) {
-    //TODO: make interval, retryDelay, timeout configurable
     return MtdHostHealthCheck.create(name, protocol, port, testObjectPath, null, expectedStatus,
-        null, 10, true, null, null, null, "20s", "30s", "10s");
+        null, failureCountToMarkDown, true, null, null, null, interval, retryDelay, timeOut);
   }
 
   List<MtdTarget> getMtdTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
