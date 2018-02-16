@@ -31,6 +31,11 @@ public class FqdnExecutorTest {
     Gson gson = new Gson();
     handler.gson = gson;
     handler.woHelper.gson = gson;
+    handler.interval = "3s";
+    handler.timeOut = "2s";
+    handler.failureCountToMarkDown = 3;
+    handler.retryDelay = "20s";
+
   }
 
   private void loadCloudMap() {
