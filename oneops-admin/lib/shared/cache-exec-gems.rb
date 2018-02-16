@@ -2,6 +2,7 @@
 require 'optparse'
 require 'yaml'
 require 'fileutils'
+require 'bundler'
 Dir[File.join(File.expand_path(File.dirname(__FILE__)), 'exec-order','*.rb')].each {|f| require f }
 
 # set cwd to shared/cookbooks directory
@@ -29,6 +30,18 @@ Dir.glob('*.gemfile').each do |f|
   end
 end
 
+#TODO: find if there any better alternatives
+puts 'validating whether all gems are present in vendor/cache or not'
+Dir.glob('*.gemfile.lock').each do |f|
+  puts "finding gems for #{f}"
+  lockfile = Bundler::LockfileParser.new(Bundler.read_file(f))
 
-
-
+  lockfile.specs.each do |s|
+    gem_name = "#{Dir.pwd}/vendor/cache/#{s.name}-#{s.version.to_s}.gem"
+    if !File.file?(gem_name)
+      puts "#{gem_name} not found"
+      exit 1
+    end
+  end
+  puts 'all gems present in cache'
+end
