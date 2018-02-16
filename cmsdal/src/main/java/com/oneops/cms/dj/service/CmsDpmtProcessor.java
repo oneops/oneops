@@ -19,9 +19,11 @@ package com.oneops.cms.dj.service;
 
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationBasic;
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.crypto.CmsCrypto;
 import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsDpmtApproval;
@@ -39,6 +41,7 @@ import com.oneops.cms.util.CmsUtil;
 import com.oneops.cms.util.ListUtils;
 import com.oneops.cms.util.TimelineQueryParam;
 import java.lang.reflect.InvocationTargetException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -67,6 +70,7 @@ public class CmsDpmtProcessor {
   private NSMapper nsMapper;
   private CmsCmProcessor cmProcessor;
   private CmsRfcProcessor rfcProcessor;
+    private CmsCrypto cmsCrypto;
   private Gson gson = new Gson();
 
   public static final String DPMT_STATE_PENDING = "pending";
@@ -76,9 +80,9 @@ public class CmsDpmtProcessor {
   public static final String DPMT_STATE_PAUSED = "paused";
   public static final String DPMT_STATE_COMPLETE = "complete";
 
-  private static final String APPROVAL_STATE_PENDING = "pending";
-  private static final String APPROVAL_STATE_APPROVED = "approved";
-  private static final String APPROVAL_STATE_REJECTED = "rejected";
+  public static final String APPROVAL_STATE_PENDING = "pending";
+  public static final String APPROVAL_STATE_APPROVED = "approved";
+  public static final String APPROVAL_STATE_REJECTED = "rejected";
   //private static final String APPROVAL_STATE_EXPIRED = "expired";
 
 
@@ -100,6 +104,9 @@ public class CmsDpmtProcessor {
     this.cmProcessor = cmProcessor;
   }
 
+    public void setCmsCrypto(CmsCrypto cmsCrypto) {
+        this.cmsCrypto = cmsCrypto;
+    }
   /**
    * Sets the dpmt mapper.
    *
@@ -207,7 +214,7 @@ public class CmsDpmtProcessor {
     }
   }
 
-  public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
+    public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals, String approvalToken) {
 
     List<CmsDpmtApproval> result = new ArrayList<>();
     ListUtils<Long> lu = new ListUtils<>();
@@ -219,6 +226,7 @@ public class CmsDpmtProcessor {
         String rejectComments = null;
         boolean rejected = false;
         for (CmsDpmtApproval approval : dpmtApprovals.getValue()) {
+                    checkIfAthorized(approvalToken, approval.getApprovalId());
           userId = approval.getUpdatedBy();
           if (approval.getExpiresIn() == 0) {
             approval.setExpiresIn(1);
@@ -242,12 +250,25 @@ public class CmsDpmtProcessor {
         updateDeployment(dpmt);
       }
       return result;
-    } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException | GeneralSecurityException e) {
       e.printStackTrace();
       throw new DJException(CmsError.DJ_EXCEPTION, e.getMessage());
     }
   }
 
+    private void checkIfAthorized(String approvalToken, long approvalId) throws IllegalAccessException, GeneralSecurityException {
+        if (cmsCrypto != null) {
+            CmsDpmtApproval approval = dpmtMapper.getDpmtApproval(approvalId);
+            CmsCI support = cmProcessor.getCiById(approval.getGovernCiId());
+            CmsCIAttribute approvalTokenAttribute = support.getAttribute("approval_token");
+            CmsCIAttribute approvalAuthTypeAttribute = support.getAttribute("approval_auth_type");
+            if (approvalAuthTypeAttribute != null && approvalTokenAttribute != null && "token".equals(support.getAttribute("approval_auth_type").getDfValue())) {
+                if (!cmsCrypto.decrypt(approvalTokenAttribute.getDjValue()).equals(approvalToken)) {
+                    throw new IllegalAccessException("Not authorized to approve this record");
+                }
+            }
+        }
+    }
 
   private boolean needApproval(CmsDeployment dpmt) {
     logger.info("creating deployment record");
@@ -389,8 +410,14 @@ public class CmsDpmtProcessor {
           .equalsIgnoreCase(existingDpmt.getDeploymentState()) || DPMT_STATE_PENDING
           .equalsIgnoreCase(existingDpmt.getDeploymentState())) {
         dpmtMapper.cancelDeployment(dpmt);
-        logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " with new state  " + dpmt
-            .getDeploymentState());
+        logger.info("Updated dpmtId = " + dpmt.getDeploymentId() + " with new state  " + dpmt.getDeploymentState());
+
+        // Also automatically cancel open deployment release.
+        long releaseId = existingDpmt.getReleaseId();
+        CmsRelease bomRelease = rfcProcessor.getReleaseById(releaseId);
+        bomRelease.setReleaseState("canceled");
+        rfcProcessor.updateRelease(bomRelease);
+        logger.info("Canceled deployment release releaseId " + releaseId);
       } else {
         String errMsg =
             "The deployment is not in failed/active state - " + existingDpmt.getDeploymentState();

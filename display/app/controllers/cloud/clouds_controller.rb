@@ -1,5 +1,5 @@
 class Cloud::CloudsController < ApplicationController
-  include ::TeamAccess
+  include ::TeamAccess, ::Search
 
   before_filter :find_cloud, :only => [:search, :show, :edit, :update, :destroy, :operations, :instances, :procedures,
                                        :reports, :teams, :update_teams]
@@ -39,6 +39,7 @@ class Cloud::CloudsController < ApplicationController
     respond_to do |format|
       format.html do
         if ok
+          load_teams
           render(:action => :edit)
         else
           load_available_clouds

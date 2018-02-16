@@ -1,2 +1,2 @@
-$j("#status_deployment").html("<%= escape_javascript(render('status_deployment')) %>");
+$j("#status_deployment").html("<%= escape_javascript(render('base/environments/status_deployment')) %>");
 <%= remote_function(:url => new_assembly_transition_environment_deployment_path(@assembly, @environment), :method => :get) %>

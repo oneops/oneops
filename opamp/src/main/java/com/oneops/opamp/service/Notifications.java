@@ -121,7 +121,7 @@ public class Notifications {
 	 *
 	 */
 	public NotificationMessage sendOpsEventNotification(CiChangeStateEvent event, String note, 
-			NotificationSeverity severity, String subject, String text, Map<String, String> payloadEntries) {
+			NotificationSeverity severity, String subject, String text, Map<String, Object> payloadEntries) {
 		OpsBaseEvent oEvent = getEventUtil().getOpsEvent(event);
 		if (oEvent == null)
 			return null;

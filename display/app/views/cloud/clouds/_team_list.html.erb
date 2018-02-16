@@ -8,6 +8,7 @@
    end %>
 <%= section_panel 'Teams', :width => 'double', :position => 'left' do %>
   <%= render 'base/shared/team_list',
+             :ci             => @cloud,
              :teams          => @teams,
              :manages_access => manages_access,
              :teams_to_add   => teams_to_add,

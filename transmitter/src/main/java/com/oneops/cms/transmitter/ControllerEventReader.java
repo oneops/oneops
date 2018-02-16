@@ -111,7 +111,7 @@ public class ControllerEventReader extends BaseEventReader {
         try (SqlSession session = sqlsf.openSession()) {
             OpsMapper opsMapper = session.getMapper(OpsMapper.class);
             CmsOpsProcedure procedure = opsMapper.getCmsOpsProcedure(record.getSourcePk());
-            if (procedure.getNsPath() == null) {
+            if (procedure!=null && procedure.getNsPath() == null) {
                 if (procedure.getCiId() > 0) {
                     CIMapper ciMapper = session.getMapper(CIMapper.class);
                     CmsCI ci = ciMapper.getCIById(procedure.getCiId());
@@ -119,6 +119,8 @@ public class ControllerEventReader extends BaseEventReader {
                         procedure.setNsPath(ci.getNsPath());
                     }
                 }
+            } else if (procedure==null){
+                logger.warn("Procedure ID is invalid:"+ record.getSourcePk());
             }
             event = new CMSEvent();
             event.setEventId(record.getEventId());

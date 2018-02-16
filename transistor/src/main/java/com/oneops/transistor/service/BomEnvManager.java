@@ -17,6 +17,7 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
+import com.oneops.transistor.service.peristenceless.BomData;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -31,4 +32,8 @@ public interface BomEnvManager {
 
 	List<CostData> getEnvCostData(long envId);
 	Map<String, List<CostData>> getEnvEstimatedCostData(long envId);
+  Map<String,List<CostData>> getEnvEstimatedCostData(long envId, BomData data);
+
+  Map<String, List<CapacityData>> getEnvCapacity(long envId, BomData bomData);
+
 }

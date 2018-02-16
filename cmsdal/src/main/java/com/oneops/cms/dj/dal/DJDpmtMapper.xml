@@ -164,37 +164,37 @@
 
 	<select id="findDeploymentsByTimePeriod" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
 		SELECT d.deployment_id as deploymentId,
-			   d.release_id as releaseId,
-			   ns.ns_path as nsPath,
-			   d.created_by as createdBy,
-			   d.updated_by as updatedBy,
-			   d.description,
-			   d.comments,
-			   d.flags,
-			   d.ops,
-			   ds.state_name as deploymentState,
-			   d.process_id as processId,
-			   d.created,
-			   d.updated
+		d.release_id as releaseId,
+		ns.ns_path as nsPath,
+		d.created_by as createdBy,
+		d.updated_by as updatedBy,
+		d.description,
+		d.comments,
+		d.flags,
+		d.ops,
+		ds.state_name as deploymentState,
+		d.process_id as processId,
+		d.created,
+		d.updated
 		from dj_deployment d, ns_namespaces ns, dj_deployment_states ds
 		where d.ns_id = ns.ns_id
-			and d.state_id = ds.state_id
-			and (ns.ns_path = #{ns}
-					<if test="nsLike != null">
-						or ns.ns_path like #{nsLike}
-					</if>)
-				<if test="start != null">
-					and d.created >= #{start}
-				</if>
-				<if test="end != null">
-					and d.created &lt;= #{end}
-				</if>
+		and d.state_id = ds.state_id
+		and (ns.ns_path = #{ns}
+		<if test="nsLike != null">
+			or ns.ns_path like #{nsLike}
+		</if>)
+		<if test="start != null">
+			and d.created >= #{start}
+		</if>
+		<if test="end != null">
+			and d.created &lt;= #{end}
+		</if>
 		order by d.created
-	 </select>
+	</select>
 
 	 <select id="findLatestDeployment" parameterType="map" useCache="false" resultType="com.oneops.cms.dj.domain.CmsDeployment">
 		SELECT d.deployment_id as deploymentId, 
-``			   d.release_id as releaseId,
+			   d.release_id as releaseId,
 			   ns.ns_path as nsPath, 
 			   ds.state_name as deploymentState, 
 			   d.created_by as createdBy,

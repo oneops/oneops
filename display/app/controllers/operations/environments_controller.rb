@@ -1,5 +1,5 @@
 class Operations::EnvironmentsController < Base::EnvironmentsController
-  include ::NotificationSummary, ::CostSummary, ::Health
+  include ::NotificationSummary, ::CostSummary, ::Health, ::Search
 
   before_filter :find_assembly_and_environment
 
@@ -15,16 +15,16 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     respond_to do |format|
       format.html do
         manifest_ns_path = environment_manifest_ns_path(@environment)
+        bom_ns_path      = environment_bom_ns_path(@environment)
         @release         = Cms::Release.latest(:nsPath => manifest_ns_path)
-        @bom_release     = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
-                                                      :releaseState => 'open'})
+        @bom_release     = Cms::Release.first(:params => {:nsPath => bom_ns_path, :releaseState => 'open'})
 
-        @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
-
-        @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
+        @deployment  = Cms::Deployment.latest(:nsPath => bom_ns_path)
         if @deployment && @deployment.deploymentState == 'pending'
           @pending_approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId}).select { |a| a.state == 'pending' }
         end
+
+        @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
 
         @platforms = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
                                                    :direction         => 'from',
@@ -37,7 +37,7 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
         load_platform_instances_info
 
-        requires = Cms::DjRelation.all(:params => {:nsPath       => manifest_ns_path,
+        requires = Cms::Relation.all(:params => {:nsPath       => manifest_ns_path,
                                                    :recursive    => true,
                                                    :relationName => 'manifest.Requires'})
         @ops_state_counts = Operations::Sensor.component_states(requires.map(&:toCiId)).inject({}) do |counts, (id, component_counts)|
@@ -83,57 +83,18 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
-  def search
-    if request.format.html?
-      render '_search'
-    else
-      super
-    end
-  end
-
   def cost_estimate
     pending = params[:pending] == 'false' ? false : true
-    details = params[:details] == 'false' ? false : true
+    details = params[:details] == 'true' ? true : false
     cost, error = Transistor.environment_cost(@environment, pending, details)
 
-    unless cost
-      render :json => {:errors => [error]}, :status => :internal_server_error
-      return
-    end
-
-    cost = cost['estimated'] if pending
-    if details
-      result = cost.inject({:total       => 0,
-                            :unit        => nil,
-                            :by_cloud    => {},
-                            :by_platform => {},
-                            :by_service  => {}}) do |h, c|
-        offerings = c['offerings']
-        next if offerings.blank?
-
-        cloud_key    = c['cloud']['ciName']
-        platform_key = c['rfc']['nsPath'].split('/')[-2..-1].join('/')
-        offerings.each do |o|
-          rate        = o['ciAttributes']['cost_rate'].to_f
-          unit        = o['ciAttributes']['cost_unit']
-          service_key = o['ciAttributes']['service_type']
-          h[:total]                     += rate
-          h[:unit]                      ||= unit if unit.present?
-          h[:by_cloud][cloud_key]       ||= 0
-          h[:by_cloud][cloud_key]       += rate
-          h[:by_platform][platform_key] ||= 0
-          h[:by_platform][platform_key] += rate
-          h[:by_service][service_key]   ||= 0
-          h[:by_service][service_key]   += rate
-        end
-        h
-      end
-      result = result.transform_values {|k, v| v.is_a?(Float) ? v.round(2) : v}
+    if cost
+      cost = cost['estimated'] if pending
+      cost['unit'] = UNIT unless details
+      render :json => cost
     else
-      result = {:total => cost}
+      render :json => {:errors => [error]}, :status => :internal_server_error
     end
-
-    render :json => result
   end
 
 

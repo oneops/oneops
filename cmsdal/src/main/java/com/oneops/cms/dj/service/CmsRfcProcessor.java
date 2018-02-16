@@ -791,6 +791,16 @@ public class CmsRfcProcessor {
 	}
 	
 	/**
+	 * Gets the open rfc ci by ci id.
+	 *
+	 * @param ciId the ci id
+	 * @return the open rfc ci by ci id
+	 */
+	public CmsRfcCI getOpenRfcCIByCiIdNoAttrs(long ciId) {
+		return djMapper.getOpenRfcCIByCiId(ciId);
+	}
+
+	/**
 	 * Gets the open rfcs by ci id list.
 	 * no attributes
 	 * @param ids - List of the ci id
@@ -1688,21 +1698,21 @@ public class CmsRfcProcessor {
     }
  
 	/**
-	 * get ci rfc links (simple call to get relations without extra info)
+	 * Get rfc CI count for a given release.
 	 *
-	 * @param  nsPath, relName
+	 * @param  releaseId
 	 */
-	public List<CmsRfcLink> getLinks(String nsPath, String relName) {
-		return djMapper.getOpenRfcLinks(nsPath, relName);
+	public long getRfcCiCount(long releaseId) {
+		return djMapper.countCiRfcByReleaseId(releaseId);
 	}
-    
+
 	/**
-	 * get ci rfc links (simple call to get relations without extra info)
+	 * Get rfc relation count for a given release.
 	 *
-	 * @param  nsPath, relName
+	 * @param  releaseId
 	 */
-	public long getRfcCount(long nsPath) {
-		return djMapper.countCiRfcByReleaseId(nsPath);
+	public long getRfcRelationCount(long releaseId) {
+		return djMapper.countRelationRfcByReleaseId(releaseId);
 	}
 
 	/**

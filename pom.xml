@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>17.11.01-13-SNAPSHOT</version>
+  <version>18.02.08-9-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -67,6 +67,7 @@
     <org.springframework.security.version>3.2.8.RELEASE</org.springframework.security.version>
     <postgresql.version>9.3-1104-jdbc4</postgresql.version>
     <retrofit.version>2.1.0</retrofit.version>
+    <okhttp.version>3.9.0</okhttp.version>
     <rxjava.version>1.0.14</rxjava.version>
     <saaj-impl.version>1.3.2</saaj-impl.version>
     <servlet-api.version>2.5</servlet-api.version>
@@ -86,8 +87,12 @@
     <activiti-spring.version>5.19.0</activiti-spring.version>
     <activiti.version>5.19.0</activiti.version>
     <slf4j.version>1.6.1</slf4j.version>
-    <hazelcast.version>3.8.5</hazelcast.version>
     <aspectj.version>1.8.11</aspectj.version>
+    <autovalue.version>1.5.3</autovalue.version>
+    <autovalue-gson.version>0.4.5</autovalue-gson.version>
+    <jsr305.version>3.0.2</jsr305.version>
+    <qpid-jms-client.version>0.28.0</qpid-jms-client.version>
+
   </properties>
   <modules>
     <module>adapter</module>
@@ -106,11 +111,13 @@
     <module>transistor</module>
     <module>transmitter</module>
     <module>batch</module>
+    <module>crawler</module>
     <module>oneops-distribution</module>
     <module>oneops-admin</module>
     <module>db-schema</module>
     <module>oneops-packer</module>
     <module>oneops-model</module>
+    <module>oneops-gslb</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -506,6 +513,11 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
+        <groupId>com.oneops</groupId>
+        <artifactId>oneops-gslb</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.codehaus.jackson</groupId>
         <artifactId>jackson-mapper-asl</artifactId>
         <version>1.8.11</version>
@@ -661,16 +673,6 @@
         <version>${smack.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast</artifactId>
-        <version>${hazelcast.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.hazelcast</groupId>
-        <artifactId>hazelcast-spring</artifactId>
-        <version>${hazelcast.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.aspectj</groupId>
         <artifactId>aspectjweaver</artifactId>
         <version>${aspectj.version}</version>
@@ -685,6 +687,39 @@
         <artifactId>flyway-core</artifactId>
         <version>4.2.0</version>
       </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>${okhttp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>logging-interceptor</artifactId>
+        <version>${okhttp.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.auto.value</groupId>
+        <artifactId>auto-value</artifactId>
+        <version>${autovalue.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ryanharter.auto.value</groupId>
+        <artifactId>auto-value-gson</artifactId>
+        <version>${autovalue-gson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.code.findbugs</groupId>
+        <artifactId>jsr305</artifactId>
+        <version>${jsr305.version}</version>
+      </dependency>
+      <!-- Begin: Added dependency to connect to Azure Service Bus -->
+ 	<dependency>
+ 		<groupId>org.apache.qpid</groupId>
+ 		<artifactId>qpid-jms-client</artifactId>
+ 		<version>${qpid-jms-client.version}</version>
+ 	</dependency>
+ 	<!-- End: Added dependency to connect to Azure Service Bus -->
+
     </dependencies>
   </dependencyManagement>
   <build>

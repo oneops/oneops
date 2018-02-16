@@ -32,6 +32,8 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import com.google.gson.Gson;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,10 +43,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
 
+/**
+ * Inductor AO/WO Unit tests.
+ */
 public class InductorTest {
 
   private final Gson gson = new Gson();
@@ -65,12 +71,12 @@ public class InductorTest {
   public void testProvider() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     WorkOrderExecutor executor = new WorkOrderExecutor(mock(Config.class), mock(Semaphore.class));
-    final String provider = executor.getProvider(wo);
+    String provider = executor.getProvider(wo);
     assertTrue(provider.equals("azure"));
   }
 
   @Test
-  public void testKitchenPath() {
+  public void testWOVerifyConfig() {
     CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
@@ -88,6 +94,49 @@ public class InductorTest {
     final String[] cmdLine = woExec.getRemoteWoRsyncCmd(wo, "sshkey", "");
     String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/190494.json, oneops@inductor-test-host:/opt/oneops/workorder/user.test_wo-25392-1.json]";
     assertEquals(rsync, Arrays.toString(cmdLine));
+
+    // Assertions for windows computes.
+    assertFalse("WO should be managed via a non-windows compute.", woExec.isWinCompute(wo));
+    wo.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "M-WIN");
+    assertTrue("WO should be managed via a windows compute.", woExec.isWinCompute(wo));
+  }
+
+
+  @Test
+  public void testAOVerifyConfig() {
+    CmsActionOrderSimple ao = gson.fromJson(remoteAo, CmsActionOrderSimple.class);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setDataDir("/tmp/wos");
+
+    ActionOrderExecutor aoExec = new ActionOrderExecutor(cfg, mock(Semaphore.class));
+    assertEquals("/opt/oneops/inductor/circuit-oneops-1", aoExec.getCircuitDir(ao).toString());
+    assertEquals("/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat",
+        aoExec.getCookbookDir(ao).toString());
+    assertEquals(
+        "/opt/oneops/inductor/circuit-oneops-1/components/cookbooks/tomcat/test/integration/status/serverspec/status_spec.rb",
+        aoExec.getActionSpecPath(ao).toString());
+
+    final String[] cmdLine = aoExec.getRemoteWoRsyncCmd(ao, "sshkey", "");
+    String rsync = "[/usr/bin/rsync, -az, --force, --exclude=*.png, --rsh=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 -qi sshkey, --timeout=0, /tmp/wos/211465.json, oneops@inductor-test-host:/opt/oneops/workorder/tomcat.tomcat-9687230-1.json]";
+    assertEquals(rsync, Arrays.toString(cmdLine));
+
+    // Assertions for windows computes.
+    assertFalse("AO should be managed via a non-windows compute.", aoExec.isWinCompute(ao));
+    ao.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "L-WIN");
+    assertTrue("AO should be managed via a windows compute.", aoExec.isWinCompute(ao));
+  }
+
+  @Test
+  public void testRemoteKitchenConfig() {
+    testKitchenConfig(remoteWo, true);
+    testWinKitchenConfig(remoteWo);
+  }
+
+  @Test
+  public void testLocalKitchenConfig() {
+    testKitchenConfig(localWo, false);
   }
 
   @Test
@@ -151,29 +200,49 @@ public class InductorTest {
     envVars = p.getEnvVars(localCmd, extraVars);
     assertEquals(envValue, envVars.get(envName));
   }
-
   @Test
-  public void testRemoteKitchenConfig() {
-    testKitchenConfig(remoteWo);
-  }
-
-  @Test
-  public void testLocalKitchenConfig() {
-    testKitchenConfig(localWo);
-  }
-
-  private void testKitchenConfig(String woString) {
-    CmsWorkOrderSimple wo = gson.fromJson(woString, CmsWorkOrderSimple.class);
+  public void testWoExecutorConfigWithEmptyCloudServiceEnvVar(){
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
     Config cfg = new Config();
     cfg.setCircuitDir("/opt/oneops/inductor/packer");
     cfg.setIpAttribute("public_ip");
     cfg.setEnv("");
     cfg.init();
-
     WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
-    String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
-    Object yamlConfig = yaml.load(config);
-    assertNotNull("Invalid kitchen config.", yamlConfig);
+    final String vars = executor.getProxyEnvVars(wo);
+    assertTrue(vars.equals("class=user pack=circuit-oneops-1"));
+  }
+  @Test
+  public void testWoExecutorConfigWithNoCloudServiceEnvVar(){
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
+    wo.setServices(Collections.EMPTY_MAP);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    final String vars = executor.getProxyEnvVars(wo);
+    assertTrue(vars.equals("rubygems_proxy=http://repos.org/gemrepo/ rubygemsbkp_proxy=http://dal-repos.org/gemrepo/ ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
+  }
+
+  @Test
+  public void testWoExecutorConfigWithCloudCloudServiceEnvVarOverriding(){
+    CmsWorkOrderSimple wo = gson.fromJson(remoteWo, CmsWorkOrderSimple.class);
+    HashMap<String,String> m = new HashMap<>();
+    m.put("rubygems","compute_proxy");
+    m.put("rubygemsbkp","compute_proxy_backup");
+    wo.getPayLoad().get(MANAGED_VIA).get(0).addCiAttribute("proxy_map",gson.toJson(m));
+    wo.setServices(Collections.EMPTY_MAP);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    final String vars = executor.getProxyEnvVars(wo);
+
+    assertTrue(vars.equals("rubygems_proxy=compute_proxy rubygemsbkp_proxy=compute_proxy_backup ruby_proxy= DATACENTER_proxy=dal misc_proxy=http://repos.org/mirrored-assets/apache.mirrors.pair.com/ class=user pack=circuit-oneops-1"));
   }
 
   /**
@@ -203,5 +272,54 @@ public class InductorTest {
     Map<String, String> mp = new HashMap<>();
     executor.runVerification(wo, mp);
   }
+
+  /**
+   * Helper method to test local/remote WO kitchen yaml config.
+   *
+   * @param woString wo string.
+   * @param remote <code>true</code> if the wo is for remote compute.
+   */
+  private void testKitchenConfig(String woString, boolean remote) {
+    CmsWorkOrderSimple wo = gson.fromJson(woString, CmsWorkOrderSimple.class);
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    String config = executor.generateKitchenConfig(wo, "/tmp/sshkey", "logkey");
+    Object yamlConfig = yaml.load(config);
+
+    assertNotNull("Invalid kitchen config.", yamlConfig);
+    if (remote) {
+      assertTrue(config.contains("chef_solo_path: /usr/local/bin/chef-solo"));
+      assertTrue(config.contains("root_path: /tmp/kitchen"));
+      assertTrue(config.contains("ruby_bindir: /usr/bin"));
+      assertTrue(config.contains("root_path: /tmp/verifier-190494"));
+    }
+  }
+
+  private void testWinKitchenConfig(String woString) {
+    CmsWorkOrderSimple winWO = gson.fromJson(woString, CmsWorkOrderSimple.class);
+    winWO.getPayLoadEntryAt(MANAGED_VIA, 0).getCiAttributes().put("size", "M-WIN");
+
+    Config cfg = new Config();
+    cfg.setCircuitDir("/opt/oneops/inductor/packer");
+    cfg.setIpAttribute("public_ip");
+    cfg.setEnv("");
+    cfg.init();
+
+    WorkOrderExecutor executor = new WorkOrderExecutor(cfg, mock(Semaphore.class));
+    String config = executor.generateKitchenConfig(winWO, "/tmp/sshkey", "logkey");
+    Object winYaml = yaml.load(config);
+
+    assertNotNull("Invalid kitchen config.", winYaml);
+    assertTrue(config.contains("chef_solo_path: c:/opscode/chef/embedded/bin/chef-solo"));
+    assertTrue(config.contains("root_path: c:/tmp/kitchen"));
+    assertTrue(config.contains("ruby_bindir: c:/opscode/chef/embedded/bin"));
+    assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
+  }
+
 
 }

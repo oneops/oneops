@@ -5,7 +5,7 @@
 <%= page_info current_user.organization.full_name || '&nbsp;' %>
 
 <%= items = [{:label => 'summary',     :template => 'summary', :selected => true},
-             {:label => 'deployments', :url => deployments_organization_path},
+             {:label => 'deployments', :url => deployments_organization_path(params.slice(:deployment_state))},
              {:label => 'procedures',  :url => procedures_organization_path},
              {:label => 'reports',     :url => reports_organization_path(params)},
              {:label => 'health',      :url => health_organization_path},

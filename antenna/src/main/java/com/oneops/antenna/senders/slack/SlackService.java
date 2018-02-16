@@ -185,9 +185,9 @@ public class SlackService implements NotificationSender {
                     add(new Field("ManifestCiId", msg.getManifestCiId() + "", true));
                     add(new Field("AdminStatus", msg.getAdminStatus(), true));
                     add(new Field("Timestamp", String.format("<!date^%d^{date_num} {time_secs}|%d>", epocTs, epocTs), true));
-                    Map<String, String> payload = msg.getPayload();
+                    Map<String, Object> payload = msg.getPayload();
                     if (payload != null) {
-                        payload.forEach((key, value) -> add(new Field(key, value, true)));
+                        payload.forEach((key, value) -> add(new Field(key, String.valueOf(value), true)));
                     }
                 }
             }.stream().filter((f) -> isNotEmpty(f.getValue())).collect(Collectors.toList());

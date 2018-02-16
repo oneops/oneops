@@ -1,28 +1,17 @@
 package com.oneops.search.msg.processor.ci;
 
-import com.oneops.cms.dj.domain.CmsRelease;
+import com.google.gson.Gson;
 import com.oneops.cms.simple.domain.CmsCISimple;
-import com.oneops.cms.util.CmsConstants;
 import com.oneops.search.domain.CmsDeploymentPlan;
-import com.oneops.search.domain.CmsReleaseSearch;
 import com.oneops.search.msg.index.Indexer;
-import com.oneops.search.msg.processor.ci.CISImpleProcessor;
+import com.oneops.search.msg.processor.CIMessageProcessor;
 import org.apache.commons.lang.exception.ExceptionUtils;
-import org.apache.commons.lang.time.DateUtils;
 import org.apache.log4j.Logger;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.index.query.FilterBuilders;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.search.sort.SortBuilders;
-import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
-import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.oneops.search.msg.processor.MessageProcessor.GSON_ES;
 
@@ -47,66 +36,53 @@ import static com.oneops.search.msg.processor.MessageProcessor.GSON_ES;
 @Service
 public class DeploymentPlanProcessor implements CISImpleProcessor{
     private Logger logger = Logger.getLogger(this.getClass());
+    private static Gson gson = new Gson();
+
     @Autowired
     private Indexer indexer;
 
-    
     public void process(CmsCISimple ci) {
         CmsDeploymentPlan deploymentPlan;
 
         try {
-            int genTime = extractTimeTaken(ci.getComments()).intValue();
-            CmsRelease release = fetchReleaseRecord(ci.getNsPath() + "/" + ci.getCiName() + "/bom",
-                    ci.getUpdated(), genTime);
-            if (release != null) {
+            String comments = ci.getComments();
+            double genTime = extractTimeTaken(comments);
+            Map releaseInfo = extractReleaseInfo(comments);
+            if (releaseInfo != null) {
                 deploymentPlan = new CmsDeploymentPlan();
-                deploymentPlan.setPlanGenerationTime(genTime);
+                deploymentPlan.setNsPath(ci.getNsPath() + "/" + ci.getCiName() + "/bom");
                 deploymentPlan.setCreatedBy(ci.getCreatedBy());
                 deploymentPlan.setCiId(ci.getCiId());
-                deploymentPlan.setCreated(release.getCreated());
-                deploymentPlan.setCreatedBy(release.getCreatedBy());
-                deploymentPlan.setCiClassName(ci.getCiClassName());
-                deploymentPlan.setReleaseName(release.getReleaseName());
-                deploymentPlan.setReleaseId(release.getReleaseId());
-                deploymentPlan.setId(String.valueOf(ci.getCiId()) + String.valueOf(release.getReleaseId()));
-                deploymentPlan.setCiRfcCount(release.getCiRfcCount());
-                deploymentPlan.setCommitedBy(release.getCommitedBy());
-                deploymentPlan.setNsId(release.getNsId());
-                deploymentPlan.setNsPath(release.getNsPath());
-                indexer.index(deploymentPlan.getId(), "plan", GSON_ES.toJson(deploymentPlan));
+                deploymentPlan.setCreated(ci.getUpdated());
+                deploymentPlan.setPlanGenerationTime(genTime);
+                deploymentPlan.setCreatedBy((String) releaseInfo.get("createdBy"));
+                deploymentPlan.setMode((String) releaseInfo.get("mode"));
+                deploymentPlan.setManifestCommit((Boolean) releaseInfo.get("manifestCommit"));
+                deploymentPlan.setCiRfcCount(((Double) releaseInfo.get("rfcCiCount")).intValue());
+                deploymentPlan.setRelationRfcCount(((Double) releaseInfo.get("rfcRelationCount")).intValue());
+                Object releaseId = releaseInfo.get("releaseId");
+                if (releaseId != null) {
+                    deploymentPlan.setReleaseId(((Double) releaseId).longValue());
+                    deploymentPlan.setAutoDeploy((Boolean) releaseInfo.get("autoDeploy"));
+                }
+                indexer.index(null, "plan", GSON_ES.toJson(deploymentPlan));
             }
         } catch (Exception e) {
-            logger.error("Exception in processing deployment message: " + ExceptionUtils.getMessage(e));
+            logger.error("Exception in processing deployment message: " + ExceptionUtils.getMessage(e), e);
         }
     }
 
     private static Double extractTimeTaken(String comments) {
-        try {
-            String timeTaken = comments.substring("SUCCESS:Generation time taken: ".length(), comments.indexOf(" seconds.")).trim();
-            double planGentime = Double.parseDouble(timeTaken);
-            return planGentime == 0 ? 1 : planGentime;
-        } catch (Exception e) {
-            return 1d; // return 1 second
-        }
+        String timeTaken = comments.substring(CIMessageProcessor.ENV_SUCCESS_PREFIX.length(), comments.indexOf(" seconds.")).trim();
+        double planGentime = Double.parseDouble(timeTaken);
+        return planGentime == 0 ? 1 : planGentime;
     }
 
-    private CmsRelease fetchReleaseRecord(String nsPath, Date ts, int genTime) throws InterruptedException {
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(CmsConstants.SEARCH_TS_PATTERN);
-        Thread.sleep(3000);
-        SearchQuery latestRelease = new NativeSearchQueryBuilder()
-                .withIndices("cms-*")
-                .withTypes("release").withFilter(
-                        FilterBuilders.andFilter(
-                                FilterBuilders.queryFilter(QueryBuilders.termQuery("nsPath.keyword", nsPath)),
-                                FilterBuilders.queryFilter(QueryBuilders.rangeQuery("created").
-                                        from(simpleDateFormat.format(DateUtils.addMinutes(ts, -(genTime + 10)))).
-                                        to(simpleDateFormat.format(ts))))).
-                        withSort(SortBuilders.fieldSort("created").order(SortOrder.DESC)).build();
-
-        List<CmsReleaseSearch> ciList = indexer.getTemplate().queryForList(latestRelease, CmsReleaseSearch.class);
-        if (!ciList.isEmpty()) {
-            return ciList.get(0);
-        }
-        throw new RuntimeException("Cant find bom release for deployment plan generation event");
+    private static Map extractReleaseInfo(String comments) {
+        String prefix = "bomGenerationInfo=";
+        int startingIndex = comments.indexOf(prefix) + prefix.length();
+        int endIndex = comments.lastIndexOf("}") + 1;
+        String releaseInfoJson = comments.substring(startingIndex, endIndex);
+        return gson.fromJson(releaseInfoJson, HashMap.class);
     }
 }

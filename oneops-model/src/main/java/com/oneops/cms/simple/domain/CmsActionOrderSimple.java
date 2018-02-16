@@ -38,7 +38,7 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
   public CmsCISimple box;
   public Map<String, List<CmsCISimple>> payLoad;
   public Map<String, Map<String, CmsCISimple>> services;
-  public Map<String, String> searchTags = new HashMap<String, String>();
+  public Map<String, String> searchTags = new HashMap<>();
 
   /**
    * Gets the cloud.
@@ -159,13 +159,11 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
 
   @Override
   public String getAction() {
-
     return getActionName();
   }
 
   @Override
   public String getNsPath() {
-
     return getCi().getNsPath();
   }
 
@@ -250,4 +248,13 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
     return getCi().getCiName();
   }
 
+  @Override
+  public long getRecordId() {
+    return getActionId();
+  }
+
+  @Override
+  public void setComments(String comments) {
+    //No-op
+  }
 }

@@ -1,9 +1,5 @@
-<% if @deployment %>
-  $j("#overlay").html("<%= escape_javascript(render('deployment')) %>");
-<% elsif @environment.ciState == 'locked' %>
+<% if @environment.ciState == 'locked' %>
   setTimeout(refresh_compile_status, 5000);
-<% elsif @environment.comments.present? && @environment.comments.start_with?('ERROR:BOM:') %>
-  $j("#overlay").html("<%= escape_javascript(render('deployment')) %>");
 <% else %>
-  close_deployment_overlay();
+  $j("#overlay").html("<%= escape_javascript(render('deployment')) %>");
 <% end %>

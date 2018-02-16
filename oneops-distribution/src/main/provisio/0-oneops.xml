@@ -23,6 +23,7 @@
     <artifact id="com.oneops:inductor:${project.version}" as="inductor-1.1.0.jar">
       <exclusion id="*:*"/>
     </artifact>
+    <artifact id="com.oneops.cms:crawler:${project.version}" as="crawler.jar"/>
   </artifactSet>
   <artifactSet to="/">
     <artifact id="com.oneops:amqplugin:tar.gz:${project.version}">
@@ -34,6 +35,6 @@
     <artifact id="com.oneops:oneops-admin:tar.gz:${project.version}">
       <unpack useRoot="true"/>
     </artifact>
-  </artifactSet>
+</artifactSet>
   <archive name="distribution-${project.version}-oneops.tar.gz" classifier="oneops"/>
 </assembly>

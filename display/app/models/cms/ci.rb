@@ -88,12 +88,13 @@ class Cms::Ci < Cms::Base
   end
 
   def self.search(options)
+    pluck = options[:_source].present?
+
     result = Search::Base.search('/cms-all/ci', options)
     return result unless result
+
     data = result.map do |r|
-      r.delete_if do |key, value|
-        value.is_a?(Hash) && key != 'ciAttributes' && key != 'ciAttrProps' && key != 'ciBaseAttributes'
-      end
+      r.delete_if {|k, v| v.is_a?(Hash) && k != 'ciAttributes' && k != 'ciAttrProps' && k != 'ciBaseAttributes'} unless pluck
       new(r, true)
     end
     data.info.clear.merge!(result.info)
@@ -243,7 +244,7 @@ class Cms::Ci < Cms::Base
             if json && pattern.present?
               if data_type == 'hash'
                 json.each_pair do |k, v|
-                  errors.add(:base, "'#{a.description}' has invalid value for key '#{k}' [expected: #{pattern_desc(pattern)}].") unless check_pattern(pattern, v)
+                  errors.add(:base, "'#{a.description}' has invalid v for k '#{k}' [expected: #{pattern_desc(pattern)}].") unless check_pattern(pattern, v)
                 end
               else
                 json.each do |e|

@@ -33,6 +33,7 @@ import com.oneops.ops.events.CiChangeStateEvent;
 import com.oneops.ops.events.CiOpenEvent;
 import com.oneops.ops.events.OpsBaseEvent;
 import org.mockito.ArgumentCaptor;
+import org.springframework.web.client.RestTemplate;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -46,6 +47,12 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.Mockito.*;
+
+import static org.mockito.Matchers.*;
+import static org.testng.Assert.assertEquals;
+
+import com.oneops.cms.cm.service.CmsCmManager;
+
 
 public class BadStateProcessorTest {
 
@@ -277,5 +284,157 @@ public class BadStateProcessorTest {
 		verify(opsMock, times(1)).getCmsOpsProceduresCountForCiFromTime(anyLong(), any(), eq("ci_repair"), captor.capture());
 		List<Date> values = captor.getAllValues();
 		Assert.assertTrue(values.get(0).getTime() - ts1 < (60 * 1000L));
+	}
+	
+	@Test(enabled = true)
+	public void OpampRsController_replaceByCid_AutoReplaceEnabled() {
+		long ciId = 999L;
+		String userId = "TestUser";
+		String description = "TestDescription";
+
+		BadStateProcessor bsProcessor = new BadStateProcessor();
+
+		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
+		CmsCmManager cmManager = mock(CmsCmManager.class);
+		;
+		RestTemplate restTemplate = mock(RestTemplate.class);
+
+		CmsCI platform = mock(CmsCI.class);
+		CmsCI env = mock(CmsCI.class);
+
+		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
+		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
+		when(envProcessor.isOpenRelease4Env(env)).thenReturn(false);
+		when(envProcessor.isAutoReplaceEnabled(platform)).thenReturn(true);
+
+		bsProcessor.setEnvProcessor(envProcessor);
+		bsProcessor.setCmManager(cmManager);
+
+		Map<String, Integer> responseFromTransistor = new HashMap<String, Integer>(1);
+		Integer expectedDeploymentId = Integer.valueOf(0);
+		responseFromTransistor.put("deploymentId", expectedDeploymentId);
+
+		when(restTemplate.postForObject(anyString(), anyObject(), anyObject(), anyMapOf(String.class, String.class)))
+				.thenReturn(responseFromTransistor);
+
+		bsProcessor.setRestTemplate(restTemplate);
+
+		Map<String, Integer> result = bsProcessor.replaceByCid(ciId, userId, description);
+		assertEquals(result.size(), 1);
+		assertEquals(result.get("deploymentId"), expectedDeploymentId);
+	}
+
+	@Test(enabled = true)
+	public void OpampRsController_replaceByCid_AutoReplaceDisabled() {
+		long ciId = 999L;
+		String userId = "TestUser";
+		String description = "TestDescription";
+
+		BadStateProcessor bsProcessor = new BadStateProcessor();
+
+		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
+		CmsCmManager cmManager = mock(CmsCmManager.class);
+		;
+		RestTemplate restTemplate = mock(RestTemplate.class);
+
+		CmsCI platform = mock(CmsCI.class);
+		CmsCI env = mock(CmsCI.class);
+
+		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
+		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
+		when(envProcessor.isOpenRelease4Env(env)).thenReturn(false);
+		when(envProcessor.isAutoReplaceEnabled(platform)).thenReturn(false);
+
+		bsProcessor.setEnvProcessor(envProcessor);
+		bsProcessor.setCmManager(cmManager);
+
+		Map<String, Integer> responseFromTransistor = new HashMap<String, Integer>(1);
+		Integer expectedDeploymentId = Integer.valueOf(1);
+		responseFromTransistor.put("deploymentId", expectedDeploymentId);
+
+		when(restTemplate.postForObject(anyString(), anyObject(), anyObject(), anyMapOf(String.class, String.class)))
+				.thenReturn(responseFromTransistor);
+
+		bsProcessor.setRestTemplate(restTemplate);
+
+		Map<String, Integer> result = bsProcessor.replaceByCid(ciId, userId, description);
+		assertEquals(result.size(), 1);
+		assertEquals(result.get("deploymentId"), expectedDeploymentId);
+	}
+
+	@Test(enabled = true)
+	public void OpampRsController_replaceByCid_isOpenRelease() {
+		long ciId = 999L;
+		String userId = "TestUser";
+		String description = "TestDescription";
+
+		BadStateProcessor bsProcessor = new BadStateProcessor();
+
+		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
+		CmsCmManager cmManager = mock(CmsCmManager.class);
+		;
+		RestTemplate restTemplate = mock(RestTemplate.class);
+
+		CmsCI platform = mock(CmsCI.class);
+		CmsCI env = mock(CmsCI.class);
+
+		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
+		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
+		when(envProcessor.isOpenRelease4Env(env)).thenReturn(false);
+		when(envProcessor.isAutoReplaceEnabled(platform)).thenReturn(false);
+
+		bsProcessor.setEnvProcessor(envProcessor);
+		bsProcessor.setCmManager(cmManager);
+
+		Map<String, Integer> responseFromTransistor = new HashMap<String, Integer>(1);
+		Integer expectedDeploymentId = Integer.valueOf(1);
+		responseFromTransistor.put("deploymentId", expectedDeploymentId);
+
+		when(restTemplate.postForObject(anyString(), anyObject(), anyObject(), anyMapOf(String.class, String.class)))
+				.thenReturn(responseFromTransistor);
+
+		bsProcessor.setRestTemplate(restTemplate);
+
+		Map<String, Integer> result = bsProcessor.replaceByCid(ciId, userId, description);
+		assertEquals(result.size(), 1);
+		assertEquals(result.get("deploymentId"), expectedDeploymentId);
+	}
+
+	@Test(enabled = true)
+	public void OpampRsController_replaceByCid_isClosedRelease() {
+		long ciId = 999L;
+		String userId = "TestUser";
+		String description = "TestDescription";
+
+		BadStateProcessor bsProcessor = new BadStateProcessor();
+
+		EnvPropsProcessor envProcessor = mock(EnvPropsProcessor.class);
+		CmsCmManager cmManager = mock(CmsCmManager.class);
+		;
+		RestTemplate restTemplate = mock(RestTemplate.class);
+
+		CmsCI platform = mock(CmsCI.class);
+		CmsCI env = mock(CmsCI.class);
+
+		when(envProcessor.getPlatform4Bom(ciId)).thenReturn(platform);
+		when(envProcessor.getEnv4Platform(platform)).thenReturn(env);
+		when(envProcessor.isOpenRelease4Env(env)).thenReturn(false);
+		when(envProcessor.isAutoReplaceEnabled(platform)).thenReturn(false);
+
+		bsProcessor.setEnvProcessor(envProcessor);
+		bsProcessor.setCmManager(cmManager);
+
+		Map<String, Integer> responseFromTransistor = new HashMap<String, Integer>(1);
+		Integer expectedDeploymentId = Integer.valueOf(1);
+		responseFromTransistor.put("deploymentId", expectedDeploymentId);
+
+		when(restTemplate.postForObject(anyString(), anyObject(), anyObject(), anyMapOf(String.class, String.class)))
+				.thenReturn(responseFromTransistor);
+
+		bsProcessor.setRestTemplate(restTemplate);
+
+		Map<String, Integer> result = bsProcessor.replaceByCid(ciId, userId, description);
+		assertEquals(result.size(), 1);
+		assertEquals(result.get("deploymentId"), expectedDeploymentId);
 	}
 }

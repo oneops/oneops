@@ -66,12 +66,12 @@ public class HPOMTransformer extends Transformer {
             platform = nsPathTokens[5];
         }
         if (msg.getPayload() != null) {
-            eventName = msg.getPayload().get("eventName");
-            ciName = msg.getPayload().get("ciName");
-            threshold = msg.getPayload().get("threshold");
-            String totalInstances = msg.getPayload().get("total");
-            String unhealthyInstances = msg.getPayload().get("unhealthy");
-            String notifyInstances = msg.getPayload().get("notify");
+            eventName = msg.getPayloadString("eventName");
+            ciName = msg.getPayloadString("ciName");
+            threshold = msg.getPayloadString("threshold");
+            String totalInstances = msg.getPayloadString("total");
+            String unhealthyInstances = msg.getPayloadString("unhealthy");
+            String notifyInstances = msg.getPayloadString("notify");
             
             int totalCount = 0;
             int unhealthyCount = 0;

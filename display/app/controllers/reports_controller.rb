@@ -1,4 +1,6 @@
 class ReportsController < ApplicationController
+  before_filter :weak_ci_relation_data_consistency, :only => [:compute, :cost, :health, :notification]
+
   AVAILABLE_LABEL = '~Free~'
   CONSUMED_LABEL  = '~Used~'
 

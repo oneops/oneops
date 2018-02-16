@@ -31,8 +31,11 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
+import com.oneops.cms.execution.Response;
+import com.oneops.cms.execution.Result;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.util.CmsConstants;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -48,8 +51,10 @@ import javax.jms.Message;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 import org.apache.commons.httpclient.util.DateParseException;
+import org.apache.commons.httpclient.util.DateUtil;
 import org.apache.log4j.Logger;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -65,26 +70,21 @@ import org.springframework.stereotype.Component;
 public class Listener implements MessageListener, ApplicationContextAware {
 
   private static final Logger logger = Logger.getLogger(Listener.class);
-
   final private Gson gson = new Gson();
 
   private ApplicationContext applicationContext = null;
-
   // Number active work orders being processed
   private AtomicInteger activeThreads = new AtomicInteger(0);
-
   private Semaphore semaphore = null;
-
   private MessagePublisher messagePublisher = null;
-
   private Config config = null;
-
   private File dataDir = null;
-
   private WorkOrderExecutor workOrderExecutor;
-
   private ActionOrderExecutor actionOrderExecutor;
   private MetricRegistry registry;
+
+  @Autowired
+  ClassMatchingWoExecutor classMatchingWoExecutor;
 
   /**
    * allow it to run via cmdline
@@ -180,26 +180,42 @@ public class Listener implements MessageListener, ApplicationContextAware {
         String type = msg.getStringProperty("type");
         CmsWorkOrderSimpleBase wo;
 
-        // WorkOrder
-        if (type.equals(WORK_ORDER_TYPE)) {
-          long t = System.currentTimeMillis();
-          wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
-          wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
-          preProcess(wo);
-          wo.putSearchTag("rfcAction", wo.getAction());
-          responseMsgMap = workOrderExecutor.process(wo, correlationID);
-          responseMsgMap = workOrderExecutor.runVerification(wo, responseMsgMap);
+        switch (type) {
+          // WorkOrder
+          case WORK_ORDER_TYPE: {
+            long t = System.currentTimeMillis();
+            wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
+            wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
+
+            String logKey = workOrderExecutor.getLogKey(wo);
+            logger.info(logKey + " Inductor: " + config.getIpAddr());
+
+            preProcess(wo);
+            wo.putSearchTag("rfcAction", wo.getAction());
+            Response response = runWithMatchingExecutor(wo);
+            if (response == null || response.getResult() == Result.NOT_MATCHED) {
+              responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
+            }
+            else {
+              responseMsgMap = response.getResponseMap();
+              responseMsgMap.put("correlationID", correlationID);
+              postExecTags(wo);
+            }
+            break;
+          }
           // ActionOrder
-        } else if (type.equals(ACTION_ORDER_TYPE)) {
-          long t = System.currentTimeMillis();
-          wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);
-          wo.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
-          preProcess(wo);
-          responseMsgMap = actionOrderExecutor.process(wo, correlationID);
-        } else {
-          logger.error(new IllegalArgumentException("Unknown msg type - " + type));
-          msg.acknowledge();
-          return;
+          case ACTION_ORDER_TYPE: {
+            long t = System.currentTimeMillis();
+            wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);
+            wo.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
+            preProcess(wo);
+            responseMsgMap = actionOrderExecutor.processAndVerify(wo, correlationID);
+            break;
+          }
+          default:
+            logger.error(new IllegalArgumentException("Unknown msg type - " + type));
+            msg.acknowledge();
+            return;
         }
 
         // Controller will process this message
@@ -207,7 +223,6 @@ public class Listener implements MessageListener, ApplicationContextAware {
         responseMsgMap.put("type", type);
 
         long startTime = System.currentTimeMillis();
-
         if (!correlationID.equals("test")) {
           messagePublisher.publishMessage(responseMsgMap);
         }
@@ -215,24 +230,42 @@ public class Listener implements MessageListener, ApplicationContextAware {
         long duration = endTime - startTime;
 
         // ack message
-        logger.debug("send message took:" + duration + "ms");
+        logger.debug("Send message took:" + duration + "ms");
         msg.acknowledge();
-
       }
     } catch (JMSException | SecurityException | IOException | IllegalArgumentException e) {
       logger.error("Error occurred in processing message", e);
     } finally {
-      /*
-       * Decrement the total number of active threads consumed by 1
-       */
+      // Decrement the total number of active threads consumed by 1
       activeThreads.getAndDecrement();
       clearStateFile();
     }
   }
 
+  private Response runWithMatchingExecutor(CmsWorkOrderSimpleBase wo) {
+    preExecTags(wo);
+    Response response;
+    if (config.isVerifyMode()) {
+      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo, config.getDataDir());
+    }
+    else {
+      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo, config.getDataDir());
+    }
+    return response;
+  }
+
   private void preProcess(CmsWorkOrderSimpleBase wo) {
     setStateFile(wo);
     setQueueTime(wo);
+  }
+
+  private void preExecTags(CmsWorkOrderSimpleBase wo) {
+    wo.putSearchTag("inductor", config.getIpAddr());
+  }
+
+  private void postExecTags(CmsWorkOrderSimpleBase wo) {
+    wo.putSearchTag(
+        CmsConstants.RESPONSE_ENQUE_TS, DateUtil.formatDate(new Date(), SEARCH_TS_PATTERN));
   }
 
   private CmsWorkOrderSimpleBase getWorkOrderOf(String msgText, Class c) {
@@ -312,14 +345,8 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
   public InductorStatus getStatus() {
     InductorStatus stat = new InductorStatus();
-
-    // TODO: find way to get backlog, return stats
-    // int backLog = listenerContainer..getQueueBacklog();
     stat.setQueueBacklog(0);
     stat.setQueueName(config.getInQueue());
-    // stat.setRunning(isRunning);
-    // Date dateLastRun = new Date(lastRun);
-    // stat.setLastRun(dateLastRun);
     return stat;
   }
 

@@ -1,0 +1,157 @@
+<% has_transition = has_transition?(@assembly.ciId) %>
+<% platform_selection = capture do %>
+  <%= render 'base/environments/select_deploy_platforms', :platforms => @platforms.map(&:toCi) %>
+<% end %>
+<% content_for :instance_count_info do %>
+  <% if @platform_instance_counts %>
+    <% instance_count = @platform_instance_counts.values.sum %>
+    <dt><%= icon(site_icon(:operations)) %></dt>
+    <dd>
+      <% if instance_count > 0 %>
+        Environment has <b><%= instance_count %></b> deployed instances
+      <% else %>
+        Environment has no deployed instances
+      <% end %>
+    </dd>
+  <% end %>
+<% end %>
+<% content_for :deploy_action do %>
+  <ul class="status-actions">
+    <li>
+      <%= link_confirm_busy(button(icon(site_icon(:deployment), 'Review & Deploy'), nil, 'success'),
+                            :url     => bom_assembly_transition_environment_deployments_path(@assembly, @environment),
+                            :name    => 'generate_deployment_plan',
+                            :method  => :get,
+                            :confirm => 'Generate deployment plan?',
+                            :body    => platform_selection,
+                            :with    => "'commit=false&exclude_platforms='+deploy_platform_exclude_list()",
+                            :busy    => 'Compiling deployment plan...') %>
+    </li>
+  </ul>
+<% end %>
+<% if @environment.ciState == 'locked' %>
+  <div class="marker"><%= status_marker('deployment', 'compiling', 'label-info') %></div>
+  <div class="description">
+    <dl class="dl-horizontal">
+      <dt><%= icon('info-circle') %></dt>
+      <dd>Deployment compilation is in progress. Deployment will start once compilation is done.</dd>
+    </dl>
+    <%= yield :deploy_action %>
+  </div>
+<% elsif @deployment  && %w(active failed paused pausing pending).include?(@deployment.deploymentState) %>
+  <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
+  <div class="description">
+    <dl class="dl-horizontal">
+      <dt><%= icon(site_icon(:deployment)) %></dt>
+      <dd>
+        Deployment <b><%= link_to(@deployment.deploymentId, path_to_deployment(@deployment)) %></b> started
+        <b><%= time_ago_in_words(@deployment.created_timestamp) %></b>
+        by <b><%= @deployment.createdBy %></b>
+      </dd>
+      <% if @deployment.deploymentState == 'failed' %>
+        <dt><%= deployment_state_icon(@deployment.deploymentState) %></dt>
+        <dd>
+          Deployment <%= content_tag(:b, @deployment.deploymentState, :class => state_to_text(@deployment.deploymentState)) %>
+          <b><%= time_ago_in_words(@deployment.updated_timestamp) %></b>
+        </dd>
+        <%= yield :instance_count_info %>
+      <% elsif @deployment.deploymentState == 'pending' && @pending_approvals.present? %>
+        <dt><%= icon('certificate') %></dt>
+        <dd>
+          <div style="display:inline-table">
+          <%= pluralize(@pending_approvals.size, 'approval') %> pending
+            (<%= link_to(content_tag(:b, 'view'), assembly_transition_environment_path(@assembly, @environment, :anchor => "deployments/list_item/#{@deployment.deploymentId}")) %> full approval history)
+          <dl style="margin:0px">
+            <% govern_ci_by_clouds = @pending_approvals.map(&:govern_ci).group_by(&:nsPath) %>
+            <% govern_ci_by_clouds.keys.sort.each do |ns_path| %>
+              <dt><%= ns_path.split('/')[3] %></dt>
+              <dd><%= raw(govern_ci_by_clouds[ns_path].sort_by(&:ciName).map {|a| link_to(a.ciName, path_to_ci(a))}.join(', ')) %></dd>
+            <% end %>
+          </dl>
+          </div>
+        </dd>
+      <% end %>
+    </dl>
+    <%= render 'base/environments/deployment_problems' %>
+    <ul class="status-actions">
+      <li><%= render 'base/shared/deployment_progress', :deployment => @deployment %></li>
+      <% if @deployment.deploymentState == 'failed' %>
+      <% end %>
+      <li>
+        <%= link_busy(button(icon(site_icon(:deployment), 'View Deployment'), nil, 'primary'),
+                      :url    => edit_assembly_transition_environment_deployment_path(@assembly, @environment, @deployment),
+                      :method => :get,
+                      :busy   => 'Retrieving deployment plan...') %>
+      </li>
+      <% if has_transition %>
+        <% if @deployment.deploymentState == 'active' %>
+          <li><%= render 'transition/deployments/action', :action => 'pause' %></li>
+        <% elsif @deployment.deploymentState == 'failed' %>
+          <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
+          <li><%= render 'transition/deployments/action', :action => 'retry' %></li>
+        <% elsif @deployment.deploymentState == 'paused' %>
+          <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
+          <li><%= render 'transition/deployments/action', :action => 'resume' %></li>
+        <% elsif @deployment.deploymentState == 'pending' %>
+          <li><%= render 'transition/deployments/action', :action => 'cancel' %></li>
+        <% end %>
+      <% end %>
+    </ul>
+  </div>
+<% elsif needs_deployment?  %>
+  <div class="marker"><%= status_marker('deployment', 'needed', 'label-info') %></div>
+  <div class="description">
+    <dl class="dl-horizontal">
+      <% if @deployment %>
+        <dt><%= deployment_state_icon(@deployment.deploymentState) %></dt>
+        <dd>
+          Last deployment <b><%= link_to(@deployment.deploymentId, path_to_deployment(@deployment)) %></b>
+          started by <b><%= @deployment.createdBy %></b> and <%= content_tag(:b, @deployment.deploymentState, :class => state_to_text(@deployment.deploymentState)) %>
+          <b><%= time_ago_in_words(@deployment.updated_timestamp) %></b>
+        </dd>
+      <% end %>
+      <dt><%= icon(site_icon(:deployment)) %></dt>
+      <dd>Environment <b>needs</b> a deployment</dd>
+      <%= yield :instance_count_info %>
+    </dl>
+    <%= yield :deploy_action %>
+  </div>
+<% elsif @deployment %>
+  <div class="marker"><%= status_marker('deployment', @deployment.deploymentState, state_to_label(@deployment.deploymentState)) %></div>
+  <div class="description">
+    <dl class="dl-horizontal">
+      <dt><%= deployment_state_icon(@deployment.deploymentState) %></dt>
+      <dd>
+        Last deployment <b><%= link_to(@deployment.deploymentId, path_to_deployment(@deployment)) %></b>
+        <%= content_tag(:b, 'completed', :class => state_to_text(@deployment.deploymentState)) %>
+        <b><%= time_ago_in_words(@deployment.updated_timestamp) %></b>
+      </dd>
+      <dt><%= icon('user') %></dt>
+      <dd>Deployed by <b><%= @deployment.createdBy %></b></dd>
+      <dt><%= icon('clock-o') %></dt>
+      <dd>
+        Duration of last deployment was
+        <b><%= ((@deployment.updated_timestamp - @deployment.created_timestamp) / 60).round %> minutes</b>
+      </dd>
+      <%= yield :instance_count_info %>
+      <dt><%= icon('th-list') %></dt>
+      <dd><%= link_to(highlight('View', 'info'), assembly_transition_environment_path(@assembly, @environment, :anchor => 'timeline/timeline_list/filter::type=deployment')) %> history of deployments</dd>
+    </dl>
+    <% if has_transition %>
+      <ul class="status-actions">
+        <li>
+          <%= link_confirm_busy(button(icon(site_icon(:deployment), 'Force Deploy'), nil, 'inverse'),
+                                :url     => bom_assembly_transition_environment_deployments_path(@assembly, @environment),
+                                :name    => 'force_deploy',
+                                :method  => :post,
+                                :confirm => 'Force Deploy?',
+                                :body    => platform_selection,
+                                :with    => "'commit=false&exclude_platforms='+deploy_platform_exclude_list()",
+                                :busy    => 'Compiling deployment plan...') %>
+        </li>
+      </ul>
+    <% end %>
+  </div>
+<% else %>
+  <div class="marker"><%= status_marker('deployment', 'none', 'label') %></div>
+<% end %>

@@ -29,7 +29,10 @@ module ApplicationHelper
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
                 :compute                => 'server',
-                :favorite               => 'bookmark'}
+                :favorite               => 'bookmark',
+                :json                   => 'file-code-o',
+                :yaml                   => 'file-text-o',
+                :csv                    => 'file-excel-o'}
 
   GENERAL_SITE_LINKS = [{:label => 'Get help',         :icon => 'comments',  :url => Settings.support_chat_url},
                         {:label => 'Report a problem', :icon => 'bug',       :url => Settings.report_problem_url},
@@ -1078,7 +1081,8 @@ module ApplicationHelper
         icon = 'check-circle'
         text = 'text-success'
       when 'failed'
-        icon = 'remove'
+        # icon = 'remove'
+        icon = 'times-circle'
         text = 'text-error'
       when 'canceled'
         icon = 'ban'
@@ -1130,7 +1134,8 @@ module ApplicationHelper
         icon = 'check'
         text = 'text-success'
       when 'failed'
-        icon = 'remove'
+        # icon = 'remove'
+        icon = 'times-circle'
         text = 'text-error'
       when 'canceled'
         icon = 'ban'
@@ -1179,9 +1184,16 @@ module ApplicationHelper
     result = '<dl class="dl-horizontal">'
     (rfc.is_a?(Cms::RfcCi) ? rfc.ciAttributes : rfc.relationAttributes).attributes.each do |attr_name, attr_value|
       md_attribute = rfc.meta.md_attribute(attr_name)
-      description = md_attribute.description.presence || attr_name
-      data_type   = md_attribute.dataType
-      json        = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+      if md_attribute
+        description = md_attribute.description.presence || attr_name
+        data_type   = md_attribute.dataType
+        json        = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+      else
+        Rails.logger.warn "======= Could not find metadata for attribute '#{attr_name}' of #{rfc.ciClassName}, rfcId=#{rfc.rfcId}"
+        description = attr_name
+        json = false
+      end
+
       base_value  = base_attrs[attr_name]
       if json && attr_value.present?
         begin
@@ -1286,7 +1298,7 @@ module ApplicationHelper
   end
 
   def format_cost_rate(rate, opts = {})
-    raw %(<span class="cost-rate">#{rate.to_human(:precision => opts[:precision] || 2)} <span class=""><sub>USD/hour</sub></span></span>)
+    raw %(<span class="cost-rate">#{rate.to_human(:precision => (opts[:precision] || 2))} <span class=""><sub>#{CostSummary::UNIT}</sub></span></span>)
   end
 
   def ci_doc_link(ci, label, opts = {})

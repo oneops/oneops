@@ -1,0 +1,39 @@
+<% div_id = random_dom_id %>
+<p>Restrict deployment to the selected platforms</p>
+<% if defined?(commit) && commit %>
+  <div class="alert">
+    <strong><%= icon('info-circle') %></i></strong>
+      <small>
+        <b>Current release changes will be commited for all platforms.</b>
+        However, you can choose to deploy only certain platforms at this time (after commit).
+        Deployment plan will be generated only for selected platforms.
+      </small>
+  </div>
+<% end %>
+<div id="<%= div_id %>">
+  <div class="btn-group selection" style="margin-bottom: 10px">
+    <button class="btn btn-small" onclick="set_check_box($j('#<%= div_id %> .check-box'))" title="Select All"><i class="fa fa-lg fa-check-square-o"></i></button>
+    <button class="btn btn-small" onclick="reset_check_box($j('#<%= div_id %> .check-box'))" title="Unselect All"><i class="fa fa-lg fa-square-o"></i></button>
+  </div>
+  <table class="table table-condensed">
+    <tbody id="select_deploy_platforms">
+      <% if platforms %>
+        <%= render('base/environments/select_platform_list', :platforms => platforms) %>
+      <% else %>
+        <tr><td colspan="2"><i class="fa-spinner fa-spin"></i> Loading platform selection list...</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+<hr>
+<script>
+  <%= remote_function(:url => assembly_transition_environment_platforms_path(@assembly, @environment), :method => :get) unless platforms %>
+
+  window.deploy_platform_exclude_list = function() {
+    var result = [];
+    $j("#<%= div_id %> .check-box input").each(function(index, el) {
+      if (el.value) result.push(el.value);
+    });
+    return result.join(",");
+  }
+</script>

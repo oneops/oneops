@@ -1,20 +1,26 @@
 package com.oneops;
 
 import com.google.common.collect.Lists;
+
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class Environment {
+public class Environment extends OneopsObject {
 
-  private String id;
   private boolean globaldns;
   private String availability;
   private String profile;
+  private int totalCores;
   private Map<String, Platform> platforms;
   private Map<String, Cloud> clouds;
   private Map<String, String> variables;
   private Map<String, String> encryptedvariables;
+
+  public Environment() {
+    platforms = new HashMap<>();
+  }
 
   public boolean isGlobaldns() {
     return globaldns;
@@ -22,14 +28,6 @@ public class Environment {
 
   public void setGlobaldns(boolean globaldns) {
     this.globaldns = globaldns;
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
   }
 
   public String getAvailability() {
@@ -56,11 +54,17 @@ public class Environment {
     this.platforms = platforms;
   }
 
+  public void addPlatform(Platform platform) {
+    if (platform != null) {
+      platforms.put(platform.getName(), platform);
+    }
+  }
+
   public List<Platform> getPlatformList() {
     List<Platform> platformList = Lists.newArrayList();
     for (Entry<String, Platform> entry : platforms.entrySet()) {
       Platform platform = entry.getValue();
-      platform.setId(entry.getKey());
+      platform.setName(entry.getKey());
       platformList.add(platform);
     }
     return platformList;
@@ -100,4 +104,11 @@ public class Environment {
     this.encryptedvariables = encryptedvariables;
   }
 
+  public int getTotalCores() {
+    return totalCores;
+  }
+
+  public void setTotalCores(int totalCores) {
+    this.totalCores = totalCores;
+  }
 }
