@@ -6,6 +6,7 @@
                  :url  => assembly_transition_environment_deployments_path(@assembly, @environment),
                  :html => {:method => :post, :remote => true, :class => 'deploy-action'} do |f| %>
       <%= error_messages_for(@deployment) %>
+      <%= hidden_field_tag :exclude_platforms, params[:exclude_platforms] %>
       <%= f.hidden_field :releaseId %>
       <%= f.hidden_field :nsPath %>
       <%= f.hidden_field :continueOnFailure %>

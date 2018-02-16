@@ -3,8 +3,9 @@ class Organization < ActiveRecord::Base
   has_one :admin_team, -> {where(:name => Team::ADMINS)}, :class_name => Team
   has_many :users, -> {uniq}, :through => :teams
   has_many :admin_users, :through => :admin_team, :source => :users
+  has_many :admin_group_users, -> {uniq}, :through => :admin_team, :source => :group_users
   has_many :groups, -> {uniq}, :through => :teams
-  has_many :group_users, :through => :groups, :source => :users
+  has_many :group_users, -> {uniq}, :through => :groups, :source => :users
   has_many :ci_proxies, :dependent => :destroy
 
   validates_presence_of :name
