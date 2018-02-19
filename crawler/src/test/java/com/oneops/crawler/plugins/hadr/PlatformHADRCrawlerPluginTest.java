@@ -6,21 +6,28 @@ import static org.testng.Assert.fail;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+import com.google.gson.Gson;
 import com.oneops.Environment;
 import com.oneops.Platform;
+
+/*import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;*/
 
 public class PlatformHADRCrawlerPluginTest {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 	PlatformHADRCrawlerPlugin plugin;
-
 
 	@BeforeTest
 	public void init() {
@@ -125,45 +132,77 @@ public class PlatformHADRCrawlerPluginTest {
 
 	@Test(enabled = false)
 	private void PlatformHADRCrawlerPlugin_processPlatformForProdEnv_isHadrEsDisabled() {
-		try
-		{
-			
-		System.setProperty("hadr.es.enabled", "false");
-		System.setProperty("es.host", "http://localhosttestserver.server.com");
-		plugin = new PlatformHADRCrawlerPlugin();
-		
-		Platform platform = mock(Platform.class);
-		Environment env = mock(Environment.class);
-		plugin.processPlatformForProdEnv(platform, env);
+		try {
 
-		}
-		catch(Exception e) {
-			log.error("exception while processing easltic search record",e);
-			log.info("exception.getCause().getMessage(): "+e.getCause().getMessage());
-		
-			if(e.getCause() != null && e.getCause() instanceof UnknownHostException) {
+			System.setProperty("hadr.es.enabled", "false");
+			System.setProperty("es.host", "http://localhosttestserver.server.com");
+			plugin = new PlatformHADRCrawlerPlugin();
+
+			Platform platform = mock(Platform.class);
+			Environment env = mock(Environment.class);
+			plugin.processPlatformForProdEnv(platform, env);
+
+		} catch (Exception e) {
+			log.error("exception while processing easltic search record", e);
+			log.info("exception.getCause().getMessage(): " + e.getCause().getMessage());
+
+			if (e.getCause() != null && e.getCause() instanceof UnknownHostException) {
 				log.error("Elastic Search is disabled, plugin should not try connecting to Elastic Search Server");
-			fail();	
+				fail();
 			}
 		} finally {
 			System.clearProperty("es.host");
 		}
 	}
-	
-	@Test(enabled = true)
-	private void PlatformHADRCrawlerPlugin_saveToElasticSearch() {
-		
+
+	@Test(enabled = false)
+	private void PlatformHADRCrawlerPlugin_SaveToElasticSearch() {
 		System.setProperty("hadr.es.enabled", "true");
 		System.setProperty("es.host", "localhost");
 		plugin = new PlatformHADRCrawlerPlugin();
-	
-		PlatformHADRRecord platformHADRRecord=new PlatformHADRRecord();
-		Platform platform = mock(Platform.class);
-	
-		plugin.saveToElasticSearch(platformHADRRecord,platform);
-		
+
+		PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
+
+		platformHADRRecord.setTotal(0);
+		platformHADRRecord.setNsPath("Test-nsPath");
+		platformHADRRecord.setPlatform("Test-platform");
+		platformHADRRecord.setCtoOrg("Test-ctoOrg");
+		platformHADRRecord.setCtoDirect("Test-ctoDirect");
+		platformHADRRecord.setOoUrl("Test-ooUrl");
+		platformHADRRecord.setEnvsInAssembly(1);
+		platformHADRRecord.setAssembly("test-assembly");
+		platformHADRRecord.setSClouds("test-sClouds");
+		platformHADRRecord.setCreatedTS(new Date());
+		platformHADRRecord.setEnv("Test-env");
+		platformHADRRecord.setPack("Test-pack");
+		platformHADRRecord.setVp("Test-vp");
+		platformHADRRecord.setOrg("test-org");
+		platformHADRRecord.setPackVersion("Test-packVersion");
+		platformHADRRecord.setIsDR(true);
+		platformHADRRecord.setPlat("Test-plat");
+		platformHADRRecord.setSource("Test-source");
+		String[] secClouds = { "sec-Cloud1", "sec-Cloud2", "sec-Cloud3" };
+		platformHADRRecord.setSecondaryClouds(secClouds);
+		String[] primaryClouds = { "primary-Cloud1", "primary-Cloud2", "primary-Cloud3" };
 		
 
-	
+		platformHADRRecord.setPrimaryClouds(primaryClouds);
+		platformHADRRecord.setSourcePack("Test-sourcePack");
+		platformHADRRecord.setIsHA(false);
+		CCount cCount = new CCount();
+		Map<String, Integer> activeProdClouds = new HashMap<String, Integer>();
+		activeProdClouds.put("aciveCloud1", 2);
+		activeProdClouds.put("aciveCloud2", 3);
+
+		cCount.setActiveProdClouds(activeProdClouds);
+		platformHADRRecord.setCCount(cCount);
+
+		Gson gson = new Gson();
+		String jsonInString = gson.toJson(platformHADRRecord);
+		log.info("jsonInString: " + jsonInString);
+
+		plugin.saveToElasticSearch(platformHADRRecord, "1");
+
 	}
+
 }

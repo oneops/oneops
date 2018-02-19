@@ -14,10 +14,4 @@ public class CCount {
 		this.activeProdClouds = activeProdClouds;
 	}
 
-	@Override
-	public String toString() {
-
-		return activeProdClouds.keySet().toString();
-	}
-
 }

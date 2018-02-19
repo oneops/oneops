@@ -1,5 +1,9 @@
 package com.oneops.crawler.plugins.hadr;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -12,6 +16,7 @@ import com.oneops.Environment;
 import com.oneops.Platform;
 import com.oneops.crawler.AbstractCrawlerPlugin;
 import com.oneops.crawler.SearchDal;
+
 
 public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
@@ -59,6 +64,9 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 		
 		index_number_of_shards=new Integer(System.getProperty("hadr.index.number_of_shards", "1")); //TODO: move these properties to SearchDal
 		index_number_of_replicas=new Integer(System.getProperty("hadr.index.number_of_replicas", "1"));//TODO: move these properties to SearchDal
+		if (isHadrEsEnabled) {
+			createIndexInElasticSearch();
+		}
 		
 	}
 
@@ -120,10 +128,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 		// get platform : ciId, "manifest.ComposedOf",null, "manifest.Platform"
 		 * 
 		 *
-		 
-	
-	
-		     
+		 	     
 		     platformID is connected to clouds via base.consumes relations
 		     
 		     
@@ -150,7 +155,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
  */
 		if (isHadrEsEnabled) {
 			log.info("Sending compliance record to Elastic Search");
-			saveToElasticSearch(platformHADRRecord, platform);
+			saveToElasticSearch(platformHADRRecord, String.valueOf(platform.getId()));
 		}
 
 	}
@@ -195,18 +200,45 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
 	}
 
-	public void saveToElasticSearch(PlatformHADRRecord platformHADRRecord, Platform platform) {
-		// TODO create a new ES Index named "hadr"
-		// TODO create a new Type for index named "platform or hadrprodor hadr"
+	public void saveToElasticSearch(PlatformHADRRecord platformHADRRecord, String platformCId) {
 
 		log.info("Sending data record to elastic search");
-		
-		searchDal.push("hadrElasticSearchIndexName", "platform", platformHADRRecord, String.valueOf(platform.getId()));
-
+		searchDal.push(this.hadrElasticSearchIndexName, "platform", platformHADRRecord, platformCId);
 		log.info("Sent data record to elastic search");
 
 	}
 
+
+	public void createIndexInElasticSearch() {
+		
+		 searchDal.createIndex(this.hadrElasticSearchIndexName, gethadrIndexMappigs());
+		  
+		
+	}
+
+
+	public String gethadrIndexMappigs()  {
+		String fileAsString = new String();
+		try {
+			
+		
+		InputStream is = ClassLoader.getSystemResourceAsStream("hadrIndexMappings.json");
+		BufferedReader buf = new BufferedReader(new InputStreamReader(is));
+		String line = buf.readLine();
+		StringBuilder sb = new StringBuilder();
+		while (line != null) {
+			sb.append(line).append("\n");
+			line = buf.readLine();
+		}
+		fileAsString = sb.toString();
+		log.info("Contents : " + fileAsString);
+		buf.close();
+		} catch(Exception e) {
+			log.error("Error while reading <hadrIndexMappings.json> file from class path: ", e);
+			
+		}
+		return fileAsString;
+	}
 
 		
 	public boolean isHadrPluginEnabled() {

@@ -1,0 +1,89 @@
+{
+	"mappings": {
+		"platform": {
+			"properties": {
+				"environmentId": {
+					"type": "integer"
+				},
+				"environmentProfile": {
+					"type": "text"
+				},
+				"createdTS": {
+					"type": "text"
+				},
+				"nsPath": {
+					"type": "text",
+					"index": "not_analyzed"
+				},
+				"platform": {
+					"type": "text"
+				},
+				"ctoOrg": {
+					"type": "text"
+				},
+				"ctoDirect": {
+					"type": "text"
+				},
+				"ooUrl": {
+					"type": "text",
+					"index": "not_analyzed"
+				},
+				"envsInAssembly": {
+					"type": "integer"
+				},
+				"assembly": {
+					"type": "text"
+				},
+				"sClouds": {
+					"type": "text"
+				},
+				"env": {
+					"type": "text"
+				},
+				"pack": {
+					"type": "text"
+				},
+				"vp": {
+					"type": "text"
+				},
+				"org": {
+					"type": "text"
+				},
+				"packVersion": {
+					"type": "text"
+				},
+				"isDR": {
+					"type": "boolean"
+				},
+				"plat": {
+					"type": "text"
+				},
+				"source": {
+					"type": "text"
+				},
+				"isHA": {
+					"type": "boolean"
+				},
+				"sourcePack": {
+					"type": "text"
+				},
+				"secondaryClouds": {
+					"type": "text"
+				},
+				"pClouds": {
+					"type": "text"
+				},
+				"primaryClouds": {
+					"type": "text"
+				},
+				"CCount": {
+					"properties": {
+						"activeProdClouds": {
+							"type": "text"
+						}
+					}
+				}
+			}
+		}
+	}
+}
