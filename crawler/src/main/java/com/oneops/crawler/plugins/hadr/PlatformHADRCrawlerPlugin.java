@@ -1,7 +1,7 @@
 package com.oneops.crawler.plugins.hadr;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -13,24 +13,35 @@ import com.oneops.Platform;
 import com.oneops.crawler.AbstractCrawlerPlugin;
 import com.oneops.crawler.SearchDal;
 
-public class EnvHADRCrawlerPlugin extends AbstractCrawlerPlugin {
+public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
 	private final Logger log = LoggerFactory.getLogger(getClass());
 	boolean isHadrPluginEnabled;
 	boolean isHadrEsEnabled;
 	String prodDataCentersList;
 	String[] dataCentersArr;
-
-	final String hadrElasticSearchIndexName = "hadr-test";// TODO: remove -test from the value after testing is complete
+	String oo_baseUrl;
+	final String hadrElasticSearchIndexName = "hadr_test";// TODO: remove -test from the value after testing is complete
 	private SearchDal searchDal;
+	private int index_number_of_shards;
+	private int index_number_of_replicas;
+	
 
-	public EnvHADRCrawlerPlugin() {
+	public SearchDal getSearchDal() {
+		return searchDal;
+	}
+
+	public void setSearchDal(SearchDal searchDal) {
+		this.searchDal = searchDal;
+	}
+
+	public PlatformHADRCrawlerPlugin() {
 		readConfig();
 
 	}
 
 	public void readConfig() {
-		searchDal = new SearchDal();
+		setSearchDal( new SearchDal());
 		isHadrPluginEnabled = new Boolean(System.getProperty("hadr.plugin.enabled"));
 		log.info("isHadrPluginEnabled: " + isHadrPluginEnabled);
 
@@ -41,6 +52,14 @@ public class EnvHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 		log.info("production clouds list: [" + prodDataCentersList + "]");
 
 		dataCentersArr = prodDataCentersList.split("~");
+		
+		oo_baseUrl= System.getProperty("hadr.oo.baseurl", "");
+		log.info("oo_baseUrl: "+oo_baseUrl);
+		
+		
+		index_number_of_shards=new Integer(System.getProperty("hadr.index.number_of_shards", "1")); //TODO: move these properties to SearchDal
+		index_number_of_replicas=new Integer(System.getProperty("hadr.index.number_of_replicas", "1"));//TODO: move these properties to SearchDal
+		
 	}
 
 	public void processEnvironment(Environment env, List<Deployment> deployments) {
@@ -55,15 +74,18 @@ public class EnvHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 	public void processOnlyProdEnvs(Environment env) {
 
 		String environmentProfileName = env.getProfile();
+		//TODO: replace "dev" key word with prod
 		if (environmentProfileName != null && environmentProfileName != ""
 				&& environmentProfileName.toLowerCase().contains("dev")) {
 			log.info("Eligible environment for processing envId: {}, profile: {}, envName: {}, envPath: {}",
 					env.getId(), env.getProfile(), env.getName(), env.getPath());
 			Collection<Platform> platforms = env.getPlatforms().values();
 			for (Platform platform : platforms) {
-				processPlatformForProdEnv(platform, env);
 				log.info("Platform for environmentId: {} ,environmetProfile: {},  platformId: {}, platformName {}, platform.getEnable {}",
 						env.getId(), env.getProfile(), platform.getId(), platform.getName(), platform.getEnable());
+				
+				processPlatformForProdEnv(platform, env);
+			
 			}
 		}
 		else {
@@ -77,12 +99,74 @@ public class EnvHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 		platformHADRRecord.setIsDR(IsPlatformDRCompliant(platform));
 		platformHADRRecord.setIsHA(IsPlatformHACompliant(platform));
 		platformHADRRecord.setEnv(env.getName());
-
+		platformHADRRecord.setTotal(0); //TODO: check with team what is the significance of this field
+		platformHADRRecord.setPack(platform.getPack());
+		platformHADRRecord.setPackVersion(platform.getPackVersion());
+		platformHADRRecord.setSource(platform.getSource());
+		platformHADRRecord.setPlat(platform.getName());// TODO: need to check if we need plat since platform holds same value
+		platformHADRRecord.setPlatform(platform.getName()); 
+		platformHADRRecord.setAssembly(parseAssemblyNameFromNsPath(platform.getPath())); // org/assembly/env/platform   get assembly from 
+		platformHADRRecord.setOoUrl(getOOURL(platform.getPath()));
+		platformHADRRecord.setSourcePack(platform.getSource()+"-"+platform.getPack());
+		platformHADRRecord.setCreatedTS(new Date());
+		
+		
+		
+		//kloopzcm.cm_ci_attributes table
+		
+		//organization[ci][ciAttributes][tags]
+		// /oneops/lookup/ci_lookup this should give assembly details
+		/*
+		// get platform : ciId, "manifest.ComposedOf",null, "manifest.Platform"
+		 * 
+		 *
+		 
+	
+	
+		     
+		     platformID is connected to clouds via base.consumes relations
+		     
+		     
+		         "primaryClouds": [
+		      "prod-dal4"
+		    ],
+		      "secondaryClouds": [], GET them from relations
+		      
+		      
+		    "ctoOrg": "Clay Johnson",
+		    "ctoDirect": "Kerry Kilker",
+		    "vp": "Jerry Geisler III",
+		    "org": "tessrs",
+		
+			"pClouds": "prod-dal4", // remove them but take a note
+		    "sClouds": "",// remove them but take a note
+		    "envsInAssembly": 1, // Note it down and skip it.
+		    "total": 0, // number of computes
+		    "cCount": {
+		      "prod-dal4": 1
+		    }
+		   
+		  }
+ */
 		if (isHadrEsEnabled) {
-			log.info("Send compliance record to Elastic Search");
+			log.info("Sending compliance record to Elastic Search");
 			saveToElasticSearch(platformHADRRecord, platform);
 		}
 
+	}
+
+	public String getOOURL(String path) {
+		return oo_baseUrl + "/r/ns?path=" + path;
+	}
+
+	public String parseAssemblyNameFromNsPath(String path) {
+		
+		if (path!=null && !path.isEmpty()) {
+			String[] parsedArray=path.split("/");
+			return parsedArray[2];
+		} else {
+			return "";
+		}
 	}
 
 	public boolean IsPlatformDRCompliant(Platform platform) {
@@ -115,13 +199,16 @@ public class EnvHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 		// TODO create a new ES Index named "hadr"
 		// TODO create a new Type for index named "platform or hadrprodor hadr"
 
-		log.info("data sent to elastic search");
+		log.info("Sending data record to elastic search");
+		
+		searchDal.push("hadrElasticSearchIndexName", "platform", platformHADRRecord, String.valueOf(platform.getId()));
 
-		// searchDal.push("hadrElasticSearchIndexName", "platform", platformHADRRecord,
-		// String.valueOf(platform.getId()));
+		log.info("Sent data record to elastic search");
 
 	}
 
+
+		
 	public boolean isHadrPluginEnabled() {
 		return isHadrPluginEnabled;
 	}

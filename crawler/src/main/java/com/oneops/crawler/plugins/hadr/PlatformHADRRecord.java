@@ -1,7 +1,7 @@
 package com.oneops.crawler.plugins.hadr;
 
 import java.io.Serializable;
-
+import java.util.Date;
 public class PlatformHADRRecord implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -24,7 +24,7 @@ public class PlatformHADRRecord implements Serializable {
 
 	    private String sClouds;
 
-	    private String createdTS;
+	    private Date createdTS;
 
 	    private String env;
 
@@ -34,7 +34,7 @@ public class PlatformHADRRecord implements Serializable {
 
 	    private String org;
 
-	    private int packVersion;
+	    private String packVersion;
 
 	    private boolean isDR;
 
@@ -144,12 +144,12 @@ public class PlatformHADRRecord implements Serializable {
 	        this.sClouds = sClouds;
 	    }
 
-	    public String getCreatedTS ()
+	    public Date getCreatedTS ()
 	    {
 	        return createdTS;
 	    }
 
-	    public void setCreatedTS (String createdTS)
+	    public void setCreatedTS (Date createdTS)
 	    {
 	        this.createdTS = createdTS;
 	    }
@@ -194,12 +194,12 @@ public class PlatformHADRRecord implements Serializable {
 	        this.org = org;
 	    }
 
-	    public int getPackVersion ()
+	    public String getPackVersion ()
 	    {
 	        return packVersion;
 	    }
 
-	    public void setPackVersion (int packVersion)
+	    public void setPackVersion (String packVersion)
 	    {
 	        this.packVersion = packVersion;
 	    }
