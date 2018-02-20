@@ -28,9 +28,6 @@
 					"type": "text",
 					"index": "not_analyzed"
 				},
-				"envsInAssembly": {
-					"type": "integer"
-				},
 				"assembly": {
 					"type": "text"
 				},
