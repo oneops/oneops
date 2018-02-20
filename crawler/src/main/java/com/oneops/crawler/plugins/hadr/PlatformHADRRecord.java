@@ -13,7 +13,6 @@ public class PlatformHADRRecord implements Serializable {
 	private String ctoOrg;
 	private String ctoDirect;
 	private String ooUrl;
-	private int envsInAssembly;
 	private String assembly;
 	private String sClouds;
 	private Date createdTS;
@@ -77,14 +76,6 @@ public class PlatformHADRRecord implements Serializable {
 
 	public void setOoUrl(String ooUrl) {
 		this.ooUrl = ooUrl;
-	}
-
-	public int getEnvsInAssembly() {
-		return envsInAssembly;
-	}
-
-	public void setEnvsInAssembly(int envsInAssembly) {
-		this.envsInAssembly = envsInAssembly;
 	}
 
 	public String getAssembly() {
