@@ -1,0 +1,32 @@
+Dir.glob('../exec-order/*.rb').each do |lib|
+  require lib
+end
+source "#{get_gem_sources[0]}"
+
+gem 'fog', '1.29.0'
+gem 'aws-s3', '0.6.3'
+gem 'ghost', '0.3.0'
+gem 'rake', '10.0.3'
+gem 'xml-simple', '1.1.3'
+gem 'highline', '1.6.21'
+gem 'rack', '1.6.4'
+gem 'fog-profitbricks', '0.0.5'
+gem 'fog-aliyun', '0.1.0'
+gem 'fog-softlayer', '1.1.3'
+gem 'parallel', '1.3.3'
+gem 'ffi', '1.9.18'
+gem 'mixlib-config', '2.2.4'
+gem 'i18n', '0.6.9'
+gem 'activesupport', '3.2.11'
+gem 'nexus_cli', '3.0.0'
+gem 'chef', '11.4.0'
+gem 'nokogiri', '1.6.8.1'
+gem 'net-ssh', '2.6.7'
+gem 'net-ssh-multi', '1.1.0'
+gem 'net-ssh-gateway', '1.1.0'
+gem 'mime-types', '1.25.0'
+gem 'json', '1.7.7'
+gem 'yajl-ruby', '1.1.0'
+gem 'mixlib-shellout', '1.3.0'
+gem 'ohai', '6.22.0'
+gem 'fog-azure-rm', '0.4.4'

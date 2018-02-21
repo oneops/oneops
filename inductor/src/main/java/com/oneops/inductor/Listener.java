@@ -186,6 +186,10 @@ public class Listener implements MessageListener, ApplicationContextAware {
             long t = System.currentTimeMillis();
             wo = getWorkOrderOf(msgText, CmsWorkOrderSimple.class);
             wo.putSearchTag("iWoCrtTime", Long.toString(System.currentTimeMillis() - t));
+
+            String logKey = workOrderExecutor.getLogKey(wo);
+            logger.info(logKey + " Inductor: " + config.getIpAddr());
+
             preProcess(wo);
             wo.putSearchTag("rfcAction", wo.getAction());
             Response response = runWithMatchingExecutor(wo);
@@ -242,10 +246,10 @@ public class Listener implements MessageListener, ApplicationContextAware {
     preExecTags(wo);
     Response response;
     if (config.isVerifyMode()) {
-      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo);
+      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo, config.getDataDir());
     }
     else {
-      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo);
+      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo, config.getDataDir());
     }
     return response;
   }

@@ -58,17 +58,17 @@ public class DeploymentPlanProcessor implements CISImpleProcessor{
                 deploymentPlan.setCreatedBy((String) releaseInfo.get("createdBy"));
                 deploymentPlan.setMode((String) releaseInfo.get("mode"));
                 deploymentPlan.setManifestCommit((Boolean) releaseInfo.get("manifestCommit"));
-                deploymentPlan.setCiRfcCount((int) releaseInfo.get("rfcCiCount"));
-                deploymentPlan.setRelationRfcCount((int) releaseInfo.get("rfcRelationCount"));
-                Long releaseId = (Long) releaseInfo.get("releaseId");
+                deploymentPlan.setCiRfcCount(((Double) releaseInfo.get("rfcCiCount")).intValue());
+                deploymentPlan.setRelationRfcCount(((Double) releaseInfo.get("rfcRelationCount")).intValue());
+                Object releaseId = releaseInfo.get("releaseId");
                 if (releaseId != null) {
-                    deploymentPlan.setReleaseId(releaseId);
+                    deploymentPlan.setReleaseId(((Double) releaseId).longValue());
                     deploymentPlan.setAutoDeploy((Boolean) releaseInfo.get("autoDeploy"));
                 }
                 indexer.index(null, "plan", GSON_ES.toJson(deploymentPlan));
             }
         } catch (Exception e) {
-            logger.error("Exception in processing deployment message: " + ExceptionUtils.getMessage(e));
+            logger.error("Exception in processing deployment message: " + ExceptionUtils.getMessage(e), e);
         }
     }
 
@@ -79,9 +79,10 @@ public class DeploymentPlanProcessor implements CISImpleProcessor{
     }
 
     private static Map extractReleaseInfo(String comments) {
-        String prefix = "releaseInfo=";
+        String prefix = "bomGenerationInfo=";
         int startingIndex = comments.indexOf(prefix) + prefix.length();
-        String releaseInfoJson = comments.substring(startingIndex, comments.lastIndexOf("}", startingIndex) + 1);
+        int endIndex = comments.lastIndexOf("}") + 1;
+        String releaseInfoJson = comments.substring(startingIndex, endIndex);
         return gson.fromJson(releaseInfoJson, HashMap.class);
     }
 }

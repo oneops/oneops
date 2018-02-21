@@ -99,6 +99,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         String ttlEnabledString = System.getProperty("ttl.plugin.enabled");
         if ("true".equalsIgnoreCase(ttlEnabledString)) {
             ttlEnabled = true;
+            log.info("TTL plugin is enabled !");
         }
         String esEnabled = System.getProperty("ttl.es.enabled");
         if ("true".equalsIgnoreCase(esEnabled)) {
@@ -151,7 +152,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     totalComputesTTLed += platform.getTotalComputes();
                     log.info("Total computes TTLed till now: " + totalComputesTTLed);
 
-                    ttlRecord.setScanOnly(true); //by default, the scan-only is true
+                    if (! ttlEnabled) ttlRecord.setScanOnly(true); //by default, the scan-only is true
                     if (existingRecord != null && existingRecord.getPlannedDestroyDate() != null) {
 
                         if (Calendar.getInstance().getTime().compareTo(existingRecord.getPlannedDestroyDate()) >= 0) {
@@ -169,16 +170,15 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                                 ttlRecord.setActualDestroyDate(new Date());
                                 break; //Deploy only one platform at a time
                             }
-                        } else { // still in grace period
-                            if (ttlEnabled) {
-                                sendTtlNotification(ttlRecord);
-                                if (existingRecord != null) {
-                                    ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
-                                }
-                            }
                         }
                     }
                     setDates(ttlRecord, existingRecord);
+                    if (ttlEnabled) { // in grace period, send notification
+                        sendTtlNotification(ttlRecord);
+                        if (existingRecord != null) {
+                            ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
+                        }
+                    }
                     if (saveToES) {
                         searchDal.push("oottl", "platform", ttlRecord, "" + platform.getId());
                     }

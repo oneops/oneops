@@ -476,7 +476,6 @@ public class WorkOrderExecutor extends AbstractOrderExecutor {
     wo.setDpmtRecordState(FAILED);
     String appName = normalizeClassName(wo);
     String logKey = getLogKey(wo);
-    logger.info(logKey + " Inductor: " + config.getIpAddr());
     wo.putSearchTag("inductor", config.getIpAddr());
 
     writeChefRequest(wo, fileName);

@@ -22,6 +22,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.*;
 import com.oneops.transistor.util.CloudUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -176,14 +178,19 @@ public class BomManagerImpl implements BomManager {
 			commitManifestRelease(manifestNsPath, bomNsPath, userId, desc);
 		}
 
-		//if we have an open bom release then return the release id
 		List<CmsRelease> bomReleases = bomRfcProcessor.getReleaseBy3(bomNsPath, null, "open");
 		if (bomReleases.size() > 0) {
-			// Should really happen as commit above will close any open bom releases. But...
+			// Should not really happen as commit above will close any open bom releases. But...
 			CmsRelease bomRelease = bomReleases.get(0);
 			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
 
-			Map<String, Object> bomInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
+			Map<String, Object> bomInfo;
+			try {
+//				bomInfo = gson.fromJson(bomRelease.getDescription(), (new TypeToken<HashMap<String, Object>>() {}).getType());
+				bomInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
+			} catch (JsonSyntaxException e) {
+				bomInfo = new HashMap<>();
+			}
 			bomInfo.put("release", bomRelease);
 
 			return bomInfo;

@@ -2,12 +2,14 @@ package com.oneops.inductor;
 
 import com.oneops.cms.execution.ComponentWoExecutor;
 import com.oneops.cms.execution.Response;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
@@ -41,30 +43,33 @@ public class ClassMatchingWoExecutor implements ComponentWoExecutor {
   }
 
   @Override
-  public Response execute(CmsWorkOrderSimple wo) {
-    String className = wo.getRfcCi().getCiClassName();
-    if (executorMap.containsKey(className)) {
-      ComponentWoExecutor executor = executorMap.get(className);
-      logger.info("executing by " + executor.getClass().getName());
-      return executor.execute(wo);
-    }
-    return Response.getNotMatchingResponse();
+  public Response execute(CmsWorkOrderSimple wo, String dataDir) {
+    return executeInternal(wo.getRfcCi().getCiClassName(), e -> e.execute(wo, dataDir));
   }
 
   @Override
-  public Response executeAndVerify(CmsWorkOrderSimple wo) {
-    String className = wo.getRfcCi().getCiClassName();
-    if (executorMap.containsKey(className)) {
-      ComponentWoExecutor executor = executorMap.get(className);
-      logger.info("executing with verify by " + executor.getClass().getName());
-      return executor.executeAndVerify(wo);
-    }
-    return Response.getNotMatchingResponse();
+  public Response executeAndVerify(CmsWorkOrderSimple wo, String dataDir) {
+    return executeInternal(wo.getRfcCi().getCiClassName(), e -> e.executeAndVerify(wo, dataDir));
   }
 
   @Override
   public Response verify(CmsWorkOrderSimple wo, Response response) {
     return response;
+  }
+
+  @Override
+  public Response execute(CmsActionOrderSimple ao) {
+    return executeInternal(ao.getCi().getCiClassName(), e -> e.execute(ao));
+  }
+
+  private Response executeInternal(String clazz, Function<ComponentWoExecutor, Response> function) {
+    if (executorMap.containsKey(clazz)) {
+      ComponentWoExecutor executor = executorMap.get(clazz);
+      logger.info("executing by " + executor.getClass().getName());
+      return function.apply(executor);
+    }
+    return Response.getNotMatchingResponse();
+
   }
 
 }

@@ -134,7 +134,7 @@ public class CMSCrawler {
                 if ((System.currentTimeMillis() - envsLastFetchedAt)/(1000 * 60 * 60 * 24) >= 1 ) { //been a day
                     envs = getOneopsEnvironments(conn);//refresh the environment list
                 }
-                log.info("Starting to crawl all environments..");
+                log.info("Starting to crawl all environments.. Total # " + envs.size());
                 for (Environment env : envs) {
                     if (shutDownRequested) {
                         log.info("Shutdown requested, exiting !");

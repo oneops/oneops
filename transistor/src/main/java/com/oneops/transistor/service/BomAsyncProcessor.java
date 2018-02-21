@@ -90,7 +90,7 @@ public class BomAsyncProcessor {
                 if (bomRelease != null) {
                     bomGenerationInfo.put("releaseId", bomRelease.getReleaseId());
                 }
-                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. releaseInfo=" + gson.toJson(bomGenerationInfo);
+                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
             } catch (Exception e) {
                 logger.error("Exception in build bom ", e);
                 envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
