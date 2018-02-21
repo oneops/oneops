@@ -14,6 +14,7 @@ import com.oneops.gslb.v2.domain.MtdHostHealthCheck;
 import com.oneops.gslb.v2.domain.MtdHostResponse;
 import com.oneops.gslb.v2.domain.MtdTarget;
 import com.oneops.infoblox.InfobloxClient;
+import com.oneops.infoblox.model.a.ARec;
 import com.oneops.infoblox.model.cname.CNAME;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,14 +46,21 @@ public class FqdnVerifier {
       context.logKey = logKey;
 
       if (woHelper.isDeleteAction(wo)) {
-        verifyMtdDelete(wo, context);
-        verifyInfobloxDelete(wo, context);
+        if ("true".equals(wo.getBox().getCiAttributes().get("is_platform_enabled"))) {
+          logger.info(context.logKey + "platform is enabled, test only cname deletion");
+          verifyMtdHost(wo, context, false);
+          verifyCloudCnameDelete(wo, context, getInfoBloxClient(wo));
+          verifyCnames(wo, context);
+        }
+        else {
+          verifyMtdDelete(wo, context);
+          verifyInfobloxDelete(wo, context);
+        }
       }
       else {
-        verifyMtdHost(wo, context);
-        verifyInfoblox(wo, context);
+        verifyMtdHost(wo, context, true);
+        verifyCnamesWithResultEntries(wo, context);
       }
-
     } catch (Exception e) {
       woHelper.failWo(wo, logKey, "wo failed during verify", e);
       response = woHelper.formResponse(wo, logKey);
@@ -60,22 +68,62 @@ public class FqdnVerifier {
     return response;
   }
 
-  private void verifyInfoblox(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+  private void verifyCnamesWithResultEntries(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+    InfobloxClient infobloxClient = getInfoBloxClient(wo);
+    String cname = context.platform + context.mtdBaseHost;
+    verify(() -> wo.getResultCi().getCiAttributes().containsKey("entries"), "result ci has entries attribute");
+    JsonObject entriesMap = (JsonObject) jsonParser.parse(wo.getResultCi().getCiAttributes().get("entries"));
+    logger.info(context.logKey + "entries map result ci attribute " + entriesMap.toString());
+    for (String alias : getAliases(wo, context)) {
+      List<CNAME> cnames = infobloxClient.getCNameRec(alias);
+      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
+          "cname verify failed " + alias);
+      verify(() -> cname.equals(entriesMap.get(alias).getAsString()), "result ci entries attribute has entry for alias " + alias);
+    }
+    verify(() -> entriesMap.get(cname) != null, "result ci entries attribute value for " + cname + " is present ");
+
+    String cloudCname = getCloudCname(wo, context);
+
+    List<ARec> records = infobloxClient.getARec(cloudCname.toLowerCase());
+    CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
+    String lbVip = lb.getCiAttributes().get(MtdHandler.ATTRIBUTE_DNS_RECORD);
+    logger.info(context.logKey + "cloud entry records " + records.size());
+    if (StringUtils.isNotBlank(lbVip)) {
+      verify(() -> records != null && records.size() == 1 && records.get(0).ipv4Addr().equals(lbVip),
+          "cloud cname verify failed " + cloudCname);
+      verify(() -> lbVip.equals(entriesMap.get(cloudCname).getAsString()), "result ci entries attribute has entry for cloud cname " + cloudCname);
+    }
+  }
+
+  private void verifyCnames(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     String cname = context.platform + context.mtdBaseHost;
     for (String alias : getAliases(wo, context)) {
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
-      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname), "cname verify failed " + alias);
+      verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
+          "cname verify failed " + alias);
     }
   }
-
 
   private void verifyInfobloxDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     for (String alias : getAliases(wo, context)) {
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
-      verify(() ->cnames == null || cnames.isEmpty(), "cname delete verify failed");
+      verify(() ->cnames == null || cnames.isEmpty(), "cname delete verify failed " + alias);
     };
+    verifyCloudCnameDelete(wo, context, infobloxClient);
+  }
+
+  private void verifyCloudCnameDelete(CmsWorkOrderSimple wo, VerifyContext context, InfobloxClient infobloxClient) throws Exception {
+    String cloudCname = getCloudCname(wo, context);
+    List<CNAME> cnames = infobloxClient.getCNameRec(cloudCname);
+    verify(() ->cnames == null || cnames.isEmpty(), "cloud cname delete verify failed " + cloudCname);
+  }
+
+  private String getCloudCname(CmsWorkOrderSimple wo, VerifyContext context) {
+    String cloud = wo.getCloud().getCiName();
+    Map<String, String> dnsAttrs = wo.getServices().get("dns").get(cloud).getCiAttributes();
+    return context.platform + "." + context.subDomain + "." + cloud + "." + dnsAttrs.get("zone");
   }
 
   private List<String> getAliases(CmsWorkOrderSimple wo, VerifyContext context) {
@@ -83,7 +131,7 @@ public class FqdnVerifier {
     String suffix = getDomainSuffix(wo, context);
     list.add(context.platform + suffix);
 
-    String aliasesContent = wo.getRfcCi().getCiBaseAttributes().get("aliases");
+    String aliasesContent = wo.getRfcCi().getCiAttributes().get("aliases");
     if (StringUtils.isNotBlank(aliasesContent)) {
       JsonArray aliasArray = (JsonArray) jsonParser.parse(aliasesContent);
 
@@ -92,7 +140,7 @@ public class FqdnVerifier {
       }
     }
 
-    aliasesContent = wo.getRfcCi().getCiBaseAttributes().get("full_aliases");
+    aliasesContent = wo.getRfcCi().getCiAttributes().get("full_aliases");
     if (StringUtils.isNotBlank(aliasesContent)) {
       JsonArray aliasArray = (JsonArray) jsonParser.parse(aliasesContent);
       for (JsonElement alias : aliasArray) {
@@ -126,13 +174,13 @@ public class FqdnVerifier {
     logger.info(context.logKey + "verifying mtd host not exists ");
     if (resp.isSuccessful()) {
       logger.info(context.logKey + "mtd base exists, trying to get mtd host");
-      MtdBase mtdBase = resp.getBody().getMtdBase();
-      Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.getMtdBaseId(), context.platform), MtdHostResponse.class);
+      MtdBase mtdBase = resp.getBody().mtdBase();
+      Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.mtdBaseId(), context.platform), MtdHostResponse.class);
       verify(() -> !hostResp.isSuccessful(), "mtd host is not available");
     }
   }
 
-  private void verifyMtdHost(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
+  private void verifyMtdHost(CmsWorkOrderSimple wo, VerifyContext context, boolean verifyResultEntries) throws Exception {
     TorbitClient client = context.torbitClient;
     TorbitApi torbit = context.torbit;
 
@@ -140,46 +188,52 @@ public class FqdnVerifier {
     Resp<MtdBaseResponse> resp = client.execute(torbit.getMTDBase(context.mtdBaseHost), MtdBaseResponse.class);
     logger.info(context.logKey + "verifying mtd base ");
     verify(() -> resp.isSuccessful(), "mtd base exists");
-    MtdBase mtdBase = resp.getBody().getMtdBase();
-    verify(() -> context.mtdBaseHost.equals(mtdBase.getMtdBaseName()), "mtd base name match");
+    MtdBase mtdBase = resp.getBody().mtdBase();
+    verify(() -> context.mtdBaseHost.equals(mtdBase.mtdBaseName()), "mtd base name match");
 
-    Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.getMtdBaseId(), context.platform), MtdHostResponse.class);
+    Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.mtdBaseId(), context.platform), MtdHostResponse.class);
     logger.info(context.logKey + "verifying mtd host version exists");
     verify(() -> hostResp.isSuccessful(), "mtd host version exists");
 
-    MtdHost host = hostResp.getBody().getMtdHost();
+    MtdHost host = hostResp.getBody().mtdHost();
     logger.info(context.logKey + "verifying mtd host targets");
-    List<MtdTarget> targets = host.getMtdTargets();
+    List<MtdTarget> targets = host.mtdTargets();
     logger.info(context.logKey + "configured mtd targets " + targets.stream().
-        map(MtdTarget::getMtdTargetHost).
+        map(MtdTarget::mtdTargetHost).
         collect(Collectors.joining(",")));
-    Map<String, MtdTarget> map = targets.stream().collect(Collectors.toMap(MtdTarget::getMtdTargetHost, Function.identity()));
+    Map<String, MtdTarget> map = targets.stream().collect(Collectors.toMap(MtdTarget::mtdTargetHost, Function.identity()));
     List<Lb> lbList = getLbVips(wo);
     logger.info(context.logKey + "expected targets " +
         lbList.stream().map(l -> l.vip).collect(Collectors.joining(",")));
     for (Lb lb : lbList) {
       verify(() -> map.containsKey(lb.vip), "lb vip present in MTD target");
       MtdTarget target = map.get(lb.vip);
-      verify(() -> lb.isPrimary ? target.getEnabled() : !target.getEnabled(), "mtd target enabled/disabled based on cloud status");
+      verify(() -> lb.isPrimary ? target.enabled() : !target.enabled(), "mtd target enabled/disabled based on cloud status");
     }
+    context.primaryTargets = lbList.stream().filter(lb -> lb.isPrimary).map(lb -> lb.vip).collect(Collectors.toList());
 
     logger.info(context.logKey + "verifying mtd health checks");
-    List<MtdHostHealthCheck> healthChecks = host.getMtdHealthChecks();
+    List<MtdHostHealthCheck> healthChecks = host.mtdHealthChecks();
     Map<Integer, EcvListener> expectedChecksMap = getHealthChecks(wo, context).stream().
         collect(Collectors.toMap(e -> e.port, Function.identity()));
+    logger.info(context.logKey + "expectedChecksMap : " + expectedChecksMap.size() + " " + expectedChecksMap);
+    logger.info(context.logKey + "actual health checks : " + healthChecks);
     verify(() -> ((healthChecks != null ? healthChecks.size() : 0) ==
             (expectedChecksMap != null ? expectedChecksMap.size() : 0)),
         "all health checks are configured");
     if (healthChecks != null) {
       for (MtdHostHealthCheck healthCheck : healthChecks) {
-        verify(() -> expectedChecksMap.containsKey(healthCheck.getPort()), "mtd health check available for port");
-        EcvListener listener = expectedChecksMap.get(healthCheck.getPort());
-        verify(() -> listener.protocol.equals(healthCheck.getProtocol()), "mtd health protocol matches");
+        verify(() -> expectedChecksMap.containsKey(healthCheck.port()), "mtd health check available for port");
+        EcvListener listener = expectedChecksMap.get(healthCheck.port());
+        verify(() -> listener.protocol.equals(healthCheck.protocol()), "mtd health protocol matches");
         if (listener.ecv != null && !listener.ecv.isEmpty()) {
-          verify(() -> listener.ecv.equals(healthCheck.getTestObjectPath()), "mtd health ecv matches");
+          verify(() -> listener.ecv.equals(healthCheck.testObjectPath()), "mtd health ecv matches");
         }
       }
     }
+    if (verifyResultEntries)
+      verify(() -> wo.getResultCi() != null && wo.getResultCi().getCiAttributes().containsKey("gslb_map"),
+          "result ci contains gslb_map attribute");
   }
 
   private List<Lb> getLbVips(CmsWorkOrderSimple wo) {
@@ -187,7 +241,7 @@ public class FqdnVerifier {
     List<CmsRfcCISimple> lbs = map.get(WoHelper.LB_PAYLOAD);
     Map<Long, CmsRfcCISimple> cloudCiMap = map.get(WoHelper.CLOUDS_PAYLOAD).stream()
         .collect(Collectors.toMap(c -> c.getCiId(), Function.identity()));
-    List<Lb> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).collect(Collectors.toList());
+    List<Lb> list = lbs.stream().map(lb -> getLbWithCloud(lb, cloudCiMap)).filter(lb -> StringUtils.isNotBlank(lb.vip)).collect(Collectors.toList());
     return list;
   }
 
@@ -202,7 +256,8 @@ public class FqdnVerifier {
 
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lb.isPrimary = "1".equals(cloudAttributes.get("base.Consumes.priority")) &&
-        "active".equals(cloudAttributes.get("base.Consumes.adminstatus"));
+        "active".equals(cloudAttributes.get("base.Consumes.adminstatus")) ||
+        "inactive".equals(cloudAttributes.get("base.Consumes.adminstatus"));
     return lb;
   }
 
@@ -224,23 +279,24 @@ public class FqdnVerifier {
     listeners.forEach(s -> {
       String listener = s.getAsString();
       String[] config = listener.split(" ");
-        String protocol = config[0];
-        int port = Integer.parseInt(config[1]);
-        String healthConfig = ecvMap.get(port);
-        if (healthConfig != null && !healthConfig.isEmpty()) {
-          EcvListener ecvListener = new EcvListener();
-          if ((protocol.startsWith("http"))) {
-            String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-            ecvListener.port = port;
-            ecvListener.protocol = protocol;
-            ecvListener.ecv = path;
-          }
-          else {
-            ecvListener.port = port;
-            ecvListener.protocol = protocol;
-          }
-          ecvListeners.add(ecvListener);
+      String protocol = config[0];
+      int lbPort = Integer.parseInt(config[1]);
+      int ecvPort = Integer.parseInt(config[config.length-1]);
+      String healthConfig = ecvMap.get(ecvPort);
+      if (healthConfig != null && !healthConfig.isEmpty()) {
+        EcvListener ecvListener = new EcvListener();
+        if ((protocol.startsWith("http"))) {
+          String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
+          ecvListener.port = lbPort;
+          ecvListener.protocol = protocol;
+          ecvListener.ecv = path;
         }
+        else {
+          ecvListener.port = lbPort;
+          ecvListener.protocol = protocol;
+        }
+        ecvListeners.add(ecvListener);
+      }
     });
     return ecvListeners;
   }
@@ -291,6 +347,10 @@ public class FqdnVerifier {
     int port;
     String protocol;
     String ecv;
+
+    public String toString() {
+      return "[protocol: " +  protocol + ", port: " + port + ", ecv: " + ecv + "]";
+    }
   }
 
   class VerifyContext {
@@ -300,6 +360,7 @@ public class FqdnVerifier {
     String platform;
     String logKey;
     String subDomain;
+    List<String> primaryTargets;
   }
 
 }

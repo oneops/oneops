@@ -444,8 +444,8 @@ public class CmsDjManagerImpl implements CmsDjManager {
 	}
 
 	@Override
-	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals) {
-		return dpmtProcessor.updateApprovalList(approvals);
+	public List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals, String approvalToken) {
+		return dpmtProcessor.updateApprovalList(approvals, approvalToken);
 	}
 
 	@Override

@@ -580,13 +580,14 @@ public class CmsCmProcessor {
 	public List<CmsCI> getCiByAttributes(String ns, String clazzName, List<AttrQueryCondition> attrs, boolean recursive) {
 		
 		qcm.convertConditions(attrs);
-		
+
+		CiClassNames names = parseClassName(clazzName);
 		List<CmsCI> ciList = null;
 		if (recursive) {
 			String nsLike = CmsUtil.likefyNsPath(ns);
-			ciList = ciMapper.getCIbyAttributesNsLike(ns, nsLike, clazzName, attrs);
+			ciList = ciMapper.getCIbyAttributesNsLike(ns, nsLike, names.className, names.shortClassName, attrs);
 		} else {
-			ciList = ciMapper.getCIbyAttributes(ns, clazzName, attrs);
+			ciList = ciMapper.getCIbyAttributes(ns, names.className, names.shortClassName, attrs);
 		}
 		populateAttrs(ciList);
 		return ciList;
@@ -606,12 +607,13 @@ public class CmsCmProcessor {
 
 		qcm.convertConditions(attrs);
 
+		CiClassNames names = parseClassName(clazzName);
 		List<CmsCI> ciList = null;
 		if (recursive) {
 			String nsLike = CmsUtil.likefyNsPath(ns);
-			ciList = ciMapper.getCIbyAttributesNsLikeWithAltNs(ns, nsLike, clazzName, attrs, altNs, tag);
+			ciList = ciMapper.getCIbyAttributesNsLikeWithAltNs(ns, nsLike, names.className, names.shortClassName, attrs, altNs, tag);
 		} else {
-			ciList = ciMapper.getCIbyAttributesWithAltNs(ns, clazzName, attrs, altNs, tag);
+			ciList = ciMapper.getCIbyAttributesWithAltNs(ns, names.className, names.shortClassName, attrs, altNs, tag);
 		}
 		populateAttrs(ciList);
 		return ciList;

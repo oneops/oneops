@@ -48,6 +48,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     private int totalComputesTTLed = 0;
     private int notificationFrequencyDays = 0;
+    private String prodCloudRegex;
 
     public EnvTTLCrawlerPlugin() {
         readConfig();
@@ -98,6 +99,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         String ttlEnabledString = System.getProperty("ttl.plugin.enabled");
         if ("true".equalsIgnoreCase(ttlEnabledString)) {
             ttlEnabled = true;
+            log.info("TTL plugin is enabled !");
         }
         String esEnabled = System.getProperty("ttl.es.enabled");
         if ("true".equalsIgnoreCase(esEnabled)) {
@@ -115,6 +117,9 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         String frequency = System.getProperty("ttl.notification.frequency.days", "0");
         this.notificationFrequencyDays = Integer.valueOf(frequency);
         log.info("Notification frequency days: " + notificationFrequencyDays);
+
+        prodCloudRegex = System.getProperty("ttl.prod.clouds.regex", ".*prod.*");
+        log.info("regex for production clouds: [" + prodCloudRegex + "]");
     }
 
     @Override
@@ -147,7 +152,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     totalComputesTTLed += platform.getTotalComputes();
                     log.info("Total computes TTLed till now: " + totalComputesTTLed);
 
-                    ttlRecord.setScanOnly(true); //by default, the scan-only is true
+                    if (! ttlEnabled) ttlRecord.setScanOnly(true); //by default, the scan-only is true
                     if (existingRecord != null && existingRecord.getPlannedDestroyDate() != null) {
 
                         if (Calendar.getInstance().getTime().compareTo(existingRecord.getPlannedDestroyDate()) >= 0) {
@@ -165,16 +170,15 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                                 ttlRecord.setActualDestroyDate(new Date());
                                 break; //Deploy only one platform at a time
                             }
-                        } else { // still in grace period
-                            if (ttlEnabled) {
-                                sendTtlNotification(ttlRecord);
-                                if (existingRecord != null) {
-                                    ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
-                                }
-                            }
                         }
                     }
                     setDates(ttlRecord, existingRecord);
+                    if (ttlEnabled) { // in grace period, send notification
+                        sendTtlNotification(ttlRecord);
+                        if (existingRecord != null) {
+                            ttlRecord.setUserNotifiedTimes(existingRecord.getUserNotifiedTimes() + 1);
+                        }
+                    }
                     if (saveToES) {
                         searchDal.push("oottl", "platform", ttlRecord, "" + platform.getId());
                     }
@@ -207,7 +211,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
         ArrayList<Long> eligiblePlatforms = new ArrayList<>();
 
-        for (Platform platform : env.getPlatforms().values()) {
+        platforms: for (Platform platform : env.getPlatforms().values()) {
             if (config != null && config.getPacks() != null) {
                 boolean packToBeProcessed = false;
 
@@ -225,12 +229,13 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             }
 
             for (String cloud : platform.getActiveClouds()) {
-                if (cloud.toLowerCase().contains("prod")) {
-                    log.info(platform.getId() + " Platform in Env not eligible because of prod clouds: " + platform.getPath());
-                } else {
-                    eligiblePlatforms.add(platform.getId());
+                if (cloud.toLowerCase().matches(prodCloudRegex)) {
+                    log.info(platform.getId() + " Platform not eligible because of prod clouds: "
+                            + platform.getPath());
+                    continue platforms;
                 }
             }
+            eligiblePlatforms.add(platform.getId());
         }
 
         Deployment lastDeploy = findLastDeploymentByUser(deployments);
@@ -282,9 +287,11 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     private void sendTtlNotification(EnvironmentTTLRecord ttlRecord) {
         Platform platform = ttlRecord.getPlatform();
         NotificationMessage msg = new NotificationMessage();
-        msg.setSubject("Critical: OneOps soon deleting your unused environment");
-        msg.setText("Below OneOps Environment Platform seems inactive for long time and will be auto-decommissioned by OneOps on date: "
-                + ttlRecord.getPlannedDestroyDate());
+        msg.setSubject("Critical: Upcoming Deletion of Your OneOps Environment");
+        msg.setText("The referenced OneOps Environment Platform was detected to be "
+            + "inactive for a long time. The automated decommissioning of the enviroment "
+            + "will be performed on  " + ttlRecord.getPlannedDestroyDate() + ". "
+            + "Please contact OneOps Support, if you have any objections.");
         msg.setNsPath(platform.getPath());
         msg.setCmsId(ttlRecord.getEnvironmentId());
         msg.setType(NotificationType.deployment);

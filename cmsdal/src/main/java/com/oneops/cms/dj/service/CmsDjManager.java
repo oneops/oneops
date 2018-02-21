@@ -64,7 +64,7 @@ public interface CmsDjManager {
 	CmsDeployment updateDeployment(CmsDeployment dpmt);
 	CmsDpmtRecord updateDpmtRecord(CmsDpmtRecord rec);
 	//List<CmsDeployment> dpmtApprove(List<CmsDpmtApproval> approvals);
-	List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals);
+	List<CmsDpmtApproval> updateApprovalList(List<CmsDpmtApproval> approvals, String approvalToken);
 	List<CmsDpmtApproval> getDeploymentApprovals(long dpmtId);
 	CmsDpmtApproval getDeploymentApproval(long approvalId);
 

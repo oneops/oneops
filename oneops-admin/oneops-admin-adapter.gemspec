@@ -46,4 +46,6 @@ Gem::Specification.new do |s|
   s.add_dependency 'fog', '= 1.38.0'
   s.add_dependency 'nokogiri', '= 1.5.11'
   s.add_dependency 'fog-openstack', '= 0.1.21'
+  s.add_dependency 'mixlib-config', '= 2.2.4'
+  s.add_dependency 'ffi', '= 1.9.18'
 end

@@ -7,6 +7,8 @@
        <package name="com.oneops.opamp.jms"/>
        <package name="com.oneops.opamp.exceptions"/>
        <package name="com.oneops.opamp.ws"></package>
+       <package name="com.oneops.opamp.rs"></package>
+       <package name="com.walmart.oneops.azure.integration"></package>
        
    </packages>
   

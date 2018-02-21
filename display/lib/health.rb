@@ -1,4 +1,6 @@
 module Health
+  ApplicationController.before_filter :weak_ci_relation_data_consistency, :only => [:health]
+
   def health
     ns_path = params[:ns_path] || search_ns_path
     if ns_path.present? && !ns_path.start_with?(organization_ns_path)

@@ -148,10 +148,12 @@ public class CmsTest {
 
 		List<AttrQueryCondition> attrList = new ArrayList<AttrQueryCondition>();
 		attrList.add(attr1);
-		List <CmsCI> cis = ciMapper.getCIbyAttributes("/oneops/Assembly1", "catalog.Software", attrList);
 		Gson gson = new Gson();
+		List <CmsCI> cis = ciMapper.getCIbyAttributes("/oneops/Assembly1", "catalog.Software", null, attrList);
 		System.out.println(gson.toJson(cis));
-	}	
+		cis = ciMapper.getCIbyAttributes("/oneops/Assembly1", null, "Software", attrList);
+		System.out.println(gson.toJson(cis));
+	}
 	
 	@SuppressWarnings("unused")
 	private static void testState(SqlSessionFactory sqlsf) {
