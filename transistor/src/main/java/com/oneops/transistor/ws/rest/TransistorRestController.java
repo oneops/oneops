@@ -791,7 +791,10 @@ public class TransistorRestController extends AbstractRestController {
 			String desc = paramMap.get("description");
 
 			CmsDeployment dpmt = new CmsDeployment();
-			dpmt.setCreatedBy(userId);
+            if (!"legacy".equals(System.getenv("replaceImpl")) && paramMap.containsKey("ciId")) {
+				dpmt.setReplaceCiId(paramMap.get("ciId"));
+            }
+            dpmt.setCreatedBy(userId);
 			dpmt.setComments(desc);
 
 			baProcessor.compileEnv(envId, userId, toSet(paramMap.get("exclude")), dpmt, null, commit);

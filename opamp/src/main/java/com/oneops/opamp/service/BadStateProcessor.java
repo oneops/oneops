@@ -339,6 +339,7 @@ public class BadStateProcessor {
 
 
 			Map<String, String> request = new HashMap<>();
+			request.put("ciId", String.valueOf(ciId));
 			request.put("description", "Auto-Replace by OneOps ["+env.getNsPath()+"]");
 
 
