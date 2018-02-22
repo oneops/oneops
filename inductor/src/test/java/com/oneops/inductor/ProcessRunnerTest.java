@@ -57,6 +57,16 @@ public class ProcessRunnerTest {
 		assertTrue(procResult.getResultCode() == 0);
 	}
 
+	@Test
+	public void testExecuteProcessTimeout() {
+		ProcessRunner pr = new ProcessRunner(null);
+		pr.setTimeoutInSeconds(1);
+		String[] cmd = new String[1];
+		cmd[0] = "top";
+		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
+		assertTrue(procResult.getResultCode() == 1);
+	}
+
 	// @Test
 	public void executeProcessWithEnv() throws IOException, URISyntaxException {
 		Config c = new Config();
