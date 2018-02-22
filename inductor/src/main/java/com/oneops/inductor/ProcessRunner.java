@@ -29,7 +29,6 @@ import java.util.Map;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.log4j.Logger;
 
 public class ProcessRunner {
@@ -176,20 +175,20 @@ public class ProcessRunner {
       Map<String, String> additionalEnvVars, File workingDir) {
 
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
-    logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey,
+    logger.info(format("%s Cmd: timeout %ds %s, Additional Env Vars: %s", logKey, timeoutInSeconds,
         String.join(" ", cmd), additionalEnvVars));
 
     try {
-      CommandLine cmdLine = new CommandLine(cmd[0]);
+      CommandLine cmdLine = new CommandLine("timeout");
+      cmdLine.addArgument(format("%ds", timeoutInSeconds), false);
       // add rest of cmd string[] as arguments
-      for (int i = 1; i < cmd.length; i++) {
+      for (int i = 0; i < cmd.length; i++) {
         // needs the quote handling=false or else doesn't work
         // http://www.techques.com/question/1-5080109/How-to-execute--bin-sh-with-commons-exec?
         cmdLine.addArgument(cmd[i], false);
       }
       DefaultExecutor executor = new DefaultExecutor();
       executor.setExitValue(0);
-      executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
       executor.setStreamHandler(new OutputHandler(logger, logKey, result));
       if (workingDir != null) {
         executor.setWorkingDirectory(workingDir);
