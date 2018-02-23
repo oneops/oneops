@@ -53,7 +53,7 @@ when /openstack/
     :openstack_tenant => cloud[:tenant],
     :openstack_auth_url => cloud[:endpoint],
     :openstack_project_name => cloud[:tenant],
-    :openstack_domain_name => domain,
+    :openstack_domain_name => domain
   })
 when /rackspace/
 
