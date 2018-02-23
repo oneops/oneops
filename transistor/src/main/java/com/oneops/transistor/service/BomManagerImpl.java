@@ -123,7 +123,7 @@ public class BomManagerImpl implements BomManager {
 
 		trUtil.verifyAndCreateNS(bomNsPath);
 		trUtil.lockNS(bomNsPath);
-		commitManifestRelease(manifestNsPath, bomNsPath, userId, desc);
+		//commitManifestRelease(manifestNsPath, bomNsPath, userId, desc);  // don't commit manifest release to avoid picking up pending changes
 
 
 		context.loadGlobalVars();  // only load global vars, this is the only thing we need in this context
