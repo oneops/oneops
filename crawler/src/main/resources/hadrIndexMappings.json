@@ -6,79 +6,78 @@
 					"type": "integer"
 				},
 				"environmentProfile": {
-					"type": "text"
+					"type": "string"
 				},
 				"createdTS": {
-					"type": "text"
+					"type": "string"
 				},
 				"nsPath": {
-					"type": "text",
+					"type": "string",
 					"index": "not_analyzed"
 				},
 				"platform": {
-					"type": "text"
+					"type": "string"
 				},
 				"ctoOrg": {
-					"type": "text"
+					"type": "string"
 				},
 				"ctoDirect": {
-					"type": "text"
+					"type": "string"
 				},
 				"ooUrl": {
-					"type": "text",
+					"type": "string",
 					"index": "not_analyzed"
 				},
 				"assembly": {
-					"type": "text"
+					"type": "string"
 				},
 				"sClouds": {
-					"type": "text"
+					"type": "string"
 				},
 				"env": {
-					"type": "text"
+					"type": "string"
 				},
 				"pack": {
-					"type": "text"
+					"type": "string"
 				},
 				"vp": {
-					"type": "text"
+					"type": "string"
 				},
 				"org": {
-					"type": "text"
+					"type": "string"
 				},
 				"packVersion": {
-					"type": "text"
+					"type": "string"
 				},
 				"isDR": {
 					"type": "boolean"
 				},
 				"plat": {
-					"type": "text"
+					"type": "string"
 				},
 				"source": {
-					"type": "text"
+					"type": "string"
 				},
 				"isHA": {
 					"type": "boolean"
 				},
 				"sourcePack": {
-					"type": "text"
+					"type": "string"
 				},
 				"secondaryClouds": {
-					"type": "text"
+					"type": "string"
 				},
 				"pClouds": {
-					"type": "text"
+					"type": "string"
 				},
 				"primaryClouds": {
-					"type": "text"
+					"type": "string"
 				},
-				"CCount": {
-					"properties": {
-						"activeProdClouds": {
-							"type": "text"
-						}
-					}
+				"totalCores": {
+					"type": "integer"
+				},
+				"totalComputes": {
+					"type": "integer"
 				}
 			}
 		}

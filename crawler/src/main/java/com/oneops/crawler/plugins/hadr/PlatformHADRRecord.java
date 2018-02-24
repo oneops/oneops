@@ -1,42 +1,43 @@
 package com.oneops.crawler.plugins.hadr;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import com.oneops.Cloud;
+import com.oneops.Organization;
 
 public class PlatformHADRRecord implements Serializable {
 
 	private static final long serialVersionUID = 1L;
-
-	private int total;
+	private int totalCores;
+	private int totalComputes;
 	private String nsPath;
 	private String platform;
-	private String ctoOrg;
-	private String ctoDirect;
 	private String ooUrl;
 	private String assembly;
 	private String sClouds;
 	private Date createdTS;
 	private String env;
 	private String pack;
-	private String vp;
 	private String org;
 	private String packVersion;
 	private boolean isDR;
-	private String plat;
 	private String source;
-	private String[] secondaryClouds;
-	private String[] primaryClouds;
 	private String sourcePack;
 	private boolean isHA;
-	private CCount cCount;
 
-	public int getTotal() {
-		return total;
-	}
+	private List<String> activeClouds= new ArrayList<String>();
+	private List<String> offlineClouds= new ArrayList<String>();
+	private List<String> primaryClouds= new ArrayList<String>();
+	private List<String> secondaryClouds= new ArrayList<String>();
+	private transient Map<String,Cloud> cloudsMap;
+	private List<Cloud> clouds;
+	private Organization	organization;
+	
 
-	public void setTotal(int total) {
-		this.total = total;
-	}
 
 	public String getNsPath() {
 		return nsPath;
@@ -52,22 +53,6 @@ public class PlatformHADRRecord implements Serializable {
 
 	public void setPlatform(String platform) {
 		this.platform = platform;
-	}
-
-	public String getCtoOrg() {
-		return ctoOrg;
-	}
-
-	public void setCtoOrg(String ctoOrg) {
-		this.ctoOrg = ctoOrg;
-	}
-
-	public String getCtoDirect() {
-		return ctoDirect;
-	}
-
-	public void setCtoDirect(String ctoDirect) {
-		this.ctoDirect = ctoDirect;
 	}
 
 	public String getOoUrl() {
@@ -118,14 +103,6 @@ public class PlatformHADRRecord implements Serializable {
 		this.pack = pack;
 	}
 
-	public String getVp() {
-		return vp;
-	}
-
-	public void setVp(String vp) {
-		this.vp = vp;
-	}
-
 	public String getOrg() {
 		return org;
 	}
@@ -150,36 +127,12 @@ public class PlatformHADRRecord implements Serializable {
 		this.isDR = isDR;
 	}
 
-	public String getPlat() {
-		return plat;
-	}
-
-	public void setPlat(String plat) {
-		this.plat = plat;
-	}
-
 	public String getSource() {
 		return source;
 	}
 
 	public void setSource(String source) {
 		this.source = source;
-	}
-
-	public String[] getSecondaryClouds() {
-		return secondaryClouds;
-	}
-
-	public void setSecondaryClouds(String[] secondaryClouds) {
-		this.secondaryClouds = secondaryClouds;
-	}
-
-	public String[] getPrimaryClouds() {
-		return primaryClouds;
-	}
-
-	public void setPrimaryClouds(String[] primaryClouds) {
-		this.primaryClouds = primaryClouds;
 	}
 
 	public String getSourcePack() {
@@ -198,12 +151,78 @@ public class PlatformHADRRecord implements Serializable {
 		this.isHA = isHA;
 	}
 
-	public CCount getCCount() {
-		return cCount;
+	public int getTotalCores() {
+		return totalCores;
 	}
 
-	public void setCCount(CCount cCount) {
-		this.cCount = cCount;
+	public void setTotalCores(int totalCores) {
+		this.totalCores = totalCores;
 	}
 
+	public int getTotalComputes() {
+		return totalComputes;
+	}
+
+	public void setTotalComputes(int totalComputes) {
+		this.totalComputes = totalComputes;
+	}
+
+
+
+	public List<String> getActiveClouds() {
+		return activeClouds;
+	}
+
+	public void setActiveClouds(List<String> activeClouds) {
+		this.activeClouds = activeClouds;
+	}
+
+	public List<String> getPrimaryClouds() {
+		return primaryClouds;
+	}
+
+	public void setPrimaryClouds(List<String> primaryClouds) {
+		this.primaryClouds = primaryClouds;
+	}
+
+	public List<String> getSecondaryClouds() {
+		return secondaryClouds;
+	}
+
+	public void setSecondaryClouds(List<String> secondaryClouds) {
+		this.secondaryClouds = secondaryClouds;
+	}
+
+	public List<String> getOfflineClouds() {
+		return offlineClouds;
+	}
+
+	public void setOfflineClouds(List<String> offlineClouds) {
+		this.offlineClouds = offlineClouds;
+	}
+
+	public Map<String, Cloud> getCloudsMap() {
+		return cloudsMap;
+	}
+
+	public void setCloudsMap(Map<String, Cloud> cloudsMap) {
+		this.cloudsMap = cloudsMap;
+	}
+
+	public List<Cloud> getClouds() {
+		return clouds;
+	}
+
+	public void setClouds(List<Cloud> clouds) {
+		this.clouds = clouds;
+	}
+
+	public Organization getOrganization() {
+		return organization;
+	}
+
+	public void setOrganization(Organization organization) {
+		this.organization = organization;
+	}
+	
 }
