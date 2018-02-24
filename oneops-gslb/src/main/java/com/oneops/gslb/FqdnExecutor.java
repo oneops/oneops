@@ -61,12 +61,16 @@ public class FqdnExecutor implements ComponentWoExecutor {
       Context context = getContext(wo, logKey);
       Config config = getTorbitConfig(wo, logKey);
       if (config != null) {
-        String fileName = dataDir + "/" + wo.getDpmtRecordId() + ".json";
-        writeRequest(gsonPretty.toJson(wo), fileName);
-        logger.info(logKey + "FqdnExecutor executing workorder dpmt " + wo.getDeploymentId() + " action : " + wo.rfcCi.getRfcAction());
-        mtdHandler.setupTorbitGdns(wo, config, context);
-        if (!woHelper.isFailed(wo)) {
-          dnsHandler.setupCNames(wo, context);
+        try {
+          String fileName = dataDir + "/" + wo.getDpmtRecordId() + ".json";
+          writeRequest(gsonPretty.toJson(wo), fileName);
+          logger.info(logKey + "FqdnExecutor executing workorder dpmt " + wo.getDeploymentId() + " action : " + wo.rfcCi.getRfcAction());
+          mtdHandler.setupTorbitGdns(wo, config, context);
+          if (!woHelper.isFailed(wo)) {
+            dnsHandler.setupDnsEntries(wo, context);
+          }
+        } catch (Exception e) {
+          woHelper.failWo(wo, logKey, "Exception setting up fqdn ", e);
         }
         return woHelper.formResponse(wo, logKey);
       }
@@ -151,7 +155,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Map<String, List<CmsRfcCISimple>> payload = wo.getPayLoad();
     Context context = new Context();
     context.setAssembly(payload.get("Assembly").get(0).getCiName());
-    context.setPlatform(wo.getBox().getCiName());
+    context.setPlatform(wo.getBox().getCiName().toLowerCase());
     CmsRfcCISimple env = payload.get("Environment").get(0);
     context.setEnvironment(env.getCiName());
     context.setOrg(payload.get("Organization").get(0).getCiName());

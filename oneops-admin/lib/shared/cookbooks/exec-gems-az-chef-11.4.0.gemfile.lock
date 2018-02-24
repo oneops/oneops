@@ -1,0 +1,278 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    CFPropertyList (2.3.6)
+    activesupport (3.2.11)
+      i18n (~> 0.6)
+      multi_json (~> 1.0)
+    aws-s3 (0.6.3)
+      builder
+      mime-types
+      xml-simple
+    azure-core (0.1.14)
+      faraday (~> 0.9)
+      faraday_middleware (~> 0.10)
+      nokogiri (~> 1.6)
+    azure-storage (0.11.5.preview)
+      azure-core (~> 0.1)
+      faraday (~> 0.9)
+      faraday_middleware (~> 0.10)
+      nokogiri (~> 1.6.0)
+    azure_mgmt_compute (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_dns (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_key_vault (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_network (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_resources (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_sql (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_storage (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    azure_mgmt_traffic_manager (0.9.0)
+      ms_rest_azure (~> 0.7.0)
+    bit-struct (0.16)
+    builder (3.2.3)
+    chef (11.4.0)
+      erubis
+      highline (>= 1.6.9)
+      json (>= 1.4.4, <= 1.7.7)
+      mixlib-authentication (>= 1.3.0)
+      mixlib-cli (~> 1.3.0)
+      mixlib-config (>= 1.1.2)
+      mixlib-log (>= 1.3.0)
+      mixlib-shellout
+      net-ssh (~> 2.6)
+      net-ssh-multi (~> 1.1.0)
+      ohai (>= 0.6.0)
+      rest-client (>= 1.0.4, < 1.7.0)
+      yajl-ruby (~> 1.1)
+    concurrent-ruby (1.0.5)
+    domain_name (0.5.20170404)
+      unf (>= 0.0.5, < 1.0.0)
+    erubis (2.7.0)
+    excon (0.60.0)
+    extlib (0.9.16)
+    faraday (0.14.0)
+      multipart-post (>= 1.2, < 3)
+    faraday-cookie_jar (0.0.6)
+      faraday (>= 0.7.4)
+      http-cookie (~> 1.0.0)
+    faraday_middleware (0.12.2)
+      faraday (>= 0.7.4, < 1.0)
+    ffi (1.9.18)
+    fission (0.5.0)
+      CFPropertyList (~> 2.2)
+    fog (1.29.0)
+      fog-atmos
+      fog-aws (~> 0.0)
+      fog-brightbox (~> 0.4)
+      fog-core (~> 1.27, >= 1.27.4)
+      fog-ecloud
+      fog-json
+      fog-local
+      fog-powerdns (>= 0.1.1)
+      fog-profitbricks
+      fog-radosgw (>= 0.0.2)
+      fog-riakcs
+      fog-sakuracloud (>= 0.0.4)
+      fog-serverlove
+      fog-softlayer
+      fog-storm_on_demand
+      fog-terremark
+      fog-vmfusion
+      fog-voxel
+      fog-xml (~> 0.1.1)
+      ipaddress (~> 0.5)
+      nokogiri (~> 1.5, >= 1.5.11)
+    fog-aliyun (0.1.0)
+      fog-core (~> 1.27)
+      fog-json (~> 1.0)
+      ipaddress (~> 0.8)
+      xml-simple (~> 1.1)
+    fog-atmos (0.1.0)
+      fog-core
+      fog-xml
+    fog-aws (0.13.0)
+      fog-core (~> 1.38)
+      fog-json (~> 1.0)
+      fog-xml (~> 0.1)
+      ipaddress (~> 0.8)
+    fog-azure-rm (0.4.4)
+      azure-storage (= 0.11.5.preview)
+      azure_mgmt_compute (~> 0.9.0)
+      azure_mgmt_dns (~> 0.9.0)
+      azure_mgmt_key_vault (~> 0.9.0)
+      azure_mgmt_network (~> 0.9.0)
+      azure_mgmt_resources (~> 0.9.0)
+      azure_mgmt_sql (~> 0.9.0)
+      azure_mgmt_storage (~> 0.9.0)
+      azure_mgmt_traffic_manager (~> 0.9.0)
+      fog-core (~> 1.43)
+      fog-json (~> 1.0)
+      mime-types (~> 1.25)
+      vhd (= 0.0.4)
+    fog-brightbox (0.14.0)
+      fog-core (~> 1.22)
+      fog-json
+      inflecto (~> 0.0.2)
+    fog-core (1.45.0)
+      builder
+      excon (~> 0.58)
+      formatador (~> 0.2)
+    fog-ecloud (0.3.0)
+      fog-core
+      fog-xml
+    fog-json (1.0.2)
+      fog-core (~> 1.0)
+      multi_json (~> 1.10)
+    fog-local (0.4.0)
+      fog-core (~> 1.27)
+    fog-powerdns (0.1.1)
+      fog-core (~> 1.27)
+      fog-json (~> 1.0)
+      fog-xml (~> 0.1)
+    fog-profitbricks (0.0.5)
+      fog-core
+      fog-xml
+      nokogiri
+    fog-radosgw (0.0.5)
+      fog-core (>= 1.21.0)
+      fog-json
+      fog-xml (>= 0.0.1)
+    fog-riakcs (0.1.0)
+      fog-core
+      fog-json
+      fog-xml
+    fog-sakuracloud (1.7.5)
+      fog-core
+      fog-json
+    fog-serverlove (0.1.2)
+      fog-core
+      fog-json
+    fog-softlayer (1.1.3)
+      fog-core
+      fog-json
+    fog-storm_on_demand (0.1.1)
+      fog-core
+      fog-json
+    fog-terremark (0.1.0)
+      fog-core
+      fog-xml
+    fog-vmfusion (0.1.0)
+      fission
+      fog-core
+    fog-voxel (0.1.0)
+      fog-core
+      fog-xml
+    fog-xml (0.1.3)
+      fog-core
+      nokogiri (>= 1.5.11, < 2.0.0)
+    formatador (0.2.5)
+    ghost (0.3.0)
+    highline (1.6.21)
+    http-cookie (1.0.3)
+      domain_name (~> 0.5)
+    httpclient (2.2.5)
+    i18n (0.6.9)
+    inflecto (0.0.2)
+    ipaddress (0.8.3)
+    json (1.7.7)
+    jsonpath (0.8.11)
+      multi_json
+      to_regexp (~> 0.2.1)
+    mime-types (1.25)
+    mini_portile2 (2.1.0)
+    mixlib-authentication (1.4.2)
+    mixlib-cli (1.3.0)
+    mixlib-config (2.2.4)
+    mixlib-log (1.7.1)
+    mixlib-shellout (1.3.0)
+    ms_rest (0.6.4)
+      concurrent-ruby (~> 1.0)
+      faraday (~> 0.9)
+      timeliness (~> 0.3)
+    ms_rest_azure (0.7.0)
+      concurrent-ruby (~> 1.0)
+      faraday (~> 0.9)
+      faraday-cookie_jar (~> 0.0.6)
+      ms_rest (~> 0.6.3)
+    multi_json (1.13.1)
+    multipart-post (2.0.0)
+    net-ssh (2.6.7)
+    net-ssh-gateway (1.1.0)
+      net-ssh (>= 1.99.1)
+    net-ssh-multi (1.1)
+      net-ssh (>= 2.1.4)
+      net-ssh-gateway (>= 0.99.0)
+    nexus_cli (3.0.0)
+      extlib
+      highline
+      httpclient (= 2.2.5)
+      json
+      jsonpath
+      thor
+    nokogiri (1.6.8.1)
+      mini_portile2 (~> 2.1.0)
+    ohai (6.22.0)
+      ipaddress
+      mixlib-cli
+      mixlib-config
+      mixlib-log
+      mixlib-shellout
+      systemu (~> 2.5.2)
+      yajl-ruby
+    parallel (1.3.3)
+    rack (1.6.4)
+    rake (10.0.3)
+    rest-client (1.6.9)
+      mime-types (~> 1.16)
+    systemu (2.5.2)
+    thor (0.20.0)
+    timeliness (0.3.8)
+    to_regexp (0.2.1)
+    unf (0.1.4)
+      unf_ext
+    unf_ext (0.0.7.5)
+    vhd (0.0.4)
+      bit-struct
+    xml-simple (1.1.3)
+    yajl-ruby (1.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  activesupport (= 3.2.11)
+  aws-s3 (= 0.6.3)
+  chef (= 11.4.0)
+  ffi (= 1.9.18)
+  fog (= 1.29.0)
+  fog-aliyun (= 0.1.0)
+  fog-azure-rm (= 0.4.4)
+  fog-profitbricks (= 0.0.5)
+  fog-softlayer (= 1.1.3)
+  ghost (= 0.3.0)
+  highline (= 1.6.21)
+  i18n (= 0.6.9)
+  json (= 1.7.7)
+  mime-types (= 1.25.0)
+  mixlib-config (= 2.2.4)
+  mixlib-shellout (= 1.3.0)
+  net-ssh (= 2.6.7)
+  net-ssh-gateway (= 1.1.0)
+  net-ssh-multi (= 1.1.0)
+  nexus_cli (= 3.0.0)
+  nokogiri (= 1.6.8.1)
+  ohai (= 6.22.0)
+  parallel (= 1.3.3)
+  rack (= 1.6.4)
+  rake (= 10.0.3)
+  xml-simple (= 1.1.3)
+  yajl-ruby (= 1.1.0)
+
+BUNDLED WITH
+   1.16.1

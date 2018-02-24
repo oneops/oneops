@@ -25,7 +25,7 @@ Gem::Specification.new do |s|
       Dir.glob('target/inductor-*.jar') +
       Dir.glob('lib/templates/inductor/**/*') +
       Dir.glob('lib/templates/cloud/**/*') +
-      (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH).reject{ |f| f['exec-gems.yaml']}).
+      (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH).reject{ |f| f =~ /exec-gems(-chef|.yaml)/}).
           reject {|f| f =~ (/\.(\.|png)?$/)}
 
   s.extensions = ['Rakefile']
@@ -36,7 +36,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'json', '= 1.8.6'
   s.add_dependency 'fog', '= 1.38.0'
   s.add_dependency 'fog-openstack', '= 0.1.21'
-  s.add_dependency 'ffi', '= 1.9.10'
+  s.add_dependency 'ffi', '= 1.9.18'
   s.add_dependency 'nokogiri', '~> 1.6.0'
   s.add_dependency 'ohai', '= 7.4.1'
   s.add_dependency 'mixlib-shellout', '= 1.4.0'

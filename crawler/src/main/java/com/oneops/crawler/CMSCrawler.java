@@ -145,7 +145,7 @@ public class CMSCrawler {
                     envs = getOneopsEnvironments(conn);//refresh the environment list
                     organizationsMapCache = populateOrganizations(conn);// refreshing cache
                 }
-                log.info("Starting to crawl all environments..");
+                log.info("Starting to crawl all environments.. Total # " + envs.size());
                 for (Environment env : envs) {
                     if (shutDownRequested) {
                         log.info("Shutdown requested, exiting !");

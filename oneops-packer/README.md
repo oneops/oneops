@@ -24,10 +24,7 @@ The OneOps box will boot and be ready for you to use.
 
 # Technical Details
 
-The following instruction has made the following assumptions:
-
--  You are using macOS X as your operating system.
--  You are using Homebrew as your package manager for your macOS.
+## MacOS X
 
 ## [Homebrew][4]
 #### Install
@@ -54,7 +51,31 @@ vagrant box add oneops/centos73 --box-version 2.0.21 --provider virtualbox
 
 URL: https://vagrantcloud.com/oneops/boxes/centos73/versions/2.0.21/providers/virtualbox.box
 
+---
+## Ubuntu 17.10
 
+
+## [Virtualbox][2]
+#### Install
+```
+apt-get install virtualbox
+```
+#### Install
+## [Vagrant][3]
+
+```
+apt-get install vagrant
+```
+
+We are going to use oneops/centos73 as the minimal image as our starting point.
+
+```
+vagrant box add oneops/centos73 --box-version 2.0.21 --provider virtualbox
+```
+
+URL: https://vagrantcloud.com/oneops/boxes/centos73/versions/2.0.21/providers/virtualbox.box
+
+---
 ## Packer Templates
 -  **centos-oneps-base.json** : Build the initial .ovf container which has oneops/centos73 along with all the pre-requisites for OneOps.
 -  **centos-oneops.json** : Install OneOps's runtime application along with various circuits.

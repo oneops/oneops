@@ -59,21 +59,38 @@ public class WoHelper {
   public Response formResponse(CmsWorkOrderSimple wo, String logKey) {
     Response response = new Response();
     Map<String, String> map = new HashMap<>();
-    map.put("body", gson.toJson(wo));
     String responseCode = "200";
-    response.setResponseMap(map);
-
     if (FAILED.equals(wo.getDpmtRecordState())) {
       logger.warn(logKey + "FAIL: " + wo.getDpmtRecordId() + " state:" + wo.getDpmtRecordState());
       response.setResult(Result.FAILED);
       responseCode = "500";
     }
     else {
+      mergeRfcWithResult(wo.getRfcCi(), wo.getResultCi() != null ? wo.getResultCi() : new CmsCISimple());
       logger.info(logKey + "Workorder execution successful");
       response.setResult(Result.SUCCESS);
     }
     map.put("task_result_code", responseCode);
+    logger.info(logKey + "wo restult ci " + gson.toJson(wo.getResultCi()));
+    map.put("body", gson.toJson(wo));
+    response.setResponseMap(map);
     return response;
+  }
+
+  private void mergeRfcWithResult(CmsRfcCISimple rfc, CmsCISimple result) {
+    result.getAttrProps().putAll(rfc.getCiAttrProps());
+
+    Map<String, String> rfcAttrs = rfc.getCiAttributes();
+
+    if (result.getCiAttributes() == null) {
+      result.setCiAttributes(new HashMap<>());
+    }
+    Map<String, String> resultAttrs = result.getCiAttributes();
+    for (String key : rfcAttrs.keySet()) {
+      if (!resultAttrs.containsKey(key)) {
+        resultAttrs.put(key, rfcAttrs.get(key));
+      }
+    }
   }
 
   public boolean isAddAction(CmsWorkOrderSimple wo) {

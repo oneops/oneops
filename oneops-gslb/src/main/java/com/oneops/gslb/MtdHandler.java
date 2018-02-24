@@ -36,9 +36,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import retrofit2.Call;
 
@@ -62,6 +64,18 @@ public class MtdHandler {
 
   ConcurrentMap<String, Cloud> cloudMap = new ConcurrentHashMap<>();
 
+  @Value("${mtd.timeout:2s}")
+  String timeOut;
+
+  @Value("${mtd.inteval:5s}")
+  String interval;
+
+  @Value("${mtd.retryDelay:30s}")
+  String retryDelay;
+
+  @Value("${mtd.failsForDown:3}")
+  int failureCountToMarkDown;
+
   @Autowired
   WoHelper woHelper;
 
@@ -71,6 +85,11 @@ public class MtdHandler {
   @Autowired
   JsonParser jsonParser;
 
+  @PostConstruct
+  public void init() {
+   logger.info("initialized with mtd timeout: " + timeOut + ", interval: " + interval +
+       ", retryDelay: " + retryDelay + ", failureCountToMarkDown: " + failureCountToMarkDown);
+  }
 
   public void setupTorbitGdns(CmsWorkOrderSimple wo, Config config, Context context) {
     String logKey = context.getLogKey();
@@ -202,7 +221,7 @@ public class MtdHandler {
   private MtdBaseHostRequest mtdBaseHostRequest(Context context, CmsWorkOrderSimple wo) throws Exception {
     List<MtdTarget> targets = getMtdTargets(wo, context);
     if (targets != null) {
-      context.setTargets(targets.stream().filter(MtdTarget::enabled).map(MtdTarget::mtdTargetHost).collect(Collectors.toList()));
+      context.setPrimaryTargets(targets.stream().filter(MtdTarget::enabled).map(MtdTarget::mtdTargetHost).collect(Collectors.toList()));
     }
     List<MtdHostHealthCheck> healthChecks = getHealthChecks(wo, context);
     MtdHost mtdHost = MtdHost.create(context.getPlatform(), null, healthChecks, targets,
@@ -353,22 +372,30 @@ public class MtdHandler {
 
           listeners.forEach(s -> {
             String listener = s.getAsString();
+            //listeners are generally in this format 'http <lb-port> http <app-port>', gslb needs to use the lb-port for health checks
+            //ecv map is configured as '<app-port> : <ecv-url>', so we need to use the app-port from listener configuration to lookup the ecv config from ecv map
             String[] config = listener.split(" ");
             if (config.length >= 2) {
               String protocol = config[0];
-              int port = Integer.parseInt(config[config.length-1]);
-              String healthConfig = ecvMap.get(port);
+              int lbPort = Integer.parseInt(config[1]);
+              int ecvPort = Integer.parseInt(config[config.length-1]);
 
-              if ((protocol.startsWith("http"))) {
-                if (healthConfig != null) {
-                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig);
-                  String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, path, 200);
+              String healthConfig = ecvMap.get(ecvPort);
+              if (healthConfig != null) {
+                if ((protocol.startsWith("http"))) {
+                  String path = healthConfig.substring(healthConfig.indexOf(" ") + 1);
+                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig + ", health check configuration, protocol: " + protocol + ", port: " + lbPort
+                      + ", path " + path);
+                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + lbPort,
+                      protocol, lbPort, path, 200);
                   hcList.add(healthCheck);
+
+                } else if ("tcp".equals(protocol)) {
+                  logger.info(
+                      context.getLogKey() + "health check configuration, protocol: " + protocol + ", port: " + lbPort);
+                  hcList.add(
+                      newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, null, null));
                 }
-              }
-              else if ("tcp".equals(protocol)) {
-                hcList.add(newHealthCheck("gslb-" + protocol + "-" + port, protocol, port, null, null));
               }
             }
           });
@@ -379,9 +406,8 @@ public class MtdHandler {
   }
 
   private MtdHostHealthCheck newHealthCheck(String name, String protocol, int port, String testObjectPath, Integer expectedStatus) {
-    //TODO: make interval, retryDelay, timeout configurable
     return MtdHostHealthCheck.create(name, protocol, port, testObjectPath, null, expectedStatus,
-        null, 10, true, null, null, null, "20s", "30s", "10s");
+        null, failureCountToMarkDown, true, null, null, null, interval, retryDelay, timeOut);
   }
 
   List<MtdTarget> getMtdTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
@@ -489,7 +515,7 @@ public class MtdHandler {
   }
 
   private void setupTorbitClient(Config config, Context context) throws Exception {
-    context.setMtdBaseHost("." + context.getSubdomain() + "." + context.getBaseGslbDomain());
+    context.setMtdBaseHost(("." + context.getSubdomain() + "." + context.getBaseGslbDomain()).toLowerCase());
     TorbitClient client = new TorbitClient(config);
     context.setTorbitClient(client);
     context.setTorbitApi(client.getTorbit());

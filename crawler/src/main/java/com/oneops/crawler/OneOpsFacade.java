@@ -85,6 +85,7 @@ public class OneOpsFacade {
     }
 
     public int sendNotification(NotificationMessage msg) {
+        log.info("sending notification: " + gson.toJson(msg));
         String antennaUrl = "http://antenna." + cmsApiHost + ":8080/antenna/rest/notify/";
         log.info("sending notification on " + antennaUrl);
         HttpRequest request = HttpRequest.post(antennaUrl)
