@@ -22,8 +22,8 @@ Java system properties:
 
 `-Dhadr.es.enabled=true`  ; if true, processed records will be sent to elastic search
 
-`hadr.oo.baseurl=https://localhost:3000` ; This URL will be attached as prefix to nspath of the platform to create fully qualified URl for platform
+`-Dhadr.oo.baseurl=https://localhost:3000` ; This URL will be attached as prefix to nspath of the platform to create fully qualified URl for platform
 
-`hadr.env.profile.regex=prod` ; This property is used to check if environment profile name contain `prod` as key word, if true then consider environment as production.
+`-Dhadr.env.profile.regex=prod` ; This property is used to check if environment profile name contain `prod` as key word, if true then consider environment as production.
 
 `-Dhadr.prod.datacenters.list=datacenter1~datacenter2~datacenter3` ; list of data centers separated by `~`. This list will be used to identify if platform is deployed in any 2 of data centers from the list. Any platform deployed on more than 2 data centers will be marked as DR compliant.
