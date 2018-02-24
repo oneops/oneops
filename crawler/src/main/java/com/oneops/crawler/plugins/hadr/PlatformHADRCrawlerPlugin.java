@@ -28,7 +28,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 	String prodDataCentersList;
 	String[] dataCentersArr;
 	String oo_baseUrl;
-	final String hadrElasticSearchIndexName = "hadr_test"; //TODO: change index
+	final String hadrElasticSearchIndexName = "hadr"; 
 	private SearchDal searchDal;
 	private Map<String, Organization> organizationsMapCache;
 	private String environmentProfileFilter;
@@ -83,7 +83,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 	public void processOnlyProdEnvs(Environment env) {
 
 		String environmentProfileName = env.getProfile();
-		// TODO: replace "dev" key word with prod
+
 		if (environmentProfileName != null && environmentProfileName != ""
 				&& environmentProfileName.toLowerCase().contains(environmentProfileFilter)) {
 			log.info("Eligible environment for processing envId: {}, profile: {}, envName: {}, envPath: {}",
