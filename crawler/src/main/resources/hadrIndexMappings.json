@@ -50,7 +50,7 @@
 					"type": "string"
 				},
 				"isDR": {
-					"type": "boolean"
+					"type": "String"
 				},
 				"plat": {
 					"type": "string"
@@ -59,7 +59,7 @@
 					"type": "string"
 				},
 				"isHA": {
-					"type": "boolean"
+					"type": "String"
 				},
 				"sourcePack": {
 					"type": "string"
