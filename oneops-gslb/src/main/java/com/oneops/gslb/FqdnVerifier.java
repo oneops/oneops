@@ -70,11 +70,12 @@ public class FqdnVerifier {
 
   private void verifyCnamesWithResultEntries(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
-    String cname = context.platform + context.mtdBaseHost;
+    String cname = (context.platform + context.mtdBaseHost).toLowerCase();
     verify(() -> wo.getResultCi().getCiAttributes().containsKey("entries"), "result ci has entries attribute");
     JsonObject entriesMap = (JsonObject) jsonParser.parse(wo.getResultCi().getCiAttributes().get("entries"));
     logger.info(context.logKey + "entries map result ci attribute " + entriesMap.toString());
-    for (String alias : getAliases(wo, context)) {
+    for (String al : getAliases(wo, context)) {
+      String alias = al.toLowerCase();
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
       verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
           "cname verify failed " + alias);
@@ -82,9 +83,9 @@ public class FqdnVerifier {
     }
     verify(() -> entriesMap.get(cname) != null, "result ci entries attribute value for " + cname + " is present ");
 
-    String cloudCname = getCloudCname(wo, context);
+    String cloudCname = getCloudCname(wo, context).toLowerCase();
 
-    List<ARec> records = infobloxClient.getARec(cloudCname.toLowerCase());
+    List<ARec> records = infobloxClient.getARec(cloudCname);
     CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
     String lbVip = lb.getCiAttributes().get(MtdHandler.ATTRIBUTE_DNS_RECORD);
     logger.info(context.logKey + "cloud entry records " + records.size());
@@ -97,8 +98,9 @@ public class FqdnVerifier {
 
   private void verifyCnames(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
-    String cname = context.platform + context.mtdBaseHost;
+    String cname = (context.platform + context.mtdBaseHost).toLowerCase();
     for (String alias : getAliases(wo, context)) {
+      alias = alias.toLowerCase();
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
       verify(() ->cnames != null && cnames.size() == 1 && cnames.get(0).canonical().equals(cname),
           "cname verify failed " + alias);
@@ -108,6 +110,7 @@ public class FqdnVerifier {
   private void verifyInfobloxDelete(CmsWorkOrderSimple wo, VerifyContext context) throws Exception {
     InfobloxClient infobloxClient = getInfoBloxClient(wo);
     for (String alias : getAliases(wo, context)) {
+      alias = alias.toLowerCase();
       List<CNAME> cnames = infobloxClient.getCNameRec(alias);
       verify(() ->cnames == null || cnames.isEmpty(), "cname delete verify failed " + alias);
     };
@@ -115,7 +118,7 @@ public class FqdnVerifier {
   }
 
   private void verifyCloudCnameDelete(CmsWorkOrderSimple wo, VerifyContext context, InfobloxClient infobloxClient) throws Exception {
-    String cloudCname = getCloudCname(wo, context);
+    String cloudCname = getCloudCname(wo, context).toLowerCase();
     List<CNAME> cnames = infobloxClient.getCNameRec(cloudCname);
     verify(() ->cnames == null || cnames.isEmpty(), "cloud cname delete verify failed " + cloudCname);
   }
@@ -189,7 +192,7 @@ public class FqdnVerifier {
     logger.info(context.logKey + "verifying mtd base ");
     verify(() -> resp.isSuccessful(), "mtd base exists");
     MtdBase mtdBase = resp.getBody().mtdBase();
-    verify(() -> context.mtdBaseHost.equals(mtdBase.mtdBaseName()), "mtd base name match");
+    verify(() -> context.mtdBaseHost.equals(mtdBase.mtdBaseName()), "mtd base name match", context.mtdBaseHost, mtdBase.mtdBaseName());
 
     Resp<MtdHostResponse> hostResp = client.execute(torbit.getMTDHost(mtdBase.mtdBaseId(), context.platform), MtdHostResponse.class);
     logger.info(context.logKey + "verifying mtd host version exists");
@@ -283,7 +286,7 @@ public class FqdnVerifier {
       int lbPort = Integer.parseInt(config[1]);
       int ecvPort = Integer.parseInt(config[config.length-1]);
       String healthConfig = ecvMap.get(ecvPort);
-      if (healthConfig != null && !healthConfig.isEmpty()) {
+      if (healthConfig != null) {
         EcvListener ecvListener = new EcvListener();
         if ((protocol.startsWith("http"))) {
           String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
@@ -307,6 +310,12 @@ public class FqdnVerifier {
     }
   }
 
+  private void verify(Condition condition, String message, String expected, String actual) throws Exception {
+    if (!condition.test()) {
+      throw new Exception("Verification failed for : " + message + ":: Expected: " + expected + ", actual: " + actual);
+    }
+  }
+
   private String getPlatform(CmsWorkOrderSimple wo) {
     return wo.getBox().getCiName();
   }
@@ -322,9 +331,9 @@ public class FqdnVerifier {
     String baseGslbDomain = wo.services.get("torbit").get(cloud).getCiAttributes().get("gslb_base_domain");
     context.subDomain = subdomain != null ? subdomain : environment + "." + assembly + "." + org;
     if (subdomain != null)
-      context.mtdBaseHost = "." + context.subDomain + "." + baseGslbDomain;
+      context.mtdBaseHost = ("." + context.subDomain + "." + baseGslbDomain).toLowerCase();
     else
-      context.mtdBaseHost = "." + context.subDomain + "." + baseGslbDomain;
+      context.mtdBaseHost = ("." + context.subDomain + "." + baseGslbDomain).toLowerCase();
   }
 
 
@@ -333,7 +342,7 @@ public class FqdnVerifier {
     context.torbitClient = new TorbitClient(config);
     context.torbit = context.torbitClient.getTorbit();
     loadContext(wo, context);
-    context.platform = getPlatform(wo);
+    context.platform = getPlatform(wo).toLowerCase();
     return context;
   }
 

@@ -71,7 +71,7 @@ public class WoHelper {
       response.setResult(Result.SUCCESS);
     }
     map.put("task_result_code", responseCode);
-    logger.info("wo restult ci " + gson.toJson(wo.getResultCi()));
+    logger.info(logKey + "wo restult ci " + gson.toJson(wo.getResultCi()));
     map.put("body", gson.toJson(wo));
     response.setResponseMap(map);
     return response;
