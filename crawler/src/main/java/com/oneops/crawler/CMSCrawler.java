@@ -21,6 +21,7 @@ import static com.oneops.crawler.jooq.crawler.Tables.*;
 import static com.oneops.crawler.jooq.cms.Tables.*;
 
 import com.google.gson.Gson;
+import com.oneops.Cloud;
 import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Organization;
@@ -46,6 +47,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -157,7 +159,7 @@ public class CMSCrawler {
                     populateEnv(env, conn);
                     List<Deployment> deployments = getDeployments(conn, env);
                     plugin.processEnvironment(env, deployments);
-                    platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
+                     platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
                     updateCrawlEntry(env);
                 }
 
@@ -311,7 +313,7 @@ public class CMSCrawler {
             platform.setPath(env.getPath() + "/" + env.getName() + "/bom/" + platform.getName() + "/1");
             populatePlatform(conn, platform);
             platform.setActiveClouds(getActiveClouds(platform, conn));
-
+            platform.setCloudsMap(getCloudsDataForPlatform(conn, platformId));
             //now calculate total cores of the env - including all platforms
             totalCores += platform.getTotalCores();
             env.addPlatform(platform);
@@ -505,20 +507,24 @@ public class CMSCrawler {
 			if (attributeID == description_AttribID) {
 				organization.setDescription(
 						OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+				organizationsMap.put(organizationName, organization);
 				continue;
 			} else if (attributeID == full_name_AttribID) {
 				organization
 						.setFull_name(OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+				organizationsMap.put(organizationName, organization);
 				continue;
 
 			} else if (attributeID == owner_AttribID) {
 				organization.setOwner(OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+				organizationsMap.put(organizationName, organization);
 				continue;
 			} else if (attributeID == tags_AttribID) {
 				OrganizationTags tags = gson.fromJson(
 						OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE),
 						OrganizationTags.class);
 				organization.setTags(tags);
+				organizationsMap.put(organizationName, organization);
 				continue;
 			}
 
@@ -544,6 +550,78 @@ public class CMSCrawler {
 
 		log.debug("baseOrganizationMDClassAttributes_NameIdMapCache: entrySet"
 				+ this.baseOrganizationMDClassAttributes_NameIdMapCache.entrySet());
+
+	}
+	
+	public Map<String, Cloud> getCloudsDataForPlatform(Connection conn, long platformId) {
+		DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
+
+		Map<String, Cloud> platformCloudMap = new HashMap<String, Cloud>();
+		
+		// Fetching All Clouds for platform
+		Result<Record> cloudsInPlatformRecords = create.select().from(CM_CI_RELATIONS).join(MD_RELATIONS)
+				.on(MD_RELATIONS.RELATION_ID.eq(CM_CI_RELATIONS.RELATION_ID)).join(CM_CI)
+				.on(CM_CI.CI_ID.eq(CM_CI_RELATIONS.TO_CI_ID)).where(MD_RELATIONS.RELATION_NAME.eq("base.Consumes"))
+				.and(CM_CI_RELATIONS.FROM_CI_ID.eq(platformId)).fetch();
+
+		for (Record cloudsInPlatformRecord : cloudsInPlatformRecords) {
+
+			long relationID = cloudsInPlatformRecord.get(CM_CI_RELATIONS.CI_RELATION_ID);
+			long cloudCid = cloudsInPlatformRecord.get(CM_CI_RELATIONS.TO_CI_ID);
+			String cloudName = cloudsInPlatformRecord.get(CM_CI.CI_NAME);
+
+			Result<Record> cloudsPlatformRelationshipAttributesRecords = create.select().from(CM_CI_RELATION_ATTRIBUTES)
+					.join(MD_RELATION_ATTRIBUTES)
+					.on(CM_CI_RELATION_ATTRIBUTES.ATTRIBUTE_ID.eq(MD_RELATION_ATTRIBUTES.ATTRIBUTE_ID))
+					.where(CM_CI_RELATION_ATTRIBUTES.CI_RELATION_ID.eq(relationID)).fetch();
+			Cloud cloud = new Cloud();
+			cloud.setId(cloudName);
+			for (Record cloudsPlatformRelationshipAttributesRecord : cloudsPlatformRelationshipAttributesRecords) {
+
+				switch (cloudsPlatformRelationshipAttributesRecord.get(MD_RELATION_ATTRIBUTES.ATTRIBUTE_NAME)) {
+				case "priority":
+					try {
+						int priority = Integer.valueOf(
+								cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+
+						cloud.setPriority(priority);
+					} catch (java.lang.NumberFormatException e) {
+						log.error("can not set <priority> attribute for cloudCid: " + cloudCid + " , cloudName: "
+								+ cloudName, e);
+					}
+
+					break;
+				case "adminstatus":
+					cloud.setAdminstatus(
+							cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+					break;
+				case "dpmt_order":
+					cloud.setDeploymentorder(Integer.valueOf(
+							cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
+					break;
+				case "pct_scale":
+
+					try {
+						int pct_scale = Integer.valueOf(
+								cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+
+						cloud.setScalepercentage(pct_scale);
+					} catch (java.lang.NumberFormatException e) {
+						log.error("can not set <pct_scale> attribute for cloudCid: " + cloudCid + " , cloudName: "
+								+ cloudName, e);
+					}
+
+					break;
+
+				}
+
+			}
+			platformCloudMap.put(cloudName, cloud);
+			
+			
+		}
+	
+		return platformCloudMap;
 
 	}
 }
