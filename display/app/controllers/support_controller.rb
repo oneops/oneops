@@ -34,44 +34,74 @@ class SupportController < ReportsController
     offset    = (params[:offset].presence || 0).to_i
     sort      = params[:sort].presence || 'organizations.name ASC'
     name      = params[:name]
-    scope     = Organization
 
+    scope = Organization
     scope = scope.where('organizations.name ILIKE ?', "%#{name}%") if name.present?
 
     total = scope.count
-
     if total > 0
       scope = scope.limit(page_size).offset(offset).order(sort)
-      @organizations = scope.select("organizations.*, 0 as team_count, 0 as user_count, 0 as group_count, 0 as admin_count, '' as owner").all
+      @organizations = scope.all
 
       if @organizations.present?
         org_owners = Cms::Ci.list(@organizations.map(&:cms_id)).to_map_with_value {|o| [o['ciId'], o['ciAttributes']['owner']]}
 
         counts = Organization.
           select('organizations.id').
-          select('count(distinct teams_users.user_id) as user_count').
           select('count(distinct teams.id) as team_count').
+          select('count(distinct teams_users.user_id) as team_user_count').
           select('count(distinct groups_teams.group_id) as group_count').
+          select('count(distinct group_members.user_id) as group_user_count').
           from("(#{scope.to_sql}) AS organizations").
           joins(:teams).
           joins('LEFT OUTER JOIN teams_users ON teams.id = teams_users.team_id').
           joins('LEFT OUTER JOIN groups_teams ON teams.id = groups_teams.team_id').
+          joins('LEFT OUTER JOIN group_members ON groups_teams.group_id = group_members.group_id').
           group('organizations.id').all.to_map(&:id)
 
 
         admin_counts = Organization.
-          select('organizations.id, count(teams_users.user_id) as admin_count').
+          select('organizations.id').
+          select('count(teams_users.user_id) as admin_user_count').
           from("(#{scope.to_sql}) AS organizations").
           joins(:admin_users).
           group('organizations.id').all.to_map(&:id)
 
-        @organizations.each do |o|
-          count         = counts[o.id]
-          o.owner       = org_owners[o.cms_id]
-          o.user_count  = count.user_count
-          o.team_count  = count.team_count
-          o.group_count = count.group_count
-          o.admin_count = admin_counts[o.id] ? admin_counts[o.id].admin_count : 0
+        admin_group_counts = Organization.
+          select('organizations.id').
+          select('count(distinct group_members.user_id) as admin_group_user_count').
+          select('count(distinct group_members.group_id) as admin_group_count').
+          from("(#{scope.to_sql}) AS organizations").
+          joins(:admin_group_users).
+          group('organizations.id').all.to_map(&:id)
+
+        conditions = {'ciClassName.keyword' => '*.Compute'}
+        conditions['nsPath' => name] if name.present?
+        ci_counts = Search::Ci.compute_count_stats_by_org(conditions) || {}
+
+        @organizations = @organizations.map do |o|
+          org_counts             = counts[o.id]
+          org_admin_counts       = admin_counts[o.id]
+          org_admin_group_counts = admin_group_counts[o.id]
+          org_ci_counts          = ci_counts[o.name]
+          r                      = o.as_json
+
+          r['owner']                  = org_owners[o.cms_id]
+          r['team_count']             = org_counts.team_count
+          r['team_user_count']        = org_counts.team_user_count
+          r['group_count']            = org_counts.group_count
+          r['group_user_count']       = org_counts.group_user_count
+          r['admin_user_count']       = org_admin_counts ? org_admin_counts.admin_user_count : 0
+          r['admin_group_count']      = org_admin_group_counts ? org_admin_group_counts.admin_group_count : 0
+          r['admin_group_user_count'] = org_admin_group_counts ? org_admin_group_counts.admin_group_user_count : 0
+
+          if org_ci_counts.present?
+            [:assembly, :environment, :compute].each do |key|
+              r["#{key}_count"]      = org_ci_counts[:all][key]
+              r["prod_#{key}_count"] = org_ci_counts[:prod][key]
+            end
+          end
+          r
         end
       end
     else
@@ -90,18 +120,17 @@ class SupportController < ReportsController
 
       format.any do
         add_pagination_response_headers(total, @organizations.size, offset)
-        keys = %w(id name full_name created_at owner team_count user_count group_count admin_count)
+        keys = %w(id name full_name created_at owner team_count team_user_count group_count group_user_count admin_user_count admin_group_count admin_group_user_count assembly_count prod_assembly_count environment_count prod_environment_count compute_count prod_compute_count)
         delimiter = params[:delimiter].presence || ','
         csv = keys.join(delimiter) << "\n"
         @organizations.each do |o|
-          csv << keys.inject([]) {|a, k| a << o.attributes[k]}.join(delimiter) << "\n"
+          csv << keys.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
         end
         render :text => csv
       end
     end
   end
 
-  # delimiter
   def organization
     org_name   = params[:name]
     @organization = Organization.where(:name => org_name).first
@@ -236,6 +265,31 @@ class SupportController < ReportsController
     render_json_ci_response(ok, doc)
   end
 
+  def cloud_supports
+    if request.put?
+      {:enableCiIds => true, :disableCiIds => false}.each_pair do |k, v|
+        ids = params[k]
+        if ids.present?
+          cis = Cms::Ci.list(ids).map do |ci_hash|
+            ci = Cms::Ci.new(ci_hash, true)
+            ci.ciAttributes.enabled = v.to_s
+            ci
+          end
+          Cms::Ci.bulk_save(cis)
+        end
+      end
+    end
+
+    @supports = Cms::Ci.all(:params => {:nsPath      => '/',
+                                        :ciClassName => 'cloud.Support',
+                                        :recursive   => true})
+    respond_to do |format|
+      format.html
+      format.js
+      format.json {render :json => @supports}
+    end
+  end
+
 
   protected
 
@@ -342,6 +396,8 @@ class SupportController < ReportsController
       perm = 'compute_report'
     elsif action.include?('announcements')
       perm = 'announcement'
+    elsif action == 'cloud_supports'
+      perm = Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT
     else
       perm = action
     end

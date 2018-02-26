@@ -5,7 +5,6 @@ class Cloud::SupportsController < ApplicationController
   before_filter :authorize_write, :only => [:new, :create, :update, :destroy]
 
   def index
-    xx.select {|x| y= (x.ciAttributes.service_url == 'http://services.warn.walmart.com/noc-service/services/noc/deployment/req'); puts (x.nsPath.ljust(3) + x.ciAttributes.service_url)  unless y; !y }.size
     @supports = Cms::Relation.all(:params => {:ciId         => @cloud.ciId,
                                               :direction    => 'from',
                                               :relationName => 'base.SupportedBy'}).map(&:toCi)

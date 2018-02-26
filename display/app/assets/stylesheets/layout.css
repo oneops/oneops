@@ -1711,11 +1711,19 @@ img.authicon {
 }
 
 .list-body {
-  float:    left;
   position: relative;
   float:    left;
   clear:    both;
   width:    100%;
+}
+
+.list.fixed .list-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.list.fixed .list-body::-webkit-scrollbar {
+  /*display: none;*/
 }
 
 .list-body > ul {
@@ -1723,7 +1731,7 @@ img.authicon {
   position:        relative;
   margin:          0px;
   padding:         0px;
-  width:           100%;
+  width:           98%;
   font-size:       14px;
   list-style-type: none;
 }
@@ -2461,6 +2469,10 @@ img.authicon {
   padding:   10px;
   width:     590px;
   word-wrap: break-word;
+}
+
+.fixed .section-content {
+  overflow-y: auto;
 }
 
 .single .section-content {
