@@ -21,7 +21,6 @@ import static com.oneops.crawler.jooq.crawler.Tables.*;
 import static com.oneops.crawler.jooq.cms.Tables.*;
 
 import com.google.gson.Gson;
-import com.oneops.Cloud;
 import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Organization;
@@ -32,6 +31,7 @@ import com.oneops.crawler.plugins.hadr.PlatformHADRCrawlerPlugin;
 import com.oneops.crawler.plugins.ttl.EnvTTLCrawlerPlugin;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Record4;
 import org.jooq.Result;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
@@ -47,9 +47,11 @@ import java.sql.DriverManager;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 public class CMSCrawler {
 
@@ -72,8 +74,9 @@ public class CMSCrawler {
     boolean shutDownRequested = false;
     boolean syncClouds = false;
     int crawlFrequencyHours = 6;
-    Gson gson = new Gson();
 
+    Gson gson= new Gson();
+    Map<String, Integer> baseOrganizationMDClassAttributes_NameIdMapCache;
     public CMSCrawler() {
         //read and init the secrets
         readConfig();
@@ -276,6 +279,7 @@ public class CMSCrawler {
         }
         log.info("cached compute class ids: " + computeClassIds);
         log.info("cached compute cores attribute ids: " + coresAttributeIds);
+        populateBaseOrganizationClassAttribMappingsCache(conn);
     }
 
     private void populateEnv(Environment env, Connection conn) {
@@ -307,7 +311,7 @@ public class CMSCrawler {
             platform.setPath(env.getPath() + "/" + env.getName() + "/bom/" + platform.getName() + "/1");
             populatePlatform(conn, platform);
             platform.setActiveClouds(getActiveClouds(platform, conn));
-            platform.setCloudsMap(getCloudsDataForPlatform(conn, platformId));
+
             //now calculate total cores of the env - including all platforms
             totalCores += platform.getTotalCores();
             env.addPlatform(platform);
@@ -453,126 +457,93 @@ public class CMSCrawler {
         }
     }
     
-	public Map<String, Organization> populateOrganizations(Connection conn) {
+    public Map<String, Organization> populateOrganizations(Connection conn) {
 
+		log.info("Populating organizations cache");
 		DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
-
-		Result<Record> organizations = create.select().from(CM_CI).join(MD_CLASSES)
-				.on(CM_CI.CLASS_ID.eq(MD_CLASSES.CLASS_ID)).join(NS_NAMESPACES).on(CM_CI.NS_ID.eq(NS_NAMESPACES.NS_ID))
-				.where(MD_CLASSES.CLASS_NAME.eq("account.Organization")).fetch();
-
-		log.info("got list if all organizations");
-
 		Map<String, Organization> organizationsMap = new HashMap<>();
+		
+		
+		Result<Record4<Long, String, Integer, String>> OrganizationsWithAttributesRecords = create
+				.select(CM_CI.CI_ID, CM_CI.CI_NAME, CM_CI_ATTRIBUTES.ATTRIBUTE_ID, CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE).from(CM_CI)
+				.join(CM_CI_ATTRIBUTES).on(CM_CI.CI_ID.eq(CM_CI_ATTRIBUTES.CI_ID))
+				.where(CM_CI.CLASS_ID.in(create.select(MD_CLASSES.CLASS_ID).from(MD_CLASSES)
+						.where(MD_CLASSES.CLASS_NAME.eq("account.Organization"))))
+				.fetch();
+				
+		
+		List<Long> OrganizationIds=OrganizationsWithAttributesRecords.getValues(CM_CI.CI_ID);
+		log.debug("OrganizationIds: "+OrganizationIds.toString());
+		
+		Set<Long> setOfOrganizationIds = new HashSet<Long>(OrganizationIds);
+		log.debug("setOfOrganizationIds <"+setOfOrganizationIds.size()+"> "+setOfOrganizationIds);
+				
+		List<String> OrganizationNames=OrganizationsWithAttributesRecords.getValues(CM_CI.CI_NAME);
+		log.debug("OrganizationNames: "+OrganizationNames.toString());
+		
+		Set<String> setOfOrganizationNames = new HashSet<String>(OrganizationNames);
+		log.debug("setOfOrganizationNames: <"+setOfOrganizationNames.size()+"> " +setOfOrganizationNames);
+	
+		
+		int description_AttribID=this.baseOrganizationMDClassAttributes_NameIdMapCache.get("description");
+		int full_name_AttribID =this.baseOrganizationMDClassAttributes_NameIdMapCache.get("full_name");
+		int owner_AttribID=this.baseOrganizationMDClassAttributes_NameIdMapCache.get("owner");
+		int tags_AttribID=this.baseOrganizationMDClassAttributes_NameIdMapCache.get("tags");
+		
+		for (Record4<Long, String, Integer, String> OrganizationsWithAttributesRecord : OrganizationsWithAttributesRecords) {
+			long organizationId = OrganizationsWithAttributesRecord.getValue(CM_CI.CI_ID);
 
-		for (Record organizationRecord : organizations) {
-			long organizationId = organizationRecord.getValue(CM_CI.CI_ID);
-			String organizationName = organizationRecord.getValue(CM_CI.CI_NAME);
-
+			String organizationName = OrganizationsWithAttributesRecord.getValue(CM_CI.CI_NAME);
+			Organization organization = organizationsMap.get(organizationName);
 			log.debug("organizationId: " + organizationId);
-			log.debug("get all attributes for organization");
-			Organization organization = new Organization();
-			Result<Record> organizationAttributes = create.select().from(CM_CI_ATTRIBUTES).join(MD_CLASS_ATTRIBUTES)
-					.on(CM_CI_ATTRIBUTES.ATTRIBUTE_ID.eq(MD_CLASS_ATTRIBUTES.ATTRIBUTE_ID))
-					.where(CM_CI_ATTRIBUTES.CI_ID.eq(organizationId)).fetch();
+			if (organization == null) {
+				organization = new Organization();
 
-			for (Record organizationAttribute : organizationAttributes) {
-				String attributeName = organizationAttribute.getValue(MD_CLASS_ATTRIBUTES.ATTRIBUTE_NAME);
-				switch (attributeName) {
-				case "description":
-					organization.setDescription(organizationAttribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-					break;
-				case "owner":
-					organization.setOwner(organizationAttribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-					break;
-				case "full_name":
-					organization.setFull_name(organizationAttribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-					break;
-				case "tags":
-					OrganizationTags tags = gson.fromJson(
-							organizationAttribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE),
-							OrganizationTags.class);
-					organization.setTags(tags);
-					break;
+			}
+			int attributeID = OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.ATTRIBUTE_ID);
 
-				}
+			if (attributeID == description_AttribID) {
+				organization.setDescription(
+						OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+				continue;
+			} else if (attributeID == full_name_AttribID) {
+				organization
+						.setFull_name(OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+				continue;
+
+			} else if (attributeID == owner_AttribID) {
+				organization.setOwner(OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+				continue;
+			} else if (attributeID == tags_AttribID) {
+				OrganizationTags tags = gson.fromJson(
+						OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE),
+						OrganizationTags.class);
+				organization.setTags(tags);
+				continue;
 			}
 
 			log.info("Fetched org Attributes");
 			organizationsMap.put(organizationName, organization);
 		}
+		
 
+		
 		log.info("Caching for Org Data Complete");
 		return organizationsMap;
 	}
-	
-	public Map<String, Cloud> getCloudsDataForPlatform(Connection conn, long platformId) {
+    
+	private void populateBaseOrganizationClassAttribMappingsCache(Connection conn) {
 		DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
+		log.debug("populating Organization Class Attribute Mappings Cache");
 
-		Map<String, Cloud> platformCloudMap = new HashMap<String, Cloud>();
+		this.baseOrganizationMDClassAttributes_NameIdMapCache = create
+				.select(MD_CLASS_ATTRIBUTES.ATTRIBUTE_ID, MD_CLASS_ATTRIBUTES.ATTRIBUTE_NAME).from(MD_CLASS_ATTRIBUTES)
+				.join(MD_CLASSES).on(MD_CLASS_ATTRIBUTES.CLASS_ID.eq(MD_CLASSES.CLASS_ID))
+				.where(MD_CLASSES.CLASS_NAME.eq("base.Organization")).fetch()
+				.intoMap(MD_CLASS_ATTRIBUTES.ATTRIBUTE_NAME, MD_CLASS_ATTRIBUTES.ATTRIBUTE_ID);
 
-		// Fetching All Clouds for platform
-		Result<Record> cloudsInPlatformRecords = create.select().from(CM_CI_RELATIONS).join(MD_RELATIONS)
-				.on(MD_RELATIONS.RELATION_ID.eq(CM_CI_RELATIONS.RELATION_ID)).join(CM_CI)
-				.on(CM_CI.CI_ID.eq(CM_CI_RELATIONS.TO_CI_ID)).where(MD_RELATIONS.RELATION_NAME.eq("base.Consumes"))
-				.and(CM_CI_RELATIONS.FROM_CI_ID.eq(platformId)).fetch();
-
-		for (Record cloudsInPlatformRecord : cloudsInPlatformRecords) {
-
-			long relationID = cloudsInPlatformRecord.get(CM_CI_RELATIONS.CI_RELATION_ID);
-			long cloudCid = cloudsInPlatformRecord.get(CM_CI_RELATIONS.TO_CI_ID);
-			String cloudName = cloudsInPlatformRecord.get(CM_CI.CI_NAME);
-
-			Result<Record> cloudsPlatformRelationshipAttributesRecords = create.select().from(CM_CI_RELATION_ATTRIBUTES)
-					.join(MD_RELATION_ATTRIBUTES)
-					.on(CM_CI_RELATION_ATTRIBUTES.ATTRIBUTE_ID.eq(MD_RELATION_ATTRIBUTES.ATTRIBUTE_ID))
-					.where(CM_CI_RELATION_ATTRIBUTES.CI_RELATION_ID.eq(relationID)).fetch();
-			Cloud cloud = new Cloud();
-			cloud.setId(cloudName);
-			for (Record cloudsPlatformRelationshipAttributesRecord : cloudsPlatformRelationshipAttributesRecords) {
-
-				switch (cloudsPlatformRelationshipAttributesRecord.get(MD_RELATION_ATTRIBUTES.ATTRIBUTE_NAME)) {
-				case "priority":
-					try {
-						int priority = Integer.valueOf(
-								cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-
-						cloud.setPriority(priority);
-					} catch (java.lang.NumberFormatException e) {
-						log.error("can not set <priority> attribute for cloudCid: " + cloudCid + " , cloudName: "
-								+ cloudName, e);
-					}
-
-					break;
-				case "adminstatus":
-					cloud.setAdminstatus(
-							cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-					break;
-				case "dpmt_order":
-					cloud.setDeploymentorder(Integer.valueOf(
-							cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
-					break;
-				case "pct_scale":
-
-					try {
-						int pct_scale = Integer.valueOf(
-								cloudsPlatformRelationshipAttributesRecord.get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-
-						cloud.setScalepercentage(pct_scale);
-					} catch (java.lang.NumberFormatException e) {
-						log.error("can not set <pct_scale> attribute for cloudCid: " + cloudCid + " , cloudName: "
-								+ cloudName, e);
-					}
-
-					break;
-
-				}
-
-			}
-			platformCloudMap.put(cloudName, cloud);
-
-		}
-		return platformCloudMap;
+		log.debug("baseOrganizationMDClassAttributes_NameIdMapCache: entrySet"
+				+ this.baseOrganizationMDClassAttributes_NameIdMapCache.entrySet());
 
 	}
 }
