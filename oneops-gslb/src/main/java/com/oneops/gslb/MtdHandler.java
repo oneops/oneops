@@ -381,18 +381,21 @@ public class MtdHandler {
               int ecvPort = Integer.parseInt(config[config.length-1]);
 
               String healthConfig = ecvMap.get(ecvPort);
-
-              if ((protocol.startsWith("http"))) {
-                if (healthConfig != null) {
-                  String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig + ", health check configuration, protocol: " + protocol + ", port: " + lbPort + ", path " + path);
-                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, path, 200);
+              if (healthConfig != null) {
+                if ((protocol.startsWith("http"))) {
+                  String path = healthConfig.substring(healthConfig.indexOf(" ") + 1);
+                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig + ", health check configuration, protocol: " + protocol + ", port: " + lbPort
+                      + ", path " + path);
+                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + lbPort,
+                      protocol, lbPort, path, 200);
                   hcList.add(healthCheck);
+
+                } else if ("tcp".equals(protocol)) {
+                  logger.info(
+                      context.getLogKey() + "health check configuration, protocol: " + protocol + ", port: " + lbPort);
+                  hcList.add(
+                      newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, null, null));
                 }
-              }
-              else if ("tcp".equals(protocol)) {
-                logger.info(context.getLogKey() + "health check configuration, protocol: " + protocol + ", port: " + lbPort);
-                hcList.add(newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, null, null));
               }
             }
           });
@@ -512,7 +515,7 @@ public class MtdHandler {
   }
 
   private void setupTorbitClient(Config config, Context context) throws Exception {
-    context.setMtdBaseHost("." + context.getSubdomain() + "." + context.getBaseGslbDomain());
+    context.setMtdBaseHost(("." + context.getSubdomain() + "." + context.getBaseGslbDomain()).toLowerCase());
     TorbitClient client = new TorbitClient(config);
     context.setTorbitClient(client);
     context.setTorbitApi(client.getTorbit());
