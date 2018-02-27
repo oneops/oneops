@@ -17,7 +17,6 @@ public class PlatformHADRRecord implements Serializable {
   private String platform;
   private String ooUrl;
   private String assembly;
-  private String sClouds;
   private Date createdTS;
   private String env;
   private String pack;
@@ -68,14 +67,6 @@ public class PlatformHADRRecord implements Serializable {
 
   public void setAssembly(String assembly) {
     this.assembly = assembly;
-  }
-
-  public String getSClouds() {
-    return sClouds;
-  }
-
-  public void setSClouds(String sClouds) {
-    this.sClouds = sClouds;
   }
 
   public Date getCreatedTS() {
@@ -149,8 +140,6 @@ public class PlatformHADRRecord implements Serializable {
   public void setTotalComputes(int totalComputes) {
     this.totalComputes = totalComputes;
   }
-
-
 
   public List<String> getActiveClouds() {
     return activeClouds;

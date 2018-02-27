@@ -6,71 +6,71 @@
 					"type": "integer"
 				},
 				"environmentProfile": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"createdTS": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"nsPath": {
 					"type": "string",
 					"index": "not_analyzed"
 				},
 				"platform": {
-					"type": "string"
-				},
-				"ctoOrg": {
-					"type": "string"
-				},
-				"ctoDirect": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"ooUrl": {
 					"type": "string",
 					"index": "not_analyzed"
 				},
 				"assembly": {
-					"type": "string"
-				},
-				"sClouds": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"env": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"pack": {
-					"type": "string"
-				},
-				"vp": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"org": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"packVersion": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"isDR": {
-					"type": "String"
-				},
-				"plat": {
-					"type": "string"
+					"type": "String",
+					"index": "not_analyzed"
 				},
 				"source": {
-					"type": "string"
+					"type": "string",
+					"index": "not_analyzed"
 				},
 				"isHA": {
-					"type": "String"
+					"type": "String",
+					"index": "not_analyzed"
 				},
 				"sourcePack": {
+					"type": "string",
+					"index": "not_analyzed"
+				},
+				"primaryClouds": {
 					"type": "string"
 				},
 				"secondaryClouds": {
 					"type": "string"
 				},
-				"pClouds": {
+				"activeClouds": {
 					"type": "string"
 				},
-				"primaryClouds": {
+				"offlineClouds": {
 					"type": "string"
 				},
 				"totalCores": {
@@ -78,6 +78,42 @@
 				},
 				"totalComputes": {
 					"type": "integer"
+				},
+				"organization": {
+					"properties": {
+						"tags": {
+							"properties": {
+								"CCCID": {
+									"type": "string",
+									"index": "not_analyzed"
+								},
+								"VP": {
+									"type": "string",
+									"index": "not_analyzed"
+								},
+								"pillar": {
+									"type": "string",
+									"index": "not_analyzed"
+								},
+								"dept": {
+									"type": "string",
+									"index": "not_analyzed"
+								},
+								"costcenter": {
+									"type": "string",
+									"index": "not_analyzed"
+								},
+								"CTOdirect": {
+									"type": "string",
+									"index": "not_analyzed"
+								},
+								"CTO": {
+									"type": "string",
+									"index": "not_analyzed"
+								}
+							}
+						}
+					}
 				}
 			}
 		}

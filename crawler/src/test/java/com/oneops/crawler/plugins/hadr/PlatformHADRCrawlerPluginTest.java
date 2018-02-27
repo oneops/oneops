@@ -130,7 +130,7 @@ public class PlatformHADRCrawlerPluginTest {
 
     platformHADRRecord.setOoUrl("Test-ooUrl");
     platformHADRRecord.setAssembly("test-assembly");
-    platformHADRRecord.setSClouds("test-sClouds");
+
     platformHADRRecord.setCreatedTS(new Date());
     platformHADRRecord.setEnv("Test-env");
     platformHADRRecord.setPack("Test-pack");
