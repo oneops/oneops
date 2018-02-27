@@ -21,8 +21,8 @@ public class PlatformHADRCrawlerPluginTest {
   public void init() {
     System.setProperty("hadr.plugin.enabled", "true");
     System.setProperty("hadr.es.enabled", "true");
-    System.setProperty("hadr.prod.datacenters.list", "dal~dfw~oo-test");
-    System.setProperty("hadr.oo.baseurl", "https://oneops.prod.walmart.com");
+    System.setProperty("hadr.prod.datacenters.list", "dc1~dc2~dc3-dc4");
+    System.setProperty("hadr.oo.baseurl", "https://oneops.prod.org.com");
   }
 
   @Test(enabled = true)
@@ -31,7 +31,7 @@ public class PlatformHADRCrawlerPluginTest {
 
     assertEquals(plugin.isHadrPluginEnabled(), true);
     assertEquals(plugin.isHadrEsEnabled(), true);
-    assertEquals(plugin.getProdDataCentersList(), "dal~dfw~oo-test");
+    assertEquals(plugin.getProdDataCentersList(), "dc1~dc2~dc3-dc4");
 
   }
 
@@ -40,10 +40,10 @@ public class PlatformHADRCrawlerPluginTest {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
-    activeClouds.add("dal-TestCloud1");
-    activeClouds.add("dal-TestCloud2");
-    activeClouds.add("dfw-TestCloud1");
-    activeClouds.add("dfw-TestCloud2");
+    activeClouds.add("dc1-TestCloud1");
+    activeClouds.add("dc1-TestCloud2");
+    activeClouds.add("dc2-TestCloud1");
+    activeClouds.add("dc2-TestCloud2");
     platform.setActiveClouds(activeClouds);
     assertEquals(plugin.IsPlatformDRCompliant(platform), "DR");
 
@@ -54,8 +54,8 @@ public class PlatformHADRCrawlerPluginTest {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
-    activeClouds.add("dal-TestCloud1");
-    activeClouds.add("dal-TestCloud2");
+    activeClouds.add("dc1-TestCloud1");
+    activeClouds.add("dc1-TestCloud2");
     platform.setActiveClouds(activeClouds);
     assertEquals(plugin.IsPlatformDRCompliant(platform), "Non-DR");
 
@@ -66,8 +66,8 @@ public class PlatformHADRCrawlerPluginTest {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
-    activeClouds.add("dal-TestCloud1");
-    activeClouds.add("dal-TestCloud2");
+    activeClouds.add("dc1-TestCloud1");
+    activeClouds.add("dc1-TestCloud2");
 
     platform.setActiveClouds(activeClouds);
     assertEquals(plugin.IsPlatformHACompliant(platform), "HA");
@@ -79,7 +79,7 @@ public class PlatformHADRCrawlerPluginTest {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
-    activeClouds.add("dal-TestCloud1");
+    activeClouds.add("dc1-TestCloud1");
     platform.setActiveClouds(activeClouds);
     assertEquals(plugin.IsPlatformDRCompliant(platform), "Non-DR");
 
@@ -88,18 +88,18 @@ public class PlatformHADRCrawlerPluginTest {
   @Test(enabled = true)
   private void testPlatformHADRCrawlerPlugin_parseAssemblyNameFromNsPath() {
     plugin = new PlatformHADRCrawlerPlugin();
-    String nsPath = "/tessrs/Palantir/palantir/bom/leviathan-dev/1";
-    assertEquals(plugin.parseAssemblyNameFromNsPath(nsPath), "Palantir");
+    String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
+    assertEquals(plugin.parseAssemblyNameFromNsPath(nsPath), "assemblyname");
 
   }
 
   @Test(enabled = true)
   private void testPlatformHADRCrawlerPlugin_getOOURL() {
-    System.setProperty("hadr.oo.baseurl", "https://oneops.prod.walmart.com");
+    System.setProperty("hadr.oo.baseurl", "https://oneops.prod.org.com");
     plugin = new PlatformHADRCrawlerPlugin();
-    String nsPath = "/tessrs/Palantir/palantir/bom/leviathan-dev/1";
+    String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
     String expectedOOURLString =
-        "https://oneops.prod.walmart.com/r/ns?path=/tessrs/Palantir/palantir/bom/leviathan-dev/1";
+        "https://oneops.prod.org.com/r/ns?path=/orgname/assemblyname/platformname/bom/env-dev/1";
     assertEquals(plugin.getOOURL(nsPath), expectedOOURLString);
 
   }
@@ -108,8 +108,8 @@ public class PlatformHADRCrawlerPluginTest {
   private void testPlatformHADRCrawlerPlugin_getOOURL_DefaultToBlank() {
     System.clearProperty("hadr.oo.baseurl");
     plugin = new PlatformHADRCrawlerPlugin();
-    String nsPath = "/tessrs/Palantir/palantir/bom/leviathan-dev/1";
-    String expectedOOURLString = "/r/ns?path=/tessrs/Palantir/palantir/bom/leviathan-dev/1";
+    String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
+    String expectedOOURLString = "/r/ns?path=/orgname/assemblyname/platformname/bom/env-dev/1";
     assertEquals(plugin.getOOURL(nsPath), expectedOOURLString);
 
   }
