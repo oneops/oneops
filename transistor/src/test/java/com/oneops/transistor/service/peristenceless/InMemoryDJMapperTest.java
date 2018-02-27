@@ -190,6 +190,21 @@ public class InMemoryDJMapperTest {
         assertNull(mapper.getOpenRfcCIByCiId(2L));
     }
 
+    @Test
+    public void testGetOpenRfcCIByCiIdList() {
+        CmsRfcCI rfcCi = new CmsRfcCI();
+        rfcCi.setRfcId(1);
+        rfcCi.setCiId(1);
+        mapper.createRfcCI(rfcCi);
+        CmsRfcCI rfcCi2 = new CmsRfcCI();
+        rfcCi2.setRfcId(2);
+        rfcCi2.setCiId(2);
+        mapper.createRfcCI(rfcCi2);
+        ArrayList<Long> ciIds = new ArrayList<>();
+        ciIds.add(1L);
+        ciIds.add(2L);
+        assertEquals(2, mapper.getOpenRfcCIByCiIdList(ciIds).size());
+    }
 
     @Test
     public void testGetRfcCIBy3() throws Exception {
