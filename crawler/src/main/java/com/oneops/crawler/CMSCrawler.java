@@ -26,7 +26,6 @@ import com.oneops.Cloud;
 import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Organization;
-import com.oneops.OrganizationTags;
 import com.oneops.Platform;
 import com.oneops.crawler.jooq.cms.Sequences;
 import com.oneops.crawler.plugins.hadr.PlatformHADRCrawlerPlugin;
@@ -159,7 +158,7 @@ public class CMSCrawler {
                     populateEnv(env, conn);
                     List<Deployment> deployments = getDeployments(conn, env);
                     plugin.processEnvironment(env, deployments);
-                     platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
+                    platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
                     updateCrawlEntry(env);
                 }
 
@@ -524,11 +523,12 @@ public class CMSCrawler {
 
         continue;
       } else if (attributeID == tags_AttribID) {
-        OrganizationTags tags = gson.fromJson(
+        @SuppressWarnings("unchecked") 
+        Map<String, String> tags = gson.fromJson(
             OrganizationsWithAttributesRecord.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE),
-            OrganizationTags.class);
+            Map.class);
         organization.setTags(tags);
-
+        
         continue;
       }
 
@@ -538,7 +538,7 @@ public class CMSCrawler {
     log.info("Caching for Org Data Complete");
     return organizationsMap;
   }
-    
+  
   private void populateBaseOrganizationClassAttribMappingsCache(Connection conn) {
     DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
     log.debug("populating Organization Class Attribute Mappings Cache");

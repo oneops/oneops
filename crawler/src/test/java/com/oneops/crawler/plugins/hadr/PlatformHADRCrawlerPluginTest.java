@@ -3,12 +3,15 @@ package com.oneops.crawler.plugins.hadr;
 import static org.testng.Assert.assertEquals;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import com.google.gson.Gson;
+import com.oneops.Organization;
 import com.oneops.Platform;
 import com.oneops.crawler.plugins.hadr.PlatformHADRCrawlerPlugin;
 
@@ -26,7 +29,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  public void testPlatformHADRCrawlerPlugin_readConfig() {
+  public void test_ReadConfig() {
     plugin = new PlatformHADRCrawlerPlugin();
 
     assertEquals(plugin.isHadrPluginEnabled(), true);
@@ -36,7 +39,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_IsPlatformDRCompliant_YES() {
+  private void test_IsPlatformDRCompliant() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
@@ -50,7 +53,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_IsPlatformDRCompliant_NO() {
+  private void test_IsPlatformDRCompliant_NonDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
@@ -62,7 +65,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_IsPlatformHACompliant_YES() {
+  private void test_IsPlatformHACompliant() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
@@ -75,7 +78,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_IsPlatformHACompliant_NO() {
+  private void test_IsPlatformHACompliant_NonHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
@@ -86,7 +89,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_parseAssemblyNameFromNsPath() {
+  private void test_parseAssemblyNameFromNsPath() {
     plugin = new PlatformHADRCrawlerPlugin();
     String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
     assertEquals(plugin.parseAssemblyNameFromNsPath(nsPath), "assemblyname");
@@ -94,7 +97,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_getOOURL() {
+  private void test_getOOURL() {
     System.setProperty("hadr.oo.baseurl", "https://oneops.prod.org.com");
     plugin = new PlatformHADRCrawlerPlugin();
     String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
@@ -105,7 +108,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testPlatformHADRCrawlerPlugin_getOOURL_DefaultToBlank() {
+  private void test_getOOURL_DefaultToBlank() {
     System.clearProperty("hadr.oo.baseurl");
     plugin = new PlatformHADRCrawlerPlugin();
     String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
@@ -116,21 +119,19 @@ public class PlatformHADRCrawlerPluginTest {
 
   // TODO: Pending for converting Elastic search calls to a mock object
   @Test(enabled = false)
-  private void testPlatformHADRCrawlerPlugin_SaveToElasticSearch() {
+  private void SaveToElasticSearch() {
+
     System.setProperty("hadr.es.enabled", "true");
-    System.setProperty("es.host", "localhost");
+    System.setProperty("es.host", "searchdb.stg.core-1612.oneops.prod.walmart.com");
     plugin = new PlatformHADRCrawlerPlugin();
 
     PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
-
     platformHADRRecord.setTotalCores(4);
     platformHADRRecord.setTotalComputes(2);
     platformHADRRecord.setNsPath("Test-nsPath");
     platformHADRRecord.setPlatform("Test-platform");
-
     platformHADRRecord.setOoUrl("Test-ooUrl");
     platformHADRRecord.setAssembly("test-assembly");
-
     platformHADRRecord.setCreatedTS(new Date());
     platformHADRRecord.setEnv("Test-env");
     platformHADRRecord.setPack("Test-pack");
@@ -143,9 +144,28 @@ public class PlatformHADRCrawlerPluginTest {
     Gson gson = new Gson();
     String jsonInString = gson.toJson(platformHADRRecord);
     log.info("jsonInString: " + jsonInString);
+    Organization organization = new Organization();
+    organization.setFull_name("Test-full_name");
+    organization.setOwner("Test-owner");
+    organization.setDescription("Test-description");
+
+
+    Map<String, String> tags =new HashMap<String, String>();
+    tags.put("CCCID", "Test-cCCID2");
+    tags.put("pillar", "test-pillar2");
+    tags.put("VP", "test-vP2");
+    tags.put("dept", "Test-dept");
+    tags.put("costcenter", "test-costcenter2");
+    tags.put("CTOdirect", "test-cTOdirect2");
+    tags.put("CTO", "Test-cTO2");
+    
+    organization.setTags(tags);
+
+
+    platformHADRRecord.setOrganization(organization);
+
 
     plugin.saveToElasticSearch(platformHADRRecord, "1");
 
   }
-
 }
