@@ -70,16 +70,9 @@ $script_configure_circuits = <<SCRIPT
 SCRIPT
 
 $script_use_latest_inductor = <<SCRIPT
-  is_azure_inductor=`gem list fog-azure-rm -i`
-
-  if [ $is_azure_inductor == "true" ]
-  then
-    echo 'it is azure inductor'
-    oneops_admin_path=$(gem path oneops-admin-inductor-az)
-  else
-    echo 'it is not an azure inductor'
-    oneops_admin_path=$(gem path oneops-admin-inductor)
-  fi
+  inductor_file_path=$(gem which inductor)
+  lib_dir=$(dirname $inductor_file_path)
+  oneops_admin_path=$(dirname $lib_dir)
 
   cd $oneops_admin_path
 
