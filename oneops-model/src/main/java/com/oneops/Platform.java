@@ -3,6 +3,7 @@ package com.oneops;
 import com.google.common.collect.Lists;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -22,6 +23,9 @@ public class Platform extends OneopsObject {
   private Map<String, String> configuration;
   private Map<String, Map<String, String>> scale;
   private List<String> activeClouds = new ArrayList<>();
+  private transient Map<String, Cloud> cloudsMap= new HashMap<String, Cloud>();
+  private List<Cloud> clouds= new ArrayList<Cloud>();
+  
 
   public String getPack() {
     return pack;
@@ -136,4 +140,24 @@ public class Platform extends OneopsObject {
   public void setActiveClouds(List<String> activeClouds) {
     this.activeClouds = activeClouds;
   }
+
+	public Map<String, Cloud> getCloudsMap() {
+		return cloudsMap;
+	}
+
+	public void setCloudsMap(Map<String, Cloud> cloudsMap) {
+		this.cloudsMap = cloudsMap;
+	}
+
+	public List<Cloud> getClouds() {
+		return clouds;
+	}
+
+	public void setClouds(List<Cloud> clouds) {
+		this.clouds = clouds;
+	}
+
+
+
+  
 }
