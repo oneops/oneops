@@ -19,17 +19,20 @@ package com.oneops.inductor;
 
 import static java.lang.String.format;
 
-import com.oneops.cms.util.CmsConstants;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.oneops.cms.util.CmsConstants;
+
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.log4j.Logger;
 
 public class ProcessRunner {
@@ -190,7 +193,8 @@ public class ProcessRunner {
       DefaultExecutor executor = new DefaultExecutor();
       executor.setExitValue(0);
       executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
-      executor.setStreamHandler(new OutputHandler(logger, logKey, result));
+      OutputHandler outputStream = new OutputHandler(logger, logKey, result);
+      executor.setStreamHandler(new PumpStreamHandler(outputStream));
       if (workingDir != null) {
         executor.setWorkingDirectory(workingDir);
       }
