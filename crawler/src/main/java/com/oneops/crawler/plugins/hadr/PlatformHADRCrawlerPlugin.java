@@ -108,8 +108,8 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   public void processPlatformForProdEnv(Platform platform, Environment env,
       Map<String, Organization> organizationsMapCache) {
     PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
-    platformHADRRecord.setIsDR(IsPlatformDRCompliant(platform));
-    platformHADRRecord.setIsHA(IsPlatformHACompliant(platform));
+    platformHADRRecord.setIsDR(IsDR(platform));
+    platformHADRRecord.setIsHA(IsHA(platform));
     platformHADRRecord.setEnv(env.getName());
     platformHADRRecord.setPack(platform.getPack());
     platformHADRRecord.setPackVersion(platform.getPackVersion());
@@ -162,7 +162,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     }
   }
 
-  public String IsPlatformDRCompliant(Platform platform) {
+  public String IsDR(Platform platform) {
 
     String activeCloudsListForPlatform = platform.getActiveClouds().toString().toLowerCase();
     log.info("activeCloudsListForPlatform: " + activeCloudsListForPlatform.toString());
@@ -179,7 +179,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   }
 
-  public String IsPlatformHACompliant(Platform platform) {
+  public String IsHA(Platform platform) {
 
     if (platform.getActiveClouds().size() >= 2) {
       return "HA";

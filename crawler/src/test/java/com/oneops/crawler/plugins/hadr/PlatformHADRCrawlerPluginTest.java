@@ -39,7 +39,7 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void test_IsPlatformDRCompliant() {
+  private void test_IsDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
@@ -48,24 +48,24 @@ public class PlatformHADRCrawlerPluginTest {
     activeClouds.add("dc2-TestCloud1");
     activeClouds.add("dc2-TestCloud2");
     platform.setActiveClouds(activeClouds);
-    assertEquals(plugin.IsPlatformDRCompliant(platform), "DR");
+    assertEquals(plugin.IsDR(platform), "DR");
 
   }
 
   @Test(enabled = true)
-  private void test_IsPlatformDRCompliant_NonDR() {
+  private void test_IsNonDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
     activeClouds.add("dc1-TestCloud1");
     activeClouds.add("dc1-TestCloud2");
     platform.setActiveClouds(activeClouds);
-    assertEquals(plugin.IsPlatformDRCompliant(platform), "Non-DR");
+    assertEquals(plugin.IsDR(platform), "Non-DR");
 
   }
 
   @Test(enabled = true)
-  private void test_IsPlatformHACompliant() {
+  private void test_IsHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
@@ -73,18 +73,18 @@ public class PlatformHADRCrawlerPluginTest {
     activeClouds.add("dc1-TestCloud2");
 
     platform.setActiveClouds(activeClouds);
-    assertEquals(plugin.IsPlatformHACompliant(platform), "HA");
+    assertEquals(plugin.IsHA(platform), "HA");
 
   }
 
   @Test(enabled = true)
-  private void test_IsPlatformHACompliant_NonHA() {
+  private void test_IsNonHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
     List<String> activeClouds = new ArrayList<String>();
     activeClouds.add("dc1-TestCloud1");
     platform.setActiveClouds(activeClouds);
-    assertEquals(plugin.IsPlatformDRCompliant(platform), "Non-DR");
+    assertEquals(plugin.IsDR(platform), "Non-DR");
 
   }
 
