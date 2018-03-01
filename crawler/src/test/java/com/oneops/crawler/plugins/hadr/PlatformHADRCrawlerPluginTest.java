@@ -122,7 +122,7 @@ public class PlatformHADRCrawlerPluginTest {
   private void SaveToElasticSearch() {
 
     System.setProperty("hadr.es.enabled", "true");
-    System.setProperty("es.host", "searchdb.stg.core-1612.oneops.prod.walmart.com");
+    System.setProperty("es.host", "localhost");
     plugin = new PlatformHADRCrawlerPlugin();
 
     PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
