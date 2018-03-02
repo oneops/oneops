@@ -5,6 +5,12 @@ task :rename_exec_gems do
   f = File.expand_path('lib/shared', File.dirname(__FILE__))
   Dir.chdir f
   File.rename('exec-gems-az.yaml','exec-gems.yaml')
+
+  Dir.chdir f + '/cookbooks'
+  Dir.glob('exec-gems-az*') do |gemfile_name|
+    new_gemfile_name = gemfile_name.gsub('exec-gems-az', 'exec-gems')
+    File.rename(gemfile_name, new_gemfile_name)
+  end
 end
 
 task default: :rename_exec_gems

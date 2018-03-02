@@ -25,7 +25,7 @@ Gem::Specification.new do |s|
                             Dir.glob('target/inductor-*.jar') +
                             Dir.glob('lib/templates/inductor/**/*') +
                             Dir.glob('lib/templates/cloud/**/*') +
-                            (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH)).
+                            (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH).reject{ |f| f =~ /exec-gems-az/}).
                               reject {|f| f =~ (/\.(\.|png)?$/)}
 
   s.add_dependency 'thor', '= 0.19.1'
@@ -37,7 +37,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'fog', '= 1.38.0'
   s.add_dependency 'fog-aliyun', '= 0.1.0'
-  s.add_dependency 'ffi', '= 1.9.10'
+  s.add_dependency 'ffi', '= 1.9.18'
   s.add_dependency 'nokogiri', '= 1.5.11'
   s.add_dependency 'ohai', '= 7.4.1'
   s.add_dependency 'mixlib-shellout', '= 1.4.0'
@@ -55,4 +55,5 @@ Gem::Specification.new do |s|
   s.add_dependency 'fog-vsphere', '= 1.5.1'
   s.add_dependency 'fog-openstack', '= 0.1.21'
   s.add_dependency 'crack', '= 0.4.3'
+  s.add_dependency 'mixlib-config', '= 2.2.4'
 end

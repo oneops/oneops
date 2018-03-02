@@ -89,7 +89,7 @@ end
 
 
 def is_gem_installed?(gem, version = nil)
-  cmd = "#{get_bin_dir}bundle #{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
+  cmd = "#{get_bin_dir}gem list ^#{gem}$ -i" + (version.nil? ? '' : "-v #{version}")
   out = `#{cmd}`.chomp
   out == 'true' ? true : false
 end
@@ -109,48 +109,72 @@ def check_gem_update_needed (gems, log_level = 'info')
   update_needed
 end
 
-
 def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_level)
 
-    #2 scenarions when need to run bundle install
-    #  1) if running for the first time - determined by checking if provisioner gem (chef, puppet) is installed.
-    # Not checking its version though, it would be done in the below check
-    #  2) if any gems from exec-gems.yaml (including provisioner gem itself) have mismatching versions
+  #2 scenarions when need to run bundle install
+  #  1) if running for the first time - determined by checking if provisioner gem (chef, puppet) is installed.
+  # Not checking its version though, it would be done in the below check
+  #  2) if any gems from exec-gems.yaml (including provisioner gem itself) have mismatching versions
 
-    method = nil
-    if !is_gem_installed?(provisioner)
-      puts "Provisioner #{provisioner} is not installed, will run bundle install."
+  method = nil
+  if !is_gem_installed?(provisioner)
+    puts "Provisioner #{provisioner} is not installed, will run bundle install."
+    method = 'install'
+  elsif check_gem_update_needed(gems, log_level)
+    if ['objectstore','compute','volume', 'os'].include?(component)
+      puts "Gem update is required for component: #{component}"
       method = 'install'
-    elsif check_gem_update_needed(gems, log_level)
-      if ['objectstore','compute','volume', 'os'].include?(component)
-        puts "Gem update is required for component: #{component}"
-        method = 'install'
-      else
-        puts "Gem update is required but will not be run for component: #{component}"
-      end
     else
-      puts 'No gem update is required.'
+      puts "Gem update is required but will not be run for component: #{component}"
     end
+  else
+    puts 'No gem update is required.'
+  end
 
-    if !method.nil?
-      start_time = Time.now.to_i
-      ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
-      create_gemfile(gem_sources, gems)
+  if !method.nil?
+    start_time = Time.now.to_i
+    ['Gemfile', 'Gemfile.lock'].each {|f| File.delete(f) if File.file?(f)}
+    create_gemfile(gem_sources, gems)
 
-      cmd = "#{get_bin_dir}bundle #{method} --local"
+    cmd = "#{get_bin_dir}bundle #{method} --local"
+    ec = system cmd
+    if !ec || ec.nil?
+      puts "#{cmd} failed with, #{$?}"
+      puts 'fetching gems from remote sources'
+
+      cmd = "#{get_bin_dir}bundle #{method} --full-index"
       ec = system cmd
       if !ec || ec.nil?
         puts "#{cmd} failed with, #{$?}"
-        puts 'fetching gems from remote sources'
-
-        cmd = "#{get_bin_dir}bundle #{method} --full-index"
-        ec = system cmd
-        if !ec || ec.nil?
-          puts "#{cmd} failed with, #{$?}"
-          exit 1
-        end
+        exit 1
       end
-
-      puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
     end
+
+    puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
+  end
+end
+
+def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisioner_version)
+
+  if ['objectstore','compute','volume', 'os'].include?(component)
+    start_time = Time.now.to_i
+    cmd = "#{get_bin_dir}bundle install --local --gemfile exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+    ec = system cmd
+    if !ec || ec.nil?
+      puts "#{cmd} failed with, #{$?}"
+      puts 'fetching gems from remote sources'
+
+      cmd = "#{get_bin_dir}bundle install --full-index --gemfile exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+      ec = system cmd
+      if !ec || ec.nil?
+        puts "#{cmd} failed with, #{$?}"
+        exit 1
+      end
+    end
+
+    puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
+  else
+    puts "gem install doesn't run for component:#{component}"
+  end
+
 end
