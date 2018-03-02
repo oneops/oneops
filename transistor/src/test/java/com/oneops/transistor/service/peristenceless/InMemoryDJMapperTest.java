@@ -190,10 +190,6 @@ public class InMemoryDJMapperTest {
         assertNull(mapper.getOpenRfcCIByCiId(2L));
     }
 
-    @Test
-    public void testGetOpenRfcCIByCiIdList() throws Exception {
-        assertThrows(UnsupportedOperationException.class, () -> mapper.getOpenRfcCIByCiIdList(null));
-    }
 
     @Test
     public void testGetRfcCIBy3() throws Exception {

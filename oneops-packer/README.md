@@ -135,3 +135,17 @@ Same as above command, but this time we will insert an argument to force Packer 
 [2]: https://www.virtualbox.org
 [3]: https://www.vagrantup.com
 [4]: https://brew.sh
+
+
+# How Tos
+
+### How can I use the modified inductor.jar 
+after you made changes to inductor java code, on the host machine, you will run 
+1. `mvn clean package` This will build inductor.jar with all the changes you made 
+2. `cd ~/.oneopsuni/vagrant`
+3. `vagrant provision --provision-with use_latest_inductor`
+
+
+
+
+
