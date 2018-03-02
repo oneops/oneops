@@ -293,9 +293,9 @@ public class InductorTest {
 
     assertNotNull("Invalid kitchen config.", yamlConfig);
     if (remote) {
-      assertTrue(config.contains("chef_solo_path: /usr/local/bin/chef-solo"));
+      assertTrue(config.contains("chef_solo_path: <%= chef_path %>"));
       assertTrue(config.contains("root_path: /tmp/kitchen"));
-      assertTrue(config.contains("ruby_bindir: /usr/bin"));
+      assertTrue(config.contains("ruby_bindir: <%= ruby_path %>"));
       assertTrue(config.contains("root_path: /tmp/verifier-190494"));
     }
   }
@@ -315,9 +315,9 @@ public class InductorTest {
     Object winYaml = yaml.load(config);
 
     assertNotNull("Invalid kitchen config.", winYaml);
-    assertTrue(config.contains("chef_solo_path: c:/opscode/chef/embedded/bin/chef-solo"));
+    assertTrue(config.contains("chef_solo_path: <%= chef_path %>"));
     assertTrue(config.contains("root_path: c:/tmp/kitchen"));
-    assertTrue(config.contains("ruby_bindir: c:/opscode/chef/embedded/bin"));
+    assertTrue(config.contains("ruby_bindir: <%= ruby_path %>"));
     assertTrue(config.contains("root_path: c:/tmp/verifier-190494"));
   }
 
