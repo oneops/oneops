@@ -18,6 +18,7 @@
 package com.oneops.notification;
 
 import com.oneops.cms.simple.domain.CmsCISimple;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
@@ -58,9 +59,9 @@ public class NotificationMessage implements Serializable {
   public Map<String, Object> getPayload() {
     return payload;
   }
-  
-  public String getPayloadString(String name){
-    return String.valueOf(payload.get(name));
+
+  public String getPayloadString(String name) {
+    return payload.get(name) == null ? null : String.valueOf(payload.get(name));
   }
 
   public void putPayloadEntry(String name, Object value) {
