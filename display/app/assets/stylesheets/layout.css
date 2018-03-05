@@ -617,8 +617,11 @@ img.authicon {
 }
 
 #overlay div.controls .well {
-  margin:    10px 10px 5px 10px;
+  margin:    10px 0px 5px 0px;
   font-size: 16px;
+}
+#overlay div.controls textarea {
+  width: 98%;
 }
 
 #overlay div.controls table {
@@ -627,6 +630,15 @@ img.authicon {
 
 #overlay div.controls table td {
   padding: 10px;
+}
+
+#overlay div.controls .pending-approvals td {
+  text-align: left;
+}
+
+#overlay div.controls .pending-approvals td > input {
+  margin: 0;
+  padding: 0 4px;
 }
 
 #overlay .wf > div.controls .cost-change {
@@ -4692,4 +4704,9 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 form.deploy-action textarea {
   height: 80px;
+}
+
+.pending-approvals td > input {
+  margin: 0;
+  padding: 0 4px;
 }
