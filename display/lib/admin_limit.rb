@@ -10,21 +10,20 @@ module AdminLimit
 
     org = current_user.organization
 
-    support_admin_ids = []
-    admin_group_name = Settings.support_admin_group
-    if admin_group_name.present?
-      admin_group = team.groups.where(:name => admin_group_name).first
-      support_admin_ids = admin_group.users.ids if admin_group
+    global_admin_ids = []
+    global_admin_groups = Settings.global_admin_groups
+    if global_admin_groups.present?
+      global_admin_ids = team.groups.where(:name => global_admin_groups.split(',').map(&:strip)).joins(:users).pluck('users.id').uniq
     end
 
     current_admin_ids   = org.admin_users.ids + org.admin_group_users.ids
-    current_admin_count = (current_admin_ids - support_admin_ids).uniq.size
+    current_admin_count = (current_admin_ids - global_admin_ids).uniq.size
 
     incoming_admin_ids = member.is_a?(User) ? [member.id] : member.users.ids
     incoming_admin_count = (incoming_admin_ids - current_admin_ids).uniq.size
 
     user_ids        = (org.users.ids + org.group_users.ids).uniq
-    user_count      = (user_ids - support_admin_ids).size
+    user_count      = (user_ids - global_admin_ids).size
     max_admin_count = limit < 1 ? (user_count * limit).to_i : limit
 
     return nil if current_admin_count + incoming_admin_count <= max_admin_count
