@@ -177,7 +177,9 @@ public class InMemoryDJMapper implements DJMapper{
 
     @Override
     public List<CmsRfcCI> getOpenRfcCIByCiIdList(List<Long> ciIds) {
-        throw new UnsupportedOperationException();
+        return cis.values().stream()
+                .filter(r -> (ciIds.contains(r.getCiId())) )
+                .collect(Collectors.toList());
     }
 
     @Override

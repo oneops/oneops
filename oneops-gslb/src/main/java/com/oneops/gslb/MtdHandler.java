@@ -5,7 +5,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.gslb.v2.domain.BaseResponse;
@@ -37,8 +36,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import retrofit2.Call;
 
@@ -48,34 +50,66 @@ public class MtdHandler {
   private static final String MTDB_TYPE_GSLB = "GSLB";
 
   private static final String CLOUD_STATUS_ACTIVE = "active";
+  private static final String CLOUD_STATUS_INACTIVE = "inactive";
   private static final String ATTRIBUTE_CLOUD_STATUS = "base.Consumes.adminstatus";
   private static final String ATTRIBUTE_CLOUD_PRIORITY = "base.Consumes.priority";
-  private static final String ATTRIBUTE_DNS_RECORD = "dns_record";
+  public static final String ATTRIBUTE_DNS_RECORD = "dns_record";
+  private static final String ATTRIBUTE_PLATFORM_ENABLED = "is_platform_enabled";
 
   private static final String MTD_BASE_EXISTS_ERROR = "DB_UNIQUENESS_VIOLATION";
   private static final String MTD_HOST_EXISTS_ERROR = "MTD_HOST_EXISTS_ON_MTD_BASE";
   private static final String MTD_HOST_NOT_EXISTS_ERROR = "COULD_NOT_FIND_MTD_HOST";
 
-  private Gson gson = new Gson();
-  private JsonParser jsonParser = new JsonParser();
-
   private static final Logger logger = Logger.getLogger(MtdHandler.class);
 
   ConcurrentMap<String, Cloud> cloudMap = new ConcurrentHashMap<>();
 
+  @Value("${mtd.timeout:2s}")
+  String timeOut;
+
+  @Value("${mtd.inteval:5s}")
+  String interval;
+
+  @Value("${mtd.retryDelay:30s}")
+  String retryDelay;
+
+  @Value("${mtd.failsForDown:3}")
+  int failureCountToMarkDown;
+
   @Autowired
   WoHelper woHelper;
+
+  @Autowired
+  Gson gson;
+
+  @Autowired
+  JsonParser jsonParser;
+
+  @PostConstruct
+  public void init() {
+   logger.info("initialized with mtd timeout: " + timeOut + ", interval: " + interval +
+       ", retryDelay: " + retryDelay + ", failureCountToMarkDown: " + failureCountToMarkDown);
+  }
 
   public void setupTorbitGdns(CmsWorkOrderSimple wo, Config config, Context context) {
     String logKey = context.getLogKey();
     try {
       setupTorbitClient(config, context);
-      logger.info(logKey + "FQDNExecutor executing workorder dpmt " + wo.getDeploymentId() + " action : " + wo.rfcCi.getRfcAction());
+      logger.info(logKey + "MtdHandler setting up Mtd for Gslb");
       if (woHelper.isAddAction(wo)) {
         addGslb(wo, context);
       }
       else if(woHelper.isDeleteAction(wo)) {
-        deleteGslb(wo, context);
+        logger.info(logKey + "handling delete rfc action");
+        //delete mtd host only if it is a platform disable
+        if (checkForPlatformDisable(wo, context)) {
+          logger.info(logKey + "platform getting disabled, removing mtd host");
+          deleteGslb(wo, context);
+        }
+        else {
+          logger.info(logKey + "platform is not disabled, continuing with update mtd");
+          updateGslb(wo, context);
+        }
       }
       else {
         //update/replace actions
@@ -86,6 +120,14 @@ public class MtdHandler {
     }
   }
 
+  private boolean checkForPlatformDisable(CmsWorkOrderSimple wo, Context context) {
+    Map<String, String> platformAttributes = wo.getBox().getCiAttributes();
+    if (platformAttributes.containsKey(ATTRIBUTE_PLATFORM_ENABLED)) {
+      context.setPlatformDisabled("false".equals(platformAttributes.get(ATTRIBUTE_PLATFORM_ENABLED)));
+    }
+    return context.isPlatformDisabled();
+  }
+
   private <T extends BaseResponse> Resp<T> execute(Context context, Call<T> call, Class<T> respType) throws IOException, ExecutionException {
     return context.getTorbitClient().execute(call, respType);
   }
@@ -93,8 +135,8 @@ public class MtdHandler {
   private void loadDataCenters(Context context) throws Exception {
     Resp<DataCentersResponse> response = execute(context, context.getTorbitApi().getDataCenters(), DataCentersResponse.class);
     if (response.isSuccessful()) {
-      List<DataCenter> dataCenters= response.getBody().getDataCenters();
-      dataCenters.stream().flatMap(d -> d.getClouds().stream()).forEach(c -> cloudMap.put(c.getName(), c));
+      List<DataCenter> dataCenters= response.getBody().dataCenters();
+      dataCenters.stream().flatMap(d -> d.clouds().stream()).forEach(c -> cloudMap.put(c.name(), c));
     }
     else {
       throw new ExecutionException("Failed while loading data centers " + getErrorMessages(response.getBody()));
@@ -106,37 +148,37 @@ public class MtdHandler {
     TorbitApi torbit = context.getTorbitClient().getTorbit();
     MtdBase mtdBase = null;
     try {
-      mtdBase = getMTDBase(context);
+      mtdBase = getMtdBase(context);
       if (mtdBase != null) {
-        Resp<MtdBaseHostResponse> response = execute(context, torbit.deletetMTDHost(mtdBase.getMtdBaseId(), context.getPlatform()), MtdBaseHostResponse.class);
+        Resp<MtdBaseHostResponse> response = execute(context, torbit.deletetMTDHost(mtdBase.mtdBaseId(), context.getPlatform()), MtdBaseHostResponse.class);
         if (response.isSuccessful()) {
           MtdBaseHostResponse hostResponse = response.getBody();
-          logger.info(logKey + "delete MTDHost response " + hostResponse);
+          logger.info(logKey + "delete MtdHost response " + hostResponse);
         }
         else {
           MtdBaseHostResponse errorResp = response.getBody();
-          logger.info(context.getLogKey() + "delete MTDHost response code " + response.getCode() + " message " + response.getBody());
-          if (errorMatches(errorResp.getErrors(), MTD_HOST_NOT_EXISTS_ERROR)) {
-            logger.info(logKey + "MTDHost does not exist.");
+          logger.info(context.getLogKey() + "delete MtdHost response code " + response.getCode() + " message " + response.getBody());
+          if (errorMatches(errorResp.errors(), MTD_HOST_NOT_EXISTS_ERROR)) {
+            logger.info(logKey + "MtdHost does not exist.");
           }
           else {
-            String error = getErrorMessage(errorResp.getErrors());
-            logger.info(logKey + "deleteMTDHost failed with  error " + error);
+            String error = getErrorMessage(errorResp.errors());
+            logger.info(logKey + "deleteMtdHost failed with  error " + error);
             woHelper.failWo(wo, logKey, "delete operation failed", null);
           }
         }
       }
       else {
-        logger.info(logKey + "MTDBase not found for " + context.getMtdBaseHost());
+        logger.info(logKey + "MtdBase not found for " + context.getMtdBaseHost());
       }
     } catch (Exception e) {
-      logger.error(logKey + "Exception deleting mtd host", e);
+      logger.error(logKey + "Exception deleting mtd host - " + e.getMessage(), e);
       if (mtdBase != null) {
         logger.error(logKey + "trying to get mtd host, if its already deleted we are good");
         //if the mtd host does not exist then it is fine
         try {
-          Resp<MtdHostResponse> response = execute(context, torbit.getMTDHost(mtdBase.getMtdBaseId(), context.getPlatform()), MtdHostResponse.class);
-          if (!response.isSuccessful() && errorMatches(response.getBody().getErrors(), MTD_HOST_NOT_EXISTS_ERROR)) {
+          Resp<MtdHostResponse> response = execute(context, torbit.getMTDHost(mtdBase.mtdBaseId(), context.getPlatform()), MtdHostResponse.class);
+          if (!response.isSuccessful() && errorMatches(response.getBody().errors(), MTD_HOST_NOT_EXISTS_ERROR)) {
             return;
           }
         } catch (Exception e1) {
@@ -149,12 +191,12 @@ public class MtdHandler {
 
   private void updateGslb(CmsWorkOrderSimple wo, Context context) {
     try {
-      MtdBase mtdBase = getMTDBase(context);
+      MtdBase mtdBase = getMtdBase(context);
       if (mtdBase != null) {
-        updateMTDHost(context, wo, mtdBase);
+        updateMtdHost(context, wo, mtdBase);
       }
       else {
-        woHelper.failWo(wo, context.getLogKey(), "MTDBase doesn't exist", null);
+        woHelper.failWo(wo, context.getLogKey(), "MtdBase doesn't exist", null);
       }
 
     } catch (Exception e) {
@@ -164,12 +206,12 @@ public class MtdHandler {
 
   private void addGslb(CmsWorkOrderSimple wo, Context context) {
     try {
-      MtdBase mtdBase = createMTDBaseWithRetry(context);
+      MtdBase mtdBase = createMtdBaseWithRetry(context);
       if (mtdBase != null) {
         createMTDHost(context, wo, mtdBase);
       }
       else {
-        woHelper.failWo(wo, context.getLogKey(), "MTDBase could not be created", null);
+        woHelper.failWo(wo, context.getLogKey(), "MtdBase could not be created", null);
       }
     } catch (Exception e) {
       woHelper.failWo(wo, context.getLogKey(), "Exception adding GSLB ", e);
@@ -177,12 +219,14 @@ public class MtdHandler {
   }
 
   private MtdBaseHostRequest mtdBaseHostRequest(Context context, CmsWorkOrderSimple wo) throws Exception {
-    List<MtdTarget> targets = getMTDTargets(wo, context);
+    List<MtdTarget> targets = getMtdTargets(wo, context);
+    if (targets != null) {
+      context.setPrimaryTargets(targets.stream().filter(MtdTarget::enabled).map(MtdTarget::mtdTargetHost).collect(Collectors.toList()));
+    }
     List<MtdHostHealthCheck> healthChecks = getHealthChecks(wo, context);
-    MtdHost mtdHost = new MtdHost().mtdHostName(context.getPlatform()).
-        mtdTargets(targets).mtdHealthChecks(healthChecks).
-        loadBalancingDistribution(1).isDcFailover(true);
-    return new MtdBaseHostRequest().mtdHost(mtdHost);
+    MtdHost mtdHost = MtdHost.create(context.getPlatform(), null, healthChecks, targets,
+        true, 1, null);
+    return MtdBaseHostRequest.create(mtdHost);
   }
 
 
@@ -190,21 +234,21 @@ public class MtdHandler {
     MtdBaseHostRequest mtdbHostRequest = mtdBaseHostRequest(context, wo);
     String logKey = context.getLogKey();
     logger.info(logKey + "create host request " + mtdbHostRequest);
-    Resp<MtdBaseHostResponse> response = execute(context, context.getTorbitApi().createMTDHost(mtdbHostRequest, mtdBase.getMtdBaseId()), MtdBaseHostResponse.class);
+    Resp<MtdBaseHostResponse> response = execute(context, context.getTorbitApi().createMTDHost(mtdbHostRequest, mtdBase.mtdBaseId()), MtdBaseHostResponse.class);
     MtdBaseHostResponse hostResponse = response.getBody();
     if (!response.isSuccessful()) {
-      logger.info(logKey + "create MTDHost error response " + hostResponse);
-      if (errorMatches(hostResponse.getErrors(), MTD_HOST_EXISTS_ERROR)) {
-        logger.info(logKey + "MTDHost already existing, so trying to update");
-        hostResponse = updateMTDHost(context, mtdbHostRequest, mtdBase);
+      logger.info(logKey + "create MtdHost error response " + hostResponse);
+      if (errorMatches(hostResponse.errors(), MTD_HOST_EXISTS_ERROR)) {
+        logger.info(logKey + "MtdHost already existing, so trying to update");
+        hostResponse = updateMtdHost(context, mtdbHostRequest, mtdBase);
       }
       else {
-        String error = getErrorMessage(hostResponse.getErrors());
-        throw new ExecutionException("createMTDHost failed with " + error);
+        String error = getErrorMessage(hostResponse.errors());
+        throw new ExecutionException("createMtdHost failed with " + error);
       }
     }
     else {
-      logger.info(logKey + "create MTDHost response  " + hostResponse);
+      logger.info(logKey + "create MtdHost response  " + hostResponse);
     }
     if (hostResponse != null) {
       updateWoResult(wo, context, mtdBase, hostResponse);
@@ -212,59 +256,60 @@ public class MtdHandler {
   }
 
   private void  updateWoResult(CmsWorkOrderSimple wo, Context context, MtdBase mtdBase, MtdBaseHostResponse response) {
-    Map<String, String> resultAttrs = getResultCiAttributes(wo);
+    Map<String, String> resultAttrs = woHelper.getResultCiAttributes(wo);
     Map<String, String> mtdMap = new HashMap<>();
-    mtdMap.put("mtd_base_id", Integer.toString(mtdBase.getMtdBaseId()));
-    Version version = response.getVersion();
+    mtdMap.put("mtd_base_id", Integer.toString(mtdBase.mtdBaseId()));
+    Version version = response.version();
     if (version != null) {
-      mtdMap.put("mtd_version", Integer.toString(version.getVersionId()));
+      mtdMap.put("mtd_version", Integer.toString(version.versionId()));
     }
-    MtdDeployment deployment = response.getDeployment();
+    MtdDeployment deployment = response.deployment();
     if (deployment != null) {
-      mtdMap.put("deploy_id", Integer.toString(deployment.getDeploymentId()));
+      mtdMap.put("deploy_id", Integer.toString(deployment.deploymentId()));
     }
-    mtdMap.put("glb", context.getPlatform() + mtdBase.getMtdBaseName());
+    String glb = context.getPlatform() + mtdBase.mtdBaseName();
+    mtdMap.put("glb", glb);
     resultAttrs.put("gslb_map", gson.toJson(mtdMap));
     resultAttrs.put(FqdnExecutor.ATTRIBUTE_SERVICE_TYPE, "torbit");
   }
 
-  private MtdBaseHostResponse updateMTDHost(Context context, MtdBaseHostRequest mtdbHostRequest, MtdBase mtdBase) throws Exception {
+  private MtdBaseHostResponse updateMtdHost(Context context, MtdBaseHostRequest mtdbHostRequest, MtdBase mtdBase) throws Exception {
     logger.info(context.getLogKey() + " update host request " + mtdbHostRequest);
     Resp<MtdBaseHostResponse> response = execute(context,
-        context.getTorbitApi().updateMTDHost(mtdbHostRequest, mtdBase.getMtdBaseId(), mtdbHostRequest.getMtdHost().getMtdHostName()), MtdBaseHostResponse.class);
+        context.getTorbitApi().updateMTDHost(mtdbHostRequest, mtdBase.mtdBaseId(), mtdbHostRequest.mtdHost().mtdHostName()), MtdBaseHostResponse.class);
     MtdBaseHostResponse hostResponse = response.getBody();
     if (response.isSuccessful()) {
-      logger.info(context.getLogKey() + "update MTDHost response " + hostResponse);
+      logger.info(context.getLogKey() + "update MtdHost response " + hostResponse);
       return hostResponse;
     }
     else {
-      logger.info(context.getLogKey() + "update MTDHost response code " + response.getCode() + " message " + hostResponse);
-      String error = getErrorMessage(hostResponse.getErrors());
-      throw new ExecutionException("updateMTDHost failed with " + error);
+      logger.info(context.getLogKey() + "update MtdHost response code " + response.getCode() + " message " + hostResponse);
+      String error = getErrorMessage(hostResponse.errors());
+      throw new ExecutionException("updateMtdHost failed with " + error);
     }
   }
 
-  private void updateMTDHost(Context context, CmsWorkOrderSimple wo, MtdBase mtdBase) throws Exception {
+  private void updateMtdHost(Context context, CmsWorkOrderSimple wo, MtdBase mtdBase) throws Exception {
     MtdBaseHostRequest mtdbHostRequest = mtdBaseHostRequest(context, wo);
-    MtdBaseHostResponse hostResponse = updateMTDHost(context, mtdbHostRequest, mtdBase);
+    MtdBaseHostResponse hostResponse = updateMtdHost(context, mtdbHostRequest, mtdBase);
     updateWoResult(wo, context, mtdBase, hostResponse);
   }
 
-  private MtdBase getMTDBase(Context context) throws IOException, ExecutionException {
+  private MtdBase getMtdBase(Context context) throws IOException, ExecutionException {
     MtdBase mtdBase = null;
     String mtdBaseHost = context.getMtdBaseHost();
     Resp<MtdBaseResponse> response = execute(context, context.getTorbitApi().getMTDBase(mtdBaseHost), MtdBaseResponse.class);
     if (!response.isSuccessful()) {
-      logger.info(context.getLogKey() + "MTDBase could not be read for " + mtdBaseHost + " error " + getErrorMessages(response.getBody()));
+      logger.info(context.getLogKey() + "MtdBase could not be read for " + mtdBaseHost + " error " + getErrorMessages(response.getBody()));
     }
     else {
-      mtdBase = response.getBody().getMtdBase();
+      mtdBase = response.getBody().mtdBase();
     }
     logger.info(context.getLogKey() + "mtdBase for host " + mtdBaseHost + " " + mtdBase);
     return mtdBase;
   }
 
-  private MtdBase createMTDBaseWithRetry(Context context) throws Exception {
+  private MtdBase createMtdBaseWithRetry(Context context) throws Exception {
     int totalRetries = 2;
     MtdBase mtdBase = null;
     for (int retry = 0 ; mtdBase == null && retry < totalRetries ; retry++) {
@@ -272,111 +317,100 @@ public class MtdHandler {
         Thread.sleep(5000);
       }
       try {
-        mtdBase = createOrGetMTDBase(context);
+        mtdBase = createOrGetMtdBase(context);
       } catch (ExecutionException e) {
         throw e;
       } catch (Exception e) {
-        logger.error(context.getLogKey() + "MTDBase creation failed for " + context.getMtdBaseHost() + ", retry count " + retry, e);
+        logger.error(context.getLogKey() + "MtdBase creation failed for " + context.getMtdBaseHost() + ", retry count " + retry, e);
       }
     }
     return mtdBase;
   }
 
-  private MtdBase createOrGetMTDBase(Context context) throws Exception {
+  private MtdBase createOrGetMtdBase(Context context) throws Exception {
     String logKey = context.getLogKey();
-    CreateMtdBaseRequest request = new CreateMtdBaseRequest().mtdBase(new MtdBaseRequest().mtdBaseName(context.getMtdBaseHost()).type(MTDB_TYPE_GSLB));
-    logger.info(logKey + "MTDBase create request " + request);
+    CreateMtdBaseRequest request = CreateMtdBaseRequest.create(MtdBaseRequest.create(context.getMtdBaseHost(), MTDB_TYPE_GSLB));
+    logger.info(logKey + "MtdBase create request " + request);
     Resp<MtdBaseResponse> response = execute(context, context.getTorbitApi().createMTDBase(request, context.getConfig().getGroupId()), MtdBaseResponse.class);
     MtdBase mtdBase = null;
     if (!response.isSuccessful()) {
       MtdBaseResponse mtdBaseResponse = response.getBody();
-      logger.info(logKey + "create MTDBase error response " + mtdBaseResponse);
-      if (errorMatches(mtdBaseResponse.getErrors(), MTD_BASE_EXISTS_ERROR)) {
-        logger.info(logKey + "create MTDBase failed with unique violation. try to get it.");
-        //check if a MTDBase record exists already, probably created by another FQDN instance running parallel
-        mtdBase = getMTDBase(context);
+      logger.info(logKey + "create MtdBase error response " + mtdBaseResponse);
+      if (errorMatches(mtdBaseResponse.errors(), MTD_BASE_EXISTS_ERROR)) {
+        logger.info(logKey + "create MtdBase failed with unique violation. try to get it.");
+        //check if a MtdBase record exists already, probably created by another FQDN instance running parallel
+        mtdBase = getMtdBase(context);
       }
       else {
-        logger.info(logKey + "create MTDBase request failed with unknown error");
+        logger.info(logKey + "create MtdBase request failed with unknown error");
       }
     }
     else {
-      logger.info(logKey + "MTDBase create response " + response);
-      mtdBase = response.getBody().getMtdBase();
+      logger.info(logKey + "MtdBase create response " + response);
+      mtdBase = response.getBody().mtdBase();
     }
     return mtdBase;
   }
 
-  private Map<String, String> getResultCiAttributes(CmsWorkOrderSimple wo) {
-    if (wo.resultCi == null) {
-      CmsCISimple ci = new CmsCISimple();
-      CmsRfcCISimple rfc = wo.getRfcCi();
-      ci.setCiId(rfc.getCiId());
-      ci.setCiName(rfc.getCiName());
-      ci.setCiClassName(rfc.getCiClassName());
-      wo.setResultCi(ci);
-    }
-    return wo.resultCi.getCiAttributes();
-  }
-
   List<MtdHostHealthCheck> getHealthChecks(CmsWorkOrderSimple wo, Context context) {
-    List<CmsRfcCISimple> dependsOn = wo.getPayLoad().get("DependsOn");
     List<MtdHostHealthCheck> hcList = new ArrayList<>();
-    if (dependsOn != null) {
-      Optional<CmsRfcCISimple> opt = dependsOn.stream().filter(rfc -> "bom.oneops.1.Lb".equals(rfc.getCiClassName())).findFirst();
-      if (opt.isPresent()) {
-        CmsRfcCISimple lb = opt.get();
-        Map<String, String> attributes = lb.getCiAttributes();
+    CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
+    if (lb != null) {
+      Map<String, String> attributes = lb.getCiAttributes();
 
-        if (attributes.containsKey("listeners") && (attributes.containsKey("ecv_map"))) {
-          String ecv = attributes.get("ecv_map");
-          JsonElement element = jsonParser.parse(ecv);
+      if (attributes.containsKey("listeners") && (attributes.containsKey("ecv_map"))) {
+        String ecv = attributes.get("ecv_map");
+        JsonElement element = jsonParser.parse(ecv);
 
-          if (element instanceof JsonObject) {
-            JsonObject root = (JsonObject) element;
-            Set<Entry<String, JsonElement>> set = root.entrySet();
-            Map<Integer, String> ecvMap = set.stream().
-                collect(Collectors.toMap(s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
-            logger.info(context.getLogKey() + "listeners " + attributes.get("listeners"));
-            JsonArray listeners = (JsonArray) jsonParser.parse(attributes.get("listeners"));
+        if (element instanceof JsonObject) {
+          JsonObject root = (JsonObject) element;
+          Set<Entry<String, JsonElement>> set = root.entrySet();
+          Map<Integer, String> ecvMap = set.stream().
+              collect(Collectors.toMap(s -> Integer.parseInt(s.getKey()), s -> s.getValue().getAsString()));
+          logger.info(context.getLogKey() + "listeners " + attributes.get("listeners"));
+          JsonArray listeners = (JsonArray) jsonParser.parse(attributes.get("listeners"));
 
-            listeners.forEach(s -> {
-              String listener = s.getAsString();
-              String[] config = listener.split(" ");
-              if (config.length >= 2) {
-                String protocol = config[0];
-                int port = Integer.parseInt(config[1]);
-                String healthConfig = ecvMap.get(port);
+          listeners.forEach(s -> {
+            String listener = s.getAsString();
+            //listeners are generally in this format 'http <lb-port> http <app-port>', gslb needs to use the lb-port for health checks
+            //ecv map is configured as '<app-port> : <ecv-url>', so we need to use the app-port from listener configuration to lookup the ecv config from ecv map
+            String[] config = listener.split(" ");
+            if (config.length >= 2) {
+              String protocol = config[0];
+              int lbPort = Integer.parseInt(config[1]);
+              int ecvPort = Integer.parseInt(config[config.length-1]);
 
+              String healthConfig = ecvMap.get(ecvPort);
+              if (healthConfig != null) {
                 if ((protocol.startsWith("http"))) {
-                  if (healthConfig != null) {
-                    logger.info(context.getLogKey() + "healthConfig : " + healthConfig);
-                    String path = healthConfig.substring(healthConfig.indexOf(" ")+1);
-                    MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + port, protocol, port);
-                    healthCheck.testObjectPath(path).expectedStatus(200);
-                    hcList.add(healthCheck);
-                  }
-                }
-                else if ("tcp".equals(protocol)) {
-                  hcList.add(newHealthCheck("gslb-" + protocol + "-" + port, protocol, port));
+                  String path = healthConfig.substring(healthConfig.indexOf(" ") + 1);
+                  logger.info(context.getLogKey() + "healthConfig : " + healthConfig + ", health check configuration, protocol: " + protocol + ", port: " + lbPort
+                      + ", path " + path);
+                  MtdHostHealthCheck healthCheck = newHealthCheck("gslb-" + protocol + "-" + lbPort,
+                      protocol, lbPort, path, 200);
+                  hcList.add(healthCheck);
+
+                } else if ("tcp".equals(protocol)) {
+                  logger.info(
+                      context.getLogKey() + "health check configuration, protocol: " + protocol + ", port: " + lbPort);
+                  hcList.add(
+                      newHealthCheck("gslb-" + protocol + "-" + lbPort, protocol, lbPort, null, null));
                 }
               }
-            });
-          }
+            }
+          });
         }
       }
     }
     return hcList;
   }
 
-  private MtdHostHealthCheck newHealthCheck(String name, String protocol, int port) {
-    MtdHostHealthCheck healthCheck = new MtdHostHealthCheck().name(name).protocol(protocol).port(port);
-    //TODO: make the following configurable
-    healthCheck.failsForDown(10).pass(true).retryDelay("30s").timeout("10s").interval("20s");
-    return healthCheck;
+  private MtdHostHealthCheck newHealthCheck(String name, String protocol, int port, String testObjectPath, Integer expectedStatus) {
+    return MtdHostHealthCheck.create(name, protocol, port, testObjectPath, null, expectedStatus,
+        null, failureCountToMarkDown, true, null, null, null, interval, retryDelay, timeOut);
   }
 
-  List<MtdTarget> getMTDTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
+  List<MtdTarget> getMtdTargets(CmsWorkOrderSimple wo, Context context) throws Exception {
     List<LbCloud> lbClouds = getLbCloudMerged(wo);
 
     if (lbClouds != null && !lbClouds.isEmpty()) {
@@ -387,7 +421,7 @@ public class MtdHandler {
       String distribution = manifestFqdn.getCiAttributes().get("distribution");
       boolean isProximity = "proximity".equals(distribution);
       logger.info(context.getLogKey() + "distribution config for fqdn : " + distribution);
-      int weight = 0;
+      Integer weight = null;
       if (!isProximity) {
         weight = 100;
       }
@@ -395,20 +429,13 @@ public class MtdHandler {
       List<MtdTarget> targetList = new ArrayList<>();
       if (primaryClouds != null) {
         for (LbCloud lbCloud : primaryClouds) {
-          MtdTarget target = baseTarget(lbCloud, context).enabled(true);
-          if (!isProximity) {
-            target.setWeightPercent(weight);
-          }
-          targetList.add(target);
+          addTarget(lbCloud, context, true, weight, targetList);
         }
       }
 
       if (secondaryClouds != null) {
         for (LbCloud lbCloud : secondaryClouds) {
-          MtdTarget target = baseTarget(lbCloud, context);
-          target.setEnabled(false);
-          target.setWeightPercent(0);
-          targetList.add(target);
+          addTarget(lbCloud, context, false, 0, targetList);
         }
       }
       return targetList;
@@ -419,12 +446,15 @@ public class MtdHandler {
 
   }
 
-  private MtdTarget baseTarget(LbCloud lbCloud, Context context) throws Exception {
-    if (!cloudMap.containsKey(lbCloud.cloud)) {
-      loadDataCenters(context);
+  private void addTarget(LbCloud lbCloud, Context context, Boolean enabled, Integer weightPercent, List<MtdTarget> targetList) throws Exception {
+    if (StringUtils.isNotBlank(lbCloud.dnsRecord)) {
+      if (!cloudMap.containsKey(lbCloud.cloud)) {
+        loadDataCenters(context);
+      }
+      Cloud cloud = cloudMap.get(lbCloud.cloud);
+      logger.info("target dns record " + lbCloud.dnsRecord);
+      targetList.add(MtdTarget.create(lbCloud.dnsRecord, cloud.dataCenterId(), cloud.id(), enabled, weightPercent));
     }
-    Cloud cloud = cloudMap.get(lbCloud.cloud);
-    return new MtdTarget().mtdTargetHost(lbCloud.dnsRecord).cloudId(cloud.getId()).dataCenterId(cloud.getDataCenterId());
   }
 
   private List<LbCloud> getLbCloudMerged(CmsWorkOrderSimple wo) throws Exception {
@@ -453,13 +483,14 @@ public class MtdHandler {
 
     Map<String, String> cloudAttributes = cloudCi.getCiAttributes();
     lc.isPrimary = "1".equals(cloudAttributes.get(ATTRIBUTE_CLOUD_PRIORITY)) &&
-        CLOUD_STATUS_ACTIVE.equals(cloudAttributes.get(ATTRIBUTE_CLOUD_STATUS));
+        (CLOUD_STATUS_ACTIVE.equals(cloudAttributes.get(ATTRIBUTE_CLOUD_STATUS)) ||
+            CLOUD_STATUS_INACTIVE.equals(cloudAttributes.get(ATTRIBUTE_CLOUD_STATUS)));
     return lc;
   }
 
   private String getErrorMessages(BaseResponse response) {
     if (response != null) {
-      return getErrorMessage(response.getErrors());
+      return getErrorMessage(response.errors());
     }
     return null;
   }
@@ -467,7 +498,7 @@ public class MtdHandler {
   private String getErrorMessage(List<ResponseError> errors) {
     String message = null;
     if (errors != null) {
-      message = errors.stream().map(ResponseError::getErrorCode).collect(Collectors.joining(" | "));
+      message = errors.stream().map(ResponseError::errorCode).collect(Collectors.joining(" | "));
     }
     return message != null ? message : "unknown error";
   }
@@ -475,7 +506,7 @@ public class MtdHandler {
   private boolean errorMatches(List<ResponseError> responseError, String error) {
     if (responseError != null) {
       Optional<ResponseError> matchinError = responseError.stream().
-          filter(r -> error.equals(r.getErrorCode())).findFirst();
+          filter(r -> error.equals(r.errorCode())).findFirst();
       if (matchinError.isPresent()) {
         return true;
       }
@@ -484,7 +515,7 @@ public class MtdHandler {
   }
 
   private void setupTorbitClient(Config config, Context context) throws Exception {
-    context.setMtdBaseHost("." + context.getSubdomain() + "." + context.getBaseGslbDomain());
+    context.setMtdBaseHost(("." + context.getSubdomain() + "." + context.getBaseGslbDomain()).toLowerCase());
     TorbitClient client = new TorbitClient(config);
     context.setTorbitClient(client);
     context.setTorbitApi(client.getTorbit());

@@ -1,5 +1,5 @@
 class AssembliesController < ApplicationController
-  include ::TeamAccess, ::CostSummary, ::NotificationSummary, ::Health
+  include ::TeamAccess, ::CostSummary, ::NotificationSummary, ::Health, ::Search
 
   before_filter :find_assembly, :only => [:search, :show, :edit, :update, :destroy, :new_clone, :clone,
                                           :teams, :update_teams, :users, :reports, :notifications, :cost_rate, :cost, :health]

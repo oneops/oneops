@@ -2,11 +2,12 @@ package com.oneops;
 
 public class Cloud {
 
-  private String id;
+  private String id; 
   private int priority;
   private int deploymentorder;
   private int scalepercentage;
-
+  private String adminstatus;
+  
   public String getId() {
     return id;
   }
@@ -38,5 +39,13 @@ public class Cloud {
   public void setScalepercentage(int scalepercentage) {
     this.scalepercentage = scalepercentage;
   }
+
+public String getAdminstatus() {
+	return adminstatus;
+}
+
+public void setAdminstatus(String adminstatus) {
+	this.adminstatus = adminstatus;
+}
 
 }

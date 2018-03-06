@@ -189,14 +189,17 @@ public class DeploymentNotifier {
 
     private void addAllPendingApprovals(CmsDeployment dpmt, NotificationMessage notify) {
         List<Map<String, Object>> pendingApprovals = new ArrayList<>();
-        Map<String, Object> approvalMap = new HashMap<>();
+       
         cmsDpmtProcessor.getDeploymentApprovals(dpmt.getDeploymentId()).stream().filter(approval -> APPROVAL_STATE_PENDING.equals(approval.getState()) && !approval.getIsExpired()).forEach(
                 approval -> {
+                    Map<String, Object> approvalMap = new HashMap<>();
                     approvalMap.put("approvalId", approval.getApprovalId());
                     approvalMap.put("governCiId", approval.getGovernCiId());
+                    
                     try {
-                        String nsPath = new JsonParser().parse(approval.getGovernCiJson()).getAsJsonObject().get("nsPath").getAsString();
-                        
+                        JsonObject asJsonObject = new JsonParser().parse(approval.getGovernCiJson()).getAsJsonObject();
+                        approvalMap.put("governCiName", asJsonObject.get("ciName"));
+                        String nsPath = asJsonObject.get("nsPath").getAsString();
                         approvalMap.put("cloud", nsPath.substring(nsPath.lastIndexOf("/")+1));
                     } catch (Exception ignore) {
                         ignore.printStackTrace();

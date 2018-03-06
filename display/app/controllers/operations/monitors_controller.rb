@@ -14,6 +14,7 @@ class Operations::MonitorsController < Base::MonitorsController
                                                           :year      => 60 * 60 * 24)
 
   before_filter :find_parents, :only => [:index, :show, :charts]
+  before_filter :weak_ci_relation_data_consistency, :only => [:charts]
 
   def self.threshold_monitor_map(monitors)
     monitors.inject({}) do |map, monitor|
