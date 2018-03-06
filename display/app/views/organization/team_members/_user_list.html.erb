@@ -1,6 +1,6 @@
 <% users = @team.users.all %>
 <%= list(users,
-         :new_link => is_admin? && link_to_function(icon('plus', 'Add user...'), 'new_team_user_dialog()'),
+         :new_link => is_admin? && link_to_function(icon('plus', 'Add user...'), 'show_add_team_member_dialog("user")'),
          :toolbar => {:list_name => 'team_user_list',
                       :sort_by   => [%w(Username username), %w(Email email)],
                       :filter_by => %w(username email)}) do |builder, user| %>
@@ -15,7 +15,11 @@
      builder.middle full_name if full_name.present? %>
   <% if is_admin? && (@team.name != Team::ADMINS || users.size > 1) %>
     <% builder.menu do %>
-      <%= link_to(icon('remove', 'Remove'), organization_team_member_path(@team, user, :type => 'user'), :method => :delete, :remote => true, :confirm => "Remove user '#{user.username}' from team '#{@team.name}'?") %>
+      <%= link_confirm_busy(icon('remove', 'Remove'),
+                            :url     => organization_team_member_path(@team, user, :type => 'user'),
+                            :method  => :delete,
+                            :confirm => 'Please confirm',
+                            :body    => "Remove user '#{user.username}' from team '#{@team.name}'?") %>
     <% end %>
   <% end %>
 <% end %>

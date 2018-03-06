@@ -1,3 +1,8 @@
-<% is_user = @member.is_a?(User) %>
-$j("#team_<%= is_user ? 'user' : 'group' %>_members").html("<%= escape_javascript(render(is_user ? 'user_list' : 'group_list')) %>");
+<% type = @member.is_a?(User) ? 'user' : 'group' %>
 hide_modal();
+<% if @error.blank? %>
+  show_add_team_member_dialog("<%= type %>", "<%= "#{type.capitalize} '#{escape_javascript(@member.name)}' added." %>")
+<% else %>
+  show_add_team_member_dialog("<%= type %>", null, "<%= escape_javascript(@error) %>")
+<% end %>
+$j("#team_<%= type %>_members").html("<%= escape_javascript(render("#{type}_list")) %>");

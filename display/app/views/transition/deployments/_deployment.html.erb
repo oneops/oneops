@@ -271,7 +271,7 @@
           </tr>
           <tr id="controls_pending" <%= 'style=display:none' unless deployment_state == 'pending' %>>
             <% if @approvals.present? %>
-              <%= render 'pending_approvals' %>
+              <%= render 'pending_approvals', :approvals => @approvals %>
             <% else %>
               <td colspan="2"><%= render 'transition/deployments/action', :action => 'cancel' %></td>
             <% end %>
@@ -372,7 +372,7 @@
                       }, null);
         }
         catch (e) {
-          console.log("Faield to deduce current deployment step.");
+          console.log("Failed to deduce current deployment step.");
           console.log(e);
         }
       }
@@ -398,21 +398,6 @@
     window.disable_autopause = function(step) {
       $j("#autopause_" + step).remove();
       $j('label[for="autopause_'+ step.id +'"]').hide();
-    };
-
-    window.settle_pending_approvals = function (link, state, disable_message, expiration) {
-      var approvals = $j("input[name^=approvalId][value!='']");
-      if (approvals.length > 0) {
-        $j(link).parents(".btn-group").find(".btn").addClass('disabled').html(disable_message);
-        $j.ajax({
-          url:  "<%= settle_assembly_transition_environment_deployment_approvals_path(@assembly, @environment, @deployment) %>",
-          type: "PUT",
-          data: approvals.toArray().map(function(e) {return "approvals[]approvalId=" +  e.value}).join('&') +
-            "&state=" + state +
-            "&expiresIn=" + expiration +
-            "&comments=" + encodeURI($j("#pending_deployment_comments").val())
-        });
-      }
     };
 
     refresh_deployment_status(true);
@@ -549,7 +534,7 @@
     stop_deployment_polling();
     window.location.replace(window.location.href.split("#")[0]);
     Effect.SlideUp('overlay', {duration: 0.3});
-    unblock('container');
+    // unblock('container');
   };
 
   window.onkeydown =  function(e) {

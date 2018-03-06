@@ -7,13 +7,14 @@
                                                page_assembly_transition_environment_timeline_path(@assembly, @environment) :
                                                page_assembly_design_timeline_path(@assembly),
                                   :size => 20},
+                    :class => 'fixed',
                     :toolbar  => @environment ? {} : {:quick_filters => nil}) %>
 <% end %>
 
 <div id="timeline_details"></div>
 
 <% if @environment %>
-  <div id="deployment_list_download_modal" class="modal hide fade">
+  <div id="deployment_list_download_modal" class="modal hide">
     <div class="modal-header">
       <h3>Download list of deployments?</h3>
     </div>
