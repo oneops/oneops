@@ -140,7 +140,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     }
   }
 
-  GslbRequest getGslbRequestFromWo(CmsWorkOrderSimple wo, TorbitConfig torbitConfig, InfobloxConfig infobloxConfig, String logKey) {
+  private GslbRequest getGslbRequestFromWo(CmsWorkOrderSimple wo, TorbitConfig torbitConfig, InfobloxConfig infobloxConfig, String logKey) {
 
     List<DeployedLb> deployedLbs = getDeployedLb(wo);
     List<Cloud> platformClouds = getPlatformClouds(wo);
@@ -232,8 +232,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (realizedAs != null) {
       String serviceType = realizedAs.getCiAttributes().get(ATTRIBUTE_SERVICE_TYPE);
       logger.info(wo.getCiId() + " : fqdn service type  " + serviceType);
-      return "torbit".equals(serviceType) &&
-          wo.getServices() != null && wo.getServices().containsKey(SERVICE_TYPE_TORBIT);
+      return "torbit".equals(serviceType);
     }
     return false;
   }
