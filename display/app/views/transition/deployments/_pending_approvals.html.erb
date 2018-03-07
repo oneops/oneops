@@ -1,3 +1,9 @@
+<% allowed_to_settle_count = 0
+   allowed_to_settle_with_token_count = 0
+   checkbox_all_id = random_dom_id
+   token_all_id = random_dom_id
+   has_cloud_support_management = has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT)
+%>
 <td>
   <table class="table table-condensed">
     <tr>
@@ -5,38 +11,62 @@
     </tr>
     <tr>
       <td colspan="2">
-        <table class="table table-condensed well well-small">
-          <% allowed_to_settle_count = 0
-             approvals_by_cloud = @approvals.select { |a| a.state == 'pending' }.group_by {|a| a.govern_ci.nsPath} %>
-          <% approvals_by_cloud.keys.sort.each do |ns_path| %>
+        <table class="table table-condensed well well-small pending-approvals">
+          <% approvals_by_cloud = approvals.select { |a| a.state == 'pending' }.group_by {|a| a.govern_ci.nsPath} %>
+            <% approvals_by_cloud.keys.sort.each do |ns_path| %>
             <% cloud = ns_path.split('/')[3] %>
             <% approvals_by_cloud[ns_path].sort_by {|a| a.govern_ci.ciName}.each do |a| %>
-              <% allowed_to_settle = allowed_to_settle_approval?(a)
-                 allowed_to_settle_count +=1 if allowed_to_settle %>
+              <% govern_ci = a.govern_ci
+                 allowed_to_settle = allowed_to_settle_approval?(a) && has_cloud_support_management %>
               <tr>
-                <td><%= cloud %></td>
-                <td><%= link_to(highlight(a.govern_ci.ciName), path_to_ci(a.govern_ci)) %></td>
-                <% if Rails.env.shared? || Rails.env.development? %>
+                <td><%= icon(site_icon(:cloud), cloud) %></td>
+                <td><%= link_to(govern_ci.ciName, path_to_ci(govern_ci)) %></td>
+                <% if allowed_to_settle %>
+                  <% allowed_to_settle_count += 1 %>
                   <td>
-                    <% if allowed_to_settle %>
-                      <%= render 'cms/cis/checkbox',
-                                 :attribute_name  => 'approvalId',
-                                 :attribute_value => '',
-                                 :checked_value   => a.approvalId,
-                                 :unchecked_value => '' %>
+                    <% if govern_ci.ciAttributes.attributes[:approval_auth_type] == 'token' %>
+                      <% allowed_to_settle_with_token_count += 1 %>
+                      <%= password_field_tag "token[#{a.approvalId}]", nil, :class => 'input-small auth-token', :placeholder => 'auth token' %>
                     <% end %>
-
                   </td>
+                  <td>
+                    <%= render 'cms/cis/checkbox',
+                               :attribute_name  => 'approvalId',
+                               :attribute_value => '',
+                               :checked_value   => a.approvalId,
+                               :unchecked_value => '' %>
+                  </td>
+                <% else %>
+                  <td></td>
+                  <td></td>
                 <% end %>
               </tr>
             <% end %>
           <% end %>
+          <% if allowed_to_settle_count > 0 %>
+            <tr>
+              <td colspan="2"></td>
+              <td>
+                <% if allowed_to_settle_with_token_count > 0 %>
+                  <%= password_field_tag 'token_all', nil, :id => token_all_id, :class => 'input-small', :placeholder => 'auth token' %>
+                <% end %>
+              </td>
+              <td>
+                <%= render 'cms/cis/checkbox',
+                           :id => checkbox_all_id,
+                           :attribute_name  => 'approval_all',
+                           :attribute_value => '',
+                           :checked_value   => 'true',
+                           :unchecked_value => '' %>
+              </td>
+            </tr>
+          <% end %>
         </table>
       </td>
     </tr>
-    <% if Rails.env.shared? || Rails.env.development? %>
+    <% if has_cloud_support_management %>
       <tr>
-        <td colspan="2"><%= text_area_tag :pending_deployment_comments, nil, :placeholder => 'comments', :style => 'width:100%' %></td>
+        <td colspan="2"><%= text_area_tag :pending_deployment_comments, nil, :placeholder => 'approval comments' %></td>
       </tr>
       <tr>
         <% if allowed_to_settle_count > 0 %>
@@ -60,7 +90,8 @@
                     ['2 hours', 2 * 60],
                     ['6 hours', 6 * 60],
                     ['12 hours', 12 * 60],
-                    ['24 hours', 24 * 60]].each do |expiration| %>
+                    ['24 hours', 24 * 60],
+                    ['indefinite', -1]].each do |expiration| %>
                   <li><%= link_to_function(expiration[0], "settle_pending_approvals(this, 'approved', 'Approving...', '#{expiration[1]}')") %></li>
                 <% end %>
               </ul>
@@ -78,6 +109,30 @@
   </table>
 </td>
 <script>
+  if (!window.settle_pending_approvals) {
+    window.settle_pending_approvals = function(link, state, disable_message, expiration) {
+      var approvals = $j("input[name^=approvalId][value!='']");
+      if (approvals.length > 0) {
+        var btn = $j(link).parents(".btn-group").find(".btn");
+        var label = btn.html();
+        btn.addClass("disabled").html(disable_message);
+        var data = {state: state, expiresIn: expiration, approvals: {}, comments: encodeURI($j("#pending_deployment_comments").val())};
+        approvals.each(function() {
+          data["approvals"][this.value] = {approvalId: this.value, token: $j(this).parents("tr").find(".auth-token").val()};
+        });
+        $j.ajax({
+          url:  "<%= settle_assembly_transition_environment_deployment_approvals_path(@assembly, @environment, @deployment) %>",
+          type: "PUT",
+          data: data,
+          complete: function() {
+            btn.removeClass("disabled").html(label);
+          }
+        });
+      }
+    };
+  }
+
+
   $j("input[name^=approvalId]").change(function() {
     if ($j("input[name^=approvalId][value!='']").length > 0) {
       $j("#reject_deployment_button").removeClass('disabled');
@@ -89,5 +144,22 @@
       $j("#approve_deployment_button").addClass('disabled');
       $j("#approve_deployment_button").parents("btn-group").find(".dropdown-menu a").addClass('disabled');
     }
+  });
+
+  $j("#<%= token_all_id %>").on("keyup", function(e) {
+    var el = $j(e.target);
+    var val = el.val();
+    if (val) {
+      el.parents(".pending-approvals").find(".auth-token").val(val);
+    }
+  });
+
+  $j("#<%= checkbox_all_id %>").change(function(e) {
+    $j(e.target).parents(".pending-approvals").find(".check-box")
+      .each(function() {
+      if (this.id !== "<%= checkbox_all_id %>") {
+        $j(this).click();
+      }
+    });
   });
 </script>

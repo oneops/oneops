@@ -1,4 +1,5 @@
 class Transition::EnvironmentsController < Base::EnvironmentsController
+  include ::Search
   before_filter :find_assembly_and_environment
 
   def index
@@ -320,14 +321,6 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     end
   end
 
-  def search
-    if request.format.html?
-      render '_search'
-    else
-      super
-    end
-  end
-
 
   protected
 
@@ -534,6 +527,7 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     respond_to do |format|
       format.js do
         if ok
+          @platforms = load_platforms
           render :action => :commit
         else
           flash[:error] = message

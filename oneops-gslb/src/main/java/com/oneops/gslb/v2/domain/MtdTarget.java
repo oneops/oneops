@@ -1,136 +1,38 @@
 package com.oneops.gslb.v2.domain;
 
+import com.google.auto.value.AutoValue;
+import com.google.gson.Gson;
+import com.google.gson.TypeAdapter;
 import com.google.gson.annotations.SerializedName;
-import java.util.Objects;
+import javax.annotation.Nullable;
 
-public class MtdTarget {
+@AutoValue
+public abstract class MtdTarget {
 
   @SerializedName("mtd_target_host")
-  private String mtdTargetHost = null;
+  public abstract String mtdTargetHost();
 
   @SerializedName("data_center_id")
-  private Integer dataCenterId = null;
+  public abstract Integer dataCenterId();
 
   @SerializedName("cloud_id")
-  private Integer cloudId = null;
+  public abstract Integer cloudId();
 
   @SerializedName("enabled")
-  private Boolean enabled = null;
+  @Nullable
+  public abstract Boolean enabled();
 
   @SerializedName("weight_percent")
-  private Integer weightPercent = null;
+  @Nullable
+  public abstract Integer weightPercent();
 
-  public MtdTarget mtdTargetHost(String mtdTargetHost) {
-    this.mtdTargetHost = mtdTargetHost;
-    return this;
+  public static MtdTarget create(String mtdTargetHost, Integer dataCenterId,
+      Integer cloudId, @Nullable Boolean enabled, @Nullable Integer weightPercent) {
+    return new AutoValue_MtdTarget(mtdTargetHost, dataCenterId, cloudId, enabled, weightPercent);
   }
 
-  public String getMtdTargetHost() {
-    return mtdTargetHost;
-  }
-
-  public void setMtdTargetHost(String mtdTargetHost) {
-    this.mtdTargetHost = mtdTargetHost;
-  }
-
-  public MtdTarget dataCenterId(Integer dataCenterId) {
-    this.dataCenterId = dataCenterId;
-    return this;
-  }
-
-  public Integer getDataCenterId() {
-    return dataCenterId;
-  }
-
-  public void setDataCenterId(Integer dataCenterId) {
-    this.dataCenterId = dataCenterId;
-  }
-
-  public MtdTarget cloudId(Integer cloudId) {
-    this.cloudId = cloudId;
-    return this;
-  }
-
-  public Integer getCloudId() {
-    return cloudId;
-  }
-
-  public void setCloudId(Integer cloudId) {
-    this.cloudId = cloudId;
-  }
-
-  public MtdTarget enabled(Boolean enabled) {
-    this.enabled = enabled;
-    return this;
-  }
-
-  public Boolean getEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(Boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public MtdTarget weightPercent(Integer weightPercent) {
-    this.weightPercent = weightPercent;
-    return this;
-  }
-
-  public Integer getWeightPercent() {
-    return weightPercent;
-  }
-
-  public void setWeightPercent(Integer weightPercent) {
-    this.weightPercent = weightPercent;
-  }
-
-
-  @Override
-  public boolean equals(java.lang.Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    MtdTarget modelsMTDTarget = (MtdTarget) o;
-    return Objects.equals(this.mtdTargetHost, modelsMTDTarget.mtdTargetHost) &&
-        Objects.equals(this.dataCenterId, modelsMTDTarget.dataCenterId) &&
-        Objects.equals(this.cloudId, modelsMTDTarget.cloudId) &&
-        Objects.equals(this.enabled, modelsMTDTarget.enabled) &&
-        Objects.equals(this.weightPercent, modelsMTDTarget.weightPercent);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(mtdTargetHost, dataCenterId, cloudId, enabled, weightPercent);
-  }
-
-
-  @Override
-  public String toString() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("class MTDTarget {\n");
-    
-    sb.append("    mtdTargetHost: ").append(toIndentedString(mtdTargetHost)).append("\n");
-    sb.append("    dataCenterId: ").append(toIndentedString(dataCenterId)).append("\n");
-    sb.append("    cloudId: ").append(toIndentedString(cloudId)).append("\n");
-    sb.append("    enabled: ").append(toIndentedString(enabled)).append("\n");
-    sb.append("    weightPercent: ").append(toIndentedString(weightPercent)).append("\n");
-    sb.append("}");
-    return sb.toString();
-  }
-
-  /**
-   * Convert the given object to string with each line indented by 4 spaces
-   * (except the first line).
-   */
-  private String toIndentedString(java.lang.Object o) {
-    if (o == null) {
-      return "null";
-    }
-    return o.toString().replace("\n", "\n    ");
+  public static TypeAdapter<MtdTarget> typeAdapter(Gson gson) {
+    return new AutoValue_MtdTarget.GsonTypeAdapter(gson);
   }
   
 }

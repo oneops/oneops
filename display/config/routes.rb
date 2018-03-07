@@ -60,6 +60,8 @@ Display::Application.routes.draw do
       get  'cost'
       get 'deployment_to_all_primary_check'
       put 'deployment_to_all_primary_check'
+      get 'cloud_supports'
+      put 'cloud_supports'
 
       get 'organization/:name', :action => 'organization', :as => 'organization'
       # delete 'organization/:name', :action => 'organization'
@@ -425,6 +427,7 @@ Display::Application.routes.draw do
             put 'cloud_configuration', :on => :member
             put 'cloud_priority',      :on => :member
             get 'history',             :on => :member
+            get 'search',              :on => :member
 
             resources :components, :only => [:index, :show, :edit, :update] do
               get  'history',           :on => :member

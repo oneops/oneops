@@ -25,6 +25,7 @@ import static com.oneops.util.URLUtil.getInstanceRedirectUrl;
 import static com.oneops.util.URLUtil.getMonitorRedirectUrl;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 
@@ -66,26 +67,26 @@ public class HPOMTransformer extends Transformer {
             platform = nsPathTokens[5];
         }
         if (msg.getPayload() != null) {
-            eventName = msg.getPayload().get("eventName");
-            ciName = msg.getPayload().get("ciName");
-            threshold = msg.getPayload().get("threshold");
-            String totalInstances = msg.getPayload().get("total");
-            String unhealthyInstances = msg.getPayload().get("unhealthy");
-            String notifyInstances = msg.getPayload().get("notify");
+            eventName = msg.getPayloadString("eventName");
+            ciName = msg.getPayloadString("ciName");
+            threshold = msg.getPayloadString("threshold");
+            String totalInstances = msg.getPayloadString("total");
+            String unhealthyInstances = msg.getPayloadString("unhealthy");
+            String notifyInstances = msg.getPayloadString("notify");
             
             int totalCount = 0;
             int unhealthyCount = 0;
             int notifyCount = 0;
             
-            if (StringUtils.isNotEmpty(totalInstances)) {
+            if (NumberUtils.isNumber(totalInstances)) {
             	totalCount = Integer.valueOf(totalInstances.trim());
             }
 
-            if (StringUtils.isNotEmpty(unhealthyInstances)) {
+            if (NumberUtils.isNumber(unhealthyInstances)) {
             	unhealthyCount = Integer.valueOf(unhealthyInstances.trim());
             }
 
-            if (StringUtils.isNotEmpty(notifyInstances)) {
+            if (NumberUtils.isNumber(notifyInstances)) {
             	notifyCount = Integer.valueOf(notifyInstances.trim());
             }
             

@@ -82,6 +82,45 @@ public class InductorPublisherTest {
     Assert.assertEquals("d-1234-456-5-789",publisher.getCtxtId(wo));
   }
 
+  @Test
+  public void getQueueForWo() {
+		CmsWorkOrderSimple wo = new CmsWorkOrderSimple();
+		CmsCISimple cloud = new CmsCISimple();
+		cloud.setCiName("openstack-cld1");
+		wo.setCloud(cloud);
+
+		cloud.addCiAttribute("location", "/public/oneops/clouds/openstack-cld1");
+		String queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "public.oneops.clouds.openstack-cld1.ind-wo");
+		cloud.addCiAttribute("location", "/public/oneops/clouds/azure-japaneast-test");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "public.oneops.clouds.azure-japaneast-test.ind-wo");
+
+		System.setProperty("com.oneops.controller.use-shared-queue", "true");
+		cloud.addCiAttribute("location", "/public/oneops/clouds/openstack-cld1");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "shared.ind-wo");
+		cloud.addCiAttribute("location", "/public/oneops/clouds/azure-japaneast-test");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "shared.ind-wo");
+
+		System.setProperty("com.oneops.controller.queue.prefix.azure", "azure");
+		cloud.addCiAttribute("location", "/public/oneops/clouds/openstack-cld1");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "shared.ind-wo");
+		cloud.addCiAttribute("location", "/public/oneops/clouds/azure-japaneast-test");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "azure.shared.ind-wo");
+		cloud.addCiAttribute("location", "/public/oneops/clouds/testcloud");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "shared.ind-wo");
+		cloud.addCiAttribute("location", "cld2");
+		queue = publisher.getQueue(wo);
+		Assert.assertEquals(queue, "shared.ind-wo");
+	}
+
+
+
 	@Test (priority=2)
 	/** dump stats and close conn */
 	public void cleanupTest() throws Exception{

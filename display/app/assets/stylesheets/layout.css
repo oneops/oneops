@@ -113,6 +113,10 @@ body {
   margin-top: 10px;
 }
 
+.sidebar .main::-webkit-scrollbar {
+  display: none;
+}
+
 .sidebar ul.menu {
   list-style: none;
   margin:     0px 16px 0px 9px;
@@ -613,8 +617,11 @@ img.authicon {
 }
 
 #overlay div.controls .well {
-  margin:    10px 10px 5px 10px;
+  margin:    10px 0px 5px 0px;
   font-size: 16px;
+}
+#overlay div.controls textarea {
+  width: 98%;
 }
 
 #overlay div.controls table {
@@ -623,6 +630,15 @@ img.authicon {
 
 #overlay div.controls table td {
   padding: 10px;
+}
+
+#overlay div.controls .pending-approvals td {
+  text-align: left;
+}
+
+#overlay div.controls .pending-approvals td > input {
+  margin: 0;
+  padding: 0 4px;
 }
 
 #overlay .wf > div.controls .cost-change {
@@ -1707,11 +1723,19 @@ img.authicon {
 }
 
 .list-body {
-  float:    left;
   position: relative;
   float:    left;
   clear:    both;
   width:    100%;
+}
+
+.list.fixed .list-body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.list.fixed .list-body::-webkit-scrollbar {
+  /*display: none;*/
 }
 
 .list-body > ul {
@@ -1719,7 +1743,7 @@ img.authicon {
   position:        relative;
   margin:          0px;
   padding:         0px;
-  width:           100%;
+  width:           98%;
   font-size:       14px;
   list-style-type: none;
 }
@@ -1971,6 +1995,10 @@ img.authicon {
   text-overflow:     ellipsis;
   -o-text-overflow:  ellipsis;
   -ms-text-overflow: ellipsis;
+}
+
+.list-body li .content .middle dl dd {
+  white-space: normal;
 }
 
 .list-body li .content .middle a:link, .list-body li .content .middle a:active, .list-body li .content .middle a:visited {
@@ -2455,6 +2483,10 @@ img.authicon {
   word-wrap: break-word;
 }
 
+.fixed .section-content {
+  overflow-y: auto;
+}
+
 .single .section-content {
   width: 280px;
 }
@@ -2604,11 +2636,11 @@ ul.status div.description .menu .dropdown-menu > li > a {
 }
 
 ul.status div.description > .dl-horizontal > dt {
-  width: 20px;
+  width: 18px;
 }
 
 ul.status div.description > .dl-horizontal > dd {
-  margin-left: 30px;
+  margin-left: 26px;
 }
 
 ul.status .alert {
@@ -2660,7 +2692,7 @@ ul.status div.description ul:not(.dropdown-menu) li ul:not(.dropdown-menu) {
 
 ul.status div.description ul.status-actions, div.release ul.status-actions {
   margin-top:       0px;
-  padding:          10px 10px 10px 18px;
+  padding:          10px 10px 10px 0px;
   list-style-type:  none;
   list-style-image: none;
 }
@@ -4332,6 +4364,10 @@ hr {
   overflow-x: visible;
 }
 
+.org_dropdown::-webkit-scrollbar {
+  display: none;
+}
+
 .sidebar.light {
   background: white;
 }
@@ -4624,7 +4660,9 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 .tooltip {
   white-space: normal
 }
-
+.alert.deployment-problems {
+  margin-top: 10px;
+}
 .deployment-problems div:not(:last-child) {
   margin-bottom: 5px;
 }
@@ -4666,4 +4704,9 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 form.deploy-action textarea {
   height: 80px;
+}
+
+.pending-approvals td > input {
+  margin: 0;
+  padding: 0 4px;
 }

@@ -1,5 +1,5 @@
 class Cloud::CloudsController < ApplicationController
-  include ::TeamAccess
+  include ::TeamAccess, ::Search
 
   before_filter :find_cloud, :only => [:search, :show, :edit, :update, :destroy, :operations, :instances, :procedures,
                                        :reports, :teams, :update_teams]

@@ -25,7 +25,7 @@ shared:
   pool: 5
   username: kloopz
   password: kloopz
-  host: <%= ENV['OODB_HOST'] || 'localhost' %>
+  host: <%= ENV['OODB_HOST'] || Settings['user_db_host'].presence || 'localhost' %>
   port: 5432
 
 production:

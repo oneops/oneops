@@ -1,0 +1,6 @@
+<% if @member.is_a?(User) %>
+  $j("#team_user_members").html("<%= escape_javascript(render('user_list')) %>");
+<% else %>
+  $j("#team_group_members").html("<%= escape_javascript(render('group_list')) %>");
+<% end %>
+hide_modal();

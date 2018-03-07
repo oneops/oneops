@@ -1,9 +1,11 @@
 class DesignController < ApplicationController
-  PLATFORM_EXPORT_ATTRIBUTES = %w(description major_version pack source version)
+  include ::Search
 
   before_filter :find_assembly
   before_filter :find_latest_release, :only => [:show, :extract, :load]
   before_filter :check_open_release, :only => [:load]
+
+  PLATFORM_EXPORT_ATTRIBUTES = %w(description major_version pack source version)
 
   def show
     respond_to do |format|
@@ -90,14 +92,6 @@ class DesignController < ApplicationController
 
   def diagram
     send_data(prepare_platforms_diagram, :type => 'image/svg+xml', :disposition => 'inline')
-  end
-
-  def search
-    if request.format.html?
-      render '_search'
-    else
-      super
-    end
   end
 
 

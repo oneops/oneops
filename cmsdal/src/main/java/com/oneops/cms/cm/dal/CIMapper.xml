@@ -391,12 +391,17 @@
 			ci.created,
 			ci.updated
 		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st
-		where (#{clazz}::varchar is null or cl.class_name = #{clazz})
-		and (#{ns}::varchar is null or ns.ns_path = #{ns})
+		where (#{ns}::varchar is null or ns.ns_path = #{ns})
+		 <if test="clazz != null">
+			 and cl.class_name = #{clazz}
+		 </if>
+		 <if test="shortClazz != null">
+			 and cl.short_class_name = #{shortClazz}
+		 </if>
 		and ci.class_id = cl.class_id
 		and ci.ns_id = ns.ns_id
 		and ci.ci_state_id = st.ci_state_id
-		<foreach item="item" index="index" collection="attrList" open="and" separator="and"> 
+		<foreach item="item" index="index" collection="attrList" open="and" separator="and">
 		 exists (select 1 from cm_ci_attributes cia, md_class_attributes cla 
 		         where cia.ci_id = ci.ci_id 
 		         and cia.attribute_id = cla.attribute_id 
@@ -424,8 +429,13 @@
 			ci.created,
 			ci.updated
 		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st
-		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns}) 
-		and (#{clazz}::varchar is null or cl.class_name = #{clazz})
+		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
+		 <if test="clazz != null">
+			 and cl.class_name = #{clazz}
+		 </if>
+		 <if test="shortClazz != null">
+			 and cl.short_class_name = #{shortClazz}
+		 </if>
 		and ci.class_id = cl.class_id
 		and ci.ns_id = ns.ns_id
 		and ci.ci_state_id = st.ci_state_id
@@ -458,8 +468,13 @@
 		ci.created,
 		ci.updated
 		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
-		where (#{clazz}::varchar is null or cl.class_name = #{clazz})
-		and (#{ns}::varchar is null or ns.ns_path = #{ns})
+		where (#{ns}::varchar is null or ns.ns_path = #{ns})
+		<if test="clazz != null">
+			and cl.class_name = #{clazz}
+		</if>
+		<if test="shortClazz != null">
+			and cl.short_class_name = #{shortClazz}
+		</if>
 		and ci.class_id = cl.class_id
 		and ci.ns_id = ns.ns_id
 		and ci.ci_state_id = st.ci_state_id
@@ -498,7 +513,12 @@
 		ci.updated
 		from cm_ci ci, md_classes cl, ns_namespaces ns, cm_ci_state st, cm_ns_opt cno, ns_namespaces ns1, ns_opt_tag nt
 		where (ns.ns_path like #{nsLike} or ns.ns_path = #{ns})
-		and (#{clazz}::varchar is null or cl.class_name = #{clazz})
+		<if test="clazz != null">
+			and cl.class_name = #{clazz}
+		</if>
+		<if test="shortClazz != null">
+			and cl.short_class_name = #{shortClazz}
+		</if>
 		and cno.ci_id = ci.ci_id
 		and ns1.ns_id = cno.ns_id
 		and nt.tag_id = cno.tag_id

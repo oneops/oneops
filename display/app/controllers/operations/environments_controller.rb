@@ -1,5 +1,5 @@
 class Operations::EnvironmentsController < Base::EnvironmentsController
-  include ::NotificationSummary, ::CostSummary, ::Health
+  include ::NotificationSummary, ::CostSummary, ::Health, ::Search
 
   before_filter :find_assembly_and_environment
 
@@ -15,16 +15,16 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
     respond_to do |format|
       format.html do
         manifest_ns_path = environment_manifest_ns_path(@environment)
+        bom_ns_path      = environment_bom_ns_path(@environment)
         @release         = Cms::Release.latest(:nsPath => manifest_ns_path)
-        @bom_release     = Cms::Release.first(:params => {:nsPath       => "#{environment_ns_path(@environment)}/bom",
-                                                      :releaseState => 'open'})
+        @bom_release     = Cms::Release.first(:params => {:nsPath => bom_ns_path, :releaseState => 'open'})
 
-        @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
-
-        @deployment = Cms::Deployment.latest(:nsPath => "#{environment_ns_path(@environment)}/bom")
+        @deployment  = Cms::Deployment.latest(:nsPath => bom_ns_path)
         if @deployment && @deployment.deploymentState == 'pending'
           @pending_approvals = Cms::DeploymentApproval.all(:params => {:deploymentId => @deployment.deploymentId}).select { |a| a.state == 'pending' }
         end
+
+        @cost, _ = Transistor.environment_cost(@environment, true, false) if @bom_release
 
         @platforms = Cms::Relation.all(:params => {:ciId              => @environment.ciId,
                                                    :direction         => 'from',
@@ -80,14 +80,6 @@ class Operations::EnvironmentsController < Base::EnvironmentsController
 
       ops_states = Operations::Sensor.states(@instances)
       @graph = environment_graph(@environment, composedof_rels, requires_rels, realizedas_rels, cis_bom, ops_states)
-    end
-  end
-
-  def search
-    if request.format.html?
-      render '_search'
-    else
-      super
     end
   end
 

@@ -57,11 +57,13 @@ class RegistrationsController < Devise::RegistrationsController
   end
 
   def lookup
-    # login = "%#{params[:login]}%"
-    # render :json => User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
-    login = params[:login].to_s.strip
-    hits  = User.where('username = ?', login).limit(1).map { |u| "#{u.username} #{u.name if u.name.present?}" }
-    render :json => hits
+    login = "%#{params[:login]}%"
+    render :json => User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
+
+    # Exact match look-up
+    # login = params[:login].to_s.strip
+    # hits  = User.where('username = ?', login).limit(1).map { |u| "#{u.username} #{u.name if u.name.present?}" }
+    # render :json => hits
   end
 
 

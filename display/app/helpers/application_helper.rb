@@ -1081,7 +1081,8 @@ module ApplicationHelper
         icon = 'check-circle'
         text = 'text-success'
       when 'failed'
-        icon = 'remove'
+        # icon = 'remove'
+        icon = 'times-circle'
         text = 'text-error'
       when 'canceled'
         icon = 'ban'
@@ -1098,6 +1099,27 @@ module ApplicationHelper
     end
     content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end
+
+  def deployment_approval_state_icon(state, additional_classes = '')
+    icon = ''
+    text = ''
+    case state
+      when 'pending'
+        icon = 'clock-o'
+        text = 'muted'
+      when 'approved'
+        icon = 'check-circle'
+        text = 'text-success'
+      when 'expired'
+        icon = 'moon-o'
+        text = 'text-warning'
+      when 'rejected'
+        icon = 'ban'
+        text = 'text-error'
+    end
+    content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
+  end
+
 
   def rfc_action_icon(action, additional_classes = '')
     icon = ''
@@ -1133,7 +1155,8 @@ module ApplicationHelper
         icon = 'check'
         text = 'text-success'
       when 'failed'
-        icon = 'remove'
+        # icon = 'remove'
+        icon = 'times-circle'
         text = 'text-error'
       when 'canceled'
         icon = 'ban'
@@ -1182,9 +1205,16 @@ module ApplicationHelper
     result = '<dl class="dl-horizontal">'
     (rfc.is_a?(Cms::RfcCi) ? rfc.ciAttributes : rfc.relationAttributes).attributes.each do |attr_name, attr_value|
       md_attribute = rfc.meta.md_attribute(attr_name)
-      description = md_attribute.description.presence || attr_name
-      data_type   = md_attribute.dataType
-      json        = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+      if md_attribute
+        description = md_attribute.description.presence || attr_name
+        data_type   = md_attribute.dataType
+        json        = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
+      else
+        Rails.logger.warn "======= Could not find metadata for attribute '#{attr_name}' of #{rfc.ciClassName}, rfcId=#{rfc.rfcId}"
+        description = attr_name
+        json = false
+      end
+
       base_value  = base_attrs[attr_name]
       if json && attr_value.present?
         begin
@@ -1374,5 +1404,9 @@ module ApplicationHelper
       result += expandable_content(:content => capture(versions[15..-1], &builder))
     end
     result
+  end
+
+  def sub_url_links(content)
+    content.blank? ? content : raw(content.gsub(/http(s)?:\/\/\S*/) {|t| link_to(t, t, :target => '_blank')})
   end
 end

@@ -138,7 +138,7 @@ public class URLUtil {
      */
     public static String getMonitorRedirectUrl(NotificationMessage msg) {
         if (msg.getPayload() != null) {
-            String eventName = msg.getPayload().get("eventName");
+            String eventName = msg.getPayloadString("eventName");
             return String.format("%1$sr/instances/%2$d/monitors/%3$s/d",
                     ONEOPS_BASE_URL, msg.getCmsId(), eventName);
             // Fallback to instance url if it couldn't find an event.

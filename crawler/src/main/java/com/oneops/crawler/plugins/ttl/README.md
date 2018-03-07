@@ -2,10 +2,11 @@
 
 This plugin processes the Environment, Platforms and Deployments data received from the CMSCrawler and then does following:
 
-1. Checks if the Environment is a non-production environment, if yes, do following things
-2. Checks if the Enviroment is dormant for long time (configurable). If yes, do following
-3. Send notification using OneOps antenna that the Env will be TTLed after certain date
-4. If the TTL date is up, disable platforms and do force deploy on that environment to decommission it and recover the resources 
+1. Checks if the Environment is a non-production environment. If yes, proceed, otherwise abort.
+2. Checks if the Environment is dormant for long time (configurable). If yes, proceed, otherwise abort.
+3. Send notification using OneOps antenna that the Env will be TTLed after certain date.
+4. If the TTL date is reached, disable all platforms and peform a forced deploy on that
+   environment to decommission it and recover the resources.
 
 
 #### Criteria for deciding if the environment can be auto-TTLed:

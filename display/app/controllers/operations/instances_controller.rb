@@ -3,7 +3,7 @@ class Operations::InstancesController < ApplicationController
 
   before_filter :find_parents, :except => [:state]
   before_filter :find_instance, :except => [:index, :state, :destroy]
-  before_filter :weak_cms_data_consistency, :only => [:index, :show, :notifications]
+  before_filter :weak_ci_relation_data_consistency, :only => [:index, :show, :notifications]
 
   CustomAction = Struct.new(:actionId, :actionName, :description)
 
@@ -313,10 +313,6 @@ class Operations::InstancesController < ApplicationController
                                                      :relationShortName => 'RealizedAs'})
 
     @component = @realized_as.fromCi if @realized_as && !@component
-  end
-
-  def weak_cms_data_consistency
-    set_cms_data_consistency('weak', Cms::Ci, Cms::Relation)
   end
 
   def render_index(component_scope)
