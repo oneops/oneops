@@ -19,17 +19,20 @@ package com.oneops.inductor;
 
 import static java.lang.String.format;
 
-import com.oneops.cms.util.CmsConstants;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.oneops.cms.util.CmsConstants;
+
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.log4j.Logger;
 
 public class ProcessRunner {
@@ -176,13 +179,14 @@ public class ProcessRunner {
       Map<String, String> additionalEnvVars, File workingDir) {
 
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
-    logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey,
+    logger.info(format("%s Cmd: timeout %ds %s, Additional Env Vars: %s", logKey, timeoutInSeconds,
         String.join(" ", cmd), additionalEnvVars));
 
     try {
-      CommandLine cmdLine = new CommandLine(cmd[0]);
+      CommandLine cmdLine = new CommandLine("timeout");
+      cmdLine.addArgument(format("%ds", timeoutInSeconds), false);
       // add rest of cmd string[] as arguments
-      for (int i = 1; i < cmd.length; i++) {
+      for (int i = 0; i < cmd.length; i++) {
         // needs the quote handling=false or else doesn't work
         // http://www.techques.com/question/1-5080109/How-to-execute--bin-sh-with-commons-exec?
         cmdLine.addArgument(cmd[i], false);
@@ -190,7 +194,8 @@ public class ProcessRunner {
       DefaultExecutor executor = new DefaultExecutor();
       executor.setExitValue(0);
       executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
-      executor.setStreamHandler(new OutputHandler(logger, logKey, result));
+      OutputHandler outputStream = new OutputHandler(logger, logKey, result);
+      executor.setStreamHandler(new PumpStreamHandler(outputStream));
       if (workingDir != null) {
         executor.setWorkingDirectory(workingDir);
       }

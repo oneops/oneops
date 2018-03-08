@@ -57,7 +57,17 @@ public class ProcessRunnerTest {
 		assertTrue(procResult.getResultCode() == 0);
 	}
 
-	// @Test
+	@Test
+	public void testExecuteProcessTimeout() {
+		ProcessRunner pr = new ProcessRunner(null);
+		pr.setTimeoutInSeconds(1);
+		String[] cmd = new String[2];
+		cmd[0] = "ping";
+		cmd[1] = "google.com";
+		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
+		assertTrue(procResult.getResultCode() == 143);
+	}
+
 	public void executeProcessWithEnv() throws IOException, URISyntaxException {
 		Config c = new Config();
 		c.setEnv("PATH1=/usr/local/ruby/bin,GEM_PATH1=/usr/local/gems");
