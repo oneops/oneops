@@ -49,7 +49,9 @@ public class ProcessRunnerTest {
 
 	@Test
 	public void testExecuteProcessRetry() {
-		ProcessRunner pr = new ProcessRunner(null);
+		Config c = new Config();
+		c.setChefTimeout(10);
+		ProcessRunner pr = new ProcessRunner(c);
 		String[] cmd = new String[2];
 		cmd[0] = "echo";
 		cmd[1] = "\"hey there \"";
@@ -59,8 +61,9 @@ public class ProcessRunnerTest {
 
 	@Test
 	public void testExecuteProcessTimeout() {
-		ProcessRunner pr = new ProcessRunner(null);
-		pr.setTimeoutInSeconds(1);
+		Config c = new Config();
+		c.setChefTimeout(1);
+		ProcessRunner pr = new ProcessRunner(c);
 		String[] cmd = new String[2];
 		cmd[0] = "ping";
 		cmd[1] = "google.com";
