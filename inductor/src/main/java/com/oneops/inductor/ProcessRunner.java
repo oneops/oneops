@@ -25,9 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import com.oneops.cms.util.CmsConstants;
-
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
@@ -142,7 +140,6 @@ public class ProcessRunner {
       result.setRebooting(false);
 
       long startTime = System.currentTimeMillis();
-
       executeProcess(cmd, logKey, result, null, null);
       long endTime = System.currentTimeMillis();
       long duration = endTime - startTime;
@@ -179,18 +176,18 @@ public class ProcessRunner {
       Map<String, String> additionalEnvVars, File workingDir) {
 
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
-    logger.info(format("%s Cmd: timeout %ds %s, Additional Env Vars: %s", logKey, timeoutInSeconds,
+    logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey,
         String.join(" ", cmd), additionalEnvVars));
 
     try {
-      CommandLine cmdLine = new CommandLine("timeout");
-      cmdLine.addArgument(format("%ds", timeoutInSeconds), false);
+      CommandLine cmdLine = new CommandLine(cmd[0]);
       // add rest of cmd string[] as arguments
-      for (int i = 0; i < cmd.length; i++) {
+      for (int i = 1; i < cmd.length; i++) {
         // needs the quote handling=false or else doesn't work
         // http://www.techques.com/question/1-5080109/How-to-execute--bin-sh-with-commons-exec?
         cmdLine.addArgument(cmd[i], false);
       }
+      setTimeoutInSeconds((int)config.getChefTimeout());
       DefaultExecutor executor = new DefaultExecutor();
       executor.setExitValue(0);
       executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
