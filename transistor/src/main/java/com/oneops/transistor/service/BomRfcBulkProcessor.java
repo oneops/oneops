@@ -801,9 +801,11 @@ public class BomRfcBulkProcessor {
 		Set<String> equalAttrs = new HashSet<>(rfcCi.getAttributes().size());
 		for (CmsRfcAttribute attr : rfcCi.getAttributes().values()){
 			CmsCIAttribute existingAttr = baseCi.getAttribute(attr.getAttributeName());
-			if (Objects.equals(attr.getNewValue(), existingAttr == null ? null : existingAttr.getDjValue())) {
+			String oldValue = existingAttr == null ? null : existingAttr.getDjValue();
+			if (Objects.equals(attr.getNewValue(), oldValue)) {
 				equalAttrs.add(attr.getAttributeName());
 			} else {
+				attr.setOldValue(oldValue);
 				needUpdate = true;
 			}
 		}

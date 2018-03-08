@@ -42,7 +42,12 @@
     <% end %>
     <% builder.menu do %>
       <% if is_admin? && current_user.id != user.id %>
-        <%= link_to(icon('remove', 'Remove'), organization_user_path(user), :method => :delete, :remote => true, :confirm => "Remove user '#{user.username}' from this organization?") %>
+        <%= link_confirm_busy(icon('remove', 'Remove'),
+                              :url     => organization_user_path(user),
+                              :method  => :delete,
+                              :confirm => 'Please confirm',
+                              :body    => "Remove user '#{user.username}' from his organization?") %>
+
       <% end %>
     <% end %>
   <% end %>

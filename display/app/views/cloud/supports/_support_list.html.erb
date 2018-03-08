@@ -1,4 +1,4 @@
-<% write_access = has_cloud_support?(@cloud.ciId)
+<% write_access = has_cloud_support?(@cloud.ciId) && has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT)
    new_url = write_access && new_cloud_support_path(@cloud) %>
 <%= section_panel('Support',
                   :width => 'single',
@@ -15,7 +15,7 @@
     <% builder.status do %>
       <% status = target.ciAttributes.enabled == 'true' ? 'enabled' : 'disabled' %>
       <%= marker(status, state_to_label(status)) %>
-      <%= icon('star', '', 'fa-lg') if target.ciAttributes.approval == 'true' %>
+      <%= marker('approval', 'label-info') if target.ciAttributes.approval == 'true' %>
     <% end %>
   <% end %>
 <% end %>

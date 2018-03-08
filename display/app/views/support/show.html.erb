@@ -13,6 +13,7 @@
                                         :interval   => 'month',
                                         :tags       => %w(costcenter VP dept pillar)))
    end
+   links << link_to(icon(site_icon(:deployment), 'Deployment Approvals', 'fa-fw'), cloud_supports_support_path) if all_perms || @permissions[Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT]
 
    links << link_to(icon('search', 'Search', 'fa-fw'), search_support_path) if all_perms || @permissions['search'] %>
 <ul class="support-functions nav nav-tabs nav-stacked">

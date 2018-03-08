@@ -11,7 +11,6 @@ Dir[File.join(File.expand_path(File.dirname(__FILE__)), 'exec-order','*.rb')].ea
 
 log_level = "info"
 formatter = "null"
-
 options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: exec-order.rb [options]"
@@ -28,6 +27,12 @@ cookbook_path     = ARGV[2] || ''
 service_cookbooks = ARGV[3] || ''
 gem_sources       = get_gem_sources
 ostype            = get_os_type(log_level)
+
+if !(ostype =~ /windows/)
+  fast_image = File.exist?('/etc/oneops-tools-inventory.yml')
+else
+  fast_image = false
+end
 
 prefix_root = ''
 file_cache_path = '/tmp'
@@ -46,7 +51,10 @@ end
 
 # set cwd to same dir as the exe-order.rb file
 Dir.chdir File.dirname(__FILE__)
-gem_list = get_gem_list(dsl, version)
+
+if !fast_image
+  gem_list = get_gem_list(dsl, version)
+end
 
 case dsl
 when "chef"
@@ -60,11 +68,12 @@ when "chef"
   #we want to make sure rubygems sources on the VM match rubygems_proxy env variable from compute cloud service
   #otherwise changes to the cloud service will require updating compute component
   #have to be called after chef is installed on windows, as that's the chef installation that also installs rubygems
-  update_gem_sources(gem_sources, log_level)
+  if !fast_image
+    update_gem_sources(gem_sources, log_level)
 
-  #Run bunle to insert/update neccessary gems if needed
-  install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
-
+    #Run bunle to insert/update neccessary gems if needed
+    install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
+  end
 
   chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
 
@@ -73,8 +82,8 @@ when "chef"
     additionalCookbooks = service_cookbooks.split(",").map { |e| "\"#{prefix_root}#{e}\"" }.join(', ')
   end
 
-  # generate chef_config 
-    
+  # generate chef_config
+
     cookbook_full_path = chef_config.gsub("/chef-#{ci}.rb","")
     # when using alternate cookbooks include base cookbooks
     if cookbook_path.empty?
@@ -87,7 +96,7 @@ when "chef"
       end
       config_content += "]\n"
     end
-    
+
     log_level = "info"
     #Chef 12 specific config options - chef-client is used in Chef12 instead of chef-solo,
     #and it's no longer thread safe, i.e. parallel chef runs may step on each other toes
@@ -121,10 +130,11 @@ when "chef"
     # This assume that ruby is installed at a fixed location
     # TODO: need to externalize a lot of this to be dynamic
     # base on a config file or something.
-    custom_ruby_bindir = '/home/app-user/runtimes/ruby/2.0.0-p648/bin'
+
+    custom_ruby_bindir = '/home/oneops/ruby/2.0.0-p648/bin'
     if File.exist?("#{custom_ruby_bindir}/chef-solo")
       bindir = custom_ruby_bindir
-      ENV['GEM_PATH'] = '/home/app-user/runtimes/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
+      ENV['GEM_PATH'] = '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
       ENV['PATH'] = "#{custom_ruby_bindir}:#{ENV['PATH']}"
     else # fall back to old method
       bindir = `gem env | grep 'EXECUTABLE DIRECTORY' | awk '{print $4}'`.to_s.chomp

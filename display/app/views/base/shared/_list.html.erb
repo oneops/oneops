@@ -232,6 +232,7 @@
       if (listItemId) {
         listDiv.find("#item_" + listItemId.gsub(/\W/, '') + ":not(.current) .target a").click();
       }
+      list_size_fixed(listDiv);
     };
 
     window.list_process_hash_param = function(list, hash_param_value) {
@@ -254,6 +255,13 @@
             }
           }
         }
+      }
+    }
+
+    window.list_size_fixed = function(listDiv) {
+      if (listDiv.hasClass('fixed')) {
+        var listBody = listDiv.find(".list-body");
+        listBody.css({"height": "calc(100vh - " + (listBody.offset().top + listDiv.find(".list-footer").height() + 10) + "px)"});
       }
     }
   }
@@ -295,5 +303,6 @@
     <% if selected_id.present? %>
       $j("#<%= list_id %> #item_<%= selected_id %> .target a").click();
     <% end %>
+    list_size_fixed(listDiv);
   <% end %>
 </script>

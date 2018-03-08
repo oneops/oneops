@@ -28,7 +28,8 @@
           <% if i.blank? %>
             <li class="divider"></li>
           <% else %>
-            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}"))) %>'><%= raw i[:label] %></a></li>
+            <% busy = i[:busy] %>
+            <li class="disabled"><a onclick='<%= raw(%(invoke_list_menu_item(this, "#{i[:id]}", "#{i[:function]}", "#{i[:url]}", "#{i[:method]}", "#{i[:param_name]}", #{busy ? (busy.is_a?(String) ? "\"#{busy}\"" : 'true') : 'null'}))) %>'><%= raw i[:label] %></a></li>
           <% end %>
         <% end %>
       </ul>
@@ -124,7 +125,7 @@
   }
 
   if (!window.invoke_list_menu_item) {
-    window.invoke_list_menu_item = function(source, menu_item_id, function_name, url, method, param_name) {
+    window.invoke_list_menu_item = function(source, menu_item_id, function_name, url, method, param_name, busy) {
       if ($j(source).hasClass('disabled')) return;
 
       var ids = selected_item_ids(source);
@@ -136,6 +137,7 @@
       else if (url) {
         var data = {};
         data[param_name || "ciIds"] = ids;
+        if (busy) show_busy(typeof(busy) === 'string' ? busy : null);
         $j.ajax({url: url, type: (method || "GET"), data: data});
         clear_current_list_item($j(source).parents('.list').find('.list-body ul')[0]);
       }

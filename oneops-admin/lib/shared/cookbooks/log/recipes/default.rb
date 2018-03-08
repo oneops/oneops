@@ -36,6 +36,7 @@ config_dir = "/etc/logstash/conf.d/"
 logs = node.workorder.payLoad[:LoggedBy]
 ci_id = node.workorder.rfcCi.ciId
 
+files = Array.new
 path_hash = {}
 logs.each do |log|
   #Add the paths for the component
@@ -45,18 +46,9 @@ logs.each do |log|
   path_hash[:fields][:ciId] = ci_id.to_s
   path_hash[:fields][:ciName] = log.ciName.to_s
   path_hash[:fields][:nsPath] = log.nsPath.to_s
-  
-  File.open("/etc/logstash/conf.d/logstash-#{ci_id}-#{log.ciName}.conf","w") do |f|
-    f.write(path_hash.to_json)
-  end
+  files.push(path_hash)
 end
 
-
-#Merge all the config files for CIs
-logs = Array.new
-Dir.glob('/etc/logstash/conf.d/logstash-*.conf') do |conf_file|
-  logs.push(File.read(conf_file))
-end
 
 template "/etc/customlogs/logstash-forwarder/logstash-forwarder.conf" do
   source "logstash-forwarder.conf.erb"
@@ -64,7 +56,8 @@ template "/etc/customlogs/logstash-forwarder/logstash-forwarder.conf" do
   variables({
     :destination => destination,
     :cert_path=> cert_path,
-    :logs => logs
+    :logs => logs,
+    :files => files.to_json
   })
   owner "root"
   group "root"
@@ -90,5 +83,7 @@ end
 #execute "/sbin/service logstash-forwarder restart"     
 #ensure the service is running
 service 'logstash-forwarder' do
+  provider Chef::Provider::Service::Init
   action :start
 end
+

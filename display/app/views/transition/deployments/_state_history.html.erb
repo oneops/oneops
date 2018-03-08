@@ -28,7 +28,7 @@
         <div class="accordion-inner">
           <% if new_comment %>
             <% comments = event.comments %>
-            <%= event.comments %><br/>
+            <%= sub_url_links(comments) %><br/>
           <% end %>
 
           <% if state_approvals.present? %>
@@ -45,51 +45,59 @@
                       <td><%= link_to(highlight(a.govern_ci.ciName), path_to_ci(a.govern_ci)) %></td>
                       <% if a.state == 'approved' %>
                         <% next_event = state_events[i + 1] %>
-                        <% if (a.updated + a.expiresIn * 60 * 1000) > (next_event ? next_event.updated : Time.now.to_f * 1000) %>
+                        <% if a.expiresIn == -1 || (a.updated + a.expiresIn * 60 * 1000) > (next_event ? next_event.updated : Time.now.to_f * 1000) %>
                           <td class="text-success">
-                            <%= icon('check') %>
+                            <%= deployment_approval_state_icon(a.state) %>
                             <b><%= a.state %></b>
                           </td>
                           <td>
                             @ <b><%= Time.at(a.updated/1000).to_s(:db) %></b> by <b><%= a.updatedBy %></b>
-                            <br/>valid till <b><%= Time.at(a.updated/1000 + a.expiresIn * 60).to_s(:db) %></b>
+                            <br/>
+                            <% if a.expiresIn == -1 %>
+                              does not expire
+                            <% else %>
+                              valid till <b><%= Time.at(a.updated/1000 + a.expiresIn * 60).to_s(:db) %>
+                            <% end %>
+                          </b>
                             <% if a.comments.present? %>
-                              <br/><%= icon('comment') %> <%= a.comments %>
+                              <br/><%= icon('comment') %> <%= sub_url_links(a.comments) %>
                             <% end %>
                           </td>
                         <% else %>
                           <td class="text-warning">
-                            <%= icon('moon-o') %>
+                            <%= deployment_approval_state_icon('expired') %>
                             <b>expired</b>
                           </td>
                           <td>
                             @ <b><%= Time.at(a.updated/1000 + a.expiresIn * 60).to_s(:db) %></b>
                             <br/>approved @ <b><%= Time.at(a.updated/1000).to_s(:db) %></b> by <b><%= a.updatedBy %></b>
                             <% if a.comments.present? %>
-                              <br/><%= icon('comment') %> <%= a.comments %>
+                              <br/><%= icon('comment') %> <%= sub_url_links(a.comments) %>
                             <% end %>
                           </td>
                         <% end %>
                       <% elsif a.state == 'pending' %>
                         <td class="text-info">
-                          <%= icon('clock-o') %>
+                          <%= deployment_approval_state_icon(a.state) %>
                           <b><%= a.state %></b>
                         </td>
+                        <td></td>
                       <% elsif a.state == 'rejected' %>
                         <td class="text-error">
-                          <%= icon('ban') %>
+                          <%= deployment_approval_state_icon(a.state) %>
                           <b><%= a.state %></b>
                         </td>
                         <td>
                           @ <b><%= Time.at(a.updated/1000).to_s(:db) %></b> by <b><%= a.updatedBy %></b>
                           <% if a.comments.present? %>
-                            <br/><%= icon('comment') %> <%= a.comments %>
+                            <br/><%= icon('comment') %> <%= sub_url_links(a.comments) %>
                           <% end %>
                         </td>
                       <% else %>
                         <td>
                           <b><%= a.state %></b>
                         </td>
+                        <td></td>
                       <% end %>
                     </tr>
                   <% end %>
