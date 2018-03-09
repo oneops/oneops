@@ -1,8 +1,8 @@
 class Organization::TeamMembersController < ApplicationController
   include ::AdminLimit
 
-  before_filter :authorize_admin, :except => [:index]
   before_filter :find_team
+  before_filter :authorize_admin, :except => [:index]
 
   def index
     render :json => {:users => @team.users.all, :groups => @team.groups.all}
@@ -18,7 +18,7 @@ class Organization::TeamMembersController < ApplicationController
         if @team.users.exists?(@member)
           @error = "User #{user_name} is already a member of team '#{@team.name}'."
         else
-          @error = check_max_admin_limit(@team, @member)
+          @error = check_admin_limit(@team, @member)
           @team.users << @member if @error.blank?
         end
       else
@@ -30,7 +30,7 @@ class Organization::TeamMembersController < ApplicationController
         if @team.groups.exists?(@member)
           @error = "Group #{group_name} is already added to team '#{@team.name}'."
         else
-          @error = check_max_admin_limit(@team, @member)
+          @error = check_admin_limit(@team, @member)
           @team.groups << @member if @error.blank?
         end
       else
@@ -71,6 +71,17 @@ class Organization::TeamMembersController < ApplicationController
     respond_to do |format|
       format.js {flash[:error] = error if error}
       format.json { error ? render_json_ci_response(false, @member, [error]) : index }
+    end
+  end
+
+
+  protected
+
+  def authorize_admin
+    if @team && @team.name == Team::ADMINS
+      return unauthorized('Unauthorized to manage admins!') unless manages_admins?
+    else
+      super
     end
   end
 

@@ -1,21 +1,34 @@
 class Organization::TeamsController < ApplicationController
+  include ::AdminLimit
+
   before_filter :authorize_admin, :except => [:index, :show, :edit]
   before_filter :find_team, :only => [:show, :edit, :update, :destroy]
 
   def index
-    @teams = current_user.organization.teams.order(:name)
-    @teams = @teams.joins(:users).where('users.id = ? OR teams.name = ?', current_user.id, Team::ADMINS).uniq unless is_admin?
-    @user_count = current_user.organization.teams.joins(:users).select('teams.id, count(users.id) as user_count').group('teams.id').inject({}) do |m, team|
-      m[team.id] = team.user_count.to_i
-      m
-    end
-    @group_count = current_user.organization.teams.joins(:groups).select('teams.id, count(groups.id) as group_count').group('teams.id').inject({}) do |m, team|
-      m[team.id] = team.group_count.to_i
-      m
+    org = current_user.organization
+    if is_admin?
+      @teams = org.teams.order(:name).all
+    else
+      @teams = current_user.teams.where('teams.organization_id = ?', org.id).all +
+               current_user.teams_via_groups.where('teams.organization_id = ?', org.id).all
+      @teams.uniq!
     end
 
     respond_to do |format|
-      format.js { render :action => :index }
+      format.js do
+        @user_count = org.teams.joins(:users).select('teams.id, count(users.id) as user_count').group('teams.id').inject({}) do |m, team|
+          m[team.id] = team.user_count.to_i
+          m
+        end
+        @group_count = org.teams.joins(:groups).select('teams.id, count(groups.id) as group_count').group('teams.id').inject({}) do |m, team|
+          m[team.id] = team.group_count.to_i
+          m
+        end
+
+
+        render :action => :index
+      end
+
       format.json { render :json => @teams }
     end
   end

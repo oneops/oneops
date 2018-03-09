@@ -1,8 +1,11 @@
+<% manages_admins = manages_admins?
+   is_admin = is_admin?
+   can_add = @team.name == Team::ADMINS ? manages_admins : is_admin %>
 <%= section_panel 'Team Details', :width => 'double', :position => 'right' do %>
   <%= render('base/shared/edit_form',
              {:resource    => @team,
               :content     => 'team_details_content',
-              :read_only   => !is_admin?,
+              :read_only   => !is_admin,
               :cancel_url  => organization_teams_path,
               :form_url    => @team.new_record? ? organization_teams_path : organization_team_path(@team),
               :destroy_url => @team.new_record? || @team.name == Team::ADMINS ? nil : organization_team_path(@team)}) %>
@@ -12,7 +15,7 @@
 	<%= section_panel icon('user', 'User Members'),
                     :width    => 'double',
                     :position => 'right',
-                    :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'show_add_team_member_dialog("user")', :remote => true, :class => 'btn btn-mini')] : nil do %>
+                    :menu     => can_add ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'show_add_team_member_dialog("user")', :remote => true, :class => 'btn btn-mini')] : nil do %>
 		<div id="team_user_members">
 			<%= render('organization/team_members/user_list') %>
 		</div>
@@ -21,7 +24,7 @@
   <%= section_panel icon('users', 'Group Members'),
                      :width    => 'double',
                      :position => 'right',
-                     :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'show_add_team_member_dialog("group")', :remote => true, :class => 'btn btn-mini')] : nil do %>
+                     :menu     => can_add ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'show_add_team_member_dialog("group")', :remote => true, :class => 'btn btn-mini')] : nil do %>
 		<div id="team_group_members">
 			<%= render('organization/team_members/group_list') %>
 		</div>

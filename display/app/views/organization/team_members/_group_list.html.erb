@@ -1,5 +1,8 @@
+<% manages_admins = manages_admins?
+   is_admin = is_admin?
+   can_edit = @team.name == Team::ADMINS ? manages_admins : is_admin %>
 <%= grouped_list(@team.groups.includes(:users).all,
-                 :new_link => is_admin? && link_to_function(icon('plus', 'Add group...'), 'show_add_team_member_dialog("group")'),
+                 :new_link => can_edit && link_to_function(icon('plus', 'Add group...'), 'show_add_team_member_dialog("group")'),
                  :collapse => true,
                  :toolbar  => {:list_name => 'team_group_list',
                                :filter_by => %w(username group)}) do |group_builder, group| %>
@@ -7,7 +10,7 @@
     <%= group.name %>
     &nbsp;&nbsp;<small><span class="muted"><%= pluralize(group.users.size, 'user') %></span></small>
   <% end %>
-  <% if is_admin? %>
+  <% if can_edit %>
     <% group_builder.menu do %>
       <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
       <ul class="dropdown-menu" role="menu">
@@ -32,3 +35,4 @@
        builder.middle full_name if full_name.present? %>
   <% end %>
 <% end %>
+
