@@ -53,7 +53,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
     private int totalComputesTTLed = 0;
     private int notificationFrequencyDays = 0;
     private String prodCloudRegex;
-    private String indexName = "oottl_new";
+    private String indexName = "oottl";
 
     public EnvTTLCrawlerPlugin() {
         ooFacade = new OneOpsFacade();
