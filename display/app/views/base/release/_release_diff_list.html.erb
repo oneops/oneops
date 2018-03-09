@@ -18,47 +18,46 @@
            :toolbar => {:list_name => 'release_rfc_list',
                         :sort_by   => [%w(Class rfcClass), %w(Name rfcName), %w(Namespace namespace), %w(Created created)],
                         :filter_by => %w(rfcClass rfcName namespace diffAttributes),
-                        :compact   => true}) do |builder, target| %>
-    <% ci = target.is_a?(Cms::RfcCi)
-       rfc_id = target.rfcId
-       diff_attrs = ci ? target.ciAttributes.attributes : target.relationAttributes.attributes
-       base_attrs = ci ? target.ciBaseAttributes.attributes : target.relationBaseAttributes.attributes
-       meta = target.meta
+                        :compact   => true}) do |builder, rfc| %>
+    <% ci = rfc.is_a?(Cms::RfcCi)
+       rfc_id = rfc.rfcId
+       diff_attrs = ci ? rfc.ciAttributes.attributes : rfc.relationAttributes.attributes
+       base_attrs = ci ? rfc.ciBaseAttributes.attributes : rfc.relationBaseAttributes.attributes
+       meta = rfc.meta
        diff_attribute_desc = diff_attrs.keys.map do |attr|
          mda = meta.md_attribute(attr)
          mda ? mda.description : attr
        end
-       rfc_ci_relations = ci && rfc_relations_map["#{target.ciName}***#{target.ciClassName}"]
-       owner_map = owner_value && (ci ? target.attributes[:ciAttrProps] : target.attributes[:relationAttrProps]).attributes[:owner]
-       owner_map = owner_value && target.attrOwner %>
+       rfc_ci_relations = ci && rfc_relations_map["#{rfc.ciName}***#{rfc.ciClassName}"]
+       owner_map = owner_value && rfc.attrOwner %>
     <% builder.itemid rfc_id %>
-    <% builder.attributes raw(%(rfcName="#{ci ? target.ciName : target.relationName}" created="#{target.created}" rfcClass="#{(ci ? target.ciClassName : target.relationName).split('.').last}" namespace="#{target.nsPath}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
+    <% builder.attributes raw(%(rfcName="#{ci ? rfc.ciName : rfc.relationName}" created="#{rfc.created}" rfcClass="#{(ci ? rfc.ciClassName : rfc.relationName).split('.').last}" namespace="#{rfc.nsPath}" diffAttributes="#{diff_attribute_desc.join('+')}")) %>
     <% builder.target nil %>
     <% builder.status do %>
-      <%= status_marker('release', target.rfcAction, action_to_label(target.rfcAction)) %>
-      <% short_ns_path = target.nsPath.gsub(/(\/_design\/)|(\/manifest\/)|\/bom\//, '/').split('/')[3..-1].join('/') %>
+      <%= status_marker('release', rfc.rfcAction, action_to_label(rfc.rfcAction)) %>
+      <% short_ns_path = rfc.nsPath.gsub(/(\/_design\/)|(\/manifest\/)|\/bom\//, '/').split('/')[3..-1].join('/') %>
       <% if short_ns_path.present? %>
         <span class="pull-right"><%= marker(short_ns_path, 'label-info') %></span>
       <% end %>
     <% end %>
     <% if ci %>
-      <% builder.icon ci_image_url(target) %>
+      <% builder.icon ci_image_url(rfc) %>
     <% end %>
     <% builder.menu :none %>
     <% builder.top do %>
       <div>
         <% if ci %>
-          <span class="topname"><%= link_to(target.ciName, path_to_ci(target)) %></span>
-          <span class="topdesc"><%= target.ciClassName.split('.').last %></span>
+          <span class="topname"><%= link_to(rfc.ciName, path_to_ci(rfc)) %></span>
+          <span class="topdesc"><%= rfc.ciClassName.split('.').last %></span>
         <% else %>
           <%= icon('link', nil, 'relation') %>
-          <%= target.ci_hash['fromCiName'] %>
-          <span class="topdesc"><%= target.relationName.split('.').last %></span>
-          <%= target.ci_hash['toCiName'] %>
+          <%= rfc.ci_hash['fromCiName'] %>
+          <span class="topdesc"><%= rfc.relationName.split('.').last %></span>
+          <%= rfc.ci_hash['toCiName'] %>
         <% end %>
         <% if diff_attrs.present? %>
           <span class="topdesc pull-right">
-            <%= link_to_function(raw("#{content_tag(:small, pluralize(target.rfcAction == 'add' ? diff_attrs.size : base_attrs.size, 'change'))}&nbsp;#{icon('angle-down', '', 'fa-lg')}"),
+            <%= link_to_function(raw("#{content_tag(:small, pluralize(diff_attrs.size, 'change'))}&nbsp;#{icon('angle-down', '', 'fa-lg')}"),
                                  "$j(this).find('i.fa').toggleClass('fa-angle-down fa-angle-up').parents('li').find('.middle').toggle(500)") %>
           </span>
         <% end %>
@@ -83,7 +82,7 @@
                    data_type = md_attribute.dataType
                    json = data_type == 'hash' || data_type == 'array' || data_type == 'struct'
                    base_value = base_attrs[attr] %>
-                <% if base_value || target.rfcAction == 'add' %>
+                <% if base_value || rfc.rfcAction == 'add' || rfc.rfcAction == 'update' %>
                   <tr class="attribute">
                     <td colspan="2">
                       <%= md_attribute ? md_attribute.description : attr %>
@@ -100,7 +99,7 @@
           </div>
         <% end %>
         <div class="tab-pane <%= 'active' if diff_attrs.blank? %>" id="rfc_<%= rfc_id %>_tab_info">
-          <%= rfc_properties(target) %>
+          <%= rfc_properties(rfc) %>
         </div>
         <% if rfc_ci_relations %>
           <div class="tab-pane" id="rfc_<%= rfc_id %>_relations">
@@ -116,11 +115,11 @@
       </div>
     <% end %>
     <% builder.bottom do %>
-      <% if target.rfcUpdated && target.rfc_updated_timestamp.present? %>
-        last modified <% updated_by = target.rfcUpdatedBy || target.rfcCreatedBy  %>
-        <%= time_ago_in_words(target.rfc_updated_timestamp) %> <%= "by #{updated_by}" if updated_by %>
-      <% elsif target.rfc_created_timestamp %>
-        created <%= time_ago_in_words(target.rfc_created_timestamp) %> <%= "by #{target.rfcCreatedBy}" if target.rfcCreatedBy %>
+      <% if rfc.rfcUpdated && rfc.rfc_updated_timestamp.present? %>
+        last modified <% updated_by = rfc.rfcUpdatedBy || rfc.rfcCreatedBy  %>
+        <%= time_ago_in_words(rfc.rfc_updated_timestamp) %> <%= "by #{updated_by}" if updated_by %>
+      <% elsif rfc.rfc_created_timestamp %>
+        created <%= time_ago_in_words(rfc.rfc_created_timestamp) %> <%= "by #{rfc.rfcCreatedBy}" if rfc.rfcCreatedBy %>
       <% else %>
         &nbsp;
       <% end %>
