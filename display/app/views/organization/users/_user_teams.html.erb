@@ -1,29 +1,32 @@
+<% user_team_ids = @user.team_ids
+   org = current_user.organization
+   manages_admins = manages_admins?
+   is_admin = is_admin? %>
 <div class="modal-header">
   <button class="close" data-dismiss="modal">&times;</button>
   <h3><%= @user.username %></h3>
 </div>
 <%= form_tag(organization_user_url(@user), :method => :put, :remote => true, :class => 'form-inline') do %>
   <div class="modal-body">
-    <legend>Team Associations</legend>
-    <div class="teams">
-      <% team_ids = @user.team_ids
-         current_user.organization.teams.each do |team| %>
-        <label>
-          <% current_user_admin = current_user.id == @user.id && team.name == Team::ADMINS %>
-          <a class="btn <%= 'disabled' if current_user_admin %>">
-            <% if current_user_admin %>
-              <%= hidden_field_tag 'teams[]', team.id %>
-            <% else %>
-              <%= check_box_tag('teams[]', team.id, team_ids.include?(team.id)) %>
-            <% end %>
-            <%= team.name %>
-          </a>
-        </label>
-      <% end %>
+    <h5>Team Membership</h5>
+    <% org.teams.order(:name).each do |team| %>
+      <label>
+        <% editable = is_admin && (team.name != Team::ADMINS || manages_admins) %>
+        <a class="btn <%= 'disabled' unless editable %>">
+          <% if editable %>
+            <%=  check_box_tag('teams[]', team.id, user_team_ids.include?(team.id))  %>
+          <% else %>
+            <%=  hidden_field_tag 'teams[]', team.id  %>
+          <% end %>
+          <%= team.name %>
+        </a>
+      </label>
+    <% end %>
+  </div>
+  <% if is_admin %>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
+      <%= submit_tag 'Save', :class => 'btn btn-success btn-large' %>
     </div>
-  </div>
-  <div class="modal-footer">
-    <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
-    <%= submit_tag 'Save', :class => 'btn btn-success btn-large' %>
-  </div>
+  <% end %>
 <% end %>

@@ -76,7 +76,12 @@ class Organization::UsersController < ApplicationController
             team_ids.each do |id|
               team = current_user.organization.teams.where('teams.id' => id).first
               if team
-                error = check_max_admin_limit(team, @user)
+                if team.name == Team::ADMINS && !manages_admins?
+                  @user.errors.add(:base, 'Unauthorized to manage admins!')
+                  raise ActiveRecord::Rollback
+                end
+
+                error = check_admin_limit(team, @user)
                 if error
                   @user.errors.add(:base, error)
                   raise ActiveRecord::Rollback
@@ -99,7 +104,7 @@ class Organization::UsersController < ApplicationController
         if @user && @user.errors.blank?
           index
         else
-          flash[:error] = @user ? @user.errors.full_messages.join(' ') : "Unknown @user: #{username}."
+          flash[:error] = @user ? @user.errors.full_messages.join(' ') : "Unknown user: #{username}."
           render :js => ''
         end
       end
@@ -124,9 +129,11 @@ class Organization::UsersController < ApplicationController
       was_admin     = all_team_ids.include?(admin_team_id)
       will_be_admin = new_team_ids.include?(admin_team_id)
       if admin_team.users.count == 1 && was_admin && !will_be_admin
-        @user.errors.add(:base, 'This user is last admin for this organization: can not remove @user from admins.')
+        @user.errors.add(:base, 'This user is last admin for this organization: can not remove user from admins.')
       else
-        error = !was_admin && will_be_admin && check_max_admin_limit(admin_team, @user)
+        return unauthorized('Unauthorized to manage admins!') if was_admin != will_be_admin && !manages_admins?
+
+        error = !was_admin && will_be_admin && check_admin_limit(admin_team, @user)
         if error
           @user.errors.add(:base, error)
         else
@@ -141,7 +148,7 @@ class Organization::UsersController < ApplicationController
         if @user && @user.errors.blank?
           index
         else
-          flash[:error] = @user ? @user.errors.full_messages.join(' ') : "Unknown @user."
+          flash[:error] = @user ? @user.errors.full_messages.join(' ') : "Unknown user."
           render :js => ''
         end
       end
@@ -154,7 +161,7 @@ class Organization::UsersController < ApplicationController
     @user = current_user.organization.users.find(params[:id])
     if @user
       current_user.organization.teams.each { |team| team.users.delete(@user) }
-      flash[:notice] = "Successfully removed @user '#{@user.username}' from '#{current_user.organization.name}'"
+      flash[:notice] = "Successfully removed user '#{@user.username}' from '#{current_user.organization.name}'"
 
       check_reset_org
     end
