@@ -1,7 +1,9 @@
 <% if @approvals.present? %>
   <% max_updated = @approvals.map(&:updated).max %>
+console.log("<%= max_updated %>");
   if ($j("#controls_pending").attr("data-version") != "<%= max_updated %>") {
-    $j("#controls_pending").html("<%= escape_javascript(render('pending_approvals')) %>");
+    console.log("in");
+    $j("#controls_pending").html("<%= escape_javascript(render('pending_approvals', :approvals => @approvals)) %>");
     $j("#controls_pending").attr("data-version", "<%= max_updated %>");
 
     $j("#overlay_deployment_history").html("<%= escape_javascript(render('state_history')) %>");

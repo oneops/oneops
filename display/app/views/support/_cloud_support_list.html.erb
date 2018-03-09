@@ -1,0 +1,33 @@
+<%= ci_list(@supports,
+            :toolbar => {:sort_by       => [%w(Name ciName), %w(Created created), %w(Org org), %w(Status status)],
+                         :filter_by     => %w(ciName org cloud status),
+                         :quick_filters => [{:label => 'All', :value => '', :selected => true},
+                                            {:label => 'Enabled', :value => 'status=enabled'},
+                                            {:label => 'Disabled', :value => 'status=disabled'}]},
+            :menu    => [{:id => 'enable', :label => 'Enable', :url => cloud_supports_support_path,  :method => :put, :param_name => 'enableCiIds', :busy => true},
+                         {:id => 'disable', :label => 'Disable', :url => cloud_supports_support_path, :method => :put, :param_name => 'disableCiIds', :busy => true}]) do |builder, target| %>
+  <% _, org, _, cloud = target.nsPath.split('/')
+     enabled = target.ciAttributes.enabled == 'true' %>
+  <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" org="#{org}" cloud="#{cloud}" status="#{enabled ? 'enabled' : 'disabled'}") %>
+  <% builder.target link_to('', path_to_ci(target), :target => '_blank') %>
+  <% builder.icon :none %>
+  <% builder.top do %>
+    <span class="topname"><%= target.ciName %></span>
+    <span class="topdesc"><%= org %>/<%= cloud %></span>
+  <% end %>
+  <% builder.middle target.ciAttributes.description %>
+  <% builder.menu do %>
+    <%= link_busy enabled ? icon('toggle-off', 'Disable') : icon('toggle-on', 'Enable'),
+                  {:url          => cloud_supports_support_path,
+                   :method       => :put,
+                   :with         => "'#{enabled ? 'enableCiIds[]' : 'disableCiIds[]'}=#{target.ciId}'",
+                   :title        => (enabled ? 'Disable' : 'Enable'),
+                   :disable_with => 'wait...',
+                   :remote       => true} %>
+  <% end %>
+  <% builder.status do %>
+    <% status = target.ciAttributes.enabled == 'true' ? 'enabled' : 'disabled' %>
+    <%= marker(status, state_to_label(status)) %>
+    <%= marker('approval', 'label-info') if target.ciAttributes.approval == 'true' %>
+  <% end %>
+<% end %>

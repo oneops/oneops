@@ -60,13 +60,17 @@
         <dd>
           <div style="display:inline-table">
           <%= pluralize(@pending_approvals.size, 'approval') %> pending
-            (<%= link_to(content_tag(:b, 'view'), assembly_transition_environment_path(@assembly, @environment, :anchor => "deployments/list_item/#{@deployment.deploymentId}")) %> full approval history)
-          <dl style="margin:0px">
+            (<%= link_to('full approval history', assembly_transition_environment_path(@assembly, @environment, :anchor => "timeline/timeline_list/deployment_#{@deployment.deploymentId}")) %>):
+          <dl class="dl-horizontal">
             <% govern_ci_by_clouds = @pending_approvals.map(&:govern_ci).group_by(&:nsPath) %>
-            <% govern_ci_by_clouds.keys.sort.each do |ns_path| %>
-              <dt><%= ns_path.split('/')[3] %></dt>
-              <dd><%= raw(govern_ci_by_clouds[ns_path].sort_by(&:ciName).map {|a| link_to(a.ciName, path_to_ci(a))}.join(', ')) %></dd>
-            <% end %>
+            <table>
+              <% govern_ci_by_clouds.keys.sort.each do |ns_path| %>
+                <tr>
+                <td><%= icon(site_icon(:cloud)) %> <%= ns_path.split('/')[3] %> -&nbsp;</td>
+                <td><%= raw(govern_ci_by_clouds[ns_path].sort_by(&:ciName).map {|a| link_to(a.ciName, path_to_ci(a))}.join(', ')) %></td>
+                </tr>
+              <% end %>
+            </table>
           </dl>
           </div>
         </dd>

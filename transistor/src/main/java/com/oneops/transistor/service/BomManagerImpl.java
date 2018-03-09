@@ -134,11 +134,13 @@ public class BomManagerImpl implements BomManager {
 			CmsRelease bomRelease = bomReleases.get(0);
 			logger.info("Existing open bom release " + bomRelease.getReleaseId() + " found, returning it");
 
-			Map<String, Object> bomInfo;
+			Map<String, Object> bomInfo = null;
 			try {
 //				bomInfo = gson.fromJson(bomRelease.getDescription(), (new TypeToken<HashMap<String, Object>>() {}).getType());
 				bomInfo = gson.fromJson(bomRelease.getDescription(), HashMap.class);
-			} catch (JsonSyntaxException e) {
+			} catch (JsonSyntaxException ignore) {
+			}
+			if (bomInfo == null) {
 				bomInfo = new HashMap<>();
 			}
 			bomInfo.put("release", bomRelease);
