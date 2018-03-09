@@ -6,7 +6,7 @@
         <artifactId>daq-parent</artifactId>
         
         <relativePath>../pom.xml</relativePath>
-    <version>18.03.05-3-SNAPSHOT</version></parent>
+    <version>18.03.05-3</version></parent>
     <groupId>com.oneops</groupId>
     <artifactId>daq-collector</artifactId>
     <packaging>jar</packaging>
