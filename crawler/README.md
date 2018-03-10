@@ -29,6 +29,9 @@ You can run the crawler locally as a java program with the above parameters
 
 ```cms.api.host``` : OneOps CMS api host. This can be used by plugins. Example: TTL Plugin uses it to disable platforms and do deployment, send notifications.
 
+```crawler.single.run``` : Set to ```true``` if you want the Crawler to exit after going over once. If not set, it runs in a loop.
+
+```crawler.freqency.hrs``` : If not running in a "single run", Crawler sleeps for these many hours between loops. Deafults to 6 hrs
 
 ### Build/Test:
 

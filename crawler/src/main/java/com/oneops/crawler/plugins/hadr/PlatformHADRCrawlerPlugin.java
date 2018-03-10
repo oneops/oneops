@@ -1,6 +1,7 @@
 package com.oneops.crawler.plugins.hadr;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -8,6 +9,8 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import com.oneops.crawler.CommonsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
@@ -63,7 +66,11 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     log.info("environmentProfileFilter: " + environmentProfileFilter);
 
     if (isHadrEsEnabled) {
-      createIndexInElasticSearch();
+      try {
+        createIndexInElasticSearch();
+      } catch (IOException e) {
+        throw new RuntimeException("Could not create ES index for HADR plugin", e);
+      }
     }
 
   }
@@ -126,7 +133,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     platformHADRRecord.setClouds(platform.getClouds());
     // TODO: write a utility to transform cloud data
     platformHADRRecord = setCloudCategories(platformHADRRecord, platformHADRRecord.getCloudsMap());
-    String orginzationName = parseOrganizationNameFromNsPath(platform.getPath());
+    String orginzationName = CommonsUtil.parseOrganizationNameFromNsPath(platform.getPath());
     platformHADRRecord.setOrg(orginzationName);
     platformHADRRecord.setOrganization(organizationsMapCache.get(orginzationName));
 
@@ -147,16 +154,6 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     if (path != null && !path.isEmpty()) {
       String[] parsedArray = path.split("/");
       return parsedArray[2];
-    } else {
-      return "";
-    }
-  }
-
-  public String parseOrganizationNameFromNsPath(String path) {
-
-    if (path != null && !path.isEmpty()) {
-      String[] parsedArray = path.split("/");
-      return parsedArray[1];
     } else {
       return "";
     }
@@ -191,13 +188,18 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   public void saveToElasticSearch(PlatformHADRRecord platformHADRRecord, String platformCId) {
 
     log.info("Sending data record to elastic search");
-    searchDal.push(this.hadrElasticSearchIndexName, "platform", platformHADRRecord, platformCId);
+    try {
+      searchDal.put(this.hadrElasticSearchIndexName, "platform", platformHADRRecord, platformCId);
+    } catch (IOException e) {
+      log.error("Error saving hadr record to ES ", e);
+      return;
+    }
     log.info("Sent data record to elastic search");
     log.debug("JsonfiedString: " + new Gson().toJson(platformHADRRecord));
 
   }
 
-  public void createIndexInElasticSearch() {
+  public void createIndexInElasticSearch() throws IOException {
 
     searchDal.createIndex(this.hadrElasticSearchIndexName, gethadrIndexMappigs());
 
