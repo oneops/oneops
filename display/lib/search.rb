@@ -5,7 +5,7 @@ module Search
     base.class_eval do
       swagger_api :search do
         summary 'Search API to return CI or relation data for a given CI class name or relation name.'
-        notes 'It will perform a search against CMS (source=cms) or ES (source=es) - see <b>source</b> parameter: defaults CMS for ' \
+        notes 'Perform a search of CIs or relations against CMS (source=cms) or ES (source=es) - see <b>source</b> parameter: defaults CMS for ' \
               'json/yaml/txt requestst and to ES for html/ajax requests.  Either <b>class_name</b> or <b>relation_name</b> ' \
               'must be specified. Relation search is not supported for ES. <br/>Examples:' \
               '<br/>1. Lookup IP addresses for a given platform and matching cloud name from ES:<br/>' \
@@ -38,7 +38,6 @@ module Search
         param :query, 'to_class_name', :string, :optional, 'Filter based on "toCi" class name: supported for CMS searches only.'
         param :query, 'pluck', :string, :optional, 'Restrict resultset to the values of this field only (e.g. "private_ip")'
         param :query, 'size', :string, :optional, 'Resutlset record max size: supported for ES searches only.'
-        param :query, '', :string, :optional, ''
         response :unauthorized
         response :unprocessable_entity
       end
