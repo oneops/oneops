@@ -830,7 +830,7 @@ class ApplicationController < ActionController::Base
   def allowed_to_settle_approval?(approval)
     # SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT allows to designate users which can settle approvals
     # in general. And then "has_cloud_support?" allows to further "fine tune" it on cloud by cloud basis.
-    if suport_auth_config[Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT].present? &&
+    if support_auth_config[Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT].present? &&
        !has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT, true)
       return false
     end
