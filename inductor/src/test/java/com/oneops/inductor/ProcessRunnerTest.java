@@ -65,8 +65,8 @@ public class ProcessRunnerTest {
 		c.setChefTimeout(1);
 		ProcessRunner pr = new ProcessRunner(c);
 		String[] cmd = new String[2];
-		cmd[0] = "ping";
-		cmd[1] = "google.com";
+		cmd[0] = "sleep";
+		cmd[1] = "10s";
 		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
 		assertTrue(procResult.getResultCode() == 143);
 	}
