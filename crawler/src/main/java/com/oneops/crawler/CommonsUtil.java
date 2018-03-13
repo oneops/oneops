@@ -1,6 +1,7 @@
 /*******************************************************************************
  *
- *   Copyright 2017 Walmart, Inc.
+
+ *   Copyright 2018 Walmart, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -17,26 +18,16 @@
  *******************************************************************************/
 package com.oneops.crawler;
 
-import com.oneops.Deployment;
-import com.oneops.Environment;
-import com.oneops.Organization;
+public class CommonsUtil {
 
-import java.util.List;
-import java.util.Map;
+    public static String parseOrganizationNameFromNsPath(String path) {
 
-public abstract class AbstractCrawlerPlugin {
-    public void processEnvironment(Environment env, List<Deployment> deployments, Map<String, Organization> organizations) {
-        //default empty impl
+        if (path != null && !path.isEmpty()) {
+            String[] parsedArray = path.split("/");
+            return parsedArray[1];
+        } else {
+            return "";
+        }
     }
-    public void processEnvironment(Environment env, Map<String, Organization> organizations) {
-        //default empty impl
-    }
-    public void init() {
-        //default empty impl
-    }
-    public void cleanup() {
-        //default empty impl
-    }
+
 }
-
-

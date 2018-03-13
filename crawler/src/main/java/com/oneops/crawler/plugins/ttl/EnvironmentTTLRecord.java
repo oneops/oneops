@@ -1,6 +1,7 @@
-package com.oneops.crawler;
+package com.oneops.crawler.plugins.ttl;
 
 import com.oneops.Environment;
+import com.oneops.Organization;
 import com.oneops.Platform;
 
 import java.io.Serializable;
@@ -15,6 +16,10 @@ public class EnvironmentTTLRecord implements Serializable {
     int userNotifiedTimes;
     Date plannedDestroyDate;
     Date actualDestroyDate;
+    boolean ttlDeploymentSubmitted;
+    int reclaimedCores;
+    boolean ttlFailed;
+    Organization organization;
 
     public String getEnvironmentProfile() {
         return environmentProfile;
@@ -78,5 +83,37 @@ public class EnvironmentTTLRecord implements Serializable {
 
     public void setEnvironmentId(long environmentId) {
         this.environmentId = environmentId;
+    }
+
+    public boolean getTtlDeploymentSubmitted() {
+        return ttlDeploymentSubmitted;
+    }
+
+    public void setTtlDeploymentSubmitted(boolean ttlDeploymentSubmitted) {
+        this.ttlDeploymentSubmitted = ttlDeploymentSubmitted;
+    }
+
+    public int getReclaimedCores() {
+        return reclaimedCores;
+    }
+
+    public void setReclaimedCores(int reclaimedCores) {
+        this.reclaimedCores = reclaimedCores;
+    }
+
+    public boolean isTtlFailed() {
+        return ttlFailed;
+    }
+
+    public void setTtlFailed(boolean ttlFailed) {
+        this.ttlFailed = ttlFailed;
+    }
+
+    public Organization getOrganization() {
+        return organization;
+    }
+
+    public void setOrganization(Organization organization) {
+        this.organization = organization;
     }
 }

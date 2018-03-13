@@ -681,12 +681,15 @@ public class ManifestManagerImpl implements ManifestManager {
 				ManifestRfcContainer manifestPlatformRfcs =  manifestRfcProcessor.processPlatform(platRelation.getToCi(), env, nsPath, userId, availMode);
             	DesignCIManifestRfcTouple touple = new DesignCIManifestRfcTouple(platRelation.getToCi().getCiId(),manifestPlatformRfcs);
             	return touple;
-            } finally {
+            } catch (Exception e){
+            	e.printStackTrace();
+            	logger.error(e, e);
+            	throw e;
+			} finally {
 				countDownLatch.countDown();
 				Thread.currentThread().setName(oldThreadName);
             }
         }
- 
     }
 	
 	private class DesignCIManifestRfcTouple {

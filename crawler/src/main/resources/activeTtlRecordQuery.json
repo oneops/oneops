@@ -1,0 +1,22 @@
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "ttlDeploymentSubmitted": <ttlDeploymentSubmitted>
+          }
+        },
+        {
+          "term": {
+            "platform.id": <platformId>
+          }
+        }
+      ]
+    }
+  },
+  "sort": { "plannedDestroyDate": { "order": "desc" } },
+
+  "size": 1,
+  "from": 0
+}
