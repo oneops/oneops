@@ -112,14 +112,15 @@
         var btn = $j(link).parents(".btn-group").find(".btn");
         var label = btn.html();
         btn.addClass("disabled").html(disable_message);
-        var data = {state: state, expiresIn: expiration, approvals: {}, comments: encodeURI($j("#pending_deployment_comments").val())};
+        var data = {state: state, expiresIn: expiration, approvals: [], comments: encodeURI($j("#pending_deployment_comments").val())};
         approvals.each(function() {
-          data["approvals"][this.value] = {approvalId: this.value, token: $j(this).parents("tr").find(".auth-token").val()};
+          data["approvals"].push({approvalId: this.value, token: $j(this).parents("tr").find(".auth-token").val()});
         });
         $j.ajax({
           url:  "<%= settle_assembly_transition_environment_deployment_approvals_path(@assembly, @environment, @deployment) %>",
           type: "PUT",
-          data: data,
+          data: Object.toJSON(data),
+          contentType: 'application/json',
           complete: function() {
             btn.removeClass("disabled").html(label);
           }
