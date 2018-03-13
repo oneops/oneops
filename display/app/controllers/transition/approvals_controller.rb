@@ -8,7 +8,7 @@ class Transition::ApprovalsController < ApplicationController
 
   def settle
     # Approval can be designated by 'approvalId' or combination of governCi nsPath and ciName concatenated with '!'.
-    approvals_to_settle_map = (params[:approvals].presence || {}).values.to_map { |a| a[:approvalId] }
+    approvals_to_settle_map = (params[:approvals].presence || []).to_map { |a| a[:approvalId] }
     comments                = params[:comments]
     state                   = params[:state]
     token                   = params[:token]
