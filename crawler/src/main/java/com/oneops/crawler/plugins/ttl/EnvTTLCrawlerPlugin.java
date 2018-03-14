@@ -29,11 +29,10 @@ import com.oneops.notification.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -162,8 +161,19 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             for (Platform platform : env.getPlatforms().values()) {
                 log.info("Processing platform # " + platform.getId());
                 boolean disabledPlatform = false;
-                if (eligiblePlatformIds.contains(platform.getId()) && platform.getTotalComputes() > 0
-                        && "enable".equalsIgnoreCase(platform.getEnable())) {
+                if (eligiblePlatformIds.contains(platform.getId()) && platform.getTotalComputes() > 0) {
+                    if ("disable".equalsIgnoreCase(platform.getEnable())) {
+                        try {
+                            ESRecord esRecord = searchEarlierTTL(platform, env);
+                            //Disable state of the platform is because of the TTL happened for this platform earlier
+                            //do not try the TTL again
+                            if (esRecord != null) continue;
+                        } catch (Exception e) {
+                            log.error("Error while searching for earlier ttl attempt: ", e);
+                            continue;
+                        }
+                    }
+
                     EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
                     ttlRecord.setEnvironmentProfile(env.getProfile());
                     ttlRecord.setEnvironmentId(env.getId());
@@ -260,6 +270,15 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         }
     }
 
+    private ESRecord searchEarlierTTL(Platform platform, Environment env) throws IOException, URISyntaxException {
+        EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
+        ttlRecord.setEnvironmentProfile(env.getProfile());
+        ttlRecord.setEnvironmentId(env.getId());
+        ttlRecord.setPlatform(platform);
+
+        return searchExistingRecord(ttlRecord, true);
+    }
+
     private void analyzeLastTtlRun(Environment env, List<Deployment> deployments) {
         for (Platform platform : env.getPlatforms().values()) {
             EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
@@ -291,12 +310,23 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 int originalCores = ttlRecord.getPlatform().getTotalCores();
                 int currentCores = platform.getTotalCores();
                 int reclaimedCoresTillNow = ttlRecord.getReclaimedCores();
-                log.info("plaform id : " + platform.getId() + " orginal cores: " + originalCores
+                log.info("platform id : " + platform.getId() + " original cores: " + originalCores
                 + " current cores: " + currentCores );
                 if (originalCores - currentCores > reclaimedCoresTillNow) {
                     ttlRecord.setReclaimedCores(originalCores - currentCores);
-                    log.info("set reclaimed cores for paltform id " + platform.getId() + " to " + ttlRecord.getReclaimedCores());
+                    log.info("set reclaimed cores for platform id " + platform.getId() + " to " + ttlRecord.getReclaimedCores());
                 }
+                //now check for reclaimed computes:
+                int originalComputes = ttlRecord.getPlatform().getTotalComputes();
+                int currentComputes = platform.getTotalComputes();
+                int reclaimedComputesTillNow = ttlRecord.getReclaimedComputes();
+                log.info("platform id : " + platform.getId() + " original computes: " + originalComputes
+                        + " current computes: " + currentComputes );
+                if (originalComputes - currentComputes > reclaimedComputesTillNow) {
+                    ttlRecord.setReclaimedComputes(originalComputes - currentComputes);
+                    log.info("set reclaimed computes for platform id " + platform.getId() + " to " + ttlRecord.getReclaimedCores());
+                }
+
                 if (ttlRecord.getReclaimedCores() != originalCores) {
                     //this means ttl deployment could not finish successfully
                     ttlRecord.setTtlFailed(true);
@@ -317,10 +347,9 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         Stream<String> lines = null;
 
         try {
-            Path path = Paths.get(getClass().getClassLoader().getResource("activeTtlRecordQuery.json").toURI());
-
             StringBuilder query = new StringBuilder();
-            lines = Files.lines(path);
+            lines = new BufferedReader(new InputStreamReader(ClassLoader
+                    .getSystemResourceAsStream("activeTtlRecordQuery.json"))).lines();
             lines.forEach(line -> query.append(line).append(System.lineSeparator()));
             String queryJson = query.toString()
                     .replace("<platformId>", "" + record.getPlatform().getId())
