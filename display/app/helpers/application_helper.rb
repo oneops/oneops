@@ -900,6 +900,8 @@ module ApplicationHelper
 
         render 'transition/page_alert', :assembly => @assembly, :environment => @environment, :release => release, :deployment => deployment if release && release.releaseState == 'open'
       end
+    elsif controller.is_a?(OrganizationController) && action_name == 'edit'
+      render 'organization/page_alert'
     end
   end
 
@@ -1364,7 +1366,7 @@ module ApplicationHelper
   end
 
   def expandable_content(options = {}, &block)
-    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
+    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, raw(options[:content]) || capture(&block), :class => 'hide'))
   end
 
   def expandable_list(items, options = {})

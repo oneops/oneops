@@ -1,0 +1,14 @@
+<% if manages_admins? %>
+  <% admin_limit_check = violates_admin_limit? %>
+  <% if admin_limit_check %>
+    <div class="alert alert-danger">
+      This organization is <b>in violation</b> of max admin count policy: number of admin users [<%= admin_limit_check[0] %>]
+      exceeds the maximum allowed limit [<%= admin_limit_check[2] %>]
+      <%- if admin_limit_check[3].present? %>
+        (note: members of user <%= 'group'.pluralize(admin_limit_check[3].size) %> <<em><%= admin_limit_check[3].join(', ') %></em>>
+        are not counted against the limit)
+      <% end %>.
+      <br>Remove some users and/or groups from the <em>admins</em> team to comply with max admin count policy.
+    </div>
+  <% end %>
+<% end %>

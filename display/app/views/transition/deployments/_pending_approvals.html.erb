@@ -1,9 +1,7 @@
 <% allowed_to_settle_count = 0
    allowed_to_settle_with_token_count = 0
    checkbox_all_id = random_dom_id
-   token_all_id = random_dom_id
-   has_cloud_support_management = has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT)
-%>
+   token_all_id = random_dom_id %>
 <td>
   <table class="table table-condensed">
     <tr>
@@ -17,7 +15,7 @@
             <% cloud = ns_path.split('/')[3] %>
             <% approvals_by_cloud[ns_path].sort_by {|a| a.govern_ci.ciName}.each do |a| %>
               <% govern_ci = a.govern_ci
-                 allowed_to_settle = allowed_to_settle_approval?(a) && has_cloud_support_management %>
+                 allowed_to_settle = allowed_to_settle_approval?(a) %>
               <tr>
                 <td><%= icon(site_icon(:cloud), cloud) %></td>
                 <td><%= link_to(govern_ci.ciName, path_to_ci(govern_ci)) %></td>
@@ -64,40 +62,38 @@
         </table>
       </td>
     </tr>
-    <% if has_cloud_support_management %>
+    <% if allowed_to_settle_count > 0 %>
       <tr>
         <td colspan="2"><%= text_area_tag :pending_deployment_comments, nil, :placeholder => 'approval comments' %></td>
       </tr>
       <tr>
-        <% if allowed_to_settle_count > 0 %>
-          <td>
-            <div class="btn-group">
-              <%= link_to_function(raw(content_tag(:span, icon('thumbs-down', 'Reject'))), 'settle_pending_approvals(this, "rejected", "Rejecting...")', :class => 'btn btn-danger disabled', :id => 'reject_deployment_button') %>
-            </div>
-          </td>
-          <td>
-            <div class="btn-group">
-              <a id="approve_deployment_button" class="btn btn-success dropdown-toggle disabled" data-toggle="dropdown" href="#">
-                <%= icon('thumbs-up') %> <span>Approve</span> <span class="caret"></span>
-              </a>
-              <ul class="dropdown-menu drop-up">
-                <li class="disabled" style="border-bottom: 1px solid #bbb">
-                  <a>
-                    Approvals are valid for:
-                  </a>
-                </li>
-                <% [['now only', 1],
-                    ['2 hours', 2 * 60],
-                    ['6 hours', 6 * 60],
-                    ['12 hours', 12 * 60],
-                    ['24 hours', 24 * 60],
-                    ['indefinite', -1]].each do |expiration| %>
-                  <li><%= link_to_function(expiration[0], "settle_pending_approvals(this, 'approved', 'Approving...', '#{expiration[1]}')") %></li>
-                <% end %>
-              </ul>
-            </div>
-          </td>
-        <% end %>
+        <td>
+          <div class="btn-group">
+            <%= link_to_function(raw(content_tag(:span, icon('thumbs-down', 'Reject'))), 'settle_pending_approvals(this, "rejected", "Rejecting...")', :class => 'btn btn-danger disabled', :id => 'reject_deployment_button') %>
+          </div>
+        </td>
+        <td>
+          <div class="btn-group">
+            <a id="approve_deployment_button" class="btn btn-success dropdown-toggle disabled" data-toggle="dropdown" href="#">
+              <%= icon('thumbs-up') %> <span>Approve</span> <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu drop-up">
+              <li class="disabled" style="border-bottom: 1px solid #bbb">
+                <a>
+                  Approvals are valid for:
+                </a>
+              </li>
+              <% [['now only', 1],
+                  ['2 hours', 2 * 60],
+                  ['6 hours', 6 * 60],
+                  ['12 hours', 12 * 60],
+                  ['24 hours', 24 * 60],
+                  ['indefinite', -1]].each do |expiration| %>
+                <li><%= link_to_function(expiration[0], "settle_pending_approvals(this, 'approved', 'Approving...', '#{expiration[1]}')") %></li>
+              <% end %>
+            </ul>
+          </div>
+        </td>
       </tr>
     <% end %>
     <% if has_transition?(@assembly.ciId) %>
@@ -116,14 +112,15 @@
         var btn = $j(link).parents(".btn-group").find(".btn");
         var label = btn.html();
         btn.addClass("disabled").html(disable_message);
-        var data = {state: state, expiresIn: expiration, approvals: {}, comments: encodeURI($j("#pending_deployment_comments").val())};
+        var data = {state: state, expiresIn: expiration, approvals: [], comments: encodeURI($j("#pending_deployment_comments").val())};
         approvals.each(function() {
-          data["approvals"][this.value] = {approvalId: this.value, token: $j(this).parents("tr").find(".auth-token").val()};
+          data["approvals"].push({approvalId: this.value, token: $j(this).parents("tr").find(".auth-token").val()});
         });
         $j.ajax({
           url:  "<%= settle_assembly_transition_environment_deployment_approvals_path(@assembly, @environment, @deployment) %>",
           type: "PUT",
-          data: data,
+          data: Object.toJSON(data),
+          contentType: 'application/json',
           complete: function() {
             btn.removeClass("disabled").html(label);
           }

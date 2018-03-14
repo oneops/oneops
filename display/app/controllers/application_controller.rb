@@ -828,6 +828,13 @@ class ApplicationController < ActionController::Base
   end
 
   def allowed_to_settle_approval?(approval)
+    # SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT allows to designate users which can settle approvals
+    # in general. And then "has_cloud_support?" allows to further "fine tune" it on cloud by cloud basis.
+    if support_auth_config[Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT].present? &&
+       !has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT, true)
+      return false
+    end
+
     govern_ci  = approval.govern_ci
     cloud      = govern_ci.nsPath.split('/')[3]
     class_name = govern_ci.ciClassName
@@ -1240,20 +1247,29 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def support_auth_config
+    return @support_auth if @support_auth
+
+    @support_auth = {}
+    config = Settings.support_auth
+    if config.present?
+      begin
+        @support_auth = JSON.parse(config)
+      rescue Exception => e
+        # If it is not json, assume "simple" form, i.e. comas separated group names for all permissions
+        @support_auth = {'*' => config}
+      end
+    end
+  end
+
   def support_permissions
     return @permissions if @permissions
 
     @permissions = {}
-    auth_config = Settings.support_auth
-    if auth_config.present?
-      begin
-        auth_json = JSON.parse(auth_config)
-      rescue Exception => e
-        auth_json = {'*' => auth_config}
-      end
-
+    config = support_auth_config
+    if config.present?
       user_groups = current_user.groups.pluck(:name).to_map
-      @permissions = auth_json.inject({}) do |h, (perm, groups)|
+      @permissions = config.inject({}) do |h, (perm, groups)|
         ok = (groups.is_a?(Array) ? groups : groups.to_s.split(',')).any? { |g| user_groups[g.strip] }
         h[perm] = ok if ok
         h
@@ -1262,9 +1278,9 @@ class ApplicationController < ActionController::Base
     @permissions
   end
 
-  def has_support_permission?(permission)
+  def has_support_permission?(permission, explicit = false)
     permissions = support_permissions
-    permissions['*'] || permissions[permission]
+    (!explicit && permissions['*']) || permissions[permission]
   end
 
   def semver_sort(versions, ascending = false)
