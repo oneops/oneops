@@ -19,13 +19,13 @@ package com.walmart.oneops.azure.integration;
 
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
-
+import static org.mockito.Mockito.when;
 import org.apache.log4j.Logger;
 import org.mockito.Mockito;
+import org.springframework.core.env.Environment;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
-
 
 /**
  * @author dsing17
@@ -36,18 +36,23 @@ public class AzureServiceBusTest {
 	private static Logger logger = Logger.getLogger(AzureServiceBusTest.class);
 	AzureServiceBus azureServiceBus = new AzureServiceBus();
 	AzureServiceBusEventsListner azureServiceBusEventsListner = new AzureServiceBusEventsListner();
+	
+	
 
 	@BeforeTest
 	public void before() throws Exception {
 
+	    Environment environment= mock(Environment.class);
+	    when(environment.getProperty("AzureServiceBus.ConnectionString", "")).thenReturn("amqpwss://localhost:444");
+	    when(environment.getProperty("AzureServiceBus.SasKeyName", "")).thenReturn("TESTsasKeyName");
+	    when(environment.getProperty("AzureServiceBus.SasKey", "")).thenReturn("TESTsasKey");
+	    when(environment.getProperty("AzureServiceBus.MonitoringQueue", "")).thenReturn("TESTQUEUE_NAME");
+	    azureServiceBus.setEnvironment(environment);
+
 		azureServiceBus.setAzureServiceBusEventsListner(azureServiceBusEventsListner);
-		ReflectionTestUtils.setField(azureServiceBus, "CONNECTION_NAME", "amqpwss://localhost:444", String.class);
-		ReflectionTestUtils.setField(azureServiceBus, "sasKeyName", "TESTsasKeyName", String.class);
-		ReflectionTestUtils.setField(azureServiceBus, "sasKey", "TESTsasKey", String.class);
-		ReflectionTestUtils.setField(azureServiceBus, "QUEUE_NAME", "TESTQUEUE_NAME", String.class);
 		ReflectionTestUtils.setField(azureServiceBus, "isAzureServiceBusIntegrationEnabled", true, boolean.class);
 		
-		
+	
 		org.apache.qpid.jms.JmsConnection azureServiceBusConnection = mock(org.apache.qpid.jms.JmsConnection.class, Mockito.RETURNS_DEEP_STUBS);
 		org.apache.qpid.jms.JmsSession azureServiceBusReceiveSession= mock(org.apache.qpid.jms.JmsSession.class, Mockito.RETURNS_DEEP_STUBS);
 		org.apache.qpid.jms.JmsMessageConsumer azureServiceBusReceiver=mock(org.apache.qpid.jms.JmsMessageConsumer.class, Mockito.RETURNS_DEEP_STUBS);
