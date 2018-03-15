@@ -132,6 +132,7 @@ public class EnvTTLTest {
         cal.setTime(today);
         cal.add(Calendar.DATE, -150);//last deployment 150 days back
         deployment.setCreatedAt(cal.getTime());
+        deployment.setState("complete");
         deployments = new ArrayList<>();
         deployments.add(deployment);
 
@@ -240,6 +241,7 @@ public class EnvTTLTest {
         deployment.setCreatedAt(cal.getTime());
         deployments = new ArrayList<>();
         deployments.add(deployment);
+        deployment.setState("complete");
 
         env.setProfile("QA");
         ttlPlugin.setEsEnabled(true);
@@ -374,6 +376,52 @@ public class EnvTTLTest {
                         , 40, 10, platform_1)), Mockito.eq(esRecord1.getId()));
 
     }
+
+    @Test
+    public void testNonCompleteDeployment() throws Exception {
+        //set the destroyDate as past-due and make sure it gets ttled on second scan
+        // because the grace period is set to 0 days for this test
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, -2); //set planned destroy date as past-due
+        Date destroyDate = calendar.getTime();
+        EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
+        ttlRecord.setPlannedDestroyDate(destroyDate);
+        ttlRecord.setUserNotifiedTimes(2);
+        ESRecord esRecord = new ESRecord();
+        esRecord.setSource(ttlRecord);
+        deployment.setState("pausing");
+        List<ESRecord> ttlRecordList = new ArrayList<>();
+
+        ttlRecordList.add(esRecord);
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(today);
+        cal.add(Calendar.DATE, -150);//last deployment 150 days back
+        deployment.setCreatedAt(cal.getTime());
+
+        String platform_1EsQuery = esQuery.toString()
+                .replace("<platformId>", "" + platform_1.getId())
+                .replace("<ttlDeploymentSubmitted>", String.valueOf(false));
+        Mockito.when(searchDal.search(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
+                Mockito.anyObject(), Mockito.eq(platform_1EsQuery)))
+                .thenReturn(ttlRecordList);
+
+        String platform_2EsQuery = esQuery.toString()
+                .replace("<platformId>", "" + platform_2.getId())
+                .replace("<ttlDeploymentSubmitted>", String.valueOf(false));
+        Mockito.when(searchDal.search(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
+                Mockito.anyObject(), Mockito.eq(platform_2EsQuery)))
+                .thenReturn(ttlRecordList);
+
+        env.setProfile("QA");
+        Mockito.reset(ooFacade);
+        Mockito.reset(searchDal);
+
+        ttlPlugin.processEnvironment(env, deployments, new HashMap<>());
+
+        Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(Mockito.anyObject(), Mockito.eq(ttlPlugin.ttlBotName));
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(Mockito.eq(env), Mockito.anyObject(), Mockito.eq(ttlPlugin.ttlBotName));
+    }
+
 
     private static final class TtlDeploymentSubmitted extends ArgumentMatcher<EnvironmentTTLRecord> {
         boolean ttlSubmitted;
