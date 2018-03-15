@@ -86,6 +86,7 @@ public class CMSCrawler {
     }
 
     private void readConfig() {
+        readSystemProperties();
         String secretsPropertiesFilePath = System.getProperty("secrets.properties.file",
                 "/secrets/crawler_secrets.properties");
         File secretsFile = new File(secretsPropertiesFilePath);
@@ -94,10 +95,8 @@ public class CMSCrawler {
             try {
                 readSecrets(secretsFile);
             } catch (IOException e) {
-                readSystemProperties();
+                log.error("Could not read secrets properties", e);
             }
-        } else {
-            readSystemProperties();
         }
     }
 
