@@ -148,6 +148,8 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
         prodCloudRegex = System.getProperty("ttl.prod.clouds.regex", ".*prod.*");
         log.info("regex for production clouds: [" + prodCloudRegex + "]");
+
+        indexName = System.getProperty("ttl.index.name", "oottl");
     }
 
     @Override
