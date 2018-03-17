@@ -19,7 +19,7 @@
 		</rollingPolicy>
 		<append>true</append>
 		<encoder>
-			<Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+			<Pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
 			</Pattern>
 		</encoder>
 	</appender>
