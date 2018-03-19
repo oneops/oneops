@@ -51,6 +51,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     private int totalComputesTTLed = 0;
     private int notificationFrequencyDays = 0;
+    private int minUserNotifications = 0;
     private String prodCloudRegex;
     private String indexName = "oottl";
 
@@ -85,6 +86,12 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     "                                \"index\" : \"not_analyzed\"\n" +
                     "                        },\n" +
                     "                        \"plannedDestroyDate\" : {\n" +
+                    "                                \"type\" : \"date\"\n" +
+                    "                        },\n" +
+                    "                        \"lastProcessedAt\" : {\n" +
+                    "                                \"type\" : \"date\"\n" +
+                    "                        },\n" +
+                    "                        \"actualDestroyDate\" : {\n" +
                     "                                \"type\" : \"date\"\n" +
                     "                        }\n" +
                     "                }\n" +
@@ -146,8 +153,14 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         this.notificationFrequencyDays = Integer.valueOf(frequency);
         log.info("Notification frequency days: " + notificationFrequencyDays);
 
+        String userNotifications = System.getProperty("ttl.notification.min", "2");
+        this.minUserNotifications = Integer.valueOf(userNotifications);
+        log.info("Minimum User Notifications: " + minUserNotifications);
+
         prodCloudRegex = System.getProperty("ttl.prod.clouds.regex", ".*prod.*");
         log.info("regex for production clouds: [" + prodCloudRegex + "]");
+
+        indexName = System.getProperty("ttl.index.name", "oottl");
     }
 
     @Override
@@ -208,10 +221,10 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     totalComputesTTLed += platform.getTotalComputes();
 
                     if (! ttlEnabled) ttlRecord.setScanOnly(true); //by default, the scan-only is true
-                    if (ttlRecord.getPlannedDestroyDate() != null) {
+                    if (ttlRecord.getPlannedDestroyDate() != null
+                            && Calendar.getInstance().getTime().compareTo(ttlRecord.getPlannedDestroyDate()) >= 0
+                            && ttlRecord.getUserNotifiedTimes() >= minUserNotifications) {
 
-                        if (Calendar.getInstance().getTime().compareTo(ttlRecord.getPlannedDestroyDate()) >= 0
-                                && ttlRecord.getUserNotifiedTimes() > 1) {
                             //current date is greater than or equal to "plannedDestroyDate" - meaning user was sent multiple notifications
                             //go ahead with destroy
                             log.info("Time is up for the platform: " + platform.getPath() + "/" + platform.getName()
@@ -230,7 +243,6 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                                 }
                                 disabledPlatform = true;
                             }
-                        }
                     }
                     setDates(ttlRecord, disabledPlatform);
                     if (ttlEnabled && ttlRecord.getActualDestroyDate() == null) { // in grace period, send notification
@@ -438,22 +450,26 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             eligiblePlatforms.add(platform.getId());
         }
 
-        Deployment lastDeploy = findLastDeploymentByUser(deployments);
-        if (lastDeploy == null) {
+        Deployment lastDeployByUser = findLastDeploymentByUser(deployments);
+        if (lastDeployByUser == null) {
             return null;
         }
-        Date lastDeployDate = lastDeploy.getCreatedAt();
+        Date lastDeployDate = lastDeployByUser.getCreatedAt();
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DATE, 0 - noDeploymentDays);
         Date noDeploymentDate = cal.getTime();
         Object envProfile = env.getProfile();
         log.info(env.getPath() + " this env " + env + " with profile ["
-                + env.getProfile() + "] last deployed on : " + lastDeploy.getCreatedAt());
+                + env.getProfile() + "] last deployed on : " + lastDeployByUser.getCreatedAt());
+        Deployment lastDeploy = deployments.get(0);
         if ( envProfile != null
                 && ! envProfile.toString().toLowerCase().contains("prod")
-                && lastDeployDate.compareTo(noDeploymentDate) < 0
-                && ! deployments.get(0).getState().equalsIgnoreCase("active")
-                ) {
+                && lastDeployDate.compareTo(noDeploymentDate) < 0) {
+            if (! lastDeploy.getState().equalsIgnoreCase("complete")
+                    && ! lastDeploy.getState().equalsIgnoreCase("failed")) {
+                log.warn("Deployment is in " + lastDeploy.getState() + " state for too long: ");
+                return null;
+            }
             return eligiblePlatforms;
         }
         return null;

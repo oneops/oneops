@@ -17,199 +17,169 @@
  *******************************************************************************/
 package com.oneops.inductor;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-
-import org.apache.commons.exec.ExecuteStreamHandler;
+import com.google.gson.Gson;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.google.gson.Gson;
+import java.io.OutputStream;
 
-public class OutputHandler implements ExecuteStreamHandler {
-	private String logKey;
-	private Logger logger;
-	private static String REBOOT_FLAG = "***REBOOT_FLAG***";
-	private static String RESULT_KEY = "***RESULT:";
-	private static String FAULT_KEY = "***FAULT:";
-	private static String TAG_KEY = "***TAG:";
-	private static String RESULTJSON_KEY = "***RESULTJSON:";
+public class OutputHandler extends OutputStream {
+    private Logger logger;
+    private Level level;
+    private String line;
+    private String logKey;
+    private static String REBOOT_FLAG = "***REBOOT_FLAG***";
+    private static String RESULT_KEY = "***RESULT:";
+    private static String FAULT_KEY = "***FAULT:";
+    private static String TAG_KEY = "***TAG:";
+    private static String RESULTJSON_KEY = "***RESULTJSON:";
 
-	private static String ADDITIONAL_INFO_KEY = "***ADDITIONAL_INFO:";
+    private static String ADDITIONAL_INFO_KEY = "***ADDITIONAL_INFO:";
 
-	private ProcessResult result;
+    private ProcessResult result;
 
-	final private Gson gson = new Gson();
+    final private Gson gson = new Gson();
 
-	// limit amt of output a cmd can log
-	private int rowCount = 0;
-	private static int maxRowCount = 2000;
+    // limit amt of output a cmd can log
+    private int rowCount = 0;
+    private static int maxRowCount = 2000;
 
-	public OutputHandler(Logger logger, String logKey, ProcessResult result) {
-		this.logger = logger;
-		this.logKey = logKey;
-		this.result = result;
-	}
+    public OutputHandler (Logger logger, String logKey, ProcessResult result) {
+        setLogger (logger);
+        setLevel (Level.ALL);
+        setLogKey(logKey);
+        this.result = result;
+        line = "";
+    }
 
-	@Override
-	public void setProcessOutputStream(InputStream is) throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-		try {
+    public void setLogger (Logger logger) {
+        this.logger = logger;
+    }
 
-			for (String line = reader.readLine(); line != null; line = reader
-					.readLine()) {
+    public Logger getLogger () {
+        return logger;
+    }
 
-				if (rowCount < maxRowCount) {
+    public void setLevel (Level level) {
+        this.level = level;
+    }
 
-					// no print private keys
-					if (!line.contains("PRIVATE KEY")) {
-						logger.info(logKey + "cmd out: " + line);
-						result.appendStdOut(line + "\n");
-					}
+    public Level getLevel () {
+        return level;
+    }
 
-					if (line.indexOf(REBOOT_FLAG) > -1)
-						result.setRebooting(true);
+    public void setLogKey(String logKey) {
+        this.logKey = logKey;
+    }
 
-					int keyIndex = line.indexOf(RESULT_KEY);
-					if (keyIndex == 0) {
-						String withOutResultKey = line.substring(keyIndex + 10,
-								line.length());
-						String k = withOutResultKey.substring(0,
-								withOutResultKey.indexOf("="));
-						String v = withOutResultKey.substring(
-								withOutResultKey.indexOf("=") + 1,
-								withOutResultKey.length());
-						result.getResultMap().put(k, v);
-						logger.debug(logKey + " resultCi " + k + ": " + v);
-					}
+    public String getLogKey() {
+        return logKey;
+    }
 
-					keyIndex = line.indexOf(FAULT_KEY);
-					if (keyIndex == 0) {
-						String withOutResultKey = line.substring(keyIndex + 9,
-								line.length());
-						String k = withOutResultKey.substring(0,
-								withOutResultKey.indexOf("="));
-						String v = withOutResultKey.substring(
-								withOutResultKey.indexOf("=") + 1,
-								withOutResultKey.length());
-						result.getFaultMap().put(k, v);
-						logger.info(logKey + " fault: " + k + ": " + v);
-					}
+    public void write (int b) {
+        byte[] bytes = new byte[1];
+        bytes[0] = (byte) (b & 0xff);
+        line = line + new String(bytes);
 
-					keyIndex = line.indexOf(TAG_KEY);
-					if (keyIndex == 0) {
-						String withOutResultKey = line.substring(keyIndex + 7,
-								line.length());
-						String k = withOutResultKey.substring(0,
-								withOutResultKey.indexOf("="));
-						String v = withOutResultKey.substring(
-								withOutResultKey.indexOf("=") + 1,
-								withOutResultKey.length());
-						result.getTagMap().put(k, v);
-						logger.info(logKey + " tag: " + k + ": " + v);
-					}
+        if (line.endsWith ("\n")) {
+            line = line.substring (0, line.length () - 1);
+            flush ();
+        }
+    }
 
-					// multi-line attributes encoded w/ json
-					keyIndex = line.indexOf(RESULTJSON_KEY);
-					if (keyIndex == 0) {
-						int firstEquals = line.indexOf("=");
-						String key = line.substring(keyIndex + 14, firstEquals);
-						String val = line.substring(firstEquals + 1,
-								line.length());
+    public void flush () {
+        if (rowCount < maxRowCount && line.length() > 0) {
+            if (!line.contains("PRIVATE KEY")) {
+                logger.info(logKey + "cmd out: " + line);
+                result.appendStdOut(line + "\n");
+            }
 
-						MultiLineValue value = gson.fromJson(val,
-								MultiLineValue.class);
+            if (line.indexOf(REBOOT_FLAG) > -1)
+                result.setRebooting(true);
 
-						result.getResultMap().put(key, value.getValue());
-						if (!value.getValue().contains("PRIVATE KEY"))
-							logger.debug(logKey + " resultCi " + key + ": "
-									+ val);
+            int keyIndex = line.indexOf(RESULT_KEY);
+            if (keyIndex == 0) {
+                String withOutResultKey = line.substring(keyIndex + 10,
+                        line.length());
+                String k = withOutResultKey.substring(0,
+                        withOutResultKey.indexOf("="));
+                String v = withOutResultKey.substring(
+                        withOutResultKey.indexOf("=") + 1,
+                        withOutResultKey.length());
+                result.getResultMap().put(k, v);
+                logger.debug(logKey + " resultCi " + k + ": " + v);
+            }
 
-					}
+            keyIndex = line.indexOf(FAULT_KEY);
+            if (keyIndex == 0) {
+                String withOutResultKey = line.substring(keyIndex + 9,
+                        line.length());
+                String k = withOutResultKey.substring(0,
+                        withOutResultKey.indexOf("="));
+                String v = withOutResultKey.substring(
+                        withOutResultKey.indexOf("=") + 1,
+                        withOutResultKey.length());
+                result.getFaultMap().put(k, v);
+                logger.info(logKey + " fault: " + k + ": " + v);
+            }
 
-					keyIndex = line.indexOf(ADDITIONAL_INFO_KEY);
-					if (keyIndex > -1) {
-						int firstEquals = line.indexOf("=", keyIndex);
-						if (firstEquals > -1) {
-							String key = line.substring(keyIndex + ADDITIONAL_INFO_KEY.length(), firstEquals).trim();
-							String value = line.substring(firstEquals + 1);
-							logger.info(ADDITIONAL_INFO_KEY + " key: " + key + ", value: " + value);
-							result.getAdditionInfoMap().put(key, value);
-						}
-					}
+            keyIndex = line.indexOf(TAG_KEY);
+            if (keyIndex == 0) {
+                String withOutResultKey = line.substring(keyIndex + 7,
+                        line.length());
+                String k = withOutResultKey.substring(0,
+                        withOutResultKey.indexOf("="));
+                String v = withOutResultKey.substring(
+                        withOutResultKey.indexOf("=") + 1,
+                        withOutResultKey.length());
+                result.getTagMap().put(k, v);
+                logger.info(logKey + " tag: " + k + ": " + v);
+            }
 
-					// set last error to use if faults are empty
-					keyIndex = line.indexOf("ERROR:");
-					if (keyIndex > -1) {
-						result.setLastError(line.substring(keyIndex+6,line.length()));
-					}
-					
+            // multi-line attributes encoded w/ json
+            keyIndex = line.indexOf(RESULTJSON_KEY);
+            if (keyIndex == 0) {
+                int firstEquals = line.indexOf("=");
+                String key = line.substring(keyIndex + 14, firstEquals);
+                String val = line.substring(firstEquals + 1,
+                        line.length());
 
-				} else if (rowCount > maxRowCount) {
-					continue;
-				} else if (rowCount == maxRowCount) {
-					logger.warn(logKey
-							+ " hit max amt of output per process of "
-							+ maxRowCount
-							+ " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
-				}
+                MultiLineValue value = gson.fromJson(val,
+                        MultiLineValue.class);
 
-				rowCount++;
-			}
+                result.getResultMap().put(key, value.getValue());
+                if (!value.getValue().contains("PRIVATE KEY"))
+                    logger.debug(logKey + " resultCi " + key + ": "
+                            + val);
 
-		} catch (IOException e) {
-			logger.error("Error parsing output of command: ", e);
-		}
+            }
 
-	}
+            keyIndex = line.indexOf(ADDITIONAL_INFO_KEY);
+            if (keyIndex > -1) {
+                int firstEquals = line.indexOf("=", keyIndex);
+                if (firstEquals > -1) {
+                    String key = line.substring(keyIndex + ADDITIONAL_INFO_KEY.length(), firstEquals).trim();
+                    String value = line.substring(firstEquals + 1);
+                    logger.info(ADDITIONAL_INFO_KEY + " key: " + key + ", value: " + value);
+                    result.getAdditionInfoMap().put(key, value);
+                }
+            }
 
-	@Override
-	public void setProcessErrorStream(InputStream is) throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-		try {
+            // set last error to use if faults are empty
+            keyIndex = line.indexOf("ERROR:");
+            if (keyIndex > -1) {
+                result.setLastError(line.substring(keyIndex + 6, line.length()));
+            }
 
-			for (String line = reader.readLine(); line != null; line = reader
-					.readLine()) {
 
-				// allow 2x to get errors
-				if (rowCount < maxRowCount * 2) {
-
-					logger.info(logKey + "cmd error: " + line);
-					result.appendStdErr(line + "\n");
-
-				} else if (rowCount > maxRowCount * 2) {
-					continue;
-				} else if (rowCount == maxRowCount * 2) {
-					logger.warn(logKey
-							+ " hit max amt of output per process of "
-							+ maxRowCount
-							+ " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
-				}
-
-				rowCount++;
-			}
-
-		} catch (IOException e) {
-			logger.error("Error parsing output of command: ", e);
-		}
-	}
-
-	@Override
-	public void start() throws IOException {
-
-	}
-
-	@Override
-	public void stop() {
-
-	}
-
-	@Override
-	public void setProcessInputStream(OutputStream arg0) throws IOException {
-		// TODO Auto-generated method stub
-
-	}
+        } else if (rowCount == maxRowCount) {
+            logger.warn(logKey
+                    + " hit max amt of output per process of "
+                    + maxRowCount
+                    + " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
+        }
+        rowCount++;
+        line = "";
+    }
 
 }
