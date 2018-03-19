@@ -1,3 +1,5 @@
 source 'http://rubygems.org'
 
+gem 'fog-openstack', :git => "git://github.com/oneops/fog-openstack.git", :branch => "Ruby2.0.0"
+
 gemspec :name => __FILE__.split(File::Separator).last.sub('.gemfile', '')

@@ -84,6 +84,7 @@
               <arguments>
                 <argument>package</argument>
                 <argument>--gemfile=oneops-admin-adapter.gemfile</argument>
+                <argument>--all</argument>
               </arguments>
             </configuration>
           </execution>
@@ -133,6 +134,7 @@
               <arguments>
                 <argument>package</argument>
                 <argument>--gemfile=oneops-admin-inductor.gemfile</argument>
+                <argument>--all</argument>
               </arguments>
             </configuration>
           </execution>
@@ -183,6 +185,7 @@
               <arguments>
                 <argument>package</argument>
                 <argument>--gemfile=oneops-admin-inductor-az.gemfile</argument>
+                <argument>--all</argument>
               </arguments>
             </configuration>
           </execution>
