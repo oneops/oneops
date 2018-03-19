@@ -62,6 +62,8 @@ public interface CmsWorkOrderSimpleBase<T> {
 
   String getCiName();
 
+  long getExecutionId();
+
   /**
    * Returns a unique id representing the CmsOps Action
    * (ActionID) or CmsDpmt Record (Deployment RecordId).
