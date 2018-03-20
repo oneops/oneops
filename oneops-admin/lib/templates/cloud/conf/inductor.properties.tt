@@ -41,4 +41,3 @@ local_max_consumers = <%= @local_max_consumers %>
 env_vars = <%= @env_vars %>
 tunnel_metrics = <%= @tunnel_metrics %>
 verify.mode = <%= @verifier_mode %>
-chef_timeout = <%= @chef_timeout %>
