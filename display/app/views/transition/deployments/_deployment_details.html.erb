@@ -54,7 +54,7 @@
     <li>
   </ul>
 <% end %>
-<%= section_panel 'Deployment Details', :width => 'double', :position => 'right', :class_name => 'fixed' do %>
+<%= section_panel 'Deployment Details', :width => 'double', :position => 'right' do %>
   <% if @state_history.present? %>
     <%= render 'state_history' %><br/>
   <% end %>
