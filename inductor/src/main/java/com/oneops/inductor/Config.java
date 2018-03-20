@@ -165,9 +165,6 @@ public class Config {
   @Value("${shutdown.cmdTimeout:10}")
   private long cmdTimeout;
 
-  @Value("${chef_timeout:7200}")
-  private long chefTimeout;
-
   /**
    * Additional env variables to be used for work-order exec. The value can be file location or a
    * string containing multiple ENV_NAME=VALUE entries. Entries are separated by newline (file) or
@@ -641,10 +638,6 @@ public class Config {
     return cmdTimeout;
   }
 
-  public long getChefTimeout() {
-    return chefTimeout;
-  }
-
   public int getStubResponseTimeInSeconds() {
     return stubResponseTimeInSeconds;
   }
@@ -697,10 +690,6 @@ public class Config {
     this.verifyExcludePaths = verifyExcludePaths;
   }
 
-  public void setChefTimeout(long chefTimeout) {
-    this.chefTimeout = chefTimeout;
-  }
-
   @Override
   public String toString() {
     return "Config{" +
@@ -731,7 +720,6 @@ public class Config {
         ", bomClasses=" + bomClasses +
         ", rfcActions=" + rfcActions +
         ", cmdTimeout=" + cmdTimeout +
-        ", chefTimeout=" + chefTimeout +
         ", env='" + env + '\'' +
         ", rebootLimit=" + rebootLimit +
         ", verifyMode=" + verifyMode +
