@@ -65,7 +65,6 @@ class Inductor < Thor
   method_option :amq_truststore_location, :type => :string
   method_option :force, :default => true
   method_option :verifier_mode, :default => false
-  method_option :chef_timeout, :default => 7200, :type => :numeric
   def add
     @inductor_dir = File.expand_path(Dir.pwd)
     validate_user
@@ -78,10 +77,6 @@ class Inductor < Thor
 
     if options[:verifier_mode]
       @verifier_mode = options[:verifier_mode]
-    end
-
-    if options[:chef_timeout]
-      @chef_timeout = options[:chef_timeout]
     end
 
     if options[:dns]
