@@ -43,10 +43,10 @@ public class AzureServiceBusTest {
 	public void before() throws Exception {
 
 	    Environment environment= mock(Environment.class);
-	    when(environment.getProperty("AzureServiceBus.ConnectionString", "")).thenReturn("amqpwss://localhost:444");
-	    when(environment.getProperty("AzureServiceBus.SasKeyName", "")).thenReturn("TESTsasKeyName");
-	    when(environment.getProperty("AzureServiceBus.SasKey", "")).thenReturn("TESTsasKey");
-	    when(environment.getProperty("AzureServiceBus.MonitoringQueue", "")).thenReturn("TESTQUEUE_NAME");
+	    when(environment.getProperty("AzureSvcBusConnString", "")).thenReturn("amqpwss://localhost:444");
+	    when(environment.getProperty("AzureSvcBusSasKeyName", "")).thenReturn("TESTsasKeyName");
+	    when(environment.getProperty("AzureSvcBusSasKey", "")).thenReturn("TESTsasKey");
+	    when(environment.getProperty("AzureSvcBusMonitoringQueue", "")).thenReturn("TESTQUEUE_NAME");
 	    azureServiceBus.setEnvironment(environment);
 
 		azureServiceBus.setAzureServiceBusEventsListner(azureServiceBusEventsListner);
