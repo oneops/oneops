@@ -30,6 +30,7 @@ import com.oneops.Platform;
 import com.oneops.crawler.jooq.cms.Sequences;
 import com.oneops.crawler.plugins.hadr.PlatformHADRCrawlerPlugin;
 import com.oneops.crawler.plugins.ttl.EnvTTLCrawlerPlugin;
+import org.apache.commons.lang.math.NumberUtils;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record4;
@@ -152,6 +153,7 @@ public class CMSCrawler {
                 if ((System.currentTimeMillis() - envsLastFetchedAt)/(1000 * 60 * 60 * 24) >= 1 ) { //been a day
                     envs = getOneopsEnvironments(conn);//refresh the environment list
                     organizationsMapCache = populateOrganizations(conn);// refreshing cache
+                    envsLastFetchedAt = System.currentTimeMillis();
                 }
                 ttlPlugin.cleanup(); //from previous run
                 log.info("Starting to crawl all environments.. Total # " + envs.size());
@@ -623,44 +625,41 @@ public class CMSCrawler {
       cloud.setId(cloudName);
       for (Record cloudsPlatformRelationshipAttributesRecord : cloudsPlatformRelationshipAttributesRecords) {
 
+          String attributeValue = cloudsPlatformRelationshipAttributesRecord
+                .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE);
+
         switch (cloudsPlatformRelationshipAttributesRecord
             .get(MD_RELATION_ATTRIBUTES.ATTRIBUTE_NAME)) {
           case "priority":
-            try {
-              int priority = Integer.valueOf(cloudsPlatformRelationshipAttributesRecord
-                  .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-
-              cloud.setPriority(priority);
-            } catch (java.lang.NumberFormatException e) {
-              log.error("can not set <priority> attribute for cloudCid: " + cloudCid
-                  + " , cloudName: " + cloudName, e);
-            }
+              if (NumberUtils.isNumber(attributeValue)) {
+                  int priority = Integer.valueOf(attributeValue.trim());
+                  cloud.setPriority(priority);
+              } else {
+                  log.warn("can not set priority attribute for cloudCid: " + cloudCid
+                          + " , cloudName: " + cloudName + " attributeValue: " + attributeValue);
+              }
 
             break;
           case "adminstatus":
-            cloud.setAdminstatus(cloudsPlatformRelationshipAttributesRecord
-                .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+            cloud.setAdminstatus(attributeValue);
             break;
           case "dpmt_order":
-            cloud.setDeploymentorder(Integer.valueOf(cloudsPlatformRelationshipAttributesRecord
-                .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
+            if (NumberUtils.isNumber(attributeValue)) {
+                cloud.setDeploymentorder(Integer.valueOf(attributeValue.trim()));
+            } else {
+                log.warn("can not set dpmt order attribute for cloudCid: " + cloudCid
+                        + " , cloudName: " + cloudName + " attributeValue: " + attributeValue);
+            }
             break;
           case "pct_scale":
-
-            try {
-              int pct_scale = Integer.valueOf(cloudsPlatformRelationshipAttributesRecord
-                  .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-
-              cloud.setScalepercentage(pct_scale);
-            } catch (java.lang.NumberFormatException e) {
-              log.error("can not set <pct_scale> attribute for cloudCid: " + cloudCid
-                  + " , cloudName: " + cloudName, e);
-            }
-
+              if (NumberUtils.isNumber(attributeValue)) {
+                  cloud.setScalepercentage(Integer.valueOf(attributeValue.trim()));
+              } else {
+                  log.warn("can not set pct_scale attribute for cloudCid: " + cloudCid
+                          + " , cloudName: " + " attributeValue: " + attributeValue);
+              }
             break;
-
         }
-
       }
       platformCloudMap.put(cloudName, cloud);
 

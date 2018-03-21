@@ -266,5 +266,9 @@
             <artifactId>okhttp</artifactId>
             <version>2.7.5</version>
         </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+        </dependency>
     </dependencies>
 </project>
