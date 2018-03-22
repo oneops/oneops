@@ -29,7 +29,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   private String prodDataCentersList;
   private String[] dataCentersArr;
   private String oo_baseUrl;
-  final String hadrElasticSearchIndexName = "hadr_test"; 
+  final String hadrElasticSearchIndexName = "hadr"; 
   private SearchDal searchDal;
   private String environmentProfileFilter;
 
