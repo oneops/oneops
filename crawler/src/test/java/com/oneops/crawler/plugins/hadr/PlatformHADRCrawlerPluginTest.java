@@ -22,9 +22,6 @@ import com.oneops.Organization;
 import com.oneops.Platform;
 import com.oneops.crawler.SearchDal;
 
-
-
-
 public class PlatformHADRCrawlerPluginTest {
 
   private final Logger log = LoggerFactory.getLogger(getClass());
