@@ -13,7 +13,7 @@
 		<file>/opt/oneops/log/oocrawler/oocrawler.log</file>
 		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
 			<!-- daily rollover -->
-			<fileNamePattern>/opt/oneops/log/oocrawler/oocrawler.%d{yyyy-MM-dd}.log
+			<fileNamePattern>/opt/oneops/log/oocrawler/oocrawler.%d{yyyy-MM-dd}.log.gz
 			</fileNamePattern>
 			<maxHistory>30</maxHistory>
 		</rollingPolicy>
