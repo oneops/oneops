@@ -34,8 +34,8 @@ public class PlatformHADRRecord implements Serializable {
   private transient Map<String, Cloud> cloudsMap;
   private transient List<Cloud> clouds; // TODO: Need to finalize if we will use this object in ES
   private Organization organization;
-  private String isAutoReplaceEnabled;
-  private String isAutoRepairEnabled;
+  private boolean isAutoReplaceEnabled;
+  private boolean isAutoRepairEnabled;
 
 
   public String getNsPath() {
@@ -214,20 +214,22 @@ public class PlatformHADRRecord implements Serializable {
     this.isHA = isHA;
   }
 
-  public String getIsAutoReplaceEnabled() {
+  public boolean isAutoReplaceEnabled() {
     return isAutoReplaceEnabled;
   }
 
-  public void setIsAutoReplaceEnabled(String isAutoReplaceEnabled) {
+  public void setAutoReplaceEnabled(boolean isAutoReplaceEnabled) {
     this.isAutoReplaceEnabled = isAutoReplaceEnabled;
   }
 
-  public String getIsAutoRepairEnabled() {
+  public boolean isAutoRepairEnabled() {
     return isAutoRepairEnabled;
   }
 
-  public void setIsAutoRepairEnabled(String isAutoRepairEnabled) {
+  public void setAutoRepairEnabled(boolean isAutoRepairEnabled) {
     this.isAutoRepairEnabled = isAutoRepairEnabled;
   }
+
+
 
 }
