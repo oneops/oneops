@@ -27,9 +27,6 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   private String oo_baseUrl;
   final String hadrElasticSearchIndexName = "hadr"; 
   final String hadrElasticSearchIndexMappings = "hadrIndexMappings.json"; 
-  
-  
-  
   private SearchDal searchDal;
   private String environmentProfileFilter;
 
