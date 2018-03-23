@@ -8,7 +8,7 @@
                                           {:label => 'Added', :value => 'org_scope=false'}]}) do |builder, team| %>
   <% builder.itemid team.id %>
   <% builder.attributes raw(%(name="#{team.name}" created="#{team.created_at}" org_scope="#{team.org_scope?}" permissions="#{permissions.select {|p| team.send("#{p}?")}.join(',')}")) %>
-  <% builder.target link_to('', edit_organization_path(:anchor => "teams/team_list/#{team.id}")) if is_admin? %>
+  <% builder.target link_to('', edit_organization_path(:anchor => "teams/team_list/#{team.id}")) if is_admin? || manages_access %>
   <% builder.status team_list_permission_marking(team, permissions) %>
   <% builder.top team.name %>
   <% if manages_access && !team.org_scope? %>

@@ -1,11 +1,10 @@
 <% manages_admins = manages_admins?
-   is_admin = is_admin?
-   can_add = @team.name == Team::ADMINS ? manages_admins : is_admin %>
+   can_add = @team.name == Team::ADMINS ? manages_admins : manages_team_members?(@team) %>
 <%= section_panel 'Team Details', :width => 'double', :position => 'right' do %>
   <%= render('base/shared/edit_form',
              {:resource    => @team,
               :content     => 'team_details_content',
-              :read_only   => !is_admin,
+              :read_only   => !is_admin?,
               :cancel_url  => organization_teams_path,
               :form_url    => @team.new_record? ? organization_teams_path : organization_team_path(@team),
               :destroy_url => @team.new_record? || @team.name == Team::ADMINS ? nil : organization_team_path(@team)}) %>

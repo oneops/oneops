@@ -1,7 +1,5 @@
 <% users = @team.users.all
-   manages_admins = manages_admins?
-   is_admin = is_admin?
-   can_edit = @team.name == Team::ADMINS ? manages_admins : is_admin %>
+   can_edit = @team.name == Team::ADMINS ? manages_admins? : manages_team_members?(@team) %>
 <%= list(users,
          :new_link => can_edit && link_to_function(icon('plus', 'Add user...'), 'show_add_team_member_dialog("user")'),
          :toolbar => {:list_name => 'team_user_list',

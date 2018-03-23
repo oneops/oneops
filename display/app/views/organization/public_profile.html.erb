@@ -12,7 +12,7 @@
               :read_only => true}) %>
 <% end %>
 
-<% unless current_user.organizations.where('organizations.name' => @organization.name).first %>
+<% unless current_user.organization_id == @organization.id %>
   <%= section_panel 'Request Access', :width => 'single', :position => 'right' do %>
     <%= form_tag(organization_request_access_path(:org_name => @organization.name), :remote => true) do %>
       <span class="help-block">

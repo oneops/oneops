@@ -1,3 +1,4 @@
+<% global_admin_mode = global_admin_mode? %>
 <div class="control-group">
   <%= f.label :name, 'Name*', :class => 'control-label' %>
   <div class="controls" editable="<%= @team.name != Team::ADMINS %>">
@@ -12,7 +13,11 @@
   <div class="category">
     <div class="name">Access Management</div>
     <div class="control-group">
-      <label class="control-label">Manage Access</label>
+      <label class="control-label">Manage Assembly<%= '/Cloud' unless global_admin_mode %>
+        <% if global_admin_mode %>
+          <br><small>(Assembly Owner)</small>
+        <% end %>
+      </label>
       <div class="controls">
         <%= render 'cms/cis/checkbox',
                    :builder         => f,
@@ -21,8 +26,9 @@
                    :checked_value   => true,
                    :unchecked_value => false %>
         <span class="help-block"><%= icon(site_icon(:manages_access), '', 'fa-lg text-error') %>
-          When checked and this team is assigned to a cloud or an assembly it allows team members to manage other team
-          assignments. Additionally, when checked it allows team members to create new clouds and assemblies.
+          When checked and this team is assigned to <%= 'a cloud or' unless global_admin_mode%> an assembly it allows team members to manage
+          general configuration of that <%= 'cloud or' unless global_admin_mode %> assembly, including assigning other teams to it.
+          Additionally, when checked it allows team members to create new assemblies.
         </span>
       </div>
     </div>
@@ -36,33 +42,35 @@
                    :checked_value   => true,
                    :unchecked_value => false %>
         <span class="help-block"><%= icon(site_icon(:org_scope), '', 'fa-lg text-error') %>
-          When checked this team will automatically have access to all assemblies and clouds in the organization
-          (without the need to assign it explicitly) governed by the permissions specified below
+          When checked this team members will automatically have permissions (specified below) in all <%= 'clouds and' unless global_admin_mode%> assemblies
+          in this organization (without the need to explicitly assign this team to them).
         </span>
       </div>
     </div>
   </div>
-  <div class="category">
-    <div class="name">Cloud Permissions</div>
-    <div class="control-group">
-      <label class="control-label">Allow Modification In</label>
-      <div class="controls">
-        <div class="btn-group">
-          <% %w(cloud_services cloud_compliance cloud_support).each do |area| %>
-            <%= render 'cms/cis/checkbox',
-                       :builder         => f,
-                       :attribute_name  => area,
-                       :attribute_value => @team.send(area),
-                       :checked_value   => true,
-                       :unchecked_value => false,
-                       :label           => area.gsub('cloud_', ''),
-                       :label_icon      => site_icon(area) %>
-            <br>
-          <% end %>
+  <% unless global_admin_mode %>
+    <div class="category">
+      <div class="name">Cloud Permissions</div>
+      <div class="control-group">
+        <label class="control-label">Allow Modification In</label>
+        <div class="controls">
+          <div class="btn-group">
+            <% %w(cloud_services cloud_compliance cloud_support).each do |area| %>
+              <%= render 'cms/cis/checkbox',
+                         :builder         => f,
+                         :attribute_name  => area,
+                         :attribute_value => @team.send(area),
+                         :checked_value   => true,
+                         :unchecked_value => false,
+                         :label           => area.gsub('cloud_', ''),
+                         :label_icon      => site_icon(area) %>
+              <br>
+            <% end %>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  <% end %>
   <div class="category">
     <div class="name">Assembly Permissions</div>
     <div class="control-group">

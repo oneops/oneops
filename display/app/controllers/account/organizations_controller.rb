@@ -142,12 +142,7 @@ class Account::OrganizationsController < ApplicationController
   private
 
   def find_organization
-    id = params[:id]
-    if id =~ /\D/
-      @organization = current_user.organizations.where('organizations.name' => id).first
-    else
-      @organization = current_user.organizations.where('organizations.id' => id).first
-    end
+    @organization = locate_org(params[:id])
   end
 
   def leave_organization

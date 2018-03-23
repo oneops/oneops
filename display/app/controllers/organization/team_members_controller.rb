@@ -1,8 +1,6 @@
 class Organization::TeamMembersController < ApplicationController
-  include ::AdminLimit
-
   before_filter :find_team
-  before_filter :authorize_admin, :except => [:index]
+  before_filter :authorize_update, :except => [:index]
 
   def index
     render :json => {:users => @team.users.all, :groups => @team.groups.all}
@@ -77,11 +75,11 @@ class Organization::TeamMembersController < ApplicationController
 
   protected
 
-  def authorize_admin
+  def authorize_update
     if @team && @team.name == Team::ADMINS
       return unauthorized('Unauthorized to manage admins!') unless manages_admins?
     else
-      super
+      return unauthorized('Unauthorized to manage this team members!') unless manages_team_members?(@team)
     end
   end
 

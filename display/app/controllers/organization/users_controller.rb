@@ -1,6 +1,4 @@
 class Organization::UsersController < ApplicationController
-  include ::AdminLimit
-
   before_filter :authorize_admin, :except => [:index, :show]
 
   def index

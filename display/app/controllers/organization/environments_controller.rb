@@ -1,5 +1,5 @@
 class Organization::EnvironmentsController < Base::EnvironmentsController
-  before_filter :authorize_admin, :only => [:new, :create, :update, :destroy]
+  before_filter :authorize_global_admin, :only => [:new, :create, :update, :destroy]
   before_filter :find_environment, :only => [:show, :edit, :update, :destroy]
 
   def index

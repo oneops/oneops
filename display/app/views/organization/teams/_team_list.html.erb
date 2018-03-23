@@ -1,4 +1,4 @@
-<%= section_panel 'Teams', :width => 'single',
+<%= section_panel 'Teams', :width => 'single pinnable',
                   :menu           => (is_admin? ? [link_to(icon('plus', 'Add'), new_organization_team_path, :remote => true, :class => 'btn btn-mini')] : nil) do %>
   <%= list(@teams,
            :new_link => (is_admin? ? link_to('Add Team...', new_organization_team_path, :remote => true) : nil),

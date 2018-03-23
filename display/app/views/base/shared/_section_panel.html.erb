@@ -1,6 +1,6 @@
 <% hide_content_x = defined?(hide_content) %>
 <% section_id = defined?(id) == 'local-variable' && id.present? ? id : random_dom_id %>
-<div <%= "id=#{section_id}" %> class="section rounded <%= width %> <%= position %> <%= local_assigns[:class_name] %>">
+<div id="<%= section_id %>" class="section rounded <%= width %> <%= position %> <%= local_assigns[:class_name] %>">
   <% if title.present? || menu.present? %>
     <div class="section-heading rounded-top">
       <div class="section-title"><%= raw(title) if title.present? %></div>

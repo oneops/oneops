@@ -385,6 +385,8 @@ class SupportController < ReportsController
   private
 
   def authorize
+    return if is_global_admin?
+
     action = action_name
     if action == 'show'
       perm = support_permissions.keys.first

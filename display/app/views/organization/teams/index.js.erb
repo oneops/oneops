@@ -1,1 +1,4 @@
 $j("#page_nav_teams").html("<%= escape_javascript(render('team_list')) %>");
+<% if @team && @team.id %>
+  setHashParam("team_list", "<%= @team.id %>")
+<% end %>

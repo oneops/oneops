@@ -34,4 +34,4 @@
     <% end %>
   <% end %>
 <% end %>
-<%= render 'download_users' if manages_access_for_assembly?(@assembly.ciId) %>
+<%= render 'download_users' if manages_assembly?(@assembly.ciId) %>

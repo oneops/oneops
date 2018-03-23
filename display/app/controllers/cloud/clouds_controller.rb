@@ -39,7 +39,7 @@ class Cloud::CloudsController < ApplicationController
     respond_to do |format|
       format.html do
         if ok
-          load_teams
+          load_teams unless global_admin_mode?
           render(:action => :edit)
         else
           load_available_clouds
@@ -51,7 +51,7 @@ class Cloud::CloudsController < ApplicationController
   end
 
   def edit
-    load_teams
+    load_teams unless global_admin_mode?
     respond_to do |format|
       format.html {render :action => :edit}
       format.json { render_json_ci_response(true, @cloud) }
@@ -211,11 +211,11 @@ class Cloud::CloudsController < ApplicationController
   end
 
   def authorize_create
-    unauthorized unless manages_access?
+    unauthorized unless creates_clouds?
   end
 
   def authorize_update
-    unauthorized unless @cloud && manages_access_for_cloud?(@cloud.ciId)
+    unauthorized unless @cloud && manages_cloud?(@cloud.ciId)
   end
 
   def authorize_support

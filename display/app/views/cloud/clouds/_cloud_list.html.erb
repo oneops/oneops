@@ -1,4 +1,4 @@
-<%= ci_list(@clouds, :new_link => manages_access? ? link_to(icon('plus', 'Add Cloud...'), new_cloud_path) : nil) do |builder, target| %>
+<%= ci_list(@clouds, :new_link => creates_clouds? ? link_to(icon('plus', 'Add Cloud...'), new_cloud_path) : nil) do |builder, target| %>
   <% builder.target link_to('', edit_cloud_path(target), :remote => false) %>
   <% builder.icon :none %>
   <% builder.top do %>
@@ -12,7 +12,7 @@
   <% end %>
   <% builder.menu do |ci| %>
     <%= link_to(icon('edit', ' Edit'),   edit_cloud_path(ci)) %>
-    <%= link_to(icon('trash',' Delete'), cloud_path(ci), :id => "delete_#{ci.ciName}", :method => :delete, :confirm => "Delete cloud '#{ci.ciName}'?") if manages_access_for_cloud?(ci.ciId) %>
+    <%= link_to(icon('trash',' Delete'), cloud_path(ci), :id => "delete_#{ci.ciName}", :method => :delete, :confirm => "Delete cloud '#{ci.ciName}'?") if manages_cloud?(ci.ciId) %>
   <% end %>
   <% builder.status do |ci| %>
     <% status = ci.ciAttributes.adminstatus %>

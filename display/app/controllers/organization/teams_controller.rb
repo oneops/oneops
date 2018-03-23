@@ -1,6 +1,4 @@
 class Organization::TeamsController < ApplicationController
-  include ::AdminLimit
-
   before_filter :authorize_admin, :except => [:index, :show, :edit]
   before_filter :find_team, :only => [:show, :edit, :update, :destroy]
 
@@ -8,23 +6,41 @@ class Organization::TeamsController < ApplicationController
     org = current_user.organization
     if is_admin?
       @teams = org.teams.order(:name).all
+      scope = org.teams
     else
-      @teams = current_user.teams.where('teams.organization_id = ?', org.id).all +
-               current_user.teams_via_groups.where('teams.organization_id = ?', org.id).all
-      @teams.uniq!
+      @teams = current_user.all_teams
+      manage_access_team_ids = @teams.select {|t| t.manages_access}.map(&:id)
+
+      # Allow to browse the teams assigned to assemblies which current user manages.
+      manage_assembly_ids = org.ci_proxies.joins(:teams).
+        where(:ns_path => organization_ns_path).
+        where('teams.id IN (?)', manage_access_team_ids).pluck(:ci_id)
+      if manage_access_team_ids.present?
+        @teams += Team.joins(:ci_proxies).where('ci_proxies.ci_id in (?)', manage_assembly_ids).all
+      end
+
+      # Allow to browse admin team.
+      @teams << org.admin_team
+      @teams.uniq!(&:id)
+      scope = Team.where(:id => @teams.map(&:id))
     end
 
     respond_to do |format|
       format.js do
-        @user_count = org.teams.joins(:users).select('teams.id, count(users.id) as user_count').group('teams.id').inject({}) do |m, team|
-          m[team.id] = team.user_count.to_i
-          m
+        @user_count = scope.joins(:users).
+          select('teams.id, count(users.id) as user_count').
+          group('teams.id').
+          inject({}) do |m, team|
+            m[team.id] = team.user_count.to_i
+            m
         end
-        @group_count = org.teams.joins(:groups).select('teams.id, count(groups.id) as group_count').group('teams.id').inject({}) do |m, team|
-          m[team.id] = team.group_count.to_i
-          m
+        @group_count = scope.joins(:groups).
+          select('teams.id, count(groups.id) as group_count').
+          group('teams.id').
+          inject({}) do |m, team|
+            m[team.id] = team.group_count.to_i
+            m
         end
-
 
         render :action => :index
       end
