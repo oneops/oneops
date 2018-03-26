@@ -43,27 +43,27 @@ public class OutputHandler extends OutputStream {
     private int rowCount = 0;
     private static int maxRowCount = 2000;
 
-    public OutputHandler (Logger logger, String logKey, ProcessResult result) {
-        setLogger (logger);
-        setLevel (Level.ALL);
+    public OutputHandler(Logger logger, String logKey, ProcessResult result) {
+        setLogger(logger);
+        setLevel(Level.ALL);
         setLogKey(logKey);
         this.result = result;
         line = "";
     }
 
-    public void setLogger (Logger logger) {
+    public void setLogger(Logger logger) {
         this.logger = logger;
     }
 
-    public Logger getLogger () {
+    public Logger getLogger() {
         return logger;
     }
 
-    public void setLevel (Level level) {
+    public void setLevel(Level level) {
         this.level = level;
     }
 
-    public Level getLevel () {
+    public Level getLevel() {
         return level;
     }
 
@@ -75,18 +75,18 @@ public class OutputHandler extends OutputStream {
         return logKey;
     }
 
-    public void write (int b) {
+    public void write(int b) {
         byte[] bytes = new byte[1];
         bytes[0] = (byte) (b & 0xff);
         line = line + new String(bytes);
 
-        if (line.endsWith ("\n")) {
-            line = line.substring (0, line.length () - 1);
-            flush ();
+        if (line.endsWith("\n")) {
+            line = line.substring(0, line.length() - 1);
+            flush();
         }
     }
 
-    public void flush () {
+    public void flush() {
         if (rowCount < maxRowCount && line.length() > 0) {
             if (!line.contains("PRIVATE KEY")) {
                 logger.info(logKey + "cmd out: " + line);
@@ -173,7 +173,7 @@ public class OutputHandler extends OutputStream {
 
         } else if (rowCount == maxRowCount) {
             logger.warn(logKey
-                    + " hit max amt of output per process of "
+                    + " hit max amount of output per process of "
                     + maxRowCount
                     + " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
         }

@@ -158,7 +158,7 @@ public class ProcessRunner {
           logger.info("sleeping " + sleepSec + " sec...");
           Thread.sleep(sleepSec * 1000L);
         }
-      } catch (InterruptedException ie) {
+      } catch(InterruptedException ie) {
         ie.printStackTrace();
       }
     }
@@ -204,10 +204,10 @@ public class ProcessRunner {
         result.getFaultMap().put("ERROR", result.getLastError());
       }
 
-    } catch (ExecuteException ee) {
+    } catch(ExecuteException ee) {
       logger.error(logKey + ee);
       result.setResultCode(ee.getExitValue());
-    } catch (IOException e) {
+    } catch(IOException e) {
       logger.error(e);
       result.setResultCode(1);
     }
