@@ -132,6 +132,7 @@ public class EnvTTLTest {
         cal.setTime(today);
         cal.add(Calendar.DATE, -150);//last deployment 150 days back
         deployment.setCreatedAt(cal.getTime());
+        deployment.setState("complete");
         deployments = new ArrayList<>();
         deployments.add(deployment);
 
@@ -240,6 +241,7 @@ public class EnvTTLTest {
         deployment.setCreatedAt(cal.getTime());
         deployments = new ArrayList<>();
         deployments.add(deployment);
+        deployment.setState("complete");
 
         env.setProfile("QA");
         ttlPlugin.setEsEnabled(true);
@@ -264,9 +266,9 @@ public class EnvTTLTest {
 
         //1. verify that disable/deploy apis not called and searchDal is called with ttlrecord.deploymentSubmitted=false
         Mockito.verify(searchDal, Mockito.times(1)).post(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(false, 1, 0, platform_1)));
+                Matchers.argThat(new TtlDeploymentSubmitted(false, 1, 0, 0, platform_1)));
         Mockito.verify(searchDal, Mockito.times(1)).post(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(false, 1, 0, platform_2)));
+                Matchers.argThat(new TtlDeploymentSubmitted(false, 1, 0, 0, platform_2)));
 
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
@@ -307,9 +309,9 @@ public class EnvTTLTest {
         ttlPlugin.processEnvironment(env, deployments, orgs);
 
         Mockito.verify(searchDal).put(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(false, 2, 0, platform_1)), Mockito.eq(esRecord1.getId()));
+                Matchers.argThat(new TtlDeploymentSubmitted(false, 2, 0, 0, platform_1)), Mockito.eq(esRecord1.getId()));
         Mockito.verify(searchDal).put(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(false, 2, 0, platform_2)), Mockito.eq(esRecord2.getId()));
+                Matchers.argThat(new TtlDeploymentSubmitted(false, 2, 0, 0, platform_2)), Mockito.eq(esRecord2.getId()));
 
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(platform_2, ttlPlugin.ttlBotName);
@@ -336,9 +338,9 @@ public class EnvTTLTest {
         ttlPlugin.processEnvironment(env, deployments, orgs);
 
         Mockito.verify(searchDal).put(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(true, 2, 0, platform_1)), Mockito.eq(esRecord1.getId()));
+                Matchers.argThat(new TtlDeploymentSubmitted(true, 2, 0, 0, platform_1)), Mockito.eq(esRecord1.getId()));
         Mockito.verify(searchDal, Mockito.times(0)).put(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(false, 2, 0, platform_2)), Mockito.eq(esRecord2.getId()));
+                Matchers.argThat(new TtlDeploymentSubmitted(false, 2, 0, 0, platform_2)), Mockito.eq(esRecord2.getId()));
 
         Mockito.verify(ooFacade, Mockito.times(1)).disablePlatform(platform_1, ttlPlugin.ttlBotName);
         //second platform should not be disabled in the same run
@@ -349,13 +351,15 @@ public class EnvTTLTest {
 
         //#3.end
 
-        //4. Assert the reclaimedCores is set correctly
+        //4. Assert the reclaimedCores and reclaimedComputes are set correctly
         Mockito.reset(ooFacade);
         Mockito.reset(searchDal);
         platform_1.setEnable("disable");
         platform_1.setTotalCores(0);
+        platform_1.setTotalComputes(0);
         Platform platformInEs = new Platform();
         platformInEs.setTotalCores(40);
+        platformInEs.setTotalComputes(10);
         platformInEs.setId(platform_1.getId());
         ttlRecord1.setPlatform(platformInEs);
         ttlRecord1.setTtlDeploymentSubmitted(true);
@@ -368,20 +372,70 @@ public class EnvTTLTest {
         ttlPlugin.processEnvironment(env, deployments, orgs);
 
         Mockito.verify(searchDal).put(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
-                Matchers.argThat(new TtlDeploymentSubmitted(true, 2, 40, platform_1)), Mockito.eq(esRecord1.getId()));
+                Matchers.argThat(new TtlDeploymentSubmitted(true, 2
+                        , 40, 10, platform_1)), Mockito.eq(esRecord1.getId()));
 
     }
+
+    @Test
+    public void testNonCompleteDeployment() throws Exception {
+        //set the destroyDate as past-due and make sure it gets ttled on second scan
+        // because the grace period is set to 0 days for this test
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_MONTH, -2); //set planned destroy date as past-due
+        Date destroyDate = calendar.getTime();
+        EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
+        ttlRecord.setPlannedDestroyDate(destroyDate);
+        ttlRecord.setUserNotifiedTimes(2);
+        ESRecord esRecord = new ESRecord();
+        esRecord.setSource(ttlRecord);
+        deployment.setState("pausing");
+        List<ESRecord> ttlRecordList = new ArrayList<>();
+
+        ttlRecordList.add(esRecord);
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(today);
+        cal.add(Calendar.DATE, -150);//last deployment 150 days back
+        deployment.setCreatedAt(cal.getTime());
+
+        String platform_1EsQuery = esQuery.toString()
+                .replace("<platformId>", "" + platform_1.getId())
+                .replace("<ttlDeploymentSubmitted>", String.valueOf(false));
+        Mockito.when(searchDal.search(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
+                Mockito.anyObject(), Mockito.eq(platform_1EsQuery)))
+                .thenReturn(ttlRecordList);
+
+        String platform_2EsQuery = esQuery.toString()
+                .replace("<platformId>", "" + platform_2.getId())
+                .replace("<ttlDeploymentSubmitted>", String.valueOf(false));
+        Mockito.when(searchDal.search(Mockito.eq(ttlPlugin.getIndexName()), Mockito.eq("platform"),
+                Mockito.anyObject(), Mockito.eq(platform_2EsQuery)))
+                .thenReturn(ttlRecordList);
+
+        env.setProfile("QA");
+        Mockito.reset(ooFacade);
+        Mockito.reset(searchDal);
+
+        ttlPlugin.processEnvironment(env, deployments, new HashMap<>());
+
+        Mockito.verify(ooFacade, Mockito.times(0)).disablePlatform(Mockito.anyObject(), Mockito.eq(ttlPlugin.ttlBotName));
+        Mockito.verify(ooFacade, Mockito.times(0)).forceDeploy(Mockito.eq(env), Mockito.anyObject(), Mockito.eq(ttlPlugin.ttlBotName));
+    }
+
 
     private static final class TtlDeploymentSubmitted extends ArgumentMatcher<EnvironmentTTLRecord> {
         boolean ttlSubmitted;
         int userNotifiedTimes;
         int coresReclaimed;
+        int computesReclaimed;
         Platform platform;
 
-        public TtlDeploymentSubmitted(boolean ttlSubmitted, int userNotifiedTimes, int coresReclaimed, Platform platform) {
+        public TtlDeploymentSubmitted(boolean ttlSubmitted, int userNotifiedTimes, int coresReclaimed,
+                                      int computesReclaimed, Platform platform) {
             this.ttlSubmitted = ttlSubmitted;
             this.userNotifiedTimes = userNotifiedTimes;
             this.coresReclaimed = coresReclaimed;
+            this.computesReclaimed = computesReclaimed;
             this.platform = platform;
         }
 
@@ -392,7 +446,9 @@ public class EnvTTLTest {
             boolean platformIdMatches = (platform.getId() == ttlRecord.platform.getId());
             boolean userNotifiedMatches = (this.userNotifiedTimes == ttlRecord.getUserNotifiedTimes());
             boolean coresReclaimedMatches = (this.coresReclaimed == ttlRecord.getReclaimedCores());
-            return (ttlSubmitted && platformIdMatches && userNotifiedMatches && coresReclaimedMatches);
+            boolean computesReclaimedMatches = (this.computesReclaimed == ttlRecord.getReclaimedComputes());
+            return (ttlSubmitted && platformIdMatches && userNotifiedMatches
+                    && coresReclaimedMatches && computesReclaimedMatches);
         }
     }
 }

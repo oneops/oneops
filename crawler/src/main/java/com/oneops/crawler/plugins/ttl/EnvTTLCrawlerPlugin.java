@@ -29,11 +29,10 @@ import com.oneops.notification.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -52,6 +51,7 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
 
     private int totalComputesTTLed = 0;
     private int notificationFrequencyDays = 0;
+    private int minUserNotifications = 0;
     private String prodCloudRegex;
     private String indexName = "oottl";
 
@@ -86,6 +86,12 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     "                                \"index\" : \"not_analyzed\"\n" +
                     "                        },\n" +
                     "                        \"plannedDestroyDate\" : {\n" +
+                    "                                \"type\" : \"date\"\n" +
+                    "                        },\n" +
+                    "                        \"lastProcessedAt\" : {\n" +
+                    "                                \"type\" : \"date\"\n" +
+                    "                        },\n" +
+                    "                        \"actualDestroyDate\" : {\n" +
                     "                                \"type\" : \"date\"\n" +
                     "                        }\n" +
                     "                }\n" +
@@ -147,8 +153,14 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         this.notificationFrequencyDays = Integer.valueOf(frequency);
         log.info("Notification frequency days: " + notificationFrequencyDays);
 
+        String userNotifications = System.getProperty("ttl.notification.min", "2");
+        this.minUserNotifications = Integer.valueOf(userNotifications);
+        log.info("Minimum User Notifications: " + minUserNotifications);
+
         prodCloudRegex = System.getProperty("ttl.prod.clouds.regex", ".*prod.*");
         log.info("regex for production clouds: [" + prodCloudRegex + "]");
+
+        indexName = System.getProperty("ttl.index.name", "oottl");
     }
 
     @Override
@@ -162,8 +174,19 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             for (Platform platform : env.getPlatforms().values()) {
                 log.info("Processing platform # " + platform.getId());
                 boolean disabledPlatform = false;
-                if (eligiblePlatformIds.contains(platform.getId()) && platform.getTotalComputes() > 0
-                        && "enable".equalsIgnoreCase(platform.getEnable())) {
+                if (eligiblePlatformIds.contains(platform.getId()) && platform.getTotalComputes() > 0) {
+                    if ("disable".equalsIgnoreCase(platform.getEnable())) {
+                        try {
+                            ESRecord esRecord = searchEarlierTTL(platform, env);
+                            //Disable state of the platform is because of the TTL happened for this platform earlier
+                            //do not try the TTL again
+                            if (esRecord != null) continue;
+                        } catch (Exception e) {
+                            log.error("Error while searching for earlier ttl attempt: ", e);
+                            continue;
+                        }
+                    }
+
                     EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
                     ttlRecord.setEnvironmentProfile(env.getProfile());
                     ttlRecord.setEnvironmentId(env.getId());
@@ -198,10 +221,10 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                     totalComputesTTLed += platform.getTotalComputes();
 
                     if (! ttlEnabled) ttlRecord.setScanOnly(true); //by default, the scan-only is true
-                    if (ttlRecord.getPlannedDestroyDate() != null) {
+                    if (ttlRecord.getPlannedDestroyDate() != null
+                            && Calendar.getInstance().getTime().compareTo(ttlRecord.getPlannedDestroyDate()) >= 0
+                            && ttlRecord.getUserNotifiedTimes() >= minUserNotifications) {
 
-                        if (Calendar.getInstance().getTime().compareTo(ttlRecord.getPlannedDestroyDate()) >= 0
-                                && ttlRecord.getUserNotifiedTimes() > 1) {
                             //current date is greater than or equal to "plannedDestroyDate" - meaning user was sent multiple notifications
                             //go ahead with destroy
                             log.info("Time is up for the platform: " + platform.getPath() + "/" + platform.getName()
@@ -220,7 +243,6 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                                 }
                                 disabledPlatform = true;
                             }
-                        }
                     }
                     setDates(ttlRecord, disabledPlatform);
                     if (ttlEnabled && ttlRecord.getActualDestroyDate() == null) { // in grace period, send notification
@@ -260,6 +282,15 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         }
     }
 
+    private ESRecord searchEarlierTTL(Platform platform, Environment env) throws IOException, URISyntaxException {
+        EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
+        ttlRecord.setEnvironmentProfile(env.getProfile());
+        ttlRecord.setEnvironmentId(env.getId());
+        ttlRecord.setPlatform(platform);
+
+        return searchExistingRecord(ttlRecord, true);
+    }
+
     private void analyzeLastTtlRun(Environment env, List<Deployment> deployments) {
         for (Platform platform : env.getPlatforms().values()) {
             EnvironmentTTLRecord ttlRecord = new EnvironmentTTLRecord();
@@ -291,12 +322,23 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
                 int originalCores = ttlRecord.getPlatform().getTotalCores();
                 int currentCores = platform.getTotalCores();
                 int reclaimedCoresTillNow = ttlRecord.getReclaimedCores();
-                log.info("plaform id : " + platform.getId() + " orginal cores: " + originalCores
+                log.info("platform id : " + platform.getId() + " original cores: " + originalCores
                 + " current cores: " + currentCores );
                 if (originalCores - currentCores > reclaimedCoresTillNow) {
                     ttlRecord.setReclaimedCores(originalCores - currentCores);
-                    log.info("set reclaimed cores for paltform id " + platform.getId() + " to " + ttlRecord.getReclaimedCores());
+                    log.info("set reclaimed cores for platform id " + platform.getId() + " to " + ttlRecord.getReclaimedCores());
                 }
+                //now check for reclaimed computes:
+                int originalComputes = ttlRecord.getPlatform().getTotalComputes();
+                int currentComputes = platform.getTotalComputes();
+                int reclaimedComputesTillNow = ttlRecord.getReclaimedComputes();
+                log.info("platform id : " + platform.getId() + " original computes: " + originalComputes
+                        + " current computes: " + currentComputes );
+                if (originalComputes - currentComputes > reclaimedComputesTillNow) {
+                    ttlRecord.setReclaimedComputes(originalComputes - currentComputes);
+                    log.info("set reclaimed computes for platform id " + platform.getId() + " to " + ttlRecord.getReclaimedCores());
+                }
+
                 if (ttlRecord.getReclaimedCores() != originalCores) {
                     //this means ttl deployment could not finish successfully
                     ttlRecord.setTtlFailed(true);
@@ -317,10 +359,9 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
         Stream<String> lines = null;
 
         try {
-            Path path = Paths.get(getClass().getClassLoader().getResource("activeTtlRecordQuery.json").toURI());
-
             StringBuilder query = new StringBuilder();
-            lines = Files.lines(path);
+            lines = new BufferedReader(new InputStreamReader(ClassLoader
+                    .getSystemResourceAsStream("activeTtlRecordQuery.json"))).lines();
             lines.forEach(line -> query.append(line).append(System.lineSeparator()));
             String queryJson = query.toString()
                     .replace("<platformId>", "" + record.getPlatform().getId())
@@ -409,22 +450,26 @@ public class EnvTTLCrawlerPlugin extends AbstractCrawlerPlugin {
             eligiblePlatforms.add(platform.getId());
         }
 
-        Deployment lastDeploy = findLastDeploymentByUser(deployments);
-        if (lastDeploy == null) {
+        Deployment lastDeployByUser = findLastDeploymentByUser(deployments);
+        if (lastDeployByUser == null) {
             return null;
         }
-        Date lastDeployDate = lastDeploy.getCreatedAt();
+        Date lastDeployDate = lastDeployByUser.getCreatedAt();
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.DATE, 0 - noDeploymentDays);
         Date noDeploymentDate = cal.getTime();
         Object envProfile = env.getProfile();
         log.info(env.getPath() + " this env " + env + " with profile ["
-                + env.getProfile() + "] last deployed on : " + lastDeploy.getCreatedAt());
+                + env.getProfile() + "] last deployed on : " + lastDeployByUser.getCreatedAt());
+        Deployment lastDeploy = deployments.get(0);
         if ( envProfile != null
                 && ! envProfile.toString().toLowerCase().contains("prod")
-                && lastDeployDate.compareTo(noDeploymentDate) < 0
-                && ! deployments.get(0).getState().equalsIgnoreCase("active")
-                ) {
+                && lastDeployDate.compareTo(noDeploymentDate) < 0) {
+            if (! lastDeploy.getState().equalsIgnoreCase("complete")
+                    && ! lastDeploy.getState().equalsIgnoreCase("failed")) {
+                log.warn("Deployment is in " + lastDeploy.getState() + " state for too long: ");
+                return null;
+            }
             return eligiblePlatforms;
         }
         return null;

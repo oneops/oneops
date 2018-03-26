@@ -90,7 +90,8 @@ public class OneOpsFacade {
         String url = transistorBaseUrl + "/transistor/rest/environments/" + env.getId() + "/deployments/deploy";
         Request request = new Request.Builder()
                 .url(url)
-                .header("X-Cms-User", userName)
+                .addHeader("X-Cms-User", userName)
+                .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build();
 
@@ -107,7 +108,7 @@ public class OneOpsFacade {
         return responseCode;
     }
 
-    public long disablePlatform(Platform platform, String userName) throws IOException, OneOpsException {
+    public int disablePlatform(Platform platform, String userName) throws IOException, OneOpsException {
         log.info("disabling platform id: " + platform.getId());
 
         String url = transistorBaseUrl + "/transistor/rest/platforms/" + platform.getId() + "/disable";
@@ -117,6 +118,7 @@ public class OneOpsFacade {
         Request request = new Request.Builder()
                 .url(url)
                 .header("X-Cms-User", userName)
+                .addHeader("Content-Type", "application/json")
                 .put(body)
                 .build();
 
@@ -124,23 +126,24 @@ public class OneOpsFacade {
 
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
-        Map<String, Long> release = gson.fromJson(responseBody, Map.class);
+        Map<String, Double> release = gson.fromJson(responseBody, Map.class);
+        log.info("Response from OneOps for disable-platform api: " + release);
         int responseCode = response.code();
-        if (release == null || release.get("releaseId") == null || release.get("releaseId") == 0
-                || responseCode >= 300) {
+        if (responseCode >= 300) {
             throw new OneOpsException("Could not disable platform, response from OneOps: " + responseBody
             + ", response code: " + responseCode);
         }
-        return release.get("releaseId");
+        return responseCode;
     }
 
     public int sendNotification(NotificationMessage msg) throws IOException, OneOpsException {
-        log.info("sending notification: " + gson.toJson(msg));
         String url = antennaBaseUrl + "/antenna/rest/notify/";
-        RequestBody body = RequestBody.create(JSON, gson.toJson(gson.toJson(msg)));
+        log.info(url + " sending notification: " + gson.toJson(msg));
+        RequestBody body = RequestBody.create(JSON, gson.toJson(msg));
 
         Request request = new Request.Builder()
                 .url(url)
+                .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build();
 
