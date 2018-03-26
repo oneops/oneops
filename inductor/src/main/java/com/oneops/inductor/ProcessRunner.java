@@ -192,7 +192,8 @@ public class ProcessRunner {
       executor.setExitValue(0);
       executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
       OutputHandler outputStream = new OutputHandler(logger, logKey, result);
-      executor.setStreamHandler(new PumpStreamHandler(outputStream));
+      ErrorHandler errorStream = new ErrorHandler(logger, logKey, result);
+      executor.setStreamHandler(new PumpStreamHandler(outputStream, errorStream));
       if (workingDir != null) {
         executor.setWorkingDirectory(workingDir);
       }

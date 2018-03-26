@@ -20,7 +20,6 @@ package com.oneops.inductor;
 import com.google.gson.Gson;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-
 import java.io.OutputStream;
 
 public class OutputHandler extends OutputStream {
