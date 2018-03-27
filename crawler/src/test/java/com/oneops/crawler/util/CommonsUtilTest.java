@@ -15,7 +15,7 @@ public class CommonsUtilTest {
     
     String indexMappingsJsonFileName="hadrIndexMappings.json";
     try {
-      CommonsUtil.getIndexMappigsJsonFile(indexMappingsJsonFileName);
+      CommonsUtil.getFileContent(indexMappingsJsonFileName);
     } catch (Exception e) {
       log.error("Exception while reading <hadrIndexMappings.json> contents",e);
       fail();

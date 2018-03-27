@@ -200,7 +200,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   public void createIndexInElasticSearch() throws IOException {
 
-    searchDal.createIndex(this.hadrElasticSearchIndexName, CommonsUtil.getIndexMappigsJsonFile(hadrElasticSearchIndexMappings));
+    searchDal.createIndex(this.hadrElasticSearchIndexName, CommonsUtil.getFileContent(hadrElasticSearchIndexMappings));
 
   }
 

@@ -39,7 +39,7 @@ public class CommonsUtil {
         }
     }
 
-  public static String getIndexMappigsJsonFile(String indexMappingsJsonFileName) throws IOException {
+  public static String getFileContent(String indexMappingsJsonFileName) throws IOException {
     String fileAsString = new String();
       InputStream is = ClassLoader.getSystemResourceAsStream(indexMappingsJsonFileName);
       BufferedReader buf = new BufferedReader(new InputStreamReader(is));
