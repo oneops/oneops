@@ -25,7 +25,8 @@ public class Platform extends OneopsObject {
   private List<String> activeClouds = new ArrayList<>();
   private transient Map<String, Cloud> cloudsMap= new HashMap<String, Cloud>();
   private List<Cloud> clouds= new ArrayList<Cloud>();
-  
+  private boolean isAutoReplaceEnabled;
+  private boolean isAutoRepairEnabled;
 
   public String getPack() {
     return pack;
@@ -156,6 +157,22 @@ public class Platform extends OneopsObject {
 	public void setClouds(List<Cloud> clouds) {
 		this.clouds = clouds;
 	}
+
+  public boolean isAutoReplaceEnabled() {
+    return isAutoReplaceEnabled;
+  }
+
+  public void setAutoReplaceEnabled(boolean isAutoReplaceEnabled) {
+    this.isAutoReplaceEnabled = isAutoReplaceEnabled;
+  }
+
+  public boolean isAutoRepairEnabled() {
+    return isAutoRepairEnabled;
+  }
+
+  public void setAutoRepairEnabled(boolean isAutoRepairEnabled) {
+    this.isAutoRepairEnabled = isAutoRepairEnabled;
+  }
 
 
 

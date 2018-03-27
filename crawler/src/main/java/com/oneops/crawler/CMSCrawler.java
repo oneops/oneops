@@ -444,6 +444,10 @@ public class CMSCrawler {
                 platform.setSource(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
             } else if (attributeName.equalsIgnoreCase("pack")) {
                 platform.setPack(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+            } else if (attributeName.equalsIgnoreCase("autorepair")) {
+              platform.setAutoRepairEnabled(new Boolean(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
+            } else if (attributeName.equalsIgnoreCase("autoreplace")) {
+                platform.setAutoReplaceEnabled(new Boolean(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
             }
         }
         //Now set the enable/disable status

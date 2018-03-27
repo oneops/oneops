@@ -1,16 +1,11 @@
 package com.oneops.crawler.plugins.hadr;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-
-import com.oneops.crawler.CommonsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
@@ -19,6 +14,7 @@ import com.oneops.Environment;
 import com.oneops.Organization;
 import com.oneops.Platform;
 import com.oneops.crawler.AbstractCrawlerPlugin;
+import com.oneops.crawler.CommonsUtil;
 import com.oneops.crawler.SearchDal;
 
 public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
@@ -30,6 +26,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   private String[] dataCentersArr;
   private String oo_baseUrl;
   final String hadrElasticSearchIndexName = "hadr"; 
+  final String hadrElasticSearchIndexMappings = "hadrIndexMappings.json"; 
   private SearchDal searchDal;
   private String environmentProfileFilter;
 
@@ -136,6 +133,8 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     String orginzationName = CommonsUtil.parseOrganizationNameFromNsPath(platform.getPath());
     platformHADRRecord.setOrg(orginzationName);
     platformHADRRecord.setOrganization(organizationsMapCache.get(orginzationName));
+    platformHADRRecord.setAutoReplaceEnabled(platform.isAutoReplaceEnabled());
+    platformHADRRecord.setAutoRepairEnabled(platform.isAutoRepairEnabled()); 
 
     if (isHadrEsEnabled) {
       log.info("Sending compliance record to Elastic Search");
@@ -201,7 +200,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   public void createIndexInElasticSearch() throws IOException {
 
-    searchDal.createIndex(this.hadrElasticSearchIndexName, gethadrIndexMappigs());
+    searchDal.createIndex(this.hadrElasticSearchIndexName, CommonsUtil.getFileContent(hadrElasticSearchIndexMappings));
 
   }
 
@@ -247,28 +246,6 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   }
 
-  public String gethadrIndexMappigs() {
-    String fileAsString = new String();
-    try {
-
-      InputStream is = ClassLoader.getSystemResourceAsStream("hadrIndexMappings.json");
-      BufferedReader buf = new BufferedReader(new InputStreamReader(is));
-      String line = buf.readLine();
-      StringBuilder sb = new StringBuilder();
-      while (line != null) {
-        sb.append(line).append("\n");
-        line = buf.readLine();
-      }
-      fileAsString = sb.toString();
-      log.info("Contents : " + fileAsString);
-      buf.close();
-    } catch (Exception e) {
-      log.error("Error while reading <hadrIndexMappings.json> file from class path: ", e);
-
-    }
-    return fileAsString;
-  }
-
   public boolean isHadrPluginEnabled() {
     return isHadrPluginEnabled;
   }
@@ -291,6 +268,10 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   public void setHadrEsEnabled(boolean isHadrEsEnabled) {
     this.isHadrEsEnabled = isHadrEsEnabled;
+  }
+
+  public String getHadrElasticSearchIndexMappings() {
+    return hadrElasticSearchIndexMappings;
   }
 
 }
