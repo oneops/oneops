@@ -8,8 +8,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
@@ -352,7 +354,7 @@ public class FqdnExecutorTest {
     wo.putPayLoadEntry("fqdnclouds", Arrays.asList(cl1, cl2));
   }
 
-  private void addCloudService(CmsWorkOrderSimple wo) {
+  private void addCloudService(CmsWorkOrderSimpleBase wo) {
     Map<String, Map<String, CmsCISimple>> services = new HashMap<>();
     wo.setServices(services);
     Map<String, CmsCISimple> gdnsService = new HashMap<>();
@@ -383,5 +385,164 @@ public class FqdnExecutorTest {
     wo.addPayLoadEntry("ManagedVia", new CmsRfcCISimple());
   }
 
+
+  @Test
+  public void dontMatchAoWithDifferentServiceType() {
+    CmsActionOrderSimple ao = ao();
+    ao.getCi().getCiAttributes().put("service_type", "netscaler");
+    Response response = fqdnExecutor.execute(ao, "/tmp");
+    assertThat(response.getResult(), is(Result.NOT_MATCHED));
+  }
+
+
+  @Test
+  public void failAoForMissingGdnsService() {
+    CmsActionOrderSimple ao = ao();
+    ao.getServices().remove("torbit");
+    Response response = fqdnExecutor.execute(ao, "/tmp");
+    assertThat(response.getResult(), is(Result.FAILED));
+  }
+
+  @Test
+  public void failAoWithMissingDnsService() {
+    CmsActionOrderSimple ao = ao();
+    ao.getServices().remove("dns");
+    Response response = fqdnExecutor.execute(ao, "/tmp");
+    assertThat(response.getResult(), is(Result.FAILED));
+  }
+
+  @Test
+  public void aoStatusAction() {
+    CmsActionOrderSimple ao = ao();
+    fqdnExecutor.execute(ao, "/tmp");
+    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
+    verify(mock).execute(argument.capture());
+
+    GslbRequest request = argument.getValue();
+    assertThat(request.action(), is(Action.gslbstatus));
+    assertThat("plt", is(request.platform()));
+    assertThat("stg", is(request.environment()));
+    assertThat("coll", is(request.assembly()));
+    assertThat("org", is(request.org()));
+    assertThat(request.platformEnabled(), is(true));
+    assertThat(request.cloud().name(), is("cl1"));
+
+    List<Cloud> platformClouds = request.platformClouds();
+    assertThat(platformClouds.size(), is(2));
+    assertThat(platformClouds.get(0).adminStatus4Platform(), is("active"));
+    assertThat(platformClouds.get(0).priority(), is("1"));
+    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
+    assertThat(platformClouds.get(1).priority(), is("1"));
+
+    InfobloxConfig ibConfig = request.cloud().infobloxConfig();
+    assertThat(ibConfig.host(), is("https://localhost:8123"));
+    assertThat(ibConfig.user(), is("test-usr"));
+    assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
+
+    TorbitConfig torbitConfig = request.cloud().torbitConfig();
+    assertThat(torbitConfig.url(), is("https://localhost:8443"));
+    assertThat(torbitConfig.user(), is("test-oo"));
+    assertThat(torbitConfig.groupId(), is(101));
+    assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
+
+    assertThat(request.fqdn().aliasesJson(), is("[p1]"));
+    assertThat(request.fqdn().fullAliasesJson(), is("[p1.e1.a1.org.xyz.com]"));
+    assertThat(request.lbConfig().listenerJson(), is("['http 80 http 80']"));
+    assertThat(request.lbConfig().ecvMapJson(), is("{'80':'GET /'}"));
+    assertThat(request.deployedLbs().size(), is(2));
+    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
+    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+  }
+
+  private CmsActionOrderSimple ao() {
+    CmsActionOrderSimple wo = aoBase();
+    addLbPayload(wo);
+    addCloudService(wo);
+    addCloudsPayload(wo);
+    addRealizedAs(wo);
+    addDependsOn(wo);
+    return wo;
+  }
+
+  private CmsActionOrderSimple aoBase() {
+    CmsActionOrderSimple aoBase = new CmsActionOrderSimple();
+    aoBase.setActionName("gslbstatus");
+    CmsCISimple ci = new CmsCISimple();
+    ci.setCiId(4001l);
+    ci.setCiName("test-gslb");
+    ci.setCiClassName("bom.oneops.1.Fqdn");
+    ci.addCiAttribute("aliases", "[p1]");
+    ci.addCiAttribute("full_aliases", "[p1.e1.a1.org.xyz.com]");
+    ci.addCiAttribute("distribution", "proximity");
+    ci.addCiAttribute("service_type", "torbit");
+    ci.addCiAttribute("gslb_map", "{'glb' : 'plt.stg.coll.org.xyz.com'}");
+    aoBase.setCi(ci);
+
+    CmsCISimple cloud = new CmsCISimple();
+    cloud.setCiName("cl1");
+    aoBase.setCloud(cloud);
+
+    CmsCISimple box = new CmsCISimple();
+    box.setCiName("plt");
+    box.addCiAttribute("is_platform_enabled", "true");
+    aoBase.setBox(box);
+
+    CmsCISimple env = new CmsCISimple();
+    env.setCiName("stg");
+    env.addCiAttribute("global_dns", "true");
+    aoBase.addPayLoadEntry("Environment", env);
+    return aoBase;
+  }
+
+  private void addLbPayload(CmsActionOrderSimple wo) {
+    CmsCISimple lb1 = new CmsCISimple();
+    lb1.setCiName("lb-101-1");
+    lb1.addCiAttribute("dns_record", "1.1.1.0");
+    lb1.setCiClassName("bom.oneops.1.Lb");
+
+    CmsCISimple lb2 = new CmsCISimple();
+    lb2.setCiName("lb-102-1");
+    lb2.addCiAttribute("dns_record", "1.1.1.1");
+    lb2.setCiClassName("bom.oneops.1.Lb");
+
+    wo.putPayLoadEntry("lb", Arrays.asList(lb1, lb2));
+  }
+
+
+  private void addCloudsPayload(CmsActionOrderSimple wo) {
+    CmsCISimple cl1 = new CmsCISimple();
+    cl1.setCiName("cl1");
+    cl1.setCiId(101);
+    cl1.addCiAttribute("base.Consumes.adminstatus", "active");
+    cl1.addCiAttribute("base.Consumes.priority", "1");
+    cl1.setCiClassName("account.Cloud");
+
+    CmsCISimple cl2 = new CmsCISimple();
+    cl2.setCiName("cl2");
+    cl2.setCiId(102);
+    cl2.addCiAttribute("base.Consumes.adminstatus", "active");
+    cl2.addCiAttribute("base.Consumes.priority", "1");
+    cl2.setCiClassName("account.Cloud");
+
+    wo.putPayLoadEntry("fqdnclouds", Arrays.asList(cl1, cl2));
+  }
+
+  private void addRealizedAs(CmsActionOrderSimple wo) {
+    CmsCISimple manifest = new CmsCISimple();
+    manifest.setCiClassName("manifest.oneops.1.Fqdn");
+    manifest.setCiId(110);
+    manifest.addCiAttribute("distribution", "proximity");
+    manifest.addCiAttribute("service_type", "torbit");
+    wo.addPayLoadEntry("RealizedAs", manifest);
+  }
+
+  private void addDependsOn(CmsActionOrderSimple wo) {
+    CmsCISimple bomLb = new CmsCISimple();
+    bomLb.setCiClassName("bom.oneops.1.Lb");
+    bomLb.setCiId(650l);
+    bomLb.addCiAttribute("listeners", "['http 80 http 80']");
+    bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
+    wo.addPayLoadEntry("DependsOn", bomLb);
+  }
 
 }

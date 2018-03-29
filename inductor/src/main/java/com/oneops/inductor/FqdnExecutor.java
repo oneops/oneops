@@ -2,27 +2,33 @@ package com.oneops.inductor;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.execution.ComponentWoExecutor;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.simple.domain.Instance;
+import com.oneops.gslb.GslbExecutor;
+import com.oneops.gslb.Status;
 import com.oneops.gslb.domain.Action;
 import com.oneops.gslb.domain.Cloud;
 import com.oneops.gslb.domain.DeployedLb;
 import com.oneops.gslb.domain.Fqdn;
-import com.oneops.gslb.GslbExecutor;
 import com.oneops.gslb.domain.GslbRequest;
+import com.oneops.gslb.domain.GslbRequest.Builder;
 import com.oneops.gslb.domain.GslbResponse;
 import com.oneops.gslb.domain.InfobloxConfig;
 import com.oneops.gslb.domain.LbConfig;
-import com.oneops.gslb.Status;
 import com.oneops.gslb.domain.TorbitConfig;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
@@ -88,30 +94,49 @@ public class FqdnExecutor implements ComponentWoExecutor {
   @Override
   public Response execute(CmsWorkOrderSimple wo, String dataDir) {
     String logKey = woHelper.getLogKey(wo);
-    GslbResponse response;
     if (wo.getClassName().equals(FQDN_CLASS) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
-      try {
-        TorbitConfig torbitConfig = getTorbitConfig(wo, logKey);
-        InfobloxConfig infobloxConfig = getInfobloxConfig(wo);
-        if (torbitConfig != null && infobloxConfig != null) {
-          logger.info(logKey + "FqdnExecutor executing workorder dpmt " + wo.getDeploymentId() + " action : " + wo.rfcCi.getRfcAction());
-          String fileName = dataDir + "/" + wo.getDpmtRecordId() + ".json";
-          writeRequest(gsonPretty.toJson(wo), fileName);
-          response = gslbExecutor.execute(getGslbRequestFromWo(wo, torbitConfig, infobloxConfig, logKey));
-          updateWoResult(wo, response, logKey);
-        }
-        else {
-          woHelper.failWo(wo, logKey, "TorbitConfig/InfobloxConfig could not be obtained, Please check cloud service configuration", null);
-        }
-      }
-      catch (Exception e) {
-        woHelper.failWo(wo, logKey, "Exception setting up fqdn ", e);
-      }
+      executeInternal(wo, logKey, "deployment", dataDir, (t, i) -> {
+        GslbResponse response = gslbExecutor.execute(getGslbRequestFromWo(wo, t, i, logKey));
+        updateWoResult(wo, response, logKey);
+      });
       return woHelper.formResponse(wo, logKey);
     }
     logger.info(logKey + "not executing by FqdnExecutor as these conditions are not met :: "
         + "[fqdn service_type set as torbit && gdns enabled for env && local workorder && torbit cloud service configured]");
     return Response.getNotMatchingResponse();
+  }
+
+  @Override
+  public Response execute(CmsActionOrderSimple ao, String dataDir) {
+    String logKey = woHelper.getLogKey(ao);
+    if (isTorbitGslb(ao)) {
+      executeInternal(ao, logKey, "procedure", dataDir, (t, i) -> {
+        GslbResponse response = gslbExecutor.execute(getGslbRequestFromAo(ao, t, i, logKey));
+        updateAoResult(ao, response, logKey);
+      });
+      return woHelper.formResponse(ao, logKey);
+    }
+    return Response.getNotMatchingResponse();
+  }
+
+  private void executeInternal(CmsWorkOrderSimpleBase wo, String logKey, String execType, String dataDir,
+      BiConsumer<TorbitConfig, InfobloxConfig> consumer) {
+    try {
+      TorbitConfig torbitConfig = getTorbitConfig(wo, logKey);
+      InfobloxConfig infobloxConfig = getInfobloxConfig(wo);
+      if (torbitConfig != null && infobloxConfig != null) {
+        logger.info(logKey + "FqdnExecutor executing " + execType + " : " + wo.getExecutionId() + " action : " + wo.getAction());
+        String fileName = dataDir + "/" + wo.getRecordId() + ".json";
+        writeRequest(gsonPretty.toJson(wo), fileName);
+        consumer.accept(torbitConfig, infobloxConfig);
+      }
+      else {
+        woHelper.failWo(wo, logKey, "TorbitConfig/InfobloxConfig could not be obtained, Please check cloud service configuration", null);
+      }
+    }
+    catch (Exception e) {
+      woHelper.failWo(wo, logKey, "Exception setting up fqdn ", e);
+    }
   }
 
   @Override
@@ -140,38 +165,86 @@ public class FqdnExecutor implements ComponentWoExecutor {
     }
   }
 
-  private GslbRequest getGslbRequestFromWo(CmsWorkOrderSimple wo, TorbitConfig torbitConfig, InfobloxConfig infobloxConfig, String logKey) {
+  private void updateAoResult(CmsActionOrderSimple wo, GslbResponse response, String logKey) {
+    if (response != null) {
+      if (response.getStatus() != Status.SUCCESS) {
+        woHelper.failWo(wo, logKey, response.getFailureMessage(), null);
+      }
+    }
+  }
 
-    List<DeployedLb> deployedLbs = getDeployedLb(wo);
-    List<Cloud> platformClouds = getPlatformClouds(wo);
+  private GslbRequest getGslbRequestFromWo(CmsWorkOrderSimple wo, TorbitConfig torbitConfig, InfobloxConfig infobloxConfig, String logKey) {
     Map<String, List<CmsRfcCISimple>> payload = wo.getPayLoad();
-    CmsRfcCISimple env = payload.get("Environment").get(0);
     CmsCISimple cloud = wo.getCloud();
     Map<String, String> fqdnAttrs = wo.getRfcCi().getCiAttributes();
     Map<String, String> fqdnBaseAttrs = wo.getRfcCi().getCiBaseAttributes();
-    GslbRequest request = GslbRequest.builder().
-        action(Action.valueOf(wo.getAction())).
-        platform(wo.getBox().getCiName()).
-        environment(env.getCiName()).
-        assembly(payload.get("Assembly").get(0).getCiName()).
-        org(payload.get("Organization").get(0).getCiName()).
-        customSubdomain(env.getCiAttributes().get("subdomain")).
-        deployedLbs(deployedLbs).
-        platformClouds(platformClouds).
+    Builder builder = getGslbRequestBuilder(wo, payload);
+    GslbRequest request = builder.
+        deployedLbs(getDeployedLb(wo)).
+        platformClouds(getPlatformClouds(wo)).
         lbConfig(getLbConfig(wo)).
         logContextId(logKey).
         cloud(Cloud.create(cloud.getCiId(), cloud.getCiName(), null, null, torbitConfig, infobloxConfig)).
         platformEnabled(isPlatformEnabled(wo)).
-        fqdn(Fqdn.create(fqdnAttrs.get(ATTRIBUTE_ALIAS), fqdnAttrs.get(ATTRIBUTE_FULL_ALIAS), fqdnAttrs.get(ATTRIBUTE_DISTRIBUTION))).
-        oldFqdn(fqdnBaseAttrs != null ?
-            Fqdn.create(fqdnBaseAttrs.get(ATTRIBUTE_ALIAS), fqdnBaseAttrs.get(ATTRIBUTE_FULL_ALIAS), fqdnBaseAttrs.get(ATTRIBUTE_DISTRIBUTION)) :
-            null).build();
+        fqdn(newFqdn(fqdnAttrs)).
+        oldFqdn(fqdnBaseAttrs != null ? newFqdn(fqdnBaseAttrs) : null).
+        build();
     return request;
   }
 
+  private Fqdn newFqdn(Map<String, String> fqdnAttrs) {
+    return Fqdn.create(fqdnAttrs.get(ATTRIBUTE_ALIAS), fqdnAttrs.get(ATTRIBUTE_FULL_ALIAS), fqdnAttrs.get(ATTRIBUTE_DISTRIBUTION));
+  }
 
-  private InfobloxConfig getInfobloxConfig(CmsWorkOrderSimple wo) {
-    Map<String, CmsCISimple> dnsServices = wo.getServices().get("dns");
+  private <T extends Instance> Builder getGslbRequestBuilder(CmsWorkOrderSimpleBase woBase, Map<String, List<T>> payload) {
+    Instance env = payload.get("Environment").get(0);
+    return GslbRequest.builder().
+        action(Action.valueOf(woBase.getAction())).
+        org(payload.get("Organization").get(0).getCiName()).
+        assembly(payload.get("Assembly").get(0).getCiName()).
+        platform(woBase.getBox().getCiName()).
+        environment(env.getCiName()).
+        customSubdomain(env.getCiAttributes().get("subdomain"));
+  }
+
+  private <T extends Instance> Builder getGslbRequestBuilder(CmsActionOrderSimple ao, Map<String, List<T>> payload) {
+    Instance env = payload.get("Environment").get(0);
+    String gslbMap = ao.getCi().getCiAttributes().get("gslb_map");
+    JsonObject root = (JsonObject) gson.fromJson(gslbMap, JsonElement.class);
+    String glb = root.get("glb").getAsString();
+
+    if (StringUtils.isNotBlank(glb)) {
+      String[] elements = glb.split("\\.");
+      return GslbRequest.builder().
+          action(Action.valueOf(ao.getAction())).
+          org(elements[3]).
+          assembly(elements[2]).
+          platform(elements[0]).
+          environment(env.getCiName()).
+          customSubdomain(env.getCiAttributes().get("subdomain"));
+    }
+    throw new RuntimeException("glb value could not be obtained form gslb_map attribute");
+  }
+
+  private GslbRequest getGslbRequestFromAo(CmsActionOrderSimple ao, TorbitConfig torbitConfig, InfobloxConfig infobloxConfig, String logKey) {
+    Map<String, List<CmsCISimple>> payload = ao.getPayLoad();
+    CmsCISimple cloud = ao.getCloud();
+    Map<String, String> fqdnAttrs = ao.getCi().getCiAttributes();
+    Builder builder = getGslbRequestBuilder(ao, payload);
+    GslbRequest request = builder.
+        deployedLbs(getDeployedLb(ao)).
+        platformClouds(getPlatformClouds(ao)).
+        lbConfig(getLbConfig(ao)).
+        logContextId(logKey).
+        cloud(Cloud.create(cloud.getCiId(), cloud.getCiName(), null, null, torbitConfig, infobloxConfig)).
+        platformEnabled(isPlatformEnabled(ao)).
+        fqdn(newFqdn(fqdnAttrs)).
+        build();
+    return request;
+  }
+
+  private InfobloxConfig getInfobloxConfig(CmsWorkOrderSimpleBase wo) {
+    Map<String, CmsCISimple> dnsServices = (Map<String, CmsCISimple>) wo.getServices().get("dns");
     if (dnsServices != null) {
       CmsCISimple dns = dnsServices.get(wo.getCloud().getCiName());
       if (dns != null) {
@@ -188,7 +261,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return null;
   }
 
-  private boolean isPlatformEnabled(CmsWorkOrderSimple wo) {
+  private boolean isPlatformEnabled(CmsWorkOrderSimpleBase wo) {
     boolean isPlatformDisabled = false;
     Map<String, String> platformAttributes = wo.getBox().getCiAttributes();
     if (platformAttributes.containsKey(ATTRIBUTE_PLATFORM_ENABLED)) {
@@ -197,8 +270,15 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return !isPlatformDisabled;
   }
 
+  private LbConfig getLbConfig(CmsActionOrderSimple ao) {
+    return getLbConfig(woHelper.getLbFromDependsOn(ao));
+  }
+
   private LbConfig getLbConfig(CmsWorkOrderSimple wo) {
-    CmsRfcCISimple lb = woHelper.getLbFromDependsOn(wo);
+    return getLbConfig(woHelper.getLbFromDependsOn(wo));
+  }
+
+  private LbConfig getLbConfig(Instance lb) {
     if (lb == null) {
       throw new RuntimeException("DependsOn Lb is empty");
     }
@@ -206,24 +286,39 @@ public class FqdnExecutor implements ComponentWoExecutor {
   }
 
   private List<DeployedLb> getDeployedLb(CmsWorkOrderSimple wo) {
-    List<CmsRfcCISimple> lbs = wo.getPayLoad().get(LB_PAYLOAD);
+    return getDeployedLb(wo.getPayLoad().get(LB_PAYLOAD));
+  }
+
+  private List<DeployedLb> getDeployedLb(CmsActionOrderSimple ao) {
+    return getDeployedLb(ao.getPayLoad().get(LB_PAYLOAD));
+  }
+
+  private List<DeployedLb> getDeployedLb(List<? extends Instance> lbs) {
     return lbs.stream().
+        filter(lb -> StringUtils.isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD))).
         map(lb -> DeployedLb.create(lb.getCiName(), lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD))).collect(
         Collectors.toList());
   }
 
   private List<Cloud> getPlatformClouds(CmsWorkOrderSimple wo) {
-    List<CmsRfcCISimple> clouds = wo.getPayLoad().get(CLOUDS_PAYLOAD);
+    return getPlatformClouds(wo.getPayLoad().get(CLOUDS_PAYLOAD));
+  }
+
+  private List<Cloud> getPlatformClouds(CmsActionOrderSimple ao) {
+    return getPlatformClouds(ao.getPayLoad().get(CLOUDS_PAYLOAD));
+  }
+
+  private List<Cloud> getPlatformClouds(List<? extends Instance> clouds) {
     return clouds.stream().map(this::cloudFromCi).collect(Collectors.toList());
   }
 
-  private Cloud cloudFromCi(CmsRfcCISimple cloudCi) {
+  private Cloud cloudFromCi(Instance cloudCi) {
     Map<String, String> attrs = cloudCi.getCiAttributes();
     return Cloud.create(cloudCi.getCiId(), cloudCi.getCiName(),
         attrs.get(ATTRIBUTE_CLOUD_PRIORITY), attrs.get(ATTRIBUTE_CLOUD_STATUS), null, null);
   }
 
-  private boolean isLocalWo(CmsWorkOrderSimple wo) {
+  private boolean isLocalWo(CmsWorkOrderSimpleBase wo) {
     return !wo.isPayLoadEntryPresent("ManagedVia");
   }
 
@@ -232,7 +327,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     if (realizedAs != null) {
       String serviceType = realizedAs.getCiAttributes().get(ATTRIBUTE_SERVICE_TYPE);
       logger.info(wo.getCiId() + " : fqdn service type  " + serviceType);
-      return "torbit".equals(serviceType);
+      return SERVICE_TYPE_TORBIT.equals(serviceType);
     }
     return false;
   }
@@ -248,12 +343,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return false;
   }
 
-  private TorbitConfig getTorbitConfig(CmsWorkOrderSimple wo, String logKey) {
+  private TorbitConfig getTorbitConfig(CmsWorkOrderSimpleBase wo, String logKey) {
     Map<String, Map<String, CmsCISimple>> services = wo.getServices();
     if (services != null && services.containsKey(SERVICE_TYPE_TORBIT)) {
       Map<String, CmsCISimple> gdnsService = services.get(SERVICE_TYPE_TORBIT);
       CmsCISimple gdns;
-      if ((gdns = gdnsService.get(wo.cloud.getCiName())) != null) {
+      if ((gdns = gdnsService.get(wo.getCloud().getCiName())) != null) {
         if (TORBIT_SERVICE_CLASS.equals(gdns.getCiClassName())) {
           Map<String, String> attributes = gdns.getCiAttributes();
           if (attributes.containsKey(ATTRIBUTE_ENDPOINT) && attributes.containsKey(ATTRIBUTE_AUTH_KEY)
@@ -272,9 +367,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
     return null;
   }
 
-  @Override
-  public Response execute(CmsActionOrderSimple ao) {
-    return Response.getNotMatchingResponse();
+  private boolean isTorbitGslb(CmsActionOrderSimple ao) {
+    CmsCISimple ci = ao.getCi();
+    Map<String, String> attributes = ci.getCiAttributes();
+    return FQDN_CLASS.equals(ci.getCiClassName()) && isLocalWo(ao) &&
+        attributes.containsKey(ATTRIBUTE_SERVICE_TYPE) && SERVICE_TYPE_TORBIT.equals(attributes.get(ATTRIBUTE_SERVICE_TYPE)) &&
+        attributes.containsKey("gslb_map");
   }
 
 }

@@ -26,7 +26,7 @@ import java.util.Map;
 /**
  * The Class CmsRfcCISimple.
  */
-public class CmsRfcCISimple extends CmsRfcCIBasic implements Serializable {
+public class CmsRfcCISimple extends CmsRfcCIBasic implements Serializable, Instance {
 
   private static final long serialVersionUID = 1L;
 
