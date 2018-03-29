@@ -1,4 +1,6 @@
 class Cloud::SupportsController < ApplicationController
+  SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT = 'cloud_support_management'
+
   before_filter :find_cloud_and_support
   before_filter :authorize_write, :only => [:new, :create, :update, :destroy]
 
@@ -68,6 +70,6 @@ class Cloud::SupportsController < ApplicationController
   end
 
   def authorize_write
-    unauthorized unless @cloud && has_cloud_support?(@cloud.ciId)
+    unauthorized unless @cloud && has_cloud_support?(@cloud.ciId) && has_support_permission?(SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT)
   end
 end

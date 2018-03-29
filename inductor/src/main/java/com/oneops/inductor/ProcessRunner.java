@@ -19,17 +19,18 @@ package com.oneops.inductor;
 
 import static java.lang.String.format;
 
-import com.oneops.cms.util.CmsConstants;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.oneops.cms.util.CmsConstants;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.log4j.Logger;
 
 public class ProcessRunner {
@@ -139,7 +140,6 @@ public class ProcessRunner {
       result.setRebooting(false);
 
       long startTime = System.currentTimeMillis();
-
       executeProcess(cmd, logKey, result, null, null);
       long endTime = System.currentTimeMillis();
       long duration = endTime - startTime;
@@ -158,7 +158,7 @@ public class ProcessRunner {
           logger.info("sleeping " + sleepSec + " sec...");
           Thread.sleep(sleepSec * 1000L);
         }
-      } catch (InterruptedException ie) {
+      } catch(InterruptedException ie) {
         ie.printStackTrace();
       }
     }
@@ -187,10 +187,13 @@ public class ProcessRunner {
         // http://www.techques.com/question/1-5080109/How-to-execute--bin-sh-with-commons-exec?
         cmdLine.addArgument(cmd[i], false);
       }
+      setTimeoutInSeconds((int)config.getChefTimeout());
       DefaultExecutor executor = new DefaultExecutor();
       executor.setExitValue(0);
       executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
-      executor.setStreamHandler(new OutputHandler(logger, logKey, result));
+      OutputHandler outputStream = new OutputHandler(logger, logKey, result);
+      ErrorHandler errorStream = new ErrorHandler(logger, logKey, result);
+      executor.setStreamHandler(new PumpStreamHandler(outputStream, errorStream));
       if (workingDir != null) {
         executor.setWorkingDirectory(workingDir);
       }
@@ -201,10 +204,10 @@ public class ProcessRunner {
         result.getFaultMap().put("ERROR", result.getLastError());
       }
 
-    } catch (ExecuteException ee) {
+    } catch(ExecuteException ee) {
       logger.error(logKey + ee);
       result.setResultCode(ee.getExitValue());
-    } catch (IOException e) {
+    } catch(IOException e) {
       logger.error(e);
       result.setResultCode(1);
     }

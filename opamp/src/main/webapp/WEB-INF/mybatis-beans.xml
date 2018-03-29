@@ -24,7 +24,7 @@
         <property name="maxIdle" value="5" />
         <property name="testOnBorrow" value="true" />
         <property name="validationQuery" value="select 1" />
-        <property name="initialSize" value="5" />
+        <property name="initialSize" value="1" />
         <property name="defaultAutoCommit" value="false" />
     </bean>
 

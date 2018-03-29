@@ -1,5 +1,6 @@
 hide_modal();
-<% unless request.method == "GET" %>
+<% unless request.method == 'GET' %>
   setHashParam('list_item', null);
+  $j("#page_alert").html("<%= escape_javascript(render('organization/page_alert')) %>");
 <% end %>
 $j("#page_nav_users").html("<%= escape_javascript(render('organization/users/user_list')) %>");

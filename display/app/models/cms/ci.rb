@@ -87,6 +87,11 @@ class Cms::Ci < Cms::Base
     JSON.parse(post(:list, {}, ids).body)
   end
 
+  def self.bulk_save(cis)
+    return [] if cis.blank?
+    JSON.parse(post(:bulk, {}, cis.to_json).body)
+  end
+
   def self.search(options)
     pluck = options[:_source].present?
 

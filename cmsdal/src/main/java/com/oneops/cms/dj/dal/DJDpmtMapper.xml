@@ -594,7 +594,7 @@
 			a.updated as updated,
 			a.expires_in as expiresIn,
 			a.comments as comments,
-			not (expires_in = -1 or ((extract(epoch from updated) + (expires_in * 60)) - extract(epoch from now()) > 0)) as isExpired
+			not (expires_in = -1 or ((extract(epoch from updated - now()) + expires_in * 60) > 0)) as isExpired
 		from dj_dpmt_approvals a, dj_approval_states ast
 		where a.deployment_id = #{value}
 		  and a.state_id = ast.state_id

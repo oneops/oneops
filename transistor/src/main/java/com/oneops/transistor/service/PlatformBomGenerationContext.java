@@ -7,7 +7,10 @@ import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.util.CmsUtil;
 import org.apache.log4j.Logger;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -81,10 +84,13 @@ public class PlatformBomGenerationContext {
         Map<Long, CmsCI> componentMap = components.stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
 
         dependsOns = manifestRelationMap.computeIfAbsent(MANIFEST_DEPENDS_ON, k -> new ArrayList<>());
-        dependsOns.forEach(r -> {
-            r.setFromCi(componentMap.get(r.getFromCiId()));
-            r.setToCi(componentMap.get(r.getToCiId()));
-        });
+        dependsOns
+                .stream()
+                .filter(r -> (componentMap.get(r.getFromCiId()) != null && componentMap.get(r.getToCiId()) != null))  // exclude all rels that don't have correspondent to/from CIs
+                .forEach(r -> {
+                    r.setFromCi(componentMap.get(r.getFromCiId()));
+                    r.setToCi(componentMap.get(r.getToCiId()));
+                });
         dependsOnFromMap = new HashMap<>();
         dependsOnToMap = new HashMap<>();
         for (CmsCIRelation rel : dependsOns) {
@@ -106,21 +112,28 @@ public class PlatformBomGenerationContext {
                 .map(CmsCIRelation::getToCiId).collect(Collectors.toList());
         logs = cmProcessor.getCiByIdList(ids);
 
-        securedByMap = manifestRelationMap.computeIfAbsent(MANIFEST_SECURED_BY, k -> new ArrayList<>()).stream()
+        securedByMap = manifestRelationMap.computeIfAbsent(MANIFEST_SECURED_BY, k -> new ArrayList<>())
+                .stream()
+                .filter(r -> (componentMap.get(r.getFromCiId()) != null && componentMap.get(r.getToCiId()) != null))  // exclude all rels that don't have correspondent to/from CIs
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 })
                 .collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
-        managedViaMap = manifestRelationMap.computeIfAbsent(MANIFEST_MANAGED_VIA, k -> new ArrayList<>()).stream()
+        managedViaMap = manifestRelationMap.computeIfAbsent(MANIFEST_MANAGED_VIA, k -> new ArrayList<>())
+                .stream()
+                .filter(r -> (componentMap.get(r.getFromCiId()) != null && componentMap.get(r.getToCiId()) != null))  // exclude all rels that don't have correspondent to/from CIs
                 .peek(r -> {
                     r.setFromCi(componentMap.get(r.getFromCiId()));
                     r.setToCi(componentMap.get(r.getToCiId()));
                 }).collect(Collectors.groupingBy(CmsCIRelation::getFromCiId));
 
         entryPoints = manifestRelationMap.computeIfAbsent(MANIFEST_ENTRYPOINT, k -> new ArrayList<>());
-        entryPoints.forEach(r -> {
+        entryPoints
+                .stream()
+                .filter(r->componentMap.get(r.getToCiId()) != null)  // exclude all rels that don't have correspondent to CIs
+                .forEach(r -> {
             r.setFromCi(platform);
             r.setToCi(componentMap.get(r.getToCiId()));
         });
