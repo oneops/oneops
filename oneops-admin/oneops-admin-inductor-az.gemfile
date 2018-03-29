@@ -1,4 +1,14 @@
 source 'http://rubygems.org'
 
+local_gem = "#{File.dirname(__FILE__)}/fog-openstack/fog-openstack-0.1.24.gem"
+
+if ::File.file?(local_gem)
+  gem "fog-openstack", '=0.1.24', :path => File.dirname(local_gem)
+elsif ::File.file?("#{::File.dirname(__FILE__)}/vendor/cache/fog-openstack-0.1.24.gem")
+  gem "fog-openstack", '=0.1.24', :path => File.dirname("#{::File.dirname(__FILE__)}/vendor/cache")
+else
+  gem 'fog-openstack', '=0.1.24', github: 'oneops/fog-openstack', :branch => "Ruby2.0.0"
+end
+
 gemspec(:name => 'oneops-admin-inductor-az')
 
