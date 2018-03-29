@@ -28,9 +28,9 @@ Java system properties:
 
 `-Dhadr.prod.datacenters.list=datacenter1~datacenter2~datacenter3` ; list of data centers separated by `~`. This list will be used to identify if platform is deployed in any 2 of data centers from the list. Any platform deployed on more than 2 data centers will be marked as DR compliant.
 
-`produtionCloudsList` ; list of production cloud names separated by `~`. This list will be used to identify platforms which are using production clouds
+`-DprodutionCloudsList` ; list of production cloud names separated by `~`. This list will be used to identify platforms which are using production clouds
 in non-production profile names.
 
-`hadr.stageCloudFilter.regex` ; default value set as `stg`. This property is being used to search `stg` keyword in cloud names. if environments with 
+`-Dhadr.stageCloudFilter.regex` ; default value set as `stg`. This property is being used to search `stg` keyword in cloud names. if environments with 
 prod profile names are using cloud names containing `stg` as keyword then platform will be labeled with technical debt.
   
