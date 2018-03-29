@@ -76,8 +76,15 @@ INDUCTOR_GEMFILE=\$(ls oneops-admin-inductor*.gemfile)
 gem install \$INDUCTOR_GEM --ignore-dependencies --no-ri --no-rdoc
 bundle install --gemfile=\$INDUCTOR_GEMFILE --local
 
+# install forked fog-openstack
+gem install fog-openstack/fog-openstack-0.1.24.gem --ignore-dependencies --no-ri --no-rdoc
+
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
+
+# install forked fog-openstack
+gem install $OO_HOME/dist/oneops-admin-adapter/fog-openstack/fog-openstack-0.1.24.gem --ignore-dependencies --no-ri --no-rdoc
+
 bundle install --gemfile=oneops-admin-adapter.gemfile --local
 
 cd $OO_HOME/dist/oneops-admin-inductor
