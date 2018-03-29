@@ -27,7 +27,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   private String[] dataCentersArr;
   private String oo_baseUrl;
 
-  final String hadrElasticSearchIndexName = "hadr_test"; 
+  final String hadrElasticSearchIndexName = "hadr"; 
   final String hadrElasticSearchIndexMappings = "hadrIndexMappings.json"; 
   private SearchDal searchDal;
   private String environmentProdProfileFilter;
@@ -238,7 +238,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
       }
 
     } catch (Exception e) {
-        log.error("Error while setting cloud categories for cloud {} :",cloudName,e);
+        log.error("Error while setting cloud categories for cloud {} , error message: {} :",cloudName,e);
         
       }
     }
