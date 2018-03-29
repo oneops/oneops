@@ -33,9 +33,10 @@ public class PlatformHADRRecord implements Serializable {
   private transient Map<String, Cloud> cloudsMap= new HashMap<String, Cloud>();;
   private transient List<Cloud> clouds= new ArrayList<Cloud>(); // TODO: Need to finalize if we will use this object in ES
   private Organization organization;
+
   private Map<String, Object> techDebt;
   private String envProfile;
-  
+
   public String getNsPath() {
     return nsPath;
   }

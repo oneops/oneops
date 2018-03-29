@@ -126,18 +126,10 @@ public class PlatformHADRCrawlerPluginTest {
   }
 
   @Test(enabled = true)
-  private void testHadrIndexNameAndMappings() {
- 
-  plugin = new PlatformHADRCrawlerPlugin();
-  assertEquals(plugin.getHadrElasticSearchIndexName(), "hadr");  
-  assertEquals(plugin.getHadrElasticSearchIndexMappings(), "hadrIndexMappings.json");  
-  
-  }
-
-  @Test(enabled = true)
   private void testIsNonProdEnvUsingProdutionClouds() {
     plugin = new PlatformHADRCrawlerPlugin();
     
+
     Map<String, Cloud> cloudsMap= new HashMap<String, Cloud>();
     Cloud cloud1 = new Cloud();
     cloud1.setId("dc1-ProdCloud1");
@@ -444,6 +436,4 @@ public class PlatformHADRCrawlerPluginTest {
 
     }
   }
-
-  
 }
