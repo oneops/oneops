@@ -84,6 +84,9 @@
               <arguments>
                 <argument>package</argument>
                 <argument>--gemfile=oneops-admin-adapter.gemfile</argument>
+                <argument>--no-install</argument>
+                <argument>--all</argument>
+                <argument>--no-prune</argument>
               </arguments>
             </configuration>
           </execution>
@@ -102,6 +105,7 @@
                 <argument>oneops-admin-adapter-1.0.0.gem</argument>
                 <argument>oneops-admin-adapter.gemfile</argument>
                 <argument>oneops-admin-adapter.gemspec</argument>
+                <argument>fog-openstack</argument>
                 <argument>vendor/cache</argument>
               </arguments>
             </configuration>
@@ -133,6 +137,9 @@
               <arguments>
                 <argument>package</argument>
                 <argument>--gemfile=oneops-admin-inductor.gemfile</argument>
+                <argument>--no-install</argument>
+                <argument>--all</argument>
+                <argument>--no-prune</argument>
               </arguments>
             </configuration>
           </execution>
@@ -152,6 +159,7 @@
                 <argument>oneops-admin-inductor.gemfile</argument>
                 <argument>oneops-admin-inductor.gemspec</argument>
                 <argument>test-kitchen.gemfile</argument>
+                <argument>fog-openstack</argument>
                 <argument>vendor/cache</argument>
               </arguments>
             </configuration>
@@ -183,6 +191,9 @@
               <arguments>
                 <argument>package</argument>
                 <argument>--gemfile=oneops-admin-inductor-az.gemfile</argument>
+                <argument>--no-install</argument>
+                <argument>--all</argument>
+                <argument>--no-prune</argument>
               </arguments>
             </configuration>
           </execution>
@@ -202,6 +213,7 @@
                 <argument>oneops-admin-inductor-az.gemfile</argument>
                 <argument>oneops-admin-inductor-az.gemspec</argument>
                 <argument>test-kitchen.gemfile</argument>
+                <argument>fog-openstack</argument>
                 <argument>vendor/cache</argument>
               </arguments>
             </configuration>
