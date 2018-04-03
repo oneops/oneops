@@ -453,6 +453,7 @@ else
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
 
     service nagios_service do
+      provider Chef::Provider::Service::Redhat if node[:platform_family].include?("rhel")
       supports [ :restart, :enable ]
       action [ :restart, :enable ]
     end
