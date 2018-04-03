@@ -3,6 +3,7 @@ package com.oneops.crawler.plugins.hadr;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.oneops.Cloud;
@@ -22,21 +23,19 @@ public class PlatformHADRRecord implements Serializable {
   private String pack;
   private String org;
   private String packVersion;
-  private String isDR;
   private String source;
   private String sourcePack;
-  private String isHA;
 
   private List<String> activeClouds = new ArrayList<String>();
   private List<String> offlineClouds = new ArrayList<String>();
   private List<String> primaryClouds = new ArrayList<String>();
   private List<String> secondaryClouds = new ArrayList<String>();
-  private transient Map<String, Cloud> cloudsMap;
-  private transient List<Cloud> clouds; // TODO: Need to finalize if we will use this object in ES
+  private transient Map<String, Cloud> cloudsMap= new HashMap<String, Cloud>();;
+  private transient List<Cloud> clouds= new ArrayList<Cloud>(); // TODO: Need to finalize if we will use this object in ES
   private Organization organization;
-  private boolean isAutoReplaceEnabled;
-  private boolean isAutoRepairEnabled;
 
+  private Map<String, Object> techDebt;
+  private String envProfile;
 
   public String getNsPath() {
     return nsPath;
@@ -198,38 +197,20 @@ public class PlatformHADRRecord implements Serializable {
     this.organization = organization;
   }
 
-  public String getIsDR() {
-    return isDR;
+  public Map<String, Object> getTechDebt() {
+    return techDebt;
   }
 
-  public void setIsDR(String isDR) {
-    this.isDR = isDR;
+  public void setTechDebt(Map<String, Object> techDebt) {
+    this.techDebt = techDebt;
   }
 
-  public String getIsHA() {
-    return isHA;
+  public String getEnvProfile() {
+    return envProfile;
   }
 
-  public void setIsHA(String isHA) {
-    this.isHA = isHA;
+  public void setEnvProfile(String envProfile) {
+    this.envProfile = envProfile;
   }
-
-  public boolean isAutoReplaceEnabled() {
-    return isAutoReplaceEnabled;
-  }
-
-  public void setAutoReplaceEnabled(boolean isAutoReplaceEnabled) {
-    this.isAutoReplaceEnabled = isAutoReplaceEnabled;
-  }
-
-  public boolean isAutoRepairEnabled() {
-    return isAutoRepairEnabled;
-  }
-
-  public void setAutoRepairEnabled(boolean isAutoRepairEnabled) {
-    this.isAutoRepairEnabled = isAutoRepairEnabled;
-  }
-
-
 
 }

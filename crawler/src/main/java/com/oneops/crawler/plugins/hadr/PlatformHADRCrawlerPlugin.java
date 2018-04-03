@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -25,11 +26,21 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   private String prodDataCentersList;
   private String[] dataCentersArr;
   private String oo_baseUrl;
+
   final String hadrElasticSearchIndexName = "hadr"; 
   final String hadrElasticSearchIndexMappings = "hadrIndexMappings.json"; 
   private SearchDal searchDal;
-  private String environmentProfileFilter;
+  private String environmentProdProfileFilter;
 
+  private String[] produtionCloudsArr; 
+  private String stageCloudFilter;
+  final private String isHALabel="isHA";
+  final private String isDRLabel="isDR";
+  final private String isAutoRepairEnabledLabel="isAutoRepairEnabled";
+  final private String isAutoReplaceEnabledLabel="isAutoReplaceEnabled";
+  final private String isProdCloudInNonProdEnvLabel="isProdCloudInNonProdEnv";
+  final  private String prodProfileWithStageCloudsLabel="prodProfileWithStageClouds";
+  
   public SearchDal getSearchDal() {
     return searchDal;
   }
@@ -59,9 +70,14 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     oo_baseUrl = System.getProperty("hadr.oo.baseurl", "");
     log.info("oo_baseUrl: " + oo_baseUrl);
 
-    environmentProfileFilter = System.getProperty("hadr.env.profile.regex", "prod").toLowerCase();
-    log.info("environmentProfileFilter: " + environmentProfileFilter);
+    environmentProdProfileFilter = System.getProperty("hadr.env.profile.regex", "prod").toLowerCase();
+    log.info("environmentProdProfileFilter: " + environmentProdProfileFilter);
 
+    produtionCloudsArr = System.getProperty("produtionCloudsList").toLowerCase().split("~");
+    
+    stageCloudFilter=System.getProperty("hadr.stageCloudFilter.regex", "stg").toLowerCase();
+    log.info("stageCloudFilter: " + stageCloudFilter);
+    
     if (isHadrEsEnabled) {
       try {
         createIndexInElasticSearch();
@@ -76,70 +92,53 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
     if (isHadrPluginEnabled) {
 
-      processOnlyProdEnvs(env, organizationsMapCache);
+      processPlatformsInEnv(env, organizationsMapCache);
     } else {
       log.warn("HadrPlugin is not enabled ");
     }
   }
 
-  public void processOnlyProdEnvs(Environment env,
+
+  public void processPlatformsInEnv(Environment env,
       Map<String, Organization> organizationsMapCache) {
 
-    String environmentProfileName = env.getProfile();
+    log.info("Starting processing for environment envId: {}, profile: {}, envName: {}, envPath: {}",
+        env.getId(), env.getProfile(), env.getName(), env.getPath());
+    Collection<Platform> platforms = env.getPlatforms().values();
 
-    if (environmentProfileName != null && environmentProfileName != ""
-        && environmentProfileName.toLowerCase().contains(environmentProfileFilter)) {
-      log.info(
-          "Eligible environment for processing envId: {}, profile: {}, envName: {}, envPath: {}",
-          env.getId(), env.getProfile(), env.getName(), env.getPath());
-      Collection<Platform> platforms = env.getPlatforms().values();
-      for (Platform platform : platforms) {
-        log.info(
-            "Platform for environmentId: {} ,environmetProfile: {},  platformId: {}, platformName {}, platform.getEnable {}",
-            env.getId(), env.getProfile(), platform.getId(), platform.getName(),
-            platform.getEnable());
+    for (Platform platform : platforms) {
 
-        processPlatformForProdEnv(platform, env, organizationsMapCache);
+      PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
+
+      platformHADRRecord.setEnv(env.getName());
+      platformHADRRecord.setPack(platform.getPack());
+      platformHADRRecord.setPackVersion(platform.getPackVersion());
+      platformHADRRecord.setSource(platform.getSource());
+      platformHADRRecord.setTotalCores(platform.getTotalCores());
+      platformHADRRecord.setTotalComputes(platform.getTotalComputes());
+      platformHADRRecord.setPlatform(platform.getName());
+      platformHADRRecord.setAssembly(parseAssemblyNameFromNsPath(platform.getPath()));
+      platformHADRRecord.setOoUrl(getOOURL(platform.getPath()));
+      platformHADRRecord.setCreatedTS(new Date());
+      platformHADRRecord.setCloudsMap(platform.getCloudsMap());
+      platformHADRRecord.setSourcePack(platform.getSource() + "-" + platform.getPack());
+      platformHADRRecord.setNsPath(platform.getPath());
+      platformHADRRecord.setClouds(platform.getClouds());
+      // TODO: write a utility to transform cloud data
+      platformHADRRecord =
+          setCloudCategories(platformHADRRecord, platformHADRRecord.getCloudsMap());
+      String orginzationName = CommonsUtil.parseOrganizationNameFromNsPath(platform.getPath());
+      platformHADRRecord.setOrg(orginzationName);
+      platformHADRRecord.setOrganization(organizationsMapCache.get(orginzationName));
+      platformHADRRecord.setEnvProfile(env.getProfile());
+      platformHADRRecord.setTechDebt(getPlatformTechDebtForEnvironment(platform, env));
+
+
+      if (isHadrEsEnabled) {
+        log.info("Sending compliance record to Elastic Search");
+        saveToElasticSearch(platformHADRRecord, String.valueOf(platform.getId()));
 
       }
-    } else {
-      log.info(
-          "Ignoring environment processing for envId: {}, envProfile: {}, envName: {}, envPath: {}",
-          env.getId(), env.getProfile(), env.getName(), env.getPath());
-    }
-  }
-
-  public void processPlatformForProdEnv(Platform platform, Environment env,
-      Map<String, Organization> organizationsMapCache) {
-    PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
-    platformHADRRecord.setIsDR(IsDR(platform));
-    platformHADRRecord.setIsHA(IsHA(platform));
-    platformHADRRecord.setEnv(env.getName());
-    platformHADRRecord.setPack(platform.getPack());
-    platformHADRRecord.setPackVersion(platform.getPackVersion());
-    platformHADRRecord.setSource(platform.getSource());
-    platformHADRRecord.setTotalCores(platform.getTotalCores());
-    platformHADRRecord.setTotalComputes(platform.getTotalComputes());
-    platformHADRRecord.setPlatform(platform.getName());
-    platformHADRRecord.setAssembly(parseAssemblyNameFromNsPath(platform.getPath()));
-    platformHADRRecord.setOoUrl(getOOURL(platform.getPath()));
-    platformHADRRecord.setCreatedTS(new Date());
-    platformHADRRecord.setCloudsMap(platform.getCloudsMap());
-    platformHADRRecord.setSourcePack(platform.getSource() + "-" + platform.getPack());
-    platformHADRRecord.setNsPath(platform.getPath());
-    platformHADRRecord.setClouds(platform.getClouds());
-    // TODO: write a utility to transform cloud data
-    platformHADRRecord = setCloudCategories(platformHADRRecord, platformHADRRecord.getCloudsMap());
-    String orginzationName = CommonsUtil.parseOrganizationNameFromNsPath(platform.getPath());
-    platformHADRRecord.setOrg(orginzationName);
-    platformHADRRecord.setOrganization(organizationsMapCache.get(orginzationName));
-    platformHADRRecord.setAutoReplaceEnabled(platform.isAutoReplaceEnabled());
-    platformHADRRecord.setAutoRepairEnabled(platform.isAutoRepairEnabled()); 
-
-    if (isHadrEsEnabled) {
-      log.info("Sending compliance record to Elastic Search");
-      saveToElasticSearch(platformHADRRecord, String.valueOf(platform.getId()));
-
     }
 
   }
@@ -215,6 +214,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     for (String cloudName : clouds.keySet()) {
       Cloud cloud = clouds.get(cloudName);
 
+      try {
       switch (cloud.getAdminstatus()) {
 
         case "active":
@@ -237,12 +237,65 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
       }
 
+    } catch (Exception e) {
+        log.error("Error while setting cloud categories for cloud {} , error message: {} :",cloudName,e);
+        
+      }
     }
     platformHADRRecord.setActiveClouds(activeClouds);
     platformHADRRecord.setPrimaryClouds(primaryClouds);
     platformHADRRecord.setSecondaryClouds(secondaryClouds);
+    platformHADRRecord.setOfflineClouds(offlineClouds);
+    
 
     return platformHADRRecord;
+
+  }
+
+  public Map<String, Object> getPlatformTechDebtForEnvironment(Platform platform, Environment env) {
+    Map<String, Object> techDebt = new HashMap<String, Object>();
+
+    String environmentProfileName = env.getProfile();
+
+    if (environmentProfileName != null && environmentProfileName != ""
+        && environmentProfileName.toLowerCase().contains(environmentProdProfileFilter)) {
+      techDebt.put(isDRLabel, IsDR(platform));
+      techDebt.put(isHALabel, IsHA(platform));
+      if (prodProfileWithStageClouds(platform.getCloudsMap())) {
+        techDebt.put(prodProfileWithStageCloudsLabel, true);
+      }
+
+    } else {
+      techDebt.put(this.isProdCloudInNonProdEnvLabel,
+          isNonProdEnvUsingProdutionClouds(platform.getCloudsMap()));
+
+    }
+    // tech debt irrespective of environment
+    techDebt.put(isAutoRepairEnabledLabel, platform.isAutoRepairEnabled());
+    techDebt.put(isAutoReplaceEnabledLabel, platform.isAutoReplaceEnabled());
+
+
+    return techDebt;
+
+  }
+
+  public boolean isNonProdEnvUsingProdutionClouds(Map<String, Cloud> cloudsMap) {
+
+    for (String prodCloudName : produtionCloudsArr) {
+      return cloudsMap.keySet().toString().toLowerCase().contains(prodCloudName);
+    }
+
+    return false;
+
+  }
+
+  public boolean prodProfileWithStageClouds(Map<String, Cloud> cloudsMap) {
+
+    if (cloudsMap.keySet().toString().toLowerCase().contains(stageCloudFilter)) {
+      return true;
+    }
+
+    return false;
 
   }
 
@@ -272,6 +325,30 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   public String getHadrElasticSearchIndexMappings() {
     return hadrElasticSearchIndexMappings;
+  }
+
+  public String getIsHALabel() {
+    return isHALabel;
+  }
+
+  public String getIsDRLabel() {
+    return isDRLabel;
+  }
+
+  public String getIsAutoRepairEnabledLabel() {
+    return isAutoRepairEnabledLabel;
+  }
+
+  public String getIsAutoReplaceEnabledLabel() {
+    return isAutoReplaceEnabledLabel;
+  }
+
+  public String getIsProdCloudInNonProdEnvLabel() {
+    return isProdCloudInNonProdEnvLabel;
+  }
+
+  public String getProdProfileWithStageCloudsLabel() {
+    return prodProfileWithStageCloudsLabel;
   }
 
 }
