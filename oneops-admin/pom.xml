@@ -159,6 +159,7 @@
                 <argument>oneops-admin-inductor.gemfile</argument>
                 <argument>oneops-admin-inductor.gemspec</argument>
                 <argument>test-kitchen.gemfile</argument>
+                <argument>test-kitchen.gemfile.lock</argument>
                 <argument>fog-openstack</argument>
                 <argument>vendor/cache</argument>
               </arguments>
@@ -213,6 +214,7 @@
                 <argument>oneops-admin-inductor-az.gemfile</argument>
                 <argument>oneops-admin-inductor-az.gemspec</argument>
                 <argument>test-kitchen.gemfile</argument>
+                <argument>test-kitchen.gemfile.lock</argument>
                 <argument>fog-openstack</argument>
                 <argument>vendor/cache</argument>
               </arguments>
