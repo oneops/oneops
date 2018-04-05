@@ -104,7 +104,7 @@ class Catalog::PacksController < ApplicationController
     @stats = Search::Pack.count_stats(params[:source], params[:pack], params[:version])
     respond_to do |format|
       format.js
-      format.json { render :json => @stats ? {:count => @stats} : {:errors => ['Failed to fetch stats.']}, :status => :internal_server_error }
+      format.json { @stats ? render(:json => {:count => @stats}) : render(:json => {:errors => ['Failed to fetch stats.']}, :status => :internal_server_error)}
     end
   end
 

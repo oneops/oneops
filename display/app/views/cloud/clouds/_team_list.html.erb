@@ -1,5 +1,5 @@
 <% teams_to_add = nil
-   manages_access = manages_access_for_cloud?(@cloud.ciId)
+   manages_access = manages_cloud?(@cloud.ciId)
    if manages_access
      team_ids     = @teams.map(&:id)
      teams_to_add = current_user.organization.teams.where('teams.name <> ? AND NOT teams.org_scope AND (teams.manages_access OR teams.cloud_services OR teams.cloud_compliance OR teams.cloud_support)', Team::ADMINS)

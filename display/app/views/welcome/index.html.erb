@@ -2,11 +2,12 @@
 
 <%= page_title :page_kind => 'Home' %>
 
+<% orgs = current_user.organizations.all %>
 <%= section_panel 'Organizations', :width => 'single', :position => 'left' do %>
-  <%= list(current_user.organizations.all,
+  <%= list(orgs,
            :new_link      => link_to('Manage Your Organizations...', account_profile_path(:anchor => 'organizations')),
            :toolbar       => {:sort_by => [%w(Name org-name), %w(Created created)], :filter_by => %w(org-name)},
-           :selected_item => current_user.organizations.present? && current_user.organization ? current_user.organization.id : nil) do |builder, org| %>
+           :selected_item => orgs.present? && current_user.organization ? current_user.organization.id : nil) do |builder, org| %>
     <% builder.itemid org.id %>
     <% builder.attributes raw(%(org-name="#{org.name}" created="#{org.created_at}")) %>
     <% builder.target link_to('', assemblies_path(:org_name => org.name), :method => :get, :remote => true) %>
@@ -28,7 +29,7 @@
 <div id="organization_details">
   <%= section_panel 'Assemblies', :width => 'double', :position => 'right' do %>
     <div id="assembly_list">
-      <% loading_indicator if current_user.organizations.present? %>
+      <% loading_indicator if orgs.present? %>
     </div>
   <% end %>
 </div>

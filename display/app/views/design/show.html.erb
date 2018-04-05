@@ -11,12 +11,14 @@
   </ul>
 <% end %>
 <% page_options << extract
-   if manages_access?
+   if manages_assembly?(@assembly.ciId)
      if @release && @release.releaseState == 'open'
        page_options << link_to_function(icon('upload', 'Load'), '', :class => 'btn btn-small disabled')
      else
        page_options << link_to(icon('upload', 'Load'), load_assembly_design_path(@assembly), :class => 'btn btn-small')
      end
+   end
+   if creates_assemblies?
      page_options << link_to(icon('files-o', 'Copy'), new_clone_assembly_path(@assembly), :remote => true, :class => 'btn btn-small')
      page_options << link_to(icon('floppy-o', 'Save to Catalog'), new_clone_assembly_path(@assembly, :export => 'catalog'), :remote => true, :class => 'btn btn-small')
    end %>

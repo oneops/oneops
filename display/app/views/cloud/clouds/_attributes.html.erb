@@ -2,7 +2,7 @@
            :resource    => @cloud,
            :content     => 'cms/cis/ci',
            :remote      => true,
-           :read_only   => !manages_access?,
+           :read_only   => !manages_cloud?(@cloud.ciId),
            :form_url    => cloud_path(@cloud),
            :destroy_url => cloud_path(@cloud),
            :cancel_url  => clouds_path %>

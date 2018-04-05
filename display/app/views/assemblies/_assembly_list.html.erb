@@ -7,7 +7,7 @@
 <%= ci_list(@assemblies,
             :toolbar => toolbar,
             :menu => menu,
-            :new_link => (manages_access? ? link_to(icon('plus', 'New Assembly...'), new_assembly_path) : nil)) do |builder, target| %>
+            :new_link => (creates_assemblies? ? link_to(icon('plus', 'New Assembly...'), new_assembly_path) : nil)) do |builder, target| %>
   <% favorite = current_user.favorite(target.ciId)
      watching = watched_map[target.ciId] %>
   <% builder.attributes raw(%(ciName="#{target.ciName}" created="#{target.created}" favorite="#{favorite ? 'favorite' : '~!'}" watching="#{watching ? 'watching' : '~!'}")) %>
@@ -18,7 +18,7 @@
   <% end %>
   <% builder.menu do |ci| %>
     <%= link_to(icon('edit', ' Edit'),   assembly_path(ci, :anchor => 'profile')) %>
-    <% if manages_access? %>
+    <% if creates_assemblies? %>
       <%= link_to(icon('files-o',  ' Copy'),  new_clone_assembly_path(ci), :remote => true) %>
       <%= link_to(icon('floppy-o', ' Save to Catalog'), new_clone_assembly_path(ci, :export => 'catalog'), :remote => true) %>
     <% end %>

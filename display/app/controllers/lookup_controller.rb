@@ -273,8 +273,8 @@ class LookupController < ApplicationController
   def authorize(ns_path)
     return true if ns_path.start_with?('/public/')
 
-    root, org_name = ns_path.split('/')
-    org            = current_user.organizations.where('organizations.name' => org_name).first
+    _, org_name = ns_path.split('/')
+    org = locate_org(org_name)
     return false unless org
 
     unless is_admin?(org) || has_org_scope?(org)

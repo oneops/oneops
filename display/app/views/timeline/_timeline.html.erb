@@ -1,13 +1,12 @@
 <%= section_panel "Releases#{' & Deployments' if @environment}",
                   :width    => 'single',
-                  :position => 'left',
+                  :position => 'left pinnable',
                   :menu     => @environment ? [link_to_function(icon('download'), "render_modal('deployment_list_download_modal')", :class => 'btn btn-mini')] : nil do %>
   <%= timeline_list([],
                     :paginate => {:url  => @environment ?
                                                page_assembly_transition_environment_timeline_path(@assembly, @environment) :
                                                page_assembly_design_timeline_path(@assembly),
                                   :size => 20},
-                    :class => 'fixed',
                     :toolbar  => @environment ? {} : {:quick_filters => nil}) %>
 <% end %>
 

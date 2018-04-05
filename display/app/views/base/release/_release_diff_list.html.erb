@@ -14,7 +14,7 @@
      end
      owner_value = defined?(owner) && owner %>
   <%= list(rfc_cis + rfc_relations_with_no_rfc_cis,
-           :class   => 'release-diff fixed',
+           :class   => 'release-diff',
            :toolbar => {:list_name => 'release_rfc_list',
                         :sort_by   => [%w(Class rfcClass), %w(Name rfcName), %w(Namespace namespace), %w(Created created)],
                         :filter_by => %w(rfcClass rfcName namespace diffAttributes),
