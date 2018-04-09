@@ -72,8 +72,8 @@ def existing_ci_cost (date)
   total          = 1
   ci_counter     = 0
   record_counter = 0
-  records        = []
   while from < total
+    records = []
     req[:from] = from
 
     print 'Loading CIs... '
@@ -220,8 +220,8 @@ def deleted_ci_cost(date)
   total          = 1
   wo_counter     = 0
   record_counter = 0
-  records        = []
   while from < total
+    records = []
     req[:from] = from
 
     print 'Loading delete WOs... '
