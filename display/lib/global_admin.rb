@@ -31,7 +31,7 @@ module GlobalAdmin
     global_admin_groups = Settings.global_admin_groups
     if global_admin_groups.present?
       global_admin_groups = global_admin_groups.split(',')
-      global_admin_ids = admin_team.groups.where(:name => global_admin_groups.map(&:strip)).joins(:users).pluck('users.id').uniq
+      global_admin_ids = Group.where(:name => global_admin_groups.map(&:strip)).joins(:users).pluck('users.id').uniq
     end
 
     current_admin_ids   = org.admin_users.ids + org.admin_group_users.ids
