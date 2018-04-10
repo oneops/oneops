@@ -246,6 +246,12 @@ class SupportController < ReportsController
     end
   end
 
+  def global_admins
+    return unauthorized unless is_global_admin?
+
+    @groups = Group.where(:name => Settings.global_admin_groups.split(',')).all
+  end
+
   def cost
     super
   end
