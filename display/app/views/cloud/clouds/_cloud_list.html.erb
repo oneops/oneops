@@ -11,7 +11,6 @@
  	 <%= time_ago_in_words(target.created_timestamp) %>
   <% end %>
   <% builder.menu do |ci| %>
-    <%= link_to(icon('edit', ' Edit'),   edit_cloud_path(ci)) %>
     <%= link_to(icon('trash',' Delete'), cloud_path(ci), :id => "delete_#{ci.ciName}", :method => :delete, :confirm => "Delete cloud '#{ci.ciName}'?") if manages_cloud?(ci.ciId) %>
   <% end %>
   <% builder.status do |ci| %>
