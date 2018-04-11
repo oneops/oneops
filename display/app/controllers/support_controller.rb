@@ -124,6 +124,7 @@ class SupportController < ReportsController
         delimiter = params[:delimiter].presence || ','
         csv = keys.join(delimiter) << "\n"
         @organizations.each do |o|
+          %w(name full_name owner).each {|f| o[f] = %("#{o[f]}")}
           csv << keys.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
         end
         render :text => csv

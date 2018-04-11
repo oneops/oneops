@@ -40,7 +40,7 @@ class ApplicationController < ActionController::Base
                 :has_org_scope?, :dto_allowed?, :locate_assemblies,
                 :has_design?, :has_transition?, :has_operations?,
                 :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?,
-                :manages_admins?, :manages_team_members?, :allowed_to_settle_approval?,
+                :manages_org?, :manages_admins?, :manages_team_members?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
                 :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
@@ -846,6 +846,10 @@ class ApplicationController < ActionController::Base
 
   def manages_team_members?(team)
     current_user.manages_team_members?(team)
+  end
+
+  def manages_org?(org = nil)
+    User.global_admin_mode? ? is_global_admin? : is_admin?(org)
   end
 
   def allowed_to_settle_approval?(approval)

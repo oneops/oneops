@@ -1,6 +1,6 @@
 <% new_record = @environment.new_record? %>
 <%= section_panel new_record ? 'New Environment Profile' : 'Environment Profile Details', :width => 'double', :position => 'right' do %>
-  <%= locals = {:resource => @environment, :content => 'base/environments/environment_details_content', :read_only => !is_admin?}
+  <%= locals = {:resource => @environment, :content => 'base/environments/environment_details_content', :read_only => !manages_org?}
       if new_record
         locals[:form_url] = organization_environments_path
       else
