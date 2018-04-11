@@ -1,20 +1,26 @@
 <% users = @team.users.all
-   can_edit = @team.name == Team::ADMINS ? manages_admins? : manages_team_members?(@team) %>
+   can_manage = manages_team_members?(@team)
+   can_add = @team.name == Team::ADMINS ? manages_admins? : can_manage %>
 <%= list(users,
-         :new_link => can_edit && link_to_function(icon('plus', 'Add user...'), 'show_add_team_member_dialog("user")'),
-         :toolbar => {:list_name => 'team_user_list',
-                      :sort_by   => [%w(Username username), ['Full Name', 'full_name'], %w(Email email)],
-                      :filter_by => %w(username full_name email)}) do |builder, user| %>
+         :new_link => can_add && link_to_function(icon('plus', 'Add user...'), 'show_add_team_member_dialog("user")'),
+         :toolbar  => {:list_name => 'team_user_list',
+                       :sort_by   => [%w(Username username), ['Full Name', 'full_name'], %w(Email email), %w(Created created), ['Last OneOps Sign-In', 'last_oneops_sign_in']],
+                       :filter_by => %w(username full_name email)}) do |builder, user| %>
+  <% full_name = user.name %>
   <% builder.itemid user.id %>
-  <% builder.attributes raw(%(username="#{user.username}" full_name="#{user.name}" email="#{user.email}")) %>
+  <% builder.attributes raw(%(username="#{user.username}" full_name="#{user.name}" email="#{user.email}" created="#{user.created_at}" last_oneops_sign_in="#{user.current_sign_in_at}")) %>
   <% builder.target link_to_function('', '') %>
   <% builder.top do %>
     <span class="topname"><%= user.username %></span>
     <span class="topdesc"><%= user.email %></span>
   <% end %>
-  <% full_name = user.name
-     builder.middle full_name if full_name.present? %>
-  <% if can_edit && (@team.name != Team::ADMINS || users.size > 1) %>
+  <% builder.middle full_name if full_name.present? %>
+  <% builder.bottom do %>
+    created <b><%= time_ago_in_words(user.created_at) %></b>
+    &nbsp;|&nbsp; last OneOps sign in:
+    <b><%= user.current_sign_in_at ? time_ago_in_words(user.current_sign_in_at) : 'N/A' %></b>
+  <% end %>
+  <% if can_manage && (@team.name != Team::ADMINS || users.size > 1) %>
     <% builder.menu do %>
       <%= link_confirm_busy(icon('remove', 'Remove'),
                             :url     => organization_team_member_path(@team, user, :type => 'user'),
