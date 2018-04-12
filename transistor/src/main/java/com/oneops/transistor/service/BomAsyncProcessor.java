@@ -86,9 +86,11 @@ public class BomAsyncProcessor {
                 if (deploy) {
                     BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
                     String orgName = dpmt.getNsPath().split("/")[1];
-
-                    long deploymentId = reserveQuota(bomData, orgName, userId);
-                    dpmt.setDeploymentId(deploymentId);
+                    List<CloudProviderMapping> cloudProviderMappings = getCloudProviderMappings();
+                    if (cloudProviderMappings != null && cloudProviderMappings.size() > 0) {
+                        long deploymentId = reserveQuota(bomData, orgName, userId, cloudProviderMappings);
+                        dpmt.setDeploymentId(deploymentId);
+                    }
                     bomInfo = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
                 }
                 else {
@@ -117,7 +119,7 @@ public class BomAsyncProcessor {
         t.start();
     }
 
-    long reserveQuota(BomData bomData, String orgName, String userId) throws IOException {
+    long reserveQuota(BomData bomData, String orgName, String userId, List<CloudProviderMapping> mappings) throws IOException {
 
         Collection<CmsRfcCI> rfcCIs = bomData.getCis();
         int totalCores = 0;
@@ -127,7 +129,7 @@ public class BomAsyncProcessor {
             String className = ciRfc.getCiClassName();
             if (ciRfc.getRfcAction().equals("add")) {
                 String cloudName = findDeployedTo(ciRfc.getCiId(), bomData);
-                CloudProviderMapping cloudProviderMapping = getCloudProviderMapping(cloudName);
+                CloudProviderMapping cloudProviderMapping = getCloudProviderMapping(cloudName, mappings);
                 if (cloudProviderMapping == null) {
                     logger.info("Soft quota check: no provider mapping found for cloud " + cloudName);
                     continue;
@@ -165,11 +167,10 @@ public class BomAsyncProcessor {
                         + cloudProviderMapping.getProvider() + " size: " + size);
     }
 
-    private CloudProviderMapping getCloudProviderMapping(String cloudName) {
+    private CloudProviderMapping getCloudProviderMapping(String cloudName, List<CloudProviderMapping> mappings) {
         if (cloudName == null) {
             return null;
         }
-        List<CloudProviderMapping> mappings = getCloudProviderMappings();
 
         if (mappings == null) {
             return null;
@@ -183,7 +184,7 @@ public class BomAsyncProcessor {
         return null;
     }
 
-    private List<CloudProviderMapping> getCloudProviderMappings() {
+    List<CloudProviderMapping> getCloudProviderMappings() {
         if (this.cloudProviderMappings != null) {
             return this.cloudProviderMappings;
         }
