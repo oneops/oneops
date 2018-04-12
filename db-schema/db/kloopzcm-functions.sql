@@ -944,7 +944,7 @@ ALTER FUNCTION dj_complete_deployment(bigint)
 -- DROP FUNCTION dj_deploy_release(bigint, character varying, character varying, character varying, character varying, character varying);
 
 
-CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, IN p_flags bigint, IN p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint)
+CREATE OR REPLACE FUNCTION dj_deploy_release(IN p_release_id bigint, IN p_deployment_id bigint, IN p_state character varying, IN p_created_by character varying, IN p_description character varying, IN p_comments character varying, IN p_ops character varying, IN p_flags bigint, IN p_auto_pause_exec_orders character varying, OUT out_deployment_id bigint)
   RETURNS bigint AS
 $BODY$
 DECLARE
@@ -963,8 +963,11 @@ BEGIN
 	RAISE EXCEPTION 'Given deployment state % is wrong.', p_state USING ERRCODE = '22000';
     end if;
 
+    if p_deployment_id=0 then
+      p_deployment_id = nextval('dj_pk_seq');
+    end if;
     insert into dj_deployment (deployment_id, ns_id, release_id, release_revision, state_id, created_by, description, comments, ops, auto_pause_exec_orders, flags )
-    values (nextval('dj_pk_seq'), l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders, COALESCE (p_flags,0))
+    values (p_deployment_id, l_ns_id, p_release_id, l_revision, l_dpmt_state_id, p_created_by, p_description, p_comments, p_ops, p_auto_pause_exec_orders, COALESCE (p_flags,0))
     returning deployment_id into l_deployment_id;	
 
     insert into dj_deployment_state_hist (hist_id, deployment_id, old_state_id, new_state_id, description, comments, ops, updated_by)
