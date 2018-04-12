@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
+import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.ns.service.CmsNsProcessor;
 
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +65,7 @@ public class CmsCmProcessor {
 	private static final int CHUNK_SIZE = 100;
 	
 	private CIMapper ciMapper;
+	private DJMapper djMapper;
 	private UtilMapper utilMapper;
 	private CmsCmValidator cmValidator;
 	private CmsNsProcessor cmsNsProcessor;
@@ -2108,6 +2110,10 @@ public class CmsCmProcessor {
 		return null;
 	}
 
+	public long getNextDjId() {
+		return djMapper.getNextDjId();
+	}
+
 	private class CiClassNames {
 		String className = null;
 		String shortClassName = null;
@@ -2181,5 +2187,13 @@ public class CmsCmProcessor {
 
 	public void deleteAltNs(long nsId, long ciId) {
 		ciMapper.deleteAltNs(nsId, ciId);
+	}
+
+	public DJMapper getDjMapper() {
+		return djMapper;
+	}
+
+	public void setDjMapper(DJMapper djMapper) {
+		this.djMapper = djMapper;
 	}
 }
