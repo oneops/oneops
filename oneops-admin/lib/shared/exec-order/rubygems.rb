@@ -154,6 +154,22 @@ def gen_gemfile_and_install (gem_sources, gems, component, provisioner, log_leve
   end
 end
 
+# until we can move to Ruby >= 2.1
+# this will serve as temporary workaround
+def install_custom_openstack(component)
+  start_time = Time.now.to_i
+
+  if ['objectstore','compute','volume', 'os'].include?(component)
+    [ "#{File.expand_path("../../fog-openstack/fog-openstack-0.1.24.gem",__FILE__)}",
+      'fog -v 1.38.0', 'fog-core -v 1.45.0',
+      'fog-cloudatcost -v 0.1.2', 'fog-dynect -v 0.0.3', 'fog-google -v 0.1.0',
+      'fog-rackspace -v 0.1.5', 'fog-vsphere -v 1.5.1', 'rbvmomi -v 1.11.6',
+      'trollop -v 2.1.2', 'fog-xenserver -v 0.3.0'].each do |command|
+        system("gem install #{command} --ignore-dependencies --no-ri --no-rdoc")
+    end
+  puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
+end
+
 def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisioner_version)
 
   if ['objectstore','compute','volume', 'os'].include?(component)

@@ -73,6 +73,8 @@ when "chef"
 
     #Run bunle to insert/update neccessary gems if needed
     install_using_prebuilt_gemfile(gem_sources, component, dsl, version)
+    #install custom openstack fog gem
+    install_custom_openstack(component)
   end
 
   chef_config = "#{prefix_root}/home/oneops/#{cookbook_path}/components/cookbooks/chef-#{ci}.rb"
