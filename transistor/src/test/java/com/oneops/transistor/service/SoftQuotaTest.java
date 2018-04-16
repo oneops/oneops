@@ -10,6 +10,7 @@ import com.oneops.transistor.service.peristenceless.BomData;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
@@ -19,47 +20,52 @@ import java.util.Map;
 
 public class SoftQuotaTest {
 
-    @Test
-    public void testReserveQuota() throws IOException {
-        BomAsyncProcessor bomAsyncProcessor = new BomAsyncProcessor();
+    CmsVar cmsVar = new CmsVar();
+    BomAsyncProcessor bomAsyncProcessor = new BomAsyncProcessor();
+    BomData bomData;
+    ArrayList<CmsRfcCI> cis = new ArrayList<>();
+    ArrayList<CmsRfcRelation > relations = new ArrayList<>();
+    TektonClient tektonClientMock = Mockito.mock(TektonClient.class);
+
+    @BeforeMethod
+    public void setupTest() {
+        cmsVar = new CmsVar();
+        bomAsyncProcessor = new BomAsyncProcessor();
+        cis = new ArrayList<>();
+        relations = new ArrayList<>();
+        tektonClientMock = Mockito.mock(TektonClient.class);
         CmsCmProcessor cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
-        CmsVar cmsVar = new CmsVar();
         String cloudProviderMappings = "[{\"provider\":\"Azure\",\"computeMapping\":[{\"size\":\"M\",\"ip\":1,\"nic\":1,\"cores\":2}]}]";
         cmsVar.setValue(cloudProviderMappings);
         Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(BomAsyncProcessor.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVar);
         Mockito.when(cmsCmProcessor.getNextDjId()).thenReturn(1000L);
 
         bomAsyncProcessor.setCmProcessor(cmsCmProcessor);
-        ArrayList<CmsRfcCI> cis = new ArrayList<>();
-        ArrayList<CmsRfcRelation > relations = new ArrayList<>();
+        bomData = new BomData(null, cis, relations);
+        bomAsyncProcessor.setTektonClient(tektonClientMock);
+    }
 
-        CmsRfcCI computeAddRfc_1 = new CmsRfcCI();
-        computeAddRfc_1.setRfcAction("add");
-        computeAddRfc_1.setCiClassName("bom.Compute");
-        computeAddRfc_1.setCiId(1);
-        CmsRfcAttribute attribute = new CmsRfcAttribute();
-        attribute.setAttributeName("size");
-        attribute.setNewValue("M");
-        computeAddRfc_1.addAttribute(attribute);
+    @Test
+    public void testReservation() throws IOException {
 
+        CmsRfcCI computeAddRfc_1 = createComputeRfc(1L);
+        CmsRfcCI computeUpdateRfc_1 = createComputeRfc(2L);
+        computeUpdateRfc_1.setRfcAction("update");
         cis.add(computeAddRfc_1);
+        cis.add(computeUpdateRfc_1);
 
-        CmsRfcRelation deployedToRelation = new CmsRfcRelation();
-        deployedToRelation.setRelationName("base.DeployedTo");
-        deployedToRelation.setFromCiId(1L);
-        deployedToRelation.setComments("{\"toCiName\":\"azure-east\"}");
+        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, "azure-east");
+        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, "azure-east");
 
-        relations.add(deployedToRelation);
-
-        BomData bomData = new BomData(null, cis, relations);
+        relations.add(deployedToRelationForAdd);
+        relations.add(deployedToRelationForUpdate);
 
         String orgName = "oneops";
         String userName = "user1";
-        TektonClient tektonClientMock = Mockito.mock(TektonClient.class);
-        bomAsyncProcessor.setTektonClient(tektonClientMock);
 
-        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName, bomAsyncProcessor.getCloudProviderMappings());
+        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
+                bomAsyncProcessor.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 
@@ -69,6 +75,90 @@ public class SoftQuotaTest {
         expectedQuotaRequest.put("Azure", resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
+                .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
+                        Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
+    }
+
+    private CmsRfcRelation createDeployedToRelation(long id, String cloudName) {
+        CmsRfcRelation deployedToRelation = new CmsRfcRelation();
+        deployedToRelation.setRelationName("base.DeployedTo");
+        deployedToRelation.setFromCiId(id);
+        deployedToRelation.setComments("{\"toCiName\":\"" + cloudName + "\"}");
+
+        return deployedToRelation;
+    }
+
+    private CmsRfcCI createComputeRfc(long id) {
+        CmsRfcCI computeAddRfc_1 = new CmsRfcCI();
+        computeAddRfc_1.setRfcAction("add");
+        computeAddRfc_1.setCiClassName("bom.Compute");
+        computeAddRfc_1.setCiId(id);
+        CmsRfcAttribute attribute = new CmsRfcAttribute();
+        attribute.setAttributeName("size");
+        attribute.setNewValue("M");
+        computeAddRfc_1.addAttribute(attribute);
+
+        return computeAddRfc_1;
+    }
+
+    @Test
+    public void testNoReservation() throws IOException {
+
+        CmsRfcCI computeUpdateRfc_1 = createComputeRfc(2L);
+        computeUpdateRfc_1.setRfcAction("update");
+
+        cis.add(computeUpdateRfc_1);
+
+        CmsRfcRelation deployedToRelation = createDeployedToRelation(2L, "azure-east");
+
+        relations.add(deployedToRelation);
+
+        String orgName = "oneops";
+        String userName = "user1";
+
+        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
+                bomAsyncProcessor.getCloudProviderMappings());
+
+        assert(deploymentId > 0);
+
+        Map<String, Map<String, Integer>> expectedQuotaRequest = new HashMap<>();
+        Map<String, Integer> resources = new HashMap<>();
+        resources.put("cores", 2);
+        expectedQuotaRequest.put("Azure", resources);
+
+        Mockito.verify(tektonClientMock, Mockito.times(0))
+                .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
+                        Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
+    }
+
+    @Test
+    public void testNoReservationForCloud() throws IOException {
+        CmsRfcCI computeAddRfc_1 = createComputeRfc(1L);
+        CmsRfcCI computeUpdateRfc_1 = createComputeRfc(2L);
+        computeUpdateRfc_1.setRfcAction("update");
+        cis.add(computeAddRfc_1);
+        cis.add(computeUpdateRfc_1);
+
+        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, "cdc1");
+        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, "cdc1");
+
+        relations.add(deployedToRelationForAdd);
+        relations.add(deployedToRelationForUpdate);
+
+        String orgName = "oneops";
+        String userName = "user1";
+
+        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
+                bomAsyncProcessor.getCloudProviderMappings());
+
+        assert(deploymentId > 0);
+
+        Map<String, Map<String, Integer>> expectedQuotaRequest = new HashMap<>();
+        Map<String, Integer> resources = new HashMap<>();
+        resources.put("cores", 2);
+        expectedQuotaRequest.put("Azure", resources);
+
+        Mockito.verify(tektonClientMock, Mockito.times(0))
                 .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
                         Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
     }
