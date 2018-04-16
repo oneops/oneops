@@ -5,6 +5,18 @@ suite = ENV['KITCHEN_SUITE']
 spec = ExecOrderTest::SpecUtils.new(suite)
 gems = spec.gems
 
+# set cwd to shared/cookbooks directory
+Dir.chdir 'data'
+`chmod +x #{spec.cache_exec_gems}`
+
+describe 'cache-exec-gems.rb' do
+  let(:cmd) { spec.cache_exec_gems }
+  let(:cache_cmd) { Serverspec::Type::Command.new(cmd) }
+  it 'executes successfully' do
+    expect(cache_cmd.exit_status).to eq(0)
+  end
+end
+
 describe 'exec-order.rb for os component' do
   let(:gem_source) { 'https://rubygems.org' }
   let(:cmd) { spec.cmd(gem_source, 'os') }

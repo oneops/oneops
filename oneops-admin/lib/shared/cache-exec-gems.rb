@@ -19,7 +19,7 @@ Dir.glob('*.gemfile').each do |f|
     puts "packaging gemfile #{f}"
 
     start_time = Time.now.to_i
-    cmd = "bundle package --no-install --no-prune --gemfile #{f}"
+    cmd = "bundle package --no-install --no-prune --all --gemfile #{f}"
     ec = system cmd
     if !ec || ec.nil?
       puts "#{cmd} failed with, #{$?}"

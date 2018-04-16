@@ -172,6 +172,13 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
       end
     end
 
+    cmd = "gem install ../fog-openstack/fog-openstack-0.1.24.gem --ignore-dependencies --no-ri --no-rdoc"
+      ec = system cmd
+      if !ec || ec.nil?
+        puts "#{cmd} failed with, #{$?}"
+        exit 1
+      end
+
     puts "#{cmd} took: #{Time.now.to_i - start_time} sec"
   else
     puts "gem install doesn't run for component:#{component}"
