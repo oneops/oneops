@@ -863,7 +863,7 @@ class ApplicationController < ActionController::Base
     govern_ci  = approval.govern_ci
     cloud      = govern_ci.nsPath.split('/')[3]
     class_name = govern_ci.ciClassName
-    return class_name == 'cloud.Support' ? has_cloud_support?(cloud) : has_cloud_compliance?(cloud)
+    return is_admin? || (class_name == 'cloud.Support' ? has_cloud_support?(cloud) : has_cloud_compliance?(cloud))
   end
 
   def authorize_admin
