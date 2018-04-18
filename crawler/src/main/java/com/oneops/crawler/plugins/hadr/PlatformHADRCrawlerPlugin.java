@@ -107,7 +107,11 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     Collection<Platform> platforms = env.getPlatforms().values();
 
     for (Platform platform : platforms) {
-
+      
+      //ignore processing of platforms which are not enabled.
+      if (platform.getEnable() == null || !platform.getEnable().equalsIgnoreCase("enable")) {
+        continue;
+      }
       PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
 
       platformHADRRecord.setEnv(env.getName());

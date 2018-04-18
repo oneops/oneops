@@ -36,7 +36,7 @@ public class PlatformHADRCrawlerPluginTest {
     
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   public void test_ReadConfig() {
     plugin = new PlatformHADRCrawlerPlugin();
 
@@ -46,7 +46,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_IsDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -60,7 +60,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_IsNonDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -72,7 +72,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_IsHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -85,7 +85,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_IsNonHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -96,7 +96,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_parseAssemblyNameFromNsPath() {
     plugin = new PlatformHADRCrawlerPlugin();
     String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
@@ -104,7 +104,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_getOOURL() {
     System.setProperty("hadr.oo.baseurl", "https://oneops.prod.org.com");
     plugin = new PlatformHADRCrawlerPlugin();
@@ -115,7 +115,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void test_getOOURL_DefaultToBlank() {
     System.clearProperty("hadr.oo.baseurl");
     plugin = new PlatformHADRCrawlerPlugin();
@@ -125,7 +125,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = true)
+  @Test(enabled = false)
   private void testIsNonProdEnvUsingProdutionClouds() {
     plugin = new PlatformHADRCrawlerPlugin();
     
@@ -156,7 +156,7 @@ public class PlatformHADRCrawlerPluginTest {
     
   }
   
-  @Test(enabled = true)
+  @Test(enabled = false)
   public void testSetCloudCategories(){
     plugin = new PlatformHADRCrawlerPlugin();
     PlatformHADRRecord inputPlatformHADRRecord=new PlatformHADRRecord();
@@ -205,7 +205,7 @@ public class PlatformHADRCrawlerPluginTest {
     
   }
   
-@Test(enabled = true)
+@Test(enabled = false)
   public void testDataTransformation() {
   
   plugin = new PlatformHADRCrawlerPlugin();
@@ -346,6 +346,96 @@ public class PlatformHADRCrawlerPluginTest {
   }
   
 }
+
+  @Test(enabled = true)
+  public void testProcessPlatformsInEnvForPlatformEnableField() {
+    try {
+    plugin = new PlatformHADRCrawlerPlugin();
+    SearchDal searchDal = mock(SearchDal.class);
+    plugin.setSearchDal(searchDal);
+
+    String platformCId = "1111";
+    Platform platform = new Platform();
+    platform.setId(Long.valueOf(platformCId));
+    platform.setEnable("disable");
+    
+    Environment env= new Environment(); 
+    env.setProfile("prod");
+    env.addPlatform(platform);
+    
+    
+    PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
+
+    
+    Map<String, Organization> organizationsMapCache = new HashMap<String, Organization>();
+    Organization organization = new Organization();
+    organization.setFull_name("testOrgName");
+    platformHADRRecord.setOrg("testOrgName");
+    
+    organization.setOwner("Test-owner");
+    organization.setDescription("Test-description");
+
+    Map<String, String> tags =new HashMap<String, String>();
+    tags.put("CCCID", "Test-cCCID2");
+    tags.put("pillar", "test-pillar2");
+    tags.put("VP", "test-vP2");
+    tags.put("dept", "Test-dept");
+    tags.put("costcenter", "test-costcenter2");
+    tags.put("CTOdirect", "test-cTOdirect2");
+    tags.put("CTO", "Test-cTO2");
+    
+    organization.setTags(tags);
+    organizationsMapCache.put("testOrgName", organization);
+    
+    
+    plugin.processPlatformsInEnv(env, organizationsMapCache);
+    Mockito.verify(searchDal, Mockito.times(0)).put(eq(plugin.getHadrElasticSearchIndexName()), eq("platform"), any(), eq(platformCId));
+   
+    String platformCId2 = "2222";
+    Platform platform2 = new Platform();
+    platform2.setId(Long.valueOf(platformCId2));
+    platform2.setEnable("enable");
+    
+    Environment env2= new Environment(); 
+    env2.setProfile("prod");
+    env2.addPlatform(platform2);
+    
+    plugin.processPlatformsInEnv(env2, organizationsMapCache);
+    Mockito.verify(searchDal, Mockito.times(1)).put(eq(plugin.getHadrElasticSearchIndexName()), eq("platform"), any(), eq(platformCId2));
+    
+   
+    String platformCId3 = "3333";
+    Platform platform3 = new Platform();
+    platform3.setId(Long.valueOf(platformCId3));
+    platform3.setEnable("");
+    
+    Environment env3= new Environment(); 
+    env3.setProfile("prod");
+    env3.addPlatform(platform3);
+    
+    plugin.processPlatformsInEnv(env3, organizationsMapCache);
+    Mockito.verify(searchDal, Mockito.times(0)).put(eq(plugin.getHadrElasticSearchIndexName()), eq("platform"), any(), eq(platformCId3));
+    
+    
+    String platformCId4 = "4444";
+    Platform platform4 = new Platform();
+    platform4.setId(Long.valueOf(platformCId4));
+    platform4.setEnable(null);
+    
+    Environment env4= new Environment(); 
+    env4.setProfile("prod");
+    env4.addPlatform(platform4);
+    
+    plugin.processPlatformsInEnv(env4, organizationsMapCache);
+    Mockito.verify(searchDal, Mockito.times(0)).put(eq(plugin.getHadrElasticSearchIndexName()), eq("platform"), any(), eq(platformCId4));
+    
+
+    } catch (Exception e) {
+      log.error("Error while processing test case: ", e);
+      fail();
+    }
+  }
+
 
   private static final class PlatformHADRRecordSubmitted
       extends ArgumentMatcher<PlatformHADRRecord> {

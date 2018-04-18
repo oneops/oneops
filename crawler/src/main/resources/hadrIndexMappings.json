@@ -5,7 +5,7 @@
 				"environmentId": {
 					"type": "integer"
 				},
-				"environmentProfile": {
+				"envProfile": {
 					"type": "string",
 					"index": "not_analyzed"
 				},
@@ -45,16 +45,8 @@
 					"type": "string",
 					"index": "not_analyzed"
 				},
-				"isDR": {
-					"type": "String",
-					"index": "not_analyzed"
-				},
 				"source": {
 					"type": "string",
-					"index": "not_analyzed"
-				},
-				"isHA": {
-					"type": "String",
 					"index": "not_analyzed"
 				},
 				"sourcePack": {
