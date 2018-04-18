@@ -127,8 +127,8 @@ public class SoftQuotaTest {
         expectedQuotaRequest.put("Azure", resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
-                .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
-                        Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
+                .reserveQuota(Mockito.anyObject(),
+                        Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
     }
 
     @Test
@@ -159,8 +159,8 @@ public class SoftQuotaTest {
         expectedQuotaRequest.put("Azure", resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
-                .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
-                        Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
+                .reserveQuota(Mockito.anyObject(),
+                        Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
     }
 
     private static final class QuotaRequestMatcher extends ArgumentMatcher<Map<String, Map<String, Integer>>> {
