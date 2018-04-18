@@ -451,9 +451,15 @@ else
 
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
+  
+  initService = "/etc/init.d/nagios"
+  service_flag = 'false'
+  if File.exist?(initService)
+    service_flag = 'true'
+  end
 
     service nagios_service do
-      provider Chef::Provider::Service::Redhat if node[:platform_family].include?("rhel")
+      provider Chef::Provider::Service::Redhat if service_flag == "true" && node[:platform_family].include?("rhel")
       supports [ :restart, :enable ]
       action [ :restart, :enable ]
     end
