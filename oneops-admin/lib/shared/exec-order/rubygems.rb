@@ -174,6 +174,7 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
     end
 
     require 'bundler'
+    ENV['BUNDLE_GEMFILE'] = gemfile unless ENV['BUNDLE_GEMFILE']
     lockfile = Bundler::LockfileParser.new(Bundler.read_file("#{gemfile}.lock"))
     lockfile.specs.each do |s|
       if s.source.is_a?(Bundler::Source::Path) &&
