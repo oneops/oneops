@@ -171,21 +171,21 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
         puts "#{cmd} failed with, #{$?}"
         exit 1
       end
+    end
 
-      require 'bundler'
-      lockfile = Bundler::LockfileParser.new(Bundler.read_file("#{gemfile}.lock"))
-      lockfile.specs.each do |s|
-        if s.source.is_a?(Bundler::Source::Path) &&
-        s.full_name == 'fog-openstack-0.1.24'
-          puts "Installing gem #{s.full_name} from source."
-          gem_dir = File.expand_path(s.source.path, File.dirname(f))
-          gem_path = File.join(gem_dir, "#{s.full_name}.gem")
-          cmd = "gem install '#{gem_path}' --ignore-dependencies --no-ri --no-rdoc"
-          ec = system cmd
-          if !ec || ec.nil?
-            puts "#{cmd} failed with, #{$?}"
-            exit 1
-          end
+    require 'bundler'
+    lockfile = Bundler::LockfileParser.new(Bundler.read_file("#{gemfile}.lock"))
+    lockfile.specs.each do |s|
+      if s.source.is_a?(Bundler::Source::Path) &&
+      s.full_name == 'fog-openstack-0.1.24'
+        puts "Installing gem #{s.full_name} from source."
+        gem_dir = File.expand_path(s.source.path, File.dirname(gemfile))
+        gem_path = File.join(gem_dir, "#{s.full_name}.gem")
+        cmd = "gem install '#{gem_path}' --ignore-dependencies --no-ri --no-rdoc"
+        ec = system cmd
+        if !ec || ec.nil?
+          puts "#{cmd} failed with, #{$?}"
+          exit 1
         end
       end
     end
