@@ -5,7 +5,12 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.fail;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +41,7 @@ public class PlatformHADRCrawlerPluginTest {
     
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void test_ReadConfig() {
     plugin = new PlatformHADRCrawlerPlugin();
 
@@ -46,7 +51,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_IsDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -60,7 +65,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_IsNonDR() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -72,7 +77,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_IsHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -85,7 +90,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_IsNonHA() {
     plugin = new PlatformHADRCrawlerPlugin();
     Platform platform = new Platform();
@@ -96,7 +101,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_parseAssemblyNameFromNsPath() {
     plugin = new PlatformHADRCrawlerPlugin();
     String nsPath = "/orgname/assemblyname/platformname/bom/env-dev/1";
@@ -104,7 +109,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_getOOURL() {
     System.setProperty("hadr.oo.baseurl", "https://oneops.prod.org.com");
     plugin = new PlatformHADRCrawlerPlugin();
@@ -115,7 +120,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void test_getOOURL_DefaultToBlank() {
     System.clearProperty("hadr.oo.baseurl");
     plugin = new PlatformHADRCrawlerPlugin();
@@ -125,7 +130,7 @@ public class PlatformHADRCrawlerPluginTest {
 
   }
 
-  @Test(enabled = false)
+  @Test(enabled = true)
   private void testIsNonProdEnvUsingProdutionClouds() {
     plugin = new PlatformHADRCrawlerPlugin();
     
@@ -156,7 +161,7 @@ public class PlatformHADRCrawlerPluginTest {
     
   }
   
-  @Test(enabled = false)
+  @Test(enabled = true)
   public void testSetCloudCategories(){
     plugin = new PlatformHADRCrawlerPlugin();
     PlatformHADRRecord inputPlatformHADRRecord=new PlatformHADRRecord();
@@ -205,7 +210,7 @@ public class PlatformHADRCrawlerPluginTest {
     
   }
   
-@Test(enabled = false)
+@Test(enabled = true)
   public void testDataTransformation() {
   
   plugin = new PlatformHADRCrawlerPlugin();
@@ -232,7 +237,7 @@ public class PlatformHADRCrawlerPluginTest {
   platform.setSource("oneops");
   expectedESRecord.setSource("oneops");
   expectedESRecord.setSourcePack("oneops-tomcat");
-  platform.setEnable("enabled");
+  platform.setEnable("enable");
   
   platform.setAutoRepairEnabled(true);
   platform.setAutoReplaceEnabled(true);
@@ -436,7 +441,32 @@ public class PlatformHADRCrawlerPluginTest {
     }
   }
 
-
+  @Test(enabled = true)
+  public void testPluginStaticValues() {
+    plugin = new PlatformHADRCrawlerPlugin();
+    
+   String hadrElasticSearchIndexName = "hadr"; 
+   String hadrElasticSearchIndexMappings = "hadrIndexMappings.json"; 
+   String isHALabel="isHA";
+   String isDRLabel="isDR";
+   String isAutoRepairEnabledLabel="isAutoRepairEnabled";
+   String isAutoReplaceEnabledLabel="isAutoReplaceEnabled";
+   String isProdCloudInNonProdEnvLabel="isProdCloudInNonProdEnv";
+   String prodProfileWithNonProdCloudsLabel="isProdProfileWithNonProdClouds";
+   String dateTimeFormatPattern="yyyy-MM-dd:HH:mm:ss z";
+   
+   assertEquals(hadrElasticSearchIndexName, plugin.getHadrElasticSearchIndexName());
+   assertEquals(hadrElasticSearchIndexMappings, plugin.getHadrElasticSearchIndexMappings());
+   assertEquals(isHALabel, plugin.getIsHALabel());
+   assertEquals(isDRLabel, plugin.getIsDRLabel());
+   assertEquals(isAutoRepairEnabledLabel, plugin.getIsAutoRepairEnabledLabel());
+   assertEquals(isAutoReplaceEnabledLabel, plugin.getIsAutoReplaceEnabledLabel());
+   assertEquals(isProdCloudInNonProdEnvLabel, plugin.getIsProdCloudInNonProdEnvLabel());
+   assertEquals(prodProfileWithNonProdCloudsLabel, plugin.getIsProdProfileWithNonProdCloudsLabel());
+   assertEquals(dateTimeFormatPattern, plugin.getDateTimeFormatPattern());
+   
+  }
+  
   private static final class PlatformHADRRecordSubmitted
       extends ArgumentMatcher<PlatformHADRRecord> {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -491,26 +521,26 @@ public class PlatformHADRCrawlerPluginTest {
               .get(this.plugin.getIsProdCloudInNonProdEnvLabel()),
           actualESRecord.getTechDebt().get(this.plugin.getIsProdCloudInNonProdEnvLabel()));
 
-      boolean prodProfileWithStageCloudsMatches = matchesBooleanObject(
+      boolean isProdProfileWithNonProdClouds = matchesBooleanObject(
           this.expectedPlatformHADRRecord.getTechDebt()
-              .get(this.plugin.getProdProfileWithStageCloudsLabel()),
-          actualESRecord.getTechDebt().get(this.plugin.getProdProfileWithStageCloudsLabel()));
+              .get(this.plugin.getIsProdProfileWithNonProdCloudsLabel()),
+          actualESRecord.getTechDebt().get(this.plugin.getIsProdProfileWithNonProdCloudsLabel()));
 
 
       log.info(
           "PlatformHADRRecordSubmitted Matchers: <platformNameMatches> {} , <isHAFieldMatches> {}, <isDRFieldMatches> {}, <activeCloudsMatches> {}, "
               + "<offlineCloudsMatches> {}, <primaryCloudsMatches> {}, <secondaryCloudsMatches> {} , <sourceMatches> {}, <sourcePackMatches> {}, "
               + "<isAutoRepairEnabledMatches> {}, <isAutoReplaceEnabledMatches> {}, <orgMatches> {}, <organizationMatches> {} , "
-              + "<isProdCloudInNonProdEnvMatches> {}, <prodProfileWithStageCloudsMatches> {}",
+              + "<isProdCloudInNonProdEnvMatches> {}, <isProdProfileWithNonProdClouds> {}",
           platformNameMatches, isHAFieldMatches, isDRFieldMatches, activeCloudsMatches,
           offlineCloudsMatches, primaryCloudsMatches, secondaryCloudsMatches, sourceMatches,
           sourcePackMatches, isAutoRepairEnabledMatches, isAutoReplaceEnabledMatches, orgMatches,
-          organizationMatches, isProdCloudInNonProdEnvMatches, prodProfileWithStageCloudsMatches);
+          organizationMatches, isProdCloudInNonProdEnvMatches, isProdProfileWithNonProdClouds);
       return (platformNameMatches && isHAFieldMatches && isDRFieldMatches && activeCloudsMatches
           && offlineCloudsMatches && primaryCloudsMatches && secondaryCloudsMatches && sourceMatches
           && sourcePackMatches && isAutoRepairEnabledMatches && isAutoReplaceEnabledMatches
           && orgMatches && organizationMatches && isProdCloudInNonProdEnvMatches
-          && prodProfileWithStageCloudsMatches);
+          && isProdProfileWithNonProdClouds);
     }
 
     public boolean matchesBooleanObject(Object expectedObject, Object actualObject) {
