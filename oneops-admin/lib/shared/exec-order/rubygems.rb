@@ -188,6 +188,13 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
           puts "#{cmd} failed with, #{$?}"
           exit 1
         end
+
+        cmd = "chown -R oneops:oneops ./vendor"
+        ec = system cmd
+        if !ec || ec.nil?
+          puts "#{cmd} failed with, #{$?}"
+          exit 1
+        end
       end
     end
 
