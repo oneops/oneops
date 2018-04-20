@@ -20,7 +20,7 @@ package com.oneops.transistor.service;
 import java.io.IOException;
 import java.util.*;
 
-import org.apache.commons.lang.StringUtils;
+import com.oneops.tekton.TektonUtils;
 import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
@@ -29,21 +29,18 @@ import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.tekton.TektonClient;
-import com.oneops.transistor.domain.CloudProviderMapping;
+import com.oneops.tekton.CloudProviderMapping;
 import com.oneops.transistor.service.peristenceless.BomData;
 import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.TransistorException;
-import com.oneops.transistor.domain.CloudProviderMapping.ComputeMapping;
 
 public class BomAsyncProcessor {
 
     private static final String THREAD_PREFIX_BOM = "async-env-";
     private static final String THREAD_PREFIX_FLEX = "async-flex-";
-    static final String PROVIDER_MAPPINGS_CMS_VAR_NAME = "CLOUD_PROVIDER_MAPPINGS";
     static Logger logger = Logger.getLogger(BomAsyncProcessor.class);
 
     private CmsCmProcessor cmProcessor;
@@ -52,8 +49,8 @@ public class BomAsyncProcessor {
     private EnvSemaphore envSemaphore;
     private InMemoryBomProcessor imBomProcessor;
     private TektonClient tektonClient;
+    private TektonUtils tektonUtils;
     private Gson gson = new Gson();
-    private List<CloudProviderMapping> cloudProviderMappings;
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
         this.cmProcessor = cmProcessor;
@@ -86,7 +83,7 @@ public class BomAsyncProcessor {
                 if (deploy) {
                     BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
                     String orgName = dpmt.getNsPath().split("/")[1];
-                    List<CloudProviderMapping> cloudProviderMappings = getCloudProviderMappings();
+                    List<CloudProviderMapping> cloudProviderMappings = tektonUtils.getCloudProviderMappings();
                     if (cloudProviderMappings != null && cloudProviderMappings.size() > 0) {
                         long deploymentId = reserveQuota(bomData, orgName, userId, cloudProviderMappings);
                         dpmt.setDeploymentId(deploymentId);
@@ -129,18 +126,18 @@ public class BomAsyncProcessor {
             String className = ciRfc.getCiClassName();
             if (ciRfc.getRfcAction().equals("add")) {
                 String cloudName = findDeployedTo(ciRfc.getCiId(), bomData);
-                CloudProviderMapping cloudProviderMapping = getCloudProviderMapping(cloudName, mappings);
+                CloudProviderMapping cloudProviderMapping = tektonUtils.getCloudProviderMapping(cloudName, mappings);
                 if (cloudProviderMapping == null) {
                     logger.info("Soft quota check: no provider mapping found for cloud " + cloudName);
                     continue;
                 }
                 if (className.endsWith(".Compute")) {
                     String size = ciRfc.getAttribute("size").getNewValue();
-                    int cores = getTotalCores(size, cloudProviderMapping);
+                    int cores = tektonUtils.getTotalCores(size, cloudProviderMapping);
                     totalCores = totalCores + cores;
                     Map<String, Integer> resourcesNeeded = quotaNeeded.get(cloudProviderMapping.getProvider());
                     if (resourcesNeeded == null) {
-                        resourcesNeeded = new HashMap<String, Integer>();
+                        resourcesNeeded = new HashMap();
                         quotaNeeded.put(cloudProviderMapping.getProvider(), resourcesNeeded);
                     }
                     resourcesNeeded.put("cores", totalCores);
@@ -153,52 +150,6 @@ public class BomAsyncProcessor {
             tektonClient.reserveQuota(quotaNeeded, String.valueOf(deploymentId), orgName, userId);
         }
         return deploymentId;
-    }
-
-    private int getTotalCores(String size, CloudProviderMapping cloudProviderMapping) {
-        List<ComputeMapping> computeMappings = cloudProviderMapping.getComputeMapping();
-        for (ComputeMapping computeMapping : computeMappings) {
-            if (computeMapping.getSize().equalsIgnoreCase(size)) {
-                return computeMapping.getCores();
-            }
-        }
-        throw new TransistorException(CmsError.TRANSISTOR_BOM_QUOTA_ERROR,
-                "Error while reserving quota. No mapping found for cores. Provider: "
-                        + cloudProviderMapping.getProvider() + " size: " + size);
-    }
-
-    private CloudProviderMapping getCloudProviderMapping(String cloudName, List<CloudProviderMapping> mappings) {
-        if (cloudName == null) {
-            return null;
-        }
-
-        if (mappings == null) {
-            return null;
-        }
-
-        for (CloudProviderMapping mapping : mappings) {
-            if (cloudName.toLowerCase().contains(mapping.getProvider().toLowerCase())) {
-                return mapping;
-            }
-        }
-        return null;
-    }
-
-    List<CloudProviderMapping> getCloudProviderMappings() {
-        if (this.cloudProviderMappings != null) {
-            return this.cloudProviderMappings;
-        }
-
-        CmsVar cmsVar = cmProcessor.getCmSimpleVar(PROVIDER_MAPPINGS_CMS_VAR_NAME);
-        if (cmsVar == null || StringUtils.isEmpty(cmsVar.getValue())) {
-            return null;
-        }
-        String mappingJson = cmsVar.getValue();
-        logger.info("Got cloud provider mappings: " + mappingJson);
-        CloudProviderMapping[] mappingArray = gson.fromJson(mappingJson, CloudProviderMapping[].class);
-        List<CloudProviderMapping> mappingList = Arrays.asList(mappingArray);
-        this.cloudProviderMappings = mappingList;
-        return mappingList;
     }
 
     private String findDeployedTo(long ciId, BomData bomData) {
@@ -246,5 +197,9 @@ public class BomAsyncProcessor {
 
     public void setTektonClient(TektonClient tektonClient) {
         this.tektonClient = tektonClient;
+    }
+
+    public void setTektonUtils(TektonUtils tektonUtils) {
+        this.tektonUtils = tektonUtils;
     }
 }

@@ -6,6 +6,7 @@ import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.tekton.TektonClient;
+import com.oneops.tekton.TektonUtils;
 import com.oneops.transistor.service.peristenceless.BomData;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
@@ -22,6 +23,7 @@ public class SoftQuotaTest {
 
     CmsVar cmsVar = new CmsVar();
     BomAsyncProcessor bomAsyncProcessor = new BomAsyncProcessor();
+    TektonUtils tektonUtils = new TektonUtils();
     BomData bomData;
     ArrayList<CmsRfcCI> cis = new ArrayList<>();
     ArrayList<CmsRfcRelation > relations = new ArrayList<>();
@@ -38,10 +40,12 @@ public class SoftQuotaTest {
 
         String cloudProviderMappings = "[{\"provider\":\"Azure\",\"computeMapping\":[{\"size\":\"M\",\"ip\":1,\"nic\":1,\"cores\":2}]}]";
         cmsVar.setValue(cloudProviderMappings);
-        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(BomAsyncProcessor.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVar);
+        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVar);
         Mockito.when(cmsCmProcessor.getNextDjId()).thenReturn(1000L);
 
         bomAsyncProcessor.setCmProcessor(cmsCmProcessor);
+        tektonUtils.setCmProcessor(cmsCmProcessor);
+        bomAsyncProcessor.setTektonUtils(tektonUtils);
         bomData = new BomData(null, cis, relations);
         bomAsyncProcessor.setTektonClient(tektonClientMock);
     }
@@ -65,7 +69,7 @@ public class SoftQuotaTest {
         String userName = "user1";
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                bomAsyncProcessor.getCloudProviderMappings());
+                tektonUtils.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 
@@ -117,7 +121,7 @@ public class SoftQuotaTest {
         String userName = "user1";
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                bomAsyncProcessor.getCloudProviderMappings());
+                tektonUtils.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 
@@ -149,7 +153,7 @@ public class SoftQuotaTest {
         String userName = "user1";
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                bomAsyncProcessor.getCloudProviderMappings());
+                tektonUtils.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 

@@ -30,7 +30,7 @@ public class TektonClient {
             = MediaType.parse("application/json; charset=utf-8");
 
     private Gson gson = new Gson();
-    static Logger logger = Logger.getLogger(TektonClient.class);
+    private static Logger logger = Logger.getLogger(TektonClient.class);
     private String tektonBaseUrl = System.getProperty("tekton.base.url", "http://localhost:9000");
 
     public void reserveQuota(Map<String, Map<String, Integer>> quotaNeeded, String reservationId, String entity,
@@ -44,7 +44,7 @@ public class TektonClient {
                 RequestBody body = RequestBody.create(JSON, gson.toJson(reservation));
 
                 String url = tektonBaseUrl + "/api/quota/reservation?provider=" + provider + "&entity=" + entity
-                        + "&reservationId=" + reservationId + "&createdBy=" + createdBy;
+                        + "&reservationId=" + reservationId + provider + "&createdBy=" + createdBy;
                 Request request = new Request.Builder()
                         .url(url)
                         .addHeader("Content-Type", "application/json")
@@ -65,4 +65,69 @@ public class TektonClient {
         }
     }
 
+    public void commitReservation(Map<String, Integer> resourceNumbers, String reservationId) throws IOException {
+        String url = tektonBaseUrl + "/api/quota/reservation/" + reservationId + "/commit";
+        RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error while committing reservation. Response from Tekton: " + responseBody
+                    + " ResponseCode : " + responseCode + " for reservationId: " + reservationId);
+        }
+    }
+
+    public void rollbackReservation(Map<String, Integer> resourceNumbers, String reservationId) throws IOException {
+        String url = tektonBaseUrl + "/api/quota/reservation/" + reservationId + "/rollback";
+        RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error in rollback for reservation. Response from Tekton: " + responseBody
+                    + " ResponseCode : " + responseCode + " for reservationId: " + reservationId);
+        }
+    }
+
+    public void releaseResources(String entity, String provider, Map<String, Integer> resourceNumbers) throws IOException {
+        String url = tektonBaseUrl + "/api/quota/release?" + "provider=" + provider + "&entity=" + entity;
+        RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error while releasing resources for soft quota. Response from Tekton: " + responseBody
+                    + " ResponseCode : " + responseCode + " for entity: " + entity);
+        }
+    }
 }
