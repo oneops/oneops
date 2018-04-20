@@ -11,7 +11,7 @@
 				},
 				"createdTS": {
 					"type": "date",
-					"format": "yyyy-MM-dd:HH:mm:ss",
+					"format": "yyyy-MM-dd:HH:mm:ss z",
 					"index": "not_analyzed"					
 			    },
 				"nsPath": {
