@@ -56,7 +56,13 @@ public class TektonClient {
                 Response response = client.newCall(request).execute();
                 String responseBody = response.body().string();
                 int responseCode = response.code();
-                logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+                logger.info("Reserve quota for reservationId: " + reservationId + " with resources: " + reservation
+                        + " Tekton api response body: " + responseBody + ", code: " + responseCode);
+                if (responseCode == 404) {
+                    logger.info("Reserve quota for reservationId: " + reservationId + " for entity: " + entity
+                            + ". The entity is not configured in Tekton for quota management. Skipping reservation");
+                    return;
+                }
                 if (responseCode >= 300) {
                     throw new RuntimeException("Error while reserving quota. Response from Tekton: " + responseBody
                                     + " ResponseCode : " + responseCode);
@@ -80,7 +86,8 @@ public class TektonClient {
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
-        logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+        logger.info("Commit quota for reservationId: " + reservationId + " with resources: " + resourceNumbers
+                + " Tekton api response body: " + responseBody + ", code: " + responseCode);
         if (responseCode >= 300) {
             throw new RuntimeException("Error while committing reservation. Response from Tekton: " + responseBody
                     + " ResponseCode : " + responseCode + " for reservationId: " + reservationId);
@@ -102,7 +109,10 @@ public class TektonClient {
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
-        logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+
+        logger.info("Rollback quota for reservationId: " + reservationId + " with resources: " + resourceNumbers
+                + " Tekton api response body: " + responseBody + ", code: " + responseCode);
+
         if (responseCode >= 300) {
             throw new RuntimeException("Error in rollback for reservation. Response from Tekton: " + responseBody
                     + " ResponseCode : " + responseCode + " for reservationId: " + reservationId);
@@ -124,7 +134,8 @@ public class TektonClient {
         Response response = client.newCall(request).execute();
         String responseBody = response.body().string();
         int responseCode = response.code();
-        logger.info("Tekton api response body: " + responseBody + ", code: " + responseCode);
+        logger.info("Release resources for entity : " + entity + " for resources: " + resourceNumbers
+                + " Tekton api response body: " + responseBody + ", code: " + responseCode);
         if (responseCode >= 300) {
             throw new RuntimeException("Error while releasing resources for soft quota. Response from Tekton: " + responseBody
                     + " ResponseCode : " + responseCode + " for entity: " + entity);
