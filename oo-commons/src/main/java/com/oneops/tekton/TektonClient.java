@@ -141,4 +141,31 @@ public class TektonClient {
                     + " ResponseCode : " + responseCode + " for entity: " + entity);
         }
     }
+
+    public void deleteReservation(String reservationId) throws IOException {
+        String url = tektonBaseUrl + "/api/quota/reservation/" + reservationId;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .delete()
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        logger.info("Delete reservation: Tekton api response body: " + responseBody + ", code: " + responseCode
+        + " for reservation id: " + reservationId);
+
+        if (responseCode == 404) {
+            return;
+        }
+
+        if (responseCode >= 300) {
+            throw new RuntimeException("Error while deleting reservation for soft quota. Response from Tekton: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+    }
 }

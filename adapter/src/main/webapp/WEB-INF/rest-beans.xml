@@ -90,6 +90,8 @@
   <bean id="dpmtRestController" class="com.oneops.cms.ws.rest.DpmtRestController">
     <property name="djManager" ref="cmsDjManager"/>
     <property name="scopeVerifier" ref="scopeVerifier"/>
+    <property name="cmProcessor" ref="cmsCmProcessor"/>
+    <property name="tektonClient" ref="tektonClient"/>
   </bean>
 
   <bean id="nsRestController" class="com.oneops.cms.ws.rest.NsRestController">
