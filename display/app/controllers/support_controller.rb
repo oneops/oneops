@@ -124,7 +124,8 @@ class SupportController < ReportsController
         delimiter = params[:delimiter].presence || ','
         csv = keys.join(delimiter) << "\n"
         @organizations.each do |o|
-          %w(name full_name owner).each {|f| o[f] = %("#{o[f]}")}
+          %w(id name full_name created_at owner).each {|f| o[f] = %()}
+          o['full_name'] = %("#{o['full_name']}")
           csv << keys.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
         end
         render :text => csv
@@ -208,20 +209,17 @@ class SupportController < ReportsController
 
   def users
     username = params[:login]
-    users = []
     if username.present?
       login = "%#{username}%"
-      users = User.where('username LIKE ? OR name LIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
+      render :json => User.where('username ILIKE ? OR name ILIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
     else
       last_sign_in = params[:active_since]
       users = User.select('username, email, current_sign_in_at').where('current_sign_in_at >= ?', last_sign_in).all if last_sign_in.present?
+      respond_to do |format|
+        format.csv {render :text => users.map {|u| "#{u.username},#{u.email},#{u.current_sign_in_at}"}.join("\n")}
+        format.any {render :json => users}
+      end
     end
-
-    respond_to do |format|
-      format.csv {render :text => users.map {|u| "#{u.username},#{u.email},#{u.current_sign_in_at}"}.join("\n")}
-      format.any {render :json => users}
-    end
-
   end
 
   def user
@@ -230,7 +228,7 @@ class SupportController < ReportsController
       @user = User.where((user_id =~ /\D/ ? :username : :id) => user_id).first
       if @user
         @groups = @user.groups.select('groups.*, group_members.admin').order(:name).all
-        team_ids = @user.teams.pluck('teams.organization_id') + @user.teams_via_groups.pluck('teams.organization_id').uniq
+        team_ids = (@user.teams.pluck(:id) + @user.teams_via_groups.pluck(:id)).uniq
         @teams = Team.where('teams.id IN (?)', team_ids).
           includes(:organization).
           order('organizations.name, teams.name').all.
