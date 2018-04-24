@@ -39,15 +39,15 @@ def update_ruby(component)
   #
 
   if (Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new("2.0.0")) && (['objectstore','compute','volume', 'os'].include?(component))
-    install_ruby_cmd = "curl #{ENV['RUBY2_BINARY_proxy']} | tar Pxz  && /home/oneops/ruby/ruby-2.0.0-p648/bin/gem install bundler --no-ri --no-rdoc  && chown -R oneops:oneops /home/oneops/ruby"
-    ruby_binary_path = "/home/oneops/ruby/ruby-2.0.0-p648/bin/ruby"
+    install_ruby_cmd = "curl #{ENV['RUBY2_BINARY_proxy']} | tar Pxz  && /home/oneops/ruby/2.0.0-p648/bin/gem install bundler --no-ri --no-rdoc  && chown -R oneops:oneops /home/oneops/ruby"
+    ruby_binary_path = "/home/oneops/ruby/2.0.0-p648/bin/ruby"
     ruby_bin = File.file?(ruby_binary_path) ? ruby_binary_path : "/usr/bin/ruby"
 
     updated = ruby_bin.eql?(ruby_binary_path) ? true : false
 
-    if updated && File.exists?('/home/oneops/ruby/ruby-2.0.0-p648/lib/ruby/gems/2.0.0')
-      ENV['GEM_PATH'] = '/home/oneops/ruby/ruby-2.0.0-p648/lib/ruby/gems/2.0.0'
-      ENV['PATH'] = "/home/oneops/ruby/ruby-2.0.0-p648/bin:#{ENV['PATH']}"
+    if updated && File.exists?('/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0')
+      ENV['GEM_PATH'] = '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
+      ENV['PATH'] = "/home/oneops/ruby/2.0.0-p648/bin:#{ENV['PATH']}"
     end
 
     impl = "oo::chef-11.18.12"
@@ -80,9 +80,9 @@ def update_ruby(component)
                 updated = true
                 ruby_bin = ruby_binary_path
 
-                if File.exists?('/home/oneops/ruby/ruby-2.0.0-p648/lib/ruby/gems/2.0.0')
-                  ENV['GEM_PATH'] = '/home/oneops/ruby/ruby-2.0.0-p648/lib/ruby/gems/2.0.0'
-                  ENV['PATH'] = "/home/oneops/ruby/ruby-2.0.0-p648/bin:#{ENV['PATH']}"
+                if File.exists?('/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0')
+                  ENV['GEM_PATH'] = '/home/oneops/ruby/2.0.0-p648/lib/ruby/gems/2.0.0'
+                  ENV['PATH'] = "/home/oneops/ruby/2.0.0-p648/bin:#{ENV['PATH']}"
                 end
               end
             end

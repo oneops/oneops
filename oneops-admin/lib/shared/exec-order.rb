@@ -50,10 +50,13 @@ else
   component = json_context.split('/').last.split('.').first.downcase
 end
 
+# deletect if we are spawn from previous update
+# for provisioner to be 11.12.18 instead of
+# older version of chef.
 result = update_ruby(component)
 
-if result[:updated] 
-  system "#{result[:ruby_bin]} shared/exec-order.rb #{impl} #{json_context} #{cookbook_path} #{service_cookbooks}"
+if result["updated"] == true # must use this syntax as older version of ruby doesn't use hash[:key]
+  system "#{result["ruby_bin"]} shared/exec-order.rb #{result["impl"]} #{json_context} #{cookbook_path} #{service_cookbooks}"
   if $?.exitstatus != 0
     puts "CHEF SOLO failed, #{$?}"
   end
