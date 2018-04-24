@@ -53,6 +53,6 @@ module GlobalAdmin
   def check_admin_limit(admin_team, incoming_member)
     return nil unless violates_admin_limit?(admin_team, incoming_member)
 
-    return "Can not add this #{incoming_member.class.name.downcase} due to volation of max admin count policy - too many admins!"
+    return "Can not add this #{incoming_member.class.name.downcase} due to violation of max admin count policy - too many admins!"
   end
 end
