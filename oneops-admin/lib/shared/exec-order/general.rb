@@ -1,3 +1,5 @@
+require 'json'
+
 def get_os_type (log_level = 'info')
   if RUBY_PLATFORM =~ /mingw/
     ostype = 'windows'
@@ -27,7 +29,7 @@ def get_proxy_file_name
   (get_os_type =~ /windows/ ? 'c:/cygwin64' : '') + '/opt/oneops/rubygems_proxy'
 end
 
-def update_ruby(component)
+def update_ruby(component,workorder)
   #
   # Check to see if we have older Ruby version
   # We are not modifying anything. Let's the Ruby
@@ -39,7 +41,19 @@ def update_ruby(component)
   #
 
   if (Gem::Version.new(RUBY_VERSION.dup) < Gem::Version.new("2.0.0")) && (['objectstore','compute','volume', 'os'].include?(component))
-    install_ruby_cmd = "curl #{ENV['RUBY2_BINARY_proxy']} | tar Pxz  && /home/oneops/ruby/2.0.0-p648/bin/gem install bundler --no-ri --no-rdoc  && chown -R oneops:oneops /home/oneops/ruby"
+    # Retrieve current version of os to look up for config variable
+    os_version = %x[python -c "import platform;print platform.linux_distribution()[1]"].chomp
+  
+    bin_url = nil
+ 
+    wo_hash = JSON.parse(File.read(workorder))
+   
+    (wo_hash["workorder"].has_key?('config') && wo_hash["workorder"]["config"].has_key?("RUBY2_#{os_version}")) ?
+      (bin_url = wo_hash["workorder"]["config"]["RUBY2_#{os_version}"]): nil
+   
+    Dir.mkdir '/home/oneops/ruby' unless File.directory?("/home/oneops/ruby")
+
+    install_ruby_cmd = "curl #{bin_url} | tar Pxz -C /home/oneops/ruby && /home/oneops/ruby/2.0.0-p648/bin/gem install bundler --no-ri --no-rdoc  && chown -R oneops:oneops /home/oneops/ruby"
     ruby_binary_path = "/home/oneops/ruby/2.0.0-p648/bin/ruby"
     ruby_bin = File.file?(ruby_binary_path) ? ruby_binary_path : "/usr/bin/ruby"
 
@@ -53,12 +67,7 @@ def update_ruby(component)
     impl = "oo::chef-11.18.12"
 
     unless File.file?(ruby_binary_path)
-      # If RUBY2_BINARY_proxy is not available as ENV
-      # then skip otherwise continue
-      # This RUBY2_BINARY environment must be configured
-      # in the cloud setup of the compute that point
-      # to a stand alone pre-compiled Ruby 2.0.0
-      unless ENV['RUBY2_BINARY_proxy'].to_s.empty?
+      unless bin_url.nil?
         File.open("/tmp/ruby2.lock", File::RDWR|File::CREAT, 0644) { |f|
           # Put in exclusive write lock 
           # if we can't get a write lock then

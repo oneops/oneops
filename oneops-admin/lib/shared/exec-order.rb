@@ -53,7 +53,7 @@ end
 # deletect if we are spawn from previous update
 # for provisioner to be 11.12.18 instead of
 # older version of chef.
-result = update_ruby(component)
+result = update_ruby(component,json_context)
 
 if result["updated"] == true # must use this syntax as older version of ruby doesn't use hash[:key]
   system "#{result["ruby_bin"]} shared/exec-order.rb #{result["impl"]} #{json_context} #{cookbook_path} #{service_cookbooks}"
