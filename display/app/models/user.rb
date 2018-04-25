@@ -195,12 +195,17 @@ class User < ActiveRecord::Base
     if is_global_admin? || is_org_admin?
       result = true
     elsif assembly_id.present?
-      where = assembly_id =~ /\D/ ? {'ci_proxies.ci_name' => assembly_id, 'ci_proxies.ns_path' => "/#{organization.name}"} :
-                                    {'ci_proxies.ci_id' => assembly_id}
-      where['teams.organization_id'] = organization_id
-      where['teams.manages_access']  = true
+      where = {:organization_id => organization_id, :org_scope => true, :manages_access => true}
+      result = teams.where(where).first.present? || teams_via_groups.where(where).first.present?
 
-      result = teams.joins(:ci_proxies).where(where).first.present? || teams_via_groups.joins(:ci_proxies).where(where).first.present?
+      unless result
+        where = assembly_id =~ /\D/ ? {'ci_proxies.ci_name' => assembly_id, 'ci_proxies.ns_path' => "/#{organization.name}"} :
+                                      {'ci_proxies.ci_id' => assembly_id}
+        where['teams.organization_id'] = organization_id
+        where['teams.manages_access']  = true
+
+        result = teams.joins(:ci_proxies).where(where).first.present? || teams_via_groups.joins(:ci_proxies).where(where).first.present?
+      end
     end
 
     @manages_assembly[assembly_id] = result
