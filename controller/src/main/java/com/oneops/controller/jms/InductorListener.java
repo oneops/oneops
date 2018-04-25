@@ -299,7 +299,7 @@ public class InductorListener implements MessageListener {
           break;
         case DPMT_STATE_FAILED:
           if (rfcAction.equalsIgnoreCase("add")) {
-            tektonClient.rollbackReservation(resourceNumbers, deploymentId + provider);
+            //tektonClient.rollbackReservation(resourceNumbers, deploymentId + provider);
           }
           break;
       }

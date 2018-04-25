@@ -141,7 +141,7 @@ public class DpmtRestController extends AbstractRestController {
 			CmsVar softQuotaEnabled = cmProcessor.getCmSimpleVar(IS_SOFT_QUOTA_ENABLED);
 			if (softQuotaEnabled != null && Boolean.TRUE.toString().equals(softQuotaEnabled.getValue())) {
 				if ("canceled".equalsIgnoreCase(dpmt.getDeploymentState())) {
-					tektonClient.deleteReservation(String.valueOf(dpmtId));
+					tektonClient.deleteReservation(String.valueOf(dpmtId)); //TODO: pull whole deployment to know subscriptions involved
 				}
 			}
 

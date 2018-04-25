@@ -20,6 +20,7 @@ package com.oneops.transistor.service;
 import java.io.IOException;
 import java.util.*;
 
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.tekton.TektonUtils;
 import org.apache.log4j.Logger;
 import com.google.gson.Gson;
@@ -124,22 +125,37 @@ public class BomAsyncProcessor {
 
         for (CmsRfcCI ciRfc : rfcCIs) {
             String className = ciRfc.getCiClassName();
+            long rfcCiID = ciRfc.getCiId();
             if (ciRfc.getRfcAction().equals("add")) {
-                String cloudName = findDeployedTo(ciRfc.getCiId(), bomData);
-                CloudProviderMapping cloudProviderMapping = tektonUtils.getCloudProviderMapping(cloudName, mappings);
+                CmsRfcRelation deployedToRelation = null;
+                for (CmsRfcRelation relationRfc : bomData.getRelations()) {
+                    if (relationRfc.getFromCiId() != null && relationRfc.getFromCiId() == rfcCiID
+                            && "base.DeployedTo".equals(relationRfc.getRelationName())) {
+                        deployedToRelation = relationRfc;
+                        break;
+                    }
+                }
+                String provider = tektonUtils.findProvider(deployedToRelation);
+
+                String subscriptionId = tektonUtils.findSubscriptionId(deployedToRelation.getToCiId());
+                CloudProviderMapping cloudProviderMapping = tektonUtils.getCloudProviderMapping(provider, mappings);
+
                 if (cloudProviderMapping == null) {
-                    logger.info("Soft quota check: no provider mapping found for cloud " + cloudName);
+                    logger.info("Soft quota check: no provider mapping found for provider " + provider);
                     continue;
                 }
+
                 if (className.endsWith(".Compute")) {
                     String size = ciRfc.getAttribute("size").getNewValue();
                     int cores = tektonUtils.getTotalCores(size, cloudProviderMapping);
                     totalCores = totalCores + cores;
-                    Map<String, Integer> resourcesNeeded = quotaNeeded.get(cloudProviderMapping.getProvider());
+                    Map<String, Integer> resourcesNeeded = quotaNeeded.get(subscriptionId);
+
                     if (resourcesNeeded == null) {
                         resourcesNeeded = new HashMap();
-                        quotaNeeded.put(cloudProviderMapping.getProvider(), resourcesNeeded);
+                        quotaNeeded.put(subscriptionId, resourcesNeeded);
                     }
+
                     resourcesNeeded.put("cores", totalCores);
                 }
             }
@@ -150,19 +166,6 @@ public class BomAsyncProcessor {
             tektonClient.reserveQuota(quotaNeeded, String.valueOf(deploymentId), orgName, userId);
         }
         return deploymentId;
-    }
-
-    private String findDeployedTo(long ciId, BomData bomData) {
-        for (CmsRfcRelation relationRfc : bomData.getRelations()) {
-            if (relationRfc.getFromCiId() != null && relationRfc.getFromCiId() == ciId
-                    && "base.DeployedTo".equals(relationRfc.getRelationName())) {
-                String comments = relationRfc.getComments();
-                Map<String, String> relationDetails = gson.fromJson(comments, Map.class);
-                String cloudName = relationDetails.get("toCiName");
-                return cloudName;
-            }
-        }
-        return null;
     }
 
     public void processFlex(long envId, long flexRelId, int step, boolean scaleUp) {
