@@ -69,7 +69,7 @@ rubygems_ver=$((echo "1.8.26" && gem -v) | sort -V | head -n 1)
 if [ -e /etc/redhat-release ] && [ $rubygems_ver = "1.8.26" ]; then
   # needed for rhel >= 7
   echo "Downgrading rubygems..."
-  gem update --system 1.8.25
+  gem update --system 1.8.25 --no-ri --no-rdoc
 fi
 
 # Install json gem

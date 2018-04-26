@@ -1,6 +1,4 @@
-<% manages_admins = manages_admins?
-   is_admin = is_admin?
-   can_edit = @team.name == Team::ADMINS ? manages_admins : is_admin %>
+<% can_edit = @team.name == Team::ADMINS ? manages_admins? : manages_team_members?(@team) %>
 <%= grouped_list(@team.groups.includes(:users).all,
                  :new_link => can_edit && link_to_function(icon('plus', 'Add group...'), 'show_add_team_member_dialog("group")'),
                  :collapse => true,

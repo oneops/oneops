@@ -1,11 +1,12 @@
+<% can_edit = manages_org? %>
 <%= section_panel 'Environment Profiles',
                   :width => 'single',
-                  :menu  => is_admin? &&
+                  :menu  => can_edit &&
                       [link_to(icon('plus', 'Add'),
                                new_organization_environment_path,
                                :remote => true,
                                :class  => 'btn btn-mini')] do %>
-  <%= ci_list(@environments, :new_link => is_admin? && link_to('New Environment Profile...',
+  <%= ci_list(@environments, :new_link => can_edit && link_to('New Environment Profile...',
                                                                new_organization_environment_path,
                                                                :remote => true)) do |builder, target| %>
     <% builder.target link_to('', edit_organization_environment_path(target), :remote => true) %>
@@ -30,7 +31,7 @@
     <% end %>
     <% builder.menu do |ci| %>
       <%= link_to(icon('edit', ' Edit'), edit_organization_environment_path(ci), :remote => true) %>
-      <%= link_to(icon('trash', ' Delete'), organization_environment_path(ci), :method => :delete, :remote => true, :confirm => 'Confirm delete?') if is_admin? %>
+      <%= link_to(icon('trash', ' Delete'), organization_environment_path(ci), :method => :delete, :remote => true, :confirm => 'Confirm delete?') if can_edit %>
     <% end %>
   <% end %>
 <% end %>

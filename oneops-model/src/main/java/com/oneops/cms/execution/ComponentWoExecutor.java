@@ -31,6 +31,6 @@ public interface ComponentWoExecutor {
     }
   }
 
-  public Response execute(CmsActionOrderSimple ao);
+  public Response execute(CmsActionOrderSimple ao, String dataDir);
 
 }

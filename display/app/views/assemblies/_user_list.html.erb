@@ -4,19 +4,19 @@
                              link_to_function(icon('check-square-o', 'Users'), '', :class  => 'btn btn-mini active')] do %>
   <%= list(@users,
            :menu     => defined?(list_menu) && list_menu,
-           :toolbar  => {:sort_by       => [%w(Name name), ['Last Sign-in At', 'last_sign_in_at']],
-                         :filter_by     => %w(name team dto),
+           :toolbar  => {:sort_by       => [%w(Name name), %w(Permissions permissions), ['Last Sign-in At', 'last_sign_in_at']],
+                         :filter_by     => %w(name team permissions),
                          :quick_filters => [{:label => 'All', :value => '', :selected => true},
-                                            {:icon => site_icon(:design), :value => 'dto=design'},
-                                            {:icon => site_icon(:transition), :value => 'dto=transition'},
-                                            {:iconL => site_icon(:operations), :value => 'dto=operations'},
-                                            {:label => 'Read-Only', :value => 'dto=ro'}]}) do |builder, user| %>
+                                            {:icon => site_icon(:design), :value => 'permissions=design'},
+                                            {:icon => site_icon(:transition), :value => 'permissions=transition'},
+                                            {:icon => site_icon(:operations), :value => 'permissions=operations'},
+                                            {:label => 'Read-Only', :value => 'permissions=ro'}]}) do |builder, user| %>
     <% builder.itemid user[:id] %>
-    <% all_permissions = %w(design transition operations)
+    <% all_permissions = %w(manages_access design transition operations)
        dto = all_permissions.map {|p| user[p.to_sym] ? p : ''}.join(' ')
        teams = user[:teams]
-       last_sign_in_at = user[:last_sign_in_at] %>
-    <% builder.attributes raw(%(name="#{user[:name]}" last_sign_in_at="#{last_sign_in_at}" team="#{teams.join(' ')}" dto="#{dto.presence || 'ro'}")) %>
+       last_sign_in_at = user[:current_sign_in_at] %>
+    <% builder.attributes raw(%(name="#{user[:name]}" last_sign_in_at="#{last_sign_in_at}" team="#{teams.join(' ')}" permissions="#{dto.presence || 'ro'}")) %>
     <% builder.status do %>
       <% all_permissions.each do  |p| %>
         <%= icon(site_icon(p), '&nbsp;&nbsp;', "fa-lg fa-fw #{'extra-muted' unless user[p.to_sym]}") %>
@@ -34,4 +34,4 @@
     <% end %>
   <% end %>
 <% end %>
-<%= render 'download_users' if manages_access_for_assembly?(@assembly.ciId) %>
+<%= render 'download_users' if manages_assembly?(@assembly.ciId) %>

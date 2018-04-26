@@ -6,7 +6,7 @@ defaults: &defaults
   support_email: <%= ENV['SUPPORT_EMAIL'] %>
 
   max_admin_limit: <%= ENV['MAX_ADMIN_LIMIT'] %>
-  global_admin_groups: '<%= ENV['GLOBAL_ADMIN_GROUPS'] || 'OneOps' %>'
+  global_admin_groups: '<%= ENV['GLOBAL_ADMIN_GROUPS'] %>'
 
   news_url: <%= ENV['NEWS_URL'] %>
   help_url: <%= ENV['HELP_URL'] %>

@@ -1,6 +1,4 @@
 class Organization::UsersController < ApplicationController
-  include ::AdminLimit
-
   before_filter :authorize_admin, :except => [:index, :show]
 
   def index
@@ -131,8 +129,6 @@ class Organization::UsersController < ApplicationController
       if admin_team.users.count == 1 && was_admin && !will_be_admin
         @user.errors.add(:base, 'This user is last admin for this organization: can not remove user from admins.')
       else
-        return unauthorized('Unauthorized to manage admins!') if was_admin != will_be_admin && !manages_admins?
-
         error = !was_admin && will_be_admin && check_admin_limit(admin_team, @user)
         if error
           @user.errors.add(:base, error)

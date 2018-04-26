@@ -1,11 +1,15 @@
 package com.oneops.inductor;
 
 import com.google.gson.Gson;
+import com.oneops.cms.cm.ops.domain.OpsActionState;
+import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.cms.simple.domain.Instance;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,18 +36,23 @@ public class WoHelper {
     return null;
   }
 
-  public String getLogKey(CmsWorkOrderSimple wo) {
-    return wo.getDpmtRecordId() + ":" + wo.getRfcCi().getCiId() + " - ";
+  public String getLogKey(CmsWorkOrderSimpleBase wo) {
+    return wo.getRecordId() + ":" + wo.getCiId() + " - ";
   }
 
   public String getVerifyLogKey(CmsWorkOrderSimple wo) {
     return wo.getDpmtRecordId() + ":" + wo.getRfcCi().getCiId() + " - verify -> ";
   }
 
-  public void failWo(CmsWorkOrderSimple wo, String logKey, String message, Exception e) {
+  public void failWo(CmsWorkOrderSimpleBase wo, String logKey, String message, Exception e) {
     String logMsg = (e != null) ? logKey + message + " : " + e.getMessage() : logKey + message;
     logger.error(logMsg, e);
-    wo.setDpmtRecordState(FAILED);
+    if (wo instanceof  CmsWorkOrderSimple) {
+      ((CmsWorkOrderSimple)wo).setDpmtRecordState(FAILED);
+    }
+    else {
+      ((CmsActionOrderSimple)wo).setActionState(OpsActionState.failed);
+    }
     wo.setComments(message +  (e != null ? " caused by - " + e.getMessage() : ""));
   }
 
@@ -68,6 +77,25 @@ public class WoHelper {
     map.put("task_result_code", responseCode);
     logger.info(logKey + "wo restult ci " + gson.toJson(wo.getResultCi()));
     map.put("body", gson.toJson(wo));
+    response.setResponseMap(map);
+    return response;
+  }
+
+  public Response formResponse(CmsActionOrderSimple ao, String logKey) {
+    Response response = new Response();
+    Map<String, String> map = new HashMap<>();
+    String responseCode = "200";
+    if (ao.getActionState() == OpsActionState.failed) {
+      logger.warn(logKey + "FAIL: " + ao.getProcedureId() + " state:" + ao.getActionState());
+      response.setResult(Result.FAILED);
+      responseCode = "500";
+    }
+    else {
+      logger.info(logKey + "Actionorder execution successful");
+      response.setResult(Result.SUCCESS);
+    }
+    map.put("task_result_code", responseCode);
+    map.put("body", gson.toJson(ao));
     response.setResponseMap(map);
     return response;
   }
@@ -100,10 +128,17 @@ public class WoHelper {
     return wo.resultCi.getCiAttributes();
   }
 
-  public CmsRfcCISimple getLbFromDependsOn(CmsWorkOrderSimple wo) {
-    List<CmsRfcCISimple> dependsOn = wo.getPayLoad().get("DependsOn");
+  public Instance getLbFromDependsOn(CmsWorkOrderSimple wo) {
+    return getLb(wo.getPayLoad().get("DependsOn"));
+  }
+
+  public Instance getLbFromDependsOn(CmsActionOrderSimple ao) {
+    return getLb(ao.getPayLoad().get("DependsOn"));
+  }
+
+  private Instance getLb(List<? extends Instance> dependsOn) {
     if (dependsOn != null) {
-      Optional<CmsRfcCISimple> opt = dependsOn.stream().filter(rfc -> "bom.oneops.1.Lb".equals(rfc.getCiClassName())).findFirst();
+      Optional<? extends Instance> opt = dependsOn.stream().filter(rfc -> "bom.oneops.1.Lb".equals(rfc.getCiClassName())).findFirst();
       if (opt.isPresent()) {
         return opt.get();
       }

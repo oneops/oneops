@@ -69,8 +69,10 @@ public class CollectionProcessor {
 
 		if ("from".equalsIgnoreCase(relationDef.getDirection())) {
 			List<CmsCIRelation> relations = null;
-			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
+			if ((relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0)) {
 				relations = cmProcessor.getFromCIRelationsByAttrsNaked(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(), relationDef.getRelationAttrs());
+			} else if (relationDef.getReturnRelationAttributes()) {
+				relations = cmProcessor.getFromCIRelationsNaked(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			} else {
 				relations = cmProcessor.getFromCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			}
@@ -88,8 +90,10 @@ public class CollectionProcessor {
 		} else {
 
 			List<CmsCIRelation> relations = null;
-			if (relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0 ) {
-				relations = cmProcessor.getToCIRelationsByAttrsNaked(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(),relationDef.getRelationAttrs());
+			if ((relationDef.getRelationAttrs() != null && relationDef.getRelationAttrs().size()>0)) {
+				relations = cmProcessor.getToCIRelationsByAttrsNaked(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName(), relationDef.getRelationAttrs());
+			} else if (relationDef.getReturnRelationAttributes()) {
+				relations = cmProcessor.getToCIRelationsNaked(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			} else {
 				relations = cmProcessor.getToCIRelationsNakedNoAttrs(anchorCiId, relationDef.getRelationName(), relationDef.getRelationShortName(), relationDef.getTargetClassName());
 			}

@@ -101,7 +101,7 @@ public class CollectionProcessorTest {
       when(cmProcessor.getCiById(v)).thenReturn(cloudCis.get(k));
     });
 
-    when(cmProcessor.getFromCIRelationsNakedNoAttrs(manifestPlatformId, "base.Consumes", null , "account.Cloud" )).thenReturn(cloudRelations);
+    when(cmProcessor.getFromCIRelationsNaked(manifestPlatformId, "base.Consumes", null , "account.Cloud" )).thenReturn(cloudRelations);
 
     final List<CmsCI> cis = pr.getFlatCollection(123, relationDef);
     Assert.assertTrue(cis.size()==cloudRelations.size());

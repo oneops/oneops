@@ -9,7 +9,7 @@ module ApplicationHelper
                 :assembly               => 'cogs',
                 :settings               => 'sliders',
                 :user                   => 'user',
-                :manages_access         => 'key',
+                :manages_access         => 'user-secret',
                 :org_scope              => 'sitemap',
                 :design                 => 'puzzle-piece',
                 :transition             => 'play-circle-o',
@@ -1268,7 +1268,7 @@ module ApplicationHelper
     return GENERAL_SITE_LINKS
   end
 
-  def team_list_permission_marking(team, perms = %w(cloud_services cloud_compliance cloud_support design transition operations))
+  def team_list_permission_marking(team, perms = global_admin_mode? ? %w(design transition operations) : %w(cloud_services cloud_compliance cloud_support design transition operations))
     admins = team.name == Team::ADMINS
     result = %w(manages_access org_scope).inject('') do |a, perm|
       a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw text-error #{'extra-muted' unless admins || team.send("#{perm}?")}")

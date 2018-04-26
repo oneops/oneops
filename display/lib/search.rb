@@ -210,7 +210,7 @@ module Search
 
   def parse_attr_path(attr, is_relation)
     attr_path = attr.split('.')
-    if attr_path.size == 1 && !%w(nsPath ciClassName ciName ciId created updated createdBy updateBy relationAttributes ciAttributes comments).include?(attr_path.first)
+    if attr_path.size == 1 && !%w(nsPath ciClassName ciName ciId ciRelationId created updated createdBy updateBy relationAttributes ciAttributes comments).include?(attr_path.first)
       attr_path = attr_path.unshift(is_relation ? 'relationAttributes' : 'ciAttributes')
     end
 

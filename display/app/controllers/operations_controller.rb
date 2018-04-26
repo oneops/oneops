@@ -1,6 +1,6 @@
 class OperationsController < ApplicationController
   include ::Health
-  before_filter :authorize_admin, :except => [:show]
+  before_filter :auhorize_health, :only => [:health]
 
   def show
     @assembly = locate_assembly(params[:assembly_id])
@@ -65,5 +65,13 @@ class OperationsController < ApplicationController
     req_set = params[:request_set]
     data = req_set && Daq.charts(req_set)
     render :json => data || []
+  end
+
+  private
+
+  def auhorize_health
+    unauthorized unless is_admin? ||
+      current_user.teams.where('teams.organization_id = ? AND teams.org_scope', current_user.organization_id).first ||
+      current_user.teams_via_groups.where('teams.organization_id = ? AND teams.org_scope', current_user.organization_id).first
   end
 end

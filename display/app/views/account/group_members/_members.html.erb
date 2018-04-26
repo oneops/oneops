@@ -2,10 +2,10 @@
 <%= list(@group.members.includes(:user).order('users.username'),
          :new_link => (group_admin ? link_to_function(icon('plus', 'Add Member...'), 'new_group_member_dialog()', :remote => true) : nil),
          :toolbar  => {:list_name => 'group_member_list',
-                       :sort_by   => [%w(Username username), %w(Email email), %w(Added added), %w(Admin admin)],
-                       :filter_by => %w(username email)}) do |builder, member| %>
+                       :sort_by   => [%w(Username username), ['Full Name', 'full_name'], %w(Email email), %w(Added added), %w(Admin admin)],
+                       :filter_by => %w(username full_name email)}) do |builder, member| %>
   <% builder.itemid "group_member_#{member.id}" %>
-  <% builder.attributes raw(%(email="#{member.user.email}" username="#{member.user.username}" added="#{member.created_at}" admin="#{'admin' if member.admin?}")) %>
+  <% builder.attributes raw(%(email="#{member.user.email}" username="#{member.user.username}" full_name="#{member.user.name}" added="#{member.created_at}" admin="#{'admin' if member.admin?}")) %>
   <% builder.target link_to_function('', '') %>
   <% builder.top do %>
     <span class="topname"><%= member.user.username %></span>

@@ -1,11 +1,21 @@
 class Organization::TeamMembersController < ApplicationController
-  include ::AdminLimit
-
   before_filter :find_team
-  before_filter :authorize_admin, :except => [:index]
+  before_filter :authorize_update, :except => [:index]
 
   def index
-    render :json => {:users => @team.users.all, :groups => @team.groups.all}
+    respond_to do |format|
+      format.json {render :json => {:users => @team.users.all, :groups => @team.groups.all}}
+
+      format.csv do
+        delimiter = params[:delimiter].presence || ','
+
+        csv = to_csv(@team.users.all, [:id, :username, :email, :name, :created_at, :last_sign_in_at], 'Users', delimiter)
+        csv << "\n"
+        csv << to_csv(@team.groups.all, [:id, :name, :created_at], 'Groups', delimiter)
+
+        render :text => csv   #, :content_type => 'text/data_string'
+      end
+    end
   end
 
   def create
@@ -77,11 +87,11 @@ class Organization::TeamMembersController < ApplicationController
 
   protected
 
-  def authorize_admin
-    if @team && @team.name == Team::ADMINS
+  def authorize_update
+    if @team && @team.name == Team::ADMINS && action_name == 'create'
       return unauthorized('Unauthorized to manage admins!') unless manages_admins?
     else
-      super
+      return unauthorized('Unauthorized to manage this team members!') unless manages_team_members?(@team)
     end
   end
 
@@ -93,5 +103,16 @@ class Organization::TeamMembersController < ApplicationController
     if team_qualifier.present?
       @team = team_qualifier  =~ /\D/ ? current_user.organization.teams.where(:name => team_qualifier).first : current_user.organization.teams.find(team_qualifier)
     end
+  end
+
+  private
+
+  def to_csv(data, fields, header = nil, delimiter = ',')
+    csv = header.present? ? "#{header}\n" : ''
+    csv << fields.join(delimiter) << "\n"
+    data.each do |u|
+      csv << fields.inject([]) {|a, k| a << u.send(k)}.join(delimiter) << "\n"
+    end
+    return csv
   end
 end

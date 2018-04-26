@@ -29,3 +29,5 @@ gem 'kitchen-verifier-serverspec', '=0.4.0'
 gem 'net-ssh', '~>2.9'
 gem 'kitchen-transport-rsync', '=0.1.2'
 gem 'mixlib-config', '= 2.2.4'
+gem 'rake', '<=12.2.1'
+

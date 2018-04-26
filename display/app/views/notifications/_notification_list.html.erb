@@ -1,9 +1,10 @@
-<%= section_panel 'Notification Sinks', :width => 'single', :menu => (is_admin? ? [{:display => icon('plus', 'Add'), :link => new_notification_path, :remote => true}] : nil) do %>
-  <%= ci_list(@notifications, :new_link => (is_admin? ? link_to('Add...', new_notification_path, :remote => true) : nil)) do |builder, target| %>
-    <% builder.target link_to('', edit_notification_path(target), :remote => true) if is_admin? %>
+<% can_edit = manages_org? %>
+<%= section_panel 'Notification Sinks', :width => 'single', :menu => (can_edit ? [{:display => icon('plus', 'Add'), :link => new_notification_path, :remote => true}] : nil) do %>
+  <%= ci_list(@notifications, :new_link => (manages_org? ? link_to('Add...', new_notification_path, :remote => true) : nil)) do |builder, target| %>
+    <% builder.target link_to('', edit_notification_path(target), :remote => true) %>
     <% split = target.ciClassName.split('.')
        builder.middle "#{split[-2]} #{split.last}" %>
-    <% if is_admin?  %>
+    <% if manages_org?  %>
       <% builder.menu do |ci| %>
         <%= link_to icon('trash', 'Delete'), notification_path(ci), :remote => true, :method => :delete, :confirm => "Delete notification '#{ci.ciName}'?" %>
       <% end %>

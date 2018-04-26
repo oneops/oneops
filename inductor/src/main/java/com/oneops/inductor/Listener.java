@@ -192,13 +192,12 @@ public class Listener implements MessageListener, ApplicationContextAware {
 
             preProcess(wo);
             wo.putSearchTag("rfcAction", wo.getAction());
-            Response response = runWithMatchingExecutor(wo);
+            Response response = runWoWithMatchingExecutor((CmsWorkOrderSimple)wo);
             if (response == null || response.getResult() == Result.NOT_MATCHED) {
               responseMsgMap = workOrderExecutor.processAndVerify(wo, correlationID);
             }
             else {
               responseMsgMap = response.getResponseMap();
-              responseMsgMap.put("correlationID", correlationID);
               postExecTags(wo);
             }
             break;
@@ -209,7 +208,15 @@ public class Listener implements MessageListener, ApplicationContextAware {
             wo = getWorkOrderOf(msgText, CmsActionOrderSimple.class);
             wo.putSearchTag("iAoCrtTime", Long.toString(System.currentTimeMillis() - t));
             preProcess(wo);
-            responseMsgMap = actionOrderExecutor.processAndVerify(wo, correlationID);
+
+            Response response = runAoWithMatchingExecutor((CmsActionOrderSimple) wo);
+            if (response == null || response.getResult() == Result.NOT_MATCHED) {
+              responseMsgMap = actionOrderExecutor.processAndVerify(wo, correlationID);
+            }
+            else {
+              responseMsgMap = response.getResponseMap();
+              postExecTags(wo);
+            }
             break;
           }
           default:
@@ -242,16 +249,21 @@ public class Listener implements MessageListener, ApplicationContextAware {
     }
   }
 
-  private Response runWithMatchingExecutor(CmsWorkOrderSimpleBase wo) {
+  private Response runWoWithMatchingExecutor(CmsWorkOrderSimple wo) {
     preExecTags(wo);
     Response response;
     if (config.isVerifyMode()) {
-      response = classMatchingWoExecutor.executeAndVerify((CmsWorkOrderSimple) wo, config.getDataDir());
+      response = classMatchingWoExecutor.executeAndVerify(wo, config.getDataDir());
     }
     else {
-      response = classMatchingWoExecutor.execute((CmsWorkOrderSimple) wo, config.getDataDir());
+      response = classMatchingWoExecutor.execute(wo, config.getDataDir());
     }
     return response;
+  }
+
+  private Response runAoWithMatchingExecutor(CmsActionOrderSimple ao) {
+    preExecTags(ao);
+    return classMatchingWoExecutor.execute(ao, config.getDataDir());
   }
 
   private void preProcess(CmsWorkOrderSimpleBase wo) {

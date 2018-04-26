@@ -1,5 +1,5 @@
 class Organization::PoliciesController < Base::PoliciesController
-  before_filter :authorize_admin, :only => [:new, :create, :update, :destroy, :evaluate]
+  before_filter :authorize_global_admin, :only => [:new, :create, :update, :destroy, :evaluate]
   before_filter :find_policy, :only => [:show, :edit, :update, :destroy, :evaluate]
 
   def new

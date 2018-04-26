@@ -19,7 +19,7 @@ Dir.glob('*.gemfile').each do |f|
     puts "packaging gemfile #{f}"
 
     start_time = Time.now.to_i
-    cmd = "bundle package --no-install --no-prune --gemfile #{f}"
+    cmd = "bundle package --no-install --no-prune --all --gemfile #{f}"
     ec = system cmd
     if !ec || ec.nil?
       puts "#{cmd} failed with, #{$?}"
@@ -35,11 +35,18 @@ puts 'validating whether all gems are present in vendor/cache or not'
 Dir.glob('*.gemfile.lock').each do |f|
   puts "finding gems for #{f}"
   lockfile = Bundler::LockfileParser.new(Bundler.read_file(f))
+  cache_dir = File.join(File.dirname(f), '/vendor/cache/')
 
   lockfile.specs.each do |s|
-    gem_name = "#{Dir.pwd}/vendor/cache/#{s.name}-#{s.version.to_s}.gem"
-    if !File.file?(gem_name)
-      puts "#{gem_name} not found"
+    if s.source.is_a?(Bundler::Source::Path)
+      gem_dir = File.basename(s.source.path)
+    else
+      gem_dir = ''
+    end
+    gem_path = File.join(cache_dir, gem_dir, "#{s.full_name}.gem")
+
+    if !File.file?(gem_path)
+      puts "#{gem_path} not found"
       exit 1
     end
   end

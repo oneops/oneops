@@ -260,6 +260,11 @@ public class CmsWorkOrderSimple extends CmsDpmtRecord implements
     this.payLoad.put(payloadEntry, rfcCISimples);
   }
 
+  @Override
+  public long getExecutionId() {
+    return getDeploymentId();
+  }
+
   public Map<String, String> getConfig() {
     return config;
   }

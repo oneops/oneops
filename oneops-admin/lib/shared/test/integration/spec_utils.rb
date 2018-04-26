@@ -42,6 +42,10 @@ module ExecOrderTest
       get_gem_list(provisioner, version)
     end
 
+    def cache_exec_gems
+      File.join(@data_dir, 'cache-exec-gems.rb')
+    end
+
     private
 
     # Mimic rsync-ing circuits from an inductor to VM

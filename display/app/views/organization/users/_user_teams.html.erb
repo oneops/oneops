@@ -11,10 +11,11 @@
     <h5>Team Membership</h5>
     <% org.teams.order(:name).each do |team| %>
       <label>
-        <% editable = is_admin && (team.name != Team::ADMINS || manages_admins) %>
+        <% admin_user = user_team_ids.include?(team.id)
+           editable = team.name == Team::ADMINS && !admin_user ? manages_admins : is_admin %>
         <a class="btn <%= 'disabled' unless editable %>">
           <% if editable %>
-            <%=  check_box_tag('teams[]', team.id, user_team_ids.include?(team.id))  %>
+            <%= check_box_tag('teams[]', team.id, admin_user)  %>
           <% else %>
             <%=  hidden_field_tag 'teams[]', team.id  %>
           <% end %>

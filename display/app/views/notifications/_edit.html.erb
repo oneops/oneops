@@ -2,6 +2,7 @@
   <%= render 'base/shared/edit_form',
              {:resource   => @notification,
               :content    => 'notification_details_content',
+              :read_only  => !manages_org?,
               :form_url   => notification_path(@notification),
               :cancel_url => notifications_path} %>
 <% end %>

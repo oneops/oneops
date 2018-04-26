@@ -4,6 +4,6 @@
 
 <%= section_panel "Clouds #{count_marker(@clouds.size)}",
                   :id   => 'cloud_list', :width => 'triple',
-                  :menu => manages_access? ? [{:display => icon('plus', 'Add Cloud'), :link => new_cloud_path}] : nil do %>
+                  :menu => creates_clouds? ? [{:display => icon('plus', 'Add Cloud'), :link => new_cloud_path}] : nil do %>
 <%= render 'cloud_list' %>
 <% end %>

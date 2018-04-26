@@ -1,2 +1,2 @@
 <%= render 'cms/cis/ci', :ci => @cloud, :f => f %>
-<%= render 'base/shared/teams_to_manage_access', :ci => @cloud %>
+<%= render 'base/shared/teams_to_manage_access', :ci => @cloud unless global_admin_mode? %>
