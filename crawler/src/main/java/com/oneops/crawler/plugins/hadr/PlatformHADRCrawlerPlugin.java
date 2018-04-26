@@ -1,9 +1,10 @@
 package com.oneops.crawler.plugins.hadr;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,13 +34,16 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
   private String environmentProdProfileFilter;
 
   private String[] produtionCloudsArr; 
-  private String stageCloudFilter;
+  private String prodCloudsListRegex;
   final private String isHALabel="isHA";
   final private String isDRLabel="isDR";
   final private String isAutoRepairEnabledLabel="isAutoRepairEnabled";
   final private String isAutoReplaceEnabledLabel="isAutoReplaceEnabled";
   final private String isProdCloudInNonProdEnvLabel="isProdCloudInNonProdEnv";
-  final  private String prodProfileWithStageCloudsLabel="prodProfileWithStageClouds";
+  final  private String isProdProfileWithNonProdCloudsLabel="isProdProfileWithNonProdClouds";
+  
+  final String dateTimeFormatPattern="yyyy-MM-dd:HH:mm:ss z";
+  final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(dateTimeFormatPattern);
   
   public SearchDal getSearchDal() {
     return searchDal;
@@ -73,10 +77,8 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     environmentProdProfileFilter = System.getProperty("hadr.env.profile.regex", "prod").toLowerCase();
     log.info("environmentProdProfileFilter: " + environmentProdProfileFilter);
 
-    produtionCloudsArr = System.getProperty("produtionCloudsList").toLowerCase().split("~");
-    
-    stageCloudFilter=System.getProperty("hadr.stageCloudFilter.regex", "stg").toLowerCase();
-    log.info("stageCloudFilter: " + stageCloudFilter);
+    prodCloudsListRegex=System.getProperty("produtionCloudsList").toLowerCase();
+    produtionCloudsArr = prodCloudsListRegex.split("~");
     
     if (isHadrEsEnabled) {
       try {
@@ -107,7 +109,11 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     Collection<Platform> platforms = env.getPlatforms().values();
 
     for (Platform platform : platforms) {
-
+      
+      //ignore processing of platforms which are not enabled.
+      if (platform.getEnable() == null || !platform.getEnable().equalsIgnoreCase("enable")) {
+        continue;
+      }
       PlatformHADRRecord platformHADRRecord = new PlatformHADRRecord();
 
       platformHADRRecord.setEnv(env.getName());
@@ -119,7 +125,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
       platformHADRRecord.setPlatform(platform.getName());
       platformHADRRecord.setAssembly(parseAssemblyNameFromNsPath(platform.getPath()));
       platformHADRRecord.setOoUrl(getOOURL(platform.getPath()));
-      platformHADRRecord.setCreatedTS(new Date());
+      platformHADRRecord.setCreatedTS(formatter.format(ZonedDateTime.now()));
       platformHADRRecord.setCloudsMap(platform.getCloudsMap());
       platformHADRRecord.setSourcePack(platform.getSource() + "-" + platform.getPack());
       platformHADRRecord.setNsPath(platform.getPath());
@@ -238,7 +244,7 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
       }
 
     } catch (Exception e) {
-        log.error("Error while setting cloud categories for cloud {} , error message: {} :",cloudName,e);
+        log.warn("Error while setting cloud categories for cloud {} , error message: {} :",cloudName,e);
         
       }
     }
@@ -261,8 +267,8 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
         && environmentProfileName.toLowerCase().contains(environmentProdProfileFilter)) {
       techDebt.put(isDRLabel, IsDR(platform));
       techDebt.put(isHALabel, IsHA(platform));
-      if (prodProfileWithStageClouds(platform.getCloudsMap())) {
-        techDebt.put(prodProfileWithStageCloudsLabel, true);
+      if (prodProfileWithNonProdClouds(platform.getCloudsMap())) {
+        techDebt.put(isProdProfileWithNonProdCloudsLabel, true);
       }
 
     } else {
@@ -289,10 +295,12 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
 
   }
 
-  public boolean prodProfileWithStageClouds(Map<String, Cloud> cloudsMap) {
-
-    if (cloudsMap.keySet().toString().toLowerCase().contains(stageCloudFilter)) {
-      return true;
+  public boolean prodProfileWithNonProdClouds(Map<String, Cloud> cloudsMap) {
+    
+    for (String platformCloud : cloudsMap.keySet()) {
+      if (!prodCloudsListRegex.contains(platformCloud)) {
+        return true;
+      }
     }
 
     return false;
@@ -347,8 +355,18 @@ public class PlatformHADRCrawlerPlugin extends AbstractCrawlerPlugin {
     return isProdCloudInNonProdEnvLabel;
   }
 
-  public String getProdProfileWithStageCloudsLabel() {
-    return prodProfileWithStageCloudsLabel;
+  public String getIsProdProfileWithNonProdCloudsLabel() {
+    return isProdProfileWithNonProdCloudsLabel;
   }
+
+  public String getEnvironmentProdProfileFilter() {
+    return environmentProdProfileFilter;
+  }
+
+  public String getDateTimeFormatPattern() {
+    return dateTimeFormatPattern;
+  }
+
+
 
 }

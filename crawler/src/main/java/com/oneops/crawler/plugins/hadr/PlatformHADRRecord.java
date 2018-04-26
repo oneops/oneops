@@ -18,7 +18,7 @@ public class PlatformHADRRecord implements Serializable {
   private String platform;
   private String ooUrl;
   private String assembly;
-  private Date createdTS;
+  private String createdTS;
   private String env;
   private String pack;
   private String org;
@@ -69,11 +69,11 @@ public class PlatformHADRRecord implements Serializable {
     this.assembly = assembly;
   }
 
-  public Date getCreatedTS() {
+  public String getCreatedTS() {
     return createdTS;
   }
 
-  public void setCreatedTS(Date createdTS) {
+  public void setCreatedTS(String createdTS) {
     this.createdTS = createdTS;
   }
 
