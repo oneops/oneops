@@ -82,12 +82,14 @@ public class BomAsyncProcessor {
                 Map bomInfo;
                 boolean deploy = (dpmt != null);
                 if (deploy) {
-                    BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
-                    String orgName = dpmt.getNsPath().split("/")[1];
-                    List<CloudProviderMapping> cloudProviderMappings = tektonUtils.getCloudProviderMappings();
-                    if (cloudProviderMappings != null && cloudProviderMappings.size() > 0) {
-                        long deploymentId = reserveQuota(bomData, orgName, userId, cloudProviderMappings);
-                        dpmt.setDeploymentId(deploymentId);
+                    if (tektonUtils.isSoftQuotaEnabled()) {
+                        BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
+                        String orgName = dpmt.getNsPath().split("/")[1];
+                        List<CloudProviderMapping> cloudProviderMappings = tektonUtils.getCloudProviderMappings();
+                        if (cloudProviderMappings != null && cloudProviderMappings.size() > 0) {
+                            long deploymentId = reserveQuota(bomData, orgName, userId, cloudProviderMappings);
+                            dpmt.setDeploymentId(deploymentId);
+                        }
                     }
                     bomInfo = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
                 }

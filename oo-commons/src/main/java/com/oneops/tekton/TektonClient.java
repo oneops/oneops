@@ -32,7 +32,7 @@ public class TektonClient {
     private Gson gson = new Gson();
     private static Logger logger = Logger.getLogger(TektonClient.class);
     private String tektonBaseUrl = System.getProperty("tekton.base.url", "http://localhost:9000");
-    private String authHeader; //TOD: read from properties
+    private String authHeader = System.getProperty("tekton.auth.token");
 
     public void reserveQuota(Map<String, Map<String, Integer>> quotaNeeded, String reservationId, String entity,
                               String createdBy) throws IOException {

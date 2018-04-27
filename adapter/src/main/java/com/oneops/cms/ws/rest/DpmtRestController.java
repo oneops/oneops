@@ -30,8 +30,10 @@ import java.util.stream.Stream;
 import javax.servlet.http.HttpServletResponse;
 
 import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.dal.DJDpmtMapper;
 import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.tekton.TektonClient;
+import com.oneops.tekton.TektonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -61,12 +63,12 @@ import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 
 @Controller
 public class DpmtRestController extends AbstractRestController {
-	private static final String IS_SOFT_QUOTA_ENABLED = "IS_SOFT_QUOTA_ENABLED";
 	private CmsDjManager djManager;
 	private CmsUtil cmsUtil = new CmsUtil();
 	private CmsScopeVerifier scopeVerifier;
 	private TektonClient tektonClient;
-	private CmsCmProcessor cmProcessor;
+	private TektonUtils tektonUtils;
+	private DJDpmtMapper dpmtMapper;
 	
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
@@ -77,17 +79,20 @@ public class DpmtRestController extends AbstractRestController {
 		this.scopeVerifier = scopeVerifier;
 	}
 	
-	
 	public void setDjManager(CmsDjManager djManager) {
 		this.djManager = djManager;
+	}
+
+	public void setDpmtMapper(DJDpmtMapper dpmtMapper) {
+		this.dpmtMapper = dpmtMapper;
 	}
 
 	public void setTektonClient(TektonClient tektonClient) {
 		this.tektonClient = tektonClient;
 	}
 
-	public void setCmProcessor(CmsCmProcessor cmProcessor) {
-		this.cmProcessor = cmProcessor;
+	public void setTektonUtils(TektonUtils tektonUtils) {
+		this.tektonUtils = tektonUtils;
 	}
 
 	@ExceptionHandler(DJException.class)
@@ -138,10 +143,15 @@ public class DpmtRestController extends AbstractRestController {
 			dpmt.setDeploymentId(dpmtId);
 			dpmt.setUpdatedBy(userId);
 
-			CmsVar softQuotaEnabled = cmProcessor.getCmSimpleVar(IS_SOFT_QUOTA_ENABLED);
-			if (softQuotaEnabled != null && Boolean.TRUE.toString().equals(softQuotaEnabled.getValue())) {
+			if (tektonUtils.isSoftQuotaEnabled()) {
 				if ("canceled".equalsIgnoreCase(dpmt.getDeploymentState())) {
-					tektonClient.deleteReservation(String.valueOf(dpmtId)); //TODO: pull whole deployment to know subscriptions involved
+					//query the clouds from whole deployment - to know subscriptions involved
+					List<Long> cloudIds = dpmtMapper
+							.getToCiIdsForDeployment(dpmt.getDeploymentId(), null, "base.DeployedTo");
+					for (long cloudId : cloudIds) {
+						String subscriptionId = tektonUtils.findSubscriptionId(cloudId);
+						tektonClient.deleteReservation(String.valueOf(dpmtId + subscriptionId));
+					}
 				}
 			}
 

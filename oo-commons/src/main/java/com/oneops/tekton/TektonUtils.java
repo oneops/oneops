@@ -16,6 +16,7 @@ import java.util.*;
 
 public class TektonUtils {
 
+    public static final String IS_SOFT_QUOTA_ENABLED_VAR_NAME = "IS_SOFT_QUOTA_ENABLED";
     public static final String PROVIDER_MAPPINGS_CMS_VAR_NAME = "CLOUD_PROVIDER_MAPPINGS";
     private List<CloudProviderMapping> cloudProviderMappings;
     private Map<String, String> providers = new HashMap<>();
@@ -86,6 +87,10 @@ public class TektonUtils {
                 String[] tokens = location.split("/");
                 if (tokens.length > 0) {
                     provider = tokens[tokens.length - 1];
+                    if (provider.indexOf("-") > 0) {
+                        provider = provider.substring(0, provider.indexOf("-"));
+                    }
+
                     providers.put(cloudName, provider);
                 }
             }
@@ -139,5 +144,13 @@ public class TektonUtils {
         }
 
         return subscriptionId;
+    }
+
+    public boolean isSoftQuotaEnabled() {
+        CmsVar softQuotaEnabled = cmProcessor.getCmSimpleVar(IS_SOFT_QUOTA_ENABLED_VAR_NAME);
+        if (softQuotaEnabled != null && Boolean.TRUE.toString().equals(softQuotaEnabled.getValue())) {
+            return true;
+        }
+        return false;
     }
 }

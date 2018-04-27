@@ -229,10 +229,13 @@ public class InductorListener implements MessageListener {
 
   private void handleWorkOrderFlow(String processId, String executionId, Map<String,
           Object> params, CmsWorkOrderSimpleBase wo) throws JMSException {
-    try {
-      updateQuota(wo, params);
-    } catch (Exception e) {
-      logger.error("Error while updating soft quota, still going ahead with rest of the WO response processing");
+
+    if (tektonUtils.isSoftQuotaEnabled()) {
+      try {
+        updateQuota(wo, params);
+      } catch (Exception e) {
+        logger.error("Error while updating soft quota, still going ahead with rest of the WO response processing");
+      }
     }
 
     if (isRunByDeployer(wo)) {
@@ -282,7 +285,7 @@ public class InductorListener implements MessageListener {
       Map<String, Integer> resourceNumbers = new HashMap<>();
 
       CloudProviderMapping cloudProviderMapping = tektonUtils.getCloudProviderMapping(cloudName, cloudProviderMappings);
-      String provider = cloudProviderMapping.getProvider();
+      String subscriptionId = tektonUtils.findSubscriptionId(wo.getCloud().getCiId());
 
       if (rfcClass.contains(".Compute")) {
         String size = ciAttributes.get("size");
@@ -292,14 +295,14 @@ public class InductorListener implements MessageListener {
       switch (state) {
         case DPMT_STATE_COMPLETE:
           if (rfcAction.equalsIgnoreCase("add")) {
-            tektonClient.commitReservation(resourceNumbers, deploymentId + provider);
+            tektonClient.commitReservation(resourceNumbers, deploymentId + subscriptionId);
           } else if (rfcAction.equalsIgnoreCase("delete")) {
-            tektonClient.releaseResources(orgName, provider, resourceNumbers);
+            tektonClient.releaseResources(orgName, subscriptionId, resourceNumbers);
           }
           break;
         case DPMT_STATE_FAILED:
           if (rfcAction.equalsIgnoreCase("add")) {
-            //tektonClient.rollbackReservation(resourceNumbers, deploymentId + provider);
+            //tektonClient.rollbackReservation(resourceNumbers, deploymentId + subscriptionId);
           }
           break;
       }
