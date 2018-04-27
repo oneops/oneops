@@ -173,6 +173,11 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
       end
     end
 
+    if get_os_type =~ /windows/
+      bundler = `#{get_bin_dir}gem which bundler`
+      libdir = File.dirname(bundler)
+      $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
+    end
     require 'bundler'
     ENV['BUNDLE_GEMFILE'] = gemfile unless ENV['BUNDLE_GEMFILE']
     lockfile = Bundler::LockfileParser.new(Bundler.read_file("#{gemfile}.lock"))
@@ -182,7 +187,7 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
         puts "Installing gem #{s.full_name} from source."
         gem_dir = File.expand_path(s.source.path, File.dirname(gemfile))
         gem_path = File.join(gem_dir, "#{s.full_name}.gem")
-        cmd = "gem install '#{gem_path}' --ignore-dependencies --no-ri --no-rdoc"
+        cmd = "#{get_bin_dir}gem install '#{gem_path}' --ignore-dependencies --no-ri --no-rdoc"
         ec = system cmd
         if !ec || ec.nil?
           puts "#{cmd} failed with, #{$?}"
