@@ -1,11 +1,16 @@
 package com.oneops.transistor.service;
 
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsRfcAttribute;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.tekton.TektonClient;
+import com.oneops.tekton.TektonUtils;
 import com.oneops.transistor.service.peristenceless.BomData;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Matchers;
@@ -16,20 +21,34 @@ import org.testng.annotations.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SoftQuotaTest {
 
-    CmsVar cmsVar = new CmsVar();
+    private static final long CLOUD_ID = 20;
+    private static final String SUBSCRIPTION_ID = "azure-sub1";
+    CmsVar cmsVarProviderMapping = new CmsVar();
+    CmsVar cmsVarSoftQuotaEnabled = new CmsVar();
     BomAsyncProcessor bomAsyncProcessor = new BomAsyncProcessor();
+    TektonUtils tektonUtils = new TektonUtils();
     BomData bomData;
+    CmsCI cloudCi = new CmsCI();
     ArrayList<CmsRfcCI> cis = new ArrayList<>();
     ArrayList<CmsRfcRelation > relations = new ArrayList<>();
     TektonClient tektonClientMock = Mockito.mock(TektonClient.class);
+    List<CmsCIRelation> cloudServicesRelations = new ArrayList<>();
 
     @BeforeMethod
     public void setupTest() {
-        cmsVar = new CmsVar();
+        cmsVarProviderMapping = new CmsVar();
+        cmsVarSoftQuotaEnabled = new CmsVar();
+        cloudCi = new CmsCI();
+        CmsCIAttribute locationAttribute = new CmsCIAttribute();
+        locationAttribute.setAttributeName("location");
+        locationAttribute.setDfValue("/providers/azure-somecloud");
+        cloudCi.addAttribute(locationAttribute);
+        cloudCi.setCiId(CLOUD_ID);
         bomAsyncProcessor = new BomAsyncProcessor();
         cis = new ArrayList<>();
         relations = new ArrayList<>();
@@ -37,11 +56,37 @@ public class SoftQuotaTest {
         CmsCmProcessor cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
         String cloudProviderMappings = "[{\"provider\":\"Azure\",\"computeMapping\":[{\"size\":\"M\",\"ip\":1,\"nic\":1,\"cores\":2}]}]";
-        cmsVar.setValue(cloudProviderMappings);
-        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(BomAsyncProcessor.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVar);
+        cmsVarProviderMapping.setValue(cloudProviderMappings);
+        cmsVarSoftQuotaEnabled.setValue("true");
+        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVarProviderMapping);
+        Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.IS_SOFT_QUOTA_ENABLED_VAR_NAME))).thenReturn(cmsVarSoftQuotaEnabled);
         Mockito.when(cmsCmProcessor.getNextDjId()).thenReturn(1000L);
+        Mockito.when(cmsCmProcessor.getCiById(Mockito.eq(CLOUD_ID))).thenReturn(cloudCi);
+
+        //create provides rel
+        CmsCIRelation relation = new CmsCIRelation();
+        cloudServicesRelations.add(relation);
+        //set rel attribute "service" with df value as "compute"
+        CmsCIRelationAttribute attribute = new CmsCIRelationAttribute();
+        attribute.setAttributeName("service");
+        attribute.setDfValue("compute");
+        relation.addAttribute(attribute);
+
+        //create cloudService CI and set it as toCi.
+        CmsCI computeCloudService = new CmsCI();
+        relation.setToCi(computeCloudService);
+        CmsCIAttribute subscriptionAttribute = new CmsCIAttribute();
+        subscriptionAttribute.setAttributeName("subscription");
+        subscriptionAttribute.setDfValue(SUBSCRIPTION_ID);
+        computeCloudService.addAttribute(subscriptionAttribute);
+
+        //Add "subscription" as ciAttribute for cloudService ci with df value
+        Mockito.when(cmsCmProcessor.getFromCIRelations(Mockito.eq(CLOUD_ID),
+                Mockito.eq("base.Provides"), Mockito.anyString())).thenReturn(cloudServicesRelations);
 
         bomAsyncProcessor.setCmProcessor(cmsCmProcessor);
+        tektonUtils.setCmProcessor(cmsCmProcessor);
+        bomAsyncProcessor.setTektonUtils(tektonUtils);
         bomData = new BomData(null, cis, relations);
         bomAsyncProcessor.setTektonClient(tektonClientMock);
     }
@@ -55,8 +100,8 @@ public class SoftQuotaTest {
         cis.add(computeAddRfc_1);
         cis.add(computeUpdateRfc_1);
 
-        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, "azure-east");
-        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, "azure-east");
+        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, CLOUD_ID, "azure-east");
+        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, CLOUD_ID,"azure-east");
 
         relations.add(deployedToRelationForAdd);
         relations.add(deployedToRelationForUpdate);
@@ -65,24 +110,25 @@ public class SoftQuotaTest {
         String userName = "user1";
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                bomAsyncProcessor.getCloudProviderMappings());
+                tektonUtils.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 
         Map<String, Map<String, Integer>> expectedQuotaRequest = new HashMap<>();
         Map<String, Integer> resources = new HashMap<>();
         resources.put("cores", 2);
-        expectedQuotaRequest.put("Azure", resources);
+        expectedQuotaRequest.put(SUBSCRIPTION_ID, resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
                 .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
                         Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
     }
 
-    private CmsRfcRelation createDeployedToRelation(long id, String cloudName) {
+    private CmsRfcRelation createDeployedToRelation(long ciId, long cloudId, String cloudName) {
         CmsRfcRelation deployedToRelation = new CmsRfcRelation();
         deployedToRelation.setRelationName("base.DeployedTo");
-        deployedToRelation.setFromCiId(id);
+        deployedToRelation.setFromCiId(ciId);
+        deployedToRelation.setToCiId(cloudId);
         deployedToRelation.setComments("{\"toCiName\":\"" + cloudName + "\"}");
 
         return deployedToRelation;
@@ -109,7 +155,7 @@ public class SoftQuotaTest {
 
         cis.add(computeUpdateRfc_1);
 
-        CmsRfcRelation deployedToRelation = createDeployedToRelation(2L, "azure-east");
+        CmsRfcRelation deployedToRelation = createDeployedToRelation(2L, CLOUD_ID, "azure-east");
 
         relations.add(deployedToRelation);
 
@@ -117,7 +163,7 @@ public class SoftQuotaTest {
         String userName = "user1";
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                bomAsyncProcessor.getCloudProviderMappings());
+                tektonUtils.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 
@@ -138,9 +184,10 @@ public class SoftQuotaTest {
         computeUpdateRfc_1.setRfcAction("update");
         cis.add(computeAddRfc_1);
         cis.add(computeUpdateRfc_1);
+        cloudCi.getAttribute("location").setDfValue("/providers/openstack-somecloud");
 
-        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, "cdc1");
-        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, "cdc1");
+        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, CLOUD_ID, "cdc1");
+        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, CLOUD_ID, "cdc1");
 
         relations.add(deployedToRelationForAdd);
         relations.add(deployedToRelationForUpdate);
@@ -149,7 +196,7 @@ public class SoftQuotaTest {
         String userName = "user1";
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                bomAsyncProcessor.getCloudProviderMappings());
+                tektonUtils.getCloudProviderMappings());
 
         assert(deploymentId > 0);
 

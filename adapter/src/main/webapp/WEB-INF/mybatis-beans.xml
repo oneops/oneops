@@ -171,4 +171,6 @@
         <property name="procProcessor" ref="procProcessor"/>
     </bean>
 
+    <bean id="tektonClient" class="com.oneops.tekton.TektonClient"/>
+
 </beans>
