@@ -85,11 +85,8 @@ public class BomAsyncProcessor {
                     if (tektonUtils.isSoftQuotaEnabled()) {
                         BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
                         String orgName = dpmt.getNsPath().split("/")[1];
-                        List<CloudProviderMapping> cloudProviderMappings = tektonUtils.getCloudProviderMappings();
-                        if (cloudProviderMappings != null && cloudProviderMappings.size() > 0) {
-                            long deploymentId = reserveQuota(bomData, orgName, userId, cloudProviderMappings);
-                            dpmt.setDeploymentId(deploymentId);
-                        }
+                        long deploymentId = reserveQuota(bomData, orgName, userId);
+                        dpmt.setDeploymentId(deploymentId);
                     }
                     bomInfo = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
                 }
@@ -119,7 +116,7 @@ public class BomAsyncProcessor {
         t.start();
     }
 
-    long reserveQuota(BomData bomData, String orgName, String userId, List<CloudProviderMapping> mappings) throws IOException {
+    long reserveQuota(BomData bomData, String orgName, String userId) throws IOException {
 
         Collection<CmsRfcCI> rfcCIs = bomData.getCis();
         int totalCores = 0;
@@ -140,31 +137,38 @@ public class BomAsyncProcessor {
                 String provider = tektonUtils.findProvider(deployedToRelation);
 
                 String subscriptionId = tektonUtils.findSubscriptionId(deployedToRelation.getToCiId());
-                CloudProviderMapping cloudProviderMapping = tektonUtils.getCloudProviderMapping(provider, mappings);
-
-                if (cloudProviderMapping == null) {
-                    logger.info("Soft quota check: no provider mapping found for provider " + provider);
-                    continue;
-                }
 
                 if (className.endsWith(".Compute")) {
                     String size = ciRfc.getAttribute("size").getNewValue();
-                    int cores = tektonUtils.getTotalCores(size, cloudProviderMapping);
-                    totalCores = totalCores + cores;
-                    Map<String, Integer> resourcesNeeded = quotaNeeded.get(subscriptionId);
+                    //int cores = tektonUtils.getTotalCores(size, cloudProviderMapping);
+                    //
+                    Map<String, Double> computeResources = tektonUtils.getResources(provider, "compute", "size", size);
 
-                    if (resourcesNeeded == null) {
-                        resourcesNeeded = new HashMap();
-                        quotaNeeded.put(subscriptionId, resourcesNeeded);
+                    if (computeResources == null) {
+                        logger.info("Soft quota: No mapping found for provider : " + provider + " and compute size: " + size);
+                        continue;
                     }
 
-                    resourcesNeeded.put("cores", totalCores);
+                    for (String resourceName : computeResources.keySet()) {
+                        Map<String, Integer> resourcesNeeded = quotaNeeded.get(subscriptionId);
+                        if (resourcesNeeded == null) {
+                            resourcesNeeded = new HashMap();
+                            quotaNeeded.put(subscriptionId, resourcesNeeded);
+                        }
+                        Integer totalNeeded = resourcesNeeded.get(resourceName);
+                        if (totalNeeded == null) {
+                            totalNeeded = computeResources.get(resourceName).intValue();
+                        } else {
+                            totalNeeded = totalNeeded + computeResources.get(resourceName).intValue();
+                        }
+                        resourcesNeeded.put(resourceName, totalNeeded);
+                    }
                 }
             }
         }
 
         long deploymentId = cmProcessor.getNextDjId();
-        if (totalCores > 0) {
+        if (quotaNeeded.size() > 0) {
             tektonClient.reserveQuota(quotaNeeded, String.valueOf(deploymentId), orgName, userId);
         }
         return deploymentId;
