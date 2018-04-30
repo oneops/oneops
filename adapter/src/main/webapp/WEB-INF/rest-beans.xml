@@ -91,6 +91,7 @@
     <property name="djManager" ref="cmsDjManager"/>
     <property name="scopeVerifier" ref="scopeVerifier"/>
     <property name="tektonClient" ref="tektonClient"/>
+    <property name="tektonUtils" ref="tektonUtils"/>
     <property name="dpmtMapper" ref="dpmtMapper"/>
   </bean>
 

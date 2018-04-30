@@ -173,4 +173,6 @@
 
     <bean id="tektonClient" class="com.oneops.tekton.TektonClient"/>
 
+    <bean id="tektonUtils" class="com.oneops.tekton.TektonUtils"/>
+
 </beans>
