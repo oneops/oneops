@@ -140,8 +140,6 @@ public class BomAsyncProcessor {
 
                 if (className.endsWith(".Compute")) {
                     String size = ciRfc.getAttribute("size").getNewValue();
-                    //int cores = tektonUtils.getTotalCores(size, cloudProviderMapping);
-                    //
                     Map<String, Double> computeResources = tektonUtils.getResources(provider, "compute", "size", size);
 
                     if (computeResources == null) {
