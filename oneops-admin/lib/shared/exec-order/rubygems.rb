@@ -159,6 +159,11 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
   if ['objectstore','compute','volume', 'os'].include?(component)
     start_time = Time.now.to_i
     gemfile = "exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+
+    if RUBY_VERSION.to_i >= 2 && provisioner_version == '11.4.0'
+      gemfile = "exec-gems-#{provisioner}-#{provisioner_version}-ruby2.gemfile"
+    end
+
     cmd = "#{get_bin_dir}bundle install --local --gemfile #{gemfile}"
     ec = system cmd
     if !ec || ec.nil?

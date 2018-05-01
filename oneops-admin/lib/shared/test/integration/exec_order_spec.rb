@@ -15,7 +15,7 @@ describe 'cache-exec-gems.rb' do
   it 'executes successfully' do
     expect(cache_cmd.exit_status).to eq(0)
   end
-end
+end if RUBY_VERSION.to_i >= 2
 
 describe 'exec-order.rb for os component' do
   let(:gem_source) { 'https://rubygems.org' }
