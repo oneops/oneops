@@ -3,7 +3,7 @@ class Account::OrganizationsController < ApplicationController
   skip_before_filter :check_organization
 
   def index
-    render :json => is_global_admin? ?  Organization.all : lcurrent_user.organizations.all
+    render :json => is_global_admin? ?  Organization.all : current_user.organizations.all
   end
 
   def show
