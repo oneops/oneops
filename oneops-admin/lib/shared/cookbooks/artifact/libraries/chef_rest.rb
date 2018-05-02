@@ -23,11 +23,9 @@ class Chef
 
       if (accept_ranges != "bytes") || (content_length <= chunk_minimum)
         # doesn't support range request
-        file="#{local_path}.tmp"
-        download_file_single(remote_url, file)
         local_tmp = Tempfile.new(File.basename(local_path, ".*"), File.dirname(local_path))
         local_tmp.binmode
-        local_tmp.write(File.open(file, 'rb').read)
+        download_file_single(remote_url, local_tmp.path)
         local_tmp.flush
       else
         # server support range request
