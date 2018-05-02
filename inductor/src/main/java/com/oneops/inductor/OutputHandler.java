@@ -81,7 +81,7 @@ public class OutputHandler extends OutputStream {
         line = line + new String(bytes);
 
         if (line.endsWith("\n")) {
-            line = line.substring(0, line.length() - 1);
+            line = line.substring(0, line.length() - 1).replace("\r", "");
             flush();
         }
     }
