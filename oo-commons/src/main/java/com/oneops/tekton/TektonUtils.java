@@ -18,7 +18,7 @@ public class TektonUtils {
 
     public static final String IS_SOFT_QUOTA_ENABLED_VAR_NAME = "IS_SOFT_QUOTA_ENABLED";
     public static final String PROVIDER_MAPPINGS_CMS_VAR_NAME = "CLOUD_PROVIDER_MAPPINGS";
-    private List<CloudProviderMapping> cloudProviderMappings;
+    private Map<String, Object> cloudProviderMappings;
     private Map<String, String> providers = new HashMap<>();
     private Map<Long, String> cloudSubscriptionIds = new HashMap<>();
     private CmsCmProcessor cmProcessor;
@@ -37,7 +37,7 @@ public class TektonUtils {
                         + cloudProviderMapping.getProvider() + " size: " + size);
     }
 
-    public List<CloudProviderMapping> getCloudProviderMappings() {
+    public Map<String, Object> getCloudProviderMappings() {
         if (this.cloudProviderMappings != null) {
             return this.cloudProviderMappings;
         }
@@ -48,10 +48,25 @@ public class TektonUtils {
         }
         String mappingJson = cmsVar.getValue();
         logger.info("Got cloud provider mappings: " + mappingJson);
-        CloudProviderMapping[] mappingArray = gson.fromJson(mappingJson, CloudProviderMapping[].class);
-        List<CloudProviderMapping> mappingList = Arrays.asList(mappingArray);
-        this.cloudProviderMappings = mappingList;
-        return mappingList;
+        Map<String, Object> mapping = gson.fromJson(mappingJson, Map.class);
+        this.cloudProviderMappings = mapping;
+        return mapping;
+    }
+
+    public Map<String, Double> getResources(String provider, String className, String attributeName, String attributeValue) {
+        Map<String, Object> computeMap = (Map<String, Object>) getCloudProviderMappings().get(className.toLowerCase());
+        if (computeMap == null) {
+            return null;
+        }
+        Map<String, Object> providerMap = (Map<String, Object>) computeMap.get(provider);
+        if (providerMap == null) {
+            return null;
+        }
+        Map<String, Object> sizeMap = (Map<String, Object>) providerMap.get(attributeName);
+        if (sizeMap == null) {
+            return null;
+        }
+        return (Map<String, Double>) sizeMap.get(attributeValue);
     }
 
     public CloudProviderMapping getCloudProviderMapping(String provider, List<CloudProviderMapping> mappings) {
@@ -80,18 +95,25 @@ public class TektonUtils {
             provider = providers.get(cloudName);
         } else {
             long cloudCiId = deployedToRelation.getToCiId();
-            CmsCI cloudCi = cmProcessor.getCiById(cloudCiId);
-            CmsCIAttribute locationAttribute = cloudCi.getAttribute("location");
-            if (locationAttribute != null) {
-                String location = locationAttribute.getDfValue();
-                String[] tokens = location.split("/");
-                if (tokens.length > 0) {
-                    provider = tokens[tokens.length - 1];
-                    if (provider.indexOf("-") > 0) {
-                        provider = provider.substring(0, provider.indexOf("-"));
-                    }
+            provider = findProviderForCloud(cloudCiId);
+            if (provider != null) {
+                providers.put(cloudName, provider);
+            }
+        }
+        return provider;
+    }
 
-                    providers.put(cloudName, provider);
+    public String findProviderForCloud(long cloudCiId) {
+        CmsCI cloudCi = cmProcessor.getCiById(cloudCiId);
+        CmsCIAttribute locationAttribute = cloudCi.getAttribute("location");
+        String provider = null;
+        if (locationAttribute != null) {
+            String location = locationAttribute.getDfValue();
+            String[] tokens = location.split("/");
+            if (tokens.length > 0) {
+                provider = tokens[tokens.length - 1];
+                if (provider.indexOf("-") > 0) {
+                    provider = provider.substring(0, provider.indexOf("-"));
                 }
             }
         }

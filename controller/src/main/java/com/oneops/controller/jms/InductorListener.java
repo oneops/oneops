@@ -260,11 +260,6 @@ public class InductorListener implements MessageListener {
       CmsWorkOrderSimple workOrder = ((CmsWorkOrderSimple)wo);
       CmsRfcCISimple rfcCI = workOrder.getRfcCi();
       String rfcAction = rfcCI.getRfcAction();
-      List<CloudProviderMapping> cloudProviderMappings = tektonUtils.getCloudProviderMappings();
-
-      if (cloudProviderMappings == null || cloudProviderMappings.size() == 0) {
-        return; //there is no cloud configuration setup for soft quota check
-      }
 
       if (rfcAction.equalsIgnoreCase("update") || rfcAction.equalsIgnoreCase("replace")) {
         logger.info("work order does not need quota processing: rfc id: " + rfcCI.getRfcId());
@@ -284,13 +279,16 @@ public class InductorListener implements MessageListener {
       String orgName = nsPath.split("/")[1];
       Map<String, Integer> resourceNumbers = new HashMap<>();
 
-      CloudProviderMapping cloudProviderMapping = tektonUtils.getCloudProviderMapping(cloudName, cloudProviderMappings);
+      String provider = tektonUtils.findProviderForCloud(wo.getCloud().getCiId());
       String subscriptionId = tektonUtils.findSubscriptionId(wo.getCloud().getCiId());
 
       if (rfcClass.contains(".Compute")) {
         String size = ciAttributes.get("size");
-        int totalCores = tektonUtils.getTotalCores(size, cloudProviderMapping);
-        resourceNumbers.put("cores", totalCores);
+        Map<String, Double> resourcesForCompute = tektonUtils.getResources(provider, "compute", "size", size);
+        for (String key : resourcesForCompute.keySet()) {
+          Double number = resourcesForCompute.get(key);
+          resourceNumbers.put(key, number.intValue());
+        }
       }
       switch (state) {
         case DPMT_STATE_COMPLETE:

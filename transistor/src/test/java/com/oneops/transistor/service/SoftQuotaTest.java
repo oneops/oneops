@@ -55,7 +55,33 @@ public class SoftQuotaTest {
         tektonClientMock = Mockito.mock(TektonClient.class);
         CmsCmProcessor cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
-        String cloudProviderMappings = "[{\"provider\":\"Azure\",\"computeMapping\":[{\"size\":\"M\",\"ip\":1,\"nic\":1,\"cores\":2}]}]";
+        String cloudProviderMappings = "{\n" +
+                "  \"compute\": {\n" +
+                "    \"azure\": {\n" +
+                "      \"size\": {\n" +
+                "        \"M\": {\n" +
+                "          \"Dv2\": 2,\n" +
+                "          \"vm\": 1\n" +
+                "        },\n" +
+                "        \"L\": {\n" +
+                "          \"Dv2\": 6,\n" +
+                "          \"vm\": 1\n" +
+                "        },\n" +
+                "        \"mem-L\": {\n" +
+                "          \"DSv3\": 4,\n" +
+                "          \"vm\": 1\n" +
+                "        }\n" +
+                "      }\n" +
+                "    },\n" +
+                "    \"openstack\": {\n" +
+                "      \"size\": {\n" +
+                "        \"M\": {\n" +
+                "          \"cores\": 4\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
         cmsVarProviderMapping.setValue(cloudProviderMappings);
         cmsVarSoftQuotaEnabled.setValue("true");
         Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVarProviderMapping);
@@ -109,14 +135,14 @@ public class SoftQuotaTest {
         String orgName = "oneops";
         String userName = "user1";
 
-        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                tektonUtils.getCloudProviderMappings());
+        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName);
 
         assert(deploymentId > 0);
 
         Map<String, Map<String, Integer>> expectedQuotaRequest = new HashMap<>();
         Map<String, Integer> resources = new HashMap<>();
-        resources.put("cores", 2);
+        resources.put("Dv2", 2);
+        resources.put("vm", 1);
         expectedQuotaRequest.put(SUBSCRIPTION_ID, resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
@@ -162,15 +188,14 @@ public class SoftQuotaTest {
         String orgName = "oneops";
         String userName = "user1";
 
-        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                tektonUtils.getCloudProviderMappings());
+        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName);
 
         assert(deploymentId > 0);
 
         Map<String, Map<String, Integer>> expectedQuotaRequest = new HashMap<>();
         Map<String, Integer> resources = new HashMap<>();
-        resources.put("cores", 2);
-        expectedQuotaRequest.put("Azure", resources);
+        resources.put("Dv2", 2);
+        expectedQuotaRequest.put("azure", resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
                 .reserveQuota(Mockito.anyObject(),
@@ -184,7 +209,7 @@ public class SoftQuotaTest {
         computeUpdateRfc_1.setRfcAction("update");
         cis.add(computeAddRfc_1);
         cis.add(computeUpdateRfc_1);
-        cloudCi.getAttribute("location").setDfValue("/providers/openstack-somecloud");
+        cloudCi.getAttribute("location").setDfValue("/providers/google-somecloud");
 
         CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, CLOUD_ID, "cdc1");
         CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, CLOUD_ID, "cdc1");
@@ -195,15 +220,9 @@ public class SoftQuotaTest {
         String orgName = "oneops";
         String userName = "user1";
 
-        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName,
-                tektonUtils.getCloudProviderMappings());
+        Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName);
 
         assert(deploymentId > 0);
-
-        Map<String, Map<String, Integer>> expectedQuotaRequest = new HashMap<>();
-        Map<String, Integer> resources = new HashMap<>();
-        resources.put("cores", 2);
-        expectedQuotaRequest.put("Azure", resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
                 .reserveQuota(Mockito.anyObject(),

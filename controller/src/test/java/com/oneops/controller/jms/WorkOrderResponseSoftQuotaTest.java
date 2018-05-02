@@ -37,19 +37,46 @@ public class WorkOrderResponseSoftQuotaTest {
     CmsVar cmsVar = new CmsVar();
     private static final long CLOUD_ID = 20;
     List<CmsCIRelation> cloudServicesRelations = new ArrayList<>();
+    CmsCI cloudCi = new CmsCI();
 
     @BeforeTest
     public void setup() {
         inductorListener = new InductorListener();
         workOrder = new CmsWorkOrderSimple();
-        CmsCISimple cloudCi = new CmsCISimple();
-        cloudCi.setCiName("azure");
-        cloudCi.setCiId(CLOUD_ID);
-        workOrder.setCloud(cloudCi);
+        CmsCISimple cloudCiSimple = new CmsCISimple();
+        cloudCiSimple.setCiName("azure");
+        cloudCiSimple.setCiId(CLOUD_ID);
+        workOrder.setCloud(cloudCiSimple);
         workOrder.setDeploymentId(DEPLOYMENT_ID);
         CmsCmProcessor cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
-        String cloudProviderMappings = "[{\"provider\":\"Azure\",\"computeMapping\":[{\"size\":\"M\",\"ip\":1,\"nic\":1,\"cores\":2}]}]";
+        String cloudProviderMappings = "{\n" +
+                "  \"compute\": {\n" +
+                "    \"azure\": {\n" +
+                "      \"size\": {\n" +
+                "        \"M\": {\n" +
+                "          \"Dv2\": 2,\n" +
+                "          \"vm\": 1\n" +
+                "        },\n" +
+                "        \"L\": {\n" +
+                "          \"Dv2\": 6,\n" +
+                "          \"vm\": 1\n" +
+                "        },\n" +
+                "        \"mem-L\": {\n" +
+                "          \"DSv3\": 4,\n" +
+                "          \"vm\": 1\n" +
+                "        }\n" +
+                "      }\n" +
+                "    },\n" +
+                "    \"openstack\": {\n" +
+                "      \"size\": {\n" +
+                "        \"M\": {\n" +
+                "          \"cores\": 4\n" +
+                "        }\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
         cmsVar.setValue(cloudProviderMappings);
         Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVar);
         TektonUtils tektonUtils = new TektonUtils();
@@ -78,6 +105,14 @@ public class WorkOrderResponseSoftQuotaTest {
         Mockito.when(cmsCmProcessor.getFromCIRelations(Mockito.eq(CLOUD_ID),
                 Mockito.eq("base.Provides"), Mockito.anyString())).thenReturn(cloudServicesRelations);
 
+        cloudCi = new CmsCI();
+        CmsCIAttribute locationAttribute = new CmsCIAttribute();
+        locationAttribute.setAttributeName("location");
+        locationAttribute.setDfValue("/providers/azure-somecloud");
+        cloudCi.addAttribute(locationAttribute);
+        cloudCi.setCiId(CLOUD_ID);
+
+        Mockito.when(cmsCmProcessor.getCiById(Mockito.eq(CLOUD_ID))).thenReturn(cloudCi);
     }
 
     @Test
@@ -87,7 +122,8 @@ public class WorkOrderResponseSoftQuotaTest {
         workOrder.setRfcCi(rfcCI);
         inductorListener.updateQuota(workOrder, params);
         Map<String, Integer> expectedResourceNumbers = new HashMap<>();
-        expectedResourceNumbers.put("cores", 2);
+        expectedResourceNumbers.put("Dv2", 2);
+        expectedResourceNumbers.put("vm", 1);
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
@@ -105,7 +141,8 @@ public class WorkOrderResponseSoftQuotaTest {
         workOrder.setRfcCi(rfcCI);
         inductorListener.updateQuota(workOrder, params);
         Map<String, Integer> expectedResourceNumbers = new HashMap<>();
-        expectedResourceNumbers.put("cores", 2);
+        expectedResourceNumbers.put("Dv2", 2);
+        expectedResourceNumbers.put("vm", 1);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
                 .rollbackReservation(Mockito.anyMap(), Mockito.anyString());
@@ -122,7 +159,8 @@ public class WorkOrderResponseSoftQuotaTest {
         workOrder.setRfcCi(rfcCI);
         inductorListener.updateQuota(workOrder, params);
         Map<String, Integer> expectedResourceNumbers = new HashMap<>();
-        expectedResourceNumbers.put("cores", 2);
+        expectedResourceNumbers.put("Dv2", 2);
+        expectedResourceNumbers.put("vm", 1);
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
@@ -140,8 +178,6 @@ public class WorkOrderResponseSoftQuotaTest {
         params.put(CmsConstants.WORK_ORDER_STATE, DPMT_STATE_FAILED);
         workOrder.setRfcCi(rfcCI);
         inductorListener.updateQuota(workOrder, params);
-        Map<String, Integer> expectedResourceNumbers = new HashMap<>();
-        expectedResourceNumbers.put("cores", 2);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
                 .releaseResources(Mockito.anyString(), Mockito.anyString(), Mockito.anyMap());
