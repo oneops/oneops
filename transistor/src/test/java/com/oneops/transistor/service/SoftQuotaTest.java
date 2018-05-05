@@ -27,33 +27,51 @@ import java.util.Map;
 public class SoftQuotaTest {
 
     private static final long CLOUD_ID = 20;
-    private static final String SUBSCRIPTION_ID = "azure-sub1";
+    private static final long GOOGLE_CLOUD_ID = 21;
+    private static final String AZURE_SUBSCRIPTION_ID = "azure-sub1";
+    private static final String GOOGLE_SUBSCRIPTION_ID = "google-sub1";
+    private static final String AZURE_CLOUD_LOCATION = "azure-somecloud";
     CmsVar cmsVarProviderMapping = new CmsVar();
     CmsVar cmsVarSoftQuotaEnabled = new CmsVar();
     BomAsyncProcessor bomAsyncProcessor = new BomAsyncProcessor();
     TektonUtils tektonUtils = new TektonUtils();
     BomData bomData;
-    CmsCI cloudCi = new CmsCI();
+    CmsCI azureCloudCi = new CmsCI();
+    CmsCI googleCloudCi = new CmsCI();
     ArrayList<CmsRfcCI> cis = new ArrayList<>();
     ArrayList<CmsRfcRelation > relations = new ArrayList<>();
     TektonClient tektonClientMock = Mockito.mock(TektonClient.class);
-    List<CmsCIRelation> cloudServicesRelations = new ArrayList<>();
+    List<CmsCIRelation> azureCloudServicesRelations = new ArrayList<>();
+    List<CmsCIRelation> googleCloudServicesRelations = new ArrayList<>();
+    CmsCI azureComputeCloudService = new CmsCI();
+    CmsCI googleComputeCloudService = new CmsCI();
+    CmsCmProcessor cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
     @BeforeMethod
     public void setupTest() {
+        Mockito.reset(cmsCmProcessor);
         cmsVarProviderMapping = new CmsVar();
         cmsVarSoftQuotaEnabled = new CmsVar();
-        cloudCi = new CmsCI();
+        azureCloudCi = new CmsCI();
         CmsCIAttribute locationAttribute = new CmsCIAttribute();
         locationAttribute.setAttributeName("location");
-        locationAttribute.setDfValue("/providers/azure-somecloud");
-        cloudCi.addAttribute(locationAttribute);
-        cloudCi.setCiId(CLOUD_ID);
+        locationAttribute.setDfValue("/providers/" + AZURE_CLOUD_LOCATION);
+        azureCloudCi.addAttribute(locationAttribute);
+        azureCloudCi.setCiId(CLOUD_ID);
+        //for google cloud
+        googleCloudCi = new CmsCI();
+        CmsCIAttribute googleCloudLocationAttribute = new CmsCIAttribute();
+        googleCloudLocationAttribute.setAttributeName("location");
+        googleCloudLocationAttribute.setDfValue("/providers/google-somecloud");
+        googleCloudCi.addAttribute(googleCloudLocationAttribute);
+        googleCloudCi.setCiId(GOOGLE_CLOUD_ID);
+
+
         bomAsyncProcessor = new BomAsyncProcessor();
         cis = new ArrayList<>();
         relations = new ArrayList<>();
         tektonClientMock = Mockito.mock(TektonClient.class);
-        CmsCmProcessor cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
+        cmsCmProcessor = Mockito.mock(CmsCmProcessor.class);
 
         String cloudProviderMappings = "{\n" +
                 "  \"compute\": {\n" +
@@ -87,11 +105,12 @@ public class SoftQuotaTest {
         Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.PROVIDER_MAPPINGS_CMS_VAR_NAME))).thenReturn(cmsVarProviderMapping);
         Mockito.when(cmsCmProcessor.getCmSimpleVar(Mockito.eq(TektonUtils.IS_SOFT_QUOTA_ENABLED_VAR_NAME))).thenReturn(cmsVarSoftQuotaEnabled);
         Mockito.when(cmsCmProcessor.getNextDjId()).thenReturn(1000L);
-        Mockito.when(cmsCmProcessor.getCiById(Mockito.eq(CLOUD_ID))).thenReturn(cloudCi);
+        Mockito.when(cmsCmProcessor.getCiById(Mockito.eq(CLOUD_ID))).thenReturn(azureCloudCi);
+        Mockito.when(cmsCmProcessor.getCiById(Mockito.eq(GOOGLE_CLOUD_ID))).thenReturn(googleCloudCi);
 
         //create provides rel
         CmsCIRelation relation = new CmsCIRelation();
-        cloudServicesRelations.add(relation);
+        azureCloudServicesRelations.add(relation);
         //set rel attribute "service" with df value as "compute"
         CmsCIRelationAttribute attribute = new CmsCIRelationAttribute();
         attribute.setAttributeName("service");
@@ -99,16 +118,38 @@ public class SoftQuotaTest {
         relation.addAttribute(attribute);
 
         //create cloudService CI and set it as toCi.
-        CmsCI computeCloudService = new CmsCI();
-        relation.setToCi(computeCloudService);
+        azureComputeCloudService = new CmsCI();
+        relation.setToCi(azureComputeCloudService);
         CmsCIAttribute subscriptionAttribute = new CmsCIAttribute();
         subscriptionAttribute.setAttributeName("subscription");
-        subscriptionAttribute.setDfValue(SUBSCRIPTION_ID);
-        computeCloudService.addAttribute(subscriptionAttribute);
+        subscriptionAttribute.setDfValue(AZURE_SUBSCRIPTION_ID);
+        azureComputeCloudService.addAttribute(subscriptionAttribute);
+        azureComputeCloudService.setCiClassName("cloud.service.Azure");
 
-        //Add "subscription" as ciAttribute for cloudService ci with df value
         Mockito.when(cmsCmProcessor.getFromCIRelations(Mockito.eq(CLOUD_ID),
-                Mockito.eq("base.Provides"), Mockito.anyString())).thenReturn(cloudServicesRelations);
+                Mockito.eq("base.Provides"), Mockito.anyString())).thenReturn(azureCloudServicesRelations);
+
+        //for google
+        CmsCIRelation relationGoogle = new CmsCIRelation();
+        googleCloudServicesRelations.add(relationGoogle);
+        //set rel attribute "service" with df value as "compute"
+        CmsCIRelationAttribute attributeGoogle = new CmsCIRelationAttribute();
+        attributeGoogle.setAttributeName("service");
+        attributeGoogle.setDfValue("compute");
+        relationGoogle.addAttribute(attributeGoogle);
+        googleComputeCloudService = new CmsCI();
+        relationGoogle.setToCi(googleComputeCloudService);
+        subscriptionAttribute = new CmsCIAttribute();
+        subscriptionAttribute.setAttributeName("subscription");
+        subscriptionAttribute.setDfValue(GOOGLE_SUBSCRIPTION_ID);
+        googleComputeCloudService.addAttribute(subscriptionAttribute);
+        googleComputeCloudService.setCiClassName("cloud.service.Google");
+
+        Mockito.when(cmsCmProcessor.getFromCIRelations(Mockito.eq(CLOUD_ID),
+                Mockito.eq("base.Provides"), Mockito.anyString())).thenReturn(azureCloudServicesRelations);
+
+        Mockito.when(cmsCmProcessor.getFromCIRelations(Mockito.eq(GOOGLE_CLOUD_ID),
+                Mockito.eq("base.Provides"), Mockito.anyString())).thenReturn(googleCloudServicesRelations);
 
         bomAsyncProcessor.setCmProcessor(cmsCmProcessor);
         tektonUtils.setCmProcessor(cmsCmProcessor);
@@ -143,7 +184,7 @@ public class SoftQuotaTest {
         Map<String, Integer> resources = new HashMap<>();
         resources.put("Dv2", 2);
         resources.put("vm", 1);
-        expectedQuotaRequest.put(SUBSCRIPTION_ID, resources);
+        expectedQuotaRequest.put(AZURE_CLOUD_LOCATION + ":" + AZURE_SUBSCRIPTION_ID, resources);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
                 .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
@@ -209,16 +250,17 @@ public class SoftQuotaTest {
         computeUpdateRfc_1.setRfcAction("update");
         cis.add(computeAddRfc_1);
         cis.add(computeUpdateRfc_1);
-        cloudCi.getAttribute("location").setDfValue("/providers/google-somecloud");
 
-        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, CLOUD_ID, "cdc1");
-        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, CLOUD_ID, "cdc1");
+        //Add "subscription" as ciAttribute for cloudService ci with df value
+        CmsRfcRelation deployedToRelationForAdd = createDeployedToRelation(1L, GOOGLE_CLOUD_ID, "cdc1");
+        CmsRfcRelation deployedToRelationForUpdate = createDeployedToRelation(2L, GOOGLE_CLOUD_ID, "cdc1");
 
         relations.add(deployedToRelationForAdd);
         relations.add(deployedToRelationForUpdate);
 
         String orgName = "oneops";
         String userName = "user1";
+
 
         Long deploymentId = bomAsyncProcessor.reserveQuota(bomData, orgName, userName);
 

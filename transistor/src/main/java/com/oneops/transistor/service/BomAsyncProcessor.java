@@ -17,12 +17,6 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.io.IOException;
-import java.util.*;
-
-import com.oneops.cms.cm.domain.CmsCIAttribute;
-import com.oneops.tekton.TektonUtils;
-import org.apache.log4j.Logger;
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmProcessor;
@@ -30,13 +24,17 @@ import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.tekton.TektonClient;
-import com.oneops.tekton.CloudProviderMapping;
-import com.oneops.transistor.service.peristenceless.BomData;
-import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.util.CmsError;
+import com.oneops.tekton.TektonClient;
+import com.oneops.tekton.TektonUtils;
 import com.oneops.transistor.exceptions.TransistorException;
+import com.oneops.transistor.service.peristenceless.BomData;
+import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.*;
 
 public class BomAsyncProcessor {
 
@@ -119,7 +117,6 @@ public class BomAsyncProcessor {
     long reserveQuota(BomData bomData, String orgName, String userId) throws IOException {
 
         Collection<CmsRfcCI> rfcCIs = bomData.getCis();
-        int totalCores = 0;
         Map<String, Map<String, Integer>> quotaNeeded = new HashMap<>();
 
         for (CmsRfcCI ciRfc : rfcCIs) {
