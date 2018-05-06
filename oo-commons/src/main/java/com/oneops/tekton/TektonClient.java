@@ -44,8 +44,9 @@ public class TektonClient {
                 reservation.put(resource, resourceNumber);
                 RequestBody body = RequestBody.create(JSON, gson.toJson(reservation));
 
-                String url = tektonBaseUrl + "/api/quota/reservation?subscription=" + subscriptionId + "&entity=" + entity
-                        + "&reservationId=" + reservationId + subscriptionId + "&createdBy=" + createdBy;
+                String url = tektonBaseUrl + "/api/v1/quota/reservation?subscription=" + subscriptionId + "&entity=" + entity
+                        + "&reservationId=" + reservationId + ":" + subscriptionId + "&createdBy=" + createdBy;
+//                String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + subscriptionId  + "/" + subscriptionId + "/" + entity;
                 Request request = new Request.Builder()
                         .url(url)
                         .addHeader("Content-Type", "application/json")
@@ -70,7 +71,7 @@ public class TektonClient {
     }
 
     public int commitReservation(Map<String, Integer> resourceNumbers, String reservationId) throws IOException {
-        String url = tektonBaseUrl + "/api/quota/reservation/" + reservationId + "/commit";
+        String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + "/commit";
         RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
         Request request = new Request.Builder()
@@ -96,7 +97,7 @@ public class TektonClient {
     }
 
     public int rollbackReservation(Map<String, Integer> resourceNumbers, String reservationId) throws IOException {
-        String url = tektonBaseUrl + "/api/quota/reservation/" + reservationId + "/rollback";
+        String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + "/rollback";
         RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
         Request request = new Request.Builder()
@@ -124,7 +125,7 @@ public class TektonClient {
     }
 
     public int releaseResources(String entity, String subscriptionId, Map<String, Integer> resourceNumbers) throws IOException {
-        String url = tektonBaseUrl + "/api/quota/release/" + subscriptionId + "/" + entity;
+        String url = tektonBaseUrl + "/api/v1/quota/release/" + subscriptionId + "/" + entity;
         RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
         Request request = new Request.Builder()
@@ -151,7 +152,7 @@ public class TektonClient {
     }
 
     public int deleteReservation(String reservationId) throws IOException {
-        String url = tektonBaseUrl + "/api/quota/reservation/" + reservationId;
+        String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId;
 
         Request request = new Request.Builder()
                 .url(url)

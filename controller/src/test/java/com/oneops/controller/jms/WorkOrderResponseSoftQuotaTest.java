@@ -129,7 +129,8 @@ public class WorkOrderResponseSoftQuotaTest {
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
-                .commitReservation(argument.capture(), Mockito.eq(DEPLOYMENT_ID + AZURE_CLOUD_LOCATION + ":" + SUBSCRIPTION_ID));
+                .commitReservation(argument.capture(), Mockito.eq(DEPLOYMENT_ID
+                        + ":" + AZURE_CLOUD_LOCATION + ":" + SUBSCRIPTION_ID));
 
         Map<String, Integer> actualArgument = argument.getValue();
 

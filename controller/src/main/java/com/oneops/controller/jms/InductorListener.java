@@ -294,7 +294,7 @@ public class InductorListener implements MessageListener {
       switch (state) {
         case DPMT_STATE_COMPLETE:
           if (rfcAction.equalsIgnoreCase("add")) {
-            tektonClient.commitReservation(resourceNumbers, deploymentId + subscriptionId);
+            tektonClient.commitReservation(resourceNumbers, deploymentId + ":" + subscriptionId);
           } else if (rfcAction.equalsIgnoreCase("delete")) {
             tektonClient.releaseResources(orgName, subscriptionId, resourceNumbers);
           }
