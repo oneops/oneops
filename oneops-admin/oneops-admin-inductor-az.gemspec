@@ -25,7 +25,7 @@ Gem::Specification.new do |s|
       Dir.glob('target/inductor-*.jar') +
       Dir.glob('lib/templates/inductor/**/*') +
       Dir.glob('lib/templates/cloud/**/*') +
-      (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/shared/**/*', File::FNM_DOTMATCH).reject{ |f| f =~ /exec-gems(-chef|.yaml)/}).
+      (Dir.glob('lib/base/**/*', File::FNM_DOTMATCH) + Dir.glob('lib/exec-gems-cache/**/*', File::FNM_DOTMATCH).reject{ |f| f =~ /exec-gems(-chef|.yaml)/}).
           reject {|f| f =~ (/\.(\.|png)?$/)}
 
   s.extensions = ['Rakefile']

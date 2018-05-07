@@ -1,8 +1,0 @@
-source "https://supermarket.chef.io"
-# Did not want to link the berks file to outside link https://supermarket.chef.io so I set it to listen
-# to random unused port.
-metadata
-
-cookbook "kitchen-test-helper", github: "kbvincent/kitchen-test-helper", branch: "master"
-cookbook "shared", github: "oneops/oneops", branch: "master", rel: "oneops-admin/lib/shared/cookbooks/shared"
-

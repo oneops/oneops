@@ -2,7 +2,7 @@
 task :rename_exec_gems do
   puts "renaming exec-gems-az.yaml to exec-gems.yaml"
 
-  f = File.expand_path('lib/shared', File.dirname(__FILE__))
+  f = File.expand_path('lib/exec-gems-cache', File.dirname(__FILE__))
   Dir.chdir f
   File.rename('exec-gems-az.yaml','exec-gems.yaml')
 

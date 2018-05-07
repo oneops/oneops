@@ -1,4 +1,0 @@
-source "https://supermarket.chef.io"
-
-cookbook "kitchen-test-helper", github: "kbvincent/kitchen-test-helper", branch: "master"
-metadata
