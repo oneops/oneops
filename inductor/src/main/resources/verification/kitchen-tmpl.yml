@@ -1,5 +1,5 @@
 #\<% load "<circuit_root>/monkey_patch.rb" %>
-#\<% ruby_path = '$([[ $OSTYPE == "cygwin" ]] && echo "c:/opscode/chef/embedded/bin" || a=$(which ruby);echo ${a///ruby/})' %>
+#\<% ruby_path = '$([[ $OSTYPE == "cygwin" ]] && echo "c:/opscode/chef/embedded/bin" || dirname $(which ruby) )' %>
 ---
 <if(local)>
 driver:
