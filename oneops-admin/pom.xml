@@ -229,7 +229,7 @@
               <goal>exec</goal>
             </goals>
             <configuration>
-              <executable>${basedir}/lib/shared/cache-exec-gems.rb</executable>
+              <executable>${basedir}/lib/exec-gems-cache/cache-exec-gems.rb</executable>
             </configuration>
           </execution>
           <execution>
@@ -244,7 +244,7 @@
                 <argument>-czf</argument>
                 <argument>${project.build.directory}/exec-gems-cache-${project.version}.tar.gz</argument>
                 <argument>-C</argument>
-                <argument>${basedir}/lib/shared/cookbooks/vendor/cache</argument>
+                <argument>${basedir}/lib/exec-gems-cache/cookbooks/vendor/cache</argument>
                 <argument>.</argument>
               </arguments>
             </configuration>

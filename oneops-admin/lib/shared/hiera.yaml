@@ -1,6 +1,0 @@
-:hierarchy:
-  - %{wo}
-:backends:
-  - json
-:json:
-  :datadir: /opt/oneops/workorder

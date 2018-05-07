@@ -21,22 +21,22 @@ class Inductor < Thor
     empty_directory "#{options[:path]}/clouds-available"
     empty_directory "#{options[:path]}/clouds-enabled"
     empty_directory "#{options[:path]}/log"
-    empty_directory "#{options[:path]}/shared"
-    directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/shared"
+    empty_directory "#{options[:path]}/exec-gems-cache"
+    directory File.expand_path('shared', File.dirname(__FILE__)), "#{options[:path]}/exec-gems-cache"
 
     # local gem repo - remove remote gemrepo dependency and optimize speed
-    empty_directory "#{options[:path]}/shared/cookbooks/vendor"
-    empty_directory "#{options[:path]}/shared/cookbooks/vendor/cache"
+    empty_directory "#{options[:path]}/exec-gems-cache/cookbooks/vendor"
+    empty_directory "#{options[:path]}/exec-gems-cache/cookbooks/vendor/cache"
 
     # chmod exec-order.rb
-    `chmod +x #{options[:path]}/shared/exec-order.rb`
+    #`chmod +x #{options[:path]}/shared/exec-order.rb`
 
     if ENV.has_key?("USE_GEM_CACHE")
       gem_paths = `gem env path`.chomp.split(":")
       gem_paths.each do |path|
-        run("cp #{path}/cache/* #{options[:path]}/shared/cookbooks/vendor/cache/")
+        run("cp #{path}/cache/* #{options[:path]}/exec-gems-cache/cookbooks/vendor/cache/")
       end
-      Dir.chdir("#{options[:path]}/shared/cookbooks/vendor/cache/")
+      Dir.chdir("#{options[:path]}/exec-gems-cache/cookbooks/vendor/cache/")
       run("gem generate_index")
     end
 

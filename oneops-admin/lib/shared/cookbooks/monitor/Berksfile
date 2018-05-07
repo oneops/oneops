@@ -1,7 +1,0 @@
-source "https://supermarket.chef.io"
-
-cookbook "kitchen-test-helper", github: "kbvincent/kitchen-test-helper", branch: "master"
-metadata
-
-cookbook "compute", github: "oneops/circuit-oneops-1.git", rel: "components/cookbooks/compute"
-cookbook "shared", github: "oneops/oneops.git", rel: "oneops-admin/lib/shared/cookbooks/shared"

@@ -7,7 +7,8 @@ declare -A CIRCUITS
 CWD=$(pwd)
 
 for d in /tmp/oneops_circuits/* ; do
-  if [ -d ${d} ]; then
+  echo "FINDSTRING: ${d}"
+  if [ -d ${d} ] && [ -d "${d}/.chef"  ]; then
     cd /opt/oneops/inductor
     CIRCUIT="$(/bin/basename ${d})"
     CIRCUITS[${CIRCUIT}]=$CIRCUIT
@@ -24,9 +25,11 @@ done
 
 # install circuit
 for d in "${!CIRCUITS[@]}"; do
-  cd /opt/oneops/inductor/${d}
-  echo "Installing circuit ${d}"
-  circuit install
+  if [ -d ${d} ] && [ -d "${d}/.chef"  ]; then
+    cd /opt/oneops/inductor/${d}
+    echo "Installing circuit ${d}"
+    circuit install
+  fi
 done
 
 cd ${CWD}

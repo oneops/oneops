@@ -26,15 +26,17 @@ export GITHUB_URL='https://github.com/oneops'
 
 mkdir -p $BUILD_BASE
 
-if [ -d "$BUILD_BASE/dev-tools" ]; then
-  echo "doing git pull on dev-tools"
-  cd "$BUILD_BASE/dev-tools"
-  git pull
+if [ -d "/tmp/oneops_circuits/circuit-oneops-1" ]; then
+  cp -rf /tmp/oneops_circuits/circuit-oneops-1 $BUILD_BASE/circuit-oneops-1
+fi
+if [ -d "/tmp/oneops_circuits/dev-tools" ]; then
+  cp -rf /tmp/oneops_circuits/dev-tools $BUILD_BASE/dev-tools
 else
   echo "doing dev tools git clone"
   cd $BUILD_BASE
   git clone "$GITHUB_URL/dev-tools.git"
 fi
+
 sleep 2
 
 cd $OO_HOME
@@ -84,6 +86,11 @@ gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rd
 
 bundle install --gemfile=oneops-admin-adapter.gemfile --local
 
+cp -rf $BUILD_BASE/circuit-oneops-1/components/shared /usr/local/share/gems/gems/oneops-admin-adapter-1.0.0/lib/
+sudo ln -sf $BUILD_BASE/circuit-oneops-1/components/shared /root/shared
+ln -sf $BUILD_BASE/circuit-oneops-1/components/shared /home/oneops/shared
+
+
 cd $OO_HOME/dist/oneops-admin-inductor
 # install test-kitchen
 bundle install --gemfile=test-kitchen.gemfile
@@ -96,16 +103,16 @@ export CIRCUIT_LOCAL_ASSET_STORE_ROOT=/opt/oneops/app/public/_circuit
 rm -fr circuit
 circuit init
 
-cd "$BUILD_BASE"
+#cd "$BUILD_BASE"
 
-if [ -d "$BUILD_BASE/circuit-oneops-1" ]; then
-  echo "doing git pull on circuit-oneops-1"
-  cd "$BUILD_BASE/circuit-oneops-1"
-  git pull
-else
-  echo "doing git clone"
-  git clone "$GITHUB_URL/circuit-oneops-1.git"
-fi
+#if [ -d "$BUILD_BASE/circuit-oneops-1" ]; then
+#  echo "doing git pull on circuit-oneops-1"
+#  cd "$BUILD_BASE/circuit-oneops-1"
+#  git pull
+#else
+#  echo "doing git clone"
+#  git clone "$GITHUB_URL/circuit-oneops-1.git"
+#fi
 sleep 2
 
 cd "$BUILD_BASE/circuit-oneops-1"
@@ -120,6 +127,7 @@ cd /opt/oneops
 chown ooadmin /opt/oneops
 su ooadmin -c "
 inductor create
+#cp -rf $BUILD_BASE/circuit-oneops-1/components/shared /opt/oneops/inductor/shared
 cd inductor
 # add inductor using shared queue
 inductor add --mqhost localhost \

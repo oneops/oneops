@@ -1,9 +1,0 @@
-*.sw[op]
-Gemfile.lock
-Berksfile.lock
-fixtures/artifact_test*.tgz
-test/integration/data_bags/
-.kitchen/
-.kitchen.local.yml
-.vagrant
-.DS_Store
