@@ -29,6 +29,7 @@ import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_FAILED;
 
 public class WorkOrderResponseSoftQuotaTest {
     private static final String SUBSCRIPTION_ID = "azure-subscription1";
+    private static final String AZURE_CLOUD_LOCATION = "azure-somecloud";
     InductorListener inductorListener = new InductorListener();
     CmsWorkOrderSimple workOrder = new CmsWorkOrderSimple();
     Map<String, Object> params = new HashMap<>();
@@ -100,6 +101,7 @@ public class WorkOrderResponseSoftQuotaTest {
         subscriptionAttribute.setAttributeName("subscription");
         subscriptionAttribute.setDfValue(SUBSCRIPTION_ID);
         computeCloudService.addAttribute(subscriptionAttribute);
+        computeCloudService.setCiClassName("cloud.service.Azure");
 
         //Add "subscription" as ciAttribute for cloudService ci with df value
         Mockito.when(cmsCmProcessor.getFromCIRelations(Mockito.eq(CLOUD_ID),
@@ -108,7 +110,7 @@ public class WorkOrderResponseSoftQuotaTest {
         cloudCi = new CmsCI();
         CmsCIAttribute locationAttribute = new CmsCIAttribute();
         locationAttribute.setAttributeName("location");
-        locationAttribute.setDfValue("/providers/azure-somecloud");
+        locationAttribute.setDfValue("/providers/" + AZURE_CLOUD_LOCATION);
         cloudCi.addAttribute(locationAttribute);
         cloudCi.setCiId(CLOUD_ID);
 
@@ -127,7 +129,8 @@ public class WorkOrderResponseSoftQuotaTest {
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
-                .commitReservation(argument.capture(), Mockito.eq(DEPLOYMENT_ID + SUBSCRIPTION_ID));
+                .commitReservation(argument.capture(), Mockito.eq(DEPLOYMENT_ID
+                        + ":" + AZURE_CLOUD_LOCATION + ":" + SUBSCRIPTION_ID));
 
         Map<String, Integer> actualArgument = argument.getValue();
 
@@ -164,7 +167,8 @@ public class WorkOrderResponseSoftQuotaTest {
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
-                .releaseResources(Mockito.eq("oneops"), Mockito.eq(SUBSCRIPTION_ID), argument.capture());
+                .releaseResources(Mockito.eq("oneops"), Mockito.eq(AZURE_CLOUD_LOCATION + ":"
+                        + SUBSCRIPTION_ID), argument.capture());
 
         Map<String, Integer> actualArgument = argument.getValue();
 

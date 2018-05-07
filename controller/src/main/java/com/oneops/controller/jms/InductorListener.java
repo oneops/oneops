@@ -274,12 +274,13 @@ public class InductorListener implements MessageListener {
       long deploymentId = workOrder.getDeploymentId();
       String state = (String) params.get(CmsConstants.WORK_ORDER_STATE);
       String cloudName = wo.getCloud().getCiName();
+      long cloudCiId = wo.getCloud().getCiId();
       String rfcClass = rfcCI.getCiClassName();
       String nsPath = rfcCI.getNsPath();
       String orgName = nsPath.split("/")[1];
       Map<String, Integer> resourceNumbers = new HashMap<>();
 
-      String provider = tektonUtils.findProviderForCloud(wo.getCloud().getCiId());
+      String provider = tektonUtils.findProvider(cloudCiId, cloudName);
       String subscriptionId = tektonUtils.findSubscriptionId(wo.getCloud().getCiId());
 
       if (rfcClass.contains(".Compute")) {
@@ -293,7 +294,7 @@ public class InductorListener implements MessageListener {
       switch (state) {
         case DPMT_STATE_COMPLETE:
           if (rfcAction.equalsIgnoreCase("add")) {
-            tektonClient.commitReservation(resourceNumbers, deploymentId + subscriptionId);
+            tektonClient.commitReservation(resourceNumbers, deploymentId + ":" + subscriptionId);
           } else if (rfcAction.equalsIgnoreCase("delete")) {
             tektonClient.releaseResources(orgName, subscriptionId, resourceNumbers);
           }

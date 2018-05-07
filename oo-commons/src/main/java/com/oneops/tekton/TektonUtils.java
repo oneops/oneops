@@ -25,18 +25,6 @@ public class TektonUtils {
     private static Logger logger = Logger.getLogger(TektonUtils.class);
     private Gson gson = new Gson();
 
-    public int getTotalCores(String size, CloudProviderMapping cloudProviderMapping) {
-        List<ComputeMapping> computeMappings = cloudProviderMapping.getComputeMapping();
-        for (ComputeMapping computeMapping : computeMappings) {
-            if (computeMapping.getSize().equalsIgnoreCase(size)) {
-                return computeMapping.getCores();
-            }
-        }
-
-        throw new RuntimeException("Soft quota error. No mapping found for cores. Provider: "
-                        + cloudProviderMapping.getProvider() + " size: " + size);
-    }
-
     public Map<String, Object> getCloudProviderMappings() {
         if (this.cloudProviderMappings != null) {
             return this.cloudProviderMappings;
@@ -69,57 +57,73 @@ public class TektonUtils {
         return (Map<String, Double>) sizeMap.get(attributeValue);
     }
 
-    public CloudProviderMapping getCloudProviderMapping(String provider, List<CloudProviderMapping> mappings) {
-        if (provider == null) {
-            return null;
-        }
-
-        if (mappings == null) {
-            return null;
-        }
-
-        for (CloudProviderMapping mapping : mappings) {
-            if (provider.toLowerCase().contains(mapping.getProvider().toLowerCase())) {
-                return mapping;
-            }
-        }
-        return null;
-    }
-
     public String findProvider(CmsRfcRelation deployedToRelation) {
         String comments = deployedToRelation.getComments();
+        long cloudCiId = deployedToRelation.getToCiId();
         Map<String, String> relationDetails = gson.fromJson(comments, Map.class);
         String cloudName = relationDetails.get("toCiName");
+        return findProvider(cloudCiId, cloudName);
+    }
+
+    public String findProvider(long cloudCiId, String cloudName) {
         String provider = null;
         if (providers.get(cloudName) != null) {
             provider = providers.get(cloudName);
         } else {
-            long cloudCiId = deployedToRelation.getToCiId();
-            provider = findProviderForCloud(cloudCiId);
+            CmsCI computeCloudService = findCloudService(cloudCiId, "compute");
+            if (computeCloudService != null) {
+                String fullClassName = computeCloudService.getCiClassName();
+                String[] classNameTokens = fullClassName.split("\\.");
+                provider = classNameTokens[classNameTokens.length - 1];
+            }
             if (provider != null) {
+                provider = provider.toLowerCase();
                 providers.put(cloudName, provider);
             }
         }
         return provider;
     }
 
-    public String findProviderForCloud(long cloudCiId) {
-        CmsCI cloudCi = cmProcessor.getCiById(cloudCiId);
-        CmsCIAttribute locationAttribute = cloudCi.getAttribute("location");
-        String provider = null;
-        if (locationAttribute != null) {
-            String location = locationAttribute.getDfValue();
-            String[] tokens = location.split("/");
-            if (tokens.length > 0) {
-                provider = tokens[tokens.length - 1];
-                if (provider.indexOf("-") > 0) {
-                    provider = provider.substring(0, provider.indexOf("-"));
+    public CmsCI findCloudService(long cloudId, String serviceName) {
+        List<CmsCIRelation> cloudServicesRelations = cmProcessor.getFromCIRelations(cloudId, "base.Provides",
+                null);
+
+        CmsCI cloudService = null;
+
+        if (cloudServicesRelations == null || cloudServicesRelations.size() == 0) {
+            logger.error("No services found for cloud id: " + cloudId);
+            return null;
+        }
+
+        String cloudLocation = findCloudLocation(cloudId);
+
+        for (CmsCIRelation relation : cloudServicesRelations) {
+            CmsCIRelationAttribute serviceTypeAttribute = relation.getAttribute("service");
+
+            if (serviceTypeAttribute != null) {
+                String serviceType = serviceTypeAttribute.getDfValue();
+                if (serviceName.equalsIgnoreCase(serviceType)) {  //found the cloud service for this cloud
+                    cloudService = relation.getToCi();
+                    break;
                 }
             }
         }
-        return provider;
+        return cloudService;
     }
 
+    public String findCloudLocation(long cloudCiId) {
+        CmsCI cloudCi = cmProcessor.getCiById(cloudCiId);
+        CmsCIAttribute locationAttribute = cloudCi.getAttribute("location");
+        String location = null;
+        if (locationAttribute != null) {
+            location = locationAttribute.getDfValue();
+            String[] tokens = location.split("/");
+            if (tokens.length > 0) {
+                location = tokens[tokens.length - 1];
+            }
+        }
+        return location;
+    }
 
     public CmsCmProcessor getCmProcessor() {
         return cmProcessor;
@@ -145,6 +149,8 @@ public class TektonUtils {
             return null;
         }
 
+        String cloudLocation = findCloudLocation(cloudId);
+
         for (CmsCIRelation relation : cloudServicesRelations) {
             CmsCIRelationAttribute serviceTypeAttribute = relation.getAttribute("service");
 
@@ -157,7 +163,9 @@ public class TektonUtils {
                         subscriptionAttribute = cloudService.getAttribute("tenant");
                     }
                     if (subscriptionAttribute != null) {
-                        subscriptionId = subscriptionAttribute.getDfValue();
+                        String subscription = subscriptionAttribute.getDfValue();
+                        subscriptionId = cloudLocation + ":" + subscription;
+
                         cloudSubscriptionIds.put(cloudId, subscriptionId);
                         return subscriptionId;
                     }
