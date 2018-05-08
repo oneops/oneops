@@ -6,7 +6,7 @@
 
  	 <!--cache/-->
 	 <insert id="createDeployment" parameterType="com.oneops.cms.dj.domain.CmsDeployment" statementType="CALLABLE">
-	    {call dj_deploy_release(#{releaseId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{flags},#{autoPauseExecOrdersVal})}
+	    {call dj_deploy_release(#{releaseId}, #{deploymentId}, #{deploymentState}, #{createdBy}, #{description}, #{comments}, #{ops}, #{flags},#{autoPauseExecOrdersVal})}
 	 </insert> 
 		
 	 <insert id="createDpmtApproval" parameterType="com.oneops.cms.dj.domain.CmsDpmtApproval" statementType="CALLABLE">
@@ -537,7 +537,7 @@
 		where drc.deployment_id = #{deploymentId}
 		and rc.rfc_id = drc.rfc_id
 		and drc.state_id = drcs.state_id
-		and drcs.state_name = #{state}
+		and (#{state}::varchar is null or drcs.state_name = #{state})
 		and rc.ci_id = cr.from_ci_id
 		and cr.relation_id = r.relation_id 
 		and r.relation_name = #{relName}

@@ -49,7 +49,9 @@ public class ProcessRunnerTest {
 
 	@Test
 	public void testExecuteProcessRetry() {
-		ProcessRunner pr = new ProcessRunner(null);
+		Config c = new Config();
+		c.setChefTimeout(10);
+		ProcessRunner pr = new ProcessRunner(c);
 		String[] cmd = new String[2];
 		cmd[0] = "echo";
 		cmd[1] = "\"hey there \"";
@@ -57,7 +59,18 @@ public class ProcessRunnerTest {
 		assertTrue(procResult.getResultCode() == 0);
 	}
 
-	// @Test
+	@Test
+	public void testExecuteProcessTimeout() {
+		Config c = new Config();
+		c.setChefTimeout(1);
+		ProcessRunner pr = new ProcessRunner(c);
+		String[] cmd = new String[2];
+		cmd[0] = "sleep";
+		cmd[1] = "10s";
+		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
+		assertTrue(procResult.getResultCode() == 143);
+	}
+
 	public void executeProcessWithEnv() throws IOException, URISyntaxException {
 		Config c = new Config();
 		c.setEnv("PATH1=/usr/local/ruby/bin,GEM_PATH1=/usr/local/gems");

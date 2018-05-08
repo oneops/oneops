@@ -31,7 +31,7 @@ public class BomData {
     private CmsRelease release;
     private Map<String, Object> data = new HashMap<>();
 
-    BomData(CmsRelease release, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> relations) {
+    public BomData(CmsRelease release, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> relations) {
         this.release = release;
         this.cis = cis;
         this.relations = relations;

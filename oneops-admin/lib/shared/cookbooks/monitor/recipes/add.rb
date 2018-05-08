@@ -351,7 +351,7 @@ ruby_block 'setup nagios' do
       if ostype =~ /windows/
         cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
          'sudo chown -R oneops:Administrators /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
-	  else
+      else
         cmd = node.ssh_cmd.gsub('IP',node.ip) + '"' + 'sudo mkdir -p '+dirs.join(' ')+';' +
          'sudo chown -R nagios:nagios /var/run/nagios3 /var/log/nagios3 /opt/oneops/perf' + '"'
       end
@@ -360,7 +360,9 @@ ruby_block 'setup nagios' do
       result.error!
 
       # copy default plugins
-      nagios_plugins = node.circuit_dir+'/shared/cookbooks/monitor/files/default/*'
+      nagios_plugins = File.join(
+        File.expand_path('../../', __FILE__), '/files/default/', '*'
+      )
       cmd = node.rsync_cmd.gsub('SOURCE',nagios_plugins).gsub('DEST','~/nagios_libexec/').gsub('IP',node.ip)
       result = shell_out(cmd)
       Chef::Log.info("#{cmd} returned: #{result.stdout}")
@@ -451,8 +453,9 @@ else
 
   if node.workorder.payLoad.Environment[0][:ciAttributes].has_key?('monitoring') &&
      node.workorder.payLoad.Environment[0][:ciAttributes][:monitoring] == 'true'
-
+  
     service nagios_service do
+      provider Chef::Provider::Service::Redhat if File.exist?('/etc/init.d/nagios') && node[:platform_family].include?("rhel")
       supports [ :restart, :enable ]
       action [ :restart, :enable ]
     end

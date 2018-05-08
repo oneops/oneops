@@ -29,6 +29,11 @@ import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.oneops.cms.cm.service.CmsCmProcessor;
+import com.oneops.cms.dj.dal.DJDpmtMapper;
+import com.oneops.cms.util.domain.CmsVar;
+import com.oneops.tekton.TektonClient;
+import com.oneops.tekton.TektonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -60,7 +65,10 @@ import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 public class DpmtRestController extends AbstractRestController {
 	private CmsDjManager djManager;
 	private CmsUtil cmsUtil = new CmsUtil();
-	private CmsScopeVerifier scopeVerifier; 
+	private CmsScopeVerifier scopeVerifier;
+	private TektonClient tektonClient;
+	private TektonUtils tektonUtils;
+	private DJDpmtMapper dpmtMapper;
 	
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
@@ -71,9 +79,20 @@ public class DpmtRestController extends AbstractRestController {
 		this.scopeVerifier = scopeVerifier;
 	}
 	
-	
 	public void setDjManager(CmsDjManager djManager) {
 		this.djManager = djManager;
+	}
+
+	public void setDpmtMapper(DJDpmtMapper dpmtMapper) {
+		this.dpmtMapper = dpmtMapper;
+	}
+
+	public void setTektonClient(TektonClient tektonClient) {
+		this.tektonClient = tektonClient;
+	}
+
+	public void setTektonUtils(TektonUtils tektonUtils) {
+		this.tektonUtils = tektonUtils;
 	}
 
 	@ExceptionHandler(DJException.class)
@@ -123,11 +142,24 @@ public class DpmtRestController extends AbstractRestController {
 			scopeVerifier.verifyScope(scope, dpmt);
 			dpmt.setDeploymentId(dpmtId);
 			dpmt.setUpdatedBy(userId);
+
+			if (tektonUtils.isSoftQuotaEnabled()) {
+				if ("canceled".equalsIgnoreCase(dpmt.getDeploymentState())) {
+					//query the clouds from whole deployment - to know subscriptions involved
+					List<Long> cloudIds = dpmtMapper
+							.getToCiIdsForDeployment(dpmt.getDeploymentId(), null, "base.DeployedTo");
+					for (long cloudId : cloudIds) {
+						String subscriptionId = tektonUtils.findSubscriptionId(cloudId);
+						tektonClient.deleteReservation(String.valueOf(dpmtId + subscriptionId));
+					}
+				}
+			}
+
 			return djManager.updateDeployment(dpmt);
-		} catch (CmsBaseException e) {
-			logger.error("CmsBaseException in updateDeployment", e);
+		} catch (Exception e) {
+			logger.error("Exception in updateDeployment", e);
 			e.printStackTrace();
-			throw e;
+			throw new RuntimeException(e);
 		}	
 	}
 

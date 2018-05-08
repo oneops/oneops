@@ -17,21 +17,24 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
-import org.apache.log4j.Logger;
-
+import com.oneops.cms.dj.domain.CmsRfcCI;
+import com.oneops.cms.dj.domain.CmsRfcRelation;
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.util.CmsError;
+import com.oneops.tekton.TektonClient;
+import com.oneops.tekton.TektonUtils;
 import com.oneops.transistor.exceptions.TransistorException;
+import com.oneops.transistor.service.peristenceless.BomData;
+import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
+import org.apache.log4j.Logger;
+
+import java.io.IOException;
+import java.util.*;
 
 public class BomAsyncProcessor {
 
@@ -43,6 +46,9 @@ public class BomAsyncProcessor {
     private BomManager bomManager;
     private FlexManager flexManager;
     private EnvSemaphore envSemaphore;
+    private InMemoryBomProcessor imBomProcessor;
+    private TektonClient tektonClient;
+    private TektonUtils tektonUtils;
     private Gson gson = new Gson();
 
     public void setCmProcessor(CmsCmProcessor cmProcessor) {
@@ -74,6 +80,12 @@ public class BomAsyncProcessor {
                 Map bomInfo;
                 boolean deploy = (dpmt != null);
                 if (deploy) {
+                    if (tektonUtils.isSoftQuotaEnabled()) {
+                        BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
+                        String orgName = dpmt.getNsPath().split("/")[1];
+                        long deploymentId = reserveQuota(bomData, orgName, userId);
+                        dpmt.setDeploymentId(deploymentId);
+                    }
                     bomInfo = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
                 }
                 else {
@@ -102,6 +114,61 @@ public class BomAsyncProcessor {
         t.start();
     }
 
+    long reserveQuota(BomData bomData, String orgName, String userId) throws IOException {
+
+        Collection<CmsRfcCI> rfcCIs = bomData.getCis();
+        Map<String, Map<String, Integer>> quotaNeeded = new HashMap<>();
+
+        for (CmsRfcCI ciRfc : rfcCIs) {
+            String className = ciRfc.getCiClassName();
+            long rfcCiID = ciRfc.getCiId();
+            if (ciRfc.getRfcAction().equals("add")) {
+                CmsRfcRelation deployedToRelation = null;
+                for (CmsRfcRelation relationRfc : bomData.getRelations()) {
+                    if (relationRfc.getFromCiId() != null && relationRfc.getFromCiId() == rfcCiID
+                            && "base.DeployedTo".equals(relationRfc.getRelationName())) {
+                        deployedToRelation = relationRfc;
+                        break;
+                    }
+                }
+                String provider = tektonUtils.findProvider(deployedToRelation);
+
+                String subscriptionId = tektonUtils.findSubscriptionId(deployedToRelation.getToCiId());
+
+                if (className.endsWith(".Compute")) {
+                    String size = ciRfc.getAttribute("size").getNewValue();
+                    Map<String, Double> computeResources = tektonUtils.getResources(provider, "compute", "size", size);
+
+                    if (computeResources == null) {
+                        logger.info("Soft quota: No mapping found for provider : " + provider + " and compute size: " + size);
+                        continue;
+                    }
+
+                    for (String resourceName : computeResources.keySet()) {
+                        Map<String, Integer> resourcesNeeded = quotaNeeded.get(subscriptionId);
+                        if (resourcesNeeded == null) {
+                            resourcesNeeded = new HashMap();
+                            quotaNeeded.put(subscriptionId, resourcesNeeded);
+                        }
+                        Integer totalNeeded = resourcesNeeded.get(resourceName);
+                        if (totalNeeded == null) {
+                            totalNeeded = computeResources.get(resourceName).intValue();
+                        } else {
+                            totalNeeded = totalNeeded + computeResources.get(resourceName).intValue();
+                        }
+                        resourcesNeeded.put(resourceName, totalNeeded);
+                    }
+                }
+            }
+        }
+
+        long deploymentId = cmProcessor.getNextDjId();
+        if (quotaNeeded.size() > 0) {
+            tektonClient.reserveQuota(quotaNeeded, String.valueOf(deploymentId), orgName, userId);
+        }
+        return deploymentId;
+    }
+
     public void processFlex(long envId, long flexRelId, int step, boolean scaleUp) {
         final String processId = UUID.randomUUID().toString();
         envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE, processId);
@@ -126,5 +193,17 @@ public class BomAsyncProcessor {
 
     private String getThreadName(String prefix, long envId) {
         return prefix + String.valueOf(envId);
+    }
+
+    public void setImBomProcessor(InMemoryBomProcessor imBomProcessor) {
+        this.imBomProcessor = imBomProcessor;
+    }
+
+    public void setTektonClient(TektonClient tektonClient) {
+        this.tektonClient = tektonClient;
+    }
+
+    public void setTektonUtils(TektonUtils tektonUtils) {
+        this.tektonUtils = tektonUtils;
     }
 }

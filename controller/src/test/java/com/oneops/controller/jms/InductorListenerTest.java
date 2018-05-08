@@ -24,6 +24,9 @@ import com.oneops.controller.util.ControllerUtil;
 import com.oneops.controller.workflow.WorkflowController;
 import javax.jms.JMSException;
 import javax.jms.TextMessage;
+
+import com.oneops.tekton.TektonUtils;
+import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.testng.annotations.BeforeClass;
@@ -49,7 +52,9 @@ public class InductorListenerTest {
 		listener.setWfController(wfController);
 		listener.setControllerUtil(ctrlrUtil);
 		listener.setSensorClient(sensorClient);
-
+		TektonUtils tektonUtils = Mockito.mock(TektonUtils.class);
+		Mockito.when(tektonUtils.isSoftQuotaEnabled()).thenReturn(false);
+		listener.setTektonUtils(tektonUtils);
 	}
 
 	@Test
