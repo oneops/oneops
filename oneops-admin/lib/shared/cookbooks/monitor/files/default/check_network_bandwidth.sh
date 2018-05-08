@@ -1,5 +1,6 @@
 #!/bin/bash
-stats_dir="/sys/class/net/eth0/statistics"
+interface=$(ip -o -4 route show to default | awk '{print $5}')
+stats_dir="/sys/class/net/$interface/statistics"
 if [ -e $stats_dir ]
  then
   rx_file="$stats_dir/rx_bytes"
