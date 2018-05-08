@@ -22,8 +22,9 @@ import okhttp3.*;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Base64;
 import java.util.Map;
+import java.util.Set;
 
 public class TektonClient {
     public static final MediaType JSON
@@ -32,45 +33,41 @@ public class TektonClient {
     private Gson gson = new Gson();
     private static Logger logger = Logger.getLogger(TektonClient.class);
     private String tektonBaseUrl = System.getProperty("tekton.base.url", "http://localhost:9000");
-    private String authHeader = System.getProperty("tekton.auth.token");
+    private String authHeader = Base64.getEncoder().encodeToString(System.getProperty("tekton.auth.token").getBytes());
 
-    public void reserveQuota(Map<String, Map<String, Integer>> quotaNeeded, String reservationId, String entity,
+    public void reserveQuota(Map<String, Map<String, Integer>> quotaNeeded, long deploymentId, String entity,
                               String createdBy) throws IOException {
         for (String subscriptionId : quotaNeeded.keySet()) {
-            Map<String, Integer> resources = quotaNeeded.get(subscriptionId);
-            for (String resource : resources.keySet()) {
-                int resourceNumber = resources.get(resource);
-                HashMap<String, Integer> reservation = new HashMap<>();
-                reservation.put(resource, resourceNumber);
-                RequestBody body = RequestBody.create(JSON, gson.toJson(reservation));
+            Map<String, Integer> reservation = quotaNeeded.get(subscriptionId);
+            RequestBody body = RequestBody.create(JSON, gson.toJson(reservation));
 
-                String url = tektonBaseUrl + "/api/v1/quota/reservation?subscription=" + subscriptionId + "&entity=" + entity
-                        + "&reservationId=" + reservationId + ":" + subscriptionId + "&createdBy=" + createdBy;
-//                String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + subscriptionId  + "/" + subscriptionId + "/" + entity;
-                Request request = new Request.Builder()
-                        .url(url)
-                        .addHeader("Content-Type", "application/json")
-                        .addHeader("Authorization", authHeader)
-                        .post(body)
-                        .build();
+            String reservationId = composeReservationId(deploymentId, subscriptionId);
+            String url = tektonBaseUrl + "/api/v1/quota/reservation?subscription=" + subscriptionId + "&entity=" + entity
+                    + "&reservationId=" + reservationId + "&createdBy=" + createdBy;
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", authHeader)
+                    .post(body)
+                    .build();
 
-                OkHttpClient client = new OkHttpClient();
+            OkHttpClient client = new OkHttpClient();
 
-                Response response = client.newCall(request).execute();
-                String responseBody = response.body().string();
-                int responseCode = response.code();
-                logger.info("Reserve quota for reservationId: " + reservationId + " with resources: " + reservation
-                        + " Tekton api response body: " + responseBody + ", code: " + responseCode);
+            Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
+            int responseCode = response.code();
+            logger.info("Reserve quota for reservationId: " + reservationId + " with resources: " + reservation
+                                + " Tekton api response body: " + responseBody + ", code: " + responseCode);
 
-                if (responseCode >= 300 && responseCode != 404) {
-                    throw new RuntimeException("Error while reserving quota. Response from Tekton: " + responseBody
-                                    + " ResponseCode : " + responseCode);
-                }
+            if (responseCode >= 300 && responseCode != 404) {
+                throw new RuntimeException("Error while reserving quota. Response from Tekton: " + responseBody
+                                                   + " ResponseCode : " + responseCode);
             }
         }
     }
 
-    public int commitReservation(Map<String, Integer> resourceNumbers, String reservationId) throws IOException {
+    public int commitReservation(Map<String, Integer> resourceNumbers, long deploymentId, String subscriptinoId) throws IOException {
+        String reservationId = composeReservationId(deploymentId, subscriptinoId);
         String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + "/commit";
         RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
@@ -96,7 +93,8 @@ public class TektonClient {
         return responseCode;
     }
 
-    public int rollbackReservation(Map<String, Integer> resourceNumbers, String reservationId) throws IOException {
+    public int rollbackReservation(Map<String, Integer> resourceNumbers, long deploymentId, String subscriptinoId) throws IOException {
+        String reservationId = composeReservationId(deploymentId, subscriptinoId);
         String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + "/rollback";
         RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
@@ -151,29 +149,33 @@ public class TektonClient {
         return responseCode;
     }
 
-    public int deleteReservation(String reservationId) throws IOException {
-        String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .addHeader("Content-Type", "application/json")
-                .addHeader("Authorization", authHeader)
-                .delete()
-                .build();
-
+    public void deleteReservations(long deploymentId, Set<String> subsciptionIds) throws IOException {
         OkHttpClient client = new OkHttpClient();
+        for (String subscriptionId : subsciptionIds) {
+            String reservationId = composeReservationId(deploymentId, subscriptionId);
+            String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId;
 
-        Response response = client.newCall(request).execute();
-        String responseBody = response.body().string();
-        int responseCode = response.code();
-        logger.info("Delete reservation: Tekton api response body: " + responseBody + ", code: " + responseCode
-        + " for reservation id: " + reservationId);
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", authHeader)
+                    .delete()
+                    .build();
 
-        if (responseCode >= 300 && responseCode != 404) {
-            throw new RuntimeException("Error while deleting reservation for soft quota. Response from Tekton: " + responseBody
-                    + " ResponseCode : " + responseCode);
+            Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
+            int responseCode = response.code();
+            logger.info("Delete reservation: Tekton api response body: " + responseBody + ", code: " + responseCode
+                                + " for reservation id: " + reservationId);
+
+            if (responseCode >= 300 && responseCode != 404) {
+                throw new RuntimeException("Error while deleting reservation for soft quota. Response from Tekton: " + responseBody
+                                                   + " ResponseCode : " + responseCode);
+            }
         }
+    }
 
-        return responseCode;
+    private String composeReservationId(long deploymentId, String subsciptionId) {
+        return deploymentId + ":" + subsciptionId;
     }
 }

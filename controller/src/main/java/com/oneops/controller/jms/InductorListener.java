@@ -27,23 +27,6 @@ import com.oneops.controller.util.ControllerUtil;
 import com.oneops.controller.workflow.ExecutionManager;
 import com.oneops.controller.workflow.WorkflowController;
 import com.oneops.sensor.client.SensorClientException;
-
-import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import javax.jms.Connection;
-import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
-import javax.jms.Queue;
-import javax.jms.Session;
-import javax.jms.TextMessage;
-
-import com.oneops.tekton.CloudProviderMapping;
 import com.oneops.tekton.TektonClient;
 import com.oneops.tekton.TektonUtils;
 import org.activiti.engine.ActivitiException;
@@ -51,6 +34,13 @@ import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.util.IndentPrinter;
 import org.apache.log4j.Logger;
+
+import javax.jms.*;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_COMPLETE;
 import static com.oneops.cms.dj.service.CmsDpmtProcessor.DPMT_STATE_FAILED;
@@ -115,7 +105,7 @@ public class InductorListener implements MessageListener {
 
   /**
    *
-   * @param woPublisher
+   * @param woPublisher work-order publisher
    */
   public void setWoPublisher(WoPublisher woPublisher) {
     this.woPublisher = woPublisher;
@@ -180,7 +170,7 @@ public class InductorListener implements MessageListener {
 
     String woTaskResult = msg.getStringProperty("task_result_code");
     if (logger.isDebugEnabled()) {
-      logger.debug("Inductor response >>>>>>" + ((TextMessage) msg).getText());
+      logger.debug("Inductor response >>>>>>" + msg.getText());
     }
 
     String type = msg.getStringProperty("type");
@@ -190,9 +180,9 @@ public class InductorListener implements MessageListener {
     CmsWorkOrderSimple strippedWo = null;
 
     if ("opsprocedure".equalsIgnoreCase(type)) {
-      wo = gson.fromJson(((TextMessage) msg).getText(), CmsActionOrderSimple.class);
+      wo = gson.fromJson(msg.getText(), CmsActionOrderSimple.class);
     } else if ("deploybom".equalsIgnoreCase(type)) {
-      wo = gson.fromJson(((TextMessage) msg).getText(), CmsWorkOrderSimple.class);
+      wo = gson.fromJson(msg.getText(), CmsWorkOrderSimple.class);
       strippedWo = controllerUtil.stripWO((CmsWorkOrderSimple) wo);
       if (woTaskResult.equalsIgnoreCase(OK_RESPONSE)) {
         try {
@@ -294,14 +284,14 @@ public class InductorListener implements MessageListener {
       switch (state) {
         case DPMT_STATE_COMPLETE:
           if (rfcAction.equalsIgnoreCase("add")) {
-            tektonClient.commitReservation(resourceNumbers, deploymentId + ":" + subscriptionId);
+            tektonClient.commitReservation(resourceNumbers, deploymentId, subscriptionId);
           } else if (rfcAction.equalsIgnoreCase("delete")) {
             tektonClient.releaseResources(orgName, subscriptionId, resourceNumbers);
           }
           break;
         case DPMT_STATE_FAILED:
           if (rfcAction.equalsIgnoreCase("add")) {
-            //tektonClient.rollbackReservation(resourceNumbers, deploymentId + subscriptionId);
+            tektonClient.rollbackReservation(resourceNumbers, deploymentId, subscriptionId);
           }
           break;
       }
@@ -337,7 +327,6 @@ public class InductorListener implements MessageListener {
   /**
    * Gets the connection stats.
    *
-   * @return the connection stats
    */
   public void getConnectionStats() {
     ActiveMQConnection c = (ActiveMQConnection) connection;
