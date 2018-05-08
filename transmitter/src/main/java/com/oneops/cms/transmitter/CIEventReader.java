@@ -147,14 +147,18 @@ public class CIEventReader extends BaseEventReader {
                 if (ciList != null && !ciList.isEmpty()) {
                     CmsCI orgCi = ciList.get(0);
                     List<CmsCIAttribute> attrs = ciMapper.getCIAttrs(orgCi.getCiId());
-                    Optional<CmsCIAttribute> optional = attrs.stream().filter(a -> ATTR_KEY_TAGS.equals(a.getAttributeName())).findFirst();
-                    if (optional.isPresent()) {
-                        CmsCIAttribute tagAttr = optional.get();
-                        String tagValue = tagAttr.getDfValue();
-                        try {
-                            tagMap = gson.fromJson(tagValue, Map.class);
-                        } catch (JsonSyntaxException e) {
-                            logger.error("exception while parsing tag attribute for org " + org, e);
+                    if (attrs != null) {
+                        Optional<CmsCIAttribute> optional = attrs.stream().filter(a -> ATTR_KEY_TAGS.equals(a.getAttributeName())).findFirst();
+                        if (optional.isPresent()) {
+                            CmsCIAttribute tagAttr = optional.get();
+                            String tagValue = tagAttr.getDfValue();
+                            if (StringUtils.isNotBlank(tagValue)) {
+                                try {
+                                    tagMap = gson.fromJson(tagValue, Map.class);
+                                } catch (JsonSyntaxException e) {
+                                    logger.error("exception while parsing tag attribute for org " + org, e);
+                                }
+                            }
                         }
                     }
                 }
