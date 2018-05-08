@@ -81,6 +81,7 @@ gem install fog-openstack/fog-openstack-0.1.24.gem --ignore-dependencies --no-ri
 
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
+cp -RT $BUILD_BASE/circuit-oneops-1/components/shared_cookbooks/ /usr/local/share/gems/gems/oneops-admin-adapter-1.0.0/lib/shared/cookbooks/
 
 bundle install --gemfile=oneops-admin-adapter.gemfile --local
 
@@ -120,6 +121,7 @@ cd /opt/oneops
 chown ooadmin /opt/oneops
 su ooadmin -c "
 inductor create
+cp -RT $BUILD_BASE/circuit-oneops-1/components/shared_cookbooks /opt/oneops/inductor/shared/cookbooks/
 cd inductor
 # add inductor using shared queue
 inductor add --mqhost localhost \

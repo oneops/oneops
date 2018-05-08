@@ -1,6 +1,9 @@
-if !is_propagate_update
-  Chef::Log.info("adding monitor")
-  include_recipe "monitor::add"
-else
-  Chef::Log.info("Skipping monitor add")
-end
+#
+# Cookbook Name:: monitor
+# Recipe:: update.rb
+#
+# place holder
+#
+# blank stub to be overwritten by circuit oneops 1
+#
+            
