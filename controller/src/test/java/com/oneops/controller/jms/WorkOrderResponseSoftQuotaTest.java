@@ -146,7 +146,7 @@ public class WorkOrderResponseSoftQuotaTest {
         expectedResourceNumbers.put("Dv2", 2);
         expectedResourceNumbers.put("vm", 1);
 
-        Mockito.verify(tektonClientMock, Mockito.times(1))
+        Mockito.verify(tektonClientMock, Mockito.times(0))
                 .rollbackReservation(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
 
         Mockito.verify(tektonClientMock, Mockito.times(0))

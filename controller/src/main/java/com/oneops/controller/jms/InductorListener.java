@@ -288,12 +288,12 @@ public class InductorListener implements MessageListener {
           } else if (rfcAction.equalsIgnoreCase("delete")) {
             tektonClient.releaseResources(orgName, subscriptionId, resourceNumbers);
           }
-          break;
-        case DPMT_STATE_FAILED:
-          if (rfcAction.equalsIgnoreCase("add")) {
-            tektonClient.rollbackReservation(resourceNumbers, deploymentId, subscriptionId);
-          }
-          break;
+//          break;
+//        case DPMT_STATE_FAILED:
+//          if (rfcAction.equalsIgnoreCase("add")) {
+//            tektonClient.rollbackReservation(resourceNumbers, deploymentId, subscriptionId);
+//          }
+//          break;
       }
     }
   }
