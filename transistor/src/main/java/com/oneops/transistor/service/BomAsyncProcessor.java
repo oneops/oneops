@@ -164,7 +164,7 @@ public class BomAsyncProcessor {
 
         long deploymentId = cmProcessor.getNextDjId();
         if (quotaNeeded.size() > 0) {
-            tektonClient.reserveQuota(quotaNeeded, String.valueOf(deploymentId), orgName, userId);
+            tektonClient.reserveQuota(quotaNeeded, deploymentId, orgName, userId);
         }
         return deploymentId;
     }

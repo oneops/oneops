@@ -178,7 +178,7 @@ public class TektonUtils {
 
     public boolean isSoftQuotaEnabled() {
         CmsVar softQuotaEnabled = cmProcessor.getCmSimpleVar(IS_SOFT_QUOTA_ENABLED_VAR_NAME);
-        if (softQuotaEnabled != null && Boolean.TRUE.toString().equals(softQuotaEnabled.getValue())) {
+        if (softQuotaEnabled != null && Boolean.TRUE.toString().equalsIgnoreCase(softQuotaEnabled.getValue())) {
             return true;
         }
         return false;

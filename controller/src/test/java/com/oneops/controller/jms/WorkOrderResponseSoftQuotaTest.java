@@ -129,8 +129,7 @@ public class WorkOrderResponseSoftQuotaTest {
         ArgumentCaptor<HashMap> argument= ArgumentCaptor.forClass(HashMap.class);
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
-                .commitReservation(argument.capture(), Mockito.eq(DEPLOYMENT_ID
-                        + ":" + AZURE_CLOUD_LOCATION + ":" + SUBSCRIPTION_ID));
+                .commitReservation(argument.capture(), Mockito.eq(DEPLOYMENT_ID), Mockito.eq(AZURE_CLOUD_LOCATION + ":" +SUBSCRIPTION_ID));
 
         Map<String, Integer> actualArgument = argument.getValue();
 
@@ -148,10 +147,10 @@ public class WorkOrderResponseSoftQuotaTest {
         expectedResourceNumbers.put("vm", 1);
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
-                .rollbackReservation(Mockito.anyMap(), Mockito.anyString());
+                .rollbackReservation(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
-                .commitReservation(Mockito.anyMap(), Mockito.anyString());
+                .commitReservation(Mockito.anyMap(), Mockito.anyLong(), Mockito.anyString());
     }
 
     @Test
