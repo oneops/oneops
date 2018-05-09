@@ -29,9 +29,10 @@ Vagrant.configure(2) do |config|
   #if you want to sync circuits on your host with vagrant then create an env variable ONEOPS_HOME on your host that points to a directory that houses all the circuits and oneops core
   if !ENV['ONEOPS_HOME'].nil?
     config.vm.synced_folder ENV['ONEOPS_HOME']+"/circuit-oneops-1", "#{sync_folder_root}/circuit-oneops-1",owner: "root",group: "root"
-    config.vm.synced_folder ENV['ONEOPS_HOME']+"/oneops/oneops-admin", "#{sync_folder_root}/oneops-admin",owner: "root",group: "root"
+    config.vm.synced_folder ENV['ONEOPS_HOME']+"/oneops/oneops-admin", "#{sync_folder_root}/oneops-admin",owner: "root",group: "root",type: "rsync"
 
     config.vm.provision "configure_circuits", type: "shell", inline: $script_configure_circuits, env: {"sync_folder_root" => sync_folder_root}
+    config.vm.provision "script_configure_circuits_shared", type: "shell", inline: $script_configure_circuits_shared, env: {"sync_folder_root" => sync_folder_root}, run: "always"
     config.vm.provision "use_latest_inductor", type: "shell", inline: $script_use_latest_inductor, env: {"sync_folder_root" => sync_folder_root}
   end
 end
@@ -41,7 +42,7 @@ $script_configure_circuits = <<SCRIPT
   cd /opt/oneops/inductor
 
   echo "deleting/unlinking existing circuits"
-  circuits=( circuit-oneops-1 shared )
+  circuits=( circuit-oneops-1 )
 
   for circuit in "${circuits[@]}"
   do
@@ -58,14 +59,16 @@ $script_configure_circuits = <<SCRIPT
   echo "creating symlinks"
   for circuit in "${circuits[@]}"
   do
-    if [ "$circuit" == "shared" ]
-    then
-      sudo ln -s "$sync_folder_root"/oneops-admin/lib/shared/ shared
-    else
-      sudo ln -s "$sync_folder_root/$circuit/" $circuit
-    fi
+    sudo ln -s "$sync_folder_root/$circuit/" $circuit
   done
+  echo "script completed successfully"
+SCRIPT
 
+$script_configure_circuits_shared = <<SCRIPT
+  echo "configureing oneops admin shared"
+  cp -RT $sync_folder_root/circuit-oneops-1/shared /opt/oneops/inductor/shared
+  cp -RT $sync_folder_root/circuit-oneops-1/shared /home/oneops/build/oneops-admin/lib/shared
+  cp -RT $sync_folder_root/circuit-oneops-1/shared /usr/local/share/gems/gems/oneops-admin-adapter-1.0.0/lib/shared
   echo "script completed successfully"
 SCRIPT
 

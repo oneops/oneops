@@ -25,7 +25,7 @@ export OO_HOME='/home/oneops'
 export GITHUB_URL='https://github.com/oneops'
 
 mkdir -p $BUILD_BASE
-
+cd "$BUILD_BASE"
 if [ -d "$BUILD_BASE/dev-tools" ]; then
   echo "doing git pull on dev-tools"
   cd "$BUILD_BASE/dev-tools"
@@ -35,7 +35,18 @@ else
   cd $BUILD_BASE
   git clone "$GITHUB_URL/dev-tools.git"
 fi
-sleep 2
+#sleep 2
+
+
+if [ -d "$BUILD_BASE/circuit-oneops-1" ]; then
+  echo "doing git pull on circuit-oneops-1"
+  cd "$BUILD_BASE/circuit-oneops-1"
+  git pull
+else
+  echo "doing git clone"
+  git clone "$GITHUB_URL/circuit-oneops-1.git"
+fi
+#sleep 2
 
 cd $OO_HOME
 
@@ -81,6 +92,7 @@ gem install fog-openstack/fog-openstack-0.1.24.gem --ignore-dependencies --no-ri
 
 cd $OO_HOME/dist/oneops-admin-adapter
 gem install oneops-admin-adapter-1.0.0.gem --ignore-dependencies --no-ri --no-rdoc
+cp -RT $BUILD_BASE/circuit-oneops-1/shared /usr/local/share/gems/gems/oneops-admin-adapter-1.0.0/lib/shared
 
 bundle install --gemfile=oneops-admin-adapter.gemfile --local
 
@@ -96,16 +108,6 @@ export CIRCUIT_LOCAL_ASSET_STORE_ROOT=/opt/oneops/app/public/_circuit
 rm -fr circuit
 circuit init
 
-cd "$BUILD_BASE"
-
-if [ -d "$BUILD_BASE/circuit-oneops-1" ]; then
-  echo "doing git pull on circuit-oneops-1"
-  cd "$BUILD_BASE/circuit-oneops-1"
-  git pull
-else
-  echo "doing git clone"
-  git clone "$GITHUB_URL/circuit-oneops-1.git"
-fi
 sleep 2
 
 cd "$BUILD_BASE/circuit-oneops-1"
@@ -120,6 +122,7 @@ cd /opt/oneops
 chown ooadmin /opt/oneops
 su ooadmin -c "
 inductor create
+cp -RT $BUILD_BASE/circuit-oneops-1/shared /opt/oneops/inductor/shared
 cd inductor
 # add inductor using shared queue
 inductor add --mqhost localhost \
