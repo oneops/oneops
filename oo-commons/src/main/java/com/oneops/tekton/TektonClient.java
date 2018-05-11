@@ -1,6 +1,6 @@
 /*******************************************************************************
  *
- *   Copyright 2015 Walmart, Inc.
+ *   Copyright 2018 Walmart, Inc.
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *   you may not use this file except in compliance with the License.
@@ -15,195 +15,210 @@
  *   limitations under the License.
  *
  *******************************************************************************/
-package com.oneops.transistor.service;
+package com.oneops.tekton;
 
 import com.google.gson.Gson;
-import com.oneops.cms.cm.domain.CmsCI;
-import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.domain.CmsDeployment;
-import com.oneops.cms.dj.domain.CmsRelease;
-import com.oneops.cms.dj.domain.CmsRfcCI;
-import com.oneops.cms.dj.domain.CmsRfcRelation;
-import com.oneops.cms.exceptions.CmsBaseException;
-import com.oneops.cms.util.CmsError;
-import com.oneops.tekton.TektonClient;
-import com.oneops.tekton.TektonUtils;
-import com.oneops.transistor.exceptions.TransistorException;
-import com.oneops.transistor.service.peristenceless.BomData;
-import com.oneops.transistor.service.peristenceless.InMemoryBomProcessor;
+import com.google.gson.reflect.TypeToken;
+import okhttp3.*;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
 
-public class BomAsyncProcessor {
+public class TektonClient {
+    public static final MediaType JSON
+            = MediaType.parse("application/json; charset=utf-8");
 
-    private static final String THREAD_PREFIX_BOM = "async-env-";
-    private static final String THREAD_PREFIX_FLEX = "async-flex-";
-    static Logger logger = Logger.getLogger(BomAsyncProcessor.class);
-
-    private CmsCmProcessor cmProcessor;
-    private BomManager bomManager;
-    private FlexManager flexManager;
-    private EnvSemaphore envSemaphore;
-    private InMemoryBomProcessor imBomProcessor;
-    private TektonClient tektonClient;
-    private TektonUtils tektonUtils;
     private Gson gson = new Gson();
+    private static Logger logger = Logger.getLogger(TektonClient.class);
+    private String tektonBaseUrl = System.getProperty("tekton.base.url", "http://localhost:9000");
+    private String authHeader = Base64.getEncoder().encodeToString(System.getProperty("tekton.auth.token").getBytes());
 
-    public void setCmProcessor(CmsCmProcessor cmProcessor) {
-        this.cmProcessor = cmProcessor;
-    }
+    public void reserveQuota(Map<String, Map<String, Integer>> quotaNeeded, long deploymentId, String entity,
+                             String createdBy) throws IOException {
+        Set<String> reservedSubscriptions = new HashSet<>();
+        try {
+            for (String subscriptionId : quotaNeeded.keySet()) {
+                Map<String, Integer> reservation = quotaNeeded.get(subscriptionId);
+                RequestBody body = RequestBody.create(JSON, gson.toJson(reservation));
 
-    public void setFlexManager(FlexManager flexManager) {
-        this.flexManager = flexManager;
-    }
+                String reservationId = composeReservationId(deploymentId, subscriptionId);
+                String url = tektonBaseUrl + "/api/v1/quota/reservation?subscription=" + subscriptionId + "&entity=" + entity
+                        + "&reservationId=" + reservationId + "&createdBy=" + createdBy;
+                Request request = new Request.Builder()
+                        .url(url)
+                        .addHeader("Content-Type", "application/json")
+                        .addHeader("Authorization", authHeader)
+                        .post(body)
+                        .build();
 
-    public void setBomManager(BomManager bomManager) {
-        this.bomManager = bomManager;
-    }
+                OkHttpClient client = new OkHttpClient();
 
-    public void setEnvSemaphore(EnvSemaphore envSemaphore) {
-        this.envSemaphore = envSemaphore;
-    }
+                Response response = client.newCall(request).execute();
+                String responseBody = response.body().string();
+                int responseCode = response.code();
 
-    public void compileEnv(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, String desc, boolean commit) {
-        final String processId = UUID.randomUUID().toString();
-        envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE, processId);
-
-        Thread t = new Thread(() -> {
-            String envMsg = null;
-            try {
-                long startTime = System.currentTimeMillis();
-                CmsCI environment = cmProcessor.getCiById(envId);
-                bomManager.check4openDeployment(environment.getNsPath() + "/" + environment.getCiName() + "/bom");
-                Map bomInfo;
-                boolean deploy = (dpmt != null);
-                if (deploy) {
-                    if (tektonUtils.isSoftQuotaEnabled()) {
-                        BomData bomData = imBomProcessor.compileEnv(envId, userId, excludePlats, null, commit);
-                        String orgName = dpmt.getNsPath().split("/")[1];
-                        long deploymentId = reserveQuota(bomData, orgName, userId);
-                        dpmt.setDeploymentId(deploymentId);
+                if (responseCode >= 200 && responseCode < 300 && responseBody != null && responseBody.length() > 0) {
+                    Map<String, String> content = gson.fromJson(responseBody, (new TypeToken<HashMap<String, Object>>() {}).getType());
+                    String status = content.get("status");
+                    if (status.equalsIgnoreCase("ok")) {
+                        logger.info("Successfully reserved capacity " + reservation + " for reservationId: " + reservationId + ", entity: " + entity);
+                        reservedSubscriptions.add(subscriptionId);
                     }
-                    bomInfo = bomManager.generateAndDeployBom(envId, userId, excludePlats, dpmt, commit);
+                    else if(status.equalsIgnoreCase("quota_not_setup")) {
+                        logger.info("Quota not set up for subscription: " + subscriptionId + ", entity: " + entity);
+                    }
+                    else {
+                        logger.info("Not enough capacity to reserve " + reservation + " for reservationId: " + reservationId +
+                                            ", entity: " + entity + ". Response: " + responseBody);
+                        throw new ReservationException(subscriptionId + ": " + content.get("message"));
+                    }
                 }
                 else {
-                    bomInfo = bomManager.generateBom(envId, userId, excludePlats, desc, commit);
+                    String message = "Error to reserve capacity " + reservation + " for reservationId: " + reservationId +
+                            ", entity: " + entity + ". Response: " + responseBody + ". Response code: " + responseCode;
+                    logger.error(message);
+                    throw new ReservationException(message);
                 }
-                Map<String, Object> bomGenerationInfo = new HashMap<>();
-                bomGenerationInfo.put("rfcCiCount", bomInfo.get("rfcCiCount"));
-                bomGenerationInfo.put("rfcRelationCount", bomInfo.get("rfcRelationCount"));
-                bomGenerationInfo.put("manifestCommit", bomInfo.get("manifestCommit"));
-                bomGenerationInfo.put("createdBy", userId);
-                bomGenerationInfo.put("mode", "persistent");
-                bomGenerationInfo.put("autoDeploy", deploy);
-                CmsRelease bomRelease = (CmsRelease) bomInfo.get("release");
-                if (bomRelease != null) {
-                    bomGenerationInfo.put("releaseId", bomRelease.getReleaseId());
-                }
-                envMsg = EnvSemaphore.SUCCESS_PREFIX + " Generation time taken: " + ((System.currentTimeMillis() - startTime) / 1000.0) + " seconds. bomGenerationInfo=" + gson.toJson(bomGenerationInfo);
-            } catch (Exception e) {
-                logger.error("Exception in build bom ", e);
-                envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
-                throw new TransistorException(CmsError.TRANSISTOR_BOM_GENERATION_FAILED, envMsg);
-            } finally {
-                envSemaphore.unlockEnv(envId, envMsg, processId);
             }
-        }, getThreadName(THREAD_PREFIX_BOM, envId));
-        t.start();
+        } catch (Exception e) {
+            // Try delete successful reservations.
+            if (reservedSubscriptions.size() > 0) {
+                deleteReservations(deploymentId, reservedSubscriptions);
+            }
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
-    long reserveQuota(BomData bomData, String orgName, String userId) throws IOException {
+    public int commitReservation(Map<String, Integer> resourceNumbers, long deploymentId, String subscriptinoId) throws IOException {
+        String reservationId = composeReservationId(deploymentId, subscriptinoId);
+        String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + "/commit";
+        RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
-        Collection<CmsRfcCI> rfcCIs = bomData.getCis();
-        Map<String, Map<String, Integer>> quotaNeeded = new HashMap<>();
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", authHeader)
+                .post(body)
+                .build();
 
-        for (CmsRfcCI ciRfc : rfcCIs) {
-            String className = ciRfc.getCiClassName();
-            long rfcCiID = ciRfc.getCiId();
-            if (ciRfc.getRfcAction().equals("add")) {
-                CmsRfcRelation deployedToRelation = null;
-                for (CmsRfcRelation relationRfc : bomData.getRelations()) {
-                    if (relationRfc.getFromCiId() != null && relationRfc.getFromCiId() == rfcCiID
-                            && "base.DeployedTo".equals(relationRfc.getRelationName())) {
-                        deployedToRelation = relationRfc;
-                        break;
-                    }
-                }
-                String provider = tektonUtils.findProvider(deployedToRelation);
+        OkHttpClient client = new OkHttpClient();
 
-                String subscriptionId = tektonUtils.findSubscriptionId(deployedToRelation.getToCiId());
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        logger.info("Commit quota for reservationId: " + reservationId + " with resources: " + resourceNumbers
+                            + " Tekton api response body: " + responseBody + ", code: " + responseCode);
 
-                if (className.endsWith(".Compute")) {
-                    String size = ciRfc.getAttribute("size").getNewValue();
-                    Map<String, Double> computeResources = tektonUtils.getResources(provider, "compute", "size", size);
+        if (responseCode >= 300 && responseCode != 404) {
+            throw new RuntimeException("Error while committing reservation. Response from Tekton: " + responseBody
+                                               + " ResponseCode : " + responseCode + " for reservationId: " + reservationId);
+        }
+        return responseCode;
+    }
 
-                    if (computeResources == null) {
-                        logger.info("Soft quota: No mapping found for provider : " + provider + " and compute size: " + size);
-                        continue;
-                    }
+    public int rollbackReservation(Map<String, Integer> resourceNumbers, long deploymentId, String subscriptinoId) throws IOException {
+        String reservationId = composeReservationId(deploymentId, subscriptinoId);
+        String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId + "/rollback";
+        RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
 
-                    for (String resourceName : computeResources.keySet()) {
-                        Map<String, Integer> resourcesNeeded = quotaNeeded.get(subscriptionId);
-                        if (resourcesNeeded == null) {
-                            resourcesNeeded = new HashMap();
-                            quotaNeeded.put(subscriptionId, resourcesNeeded);
-                        }
-                        Integer totalNeeded = resourcesNeeded.get(resourceName);
-                        if (totalNeeded == null) {
-                            totalNeeded = computeResources.get(resourceName).intValue();
-                        } else {
-                            totalNeeded = totalNeeded + computeResources.get(resourceName).intValue();
-                        }
-                        resourcesNeeded.put(resourceName, totalNeeded);
-                    }
-                }
-            }
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", authHeader)
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+
+        logger.info("Rollback quota for reservationId: " + reservationId + " with resources: " + resourceNumbers
+                            + " Tekton api response body: " + responseBody + ", code: " + responseCode);
+
+        if (responseCode >= 300 && responseCode != 404) {
+            throw new RuntimeException("Error in rollback for reservation. Response from Tekton: " + responseBody
+                                               + " ResponseCode : " + responseCode + " for reservationId: " + reservationId);
         }
 
-        long deploymentId = cmProcessor.getNextDjId();
-        if (quotaNeeded.size() > 0) {
-            tektonClient.reserveQuota(quotaNeeded, deploymentId, orgName, userId);
+        return responseCode;
+    }
+
+    public int releaseResources(String entity, String subscriptionId, Map<String, Integer> resourceNumbers) throws IOException {
+        String url = tektonBaseUrl + "/api/v1/quota/release/" + subscriptionId + "/" + entity;
+        RequestBody body = RequestBody.create(JSON, gson.toJson(resourceNumbers));
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .addHeader("Authorization", authHeader)
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        logger.info("Release resources for entity : " + entity + " for resources: " + resourceNumbers
+                            + " Tekton api response body: " + responseBody + ", code: " + responseCode);
+
+        if (responseCode >= 300 && responseCode != 404) {
+            throw new RuntimeException("Error while releasing resources for soft quota. Response from Tekton: " + responseBody
+                                               + " ResponseCode : " + responseCode + " for entity: " + entity);
         }
-        return deploymentId;
+
+        return responseCode;
     }
 
-    public void processFlex(long envId, long flexRelId, int step, boolean scaleUp) {
-        final String processId = UUID.randomUUID().toString();
-        envSemaphore.lockEnv(envId, EnvSemaphore.LOCKED_STATE, processId);
-        Thread t = new Thread(() -> {
-            String envMsg = null;
-            try {
-                flexManager.processFlex(flexRelId, step, scaleUp, envId);
-                envMsg = "";
-            } catch (CmsBaseException e) {
-                logger.error("Exception occurred while flexing the ", e);
-                envMsg = EnvSemaphore.BOM_ERROR + e.getMessage();
-            } finally {
-                envSemaphore.unlockEnv(envId, envMsg, processId);
+    public void deleteReservations(long deploymentId, Set<String> subscriptionIds) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        for (String subscriptionId : subscriptionIds) {
+            String reservationId = composeReservationId(deploymentId, subscriptionId);
+            String url = tektonBaseUrl + "/api/v1/quota/reservation/" + reservationId;
+
+            Request request = new Request.Builder()
+                    .url(url)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", authHeader)
+                    .delete()
+                    .build();
+
+            Response response = client.newCall(request).execute();
+            String responseBody = response.body().string();
+            int responseCode = response.code();
+
+            if (responseCode >= 200 && responseCode < 300 && responseBody != null && responseBody.length() > 0) {
+                Map<String, String> content = gson.fromJson(responseBody, (new TypeToken<HashMap<String, Object>>() {}).getType());
+                String status = content.get("status");
+                if (status.equalsIgnoreCase("ok")) {
+                    logger.info("Successfully deleted reservation for reservationId: " + reservationId);
+                }
+                else if(status.equalsIgnoreCase("not_found")) {
+                    logger.info("Not found reservation to delete for reservationId:" + reservationId);
+                }
+                else {
+                    logger.info("Failed to delete reservation for reservationId:" + reservationId + ". Response: " + responseBody);
+                }
             }
-        }, getThreadName(THREAD_PREFIX_FLEX, envId));
-        t.start();
+            else {
+                String message = "Error to delete reservation for reservationId: " + reservationId +
+                        ". Response: " + responseBody + ". Response code: " + responseCode;
+                logger.error(message);
+                throw new RuntimeException(message);
+            }
+        }
     }
 
-    public void resetEnv(long envId) {
-        envSemaphore.resetEnv(envId);
+    private String composeReservationId(long deploymentId, String subsciptionId) {
+        return deploymentId + ":" + subsciptionId;
     }
 
-    private String getThreadName(String prefix, long envId) {
-        return prefix + String.valueOf(envId);
-    }
-
-    public void setImBomProcessor(InMemoryBomProcessor imBomProcessor) {
-        this.imBomProcessor = imBomProcessor;
-    }
-
-    public void setTektonClient(TektonClient tektonClient) {
-        this.tektonClient = tektonClient;
-    }
-
-    public void setTektonUtils(TektonUtils tektonUtils) {
-        this.tektonUtils = tektonUtils;
+    class ReservationException extends Exception {
+        public ReservationException(String message) {
+            super(message);
+        }
     }
 }
