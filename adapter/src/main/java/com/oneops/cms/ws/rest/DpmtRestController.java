@@ -18,12 +18,7 @@
 package com.oneops.cms.ws.rest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -145,13 +140,10 @@ public class DpmtRestController extends AbstractRestController {
 
 			if (tektonUtils.isSoftQuotaEnabled()) {
 				if ("canceled".equalsIgnoreCase(dpmt.getDeploymentState())) {
-					//query the clouds from whole deployment - to know subscriptions involved
-					List<Long> cloudIds = dpmtMapper
-							.getToCiIdsForDeployment(dpmt.getDeploymentId(), null, "base.DeployedTo");
-					for (long cloudId : cloudIds) {
-						String subscriptionId = tektonUtils.findSubscriptionId(cloudId);
-						tektonClient.deleteReservation(String.valueOf(dpmtId + subscriptionId));
-					}
+					Set<String> subs = dpmtMapper.getToCiIdsForDeployment(dpmt.getDeploymentId(), null, "base.DeployedTo")
+							.stream()
+							.map(id -> tektonUtils.findSubscriptionId(id)).collect(Collectors.toSet());
+					tektonClient.deleteReservations(dpmtId, subs);
 				}
 			}
 

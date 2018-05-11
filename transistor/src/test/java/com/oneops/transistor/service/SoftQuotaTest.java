@@ -188,7 +188,7 @@ public class SoftQuotaTest {
 
         Mockito.verify(tektonClientMock, Mockito.times(1))
                 .reserveQuota(Matchers.argThat(new QuotaRequestMatcher(expectedQuotaRequest)),
-                        Mockito.anyString(), Mockito.eq(orgName), Mockito.eq(userName));
+                        Mockito.anyLong(), Mockito.eq(orgName), Mockito.eq(userName));
     }
 
     private CmsRfcRelation createDeployedToRelation(long ciId, long cloudId, String cloudName) {
@@ -240,7 +240,7 @@ public class SoftQuotaTest {
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
                 .reserveQuota(Mockito.anyObject(),
-                        Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                        Mockito.anyLong(), Mockito.anyString(), Mockito.anyString());
     }
 
     @Test
@@ -268,13 +268,13 @@ public class SoftQuotaTest {
 
         Mockito.verify(tektonClientMock, Mockito.times(0))
                 .reserveQuota(Mockito.anyObject(),
-                        Mockito.anyString(), Mockito.anyString(), Mockito.anyString());
+                        Mockito.anyLong(), Mockito.anyString(), Mockito.anyString());
     }
 
     private static final class QuotaRequestMatcher extends ArgumentMatcher<Map<String, Map<String, Integer>>> {
 
         Map<String, Map<String, Integer>> expectedQuotaReqest;
-        public QuotaRequestMatcher(Map<String, Map<String, Integer>> expectedQuotaReqest) {
+        QuotaRequestMatcher(Map<String, Map<String, Integer>> expectedQuotaReqest) {
             this.expectedQuotaReqest = expectedQuotaReqest;
         }
 
