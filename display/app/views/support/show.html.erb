@@ -1,9 +1,13 @@
+<% title('support')
+   app_nav([{:label => 'support', :icon => site_icon(:support), :link => support_path}])
+%>
 <h2>Support Operations</h2>
 <br/>
 <% links = []
    links << link_to(icon('bullhorn', 'Announcements',  'fa-fw'), announcements_support_path)  if has_support_permission?('announcement')
    links << link_to(icon('sitemap',  'Organizations',  'fa-fw'), organizations_support_path)  if has_support_permission?('organization')
    links << link_to(icon('user',     'Users',          'fa-fw'), user_support_path)           if has_support_permission?('user')
+   links << link_to(icon('group',    'Groups',         'fa-fw'), groups_support_path)          if has_support_permission?('group')
 
    links << link_to(icon(site_icon(:manages_access), 'Global Admins', 'fa-fw'), global_admins_support_path) if is_global_admin?
 

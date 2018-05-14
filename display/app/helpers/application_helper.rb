@@ -9,6 +9,8 @@ module ApplicationHelper
                 :assembly               => 'cogs',
                 :settings               => 'sliders',
                 :user                   => 'user',
+                :group                  => 'group',
+                :announcement           => 'bullhorn',
                 :manages_access         => 'user-secret',
                 :org_scope              => 'sitemap',
                 :design                 => 'puzzle-piece',
@@ -29,6 +31,8 @@ module ApplicationHelper
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
                 :compute                => 'server',
+                :support                => 'medkit',
+                :search                 => 'search',
                 :favorite               => 'bookmark',
                 :json                   => 'file-code-o',
                 :yaml                   => 'file-text-o',
@@ -94,6 +98,13 @@ module ApplicationHelper
       selected_item[:selected] = true if selected_item
     end
     app_nav(menu_items)
+  end
+
+  def support_page_header(page_icon, page_label)
+    title('support')
+    app_nav([{:label => 'support', :icon => site_icon(:support), :link => support_path}])
+    breadcrumb([{:label => icon(site_icon(:support), 'support'), :link => support_path}])
+    page_title(:page_icon => page_icon, :page_kind => page_label)
   end
 
   def organization_page_header(selected = nil)

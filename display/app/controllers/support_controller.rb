@@ -120,14 +120,9 @@ class SupportController < ReportsController
 
       format.any do
         add_pagination_response_headers(total, @organizations.size, offset)
-        keys = %w(id name full_name created_at owner team_count team_user_count group_count group_user_count admin_user_count admin_group_count admin_group_user_count assembly_count prod_assembly_count environment_count prod_environment_count compute_count prod_compute_count)
-        delimiter = params[:delimiter].presence || ','
-        csv = keys.join(delimiter) << "\n"
-        @organizations.each do |o|
-          %w(id name full_name created_at owner).each {|f| o[f] = %("#{o[f]}")}
-          csv << keys.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
-        end
-        render :text => csv   #, :content_type => 'text/data_string'
+        render_csv(@organizations,
+                   %w(id name full_name created_at owner team_count team_user_count group_count group_user_count admin_user_count admin_group_count admin_group_user_count assembly_count prod_assembly_count environment_count prod_environment_count compute_count prod_compute_count),
+                   %w(id name full_name created_at owner))
       end
     end
   end
@@ -207,16 +202,37 @@ class SupportController < ReportsController
   end
 
   def users
-    username = params[:login]
-    if username.present?
-      login = "%#{username}%"
-      render :json => User.where('username ILIKE ? OR name ILIKE ?', login, login).limit(20).map {|u| "#{u.username} #{u.name if u.name.present?}"}
-    else
-      last_sign_in = params[:active_since]
-      users = User.select('username, email, current_sign_in_at').where('current_sign_in_at >= ?', last_sign_in).all if last_sign_in.present?
-      respond_to do |format|
-        format.csv {render :text => users.map {|u| "#{u.username},#{u.email},#{u.current_sign_in_at}"}.join("\n")}
-        format.any {render :json => users}
+    if request.format.html?
+      render :action => :user
+      return
+    end
+
+    page_size = (params[:size].presence || 1000).to_i
+    offset    = (params[:offset].presence || 0).to_i
+    sort      = params[:sort].presence || 'users.username ASC'
+
+    username     = params[:username]
+    name         = params[:name]
+    last_sign_in = params[:active_since]
+
+    scope = User
+
+    scope = User.where('current_sign_in_at >= ?', last_sign_in) if last_sign_in.present?
+    scope = scope.where('users.username ILIKE ?', "%#{username}%") if username.present?
+    scope = scope.where('users.name ILIKE ?', "%#{name}%") if name.present?
+
+    total = scope.count
+
+    fields = %w(id username email name created_at current_sign_in_at)
+    @users = scope.select(fields.join(', ')).limit(page_size).offset(offset).order(sort).all
+    add_pagination_response_headers(total, @users.size, offset)
+
+    respond_to do |format|
+      format.json {render :json => @users.to_json}
+
+      format.any do
+        add_pagination_response_headers(total, @users.size, offset)
+        render_csv(@users, fields)
       end
     end
   end
@@ -240,6 +256,45 @@ class SupportController < ReportsController
     respond_to do |format|
       format.html
       format.js
+      format.json {render_json_ci_response(@user.present?, @user)}
+    end
+  end
+
+  def groups
+    page_size = (params[:size].presence || 1000).to_i
+    offset    = (params[:offset].presence || 0).to_i
+    sort      = params[:sort].presence || 'groups.name ASC'
+    name      = params[:name]
+
+    scope = Group
+    scope = scope.where('groups.name ILIKE ?', "%#{name}%") if name.present?
+    total = scope.count
+
+    fields = %w(id name created_by created_at description)
+    @groups = scope.select(fields.join(', ')).limit(page_size).offset(offset).order(sort).all
+    add_pagination_response_headers(total, @groups.size, offset)
+
+    respond_to do |format|
+      format.html
+
+      format.json {render :json => @groups.to_json}
+
+      format.any do
+        add_pagination_response_headers(total, @groups.size, offset)
+        render_csv(@groups, fields)
+      end
+    end
+  end
+
+  def group
+    group_id = params[:id]
+    if group_id.present?
+      @group = Group.where((group_id =~ /\D/ ? :name : :id) => group_id).first
+    end
+
+    respond_to do |format|
+      format.html {render :action => :groups}
+      format.js {render 'account/groups/edit'}
       format.json {render_json_ci_response(@user.present?, @user)}
     end
   end
@@ -411,7 +466,13 @@ class SupportController < ReportsController
     unauthorized unless has_support_permission?(perm)
   end
 
-  def add_pagination_headers
-
+  def render_csv(data, fields, fields_to_escape = nil)
+    delimiter = params[:delimiter].presence || ','
+    csv = fields.join(delimiter) << "\n"
+    data.each do |o|
+      fields_to_escape.each {|f| o[f] = %("#{o[f]}")} if fields_to_escape.present?
+      csv << fields.inject([]) {|a, k| a << o[k]}.join(delimiter) << "\n"
+    end
+    render :text => csv #, :content_type => 'text/data_string'
   end
 end
