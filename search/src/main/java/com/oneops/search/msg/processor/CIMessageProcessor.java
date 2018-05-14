@@ -17,8 +17,11 @@
  *******************************************************************************/
 package com.oneops.search.msg.processor;
 
+import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
+
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsCISimpleWithTags;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.CmsUtil;
 import com.oneops.search.domain.CmsCISearch;
@@ -34,8 +37,6 @@ import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 
 @Service
 public class CIMessageProcessor implements MessageProcessor {
@@ -79,24 +80,31 @@ public class CIMessageProcessor implements MessageProcessor {
 
     @Override
     public void processMessage(String message, String msgType, String msgId) {
-        CmsCI ci = GSON.fromJson(message, CmsCI.class);
-        CmsCISimple simpleCI = cmsUtil.custCI2CISimple(ci, "df");
+        CmsCISimple simpleCI = null;
+        if ("cm_ci_new".equals(msgType)) {
+            simpleCI = GSON.fromJson(message, CmsCISimpleWithTags.class);
+        }
+        else {
+            CmsCI ci = GSON.fromJson(message, CmsCI.class);
+            simpleCI = cmsUtil.custCI2CISimple(ci, "df");
+        }
         indexer.indexEvent("ci", GSON_ES.toJson(simpleCI));
         //For plan generation metrics
-        if ("manifest.Environment".equals(ci.getCiClassName()) && StringUtils.isNotEmpty(ci.getComments()) && ci.getComments().startsWith(ENV_SUCCESS_PREFIX)) {
+        if ("manifest.Environment".equals(simpleCI.getCiClassName()) && StringUtils.isNotEmpty(simpleCI.getComments()) &&
+            simpleCI.getComments().startsWith(ENV_SUCCESS_PREFIX)) {
             deploymentPlanProcessor.process(simpleCI);
-        } else if ("account.Policy".equals(ci.getCiClassName()) || "mgmt.manifest.Policy".equals(ci.getCiClassName())) {
+        } else if ("account.Policy".equals(simpleCI.getCiClassName()) || "mgmt.manifest.Policy".equals(simpleCI.getCiClassName())) {
             policyProcessor.process(simpleCI);
         }
 
 
         //add wo to all bom cis
-        if (ci.getCiClassName().startsWith("bom")) {
+        if (simpleCI.getCiClassName().startsWith("bom")) {
             message = this.processBomCI(simpleCI);
         } else {
             message = GSON_ES.toJson(simpleCI);
         }
-		indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
+		    indexer.index(String.valueOf(simpleCI.getCiId()), "ci", message);
     }
 
 
@@ -125,6 +133,7 @@ public class CIMessageProcessor implements MessageProcessor {
                     String cmsWo = response.getHits().getHits()[0].getSourceAsString();
                     wos = GSON.fromJson(cmsWo, CmsWorkOrderSimple.class);
                     logger.info("WO found for ci id " + ciId + " on retry " + i);
+                    wos.payLoad.remove("RequiresComputes");
                     ciSearch.setWorkorder(wos);
                     break;
                 } else {
