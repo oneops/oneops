@@ -51,7 +51,7 @@ class Account::GroupMembersController < ApplicationController
     end
 
     error = nil
-    if @member.admin? && @group.admins.count == 1
+    if !current_user.is_global_admin? && @member.admin? && @group.admins.count == 1
       error = 'Cannot remove last admin member from the group.'
     else
       @group.members.delete @member
@@ -70,7 +70,7 @@ class Account::GroupMembersController < ApplicationController
 
   def find_group
     group_id = params[:group_id]
-    @group = current_user.groups.where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
+    @group = (is_global_admin? ? Group : current_user.groups).where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
   end
 
   def authorize_group_admin

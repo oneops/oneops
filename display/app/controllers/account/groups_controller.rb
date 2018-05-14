@@ -82,11 +82,11 @@ class Account::GroupsController < ApplicationController
 
   def find_group
     group_id = params[:id]
-    @group = current_user.groups.where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
+    @group = (is_global_admin? ? Group : current_user.groups).where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
   end
 
   def authorize_group_admin
-    unauthorized unless @group.is_admin?(current_user)
+    unauthorized unless is_global_admin? || @group.is_admin?(current_user)
   end
 
   def strong_params

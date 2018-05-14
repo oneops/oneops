@@ -2,7 +2,7 @@
 <%= section_panel 'Group Details', :width => 'double', :position => 'right' do %>
   <%= render('base/shared/edit_form',
              {:resource    => @group,
-              :content     => 'group_details_content',
+              :content     => 'account/groups/group_details_content',
               :read_only   => !new_record && !@group.is_admin?(current_user),
               :cancel_url  => account_groups_path,
               :form_url    => new_record ? account_groups_path : account_group_path(@group)}) %>
@@ -31,7 +31,7 @@
       </div>
     <% end %>
 	</div>
-  <%= section_panel icon('sitemap', 'Team Participation'), :width => 'double', :position => 'right', :menu => menu do %>
+  <%= section_panel icon('sitemap', 'Team Participation'), :width => 'double', :position => 'right' do %>
     <%= list(@group.teams.includes(:organization).all,
              :toolbar  => {:list_name => 'group_teams',
                            :sort_by => [%w(Team team), %w(Organization organization)],
