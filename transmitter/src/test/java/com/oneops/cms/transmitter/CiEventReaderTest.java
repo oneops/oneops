@@ -27,6 +27,7 @@ public class CiEventReaderTest {
   @Before
   public void setup() {
     ciEventReader = new CIEventReader();
+    ciEventReader.init();
     SqlSessionFactory sessionFactory = mock(SqlSessionFactory.class);
     SqlSession session = mock(SqlSession.class);
     when(session.getMapper(CIMapper.class)).thenReturn(mapper);

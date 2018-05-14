@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.cms.transmitter;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.oneops.cms.cm.dal.CIMapper;
@@ -34,10 +36,11 @@ import com.oneops.cms.transmitter.domain.CMSEventRecord;
 import com.oneops.cms.transmitter.domain.EventSource;
 import com.oneops.cms.util.CmsUtil;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang.StringUtils;
 import org.apache.ibatis.session.SqlSession;
 
@@ -51,7 +54,18 @@ public class CIEventReader extends BaseEventReader {
     private CmsUtil cmsUtil = new CmsUtil();
     private Gson gson = new Gson();
 
-    private Map<String, Map<String, String>> orgMap = new HashMap<>();
+    private long orgCacheTtlInMins = 30;
+    private long orgCacheMaxSize = 1000;
+
+    private Cache<String, Map<String, String>> orgCache;
+
+    public void init() {
+        super.init();
+        orgCache = CacheBuilder.newBuilder()
+            .maximumSize(orgCacheMaxSize)
+            .expireAfterWrite(orgCacheTtlInMins, TimeUnit.MINUTES)
+            .build();
+    }
 
     @Override
     public int getBacklog(EventMapper eventMapper) {
@@ -138,37 +152,44 @@ public class CIEventReader extends BaseEventReader {
     private void addTags(CmsCISimpleWithTags ci, CIMapper ciMapper) {
         String org = ci.getOrg();
         if (StringUtils.isNotBlank(org)) {
-            if (orgMap.containsKey(org)) {
-                ci.setTags(orgMap.get(org));
+            Map<String, String> tagMap = null;
+            try {
+                tagMap = orgCache.get(org, () -> getOrgDetails(org, ciMapper));
+            } catch (ExecutionException e) {
+                logger.error("Exception while getting org tags from cache ", e);
             }
-            else {
-                Map<String, String> tagMap = null;
-                List<CmsCI> ciList = ciMapper.getCIby3("/", CI_CLASS_ORG, null, org);
-                if (ciList != null && !ciList.isEmpty()) {
-                    CmsCI orgCi = ciList.get(0);
-                    List<CmsCIAttribute> attrs = ciMapper.getCIAttrs(orgCi.getCiId());
-                    if (attrs != null) {
-                        Optional<CmsCIAttribute> optional = attrs.stream().filter(a -> ATTR_KEY_TAGS.equals(a.getAttributeName())).findFirst();
-                        if (optional.isPresent()) {
-                            CmsCIAttribute tagAttr = optional.get();
-                            String tagValue = tagAttr.getDfValue();
-                            if (StringUtils.isNotBlank(tagValue)) {
-                                try {
-                                    tagMap = gson.fromJson(tagValue, Map.class);
-                                } catch (JsonSyntaxException e) {
-                                    logger.error("exception while parsing tag attribute for org " + org, e);
-                                }
-                            }
+            if (tagMap == null) {
+                tagMap = Collections.emptyMap();
+            }
+            ci.setTags(tagMap);
+        }
+    }
+
+    private Map<String, String> getOrgDetails(String org, CIMapper ciMapper) {
+        Map<String, String> tagMap = null;
+        List<CmsCI> ciList = ciMapper.getCIby3("/", CI_CLASS_ORG, null, org);
+        if (ciList != null && !ciList.isEmpty()) {
+            CmsCI orgCi = ciList.get(0);
+            List<CmsCIAttribute> attrs = ciMapper.getCIAttrs(orgCi.getCiId());
+            if (attrs != null) {
+                Optional<CmsCIAttribute> optional = attrs.stream().filter(a -> ATTR_KEY_TAGS.equals(a.getAttributeName())).findFirst();
+                if (optional.isPresent()) {
+                    CmsCIAttribute tagAttr = optional.get();
+                    String tagValue = tagAttr.getDfValue();
+                    if (StringUtils.isNotBlank(tagValue)) {
+                        try {
+                            tagMap = gson.fromJson(tagValue, Map.class);
+                        } catch (JsonSyntaxException e) {
+                            logger.error("exception while parsing tag attribute for org " + org, e);
                         }
                     }
                 }
-                if (tagMap == null) {
-                    tagMap = Collections.emptyMap();
-                }
-                orgMap.put(org, tagMap);
-                ci.setTags(tagMap);
             }
         }
+        if (tagMap == null) {
+            tagMap = Collections.emptyMap();
+        }
+        return tagMap;
     }
 
     private CMSEvent getCiRel(CMSEventRecord record) {
@@ -240,4 +261,11 @@ public class CIEventReader extends BaseEventReader {
         return ciRfc;
     }
 
+    public void setOrgCacheTtlInMins(long orgCacheTtlInMins) {
+        this.orgCacheTtlInMins = orgCacheTtlInMins;
+    }
+
+    public void setOrgCacheMaxSize(long orgCacheMaxSize) {
+        this.orgCacheMaxSize = orgCacheMaxSize;
+    }
 }
