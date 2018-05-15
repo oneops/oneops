@@ -31,7 +31,7 @@
         <% end %>
         <% error_prefix = 'ERROR:BOM:' %>
         <% if comments.present? && comments.start_with?(error_prefix) %>
-          <li><%= content_tag(:div, comments.sub(/^#{error_prefix}/, ''), :class => 'alert alert-danger') %></li>
+          <li><%= content_tag(:div, raw(comments.sub(/^#{error_prefix}/, '').gsub("\n", '<br>')), :class => 'alert alert-danger') %></li>
         <% end %>
       </ul>
       <ul class="status-actions">

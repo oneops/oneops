@@ -34,10 +34,7 @@ import com.oneops.cms.cm.ops.service.OpsManager;
 import com.oneops.cms.cm.service.CmsCmManager;
 import com.oneops.cms.ds.CmsDataHelper;
 import com.oneops.cms.ds.ReadOnlyDataAccess;
-import com.oneops.cms.exceptions.CIValidationException;
-import com.oneops.cms.exceptions.CmsException;
-import com.oneops.cms.exceptions.DJException;
-import com.oneops.cms.exceptions.OpsException;
+import com.oneops.cms.exceptions.*;
 import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCIRelationSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
@@ -120,12 +117,17 @@ public class CmRestController extends AbstractRestController {
 		sendError(response,HttpServletResponse.SC_FORBIDDEN,e);
 	}
 
-    @ExceptionHandler(OpsException.class)
+    @ExceptionHandler({OpsException.class})
 	public void handleOpsException(OpsException e, HttpServletResponse response) throws IOException {
 		sendError(response,HttpServletResponse.SC_NOT_FOUND,e);
 	}
 	
-	
+    @ExceptionHandler({ResourceNotFoundException.class})
+	public void handleOpsException(ResourceNotFoundException e, HttpServletResponse response) throws IOException {
+		sendError(response,HttpServletResponse.SC_NOT_FOUND,e);
+	}
+
+
 	@RequestMapping(value="/cm/cis/{ciId}", method = RequestMethod.GET)
 	@ResponseBody
 	@ReadOnlyDataAccess
@@ -979,6 +981,14 @@ public class CmRestController extends AbstractRestController {
 	@ResponseBody
 	public CmsVar getCmSimpleVar(@PathVariable String varName){
 		return cmManager.getCmSimpleVar(varName);
+	}
+
+	@RequestMapping(value="/cm/simple/vars/{varName}", method = RequestMethod.GET)
+	@ResponseBody
+	public CmsVar getCmSimpleVar2(@PathVariable String varName){
+		CmsVar var = cmManager.getCmSimpleVar(varName);
+		if (var == null) throw new ResourceNotFoundException();
+		return var;
 	}
 
 

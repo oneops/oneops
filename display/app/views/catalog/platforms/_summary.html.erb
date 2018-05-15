@@ -36,7 +36,12 @@
     <div id="pack_info_div"><%= render('catalog/packs/info', :read_only => !has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)) %></div>
   <% end %>
 
-    <div id="pack_visibility_div"><%= render('catalog/packs/visibility') %></div>
+  <div id="pack_visibility_div"><%= render('catalog/packs/visibility') %></div>
+  <% if @cloud_whitelist.present? %>
+    <%= section_panel 'Cloud White List By Namespace', :width => 'double', :position => 'left' do %>
+      <pre><small><%= JSON.pretty_unparse(@cloud_whitelist) %></small></pre>
+    <% end %>
+  <% end %>
 <% end %>
 
 <div id="page_nav_diagram">

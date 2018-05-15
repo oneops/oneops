@@ -25,6 +25,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.oneops.cms.cm.domain.*;
+import com.oneops.cms.exceptions.ExceptionConsolidator;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.transistor.util.CloudUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
@@ -40,7 +42,6 @@ import com.oneops.cms.util.CmsUtil;
 import com.oneops.transistor.exceptions.TransistorException;
 
 import static com.oneops.cms.util.CmsConstants.*;
-import static com.oneops.cms.util.CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY;
 import static java.lang.System.getProperty;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
@@ -52,6 +53,8 @@ public class BomManagerImpl implements BomManager {
 	private static final boolean checkSecondary = Boolean.valueOf(getProperty("transistor.checkSecondary", "true"));
 	private static final boolean check4Services = Boolean.valueOf(getProperty("transistor.checkServices", "true"));
 
+	static final String PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME = "PACK_CLOUD_NS_WHITELIST";
+
 	private CmsCmProcessor cmProcessor;
 	private CmsRfcProcessor manifestRfcProcessor;
 	private CmsRfcProcessor bomRfcProcessor;
@@ -60,7 +63,7 @@ public class BomManagerImpl implements BomManager {
 	private CmsDpmtProcessor dpmtProcessor;
 	private CmsUtil cmsUtil;
 	private CloudUtil cloudUtil;
-	private Gson gson = new Gson();
+	Gson gson = new Gson();
 
 	public void setCloudUtil(CloudUtil cloudUtil) {
 		this.cloudUtil = cloudUtil;
@@ -221,6 +224,7 @@ public class BomManagerImpl implements BomManager {
 			cloudUtil.check4missingServices(getPlatformIds(platsToProcess));
 		}
 
+		ExceptionConsolidator<TransistorException> packCloudWhiteListEC = new ExceptionConsolidator<>(TransistorException.class, CmsError.TRANSISTOR_CANNOT_DEPLOY_PACK_TO_CLOUD, 100);
 		int startingExecOrder = 1;
 		int maxOrder = getMaxExecOrder(platsToProcess);
 		for (int i = 1; i <= maxOrder; i++) {
@@ -260,6 +264,9 @@ public class BomManagerImpl implements BomManager {
 								if (context.getDisabledPlatformIds().contains(platform.getCiId()) || platform.getCiState().equalsIgnoreCase("pending_deletion")) {
 									maxExecOrder = bomGenerationProcessor.deleteManifestPlatform(context, platformContext, platformCloudRel, platExecOrder);
 								} else {
+									TransistorException ex = packCloudWhiteListEC.invokeChecked(() -> checkPackCloudWhiteList(platform, platformCloudRel.getToCi()));
+									if (ex != null) continue;
+
 									maxExecOrder = bomGenerationProcessor.processManifestPlatform(context, platformContext, platformCloudRel, platExecOrder, true);
 								}
 								stepMaxOrder = (maxExecOrder > stepMaxOrder) ? maxExecOrder : stepMaxOrder;
@@ -273,6 +280,9 @@ public class BomManagerImpl implements BomManager {
 				startingExecOrder = (stepMaxOrder > 0) ? stepMaxOrder + 1 : startingExecOrder;
 			}
 		}
+		packCloudWhiteListEC.rethrowExceptionIfNeeded("Some platforms can not be deployed to certain clouds:\n",
+													  ".\nShutdown the disallowed clouds for these platforms before proceeding.",
+													  ";\n");
 		logger.info(envManifestNsPath + " >>> Done generating BOM for active clouds in " + (System.currentTimeMillis() - globalStartTime) + " ms.");
 
 		return startingExecOrder;
@@ -286,7 +296,7 @@ public class BomManagerImpl implements BomManager {
 				.collect(toSet());
 	}
 
-	protected void check4Secondary(PlatformBomGenerationContext context, List<CmsCIRelation> platformCloudRels) {
+	void check4Secondary(PlatformBomGenerationContext context, List<CmsCIRelation> platformCloudRels) {
 		String nsPath = context.getBomNsPath();
 		List<CmsCIRelation> entryPoints = context.getEntryPoints();
 		if(entryPoints.size() == 0) {
@@ -345,7 +355,7 @@ public class BomManagerImpl implements BomManager {
 				message = String.format("The deployment will result in no instances in primary clouds for platform %s. Please check the cloud priority of the clouds. .  ", nsPath);
 			}
 
-			throw new TransistorException(TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
+			throw new TransistorException(CmsError.TRANSISTOR_ALL_INSTANCES_SECONDARY, message);
 		}
 	}
 
@@ -531,4 +541,45 @@ public class BomManagerImpl implements BomManager {
 		}
 	}
 
+	void checkPackCloudWhiteList(CmsCI platform, CmsCI cloud) {
+		CmsVar cmsVar = cmProcessor.getCmSimpleVar(PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+		if (cmsVar == null ) return;
+		String json = cmsVar.getValue();
+		if (json == null || json.isEmpty()) return;
+
+		try {
+			Map<String, Map<String, List<String>>> whitelist = gson.fromJson(json, (new TypeToken<Map<String, Map<String, List<String>>>>() {}).getType());
+			String packKey = platform.getAttribute("source").getDfValue() + "/" + platform.getAttribute("pack").getDfValue();
+			Map<String, List<String>> packWhiteList = whitelist.containsKey(packKey) ? whitelist.get(packKey) :
+					whitelist.get(packKey + ":" + platform.getAttribute("version").getDfValue());
+			if (packWhiteList == null) return;
+			List<String> namespaces = packWhiteList.keySet().stream()
+			.filter(c -> {
+				// It could be either a simple value to match against ciName or ':' delimited tokens specifying attribute name and value.
+				String[] split = c.split(":");
+				String matchValue = split[split.length > 1 ? 1 : 0].toLowerCase();
+				String cloudValue;
+				if (split.length > 1) {
+					CmsCIAttribute attribute = cloud.getAttribute(split[0]);
+					if (attribute == null) return false;
+					cloudValue = attribute.getDfValue();
+				} else {
+					cloudValue = cloud.getCiName();
+				}
+				return cloudValue != null && cloudValue.toLowerCase().contains(matchValue);
+			})
+			.map(packWhiteList::get)
+			.findFirst().orElse(null);
+			if (namespaces == null || namespaces.isEmpty()) return;
+			String platformNsPath = platform.getNsPath();
+			boolean ok = namespaces.stream().anyMatch(platformNsPath::startsWith);
+			if (!ok) {
+				String message = "platform '" + platform.getCiName() + "' can not be deployed to cloud '" + cloud.getCiName();
+				throw new TransistorException(CmsError.TRANSISTOR_CANNOT_DEPLOY_PACK_TO_CLOUD, message);
+			}
+
+		} catch (JsonSyntaxException e) {
+			logger.warn("Failed to parse PACK_CLOUD_NS_WHITELIST json: " + json + ". Exception: " + e.getMessage());
+		}
+	}
 }
