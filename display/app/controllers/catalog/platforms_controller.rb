@@ -19,8 +19,22 @@ class Catalog::PlatformsController < Base::PlatformsController
                                                       :includeToCi       => true,
                                                       :attrProps         => 'owner'}).map(&:toCi)
         @policy_compliance = Cms::Ci.violates_policies(@components, false, true) if Settings.check_policy_compliance
-        @versions = locate_pack_versions(params[:source], params[:pack]) unless @design
-        @stats = Search::Pack.count_stats(params[:source], params[:pack], params[:version]) if @version
+
+        pack      = params[:pack]
+        source    = params[:source]
+        version   = params[:version]
+        @versions = locate_pack_versions(source, pack) unless @design
+        @stats    = Search::Pack.count_stats(source, pack, version) if @version
+
+        if has_support_permission?(Catalog::PacksController::SUPPORT_PERMISSION_PACK_MANAGEMENT)
+        begin
+            wl_var = Cms::Var.find('PACK_CLOUD_NS_WHITELIST')
+            wl = JSON.parse(wl_var.value)
+            key = "#{source}/#{pack}"
+            @cloud_whitelist = wl["#{key}:#{version}"].presence || wl[key]
+          rescue Exception
+          end
+        end
       end
 
       format.json do

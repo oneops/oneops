@@ -173,7 +173,7 @@ class Transition::DeploymentsController < ApplicationController
             @cost, _ = data['cost']
           end
         else
-          flash[:error] = message
+          flash[:error] = message.sub(/^ERROR:BOM:/, '').gsub("\n", '<br>')
           render :js => 'hide_modal();'
         end
       end
