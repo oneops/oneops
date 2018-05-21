@@ -19,12 +19,10 @@ package com.oneops.inductor;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import java.io.OutputStream;
 
-public class ErrorHandler extends OutputStream {
+public class ErrorHandler {
     private Logger logger;
     private Level level;
-    private String line;
     private String logKey;
     private ProcessResult result;
 
@@ -37,7 +35,6 @@ public class ErrorHandler extends OutputStream {
         setLevel(Level.ALL);
         setLogKey(logKey);
         this.result = result;
-        line = "";
     }
 
     public void setLogger(Logger logger) {
@@ -64,30 +61,7 @@ public class ErrorHandler extends OutputStream {
         return logKey;
     }
 
-    public void write(int b) {
-        byte[] bytes = new byte[1];
-        bytes[0] = (byte) (b & 0xff);
-        line = line + new String(bytes);
-
-        if (line.endsWith("\n")) {
-            line = line.substring(0, line.length() - 1);
-            flush();
-        }
-    }
-
-    public void write(byte[] b, int off, int len) {
-        byte[] content = new byte[len];
-        for (int i = off; i < len; i++) {
-            content[i] = (byte) (b[i] & 0xff);
-        }
-        String lines = new String(content);
-        for (String l : lines.split("\n")) {
-            line = l;
-            flush();
-        }
-    }
-
-    public void flush() {
+    public void WriteOutputToLogger(String line) {
         if (rowCount < maxRowCount * 2) {
 
             logger.info(logKey + "cmd error: " + line);

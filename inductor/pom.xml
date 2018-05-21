@@ -18,6 +18,12 @@
 
   <dependencies>
     <dependency>
+        <groupId>org.zeroturnaround</groupId>
+        <artifactId>zt-exec</artifactId>
+        <version>1.8</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-exec</artifactId>
     </dependency>
@@ -28,6 +34,12 @@
     <dependency>
       <groupId>com.oneops</groupId>
       <artifactId>oo-commons</artifactId>
+      <exclusions>
+          <exclusion>
+            <artifactId>slf4j-api</artifactId>
+            <groupId>org.slf4j</groupId>
+          </exclusion>
+        </exclusions>
     </dependency>
     <dependency>
       <groupId>com.oneops</groupId>

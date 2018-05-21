@@ -20,12 +20,10 @@ package com.oneops.inductor;
 import com.google.gson.Gson;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import java.io.OutputStream;
 
-public class OutputHandler extends OutputStream {
+public class OutputHandler {
     private Logger logger;
     private Level level;
-    private String line;
     private String logKey;
     private static String REBOOT_FLAG = "***REBOOT_FLAG***";
     private static String RESULT_KEY = "***RESULT:";
@@ -48,7 +46,6 @@ public class OutputHandler extends OutputStream {
         setLevel(Level.ALL);
         setLogKey(logKey);
         this.result = result;
-        line = "";
     }
 
     public void setLogger(Logger logger) {
@@ -75,30 +72,7 @@ public class OutputHandler extends OutputStream {
         return logKey;
     }
 
-    public void write(int b) {
-        byte[] bytes = new byte[1];
-        bytes[0] = (byte) (b & 0xff);
-        line = line + new String(bytes);
-
-        if (line.endsWith("\n")) {
-            line = line.substring(0, line.length() - 1).replace("\r", "");
-            flush();
-        }
-    }
-
-    public void write(byte[] b, int off, int len) {
-        byte[] content = new byte[len];
-        for (int i = off; i < len; i++) {
-            content[i] = (byte) (b[i] & 0xff);
-        }
-        String lines = new String(content);
-        for (String l : lines.split("\n")) {
-            line = l;
-            flush();
-        }
-    }
-
-    public void flush() {
+    public void WriteOutputToLogger(String line) {
         if (rowCount < maxRowCount && line.length() > 0) {
             if (!line.contains("PRIVATE KEY")) {
                 logger.info(logKey + "cmd out: " + line);
@@ -190,7 +164,5 @@ public class OutputHandler extends OutputStream {
                     + " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
         }
         rowCount++;
-        line = "";
     }
-
 }

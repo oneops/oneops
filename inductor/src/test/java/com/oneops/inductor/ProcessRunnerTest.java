@@ -68,7 +68,7 @@ public class ProcessRunnerTest {
 		cmd[0] = "sleep";
 		cmd[1] = "10s";
 		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
-		assertTrue(procResult.getResultCode() == 143);
+		assertTrue(procResult.getResultCode() == -1);
 	}
 
 	public void executeProcessWithEnv() throws IOException, URISyntaxException {
