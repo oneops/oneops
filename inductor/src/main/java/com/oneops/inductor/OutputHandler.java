@@ -20,12 +20,10 @@ package com.oneops.inductor;
 import com.google.gson.Gson;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import java.io.OutputStream;
 
-public class OutputHandler extends OutputStream {
+public class OutputHandler {
     private Logger logger;
     private Level level;
-    private String line;
     private String logKey;
     private static String REBOOT_FLAG = "***REBOOT_FLAG***";
     private static String RESULT_KEY = "***RESULT:";
@@ -48,7 +46,6 @@ public class OutputHandler extends OutputStream {
         setLevel(Level.ALL);
         setLogKey(logKey);
         this.result = result;
-        line = "";
     }
 
     public void setLogger(Logger logger) {
@@ -75,18 +72,7 @@ public class OutputHandler extends OutputStream {
         return logKey;
     }
 
-    public void write(int b) {
-        byte[] bytes = new byte[1];
-        bytes[0] = (byte) (b & 0xff);
-        line = line + new String(bytes);
-
-        if (line.endsWith("\n")) {
-            line = line.substring(0, line.length() - 1).replace("\r", "");
-            flush();
-        }
-    }
-
-    public void flush() {
+    public void writeOutputToLogger(String line) {
         if (rowCount < maxRowCount && line.length() > 0) {
             if (!line.contains("PRIVATE KEY")) {
                 logger.info(logKey + "cmd out: " + line);
@@ -98,39 +84,27 @@ public class OutputHandler extends OutputStream {
 
             int keyIndex = line.indexOf(RESULT_KEY);
             if (keyIndex == 0) {
-                String withOutResultKey = line.substring(keyIndex + 10,
-                        line.length());
-                String k = withOutResultKey.substring(0,
-                        withOutResultKey.indexOf("="));
-                String v = withOutResultKey.substring(
-                        withOutResultKey.indexOf("=") + 1,
-                        withOutResultKey.length());
+                String withOutResultKey = line.substring(keyIndex + 10, line.length());
+                String k = withOutResultKey.substring(0, withOutResultKey.indexOf("="));
+                String v = withOutResultKey.substring(withOutResultKey.indexOf("=") + 1, withOutResultKey.length());
                 result.getResultMap().put(k, v);
                 logger.debug(logKey + " resultCi " + k + ": " + v);
             }
 
             keyIndex = line.indexOf(FAULT_KEY);
             if (keyIndex == 0) {
-                String withOutResultKey = line.substring(keyIndex + 9,
-                        line.length());
-                String k = withOutResultKey.substring(0,
-                        withOutResultKey.indexOf("="));
-                String v = withOutResultKey.substring(
-                        withOutResultKey.indexOf("=") + 1,
-                        withOutResultKey.length());
+                String withOutResultKey = line.substring(keyIndex + 9, line.length());
+                String k = withOutResultKey.substring(0, withOutResultKey.indexOf("="));
+                String v = withOutResultKey.substring(withOutResultKey.indexOf("=") + 1, withOutResultKey.length());
                 result.getFaultMap().put(k, v);
                 logger.info(logKey + " fault: " + k + ": " + v);
             }
 
             keyIndex = line.indexOf(TAG_KEY);
             if (keyIndex == 0) {
-                String withOutResultKey = line.substring(keyIndex + 7,
-                        line.length());
-                String k = withOutResultKey.substring(0,
-                        withOutResultKey.indexOf("="));
-                String v = withOutResultKey.substring(
-                        withOutResultKey.indexOf("=") + 1,
-                        withOutResultKey.length());
+                String withOutResultKey = line.substring(keyIndex + 7, line.length());
+                String k = withOutResultKey.substring(0, withOutResultKey.indexOf("="));
+                String v = withOutResultKey.substring(withOutResultKey.indexOf("=") + 1, withOutResultKey.length());
                 result.getTagMap().put(k, v);
                 logger.info(logKey + " tag: " + k + ": " + v);
             }
@@ -140,16 +114,13 @@ public class OutputHandler extends OutputStream {
             if (keyIndex == 0) {
                 int firstEquals = line.indexOf("=");
                 String key = line.substring(keyIndex + 14, firstEquals);
-                String val = line.substring(firstEquals + 1,
-                        line.length());
+                String val = line.substring(firstEquals + 1, line.length());
 
-                MultiLineValue value = gson.fromJson(val,
-                        MultiLineValue.class);
+                MultiLineValue value = gson.fromJson(val, MultiLineValue.class);
 
                 result.getResultMap().put(key, value.getValue());
                 if (!value.getValue().contains("PRIVATE KEY"))
-                    logger.debug(logKey + " resultCi " + key + ": "
-                            + val);
+                    logger.debug(logKey + " resultCi " + key + ": " + val);
 
             }
 
@@ -170,15 +141,10 @@ public class OutputHandler extends OutputStream {
                 result.setLastError(line.substring(keyIndex + 6, line.length()));
             }
 
-
         } else if (rowCount == maxRowCount) {
-            logger.warn(logKey
-                    + " hit max amount of output per process of "
-                    + maxRowCount
+            logger.warn(logKey + " hit max amount of output per process of " + maxRowCount
                     + " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
         }
         rowCount++;
-        line = "";
     }
-
 }

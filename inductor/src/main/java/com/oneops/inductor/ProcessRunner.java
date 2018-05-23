@@ -25,13 +25,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import com.oneops.cms.util.CmsConstants;
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteException;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.PumpStreamHandler;
+
 import org.apache.log4j.Logger;
+import org.zeroturnaround.exec.ProcessExecutor;
+import org.zeroturnaround.exec.stream.LogOutputStream;
 
 public class ProcessRunner {
 
@@ -76,8 +77,8 @@ public class ProcessRunner {
         }
       }
     }
-    ProcessResult result = executeProcessRetry(executionContext.getCmd(),
-        executionContext.getLogKey(), maxRetries, InductorConstants.PRIVATE_IP);
+    ProcessResult result = executeProcessRetry(executionContext.getCmd(), executionContext.getLogKey(), maxRetries,
+        InductorConstants.PRIVATE_IP);
     // Mark the process execution result code to 0 for the shutdown.clouds.
     if (shutdown) {
       logger.warn(executionContext.getLogKey()
@@ -90,15 +91,14 @@ public class ProcessRunner {
   /**
    * Wrapper for process retry
    *
-   * @param cmd command to execute
-   * @param logKey log key
+   * @param cmd         command to execute
+   * @param logKey      log key
    * @param max_retries max retry count
    * @return process result.
    */
   public ProcessResult executeProcessRetry(String[] cmd, String logKey, int max_retries) {
     return executeProcessRetry(cmd, logKey, max_retries, InductorConstants.PRIVATE_IP);
   }
-
 
   public ProcessResult executeProcessRetry(String[] cmd, String logKey) {
     return executeProcessRetry(cmd, logKey, config.getRetryCount(), config.getIpAttribute());
@@ -107,33 +107,27 @@ public class ProcessRunner {
   /**
    * Execute the command and retry if it fails.
    *
-   * @param cmd command to execute
-   * @param logKey log key
-   * @param max_retries max retry count
+   * @param cmd          command to execute
+   * @param logKey       log key
+   * @param max_retries  max retry count
    * @param ip_attribute ip address
    * @return process result
    */
-  public ProcessResult executeProcessRetry(String[] cmd, String logKey, int max_retries,
-      String ip_attribute) {
+  public ProcessResult executeProcessRetry(String[] cmd, String logKey, int max_retries, String ip_attribute) {
 
     int count = 0;
     ProcessResult result = new ProcessResult();
 
-    while ((result.getResultCode() != 0 && count < max_retries + 1)
-        || result.isRebooting()) {
+    while ((result.getResultCode() != 0 && count < max_retries + 1) || result.isRebooting()) {
       if (count > 0) {
         logger.warn(logKey + "retry #: " + count);
-        if (result.getResultMap().containsKey(
-            InductorConstants.SHARED_IP)
-            && ip_attribute
-            .equalsIgnoreCase(InductorConstants.PUBLIC_IP)) {
+        if (result.getResultMap().containsKey(InductorConstants.SHARED_IP)
+            && ip_attribute.equalsIgnoreCase(InductorConstants.PUBLIC_IP)) {
 
-          String ip = result.getResultMap().get(
-              InductorConstants.SHARED_IP);
+          String ip = result.getResultMap().get(InductorConstants.SHARED_IP);
           String oldUserHost = cmd[1];
           logger.info("retrying using shared_ip: " + ip);
-          String newUserHost = oldUserHost.replaceFirst("@.*", "@"
-              + ip);
+          String newUserHost = oldUserHost.replaceFirst("@.*", "@" + ip);
           cmd[1] = newUserHost;
         }
       }
@@ -158,12 +152,12 @@ public class ProcessRunner {
           logger.info("sleeping " + sleepSec + " sec...");
           Thread.sleep(sleepSec * 1000L);
         }
-      } catch(InterruptedException ie) {
+      } catch (InterruptedException ie) {
         ie.printStackTrace();
       }
     }
 
-    //adding count to retry
+    // adding count to retry
     result.getTagMap().put(CmsConstants.INDUCTOR_RETRIES, Integer.toString(count - 1));
     logger.info(logKey + " ### EXEC EXIT CODE: " + result.getResultCode());
     return result;
@@ -172,52 +166,65 @@ public class ProcessRunner {
   /**
    * Creates a process and logs the output
    */
-  public void executeProcess(String[] cmd, String logKey, ProcessResult result,
-      Map<String, String> additionalEnvVars, File workingDir) {
+  public void executeProcess(String[] cmd, String logKey, ProcessResult result, Map<String, String> additionalEnvVars,
+      File workingDir) {
 
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
-    logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey,
-        String.join(" ", cmd), additionalEnvVars));
-
+    logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey, String.join(" ", cmd), additionalEnvVars));
     try {
-      CommandLine cmdLine = new CommandLine(cmd[0]);
-      // add rest of cmd string[] as arguments
-      for (int i = 1; i < cmd.length; i++) {
-        // needs the quote handling=false or else doesn't work
-        // http://www.techques.com/question/1-5080109/How-to-execute--bin-sh-with-commons-exec?
-        cmdLine.addArgument(cmd[i], false);
-      }
-      setTimeoutInSeconds((int)config.getChefTimeout());
-      DefaultExecutor executor = new DefaultExecutor();
-      executor.setExitValue(0);
-      executor.setWatchdog(new ExecuteWatchdog(timeoutInSeconds * 1000));
+      setTimeoutInSeconds((int) config.getChefTimeout());
       OutputHandler outputStream = new OutputHandler(logger, logKey, result);
       ErrorHandler errorStream = new ErrorHandler(logger, logKey, result);
-      executor.setStreamHandler(new PumpStreamHandler(outputStream, errorStream));
-      if (workingDir != null) {
-        executor.setWorkingDirectory(workingDir);
+      if (env == null) {
+        env = new HashMap<>();
       }
-      result.setResultCode(executor.execute(cmdLine, env));
+      result.setResultCode(new ProcessExecutor().command(cmd).environment(env).directory(workingDir)
+          .redirectOutput(new LogOutputStream() {
+            @Override
+            protected void processLine(String line) {
+              for (String l : line.split("\n")) {
+                if (l.contains("PRIVATE KEY")) {
+                  int startIndex = l.indexOf("-----BEGIN RSA PRIVATE KEY-----");
+                  int endIndex = l.indexOf("-----END RSA PRIVATE KEY-----") + 31;
+                  l = l.substring(0, startIndex) + l.substring(endIndex, l.length());
+                }
+                outputStream.writeOutputToLogger(l);
+              }
+            }
+          }).redirectError(new LogOutputStream() {
+            @Override
+            protected void processLine(String line) {
+              for (String l : line.split("\n")) {
+                if (l.contains("PRIVATE KEY")) {
+                  int startIndex = l.indexOf("-----BEGIN RSA PRIVATE KEY-----");
+                  int endIndex = l.indexOf("-----END RSA PRIVATE KEY-----") + 31;
+                  l = l.substring(0, startIndex) + l.substring(endIndex, l.length());
+                }
+                errorStream.writeOutputToLogger(l);
+              }
+            }
+          }).timeout(timeoutInSeconds, TimeUnit.SECONDS).execute().getExitValue());
 
       // set fault to last error if fault map is empty
       if (result.getResultCode() != 0 && result.getFaultMap().keySet().size() < 1) {
         result.getFaultMap().put("ERROR", result.getLastError());
       }
-
-    } catch(ExecuteException ee) {
-      logger.error(logKey + ee);
-      result.setResultCode(ee.getExitValue());
-    } catch(IOException e) {
-      logger.error(e);
+    } catch (TimeoutException e) {
+      logger.error(logKey + e);
+      result.setResultCode(-1);
+    } catch (InterruptedException e) {
+      logger.error(logKey + e);
+      result.setResultCode(-2);
+    } catch (IOException e) {
+      logger.error(logKey + e);
       result.setResultCode(1);
     }
-
   }
 
   /**
    * Returns env variables to be used for local commands, else returns null.
    *
-   * @param cmd command array
+   * @param cmd       command array
    * @param extraVars additional env vars for local command.
    * @return env vars map or <code>null</code>. command.
    */
