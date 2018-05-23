@@ -171,7 +171,6 @@ public class ProcessRunner {
 
     Map<String, String> env = getEnvVars(cmd, additionalEnvVars);
     logger.info(format("%s Cmd: %s, Additional Env Vars: %s", logKey, String.join(" ", cmd), additionalEnvVars));
-    logger.info(format("%s New Inductor", logKey));
     try {
       setTimeoutInSeconds((int) config.getChefTimeout());
       OutputHandler outputStream = new OutputHandler(logger, logKey, result);
@@ -183,12 +182,16 @@ public class ProcessRunner {
           .redirectOutput(new LogOutputStream() {
             @Override
             protected void processLine(String line) {
-              outputStream.WriteOutputToLogger(line);
+              for (String l : line.split("\n")) {
+                outputStream.writeOutputToLogger(l);
+              }
             }
           }).redirectError(new LogOutputStream() {
             @Override
             protected void processLine(String line) {
-              errorStream.WriteOutputToLogger(line);
+              for (String l : line.split("\n")) {
+                errorStream.writeOutputToLogger(l);
+              }
             }
           }).timeout(timeoutInSeconds, TimeUnit.SECONDS).execute().getExitValue());
 

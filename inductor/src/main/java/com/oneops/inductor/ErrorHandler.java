@@ -61,16 +61,14 @@ public class ErrorHandler {
         return logKey;
     }
 
-    public void WriteOutputToLogger(String line) {
+    public void writeOutputToLogger(String line) {
         if (rowCount < maxRowCount * 2) {
 
             logger.info(logKey + "cmd error: " + line);
             result.appendStdErr(line + "\n");
 
         } else if (rowCount == maxRowCount * 2) {
-            logger.warn(logKey
-                    + " hit max amount of output per process of "
-                    + maxRowCount
+            logger.warn(logKey + " hit max amount of output per process of " + maxRowCount
                     + " lines. Please run the workorder on the box: chef-solo -c /home/oneops/cookbooks/chef.rb -j /opt/oneops/workorder/someworkorder ");
         }
         rowCount++;
