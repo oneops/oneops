@@ -18,12 +18,17 @@
 package com.oneops.inductor;
 
 import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNoException;
+import static com.oneops.inductor.util.ResourceUtils.readResourceAsString;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ProcessRunnerTest {
+
+	private static String remoteWo;
 
 	/**
 	 * test for mem leak
@@ -47,6 +52,11 @@ public class ProcessRunnerTest {
 	}
 	 */
 
+	@BeforeClass
+	public static void init() {
+	  remoteWo = readResourceAsString("/remoteWorkOrder.json");
+	}
+
 	@Test
 	public void testExecuteProcessRetry() {
 		Config c = new Config();
@@ -69,6 +79,18 @@ public class ProcessRunnerTest {
 		cmd[1] = "10s";
 		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
 		assertTrue(procResult.getResultCode() == -1);
+	}
+
+	@Test
+	public void testWoOutput() {
+		Config c = new Config();
+		c.setChefTimeout(10);
+		ProcessRunner pr = new ProcessRunner(c);
+		String[] cmd = new String[2];
+		cmd[0] = "echo";
+		cmd[1] = remoteWo;
+		ProcessResult procResult = pr.executeProcessRetry(cmd, "", 3);
+		assertTrue(procResult.getResultCode() == 0);
 	}
 
 	public void executeProcessWithEnv() throws IOException, URISyntaxException {

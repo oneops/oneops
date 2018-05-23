@@ -183,6 +183,11 @@ public class ProcessRunner {
             @Override
             protected void processLine(String line) {
               for (String l : line.split("\n")) {
+                if (l.contains("PRIVATE KEY")) {
+                  int startIndex = l.indexOf("-----BEGIN RSA PRIVATE KEY-----");
+                  int endIndex = l.indexOf("-----END RSA PRIVATE KEY-----") + 31;
+                  l = l.substring(0, startIndex) + l.substring(endIndex, l.length());
+                }
                 outputStream.writeOutputToLogger(l);
               }
             }
@@ -190,6 +195,11 @@ public class ProcessRunner {
             @Override
             protected void processLine(String line) {
               for (String l : line.split("\n")) {
+                if (l.contains("PRIVATE KEY")) {
+                  int startIndex = l.indexOf("-----BEGIN RSA PRIVATE KEY-----");
+                  int endIndex = l.indexOf("-----END RSA PRIVATE KEY-----") + 31;
+                  l = l.substring(0, startIndex) + l.substring(endIndex, l.length());
+                }
                 errorStream.writeOutputToLogger(l);
               }
             }

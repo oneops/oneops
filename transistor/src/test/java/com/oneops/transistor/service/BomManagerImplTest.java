@@ -17,12 +17,15 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
+import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.domain.CmsVar;
 import com.oneops.transistor.exceptions.TransistorException;
 import com.oneops.transistor.util.CloudUtil;
 import org.testng.annotations.BeforeClass;
@@ -279,6 +282,68 @@ public class BomManagerImplTest {
         impl.check4Secondary(context, platformCloudRels);
     }
 
+    @Test(expectedExceptions = {})
+    public void passPackCloudWhiteList() {
+        CmsCmProcessor cmProcessor = mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
+        impl.gson = new Gson();
+
+        CmsCI platform = platform();
+        CmsCI cloud = cloud();
+
+        CmsVar var = new CmsVar();
+        var.setName(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+
+        // Whitelist is not configured
+        doAnswer(invocation -> null).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform, cloud);
+
+        // pack does not match
+        var.setValue("{\"oneops/java\":{\"location:azure\": [\"/blah\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform, cloud);
+
+        // cloud does not match
+        var.setValue("{\"oneops/tomcat\":{\"location:openstack\": [\"/blah\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform, cloud);
+
+        // org is white-listed, match cloud by attribute value
+        var.setValue("{\"oneops/tomcat\":{\"location:azure\": [\"/cool-org\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform, cloud);
+
+        // org is white-listed, match cloud by ciName
+        var.setValue("{\"oneops/tomcat\":{\"c1\": [\"/cool-org\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform, cloud);
+
+        // assembly is white-listed, match cloud by ciName
+        var.setValue("{\"oneops/tomcat\":{\"c1\": [\"/cool-org/a1\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform, cloud);
+    }
+
+    @Test(expectedExceptions = {TransistorException.class}, expectedExceptionsMessageRegExp=".*can not be deployed.*")
+    public void failPackCloudWhiteList() {
+        CmsCmProcessor cmProcessor = mock(CmsCmProcessor.class);
+        BomManagerImpl impl = getInstance(cmProcessor);
+        impl.gson = new Gson();
+
+        CmsVar var = new CmsVar();
+        var.setName(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+
+        // org is not whitelisted
+        var.setValue("{\"oneops/tomcat\":{\"location:azure\": [\"/blah\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        assertThrows(TransistorException.class, () -> impl.checkPackCloudWhiteList(platform(), cloud()));
+
+        // assembly is not whitelisted
+        var.setValue("{\"oneops/tomcat\":{\"location:azure\": [\"/blah\", \"/cool-org/a2\"]}}");
+        doAnswer(invocation -> var).when(cmProcessor).getCmSimpleVar(BomManagerImpl.PACK_CLOUD_NS_WHITELIST_CMS_VAR_NAME);
+        impl.checkPackCloudWhiteList(platform(), cloud());
+    }
+
     private CmsCIRelation relation(String relationName, CmsCI toCi) {
         CmsCIRelation rel = new CmsCIRelation();
         rel.setRelationName(relationName);
@@ -368,11 +433,47 @@ public class BomManagerImplTest {
         ci.setCiClassName(className);
         return ci;
     }
+
     private CmsCI ci(String ciName, int ciId) {
         CmsCI ci = new CmsCI();
         ci.setCiName(ciName);
         ci.setCiId(ciId);
         return ci;
+    }
+
+    private CmsCI platform() {
+        CmsCI platform = new CmsCI();
+        platform.setCiName("p1");
+        platform.setNsPath("/cool-org/a1/e1/manifest/p1/1");
+        Map<String, CmsCIAttribute> attrs = new HashMap<>();
+        CmsCIAttribute attr = new CmsCIAttribute();
+        attr.setAttributeName("source");
+        attr.setDfValue("oneops");
+        attrs.put(attr.getAttributeName(), attr);
+        attr = new CmsCIAttribute();
+        platform.setAttributes(attrs);
+        attr.setAttributeName("pack");
+        attr.setDfValue("tomcat");
+        attrs.put(attr.getAttributeName(), attr);
+        attr = new CmsCIAttribute();
+        platform.setAttributes(attrs);
+        attr.setAttributeName("version");
+        attr.setDfValue("1");
+        attrs.put(attr.getAttributeName(), attr);
+        platform.setAttributes(attrs);
+        return platform;
+    }
+
+    private CmsCI cloud() {
+        CmsCI cloud = new CmsCI();
+        cloud.setCiName("c1");
+        Map<String, CmsCIAttribute> attrs = new HashMap<>();
+        CmsCIAttribute attr = new CmsCIAttribute();
+        attr.setAttributeName("location");
+        attr.setDfValue("/blah/azure-eastus");
+        attrs.put(attr.getAttributeName(), attr);
+        cloud.setAttributes(attrs);
+        return cloud;
     }
 
     private PlatformBomGenerationContext platformContext(String envNsPath, String platformName) {

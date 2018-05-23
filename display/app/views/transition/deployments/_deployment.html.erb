@@ -228,7 +228,7 @@
       </div>
       <div style="text-align: center; padding: 50px 0"><%= icon('refresh', '', 'fa-spin fa-4x') %></div>
     <% elsif env_comments.present? && env_comments.start_with?(error_prefix) %>
-      <div class="problems alert alert-danger"><%= env_comments.sub(/^#{error_prefix}/, '') %></div>
+      <div class="problems alert alert-danger"><%= raw(env_comments.sub(/^#{error_prefix}/, '').gsub("\n", '<br>')) %></div>
       <div class="text-error" style="text-align: center; padding: 50px 0"><%= icon('exclamation-triangle', '', 'fa-4x') %></div>
     <% else %>
       <div class="problems alert alert-info">Nothing to do - no pending deployment changes are detected. All instances (for selected platforms) are up to date with current environment configuration.</div>
