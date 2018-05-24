@@ -17,18 +17,17 @@
  *******************************************************************************/
 package com.oneops.search.domain;
 
-import org.springframework.data.elasticsearch.annotations.Document;
-
-import com.oneops.notification.NotificationMessage;
-import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsCISimpleWithTags;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
+import com.oneops.notification.NotificationMessage;
+import org.springframework.data.elasticsearch.annotations.Document;
 
 /**
  * @author ranand
  *
  */
 @Document(indexName = "cms")
-public class CmsCISearch extends CmsCISimple {
+public class CmsCISearch extends CmsCISimpleWithTags {
 
 	/**
 	 * 
