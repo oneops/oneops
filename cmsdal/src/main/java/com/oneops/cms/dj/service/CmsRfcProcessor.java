@@ -204,15 +204,19 @@ public class CmsRfcProcessor {
 		}
 	}
 	
-	private List<CmsRfcRelation> getRfcRelationByReleaseAndClass(long releaseId, String relationName, String shortRelName) {
-			
-		List<CmsRfcRelation> relList = djMapper.getRfcRelationByReleaseAndClass(releaseId, relationName, shortRelName);
+	public List<CmsRfcRelation> getRfcRelationByReleaseAndClass(long releaseId, String relationName, String shortRelName) {
+		List<CmsRfcRelation> relList = getRfcRelationByReleaseAndClassNoAttrs(releaseId, relationName, shortRelName);
 		populateRfcRelationAttributes(relList);
 		return relList;	
-		
 	}
 	
 	
+	public List<CmsRfcRelation> getRfcRelationByReleaseAndClassNoAttrs(long releaseId, String relationName, String shortRelName) {
+		List<CmsRfcRelation> relList = djMapper.getRfcRelationByReleaseAndClass(releaseId, relationName, shortRelName);
+		return relList;
+	}
+
+
 	/**
 	 * Creates the release.
 	 *

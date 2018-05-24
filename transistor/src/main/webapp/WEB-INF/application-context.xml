@@ -157,9 +157,6 @@
 		<property name="bomManager" ref="bomManager" />
         <property name="envSemaphore" ref="envSemaphore" />
 	  	<property name="flexManager" ref="flexManager" />
-		<property name="imBomProcessor" ref="baProcessorIM"/>
-		<property name="tektonClient" ref="tektonClient"/>
-		<property name="tektonUtils" ref="tektonUtils"/>
     </bean>
 
 	
@@ -270,11 +267,4 @@
 		<property name="mdProcessor" ref="cmsMdProcessor"/>
 	</bean>
 
-	<bean id="tektonClient" class="com.oneops.tekton.TektonClient"/>
-
-	<bean id="tektonUtils" class="com.oneops.tekton.TektonUtils">
-		<property name="cmProcessor" ref="cmsCmProcessor" />
-	</bean>
-
 </beans>
-     
