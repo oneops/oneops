@@ -1,5 +1,7 @@
 package com.oneops.inductor;
 
+import static com.oneops.inductor.InductorConstants.DELETE;
+
 import com.google.gson.Gson;
 import com.oneops.cms.cm.ops.domain.OpsActionState;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
@@ -144,6 +146,10 @@ public class WoHelper {
       }
     }
     return null;
+  }
+
+  public boolean isDeleteAction(CmsWorkOrderSimple wo) {
+    return DELETE.equals(wo.getAction());
   }
 
 }

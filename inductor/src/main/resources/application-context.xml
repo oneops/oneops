@@ -112,5 +112,9 @@
     <property name="listenerContainer" ref="listenerContainer"/>
   </bean>
 
+  <bean id="gson" class="com.google.gson.Gson"/>
+
+  <bean id="jsonParser" class="com.google.gson.JsonParser"/>
+
 </beans>
 

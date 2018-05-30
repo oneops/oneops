@@ -8,8 +8,10 @@ import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.gslb.GslbVerifier;
 import com.oneops.gslb.Status;
-import com.oneops.gslb.domain.GslbRequest;
+import com.oneops.gslb.domain.Gslb;
+import com.oneops.gslb.domain.GslbProvisionResponse;
 import com.oneops.gslb.domain.GslbResponse;
+import com.oneops.gslb.domain.ProvisionedGslb;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.log4j.Logger;
@@ -25,28 +27,45 @@ public class FqdnVerifier {
   @Autowired
   JsonParser jsonParser;
 
-  @Autowired
-  GslbVerifier verifier;
+  private GslbVerifier verifier;
 
   private static final Logger logger = Logger.getLogger(FqdnVerifier.class);
 
-  public Response verify(GslbRequest gslbRequest, CmsWorkOrderSimple wo, Response response) {
+  public FqdnVerifier() {
+    this.verifier = new GslbVerifier();
+  }
+
+  public Response verifyCreate(Gslb gslb, CmsWorkOrderSimple wo, Response response) {
     try {
-      GslbResponse verifyResponse = verifier.verify(gslbRequest, getGslbRespone(wo));
+      GslbProvisionResponse provisionResponse = getGslbProvisionRespone(wo);
+      logger.info(gslb.logContextId() + "verifying gslb setup, response from execution : " + provisionResponse);
+      GslbProvisionResponse verifyResponse = verifier.verifyCreate(gslb, provisionResponse);
       if (verifyResponse == null || verifyResponse.getStatus() == Status.FAILED) {
-        woHelper.failWo(wo, gslbRequest.logContextId(),
+        woHelper.failWo(wo, gslb.logContextId(),
             "Failed while verifying : " + verifyResponse != null ? verifyResponse.getFailureMessage() : "", null);
-        return woHelper.formResponse(wo, gslbRequest.logContextId());
+        return woHelper.formResponse(wo, gslb.logContextId());
       }
     } catch (Exception e) {
-      woHelper.failWo(wo, gslbRequest.logContextId(), "Failed while verifying : ", e);
-      return woHelper.formResponse(wo, gslbRequest.logContextId());
+      woHelper.failWo(wo, gslb.logContextId(), "Failed while verifying : ", e);
+      return woHelper.formResponse(wo, gslb.logContextId());
     }
     return response;
   }
 
-  private GslbResponse getGslbRespone(CmsWorkOrderSimple wo) {
-    GslbResponse gslbResponse = new GslbResponse();
+  public Response verifyDelete(ProvisionedGslb gslb, CmsWorkOrderSimple wo, Response response) {
+    GslbResponse gslbResponse = getGslbRespone(wo);
+    logger.info(gslb.logContextId() + "verifying gslb delete, response from execution : " + gslbResponse);
+    GslbResponse verifyResponse = verifier.verifyDelete(gslb, gslbResponse);
+    if (verifyResponse == null || verifyResponse.getStatus() == Status.FAILED) {
+      woHelper.failWo(wo, gslb.logContextId(),
+          "Failed while verifying : " + verifyResponse != null ? verifyResponse.getFailureMessage() : "", null);
+      return woHelper.formResponse(wo, gslb.logContextId());
+    }
+    return response;
+  }
+
+  private GslbProvisionResponse getGslbProvisionRespone(CmsWorkOrderSimple wo) {
+    GslbProvisionResponse gslbResponse = new GslbProvisionResponse();
     CmsCISimple resultCi = wo.getResultCi();
     if (resultCi != null) {
       Map<String, String> attrs = resultCi.getCiAttributes();
@@ -69,6 +88,12 @@ public class FqdnVerifier {
         }
       }
     }
+    return gslbResponse;
+  }
+
+  private GslbResponse getGslbRespone(CmsWorkOrderSimple wo) {
+    GslbResponse gslbResponse = new GslbResponse();
+    gslbResponse.setStatus(Status.SUCCESS);
     return gslbResponse;
   }
 
