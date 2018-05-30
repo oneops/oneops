@@ -623,12 +623,7 @@ public class TransistorRestController extends AbstractRestController {
 			}
 
 			if (capacity != null && capacity) {
-				Map<String, List<CapacityData>> estimatedCapacityData = envManager.getEnvCapacity(envId, bomData);
-				Map<String, Map<String, Object>> capacityMap = new HashMap<>();
-				for (String type : estimatedCapacityData.keySet()) {
-					capacityMap.put(type, getCapacityTotals(estimatedCapacityData.get(type)));
-				}
-				response.put("capacity", capacityMap);
+				response.put("capacity", envManager.estimateDeploymentCapacity(bomData));
 			}
 
 			return response;

@@ -154,6 +154,7 @@
 		<property name="cmProcessor" ref="cmsCmProcessor" />
 		<property name="nsMapper" ref="nsMapper" />
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="capacityProcessor" ref="capacityProcessor"/>
     </bean>
 
 	<bean id="cmsDjManager" class="com.oneops.cms.dj.service.CmsDjManagerImpl">
@@ -165,4 +166,11 @@
 		<property name="rfcProcessor" ref="cmsRfcProcessor" />
     </bean>
 
+    <bean id="tektonClient" class="com.oneops.capacity.TektonClient"/>
+
+    <bean id="capacityProcessor" class="com.oneops.capacity.CapacityProcessor">
+        <property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="tektonClient" ref="tektonClient" />
+    </bean>
 </beans>

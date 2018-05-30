@@ -823,6 +823,64 @@
 	 </select>
 
 
+	 <select id="getCIRelationsByFromCiIDs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
+		select
+			cir.ci_relation_id as ciRelationId,
+			cir.ns_id as nsId,
+			ns.ns_path as nsPath,
+			cir.from_ci_id as fromCiId,
+			cir.relation_goid as relationGoid,
+			cir.relation_id as relationId,
+			mdr.relation_name as relationName,
+			cir.to_ci_id toCiId,
+			cir.ci_state_id as relationStateId,
+			cis.state_name as relationState,
+			cir.last_applied_rfc_id as lastAppliedRfcId,
+			cir.comments,
+			cir.created,
+			cir.updated
+		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, ns_namespaces ns
+		where (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
+		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
+		    and cir.from_ci_id in
+			<foreach item="item" index="index" collection="fromCiIds" open="(" close=")" separator=", ">
+		         #{item}
+        	</foreach>
+			and cir.relation_id = mdr.relation_id
+			and cir.ci_state_id = cis.ci_state_id
+			and cir.ns_id = ns.ns_id
+	 </select>
+
+
+	 <select id="getCIRelationsByToCiIDs" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
+		select
+			cir.ci_relation_id as ciRelationId,
+			cir.ns_id as nsId,
+			ns.ns_path as nsPath,
+			cir.from_ci_id as fromCiId,
+			cir.relation_goid as relationGoid,
+			cir.relation_id as relationId,
+			mdr.relation_name as relationName,
+			cir.to_ci_id toCiId,
+			cir.ci_state_id as relationStateId,
+			cis.state_name as relationState,
+			cir.last_applied_rfc_id as lastAppliedRfcId,
+			cir.comments,
+			cir.created,
+			cir.updated
+		from cm_ci_relations cir, md_relations mdr, cm_ci_state cis, ns_namespaces ns
+		where (#{relationName}::varchar is null or mdr.relation_name = #{relationName})
+		    and (#{shortRelName}::varchar is null or mdr.short_relation_name = #{shortRelName})
+		    and cir.to_ci_id in
+			<foreach item="item" index="index" collection="toCiIds" open="(" close=")" separator=", ">
+		         #{item}
+        	</foreach>
+			and cir.relation_id = mdr.relation_id
+			and cir.ci_state_id = cis.ci_state_id
+			and cir.ns_id = ns.ns_id
+	 </select>
+
+
 	 <select id="getFromCIRelationsByNS" parameterType="map" resultType="com.oneops.cms.cm.domain.CmsCIRelation">
 		select
 			cir.ci_relation_id as ciRelationId,

@@ -1070,6 +1070,34 @@ public class CmsCmProcessor {
 		return relList;
 	}
 
+	/**
+	 * Gets relations by name and toCi ids naked, no attributes.
+	 *
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param fromCiIds the to ci ids
+	 * @return the from ci relations by to ci ids naked
+	 */
+	public List<CmsCIRelation> getCIRelationsByFromCiIdsNakedNoAttrs(String relationName,
+			String shortRelName, List<Long> fromCiIds) {
+
+		return ciMapper.getCIRelationsByFromCiIDs(relationName, shortRelName, fromCiIds);
+	}
+
+	/**
+	 * Gets relations by name and toCi ids naked, no attributes.
+	 *
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param toCiIds the to ci ids
+	 * @return the from ci relations by to ci ids naked
+	 */
+	public List<CmsCIRelation> getCIRelationsByToCiIdsNakedNoAttrs(String relationName,
+			String shortRelName, List<Long> toCiIds) {
+
+		return ciMapper.getCIRelationsByToCiIDs(relationName, shortRelName, toCiIds);
+	}
+
 	private List<CmsCIRelation> getFromCIRelationsNakedLocal(long fromId,
 			String relationName, String shortRelName, String toClazzName) {
 		

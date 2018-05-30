@@ -70,8 +70,6 @@
     	<property name="sensorClient" ref="sensorClient" />
     	<property name="controllerUtil" ref="controllerUtil" />
 		<property name="executionManager" ref="executionManager"/>
-		<property name="tektonClient" ref="tektonClient"/>
-		<property name="tektonUtils" ref="tektonUtils"/>
     </bean>
 
     <bean id="inductorPublisher" class="com.oneops.controller.jms.InductorPublisher" init-method="init" destroy-method="cleanup">
@@ -180,11 +178,4 @@
 	<bean id="workflowListener" class="com.oneops.controller.jms.WorkflowListener">
     <property name="executionManager" ref="executionManager"/>
 	</bean>
-
-	<bean id="tektonClient" class="com.oneops.tekton.TektonClient"/>
-
-	<bean id="tektonUtils" class="com.oneops.tekton.TektonUtils">
-		<property name="cmProcessor" ref="cmsCmProcessor" />
-	</bean>
-
 </beans>

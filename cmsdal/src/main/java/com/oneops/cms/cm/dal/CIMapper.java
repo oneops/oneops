@@ -86,7 +86,6 @@ public interface CIMapper {
 	List<CmsCIRelation> getFromCIRelationsByNS(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName, @Param("toNsPath") String toNsPath);
 	List<CmsCIRelation> getFromCIRelationsByNSLike(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toShortClazzName") String toShortClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
 	List<CmsCIRelation> getFromCIRelationsByMultiRelationNames(@Param("fromId") long fromId, @Param("relationNames") List<String> relationNames, @Param("shortRelNames") List<String> shortRelNames);
-
 	//List<CmsCIRelation> getFromCIRelationsShortName(@Param("fromId") long fromId, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName);
 	long getCountFromCIRelationsByNS(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath);
 	long getCountFromCIRelationsByNSLike(@Param("fromId") long fromId, @Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toClazzName") String toClazzName, @Param("toNsPath") String toNsPath, @Param("toNsPathLike") String toNsPathLike);
@@ -107,7 +106,10 @@ public interface CIMapper {
 	
 	List<CmsCIRelationAttribute> getCIRelationAttrs(long ciRelId);
 	List<CmsCIRelationAttribute> getCIRelationAttrsNaked(long ciRelId);
-	
+
+	List<CmsCIRelation> getCIRelationsByFromCiIDs(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromCiIds") List<Long> fromCiIds);
+	List<CmsCIRelation> getCIRelationsByToCiIDs(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toCiIds") List<Long> toCiIds);
+
 	List<CmsCIRelationAttribute> getCIRelationAttrsByRelIdList(@Param("relIds") List<Long> relIds);
 	List<CmsCIRelationAttribute> getCIRelationAttrsNakedByRelIdList(@Param("relIds") List<Long> relIds);
 	
