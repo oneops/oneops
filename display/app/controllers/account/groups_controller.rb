@@ -18,7 +18,7 @@ class Account::GroupsController < ApplicationController
   end
 
   def show
-    render :json => @group
+    render_json_ci_response(@group.present?, @group)
   end
 
   def new
@@ -81,8 +81,8 @@ class Account::GroupsController < ApplicationController
   private
 
   def find_group
-    group_id = params[:id]
-    @group = (is_global_admin? ? Group : current_user.groups).where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
+    qualifier = params[:id]
+    @group = (is_global_admin? ? Group : current_user.groups).where((qualifier =~ /\D/ ? 'groups.name' : 'groups.id') => qualifier).first
   end
 
   def authorize_group_admin

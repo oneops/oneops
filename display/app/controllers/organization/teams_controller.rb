@@ -50,7 +50,7 @@ class Organization::TeamsController < ApplicationController
   end
 
   def show
-    render :json => @team
+    render_json_ci_response(@team.present?, @team)
   end
 
   def new
@@ -110,7 +110,8 @@ class Organization::TeamsController < ApplicationController
   private
 
   def find_team
-    @team = current_user.organization.teams.find(params[:id])
+    qualifier = params[:id]
+    @team = (is_global_admin? ? Team : current_user.organization.teams).where((qualifier =~ /\D/ ? 'teams.name' : 'teams.id') => qualifier).first
   end
 
   def strong_params
