@@ -67,7 +67,7 @@ class Organization::TeamsController < ApplicationController
 
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @team) }
+      format.json { render_json_ci_response(ok, @team) }
     end
   end
 
@@ -82,7 +82,7 @@ class Organization::TeamsController < ApplicationController
     ok = @team.update_attributes(strong_params)
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @team) }
+      format.json { render_json_ci_response(ok, @team) }
     end
   end
 
@@ -102,7 +102,7 @@ class Organization::TeamsController < ApplicationController
 
     respond_to do |format|
       format.js { index }
-      format.json { render :json => render_json_ci_response(ok, @team) }
+      format.json { render_json_ci_response(ok, @team) }
     end
   end
 

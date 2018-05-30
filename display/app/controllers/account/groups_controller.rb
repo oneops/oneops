@@ -36,14 +36,14 @@ class Account::GroupsController < ApplicationController
 
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @group) }
+      format.json { render_json_ci_response(ok, @group) }
     end
   end
 
   def edit
     respond_to do |format|
       format.js { render :action => :edit }
-      format.json { render :json => render_json_ci_response(true, @group) }
+      format.json { render_json_ci_response(true, @group) }
     end
   end
 
@@ -51,7 +51,7 @@ class Account::GroupsController < ApplicationController
     ok = @group.update_attributes(strong_params)
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @group) }
+      format.json { render_json_ci_response(ok, @group) }
     end
   end
 
@@ -60,7 +60,7 @@ class Account::GroupsController < ApplicationController
 
     respond_to do |format|
       format.js { index }
-      format.json { render :json => render_json_ci_response(ok, @group) }
+      format.json { render_json_ci_response(ok, @group) }
     end
   end
 

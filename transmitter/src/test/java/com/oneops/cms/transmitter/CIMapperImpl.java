@@ -7,6 +7,8 @@ import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.util.domain.AttrQueryCondition;
+import org.apache.ibatis.annotations.Param;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -447,5 +449,15 @@ public class CIMapperImpl implements CIMapper {
       List<AttrQueryCondition> platformAttrList, String requiresRelation, String fromTmplCiName,
       String toTmplCiName) {
     return 0;
+  }
+
+  @Override
+  public List<CmsCIRelation> getCIRelationsByFromCiIDs(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("fromCiIds") List<Long> fromCiIds) {
+    return null;
+  }
+
+  @Override
+  public List<CmsCIRelation> getCIRelationsByToCiIDs(@Param("relationName") String relationName, @Param("shortRelName") String shortRelName, @Param("toCiIds") List<Long> toCiIds) {
+    return null;
   }
 }
