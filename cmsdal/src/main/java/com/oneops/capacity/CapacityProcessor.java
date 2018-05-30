@@ -76,27 +76,31 @@ public class CapacityProcessor {
         }
 
         // Capacity to release.
-        List<Long> deleteCiIds = groupedCis.get("delete").stream().map(CmsRfcCI::getCiId).collect(toList());
-        List<CmsRfcCI> deleteCis = cmProcessor.getCiByIdList(deleteCiIds).stream()
-                .map(ci -> {
-                    CmsRfcCI rfc = new CmsRfcCI(ci, null);
-                    rfc.setAttributes(ci.getAttributes().values().stream()
-                                              .map(ciAttr -> {
-                                                  CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
-                                                  rfcAttr.setAttributeId(ciAttr.getAttributeId());
-                                                  rfcAttr.setAttributeName(ciAttr.getAttributeName());
-                                                  rfcAttr.setNewValue(ciAttr.getDfValue());
-                                                  return rfcAttr;
-                                              })
-                                              .collect(toMap(CmsRfcAttribute::getAttributeName, Function.identity())));
-                    return rfc;
-                })
-                .collect(toList());
-        deployedToRels = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, deleteCiIds).stream()
-                .map(rel -> new CmsRfcRelation(rel, null))
-                .collect(toList());
-        deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
-        Map<String, Map<String, Integer>> decrease = getCapacityForCis(deleteCis, deployedToRels, deployedToCloudInfoMap, mappings);
+        Map<String, Map<String, Integer>> decrease = new HashMap<>();
+        List<CmsRfcCI> deleteRfcs = groupedCis.get("delete");
+        if (deleteRfcs != null) {
+            List<Long> deleteCiIds = deleteRfcs.stream().map(CmsRfcCI::getCiId).collect(toList());
+            List<CmsRfcCI> deleteCis = cmProcessor.getCiByIdList(deleteCiIds).stream()
+                    .map(ci -> {
+                        CmsRfcCI rfc = new CmsRfcCI(ci, null);
+                        rfc.setAttributes(ci.getAttributes().values().stream()
+                                                  .map(ciAttr -> {
+                                                      CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                                                      rfcAttr.setAttributeId(ciAttr.getAttributeId());
+                                                      rfcAttr.setAttributeName(ciAttr.getAttributeName());
+                                                      rfcAttr.setNewValue(ciAttr.getDfValue());
+                                                      return rfcAttr;
+                                                  })
+                                                  .collect(toMap(CmsRfcAttribute::getAttributeName, Function.identity())));
+                        return rfc;
+                    })
+                    .collect(toList());
+            deployedToRels = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, deleteCiIds).stream()
+                    .map(rel -> new CmsRfcRelation(rel, null))
+                    .collect(toList());
+            deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
+            decrease = getCapacityForCis(deleteCis, deployedToRels, deployedToCloudInfoMap, mappings);
+        }
 
         return new CapacityEstimate(increase, decrease, check);
     }
