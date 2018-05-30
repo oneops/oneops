@@ -83,6 +83,7 @@ public class ESMessageProcessor implements MessageProcessor {
                     opsProcProcessor.processMessage(message, msgType, msgId);
                     break;
                 case "cm_ci":
+                case  "cm_ci_new":
                     ciMessageProcessor.processMessage(message, msgType, msgId);
                     break;
                 case "cm_ci_rel":
