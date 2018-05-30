@@ -44,6 +44,16 @@ public class FqdnExecutorTest {
   FqdnExecutor fqdnExecutor = new FqdnExecutor();
   GslbProvider mock = mock(GslbProvider.class);
 
+  Map<String, Map<String, String>> classesMap = new HashMap<>();
+
+  private static String ONEOPS_CLASS = "oneops";
+  private static String BASE_CLASS = "base";
+
+  private static String BOM_LB = "bom_lb";
+  private static String MANIFEST_LB = "manifest_lb";
+  private static String BOM_FQDN = "bom_fqdn";
+  private static String MANIFEST_FQDN = "manifest_fqdn";
+
   @Before
   public void setup() {
     fqdnExecutor.gson = new Gson();
@@ -53,6 +63,35 @@ public class FqdnExecutorTest {
     woHelper.gson = fqdnExecutor.gson;
     fqdnExecutor.jsonParser = new JsonParser();
     fqdnExecutor.woHelper = woHelper;
+    initClasses();
+  }
+
+  private void initClasses() {
+    Map<String, String> map = new HashMap<>();
+    map.put(BOM_LB, "bom.Lb");
+    map.put(MANIFEST_LB, "manifest.Lb");
+    map.put(BOM_FQDN, "bom.Fqdn");
+    map.put(MANIFEST_FQDN, "manifest.Fqdn");
+    classesMap.put(BASE_CLASS, map);
+
+    map = new HashMap<>();
+    map.put(BOM_LB, "bom.oneops.1.Lb");
+    map.put(MANIFEST_LB, "manifest.oneops.1.Lb");
+    map.put(BOM_FQDN, "bom.oneops.1.Fqdn");
+    map.put(MANIFEST_FQDN, "manifest.oneops.1.Fqdn");
+    classesMap.put(ONEOPS_CLASS, map);
+  }
+
+  private Map<String, String> oneops_class() {
+    return classesMap.get(ONEOPS_CLASS);
+  }
+
+  private Map<String, String> base_class() {
+    return classesMap.get(BASE_CLASS);
+  }
+
+  private CmsWorkOrderSimple woWith2Clouds() {
+    return woWith2Clouds(oneops_class());
   }
 
   @Test
@@ -290,6 +329,60 @@ public class FqdnExecutorTest {
     assertThat(request.subdomain(), is("test1.e2.a1.o1"));
   }
 
+  @Test
+  public void gslbRequestWithTwoCloudsAndBaseFqdn() {
+    CmsWorkOrderSimple wo = woWith2Clouds(base_class());
+    wo.getRfcCi().setRfcAction("add");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
+    assertThat(ibConfig.host(), is("https://localhost:8123"));
+    assertThat(ibConfig.user(), is("test-usr"));
+    assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
+
+    TorbitConfig torbitConfig = request.torbitConfig();
+    assertThat(torbitConfig.url(), is("https://localhost:8443"));
+    assertThat(torbitConfig.user(), is("test-oo"));
+    assertThat(torbitConfig.groupId(), is(101));
+    assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
+
+    List<HealthCheck> healthChecks = request.healthChecks();
+    assertThat(healthChecks.size(), is(1));
+    HealthCheck healthCheck = healthChecks.get(0);
+    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.port(), is(80));
+    assertThat(healthCheck.path(), is("/"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+  }
+
   private GslbProvisionResponse successProvisionResponse() {
     GslbProvisionResponse response = new GslbProvisionResponse();
     response.setGlb("ad.stg.coll.xyz.com");
@@ -300,31 +393,31 @@ public class FqdnExecutorTest {
     return response;
   }
 
-  private CmsWorkOrderSimple woWith2Clouds() {
-    CmsWorkOrderSimple wo = woBase();
-    addLbPayload(wo);
+  private CmsWorkOrderSimple woWith2Clouds(Map<String, String> classMap) {
+    CmsWorkOrderSimple wo = woBase(classMap);
+    addLbPayload(wo, classMap);
     addCloudService(wo);
     addCloudsPayload(wo);
-    addRealizedAs(wo);
-    addDependsOn(wo);
+    addRealizedAs(wo, classMap);
+    addDependsOn(wo, classMap);
     return wo;
   }
 
-  private void addDependsOn(CmsWorkOrderSimple wo) {
+  private void addDependsOn(CmsWorkOrderSimple wo, Map<String, String> classMap) {
     CmsRfcCISimple bomLb = new CmsRfcCISimple();
-    bomLb.setCiClassName("bom.oneops.1.Lb");
+    bomLb.setCiClassName(classMap.get(BOM_LB));
     bomLb.setCiId(650l);
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
   }
 
-  private CmsWorkOrderSimple woBase() {
+  private CmsWorkOrderSimple woBase(Map<String, String> classMap) {
     CmsWorkOrderSimple woBase = new CmsWorkOrderSimple();
     CmsRfcCISimple rfc = new CmsRfcCISimple();
     rfc.setRfcId(4001l);
     rfc.setCiName("test-gslb");
-    rfc.setCiClassName("bom.oneops.1.Fqdn");
+    rfc.setCiClassName(classMap.get(BOM_FQDN));
     rfc.addCiAttribute("aliases", "[p1]");
     rfc.addCiAttribute("full_aliases", "[p1.e1.a1.org.xyz.com]");
     rfc.addCiAttribute("distribution", "proximity");
@@ -355,26 +448,27 @@ public class FqdnExecutorTest {
     return woBase;
   }
 
-  private void addRealizedAs(CmsWorkOrderSimple wo) {
+  private void addRealizedAs(CmsWorkOrderSimple wo, Map<String, String> classMap) {
     CmsRfcCISimple manifest = new CmsRfcCISimple();
-    manifest.setCiClassName("manifest.oneops.1.Fqdn");
+    manifest.setCiClassName(classMap.get(MANIFEST_FQDN));
     manifest.setCiId(110);
     manifest.addCiAttribute("distribution", "proximity");
     manifest.addCiAttribute("service_type", "torbit");
     wo.addPayLoadEntry("RealizedAs", manifest);
   }
 
-  private void addLbPayload(CmsWorkOrderSimple wo) {
+  private void addLbPayload(CmsWorkOrderSimple wo, Map<String, String> classMap) {
+    String clazz = classMap.get(BOM_LB);
     CmsRfcCISimple lb1 = new CmsRfcCISimple();
     lb1.setCiName("lb-101-1");
     lb1.addCiAttribute("dns_record", "1.1.1.0");
-    lb1.setCiClassName("bom.oneops.1.Lb");
+    lb1.setCiClassName(clazz);
     lb1.setCiId(650);
 
     CmsRfcCISimple lb2 = new CmsRfcCISimple();
     lb2.setCiName("lb-102-1");
     lb2.addCiAttribute("dns_record", "1.1.1.1");
-    lb2.setCiClassName("bom.oneops.1.Lb");
+    lb2.setCiClassName(clazz);
     lb2.setCiId(655);
 
     wo.putPayLoadEntry("lb", Arrays.asList(lb1, lb2));
@@ -424,11 +518,6 @@ public class FqdnExecutorTest {
     dnsService.put("cl1", dns);
     services.put("dns", dnsService);
   }
-
-  private void addManagedVia(CmsWorkOrderSimple wo) {
-    wo.addPayLoadEntry("ManagedVia", new CmsRfcCISimple());
-  }
-
 
   @Test
   public void dontMatchAoWithDifferentServiceType() {
@@ -508,23 +597,80 @@ public class FqdnExecutorTest {
     assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
   }
 
-  private CmsActionOrderSimple ao() {
-    CmsActionOrderSimple wo = aoBase();
-    addLbPayload(wo);
-    addCloudService(wo);
-    addCloudsPayload(wo);
-    addRealizedAs(wo);
-    addDependsOn(wo);
-    return wo;
+  @Test
+  public void aoStatusActionForBaseClass() {
+    CmsActionOrderSimple ao = ao(base_class());
+    fqdnExecutor.execute(ao, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).checkStatus(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
+    assertThat(ibConfig.host(), is("https://localhost:8123"));
+    assertThat(ibConfig.user(), is("test-usr"));
+    assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
+
+    TorbitConfig torbitConfig = request.torbitConfig();
+    assertThat(torbitConfig.url(), is("https://localhost:8443"));
+    assertThat(torbitConfig.user(), is("test-oo"));
+    assertThat(torbitConfig.groupId(), is(101));
+    assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
+
+    List<HealthCheck> healthChecks = request.healthChecks();
+    assertThat(healthChecks.size(), is(1));
+    HealthCheck healthCheck = healthChecks.get(0);
+    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.port(), is(80));
+    assertThat(healthCheck.path(), is("/"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
   }
 
-  private CmsActionOrderSimple aoBase() {
+  private CmsActionOrderSimple ao() {
+    return ao(oneops_class());
+  }
+
+  private CmsActionOrderSimple ao(Map<String, String> classMap) {
+    CmsActionOrderSimple ao = aoBase(classMap);
+    addLbPayload(ao, classMap);
+    addCloudService(ao);
+    addCloudsPayload(ao);
+    addRealizedAs(ao, classMap);
+    addDependsOn(ao, classMap);
+    return ao;
+  }
+
+  private CmsActionOrderSimple aoBase(Map<String, String> classMap) {
     CmsActionOrderSimple aoBase = new CmsActionOrderSimple();
     aoBase.setActionName("gslbstatus");
     CmsCISimple ci = new CmsCISimple();
     ci.setCiId(4001l);
     ci.setCiName("test-gslb");
-    ci.setCiClassName("bom.oneops.1.Fqdn");
+    ci.setCiClassName(classMap.get(BOM_FQDN));
     ci.addCiAttribute("aliases", "[p1]");
     ci.addCiAttribute("full_aliases", "[p1.e1.a1.org.xyz.com]");
     ci.addCiAttribute("distribution", "proximity");
@@ -548,16 +694,17 @@ public class FqdnExecutorTest {
     return aoBase;
   }
 
-  private void addLbPayload(CmsActionOrderSimple wo) {
+  private void addLbPayload(CmsActionOrderSimple wo, Map<String, String> classMap) {
+    String clazz = classMap.get(BOM_LB);
     CmsCISimple lb1 = new CmsCISimple();
     lb1.setCiName("lb-101-1");
     lb1.addCiAttribute("dns_record", "1.1.1.0");
-    lb1.setCiClassName("bom.oneops.1.Lb");
+    lb1.setCiClassName(clazz);
 
     CmsCISimple lb2 = new CmsCISimple();
     lb2.setCiName("lb-102-1");
     lb2.addCiAttribute("dns_record", "1.1.1.1");
-    lb2.setCiClassName("bom.oneops.1.Lb");
+    lb2.setCiClassName(clazz);
 
     wo.putPayLoadEntry("lb", Arrays.asList(lb1, lb2));
   }
@@ -581,18 +728,18 @@ public class FqdnExecutorTest {
     wo.putPayLoadEntry("fqdnclouds", Arrays.asList(cl1, cl2));
   }
 
-  private void addRealizedAs(CmsActionOrderSimple wo) {
+  private void addRealizedAs(CmsActionOrderSimple wo, Map<String, String> classMap) {
     CmsCISimple manifest = new CmsCISimple();
-    manifest.setCiClassName("manifest.oneops.1.Fqdn");
+    manifest.setCiClassName(classMap.get(MANIFEST_FQDN));
     manifest.setCiId(110);
     manifest.addCiAttribute("distribution", "proximity");
     manifest.addCiAttribute("service_type", "torbit");
     wo.addPayLoadEntry("RealizedAs", manifest);
   }
 
-  private void addDependsOn(CmsActionOrderSimple wo) {
+  private void addDependsOn(CmsActionOrderSimple wo, Map<String, String> classMap) {
     CmsCISimple bomLb = new CmsCISimple();
-    bomLb.setCiClassName("bom.oneops.1.Lb");
+    bomLb.setCiClassName(classMap.get(BOM_LB));
     bomLb.setCiId(650l);
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");

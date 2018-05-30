@@ -25,6 +25,7 @@ public class WoHelper {
 
   private static final String REALIZED_AS = "RealizedAs";
   public static final String FAILED = "failed";
+  private static final String LB_CLASS = "bom.*Lb";
 
   private static final Logger logger = Logger.getLogger(WoHelper.class);
 
@@ -140,7 +141,9 @@ public class WoHelper {
 
   private Instance getLb(List<? extends Instance> dependsOn) {
     if (dependsOn != null) {
-      Optional<? extends Instance> opt = dependsOn.stream().filter(rfc -> "bom.oneops.1.Lb".equals(rfc.getCiClassName())).findFirst();
+      Optional<? extends Instance> opt = dependsOn.stream()
+          .filter(rfc -> rfc.getCiClassName().matches(LB_CLASS))
+          .findFirst();
       if (opt.isPresent()) {
         return opt.get();
       }
