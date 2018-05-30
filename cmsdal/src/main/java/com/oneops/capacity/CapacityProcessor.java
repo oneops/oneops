@@ -14,9 +14,7 @@ import org.apache.log4j.Logger;
 import java.util.*;
 import java.util.function.Function;
 
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
+import static java.util.stream.Collectors.*;
 
 public class CapacityProcessor {
     private static Logger logger = Logger.getLogger(CapacityProcessor.class);
@@ -54,6 +52,55 @@ public class CapacityProcessor {
         return false;
     }
 
+    public CapacityEstimate estimateCapacity(String nsPath, Collection<CmsRfcCI> cis, Collection<CmsRfcRelation> deployedToRels) {
+        if (!isCapacityManagementEnabled(nsPath)) return null;
+
+        Map<String, Object> mappings = getCloudProviderMappings();
+        if (mappings == null) return null;
+
+        Map<String, List<CmsRfcCI>> groupedCis = cis.stream().collect(groupingBy(CmsRfcCI::getRfcAction));
+
+        // Capacity to reserve.
+        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
+        Map<String, Map<String, Integer>> increase = getCapacityForCis(groupedCis.get("add"), deployedToRels, deployedToCloudInfoMap, mappings);
+        String check = "ok";
+        if (increase != null && !increase.isEmpty()) {
+            Map<String, String> info = tektonClient.precheckReservation(increase, getReservationNsPath(nsPath), "oneops-system");
+            if (info == null) {
+                check = "failed";
+            } else if (info.isEmpty()) {
+                check = "ok";
+            } else {
+                check = capacityShortageMessage(info, deployedToCloudInfoMap, "");
+            }
+        }
+
+        // Capacity to release.
+        List<Long> deleteCiIds = groupedCis.get("delete").stream().map(CmsRfcCI::getCiId).collect(toList());
+        List<CmsRfcCI> deleteCis = cmProcessor.getCiByIdList(deleteCiIds).stream()
+                .map(ci -> {
+                    CmsRfcCI rfc = new CmsRfcCI(ci, null);
+                    rfc.setAttributes(ci.getAttributes().values().stream()
+                                              .map(ciAttr -> {
+                                                  CmsRfcAttribute rfcAttr = new CmsRfcAttribute();
+                                                  rfcAttr.setAttributeId(ciAttr.getAttributeId());
+                                                  rfcAttr.setAttributeName(ciAttr.getAttributeName());
+                                                  rfcAttr.setNewValue(ciAttr.getDfValue());
+                                                  return rfcAttr;
+                                              })
+                                              .collect(toMap(CmsRfcAttribute::getAttributeName, Function.identity())));
+                    return rfc;
+                })
+                .collect(toList());
+        deployedToRels = cmProcessor.getCIRelationsByFromCiIdsNakedNoAttrs("base.DeployedTo", null, deleteCiIds).stream()
+                .map(rel -> new CmsRfcRelation(rel, null))
+                .collect(toList());
+        deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
+        Map<String, Map<String, Integer>> decrease = getCapacityForCis(deleteCis, deployedToRels, deployedToCloudInfoMap, mappings);
+
+        return new CapacityEstimate(increase, decrease, check);
+    }
+
     public void reserveCapacityForDeployment(CmsDeployment deployment) {
         String nsPath = deployment.getNsPath();
         if (!isCapacityManagementEnabled(nsPath)) return;
@@ -68,43 +115,17 @@ public class CapacityProcessor {
         long releaseId = deployment.getReleaseId();
         List<CmsRfcCI> cis = rfcProcessor.getRfcCIBy3(releaseId, true, null);
         List<CmsRfcRelation> deployedToRels = rfcProcessor.getRfcRelationByReleaseAndClassNoAttrs(releaseId, null, "DeployedTo");
-        Map<String, Map<String, Integer>> capacity = new HashMap<>();
-        Map<Long, CmsRfcCI> addCIs = cis.stream()
-                .filter(ci -> ci.getRfcAction().equals("add"))
-                .collect(toMap(CmsRfcCIBasic::getCiId, Function.identity()));
 
-        Map<Long, Long> ciToCloudMap = deployedToRels.stream()
-                .filter(r -> addCIs.containsKey(r.getFromCiId()))
-                .collect(toMap(CmsRfcRelation::getFromCiId, CmsRfcRelation::getToCiId));
-
-        Map<Long, CloudInfo> cloudInfoMap = ciToCloudMap.values().stream()
-                .distinct()
-                .collect(toMap(Function.identity(), this::getDeployedToCloudInfo));
-
-        for (CmsRfcCI rfcCI : addCIs.values()) {
-            Map<String, Integer> ciCapacity = getCapacityForCi(rfcCI, cloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId())), mappings);
-            if (!ciCapacity.isEmpty()) {
-                Map<String, Integer> subCapacity = capacity.computeIfAbsent(cloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId())).getSubscriptionId(), (k) -> new HashMap<>());
-                for (String resource : ciCapacity.keySet()) {
-                    subCapacity.put(resource, subCapacity.computeIfAbsent(resource, (k) -> 0) + ciCapacity.get(resource));
-                }
-            }
-        }
+        Map<Long, CloudInfo> deployedToCloudInfoMap = getDeployedToCloudInfoMap(deployedToRels);
+        List<CmsRfcCI> addCIs = cis.stream().filter(ci -> ci.getRfcAction().equals("add")).collect(toList());
+        Map<String, Map<String, Integer>> capacity = getCapacityForCis(addCIs, deployedToRels, deployedToCloudInfoMap, mappings);
 
         if (!capacity.isEmpty()) {
             try {
                 tektonClient.reserveQuota(capacity, getReservationNsPath(nsPath), deployment.getCreatedBy());
-            } catch (ReservationException e) {
-                Map<String, String> info = e.getInfo();
-                String message;
-                if (info == null) {
-                    message = e.getMessage();
-                } else {
-                    message = cloudInfoMap.values().stream()
-                            .filter(i -> info.containsKey(i.getSubscriptionId()))
-                            .map(i -> i.getCiName() + " - " + info.get(i.getSubscriptionId()))
-                            .collect(joining(";\n", "Failed to reserve capacity:\n", ""));
-                }
+            } catch (ReservationException exception) {
+                Map<String, String> info = exception.getInfo();
+                String message = info == null ? exception.getMessage() : capacityShortageMessage(info, deployedToCloudInfoMap, "Failed to reserve capacity:\n");
                 throw new RuntimeException(message);
             }
         }
@@ -174,6 +195,13 @@ public class CapacityProcessor {
         return mappings;
     }
 
+    private Map<Long, CloudInfo> getDeployedToCloudInfoMap(Collection<CmsRfcRelation> deployedToRels) {
+        return deployedToRels.stream()
+                .map(CmsRfcRelation::getToCiId)
+                .distinct()
+                .collect(toMap(Function.identity(), this::getDeployedToCloudInfo));
+    }
+
     private CloudInfo getDeployedToCloudInfo(long cloudCiId) {
         CmsCI cloud = cmProcessor.getCiById(cloudCiId);
         return getDeployedToCloudInfo(cloud);
@@ -217,11 +245,36 @@ public class CapacityProcessor {
         return new CloudInfo(cloudCiId, cloud.getCiName(), provider, subscriptionId);
     }
 
+    private Map<String, Map<String, Integer>> getCapacityForCis(Collection<CmsRfcCI> cis,
+                                                                Collection<CmsRfcRelation> deployedToRels,
+                                                                Map<Long, CloudInfo> cloudInfoMap,
+                                                                Map<String, Object> mappings) {
+        Map<String, Map<String, Integer>> reservation = new HashMap<>();
+
+        if (cis == null) return reservation;
+
+        Map<Long, Long> ciToCloudMap = deployedToRels.stream()
+                .collect(toMap(CmsRfcRelation::getFromCiId, CmsRfcRelation::getToCiId));
+
+        for (CmsRfcCI rfcCI : cis) {
+            CloudInfo cloudInfo = cloudInfoMap.get(ciToCloudMap.get(rfcCI.getCiId()));
+            Map<String, Integer> ciCapacity = getCapacityForCi(rfcCI, cloudInfo, mappings);
+            if (!ciCapacity.isEmpty()) {
+                Map<String, Integer> subCapacity = reservation.computeIfAbsent(cloudInfo.getSubscriptionId(), (k) -> new HashMap<>());
+                for (String resource : ciCapacity.keySet()) {
+                    subCapacity.put(resource, subCapacity.computeIfAbsent(resource, (k) -> 0) + ciCapacity.get(resource));
+                }
+            }
+        }
+
+        return reservation;
+    }
+
     private Map<String, Integer> getCapacityForCi(CmsRfcCI rfcCi, CloudInfo cloudInfo, Map<String, Object> mappings) {
         Map<String, Integer> capacity = new HashMap<>();
 
         if (cloudInfo == null) {
-            logger.warn("Could not determine cloud provider/subscription for wo rfcId: " + rfcCi.getRfcId());
+            logger.warn("Could not determine cloud provider/subscription for rfc rfcId: " + rfcCi.getRfcId());
             return capacity;
         }
 
@@ -269,6 +322,16 @@ public class CapacityProcessor {
         if (!subs.isEmpty()) {
             tektonClient.deleteReservations(nsPath, subs);
         }
+    }
+
+    private String capacityShortageMessage(Map<String, String> info, Map<Long, CloudInfo> cloudInfo, String prefix) {
+        String check;
+        Map<String, List<String>> cloudsBySubscription = new HashMap<>();
+        cloudInfo.values().forEach(i -> cloudsBySubscription.computeIfAbsent(i.getSubscriptionId(), s -> new ArrayList<>()).add(i.getCiName()));
+        check = info.entrySet().stream()
+                .map(i -> String.join(", ", cloudsBySubscription.get(i.getKey())) + " - " + i.getValue())
+                .collect(joining(";\n", prefix, ""));
+        return check;
     }
 
 

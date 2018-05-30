@@ -40,6 +40,14 @@ class Hash
   end
 end
 
+def say(*args)
+  puts *args unless @silent
+end
+
+def blurt(*args)
+  print *args unless @silent
+end
+
 def oo_request(cmd, msg)
   uri = URI("#{@params.oneops_host}#{cmd}")
   req = Net::HTTP::Get.new(uri)
@@ -63,19 +71,19 @@ def request(uri, req, msg)
   result = nil
   response = nil
   if @params.verbose > 1
-    puts uri.to_s.green
-    puts "#{msg}... "
+    say uri.to_s.green
+    say "#{msg}... "
   elsif @params.verbose > 0
-    print msg, '... '
+    blurt msg, '... '
   end
   begin
     req['Content-Type'] = 'application/json'
-    puts "REQUEST: #{req.body}" if @params.verbose > 1 && !req.body.empty?
+    say "REQUEST: #{req.body}" if @params.verbose > 1 && !req.body.empty?
     response = Net::HTTP.start(uri.host, uri.port, :use_ssl => uri.scheme == 'https') {|http| http.request(req)}
     if response.is_a?(Net::HTTPSuccess)
       body = response.body
       unless body.empty?
-        puts "RESPONSE #{response.code.green}: #{response.body}" if @params.verbose > 1
+        say "RESPONSE #{response.code.green}: #{response.body}" if @params.verbose > 1
         result = JSON.parse(body)
       end
     elsif response.is_a?(Net::HTTPNotFound)
@@ -83,43 +91,54 @@ def request(uri, req, msg)
       raise Exception.new('Bad response.')
     end
   rescue Exception => e
-    puts "\nFailed to perform '#{msg}': #{uri.to_s.blue}".red
-    puts "RESPONSE #{response.code.red}: #{response.body}" if response
-    puts @params.verbose > 0 ? e : e.message
+    say "\nFailed to perform '#{msg}': #{uri.to_s.blue}".red
+    say "RESPONSE #{response.code.red}: #{response.body}" if response
+    say @params.verbose > 0 ? e : e.message
     exit(1)
   end
 
-  puts "done in #{(Time.now - ts).to_f.round(1)}sec." if @params.verbose > 0
+  say "done in #{(Time.now - ts).to_f.round(1)}sec." if @params.verbose > 0
   return result
 end
 
 def required_arg(name, value)
   if value.empty?
-    puts "Specify #{name}".red
+    say "Specify #{name}".red
     bad_usage
   else
-    puts "#{name}: #{value.blue}" if @params.verbose > 0
+    say "#{name}: #{value.blue}" if @params.verbose > 0
   end
 end
 
 def bad_usage
   usage = @actions.find {|a| a[0][0...@action.size] == @action}
-  puts "Usage:\n  #{usage[0]}" if usage
+  say "Usage:\n  #{usage[0]}" if usage
   exit(1)
 end
 
 def full_quota(title, total, usage, available)
   unless total.empty? && usage.empty?
-    puts "#{title.blue} =>\n"
-    puts "  Resource                      | Used      | Reserved  |Available  | Total     "
-    puts "  ------------------------------|-----------|-----------|-----------|-----------"
+    say "#{title.blue} =>\n"
+    say "  Resource                      | Used      | Reserved  | Available | Total     "
+    say "  ------------------------------|-----------|-----------|-----------|-----------"
     total.keys.sort.each do |n|
       r_usage = usage[n].to_i
       r_total = total[n].to_i
       r_avail = available[n].to_i
-      puts "  #{n.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_total - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_total.to_s.rjust(10).blue}"
+      say "  #{n.ljust(30)}|#{r_usage.to_s.rjust(10)} |#{(r_total - r_usage - r_avail).to_s.rjust(10)} |#{r_avail.to_s.rjust(10).green} |#{r_total.to_s.rjust(10).blue}"
     end
-    puts
+    say
+  end
+end
+
+
+def execute!(action, *args)
+  silent = @silent
+  @silent = @params.verbose == 0   # No output for nested commands unless verbose is on
+  begin
+    execute(action, *args)
+  ensure
+    @silent = silent
   end
 end
 
@@ -128,12 +147,12 @@ def execute(action, *args)
   if action == 'oo:resources'
     result = {}
     mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', 'Getting mappings')
-    JSON.parse(mappings.value).each_pair do |component, component_mappings|
-      component_mappings.each_pair do |provider, provider_mappings|
-        provider_mappings.each_pair do |attr, attr_mappings|
+    JSON.parse(mappings.value).each_pair do |provider, provider_mappings|
+      provider_mappings.each_pair do |component, component_mappings|
+        component_mappings.each_pair do |attr, attr_mappings|
           attr_mappings.values.each do |resource_mappings|
             resource_mappings.keys.each do |resource|
-              (result[resource] ||= {})["#{component}:#{provider}:#{attr}"] = resource
+              (result[resource] ||= {})["#{provider}:#{component}:#{attr}"] = resource
             end
           end
         end
@@ -141,11 +160,11 @@ def execute(action, *args)
     end
     result.keys.sort.each do |r|
       result[r] = result[r].keys.join(', ')
-      puts "#{r.blue} =>\n  #{result[r]}"
+      say "#{r.blue} =>\n  #{result[r]}"
     end
 
   elsif action == 'oo:resources:transfer'
-    resources = execute('oo:resources')
+    resources = execute!('oo:resources')
     resources.each_pair {|name, desc| execute('resource:add', name, desc)}
 
   elsif action == 'oo:subs'
@@ -162,11 +181,11 @@ def execute(action, *args)
       (result["#{cloud.ciAttributes.location.split('/').last}:#{subsciption}"] ||= []) << p unless subsciption.empty?
     end
     result.keys.sort.each do |s|
-      puts "#{s.blue} =>\n  #{result[s].map {|p| p.fromCi.ciName}.join(', ')}"
+      say "#{s.blue} =>\n  #{result[s].map {|p| p.fromCi.ciName}.join(', ')}"
     end
 
   elsif action == 'oo:subs:transfer'
-    subs = execute('oo:subs', *args)
+    subs = execute!('oo:subs', *args)
     subs.each_pair {|name, provides_rel| execute('sub:add', name, name.split(':').first)}
 
   elsif action == 'oo:usage'
@@ -174,36 +193,39 @@ def execute(action, *args)
     required_arg('org', org_name)
 
     mappings = oo_request('CLOUD_PROVIDER_MAPPINGS/vars', "Getting mappings")
-    mappings = JSON.parse(mappings.value)['compute']
+    mappings = JSON.parse(mappings.value)
     if mappings.empty?
-      puts 'No compute mappings found'.red
+      say 'No provider mappings found'.red
       exit(1)
     end
-    if @params.verbose > 1
-      puts "Resource mappings:"
-      puts JSON.pretty_unparse(mappings)
-    end
+    say "Resource mappings:\n#{JSON.pretty_unparse(mappings)}" if @params.verbose > 1
+
     result = {}
-    subs = execute('oo:subs', org_name, cloud_name)
+    subs = execute!('oo:subs', org_name, cloud_name)
     subs.each_pair do |sub, provides_rels|
-      puts "Processing clouds for subscription '#{sub.blue}'"
+      say "Processing clouds for subscription '#{sub.blue}'"
       provider = provides_rels.first.toCi.ciClassName.split('.').last.downcase
-      provider_mapping = mappings[provider]
-      if provider_mapping.empty?
-        puts "  No compute mappings found for provider #{provider}".yellow
+      provider_mappings = mappings[provider]
+      if provider_mappings.empty?
+        say "  No mappings found for provider #{provider}".yellow
         next
       end
+
       sub_usage = {}
-      provides_rels.each do |rel|
-        cloud = rel.fromCi
-        puts "  Processing computes for cloud '#{cloud.ciName}'"  if @params.verbose > 0
-        deployed_tos = oo_request("relations?ciId=#{cloud.ciId}&direction=to&relationShortName=DeployedTo&targetClassName=Compute&includeFromCi=true", "    Getting computes for cloud '#{cloud.ciName}'")
-        puts "    Found #{deployed_tos.size} computes."  if @params.verbose > 1
-        deployed_tos.each do |r|
-          compute = r.fromCi
-          provider_mapping.each_pair do |attr_name, attr_mapping|
-            resources = attr_mapping[compute.ciAttributes[attr_name]]
-            unless resources.empty?
+      provider_mappings.each_pair do |ci_class_name, class_mappings|
+        provides_rels.each do |rel|
+          cloud = rel.fromCi
+          say "  Processing #{ci_class_name} for cloud '#{cloud.ciName}'"  if @params.verbose > 0
+          deployed_tos = oo_request("relations?ciId=#{cloud.ciId}&direction=to&relationShortName=DeployedTo&targetClassName=#{ci_class_name.capitalize}&includeFromCi=true", "    Getting #{ci_class_name} for cloud '#{cloud.ciName}'")
+          say "    Found #{deployed_tos.size} #{ci_class_name} instances."  if @params.verbose > 1
+          deployed_tos.each do |r|
+            ci = r.fromCi
+            class_mappings.each_pair do |attr_name, attr_mappings|
+              resources = nil
+              attr_value = ci.ciAttributes[attr_name]
+              resources = attr_mappings[attr_value] unless attr_value.empty?
+              resources = attr_mappings['*'] if resources.empty?
+              next if resources.empty?
               resources.each_pair do |resource, value|
                 sub_usage[resource] = (sub_usage[resource] || 0) + value
               end
@@ -211,35 +233,40 @@ def execute(action, *args)
           end
         end
       end
+
       unless sub_usage.empty?
         result[sub] = sub_usage
-        puts "  #{sub}/#{org_name} =>"
-        sub_usage.keys.sort.each {|n| puts "    #{n.ljust(25)} | #{sub_usage[n].to_s.rjust(10)}"}
-        puts
+        say "  #{sub}/#{org_name} =>"
+        sub_usage.keys.sort.each {|n| say "    #{n.ljust(25)} | #{sub_usage[n].to_s.rjust(10)}"}
+        say
       end
     end
 
   elsif action == 'oo:usage:transfer'
-    buffer, org_name, cloud_name = args
-    required_arg('buffer %', buffer)
+    org_name, cloud_name = args
+    say 'Buffer % is not set, will set total quota to the same value as usage.'.yellow
     required_arg('org', org_name)
-    buffer = buffer.to_f / 100
-    unless buffer > 0
-      puts 'Invalid quota buffer %'.red
-      bad_usage
-      exit(1)
-    end
-    usage = execute('oo:usage', org_name, cloud_name)
+
+    usage = execute!('oo:usage', org_name, cloud_name)
     usage.each_pair do |sub, sub_usage|
-      execute('quota:set', sub, org_name, *sub_usage.to_a.map {|r, v| "#{r}=#{(v + v * buffer).to_i}"})
-      execute('quota:usage:set', sub, org_name, *sub_usage.to_a.map {|r, v| "#{r}=#{v}"})
-      puts
+      total = tt_request("api/v1/quota/#{sub}/#{org_name}", 'Getting quota')
+      if total.empty? || @params.force
+        if total.empty?
+          execute!('quota:set', sub, org_name, *sub_usage.to_a.map {|r, v| "#{r}=#{(v + v * @params.transfer_buffer).to_i}"}) if @params.transfer_buffer > 0
+        else
+          sub_usage.delete_if {|r| total[r]} if @params.only_missing
+        end
+        execute('quota:usage:set', sub, org_name, *sub_usage.to_a.map {|r, v| "#{r}=#{v}"})
+      else
+        say "Quota for #{sub}/#{org_name} already exists, use '-f' option to force update.".yellow
+      end
+      say
     end
 
   elsif action == 'resources'
     resources = tt_request('api/v1/resource', 'Fetching resources')
     resources.sort_by(&:name).each do |r|
-      puts "#{r.name.blue} =>\n  #{r.description}"
+      say "#{r.name.blue} =>\n  #{r.description}"
     end
 
   elsif action == 'resource:add'
@@ -249,7 +276,7 @@ def execute(action, *args)
       if @params.force
         tt_request('api/v1/resource', "Resource #{resource_name} already exists, updating...", {:name => resource_name, :description => desc || resource_name})
       else
-        puts "Resource #{resource_name} already exists, use '-f' option to force update."
+        say "Resource #{resource_name} already exists, use '-f' option to force update.".yellow
       end
     else
       tt_request('api/v1/resource', "Resource #{resource_name} is missing, creating...", {:name => resource_name, :description => desc || resource_name})
@@ -258,7 +285,7 @@ def execute(action, *args)
   elsif action == 'subs'
     subs = tt_request('api/v1/subscription', 'Fetching subscriptions')
     subs.sort_by(&:name).each do |s|
-      puts "#{s.name.blue} =>\n  #{s.description}"
+      say "#{s.name.blue} =>\n  #{s.description}"
     end
 
   elsif action == 'sub:add'
@@ -268,7 +295,7 @@ def execute(action, *args)
       if @params.force
         tt_request('api/v1/subscription', "Subscription #{sub_name} already exists, updating...", {:name => sub_name, :description => desc || sub_name})
       else
-        puts "Subscription #{sub_name} already exists, use '-f' option to force update."
+        say "Subscription #{sub_name} already exists, use '-f' option to force update.".yellow
       end
     else
       tt_request('api/v1/subscription', "Subscription #{sub_name} is missing, creating...", {:name => sub_name, :description => desc || sub_name})
@@ -276,7 +303,7 @@ def execute(action, *args)
 
   elsif action == 'orgs'
     orgs = tt_request('api/v1/org', 'Fetching orgs')
-    orgs.sort_by(&:name).each {|o| puts o.name}
+    orgs.sort_by(&:name).each {|o| say o.name}
 
   elsif action == 'org:add'
     org_name = args[0]
@@ -323,16 +350,16 @@ def execute(action, *args)
     required_arg('resources', usage)
 
     sub = tt_request("api/v1/subscription/#{sub_name}", "Fetching subscription '#{sub_name}'")
-    execute('sub:add', sub_name) unless sub
+    execute!('sub:add', sub_name) unless sub
 
     org = tt_request("api/v1/org/#{org_name}", "Fetching org '#{org_name}'")
-    execute('org:add', org_name) unless org
+    execute!('org:add', org_name) unless org
 
     tt_request("api/v1/quota/#{"usage/" if action == 'quota:usage:set'}#{sub_name}/#{org_name}", "Updating quota", usage)
     execute('quota', sub_name, org_name)
 
   else
-    puts "Unknown action: #{action}".red
+    say "Unknown action: #{action}".red
     exit(1)
   end
 
@@ -343,20 +370,20 @@ end
   ['orgs', 'list orgs'],
   ['org:add ORG', 'add org'],
   ['resources', 'list resources'],
-  ['resource:add', 'add resource'],
+  ['resource:add  [-f]', 'add resource'],
   ['subs', 'list subsctiption'],
-  ['sub:add SUBSCRIPTION', 'add subscription'],
+  ['sub:add [-f] SUBSCRIPTION', 'add subscription'],
   ['sub:quotas SUBSCRIPTION', 'list all quotas for subscription'],
   ['org:quotas ORG', 'list all quotas for org'],
   ['quota SUBSCRIPTION ORG', 'show quota'],
   ['quota:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota totals'],
   ['quota:usage:set SUBSCRIPTION ORG RESOURCE=VALUE [RESOURCE=VALUE ...]', 'update quota totals'],
   ['oo:resources', 'list resource types in OneOps'],
-  ['oo:resources:transfer', 'transfer resources types in OneOps to Tekton'],
+  ['oo:resources:transfer [-f]', 'transfer resources types in OneOps to Tekton'],
   ['oo:subs ORG [CLOUD_REGEX]', 'list subsctiptions in OneOps'],
-  ['oo:subs:transfer ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton'],
+  ['oo:subs:transfer  [-f] ORG [CLOUD_REGEX]', 'transfer subsctiptions in OneOps to Tekton'],
   ['oo:usage ORG [CLOUD_REGEX]', 'list usage in OneOps'],
-  ['oo:usage:transfer BUFFER_% ORG [CLOUD_REGEX]', 'convert usage in OneOps into quota in Tekton']
+  ['oo:usage:transfer [-f [--omr]] [-b BUFFER_%] ORG [CLOUD_REGEX]', 'convert usage in OneOps into quota in Tekton']
 ]
 
 @usage = <<-USAGE
@@ -392,7 +419,7 @@ FOOTER
 TEKTON_HOST = 'http://localhost:9000'
 ONEOPS_HOST = 'http://cmsapi.prod-1312.core.oneops.prod.walmart.com:8080/'
 
-@params = OpenStruct.new(:verbose => 0, :force => false)
+@params = OpenStruct.new(:verbose => 0, :force => false, :only_missing => false, :transfer_buffer => 0)
 opt_parser = OptionParser.new do |opts|
   opts.banner = <<-HELP
   Tool to query and to configure subscription, org and soft quota data in Tekton directly or based on current usage in OneOps.
@@ -406,15 +433,26 @@ opt_parser = OptionParser.new do |opts|
   opts.on('--tt', '--tekton-token TOKEN', 'Tekton auth token') {|token| @params.tekton_token = token}
   opts.on('--oh', '--oneops-host HOST', "OneOps CMS host, defaults to '#{ONEOPS_HOST}' if not specified") {|host| @params.oneops_host = host}
 
+  opts.on('-b', '--buffer BUFFER_%', 'Buffer (as a percentage of usage) to add on top of usage number when setting total quota value for new quotas. Default value is 0 (no buffer) - usage and total are the same') do |buffer_pct|
+    buffer = buffer_pct.to_f / 100
+    unless buffer >= 0
+      say 'Invalid quota buffer %'.red
+      bad_usage
+      exit(1)
+    end
+    @params.transfer_buffer = 0
+  end
+
   opts.on('-f', '--force', 'Force update if already exists') {@params.force = true}
+  opts.on('--omr', '--only-missing-resources', "Transfer usage only for resources missing quota (when already there is quota for at least one other resource; use with '-f' option") {@params.only_missing = true}
 
   opts.on('-v', '--verbose', 'Verbose') {@params.verbose = 1}
   opts.on('--vv', '--very-verbose', 'Very verbose') {@params.verbose = 2}
 
   opts.on('-h', '--help', 'Show this message') do
-    puts opts
-    puts
-    puts @footer
+    say opts
+    say
+    say @footer
     exit
   end
 end
@@ -428,7 +466,7 @@ required_arg('tekton token', @params.tekton_token)
 
 if @params.oneops_host.empty?
   @params.oneops_host = ONEOPS_HOST
-  puts "OneOps host not specified, defaulting to #{@params.oneops_host.blue}".yellow if @params.verbose > 0
+  say "OneOps host not specified, defaulting to #{@params.oneops_host.blue}".yellow if @params.verbose > 0
 end
 @params.oneops_host = "https://#{@params.oneops_host}" unless @params.oneops_host.start_with?('http')
 @params.oneops_host = "#{@params.oneops_host}/" unless @params.oneops_host.end_with?('/')
@@ -436,7 +474,7 @@ end
 
 if @params.tekton_host.empty?
   @params.tekton_host = TEKTON_HOST
-  puts "Tekton host not specified, defaulting to #{@params.tekton_host.blue}".yellow if @params.verbose > 0
+  say "Tekton host not specified, defaulting to #{@params.tekton_host.blue}".yellow if @params.verbose > 0
 end
 @params.tekton_host = "https://#{@params.tekton_host}" unless @params.tekton_host.start_with?('http')
 @params.tekton_host = "#{@params.tekton_host}/" unless @params.tekton_host.end_with?('/')

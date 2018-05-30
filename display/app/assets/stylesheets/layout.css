@@ -641,7 +641,8 @@ img.authicon {
   padding: 0 4px;
 }
 
-#overlay .wf > div.controls .cost-change {
+#overlay .wf > div.controls .cost-change,
+#overlay .wf > div.controls .capacity-change {
   font-size: 14px;
 }
 
@@ -4115,6 +4116,13 @@ ul.log li.error {
 
 .report td.metric, .report th.metric {
   text-align: right;
+}
+
+#overlay div.controls .report td {
+  padding: 5px;
+}
+#overlay div.controls  .report td[rowspan] {
+  vertical-align: middle;
 }
 
 div.category > .name {

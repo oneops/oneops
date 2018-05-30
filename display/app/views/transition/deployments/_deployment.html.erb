@@ -240,13 +240,17 @@
       <table>
         <tr>
           <td colspan="2">
+            <% help_content = capture do %>
+                          <br><small>When checked deployment proceeds even if some work-orders fail.
+                          <br>(NOTE: This flag is <b>NOT</b> applicable for <b class="text-error">delete</b> work-orders.)</small>
+            <% end %>
             <%= render 'cms/cis/checkbox',
                        :attribute_name  => 'continueOnFailure',
                        :attribute_value => @deployment.continueOnFailure,
                        :checked_value   => true,
                        :unchecked_value => false,
                        :read_only       => deployment_state == 'canceled' || deployment_state == 'complete',
-                       :label           => 'continue on failure <code><strong>Use with caution!</strong></code><br><small>When checked deployment proceeds even if some work-orders fail.<br>(NOTE: This flag is <b>NOT</b> applicable for <b class="text-error">delete</b> work-orders.)</small>' %>
+                       :label           => "continue on failure <code><strong>Use with caution!</strong></code> #{expandable_content(:label => icon('question'), :content => help_content)}" %>
           </td>
         </tr>
         <% if deployment_persisted %>
@@ -320,15 +324,71 @@
               </td>
             </tr>
           <% end %>
+          <% enough_capacity = true %>
+          <% if @capacity.present? %>
+            <tr class="capacity-change">
+              <td colspan="2">
+                <% capacity_check = @capacity['reservationCheck'] %>
+                <% if capacity_check == 'ok' %>
+                  <%= icon(site_icon(:capacity)) %>
+                  There is enough capacity available to proceed with this deployment
+                  <%= expandable_content do %>
+                    <div class="report">
+                      <table>
+                        <% {'increase' => 'add', 'decrease' => 'delete'}.each do |name, action| %>
+                          <% action_capacity = @capacity[name] %>
+                          <% if action_capacity.present? %>
+                            <% action_column = true %>
+                            <% action_capacity.keys.sort.each do |cloud| %>
+                              <% cloud_column = true
+                                 cloud_capacity = action_capacity[cloud] %>
+                              <% cloud_capacity.keys.sort.each do |resource| %>
+                                <tr>
+                                  <% if action_column %>
+                                    <% action_column = false %>
+                                    <td rowspan="<%= action_capacity.values.inject(0) {|t, s| t + s.size} %>"><%= rfc_action_icon(action) %></td>
+                                  <% end %>
+                                  <% if cloud_column %>
+                                    <% cloud_column = false %>
+                                    <td rowspan="<%= cloud_capacity.size %>" style="white-space: nowrap"><%= icon(site_icon(:cloud)) %> <%= cloud %></td>
+                                  <% end %>
+                                  <td><%= resource %></td>
+                                  <td class="metric"><%= cloud_capacity[resource] %></td>
+                                </tr>
+                              <% end %>
+                            <% end %>
+                          <% end %>
+                        <% end %>
+                      </table>
+                    </div>
+                  <% end %>
+                <% elsif capacity_check == 'failed' || capacity_check.nil? %>
+                  <span class="text-warning">
+                    <%= icon(site_icon(:capacity)) %>&nbsp;&nbsp;
+                    Failed to check capacity availability for this deployment.
+                  </span>
+                <% else %>
+                  <% enough_capacity = false %>
+                  <span class="text-error">
+                    <%= icon(site_icon(:capacity), '', 'fa-lg') %>&nbsp;&nbsp;
+                    There is not enough capacity available to proceed with this deployment:<br> <%= raw capacity_check.gsub("\n", '<br>') %>
+                  </span>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
           <tr id="controls_new">
             <td colspan="2">
-              <% if (!@last_deployment || @last_deployment.deploymentState == 'complete' || @last_deployment.deploymentState == 'canceled') && has_transition?(@assembly.ciId) %>
+              <% no_deployment_in_progress = !@last_deployment || @last_deployment.deploymentState == 'complete' || @last_deployment.deploymentState == 'canceled' %>
+              <% if enough_capacity && no_deployment_in_progress && has_transition?(@assembly.ciId) %>
                 <%= render 'transition/deployments/action',
                            :action  => 'deploy',
                            :warning => bad_ops_state_count > 0 && "#{pluralize(bad_ops_state_count, 'work-order')} relying on instance(s) in bad state." %>
               <% else %>
                 <%= button(icon('check', 'Deploy'), nil, 'btn btn-success disabled') %>
-                <br><small>There is another deployment in progress.  Recently committed changes can be deployed after current deployment is complete or canceled.</small>
+                <% unless no_deployment_in_progress %>
+                  <br><small>There is another deployment in progress.  Recently committed changes can be deployed after current deployment is complete or canceled.</small>
+                <% end %>
               <% end %>
             </td>
           </tr>

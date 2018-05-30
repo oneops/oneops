@@ -139,6 +139,7 @@
 		<property name="exprParser" ref="exprParser"/>
 		<property name="rfcUtil" ref="rfcUtil"/>
 		<property name="cmsUtil" ref="cmsUtil"/>
+		<property name="capacityProcessor" ref="capacityProcessor" />
     </bean>
 
 	<bean id="envSemaphore" class="com.oneops.transistor.service.EnvSemaphore" destroy-method="cleanup">

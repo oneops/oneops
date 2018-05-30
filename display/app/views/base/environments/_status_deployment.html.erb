@@ -24,7 +24,7 @@
                             :method  => :get,
                             :confirm => 'Generate deployment plan?',
                             :body    => platform_selection,
-                            :with    => "'commit=false&exclude_platforms='+deploy_platform_exclude_list()",
+                            :with    => "'commit=false&cost=true&capacity=true&exclude_platforms='+deploy_platform_exclude_list()",
                             :busy    => 'Compiling deployment plan...') %>
     </li>
   </ul>
@@ -150,7 +150,7 @@
                                 :method  => :post,
                                 :confirm => 'Force Deploy?',
                                 :body    => platform_selection,
-                                :with    => "'commit=false&exclude_platforms='+deploy_platform_exclude_list()",
+                                :with    => "'commit=false&cost=true&capacity=true&exclude_platforms='+deploy_platform_exclude_list()",
                                 :busy    => 'Compiling deployment plan...') %>
         </li>
       </ul>

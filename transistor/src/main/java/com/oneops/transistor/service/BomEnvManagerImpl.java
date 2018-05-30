@@ -17,6 +17,8 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
+import com.oneops.capacity.CapacityEstimate;
+import com.oneops.capacity.CapacityProcessor;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -41,9 +43,9 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.oneops.cms.util.CmsConstants.BASE_PROVIDES;
+import static java.util.stream.Collectors.*;
 
 
 public class BomEnvManagerImpl implements BomEnvManager  {
@@ -59,6 +61,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	private ExpressionParser exprParser;
 	private CmsUtil cmsUtil;
 	private BomManager bomManager;
+	private CapacityProcessor capacityProcessor;
 
 	public void setCmRfcProcessor(CmsCmRfcMrgProcessor cmRfcProcessor) {
 		this.cmRfcProcessor = cmRfcProcessor;
@@ -94,7 +97,12 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 	public void setBomManager(BomManager bomManager) {
 		this.bomManager = bomManager;
 	}
-	
+
+	public void setCapacityProcessor(CapacityProcessor capacityProcessor) {
+		this.capacityProcessor = capacityProcessor;
+	}
+
+
 	@Override
 	public void cleanEnvBom(long envId) {
 		CmsCI env = cmProcessor.getCiById(envId);
@@ -164,24 +172,30 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		String bomNsPath = getNs(env) + "/bom";
 		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null, "DeployedTo", null, "account.Cloud", false, false);
 
-		Set<Long> cloudIds = relations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet());
+		Set<Long> cloudIds = relations.stream().map(CmsCIRelation::getToCiId).collect(toSet());
 		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream()
-				.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+				.collect(toMap(CmsCI::getCiId, Function.identity()));
 
 		Collection<Triplet> triplets = relations.stream()
 				.map(relation -> new Triplet(cloudMap.get(relation.getToCiId()), relation.getFromCiId()))
-				.collect(Collectors.toList());
+				.collect(toList());
 		
 		
 		
 		Map<String, Map<String, List<CmsCI>>> offeringsByNs = getOfferingsForClouds(cloudMap.values());
 
 		Map<Long, Long> relmap = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, "base.RealizedAs", null, null, null).stream()
-				.collect(Collectors.toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
+				.collect(toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
 
 		return calculateCost(prefilter(bomNsPath, triplets, offeringsByNs, relmap), offeringsByNs);
 	}
 
+
+	@Override
+	public CapacityEstimate estimateDeploymentCapacity(BomData bomData) {
+		Collection<CmsRfcRelation> deployedToRelations = bomData.getRelations().stream().filter(r -> r.getRelationName().equals("base.DeployedTo")).collect(toList());
+		return capacityProcessor.estimateCapacity(bomData.getRelease().getNsPath(), bomData.getCis(), deployedToRelations);
+	}
 
 	@Override
 	public Map<String, List<CapacityData>> getEnvCapacity(long envId, BomData data) {
@@ -197,15 +211,15 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 			}
 		}
 
-		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(Collectors.toSet());
+		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(toSet());
 		// existing cis
 
 
 		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null, "DeployedTo", null, "account.Cloud", false, false);
-		cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet()));
+		cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(toSet()));
 
-		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
-		Map<Long, CmsRfcCI> ciIdMap= data.getCis().stream().collect(Collectors.toMap(CmsRfcCI::getRfcId, Function.identity()));
+		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(toMap(CmsCI::getCiId, Function.identity()));
+		Map<Long, CmsRfcCI> ciIdMap= data.getCis().stream().collect(toMap(CmsRfcCI::getRfcId, Function.identity()));
 
 		Map<Long, Triplet> deploymentMap = new HashMap<>();
 		for (CmsRfcRelation rfcRelation : rfcRelations) {
@@ -221,7 +235,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 		Collection<Triplet> triplets = deploymentMap.values();
 
 		Map<Long, Long> ciMap = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, "base.RealizedAs", null, null, null).stream()
-				.collect(Collectors.toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
+				.collect(toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
 
 
 
@@ -233,7 +247,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 			}
 		}
 		Map<Long, Long> relmap = openRfcRelationsNsLikeNakedNoAttrs.stream()
-				.collect(Collectors.toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
+				.collect(toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
 
 		relmap.putAll(ciMap);
 
@@ -246,9 +260,9 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 	private List<CapacityData> calculateCapacity(Collection<Triplet> triplets) {
 
-		List<Long> ciIds = triplets.stream().map(t -> t.ciId).collect(Collectors.toList());
+		List<Long> ciIds = triplets.stream().map(t -> t.ciId).collect(toList());
 		Map<Long, CmsCI> ciMap = cmProcessor.getCiByIdList(ciIds).stream()
-				.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+				.collect(toMap(CmsCI::getCiId, Function.identity()));
 
 		return triplets.stream()
 				.filter(triplet -> triplet.services != null)
@@ -258,7 +272,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 					CmsRfcCI rfcCi = rfcUtil.mergeRfcAndCi(triplet.rfc, ciMap.get(triplet.ciId), null);
 					//String[] requiredServices = triplet.services.split("[,\\*]");
 					return rfcCi.getCiClassName().endsWith(".Compute") ? new CapacityData(cmsUtil.custRfcCI2RfcCISimple(rfcCi), cmsUtil.custCI2CISimple(triplet.cloud, "dj")) : null;
-				}).filter(Objects::nonNull).collect(Collectors.toList());
+				}).filter(Objects::nonNull).collect(toList());
 	}
 
 
@@ -267,7 +281,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 
 		List<CmsCIRelation> ciRealized = cmProcessor.getCIRelationsNsLikeNaked(convertBomNsToManifestNs(bomNsPath), "manifest.Requires", null, null, null);
-		Map<Long, CmsCIRelationAttribute> servicesMap = ciRealized.stream().collect(Collectors.toMap(CmsCIRelation::getToCiId, rel -> rel.getAttribute("services")));
+		Map<Long, CmsCIRelationAttribute> servicesMap = ciRealized.stream().collect(toMap(CmsCIRelation::getToCiId, rel -> rel.getAttribute("services")));
 
 		triplets = triplets.stream().filter(t -> {
 			if (t.rfc == null || !"delete".equals(t.rfc.getRfcAction())) { // do not process deletes
@@ -289,7 +303,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 				}
 			}
 			return false;
-		}).collect(Collectors.toList());
+		}).collect(toList());
 		return triplets;
 	}
 
@@ -308,14 +322,14 @@ public class BomEnvManagerImpl implements BomEnvManager  {
             }
         }
         
-        Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(Collectors.toSet());
+        Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(toSet());
         // existing cis
 
 
         List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null, "DeployedTo", null, "account.Cloud", false, false);
-        cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet()));
+        cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(toSet()));
 
-        Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+        Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(toMap(CmsCI::getCiId, Function.identity()));
 
 
         // load all offerings 
@@ -323,7 +337,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 //        
         
         
-        Map<Long, CmsRfcCI> ciIdMap= data.getCis().stream().collect(Collectors.toMap(CmsRfcCI::getRfcId, Function.identity()));
+        Map<Long, CmsRfcCI> ciIdMap= data.getCis().stream().collect(toMap(CmsRfcCI::getRfcId, Function.identity()));
         
         Map<Long, Triplet> deploymentMap = new HashMap<>();
         for (CmsRfcRelation rfcRelation : rfcRelations) {
@@ -340,7 +354,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
         Map<String, Map<String, List<CmsCI>>> offeringsByNs = getOfferingsForClouds(cloudMap.values());
         Map<Long, Long> ciMap = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, "base.RealizedAs", null, null, null).stream()
-                .collect(Collectors.toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
+                .collect(toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
 
 
 
@@ -353,7 +367,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
             }
         }
         Map<Long, Long> relmap = openRfcRelationsNsLikeNakedNoAttrs.stream()
-                .collect(Collectors.toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
+                .collect(toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
 
         relmap.putAll(ciMap);
 
@@ -370,19 +384,19 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 		// rfcs (adds and updates)
 		List<CmsRfcRelation> rfcRelations = rfcProcessor.getOpenRfcRelationsNsLikeNakedNoAttrs(null, "DeployedTo", bomNsPath, null, null);
-		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(Collectors.toSet());
+		Set<Long> cloudIds = rfcRelations.stream().map(CmsRfcRelationBasic::getToCiId).collect(toSet());
 		// existing cis
 		
 		
 		List<CmsCIRelation> relations = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, null, "DeployedTo", null, "account.Cloud", false, false);
-		cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(Collectors.toSet()));
+		cloudIds.addAll(relations.stream().map(CmsCIRelation::getToCiId).collect(toSet()));
 
-		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+		Map<Long, CmsCI> cloudMap = cmProcessor.getCiByIdList(new ArrayList<>(cloudIds)).stream().collect(toMap(CmsCI::getCiId, Function.identity()));
 
 
 		// load all offerings 
-		List<Long> ciIds = rfcRelations.stream().map(CmsRfcRelationBasic::getFromCiId).collect(Collectors.toList());
-		Map<Long, CmsRfcCI> map = rfcProcessor.getOpenRfcCIByCiIdList(ciIds).stream().collect(Collectors.toMap(CmsRfcCI::getRfcId, Function.identity()));
+		List<Long> ciIds = rfcRelations.stream().map(CmsRfcRelationBasic::getFromCiId).collect(toList());
+		Map<Long, CmsRfcCI> map = rfcProcessor.getOpenRfcCIByCiIdList(ciIds).stream().collect(toMap(CmsRfcCI::getRfcId, Function.identity()));
 
 		Map<Long, Triplet> deploymentMap = new HashMap<>();
 		for (CmsRfcRelation rfcRelation : rfcRelations) {
@@ -399,11 +413,11 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 		Map<String, Map<String, List<CmsCI>>> offeringsByNs = getOfferingsForClouds(cloudMap.values());
 		Map<Long, Long> ciMap = cmProcessor.getCIRelationsNsLikeNakedNoAttrs(bomNsPath, "base.RealizedAs", null, null, null).stream()
-				.collect(Collectors.toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
+				.collect(toMap(CmsCIRelation::getToCiId, CmsCIRelation::getFromCiId));
 
 
 		Map<Long, Long> relmap = rfcProcessor.getOpenRfcRelationsNsLikeNakedNoAttrs("base.RealizedAs", null, bomNsPath, null, null).stream()
-				.collect(Collectors.toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
+				.collect(toMap(CmsRfcRelation::getToCiId, CmsRfcRelation::getFromCiId));
 
 		relmap.putAll(ciMap);
 		
@@ -415,9 +429,9 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 
 	private List<CostData> calculateCost(Collection<Triplet> triplets, Map<String, Map<String, List<CmsCI>>> offeringsByNs) {
 		
-		List<Long> ciIds = triplets.stream().map(t -> t.ciId).collect(Collectors.toList());
+		List<Long> ciIds = triplets.stream().map(t -> t.ciId).collect(toList());
 		Map<Long, CmsCI> ciMap = cmProcessor.getCiByIdList(ciIds).stream()
-				.collect(Collectors.toMap(CmsCI::getCiId, Function.identity()));
+				.collect(toMap(CmsCI::getCiId, Function.identity()));
 
 		return triplets.stream()
 				.filter(triplet -> triplet.services != null)
@@ -440,14 +454,14 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 						}
 					}
 					return reqOfferings.isEmpty() ? null : new CostData(cmsUtil.custRfcCI2RfcCISimple(rfcCi), cmsUtil.custCI2CISimple(triplet.cloud, "dj"), reqOfferings);
-				}).filter(Objects::nonNull).collect(Collectors.toList());
+				}).filter(Objects::nonNull).collect(toList());
 	}
 
 	private Collection<Triplet> prefilter(String bomNsPath, Collection<Triplet> triplets, Map<String, Map<String, List<CmsCI>>> offeringsByNs, Map<Long, Long> relmap) {
 	
 
 		List<CmsCIRelation> ciRealized = cmProcessor.getCIRelationsNsLikeNaked(convertBomNsToManifestNs(bomNsPath), "manifest.Requires", null, null, null);
-		Map<Long, CmsCIRelationAttribute> servicesMap = ciRealized.stream().collect(Collectors.toMap(CmsCIRelation::getToCiId, rel -> rel.getAttribute("services")));
+		Map<Long, CmsCIRelationAttribute> servicesMap = ciRealized.stream().collect(toMap(CmsCIRelation::getToCiId, rel -> rel.getAttribute("services")));
 
 		triplets = triplets.stream().filter(t -> {
 			if (t.rfc == null || !"delete".equals(t.rfc.getRfcAction())) { // do not process deletes
@@ -470,7 +484,7 @@ public class BomEnvManagerImpl implements BomEnvManager  {
 				}
 			}
 			return false;
-		}).collect(Collectors.toList());
+		}).collect(toList());
 		return triplets;
 	}
 

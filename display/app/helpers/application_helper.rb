@@ -30,6 +30,7 @@ module ApplicationHelper
                 :history                => 'history',
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
+                :capacity               => 'server',
                 :compute                => 'server',
                 :support                => 'medkit',
                 :search                 => 'search',
@@ -1377,7 +1378,9 @@ module ApplicationHelper
   end
 
   def expandable_content(options = {}, &block)
-    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, raw(options[:content]) || capture(&block), :class => 'hide'))
+    dom_id = random_dom_id
+    content = options[:content]
+    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), %($j(this).hide(); $j("##{dom_id}").toggle(300))) + content_tag(:span, content.present? ? raw(content) : capture(&block), :id => dom_id, :class => 'hide'))
   end
 
   def expandable_list(items, options = {})

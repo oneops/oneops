@@ -155,7 +155,7 @@ class Transition::DeploymentsController < ApplicationController
                                              :description => params[:desc],
                                              :exclude     => params[:exclude_platforms],
                                              :includeRFCs => 'cis',
-                                             :cost        => request.xhr? ? true : params[:cost] == 'true',
+                                             :cost        => params[:cost] == 'true',
                                              :capacity    => params[:capacity] == 'true')
     end
 
@@ -171,6 +171,7 @@ class Transition::DeploymentsController < ApplicationController
             load_ops_state_data
             check_for_override
             @cost, _ = data['cost']
+            @capacity = data['capacity']
           end
         else
           flash[:error] = message.sub(/^ERROR:BOM:/, '').gsub("\n", '<br>')

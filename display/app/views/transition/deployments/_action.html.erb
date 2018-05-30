@@ -23,7 +23,6 @@
            comments += ";\n" if comments.present?
            comments += override_desc
          end %>
-      <%= f.label :comments, 'Comments' %>
       <%= f.text_area :comments, :value => comments, :placeholder => 'comments', :class => 'input-xxlarge' %>
       <br>
       <%= f.button((icon('check', 'Deploy')), :data => {:disable_with => 'Deploying...'}, :class => 'btn btn-success', :name => 'deploy', :disabled => @override) %>

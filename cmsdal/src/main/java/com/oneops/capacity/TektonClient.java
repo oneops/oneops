@@ -37,20 +37,54 @@ public class TektonClient {
     private String tektonBaseUrl = System.getProperty("tekton.base.url", "http://localhost:9000");
     private String authHeader = Base64.getEncoder().encodeToString(System.getProperty("tekton.auth.token", "").getBytes());
 
+    public Map<String, String> precheckReservation(Map<String, Map<String, Integer>> capacity, String nsPath, String createdBy) {
+        List<Map<String, Object>> reservations = buildReservationRequest(capacity, nsPath, createdBy);
+
+        int responseCode = 0;
+        String responseBody = null;
+        try {
+            RequestBody body = RequestBody.create(JSON, gson.toJson(reservations));
+            Request request = new Request.Builder()
+                    .url(tektonBaseUrl + "/api/v1/quota/precheck")
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Authorization", authHeader)
+                    .post(body)
+                    .build();
+
+            Response response = new OkHttpClient().newCall(request).execute();
+            responseCode = response.code();
+            responseBody = response.body().string();
+        } catch (Exception e) {
+            logger.warn(nsPath + " - Error to precheck capacity: " + reservations +
+                                 ". HTTP response code: " + (responseCode > 0 ? responseCode : "N/A") +
+                                 ". Response: " + (responseBody == null ? "N/A" : responseBody), e);
+        }
+
+        if (responseCode >= 200 && responseCode < 300 && responseBody != null && !responseBody.isEmpty()) {
+            ReservationBulkResponse reservationsResponse = gson.fromJson(responseBody, ReservationBulkResponse.class);
+            String status = reservationsResponse.getStatus();
+            if (status.equalsIgnoreCase("ok")) {
+                logger.info(nsPath + "- Successfully prechecked capacity " + reservations);
+                return new HashMap<>();
+            } else if (status.equalsIgnoreCase("quota_not_setup")) {
+                logger.info(nsPath + " - No quotas are set up to pre-check capacity: " + reservations);
+                return new HashMap<>();
+            } else if (status.equalsIgnoreCase("not_enough_capacity")) {
+                logger.info(nsPath + " - No enough capacity in pre-checking capacity: " + reservations);
+                return reservationsResponse.getReservations().stream()
+                        .filter(r -> r.getStatus().equalsIgnoreCase("not_enough_capacity"))
+                        .collect(toMap(r -> getSubscriptionIdFromReservationId(r.getExtReservationId()), r -> r.getMessage()));
+            } else {
+                logger.error(nsPath + " - Failed to pre-check: " + reservations + ". Response: " + responseBody);
+            }
+        } else {
+            logger.error(nsPath + " - Error to pre-check: " + reservations + ". HTTP response code: " + responseCode + ". Response: " + responseBody);
+        }
+        return null;
+    }
+
     public void reserveQuota(Map<String, Map<String, Integer>> capacity, String nsPath, String createdBy) throws ReservationException {
-        String entity = nsPath.split("/")[1];
-        List<Map<String, Object>> reservations = capacity.entrySet().stream()
-                .map(e -> {
-                    String subscriptionId = e.getKey();
-                    Map<String, Object> reservation = new HashMap<>();
-                    reservation.put("entity", entity);
-                    reservation.put("subscription", subscriptionId);
-                    reservation.put("extReservationId", composeReservationId(nsPath, subscriptionId));
-                    reservation.put("createdBy", createdBy);
-                    reservation.put("quota", e.getValue());
-                    return reservation;
-                })
-                .collect(toList());
+        List<Map<String, Object>> reservations = buildReservationRequest(capacity, nsPath, createdBy);
 
         int responseCode = 0;
         String responseBody = null;
@@ -67,7 +101,7 @@ public class TektonClient {
             responseCode = response.code();
             responseBody = response.body().string();
         } catch (Exception e) {
-            logger.error(nsPath + " - Error to reserve: " + reservations +
+            logger.error(nsPath + " - Error to reserve capacity: " + reservations +
                                  ". HTTP response code: " + (responseCode > 0 ? responseCode : "N/A") +
                                  ". Response: " + (responseBody == null ? "N/A" : responseBody), e);
             throw new RuntimeException("Failed to reserve capacity: " + e.getMessage());
@@ -200,6 +234,22 @@ public class TektonClient {
                     ". Response code: " + responseCode + ". Response: " + responseBody);
             throw new RuntimeException("Error to delete reservations. HTTP response code: " + responseCode);
         }
+    }
+
+    private List<Map<String, Object>> buildReservationRequest(Map<String, Map<String, Integer>> capacity, String nsPath, String createdBy) {
+        String entity = nsPath.split("/")[1];
+        return capacity.entrySet().stream()
+                .map(e -> {
+                    String subscriptionId = e.getKey();
+                    Map<String, Object> reservation = new HashMap<>();
+                    reservation.put("entity", entity);
+                    reservation.put("subscription", subscriptionId);
+                    reservation.put("extReservationId", composeReservationId(nsPath, subscriptionId));
+                    reservation.put("createdBy", createdBy);
+                    reservation.put("quota", e.getValue());
+                    return reservation;
+                })
+                .collect(toList());
     }
 
     private String composeReservationId(String nsPath, String subsciptionId) {
