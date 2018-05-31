@@ -49,7 +49,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class FqdnExecutor implements ComponentWoExecutor {
 
-  private static String FQDN_CLASS = "bom.oneops.1.Fqdn";
+  private static String ONEOPS_FQDN_CLASS = "bom.oneops.1.Fqdn";
+  private static String BASE_FQDN_CLASS = "bom.Fqdn";
   private static final String SERVICE_TYPE_TORBIT = "torbit";
   private static final String ATTRIBUTE_USER = "user_name";
   private static final String ATTRIBUTE_ENDPOINT = "endpoint";
@@ -117,13 +118,13 @@ public class FqdnExecutor implements ComponentWoExecutor {
 
   @Override
   public List<String> getComponentClasses() {
-    return Arrays.asList(FQDN_CLASS);
+    return Arrays.asList(BASE_FQDN_CLASS, ONEOPS_FQDN_CLASS);
   }
 
   @Override
   public Response execute(CmsWorkOrderSimple wo, String dataDir) {
     String logKey = woHelper.getLogKey(wo);
-    if (wo.getClassName().equals(FQDN_CLASS) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
+    if (isFqdnInstance(wo) && isLocalWo(wo) && isGdnsEnabled(wo) && isTorbitServiceType(wo)) {
       executeInternal(wo, logKey, "deployment", dataDir, (t, i) -> {
         if (isGslbDeleteAction(wo)) {
           GslbResponse response = gslbProvider.delete(provisionedGslb(wo, t, i, logKey));
@@ -139,6 +140,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
     logger.info(logKey + "not executing by FqdnExecutor as these conditions are not met :: "
         + "[fqdn service_type set as torbit && gdns enabled for env && local workorder && torbit cloud service configured]");
     return Response.getNotMatchingResponse();
+  }
+
+  private boolean isFqdnInstance(CmsWorkOrderSimpleBase wo) {
+    return BASE_FQDN_CLASS.equals(wo.getClassName()) || ONEOPS_FQDN_CLASS.equals(wo.getClassName());
   }
 
   private boolean isGslbDeleteAction(CmsWorkOrderSimple wo) {
@@ -177,12 +182,12 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private void executeInternal(CmsWorkOrderSimpleBase wo, String logKey, String execType, String dataDir,
       BiConsumer<TorbitConfig, InfobloxConfig> consumer) {
     try {
+      String fileName = dataDir + "/" + wo.getRecordId() + ".json";
+      writeRequest(gsonPretty.toJson(wo), fileName);
       TorbitConfig torbitConfig = getTorbitConfig(wo, logKey);
       InfobloxConfig infobloxConfig = getInfobloxConfig(wo);
       if (torbitConfig != null && infobloxConfig != null) {
         logger.info(logKey + "FqdnExecutor executing " + execType + " : " + wo.getExecutionId() + " action : " + wo.getAction());
-        String fileName = dataDir + "/" + wo.getRecordId() + ".json";
-        writeRequest(gsonPretty.toJson(wo), fileName);
         consumer.accept(torbitConfig, infobloxConfig);
       }
       else {
@@ -345,15 +350,15 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private List<Lb> lbTargets(CmsWorkOrderSimple wo, Context context) {
     Map<Long, Cloud> cloudMap = getPlatformClouds(wo);
     List<CmsRfcCISimple> deployedLbs = wo.getPayLoad().get(LB_PAYLOAD);
-    System.out.println(deployedLbs);
     if (woHelper.isDeleteAction(wo)) {
       Instance currentLb = context.lb;
-      System.out.println(currentLb);
       deployedLbs = deployedLbs.stream()
           .filter(lb -> (lb.getCiId() != currentLb.getCiId()))
           .collect(Collectors.toList());
     }
-    System.out.println(deployedLbs);
+    if (deployedLbs == null) {
+      throw new RuntimeException("Lb payload not available in workorder");
+    }
     return deployedLbs.stream()
         .filter(lb -> isNotBlank(lb.getCiAttributes().get(ATTRIBUTE_DNS_RECORD)))
         .map(lb -> lbTarget(lb, cloudMap))
@@ -535,10 +540,11 @@ public class FqdnExecutor implements ComponentWoExecutor {
   private boolean isTorbitGslb(CmsActionOrderSimple ao) {
     CmsCISimple ci = ao.getCi();
     Map<String, String> attributes = ci.getCiAttributes();
-    return FQDN_CLASS.equals(ci.getCiClassName()) && isLocalWo(ao) &&
+    return isFqdnInstance(ao) && isLocalWo(ao) &&
         attributes.containsKey(ATTRIBUTE_SERVICE_TYPE) && SERVICE_TYPE_TORBIT.equals(attributes.get(ATTRIBUTE_SERVICE_TYPE)) &&
         attributes.containsKey("gslb_map");
   }
+
 
   private Distribution distribution(Map<String, String> fqdnAttributes) {
     String dist = fqdnAttributes.get(ATTRIBUTE_DISTRIBUTION);
