@@ -179,7 +179,7 @@ public class Notifications {
 		notify.setManifestCiId(oEvent.getManifestId());
 		String subjectPrefix = NotificationMessage.buildSubjectPrefix(ci.getNsPath());
 		
-		if ("open".equalsIgnoreCase(oEvent.getState())) {
+		if (oEvent.getState().equalsIgnoreCase("open")) {
             if (severity == null){
                 notify.setSeverity(NotificationSeverity.warning);
             } else {
@@ -198,7 +198,7 @@ public class Notifications {
             } else {
             	notify.setText(ci.getCiName() + " is in " + event.getNewState()+" state");	
             }
-		} else if ("close".equalsIgnoreCase(oEvent.getState())) {
+		} else if (oEvent.getState().equalsIgnoreCase("close")) {
     		// close events go on INFO
 			notify.setSeverity(NotificationSeverity.info);
             if (StringUtils.isNotEmpty(subject)) {

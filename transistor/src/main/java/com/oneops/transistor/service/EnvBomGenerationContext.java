@@ -71,14 +71,10 @@ class EnvBomGenerationContext {
                                   .map(CmsCIRelationBasic::getToCiId)
                                   .collect(Collectors.toSet());
 
-        loadGlobalVars();
+        globalVariables = cmsUtil.getGlobalVars(environment);
 
         linksToRelations = cmProcessor.getCIRelationsNakedNoAttrs(manifestNsPath, MANIFEST_LINKS_TO, null, null, null);
         logger.info(bomNsPath + " >>> Loaded bom generation context in " + (System.currentTimeMillis() - t) + " ms.");
-    }
-
-    void loadGlobalVars() {
-        globalVariables = cmsUtil.getGlobalVars(environment);
     }
 
 
