@@ -9,6 +9,8 @@ module ApplicationHelper
                 :assembly               => 'cogs',
                 :settings               => 'sliders',
                 :user                   => 'user',
+                :group                  => 'group',
+                :announcement           => 'bullhorn',
                 :manages_access         => 'user-secret',
                 :org_scope              => 'sitemap',
                 :design                 => 'puzzle-piece',
@@ -28,7 +30,10 @@ module ApplicationHelper
                 :history                => 'history',
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
+                :capacity               => 'server',
                 :compute                => 'server',
+                :support                => 'medkit',
+                :search                 => 'search',
                 :favorite               => 'bookmark',
                 :json                   => 'file-code-o',
                 :yaml                   => 'file-text-o',
@@ -94,6 +99,13 @@ module ApplicationHelper
       selected_item[:selected] = true if selected_item
     end
     app_nav(menu_items)
+  end
+
+  def support_page_header(page_icon, page_label)
+    title('support')
+    app_nav([{:label => 'support', :icon => site_icon(:support), :link => support_path}])
+    breadcrumb([{:label => icon(site_icon(:support), 'support'), :link => support_path}])
+    page_title(:page_icon => page_icon, :page_kind => page_label)
   end
 
   def organization_page_header(selected = nil)
@@ -1366,7 +1378,9 @@ module ApplicationHelper
   end
 
   def expandable_content(options = {}, &block)
-    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, raw(options[:content]) || capture(&block), :class => 'hide'))
+    dom_id = random_dom_id
+    content = options[:content]
+    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), %($j(this).hide(); $j("##{dom_id}").toggle(300))) + content_tag(:span, content.present? ? raw(content) : capture(&block), :id => dom_id, :class => 'hide'))
   end
 
   def expandable_list(items, options = {})

@@ -50,7 +50,7 @@ class Organization::TeamsController < ApplicationController
   end
 
   def show
-    render :json => @team
+    render_json_ci_response(@team.present?, @team)
   end
 
   def new
@@ -67,7 +67,7 @@ class Organization::TeamsController < ApplicationController
 
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @team) }
+      format.json { render_json_ci_response(ok, @team) }
     end
   end
 
@@ -82,7 +82,7 @@ class Organization::TeamsController < ApplicationController
     ok = @team.update_attributes(strong_params)
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @team) }
+      format.json { render_json_ci_response(ok, @team) }
     end
   end
 
@@ -102,7 +102,7 @@ class Organization::TeamsController < ApplicationController
 
     respond_to do |format|
       format.js { index }
-      format.json { render :json => render_json_ci_response(ok, @team) }
+      format.json { render_json_ci_response(ok, @team) }
     end
   end
 
@@ -110,7 +110,8 @@ class Organization::TeamsController < ApplicationController
   private
 
   def find_team
-    @team = current_user.organization.teams.find(params[:id])
+    qualifier = params[:id]
+    @team = (is_global_admin? ? Team : current_user.organization.teams).where((qualifier =~ /\D/ ? 'teams.name' : 'teams.id') => qualifier).first
   end
 
   def strong_params

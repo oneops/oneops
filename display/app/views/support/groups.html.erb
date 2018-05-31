@@ -1,0 +1,29 @@
+<% support_page_header('group', 'Groups') %>
+<%= section_panel 'Group Lookup',
+                  :position => 'left',
+                  :width    => 'single' do %>
+  <%= form_tag(group_support_path, :remote => true, :method => :get, :class => 'form-inline') do %>
+    <%= text_field_tag :id, @group && @group.name, :class => 'input-medium', :required => true, :autocomplete => 'off', :placeholder => 'Enter name...' %>
+    <%= submit_tag 'Show info', :class => 'btn btn-success' %>
+  <% end %>
+<% end %>
+
+<div id="group_details">
+  <%= render('account/groups/group_details') if @group %>
+</div>
+
+<script>
+  var groupLookupFn = function (query, process) {
+    return $j.get('<%= lookup_account_groups_path %>',
+                  {name: query},
+                  function (data) {
+                    return process(data);
+                  });
+  };
+
+  var updaterFn = function (item) {
+    return item.split(' ')[0];
+  };
+
+  $j('input#id').typeahead({source: groupLookupFn, updater: updaterFn});
+</script>

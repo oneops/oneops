@@ -18,17 +18,17 @@
 package com.oneops.cms.ws.rest;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletResponse;
 
-import com.oneops.cms.cm.service.CmsCmProcessor;
-import com.oneops.cms.dj.dal.DJDpmtMapper;
-import com.oneops.cms.util.domain.CmsVar;
-import com.oneops.tekton.TektonClient;
-import com.oneops.tekton.TektonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -61,10 +61,7 @@ public class DpmtRestController extends AbstractRestController {
 	private CmsDjManager djManager;
 	private CmsUtil cmsUtil = new CmsUtil();
 	private CmsScopeVerifier scopeVerifier;
-	private TektonClient tektonClient;
-	private TektonUtils tektonUtils;
-	private DJDpmtMapper dpmtMapper;
-	
+
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
@@ -78,17 +75,6 @@ public class DpmtRestController extends AbstractRestController {
 		this.djManager = djManager;
 	}
 
-	public void setDpmtMapper(DJDpmtMapper dpmtMapper) {
-		this.dpmtMapper = dpmtMapper;
-	}
-
-	public void setTektonClient(TektonClient tektonClient) {
-		this.tektonClient = tektonClient;
-	}
-
-	public void setTektonUtils(TektonUtils tektonUtils) {
-		this.tektonUtils = tektonUtils;
-	}
 
 	@ExceptionHandler(DJException.class)
 	public void handleDJExceptions(DJException e, HttpServletResponse response) throws IOException {
@@ -137,15 +123,6 @@ public class DpmtRestController extends AbstractRestController {
 			scopeVerifier.verifyScope(scope, dpmt);
 			dpmt.setDeploymentId(dpmtId);
 			dpmt.setUpdatedBy(userId);
-
-			if (tektonUtils.isSoftQuotaEnabled()) {
-				if ("canceled".equalsIgnoreCase(dpmt.getDeploymentState())) {
-					Set<String> subs = dpmtMapper.getToCiIdsForDeployment(dpmt.getDeploymentId(), null, "base.DeployedTo")
-							.stream()
-							.map(id -> tektonUtils.findSubscriptionId(id)).collect(Collectors.toSet());
-					tektonClient.deleteReservations(dpmtId, subs);
-				}
-			}
 
 			return djManager.updateDeployment(dpmt);
 		} catch (Exception e) {

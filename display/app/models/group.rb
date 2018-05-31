@@ -9,6 +9,6 @@ class Group < ActiveRecord::Base
   validates_uniqueness_of :name
 
   def is_admin?(user)
-    admins.where(:user_id => user.id).first.present?
+    user.is_global_admin? || admins.where(:user_id => user.id).first.present?
   end
 end

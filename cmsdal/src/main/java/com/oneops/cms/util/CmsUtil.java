@@ -18,8 +18,15 @@
 package com.oneops.cms.util;
 
 
+import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
+import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
+
 import com.google.gson.Gson;
-import com.oneops.cms.cm.domain.*;
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.crypto.CmsCrypto;
@@ -31,20 +38,26 @@ import com.oneops.cms.dj.service.CmsRfcUtil;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.exceptions.CIValidationException;
 import com.oneops.cms.exceptions.ExceptionConsolidator;
-import com.oneops.cms.simple.domain.*;
+import com.oneops.cms.simple.domain.CmsActionOrderSimple;
+import com.oneops.cms.simple.domain.CmsCIRelationSimple;
+import com.oneops.cms.simple.domain.CmsCISimple;
+import com.oneops.cms.simple.domain.CmsCISimpleWithTags;
+import com.oneops.cms.simple.domain.CmsRfcCISimple;
+import com.oneops.cms.simple.domain.CmsRfcRelationSimple;
+import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
 import com.oneops.cms.util.domain.AttrQueryCondition;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_BAD_GLOBAL_VAR_REF;
-import static com.oneops.cms.util.CmsError.TRANSISTOR_CM_ATTRIBUTE_HAS_CYCLIC_REF;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.Logger;
 
 /**
  * The Class CmsUtil.
@@ -71,6 +84,11 @@ public class CmsUtil {
     private static final String VARSUFFIX ="}";
     private static final String ATTR_PROP_OWNER = "owner";
     private static final String DJ_ATTR = "dj";
+
+    private static final String MANIFEST_PREFIX = "manifest.";
+    private static final String BOM_PREFIX = "bom.";
+    private static final String CATALOG_PREFIX = "catalog.";
+    private static final String CLOUDS_NS_IDENTIFIER = "_clouds";
 
     private static final Logger logger = Logger.getLogger(CmsUtil.class);
     private static Gson gson = new Gson();
@@ -358,6 +376,10 @@ public class CmsUtil {
         return custCI2CISimple(ci, valueType, false);
     }
 
+    public CmsCISimpleWithTags cmsCISimpleWithTags(CmsCI ci, String valueType) {
+        return custCI2CISimpleWithTagsLocal(ci, valueType, null, false, null);
+    }
+
     public CmsCISimple custCI2CISimple(CmsCI ci, String valueType, boolean getEncrypted) {
         return custCI2CISimple(ci, valueType, null, getEncrypted, null);
     }
@@ -384,6 +406,40 @@ public class CmsUtil {
             return null;
         }
         CmsCISimple ciSimple = new CmsCISimple();
+        addCiDetails(ciSimple, ci, valueType, attrProps, getEncrypted, includeAltNs);
+        return ciSimple;
+    }
+
+    private CmsCISimpleWithTags custCI2CISimpleWithTagsLocal(CmsCI ci, String valueType, String[] attrProps, boolean getEncrypted, String includeAltNs) {
+        if (ci == null) {
+            return null;
+        }
+        CmsCISimpleWithTags ciSimple = new CmsCISimpleWithTags();
+        addCiDetails(ciSimple, ci, valueType, attrProps, getEncrypted, includeAltNs);
+        String[] nsElements = ciSimple.getNsPath().split("/");
+        if (nsElements.length >= 2) {
+            ciSimple.setOrg(nsElements[1]);
+        }
+        if (nsElements.length >= 3 && !CLOUDS_NS_IDENTIFIER.equals(nsElements[2])) {
+            ciSimple.setAssembly(nsElements[2]);
+            if (ci.getCiClassName().startsWith(MANIFEST_PREFIX) || ci.getCiClassName().startsWith(BOM_PREFIX)) {
+                if (nsElements.length >= 4) {
+                    ciSimple.setEnv(nsElements[3]);
+                }
+                if (nsElements.length >= 6) {
+                    ciSimple.setPlatform(nsElements[5]);
+                }
+            }
+            else if (ci.getCiClassName().startsWith(CATALOG_PREFIX)) {
+                if (nsElements.length >= 5) {
+                    ciSimple.setPlatform(nsElements[4]);
+                }
+            }
+        }
+        return ciSimple;
+    }
+
+    private void addCiDetails(CmsCISimple ciSimple, CmsCI ci, String valueType, String[] attrProps, boolean getEncrypted, String includeAltNs) {
         ciSimple.setCiId(ci.getCiId());
         ciSimple.setNsId(ci.getNsId());
         ciSimple.setCiClassName(ci.getCiClassName());
@@ -430,7 +486,6 @@ public class CmsUtil {
                 }
             }
         }
-        return ciSimple;
     }
 
     /**

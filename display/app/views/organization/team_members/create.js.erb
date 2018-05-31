@@ -1,4 +1,4 @@
-<% type = @member.is_a?(User) ? 'user' : 'group' %>
+<% type = params[:user].present? ? 'user' : 'group' %>
 hide_modal();
 <% if @error.blank? %>
   show_add_team_member_dialog("<%= type %>", "<%= "#{type.capitalize} '#{escape_javascript(@member.name)}' added." %>")

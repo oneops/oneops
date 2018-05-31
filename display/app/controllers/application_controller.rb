@@ -1285,6 +1285,7 @@ class ApplicationController < ActionController::Base
         @support_auth = {'*' => config}
       end
     end
+    @support_auth
   end
 
   def support_permissions

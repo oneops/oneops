@@ -113,8 +113,12 @@
 
     <bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init"
           destroy-method="cleanup" parent="parentEvenReader"/>
+
     <bean id="ciEventReader" class="com.oneops.cms.transmitter.CIEventReader" init-method="init"
-          destroy-method="cleanup" parent="parentEvenReader"/>
+      destroy-method="cleanup" parent="parentEvenReader">
+      <property name="orgCacheTtlInMins" value="${ORG_CACHE_TTL_MINS:30}"/>
+      <property name="orgCacheMaxSize" value="${ORG_CACHE_MAX_SIZE:1000}"/>
+    </bean>
 
     <bean id="propertyConfigurer"
           class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">

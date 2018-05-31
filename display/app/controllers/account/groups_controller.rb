@@ -18,7 +18,7 @@ class Account::GroupsController < ApplicationController
   end
 
   def show
-    render :json => @group
+    render_json_ci_response(@group.present?, @group)
   end
 
   def new
@@ -36,14 +36,14 @@ class Account::GroupsController < ApplicationController
 
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @group) }
+      format.json { render_json_ci_response(ok, @group) }
     end
   end
 
   def edit
     respond_to do |format|
       format.js { render :action => :edit }
-      format.json { render :json => render_json_ci_response(true, @group) }
+      format.json { render_json_ci_response(true, @group) }
     end
   end
 
@@ -51,7 +51,7 @@ class Account::GroupsController < ApplicationController
     ok = @group.update_attributes(strong_params)
     respond_to do |format|
       format.js { ok ? index : render(:action => :edit) }
-      format.json { render :json => render_json_ci_response(ok, @group) }
+      format.json { render_json_ci_response(ok, @group) }
     end
   end
 
@@ -60,7 +60,7 @@ class Account::GroupsController < ApplicationController
 
     respond_to do |format|
       format.js { index }
-      format.json { render :json => render_json_ci_response(ok, @group) }
+      format.json { render_json_ci_response(ok, @group) }
     end
   end
 
@@ -81,12 +81,12 @@ class Account::GroupsController < ApplicationController
   private
 
   def find_group
-    group_id = params[:id]
-    @group = current_user.groups.where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
+    qualifier = params[:id]
+    @group = (is_global_admin? ? Group : current_user.groups).where((qualifier =~ /\D/ ? 'groups.name' : 'groups.id') => qualifier).first
   end
 
   def authorize_group_admin
-    unauthorized unless @group.is_admin?(current_user)
+    unauthorized unless is_global_admin? || @group.is_admin?(current_user)
   end
 
   def strong_params

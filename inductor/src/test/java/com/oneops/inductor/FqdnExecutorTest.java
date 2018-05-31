@@ -2,12 +2,14 @@ package com.oneops.inductor;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParser;
 import com.oneops.cms.domain.CmsWorkOrderSimpleBase;
 import com.oneops.cms.execution.Response;
 import com.oneops.cms.execution.Result;
@@ -15,18 +17,24 @@ import com.oneops.cms.simple.domain.CmsActionOrderSimple;
 import com.oneops.cms.simple.domain.CmsCISimple;
 import com.oneops.cms.simple.domain.CmsRfcCISimple;
 import com.oneops.cms.simple.domain.CmsWorkOrderSimple;
-import com.oneops.gslb.GslbExecutor;
+import com.oneops.gslb.GslbProvider;
 import com.oneops.gslb.Status;
-import com.oneops.gslb.domain.Action;
-import com.oneops.gslb.domain.Cloud;
-import com.oneops.gslb.domain.GslbRequest;
-import com.oneops.gslb.domain.GslbResponse;
+import com.oneops.gslb.domain.CloudARecord;
+import com.oneops.gslb.domain.Distribution;
+import com.oneops.gslb.domain.Gslb;
+import com.oneops.gslb.domain.GslbProvisionResponse;
+import com.oneops.gslb.domain.HealthCheck;
 import com.oneops.gslb.domain.InfobloxConfig;
+import com.oneops.gslb.domain.Lb;
+import com.oneops.gslb.domain.Protocol;
+import com.oneops.gslb.domain.ProvisionedGslb;
 import com.oneops.gslb.domain.TorbitConfig;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,16 +42,56 @@ import org.mockito.ArgumentCaptor;
 public class FqdnExecutorTest {
 
   FqdnExecutor fqdnExecutor = new FqdnExecutor();
-  GslbExecutor mock = mock(GslbExecutor.class);
+  GslbProvider mock = mock(GslbProvider.class);
+
+  Map<String, Map<String, String>> classesMap = new HashMap<>();
+
+  private static String ONEOPS_CLASS = "oneops";
+  private static String BASE_CLASS = "base";
+
+  private static String BOM_LB = "bom_lb";
+  private static String MANIFEST_LB = "manifest_lb";
+  private static String BOM_FQDN = "bom_fqdn";
+  private static String MANIFEST_FQDN = "manifest_fqdn";
 
   @Before
   public void setup() {
     fqdnExecutor.gson = new Gson();
-    when(mock.execute(any())).thenReturn(successResponse());
-    fqdnExecutor.gslbExecutor = mock;
+    when(mock.create(any())).thenReturn(successProvisionResponse());
+    fqdnExecutor.gslbProvider = mock;
     WoHelper woHelper = new WoHelper();
     woHelper.gson = fqdnExecutor.gson;
+    fqdnExecutor.jsonParser = new JsonParser();
     fqdnExecutor.woHelper = woHelper;
+    initClasses();
+  }
+
+  private void initClasses() {
+    Map<String, String> map = new HashMap<>();
+    map.put(BOM_LB, "bom.Lb");
+    map.put(MANIFEST_LB, "manifest.Lb");
+    map.put(BOM_FQDN, "bom.Fqdn");
+    map.put(MANIFEST_FQDN, "manifest.Fqdn");
+    classesMap.put(BASE_CLASS, map);
+
+    map = new HashMap<>();
+    map.put(BOM_LB, "bom.oneops.1.Lb");
+    map.put(MANIFEST_LB, "manifest.oneops.1.Lb");
+    map.put(BOM_FQDN, "bom.oneops.1.Fqdn");
+    map.put(MANIFEST_FQDN, "manifest.oneops.1.Fqdn");
+    classesMap.put(ONEOPS_CLASS, map);
+  }
+
+  private Map<String, String> oneops_class() {
+    return classesMap.get(ONEOPS_CLASS);
+  }
+
+  private Map<String, String> base_class() {
+    return classesMap.get(BASE_CLASS);
+  }
+
+  private CmsWorkOrderSimple woWith2Clouds() {
+    return woWith2Clouds(oneops_class());
   }
 
   @Test
@@ -51,43 +99,53 @@ public class FqdnExecutorTest {
     CmsWorkOrderSimple wo = woWith2Clouds();
     wo.getRfcCi().setRfcAction("add");
     fqdnExecutor.execute(wo, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.add));
-    assertThat("plt", is(request.platform()));
-    assertThat("stg", is(request.environment()));
-    assertThat("coll", is(request.assembly()));
-    assertThat("org", is(request.org()));
-    assertThat(request.platformEnabled(), is(true));
-    assertThat(request.cloud().name(), is("cl1"));
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
 
-    List<Cloud> platformClouds = request.platformClouds();
-    assertThat(platformClouds.size(), is(2));
-    assertThat(platformClouds.get(0).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(0).priority(), is("1"));
-    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(1).priority(), is("1"));
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
 
-    InfobloxConfig ibConfig = request.cloud().infobloxConfig();
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
     assertThat(ibConfig.host(), is("https://localhost:8123"));
     assertThat(ibConfig.user(), is("test-usr"));
     assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
 
-    TorbitConfig torbitConfig = request.cloud().torbitConfig();
+    TorbitConfig torbitConfig = request.torbitConfig();
     assertThat(torbitConfig.url(), is("https://localhost:8443"));
     assertThat(torbitConfig.user(), is("test-oo"));
     assertThat(torbitConfig.groupId(), is(101));
     assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
 
-    assertThat(request.fqdn().aliasesJson(), is("[p1]"));
-    assertThat(request.fqdn().fullAliasesJson(), is("[p1.e1.a1.org.xyz.com]"));
-    assertThat(request.lbConfig().listenerJson(), is("['http 80 http 80']"));
-    assertThat(request.lbConfig().ecvMapJson(), is("{'80':'GET /'}"));
-    assertThat(request.deployedLbs().size(), is(2));
-    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
-    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+    List<HealthCheck> healthChecks = request.healthChecks();
+    assertThat(healthChecks.size(), is(1));
+    HealthCheck healthCheck = healthChecks.get(0);
+    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.port(), is(80));
+    assertThat(healthCheck.path(), is("/"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
   }
 
   @Test
@@ -97,20 +155,19 @@ public class FqdnExecutorTest {
     wo.getPayLoadEntry("fqdnclouds").get(1).addCiAttribute("base.Consumes.priority", "2");
     wo.getRfcCi().setRfcAction("update");
     fqdnExecutor.execute(wo, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.update));
-    List<Cloud> platformClouds = request.platformClouds();
-    assertThat(platformClouds.size(), is(2));
-    assertThat(platformClouds.get(0).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(0).priority(), is("1"));
-    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(1).priority(), is("2"));
-    assertThat(request.deployedLbs().size(), is(2));
-    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
-    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+    Gslb request = argument.getValue();
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(false));
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
   }
 
   @Test
@@ -120,21 +177,15 @@ public class FqdnExecutorTest {
     wo.getPayLoadEntry("fqdnclouds").get(0).addCiAttribute("base.Consumes.adminstatus", "inactive");
     wo.getRfcCi().setRfcAction("delete");
     fqdnExecutor.execute(wo, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.delete));
-    assertThat(request.platformEnabled(), is(true));
-    List<Cloud> platformClouds = request.platformClouds();
-    assertThat(platformClouds.size(), is(2));
-    assertThat(platformClouds.get(0).adminStatus4Platform(), is("inactive"));
-    assertThat(platformClouds.get(0).priority(), is("1"));
-    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(1).priority(), is("1"));
-    assertThat(request.deployedLbs().size(), is(2));
-    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
-    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+    Gslb request = argument.getValue();
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(1));
+    assertThat(lbs.get(0).cloud(), is("cl2"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+    assertThat(lbs.get(0).vip(), is("1.1.1.1"));
   }
 
   @Test
@@ -144,21 +195,36 @@ public class FqdnExecutorTest {
     wo.getBox().addCiAttribute("is_platform_enabled", "false");
     wo.getRfcCi().setRfcAction("delete");
     fqdnExecutor.execute(wo, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<ProvisionedGslb> argument = ArgumentCaptor.forClass(ProvisionedGslb.class);
+    verify(mock).delete(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.delete));
-    assertThat(request.platformEnabled(), is(false));
-    List<Cloud> platformClouds = request.platformClouds();
-    assertThat(platformClouds.size(), is(2));
-    assertThat(platformClouds.get(0).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(0).priority(), is("1"));
-    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(1).priority(), is("1"));
-    assertThat(request.deployedLbs().size(), is(2));
-    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
-    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+    ProvisionedGslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
+    assertThat(ibConfig.host(), is("https://localhost:8123"));
+    assertThat(ibConfig.user(), is("test-usr"));
+    assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
+
+    TorbitConfig torbitConfig = request.torbitConfig();
+    assertThat(torbitConfig.url(), is("https://localhost:8443"));
+    assertThat(torbitConfig.user(), is("test-oo"));
+    assertThat(torbitConfig.groupId(), is(101));
+    assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    System.out.println(cnames);
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
   }
 
   @Test
@@ -183,20 +249,23 @@ public class FqdnExecutorTest {
     CmsWorkOrderSimple wo = woWith2Clouds();
     wo.getRfcCi().setRfcAction("replace");
     fqdnExecutor.execute(wo, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.replace));
-    List<Cloud> platformClouds = request.platformClouds();
-    assertThat(platformClouds.size(), is(2));
-    assertThat(platformClouds.get(0).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(0).priority(), is("1"));
-    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(1).priority(), is("1"));
-    assertThat(request.deployedLbs().size(), is(2));
-    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
-    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+    Gslb request = argument.getValue();
+    assertThat("plt", is(request.app()));
+    assertThat("stg.coll.org", is(request.subdomain()));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
   }
 
   @Test
@@ -223,15 +292,27 @@ public class FqdnExecutorTest {
     wo.getRfcCi().addCiBaseAttribute("aliases", "[olda1]");
     wo.getRfcCi().addCiBaseAttribute("full_aliases", "[oldfa1.xyz.com]");
     fqdnExecutor.execute(wo, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.update));
-    assertThat(request.fqdn().aliasesJson(), is("[p1]"));
-    assertThat(request.fqdn().fullAliasesJson(), is("[p1.e1.a1.org.xyz.com]"));
-    assertThat(request.oldFqdn().aliasesJson(), is("[olda1]"));
-    assertThat(request.oldFqdn().fullAliasesJson(), is("[oldfa1.xyz.com]"));
+    Gslb request = argument.getValue();
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    Set<String> obsoleteCnames = request.obsoleteCnames().stream().collect(Collectors.toSet());
+    System.out.println(obsoleteCnames);
+    assertThat(obsoleteCnames.size(), is(2));
+    assertTrue(obsoleteCnames.contains("oldfa1.xyz.com"));
+    assertTrue(obsoleteCnames.contains("olda1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
   }
 
   @Test
@@ -241,15 +322,69 @@ public class FqdnExecutorTest {
     wo.getRfcCi().setRfcAction("update");
     fqdnExecutor.execute(wo, "/tmp");
 
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.update));
-    assertThat(request.customSubdomain(), is("test1.e2.a1.o1"));
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("test1.e2.a1.o1"));
   }
 
-  private GslbResponse successResponse() {
-    GslbResponse response = new GslbResponse();
+  @Test
+  public void gslbRequestWithTwoCloudsAndBaseFqdn() {
+    CmsWorkOrderSimple wo = woWith2Clouds(base_class());
+    wo.getRfcCi().setRfcAction("add");
+    fqdnExecutor.execute(wo, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).create(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
+    assertThat(ibConfig.host(), is("https://localhost:8123"));
+    assertThat(ibConfig.user(), is("test-usr"));
+    assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
+
+    TorbitConfig torbitConfig = request.torbitConfig();
+    assertThat(torbitConfig.url(), is("https://localhost:8443"));
+    assertThat(torbitConfig.user(), is("test-oo"));
+    assertThat(torbitConfig.groupId(), is(101));
+    assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
+
+    List<HealthCheck> healthChecks = request.healthChecks();
+    assertThat(healthChecks.size(), is(1));
+    HealthCheck healthCheck = healthChecks.get(0);
+    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.port(), is(80));
+    assertThat(healthCheck.path(), is("/"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+  }
+
+  private GslbProvisionResponse successProvisionResponse() {
+    GslbProvisionResponse response = new GslbProvisionResponse();
     response.setGlb("ad.stg.coll.xyz.com");
     response.setMtdDeploymentId("100");
     response.setMtdVersion("101");
@@ -258,31 +393,31 @@ public class FqdnExecutorTest {
     return response;
   }
 
-  private CmsWorkOrderSimple woWith2Clouds() {
-    CmsWorkOrderSimple wo = woBase();
-    addLbPayload(wo);
+  private CmsWorkOrderSimple woWith2Clouds(Map<String, String> classMap) {
+    CmsWorkOrderSimple wo = woBase(classMap);
+    addLbPayload(wo, classMap);
     addCloudService(wo);
     addCloudsPayload(wo);
-    addRealizedAs(wo);
-    addDependsOn(wo);
+    addRealizedAs(wo, classMap);
+    addDependsOn(wo, classMap);
     return wo;
   }
 
-  private void addDependsOn(CmsWorkOrderSimple wo) {
+  private void addDependsOn(CmsWorkOrderSimple wo, Map<String, String> classMap) {
     CmsRfcCISimple bomLb = new CmsRfcCISimple();
-    bomLb.setCiClassName("bom.oneops.1.Lb");
+    bomLb.setCiClassName(classMap.get(BOM_LB));
     bomLb.setCiId(650l);
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");
     wo.addPayLoadEntry("DependsOn", bomLb);
   }
 
-  private CmsWorkOrderSimple woBase() {
+  private CmsWorkOrderSimple woBase(Map<String, String> classMap) {
     CmsWorkOrderSimple woBase = new CmsWorkOrderSimple();
     CmsRfcCISimple rfc = new CmsRfcCISimple();
     rfc.setRfcId(4001l);
     rfc.setCiName("test-gslb");
-    rfc.setCiClassName("bom.oneops.1.Fqdn");
+    rfc.setCiClassName(classMap.get(BOM_FQDN));
     rfc.addCiAttribute("aliases", "[p1]");
     rfc.addCiAttribute("full_aliases", "[p1.e1.a1.org.xyz.com]");
     rfc.addCiAttribute("distribution", "proximity");
@@ -313,25 +448,28 @@ public class FqdnExecutorTest {
     return woBase;
   }
 
-  private void addRealizedAs(CmsWorkOrderSimple wo) {
+  private void addRealizedAs(CmsWorkOrderSimple wo, Map<String, String> classMap) {
     CmsRfcCISimple manifest = new CmsRfcCISimple();
-    manifest.setCiClassName("manifest.oneops.1.Fqdn");
+    manifest.setCiClassName(classMap.get(MANIFEST_FQDN));
     manifest.setCiId(110);
     manifest.addCiAttribute("distribution", "proximity");
     manifest.addCiAttribute("service_type", "torbit");
     wo.addPayLoadEntry("RealizedAs", manifest);
   }
 
-  private void addLbPayload(CmsWorkOrderSimple wo) {
+  private void addLbPayload(CmsWorkOrderSimple wo, Map<String, String> classMap) {
+    String clazz = classMap.get(BOM_LB);
     CmsRfcCISimple lb1 = new CmsRfcCISimple();
     lb1.setCiName("lb-101-1");
     lb1.addCiAttribute("dns_record", "1.1.1.0");
-    lb1.setCiClassName("bom.oneops.1.Lb");
+    lb1.setCiClassName(clazz);
+    lb1.setCiId(650);
 
     CmsRfcCISimple lb2 = new CmsRfcCISimple();
     lb2.setCiName("lb-102-1");
     lb2.addCiAttribute("dns_record", "1.1.1.1");
-    lb2.setCiClassName("bom.oneops.1.Lb");
+    lb2.setCiClassName(clazz);
+    lb2.setCiId(655);
 
     wo.putPayLoadEntry("lb", Arrays.asList(lb1, lb2));
   }
@@ -381,11 +519,6 @@ public class FqdnExecutorTest {
     services.put("dns", dnsService);
   }
 
-  private void addManagedVia(CmsWorkOrderSimple wo) {
-    wo.addPayLoadEntry("ManagedVia", new CmsRfcCISimple());
-  }
-
-
   @Test
   public void dontMatchAoWithDifferentServiceType() {
     CmsActionOrderSimple ao = ao();
@@ -415,62 +548,129 @@ public class FqdnExecutorTest {
   public void aoStatusAction() {
     CmsActionOrderSimple ao = ao();
     fqdnExecutor.execute(ao, "/tmp");
-    ArgumentCaptor<GslbRequest> argument = ArgumentCaptor.forClass(GslbRequest.class);
-    verify(mock).execute(argument.capture());
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).checkStatus(argument.capture());
 
-    GslbRequest request = argument.getValue();
-    assertThat(request.action(), is(Action.gslbstatus));
-    assertThat("plt", is(request.platform()));
-    assertThat("stg", is(request.environment()));
-    assertThat("coll", is(request.assembly()));
-    assertThat("org", is(request.org()));
-    assertThat(request.platformEnabled(), is(true));
-    assertThat(request.cloud().name(), is("cl1"));
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
 
-    List<Cloud> platformClouds = request.platformClouds();
-    assertThat(platformClouds.size(), is(2));
-    assertThat(platformClouds.get(0).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(0).priority(), is("1"));
-    assertThat(platformClouds.get(1).adminStatus4Platform(), is("active"));
-    assertThat(platformClouds.get(1).priority(), is("1"));
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
 
-    InfobloxConfig ibConfig = request.cloud().infobloxConfig();
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
     assertThat(ibConfig.host(), is("https://localhost:8123"));
     assertThat(ibConfig.user(), is("test-usr"));
     assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
 
-    TorbitConfig torbitConfig = request.cloud().torbitConfig();
+    TorbitConfig torbitConfig = request.torbitConfig();
     assertThat(torbitConfig.url(), is("https://localhost:8443"));
     assertThat(torbitConfig.user(), is("test-oo"));
     assertThat(torbitConfig.groupId(), is(101));
     assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
 
-    assertThat(request.fqdn().aliasesJson(), is("[p1]"));
-    assertThat(request.fqdn().fullAliasesJson(), is("[p1.e1.a1.org.xyz.com]"));
-    assertThat(request.lbConfig().listenerJson(), is("['http 80 http 80']"));
-    assertThat(request.lbConfig().ecvMapJson(), is("{'80':'GET /'}"));
-    assertThat(request.deployedLbs().size(), is(2));
-    assertThat(request.deployedLbs().get(0).dnsRecord(), is("1.1.1.0"));
-    assertThat(request.deployedLbs().get(1).dnsRecord(), is("1.1.1.1"));
+    List<HealthCheck> healthChecks = request.healthChecks();
+    assertThat(healthChecks.size(), is(1));
+    HealthCheck healthCheck = healthChecks.get(0);
+    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.port(), is(80));
+    assertThat(healthCheck.path(), is("/"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
+  }
+
+  @Test
+  public void aoStatusActionForBaseClass() {
+    CmsActionOrderSimple ao = ao(base_class());
+    fqdnExecutor.execute(ao, "/tmp");
+    ArgumentCaptor<Gslb> argument = ArgumentCaptor.forClass(Gslb.class);
+    verify(mock).checkStatus(argument.capture());
+
+    Gslb request = argument.getValue();
+    assertThat(request.app(), is("plt"));
+    assertThat(request.subdomain(), is("stg.coll.org"));
+    assertThat(request.distribution(), is(Distribution.PROXIMITY));
+
+    List<Lb> lbs = request.lbs();
+    assertThat(lbs.size(), is(2));
+    assertThat(lbs.get(0).vip(), is("1.1.1.0"));
+    assertThat(lbs.get(0).cloud(), is("cl1"));
+    assertThat(lbs.get(0).enabledForTraffic(), is(true));
+
+    assertThat(lbs.get(1).vip(), is("1.1.1.1"));
+    assertThat(lbs.get(1).cloud(), is("cl2"));
+    assertThat(lbs.get(1).enabledForTraffic(), is(true));
+
+    InfobloxConfig ibConfig = request.infobloxConfig();
+    assertThat(ibConfig.host(), is("https://localhost:8123"));
+    assertThat(ibConfig.user(), is("test-usr"));
+    assertThat(ibConfig.zone(), is("stg.cloud.xyz.com"));
+
+    TorbitConfig torbitConfig = request.torbitConfig();
+    assertThat(torbitConfig.url(), is("https://localhost:8443"));
+    assertThat(torbitConfig.user(), is("test-oo"));
+    assertThat(torbitConfig.groupId(), is(101));
+    assertThat(torbitConfig.gslbBaseDomain(), is("xyz.com"));
+
+    List<HealthCheck> healthChecks = request.healthChecks();
+    assertThat(healthChecks.size(), is(1));
+    HealthCheck healthCheck = healthChecks.get(0);
+    assertThat(healthCheck.protocol(), is(Protocol.HTTP));
+    assertThat(healthCheck.port(), is(80));
+    assertThat(healthCheck.path(), is("/"));
+
+    Set<String> cnames = request.cnames().stream().collect(Collectors.toSet());
+    assertThat(cnames.size(), is(3));
+    assertTrue(cnames.contains("plt.stg.coll.org.stg.cloud.xyz.com"));
+    assertTrue(cnames.contains("p1.e1.a1.org.xyz.com"));
+    assertTrue(cnames.contains("p1.stg.coll.org.stg.cloud.xyz.com"));
+
+    List<CloudARecord> cloudARecords = request.cloudARecords();
+    assertThat(cloudARecords.size(), is(1));
+    CloudARecord cloudARecord = cloudARecords.get(0);
+    assertThat(cloudARecord.cloud(), is("cl1"));
+    assertThat(cloudARecord.aRecord(), is("plt.stg.coll.org.cl1.stg.cloud.xyz.com"));
   }
 
   private CmsActionOrderSimple ao() {
-    CmsActionOrderSimple wo = aoBase();
-    addLbPayload(wo);
-    addCloudService(wo);
-    addCloudsPayload(wo);
-    addRealizedAs(wo);
-    addDependsOn(wo);
-    return wo;
+    return ao(oneops_class());
   }
 
-  private CmsActionOrderSimple aoBase() {
+  private CmsActionOrderSimple ao(Map<String, String> classMap) {
+    CmsActionOrderSimple ao = aoBase(classMap);
+    addLbPayload(ao, classMap);
+    addCloudService(ao);
+    addCloudsPayload(ao);
+    addRealizedAs(ao, classMap);
+    addDependsOn(ao, classMap);
+    return ao;
+  }
+
+  private CmsActionOrderSimple aoBase(Map<String, String> classMap) {
     CmsActionOrderSimple aoBase = new CmsActionOrderSimple();
     aoBase.setActionName("gslbstatus");
     CmsCISimple ci = new CmsCISimple();
     ci.setCiId(4001l);
     ci.setCiName("test-gslb");
-    ci.setCiClassName("bom.oneops.1.Fqdn");
+    ci.setCiClassName(classMap.get(BOM_FQDN));
     ci.addCiAttribute("aliases", "[p1]");
     ci.addCiAttribute("full_aliases", "[p1.e1.a1.org.xyz.com]");
     ci.addCiAttribute("distribution", "proximity");
@@ -494,16 +694,17 @@ public class FqdnExecutorTest {
     return aoBase;
   }
 
-  private void addLbPayload(CmsActionOrderSimple wo) {
+  private void addLbPayload(CmsActionOrderSimple wo, Map<String, String> classMap) {
+    String clazz = classMap.get(BOM_LB);
     CmsCISimple lb1 = new CmsCISimple();
     lb1.setCiName("lb-101-1");
     lb1.addCiAttribute("dns_record", "1.1.1.0");
-    lb1.setCiClassName("bom.oneops.1.Lb");
+    lb1.setCiClassName(clazz);
 
     CmsCISimple lb2 = new CmsCISimple();
     lb2.setCiName("lb-102-1");
     lb2.addCiAttribute("dns_record", "1.1.1.1");
-    lb2.setCiClassName("bom.oneops.1.Lb");
+    lb2.setCiClassName(clazz);
 
     wo.putPayLoadEntry("lb", Arrays.asList(lb1, lb2));
   }
@@ -527,18 +728,18 @@ public class FqdnExecutorTest {
     wo.putPayLoadEntry("fqdnclouds", Arrays.asList(cl1, cl2));
   }
 
-  private void addRealizedAs(CmsActionOrderSimple wo) {
+  private void addRealizedAs(CmsActionOrderSimple wo, Map<String, String> classMap) {
     CmsCISimple manifest = new CmsCISimple();
-    manifest.setCiClassName("manifest.oneops.1.Fqdn");
+    manifest.setCiClassName(classMap.get(MANIFEST_FQDN));
     manifest.setCiId(110);
     manifest.addCiAttribute("distribution", "proximity");
     manifest.addCiAttribute("service_type", "torbit");
     wo.addPayLoadEntry("RealizedAs", manifest);
   }
 
-  private void addDependsOn(CmsActionOrderSimple wo) {
+  private void addDependsOn(CmsActionOrderSimple wo, Map<String, String> classMap) {
     CmsCISimple bomLb = new CmsCISimple();
-    bomLb.setCiClassName("bom.oneops.1.Lb");
+    bomLb.setCiClassName(classMap.get(BOM_LB));
     bomLb.setCiId(650l);
     bomLb.addCiAttribute("listeners", "['http 80 http 80']");
     bomLb.addCiAttribute("ecv_map", "{'80':'GET /'}");

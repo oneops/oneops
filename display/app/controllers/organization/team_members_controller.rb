@@ -18,6 +18,16 @@ class Organization::TeamMembersController < ApplicationController
     end
   end
 
+  def show
+    def show
+      if @member
+        render :json => @member
+      else
+        render :json => {:errors => ['not found']}, :status => :not_found
+      end
+    end
+  end
+
   def create
     @error = nil
     user_name  = params[:user]
@@ -54,7 +64,7 @@ class Organization::TeamMembersController < ApplicationController
 
     respond_to do |format|
       format.js
-      format.json { @error ? render_json_ci_response(false, @team, [@error]) : index }
+      format.json { @error ? render_json_ci_response(false, @team, [@error]) : show }
     end
   end
 
@@ -65,7 +75,7 @@ class Organization::TeamMembersController < ApplicationController
       @member = @team.groups.where((member_id =~ /\D/ ? 'groups.name' : 'groups.id') => member_id).first
       @team.groups.delete @member if @member
     else
-      @member = @team.users.where((member_id =~ /\D/ ? 'users.user_name' : 'users.id') => member_id).first
+      @member = @team.users.where((member_id =~ /\D/ ? 'users.username' : 'users.id') => member_id).first
       if @member
         if @team.name == Team::ADMINS && @team.users.count == 1
           error = 'Can not leave organizatio with no admins.'
@@ -80,7 +90,7 @@ class Organization::TeamMembersController < ApplicationController
 
     respond_to do |format|
       format.js {flash[:error] = error if error}
-      format.json { error ? render_json_ci_response(false, @member, [error]) : index }
+      format.json { error ? render_json_ci_response(false, @member, [error]) : show }
     end
   end
 

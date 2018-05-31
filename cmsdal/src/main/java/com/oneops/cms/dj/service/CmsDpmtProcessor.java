@@ -18,6 +18,7 @@
 package com.oneops.cms.dj.service;
 
 import com.google.gson.Gson;
+import com.oneops.capacity.CapacityProcessor;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
@@ -70,8 +71,9 @@ public class CmsDpmtProcessor {
   private NSMapper nsMapper;
   private CmsCmProcessor cmProcessor;
   private CmsRfcProcessor rfcProcessor;
-    private CmsCrypto cmsCrypto;
+  private CmsCrypto cmsCrypto;
   private Gson gson = new Gson();
+  private CapacityProcessor capacityProcessor;
 
   public static final String DPMT_STATE_PENDING = "pending";
   public static final String DPMT_STATE_ACTIVE = "active";
@@ -124,6 +126,10 @@ public class CmsDpmtProcessor {
     this.rfcProcessor = rfcProcessor;
   }
 
+  public void setCapacityProcessor(CapacityProcessor capacityProcessor) {
+    this.capacityProcessor = capacityProcessor;
+  }
+
   /**
    * Deploy release.
    *
@@ -148,6 +154,9 @@ public class CmsDpmtProcessor {
         throw new DJException(CmsError.DJ_STATE_ALREADY_DEPLOYMENT_ERROR, errMsg);
       }
     }
+
+    dpmt.setDeploymentId(cmProcessor.getNextDjId());
+    capacityProcessor.reserveCapacityForDeployment(dpmt);
 
     updateAutoDeployExecOrders(dpmt);
     if (ONEOPS_AUTOREPLACE_USER.equals(dpmt.getCreatedBy())) {
@@ -418,6 +427,8 @@ public class CmsDpmtProcessor {
         bomRelease.setReleaseState("canceled");
         rfcProcessor.updateRelease(bomRelease);
         logger.info("Canceled deployment release releaseId " + releaseId);
+
+        capacityProcessor.discardCapacityForDeployment(dpmt);
       } else {
         String errMsg =
             "The deployment is not in failed/active state - " + existingDpmt.getDeploymentState();
@@ -658,12 +669,24 @@ public class CmsDpmtProcessor {
    * @param wo the wo
    */
   public void completeWorkOrder(CmsWorkOrder wo) {
+    String rfcAction = wo.getRfcCi().getRfcAction();
+    try {
+      if (rfcAction.equalsIgnoreCase("add")) {
+        capacityProcessor.commitCapacity(wo);
+      } else if (rfcAction.equalsIgnoreCase("delete")) {
+        capacityProcessor.releaseCapacity(wo);
+      }
+    } catch (Exception e) {
+      logger.error("Error while processing capacity for WO with rfcId=" + wo.getRfcId() + "(" + wo.getRfcCi().getNsPath() +
+                           ", proceeding anyway.");
+    }
+
     dpmtMapper.updDpmtRecordState(wo);
     if (!wo.getRfcCi().getRfcAction().equalsIgnoreCase("delete") && wo.getResultCi() != null) {
       wo.getResultCi().setUpdatedBy(wo.getRfcCi().getCreatedBy() + ":controller");
       cmProcessor.updateCI(wo.getResultCi());
     }
-    //return dpmtMapper.getDeploymentRecord(wo.getDpmtRecordId());
+
     processAdditionalInfo(wo);
   }
 

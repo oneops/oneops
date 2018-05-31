@@ -25,8 +25,15 @@
   window.diff_pack_versions = function(source, version) {
     $j("#pack_version_diff").html("<%= escape_javascript(loading_indicator) %>");
     $j(source).parents(".btn-group").find(".btn span:first-child").html(version);
-    $j.get("<%= catalog_pack_diff_path(params[:source], params[:pack], params[:version], params[:availability]) %>",
-           {other_version: version});
+    var params = {other_version: version};
+    var param_value = null;
+    <% %w(other_source other_pack other_availability).each do |p| %>
+      param_value = "<%= params[p] %>";
+    if (param_value) {
+      params["<%= p %>"] = param_value;
+    }
+    <% end %>
+    $j.get("<%= catalog_pack_diff_path(params[:source], params[:pack], params[:version], params[:availability]) %>", params);
   };
   <% other_version = params[:other_version] %>
   <% if other_version.present? %>

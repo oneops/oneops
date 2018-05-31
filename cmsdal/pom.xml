@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.oneops</groupId>
     <artifactId>oneops-parent</artifactId>
-    <version>18.04.30-3-SNAPSHOT</version>
+    <version>18.05.30-6-SNAPSHOT</version>
   </parent>
   <groupId>com.oneops.cms</groupId>
   <artifactId>cmsdal</artifactId>
@@ -146,6 +146,10 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
     </dependency>
     <dependency>
       <groupId>com.oneops</groupId>
