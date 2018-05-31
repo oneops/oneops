@@ -49,7 +49,6 @@ public class InductorListenerTest {
 		listener.setWfController(wfController);
 		listener.setControllerUtil(ctrlrUtil);
 		listener.setSensorClient(sensorClient);
-
 	}
 
 	@Test

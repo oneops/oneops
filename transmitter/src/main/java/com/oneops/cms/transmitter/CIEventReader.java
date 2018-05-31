@@ -17,6 +17,10 @@
  *******************************************************************************/
 package com.oneops.cms.transmitter;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.oneops.cms.cm.dal.CIMapper;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.domain.CmsCIAttribute;
@@ -25,19 +29,43 @@ import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
 import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.CmsRfcCI;
 import com.oneops.cms.dj.domain.CmsRfcRelation;
+import com.oneops.cms.simple.domain.CmsCISimpleWithTags;
 import com.oneops.cms.transmitter.dal.EventMapper;
 import com.oneops.cms.transmitter.domain.CMSEvent;
 import com.oneops.cms.transmitter.domain.CMSEventRecord;
 import com.oneops.cms.transmitter.domain.EventSource;
-import org.apache.ibatis.session.SqlSession;
-
+import com.oneops.cms.util.CmsUtil;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang.StringUtils;
+import org.apache.ibatis.session.SqlSession;
 
 public class CIEventReader extends BaseEventReader {
 
     private static final String CI_EVENT_PUB_LOCK = "CI_EVENT_PUBLISHER_LOCK";
     private static final String EVENT_TYPE_DELETE = "delete";
+    private static final String CI_CLASS_ORG = "account.Organization";
+    private static final String ATTR_KEY_TAGS = "tags";
 
+    private CmsUtil cmsUtil = new CmsUtil();
+    private Gson gson = new Gson();
+
+    private long orgCacheTtlInMins = 30;
+    private long orgCacheMaxSize = 1000;
+
+    private Cache<String, Map<String, String>> orgCache;
+
+    public void init() {
+        super.init();
+        orgCache = CacheBuilder.newBuilder()
+            .maximumSize(orgCacheMaxSize)
+            .expireAfterWrite(orgCacheTtlInMins, TimeUnit.MINUTES)
+            .build();
+    }
 
     @Override
     public int getBacklog(EventMapper eventMapper) {
@@ -94,28 +122,74 @@ public class CIEventReader extends BaseEventReader {
     private CMSEvent getCi(CMSEventRecord record) {
         CMSEvent event = new CMSEvent();
         event.setEventId(record.getEventId());
-        event.addHeaders("source", "cm_ci");
         event.addHeaders("action", record.getEventType());
         try (SqlSession session = sqlsf.openSession()) {
             if (EVENT_TYPE_DELETE.equals(record.getEventType())) {
                 //TODO add method to read ci from the log table
+                event.addHeaders("source", "cm_ci");
                 event.addHeaders("clazzName", "");
                 event.setPayload(null);
                 event.addHeaders("sourceId", String.valueOf(record.getSourcePk()));
             } else {
+                event.addHeaders("source", "cm_ci_new");
                 CIMapper ciMapper = session.getMapper(CIMapper.class);
                 CmsCI ci = ciMapper.getCIById(record.getSourcePk());
                 if (ci != null) {
                     List<CmsCIAttribute> attrs = ciMapper.getCIAttrs(ci.getCiId());
                     attrs.forEach(ci::addAttribute);
+                    CmsCISimpleWithTags simpleCI = cmsUtil.cmsCISimpleWithTags(ci, "df");
+                    addTags(simpleCI, ciMapper);
                     event.addHeaders("clazzName", ci.getCiClassName());
-                    event.setPayload(ci);
+                    event.setPayload(simpleCI);
                 } else {
                     logger.warn("Can not get ci object for id=" + record.getSourcePk());
                 }
             }
         }
         return event;
+    }
+
+    private void addTags(CmsCISimpleWithTags ci, CIMapper ciMapper) {
+        String org = ci.getOrg();
+        if (StringUtils.isNotBlank(org)) {
+            Map<String, String> tagMap = null;
+            try {
+                tagMap = orgCache.get(org, () -> getOrgDetails(org, ciMapper));
+            } catch (ExecutionException e) {
+                logger.error("Exception while getting org tags from cache ", e);
+            }
+            if (tagMap == null) {
+                tagMap = Collections.emptyMap();
+            }
+            ci.setTags(tagMap);
+        }
+    }
+
+    private Map<String, String> getOrgDetails(String org, CIMapper ciMapper) {
+        Map<String, String> tagMap = null;
+        List<CmsCI> ciList = ciMapper.getCIby3("/", CI_CLASS_ORG, null, org);
+        if (ciList != null && !ciList.isEmpty()) {
+            CmsCI orgCi = ciList.get(0);
+            List<CmsCIAttribute> attrs = ciMapper.getCIAttrs(orgCi.getCiId());
+            if (attrs != null) {
+                Optional<CmsCIAttribute> optional = attrs.stream().filter(a -> ATTR_KEY_TAGS.equals(a.getAttributeName())).findFirst();
+                if (optional.isPresent()) {
+                    CmsCIAttribute tagAttr = optional.get();
+                    String tagValue = tagAttr.getDfValue();
+                    if (StringUtils.isNotBlank(tagValue)) {
+                        try {
+                            tagMap = gson.fromJson(tagValue, Map.class);
+                        } catch (JsonSyntaxException e) {
+                            logger.error("exception while parsing tag attribute for org " + org, e);
+                        }
+                    }
+                }
+            }
+        }
+        if (tagMap == null) {
+            tagMap = Collections.emptyMap();
+        }
+        return tagMap;
     }
 
     private CMSEvent getCiRel(CMSEventRecord record) {
@@ -187,4 +261,11 @@ public class CIEventReader extends BaseEventReader {
         return ciRfc;
     }
 
+    public void setOrgCacheTtlInMins(long orgCacheTtlInMins) {
+        this.orgCacheTtlInMins = orgCacheTtlInMins;
+    }
+
+    public void setOrgCacheMaxSize(long orgCacheMaxSize) {
+        this.orgCacheMaxSize = orgCacheMaxSize;
+    }
 }

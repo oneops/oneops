@@ -17,21 +17,20 @@
  *******************************************************************************/
 package com.oneops.transistor.service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
 import com.oneops.cms.cm.service.CmsCmProcessor;
 import com.oneops.cms.dj.domain.CmsDeployment;
 import com.oneops.cms.dj.domain.CmsRelease;
-import org.apache.log4j.Logger;
-
 import com.oneops.cms.exceptions.CmsBaseException;
 import com.oneops.cms.util.CmsError;
 import com.oneops.transistor.exceptions.TransistorException;
+import org.apache.log4j.Logger;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class BomAsyncProcessor {
 

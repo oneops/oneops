@@ -58,8 +58,8 @@ public class ClassMatchingWoExecutor implements ComponentWoExecutor {
   }
 
   @Override
-  public Response execute(CmsActionOrderSimple ao) {
-    return executeInternal(ao.getCi().getCiClassName(), e -> e.execute(ao));
+  public Response execute(CmsActionOrderSimple ao, String dataDir) {
+    return executeInternal(ao.getCi().getCiClassName(), e -> e.execute(ao, dataDir));
   }
 
   private Response executeInternal(String clazz, Function<ComponentWoExecutor, Response> function) {

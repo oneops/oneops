@@ -155,7 +155,7 @@ class Transition::DeploymentsController < ApplicationController
                                              :description => params[:desc],
                                              :exclude     => params[:exclude_platforms],
                                              :includeRFCs => 'cis',
-                                             :cost        => request.xhr? ? true : params[:cost] == 'true',
+                                             :cost        => params[:cost] == 'true',
                                              :capacity    => params[:capacity] == 'true')
     end
 
@@ -171,9 +171,10 @@ class Transition::DeploymentsController < ApplicationController
             load_ops_state_data
             check_for_override
             @cost, _ = data['cost']
+            @capacity = data['capacity']
           end
         else
-          flash[:error] = message
+          flash[:error] = message.sub(/^ERROR:BOM:/, '').gsub("\n", '<br>')
           render :js => 'hide_modal();'
         end
       end
@@ -278,11 +279,11 @@ class Transition::DeploymentsController < ApplicationController
     cms_deployment = params[:cms_deployment]
     deployment_state = cms_deployment[:deploymentState]
 
-    # TODO 7/27/2015  This is just a temp code for backward compatibility to mimic old-style deployment approvals/rejection by
-    # auto approving/rejecting all pending approval records.  This should be removed eventually.  All deployment
-    # approvals/rejections should be done via new deployment approval record settling.
-    # 01/29/2018  While old-style approval should be removed, meanwhile adding "approval_token" check to ensure this will work
-    # for "unsecured" support/compliance governing CIs.
+    # TODO 7/27/2015  This is just a temp code for backward compatibility to mimic old-style deployment approval
+    # by auto settlement of all pending approval records based on deployment state.  This should be removed
+    # eventually as deployment approval should be done via new deployment approval record settling API.
+    # 01/29/2018  While old-style approval still must be supported, adding "approval_token" check to ensure
+    # this will work for "unsecured" support/compliance governing CIs.
     approving = deployment_state == 'active'
     if @deployment.deploymentState == 'pending' && (approving || deployment_state == 'canceled')
       load_approvals

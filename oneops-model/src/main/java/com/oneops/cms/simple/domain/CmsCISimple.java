@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * The Class CmsCISimple.
  */
-public class CmsCISimple extends CmsCIBasic implements Serializable {
+public class CmsCISimple extends CmsCIBasic implements Serializable, Instance {
 
   private static final long serialVersionUID = 1L;
 

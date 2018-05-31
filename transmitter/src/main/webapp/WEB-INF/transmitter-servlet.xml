@@ -41,11 +41,11 @@
         <property name="url" value="jdbc:postgresql://${CMS_DB_HOST}/kloopzdb?autoReconnect=true&amp;ApplicationName=transmitter-${ONEOPS_COMPUTE_CI_ID:0}"/>
         <property name="username" value="${CMS_DB_USER}"/>
         <property name="password" value="${CMS_DB_PASS}"/>
-        <property name="maxActive" value="10"/>
-        <property name="maxIdle" value="5"/>
+        <property name="maxActive" value="3"/>
+        <property name="maxIdle" value="3"/>
         <property name="testOnBorrow" value="true"/>
         <property name="validationQuery" value="select 1"/>
-        <property name="initialSize" value="5"/>
+        <property name="initialSize" value="1"/>
         <property name="defaultAutoCommit" value="false"/>
     </bean>
 
@@ -113,8 +113,12 @@
 
     <bean id="controllerEventReader" class="com.oneops.cms.transmitter.ControllerEventReader" init-method="init"
           destroy-method="cleanup" parent="parentEvenReader"/>
+
     <bean id="ciEventReader" class="com.oneops.cms.transmitter.CIEventReader" init-method="init"
-          destroy-method="cleanup" parent="parentEvenReader"/>
+      destroy-method="cleanup" parent="parentEvenReader">
+      <property name="orgCacheTtlInMins" value="${ORG_CACHE_TTL_MINS:30}"/>
+      <property name="orgCacheMaxSize" value="${ORG_CACHE_MAX_SIZE:1000}"/>
+    </bean>
 
     <bean id="propertyConfigurer"
           class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">

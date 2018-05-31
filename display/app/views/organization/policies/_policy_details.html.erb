@@ -1,7 +1,7 @@
 <% new_record = @policy.new_record? %>
 <%= section_panel new_record ? 'New  Policy' : 'Policy Details', :width => 'double', :position => 'right' do %>
   <%= locals = {:resource  => @policy,
-                :read_only => !is_admin?}
+                :read_only => !manages_org?}
       if new_record
         locals[:form_url] = organization_policies_path
       else
@@ -10,7 +10,7 @@
       end
       render 'base/shared/edit_form', locals %>
   <% unless new_record || @policy.ciAttributes.query.blank? %>
-    <div style="text-align: center">
+    <div style="text-align: right">
       <%= link_to raw(icon('play', 'Evaluate')), evaluate_organization_policy_path(@policy), :class => 'btn btn-success' %>
     </div>
   <% end %>

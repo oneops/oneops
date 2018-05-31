@@ -9,7 +9,9 @@ module ApplicationHelper
                 :assembly               => 'cogs',
                 :settings               => 'sliders',
                 :user                   => 'user',
-                :manages_access         => 'key',
+                :group                  => 'group',
+                :announcement           => 'bullhorn',
+                :manages_access         => 'user-secret',
                 :org_scope              => 'sitemap',
                 :design                 => 'puzzle-piece',
                 :transition             => 'play-circle-o',
@@ -28,7 +30,10 @@ module ApplicationHelper
                 :history                => 'history',
                 :release                => 'tag',
                 :deployment             => 'cloud-upload',
+                :capacity               => 'server',
                 :compute                => 'server',
+                :support                => 'medkit',
+                :search                 => 'search',
                 :favorite               => 'bookmark',
                 :json                   => 'file-code-o',
                 :yaml                   => 'file-text-o',
@@ -94,6 +99,13 @@ module ApplicationHelper
       selected_item[:selected] = true if selected_item
     end
     app_nav(menu_items)
+  end
+
+  def support_page_header(page_icon, page_label)
+    title('support')
+    app_nav([{:label => 'support', :icon => site_icon(:support), :link => support_path}])
+    breadcrumb([{:label => icon(site_icon(:support), 'support'), :link => support_path}])
+    page_title(:page_icon => page_icon, :page_kind => page_label)
   end
 
   def organization_page_header(selected = nil)
@@ -900,6 +912,8 @@ module ApplicationHelper
 
         render 'transition/page_alert', :assembly => @assembly, :environment => @environment, :release => release, :deployment => deployment if release && release.releaseState == 'open'
       end
+    elsif controller.is_a?(OrganizationController) && action_name == 'edit'
+      render 'organization/page_alert'
     end
   end
 
@@ -1100,6 +1114,27 @@ module ApplicationHelper
     content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
   end
 
+  def deployment_approval_state_icon(state, additional_classes = '')
+    icon = ''
+    text = ''
+    case state
+      when 'pending'
+        icon = 'clock-o'
+        text = 'muted'
+      when 'approved'
+        icon = 'check-circle'
+        text = 'text-success'
+      when 'expired'
+        icon = 'moon-o'
+        text = 'text-warning'
+      when 'rejected'
+        icon = 'ban'
+        text = 'text-error'
+    end
+    content_tag(:i, '', :class => "fa fa-#{icon} #{text} #{additional_classes}", :alt => state)
+  end
+
+
   def rfc_action_icon(action, additional_classes = '')
     icon = ''
     text = ''
@@ -1245,7 +1280,7 @@ module ApplicationHelper
     return GENERAL_SITE_LINKS
   end
 
-  def team_list_permission_marking(team, perms = %w(cloud_services cloud_compliance cloud_support design transition operations))
+  def team_list_permission_marking(team, perms = global_admin_mode? ? %w(design transition operations) : %w(cloud_services cloud_compliance cloud_support design transition operations))
     admins = team.name == Team::ADMINS
     result = %w(manages_access org_scope).inject('') do |a, perm|
       a << icon(site_icon(perm), '&nbsp;&nbsp;', "fa-lg fa-fw text-error #{'extra-muted' unless admins || team.send("#{perm}?")}")
@@ -1343,7 +1378,9 @@ module ApplicationHelper
   end
 
   def expandable_content(options = {}, &block)
-    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), '$j(this).hide().siblings("span").toggle(300)') + content_tag(:span, options[:content] || capture(&block), :class => 'hide'))
+    dom_id = random_dom_id
+    content = options[:content]
+    raw(link_to_function(content_tag(:b, raw(options[:label].presence || '<strong>...</strong>')), %($j(this).hide(); $j("##{dom_id}").toggle(300))) + content_tag(:span, content.present? ? raw(content) : capture(&block), :id => dom_id, :class => 'hide'))
   end
 
   def expandable_list(items, options = {})
@@ -1383,5 +1420,9 @@ module ApplicationHelper
       result += expandable_content(:content => capture(versions[15..-1], &builder))
     end
     result
+  end
+
+  def sub_url_links(content)
+    content.blank? ? content : raw(content.gsub(/http(s)?:\/\/\S*/) {|t| link_to(t, t, :target => '_blank')})
   end
 end

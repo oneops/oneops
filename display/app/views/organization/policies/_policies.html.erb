@@ -1,18 +1,13 @@
-<% new_organization_policy_path = new_organization_policy_path(:policy => params[:policy]) %>
+<% new_organization_policy_path = new_organization_policy_path(:policy => params[:policy])
+   can_edit = manages_org? %>
 <%= section_panel 'Policies',
                   :width => 'single',
-                  :menu  => is_admin? &&
-                      [link_to(icon('plus', 'Add'),
-                               new_organization_policy_path,
-                               :remote => true,
-                               :class  => 'btn btn-mini')] do %>
+                  :menu  => can_edit && [link_to(icon('plus', 'Add'), new_organization_policy_path, :remote => true, :class => 'btn btn-mini')] do %>
   <%= ci_list(@policies,
               :toolbar  => {:sort_by   => [%w(Name ciName), %w(Created created), ['Execution Mode', 'mode']],
                             :filter_by => %w(ciName mode),
                             :list_name => 'policy_item'},
-              :new_link => is_admin? && link_to('New Policy...',
-                                                new_organization_policy_path,
-                                                :remote => true)) do |builder, target| %>
+              :new_link => can_edit && link_to('Add...', new_organization_policy_path, :remote => true)) do |builder, target| %>
     <% builder.attributes %(ciName="#{target.ciName}" created="#{target.created}" mode="#{target.ciAttributes.mode}") %>
     <% builder.target link_to('', edit_organization_policy_path(target), :remote => true) %>
     <% builder.icon :none %>
@@ -23,8 +18,7 @@
     <% builder.middle target.ciAttributes.description if target.ciAttributes.description.present? %>
     <% builder.menu do |ci| %>
       <%= link_to(icon('play', ' Evaluate'), evaluate_organization_policy_path(target)) %>
-      <%= link_to(icon('edit', ' Edit'), edit_organization_policy_path(ci), :remote => true) %>
-      <%= link_to(icon('trash', ' Delete'), organization_policy_path(ci), :method => :delete, :remote => true, :confirm => 'Confirm delete?') if is_admin? %>
+      <%= link_to(icon('trash', ' Delete'), organization_policy_path(ci), :method => :delete, :remote => true, :confirm => 'Confirm delete?') if can_edit %>
     <% end %>
   <% end %>
 <% end %>

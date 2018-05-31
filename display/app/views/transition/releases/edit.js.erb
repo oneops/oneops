@@ -1,1 +1,2 @@
-$j("#<%= request.original_url.downcase.include?('timeline/') ? 'timeline' : 'release' %>_details").html("<%= escape_javascript(render('release_details', :release => @release)) %>")[0].scrollIntoView(false);
+$j("#<%= request.original_url.downcase.include?('timeline/') ? 'timeline' : 'release' %>_details").html("<%= escape_javascript(render('release_details', :release => @release)) %>");
+window.scroll(0, 0);

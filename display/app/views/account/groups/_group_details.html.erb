@@ -2,7 +2,7 @@
 <%= section_panel 'Group Details', :width => 'double', :position => 'right' do %>
   <%= render('base/shared/edit_form',
              {:resource    => @group,
-              :content     => 'group_details_content',
+              :content     => 'account/groups/group_details_content',
               :read_only   => !new_record && !@group.is_admin?(current_user),
               :cancel_url  => account_groups_path,
               :form_url    => new_record ? account_groups_path : account_group_path(@group)}) %>
@@ -31,17 +31,19 @@
       </div>
     <% end %>
 	</div>
-  <%= section_panel icon('sitemap', 'Team Participation'), :width => 'double', :position => 'right', :menu => menu do %>
+  <%= section_panel icon('sitemap', 'Team Participation'), :width => 'double', :position => 'right' do %>
     <%= list(@group.teams.includes(:organization).all,
              :toolbar  => {:list_name => 'group_teams',
                            :sort_by => [%w(Team team), %w(Organization organization)],
                            :filter_by => %w(team organization)}) do |builder, team| %>
+      <% org      = team.organization
+         org_name = org.name %>
       <% builder.itemid team.id %>
-      <% builder.attributes raw(%(team="#{team.name}" organization="#{team.organization.name}")) %>
-      <% builder.target link_to('', edit_organization_team_path(team), :remote => true) %>
+      <% builder.attributes raw(%(team="#{team.name}" organization="#{org_name}")) %>
+      <% builder.target link_to('', edit_organization_path(org, :anchor => "teams/team_list/#{team.id}")) %>
       <% builder.top do %>
         <span class="topname"><%= team.name %></span>
-        <span class="topdesc"><%= team.organization.name %></span>
+        <span class="topdesc"><%= org_name %></span>
       <% end %>
       <% builder.bottom raw("created #{time_ago_in_words(team.created_at)}") %>
       <% builder.status do %>

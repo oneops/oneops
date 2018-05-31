@@ -1,4 +1,5 @@
-<%= section_panel 'Teams', :width => 'single',
+<% manages_org = manages_org? %>
+<%= section_panel 'Teams', :width => 'single pinnable',
                   :menu           => (is_admin? ? [link_to(icon('plus', 'Add'), new_organization_team_path, :remote => true, :class => 'btn btn-mini')] : nil) do %>
   <%= list(@teams,
            :new_link => (is_admin? ? link_to('Add Team...', new_organization_team_path, :remote => true) : nil),
@@ -20,6 +21,11 @@
     <% builder.middle team.description %>
     <% builder.bottom raw("created #{time_ago_in_words(team.created_at)}") %>
     <% builder.status team_list_permission_marking(team) %>
+    <% if manages_org %>
+      <% builder.menu do %>
+        <%= link_to(icon('download', 'Download Members', 'faw-fw'), organization_team_members_path(team, :format => :csv)) %>
+      <% end %>
+    <% end %>
   <% end %>
 <% end %>
 <div id="team_details"></div>

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.oneops</groupId>
   <artifactId>oneops-parent</artifactId>
-  <version>18.02.22-4-SNAPSHOT</version>
+  <version>18.05.30-6-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>OneOps</name>
   <url>http://oneops.com</url>
@@ -117,7 +117,6 @@
     <module>db-schema</module>
     <module>oneops-packer</module>
     <module>oneops-model</module>
-    <module>oneops-gslb</module>
   </modules>
   <dependencyManagement>
     <dependencies>
@@ -510,11 +509,6 @@
       <dependency>
         <groupId>com.oneops</groupId>
         <artifactId>oneops-model</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.oneops</groupId>
-        <artifactId>oneops-gslb</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

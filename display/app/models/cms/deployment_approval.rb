@@ -23,15 +23,38 @@ class Cms::DeploymentApproval < Cms::Base
 
   def govern_ci
     return nil if governCiJson.blank?
-    @govern_ci ||= Cms::Ci.new(JSON.parse(governCiJson))
+    return @govern_ci if @govern_ci
+
+    ci_json                = JSON.parse(governCiJson)
+    attrs                  = ci_json.delete('attributes')
+    ci_json[:ciAttributes] = attrs.keys.to_map_with_value {|name| [name, attrs[name]['dfValue']]} if attrs
+    @govern_ci             = Cms::Ci.new(ci_json)
   end
 
-  def self.settle(approvals)
+  def settle(token = nil)
     begin
-      return JSON.parse(put('', {}, approvals.to_json).body).map {|a| new(a, true)}
+      if token.present?
+        self.class.headers['X-Approval-Token'] = token
+      else
+        self.class.headers.delete('X-Approval-Token')
+      end
+      return save
     rescue Exception => e
-      message = handle_exception(e, "Failed to settle approvals: #{approvals.inspect}")
-      return nil, message
+      errors.add(:base, self.class.handle_exception(e, "Failed to settle approvals: #{to_json}"))
+      return false
+    end
+  end
+
+  def self.settle(approvals, token = nil)
+    begin
+      if token.present?
+        headers['X-Approval-Token'] = token
+      else
+        headers.delete('X-Approval-Token')
+      end
+      return JSON.parse(put('', {}, approvals.to_json).body).map {|a| new(a, true)}, nil
+    rescue Exception => e
+      return nil, handle_exception(e, "Failed to settle approvals: #{approvals.inspect}")
     end
   end
 

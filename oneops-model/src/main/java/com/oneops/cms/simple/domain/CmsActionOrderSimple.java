@@ -254,6 +254,11 @@ public class CmsActionOrderSimple extends CmsOpsAction implements
   }
 
   @Override
+  public long getExecutionId() {
+    return getProcedureId();
+  }
+
+  @Override
   public void setComments(String comments) {
     //No-op
   }

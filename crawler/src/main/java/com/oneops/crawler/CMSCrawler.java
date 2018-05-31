@@ -30,6 +30,7 @@ import com.oneops.Platform;
 import com.oneops.crawler.jooq.cms.Sequences;
 import com.oneops.crawler.plugins.hadr.PlatformHADRCrawlerPlugin;
 import com.oneops.crawler.plugins.ttl.EnvTTLCrawlerPlugin;
+import org.apache.commons.lang.math.NumberUtils;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record4;
@@ -70,11 +71,13 @@ public class CMSCrawler {
     String esUrl;
     ArrayList<Integer> coresAttributeIds = new ArrayList<>();
     ArrayList<Integer> computeClassIds = new ArrayList<>();
+    long platformEnabledAttributeId = 0;
 
     boolean fullSweepAtStart = true;
     boolean shutDownRequested = false;
     boolean syncClouds = false;
     int crawlFrequencyHours = 6;
+    boolean singleRun;
 
     Gson gson= new Gson();
     Map<String, Integer> baseOrganizationMDClassAttributes_NameIdMapCache;
@@ -84,6 +87,7 @@ public class CMSCrawler {
     }
 
     private void readConfig() {
+        readSystemProperties();
         String secretsPropertiesFilePath = System.getProperty("secrets.properties.file",
                 "/secrets/crawler_secrets.properties");
         File secretsFile = new File(secretsPropertiesFilePath);
@@ -92,10 +96,8 @@ public class CMSCrawler {
             try {
                 readSecrets(secretsFile);
             } catch (IOException e) {
-                readSystemProperties();
+                log.error("Could not read secrets properties", e);
             }
-        } else {
-            readSystemProperties();
         }
     }
 
@@ -114,11 +116,11 @@ public class CMSCrawler {
             syncClouds = true;
         }
 
-        String frequencyProperty = System.getProperty("crawler.freqency.hrs");
-        if (frequencyProperty != null) {
-            crawlFrequencyHours = Integer.parseInt(frequencyProperty);
-        }
-        //log.info("crawlerDbUserName: " + crawlerDbUserName + "; crawlerDbPassword: " + crawlerDbPassword + " crawlerDbUrl: " + crawlerDbUrl);
+        String frequencyProperty = System.getProperty("crawler.freqency.hrs", "6");
+        crawlFrequencyHours = Integer.parseInt(frequencyProperty);
+
+        String singleRunProperty = System.getProperty("crawler.single.run", "false");
+        singleRun = Boolean.parseBoolean(singleRunProperty);
     }
 
     private void readSecrets(File secretsFile) throws IOException {
@@ -135,12 +137,15 @@ public class CMSCrawler {
     }
 
     public void crawl() {
+        long startTimeMillis = System.currentTimeMillis();
+
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
         try (Connection conn = DriverManager.getConnection(cmsDbUrl, cmsDbUserName, cmsDbPassword)) {
             init(conn);
             List<Environment> envs = getOneopsEnvironments(conn);
             Map<String, Organization> organizationsMapCache = populateOrganizations(conn);// caching organizations data
-            EnvTTLCrawlerPlugin plugin = new EnvTTLCrawlerPlugin(); //TODO: auto-discover plugins from jars
+            EnvTTLCrawlerPlugin ttlPlugin = new EnvTTLCrawlerPlugin(); //TODO: auto-discover plugins from jars
+            ttlPlugin.init();
             PlatformHADRCrawlerPlugin platformHADRCrawlerPlugin = new PlatformHADRCrawlerPlugin();
             long envsLastFetchedAt = System.currentTimeMillis();
 
@@ -148,7 +153,9 @@ public class CMSCrawler {
                 if ((System.currentTimeMillis() - envsLastFetchedAt)/(1000 * 60 * 60 * 24) >= 1 ) { //been a day
                     envs = getOneopsEnvironments(conn);//refresh the environment list
                     organizationsMapCache = populateOrganizations(conn);// refreshing cache
+                    envsLastFetchedAt = System.currentTimeMillis();
                 }
+                ttlPlugin.cleanup(); //from previous run
                 log.info("Starting to crawl all environments.. Total # " + envs.size());
                 for (Environment env : envs) {
                     if (shutDownRequested) {
@@ -157,9 +164,16 @@ public class CMSCrawler {
                     }
                     populateEnv(env, conn);
                     List<Deployment> deployments = getDeployments(conn, env);
-                    plugin.processEnvironment(env, deployments);
+                    ttlPlugin.processEnvironment(env, deployments, organizationsMapCache);
                     platformHADRCrawlerPlugin.processEnvironment(env, organizationsMapCache);
                     updateCrawlEntry(env);
+                }
+
+                long endTimeMillis = System.currentTimeMillis();
+                log.info("Time taken to crawl all environments and execute all plugins in seconds: " + (endTimeMillis - startTimeMillis)/(1000));
+                if (this.singleRun) {
+                    log.info("Crawler is configured to exit after single run");
+                    System.exit(0);
                 }
 
                 log.info("crawled all environments, will go over again.");
@@ -171,7 +185,7 @@ public class CMSCrawler {
                 Thread.sleep(crawlFrequencyHours * 60 * 60 * 1000);//sleep before next crawl
             }
         } catch (Throwable e) {
-            e.printStackTrace();
+            log.error("Error, Crawler will stop : ", e);
         }
     }
 
@@ -272,7 +286,7 @@ public class CMSCrawler {
             coresAttributeIds.add(coresAttribute.getValue(MD_CLASS_ATTRIBUTES.ATTRIBUTE_ID));
         }
 
-        create = DSL.using(conn, SQLDialect.POSTGRES);
+        //create = DSL.using(conn, SQLDialect.POSTGRES);
         Result<Record> computeClasses = create.select().from(MD_CLASSES)
                 .where(MD_CLASSES.CLASS_NAME.like("bom%Compute")).fetch();
         for (Record computeClass : computeClasses) {
@@ -281,6 +295,20 @@ public class CMSCrawler {
         log.info("cached compute class ids: " + computeClassIds);
         log.info("cached compute cores attribute ids: " + coresAttributeIds);
         populateBaseOrganizationClassAttribMappingsCache(conn);
+
+        //cache relation attribute ids
+        Result<Record> relationsAttributes = create.select().from(MD_RELATION_ATTRIBUTES).join(MD_RELATIONS)
+                .on(MD_RELATION_ATTRIBUTES.RELATION_ID.eq(MD_RELATIONS.RELATION_ID))
+                .fetch();
+        for (Record relationAttribute : relationsAttributes) {
+            if (relationAttribute.getValue(MD_RELATIONS.RELATION_NAME)
+                    .equalsIgnoreCase("manifest.ComposedOf")
+                    && relationAttribute.getValue(MD_RELATION_ATTRIBUTES.ATTRIBUTE_NAME).equalsIgnoreCase("enabled")) {
+                //cache the "enabled" attribute id of platform
+                platformEnabledAttributeId = relationAttribute.getValue(MD_RELATION_ATTRIBUTES.ATTRIBUTE_ID);
+            }
+            //Here cache more attribute ids as needed for different cases
+        }
     }
 
     private void populateEnv(Environment env, Connection conn) {
@@ -310,7 +338,7 @@ public class CMSCrawler {
             platform.setId(platformId);
             platform.setName(platformRel.getValue(CM_CI.CI_NAME));
             platform.setPath(env.getPath() + "/" + env.getName() + "/bom/" + platform.getName() + "/1");
-            populatePlatform(conn, platform);
+            populatePlatform(conn, platform, platformRel.getValue(CM_CI_RELATIONS.CI_RELATION_ID));
             platform.setActiveClouds(getActiveClouds(platform, conn));
             platform.setCloudsMap(getCloudsDataForPlatform(conn, platformId));
             
@@ -331,13 +359,14 @@ public class CMSCrawler {
                 .where(NS_NAMESPACES.NS_PATH.eq(env.getPath()+ "/" + env.getName() + "/bom"))
                 .and(DJ_DEPLOYMENT.CREATED_BY.notEqual("oneops-autoreplace"))
                 .orderBy(DJ_DEPLOYMENT.CREATED.desc())
-                .limit(1)
+                .limit(10)
                 .fetch();
         for (Record r : records) {
             Deployment deployment = new Deployment();
             deployment.setCreatedAt(r.getValue(DJ_DEPLOYMENT.CREATED));
             deployment.setCreatedBy(r.getValue(DJ_DEPLOYMENT.CREATED_BY));
             deployment.setState(r.getValue(DJ_DEPLOYMENT_STATES.STATE_NAME));
+            deployment.setDeploymentId(r.getValue(DJ_DEPLOYMENT.DEPLOYMENT_ID));
             deployments.add(deployment);
         }
         return deployments;
@@ -384,7 +413,7 @@ public class CMSCrawler {
         return clouds;
     }
 
-    private void populatePlatform(Connection conn, Platform platform) {
+    private void populatePlatform(Connection conn, Platform platform, long composedOfRelationId) {
         DSLContext create = DSL.using(conn, SQLDialect.POSTGRES);
         Result<Record> computes = create.select().from(CM_CI)
                 .join(NS_NAMESPACES).on(NS_NAMESPACES.NS_ID.eq(CM_CI.NS_ID))
@@ -409,12 +438,31 @@ public class CMSCrawler {
                 .where(CM_CI_ATTRIBUTES.CI_ID.eq(platform.getId()))
                 .fetch();
 
-        for ( Record attribute : platformAttributes ) {
+        for (Record attribute : platformAttributes) {
             String attributeName = attribute.getValue(MD_CLASS_ATTRIBUTES.ATTRIBUTE_NAME);
             if (attributeName.equalsIgnoreCase("source")) {
                 platform.setSource(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
             } else if (attributeName.equalsIgnoreCase("pack")) {
                 platform.setPack(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+            } else if (attributeName.equalsIgnoreCase("autorepair")) {
+              platform.setAutoRepairEnabled(new Boolean(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
+            } else if (attributeName.equalsIgnoreCase("autoreplace")) {
+                platform.setAutoReplaceEnabled(new Boolean(attribute.getValue(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
+            }
+        }
+        //Now set the enable/disable status
+        //select * from cm_ci_relation_attributes where ci_relation_id=composedOfRelationId
+        Result<Record> composedOfRelationAttributes = create.select().from(CM_CI_RELATION_ATTRIBUTES)
+                .where(CM_CI_RELATION_ATTRIBUTES.CI_RELATION_ID.eq(composedOfRelationId))
+                .fetch();
+        for (Record relAttribute : composedOfRelationAttributes) {
+            if (relAttribute.getValue(CM_CI_RELATION_ATTRIBUTES.ATTRIBUTE_ID) == platformEnabledAttributeId) {
+                boolean enabled = Boolean.valueOf(relAttribute.getValue(CM_CI_RELATION_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+                if (enabled) {
+                    platform.setEnable("enable");//this could have been a boolean, but model has dependency on nubu
+                } else {
+                    platform.setEnable("disable");
+                }
             }
         }
     }
@@ -581,44 +629,41 @@ public class CMSCrawler {
       cloud.setId(cloudName);
       for (Record cloudsPlatformRelationshipAttributesRecord : cloudsPlatformRelationshipAttributesRecords) {
 
+          String attributeValue = cloudsPlatformRelationshipAttributesRecord
+                .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE);
+
         switch (cloudsPlatformRelationshipAttributesRecord
             .get(MD_RELATION_ATTRIBUTES.ATTRIBUTE_NAME)) {
           case "priority":
-            try {
-              int priority = Integer.valueOf(cloudsPlatformRelationshipAttributesRecord
-                  .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-
-              cloud.setPriority(priority);
-            } catch (java.lang.NumberFormatException e) {
-              log.error("can not set <priority> attribute for cloudCid: " + cloudCid
-                  + " , cloudName: " + cloudName, e);
-            }
+              if (NumberUtils.isNumber(attributeValue)) {
+                  int priority = Integer.valueOf(attributeValue.trim());
+                  cloud.setPriority(priority);
+              } else {
+                  log.warn("can not set priority attribute for cloudCid: " + cloudCid
+                          + " , cloudName: " + cloudName + " attributeValue: " + attributeValue);
+              }
 
             break;
           case "adminstatus":
-            cloud.setAdminstatus(cloudsPlatformRelationshipAttributesRecord
-                .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
+            cloud.setAdminstatus(attributeValue);
             break;
           case "dpmt_order":
-            cloud.setDeploymentorder(Integer.valueOf(cloudsPlatformRelationshipAttributesRecord
-                .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE)));
+            if (NumberUtils.isNumber(attributeValue)) {
+                cloud.setDeploymentorder(Integer.valueOf(attributeValue.trim()));
+            } else {
+                log.warn("can not set dpmt order attribute for cloudCid: " + cloudCid
+                        + " , cloudName: " + cloudName + " attributeValue: " + attributeValue);
+            }
             break;
           case "pct_scale":
-
-            try {
-              int pct_scale = Integer.valueOf(cloudsPlatformRelationshipAttributesRecord
-                  .get(CM_CI_ATTRIBUTES.DF_ATTRIBUTE_VALUE));
-
-              cloud.setScalepercentage(pct_scale);
-            } catch (java.lang.NumberFormatException e) {
-              log.error("can not set <pct_scale> attribute for cloudCid: " + cloudCid
-                  + " , cloudName: " + cloudName, e);
-            }
-
+              if (NumberUtils.isNumber(attributeValue)) {
+                  cloud.setScalepercentage(Integer.valueOf(attributeValue.trim()));
+              } else {
+                  log.warn("can not set pct_scale attribute for cloudCid: " + cloudCid
+                          + " , cloudName: " + " attributeValue: " + attributeValue);
+              }
             break;
-
         }
-
       }
       platformCloudMap.put(cloudName, cloud);
 

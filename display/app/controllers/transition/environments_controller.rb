@@ -161,13 +161,10 @@ class Transition::EnvironmentsController < Base::EnvironmentsController
     load_consumes_relations
     cms_ci = params[:cms_ci]
 
-    # Only admins are allowed to change env profile and "approve" attribute.
-    unless is_admin?
+    # Only admins are allowed to change env profile.
+    unless manages_org?
       ci_attrs = cms_ci['ciAttributes']
-      if ci_attrs
-        ci_attrs.delete('profile')
-        ci_attrs.delete('approve')
-      end
+      ci_attrs.delete('profile') if ci_attrs
     end
 
     cloud_map = params[:clouds] || cms_ci.delete(:clouds)

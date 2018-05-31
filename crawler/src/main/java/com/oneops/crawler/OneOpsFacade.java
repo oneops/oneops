@@ -17,79 +17,165 @@
  *******************************************************************************/
 package com.oneops.crawler;
 
-import com.github.kevinsawicki.http.HttpRequest;
 import com.google.gson.Gson;
+import com.oneops.Deployment;
 import com.oneops.Environment;
 import com.oneops.Platform;
 import com.oneops.notification.NotificationMessage;
+import com.squareup.okhttp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 public class OneOpsFacade {
-    private String cmsApiHost ;
+    private String transistorBaseUrl ;
+
+    private String adapterBaseUrl ;
+    private String antennaBaseUrl ;
     private final Logger log = LoggerFactory.getLogger(getClass());
     private Gson gson;
+
+    public static final MediaType JSON
+            = MediaType.parse("application/json; charset=utf-8");
 
     public OneOpsFacade() {
         readConfig();
         gson = new Gson();
     }
 
-    public void setCmsApiHost(String cmsApiHost) {
-        this.cmsApiHost = cmsApiHost;
+    public void setTransistorBaseUrl(String transistorBaseUrl) {
+        this.transistorBaseUrl = transistorBaseUrl;
+    }
+
+    public void setAdapterBaseUrl(String adapterBaseUrl) {
+        this.adapterBaseUrl = adapterBaseUrl;
+    }
+
+    public void setAntennaBaseUrl(String antennaBaseUrl) {
+        this.antennaBaseUrl = antennaBaseUrl;
     }
 
     void readConfig() {
-        cmsApiHost = System.getProperty("cms.api.host");
+        transistorBaseUrl = System.getProperty("transistor.base.url");
+        adapterBaseUrl = System.getProperty("adapter.base.url");
+        antennaBaseUrl = System.getProperty("antenna.base.url");
     }
 
-    public void forceDeploy(Environment env, Platform platform, String userName) {
+    public int forceDeploy(Environment env, Platform platform, String userName) throws IOException, OneOpsException {
         Map<String, Platform> platformMap = env.getPlatforms();
         if (platformMap == null || platformMap.size() == 0) {
-            return;
+            return 400;
         }
 
         StringBuilder excludePlatforms = new StringBuilder();
         if (platform != null) {
             for (String platformName : platformMap.keySet()) {
 
-                if (! platformName.equals(platformName)) {
+                if (! platformName.equals(platform.getName())) {
                     if (excludePlatforms.length() > 0) excludePlatforms.append(",");
                     excludePlatforms.append(platformMap.get(platformName).getId());
                 }
             }
         }
+
         HashMap<String, String> params = new HashMap<>();
         params.put("exclude", excludePlatforms.toString());
 
         log.info("deploying environment id: " + env.getId());
-        HttpRequest request = HttpRequest.post("http://transistor." + cmsApiHost
-                + "/transistor/rest/environments/" + env.getId() + "/deployments/deploy")
-                .contentType("application/json").header("X-Cms-User", userName).send(gson.toJson(params));;
-        String response = request.body();
-        log.info("OO response : " + response);
+        RequestBody body = RequestBody.create(JSON, gson.toJson(params));
+
+        String url = transistorBaseUrl + "/transistor/rest/environments/" + env.getId() + "/deployments/deploy";
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("X-Cms-User", userName)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("OO response body: " + responseBody + ", code: " + responseCode);
+        if (responseCode >= 300) {
+            throw new OneOpsException("Error while doing deployment. Response fron OneOps: " + responseBody
+            + " ResponseCode : " + responseCode);
+        }
+        return responseCode;
     }
 
-    public void disablePlatform(Platform platform, String userName) {
+    public int disablePlatform(Platform platform, String userName) throws IOException, OneOpsException {
         log.info("disabling platform id: " + platform.getId());
 
-        String response = HttpRequest.put("http://transistor." + cmsApiHost
-                + "/transistor/rest/platforms/" + platform.getId() + "/disable")
-                .contentType("application/json").header("X-Cms-User", userName).
-                        body();
-        log.info("OO response : " + response);
+        String url = transistorBaseUrl + "/transistor/rest/platforms/" + platform.getId() + "/disable";
 
+        RequestBody body = RequestBody.create(JSON, "");
+
+        Request request = new Request.Builder()
+                .url(url)
+                .header("X-Cms-User", userName)
+                .addHeader("Content-Type", "application/json")
+                .put(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        Map<String, Double> release = gson.fromJson(responseBody, Map.class);
+        log.info("Response from OneOps for disable-platform api: " + release);
+        int responseCode = response.code();
+        if (responseCode >= 300) {
+            throw new OneOpsException("Could not disable platform, response from OneOps: " + responseBody
+            + ", response code: " + responseCode);
+        }
+        return responseCode;
     }
 
-    public int sendNotification(NotificationMessage msg) {
-        log.info("sending notification: " + gson.toJson(msg));
-        String antennaUrl = "http://antenna." + cmsApiHost + ":8080/antenna/rest/notify/";
-        log.info("sending notification on " + antennaUrl);
-        HttpRequest request = HttpRequest.post(antennaUrl)
-                .contentType("application/json").send(gson.toJson(msg));
-        return request.code();
+    public int sendNotification(NotificationMessage msg) throws IOException, OneOpsException {
+        String url = antennaBaseUrl + "/antenna/rest/notify/";
+        log.info(url + " sending notification: " + gson.toJson(msg));
+        RequestBody body = RequestBody.create(JSON, gson.toJson(msg));
+
+        Request request = new Request.Builder()
+                .url(url)
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        if (responseCode >= 300) {
+            throw new OneOpsException("Error while sending notification. Response fron OneOps: " + responseBody
+                    + " ResponseCode : " + responseCode);
+        }
+
+        log.info("OO response body from antenna notify request: " + responseBody + ", code: " + responseCode);
+        return responseCode;
     }
+
+    public int cancelDeployment(Deployment deployment, String userName) throws IOException {
+        String url = adapterBaseUrl + "/adapter/rest/dj/simple/deployments/" + deployment.getDeploymentId() + "/cancel";
+        log.info("calling cancel deploy api: " + url);
+
+        Request request = new Request.Builder()
+                .url(url)
+                .get()
+                .build();
+
+        OkHttpClient client = new OkHttpClient();
+        Response response = client.newCall(request).execute();
+        String responseBody = response.body().string();
+        int responseCode = response.code();
+        log.info("OO response body for cance deployment: " + responseBody + ", code: " + responseCode);
+        return responseCode;
+    }
+
 }
+

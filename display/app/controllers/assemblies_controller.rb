@@ -201,8 +201,8 @@ class AssembliesController < ApplicationController
     else
       action   = 'clone'
       org_name = params[:to_org].presence || current_user.organization.name
-      org      = current_user.organizations.where('organizations.name = ?', org_name).first
-      team     = current_user.manages_access?(org.id)
+      org      = locate_org(org_name)
+      team     = current_user.creates_assemblies?(org.id)
       if org && team
         ci = Cms::Ci.build(:ciName       => params[:ciName],
                            :nsPath       => organization_ns_path(org.name),
@@ -326,11 +326,11 @@ class AssembliesController < ApplicationController
   end
 
   def authorize_create
-    unauthorized unless manages_access?
+    unauthorized unless creates_assemblies?
   end
 
   def authorize_update
-    unauthorized unless @assembly && (manages_access_for_assembly?(@assembly.ciId) || (action_name == 'update' && has_design?))
+    unauthorized unless @assembly && (manages_assembly?(@assembly.ciId) || (action_name == 'update' && has_design?))
   end
 
   def load_assembly_list

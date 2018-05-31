@@ -7,16 +7,6 @@
     "timeout": 15
   },
 
-<%
-log_files = Array.new
-@logs.each do |log|
-	log_files.push(log)
-	log_files.push(',')
-end	
-
-if(!log_files.empty?) 
-	log_files.pop
-end	
-%>
-  "files" : [<%= log_files %>]
+  "files" : <%= @files %>
 }
+

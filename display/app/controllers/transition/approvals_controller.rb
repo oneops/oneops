@@ -8,44 +8,45 @@ class Transition::ApprovalsController < ApplicationController
 
   def settle
     # Approval can be designated by 'approvalId' or combination of governCi nsPath and ciName concatenated with '!'.
-    approvals_to_settle_map = params[:approvals].to_map { |a| a[:approvalId] }
+    approvals_to_settle_map = (params[:approvals].presence || []).to_map { |a| a[:approvalId] }
     comments                = params[:comments]
     state                   = params[:state]
+    token                   = params[:token]
     expires_in              = params[:expiresIn]
-    approvals_to_settle = @approvals.inject([]) do |r, a|
+    result_approvals        = []
+    error                   = nil
+
+    @approvals.each do |a|
       govern_ci = a.govern_ci
       settling = approvals_to_settle_map[a.approvalId.to_s] || approvals_to_settle_map["#{govern_ci.nsPath}!#{govern_ci.ciName}"]
       if settling
         if allowed_to_settle_approval?(a)
-          r << {:approvalId   => a.approvalId,
-                :deploymentId => @deployment.deploymentId,
-                :state        => settling['state'].presence || state,
-                :expiresIn    => (settling['expiresIn'].presence || expires_in.presence || 12 * 60).to_i,
-                :comments     => settling['comments'].presence || comments.presence || ''}
+          a.state = settling['state'].presence || state
+          a.expiresIn = (settling['expiresIn'].presence || expires_in.presence || 12 * 60).to_i
+          a.comments = settling['comments'].presence || comments.presence || ''
+          ok = a.settle(settling['token'] || token)
+          if ok
+            result_approvals << a
+          else
+            error = "#{govern_ci.nsPath.split('/')[3]} - #{govern_ci.ciName}: #{a.errors.full_messages.join('<br>')}"
+            break
+          end
         else
           return unauthorized
         end
       end
-      r
     end
-
-    approvals, message = Cms::DeploymentApproval.settle(approvals_to_settle)
-    error = "Failed to settle approvals: #{message}" unless approvals
 
     respond_to do |format|
       format.js do
-        if approvals
-          @deployment.reload
-        else
-          flash[:error] = error
-        end
+        flash[:error] = error if error
       end
 
       format.json do
-        if approvals
-          render :json => approvals
-        else
+        if error
           render :json => {:errors => [error]}, :status => :unprocessable_entity
+        else
+          render :json => result_approvals
         end
       end
     end

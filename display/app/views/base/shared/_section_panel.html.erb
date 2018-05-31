@@ -1,5 +1,6 @@
 <% hide_content_x = defined?(hide_content) %>
-<div <%= "id=#{id}" if defined?(id) == 'local-variable' && id.present? %> class="section rounded <%= width %> <%= position %>">
+<% section_id = defined?(id) == 'local-variable' && id.present? ? id : random_dom_id %>
+<div id="<%= section_id %>" class="section rounded <%= width %> <%= position %> <%= local_assigns[:class_name] %>">
   <% if title.present? || menu.present? %>
     <div class="section-heading rounded-top">
       <div class="section-title"><%= raw(title) if title.present? %></div>
@@ -31,3 +32,49 @@
     <% end %>
   </div>
 </div>
+
+<script>
+  if (!window.prepare_pinnable_section) {
+    window.prepare_pinnable_section = function(sectionDiv) {
+      var titleDiv = sectionDiv.find(".section-title");
+      titleDiv.append("&nbsp;&nbsp;<i class=\"fa fa-thumb-tack fa-rotate-270 fa-small\"></i>");
+      titleDiv.find(".fa-thumb-tack")
+        .click(function () {
+          var scrollableDiv = sectionDiv.find(".list-body");
+          scrollableDiv = scrollableDiv.length ? scrollableDiv : sectionDiv.find(".section-content");
+          var offset = sectionDiv.offset(),
+            left = offset.left - parseInt(sectionDiv.css("margin-top")),
+            top = offset.top - parseInt(sectionDiv.css("margin-left")),
+            reservedHeight = sectionDiv.outerHeight(true) - scrollableDiv.height() +
+              top + 10;
+          var el = $j(this);
+          if (el.hasClass("fa-rotate-270")) {
+            sectionDiv.css({"top": top + "px", "left": left + "px"});
+            sectionDiv.addClass("pinned");
+            scrollableDiv.css({
+                             "height":     "calc(100vh - " + reservedHeight + "px)",
+                             "min-height": "100px",
+                             "overflow-x": "hidden",
+                             "overflow-y": "auto"
+                           });
+          }
+          else {
+            sectionDiv.css({"top": "inherit", "left": "inherit"});
+            sectionDiv.removeClass("pinned");
+            scrollableDiv.css({
+                             "height":     "auto",
+                             "overflow-x": "hidden",
+                             "overflow-y": "hidden"
+                           });
+          }
+          el.toggleClass("fa-rotate-270");
+        });
+    }
+  }
+  (function () {
+    var sectionDiv = $j("#<%= section_id %>");
+    if (sectionDiv.hasClass("pinnable")) {
+      prepare_pinnable_section(sectionDiv)
+    }
+  })();
+</script>

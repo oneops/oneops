@@ -2,7 +2,6 @@
 Gemfile.lock
 .DS_Store
 target/
-*.gem
 .idea
 .oneops
 .vscode

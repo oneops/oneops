@@ -1,0 +1,9 @@
+<% if @member.is_a?(User) %>
+  $j("#team_user_members").html("<%= escape_javascript(render('user_list')) %>");
+<% else %>
+  $j("#team_group_members").html("<%= escape_javascript(render('group_list')) %>");
+<% end %>
+<% if @team.name == Team::ADMINS %>
+  $j("#page_alert").html("<%= escape_javascript(render('organization/page_alert')) %>");
+<% end %>
+hide_modal();

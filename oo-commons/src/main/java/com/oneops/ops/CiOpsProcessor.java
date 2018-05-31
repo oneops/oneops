@@ -105,7 +105,9 @@ public class CiOpsProcessor {
 	public String getState(List<CiOpenEvent> openEvents) {
 		List<String> eventStates = new ArrayList<String>();
 		for (CiOpenEvent event : openEvents) {
-			eventStates.add(event.getState());
+			if (event.getState() != null) {
+				eventStates.add(event.getState());
+			}
 		}
 		return CiOpsStateMachine.getCiState(eventStates);
 	}

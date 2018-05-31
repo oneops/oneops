@@ -104,7 +104,7 @@ class Catalog::PacksController < ApplicationController
     @stats = Search::Pack.count_stats(params[:source], params[:pack], params[:version])
     respond_to do |format|
       format.js
-      format.json { render :json => @stats ? {:count => @stats} : {:errors => ['Failed to fetch stats.']}, :status => :internal_server_error }
+      format.json { @stats ? render(:json => {:count => @stats}) : render(:json => {:errors => ['Failed to fetch stats.']}, :status => :internal_server_error)}
     end
   end
 
@@ -176,7 +176,12 @@ class Catalog::PacksController < ApplicationController
 
     other_version = params[:other_version]
     if other_version.present?
-      other_platform = locate_pack_platform(pack_name, source, pack_name, other_version, availability)
+      other_platform = locate_pack_platform(params[:other_pack].presence || pack_name,
+                                            params[:other_source].presence || source,
+                                            params[:other_pack].presence || pack_name,
+                                            params[:other_version].presence || version,
+                                            params[:other_availability].presence || availability)
+
       if other_platform.blank?
         not_found("other_depends pack version #{other_version} not found.")
         return

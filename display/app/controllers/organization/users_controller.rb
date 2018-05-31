@@ -63,28 +63,52 @@ class Organization::UsersController < ApplicationController
 
   def create
     username = params[:username]
-    user = User.where(:username => username).first
-    if user
-      if current_user.organization.users.exists?(user)
-        flash[:error] = "User #{username} is already a member of organization '#{current_user.organization.name}'."
+    @user = User.where(:username => username).first
+    if @user
+      if current_user.organization.users.exists?(@user)
+        @user.errors.add(:base, "User #{username} is already a member of organization '#{current_user.organization.name}'.")
       else
         team_ids = params[:teams]
         if team_ids.present?
-          team_ids.each do |id|
-            team = current_user.organization.teams.where('teams.id' => id).first
-            team.users << user if team
+          User.transaction do
+            team_ids.each do |id|
+              team = current_user.organization.teams.where('teams.id' => id).first
+              if team
+                if team.name == Team::ADMINS && !manages_admins?
+                  @user.errors.add(:base, 'Unauthorized to manage admins!')
+                  raise ActiveRecord::Rollback
+                end
+
+                error = check_admin_limit(team, @user)
+                if error
+                  @user.errors.add(:base, error)
+                  raise ActiveRecord::Rollback
+                else
+                  team.users << @user
+                end
+              end
+            end
+            @user.update_attribute(:organization_id, current_user.organization_id) if @user.organization_id.blank?
+            flash[:notice] = "Successfully added '#{username}' to organization '#{current_user.organization.name}'."
           end
-          user.update_attribute(:organization_id, current_user.organization_id) if user.organization_id.blank?
-          flash[:notice] = "Successfully added tu #{username} to organization '#{current_user.organization.name}'."
         else
-          flash[:error] = "Must select a team."
+          @user.errors.add(:base, 'Must select a team.')
         end
       end
-    else
-      flash[:error] = "Unknown tu: #{username}"
     end
 
-    index
+    respond_to do |format|
+      format.js do
+        if @user && @user.errors.blank?
+          index
+        else
+          flash[:error] = @user ? @user.errors.full_messages.join(' ') : "Unknown user: #{username}."
+          render :js => ''
+        end
+      end
+
+      format.json {render_json_ci_response(@user && @user.errors.blank?, @user)}
+    end
   end
 
   def edit
@@ -100,22 +124,40 @@ class Organization::UsersController < ApplicationController
       admin_team    = org.admin_team
       admin_team_id = admin_team.id
       all_team_ids  = @user.team_ids
-      if admin_team.users.count == 1 && all_team_ids.include?(admin_team_id) && !new_team_ids.include?(admin_team_id)
-        flash[:error] = 'This user is last admin for this organization: can not remove user from admins.'
+      was_admin     = all_team_ids.include?(admin_team_id)
+      will_be_admin = new_team_ids.include?(admin_team_id)
+      if admin_team.users.count == 1 && was_admin && !will_be_admin
+        @user.errors.add(:base, 'This user is last admin for this organization: can not remove user from admins.')
       else
-        @user.team_ids = all_team_ids - org_team_ids + new_team_ids
-        check_reset_org
+        error = !was_admin && will_be_admin && check_admin_limit(admin_team, @user)
+        if error
+          @user.errors.add(:base, error)
+        else
+          @user.team_ids = all_team_ids - org_team_ids + new_team_ids
+          check_reset_org
+        end
       end
     end
 
-    index
+    respond_to do |format|
+      format.js do
+        if @user && @user.errors.blank?
+          index
+        else
+          flash[:error] = @user ? @user.errors.full_messages.join(' ') : "Unknown user."
+          render :js => ''
+        end
+      end
+
+      format.json {render_json_ci_response(@user && @user.errors.blank?, @user)}
+    end
   end
 
   def destroy
     @user = current_user.organization.users.find(params[:id])
     if @user
       current_user.organization.teams.each { |team| team.users.delete(@user) }
-      flash[:notice] = "Successfully removed tu #{@user.username} from '#{current_user.organization.name}'"
+      flash[:notice] = "Successfully removed user '#{@user.username}' from '#{current_user.organization.name}'"
 
       check_reset_org
     end

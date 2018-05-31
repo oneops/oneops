@@ -1,6 +1,8 @@
 <div id="ci_watch_<%= ci.ciId %>">
   <%= section_panel 'Email Notifications', :width => 'single', :position => 'right' do %>
     <% watching = current_user.watches.where(:ci_id => ci.ciId).first %>
+    Opt to receive email notifications about deployment and operation events for <strong><%= ci.ciName %></strong>.
+    <br><br>
     <div class="btn-group">
       <% if watching %>
         <%= link_to_function icon('eye', 'Watching'), "toggleCiWatch(false, #{ci.ciId})", :class => 'btn' %>
@@ -20,8 +22,6 @@
         <% end %>
       </ul>
     </div>
-    <hr>
-    Opt to receive email notifications about deployment and operation events for <strong><%= ci.ciName %></strong>.
   <% end %>
 </div>
 

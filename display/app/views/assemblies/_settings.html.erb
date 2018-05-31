@@ -17,7 +17,7 @@
   <% end %>
 <% end %>
 
-<% if manages_access_for_assembly?(@assembly.ciId) %>
+<% if manages_assembly?(@assembly.ciId) %>
   <%= section_panel 'Delete Assembly', :width => 'single', :position => 'right' do %>
     <% if @instance_count > 0 %>
         <p>This environment has <b><%= @instance_count %></b> <%= 'instance'.pluralize(@instance_count) %>.</p>

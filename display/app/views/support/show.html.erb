@@ -1,12 +1,20 @@
+<% title('support')
+   app_nav([{:label => 'support', :icon => site_icon(:support), :link => support_path}])
+%>
 <h2>Support Operations</h2>
 <br/>
-<% all_perms = @permissions['*']
-   links = []
-   links << link_to(icon('bullhorn', 'Announcements',  'fa-fw'), announcements_support_path)  if all_perms || @permissions['announcement']
-   links << link_to(icon('sitemap',  'Organizations',  'fa-fw'), organizations_support_path)  if all_perms || @permissions['organization']
-   links << link_to(icon('user',     'Users',          'fa-fw'), user_support_path)           if all_perms || @permissions['user']
-   links << link_to(icon('server',   'Compute Report', 'fa-fw'), compute_report_support_path) if all_perms || @permissions['compute_report']
-   if all_perms || @permissions['cost']
+<% links = []
+   links << link_to(icon('bullhorn', 'Announcements',  'fa-fw'), announcements_support_path)  if has_support_permission?('announcement')
+   links << link_to(icon('sitemap',  'Organizations',  'fa-fw'), organizations_support_path)  if has_support_permission?('organization')
+   links << link_to(icon('user',     'Users',          'fa-fw'), user_support_path)           if has_support_permission?('user')
+   links << link_to(icon('group',    'Groups',         'fa-fw'), groups_support_path)          if has_support_permission?('group')
+
+   links << link_to(icon(site_icon(:manages_access), 'Global Admins', 'fa-fw'), global_admins_support_path) if is_global_admin?
+
+   links << link_to(icon(site_icon(:deployment), 'Deployment Approvals', 'fa-fw'), cloud_supports_support_path) if has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT)
+
+   links << link_to(icon('server', 'Compute Report', 'fa-fw'), compute_report_support_path) if has_support_permission?('compute_report')
+   if has_support_permission?('cost')
      links << link_to(icon('money', 'Cost Report', 'fa-fw'),
                       cost_support_path(:start_date => Date.today.last_month.beginning_of_month,
                                         :end_date   => Date.today.last_month.end_of_month,
@@ -14,7 +22,7 @@
                                         :tags       => %w(costcenter VP dept pillar)))
    end
 
-   links << link_to(icon('search', 'Search', 'fa-fw'), search_support_path) if all_perms || @permissions['search'] %>
+   links << link_to(icon('search', 'Search', 'fa-fw'), search_support_path) if has_support_permission?('search') %>
 <ul class="support-functions nav nav-tabs nav-stacked">
   <% links.each do |link| %>
     <li><%= link %></li>

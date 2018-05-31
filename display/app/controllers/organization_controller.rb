@@ -91,29 +91,32 @@ class OrganizationController < ApplicationController
 
   def announcement
     if request.method == 'PUT'
-      params[:announcements].each_pair do |org, a|
-        org = current_user.organizations.where('organizations.name' => org).first
-        org.update_attribute(:announcement, a) if org
+      response = {}
+      params[:announcements].each_pair do |org_name, a|
+        org = locate_org(org_name)
+        if org
+          return unauthorized unless is_admin?(org)
+          org.update_attribute(:announcement, a)
+          response[org_name] = org.announcement
+        end
       end
+    else
+      response = (is_global_admin? ? Organization : current_user.organizations).all.inject({}) { |m, org| m[org.name] = org.announcement; m }
     end
-
-    response = current_user.organizations.all.inject({}) { |m, org| m[org.name] = org.announcement; m }
 
     render :json => response
   end
 
   def public_profile
     org_name = params[:org_name]
-    org = current_user.organizations.where('organizations.name' => org_name).first
+    org = locate_org(org_name)
     if org
       current_user.change_organization(org)
       redirect_to organization_path
-      return
+    else
+      @organization = Organization.where(:name => org_name).first
+      redirect_to not_found_path unless @organization
     end
-
-    @organization = Organization.where(:name => org_name).first
-
-    redirect_to not_found_path unless @organization
   end
 
   def request_access

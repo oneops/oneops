@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include ::GlobalAdmin
+
   GRAPHVIZ_IMG_STUB = '/images/cms/graphviz.png'
   CI_IMG_STUB       = '/images/cms/ci_stub.png'
 
@@ -34,10 +36,11 @@ class ApplicationController < ActionController::Base
   rescue_from(Cms::Ci::NotFoundException, :with => :handle_ci_not_found)
 
   helper_method :in_catalog?, :in_design?, :in_transition?, :in_operations?,
-                :is_admin?, :manages_access?, :manages_access_for_cloud?, :manages_access_for_assembly?,
+                :is_admin?, :creates_clouds?, :manages_cloud?, :creates_assemblies?, :manages_assembly?,
                 :has_org_scope?, :dto_allowed?, :locate_assemblies,
                 :has_design?, :has_transition?, :has_operations?,
-                :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?, :allowed_to_settle_approval?,
+                :has_cloud_services?, :has_cloud_compliance?, :has_cloud_support?,
+                :manages_org?, :manages_admins?, :manages_team_members?, :allowed_to_settle_approval?,
                 :path_to_ci, :path_to_ci!, :path_to_ns, :path_to_ns!, :path_to_release, :path_to_deployment,
                 :ci_image_url, :ci_class_image_url, :platform_image_url, :pack_image_url,
                 :graphvis_sub_ci_remote_images, :packs_info, :pack_versions, :design_platform_ns_path,
@@ -75,6 +78,11 @@ class ApplicationController < ActionController::Base
   def ci_resource
     # Should be overwritten by subclasses.
     raise Exception.new("Controller #{self.class.name} did not define target resource.")
+  end
+
+  def locate_org(identifier)
+    (is_global_admin? ? Organization : current_user.organizations).
+      where("organizations.#{identifier.to_s =~ /\D/ ? 'name' : 'id'}" => identifier).first
   end
 
   def locate_proxy(qualifier, ns_path)
@@ -586,7 +594,7 @@ class ApplicationController < ActionController::Base
     if user_signed_in?
       org_name = params[:org_name]
       if org_name.present? && !(current_user.organization && current_user.organization.name == org_name)
-        org = current_user.organizations.where('organizations.name' => org_name).first
+        org = locate_org(org_name)
         if org
           current_user.change_organization(org)
         else
@@ -739,7 +747,8 @@ class ApplicationController < ActionController::Base
 
   def check_pack_owner_group_membership?(user = current_user)
     auth_group = Settings.pack_management_auth
-    # 'pack_management_auth' is assumed to the name of the user group whose memebers are allowed to manage pack visibility.
+    # 'pack_management_auth' is assumed to the name (or comas separated list of names) of the user group whose members
+    # are allowed to manage pack visibility.
     auth_group.present? && user.in_group?(auth_group)
   end
 
@@ -791,16 +800,20 @@ class ApplicationController < ActionController::Base
     current_user.has_org_scope?(org)
   end
 
-  def manages_access?(org_id = nil)
-    current_user.manages_access?(org_id)
+  def creates_clouds?(org_id = nil)
+    current_user.creates_clouds?(org_id)
   end
 
-  def manages_access_for_cloud?(cloud_id)
-    current_user.manages_access_for_cloud?(cloud_id)
+  def manages_cloud?(cloud_id)
+    current_user.manages_cloud?(cloud_id)
   end
 
-  def manages_access_for_assembly?(assembly_id)
-    current_user.manages_access_for_assembly?(assembly_id)
+  def creates_assemblies?(org_id = nil)
+    current_user.creates_assemblies?(org_id)
+  end
+
+  def manages_assembly?(assembly_id)
+    current_user.manages_assembly?(assembly_id)
   end
 
   def has_design?(assembly_id = @assembly.try(:ciId))
@@ -827,11 +840,30 @@ class ApplicationController < ActionController::Base
     current_user.has_cloud_support?(cloud_id)
   end
 
+  def manages_admins?
+    current_user.manages_admins?
+  end
+
+  def manages_team_members?(team)
+    current_user.manages_team_members?(team)
+  end
+
+  def manages_org?(org = nil)
+    User.global_admin_mode? ? is_global_admin? : is_admin?(org)
+  end
+
   def allowed_to_settle_approval?(approval)
+    # SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT allows to designate users which can settle approvals
+    # in general. And then "has_cloud_support?" allows to further "fine tune" it on cloud by cloud basis.
+    if support_auth_config[Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT].present? &&
+       !has_support_permission?(Cloud::SupportsController::SUPPORT_PERMISSION_CLOUD_SUPPORT_MANAGEMENT, true)
+      return false
+    end
+
     govern_ci  = approval.govern_ci
     cloud      = govern_ci.nsPath.split('/')[3]
     class_name = govern_ci.ciClassName
-    return class_name == 'cloud.Support' ? has_cloud_support?(cloud) : has_cloud_compliance?(cloud)
+    return is_admin? || (class_name == 'cloud.Support' ? has_cloud_support?(cloud) : has_cloud_compliance?(cloud))
   end
 
   def authorize_admin
@@ -1240,20 +1272,30 @@ class ApplicationController < ActionController::Base
     end
   end
 
+  def support_auth_config
+    return @support_auth if @support_auth
+
+    @support_auth = {}
+    config = Settings.support_auth
+    if config.present?
+      begin
+        @support_auth = JSON.parse(config)
+      rescue Exception => e
+        # If it is not json, assume "simple" form, i.e. comas separated group names for all permissions
+        @support_auth = {'*' => config}
+      end
+    end
+    @support_auth
+  end
+
   def support_permissions
     return @permissions if @permissions
 
     @permissions = {}
-    auth_config = Settings.support_auth
-    if auth_config.present?
-      begin
-        auth_json = JSON.parse(auth_config)
-      rescue Exception => e
-        auth_json = {'*' => auth_config}
-      end
-
+    config = support_auth_config
+    if config.present?
       user_groups = current_user.groups.pluck(:name).to_map
-      @permissions = auth_json.inject({}) do |h, (perm, groups)|
+      @permissions = config.inject({}) do |h, (perm, groups)|
         ok = (groups.is_a?(Array) ? groups : groups.to_s.split(',')).any? { |g| user_groups[g.strip] }
         h[perm] = ok if ok
         h
@@ -1262,9 +1304,11 @@ class ApplicationController < ActionController::Base
     @permissions
   end
 
-  def has_support_permission?(permission)
+  def has_support_permission?(permission, explicit = false)
+    return true if is_global_admin?
+
     permissions = support_permissions
-    permissions['*'] || permissions[permission]
+    (!explicit && permissions['*']) || permissions[permission]
   end
 
   def semver_sort(versions, ascending = false)

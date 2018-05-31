@@ -1,3 +1,5 @@
+<% manages_admins = manages_admins?
+   can_add = @team.name == Team::ADMINS ? manages_admins : manages_team_members?(@team) %>
 <%= section_panel 'Team Details', :width => 'double', :position => 'right' do %>
   <%= render('base/shared/edit_form',
              {:resource    => @team,
@@ -12,7 +14,7 @@
 	<%= section_panel icon('user', 'User Members'),
                     :width    => 'double',
                     :position => 'right',
-                    :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'new_team_user_dialog()', :remote => true, :class => 'btn btn-mini')] : nil do %>
+                    :menu     => can_add ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'show_add_team_member_dialog("user")', :remote => true, :class => 'btn btn-mini')] : nil do %>
 		<div id="team_user_members">
 			<%= render('organization/team_members/user_list') %>
 		</div>
@@ -21,53 +23,46 @@
   <%= section_panel icon('users', 'Group Members'),
                      :width    => 'double',
                      :position => 'right',
-                     :menu     => is_admin? ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'new_team_group_dialog()', :remote => true, :class => 'btn btn-mini')] : nil do %>
+                     :menu     => can_add ? [link_to_function(icon('plus', 'Add', 'fa-fw'), 'show_add_team_member_dialog("group")', :remote => true, :class => 'btn btn-mini')] : nil do %>
 		<div id="team_group_members">
 			<%= render('organization/team_members/group_list') %>
 		</div>
 	<% end %>
-  <div id="add_team_user" class="modal hide">
-     <div class="modal-header">
-       <button class="close" data-dismiss="modal">&times;</button>
-       <h3>Add User to Team '<%= @team.name %>'</h3>
-     </div>
-     <%= form_tag(organization_team_members_path(@team), :remote => true, :class => 'form-inline') do %>
+  <% %w(user group).each do |type| %>
+    <div id="add_team_<%= type %>" class="modal hide">
+       <div class="modal-header">
+         <button class="close" data-dismiss="modal">&times;</button>
+         <h3>Add <%= type.capitalize %></h3>
+       </div>
        <div class="modal-body" style="height:250px; overflow-x: hidden">
-         <%= label_tag :username, 'Username', :class => 'control-label' %>
-         <%= text_field_tag :username, '', :class => 'input-xlarge', :required => true, :autocomplete => 'off', :placeholder => 'Enter username...' %>
+         <p>Team: <b><%= @team.name %></b></p>
+         <%= form_tag(organization_team_members_path(@team), :remote => true, :class => 'form-inline') do %>
+           <%= text_field_tag type, '', :class => 'input-xlarge', :required => true, :autocomplete => 'off', :placeholder => "Enter #{type} name..." %>
+           <%= submit_tag "Add #{type}", :class => 'btn btn-success' %>
+         <% end %>
+         <div class="alert hide"></div>
        </div>
        <div class="modal-footer">
-         <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
-         <%= submit_tag 'Add User', :class => 'btn btn-success btn-large' %>
+         <button class="btn" data-dismiss="modal">Close</button>
        </div>
-     <% end %>
- 	</div>
-  <div id="add_team_group" class="modal hide">
-     <div class="modal-header">
-       <button class="close" data-dismiss="modal">&times;</button>
-       <h3>Add Group to Team '<%= @team.name %>'</h3>
-     </div>
-     <%= form_tag(organization_team_members_path(@team), :remote => true, :class => 'form-inline') do %>
-       <div class="modal-body" style="height:250px; overflow-x: hidden">
-         <%= label_tag :group, 'Group name', :class => 'control-label' %>
-         <%= text_field_tag :group, '', :class => 'input-xlarge', :required => true, :autocomplete => 'off', :placeholder => 'Enter group name...' %>
-       </div>
-       <div class="modal-footer">
-         <button class="btn btn-danger btn-large" data-dismiss="modal">Cancel</button>
-         <%= submit_tag 'Add Group', :class => 'btn btn-success btn-large' %>
-       </div>
-     <% end %>
- 	</div>
+   	</div>
+  <% end %>
 <% end %>
 <script>
-  window.new_team_user_dialog = function() {
-    $j("#add_team_user input#username").val('');
-    $j("#add_team_user").modal("show");
-  };
-
-  window.new_team_group_dialog = function() {
-    $j("#add_team_group input#group").val('');
-    $j("#add_team_group").modal("show");
+  window.show_add_team_member_dialog = function(type, message, error) {
+    var dialog = $j(type === 'user' ? '#add_team_user' : "#add_team_group");
+    dialog.find("input[type=text]").val('').focus();
+    var alertEl = dialog.find(".alert");
+    if (message) {
+      alertEl.html(message).removeClass("alert-error").addClass('alert-success').show();
+    }
+    else if (error) {
+      alertEl.html(error).removeClass("alert-success").addClass('alert-error').show();
+    }
+    else {
+      alertEl.hide();
+    }
+    dialog.modal("show");
   };
 
   var userLookupFn = function (query, process) {
@@ -90,6 +85,6 @@
     return item.split(' ')[0];
   };
 
-  $j('#add_team_user input#username').typeahead({source: userLookupFn, updater: updaterFn});
+  $j('#add_team_user input#user').typeahead({source: userLookupFn, updater: updaterFn});
   $j('#add_team_group input#group').typeahead({source: groupLookupFn, updater: updaterFn});
 </script>

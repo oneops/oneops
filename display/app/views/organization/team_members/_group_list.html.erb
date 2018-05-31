@@ -1,5 +1,6 @@
+<% can_edit = @team.name == Team::ADMINS ? manages_admins? : manages_team_members?(@team) %>
 <%= grouped_list(@team.groups.includes(:users).all,
-                 :new_link => is_admin? && link_to_function(icon('plus', 'Add group...'), 'new_team_group_dialog()'),
+                 :new_link => can_edit && link_to_function(icon('plus', 'Add group...'), 'show_add_team_member_dialog("group")'),
                  :collapse => true,
                  :toolbar  => {:list_name => 'team_group_list',
                                :filter_by => %w(username group)}) do |group_builder, group| %>
@@ -7,11 +8,17 @@
     <%= group.name %>
     &nbsp;&nbsp;<small><span class="muted"><%= pluralize(group.users.size, 'user') %></span></small>
   <% end %>
-  <% if is_admin? %>
+  <% if can_edit %>
     <% group_builder.menu do %>
       <a class="dropdown-toggle" data-toggle="dropdown" href="#"><span><%= icon('ellipsis-v') %>&nbsp;</span></a>
       <ul class="dropdown-menu" role="menu">
-        <li><%= link_to(icon('remove', 'Remove'), organization_team_member_path(@team, group.name, :type => 'group'), :method => :delete, :remote => true, :confirm => "Remove group '#{group.name}' from team '#{@team.name}'?") %></li>
+        <li>
+          <%= link_confirm_busy(icon('remove', 'Remove'),
+                                :url     => organization_team_member_path(@team, group.name, :type => 'group'),
+                                :method  => :delete,
+                                :confirm => 'Please confirm',
+                                :body    => "Remove group '#{group.name}' from team '#{@team.name}'?") %>
+        </li>
       </ul>
     <% end %>
   <% end %>
@@ -26,3 +33,4 @@
        builder.middle full_name if full_name.present? %>
   <% end %>
 <% end %>
+

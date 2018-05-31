@@ -2,33 +2,40 @@
                   :width => 'triple',
                   :menu  => [link_to_function(icon('search', 'Find organization...'), '$j("#organization_lookup_modal").modal("show")', :class => 'btn btn-mini')] do %>
   <%= list(@organizations,
-           :toolbar  => {:sort_by => [%w(Name name), %w(Created created), ['Admin Count', 'admin_count'], ['User Count', 'user_count']],
+           :toolbar  => {:sort_by => [%w(Name name), %w(Created created), ['Team User Count', 'team_user_count'], ['Admin User Count', 'admin_count'], ['Admin Group User Count', 'admin_group_user_count']],
                          :filter_by => %w(name owner)}) do |builder, org| %>
-    <% builder.itemid org.id %>
-    <% builder.attributes raw(%(name="#{org.name}" created="#{org.created_at}" owner="#{org.owner}" admin_count="#{org.admin_count}" user_count="#{org.user_count}")) %>
-    <% builder.target link_to('', "/#{org.name}") %>
+    <% builder.itemid org['id'] %>
+    <% builder.attributes raw(%(name="#{org['name']}" created="#{org['created_at']}" owner="#{org['owner']}" team_user_count="#{org['team_user_count']}" admin_user_count="#{org['admin_user_count']}" admin_group_user_count="#{org['admin_group_user_count']}")) %>
+    <% builder.target link_to('', "/#{org['name']}") %>
     <% builder.top do %>
-      <%= org.name %>
-      <% if org.full_name? %>
-        <span class="topdesc"><%= org.full_name %></span>
+      <%= org['name'] %>
+      <% if org['full_name'].present? %>
+        <span class="topdesc"><%= org['full_name'] %></span>
       <% end %>
 
     <% end %>
     <% builder.middle do %>
-      <strong><%= org.team_count %></strong> <%= 'team'.pluralize(org.team_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-      <strong><%= org.user_count %></strong> <%= 'user'.pluralize(org.user_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-      <strong><%= org.group_count %></strong> <%= 'group'.pluralize(org.group_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-      <strong><%= org.admin_count %></strong> <%= 'admin'.pluralize(org.admin_count) %>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-      <% if org.owner.present? %>
-        <span>owner: <%= org.owner %></span>
+      <strong><%= org['team_count'] %></strong> <%= 'team'.pluralize(org['team_count']) %>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['team_user_count'] %></strong> <%= 'team user'.pluralize(org['team_user_count']) %>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['group_count'] %></strong> <%= 'group'.pluralize(org['group_count']) %>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['group_user_count'] %></strong> <%= 'group user'.pluralize(org['group_user_count']) %>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['admin_user_count'] %></strong> <%= 'admin user'.pluralize(org['admin_user_count']) %>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['admin_group_count'] %></strong> <%= 'admin group'.pluralize(org['admin_group_count']) %>&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['admin_group_user_count'] %></strong> <%= 'admin group user'.pluralize(org['admin_group_user_count']) %>
+      <br/>
+      <strong><%= org['assembly_count'] %></strong> <%= 'assembly'.pluralize(org['assembly_count']) %> (<%= org['prod_assembly_count'] %> prod)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['environment_count'] %></strong> <%= 'environment'.pluralize(org['environment_count']) %> (<%= org['prod_environment_count'] %> prod)&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;
+      <strong><%= org['compute_count'] %></strong> <%= 'compute'.pluralize(org['compute_count']) %> (<%= org['prod_compute_count'] %> prod)
+      <% if org['owner'].present? %>
+        &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;<span>owner: <%= org['owner'] %></span>
       <% end %>
     <% end %>
     <% builder.bottom do %>
-      created <%= time_ago_in_words(org.created_at) %>
+      created <%= time_ago_in_words(org['created_at']) %>
     <% end %>
 
     <% builder.menu do %>
-      <%= link_to(content_tag(:span, icon('info-circle', 'More...')), organization_support_path(:name => org.name), :remote => true) %>
+      <%= link_to(content_tag(:span, icon('info-circle', 'More...')), organization_support_path(:name => org['name']), :remote => true) %>
     <% end %>
   <% end %>
 <% end %>

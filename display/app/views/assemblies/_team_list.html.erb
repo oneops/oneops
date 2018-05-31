@@ -1,5 +1,5 @@
 <% teams_to_add = nil
-   manages_access = manages_access_for_assembly?(@assembly.ciId)
+   manages_access = manages_assembly?(@assembly.ciId)
    if manages_access
      team_ids     = @teams.map(&:id)
      teams_to_add = current_user.organization.teams.where('teams.name <> ? AND NOT teams.org_scope', Team::ADMINS)
@@ -12,6 +12,7 @@
                   :menu  => [link_to_function(icon('check-square-o', 'Teams'), '', :class  => 'btn btn-mini active'),
                              link_to(icon('square-o', 'Users'), users_assembly_path(@assembly), :remote => true, :class  => 'btn btn-mini')] do %>
   <%= render 'base/shared/team_list',
+             :ci             => @assembly,
              :teams          => @teams,
              :manages_access => manages_access,
              :teams_to_add   => teams_to_add,

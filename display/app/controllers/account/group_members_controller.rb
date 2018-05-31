@@ -9,7 +9,11 @@ class Account::GroupMembersController < ApplicationController
   end
 
   def show
-    render :json => @member.to_json(:include => [:user])
+    if @member
+      render :json => @member.to_json(:include => [:user])
+    else
+      render :json => {:errors => ['not found']}, :status => :not_found
+    end
   end
 
   def create
@@ -20,7 +24,7 @@ class Account::GroupMembersController < ApplicationController
       if @group.users.exists?(user)
         error = "User #{username} is already a member of '#{@group.name}'."
       else
-        @group.members.create(:user_id => user.id, :admin => false, :created_by => current_user.username)
+        @member = @group.members.create(:user_id => user.id, :admin => false, :created_by => current_user.username)
       end
     else
       error = "Unknown user: #{username}"
@@ -30,7 +34,7 @@ class Account::GroupMembersController < ApplicationController
 
     respond_to do |format|
       format.js { flash[:error] = error if error }
-      format.json { error ? render_json_ci_response(false, @group, [error]) : index }
+      format.json { error ? render_json_ci_response(false, @group, [error]) : show }
     end
   end
 
@@ -51,7 +55,7 @@ class Account::GroupMembersController < ApplicationController
     end
 
     error = nil
-    if @member.admin? && @group.admins.count == 1
+    if !current_user.is_global_admin? && @member.admin? && @group.admins.count == 1
       error = 'Cannot remove last admin member from the group.'
     else
       @group.members.delete @member
@@ -61,7 +65,7 @@ class Account::GroupMembersController < ApplicationController
 
     respond_to do |format|
       format.js { flash[:error] = error if error }
-      format.json { error ? render_json_ci_response(false, @member, [error]) : index }
+      format.json { error ? render_json_ci_response(false, @member, [error]) : show }
     end
   end
 
@@ -70,7 +74,7 @@ class Account::GroupMembersController < ApplicationController
 
   def find_group
     group_id = params[:group_id]
-    @group = current_user.groups.where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
+    @group = (is_global_admin? ? Group : current_user.groups).where((group_id =~ /\D/ ? 'groups.name' : 'groups.id') => group_id).first
   end
 
   def authorize_group_admin

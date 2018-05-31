@@ -617,8 +617,11 @@ img.authicon {
 }
 
 #overlay div.controls .well {
-  margin:    10px 10px 5px 10px;
+  margin:    10px 0px 5px 0px;
   font-size: 16px;
+}
+#overlay div.controls textarea {
+  width: 98%;
 }
 
 #overlay div.controls table {
@@ -629,7 +632,17 @@ img.authicon {
   padding: 10px;
 }
 
-#overlay .wf > div.controls .cost-change {
+#overlay div.controls .pending-approvals td {
+  text-align: left;
+}
+
+#overlay div.controls .pending-approvals td > input {
+  margin: 0;
+  padding: 0 4px;
+}
+
+#overlay .wf > div.controls .cost-change,
+#overlay .wf > div.controls .capacity-change {
   font-size: 14px;
 }
 
@@ -1711,7 +1724,6 @@ img.authicon {
 }
 
 .list-body {
-  float:    left;
   position: relative;
   float:    left;
   clear:    both;
@@ -1723,7 +1735,7 @@ img.authicon {
   position:        relative;
   margin:          0px;
   padding:         0px;
-  width:           100%;
+  width:           98%;
   font-size:       14px;
   list-style-type: none;
 }
@@ -2371,6 +2383,10 @@ img.authicon {
   width: 300px;
 }
 
+.section.single.pinned {
+  width: 303px;
+}
+
 .section.double {
   width: 610px;
 }
@@ -2385,6 +2401,22 @@ img.authicon {
 
 .section.full {
   width: 98%;
+}
+
+.section.pinnable i.fa-thumb-tack {
+  cursor: pointer;
+}
+
+.section.pinned {
+  position: fixed;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #ddd;
+  box-shadow: 1px 1px 3px rgba(32, 32, 32, 0.7);
+}
+
+.section.pinned ::-webkit-scrollbar {
+  width: 4px;
 }
 
 .section-heading {
@@ -4086,6 +4118,13 @@ ul.log li.error {
   text-align: right;
 }
 
+#overlay div.controls .report td {
+  padding: 5px;
+}
+#overlay div.controls  .report td[rowspan] {
+  vertical-align: middle;
+}
+
 div.category > .name {
   position:    relative;
   padding:     5px;
@@ -4680,4 +4719,9 @@ form.editing .tx-editor.expanded .tx-btn.insert-var {
 
 form.deploy-action textarea {
   height: 80px;
+}
+
+.pending-approvals td > input {
+  margin: 0;
+  padding: 0 4px;
 }

@@ -60,8 +60,8 @@ import com.oneops.cms.ws.rest.util.CmsScopeVerifier;
 public class DpmtRestController extends AbstractRestController {
 	private CmsDjManager djManager;
 	private CmsUtil cmsUtil = new CmsUtil();
-	private CmsScopeVerifier scopeVerifier; 
-	
+	private CmsScopeVerifier scopeVerifier;
+
 	@Autowired
     public void setCmsUtil(CmsUtil cmsUtil) {
 		this.cmsUtil = cmsUtil;
@@ -71,10 +71,10 @@ public class DpmtRestController extends AbstractRestController {
 		this.scopeVerifier = scopeVerifier;
 	}
 	
-	
 	public void setDjManager(CmsDjManager djManager) {
 		this.djManager = djManager;
 	}
+
 
 	@ExceptionHandler(DJException.class)
 	public void handleDJExceptions(DJException e, HttpServletResponse response) throws IOException {
@@ -123,11 +123,12 @@ public class DpmtRestController extends AbstractRestController {
 			scopeVerifier.verifyScope(scope, dpmt);
 			dpmt.setDeploymentId(dpmtId);
 			dpmt.setUpdatedBy(userId);
+
 			return djManager.updateDeployment(dpmt);
-		} catch (CmsBaseException e) {
-			logger.error("CmsBaseException in updateDeployment", e);
+		} catch (Exception e) {
+			logger.error("Exception in updateDeployment", e);
 			e.printStackTrace();
-			throw e;
+			throw new RuntimeException(e);
 		}	
 	}
 

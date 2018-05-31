@@ -158,17 +158,48 @@ def install_using_prebuilt_gemfile (gem_sources, component, provisioner, provisi
 
   if ['objectstore','compute','volume', 'os'].include?(component)
     start_time = Time.now.to_i
-    cmd = "#{get_bin_dir}bundle install --local --gemfile exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+    gemfile = "exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+    cmd = "#{get_bin_dir}bundle install --local --gemfile #{gemfile}"
     ec = system cmd
     if !ec || ec.nil?
       puts "#{cmd} failed with, #{$?}"
       puts 'fetching gems from remote sources'
 
-      cmd = "#{get_bin_dir}bundle install --full-index --gemfile exec-gems-#{provisioner}-#{provisioner_version}.gemfile"
+      cmd = "#{get_bin_dir}bundle install --full-index --gemfile #{gemfile}"
       ec = system cmd
       if !ec || ec.nil?
         puts "#{cmd} failed with, #{$?}"
         exit 1
+      end
+    end
+
+    if get_os_type =~ /windows/
+      bundler = `#{get_bin_dir}gem which bundler`
+      libdir = File.dirname(bundler)
+      $LOAD_PATH.unshift(libdir) unless $LOAD_PATH.include?(libdir)
+    end
+    require 'bundler'
+    ENV['BUNDLE_GEMFILE'] = gemfile unless ENV['BUNDLE_GEMFILE']
+    lockfile = Bundler::LockfileParser.new(Bundler.read_file("#{gemfile}.lock"))
+    lockfile.specs.each do |s|
+      if s.source.is_a?(Bundler::Source::Path) &&
+      s.full_name == 'fog-openstack-0.1.24'
+        puts "Installing gem #{s.full_name} from source."
+        gem_dir = File.expand_path(s.source.path, File.dirname(gemfile))
+        gem_path = File.join(gem_dir, "#{s.full_name}.gem")
+        cmd = "#{get_bin_dir}gem install '#{gem_path}' --ignore-dependencies --no-ri --no-rdoc"
+        ec = system cmd
+        if !ec || ec.nil?
+          puts "#{cmd} failed with, #{$?}"
+          exit 1
+        end
+
+        cmd = "chown -R oneops:oneops ./vendor"
+        ec = system cmd
+        if !ec || ec.nil?
+          puts "#{cmd} failed with, #{$?}"
+          exit 1
+        end
       end
     end
 

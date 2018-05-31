@@ -144,8 +144,8 @@
         <property name="nsMapper" ref="nsMapper"/>
         <property name="rfcProcessor" ref="cmsRfcProcessor"/>
         <property name="cmsCrypto" ref="cmsCrypto"/>
+        <property name="capacityProcessor" ref="capacityProcessor"/>
     </bean>
-
 
     <bean id="procProcessor" class="com.oneops.cms.cm.ops.service.OpsProcedureProcessor">
         <property name="cmProcessor" ref="cmsCmProcessor"/>
@@ -171,4 +171,11 @@
         <property name="procProcessor" ref="procProcessor"/>
     </bean>
 
+    <bean id="tektonClient" class="com.oneops.capacity.TektonClient"/>
+
+    <bean id="capacityProcessor" class="com.oneops.capacity.CapacityProcessor">
+        <property name="cmProcessor" ref="cmsCmProcessor" />
+        <property name="rfcProcessor" ref="cmsRfcProcessor" />
+        <property name="tektonClient" ref="tektonClient" />
+    </bean>
 </beans>

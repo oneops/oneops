@@ -26,6 +26,14 @@ public class AttrQueryCondition {
   private String condition;
   private String avalue;
 
+  public AttrQueryCondition() {}
+
+  public AttrQueryCondition(String attributeName, String condition, String avalue) {
+    this.attributeName = attributeName;
+    this.condition = condition;
+    this.avalue = avalue;
+  }
+
   /**
    * Gets the attribute name.
    *

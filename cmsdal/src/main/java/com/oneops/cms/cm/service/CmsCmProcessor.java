@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.oneops.cms.cm.domain.*;
+import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.ns.service.CmsNsProcessor;
 
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +65,7 @@ public class CmsCmProcessor {
 	private static final int CHUNK_SIZE = 100;
 	
 	private CIMapper ciMapper;
+	private DJMapper djMapper;
 	private UtilMapper utilMapper;
 	private CmsCmValidator cmValidator;
 	private CmsNsProcessor cmsNsProcessor;
@@ -1066,6 +1068,34 @@ public class CmsCmProcessor {
 		List<CmsCIRelation> relList = ciMapper.getFromCIRelationsByToCiIDs(fromId, relationName, shortRelName, toCiIds);
 		populateRelAttrs(relList);
 		return relList;
+	}
+
+	/**
+	 * Gets relations by name and toCi ids naked, no attributes.
+	 *
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param fromCiIds the to ci ids
+	 * @return the from ci relations by to ci ids naked
+	 */
+	public List<CmsCIRelation> getCIRelationsByFromCiIdsNakedNoAttrs(String relationName,
+			String shortRelName, List<Long> fromCiIds) {
+
+		return ciMapper.getCIRelationsByFromCiIDs(relationName, shortRelName, fromCiIds);
+	}
+
+	/**
+	 * Gets relations by name and toCi ids naked, no attributes.
+	 *
+	 * @param relationName the relation name
+	 * @param shortRelName the short rel name
+	 * @param toCiIds the to ci ids
+	 * @return the from ci relations by to ci ids naked
+	 */
+	public List<CmsCIRelation> getCIRelationsByToCiIdsNakedNoAttrs(String relationName,
+			String shortRelName, List<Long> toCiIds) {
+
+		return ciMapper.getCIRelationsByToCiIDs(relationName, shortRelName, toCiIds);
 	}
 
 	private List<CmsCIRelation> getFromCIRelationsNakedLocal(long fromId,
@@ -2108,6 +2138,10 @@ public class CmsCmProcessor {
 		return null;
 	}
 
+	public long getNextDjId() {
+		return djMapper.getNextDjId();
+	}
+
 	private class CiClassNames {
 		String className = null;
 		String shortClassName = null;
@@ -2181,5 +2215,13 @@ public class CmsCmProcessor {
 
 	public void deleteAltNs(long nsId, long ciId) {
 		ciMapper.deleteAltNs(nsId, ciId);
+	}
+
+	public DJMapper getDjMapper() {
+		return djMapper;
+	}
+
+	public void setDjMapper(DJMapper djMapper) {
+		this.djMapper = djMapper;
 	}
 }

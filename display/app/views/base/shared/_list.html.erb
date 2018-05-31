@@ -258,42 +258,44 @@
     }
   }
 
-  var listDiv = $j("#<%= list_id %>"),
-      listItemId = getHashParam("<%= hash_param_name %>");
-  <% if toolbar %>
-    list_toolbar_init(listDiv);
+  (function () {
+    var listDiv = $j("#<%= list_id %>"),
+        listItemId = getHashParam("<%= hash_param_name %>");
+    <% if toolbar %>
+      list_toolbar_init(listDiv);
+
+      <% if pagination %>
+        if (listItemId) {
+          list_process_hash_param(listDiv, listItemId);
+        }
+
+        listDiv.bind('sortChanged', function (e) {
+          list_paginate(e.target, "startover");
+        });
+
+        listDiv.bind('filterChanged', function (e) {
+          var listDivX = $j(e.target);
+          var filterValue = get_list_filter(listDivX)['value'];
+          setTimeout(function() {
+            if (get_list_filter(listDivX)['value'] == filterValue) {
+              list_paginate(listDivX, "startover")
+            }
+          }, 500);
+        });
+      <% end %>
+    <% end %>
 
     <% if pagination %>
+      list_paginate(listDiv, "add");
+    <% else %>
       if (listItemId) {
-        list_process_hash_param(listDiv, listItemId);
+        $j("#<%= list_id %> #item_" + listItemId + " .target a").click();
       }
 
-      listDiv.bind('sortChanged', function (e) {
-        list_paginate(e.target, "startover");
-      });
-
-      listDiv.bind('filterChanged', function (e) {
-        var listDivX = $j(e.target);
-        var filterValue = get_list_filter(listDivX)['value'];
-        setTimeout(function() {
-          if (get_list_filter(listDivX)['value'] == filterValue) {
-            list_paginate(listDivX, "startover")
-          }
-        }, 500);
-      });
+      <% selected_id = options[:selected_item] %>
+      <% if selected_id.present? %>
+        $j("#<%= list_id %> #item_<%= selected_id %> .target a").click();
+      <% end %>
     <% end %>
-  <% end %>
-
-  <% if pagination %>
-    list_paginate(listDiv, "add");
-  <% else %>
-    if (listItemId) {
-      $j("#<%= list_id %> #item_" + listItemId + " .target a").click();
-    }
-
-    <% selected_id = options[:selected_item] %>
-    <% if selected_id.present? %>
-      $j("#<%= list_id %> #item_<%= selected_id %> .target a").click();
-    <% end %>
-  <% end %>
+  })();
 </script>
