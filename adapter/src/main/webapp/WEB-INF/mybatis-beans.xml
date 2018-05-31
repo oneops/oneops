@@ -109,6 +109,7 @@
         <property name="cmValidator" ref="cmsCmValidator"/>
         <property name="cmsNsProcessor" ref="cmsNsProcessor"/>
         <property name="mdProcessor" ref="cmsMdProcessor"/>
+        <property name="djMapper" ref="djMapper"/>
     </bean>
 
     <bean id="cmsUtil" class="com.oneops.cms.util.CmsUtil">
