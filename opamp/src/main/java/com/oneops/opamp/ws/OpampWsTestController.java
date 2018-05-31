@@ -59,19 +59,6 @@ public class OpampWsTestController {
 		this.flexStateProcessor = flexStateProcessor;
 	}
 
-
-	@RequestMapping(value="/test/bad/{ciId}", method = RequestMethod.GET)
-	@ResponseBody
-	public String testBad(@PathVariable int ciId) throws OpampException {
-		OpsBaseEvent opsEvent = new OpsBaseEvent();
-		opsEvent.setCiId(ciId);
-		opsEvent.setState("closed");
-		CiChangeStateEvent event = new CiChangeStateEvent();
-		event.setCiId(ciId);
-		bsProcessor.processDefunctState(event);
-		return null;
-	}
-
 	/**
 	 * Test proc.
 	 *
