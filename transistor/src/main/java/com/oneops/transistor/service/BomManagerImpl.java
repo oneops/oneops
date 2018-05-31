@@ -99,7 +99,12 @@ public class BomManagerImpl implements BomManager {
 
 	@Override
 	public Map<String, Object> generateAndDeployBom(long envId, String userId, Set<Long> excludePlats, CmsDeployment dpmt, boolean commit) {
-		Map<String, Object> bomInfo = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
+		Map<String, Object> bomInfo;
+		if (dpmt.getReplaceCiId()!=null) {
+			bomInfo = generateBomForReplace(dpmt.getReplaceCiId(), envId, userId, excludePlats, dpmt.getComments(), commit);
+		} else {
+			bomInfo = generateBomForClouds(envId, userId, excludePlats, dpmt.getComments(), commit);
+		}
 		CmsRelease bomRelease = (CmsRelease) bomInfo.get("release");
 		if (bomRelease != null) {
 			dpmt.setNsPath(bomRelease.getNsPath());
@@ -111,7 +116,52 @@ public class BomManagerImpl implements BomManager {
 		return bomInfo;
 	}
 
-	@Override
+	private Map<String, Object> generateBomForReplace(String ciIdString, long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
+		Long ciId = Long.parseLong(ciIdString);
+		long startTime = System.currentTimeMillis();
+
+		EnvBomGenerationContext context = new EnvBomGenerationContext(envId, excludePlats, userId, cmProcessor, cmsUtil, bomRfcProcessor);
+		String manifestNsPath = context.getManifestNsPath();
+		String bomNsPath = context.getBomNsPath();
+
+		trUtil.verifyAndCreateNS(bomNsPath);
+		trUtil.lockNS(bomNsPath);
+		//commitManifestRelease(manifestNsPath, bomNsPath, userId, desc);  // don't commit manifest release to avoid picking up pending changes
+
+
+		context.loadGlobalVars();  // only load global vars, this is the only thing we need in this context
+		
+		CmsCI platform = getPlatform(ciId); // get platform
+		if (platform!=null) {
+			PlatformBomGenerationContext platformContext = context.loadPlatformContext(platform);
+			List<CmsCIRelation> relations = cmProcessor.getFromCIRelations(ciId, null, "DeployedTo", "account.Cloud");
+			if (relations.size() > 0) {
+				List<CmsCIRelation> platformCloudRels = cmProcessor.getFromCIRelations(platform.getCiId(), BASE_CONSUMES, "account.Cloud"); // get platform cloud relation
+				for (CmsCIRelation platformCloudRel : platformCloudRels) {
+					if (platformCloudRel.getToCiId() == relations.get(0).getToCiId()) {
+						bomGenerationProcessor.processManifestPlatform(context, platformContext, platformCloudRel, 0, true);
+					}
+				}
+			}
+		}
+		return getReleaseInfo(userId, commit, startTime, manifestNsPath, bomNsPath);
+	}
+	
+	
+	private CmsCI getPlatform(Long ciId) {
+		List<CmsCIRelation> manifestCiRels = cmProcessor.getToCIRelationsNakedNoAttrs(ciId, "base.RealizedAs", null, null);
+		if (manifestCiRels.size() > 0) {
+			long manifestCiId = manifestCiRels.get(0).getFromCiId();
+			List<CmsCIRelation> manifestPlatRels = cmProcessor.getToCIRelations(manifestCiId, "manifest.Requires", null, "manifest.Platform");
+
+			if (manifestPlatRels != null && manifestPlatRels.size() > 0) {
+				return manifestPlatRels.get(0).getFromCi();
+			}
+		}
+		return null;
+	}
+
+		@Override
 	public Map<String, Object> generateBom(long envId, String userId, Set<Long> excludePlats, String desc, boolean commit) {
 		return generateBomForClouds(envId, userId, excludePlats, desc, commit);
 	}
@@ -156,6 +206,10 @@ public class BomManagerImpl implements BomManager {
 		int execOrder = generateBomForActiveClouds(context);
 		generateBomForOfflineClouds(context, execOrder);
 
+		return getReleaseInfo(userId, commit, startTime, manifestNsPath, bomNsPath);
+	}
+
+	private Map<String, Object> getReleaseInfo(String userId, boolean commit, long startTime, String manifestNsPath, String bomNsPath) {
 		long rfcCiCount = 0;
 		long rfcRelCount = 0;
 		CmsRelease bomRelease = updateParentReleaseId(bomNsPath, manifestNsPath, "open");

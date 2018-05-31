@@ -343,6 +343,7 @@ public class BadStateProcessor {
 
 
 			Map<String, String> request = new HashMap<>();
+			request.put("ciId", String.valueOf(ciId));
 			request.put("description", description + ", user " + userId + ", [" + env.getNsPath() + "]");
 
 

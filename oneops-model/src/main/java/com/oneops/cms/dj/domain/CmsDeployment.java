@@ -18,6 +18,8 @@
 package com.oneops.cms.dj.domain;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import java.beans.Transient;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Date;
@@ -55,6 +57,17 @@ public class CmsDeployment implements Serializable {
   private boolean continueOnFailure = false;
   private int currentStep;
   private String execModel;
+  private String replaceCiId;
+
+
+  @Transient
+  public String getReplaceCiId() {
+    return replaceCiId;
+  }
+
+  public void setReplaceCiId(String replaceCiId) {
+    this.replaceCiId = replaceCiId;
+  }
 
   /**
    * Gets the deployment id.
