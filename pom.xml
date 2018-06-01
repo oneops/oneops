@@ -8,9 +8,9 @@
   <name>OneOps</name>
   <url>http://oneops.com</url>
   <scm>
-    <connection>scm:git:git://github.com/oneops/oneops.git</connection>
-    <developerConnection>scm:git:git@github.com:oneops/oneops.git</developerConnection>
-    <url>https://github.com/oneops/oneops</url>
+    <connection>scm:git:git://gecgithub01.walmart.com/oneops/oneops.git</connection>
+    <developerConnection>scm:git:git@gecgithub01.walmart.com:oneops/oneops.git</developerConnection>
+    <url>https://gecgithub01.walmart.com/oneops/oneops</url>
     <tag>release-17.09.06-01</tag>
   </scm>
 
