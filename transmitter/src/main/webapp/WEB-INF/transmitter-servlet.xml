@@ -64,12 +64,35 @@
         </property>
     </bean>
 
+
+
+    <!-- AMQ broker connector URI-->
+    <bean id="amqBrokerURI" class="com.oneops.util.AMQConnectorURI">
+        <property name="transport" value="failover"/>
+        <property name="protocol" value="tcp"/>
+        <property name="host" value="${KLOOPZ_AMQ_HOST:kloopzmq}"/>
+        <property name="port" value="61616"/>
+        <property name="keepAlive" value="true"/>
+        <property name="dnsResolve" value="true"/>
+        <property name="transportOptions">
+            <util:map>
+                <entry key="initialReconnectDelay" value="100"/>
+                <entry key="maxReconnectDelay" value="5000"/>
+                <entry key="maxReconnectAttempts" value="-1"/>
+                <entry key="randomize" value="false"/>
+                <entry key="timeout" value="3000"/>
+            </util:map>
+        </property>
+    </bean>
+
     <bean id="amqFactory" class="org.apache.activemq.ActiveMQConnectionFactory">
-        <property name="brokerURL"
-                  value="failover:(tcp://${KLOOPZ_AMQ_HOST:kloopzmq}:61616?keepAlive=true)?initialReconnectDelay=100"/>
+        <property name="brokerURL" value="#{amqBrokerURI.build()}"/>
         <property name="userName" value="${AMQ_USER}"/>
         <property name="password" value="${KLOOPZ_AMQ_PASS}"/>
     </bean>
+
+
+
 
     <!-- AMQ broker connector URI-->
     <bean id="searchBrokerURI" class="com.oneops.util.AMQConnectorURI">
