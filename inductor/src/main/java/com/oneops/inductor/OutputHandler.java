@@ -86,6 +86,18 @@ public class OutputHandler extends OutputStream {
         }
     }
 
+    public void write(byte[] b, int off, int len) {
+        byte[] content = new byte[len];
+        for (int i = off; i < len; i++) {
+            content[i] = (byte) (b[i] & 0xff);
+        }
+        String lines = new String(content);
+        for (String l : lines.split("\n")) {
+            line = l;
+            flush();
+        }
+    }
+
     public void flush() {
         if (rowCount < maxRowCount && line.length() > 0) {
             if (!line.contains("PRIVATE KEY")) {
