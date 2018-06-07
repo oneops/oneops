@@ -80,9 +80,18 @@ public class ActionOrderExecutor extends AbstractOrderExecutor {
     ao.setResultCi(resultCi);
 
     if (config.isCloudStubbed(ao)) {
-      assembleRequest(ao);
       //delay the processing as configured and return response.
+      String fileName = config.getDataDir() + "/" + ao.getActionId() + ".json";
+      Map<String, Object> chefRequest = assembleRequest(ao);
+      try {
+        writeChefRequestToFile(fileName, chefRequest);
+      } catch (IOException e) {
+        logger.error(e);
+      }
       processStubbedCloud(ao);
+      if (ao.getClassName().equals("bom.oneops.1.Fqdn") && ao.getAction().equals("migrate")) {
+        resultCi.getCiAttributes().put("service_type", "torbit");
+      }
       logger.info("completing ao without doing anything because cloud is stubbed");
     } else {
       // creates the json chefRequest and exec's chef to run chef

@@ -184,6 +184,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     try {
       String fileName = dataDir + "/" + wo.getRecordId() + ".json";
       writeRequest(gsonPretty.toJson(wo), fileName);
+      logger.info(logKey + "wo file written to " + fileName);
       TorbitConfig torbitConfig = getTorbitConfig(wo, logKey);
       InfobloxConfig infobloxConfig = getInfobloxConfig(wo);
       if (torbitConfig != null && infobloxConfig != null) {

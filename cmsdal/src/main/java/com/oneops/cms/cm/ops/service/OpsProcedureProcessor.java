@@ -17,8 +17,13 @@
  *******************************************************************************/
 package com.oneops.cms.cm.ops.service;
 
+import static com.oneops.cms.util.CmsConstants.BASE_REALIZED_AS;
+import static com.oneops.cms.util.CmsConstants.BOM_FQDN;
+import static com.oneops.cms.util.CmsConstants.PLATFORM_COMMON_ACTION;
+
 import com.google.gson.Gson;
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
 import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.ops.dal.OpsMapper;
 import com.oneops.cms.cm.ops.domain.CmsActionOrder;
@@ -34,14 +39,15 @@ import com.oneops.cms.exceptions.OpsException;
 import com.oneops.cms.util.CmsError;
 import com.oneops.cms.util.CmsUtil;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.log4j.Logger;
-import static com.oneops.controller.workflow.ExecutionType.PROCEDURE;
 
 /**
  * The Class OpsProcedureProcessor.
@@ -60,7 +66,10 @@ public class OpsProcedureProcessor {
     private static final String ALREADY_HAS_ACTIVE_OPS_ACTION = " already has active ops action: ";
     private static final String NO_ACTION_ITH_ID = "There is no action with this id: ";
     private static final String ACTION_IS_IN_WRONG_STATE = "Action is in wrong state id:";
-
+    private static final String ACTION_ONE_BY_ONE_EXEC = "one-by-one";
+	private static final String ACTION_ONE_FOR_ALL_EXEC = "one-for-all";
+	private static final String SERVICE_TYPE_ATTR = "service_type";
+	private static final String SERVICE_TYPE_TORBIT = "torbit";
     
 	/**
 	 * Sets the ops mapper.
@@ -222,6 +231,12 @@ public class OpsProcedureProcessor {
 		}
 		
 		int innerLoopStep = 0;
+		if (isOneForAll(flow)) {
+			Optional<Long> ciId = ciIds.stream().findFirst();
+			if (ciId.isPresent()) {
+				ciIds = Collections.singleton(ciId.get());
+			}
+		}
 
 		for (long ciId : ciIds) {
 			if (flow.getFlow().size()>0) {
@@ -233,7 +248,7 @@ public class OpsProcedureProcessor {
 				List<CmsOpsAction> childActions = new ArrayList<CmsOpsAction>();
 				for (OpsProcedureFlow childFlow : flow.getFlow()) {
 					childActions.addAll(processBranch(ciId,childFlow, offset));
-					if ("one-by-one".equalsIgnoreCase(flow.getExecStrategy())) {
+					if (isOneByOne(flow)) {
 						offset = getMaxExecOrder(childActions);
 					}
 				}
@@ -245,13 +260,24 @@ public class OpsProcedureProcessor {
 					actions.add(bootStrapAction(ciId, actionDef, execOrder));
 				}
 			}
-			if ("one-by-one".equalsIgnoreCase(flow.getExecStrategy())) {
+			if (isOneByOne(flow)) {
 				innerLoopStep++;
-			}	
+			}
+			if (isOneForAll(flow)) {
+				actions.stream().forEach(a -> a.setExtraInfo(PLATFORM_COMMON_ACTION));
+			}
 		}
-		
 		return actions;
 	}
+
+	private boolean isOneByOne(OpsProcedureFlow flow) {
+		return ACTION_ONE_BY_ONE_EXEC.equalsIgnoreCase(flow.getExecStrategy());
+	}
+
+	private boolean isOneForAll(OpsProcedureFlow flow) {
+		return ACTION_ONE_FOR_ALL_EXEC.equalsIgnoreCase(flow.getExecStrategy());
+	}
+
 	/*
 	private int getMinExecOrder(List<CmsOpsAction> actions) {
 		int min = 10000;
@@ -671,9 +697,36 @@ public class OpsProcedureProcessor {
     public void completeActionOrder(CmsActionOrder ao) {
         opsMapper.updateCmsOpsActionState(ao.getActionId(),ao.getActionState());
         if (ao.getResultCi() != null) {
-            cmProcessor.updateCI(ao.getResultCi());
+					if (isPlatformCommonAction(ao)) {
+						logger.info("completing platform common action " + ao.getActionName() + " for ci " + ao.getCi().getCiId());
+						List<CmsCIRelation> relations = cmProcessor.getToCIRelations(ao.getResultCi().getCiId(), BASE_REALIZED_AS,
+								null, null);
+						if (relations != null && !relations.isEmpty()) {
+							long fromCiId = relations.get(0).getFromCiId();
+							cmProcessor.updateAllBomPeerCIs(ao.getResultCi(), fromCiId);
+							performCustomUpdates(ao, relations.get(0).getFromCi());
+						}
+					}
+					else {
+						cmProcessor.updateCI(ao.getResultCi());
+					}
         }
     }
+
+    private void performCustomUpdates(CmsActionOrder ao, CmsCI manifestCi) {
+    	if (ao.getCi().getCiClassName().matches(BOM_FQDN) &&
+					"migrate".equals(ao.getActionName()) && manifestCi.getAttribute(SERVICE_TYPE_ATTR) != null) {
+    		logger.info("gslb-migration custom updates ci : " + ao.getCi().getCiId());
+    		CmsCIAttribute serviceTypeAttr = manifestCi.getAttribute(SERVICE_TYPE_ATTR);
+				serviceTypeAttr.setDfValue(SERVICE_TYPE_TORBIT);
+				serviceTypeAttr.setDjValue(SERVICE_TYPE_TORBIT);
+				cmProcessor.updateCI(manifestCi);
+			}
+		}
+
+    private boolean isPlatformCommonAction(CmsActionOrder ao) {
+			return PLATFORM_COMMON_ACTION.equals(ao.getExtraInfo());
+		}
 
     /**
      * Retry procedure.
