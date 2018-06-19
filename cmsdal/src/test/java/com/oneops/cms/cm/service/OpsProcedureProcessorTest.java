@@ -17,21 +17,31 @@
  *******************************************************************************/
 package com.oneops.cms.cm.service;
 
-import java.util.ArrayList;
-import java.util.List;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertTrue;
 
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.Test;
-import static org.testng.Assert.*;
-import static org.mockito.Mockito.*;
 import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIRelation;
 import com.oneops.cms.cm.ops.dal.OpsMapper;
 import com.oneops.cms.cm.ops.domain.CmsOpsAction;
 import com.oneops.cms.cm.ops.domain.CmsOpsProcedure;
+import com.oneops.cms.cm.ops.domain.OpsFlowAction;
+import com.oneops.cms.cm.ops.domain.OpsProcedureDefinition;
+import com.oneops.cms.cm.ops.domain.OpsProcedureFlow;
 import com.oneops.cms.cm.ops.domain.OpsProcedureState;
 import com.oneops.cms.cm.ops.service.OpsProcedureProcessor;
 import com.oneops.cms.exceptions.OpsException;
+import com.oneops.cms.util.CmsConstants;
 import com.oneops.cms.util.CmsError;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
 
 public class OpsProcedureProcessorTest {
 	private static final Long BLOCKING_PROC_ID = 333333L;
@@ -137,4 +147,61 @@ public class OpsProcedureProcessorTest {
 			throw e;
 		}			
 	}
+
+	@Test
+	public void processProcedureRequestTest() {
+		CmsOpsProcedure procedure = new CmsOpsProcedure();
+		procedure.setCiId(300);
+		procedure.setArglist("{\"migrate\":\"true\"}");
+		procedure.setProcedureName("gslb-migration");
+		procedure.setProcedureState(OpsProcedureState.pending);
+		procedure.setProcedureCiId(200);
+
+		OpsProcedureDefinition procDefn = new OpsProcedureDefinition();
+		procDefn.setName("gslb-migration");
+		OpsProcedureFlow flow = new OpsProcedureFlow();
+		flow.setExecStrategy("one-by-one");
+		flow.setRelationName("manifest.Entrypoint");
+		flow.setDirection("from");
+		flow.setTargetClassName("manifest.oneops.1.Fqdn");
+		procDefn.setFlow(Collections.singletonList(flow));
+
+		OpsProcedureFlow subFlow = new OpsProcedureFlow();
+		flow.setFlow(Collections.singletonList(subFlow));
+		subFlow.setExecStrategy("one-for-all");
+		subFlow.setRelationName("base.RealizedAs");
+		subFlow.setDirection("from");
+		subFlow.setTargetClassName("bom.oneops.1.Fqdn");
+
+		OpsFlowAction action = new OpsFlowAction();
+		action.setActionName("migrate");
+		action.setStepNumber(1);
+		subFlow.setActions(Collections.singletonList(action));
+		List<CmsCIRelation> entryPointRelations = new ArrayList<>();
+		CmsCIRelation entryPoint = new CmsCIRelation();
+		entryPoint.setToCiId(400);
+		entryPointRelations.add(entryPoint);
+		when(cmProcessor.getFromCIRelationsNaked(300, "manifest.Entrypoint", null, "manifest.oneops.1.Fqdn")).thenReturn(entryPointRelations);
+
+		List<CmsCIRelation> realizedAsRelations = new ArrayList<>();
+		CmsCIRelation realizedAs1 = new CmsCIRelation();
+		realizedAs1.setToCiId(500);
+		CmsCIRelation realizedAs2 = new CmsCIRelation();
+		realizedAs2.setToCiId(600);
+		realizedAsRelations.add(realizedAs2);
+		when(cmProcessor.getFromCIRelationsNaked(400, "base.RealizedAs", null, "bom.oneops.1.Fqdn")).thenReturn(realizedAsRelations);
+		procProcessor.setOpsMapper(new MockOpsMapper());
+
+		CmsOpsProcedure opsProcedure = procProcessor.processProcedureRequest(procedure, procDefn);
+		assertNotNull(opsProcedure);
+		assertTrue(opsProcedure.getCiId() == 300);
+		assertTrue("gslb-migration".equals(opsProcedure.getProcedureName()));
+		assertTrue("{\"migrate\":\"true\"}".equals(opsProcedure.getArglist()));
+		assertTrue(opsProcedure.getActions().size() == 1);
+		CmsOpsAction opsAction = opsProcedure.getActions().get(0);
+		assertTrue("{\"migrate\":\"true\"}".equals(opsAction.getArglist()));
+		assertTrue(CmsConstants.PLATFORM_COMMON_ACTION.equals(opsAction.getExtraInfo()));
+		assertTrue("migrate".equals(opsAction.getActionName()));
+	}
+
 }

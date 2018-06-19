@@ -184,6 +184,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
     try {
       String fileName = dataDir + "/" + wo.getRecordId() + ".json";
       writeRequest(gsonPretty.toJson(wo), fileName);
+      logger.info(logKey + "wo file written to " + fileName);
       TorbitConfig torbitConfig = getTorbitConfig(wo, logKey);
       InfobloxConfig infobloxConfig = getInfobloxConfig(wo);
       if (torbitConfig != null && infobloxConfig != null) {
@@ -576,8 +577,10 @@ public class FqdnExecutor implements ComponentWoExecutor {
     Instance env = payload.get("Environment").get(0);
     String gslbMap = ao.getCi().getCiAttributes().get("gslb_map");
     JsonObject root = (JsonObject) gson.fromJson(gslbMap, JsonElement.class);
-    String glb = root.get("glb").getAsString();
-
+    String glb = null;
+    if (root.has("glb")) {
+      glb = root.get("glb").getAsString();
+    }
     if (isNotBlank(glb)) {
       String[] elements = glb.split("\\.");
       String org = elements[3];
@@ -588,7 +591,7 @@ public class FqdnExecutor implements ComponentWoExecutor {
       context.lb = woHelper.getLbFromDependsOn(ao);
     }
     else {
-      throw new RuntimeException("glb value could not be obtained form gslb_map attribute");
+      throw new RuntimeException("glb value could not be obtained from gslb_map attribute");
     }
     return context;
   }

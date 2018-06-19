@@ -17,6 +17,32 @@
  *******************************************************************************/
 package com.oneops.cms.cm.service;
 
+import static com.oneops.cms.util.CmsConstants.BASE_REALIZED_AS;
+
+import com.oneops.cms.cm.dal.CIMapper;
+import com.oneops.cms.cm.domain.CmsAltNs;
+import com.oneops.cms.cm.domain.CmsCI;
+import com.oneops.cms.cm.domain.CmsCIAttribute;
+import com.oneops.cms.cm.domain.CmsCIRelation;
+import com.oneops.cms.cm.domain.CmsCIRelationAttribute;
+import com.oneops.cms.dj.dal.DJMapper;
+import com.oneops.cms.exceptions.CIValidationException;
+import com.oneops.cms.exceptions.CmsException;
+import com.oneops.cms.md.domain.CmsClazz;
+import com.oneops.cms.md.domain.CmsClazzAttribute;
+import com.oneops.cms.md.domain.CmsRelation;
+import com.oneops.cms.md.domain.CmsRelationAttribute;
+import com.oneops.cms.md.service.CmsMdProcessor;
+import com.oneops.cms.ns.domain.CmsNamespace;
+import com.oneops.cms.ns.service.CmsNsProcessor;
+import com.oneops.cms.util.CIValidationResult;
+import com.oneops.cms.util.CmsCmValidator;
+import com.oneops.cms.util.CmsError;
+import com.oneops.cms.util.CmsUtil;
+import com.oneops.cms.util.QueryConditionMapper;
+import com.oneops.cms.util.dal.UtilMapper;
+import com.oneops.cms.util.domain.AttrQueryCondition;
+import com.oneops.cms.util.domain.CmsVar;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -27,33 +53,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import com.oneops.cms.cm.domain.*;
-import com.oneops.cms.dj.dal.DJMapper;
-import com.oneops.cms.ns.service.CmsNsProcessor;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.Logger;
-
-import com.oneops.cms.cm.dal.CIMapper;
-import com.oneops.cms.exceptions.CIValidationException;
-import com.oneops.cms.exceptions.CmsException;
-import com.oneops.cms.md.domain.CmsClazz;
-import com.oneops.cms.md.domain.CmsClazzAttribute;
-import com.oneops.cms.md.domain.CmsRelation;
-import com.oneops.cms.md.domain.CmsRelationAttribute;
-import com.oneops.cms.md.service.CmsMdProcessor;
-import com.oneops.cms.ns.domain.CmsNamespace;
-import com.oneops.cms.util.CIValidationResult;
-import com.oneops.cms.util.CmsCmValidator;
-import com.oneops.cms.util.CmsError;
-import com.oneops.cms.util.CmsUtil;
-import com.oneops.cms.util.QueryConditionMapper;
-import com.oneops.cms.util.dal.UtilMapper;
-import com.oneops.cms.util.domain.AttrQueryCondition;
-import com.oneops.cms.util.domain.CmsVar;
-
-import static com.oneops.cms.util.CmsConstants.*;
 
 /**
  * The Class CmsCmProcessor.
@@ -702,7 +703,16 @@ public class CmsCmProcessor {
 	public CmsCI getCiByIdNaked(long id) {
 		return ciMapper.getCIById(id);
 	}
-	
+
+
+	public void updateAllBomPeerCIs(CmsCI ci, long manifestCiId) {
+		List<CmsCIRelation> realizedAsRelations = getFromCIRelations(manifestCiId, BASE_REALIZED_AS, ci.getCiClassName());
+		for (CmsCIRelation relation : realizedAsRelations) {
+			CmsCI bomCi = relation.getToCi();
+			bomCi.setAttributes(ci.getAttributes());
+			updateCI(bomCi);
+		}
+	}
 	
 	/**
 	 * Update ci.

@@ -1052,6 +1052,7 @@ public class CmsUtil {
      */
     public CmsActionOrder custSimple2ActionOrder(CmsActionOrderSimple aos) {
         CmsActionOrder ao = new CmsActionOrder();
+        ao.setActionName(aos.getActionName());
         ao.setActionId(aos.getActionId());
         ao.setProcedureId(aos.getProcedureId());
         ao.setActionState(aos.getActionState());
@@ -1061,11 +1062,11 @@ public class CmsUtil {
         ao.setCiId(aos.getCiId());
 
         if (aos.getCi() != null) {
-            ao.setCi(custCISimple2CI(aos.getCi(), "df"));
+            ao.setCi(custCISimple2CI(aos.getCi(), null));
         }
 
         if (aos.getResultCi() != null) {
-            ao.setResultCi(custCISimple2CI(aos.getResultCi(), "df"));
+            ao.setResultCi(custCISimple2CI(aos.getResultCi(), null));
         }
 
         return ao;

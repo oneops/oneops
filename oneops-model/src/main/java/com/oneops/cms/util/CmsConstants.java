@@ -135,4 +135,6 @@ public final class CmsConstants {
 
 
     public static final String DEPLOYER_ENABLED_PROPERTY = "DEPLOYER_ENABLED";
+    public static final String PLATFORM_COMMON_ACTION = "oo-action-platform";
+    public static final String BOM_FQDN = "bom.*Fqdn";
 }
