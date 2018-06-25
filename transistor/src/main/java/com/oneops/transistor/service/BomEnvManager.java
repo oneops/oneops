@@ -34,13 +34,9 @@ public interface BomEnvManager {
 
     long discardEnvManifest(long envId, String userId);
 
-    List<CostData> getEnvCostData(long envId);
+    Map<String, List<CostData>> getEnvCostData(long envId, boolean includeEstimated, BomData bomData);
 
-    Map<String, List<CostData>> getEnvEstimatedCostData(long envId);
-
-    Map<String, List<CostData>> getEnvEstimatedCostData(long envId, BomData data);
-
-    Map<String, List<CapacityData>> getEnvCapacity(long envId, BomData bomData);
+    Map<String, Map<String, Integer>> getEnvCapacity(long envId);
 
     CapacityEstimate estimateDeploymentCapacity(BomData bomData);
 }

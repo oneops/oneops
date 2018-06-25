@@ -63,6 +63,7 @@ public interface DJDpmtMapper {
 	CmsDpmtRecord getDeploymentRecord(long dpmtRfcId);
 	List<CmsDpmtRecord> getDeploymentRecordCis(long deploymentId);
 	List<CmsDpmtRecord> getDeploymentRecordCisByListOfIds(@Param("value")long deploymentId, @Param("list") List<Long> list);
+	List<CmsDpmtRecord> getDeploymentRecordCisByRfcIds(@Param("value")long deploymentId, @Param("list") List<Long> list);
 	List<CmsDpmtRecord> getDeploymentRecordRelations(long deploymentId);
 	List<CmsDpmtRecord> getDeploymentRecordsByState(@Param("deploymentId") long deploymentId, @Param("state") String state, @Param("execOrder") Integer execOrder);
 	List<CmsDpmtRecord> getDeploymentRecordsUpdatedAfter(@Param("deploymentId") long deploymentId, @Param("timestamp") Date timestamp);

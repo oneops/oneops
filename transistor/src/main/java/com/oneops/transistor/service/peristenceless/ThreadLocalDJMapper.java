@@ -4,6 +4,7 @@ import com.oneops.cms.cm.domain.CmsAltNs;
 import com.oneops.cms.dj.dal.DJMapper;
 import com.oneops.cms.dj.domain.*;
 import com.oneops.cms.util.TimelineQueryParam;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.Set;
@@ -75,6 +76,10 @@ public class ThreadLocalDJMapper implements DJMapper{
     @Override
     public List<CmsRelease> getReleaseBy3(String nsPath, String releaseName, String releaseState) {
         return get().getReleaseBy3(nsPath, releaseName, releaseState);
+    }
+
+    public List<CmsRfcCI> getRfcCIByReleaseAndClass(long releaseId, String className) {
+        return get().getRfcCIByReleaseAndClass(releaseId, className);
     }
 
     @Override
@@ -305,6 +310,11 @@ public class ThreadLocalDJMapper implements DJMapper{
     @Override
     public List<CmsRfcRelation> getOpenRfcRelationsNsLike(String relationName, String shortRelName, String ns, String nsLike, String fromClazzName, String toClazzName) {
         return get().getOpenRfcRelationsNsLike(relationName, shortRelName, ns, nsLike, fromClazzName, toClazzName);
+    }
+
+    @Override
+    public List<CmsRfcRelation> getOpenRfcRelationByCiIds(String relationName, String shortRelName, List<Long> fromCiIds, List<Long> toCiIds) {
+        return get().getOpenRfcRelationByCiIds(relationName, shortRelName, fromCiIds, toCiIds);
     }
 
     @Override
